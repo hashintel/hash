@@ -29,10 +29,18 @@
 //! - `GET /v1/atlas/current/manifest` returns its generation manifest.
 //! - `GET /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}` returns a bounded binary wire-v2
 //!   quadrant in delivery-priority order.
+//! - `GET /v1/atlas/lookup/{generation}/{variant}` resolves quantized grid coordinates to the
+//!   nearest entity identities and positions (optionally every identity within a radius).
+//! - `POST /v1/atlas/lookup/{generation}/{variant}/subgraph` additionally hydrates the hits from
+//!   the live HASH Graph store as a traversable subgraph in one round trip; it answers `503` when
+//!   no store is configured.
 //!
 //! Tile responses identify the complete spatial subtree and delivered prefix,
 //! use an exact response hash as the quoted `ETag`, and are immutable because
-//! the route binds both generation and variant.
+//! the route binds both generation and variant. Lookup responses derive from
+//! the immutable canonical base and share the same caching contract; the
+//! hydrating subgraph route reads live mutable store state and is never
+//! cacheable.
 //!
 //! # Reload
 //!
@@ -59,26 +67,36 @@ use std::{
 use axum::{
     Json, Router,
     body::Body,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{
         StatusCode,
         header::{CACHE_CONTROL, CONTENT_LENGTH, CONTENT_TYPE, ETAG},
     },
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
 use burn::tensor::backend::Backend;
 use camino::Utf8PathBuf;
+use hash_graph_store::subgraph::edges::SubgraphTraversalParams;
 use serde::{Deserialize, Serialize};
+use tokio::sync::OnceCell;
+use type_system::knowledge::entity::id::EntityId;
+use uuid::Uuid;
 
+pub use crate::salt::GraphStoreConfiguration;
 use crate::salt::{
-    ArtifactManifest, ArtifactRole, CONTOUR_WIRE_V1_CONTENT_TYPE, ContentHash, EncodedOverlay,
-    EncodedTile, ExternalGateVerifierSet, FLOW_WIRE_V1_CONTENT_TYPE, FileActivationStore, GateId,
-    GateVerifier, GenerationAssuranceMode, LoadedGeneration, MAXIMUM_TILE_POINTS,
-    TILE_WIRE_V4_CONTENT_TYPE, TileRequest, VariantId, encode_contours, encode_flows, encode_tile,
+    ActiveRelease, ArtifactManifest, ArtifactRole, CONTOUR_WIRE_V1_CONTENT_TYPE, ContentHash,
+    EncodedOverlay, EncodedTile, EntityHydrator, EntitySubgraph, ExternalGateVerifierSet,
+    FLOW_WIRE_V1_CONTENT_TYPE, FileActivationStore, GateId, GateVerifier, GenerationAssuranceMode,
+    HydrationError, HydrationRequest, LoadedGeneration, LookupRequest, MAXIMUM_TILE_POINTS,
+    SpatialHit, SpatialIndex, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, VariantId, default_traversal,
+    encode_contours, encode_flows, encode_tile,
 };
 
 const DEFAULT_TILE_POINT_BUDGET: usize = 4_096 * 4;
+
+/// Default hit budget for radius lookups without an explicit limit.
+const DEFAULT_RADIUS_LOOKUP_HITS: usize = 32;
 
 /// One named Ed25519 verification key encoded as lowercase hexadecimal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -200,6 +218,12 @@ pub struct AtlasApiConfiguration {
     /// Maximum point records returned from one quadtree tile request.
     #[serde(default = "default_tile_point_budget")]
     pub tile_point_budget: usize,
+    /// Optional live HASH Graph store used by lookup subgraph hydration.
+    ///
+    /// When absent, the spatial lookup route still serves identities and
+    /// positions, but the hydrating subgraph route answers 503.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub store: Option<GraphStoreConfiguration>,
 }
 
 const fn default_tile_point_budget() -> usize {
@@ -224,10 +248,13 @@ impl Error for AtlasApiConfigurationError {}
 pub struct AtlasApiState<B: Backend> {
     store: FileActivationStore<B>,
     cached: Mutex<Option<Arc<LoadedGeneration<B>>>>,
+    spatial: Mutex<Option<(ActiveRelease, Arc<SpatialIndex>)>>,
     compute: AtlasComputeConfiguration,
     enforce_compute: bool,
     allow_evidence_deferred: bool,
     tile_point_budget: NonZeroUsize,
+    store_configuration: Option<GraphStoreConfiguration>,
+    hydrator: OnceCell<EntityHydrator>,
 }
 
 impl<B: Backend> AtlasApiState<B> {
@@ -266,6 +293,7 @@ impl<B: Backend> AtlasApiState<B> {
                     "tilePointBudget must be between 1 and {MAXIMUM_TILE_POINTS}"
                 ))
             })?;
+        let store_configuration = configuration.store.clone();
         if enforce_compute && B::name(&device) != configuration.compute.backend.inference_name() {
             return Err(configuration_error(format!(
                 "configured {} backend does not match initialized {}",
@@ -323,10 +351,13 @@ impl<B: Backend> AtlasApiState<B> {
         Ok(Self {
             store,
             cached: Mutex::new(cached),
+            spatial: Mutex::new(None),
             compute: configuration.compute,
             enforce_compute,
             allow_evidence_deferred: configuration.allow_evidence_deferred,
             tile_point_budget,
+            store_configuration,
+            hydrator: OnceCell::new(),
         })
     }
 
@@ -373,6 +404,48 @@ impl<B: Backend> AtlasApiState<B> {
         drop(cached);
         Ok(loaded)
     }
+
+    /// Returns the derived spatial index for the loaded generation.
+    ///
+    /// The index is rebuilt at most once per activation under a single-flight
+    /// mutex and shared through an [`Arc`], so in-flight lookups against a
+    /// replaced generation keep their own consistent index. This method
+    /// blocks while building and therefore always runs on a blocking worker.
+    fn spatial(&self, loaded: &Arc<LoadedGeneration<B>>) -> Result<Arc<SpatialIndex>, HttpError> {
+        let mut cached = self.spatial.lock().unwrap_or_else(PoisonError::into_inner);
+        let release = loaded.release();
+        if let Some((key, index)) = cached.as_ref()
+            && *key == release
+        {
+            return Ok(Arc::clone(index));
+        }
+        let artifact = loaded
+            .artifact(ArtifactRole::CanonicalBase)
+            .ok_or_else(|| {
+                internal_error(io::Error::other(
+                    "active generation has no canonical base artifact",
+                ))
+            })?;
+        let index = Arc::new(SpatialIndex::build(artifact).map_err(internal_error)?);
+        *cached = Some((release, Arc::clone(&index)));
+        drop(cached);
+        Ok(index)
+    }
+
+    /// Returns the lazily connected lookup hydrator.
+    ///
+    /// A failed connection attempt is not cached; the next request retries.
+    async fn store_hydrator(&self) -> Result<&EntityHydrator, HttpError> {
+        let Some(configuration) = &self.store_configuration else {
+            return Err(HttpError::service_unavailable(
+                "no HASH Graph store is configured for lookup hydration",
+            ));
+        };
+        self.hydrator
+            .get_or_try_init(|| EntityHydrator::connect(configuration))
+            .await
+            .map_err(internal_error)
+    }
 }
 
 /// Builds the read-only Axum 0.8 router for verified Atlas state.
@@ -395,6 +468,11 @@ where
             get(contours::<B>),
         )
         .route("/v1/atlas/flows/{generation}/{variant}", get(flows::<B>))
+        .route("/v1/atlas/lookup/{generation}/{variant}", get(lookup::<B>))
+        .route(
+            "/v1/atlas/lookup/{generation}/{variant}/subgraph",
+            post(lookup_subgraph::<B>),
+        )
         .with_state(state)
 }
 
@@ -486,7 +564,7 @@ where
     B: Backend + Send + Sync + 'static,
     B::Device: Send + Sync,
 {
-    let (loaded, variant) = overlay_generation(state, &generation, variant).await?;
+    let (loaded, variant) = materialized_generation(state, &generation, variant).await?;
     let release = loaded.release();
     let store_snapshot_identity = loaded.manifest().input_snapshot.store_snapshot_identity;
     let overlay = tokio::task::spawn_blocking(move || {
@@ -513,7 +591,7 @@ where
     B: Backend + Send + Sync + 'static,
     B::Device: Send + Sync,
 {
-    let (loaded, variant) = overlay_generation(state, &generation, variant).await?;
+    let (loaded, variant) = materialized_generation(state, &generation, variant).await?;
     let release = loaded.release();
     let store_snapshot_identity = loaded.manifest().input_snapshot.store_snapshot_identity;
     let overlay = tokio::task::spawn_blocking(move || {
@@ -542,8 +620,223 @@ where
     overlay_response(overlay, FLOW_WIRE_V1_CONTENT_TYPE)
 }
 
-/// Validates the immutable overlay route identity against the active head.
-async fn overlay_generation<B>(
+/// Query parameters for one grid-space spatial lookup.
+#[derive(Debug, Copy, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LookupQuery {
+    /// Quantized grid x in `[0, 65536)`, the tile wire's axis space.
+    x: f32,
+    /// Quantized grid y in `[0, 65536)`, the tile wire's axis space.
+    y: f32,
+    /// Optional search radius in grid units; absent means nearest-neighbour.
+    #[serde(default)]
+    radius: Option<f32>,
+    /// Maximum hits; defaults to 1 without a radius and 32 with one.
+    #[serde(default)]
+    limit: Option<usize>,
+}
+
+/// One spatial hit serialized for lookup responses.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LookupHit {
+    /// Durable graph identity in the canonical `web~entity[~draft]` form.
+    entity_id: EntityId,
+    /// Generation row identity, matching tile-wire records.
+    row: u32,
+    /// Quantized grid coordinates of the hit.
+    x: f32,
+    y: f32,
+    /// Canonical generation coordinates of the hit.
+    canonical_x: f32,
+    canonical_y: f32,
+    /// Euclidean distance from the query point in grid units.
+    distance: f32,
+    /// Importance rung of the hit's delivery bucket.
+    bucket: u16,
+}
+
+impl From<SpatialHit> for LookupHit {
+    fn from(hit: SpatialHit) -> Self {
+        Self {
+            entity_id: hit.entity_id,
+            row: hit.row,
+            x: hit.grid[0],
+            y: hit.grid[1],
+            canonical_x: hit.canonical[0],
+            canonical_y: hit.canonical[1],
+            distance: hit.distance,
+            bucket: hit.bucket,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LookupResponse {
+    generation: String,
+    variant: u16,
+    hits: Vec<LookupHit>,
+}
+
+async fn lookup<B>(
+    State(state): State<Arc<AtlasApiState<B>>>,
+    Path((generation, variant)): Path<(String, u16)>,
+    Query(query): Query<LookupQuery>,
+) -> Result<Response, HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    let (loaded, variant) =
+        materialized_generation(Arc::clone(&state), &generation, variant).await?;
+    let request = lookup_request(query)?;
+    let index = spatial_index(state, loaded).await?;
+    let hits = index
+        .query(request)
+        .into_iter()
+        .map(LookupHit::from)
+        .collect();
+    let body = LookupResponse {
+        generation,
+        variant: variant.get(),
+        hits,
+    };
+    let bytes = serde_json::to_vec(&body).map_err(internal_error)?;
+    let content_hash = ContentHash::digest(&bytes);
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, "application/json")
+        .header(CACHE_CONTROL, "public, max-age=31536000, immutable")
+        .header(CONTENT_LENGTH, bytes.len().to_string())
+        .header(ETAG, format!("\"{content_hash}\""))
+        .body(Body::from(bytes))
+        .map_err(internal_error)
+}
+
+/// Body of one hydrating spatial lookup.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LookupSubgraphBody {
+    /// Quantized grid x in `[0, 65536)`, the tile wire's axis space.
+    x: f32,
+    /// Quantized grid y in `[0, 65536)`, the tile wire's axis space.
+    y: f32,
+    /// Optional search radius in grid units; absent means nearest-neighbour.
+    #[serde(default)]
+    radius: Option<f32>,
+    /// Maximum hits; defaults to 1 without a radius and 32 with one.
+    #[serde(default)]
+    limit: Option<usize>,
+    /// Traversal shape in the Graph API's `SubgraphTraversalParams` form;
+    /// absent means one link hop in both directions plus entity types.
+    #[serde(default)]
+    traversal: Option<SubgraphTraversalParams>,
+    /// Acting actor for the store query; absent uses the configured default.
+    #[serde(default)]
+    actor_id: Option<Uuid>,
+    /// Whether draft entities participate in the hydration query.
+    #[serde(default)]
+    include_drafts: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LookupSubgraphResponse {
+    generation: String,
+    variant: u16,
+    hits: Vec<LookupHit>,
+    subgraph: EntitySubgraph,
+}
+
+async fn lookup_subgraph<B>(
+    State(state): State<Arc<AtlasApiState<B>>>,
+    Path((generation, variant)): Path<(String, u16)>,
+    Json(body): Json<LookupSubgraphBody>,
+) -> Result<Response, HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    let (loaded, variant) =
+        materialized_generation(Arc::clone(&state), &generation, variant).await?;
+    let request = lookup_request(LookupQuery {
+        x: body.x,
+        y: body.y,
+        radius: body.radius,
+        limit: body.limit,
+    })?;
+    let index = spatial_index(Arc::clone(&state), loaded).await?;
+    let hits: Vec<LookupHit> = index
+        .query(request)
+        .into_iter()
+        .map(LookupHit::from)
+        .collect();
+    let subgraph = state
+        .store_hydrator()
+        .await?
+        .entity_subgraph(HydrationRequest {
+            roots: hits.iter().map(|hit| hit.entity_id).collect(),
+            traversal: body.traversal.unwrap_or_else(default_traversal),
+            actor_id: body.actor_id,
+            include_drafts: body.include_drafts,
+        })
+        .await
+        .map_err(|error| match error {
+            HydrationError::Traversal { .. } => HttpError::bad_request(error.to_string()),
+            HydrationError::Password { .. }
+            | HydrationError::Pool { .. }
+            | HydrationError::Query { .. } => internal_error(error),
+        })?;
+    let body = LookupSubgraphResponse {
+        generation,
+        variant: variant.get(),
+        hits,
+        subgraph,
+    };
+    let bytes = serde_json::to_vec(&body).map_err(internal_error)?;
+    let length = bytes.len();
+    response(
+        StatusCode::OK,
+        Body::from(bytes),
+        "application/json",
+        length,
+        None,
+    )
+}
+
+/// Resolves query defaults and validates one grid-space lookup.
+fn lookup_request(query: LookupQuery) -> Result<LookupRequest, HttpError> {
+    let limit = query.limit.unwrap_or_else(|| {
+        if query.radius.is_some() {
+            DEFAULT_RADIUS_LOOKUP_HITS
+        } else {
+            1
+        }
+    });
+    let limit = NonZeroUsize::new(limit)
+        .ok_or_else(|| HttpError::bad_request("lookup limit must be at least 1"))?;
+    LookupRequest::new(query.x, query.y, query.radius, limit)
+        .map_err(|error| HttpError::bad_request(error.to_string()))
+}
+
+/// Returns the shared spatial index for the loaded generation.
+async fn spatial_index<B>(
+    state: Arc<AtlasApiState<B>>,
+    loaded: Arc<LoadedGeneration<B>>,
+) -> Result<Arc<SpatialIndex>, HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    tokio::task::spawn_blocking(move || state.spatial(&loaded))
+        .await
+        .map_err(internal_error)?
+}
+
+/// Validates an immutable generation-and-variant route against the active
+/// head and requires the variant to carry materialized artifacts.
+async fn materialized_generation<B>(
     state: Arc<AtlasApiState<B>>,
     generation: &str,
     variant: u16,
@@ -572,7 +865,7 @@ where
     }
     if variant != loaded.manifest().variants.canonical_variant {
         return Err(HttpError::not_found(
-            "requested Atlas variant has no materialized overlay artifacts",
+            "requested Atlas variant has no materialized artifacts",
         ));
     }
     Ok((loaded, variant))
@@ -778,6 +1071,13 @@ impl HttpError {
     fn not_found(detail: impl Into<String>) -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
+            detail: detail.into(),
+        }
+    }
+
+    fn service_unavailable(detail: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::SERVICE_UNAVAILABLE,
             detail: detail.into(),
         }
     }

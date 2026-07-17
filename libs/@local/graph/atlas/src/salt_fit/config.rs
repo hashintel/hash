@@ -29,6 +29,7 @@ pub(crate) struct LoadedFitWorkerConfiguration {
     pub input_root: Utf8PathBuf,
     pub serving_config_output: Utf8PathBuf,
     pub postgres_password: String,
+    pub postgres_password_file: Utf8PathBuf,
     pub authorities: LoadedFitAuthorities,
 }
 
@@ -41,6 +42,7 @@ impl fmt::Debug for LoadedFitWorkerConfiguration {
             .field("input_root", &self.input_root)
             .field("serving_config_output", &self.serving_config_output)
             .field("postgres_password", &"[REDACTED]")
+            .field("postgres_password_file", &self.postgres_password_file)
             .field("authorities", &self.authorities)
             .finish()
     }
@@ -155,6 +157,7 @@ pub(crate) fn load_worker_configuration_for_assurance(
         input_root,
         serving_config_output,
         postgres_password,
+        postgres_password_file: password_path,
         authorities,
     })
 }

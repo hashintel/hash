@@ -143,6 +143,145 @@ fn rejects_duplicate_rows_and_coordinates_outside_the_extent() {
 }
 
 #[test]
+fn spatial_index_resolves_nearest_and_radius_hits_in_grid_space() {
+    let entities = (0..3).map(entity_id).collect::<Vec<_>>();
+    let identities =
+        IdentityDirectory::new(entities.clone()).expect("identity directory should be valid");
+    let coordinates = [[0.0, 1.0], [10.0, 11.0], [20.0, 21.0]];
+    let mut ranked = [
+        RankedPoint {
+            row: row(2),
+            bucket: 0,
+            morton: MortonKey::new(2, 2),
+            priority_rank: 0,
+        },
+        RankedPoint {
+            row: row(0),
+            bucket: 1,
+            morton: MortonKey::new(1, 1),
+            priority_rank: 1,
+        },
+        RankedPoint {
+            row: row(1),
+            bucket: 1,
+            morton: MortonKey::new(0, 0),
+            priority_rank: 2,
+        },
+    ];
+    let directory = tempdir().expect("temporary directory should exist");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("base.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_base_artifact(
+        &path,
+        &identities,
+        &coordinates,
+        &mut ranked,
+        CanonicalProvenance {
+            field_hash: ContentHash::digest(b"field"),
+            condition: 1.0,
+            condition_domain_hash: ContentHash::digest(b"domain"),
+            selection_evidence_hash: ContentHash::digest(b"evidence"),
+            procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
+            quantization_step: 0.25,
+        },
+    )
+    .expect("base artifact should publish");
+    let artifact = MappedArtifact::map_immutable(
+        File::open(&path).expect("base artifact should open"),
+        BASE_ARTIFACT_FORMAT,
+    )
+    .expect("base artifact should map");
+
+    let index = SpatialIndex::build(artifact.view()).expect("spatial index should build");
+    assert_eq!(index.len(), 3);
+
+    // Nearest lookup beside grid cell (2, 2): generation row 2, first rung.
+    let nearest = index.query(
+        LookupRequest::new(
+            1.9,
+            2.1,
+            None,
+            NonZeroUsize::new(1).expect("one is non-zero"),
+        )
+        .expect("nearest request should validate"),
+    );
+    assert_eq!(nearest.len(), 1);
+    assert_eq!(nearest[0].row, 2);
+    assert_eq!(nearest[0].entity_id, entities[2]);
+    assert_eq!(nearest[0].grid, [2.0, 2.0]);
+    assert_eq!(nearest[0].canonical, [20.0, 21.0]);
+    assert_eq!(nearest[0].bucket, 0);
+    // Hand-computed: sqrt(0.1^2 + 0.1^2).
+    assert!((nearest[0].distance - 0.141_421_36).abs() < 1e-6);
+
+    // Radius 1.5 around the origin reaches (0, 0) and (1, 1), nearest first,
+    // but not (2, 2) at distance 2 * sqrt(2).
+    let within = index.query(
+        LookupRequest::new(
+            0.0,
+            0.0,
+            Some(1.5),
+            NonZeroUsize::new(8).expect("eight is non-zero"),
+        )
+        .expect("radius request should validate"),
+    );
+    assert_eq!(within.iter().map(|hit| hit.row).collect::<Vec<_>>(), [1, 0]);
+    assert!(within[0].distance.abs() < 1e-6);
+    assert_eq!(within[0].entity_id, entities[1]);
+    assert_eq!(within[0].canonical, [10.0, 11.0]);
+    assert_eq!(within[0].bucket, 1);
+    assert!((within[1].distance - core::f32::consts::SQRT_2).abs() < 1e-6);
+
+    // The hit budget truncates nearest-first.
+    let truncated = index.query(
+        LookupRequest::new(
+            0.0,
+            0.0,
+            Some(1.5),
+            NonZeroUsize::new(1).expect("one is non-zero"),
+        )
+        .expect("truncated request should validate"),
+    );
+    assert_eq!(truncated.len(), 1);
+    assert_eq!(truncated[0].row, 1);
+}
+
+#[test]
+fn lookup_requests_reject_invalid_coordinates_radii_and_limits() {
+    let limit = NonZeroUsize::new(1).expect("one is non-zero");
+    assert_eq!(
+        LookupRequest::new(-1.0, 0.0, None, limit),
+        Err(LookupError::Coordinate {
+            axis: 0,
+            value: -1.0,
+        })
+    );
+    assert_eq!(
+        LookupRequest::new(0.0, 65_536.0, None, limit),
+        Err(LookupError::Coordinate {
+            axis: 1,
+            value: 65_536.0,
+        })
+    );
+    assert_eq!(
+        LookupRequest::new(0.0, 0.0, Some(0.0), limit),
+        Err(LookupError::Radius { radius: 0.0 })
+    );
+    assert!(matches!(
+        LookupRequest::new(0.0, 0.0, Some(f32::NAN), limit),
+        Err(LookupError::Radius { radius }) if radius.is_nan()
+    ));
+    let over = NonZeroUsize::new(MAXIMUM_LOOKUP_HITS + 1).expect("limit is non-zero");
+    assert_eq!(
+        LookupRequest::new(0.0, 0.0, None, over),
+        Err(LookupError::HitLimit {
+            requested: MAXIMUM_LOOKUP_HITS + 1,
+            maximum: MAXIMUM_LOOKUP_HITS,
+        })
+    );
+}
+
+#[test]
 fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
     use super::base::{BUCKET_OFFSETS, COORDINATES, MORTON_KEYS, ROWS, WEB_IDS};
 

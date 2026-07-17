@@ -1,6 +1,7 @@
 //! CRC-64/NVME corruption checks.
 
 use crc_fast::{CrcAlgorithm, Digest};
+use zerocopy::{LE, U64};
 
 use super::writer::Update;
 
@@ -19,16 +20,19 @@ use super::writer::Update;
     zerocopy::FromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
+    zerocopy::Unaligned,
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct Checksum(u64);
+pub struct Checksum(U64<LE>);
 
 #[expect(
     clippy::little_endian_bytes,
     reason = "checksum bytes are persisted in canonical little-endian order across platforms"
 )]
 impl Checksum {
+    pub const SIZE: u32 = u64::BITS / 8;
+
     /// Creates a checksum from its little-endian bytes.
     ///
     /// Every 8-byte value is a valid checksum; whether it is the checksum of
@@ -37,14 +41,14 @@ impl Checksum {
     #[must_use]
     #[inline]
     pub const fn from_bytes(bytes: [u8; 8]) -> Self {
-        Self(u64::from_le_bytes(bytes))
+        Self(U64::from_bytes(bytes))
     }
 
     /// Returns the little-endian checksum bytes.
     #[must_use]
     #[inline]
     pub const fn to_bytes(self) -> [u8; 8] {
-        self.0.to_le_bytes()
+        self.0.to_bytes()
     }
 }
 
@@ -102,7 +106,7 @@ impl Crc64 {
     #[must_use]
     #[inline]
     pub fn finalize(&self) -> Checksum {
-        Checksum(self.0.finalize())
+        Checksum(self.0.finalize().into())
     }
 
     /// Appends the stream checksummed by `suffix` to this stream.
@@ -151,10 +155,12 @@ impl Default for Crc64 {
 
 #[cfg(test)]
 mod tests {
+    use zerocopy::U64;
+
     use super::{Checksum, Crc64};
     use crate::integrity::Update as _;
 
-    const CHECK_VALUE: Checksum = Checksum(0xAE8B_1486_0A79_9888);
+    const CHECK_VALUE: Checksum = Checksum(U64::new(0xAE8B_1486_0A79_9888_u64));
 
     #[test]
     fn known_vectors() {
@@ -162,7 +168,7 @@ mod tests {
         checksum.update(b"123456789");
         assert_eq!(checksum.finalize(), CHECK_VALUE);
 
-        assert_eq!(Crc64::new().finalize(), Checksum(0));
+        assert_eq!(Crc64::new().finalize(), Checksum(0.into()));
     }
 
     #[test]

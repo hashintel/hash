@@ -51,6 +51,7 @@ async fn api_state_rejects_an_empty_activation_root() {
                 .collect(),
             allow_evidence_deferred: false,
             tile_point_budget: DEFAULT_TILE_POINT_BUDGET,
+            store: None,
         },
         NdArrayDevice::Cpu,
     );
@@ -225,6 +226,134 @@ async fn tile_route_serves_binary_quadrants_and_reloads_the_active_generation() 
 }
 
 #[tokio::test]
+async fn lookup_route_resolves_entities_at_grid_coordinates() {
+    let directory = tempdir().expect("temporary API root should create");
+    let root =
+        camino::Utf8Path::from_path(directory.path()).expect("temporary path should be UTF-8");
+    let (_release, generation) = publish_active(root, "api-lookup", None);
+    let state = loaded_test_state(root);
+    let application = router(state);
+
+    // The fixture base stores Morton key = row for 52 rows, so row 0 sits at
+    // grid (0, 0), rows 1 and 2 at (1, 0) and (0, 1), and row 3 at (1, 1).
+    let nearest = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/v1/atlas/lookup/{generation}/0?x=0&y=0"))
+                .body(Body::empty())
+                .expect("lookup request should build"),
+        )
+        .await
+        .expect("lookup request should complete");
+    assert_eq!(nearest.status(), StatusCode::OK);
+    assert_eq!(
+        nearest.headers().get(CACHE_CONTROL),
+        Some(&axum::http::HeaderValue::from_static(
+            "public, max-age=31536000, immutable"
+        ))
+    );
+    assert!(nearest.headers().contains_key(ETAG));
+    let body = to_bytes(nearest.into_body(), 1_000_000)
+        .await
+        .expect("lookup body should buffer");
+    let body: serde_json::Value =
+        serde_json::from_slice(&body).expect("lookup body should be JSON");
+    assert_eq!(body["generation"], serde_json::json!(generation));
+    let hits = body["hits"].as_array().expect("hits should be an array");
+    assert_eq!(hits.len(), 1);
+    assert_eq!(hits[0]["row"], serde_json::json!(0));
+    assert_eq!(hits[0]["x"], serde_json::json!(0.0));
+    assert_eq!(hits[0]["y"], serde_json::json!(0.0));
+    assert_eq!(hits[0]["distance"], serde_json::json!(0.0));
+    assert_eq!(
+        hits[0]["entityId"],
+        serde_json::json!(
+            "00000000-0000-0000-0000-000000000000~00000000-0000-0000-0000-000000000000"
+        )
+    );
+
+    // A radius sweep returns every point inside it, nearest first.
+    let within = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/v1/atlas/lookup/{generation}/0?x=0&y=0&radius=1.5&limit=10"
+                ))
+                .body(Body::empty())
+                .expect("radius request should build"),
+        )
+        .await
+        .expect("radius request should complete");
+    assert_eq!(within.status(), StatusCode::OK);
+    let body = to_bytes(within.into_body(), 1_000_000)
+        .await
+        .expect("radius body should buffer");
+    let body: serde_json::Value =
+        serde_json::from_slice(&body).expect("radius body should be JSON");
+    let hits = body["hits"].as_array().expect("hits should be an array");
+    assert_eq!(hits.len(), 4);
+    assert_eq!(hits[0]["row"], serde_json::json!(0));
+    let mut rows = hits
+        .iter()
+        .map(|hit| hit["row"].as_u64().expect("row should be an integer"))
+        .collect::<Vec<_>>();
+    rows.sort_unstable();
+    assert_eq!(rows, [0, 1, 2, 3]);
+    let distances = hits
+        .iter()
+        .map(|hit| {
+            hit["distance"]
+                .as_f64()
+                .expect("distance should be a number")
+        })
+        .collect::<Vec<_>>();
+    assert!(distances.is_sorted());
+    assert!(distances.iter().all(|&distance| distance <= 1.5));
+
+    // Coordinates outside the quantized grid are rejected.
+    let invalid = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/v1/atlas/lookup/{generation}/0?x=70000&y=0"))
+                .body(Body::empty())
+                .expect("invalid lookup request should build"),
+        )
+        .await
+        .expect("invalid lookup request should complete");
+    assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+
+    // A stale generation is not served.
+    let stale = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/v1/atlas/lookup/not-the-active-generation/0?x=0&y=0")
+                .body(Body::empty())
+                .expect("stale lookup request should build"),
+        )
+        .await
+        .expect("stale lookup request should complete");
+    assert_eq!(stale.status(), StatusCode::NOT_FOUND);
+
+    // Hydration is explicitly unavailable without a configured store.
+    let subgraph = application
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/v1/atlas/lookup/{generation}/0/subgraph"))
+                .header(CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"x": 0, "y": 0}"#))
+                .expect("subgraph request should build"),
+        )
+        .await
+        .expect("subgraph request should complete");
+    assert_eq!(subgraph.status(), StatusCode::SERVICE_UNAVAILABLE);
+}
+
+#[tokio::test]
 async fn evidence_deferred_generation_requires_explicit_server_permission() {
     let directory = tempdir().expect("temporary API root should create");
     let root =
@@ -326,6 +455,7 @@ fn test_configuration(
             .collect(),
         allow_evidence_deferred,
         tile_point_budget: DEFAULT_TILE_POINT_BUDGET,
+        store: None,
     }
 }
 
@@ -338,10 +468,13 @@ fn loaded_test_state(root: &camino::Utf8Path) -> AtlasApiState<NdArray> {
     AtlasApiState {
         store,
         cached: Mutex::new(cached),
+        spatial: Mutex::new(None),
         compute: AtlasComputeConfiguration::default(),
         enforce_compute: false,
         allow_evidence_deferred: false,
         tile_point_budget: NonZeroUsize::new(4_096).expect("fixture budget should be non-zero"),
+        store_configuration: None,
+        hydrator: OnceCell::new(),
     }
 }
 

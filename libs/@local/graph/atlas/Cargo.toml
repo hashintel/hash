@@ -26,7 +26,7 @@ camino       = { workspace = true, features = ["serde1"], public = true }
 cxx            = { version = "1.0.194", public = true }
 futures-sink   = { workspace = true, public = true }
 tempfile       = { version = "3.27.0", public = true }
-tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "signal"], public = true }
+tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "signal", "sync"], public = true }
 tokio-postgres = { workspace = true, public = true }
 uuid           = { workspace = true, public = true }
 
@@ -49,6 +49,7 @@ hash-graph-temporal-versioning.workspace = true
 hash-graph-types.workspace               = true
 hashql-core.workspace                    = true
 jiff                                     = { version = "0.2.32", features = ["serde"] }
+kiddo                                    = { version = "5.3.2", default-features = false }
 levenberg-marquardt                      = "0.15.0"
 libc                                     = "0.2.186"
 memmap2                                  = "0.9.11"

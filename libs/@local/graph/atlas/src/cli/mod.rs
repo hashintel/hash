@@ -705,6 +705,7 @@ mod tests {
                 .collect(),
             allow_evidence_deferred: false,
             tile_point_budget: 4_096,
+            store: None,
         };
         std::fs::write(
             &config,

@@ -31,7 +31,8 @@ use super::{
 };
 use crate::{
     api::{
-        AtlasApiConfiguration, ExternalGate, ExternalVerifierConfiguration, VerifierConfiguration,
+        AtlasApiConfiguration, ExternalGate, ExternalVerifierConfiguration,
+        GraphStoreConfiguration, VerifierConfiguration,
     },
     cli::{
         AtlasFitError, AtlasTrainer, FIT_RECEIPT_SCHEMA_VERSION, FitActivation, FitGate,
@@ -404,6 +405,7 @@ fn write_serving_configuration(
         ExternalGate::CompanionPin,
     ];
     let runtime_external = authorities.external();
+    let postgres = &worker.document.postgres;
     let configuration = AtlasApiConfiguration {
         root: worker.atlas_root.to_string(),
         compute: worker.document.compute,
@@ -419,6 +421,16 @@ fn write_serving_configuration(
             .collect(),
         allow_evidence_deferred: assurance == super::FitAssuranceMode::EvidenceDeferredLocal,
         tile_point_budget: 4_096,
+        store: Some(GraphStoreConfiguration {
+            host: postgres.host.clone(),
+            port: postgres.port,
+            user: postgres.user.clone(),
+            database: postgres.database.clone(),
+            password_file: Some(worker.postgres_password_file.clone()),
+            password: None,
+            max_connections: GraphStoreConfiguration::DEFAULT_MAX_CONNECTIONS,
+            actor_id: worker.document.actor_id,
+        }),
     };
     // Confirm that the generated public-key pins agree with the signers used
     // for this release before replacing the serving configuration.

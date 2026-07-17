@@ -28,11 +28,13 @@ info:
 
     ## Caching
 
-    Tile and overlay routes bind both generation and variant in the path, so
-    their payloads are immutable and are served with
+    Tile, overlay, and lookup routes bind both generation and variant in the
+    path, so their payloads are immutable and are served with
     `Cache-Control: public, max-age=31536000, immutable` and an exact
     content-hash `ETag`. The `current` and `manifest` routes describe mutable
-    state ("whatever is active right now") and must not be cached.
+    state ("whatever is active right now") and must not be cached; the
+    lookup subgraph route reads the live store and must not be cached
+    either.
 
     ## Security
 
@@ -312,6 +314,148 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /v1/atlas/lookup/{generation}/{variant}:
+    get:
+      operationId: getAtlasLookup
+      tags: [atlas]
+      summary: Reverse spatial lookup of entity identities
+      description: |
+        Resolves quantized grid coordinates to the entities at that point.
+        Coordinates use the tile wire's 16-bit axis space (`[0, 65536)` per
+        axis, one unit per quantization cell), so a canvas client can pass
+        tile-record coordinates through unchanged.
+
+        Without `radius`, the response holds the `limit` (default 1) nearest
+        points; with `radius`, the up to `limit` (default 32) nearest points
+        inside it. Hits are ordered nearest first and carry the durable
+        entity ID, the generation row (matching tile-wire records), grid and
+        canonical coordinates, distance, and importance rung.
+
+        Because generation and variant are bound in the path and the index
+        derives from the immutable canonical base, a successful response is
+        immutable.
+      parameters:
+        - $ref: "#/components/parameters/Generation"
+        - $ref: "#/components/parameters/Variant"
+        - name: x
+          in: query
+          required: true
+          description: Quantized grid x in `[0, 65536)`.
+          schema:
+            type: number
+            minimum: 0
+            exclusiveMaximum: 65536
+        - name: y
+          in: query
+          required: true
+          description: Quantized grid y in `[0, 65536)`.
+          schema:
+            type: number
+            minimum: 0
+            exclusiveMaximum: 65536
+        - name: radius
+          in: query
+          required: false
+          description: >-
+            Search radius in grid units. Absent means nearest-neighbour
+            lookup.
+          schema:
+            type: number
+            exclusiveMinimum: 0
+        - name: limit
+          in: query
+          required: false
+          description: >-
+            Maximum hits (1 to 4096). Defaults to 1 without a radius and 32
+            with one.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4096
+      responses:
+        "200":
+          description: Immutable nearest-first hit list.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ContentHashETag"
+            Cache-Control:
+              $ref: "#/components/headers/ImmutableCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LookupResponse"
+        "400":
+          description: >-
+            The lookup request is invalid: a coordinate lies outside the
+            grid, the radius is not a positive length, or the limit exceeds
+            its maximum.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/OverlayNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/atlas/lookup/{generation}/{variant}/subgraph:
+    post:
+      operationId: postAtlasLookupSubgraph
+      tags: [atlas]
+      summary: Spatial lookup hydrated with a live-store subgraph
+      description: |
+        Runs the same spatial lookup as `GET /v1/atlas/lookup/...`, then
+        hydrates the hit entities from the live HASH Graph store in the same
+        round trip: full entity payloads plus the requested graph
+        neighbourhood, serialized as the Graph REST API's keyed subgraph
+        (`roots`, `vertices`, `edges`, `temporalAxes`; edges carry
+        `kind`/`reversed`/`rightEndpoint` traversal structure).
+
+        The traversal shape uses the Graph API's `SubgraphTraversalParams`
+        form. When omitted, the default requests one link hop in both
+        directions plus every reached entity's type.
+
+        **This route is an unauthenticated proof of concept.** The optional
+        `actorId` is trusted as-is (mirroring the Graph API's
+        `X-Authenticated-User-Actor-Id` gateway contract) and defaults to
+        the configured serving actor; policy filtering still applies to that
+        actor, but nothing verifies the caller's identity. Responses read
+        live mutable state and are not cacheable.
+      parameters:
+        - $ref: "#/components/parameters/Generation"
+        - $ref: "#/components/parameters/Variant"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LookupSubgraphRequest"
+      responses:
+        "200":
+          description: Hit list plus hydrated subgraph. Not cacheable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LookupSubgraphResponse"
+        "400":
+          description: >-
+            The lookup parameters are invalid or the traversal exceeds the
+            Graph API's depth and path limits.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/OverlayNotFound"
+        "503":
+          description: No HASH Graph store is configured for hydration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
 components:
   parameters:
     Generation:
@@ -491,6 +635,143 @@ components:
         - legacy-layout
         - legacy-identities
         - legacy-export-manifest
+
+    EntityId:
+      type: string
+      description: >-
+        Durable graph entity identity in the canonical
+        `webId~entityUuid[~draftId]` tilde-delimited UUID form.
+      pattern: "^[0-9a-f-]{36}~[0-9a-f-]{36}(~[0-9a-f-]{36})?$"
+
+    LookupHit:
+      type: object
+      description: One resolved point, nearest first within its response.
+      required:
+        - entityId
+        - row
+        - x
+        - y
+        - canonicalX
+        - canonicalY
+        - distance
+        - bucket
+      additionalProperties: false
+      properties:
+        entityId:
+          $ref: "#/components/schemas/EntityId"
+        row:
+          type: integer
+          minimum: 0
+          description: >-
+            Generation-stable row identity, matching tile-wire point
+            records.
+        x:
+          type: number
+          description: Quantized grid x of the hit.
+        y:
+          type: number
+          description: Quantized grid y of the hit.
+        canonicalX:
+          type: number
+          description: Canonical generation x of the hit.
+        canonicalY:
+          type: number
+          description: Canonical generation y of the hit.
+        distance:
+          type: number
+          minimum: 0
+          description: Euclidean distance from the query point in grid units.
+        bucket:
+          type: integer
+          minimum: 0
+          description: Importance rung of the hit's delivery bucket.
+
+    LookupResponse:
+      type: object
+      required: [generation, variant, hits]
+      additionalProperties: false
+      properties:
+        generation:
+          $ref: "#/components/schemas/ContentHash"
+        variant:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        hits:
+          type: array
+          items:
+            $ref: "#/components/schemas/LookupHit"
+
+    LookupSubgraphRequest:
+      type: object
+      required: [x, y]
+      additionalProperties: false
+      properties:
+        x:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 65536
+          description: Quantized grid x in `[0, 65536)`.
+        y:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 65536
+          description: Quantized grid y in `[0, 65536)`.
+        radius:
+          type: number
+          exclusiveMinimum: 0
+          description: >-
+            Search radius in grid units. Absent means nearest-neighbour
+            lookup.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 4096
+          description: >-
+            Maximum hits. Defaults to 1 without a radius and 32 with one.
+        traversal:
+          type: object
+          description: >-
+            Graph API `SubgraphTraversalParams`: either
+            `{traversalPaths: [...], graphResolveDepths: {...}}` (entity
+            traversal paths plus ontology resolve depths) or
+            `{traversalPaths: [...]}` (full traversal paths). Absent means
+            one link hop in both directions plus entity types.
+        actorId:
+          type: string
+          format: uuid
+          description: >-
+            Acting actor for the store query, trusted as-is (proof of
+            concept). Absent uses the configured serving actor; the nil
+            UUID is the public actor.
+        includeDrafts:
+          type: boolean
+          default: false
+          description: Whether draft entities participate in hydration.
+
+    LookupSubgraphResponse:
+      type: object
+      required: [generation, variant, hits, subgraph]
+      additionalProperties: false
+      properties:
+        generation:
+          $ref: "#/components/schemas/ContentHash"
+        variant:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        hits:
+          type: array
+          items:
+            $ref: "#/components/schemas/LookupHit"
+        subgraph:
+          type: object
+          description: >-
+            Keyed subgraph in the Graph REST API wire shape: `roots` (vertex
+            IDs), `vertices` (entity ID or base URL, then revision, to
+            vertex), `edges` (same key space to outward edges carrying
+            `kind`, `reversed`, and `rightEndpoint`), and `temporalAxes`.
+          required: [roots, vertices, edges, temporalAxes]
 
     GenerationManifest:
       type: object

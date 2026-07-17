@@ -46,6 +46,7 @@ mod base;
 mod canonical;
 mod error;
 mod importance;
+mod lookup;
 mod morton;
 mod overlay;
 mod tile;
@@ -61,6 +62,7 @@ pub(crate) use self::{
     importance::{
         CoordinateBounds, ImportanceConfig, ImportanceInput, RankedPoint, rank_importance,
     },
+    lookup::{LookupError, LookupRequest, MAXIMUM_LOOKUP_HITS, SpatialHit, SpatialIndex},
     morton::MortonKey,
     overlay::{
         CONTOUR_WIRE_V1_CONTENT_TYPE, EncodedOverlay, FLOW_WIRE_V1_CONTENT_TYPE, OverlayError,

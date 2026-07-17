@@ -57,10 +57,12 @@
 //! SALT theory and invariants.
 //!
 //! The HTTP surface provides `/healthz`, `/v1/atlas/current`,
-//! `/v1/atlas/current/manifest`, and immutable spatial tiles at
-//! `/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`. The current envelope
-//! has no request authorization, so deployments should bind it to a trusted
-//! network boundary.
+//! `/v1/atlas/current/manifest`, immutable spatial tiles at
+//! `/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`, reverse spatial
+//! lookup at `/v1/atlas/lookup/{generation}/{variant}`, and live-store
+//! subgraph hydration at `/v1/atlas/lookup/{generation}/{variant}/subgraph`.
+//! The current envelope has no request authorization, so deployments should
+//! bind it to a trusted network boundary.
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
@@ -71,8 +73,9 @@
     never_type,
 
     // Library Features
-    array_windows,
+    const_closures,
     const_convert,
+    const_iter,
     const_ops,
     const_index,
     const_cmp,
@@ -80,10 +83,13 @@
     pointer_is_aligned_to,
     portable_simd,
     allocator_api,
-    array_try_from_fn
+    array_try_from_fn,
+    variant_count,
+    const_array
 )]
 #![expect(
     dead_code,
+    unsafe_code,
     clippy::integer_division,
     clippy::integer_division_remainder_used,
     clippy::float_arithmetic,

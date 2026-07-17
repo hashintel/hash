@@ -130,6 +130,7 @@ mod format;
 mod generation;
 mod graph;
 mod hash;
+mod hydrate;
 mod identity;
 mod landmark;
 mod manifest;
@@ -146,9 +147,10 @@ mod snapshot;
 mod storage;
 mod strength;
 
+pub use self::hydrate::GraphStoreConfiguration;
 #[cfg(test)]
 pub(crate) use self::{
-    activation::{ActivationOutcome, ActiveRelease},
+    activation::ActivationOutcome,
     manifest::{fixture_manifest, publish_fixture_artifacts, publish_manifest},
     release::{
         publish_gated_candidate,
@@ -157,13 +159,16 @@ pub(crate) use self::{
     revision::GenerationId,
 };
 pub(crate) use self::{
-    activation::{FileActivationStore, LoadedGeneration},
+    activation::{ActiveRelease, FileActivationStore, LoadedGeneration},
     hash::{ContentHash, ContentHasher},
+    hydrate::{
+        EntityHydrator, EntitySubgraph, HydrationError, HydrationRequest, default_traversal,
+    },
     manifest::{ArtifactManifest, ArtifactRole, GenerationAssuranceMode},
     materialize::{
         CONTOUR_WIRE_V1_CONTENT_TYPE, EncodedOverlay, EncodedTile, FLOW_WIRE_V1_CONTENT_TYPE,
-        MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, encode_contours, encode_flows,
-        encode_tile,
+        LookupRequest, MAXIMUM_TILE_POINTS, SpatialHit, SpatialIndex, TILE_WIRE_V4_CONTENT_TYPE,
+        TileRequest, encode_contours, encode_flows, encode_tile,
     },
     policy::Probability,
     relation::RelationConfidence,
