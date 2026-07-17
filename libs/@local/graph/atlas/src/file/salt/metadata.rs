@@ -11,4 +11,5 @@
 ///
 /// The field set follows the generation manifest the SPEC requires; it is
 /// populated as the pipeline stages land.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SaltMetadata;

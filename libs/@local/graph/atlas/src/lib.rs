@@ -73,7 +73,6 @@
     never_type,
 
     // Library Features
-    const_closures,
     const_convert,
     const_iter,
     const_ops,
@@ -84,8 +83,6 @@
     portable_simd,
     allocator_api,
     array_try_from_fn,
-    variant_count,
-    const_array,
     const_option_ops
 )]
 #![expect(

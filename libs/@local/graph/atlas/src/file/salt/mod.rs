@@ -13,6 +13,7 @@ use super::repository::{RepositoryFile, RepositoryVersion};
 mod metadata;
 
 /// The files of one SALT generation, by role.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SaltFiles {
     /// The canonical entity embeddings, an `f32` array file.
     pub embeddings: RepositoryFile,
@@ -22,6 +23,7 @@ pub(crate) struct SaltFiles {
 ///
 /// The version leads the serialized document, so readers reject a
 /// repository of another layout before interpreting anything else.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SaltRepository {
     pub version: RepositoryVersion,
     pub files: SaltFiles,

@@ -13,13 +13,13 @@ fn extents(shape: &ArrayShape) -> Vec<u64> {
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(ArrayVariant::F32, shape(&[262_144, 2]));
+    let header = FileHeader::new(ArrayVariant::F32, shape(&[1 << 18, 2]));
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTARRY");
     assert_eq!(bytes[8..12], 0_u32.to_le_bytes());
     assert_eq!(bytes[12], 0x00);
-    assert_eq!(bytes[13..21], 262_144_u64.to_le_bytes());
+    assert_eq!(bytes[13..21], (1_u64 << 18).to_le_bytes());
     assert_eq!(bytes[21..29], 2_u64.to_le_bytes());
     assert!(bytes[29..].iter().all(|&byte| byte == 0));
 }
@@ -29,8 +29,7 @@ fn header_parse_pins_identity() {
     let valid = FileHeader::new(ArrayVariant::F32, shape(&[16]));
     let mut bytes = [0_u8; FileHeader::SIZE];
     bytes.copy_from_slice(valid.as_bytes());
-    let parsed = FileHeader::try_read_from_bytes(&bytes)
-        .unwrap_or_else(|_| panic!("valid header bytes should parse"));
+    let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.variant(), ArrayVariant::F32);
     assert_eq!(extents(parsed.shape()), [16]);
     assert_eq!(parsed.as_bytes(), bytes);
@@ -39,20 +38,22 @@ fn header_parse_pins_identity() {
     // parse at the byte level.
     let mut wrong_magic = bytes;
     wrong_magic[0] = b'W';
-    assert!(FileHeader::try_read_from_bytes(&wrong_magic).is_err());
+    FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     let mut wrong_version = bytes;
     wrong_version[8] = 1;
-    assert!(FileHeader::try_read_from_bytes(&wrong_version).is_err());
+    FileHeader::try_read_from_bytes(&wrong_version)
+        .expect_err("an unsupported version should not parse");
 
     let mut wrong_variant = bytes;
     wrong_variant[12] = 0xFF;
-    assert!(FileHeader::try_read_from_bytes(&wrong_variant).is_err());
+    FileHeader::try_read_from_bytes(&wrong_variant)
+        .expect_err("an unknown variant should not parse");
 
     // Padding is ignored, not validated.
     let mut dirty_padding = bytes;
     dirty_padding[FileHeader::SIZE - 1] = 0xAB;
-    assert!(FileHeader::try_read_from_bytes(&dirty_padding).is_ok());
+    FileHeader::try_read_from_bytes(&dirty_padding).expect("padding bytes should be ignored");
 }
 
 #[test]
@@ -92,9 +93,9 @@ fn element_count_overflow_matches_no_file() {
 
 #[test]
 fn expected_file_len_is_the_single_rule() {
-    let header = FileHeader::new(ArrayVariant::F32, shape(&[262_144, 2]));
-    assert_eq!(header.byte_length(), Some(2_097_152));
-    assert_eq!(header.expected_file_len(), Some(4096 + 2_097_152));
+    let header = FileHeader::new(ArrayVariant::F32, shape(&[1 << 18, 2]));
+    assert_eq!(header.byte_length(), Some(1 << 21));
+    assert_eq!(header.expected_file_len(), Some(4096 + (1 << 21)));
 
     // A zero-element array is exactly its header.
     let empty = FileHeader::new(ArrayVariant::F32, shape(&[0]));

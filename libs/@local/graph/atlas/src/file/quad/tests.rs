@@ -25,19 +25,20 @@ fn header_wire_layout() {
 fn header_parse_pins_identity() {
     let mut bytes = [0_u8; FileHeader::SIZE];
     bytes.copy_from_slice(FileHeader::new(5, 1000, [-1.0, -2.0, 3.0, 4.0]).as_bytes());
-    let parsed = FileHeader::try_read_from_bytes(&bytes)
-        .unwrap_or_else(|_| panic!("valid header bytes should parse"));
+
+    let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.nodes(), 5);
     assert_eq!(parsed.points(), 1000);
     assert_eq!(parsed.bounds(), [-1.0, -2.0, 3.0, 4.0]);
 
     let mut wrong_magic = bytes;
     wrong_magic[0] = b'W';
-    assert!(FileHeader::try_read_from_bytes(&wrong_magic).is_err());
+    FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     let mut wrong_version = bytes;
     wrong_version[8] = 1;
-    assert!(FileHeader::try_read_from_bytes(&wrong_version).is_err());
+    FileHeader::try_read_from_bytes(&wrong_version)
+        .expect_err("an unsupported version should not parse");
 }
 
 #[test]
