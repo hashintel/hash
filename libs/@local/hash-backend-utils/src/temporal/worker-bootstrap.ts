@@ -110,7 +110,7 @@ const connectToTemporal = async (
         throw error;
       }
       logger.warn(
-        `Temporal server is not reachable yet, retrying in ${delayMs}ms`,
+        `Temporal server is not reachable yet, retrying in ${delayMs} ms`,
         {
           error: error instanceof Error ? error.message : String(error),
           remainingWindowMs: deadline - Date.now(),
