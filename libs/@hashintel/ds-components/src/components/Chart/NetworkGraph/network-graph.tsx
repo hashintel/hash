@@ -46,8 +46,8 @@ import type {
 } from "./network-graph-util";
 import type { Layer, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
-// Re-export the data types (which live in `network-graph-util`) so consumers can
-// keep importing them from `network-graph`, the component's public entry point.
+// Re-export the data types so consumers can import them from the component's
+// public entry point.
 export type {
   NetworkGraphEdge,
   NetworkGraphId,
@@ -63,17 +63,11 @@ export interface NetworkGraphInteraction {
   /** Pointer y position in pixels, relative to the chart's top-left corner. */
   y: number;
   /**
-   * The on-screen radius (px) at which an emphasised node — the hovered/active
-   * node and the selection — is drawn at the current zoom: the grown ring in the
-   * compact view (clamped to its pixel range) or the detailed node's circle. Lets
-   * a consumer offset an anchored overlay (e.g. a tooltip) so it clears the node.
+   * The on-screen radius (px) of the emphasised node at the current zoom, so a
+   * consumer can offset an anchored overlay (e.g. a tooltip) to clear the node.
    */
   nodeRadius: number;
-  /**
-   * Which node rendering the graph is currently showing: `"detailed"` (larger
-   * nodes with icons and label pills, at/above the compact→detail zoom switch) or
-   * `"compact"` (plain points).
-   */
+  /** Which node rendering is showing: `"detailed"` (icons + label pills) or `"compact"` (plain points). */
   variant: "detailed" | "compact";
 }
 
@@ -89,10 +83,8 @@ export interface NetworkGraphEdgeInteraction {
 
 /**
  * A selection given as an explicit neighbourhood rather than a node id: the
- * selected `point`, its `edges`, and its `neighbours`, all shown with the selected
- * style. Any of these that aren't already in the graph's `points`/`edges` are
- * overlaid; those that are use the existing graph items rather than being
- * re-rendered.
+ * selected `point`, its `edges`, and its `neighbours`. Items not already in the
+ * graph are overlaid; items that are get reused rather than re-rendered.
  */
 export interface NetworkGraphSelection {
   point: NetworkGraphPoint;
@@ -102,25 +94,21 @@ export interface NetworkGraphSelection {
 
 /**
  * The imperative API exposed via {@link NetworkGraphProps.ref}, letting a consumer
- * drive the zoom without lifting the view state out of the component. Zoom stays
- * internally owned; these just nudge it, clamped to the graph's own zoom limits.
+ * drive the zoom without the view state becoming controlled. Clamped to the
+ * graph's own zoom limits.
  */
 export interface NetworkGraphHandle {
   /** Zoom in one step ({@link ZOOM_STEP} zoom levels). */
   zoomIn: () => void;
   /** Zoom out one step. */
   zoomOut: () => void;
-  /**
-   * Change the zoom by `delta` levels. Orthographic zoom is log2, so `+1` doubles
-   * the on-screen scale and `-1` halves it. Positive zooms in, negative zooms out.
-   */
+  /** Change the zoom by `delta` levels (log2: `+1` doubles the scale, `-1` halves it). */
   zoomBy: (delta: number) => void;
   /**
-   * Bring a world-space point into view alongside the current viewport centre:
-   * zoom out and pan so both sit at least {@link FOCUS_MARGIN} of the viewport in
-   * from every edge. A no-op if the point is already within the viewport. Clamped
-   * to the view's zoom-out and pan limits, so it does its best when the two can't
-   * both fit with the full margin.
+   * Bring a world-space point into view alongside the current viewport centre by
+   * zooming out and panning so both sit {@link FOCUS_MARGIN} in from every edge.
+   * No-op if the point is already visible. Clamped to the view's zoom-out and pan
+   * limits.
    */
   revealPoint: (point: [number, number]) => void;
 }
@@ -131,9 +119,8 @@ export interface NetworkGraphProps {
   /** The connections between nodes. Only rendered while a node is hovered. */
   edges: NetworkGraphEdge[];
   /**
-   * The graph's spatial extent as a bounding box over the node coordinates — the
-   * smallest and largest x/y across the data. Used to frame the initial view and
-   * to clamp panning to the network.
+   * The graph's bounding box over the node coordinates. Used to frame the initial
+   * view and to clamp panning to the network.
    */
   graphBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /**
@@ -146,30 +133,23 @@ export interface NetworkGraphProps {
   className?: string;
   /**
    * The node to highlight with the same treatment as hovering (edges, neighbour
-   * rings and a prominent node). Either the id of a node already in the graph, or
-   * a {@link NetworkGraphSelection} giving an explicit `point`/`edges`/`neighbours`
-   * neighbourhood to overlay (items already in the graph are reused). An active
-   * hover takes precedence.
+   * rings and a prominent node). Either a node id, or a {@link NetworkGraphSelection}
+   * giving an explicit neighbourhood to overlay. An active hover takes precedence.
    */
   selected?: NetworkGraphId | NetworkGraphSelection | null;
   /**
-   * The edge to highlight with the same treatment as hovering it — bold stroke, a
-   * direction arrow, its endpoint nodes outlined and a label pill. Given as the id
-   * of an edge in the graph (or in the active overlay {@link NetworkGraphSelection}).
-   * An active edge hover takes precedence. In the detail view a selected edge shows
-   * on its own; in the compact view, where an edge is only drawn while its node is
-   * selected, it keeps its emphasis for as long as that node stays selected. `null`
-   * when no edge is selected.
+   * The edge to highlight with the same treatment as hovering it — bold stroke,
+   * direction arrow, endpoint outlines and a label pill. An active edge hover takes
+   * precedence. In the compact view, where an edge is only drawn while its node is
+   * selected, it keeps its emphasis for as long as that node stays selected.
    */
   selectedEdge?: NetworkGraphId | null;
   /**
-   * Called with the `selected` node's current on-screen position (CSS pixels,
-   * relative to the chart's top-left) and its drawn radius (px) whenever they
-   * change — including as the user zooms or pans — or `null` when nothing is
-   * selected or the selected node has moved outside the viewport. Lets a consumer
-   * anchor an overlay such as a tooltip to the node (offsetting it by `nodeRadius`
-   * so it clears the node), and hide it while the node is off screen. `variant`
-   * reports which node rendering is showing (`"detailed"` or `"compact"`).
+   * Called with the `selected` node's on-screen position (CSS px from the chart's
+   * top-left) and drawn radius whenever they change — including on zoom/pan — or
+   * `null` when nothing is selected or the node is outside the viewport. Lets a
+   * consumer anchor an overlay to the node, offsetting it by `nodeRadius`, and hide
+   * it while off screen.
    */
   onSelectedPositionChange?: (
     position: {
@@ -180,38 +160,28 @@ export interface NetworkGraphProps {
     } | null,
   ) => void;
   /**
-   * Called when the hovered node changes, with the newly hovered node (or
-   * `null` when the pointer leaves all nodes) and its pixel position. Not called
-   * while the pointer stays over the same node.
+   * Called when the hovered node changes, with the newly hovered node (or `null`)
+   * and its pixel position.
    */
   onNodeHover?: (interaction: NetworkGraphInteraction) => void;
-  /**
-   * Called when the chart is clicked, with the clicked node (or `null` when
-   * empty space is clicked) and its pixel position.
-   */
+  /** Called when the chart is clicked, with the clicked node (or `null` for empty space). */
   onNodeClick?: (interaction: NetworkGraphInteraction) => void;
   /**
-   * Called when the hovered edge changes, with the newly hovered edge (or `null`
-   * when the pointer leaves all edges) and its pixel position. Edges are hoverable
-   * in the detail view, and — while a node is selected — in the compact view. Not
-   * called while the pointer stays over the same edge.
+   * Called when the hovered edge changes, with the newly hovered edge (or `null`)
+   * and its pixel position. Edges are hoverable in the detail view, and — while a
+   * node is selected — in the compact view.
    */
   onEdgeHover?: (interaction: NetworkGraphEdgeInteraction) => void;
   /**
-   * Called when an edge is clicked, with the clicked edge and its pixel position.
-   * Clicking an edge does not change the node selection. To keep the clicked edge
-   * highlighted, feed its id back in via {@link NetworkGraphProps.selectedEdge}.
+   * Called when an edge is clicked. Does not change the node selection; to keep the
+   * clicked edge highlighted, feed its id back in via {@link NetworkGraphProps.selectedEdge}.
    */
   onEdgeClick?: (interaction: NetworkGraphEdgeInteraction) => void;
-  /**
-   * Called when the zoom level changes, with the new zoom as a single number
-   * (orthographic zoom is log2 scale). Not called for pure panning.
-   */
+  /** Called when the zoom level changes (log2 scale). Not called for pure panning. */
   onZoom?: (zoom: number) => void;
   /**
-   * Imperative handle for driving the zoom from outside — e.g. custom zoom
-   * buttons or keyboard shortcuts — without making the view state controlled. See
-   * {@link NetworkGraphHandle}.
+   * Imperative handle for driving the zoom from outside without making the view
+   * state controlled. See {@link NetworkGraphHandle}.
    */
   ref?: React.Ref<NetworkGraphHandle>;
 }
@@ -220,28 +190,28 @@ export interface NetworkGraphProps {
 const ZOOM_STEP = 1;
 /**
  * Fraction of the viewport kept clear on each side when {@link
- * NetworkGraphHandle.revealPoint} frames a point with the current centre — so both
- * land within the central `1 − 2·FOCUS_MARGIN` of the view.
+ * NetworkGraphHandle.revealPoint} frames a point, so both it and the centre land
+ * within the central `1 − 2·FOCUS_MARGIN` of the view.
  */
 const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.05;
 /**
- * Fallback furthest zoom-in — levels above the framing zoom — used only when
- * `nodeMinDistance` is unavailable (an empty/single-node graph). Otherwise the
- * camera's `maxZoom` is derived from the node spacing (see the framing effect).
+ * Fallback furthest zoom-in (levels above the framing zoom), used only when
+ * `nodeMinDistance` is unavailable (an empty/single-node graph). Otherwise
+ * `maxZoom` is derived from the node spacing (see the framing effect).
  */
 const MAX_ZOOM_OFFSET = 9;
 /** Screen-space padding (px) the viewport may show beyond the network when panning. */
 const PAN_PADDING_PX = 10;
 /**
- * Screen-space margin (px) reserved when framing the graph, so nodes near the
- * network's edge aren't clipped by their radius — the bounds cover node centres
- * only, and a node's disc extends past its centre.
+ * Screen-space margin (px) reserved when framing, so nodes near the edge aren't
+ * clipped by their radius — the bounds cover node centres only, and a disc extends
+ * past its centre.
  */
 const FIT_MARGIN_PX = 60;
 /**
- * Controller options — stable across renders so deck doesn't re-process the
+ * Controller options, stable across renders so deck doesn't re-process the
  * controller each time. Double-click-to-zoom off: clicks are handled via
  * `pointerup` on the container instead.
  */
@@ -253,17 +223,12 @@ const CLICK_PICK_RADIUS_PX = 4;
 const EDGE_PICK_RADIUS_PX = 5;
 const DETAIL_MAX_NODES = 1500;
 const DETAIL_MAX_EDGES = 400;
-/**
- * Extra viewport margin (px) within which nodes are still included, so a node
- * (or its label) straddling the edge isn't culled away.
- */
+/** Extra viewport margin (px) within which nodes are still included, so one straddling the edge isn't culled. */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
 /**
- * Style of the pill drawn on a hovered edge, mirroring the detail node label (see
- * `detailed-node-layer.ts`) — same font, ink, padding and radius — but outlined
- * in black rather than the node's colour. Drawn imperatively on a 2D overlay
- * canvas (not a deck.gl layer) so it can track the edge's on-screen centre as the
- * view pans and zooms.
+ * Style of the pill drawn on a hovered edge, mirroring the detail node label but
+ * outlined in black. Drawn imperatively on a 2D overlay canvas (not a deck.gl
+ * layer) so it can track the edge's on-screen centre as the view pans and zooms.
  */
 const EDGE_LABEL_FONT =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -276,9 +241,9 @@ const EDGE_LABEL_BACKGROUND = "rgb(255, 255, 255)";
 const EDGE_LABEL_BORDER = "rgb(0, 0, 0)";
 const EDGE_LABEL_BORDER_WIDTH = 1;
 /**
- * On-screen size (px) of the direction arrow drawn at the target end of a
- * highlighted edge. (The gap between the arrow tip and the node's edge is
- * zoom-derived — see `arrowGapPx` in {@link deriveZoomAttributes}.)
+ * On-screen size (px) of the direction arrow at the target end of a highlighted
+ * edge. (The gap to the node's edge is zoom-derived — see `arrowGapPx` in {@link
+ * deriveZoomAttributes}.)
  */
 const ARROW_SIZE_PX = 10;
 /** Resolution (px) the arrow triangle sprite is rasterised at. */
@@ -286,11 +251,9 @@ const ARROW_ICON_TEXTURE = 64;
 
 /**
  * The inclusive range a pan `center` may take on one axis so the viewport shows
- * at most {@link PAN_PADDING_PX} beyond the network on either side. `scale` is
- * the world→pixel factor (`2 ** zoom`). Zoomed in (viewport narrower than the
- * network) the two per-side limits order naturally as `[lo, hi]`; zoomed out
- * they swap — sorting covers both, so panning is always allowed right up to the
- * padding in either regime.
+ * at most {@link PAN_PADDING_PX} beyond the network on either side. `scale` is the
+ * world→pixel factor (`2 ** zoom`). The two per-side limits order as `[lo, hi]`
+ * zoomed in but swap zoomed out — sorting covers both regimes.
  */
 const panAxisLimits = (
   min: number,
@@ -306,12 +269,11 @@ const panAxisLimits = (
 };
 
 /**
- * Hard-clamp an orthographic pan `target` so the viewport never shows more than
- * {@link PAN_PADDING_PX} beyond the network's bounding box, snapping the target
- * to the nearest in-range value. Used where the target is computed afresh
- * ({@link NetworkGraphHandle.revealPoint}) and so must land inside the limits
- * regardless of where the view previously sat. `viewport{Width,Height}` are in
- * CSS pixels.
+ * Hard-clamp an orthographic pan `target` to the nearest in-range value so the
+ * viewport never shows more than {@link PAN_PADDING_PX} beyond the network's
+ * bounding box. Used where the target is computed afresh ({@link
+ * NetworkGraphHandle.revealPoint}) and must land inside the limits regardless of
+ * where the view previously sat. `viewport{Width,Height}` are in CSS pixels.
  */
 const clampPanTarget = (
   target: number[],
@@ -340,19 +302,15 @@ const clampPanTarget = (
 };
 
 /**
- * Constrain a pan during a live interaction *relative to where the view already
- * is*, so the clamp only ever resists the user's own panning and never pans the
- * view on its own. `previous` is the current (already-committed) pan target;
- * `target` is the interaction's proposed one. On each axis the target may move
- * freely back toward the network, but is blocked from moving *further* beyond
- * the padding than `previous` already sits.
+ * Constrain a pan *relative to where the view already is*, so the clamp only
+ * resists the user's own panning and never pans the view on its own. On each axis
+ * the target may move freely back toward the network but is blocked from moving
+ * further out than `previous` (the committed target) already sits.
  *
- * This matters when a zoom shrinks the pan limits (zooming in brings the
- * network's edge closer to the viewport border): a target parked at the edge
- * would then fall outside the new limits and {@link clampPanTarget} would snap
- * it inward, jerking the view sideways as the user merely zoomed. Relaxing each
- * bound to include `previous` leaves the view exactly where it is and only stops
- * the user from continuing to pan outward.
+ * Matters when a zoom shrinks the pan limits: a target parked at the edge would
+ * fall outside the new limits and {@link clampPanTarget} would snap it inward,
+ * jerking the view sideways as the user merely zoomed. Relaxing each bound to
+ * include `previous` leaves the view put and only stops further outward panning.
  */
 const clampPanTargetBlocking = (
   target: number[],
@@ -370,8 +328,7 @@ const clampPanTargetBlocking = (
     viewportPx: number,
   ) => {
     const [lo, hi] = panAxisLimits(min, max, viewportPx, scale);
-    // Relax whichever bound `prev` already sits beyond, so the view is never
-    // pulled inward — only kept from drifting further out than it already is.
+    // Relax whichever bound `prev` sits beyond, so the view is never pulled inward.
     return Math.min(Math.max(hi, prev), Math.max(Math.min(lo, prev), center));
   };
   return [
@@ -406,8 +363,7 @@ const clipSegmentToViewport = (
 ): [[number, number], [number, number]] | null => {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
-  // Each boundary as (pk, qk): the segment is inside this boundary where
-  // `pk * t <= qk` (Liang–Barsky).
+  // Each boundary as (pk, qk): inside where `pk * t <= qk` (Liang–Barsky).
   const tests: [number, number][] = [
     [-dx, a[0]],
     [dx, width - a[0]],
@@ -500,7 +456,6 @@ const edgeLabelAnchor = (
   return first[0];
 };
 
-/** Trace a rounded-rect path (no fill/stroke) on a 2D context. */
 const roundRectPath = (
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -554,8 +509,8 @@ interface EdgeArrow {
   /** Target node centre in world coords — stable across zoom/pan. */
   position: [number, number];
   /**
-   * Screen-space pixel offset from {@link EdgeArrow.position} that backs the arrow
-   * tip off the node by `nodeRadius + gap`, so the gap stays constant on screen.
+   * Screen-space pixel offset backing the tip off the node by `nodeRadius + gap`,
+   * so the gap stays constant on screen regardless of zoom.
    */
   offset: [number, number];
   /** Rotation (deg) aligning the triangle with the edge's tangent at the target. */
@@ -589,8 +544,7 @@ const arrowIconAtlas = (): ArrowIconAtlas | null => {
   if (!ctx) {
     return null;
   }
-  // An equilateral triangle pointing along +x: the base (a side) equals each
-  // slant side, and its height is `side · √3/2`. Centred in the square canvas.
+  // Equilateral triangle pointing along +x, height `side · √3/2`, centred in the canvas.
   const side = size * 0.8;
   const height = (side * Math.sqrt(3)) / 2;
   const tipX = (size + height) / 2;
@@ -622,8 +576,8 @@ const arrowIconAtlas = (): ArrowIconAtlas | null => {
 
 /**
  * Shorten a world-space polyline by `trim` world units from its **end** (target),
- * interpolating a new endpoint. Used to open the gap between a highlighted edge and
- * the node it points at, so nothing is drawn where the arrow's gap should be.
+ * interpolating a new endpoint. Used to open the arrow's gap between a highlighted
+ * edge and the node it points at.
  */
 const trimPathEnd = (
   path: [number, number][],
@@ -730,14 +684,12 @@ export const NetworkGraph = ({
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef>(null);
-  // The overlay canvas the hovered-edge label is drawn on.
   const labelCanvasRef = useRef<HTMLCanvasElement>(null);
   // Pointer-down position, to tell a click apart from a pan on release.
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
   const lastZoomRef = useRef<number | null>(null);
-  // Last hovered node id reported to `onNodeHover` (`null` when none), so we
-  // only fire when the hovered node actually changes.
+  // Last hovered node id reported to `onNodeHover`, so we only fire on change.
   const lastHoveredIdRef = useRef<NetworkGraphId | null>(null);
   // Id of the currently hovered edge, so we only update state when it changes.
   const hoveredEdgeIdRef = useRef<NetworkGraphId | null>(null);
@@ -753,12 +705,11 @@ export const NetworkGraph = ({
   // Mask atlas of every icon used by the data, built once for the IconLayer.
   const [iconAtlas, setIconAtlas] = useState<DetailIconAtlas | null>(null);
   const [hovered, setHovered] = useState<NetworkGraphPoint | null>(null);
-  // The edge under the pointer, if any, drawn emphasised with a label pill.
   const [hoveredEdge, setHoveredEdge] = useState<HoverableEdge | null>(null);
 
   const view = useMemo(() => new OrthographicView({ id: "network-graph" }), []);
 
-  /** Resolve each distinct hex colour to rgb once (there are only a few). */
+  // Resolve each distinct hex colour to rgb once.
   const colorByHex = useMemo(() => {
     const map = new Map<string, [number, number, number]>();
     for (const point of points) {
@@ -769,7 +720,6 @@ export const NetworkGraph = ({
     return map;
   }, [points]);
 
-  /** Look up a point by id, for resolving edge endpoints. */
   const pointById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphPoint>();
     for (const point of points) {
@@ -778,7 +728,6 @@ export const NetworkGraph = ({
     return map;
   }, [points]);
 
-  /** Look up an edge by id, for resolving a picked (hovered/clicked) edge. */
   const edgeById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphEdge>();
     for (const edge of edges) {
@@ -787,19 +736,15 @@ export const NetworkGraph = ({
     return map;
   }, [edges]);
 
-  /**
-   * When `selected` is a {@link NetworkGraphSelection} (an explicit neighbourhood
-   * to overlay) rather than a node id, this is that object; otherwise `null`.
-   */
+  // The {@link NetworkGraphSelection} when `selected` is one (not a node id), else null.
   const overlaySelection = useMemo(
     () => (selected != null && typeof selected === "object" ? selected : null),
     [selected],
   );
 
   /**
-   * The overlay selection's point + neighbours that are **not** already in the
-   * graph — the items to add to the rendering. Existing items are reused (left out
-   * here) so they aren't drawn twice.
+   * The overlay selection's point + neighbours **not** already in the graph — the
+   * items to add. Existing items are omitted here so they aren't drawn twice.
    */
   const overlayPoints = useMemo<NetworkGraphPoint[]>(() => {
     if (!overlaySelection) {
@@ -821,7 +766,7 @@ export const NetworkGraph = ({
     return result;
   }, [overlaySelection, pointById]);
 
-  /** The overlay selection's point + neighbours + edges keyed by id, for lookups. */
+  // The overlay selection's point + neighbours keyed by id.
   const overlayPointById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphPoint>();
     if (overlaySelection) {
@@ -843,10 +788,7 @@ export const NetworkGraph = ({
     return map;
   }, [overlaySelection]);
 
-  /**
-   * Resolve a node/edge by id, preferring the existing graph item and falling back
-   * to an overlaid one — so overlay geometry can reference either.
-   */
+  // Resolve a node/edge by id, preferring the graph item, falling back to an overlaid one.
   const resolvePoint = useCallback(
     (id: NetworkGraphId): NetworkGraphPoint | undefined =>
       pointById.get(id) ?? overlayPointById.get(id),
@@ -870,7 +812,7 @@ export const NetworkGraph = ({
     [resolvePoint],
   );
 
-  /** {@link colorByHex} extended with any overlay points' colours. */
+  // {@link colorByHex} extended with any overlay points' colours.
   const colorByHexWithOverlay = useMemo(() => {
     if (overlayPoints.length === 0) {
       return colorByHex;
@@ -884,7 +826,7 @@ export const NetworkGraph = ({
     return map;
   }, [colorByHex, overlayPoints]);
 
-  /** Adjacency list: node id → edges touching it. */
+  // Adjacency list: node id → edges touching it.
   const adjacency = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphEdge[]>();
     const push = (id: NetworkGraphId, edge: NetworkGraphEdge) => {
@@ -903,8 +845,8 @@ export const NetworkGraph = ({
   }, [edges]);
 
   /**
-   * The externally selected node: looked up by id, or the `point` of an overlay
-   * selection (preferring the graph's copy if that id already exists).
+   * The externally selected node: by id, or an overlay selection's `point`
+   * (preferring the graph's copy when that id exists).
    */
   const selectedPoint = useMemo(() => {
     if (selected == null) {
@@ -916,21 +858,16 @@ export const NetworkGraph = ({
     return pointById.get(selected) ?? null;
   }, [selected, pointById]);
 
-  /**
-   * The node whose neighbourhood is highlighted: the hovered node, or — when
-   * nothing is hovered — the externally selected node.
-   */
+  // The node whose neighbourhood is highlighted: hovered, else externally selected.
   const activeNode = useMemo(
     () => hovered ?? selectedPoint,
     [hovered, selectedPoint],
   );
 
   /**
-   * The selected node while a *different* node is hovered — i.e. the selection
-   * that's been temporarily backgrounded. It keeps its selected ring (dimmed) even
-   * though the hovered node now owns the active highlight (edges + neighbours). Null
-   * when nothing's hovered (the selection is the active node) or the hovered node is
-   * itself the selection.
+   * The selected node while a *different* node is hovered: backgrounded, so it keeps
+   * a dimmed selected ring while the hovered node owns the active highlight (edges +
+   * neighbours). Null when nothing's hovered, or the hover is the selection itself.
    */
   const dimmedSelectedNode = useMemo(
     () =>
@@ -941,11 +878,9 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Edges + neighbour nodes for the active (hovered or selected) node. For an
-   * overlay selection the neighbourhood is taken from the provided `edges`/
-   * `neighbours` (resolved against the graph); otherwise it is derived from the
-   * graph's adjacency. Endpoints resolve to the graph item when it exists, else the
-   * overlaid one.
+   * Edges + neighbour nodes for the active node. Taken from an overlay selection's
+   * provided `edges`/`neighbours` when it is the active node, else from the graph's
+   * adjacency.
    */
   const highlight = useMemo(() => {
     if (!activeNode) {
@@ -1007,10 +942,8 @@ export const NetworkGraph = ({
       const outPadding = 1 / (1 + ZOOM_OUT_MARGIN);
       const graphWidth = graphBounds.maxX - graphBounds.minX;
       const graphHeight = graphBounds.maxY - graphBounds.minY;
-      // Largest zoom at which the network's centre bounds fit within
-      // `paddingFraction` of the viewport, reserving `FIT_MARGIN_PX` so nodes
-      // near the edge aren't clipped by their radius. The tighter axis wins so
-      // nothing is clipped.
+      // Largest zoom at which the centre bounds fit within `paddingFraction` of the
+      // viewport, reserving `FIT_MARGIN_PX` for node radii. Tighter axis wins.
       const fitZoom = (paddingFraction: number) =>
         Math.min(
           Math.log2(
@@ -1023,20 +956,16 @@ export const NetworkGraph = ({
           ),
         );
       const framingZoom = fitZoom(padding);
-      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills
-      // the viewport — i.e. the view can never span more than that much world.
+      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills the viewport.
       const minZoom = fitZoom(outPadding);
-      // Furthest zoom-in: the closest two nodes should sit `2 · detailHoverRadius
-      // + 10px` apart on screen — i.e. their hovered detail circles clear each
-      // other by a 10px gap. Orthographic scale is `2 ** zoom` px per world unit,
-      // so solve `nodeMinDistance · 2 ** maxZoom = target` for the zoom. Falls back
-      // to a fixed offset above the framing when the spacing is unknown (an empty
-      // or single-node graph, where `nodeMinDistance` is 0/Infinity).
+      // Furthest zoom-in: the closest two nodes sit `2 · detailHoverRadius + 10px`
+      // apart on screen (their hovered detail circles clear by a 10px gap). Scale is
+      // `2 ** zoom` px/world unit, so solve `nodeMinDistance · 2 ** maxZoom = target`.
+      // Falls back to a fixed offset above framing when spacing is unknown (empty or
+      // single-node graph, where `nodeMinDistance` is 0/Infinity).
       const detailHoverRadius = 1;
       const targetClosestPx = detailHoverRadius;
-      // Floored at `minZoom` so a very sparse graph (whose closest nodes already
-      // clear the target spacing while the whole graph fits) never yields an
-      // inverted zoom range.
+      // Floored at `minZoom` so a very sparse graph never yields an inverted zoom range.
       const maxZoom = Math.max(
         minZoom,
         Number.isFinite(nodeMinDistance) && nodeMinDistance > 0
@@ -1052,7 +981,7 @@ export const NetworkGraph = ({
               (graphBounds.minY + graphBounds.maxY) / 2,
               0,
             ],
-            // Start fully zoomed out, at the min zoom.
+            // Start fully zoomed out.
             zoom: minZoom,
             minZoom,
             maxZoom,
@@ -1065,7 +994,7 @@ export const NetworkGraph = ({
     return () => observer.disconnect();
   }, [graphBounds, nodeMinDistance]);
 
-  /** Distinct icon names used by the graph points. */
+  // Distinct icon names used by the graph points.
   const pointIconNames = useMemo(
     () => [
       ...new Set(points.flatMap((point) => (point.icon ? [point.icon] : []))),
@@ -1074,9 +1003,8 @@ export const NetworkGraph = ({
   );
 
   /**
-   * A stable key over the distinct icon names — graph points plus any overlay
-   * points — so the atlas is rebuilt only when the icon *set* actually changes
-   * (not merely when the selection reference changes).
+   * A stable key over the distinct icon names (points + overlay points) so the
+   * atlas is rebuilt only when the icon *set* changes, not on every selection.
    */
   const iconNamesKey = useMemo(() => {
     const set = new Set(pointIconNames);
@@ -1089,14 +1017,12 @@ export const NetworkGraph = ({
   }, [pointIconNames, overlayPoints]);
 
   /**
-   * Rasterise every icon used by the data (and any overlaid points) into a single
-   * mask atlas for the detail {@link IconLayer}. Async (images load off data URLs);
-   * the icons simply appear once ready. Rebuilt only when the icon set changes.
+   * Rasterise every icon used by the data (and overlaid points) into a single mask
+   * atlas for the detail {@link IconLayer}. Async — icons appear once loaded.
    */
   useEffect(() => {
     const names = iconNamesKey ? iconNamesKey.split(" ") : [];
     if (names.length === 0) {
-      // Nothing to rasterise; any prior atlas simply goes unused (no icon data).
       return;
     }
     const cell = DETAIL_ICON_TEXTURE;
@@ -1132,8 +1058,7 @@ export const NetworkGraph = ({
               resolve();
             };
             image.onerror = () => resolve();
-            // `name` came from a point's `icon` (an `IconName`), round-tripped
-            // through the stable string key.
+            // `name` came from a point's `icon` (an `IconName`) via the string key.
             image.src = iconTextureUrl(name as IconName);
           }),
       ),
@@ -1147,7 +1072,7 @@ export const NetworkGraph = ({
     };
   }, [iconNamesKey]);
 
-  /** Current zoom level as a single number (orthographic zoom may be a pair). */
+  // Current zoom as a single number (orthographic zoom may be a pair).
   const currentZoom = useMemo(() => {
     const zoom = viewState?.zoom;
     if (zoom === undefined) {
@@ -1156,12 +1081,7 @@ export const NetworkGraph = ({
     return Array.isArray(zoom) ? zoom[0] : zoom;
   }, [viewState?.zoom]);
 
-  /**
-   * Every attribute the view derives from the current zoom — point size, point
-   * opacity, the arrow gap, and the compact/detail switch — computed together by
-   * {@link deriveZoomAttributes} so they stay in one place. Destructured below so
-   * the rest of the component can use each value directly.
-   */
+  // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
   const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
     () =>
       deriveZoomAttributes(
@@ -1173,11 +1093,9 @@ export const NetworkGraph = ({
   );
 
   /**
-   * The on-screen radius (px) of an emphasised node — the active/hovered node and
-   * the selection — as it is actually drawn: the grown ring clamped to its pixel
-   * range in the compact view (see the `highlight-hovered` layer), or the detailed
-   * node's circle. Reported to consumers via {@link NetworkGraphInteraction} and
-   * `onSelectedPositionChange` so an anchored overlay can be offset to clear it.
+   * The on-screen radius (px) of an emphasised node as drawn: the grown ring
+   * clamped to its pixel range (compact), or the detailed node's circle. Reported
+   * to consumers so an anchored overlay can be offset to clear it.
    */
   const activeNodeRadius = useMemo(
     () =>
@@ -1200,10 +1118,9 @@ export const NetworkGraph = ({
 
   /**
    * Report the selected node's on-screen position, re-projecting on every view
-   * change so a consumer's overlay can track the node as it zooms/pans. Reports
-   * `null` while the node's anchor lies outside the chart bounds (panned or zoomed
-   * off screen), so an anchored overlay such as a tooltip is hidden until the node
-   * comes back into view.
+   * change so a consumer's overlay tracks the node as it zooms/pans. Reports `null`
+   * while the anchor lies outside the chart bounds, so the overlay is hidden until
+   * the node comes back into view.
    */
   useEffect(() => {
     if (!onSelectedPositionChange) {
@@ -1221,8 +1138,7 @@ export const NetworkGraph = ({
       return;
     }
     const [x = 0, y = 0] = viewport.project([selectedPoint.x, selectedPoint.y]);
-    // Hide the overlay once the node's anchor leaves the viewport, and show it
-    // again when it pans/zooms back in.
+    // Hide once the anchor leaves the viewport; show again when it pans/zooms back in.
     if (x < 0 || x > width || y < 0 || y > height) {
       onSelectedPositionChange(null);
       return;
@@ -1246,9 +1162,9 @@ export const NetworkGraph = ({
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
   }, []);
 
-  // Handle clicks ourselves off the native `pointerup` rather than deck.gl's
-  // `onClick`: deck delays its click ~300ms to disambiguate a double-click,
-  // which makes selection feel laggy. Picking synchronously here fires instantly.
+  // Handle clicks off native `pointerup` rather than deck.gl's `onClick`: deck
+  // delays its click ~300ms to disambiguate a double-click, making selection feel
+  // laggy. Picking synchronously here fires instantly.
   const handlePointerUp = useCallback(
     (event: React.PointerEvent) => {
       const down = pointerDownRef.current;
@@ -1267,16 +1183,15 @@ export const NetworkGraph = ({
       }
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      // Exactly one node sublayer is pickable at a time — the compact `points`
-      // when zoomed out, the detailed nodes when zoomed in — so no `layerIds`
-      // filter is needed to resolve the node under the pointer.
+      // Exactly one node sublayer is pickable at a time (compact points zoomed out,
+      // detailed nodes zoomed in), so no `layerIds` filter is needed here.
       const info = deck.pickObject({
         x,
         y,
         radius: CLICK_PICK_RADIUS_PX,
       });
-      // Arrows are pickable (compact) only to intercept picks in the edge's arrow
-      // gap; a click landing on one is a no-op (it isn't the edge or a node).
+      // Arrows are pickable (compact) only to intercept picks in the arrow gap; a
+      // click on one is a no-op.
       if (info?.layer?.id === "edge-arrows") {
         return;
       }
@@ -1286,9 +1201,8 @@ export const NetworkGraph = ({
           | HoverLine
           | BundledEdge
           | undefined) ?? null;
-      // Edges are pickable too. A click landing on one (it carries `path` or
-      // `source`, not node fields) fires `onEdgeClick` instead of `onNodeClick`,
-      // so it leaves the node selection intact.
+      // A click on an edge (it carries `path` or `source`, not node fields) fires
+      // `onEdgeClick`, leaving the node selection intact.
       if (object && "path" in object) {
         onEdgeClick?.({ edge: resolveEdge(object.edgeId) ?? null, x, y });
         return;
@@ -1309,11 +1223,9 @@ export const NetworkGraph = ({
     [onNodeClick, onEdgeClick, resolveEdge, activeNodeRadius, nodeVariant],
   );
 
-  // Report zoom changes to the consumer from an effect, so it runs after commit —
-  // never mid-render. (A programmatic `setViewState` in `applyZoomDelta`/
-  // `revealPoint` runs its updater during render, so calling `onZoom` there would
-  // update the parent while rendering this component.) Deduped so it fires only on
-  // an actual change, regardless of which path (wheel, buttons, reveal) drove it.
+  // Report zoom changes from an effect (after commit), not inline: `setViewState`
+  // updaters run during render, so calling `onZoom` there would update the parent
+  // mid-render. Deduped so it fires only on an actual change.
   useEffect(() => {
     if (currentZoom === null || currentZoom === lastZoomRef.current) {
       return;
@@ -1323,14 +1235,11 @@ export const NetworkGraph = ({
   }, [currentZoom, onZoom]);
 
   /**
-   * Nudge the zoom by `delta` levels about the viewport centre, clamped to the
-   * view's own `minZoom`/`maxZoom`. A zoom-in leaves the pan `target` untouched
-   * (zoom about the centre, no clamp), so it never yanks the view sideways as the
-   * network's edge nears the viewport border. A zoom-out hard-clamps the target
-   * on every edge (see {@link clampPanTarget}) so the network stays framed within
-   * the padding — matching the wheel path. Backs the imperative
-   * {@link NetworkGraphHandle}, letting a consumer drive the zoom without the
-   * view state becoming controlled.
+   * Nudge the zoom by `delta` levels about the viewport centre, clamped to
+   * `minZoom`/`maxZoom`. A zoom-in leaves the pan `target` untouched so it never
+   * yanks the view sideways; a zoom-out hard-clamps the target on every edge (see
+   * {@link clampPanTarget}) so the network stays framed — matching the wheel path.
+   * Backs the imperative {@link NetworkGraphHandle}.
    */
   const applyZoomDelta = useCallback(
     (delta: number) => {
@@ -1349,11 +1258,10 @@ export const NetworkGraph = ({
           Math.min(previous.maxZoom ?? Infinity, current + delta),
         );
         if (next === current) {
-          // Already at the limit — nothing to do (avoids a needless re-render).
+          // Already at the limit — avoid a needless re-render.
           return previous;
         }
-        // Zooming in leaves the target alone; zooming out re-clamps it so the
-        // network stays framed within the padding on every edge.
+        // Zooming out re-clamps the target to keep the network framed; zooming in doesn't.
         const rect = containerRef.current?.getBoundingClientRect();
         const target =
           next < current && rect && previous.target
@@ -1372,11 +1280,10 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Bring `point` into view alongside the current viewport centre: if `point` is
-   * already visible, do nothing; otherwise centre on the midpoint of the two and
-   * zoom out (never in) just enough that both sit {@link FOCUS_MARGIN} in from the
-   * edges. The zoom is clamped to the view's `minZoom` and the pan to the network
-   * bounds, so it does its best when they can't both fit with the full margin.
+   * Bring `point` into view alongside the current viewport centre: no-op if already
+   * visible; otherwise centre on the midpoint and zoom out (never in) just enough
+   * that both sit {@link FOCUS_MARGIN} in from the edges. Clamped to `minZoom` and
+   * the network bounds.
    */
   const revealPoint = useCallback(
     (point: [number, number]) => {
@@ -1416,9 +1323,8 @@ export const NetworkGraph = ({
         const target = previous.target as number[];
         const centreX = target[0] ?? 0;
         const centreY = target[1] ?? 0;
-        // Zoom so the span between the point and the centre fits the central
-        // `1 − 2·margin` of the viewport (each axis), then only zoom out from the
-        // current level — never in.
+        // Fit the point↔centre span within the central `1 − 2·margin` of each axis,
+        // then only zoom out from the current level — never in.
         const usable = 1 - 2 * FOCUS_MARGIN;
         const spanX = Math.abs(point[0] - centreX);
         const spanY = Math.abs(point[1] - centreY);
@@ -1455,9 +1361,8 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Whether any edges are hoverable in the current view: always in the detail view
-   * (the bundled background edges, plus the active node's straight lines), and in
-   * the compact view only while a node is selected (its straight incident lines).
+   * Whether any edges are hoverable in the current view: always in detail, and in
+   * compact only while a node is selected (its incident lines).
    */
   const edgesHoverable = useMemo(
     () => isDetailZoom || selected != null,
@@ -1465,19 +1370,16 @@ export const NetworkGraph = ({
   );
 
   /**
-   * The node hierarchy used to bundle the detail-view edges (root → colour/type →
-   * spatial sub-cluster → node). Independent of the viewport, so it is built once
-   * per node set.
+   * The node hierarchy used to bundle detail-view edges. Viewport-independent, so
+   * built once per node set.
    */
   const bundleHierarchy = useMemo(() => buildBundleHierarchy(points), [points]);
 
   /**
-   * The externally selected edge resolved to a {@link HoverableEdge}, so it can be
-   * shown with the same emphasis as a hovered edge. Its world-space `path` matches
-   * how the edge is drawn in the current view — a bundled curve in the detail view,
-   * a straight source→target line in the compact view — so the label pill lands on
-   * the edge. `null` when no edge is selected or it (or an endpoint) can't be
-   * resolved.
+   * The externally selected edge as a {@link HoverableEdge}, so it can get the same
+   * emphasis as a hovered edge. Its `path` matches how the edge is drawn in the
+   * current view (bundled curve in detail, straight line in compact) so the label
+   * lands on the edge.
    */
   const selectedEdgeHoverable = useMemo<HoverableEdge | null>(() => {
     if (selectedEdge == null) {
@@ -1502,10 +1404,8 @@ export const NetworkGraph = ({
   }, [selectedEdge, resolveEdge, resolvePoint, isDetailZoom, bundleHierarchy]);
 
   /**
-   * The edge shown with edge-hover emphasis: the hovered edge, or — when nothing is
-   * hovered — the externally selected edge. Mirrors {@link activeNode} for edges, so
-   * a selected edge keeps the same treatment (bold stroke, direction arrow, endpoint
-   * outlines and a label pill) as hovering it, in both the compact and detail views.
+   * The edge shown with edge-hover emphasis: hovered, else externally selected.
+   * Mirrors {@link activeNode} for edges.
    */
   const activeEdge = useMemo(
     () => hoveredEdge ?? selectedEdgeHoverable,
@@ -1513,14 +1413,11 @@ export const NetworkGraph = ({
   );
 
   /**
-   * Whether the active edge is actually drawn in the current view, so its emphasis
-   * (the label pill, and in the compact view its endpoint outlines) only shows when
-   * there's an edge on screen to annotate. Always true in the detail view, where
-   * every edge is drawn; in the compact view only when the active edge is one of the
-   * active node's shown incident lines. This matters for a *selected* edge once a
-   * different node is hovered: the compact view then swaps to that node's edges, so
-   * the selected edge is no longer drawn and its label/outlines must not linger. (A
-   * hovered edge is always one of the shown lines, so this never suppresses a hover.)
+   * Whether the active edge is actually drawn now, so its emphasis (label pill,
+   * compact endpoint outlines) only shows when there's an edge on screen. Always
+   * true in detail; in compact only when it's one of the active node's shown lines.
+   * Matters for a *selected* edge once a different node is hovered: compact swaps to
+   * that node's edges, so the selected edge's label/outlines must not linger.
    */
   const activeEdgeShown = useMemo(
     () =>
@@ -1533,11 +1430,9 @@ export const NetworkGraph = ({
 
   /**
    * Draw the active edge's label on the overlay canvas, re-projecting on every view
-   * change so the pill tracks the centre of the edge's on-screen portion as the user
-   * pans and zooms. Clears the canvas when no edge is active, or when the active edge
-   * isn't drawn in the current view (so a label can't linger over an edge that is no
-   * longer shown — e.g. after the selection is cleared, or once a different node is
-   * hovered in the compact view).
+   * change so the pill tracks the centre of the edge's on-screen portion. Clears the
+   * canvas when no edge is active or the active edge isn't drawn, so a label can't
+   * linger over an edge no longer shown.
    */
   useEffect(() => {
     const canvas = labelCanvasRef.current;
@@ -1545,8 +1440,7 @@ export const NetworkGraph = ({
       return;
     }
     const { width, height } = containerSize;
-    // Back the canvas at device resolution so the text stays crisp, then draw in
-    // CSS pixels.
+    // Back the canvas at device resolution for crisp text, then draw in CSS pixels.
     const dpr = window.devicePixelRatio || 1;
     const pixelWidth = Math.round(width * dpr);
     const pixelHeight = Math.round(height * dpr);
@@ -1579,9 +1473,9 @@ export const NetworkGraph = ({
   }, [activeEdge, activeEdgeShown, viewState, containerSize, view]);
 
   /**
-   * The points fed to the detail layers: those within the viewport (plus a
-   * margin), in world coordinates. Empty unless zoomed into the detail range.
-   * Culling keeps the per-frame layer data small; capped at {@link DETAIL_MAX_NODES}.
+   * The points fed to the detail layers: those within the viewport (plus a margin).
+   * Empty unless zoomed into the detail range. Culling keeps per-frame data small;
+   * capped at {@link DETAIL_MAX_NODES}.
    */
   const detailPoints = useMemo(() => {
     if (!isDetailZoom || !viewState || !containerSize) {
@@ -1618,28 +1512,20 @@ export const NetworkGraph = ({
         break;
       }
     }
-    // Always render the overlaid selection points (not in `points`, so no dupes),
-    // even if they fall outside the culled viewport rect.
+    // Always include overlaid selection points, even if outside the culled rect.
     return overlayPoints.length > 0 ? [...visible, ...overlayPoints] : visible;
   }, [isDetailZoom, viewState, containerSize, view, points, overlayPoints]);
 
   /**
-   * Up to {@link DETAIL_MAX_EDGES} edges touching a currently visible detail node,
-   * as bundled polylines — including edges whose other endpoint is off-screen, so
-   * connections trailing out of view are still drawn. The detail view draws these
-   * faintly so the whole graph's structure shows, not just the hovered node's
-   * edges. Empty outside detail zoom. Walks the visible nodes' adjacency (cheap)
-   * rather than the full edge list, deduping each edge, then routes it along
-   * {@link bundleHierarchy}.
+   * Up to {@link DETAIL_MAX_EDGES} edges touching a visible detail node, as bundled
+   * polylines (including edges trailing off-screen), drawn faintly so the whole
+   * graph's structure shows. Empty outside detail zoom. Walks the visible nodes'
+   * adjacency, deduping, then routes each along {@link bundleHierarchy}.
    *
-   * Above the cap, edges are sampled **round-robin** across the visible nodes: on
-   * round `k` we take each node's `k`-th incident edge before taking any node's
-   * `(k+1)`-th. This spends the budget max-min fairly — every node's edges come in
-   * early, high-degree hubs are truncated last — so the drawn edges stay relatively
-   * uniform across nodes instead of a few hubs eating the whole budget. Taking
-   * edges in adjacency (insertion) order keeps the chosen subset stable frame to
-   * frame, avoiding flicker as the view pans. Work is bounded: it stops at the cap,
-   * otherwise costs O(visible incidences) like the uncapped walk.
+   * Above the cap, edges are sampled **round-robin** across visible nodes (each
+   * node's `k`-th edge before any node's `(k+1)`-th) so the budget is spent max-min
+   * fairly — hubs truncated last, not eating the whole budget. Adjacency
+   * (insertion) order keeps the subset stable frame to frame, avoiding flicker.
    */
   const detailEdgePaths = useMemo(() => {
     if (!isDetailZoom || detailPoints.length === 0) {
@@ -1648,8 +1534,7 @@ export const NetworkGraph = ({
     const seen = new Set<NetworkGraphId>();
     const paths: BundledEdge[] = [];
     for (let round = 0; paths.length < DETAIL_MAX_EDGES; round++) {
-      // Any node still had an edge at this round's index — otherwise every node
-      // is exhausted and we're done (before the cap).
+      // False once every node is exhausted at this round's index — then we're done.
       let anyRemaining = false;
       for (const point of detailPoints) {
         const incident = adjacency.get(point.id);
@@ -1658,8 +1543,7 @@ export const NetworkGraph = ({
         }
         anyRemaining = true;
         const edge = incident[round];
-        // Reached via `point` (in view), so at least one endpoint is visible;
-        // draw each edge once even if it's later reached via its other endpoint.
+        // Draw each edge once even if reached again via its other endpoint.
         if (!edge || seen.has(edge.id)) {
           continue;
         }
@@ -1686,10 +1570,9 @@ export const NetworkGraph = ({
   /**
    * The active node's incident edges as bundled polylines, for the detail view.
    * Routed through the same {@link bundleHierarchy} as {@link detailEdgePaths} so a
-   * highlighted edge follows the exact path it had as a faint background edge —
-   * they don't visibly shift when the node is selected. Unlike the background set
-   * these are never capped (so all of a selected node's edges are shown and
-   * hoverable) and drawn prominently. Rebuilt only when the active node changes.
+   * highlighted edge follows the exact path it had as a background edge (no visible
+   * shift when selected). Never capped, so all of a selected node's edges show and
+   * are hoverable.
    */
   const highlightEdgePaths = useMemo<BundledEdge[]>(() => {
     if (!isDetailZoom || !activeNode) {
@@ -1722,11 +1605,9 @@ export const NetworkGraph = ({
   ]);
 
   /**
-   * The active (hovered or selected) edge rebuilt as a full-length bundled curve
-   * (source → target centres). The picked geometry is trimmed to the node edges,
-   * but the arrow and the prominent-trim need the untrimmed path (to place the arrow
-   * at the node centre and to trim exactly once), so we re-bundle just this one edge.
-   * Detail view only; `null` when no edge is active.
+   * The active edge rebuilt as a full-length bundled curve (centre → centre). The
+   * picked geometry is trimmed to the node edges, but the arrow and prominent-trim
+   * need the untrimmed path, so we re-bundle just this one edge. Detail view only.
    */
   const activeFullEdge = useMemo<BundledEdge | null>(() => {
     if (!isDetailZoom || !activeEdge) {
@@ -1745,12 +1626,10 @@ export const NetworkGraph = ({
   }, [isDetailZoom, activeEdge, resolveEdge, resolvePoint, bundleHierarchy]);
 
   /**
-   * A direction arrow for each highlighted edge — the active node's incident edges
-   * plus a hovered background edge — placed at the target (`toId`) end. Each is
-   * anchored at the target node's world centre with a screen-space offset that
-   * backs the tip off the node, and an angle from the edge's tangent there; all
-   * three are zoom/pan-independent, so this only recomputes when the highlighted
-   * set changes. Fed to the arrow {@link IconLayer}. See {@link EdgeArrow}.
+   * A direction arrow for each highlighted edge, placed at the target (`toId`) end:
+   * anchored at the target's world centre, with a screen-space offset backing the
+   * tip off the node and an angle from the edge's tangent. Fed to the arrow {@link
+   * IconLayer}. See {@link EdgeArrow}.
    */
   const arrows = useMemo<EdgeArrow[]>(() => {
     const list: EdgeArrow[] = [];
@@ -1783,9 +1662,9 @@ export const NetworkGraph = ({
       const back = targetRadius + arrowGapPx;
       list.push({
         position: target,
-        // The view's `flipY` makes world y match screen y (down), so the world
-        // tangent is also the screen direction; offset backs the tip toward the
-        // source, and the angle points the triangle into the target node.
+        // The view's `flipY` makes world y match screen y, so the world tangent is
+        // the screen direction: offset backs the tip toward the source, angle points
+        // the triangle into the target.
         offset: [-ux * back, -uy * back],
         angle: -(Math.atan2(uy, ux) * 180) / Math.PI,
       });
@@ -1799,9 +1678,8 @@ export const NetworkGraph = ({
           addArrow(edge.edgeId, target, previous);
         }
       }
-      // The active (hovered/selected) background edge is highlighted too but isn't
-      // in the set above; use its full (untrimmed) path so the arrow sits at the
-      // node centre.
+      // The active background edge isn't in the set above; use its full (untrimmed)
+      // path so the arrow sits at the node centre.
       if (activeFullEdge) {
         const target = activeFullEdge.path[activeFullEdge.path.length - 1];
         const previous = activeFullEdge.path[activeFullEdge.path.length - 2];
@@ -1826,11 +1704,10 @@ export const NetworkGraph = ({
   ]);
 
   /**
-   * The detail view's prominent (arrowed) edges — the active node's incident edges
-   * plus the active (hovered/selected) background edge — as bundled curves trimmed
-   * to each node's edge: the source end by the node radius, the target end by the
-   * radius + gap (leaving the arrow's gap empty). The trims are pixel distances, so
-   * this re-trims (cheaply) on zoom; it never re-bundles. Empty in the compact view.
+   * The detail view's prominent (arrowed) edges as bundled curves trimmed to each
+   * node's edge: source by the node radius, target by radius + gap (leaving the
+   * arrow's gap empty). Pixel trims, so this re-trims cheaply on zoom without
+   * re-bundling. Empty in compact.
    */
   const trimmedHighlightEdgePaths = useMemo<BundledEdge[]>(() => {
     if (!isDetailZoom) {
@@ -1848,8 +1725,7 @@ export const NetworkGraph = ({
       seen.add(edge.edgeId);
       list.push({ edgeId: edge.edgeId, path: clip(edge.path) });
     }
-    // The active (hovered/selected) background edge is highlighted too; trim it from
-    // its full path.
+    // The active background edge is highlighted too; trim it from its full path.
     if (activeFullEdge && !seen.has(activeFullEdge.edgeId)) {
       list.push({
         edgeId: activeFullEdge.edgeId,
@@ -1907,26 +1783,22 @@ export const NetworkGraph = ({
   ]);
 
   /**
-   * The faint background bundled edges, minus the active node's prominent (arrowed)
-   * edges, each trimmed at both ends by the node radius so it stops at the node's
-   * edge instead of running to its centre (under the translucent detail nodes).
+   * The faint background bundled edges, minus the active node's prominent edges,
+   * each trimmed rim-to-rim so it stops at the node's edge (not its centre, under
+   * the translucent nodes).
    *
-   * The hovered edge is deliberately *kept* in this set — trimmed rim-to-rim — even
-   * though the separate `highlight-edges` layer draws its bold, arrow-gapped form on
-   * top. The background layer draws this copy invisibly (see its `getColor`), so it
-   * serves purely as a continuous pick target: without it the hovered edge would be
-   * pickable only via the highlight path, which is trimmed an extra `arrowGapPx`
-   * short at the target. That left a dead band by the arrow where the hover dropped
-   * and re-armed each pointer move — the visible hover jitter. Re-trims cheaply on
-   * zoom; never re-bundles. Empty in the compact view.
+   * The hovered edge is deliberately *kept* here, drawn invisibly (see `getColor`)
+   * as a continuous pick target: the bold highlight path is trimmed an extra
+   * `arrowGapPx` short at the target, which otherwise left a dead band by the arrow
+   * where the hover dropped and re-armed each pointer move — visible hover jitter.
+   * Empty in compact.
    */
   const trimmedBackgroundEdgePaths = useMemo<BundledEdge[]>(() => {
     if (!isDetailZoom) {
       return [];
     }
-    // Only the active node's edges are excluded (they're drawn prominently and
-    // are pickable via their own layer). The hovered edge stays, as an invisible
-    // full-length pick target — see the note above.
+    // Only the active node's edges are excluded (drawn prominently, pickable via
+    // their own layer). The hovered edge stays as an invisible pick target.
     const prominentIds = new Set(
       (highlight?.lines ?? []).map((line) => line.id),
     );
@@ -1941,20 +1813,15 @@ export const NetworkGraph = ({
   }, [isDetailZoom, detailEdgePaths, highlight, currentZoom]);
 
   const layers = useMemo(() => {
-    // The nodes the active (hovered/selected) edge connects, outlined in the edge's
-    // colour — only while that edge is actually drawn in this view (see
-    // `activeEdgeShown`).
+    // The active edge's endpoint nodes, outlined in the edge's colour — only while
+    // that edge is drawn (see `activeEdgeShown`).
     const edgeHoverNodes =
       activeEdgeShown && activeEdge ? activeEdge.endpoints : [];
 
-    // The bundled background edges are always hoverable in the detail view; the
-    // active node's straight incident lines are hoverable in detail (so all of a
-    // selected node's edges are reachable, not just those that survived the
-    // bundled cap) and in compact only while the highlight edges are the
-    // *selection's own* — i.e. a node is selected and no different node is hovered
-    // (`dimmedSelectedNode == null`). While another node is hovered the highlight
-    // follows that node, and a hovered node's edges must not be hoverable: only the
-    // selected node's edges (and other nodes) are.
+    // Background edges are always hoverable in detail. The highlight lines are
+    // hoverable in detail, but in compact only while they're the *selection's own*
+    // (a node is selected, no different node hovered) — a hovered node's edges must
+    // not become hoverable.
     const backgroundEdgesPickable = isDetailZoom;
     const highlightEdgesPickable = isDetailZoom
       ? activeNode != null
@@ -1963,18 +1830,15 @@ export const NetworkGraph = ({
 
     const compact = new CompactNodeLayer({
       id: "compact-nodes",
-      // Picking resolves off the compact `points` sublayer when it is shown, and
-      // off the detailed nodes otherwise (its points are hidden in detail zoom).
+      // Resolves picking when shown; the detailed nodes do so in detail zoom (its
+      // points are hidden there).
       pickable: true,
       data: points,
-      // The active node's incident edges: straight lines in the compact view;
-      // in the detail view they're drawn as bundled curves instead (see
-      // `highlightEdgePaths`) so they don't shift off the background paths. Both
-      // are trimmed at the target end to open the arrow's gap.
+      // The active node's incident edges as straight lines (detail draws bundled
+      // curves via `highlightEdgePaths` instead). Trimmed at the target to open the gap.
       edges: trimmedHighlightLines,
-      // All edges touching visible nodes (minus the prominent ones), bundled,
-      // trimmed to the node edges, and drawn faintly in detail view. The prominent
-      // (highlighted) edges are drawn by a separate layer above the nodes.
+      // All edges touching visible nodes minus the prominent ones, bundled and drawn
+      // faintly in detail. The prominent edges are drawn by a separate layer above.
       backgroundEdgePaths: trimmedBackgroundEdgePaths,
       hoveredEdgeId,
       highlightEdgesPickable,
@@ -1982,19 +1846,15 @@ export const NetworkGraph = ({
       edgeHoverNodes,
       neighbours: highlight?.neighbours ?? [],
       activeNode,
-      // The backgrounded selection: keeps a dimmed selected ring while another node
-      // is hovered (its edges/neighbours are hidden — those follow `activeNode`).
       dimmedSelectedNode,
       colorByHex: colorByHexWithOverlay,
       radiusScale,
       pointOpacity,
       dimmed: highlight !== null,
-      // In the detail variation the grow highlights give way to the detailed
-      // layer's colour-matched outline.
+      // In detail the grow highlights give way to the detailed layer's outline.
       showGrowHighlights: !isDetailZoom,
-      // Hide the compact crowd in detail zoom so it doesn't show through behind the
-      // translucent detailed nodes; the layer still draws the faint background
-      // edges and the hovered node's edges.
+      // Hide the compact crowd in detail so it doesn't show through behind the
+      // translucent detailed nodes; the layer still draws the edges.
       showPoints: !isDetailZoom,
     });
 
@@ -2007,7 +1867,6 @@ export const NetworkGraph = ({
             pickable: true,
             data: detailPoints,
             activeNode,
-            // Keep the backgrounded selection enlarged while another node is hovered.
             enlargedSelection: dimmedSelectedNode,
             colorByHex: colorByHexWithOverlay,
             iconAtlas,
@@ -2016,11 +1875,9 @@ export const NetworkGraph = ({
         ]
       : [compact];
 
-    // The active node's (and a hovered edge's) prominent bundled edges, drawn as a
-    // top-level layer *above* the detailed nodes so a highlighted connection reads
-    // over any node it crosses, not behind it. `depthCompare: "always"` lets it
-    // paint over the depth-writing nodes. Detail view only (empty otherwise); the
-    // compact view keeps its straight lines below the tiny nodes.
+    // The prominent bundled edges, drawn above the detailed nodes so a highlighted
+    // connection reads over any node it crosses. `depthCompare: "always"` lets it
+    // paint over the depth-writing nodes. Detail view only.
     if (trimmedHighlightEdgePaths.length > 0) {
       nodeLayers.push(
         new PathLayer<BundledEdge>({
@@ -2045,18 +1902,16 @@ export const NetworkGraph = ({
 
     // Direction arrows on the highlighted edges. Drawn *below* the active node's
     // redraw (next) so a selected/hovered node sits above the arrows on its own
-    // edges rather than being covered by them. `depthWriteEnabled: false` (like the
-    // highlight edges above) means the node redrawn afterwards can paint over them.
+    // edges. `depthWriteEnabled: false` lets that redraw paint over them.
     const arrowAtlas = arrowIconAtlas();
     if (arrowAtlas && arrows.length > 0) {
       nodeLayers.push(
         new IconLayer<EdgeArrow>({
           id: "edge-arrows",
           data: arrows,
-          // Pickable in the compact view only, purely to intercept picks in the
-          // edge's arrow gap so hovering/clicking the gap doesn't hit the edge
-          // (the pointer handlers ignore arrow picks). The detail view keeps its
-          // rim-to-rim edge pick target, so arrows stay non-pickable there.
+          // Pickable in compact only, to intercept picks in the arrow gap so
+          // hovering/clicking it doesn't hit the edge (handlers ignore arrow picks).
+          // Detail keeps its rim-to-rim edge pick target, so arrows aren't pickable there.
           pickable: !isDetailZoom,
           iconAtlas: arrowAtlas.url,
           iconMapping: arrowAtlas.mapping,
@@ -2072,15 +1927,12 @@ export const NetworkGraph = ({
       );
     }
 
-    // The active (hovered/selected) node — and the backgrounded selection, if any —
-    // redrawn above the highlighted edges *and* the arrows, so a selected/hovered
-    // node is never covered by an edge or arrow crossing it. Redrawing the selection
-    // here too keeps it drawn twice (main + this layer) whether or not it's the
-    // active node, so its translucent fill doesn't visibly brighten when the active
-    // highlight moves to a hover.
-    // NB: the id must not be `detailed-nodes-active`, or its `-outline-pill`
-    // sublayer would collide with the main layer's `-active-outline-pill` sublayer
-    // (both would be `detailed-nodes-active-outline-pill`).
+    // The active node (and the backgrounded selection, if any) redrawn above the
+    // highlighted edges *and* arrows, so it's never covered by an edge/arrow crossing
+    // it. Redrawing the selection here too keeps it drawn twice regardless of whether
+    // it's active, so its translucent fill doesn't brighten when the highlight moves.
+    // NB: the id must not be `detailed-nodes-active`, or its `-outline-pill` sublayer
+    // would collide with the main layer's `-active-outline-pill` sublayer.
     if (isDetailZoom && activeNode) {
       nodeLayers.push(
         new DetailedNodeLayer({
@@ -2097,9 +1949,8 @@ export const NetworkGraph = ({
         }),
       );
     } else if (activeNode) {
-      // Compact view: redraw just the active node's grow ring above the arrows
-      // (the crowd, edges, neighbours and dimmed selection stay below). Its fill is
-      // opaque, so the extra draw over the base layer's ring is visually identical.
+      // Compact: redraw just the active node's grow ring above the arrows (the rest
+      // stays below). Its fill is opaque, so the extra draw is visually identical.
       nodeLayers.push(
         new CompactNodeLayer({
           id: "compact-nodes-front",
@@ -2159,13 +2010,12 @@ export const NetworkGraph = ({
           viewState={viewState}
           controller={CONTROLLER_OPTIONS}
           layers={layers}
-          // A small tolerance so the thin edges can be hovered without pixel-
-          // perfect aim; nodes still win where they overlap, being drawn on top.
+          // A small tolerance so thin edges can be hovered without pixel-perfect
+          // aim; nodes still win where they overlap, being drawn on top.
           pickingRadius={EDGE_PICK_RADIUS_PX}
           onHover={(info: PickingInfo) => {
-            // Arrows are pickable (compact) only to intercept picks in the edge's
-            // arrow gap; ignore them so hovering the gap leaves the hover unchanged
-            // rather than hovering the edge behind.
+            // Ignore arrow picks (compact) so hovering the arrow gap leaves the hover
+            // unchanged rather than hovering the edge behind.
             if (info.layer?.id === "edge-arrows") {
               return;
             }
@@ -2176,8 +2026,7 @@ export const NetworkGraph = ({
                 | BundledEdge
                 | undefined) ?? null;
 
-            // Resolve a hovered edge from either representation: a bundled detail
-            // edge carries `path`; a compact highlight line carries `source`.
+            // A bundled detail edge carries `path`; a compact highlight line carries `source`.
             const picked: {
               edgeId: NetworkGraphId;
               path: [number, number][];
@@ -2202,9 +2051,8 @@ export const NetworkGraph = ({
                 });
                 onEdgeHover?.({ edge: resolved, x: info.x, y: info.y });
               }
-              // Hovering an edge drops the node hover but preserves the external
-              // selection: `onNodeHover` is only told the pointer left the node
-              // (`point: null`), which the consumer treats as "keep selection".
+              // Hovering an edge drops the node hover (`onNodeHover` with
+              // `point: null`) but leaves the external selection for the consumer to keep.
               if (lastHoveredIdRef.current !== null) {
                 lastHoveredIdRef.current = null;
                 setHovered(null);
@@ -2245,17 +2093,14 @@ export const NetworkGraph = ({
           onViewStateChange={(params) => {
             const raw = params.viewState as OrthographicViewState;
             const zoom = Array.isArray(raw.zoom) ? raw.zoom[0] : raw.zoom;
-            // deck flags whether this change came from a zoom gesture; the sign of
-            // the zoom delta (computed against our committed state below) tells us
-            // which way.
+            // deck flags a zoom gesture; the delta's sign (vs. our committed state) says which way.
             const isZooming = params.interactionState.isZooming ?? false;
             const rect = containerRef.current?.getBoundingClientRect();
             setViewState((previous) => {
               // deck's interaction viewState carries only target/zoom, so merge it
-              // onto our own state to preserve `minZoom`/`maxZoom`. Without this a
-              // single wheel event wipes those limits, and later imperative zooms
-              // (buttons, `revealPoint`) produce out-of-range values that deck's
-              // controller silently ignores — leaving the camera stuck.
+              // onto ours to preserve `minZoom`/`maxZoom`. Without this a wheel event
+              // wipes the limits, and later imperative zooms produce out-of-range
+              // values deck silently ignores — leaving the camera stuck.
               const base = previous ?? raw;
               const previousZoom = Array.isArray(base.zoom)
                 ? base.zoom[0]
@@ -2264,20 +2109,16 @@ export const NetworkGraph = ({
                 isZooming && zoom !== undefined && previousZoom !== undefined
                   ? zoom - previousZoom
                   : 0;
-              // A zoom-in re-anchors the view on the point under the cursor, which
-              // legitimately drags the target toward the network's far edge. Any
-              // pan clamp here would fight that anchoring and jerk the view, so a
-              // zoom-in is left to pan freely — its limits only widen as it zooms,
-              // so it can never reveal more than the padding regardless.
+              // A zoom-in re-anchors on the cursor, legitimately dragging the target
+              // toward the far edge; a pan clamp would fight that and jerk the view.
+              // Left free — its limits only widen as it zooms, so it can't over-reveal.
               const zoomingIn = zoomDelta > 0;
-              // A zoom-out instead hard-clamps the target on every edge (see
-              // `clampPanTarget`), keeping the whole network within the padding —
-              // reframing the view inward if need be rather than exposing empty
-              // space beyond the shrinking network.
+              // A zoom-out hard-clamps the target on every edge (`clampPanTarget`),
+              // reframing inward rather than exposing empty space beyond the network.
               const zoomingOut = zoomDelta < 0;
-              // Any other change (a pan, or a zoom pinned at a limit) constrains
-              // panning relative to where the view already sits: it blocks the
-              // user from panning further out, yet never pans the view on its own.
+              // Any other change (pan, or zoom pinned at a limit) constrains panning
+              // relative to where the view sits: blocks further outward pan, never
+              // pans on its own.
               const target =
                 rect && zoom !== undefined && raw.target && !zoomingIn
                   ? zoomingOut

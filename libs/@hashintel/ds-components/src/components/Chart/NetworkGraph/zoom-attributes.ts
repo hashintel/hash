@@ -1,50 +1,36 @@
 /**
- * The single source of truth for the point size, point opacity, and arrow gap the
- * network graph derives from the current zoom, plus the compact→detail switch.
- * These are computed together by {@link deriveZoomAttributes} — from the current
- * zoom, and (for the detail switch) a `detailZoom` threshold the caller passes in —
- * so the way each knob responds to zoom lives in one place.
+ * Single source of truth for the point size, point opacity, and arrow gap the
+ * network graph derives from the current zoom, plus the compact→detail switch, all
+ * computed by {@link deriveZoomAttributes}.
  *
- * The radius and opacity thresholds below are absolute orthographic zoom levels
- * (`2 ** zoom` = pixels per world unit), tuned to the framing zoom range the graph
- * operates in: the full reference dataset frames at ≈ −4.3 with a min zoom of ≈
- * −4.4. The max zoom and the compact→detail threshold are no longer fixed here —
- * the graph derives them from the node spacing (max zoom sizes the closest nodes to
- * a target on-screen gap; detail sits just below it) and passes the latter in.
+ * Thresholds below are absolute orthographic zoom levels (`2 ** zoom` = pixels per
+ * world unit), tuned to the graph's framing range: the full reference dataset frames
+ * at ≈ −4.3, min zoom ≈ −4.4. Max zoom and the compact→detail threshold are not
+ * fixed here — the graph derives them from node spacing and passes the latter in.
  * Denser/sparser data frames at a different zoom, so these may need revisiting if
  * the data's extent changes materially.
  */
 
-/** Base opacity of the points — subtly transparent so dense areas read as depth. */
 const POINT_OPACITY = 1;
-/**
- * Point opacity floor — used both when zoomed all the way out and, symmetrically,
- * when zoomed all the way in (as the detailed view takes over).
- */
+// Opacity floor: used both fully zoomed out and, symmetrically, fully zoomed in (as
+// the detailed view takes over).
 const POINT_MIN_OPACITY = 0.5;
-/** Zoom at which the opacity fade-in starts from the floor (most zoomed out). */
+// Fade-in starts from the floor here (most zoomed out).
 const OPACITY_FADE_IN_ZOOM = -4.4;
-/** Zoom at which points reach full opacity while zooming in. */
+// Points reach full opacity here.
 const OPACITY_FULL_ZOOM = -1.5;
-/**
- * Zoom at which points — after a stretch at full opacity — begin fading back out
- * as you keep zooming in, so the crowd recedes behind the detailed view.
- */
+// After a stretch at full opacity, fade-out begins here so the crowd recedes behind
+// the detailed view.
 const OPACITY_FADE_OUT_ZOOM = 1.5;
-/** Zoom by which the fade-out has returned points to the opacity floor. */
+// Fade-out reaches the floor by here.
 const OPACITY_FADE_END_ZOOM = 4.2;
-// The compact→detail switch is not a fixed threshold: the zoom at/above which the
-// node layer swaps compact points for the detailed nodes (icon + label pill) is
-// passed into `deriveZoomAttributes` as `detailZoom`, derived from the camera's max
-// zoom so detail is revealed a fixed number of zoom levels below the deepest zoom-in.
 
 // ── Node sizing ──────────────────────────────────────────────────────────────
 // deriveZoomAttributes returns `radiusScale`, a single multiplier for the current
-// zoom. Each node layer applies it as deck's `radiusScale` on top of its own base
-// radius (`POINT_RADIUS · multiplier`) and pixel min/max clamps — so on zoom only
-// one uniform changes per layer, instead of re-deriving a radius for every point.
-// The base radius, max, multipliers, mins, and ring stroke are exported for the
-// layers to build those clamps; the scale-curve constants stay internal.
+// zoom, applied as deck's `radiusScale` over each layer's base radius + pixel clamps
+// — so on zoom only one uniform changes per layer. Base radius, max, multipliers,
+// mins, and ring stroke are exported so layers can build those clamps; the
+// scale-curve constants stay internal.
 
 /** Base radius (px) of a crowd point, before zoom scaling and clamping. */
 export const POINT_RADIUS = 0.1;
@@ -62,45 +48,36 @@ export const NEIGHBOUR_RADIUS_MULTIPLIER = 1.6;
 export const HOVERED_RADIUS_MULTIPLIER = 2.2;
 /** How much larger than {@link POINT_MAX_RADIUS} the active node's ring may grow. */
 export const HOVERED_MAX_MULTIPLIER = 1.5;
-// The radius scale as a function of zoom, a shifted exponential
-// `scale = COEFF · RATE^zoom − SHIFT` (floored at 0), fit to approximately:
-//   zoom −4 → ~0 (crowd at its min radius),  zoom 0 → ~20,  zoom 3 → ~60.
-// It grows ~33% per zoom level, shifted down so the crowd bottoms out at the min
-// radius when zoomed out rather than growing off a bare exponential. Returned as
-// `radiusScale`; these curve constants stay internal.
+// Radius scale vs zoom: shifted exponential `scale = COEFF · RATE^zoom − SHIFT`
+// (floored at 0), fit to ≈ zoom −4 → ~0 (crowd at min radius), 0 → ~20, 3 → ~60.
+// Grows ~33% per zoom level; the shift makes the crowd bottom out at the min radius
+// when zoomed out rather than off a bare exponential.
 const RADIUS_SCALE_COEFF = 30;
 const RADIUS_SCALE_RATE = 1.33;
 const RADIUS_SCALE_SHIFT = 10;
 
 /** Base gap (px) left between a highlighted edge's arrow tip and the node's edge. */
 const ARROW_GAP_PX = 6;
-/**
- * How the arrow gap grows with zoom: the base gap is multiplied by this per zoom
- * level (`gap = ARROW_GAP_PX · rate^zoom`), so the gap widens as you zoom in.
- */
+// Arrow gap multiplier per zoom level (`gap = ARROW_GAP_PX · rate^zoom`), widening
+// the gap as you zoom in.
 const ARROW_GAP_ZOOM_RATE = 1.1;
 
-/**
- * The zoom-derived rendering attributes returned by {@link deriveZoomAttributes}.
- */
+/** Zoom-derived rendering attributes returned by {@link deriveZoomAttributes}. */
 export interface ZoomAttributes {
   /**
-   * Multiplier applied (as deck's `radiusScale`) to each node layer's base radius
-   * so nodes grow with zoom — a shifted exponential, floored at 0. The per-layer
-   * pixel min/max clamps then keep each node kind within its size range.
+   * Multiplier applied as deck's `radiusScale` to each node layer's base radius so
+   * nodes grow with zoom (shifted exponential, floored at 0). Per-layer pixel clamps
+   * then keep each node kind within its size range.
    */
   radiusScale: number;
   /** Base point opacity for the current zoom (see the three-part curve below). */
   pointOpacity: number;
   /**
-   * The arrow gap (px), grown slightly as the user zooms in. Shared by the arrow
-   * offset and the edge trim so the trimmed edge end stays coincident with the tip.
+   * Arrow gap (px), grown slightly as the user zooms in. Shared by the arrow offset
+   * and the edge trim so the trimmed edge end stays coincident with the tip.
    */
   arrowGapPx: number;
-  /**
-   * Whether the view is zoomed in far enough to show the detailed node variation
-   * (larger nodes with icons + label pills) instead of plain points.
-   */
+  /** Whether zoomed in far enough to show detailed nodes (icons + label pills). */
   isDetailZoom: boolean;
 }
 
@@ -115,8 +92,8 @@ const lerp = (from: number, to: number, amount: number): number =>
 /**
  * Derive every zoom-dependent rendering attribute from the current `zoom` and the
  * `detailZoom` threshold (the zoom at/above which the detailed view shows). Both are
- * `null` until the view has been framed, in which case neutral defaults are returned
- * (the smallest node radii, full opacity, the base arrow gap, and the compact view).
+ * `null` until the view is framed, in which case neutral defaults are returned
+ * (smallest node radii, full opacity, base arrow gap, compact view).
  */
 export const deriveZoomAttributes = (
   zoom: number | null,
@@ -132,25 +109,17 @@ export const deriveZoomAttributes = (
     };
   }
 
-  // Radius scale for this zoom: a shifted exponential, floored at 0. Applied as
-  // deck's `radiusScale` on each node layer (over its base radius + pixel clamps).
   const radiusScale = Math.max(
     0,
     RADIUS_SCALE_COEFF * RADIUS_SCALE_RATE ** zoom - RADIUS_SCALE_SHIFT,
   );
 
-  // Arrow gap widens as you zoom in.
   const arrowGapPx = ARROW_GAP_PX * ARROW_GAP_ZOOM_RATE ** zoom;
 
-  // Compact→detail switch near the top of the zoom range (threshold supplied by
-  // the caller; no detail view until the view has been framed).
   const isDetailZoom = detailZoom !== null && zoom >= detailZoom;
 
-  // Opacity as a three-part curve:
-  //   1. fade in from POINT_MIN_OPACITY (zoomed out) to full by OPACITY_FULL_ZOOM,
-  //   2. hold at full opacity through OPACITY_FADE_OUT_ZOOM, then
-  //   3. fade back to POINT_MIN_OPACITY by OPACITY_FADE_END_ZOOM, so the crowd
-  //      recedes as the detailed view takes over.
+  // Three-part opacity curve: fade in from the floor to full, hold at full, then
+  // fade back to the floor so the crowd recedes as the detailed view takes over.
   let pointOpacity: number;
   if (zoom <= OPACITY_FULL_ZOOM) {
     pointOpacity = lerp(

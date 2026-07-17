@@ -5,7 +5,7 @@ import { Icon } from "../../Icon/icon";
 
 import type { IconName } from "../../Icon/icon";
 
-/** The type of a node or edge id: either a string or a number. */
+/** A node or edge id. */
 export type NetworkGraphId = string | number;
 
 export interface NetworkGraphPoint {
@@ -15,7 +15,7 @@ export interface NetworkGraphPoint {
   /** CSS hex colour (e.g. `#FF8C26`) used for the node. */
   color: string;
   label?: string;
-  /** Rendered inside the node in the zoomed-in detail variation; should map to an icon-name in ds-components. */
+  /** Icon rendered inside the node in the zoomed-in detail variation. */
   icon?: IconName;
 }
 
@@ -26,7 +26,7 @@ export interface NetworkGraphEdge {
 }
 
 export interface HoverLine {
-  /** The edge's id, so a hovered highlight edge can be identified for its label. */
+  /** The edge's id, so a hovered highlight edge can be matched to its label. */
   id: NetworkGraphId;
   source: [number, number];
   target: [number, number];
@@ -34,10 +34,9 @@ export interface HoverLine {
 
 /**
  * A hovered edge, normalised for the on-hover label regardless of how it was
- * drawn: its edge id and the world-space polyline as rendered — a bundled curve
- * in the detail view, or a straight two-point line for a selected node's
- * incident edge in the compact view — plus the edge's endpoint nodes (when
- * resolvable), outlined while hovered in the edge's own colour and width.
+ * drawn (bundled curve in the detail view, or straight two-point line in the
+ * compact view): its edge id, the world-space polyline as rendered, and its
+ * endpoint nodes (when resolvable), outlined while hovered.
  */
 export interface HoverableEdge {
   edgeId: NetworkGraphId;
@@ -51,9 +50,8 @@ export const EDGE_COLOR: [number, number, number] = [80, 88, 110];
 export const EDGE_WIDTH = 0.75;
 export const EDGE_MIN_WIDTH = 0.5;
 /**
- * Width (px) of a hovered edge — and of the outline drawn on the two nodes it
- * connects — a multiple of {@link EDGE_WIDTH} so it stands out from the crowd of
- * edges around it. The faint background edges also jump to full opacity.
+ * Width (px) of a hovered edge and of the outline on its two nodes; a multiple
+ * of {@link EDGE_WIDTH} so it stands out from surrounding edges.
  */
 export const EDGE_HOVER_WIDTH = EDGE_WIDTH * 3;
 
@@ -73,10 +71,9 @@ export const DETAIL_ICON_TEXTURE = 64;
 const iconTextureCache = new Map<IconName, string>();
 
 /**
- * A rasterisable SVG data URL for an icon, forced to a fixed size and a solid
- * fill so the `DetailedNodeLayer`'s icons can use it as a tintable mask. Reuses
- * the {@link Icon} registry (via static markup) so it stays in sync, and is
- * cached per icon name. Runs only in the browser (called from an effect).
+ * SVG data URL for an icon, forced to a fixed size and solid fill so it can be
+ * used as a tintable mask. Derived from the {@link Icon} registry so it stays in
+ * sync, cached per icon name. Browser-only (called from an effect).
  */
 export const iconTextureUrl = (name: IconName): string => {
   const cached = iconTextureCache.get(name);

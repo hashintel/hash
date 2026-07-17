@@ -35,31 +35,25 @@ const DETAIL_LABEL_MAX_CHARS = 16;
 const DETAIL_LABEL_PADDING: [number, number] = [6, 2];
 /**
  * How far (px) the label pill overlaps up into the node, so the two read as one
- * chunky, connected shape. Kept at `radius − icon half-height` so the pill's top
- * still clears the icon above it (the label is drawn in front of the node).
+ * shape. Kept at `radius − icon half-height` so the pill's top still clears the
+ * icon above it (the label is drawn in front of the node).
  */
 const DETAIL_LABEL_OVERLAP = DETAIL_NODE_DIAMETER / 2 - DETAIL_ICON_SIZE / 2;
-/**
- * Downward pixel offset of the label text from the node centre — set so the pill
- * overlaps the node by {@link DETAIL_LABEL_OVERLAP} while sitting above it.
- */
+/** Downward px offset of the label text from centre, giving the {@link DETAIL_LABEL_OVERLAP}. */
 const DETAIL_LABEL_OFFSET =
   DETAIL_NODE_DIAMETER / 2 - DETAIL_LABEL_OVERLAP + DETAIL_LABEL_PADDING[1];
 /** Corner radius (px) of the label pill. */
 const DETAIL_LABEL_RADIUS = 6;
 /**
- * Width (px) of the white outline that traces the whole node+label silhouette — a
+ * Width (px) of the white outline tracing the whole node+label silhouette — a
  * white backdrop of the circle and pill, enlarged by this much and drawn behind
  * the fills, so only the outer ring shows and the two pieces merge into one
  * continuous outline. Constant across idle and hover.
  */
 const DETAIL_OUTLINE_WIDTH = 1.5;
-/**
- * Width (px) the active circle grows by, in the node's own colour, inside the
- * white outline — so the node appears to enlarge slightly on hover.
- */
+/** Width (px) the active circle grows by, in its own colour, inside the white outline (hover enlarge effect). */
 const DETAIL_CIRCLE_ACCENT_WIDTH = 1.5;
-/** Background padding of the outline's pill backdrop — the label padding + the outline width. */
+/** Background padding of the outline's pill backdrop: label padding + outline width. */
 const DETAIL_OUTLINE_PADDING: [number, number] = [
   DETAIL_LABEL_PADDING[0] + DETAIL_OUTLINE_WIDTH,
   DETAIL_LABEL_PADDING[1] + DETAIL_OUTLINE_WIDTH,
@@ -70,27 +64,25 @@ const DETAIL_OUTLINE_RADIUS = DETAIL_LABEL_RADIUS + DETAIL_OUTLINE_WIDTH;
 const DETAIL_LABEL_FONT_WEIGHT_ACTIVE = "500";
 /** Opaque white, used for node/label fills and the outline. */
 const DETAIL_WHITE: Color = [255, 255, 255, 255];
-/** Fully transparent, used to hide the outline backdrops' (invisible) text. */
+/** Fully transparent, hides the outline backdrops' text. */
 const DETAIL_TRANSPARENT: Color = [0, 0, 0, 0];
 /** Dark ink for the label text. */
 const DETAIL_INK: Color = [15, 18, 25, 255];
 /**
- * Opacity of a detail node's coloured circle fill. Slightly translucent so the
- * background reads softer than the fully-opaque icon, label and white outline. It
- * blends over the white outline backdrop directly behind it, lightening the
- * colour rather than showing the graph through it.
+ * Opacity of a detail node's coloured circle fill. Slightly translucent so it
+ * blends over the white outline backdrop directly behind it (lightening the
+ * colour), rather than showing the graph through it.
  */
 const DETAIL_NODE_FILL_OPACITY = 0.85;
 const DETAIL_NODE_FILL_ALPHA = Math.round(255 * DETAIL_NODE_FILL_OPACITY);
 /**
  * The node parts live in separate sublayers, so across-sublayer draw order alone
  * would let a back node's icon/label show over a front node. Instead each node's
- * parts share a per-node depth *band* via the z coordinate, with the depth buffer
- * resolving occlusion: every part of a nearer node beats every part of a node
- * behind it. Within a band the parts stack `outline < circle < icon < label`
- * (back to front) — the label sits above the node and the outline is a white
- * backdrop behind everything. `DETAIL_Z_STEP` is the world-z gap between adjacent
- * levels — tiny, but far above the orthographic depth buffer's resolution.
+ * parts share a per-node depth *band* via the z coordinate, letting the depth
+ * buffer resolve occlusion: every part of a nearer node beats every part of a
+ * node behind it. Within a band the parts stack `outline < circle < icon < label`
+ * (back to front). `DETAIL_Z_STEP` is the world-z gap between adjacent levels —
+ * tiny, but far above the orthographic depth buffer's resolution.
  */
 const DETAIL_Z_STEP = 0.001;
 const DETAIL_LEVEL_OUTLINE = 0;
@@ -101,13 +93,9 @@ const DETAIL_LEVEL_COUNT = 4;
 
 /**
  * World-space z for a node part. `order` is the node's front-to-back rank (later
- * = nearer), `level` its part (see the `DETAIL_LEVEL_*` constants), and `slots`
- * the total number of rank slots — every regular node plus the promoted ones (the
- * hovered edge's endpoints and the active node) that jump above them. Offset by
- * `slots` so all values are ≤ 0 (the compact layer, at z 0, disables depth writes
- * so it never occludes these). Larger z = nearer; a whole node's band sits above
- * the node behind it, so a front node occludes every part of a back node it
- * overlaps.
+ * = nearer), `level` its part (`DETAIL_LEVEL_*`), and `slots` the total rank
+ * count. Offset by `slots` so all values are ≤ 0 (the compact layer at z 0
+ * disables depth writes, so it never occludes these). Larger z = nearer.
  */
 const detailZ = (order: number, level: number, slots: number): number =>
   (order * DETAIL_LEVEL_COUNT + level - slots * DETAIL_LEVEL_COUNT) *
@@ -119,11 +107,7 @@ const truncateLabel = (label: string): string =>
     ? `${label.slice(0, DETAIL_LABEL_MAX_CHARS - 1)}…`
     : label;
 
-/**
- * Pick a legible ink colour (near-black or white) to sit on top of `rgb`, based
- * on its perceived luminance — so an icon stays visible inside a node of any
- * colour.
- */
+/** Pick a legible ink colour (near-black or white) for `rgb` by perceived luminance. */
 const contrastInkRgb = (rgb: RgbColor): RgbColor => {
   const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
   return luminance > 0.6 ? [15, 18, 25] : [255, 255, 255];
@@ -134,10 +118,10 @@ type _DetailedNodeLayerProps = {
   activeNode: NetworkGraphPoint | null;
   /**
    * The selected node while a different node is hovered — kept in its full selected
-   * styling (enlarged, bold label, promoted to the front) so hovering another node
-   * doesn't change the selection's own appearance. Only its edges are dropped (they
-   * follow {@link activeNode}, handled by the parent). Null unless the selection has
-   * been backgrounded by a hover.
+   * styling (enlarged, bold label, promoted) so hovering another node doesn't change
+   * the selection's appearance. Only its edges are dropped (following
+   * {@link activeNode}, handled by the parent). Null unless the selection has been
+   * backgrounded by a hover.
    */
   enlargedSelection: NetworkGraphPoint | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
@@ -146,8 +130,7 @@ type _DetailedNodeLayerProps = {
   iconAtlas: DetailIconAtlas | null;
   /**
    * The two endpoint nodes of the emphasised (hovered or selected) edge, each ringed
-   * in the edge's colour and hover width so it's clear which nodes it connects. Empty
-   * when no edge is hovered or selected.
+   * in the edge's colour and hover width. Empty when no edge is emphasised.
    */
   edgeHoverNodes: NetworkGraphPoint[];
 };
@@ -171,14 +154,13 @@ const defaultProps: DefaultProps<DetailedNodeLayerProps> = {
 
 /**
  * The detailed (zoomed-in) node rendering: a larger circle showing the node's
- * icon, with its label in a pill beneath, and a white outline around the whole
- * node+label silhouette. Active (hover/selected): the label text goes bold and the
- * circle grows slightly in its own colour (inside the white outline, which keeps a
- * constant width). Each node's parts share a per-node depth band (see
- * {@link detailZ}) so a front node occludes every part of a node behind it, and
- * the active node jumps to the front. The circle sublayer is pickable: when the
- * detailed nodes are shown the compact points are hidden, so picking resolves off
- * these circles.
+ * icon, its label in a pill beneath, and a white outline around the whole
+ * node+label silhouette. Active (hover/selected): the label goes bold and the
+ * circle grows slightly in its own colour, inside a constant-width white outline.
+ * Each node's parts share a per-node depth band (see {@link detailZ}) so a front
+ * node occludes every part of a node behind it, and the active node jumps to the
+ * front. The circle sublayer is the sole pickable one, since the compact points
+ * are hidden while detailed nodes are shown.
  */
 export class DetailedNodeLayer extends CompositeLayer<
   Required<_DetailedNodeLayerProps>
@@ -215,18 +197,17 @@ export class DetailedNodeLayer extends CompositeLayer<
     const { labelPoints, iconPoints } = this.state as DetailedNodeLayerState;
 
     const activeId = activeNode?.id ?? null;
-    // The backgrounded selection keeps the *full* active styling (enlarged circle,
-    // bold label, promoted) so the selection's own appearance is unchanged while
-    // another node is hovered — only its edges are dropped (by the parent).
+    // The backgrounded selection keeps the *full* active styling so its appearance
+    // is unchanged while another node is hovered — only its edges are dropped (by
+    // the parent).
     const selectedId = enlargedSelection?.id ?? null;
     const isEnlarged = (pointId: NetworkGraphId): boolean =>
       pointId === activeId || pointId === selectedId;
     const count = data.length;
     // Rank nodes front-to-back (later = front). Promote the hovered edge's
     // endpoints — and the active node, highest of all — above every regular node
-    // so their whole band (circle, icon, label, outlines) jumps to the front, the
-    // same way a hovered node does. Cheap to rebuild each render (≤ a few hundred
-    // nodes); the z it feeds only re-evaluates via `updateTriggers`.
+    // so their whole band jumps to the front. Cheap to rebuild each render; the z
+    // it feeds only re-evaluates via `updateTriggers`.
     const orderById = new Map(data.map((point, index) => [point.id, index]));
     const promotedIds: NetworkGraphId[] = [];
     for (const point of edgeHoverNodes) {
@@ -253,25 +234,21 @@ export class DetailedNodeLayer extends CompositeLayer<
     const zFor = (point: NetworkGraphPoint, level: number): number =>
       detailZ(orderById.get(point.id) ?? 0, level, slots);
     // `getPosition` z depends on the active node *and* the promoted endpoints, so
-    // key its update trigger on both (the shared sublayers' `data` doesn't change
-    // when only the hover does).
+    // key its trigger on both — the shared sublayers' `data` doesn't change on hover.
     const stackTrigger = `${activeId ?? ""}:${selectedId ?? ""}:${edgeHoverNodes
       .map((point) => point.id)
       .join(",")}`;
     const rgbFor = (point: NetworkGraphPoint): RgbColor =>
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
-    // Both the active node and the backgrounded selection get the bold label, so a
-    // selected node keeps its full styling while a different node is hovered.
+    // Both the active node and the backgrounded selection get the bold label.
     const boldLabelNodes = [activeNode, enlargedSelection].filter(
       (node): node is NetworkGraphPoint => Boolean(node?.label),
     );
 
-    // The detail label renders as up to four near-identical TextLayers: a white
-    // pill backdrop (part of the node's white silhouette, at the outline depth) and
-    // the inked label pill (at the label depth), each with an extra bold copy for
-    // the active/selected node — deck bakes font weight into a per-layer atlas, so
-    // bold needs its own layer. Built here from two axes: `outline` (white backdrop
-    // vs inked pill) and `active` (bold copy).
+    // The detail label renders as up to four near-identical TextLayers along two
+    // axes: `outline` (white pill backdrop at the outline depth vs inked pill at the
+    // label depth) and `active` (a bold copy for the active/selected node). Bold
+    // needs its own layer because deck bakes font weight into a per-layer atlas.
     const labelLayer = ({
       idSuffix,
       data: layerData,
@@ -300,8 +277,7 @@ export class DetailedNodeLayer extends CompositeLayer<
         getTextAnchor: "middle",
         getAlignmentBaseline: "top",
         getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-        // Outline variants contribute only the white pill backdrop (invisible text);
-        // label variants carry the inked text with a colour-matched border.
+        // Outline variants contribute only the white pill backdrop (invisible text).
         getColor: outline ? DETAIL_TRANSPARENT : DETAIL_INK,
         background: true,
         backgroundPadding: outline
@@ -319,13 +295,12 @@ export class DetailedNodeLayer extends CompositeLayer<
       });
 
     return [
-      // The white outline around the circle: a stroked ring (hollow) rather than a
-      // filled disk, so the translucent node fill shows the background through it
-      // instead of blending over white. The stroke draws inward from the radius,
-      // so with radius = circle + OUTLINE_WIDTH its outer edge sits OUTLINE_WIDTH
-      // beyond the circle and its inner edge meets the fill; the ring keeps a
-      // constant width and, on the active node, follows the grown circle. The pill
-      // backdrop below completes the node+label silhouette.
+      // The white outline around the circle: a stroked ring (hollow) not a filled
+      // disk, so the translucent node fill shows the background through it instead
+      // of blending over white. The stroke draws inward from the radius, so radius =
+      // circle + OUTLINE_WIDTH puts its outer edge OUTLINE_WIDTH beyond the circle
+      // and its inner edge on the fill; the ring keeps a constant width and follows
+      // the grown active circle. The pill backdrop below completes the silhouette.
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-outline-circle`,
         data,
@@ -349,8 +324,7 @@ export class DetailedNodeLayer extends CompositeLayer<
           getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
-      // The white pill backdrop behind the label (invisible text — only the pill
-      // shape), part of the node+label white silhouette.
+      // The white pill backdrop behind the label, part of the white silhouette.
       labelLayer({
         idSuffix: "outline-pill",
         data: labelPoints,
@@ -358,7 +332,7 @@ export class DetailedNodeLayer extends CompositeLayer<
         active: false,
       }),
       // The active label's bold-sized outline backdrop, so its white ring matches
-      // the bold label text. Active (labelled) node only.
+      // the bold label text.
       ...(boldLabelNodes.length > 0
         ? [
             labelLayer({
@@ -375,8 +349,7 @@ export class DetailedNodeLayer extends CompositeLayer<
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-nodes`,
         data,
-        // The one pickable sublayer: when detailed nodes are shown the compact
-        // points are hidden, so picking (hover/click) resolves off these circles.
+        // The sole pickable sublayer (see the class doc).
         pickable: true,
         getPosition: (point) => [
           point.x,
@@ -393,9 +366,8 @@ export class DetailedNodeLayer extends CompositeLayer<
           getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
-      // A ring around each node the hovered edge connects, in the edge's colour
-      // and hover width, sitting just inside the white outline (over the fill's
-      // edge). Drawn at the icon depth so it reads in front of the circle fill.
+      // A ring around each node the hovered edge connects, in the edge's colour and
+      // hover width, at the icon depth so it reads in front of the circle fill.
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-edge-hover-outline`,
         data: edgeHoverNodes,
@@ -409,9 +381,8 @@ export class DetailedNodeLayer extends CompositeLayer<
         getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
         getLineWidth: EDGE_HOVER_WIDTH,
         lineWidthUnits: "pixels",
-        // Stroke draws inward from the radius, so setting the radius to the circle
-        // edge (the white outline's inner edge) seats the ring just inside the
-        // white outline — tracking the grown circle when active.
+        // Stroke draws inward, so radius = circle edge seats the ring just inside the
+        // white outline, tracking the grown circle when active.
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
           (isEnlarged(point.id) ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
@@ -421,7 +392,7 @@ export class DetailedNodeLayer extends CompositeLayer<
           getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
-      // Icons sit on top of the nodes. Absent until the atlas has rasterised.
+      // Icons sit on top of the nodes; absent until the atlas has rasterised.
       ...(iconAtlas
         ? [
             new IconLayer<NetworkGraphPoint>({
@@ -437,14 +408,13 @@ export class DetailedNodeLayer extends CompositeLayer<
               ],
               getSize: DETAIL_ICON_SIZE,
               sizeUnits: "pixels",
-              // Tint the icon mask to a legible ink for the node's colour.
               getColor: (point) => contrastInkRgb(rgbFor(point)),
               updateTriggers: { getPosition: stackTrigger },
             }),
           ]
         : []),
-      // The label pill sits above the node (in front of the circle and icon): an
-      // opaque white pill with a border in the node's colour, tying label to node.
+      // The label pill in front of the circle and icon: an opaque white pill with a
+      // border in the node's colour, tying label to node.
       labelLayer({
         idSuffix: "labels",
         data: labelPoints,

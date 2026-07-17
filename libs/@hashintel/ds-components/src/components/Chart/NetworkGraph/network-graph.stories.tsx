@@ -4,8 +4,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { LoadingSpinner } from "../../Loading/loading-spinner";
 import { Popover } from "../../Popover/popover";
-// Imported with `?url` so the ~23 MB of fixtures are served as static assets
-// and parsed at runtime, rather than inlined into the story bundle.
+// `?url` so the ~23 MB of fixtures are served as static assets and fetched at
+// runtime, not inlined into the story bundle.
 import edgesUrl from "./fixtures/edges.json?url";
 import pointsUrl from "./fixtures/points.json?url";
 import {
@@ -41,17 +41,17 @@ interface StoryDataset {
   /** Trims the fixture to the first N nodes; the full dataset when omitted. */
   nodeLimit?: number;
   /**
-   * Pre-computed minimum node distance. Supplied for the full dataset only —
-   * computing it at render time is O(n²) (see `minDistance`); trimmed datasets
-   * are small enough to compute it on the fly.
+   * Pre-computed minimum node distance. Supplied for the full dataset only,
+   * since computing it at render time is O(n²) (see `minDistance`); trimmed
+   * datasets are cheap enough to compute on the fly.
    */
   precomputedMinDistance?: number;
 }
 
 /**
- * The smallest distance between any two distinct points, ignoring points that
- * share a position. O(n²), so only suitable for small inputs — see how the
- * stories below avoid running it over the full ~200k-node fixture.
+ * Smallest distance between any two distinct points, ignoring coincident ones.
+ * O(n²), so only suitable for small inputs — the stories below avoid running it
+ * over the full ~200k-node fixture.
  */
 function minDistance(points: Array<{ x: number; y: number }>): number {
   let min = Infinity;
@@ -69,7 +69,6 @@ function minDistance(points: Array<{ x: number; y: number }>): number {
       const dx = from.x - to.x;
       const dy = from.y - to.y;
 
-      // Skip points occupying the same position.
       if (dx === 0 && dy === 0) {
         continue;
       }
@@ -86,17 +85,15 @@ function minDistance(points: Array<{ x: number; y: number }>): number {
 }
 
 /**
- * Loads the full fixture once. Per-dataset trimming happens downstream (see the
- * `data` memo in {@link NetworkGraphStory}), so switching datasets neither
- * re-fetches nor re-parses the ~23 MB of fixtures — and, crucially, never leaves
- * a trimmed dataset's config paired with the full-size data mid-fetch (which
- * would run the O(n²) `minDistance` over all ~200k nodes and freeze the tab).
+ * Loads the full fixture once. Per-dataset trimming happens downstream (the
+ * `data` memo in {@link NetworkGraphStory}), so switching datasets never
+ * re-fetches the ~23 MB of fixtures.
  */
 const useFullGraphData = (): GraphData | null => {
   const [data, setData] = useState<GraphData | null>(null);
 
   useEffect(() => {
-    // Mutable holder so the cleanup can cancel a late-arriving fetch without
+    // Mutable holder so cleanup can cancel a late-arriving fetch without
     // tripping control-flow narrowing on a plain boolean.
     const status = { active: true };
     void (async () => {
@@ -156,7 +153,6 @@ const tooltipStyles = css({
   userSelect: "none",
 });
 
-// A small toolbar overlaid on the chart for the demo selection buttons.
 const controlsStyles = css({
   position: "absolute",
   top: "3",
@@ -179,7 +175,6 @@ const buttonStyles = css({
   cursor: "pointer",
 });
 
-// A small monospace readout of the current zoom, next to the zoom buttons.
 const zoomReadoutStyles = css({
   display: "flex",
   alignItems: "center",
@@ -204,9 +199,8 @@ const jitter = (magnitude: number): number =>
   (Math.random() - 0.5) * 2 * magnitude;
 
 /**
- * Order two node ids into an edge's `fromId`/`toId` a random way round, so the
- * demo's fabricated edges point in both directions rather than always leading
- * away from the selected node.
+ * Order two node ids into an edge's `fromId`/`toId` a random way round, so
+ * fabricated edges point both ways rather than always away from the selected node.
  */
 const randomEdgeDirection = (
   a: NetworkGraphId,
@@ -215,27 +209,24 @@ const randomEdgeDirection = (
   Math.random() < 0.5 ? { fromId: a, toId: b } : { fromId: b, toId: a };
 
 /**
- * Shared render for the NetworkGraph stories: shows one of `datasets` (fetching
- * the fixture trimmed to that dataset's `nodeLimit`), wires up node/edge
- * selection, and anchors tooltips to the hovered/clicked target. When more than
- * one dataset is given, a toolbar dropdown switches between them.
+ * Shared render for the NetworkGraph stories: shows one of `datasets` (trimmed
+ * to its `nodeLimit`), wires up node/edge selection, and anchors tooltips to the
+ * hovered/clicked target. With more than one dataset, a toolbar dropdown switches
+ * between them.
  */
 const NetworkGraphStory = ({
   datasets,
 }: {
-  // A non-empty list; when it holds more than one entry a switcher dropdown in
-  // the toolbar selects between them.
   datasets: readonly [StoryDataset, ...StoryDataset[]];
 }) => {
-  // Which dataset is currently shown; chosen via the switcher dropdown below.
   const [datasetIndex, setDatasetIndex] = useState(0);
   const dataset = datasets[datasetIndex] ?? datasets[0];
   const fullData = useFullGraphData();
-  // The current dataset's view of the fixture, derived synchronously so the
-  // dataset config and the data can never fall out of step: the full data, or
-  // trimmed to `nodeLimit` with edges filtered to loaded nodes. (Deriving this
-  // asynchronously previously left a trimmed dataset paired with the full-size
-  // data for a render, running the O(n²) `minDistance` over ~200k nodes.)
+  // The dataset's view of the fixture, derived synchronously so config and data
+  // never fall out of step: the full data, or trimmed to `nodeLimit` with edges
+  // filtered to loaded nodes. (Deriving it asynchronously previously paired a
+  // trimmed dataset with the full data for a render, running the O(n²)
+  // `minDistance` over ~200k nodes.)
   const data = useMemo<GraphData | null>(() => {
     if (!fullData) {
       return null;
@@ -251,28 +242,26 @@ const NetworkGraphStory = ({
     );
     return { points: limitedPoints, edges: limitedEdges };
   }, [fullData, dataset]);
-  // The frame is the popover's trigger; `positionFromPoint` then anchors the
-  // tooltip at a point measured from the frame's top-left.
+  // The frame is the popover's trigger; `positionFromPoint` anchors the tooltip
+  // at a point measured from the frame's top-left.
   const frameRef = useRef<HTMLDivElement>(null);
-  // Imperative handle for driving the zoom from the demo's own +/- buttons,
-  // without lifting the view state out of the chart.
+  // Imperative handle so the demo's +/- buttons can drive zoom without lifting
+  // the view state out of the chart.
   const graphRef = useRef<NetworkGraphHandle>(null);
-  // Latest zoom reported by the chart, shown as a readout next to the buttons.
   const [zoom, setZoom] = useState<number | null>(null);
-  // The selection driving the chart: a node id (existing node) or an explicit
+  // The selection driving the chart: a node id, or an explicit
   // `{ point, edges, neighbours }` neighbourhood to overlay.
   const [selected, setSelected] = useState<
     NetworkGraphId | NetworkGraphSelection | null
   >(null);
-  // The selected node's live on-screen position and drawn radius, updated by the
-  // chart as the user zooms/pans so the tooltip tracks the node and clears it.
+  // Selected node's live on-screen position and drawn radius, updated by the
+  // chart on zoom/pan so the tooltip tracks the node.
   const [tooltipPos, setTooltipPos] = useState<{
     x: number;
     y: number;
     nodeRadius: number;
     variant: "detailed" | "compact";
   } | null>(null);
-  // The clicked edge and where it was clicked, for its own popover.
   const [selectedEdge, setSelectedEdge] = useState<NetworkGraphEdge | null>(
     null,
   );
@@ -280,12 +269,11 @@ const NetworkGraphStory = ({
     x: number;
     y: number;
   } | null>(null);
-  // Counter for the ids of fabricated overlay nodes/edges, kept well clear of the
+  // Id counter for fabricated overlay nodes/edges, kept well clear of the
   // fixture's ids so they never collide.
   const nextIdRef = useRef(1_000_000_000);
 
-  // Switch datasets, clearing any selection that referred to nodes in the
-  // previous (possibly larger) dataset.
+  // Switch datasets, clearing any selection referring to the previous dataset.
   const handleSelectDataset = useCallback((index: number) => {
     setDatasetIndex(index);
     setSelected(null);
@@ -302,9 +290,8 @@ const NetworkGraphStory = ({
   }, [data]);
 
   /**
-   * The graph's spatial extent as a bounding box over the node coordinates — the
-   * smallest and largest x/y across the nodes — passed through to the chart. Also
-   * the basis for `spread` below.
+   * The graph's bounding box (min/max x/y over the nodes), passed to the chart
+   * and the basis for `spread` below.
    */
   const graphBounds = useMemo(() => {
     const points = data?.points ?? [];
@@ -335,9 +322,9 @@ const NetworkGraphStory = ({
   }, [data, graphBounds]);
 
   /**
-   * The smallest distance between any two nodes, passed to the chart. `minDistance`
-   * is O(n²), so the full-dataset Default story passes a `precomputedMinDistance`
-   * rather than recomputing it here; the smaller stories compute it on the fly.
+   * Smallest distance between any two nodes, passed to the chart. `minDistance`
+   * is O(n²), so the full dataset supplies `precomputedMinDistance` rather than
+   * recomputing here; smaller datasets compute it on the fly.
    */
   const nodeMinDistance = useMemo(
     () => dataset.precomputedMinDistance ?? minDistance(data?.points ?? []),
@@ -387,8 +374,7 @@ const NetworkGraphStory = ({
     }
     setSelected({ point, edges, neighbours });
     setSelectedEdge(null);
-    // Reveal the new node if it landed outside the current viewport, keeping the
-    // previous centre in view too.
+    // Reveal the new node if it landed outside the viewport.
     graphRef.current?.revealPoint([point.x, point.y]);
   }, [data, spread, createNewPoint]);
 
@@ -452,8 +438,7 @@ const NetworkGraphStory = ({
     if (selected == null) {
       return null;
     }
-    // A selection is the explicit `{ point, edges, neighbours }` object; anything
-    // else is a node id (string or number).
+    // An object is the explicit `{ point, edges, neighbours }` selection; else a node id.
     if (typeof selected === "object") {
       return selected.point;
     }
@@ -468,15 +453,14 @@ const NetworkGraphStory = ({
 
   const handleEdgeClick = useCallback(
     (interaction: NetworkGraphEdgeInteraction) => {
-      // Anchor the edge popover at the click point. (Unlike the node tooltip it
-      // doesn't track pan/zoom — the node position is reported back by the chart,
-      // an edge's isn't — which is fine for this demo.)
+      // Anchor the edge popover at the click point. Unlike the node tooltip it
+      // doesn't track pan/zoom (the chart reports node positions, not edges'),
+      // which is fine for this demo.
       setSelectedEdge(interaction.edge);
       setEdgeTooltipPos({ x: interaction.x, y: interaction.y });
-      // Leave the node selection intact. The chart keeps the picked edge
-      // highlighted via `selectedEdge`; in the compact view an edge is only drawn
-      // while its node is selected, so keeping that node selected is what lets the
-      // selected edge stay highlighted there. The node's own tooltip is hidden
+      // Leave the node selection intact: in the compact view an edge is only
+      // drawn while its node is selected, so keeping the node selected is what
+      // keeps the picked edge highlighted. The node's own tooltip is hidden
       // while an edge is selected (below), so only the edge popover shows.
     },
     [],
@@ -530,7 +514,6 @@ const NetworkGraphStory = ({
             >
               Select existing + mix
             </button>
-            {/* Drive the chart's internal zoom via its imperative handle. */}
             <button
               type="button"
               className={buttonStyles}
@@ -557,9 +540,8 @@ const NetworkGraphStory = ({
               position="bottom-start"
               positionFromPoint={tooltipPos}
               onClose={() => setSelected(null)}
-              // Sit the tooltip clear of the node by offsetting both gaps by the
-              // node's drawn radius (larger in the detailed view, where nodes are
-              // bigger).
+              // Offset both gaps by the node's drawn radius so the tooltip sits
+              // clear of the node (larger in the detailed view).
               gapX={
                 tooltipPos.nodeRadius +
                 (tooltipPos.variant === "compact" ? 5 : 3)
@@ -606,10 +588,9 @@ const NetworkGraphStory = ({
 };
 
 /**
- * The minimum distance between any two nodes in the full ~200k-node fixture,
- * pre-computed offline. `minDistance` is O(n²), so running it over the whole
- * dataset at render time would freeze the browser; the smaller stories below are
- * cheap enough to compute it on the fly.
+ * Minimum node distance for the full ~200k-node fixture, pre-computed offline.
+ * `minDistance` is O(n²), so running it over the whole dataset at render time
+ * would freeze the browser; the smaller stories compute it on the fly.
  */
 const FULL_DATASET_MIN_DISTANCE = 0.02236067977446914;
 
@@ -635,10 +616,10 @@ const TEN_DATASET: StoryDataset = {
 };
 
 /**
- * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden
- * by default; hover a node to reveal its connections and neighbours, and click a
- * node to inspect it. Scroll to zoom and drag to pan. The toolbar's dataset
- * dropdown switches between the full graph, 1,000 nodes, and 10 nodes.
+ * A 200k-node / 300k-edge scatterplot rendered with deck.gl. Edges are hidden by
+ * default; hover a node to reveal its connections, click to inspect. Scroll to
+ * zoom, drag to pan. The toolbar dropdown switches between the full graph, 1,000,
+ * and 10 nodes.
  */
 export const Default: Story<NetworkGraphProps> = () => (
   <NetworkGraphStory
@@ -646,19 +627,12 @@ export const Default: Story<NetworkGraphProps> = () => (
   />
 );
 
-/**
- * The same graph trimmed to the first 10 nodes, with edges filtered to those
- * connecting two loaded nodes. A tiny subset for inspecting individual nodes.
- */
+/** The graph trimmed to the first 10 nodes — a tiny subset for inspecting individual nodes. */
 export const TenNodes: Story<NetworkGraphProps> = () => (
   <NetworkGraphStory datasets={[TEN_DATASET]} />
 );
 
-/**
- * The same graph trimmed to the first 1,000 nodes, with edges filtered to those
- * connecting two loaded nodes. A mid-sized subset between {@link TenNodes} and
- * {@link Default}.
- */
+/** The graph trimmed to the first 1,000 nodes — a mid-sized subset between {@link TenNodes} and {@link Default}. */
 export const OneThousandNodes: Story<NetworkGraphProps> = () => (
   <NetworkGraphStory datasets={[ONE_THOUSAND_DATASET]} />
 );

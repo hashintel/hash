@@ -13,10 +13,10 @@ export interface BundledEdge {
 }
 
 /**
- * A 3-level containment hierarchy over the nodes used to route bundled edges:
- * root → colour (node type) → spatial sub-cluster → node. Only the centroids and
- * each node's sub-cluster are stored; the tree path between two nodes is derived
- * from their colour + sub-cluster at draw time (see {@link bundleEdgePath}).
+ * Containment hierarchy over the nodes used to route bundled edges:
+ * root → colour (node type) → spatial sub-cluster → node. Only centroids and each
+ * node's sub-cluster are stored; the tree path between two nodes is derived from
+ * their colour + sub-cluster at draw time (see {@link bundleEdgePath}).
  */
 export interface BundleHierarchy {
   /** Centroid of all nodes — the waypoint every cross-type edge routes through. */
@@ -30,11 +30,10 @@ export interface BundleHierarchy {
 }
 
 /**
- * Grid resolution used to split each colour into spatial sub-clusters: an N×N
- * grid over the colour's bounding box. Higher = finer bundles (more, tighter
- * ropes); lower = coarser. This is the extra level that deepens the otherwise
- * flat colour hierarchy, so bundles form locally instead of every same-colour
- * edge routing through one per-colour centroid.
+ * N×N grid over each colour's bounding box, splitting it into spatial
+ * sub-clusters. Higher = finer, tighter bundles. This extra level lets bundles
+ * form locally instead of every same-colour edge routing through one per-colour
+ * centroid.
  */
 const SUBGRID = 16;
 /**
@@ -43,18 +42,18 @@ const SUBGRID = 16;
  */
 const BETA = 0.95;
 /**
- * Max turn (radians) of any rendered segment. The curve is flattened adaptively
- * until every segment bends less than this, so no facet/corner is visible at any
- * zoom. ~4° reads as smooth; lower is smoother but adds points.
+ * Max turn (radians) of any rendered segment. Adaptive flattening subdivides
+ * until every segment bends less than this, so no facet is visible at any zoom.
+ * ~4° reads as smooth; lower is smoother but adds points.
  */
 const FLATNESS_LIMIT_RAD = (4 * Math.PI) / 180;
-/** Recursion cap for adaptive flattening — a safety net against pathological spans. */
+/** Recursion cap for adaptive flattening — safety net against pathological spans. */
 const FLATTEN_MAX_DEPTH = 10;
 /**
- * A waypoint whose turn exceeds this angle makes the edge double back on itself —
- * a hairpin that no curve smoothing can round (a ~180° reversal stays sharp). Such
- * waypoints are dropped before smoothing, routing the edge locally instead. Turns
- * below it bundle cleanly and are kept.
+ * A waypoint whose turn exceeds this angle makes the edge double back — a hairpin
+ * (near-180° reversal) that no curve smoothing can round. Such waypoints are
+ * dropped before smoothing so the edge routes locally; smaller turns bundle
+ * cleanly and are kept.
  */
 const REVERSAL_TURN_LIMIT_DEGREES = 120;
 const REVERSAL_TURN_LIMIT_COS = Math.cos(
@@ -62,8 +61,8 @@ const REVERSAL_TURN_LIMIT_COS = Math.cos(
 );
 
 /**
- * Build the {@link BundleHierarchy} from the full node set. O(n) over the nodes;
- * memoise on `points` since it is independent of the viewport.
+ * Build the {@link BundleHierarchy} from the full node set. O(n); viewport-
+ * independent, so memoise on `points`.
  */
 export const buildBundleHierarchy = (
   points: NetworkGraphPoint[],
@@ -168,7 +167,7 @@ const controlPointsFor = (
       waypoints.push(subFromCentroid);
     }
   } else if (from.color === to.color) {
-    // Same type, different sub-cluster: route sub → colour → sub.
+    // Same type, different sub-cluster: sub → colour → sub.
     const colorMid = colorCentroid.get(from.color);
     if (subFromCentroid) {
       waypoints.push(subFromCentroid);
@@ -180,7 +179,7 @@ const controlPointsFor = (
       waypoints.push(subToCentroid);
     }
   } else {
-    // Different type: route sub → colour → root → colour → sub.
+    // Different type: sub → colour → root → colour → sub.
     const colorFrom = colorCentroid.get(from.color);
     const colorTo = colorCentroid.get(to.color);
     if (subFromCentroid) {
@@ -249,10 +248,10 @@ const spanToBezier = (
 
 /**
  * Adaptively flatten a cubic Bézier into `out`, subdividing (de Casteljau at the
- * midpoint) until each emitted segment turns less than {@link FLATNESS_LIMIT_RAD}.
- * This bounds the visible corner angle everywhere — scale-independent — while
- * spending points only where the curve actually bends. Emits `b0` at each leaf;
- * the caller appends the final endpoint. Depth is capped as a safety net.
+ * midpoint) until each segment turns less than {@link FLATNESS_LIMIT_RAD}. Bounds
+ * the visible corner angle everywhere (scale-independent) while spending points
+ * only where the curve bends. Emits `b0` at each leaf; the caller appends the
+ * final endpoint.
  */
 const flattenBezier = (
   b0: [number, number],
@@ -278,13 +277,12 @@ const flattenBezier = (
 };
 
 /**
- * Smooth a control polyline into a uniform **cubic B-spline** — the construction
- * d3 uses for `curveBasis` (and therefore `curveBundle`). The curve is C²
- * continuous and stays clear of the interior control vertices, so routing turns
- * round off rather than leaving a visible corner. Each span is converted to a
- * Bézier and flattened adaptively (see {@link flattenBezier}) so no rendered
- * segment shows a facet, however sharp the turn. The endpoints are tripled so the
- * curve starts and ends exactly on the true edge endpoints.
+ * Smooth a control polyline into a uniform cubic B-spline — the construction d3
+ * uses for `curveBasis` (and thus `curveBundle`). C² continuous and clear of the
+ * interior control vertices, so routing turns round off instead of leaving a
+ * corner. Each span is converted to a Bézier and flattened (see
+ * {@link flattenBezier}). Endpoints are tripled so the curve starts and ends
+ * exactly on the true edge endpoints.
  */
 const basisSpline = (controls: BundledPath): BundledPath => {
   if (controls.length <= 2) {
@@ -295,8 +293,7 @@ const basisSpline = (controls: BundledPath): BundledPath => {
   if (!first || !last) {
     return controls;
   }
-  // Duplicating each endpoint twice (three copies with the original) clamps the
-  // spline so it interpolates the true endpoints.
+  // Three copies of each endpoint clamps the spline to interpolate them.
   const extended = [first, first, ...controls, last, last];
   const curve: BundledPath = [];
   for (let index = 0; index + 3 < extended.length; index += 1) {
@@ -315,11 +312,10 @@ const basisSpline = (controls: BundledPath): BundledPath => {
 };
 
 /**
- * Drop interior control points where the route reverses on itself — the turn at
- * that point exceeds {@link REVERSAL_TURN_LIMIT_DEGREES}. These are the hairpins (a
- * nearby pair detouring out to a far centroid and back) that curve smoothing can't
- * round; removing them routes the edge locally instead. Endpoints are always kept,
- * and the pass cascades until no reversals remain.
+ * Drop interior control points where the route reverses on itself (turn exceeds
+ * {@link REVERSAL_TURN_LIMIT_DEGREES}) — hairpins from a nearby pair detouring out
+ * to a far centroid and back, which smoothing can't round. Endpoints are always
+ * kept; the pass cascades until no reversals remain.
  */
 const pruneReversals = (controls: BundledPath): BundledPath => {
   let current = controls;
@@ -345,7 +341,7 @@ const pruneReversals = (controls: BundledPath): BundledPath => {
       const inLen = Math.hypot(inX, inY);
       const outLen = Math.hypot(outX, outY);
       if (inLen < 1e-9) {
-        // Coincident with the previous kept point — redundant, drop it.
+        // Coincident with the previous kept point — redundant.
         changed = true;
         continue;
       }
@@ -367,10 +363,10 @@ const pruneReversals = (controls: BundledPath): BundledPath => {
 };
 
 /**
- * Resolve one edge to a bundled polyline: route it along the hierarchy, drop any
- * waypoints that would make it double back, pull the rest toward the straight line
- * by (1 − β) per Holten, then smooth into a cubic B-spline. Returns a straight
- * `[from, to]` when no waypoints apply.
+ * Resolve one edge to a bundled polyline: route along the hierarchy, prune
+ * doubling-back waypoints, pull the rest toward the straight line by (1 − β) per
+ * Holten, then smooth into a cubic B-spline. Straight `[from, to]` when no
+ * waypoints apply.
  */
 export const bundleEdgePath = (
   from: NetworkGraphPoint,
@@ -389,7 +385,7 @@ export const bundleEdgePath = (
   const spanX = last[0] - first[0];
   const spanY = last[1] - first[1];
   const lastIndex = controls.length - 1;
-  // β pulls each control point toward the straight A→B line; the endpoints are
+  // β pulls each control point toward the straight A→B line; endpoints are
   // unaffected (frac = 0 and 1 land back on themselves).
   const adjusted: BundledPath = controls.map(
     (point, index): [number, number] => {
