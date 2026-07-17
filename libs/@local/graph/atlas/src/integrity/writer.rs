@@ -8,10 +8,9 @@ use pin_project_lite::pin_project;
 
 /// A byte accumulator: state that absorbs a stream of bytes.
 ///
-/// Both integrity accumulators ([`Sha256`](super::Sha256) and
-/// [`Crc64`](super::Crc64)) implement this. The absorbed value is determined
-/// by the concatenated byte stream alone: feeding one large slice and
-/// feeding the same bytes across many calls are equivalent.
+/// [`Sha256`](super::Sha256) implements this. The absorbed value is
+/// determined by the concatenated byte stream alone: feeding one large
+/// slice and feeding the same bytes across many calls are equivalent.
 pub trait Update {
     /// Absorbs `bytes` into the accumulator.
     fn update(&mut self, bytes: &[u8]);

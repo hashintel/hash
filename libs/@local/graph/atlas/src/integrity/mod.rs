@@ -1,67 +1,44 @@
-//! Integrity and authenticity primitives for atlas artifacts.
+//! Content identity for atlas artifacts.
 //!
-//! This module answers three different trust questions about bytes, each
-//! with the cheapest primitive that actually answers it:
+//! One trust question is answered here: "are these the bytes the metadata
+//! meant?" [`Sha256Digest`] is a collision-resistant content identity,
+//! computed with [`Sha256`]. A digest pins content: recording it beside a
+//! published file commits to the exact artifact bytes, and tooling
+//! recomputes and compares digests to detect substitution or bitrot.
 //!
-//! - "Are these the bytes the manifest meant?" [`Sha256Digest`] is a collision-resistant content
-//!   identity, computed with [`Sha256`]. A digest pins content: recording it in a manifest commits
-//!   to the exact artifact bytes.
-//! - "Did these bytes survive storage and transport?" [`Crc64`] computes a CRC-64/NVME
-//!   [`Checksum`], a fast 64-bit corruption check for framing on-disk artifacts. It detects
-//!   accidental damage only; anyone who can choose the bytes can forge it.
-//! - "Did the right party produce these bytes?" [`Signer`] and [`Verifier`] are an Ed25519 key
-//!   pair. A [`Signature`] binds a message to the holder of the secret key, and verification is
-//!   pinned to one exact public key.
+//! Torn writes need no checksum: publication is temporary-path-and-rename,
+//! so a published file is either absent or complete (see [`crate::file`]).
 //!
-//! The primitives compose upward: checksum storage frames so readers reject
-//! torn pages before interpreting them, digest artifacts so manifests can
-//! name their contents, and sign the digests so consumers can authenticate
-//! the producer without rehashing anything.
+//! [`Sha256`] implements [`Update`], and [`Writer`] adapts any [`Update`]
+//! implementation into [`std::io::Write`], [`tokio::io::AsyncWrite`], and
+//! [`Sink`](futures_sink::Sink), so a stream is digested during a copy
+//! without buffering it in memory:
 //!
 //! ```rust
-//! use hash_graph_atlas::integrity::{Sha256, Signer, Update as _};
+//! use hash_graph_atlas::integrity::{Sha256, Update as _};
 //!
-//! // Digest an artifact and sign the digest, not the artifact.
 //! let mut hasher = Sha256::new();
-//! hasher.update(b"artifact bytes");
-//! let digest = hasher.finalize();
+//! hasher.update(b"abc");
 //!
-//! let signer = Signer::from_bytes([7_u8; 32]);
-//! let signature = signer.sign(&digest.to_bytes());
-//!
-//! // A consumer pins the public key and authenticates the digest alone.
-//! let verifier = signer.verifier();
-//! assert!(verifier.verify(&digest.to_bytes(), &signature).is_ok());
+//! assert_eq!(
+//!     hasher.finalize().to_string(),
+//!     "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+//! );
 //! ```
-//!
-//! Both accumulators implement [`Update`], and [`Writer`] adapts any
-//! [`Update`] implementation into [`std::io::Write`],
-//! [`tokio::io::AsyncWrite`], and [`Sink`](futures_sink::Sink), so a stream
-//! can be digested or checksummed during a copy without buffering it in
-//! memory.
 //!
 //! # Text encodings
 //!
-//! Every fixed-width value ([`Sha256Digest`], [`Signature`], and the
-//! [`Verifier`] public key) displays, parses, and serializes as canonical
-//! lowercase hexadecimal. Parsing rejects uppercase digits and noncanonical
-//! lengths, so values that round-trip through text or JSON are
-//! byte-identical.
+//! [`Sha256Digest`] displays, parses, and serializes as canonical lowercase
+//! hexadecimal. Parsing rejects uppercase digits and noncanonical lengths,
+//! so values that round-trip through text or JSON are byte-identical.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-mod crc;
 mod hash;
 mod hex;
-mod sign;
 mod writer;
 
 pub use self::{
-    crc::{Checksum, Crc64},
     hash::{Sha256, Sha256Digest},
     hex::ParseHexError,
-    sign::{
-        InvalidPublicKeyError, InvalidSignatureError, ParseVerifierError, Signature, Signer,
-        Verifier,
-    },
     writer::{Update, Writer},
 };

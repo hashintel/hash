@@ -6155,7 +6155,6 @@ dependencies = [
  "camino",
  "clap",
  "codspeed-criterion-compat",
- "crc-fast",
  "cxx",
  "darwin-kperf-criterion",
  "ed25519-dalek 3.0.0",
