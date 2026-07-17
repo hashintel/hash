@@ -6,7 +6,7 @@
 
 use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
-use crate::file::ll::entry::{
+use crate::file2::ll::entry::{
     METADATA_BYTES, SECTION_TYPE_DOCUMENT, SECTION_TYPE_OPAQUE, SECTION_TYPE_POINT_CLOUD,
     SECTION_TYPE_QUAD_TREE, SECTION_TYPE_SCALAR_ARRAY, ScalarArrayMetadata,
 };

@@ -13,7 +13,7 @@ use zerocopy::{IntoBytes as _, U16, U32, U64};
 
 use super::section::SectionKind;
 use crate::{
-    file::ll::{
+    file2::ll::{
         entry::{DirectoryEntry, METADATA_BYTES, VACANT_SECTION_ID},
         flags::{EntryFlag, EntryFlags},
     },

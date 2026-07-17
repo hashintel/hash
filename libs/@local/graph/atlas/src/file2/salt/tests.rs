@@ -8,7 +8,7 @@ use super::{
     section::{ArrayShape, ScalarArrayLayout, ScalarType, SectionKind},
 };
 use crate::{
-    file::ll::entry::{METADATA_BYTES, SECTION_TYPE_DOCUMENT, SECTION_TYPE_SCALAR_ARRAY},
+    file2::ll::entry::{METADATA_BYTES, SECTION_TYPE_DOCUMENT, SECTION_TYPE_SCALAR_ARRAY},
     integrity::Checksum,
 };
 
