@@ -2,6 +2,18 @@ export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
+export {
+  NetworkGraph,
+  type NetworkGraphEdge,
+  type NetworkGraphEdgeInteraction,
+  type NetworkGraphHandle,
+  type NetworkGraphId,
+  type NetworkGraphInteraction,
+  type NetworkGraphNeighbourhood,
+  type NetworkGraphPoint,
+  type NetworkGraphProps,
+  type NetworkGraphSelection,
+} from "./components/Chart/NetworkGraph/network-graph";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";

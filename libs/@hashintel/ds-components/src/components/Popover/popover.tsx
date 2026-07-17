@@ -1,4 +1,7 @@
-import { Popover as ArkPopover } from "@ark-ui/react/popover";
+import {
+  Popover as ArkPopover,
+  usePopoverContext,
+} from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
 import {
   addDomEvent,
@@ -7,7 +10,7 @@ import {
   getTabbables,
   isActiveElement,
 } from "@zag-js/dom-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -114,11 +117,19 @@ export type PopoverProps = {
   triggerRef: React.Ref<Element>;
   /** The preferred position of the popover - depending on the viewport, trigger and content another position may be chosen for better fit */
   position?: Position;
-  /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element */
+  /** Instead of positioning around the trigger, position from a specific point inside or outside the trigger where 0,0 is the top left of the trigger element. The popover repositions as this point changes. */
   positionFromPoint?: { x: number; y: number };
-  /** The X distance the popover will be from the trigger in px */
+  /**
+   * The horizontal distance the popover will be from the anchor in px. Applied
+   * when the placement is horizontal (`left`/`right`), or - with a
+   * `positionFromPoint` point anchor - always, alongside `gapY`.
+   */
   gapX?: number;
-  /** The Y distance the popover will be from the trigger in px */
+  /**
+   * The vertical distance the popover will be from the anchor in px. Applied
+   * when the placement is vertical (`top`/`bottom`), or - with a
+   * `positionFromPoint` point anchor - always, alongside `gapX`.
+   */
   gapY?: number;
   /** Called when the popover requests to close (e.g. Escape or an interaction outside it). Required for the popover to be dismissable. */
   onClose?: () => void;
@@ -132,6 +143,45 @@ export type PopoverProps = {
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   /** The element to return focus to when the popover closes. Defaults to the trigger. */
   returnFocusRef?: React.RefObject<HTMLElement | null>;
+};
+
+/**
+ * Nudges Ark to reposition a trigger-anchored popover when a gap changes.
+ *
+ * Zag reads the positioning options (including `offset`) whenever it computes a
+ * placement, but it never repositions on its own when those options change - the
+ * only prop it watches is `open`. A trigger-anchored popover recomputes only on
+ * scroll/resize, so without a nudge a gap change wouldn't show until one of those
+ * fired. `reposition` recomputes now, reading the latest `offset` prop (computed
+ * inline from the current gaps in `PopoverRoot`), so the new gap is applied
+ * immediately - and, because it also reads that same fresh `offset`, subsequent
+ * scroll/resize recomputes keep it rather than reverting.
+ *
+ * `reposition` is exposed only through context, hence this child component. Point
+ * anchors don't use it: their per-frame loop recomputes as soon as a gap change
+ * (baked into `getAnchorRect`) moves the anchor rect.
+ */
+const RepositionOnGapChange = ({
+  gapX,
+  gapY,
+  isVertical,
+}: {
+  gapX: number;
+  gapY: number;
+  isVertical: boolean;
+}) => {
+  const { reposition } = usePopoverContext();
+  // `reposition` gets a fresh identity each render but always calls the machine's
+  // stable dispatch, so hold the latest in a ref and depend only on the gaps -
+  // depending on `reposition` itself would fire this on every render.
+  const repositionRef = useRef(reposition);
+  useLayoutEffect(() => {
+    repositionRef.current = reposition;
+  });
+  useLayoutEffect(() => {
+    repositionRef.current();
+  }, [gapX, gapY, isVertical]);
+  return null;
 };
 
 const PopoverRoot = ({
@@ -150,13 +200,29 @@ const PopoverRoot = ({
   const portalContainerRef = usePortalContainerRef();
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const direction = position.split("-")[0];
+  const [direction, alignment] = position.split("-");
   const isVertical = direction === "top" || direction === "bottom";
 
-  // Reading discrete values keeps the callback stable when `positionFromPoint`
-  // is passed as an inline object.
-  const pointX = positionFromPoint?.x;
-  const pointY = positionFromPoint?.y;
+  const hasPoint = positionFromPoint !== undefined;
+
+  // Ark reads the positioning options when it computes a placement and never
+  // re-reads a prop mid-flight: its running loop (per frame for a point anchor
+  // via `animationFrame` below; on scroll/resize for a trigger anchor) keeps
+  // calling the *original* `getAnchorRect` closure captured when the popover
+  // opened. So point-anchor values that can change while open - the point itself
+  // and the gaps, both baked into that anchor rect - are routed through refs the
+  // closure reads, keeping the loop current (e.g. an overlay tracking a node as a
+  // chart is panned or zoomed). The trigger-anchor gap instead rides `offset`
+  // below (computed inline from the current gaps) and is applied by nudging a
+  // reposition - see `RepositionOnGapChange`.
+  const pointRef = useRef(positionFromPoint);
+  const gapRef = useRef({ x: gapX, y: gapY });
+  // Synced before paint so the frame loop never reads stale values.
+  useLayoutEffect(() => {
+    pointRef.current = positionFromPoint;
+    gapRef.current.x = gapX;
+    gapRef.current.y = gapY;
+  }, [positionFromPoint, gapX, gapY]);
 
   // The consumer opens the popover by mounting it, but Ark only runs its open
   // transition - which focuses the first item inside the popover - when `open`
@@ -249,16 +315,50 @@ const PopoverRoot = ({
       }}
       positioning={{
         placement: position,
-        offset: { mainAxis: isVertical ? gapY : gapX },
+        // The gap along the placement direction (the main axis). A trigger anchor
+        // rides Ark's offset middleware (which stays flip-aware); computed inline
+        // from the current gaps so a change is in the prop Ark reads. A point
+        // anchor bakes both gaps into the anchor rect below instead (see
+        // `getAnchorRect`), so no offset is set for it.
+        offset: hasPoint ? undefined : { mainAxis: isVertical ? gapY : gapX },
+        slide: hasPoint ? false : undefined,
+        flip: hasPoint ? false : undefined,
+        // When anchored to a point, the trigger element itself doesn't move as
+        // the point changes, so floating-ui's default scroll/resize listeners
+        // never fire and the popover would stay put. Poll on each animation
+        // frame instead so it tracks a moving point (e.g. an overlay following
+        // a node as a chart is panned/zoomed). The other auto-update listeners
+        // keep their defaults. Trigger-anchored popovers don't need this.
+        listeners: hasPoint ? { animationFrame: true } : true,
         // Anchor to the external trigger (or a point relative to its top-left).
         // Reads the ref lazily so positioning tracks the trigger as it moves.
         getAnchorRect: () => {
           const rect = resolveRef(triggerRef)?.getBoundingClientRect();
+          const point = pointRef.current;
 
-          if (pointX !== undefined && pointY !== undefined) {
+          if (point) {
+            // Point anchors disable flip, so the resolved placement equals
+            // `position`: bake both gaps straight into the zero-size anchor rect.
+            // The main-axis gap shifts the point along the placement direction
+            // (away from the popover); the cross-axis gap shifts it across
+            // (flipped for `end` alignment). Read from `gapRef` so the running
+            // loop tracks changes - a shifted rect makes it recompute on its own.
+            const { x: gapXNow, y: gapYNow } = gapRef.current;
+            const mainGap = isVertical ? gapYNow : gapXNow;
+            const mainSign =
+              direction === "top" || direction === "left" ? -1 : 1;
+            const crossGap = isVertical ? gapXNow : gapYNow;
+            const crossOffset = alignment === "end" ? -crossGap : crossGap;
+
             return {
-              x: (rect?.left ?? 0) + pointX,
-              y: (rect?.top ?? 0) + pointY,
+              x:
+                (rect?.left ?? 0) +
+                point.x +
+                (isVertical ? crossOffset : mainSign * mainGap),
+              y:
+                (rect?.top ?? 0) +
+                point.y +
+                (isVertical ? mainSign * mainGap : crossOffset),
               width: 0,
               height: 0,
             };
@@ -275,6 +375,13 @@ const PopoverRoot = ({
         },
       }}
     >
+      {hasPoint ? null : (
+        <RepositionOnGapChange
+          gapX={gapX}
+          gapY={gapY}
+          isVertical={isVertical}
+        />
+      )}
       <Portal container={portalContainerRef}>
         <ArkPopover.Positioner className={positionerStyles}>
           <ArkPopover.Content

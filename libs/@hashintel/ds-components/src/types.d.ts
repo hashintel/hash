@@ -5,3 +5,8 @@ declare module "*.svg" {
   const ReactComponent: FunctionComponent<SVGAttributes<SVGElement>>;
   export default ReactComponent;
 }
+
+declare module "*?url" {
+  const url: string;
+  export default url;
+}
