@@ -6,7 +6,7 @@ use super::{
     entry::{BlobEntry, ContentId, Entry, IndexEntry, IndexRecord, Placement, SectionRange, Slot},
     header::{ContainerState, Header},
     section::{ArrayShape, ScalarArrayLayout, ScalarType, SectionKind},
-    wire::{self, WireIndexRecord, WireSaltEntry},
+    wire::{self, WireSaltEntry},
 };
 
 fn f32_layout(dims: &[u64]) -> ScalarArrayLayout {
