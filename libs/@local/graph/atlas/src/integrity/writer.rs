@@ -39,9 +39,12 @@ pin_project! {
     /// use hash_graph_atlas::integrity::{Sha256, Writer};
     ///
     /// let mut file = std::fs::File::open("layout-a100.f32")?;
-    /// let mut writer = Writer(Sha256::new());
+    /// let mut writer = Writer {
+    ///     accumulator: Sha256::new(),
+    ///     writer: std::io::sink(),
+    /// };
     /// std::io::copy(&mut file, &mut writer)?;
-    /// let digest = writer.0.finalize();
+    /// let digest = writer.accumulator.finalize();
     /// # Ok(())
     /// # }
     /// ```

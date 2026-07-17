@@ -3,6 +3,10 @@
     reason = "exactness assertions are the point: corner selection and fits over \
               exactly-representable values are bit-precise contracts"
 )]
+#![expect(
+    clippy::integer_division_remainder_used,
+    reason = "test data generation folds indices into range by modulus"
+)]
 
 use proptest::prelude::*;
 

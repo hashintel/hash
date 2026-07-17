@@ -4,6 +4,7 @@ use core::{error::Error, fmt, pin::Pin};
 use std::io;
 
 use futures::{FutureExt as _, Stream, TryStreamExt as _};
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use smallvec::SmallVec;
 use tokio::io::AsyncWrite;
 use tokio_postgres::{
@@ -18,11 +19,40 @@ use super::{
 };
 use crate::math::BoxedVecN;
 
+/// The bitemporal point one dataset observes.
+///
+/// The axes are declared inputs of a fit: a generation records them, and
+/// a rerun with equal axes over unchanged history reads equal data. Axes
+/// in the past read the graph as it stood then; the store's temporal
+/// tables retain that history.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct TemporalAxes {
+    /// The transaction-time point: which writes are visible.
+    pub transaction_time: Timestamp<TransactionTime>,
+    /// The decision-time point: which decisions are in effect.
+    pub decision_time: Timestamp<DecisionTime>,
+}
+
+impl TemporalAxes {
+    /// The current moment on both axes.
+    #[must_use]
+    pub(crate) fn now() -> Self {
+        Self {
+            transaction_time: Timestamp::now(),
+            decision_time: Timestamp::now(),
+        }
+    }
+}
+
 /// The scope and type-table derivation shared by every query.
 ///
-/// `scope` is the node universe: every current, non-draft, non-archived
-/// entity holding a whole-entity embedding, with its dense row assigned by
-/// canonical `(web_id, entity_uuid)` order. `links` pairs each link
+/// `$1` is the transaction-time point and `$2` the decision-time point of
+/// the dataset's [`TemporalAxes`].
+///
+/// `scope` is the node universe: every non-draft, non-archived entity
+/// holding a whole-entity embedding whose edition is current at the
+/// dataset's temporal axes, with its dense row assigned by canonical
+/// `(web_id, entity_uuid)` order. `links` pairs each link
 /// entity's left and right attachments and densifies both endpoints
 /// through `scope`, so links with out-of-scope endpoints drop out here.
 /// `type_set` collects every type reachable from scope or links at any
@@ -46,8 +76,8 @@ const COMMON_TABLE_EXPRESSIONS: &str = "
           ON meta.web_id = embedding.web_id
          AND meta.entity_uuid = embedding.entity_uuid
          AND meta.draft_id IS NULL
-         AND meta.transaction_time @> transaction_timestamp()
-         AND meta.decision_time @> transaction_timestamp()
+         AND meta.transaction_time @> $1::timestamptz
+         AND meta.decision_time @> $2::timestamptz
         JOIN entity_editions AS edition
           ON edition.entity_edition_id = meta.entity_edition_id
          AND NOT edition.archived
@@ -78,8 +108,8 @@ const COMMON_TABLE_EXPRESSIONS: &str = "
           ON meta.web_id = left_edge.source_web_id
          AND meta.entity_uuid = left_edge.source_entity_uuid
          AND meta.draft_id IS NULL
-         AND meta.transaction_time @> transaction_timestamp()
-         AND meta.decision_time @> transaction_timestamp()
+         AND meta.transaction_time @> $1::timestamptz
+         AND meta.decision_time @> $2::timestamptz
         JOIN entity_editions AS edition
           ON edition.entity_edition_id = meta.entity_edition_id
          AND NOT edition.archived
@@ -300,25 +330,32 @@ fn decode_ontology(row: &Row) -> Result<Ontology<ArchivedOntologyTypeUuid>, Post
 
 /// A [`Dataset`] reading one frozen view of the HASH graph store.
 ///
-/// The dataset's scope is every current, non-draft, non-archived entity
-/// that holds a whole-entity embedding, plus every link whose endpoints
-/// both fall inside that scope. Prefix truncation, l2 normalization, and
-/// endpoint densification all happen inside the store's queries; the
-/// connection ships dense rows and normalized prefixes only.
+/// The dataset's scope is every non-draft, non-archived entity that holds
+/// a whole-entity embedding and is current at the dataset's
+/// [`TemporalAxes`], plus every link whose endpoints both fall inside
+/// that scope. Prefix truncation, l2 normalization, and endpoint
+/// densification all happen inside the store's queries; the connection
+/// ships dense rows and normalized prefixes only.
 pub(crate) struct PostgresDataset<'client> {
     transaction: Transaction<'client>,
+    axes: TemporalAxes,
 }
 
 impl<'client> PostgresDataset<'client> {
-    /// Freezes one view of the store and serves a dataset from it.
+    /// Freezes one view of the store at `axes` and serves a dataset from
+    /// it.
     ///
-    /// The view stays frozen until the dataset is dropped.
+    /// The view stays frozen until the dataset is dropped. The axes are
+    /// the fit's declared bitemporal inputs: record them in the
+    /// generation metadata, and pass axes in the past to read the graph
+    /// as it stood then.
     ///
     /// # Errors
     ///
     /// Returns an error when the store cannot open the transaction.
     pub(crate) async fn new(
         client: &'client mut tokio_postgres::Client,
+        axes: TemporalAxes,
     ) -> Result<Self, PostgresDatasetError> {
         // Repeatable read is Postgres snapshot isolation: every query in
         // the transaction sees the same committed state, which is the
@@ -337,10 +374,11 @@ impl<'client> PostgresDataset<'client> {
             .batch_execute("SET LOCAL work_mem = '256MB'")
             .await?;
 
-        Ok(Self { transaction })
+        Ok(Self { transaction, axes })
     }
 
-    /// Issues `sql` and adapts the row stream through `decode`.
+    /// Issues `sql` with the dataset's temporal axes as `$1`/`$2` and
+    /// adapts the row stream through `decode`.
     fn stream_query<'this, T>(
         &'this self,
         sql: String,
@@ -353,7 +391,13 @@ impl<'client> PostgresDataset<'client> {
         // born, releasing the borrow.
         async move {
             self.transaction
-                .query_raw(&sql, [] as [&(dyn ToSql + Sync); 0])
+                .query_raw(
+                    &sql,
+                    [
+                        &self.axes.transaction_time as &(dyn ToSql + Sync),
+                        &self.axes.decision_time as &(dyn ToSql + Sync),
+                    ],
+                )
                 .await
         }
         .into_stream()

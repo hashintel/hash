@@ -468,9 +468,8 @@ impl<const N: usize> BoxedVecN<N> {
     /// Creates the zero vector in a new aligned allocation in the global
     /// allocator.
     ///
-    /// This is the constructor for buffers that are filled in place
-    /// (decoding, accumulation): the components arrive already valid and
-    /// zeroed, so no staging copy is needed.
+    /// Every component is `0.0` and the buffer is valid for in-place
+    /// filling through [`as_array_mut`](AlignedVecN::as_array_mut).
     #[inline]
     #[must_use]
     pub fn zero() -> Self {

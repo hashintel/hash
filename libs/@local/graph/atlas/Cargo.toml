@@ -8,118 +8,43 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hash-graph-embeddings = { workspace = true, public = true }
-type-system           = { workspace = true, public = true }
+type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
-axum = { workspace = true, public = true }
-burn = { version = "0.21.0", features = ["std", "tui", "train", "wgpu", "fusion"], public = true }
-# The burn facade re-exports these; the types appearing in our public API are
-# defined in the sub-crates, so the public-dependency contract names them too.
-burn-backend = { version = "0.21.0", default-features = false, public = true }
-burn-core    = { version = "0.21.0", default-features = false, public = true }
-burn-tensor  = { version = "0.21.0", default-features = false, public = true }
-burn-train   = { version = "0.21.0", default-features = false, public = true }
-bytes        = { workspace = true, public = true }
-camino       = { workspace = true, features = ["serde1"], public = true }
-# Error sources surfaced through public error enums.
-cxx            = { version = "1.0.194", public = true }
 futures-sink   = { workspace = true, public = true }
-tempfile       = { version = "3.27.0", public = true }
-tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "signal", "sync"], public = true }
-tokio-postgres = { workspace = true, public = true }
+rand           = { workspace = true, public = true }
+rand_core      = { workspace = true, public = true }
+tokio          = { workspace = true, features = ["macros", "rt-multi-thread", "sync"], public = true }
+tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
 uuid           = { workspace = true, public = true }
 
 # Private workspace dependencies
+hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
-clap                                     = { workspace = true, features = ["derive"] }
-ed25519-dalek                            = "3.0.0"
-error-stack.workspace                    = true
-faer                                     = "0.24.4"
-fs2                                      = "0.4.3"
-futures.workspace                        = true
-gemm                                     = "=0.19.0"
-gemm-common                              = "=0.19.0"
-hash-graph-authorization.workspace       = true
-hash-graph-postgres-store.workspace      = true
-hash-graph-store.workspace               = true
-hash-graph-temporal-versioning.workspace = true
-hash-graph-types.workspace               = true
-hashql-core.workspace                    = true
-jiff                                     = { version = "0.2.32", features = ["serde"] }
-kiddo                                    = { version = "5.3.2", default-features = false }
-levenberg-marquardt                      = "0.15.0"
-libc                                     = "0.2.186"
-memmap2                                  = "0.9.11"
-nalgebra                                 = "0.34.1"
-pin-project-lite.workspace               = true
-rand                                     = { workspace = true, public = true }
-rand_core                                = { workspace = true, public = true }
-rand_xoshiro                             = { workspace = true }
-rayon                                    = { workspace = true }
-regex                                    = { workspace = true }
-schemars                                 = { workspace = true, features = ["derive", "std", "uuid1"] }
-serde                                    = { workspace = true, features = ["derive"] }
-serde_json                               = { workspace = true, features = ["float_roundtrip"] }
-sha2                                     = { workspace = true }
-simple-mermaid                           = { workspace = true }
-sleef                                    = "0.3"
-smallvec.workspace                       = true
-sprs                                     = { version = "0.11.4", default-features = false }
-sysinfo                                  = "0.39.6"
-tiktoken-rs                              = "0.12.0"
-tokio-util.workspace                     = true
-tracing                                  = { workspace = true }
-usearch                                  = "2.25.3"
-zerocopy                                 = "0.8.54"
+futures.workspace          = true
+pin-project-lite.workspace = true
+rand_xoshiro               = { workspace = true }
+rayon                      = { workspace = true }
+regex                      = { workspace = true }
+serde                      = { workspace = true, features = ["derive"] }
+serde_json                 = { workspace = true, features = ["float_roundtrip"] }
+sha2                       = { workspace = true }
+simple-mermaid             = { workspace = true }
+sleef                      = "0.3"
+smallvec.workspace         = true
+tiktoken-rs                = "0.12.0"
+zerocopy                   = "0.8.54"
 
 [dev-dependencies]
-burn                      = { version = "0.21.0", features = ["ndarray"] }
-camino                    = { workspace = true }
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
-futures                   = { workspace = true }
-hash-graph-embeddings     = { workspace = true }
-npyz                      = "0.9.1"
 proptest.workspace        = true
-tempfile                  = "3.27.0"
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
-tokio-postgres            = { workspace = true }
-tower                     = { workspace = true, features = ["util"] }
-tracing-subscriber        = { workspace = true }
-uuid                      = { workspace = true, features = ["v4"] }
-
-[features]
-cuda            = ["burn/cuda"]
-salt-benchmarks = []
 
 [[bench]]
 name    = "math_kernels"
 harness = false
-
-[[bench]]
-name              = "salt"
-harness           = false
-required-features = ["salt-benchmarks"]
-
-[[bench]]
-name              = "salt_kernels"
-harness           = false
-required-features = ["salt-benchmarks"]
-
-# The `cuda` feature is intentionally absent from default builds. Dedicated
-# Linux GPU jobs enable and exercise the CubeCL CUDA runtime explicitly.
-
-# Apple-only backends: always available on macOS, never elsewhere.
-# `metal` compiles CubeCL kernels to MSL for SALT fitting and serving.
-[target.'cfg(target_os = "macos")'.dependencies]
-burn = { version = "0.21.0", features = ["metal"] }
-
-# Everywhere else the established projection backend compiles via Vulkan.
-# Linux SALT production additionally requires the explicit `cuda` feature.
-[target.'cfg(not(target_os = "macos"))'.dependencies]
-burn = { version = "0.21.0", features = ["vulkan"] }
 
 [lints]
 workspace = true

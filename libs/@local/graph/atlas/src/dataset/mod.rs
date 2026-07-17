@@ -62,6 +62,7 @@ use zerocopy::{LE, U64};
 
 use crate::math::BoxedVecN;
 
+pub(crate) mod card;
 pub(crate) mod memory;
 pub(crate) mod postgres;
 
@@ -311,9 +312,8 @@ impl OntologyRowId {
 
 /// The byte-level form of a non-draft entity identity.
 ///
-/// Drafts never enter a dataset's scope, so the draft component of the
-/// full graph identity is absent by construction rather than stored as
-/// an always-empty column.
+/// Drafts never enter a dataset's scope; the identity is the web and
+/// entity components alone.
 #[derive(
     Debug,
     Copy,
@@ -364,10 +364,9 @@ pub(crate) struct Node<N> {
     /// [`PROJECTOR_DIMENSIONS`] components, l2-normalized at the source.
     ///
     /// The norm is 1 up to `f32` rounding and every component is finite.
-    /// The pipeline spot-checks this contract statistically instead of
-    /// re-normalizing. Every node carries an embedding: entities without
-    /// one are outside every dataset's scope, so the row domain and the
-    /// placeable domain are the same set.
+    /// The pipeline spot-checks this contract statistically. Every node
+    /// carries an embedding: entities without one are outside every
+    /// dataset's scope, and the row domain equals the placeable domain.
     pub embedding: BoxedVecN<PROJECTOR_DIMENSIONS>,
 
     /// The store's confidence in the entity, in `0.0..=1.0`.
@@ -426,8 +425,7 @@ pub(crate) struct Edge<E> {
 /// See the [module documentation](self) for the row, snapshot, and type
 /// contracts every implementation upholds. In short: streams assign dense
 /// ids by position, all streams observe one frozen view of the graph, and
-/// types travel as direct types plus a parent graph rather than as
-/// materialized closures.
+/// types travel as direct types plus a parent graph.
 pub(crate) trait Dataset {
     /// The source identifier of a node.
     ///
@@ -514,11 +512,10 @@ pub(crate) trait Dataset {
     ///
     /// Each requested node yields its complete
     /// [`CANONICAL_DIMENSIONS`]-component embedding as stored, with every
-    /// component finite. This exists for probe-scoped evaluation -
-    /// measuring the fitted map against exact neighborhoods in canonical
-    /// space - and requests stay bounded (probe anchors and their
-    /// comparison population, not the corpus); the corpus-scale
-    /// representation is [`Node::embedding`].
+    /// component finite. Requests are probe-scoped: bounded anchor and
+    /// comparison sets for evaluating the fitted map against exact
+    /// canonical-space neighborhoods. The corpus-scale representation is
+    /// [`Node::embedding`].
     #[must_use]
     fn canonical_node_embeddings<I: Iterator<Item = Self::NodeId>>(
         &self,

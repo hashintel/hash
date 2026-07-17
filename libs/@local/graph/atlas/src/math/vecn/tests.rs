@@ -3,6 +3,10 @@
     reason = "exactness assertions are the point: in-place wrapping and lane order are \
               bit-precise contracts"
 )]
+#![expect(
+    clippy::integer_division_remainder_used,
+    reason = "alignment assertions take the pointer address modulo the SIMD alignment"
+)]
 
 use core::{
     iter,
