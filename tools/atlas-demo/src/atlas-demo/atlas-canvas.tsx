@@ -2,6 +2,7 @@ import {
   OrthographicView,
   type Layer,
   type OrthographicViewState,
+  type PickingInfo,
   type ViewStateChangeParameters,
 } from "@deck.gl/core";
 /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The interactive field needs a focus target for keyboard pan and zoom. */
@@ -38,8 +39,11 @@ import {
   type AtlasFrontierSnapshot,
 } from "../atlas-frontier";
 import {
+  bundleAtlasFlows,
   createAtlasContourLayer,
   createAtlasFlowLayer,
+  createAtlasRegionPeakLayer,
+  nearestAtlasRegion,
 } from "../atlas-overlays";
 import { AtlasNotice, atlasErrorCopy } from "./atlas-notice";
 import { AtlasToolbar } from "./atlas-toolbar";
@@ -122,6 +126,9 @@ const overlaySummary = (
 ): string =>
   `${count} ${unit} \u00b7 ${kibibyteFormat.format(byteLength / 1024)} KiB`;
 
+/** Hover capture radius around a region peak, in screen pixels. */
+const flowFocusRadiusPixels = 32;
+
 /** Interactive deck.gl surface for one immutable Atlas session. */
 export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   const [canvasSize, setCanvasSize] = useState(initialCanvasSize);
@@ -145,12 +152,17 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
     readonly generation: string;
   }>();
   const [overlayError, setOverlayError] = useState<string>();
+  const [focusRegion, setFocusRegion] = useState<number>();
   const contourData =
     contourState?.generation === session.generation
       ? contourState.data
       : undefined;
   const flowData =
     flowState?.generation === session.generation ? flowState.data : undefined;
+  const bundledFlowPaths = useMemo(
+    () => (flowData === undefined ? undefined : bundleAtlasFlows(flowData)),
+    [flowData],
+  );
 
   const frontier = useMemo(() => new AtlasFrontier(session), [session]);
   useEffect(
@@ -287,8 +299,11 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
     if (showContours && contourData !== undefined) {
       stack.push(createAtlasContourLayer(contourData));
     }
-    if (showFlows && flowData !== undefined) {
-      stack.push(createAtlasFlowLayer(flowData));
+    if (showFlows && flowData !== undefined && bundledFlowPaths !== undefined) {
+      stack.push(
+        createAtlasFlowLayer(bundledFlowPaths, focusRegion),
+        createAtlasRegionPeakLayer(flowData, focusRegion),
+      );
     }
     stack.push(starLayer);
     if (debugFraming) {
@@ -296,9 +311,11 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
     }
     return stack;
   }, [
+    bundledFlowPaths,
     contourData,
     debugFraming,
     flowData,
+    focusRegion,
     renderState,
     showContours,
     showFlows,
@@ -325,6 +342,34 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
       );
     },
     [],
+  );
+
+  const handleHover = useCallback(
+    (info: PickingInfo) => {
+      const coordinate = info.coordinate;
+      if (
+        !showFlows ||
+        flowData === undefined ||
+        coordinate === undefined ||
+        coordinate[0] === undefined ||
+        coordinate[1] === undefined
+      ) {
+        setFocusRegion(undefined);
+        return;
+      }
+      // The capture radius is defined on screen, so focus feels the same at
+      // every zoom level.
+      const worldPerPixel = 2 ** -camera.zoom;
+      setFocusRegion(
+        nearestAtlasRegion(
+          flowData,
+          coordinate[0],
+          coordinate[1],
+          flowFocusRadiusPixels * worldPerPixel,
+        ),
+      );
+    },
+    [camera.zoom, flowData, showFlows],
   );
 
   const handleViewStateChange = useCallback(
@@ -466,6 +511,7 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
           effects={effects}
           getCursor={({ isDragging }) => (isDragging ? "grabbing" : "grab")}
           layers={layers}
+          onHover={handleHover}
           onResize={handleResize}
           onViewStateChange={handleViewStateChange}
           touchAction="none"
@@ -476,7 +522,9 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
 
       <p id="atlas-canvas-instructions" className="sr-only">
         Drag or use the arrow keys to pan. Scroll or use plus and minus to zoom.
-        Press Home to reset the complete Atlas square.
+        Press Home to reset the complete Atlas square. While semantic flows are
+        visible, moving the pointer near a region peak isolates that region's
+        flows.
       </p>
       <p className="sr-only" aria-live="polite">
         {liveSummary}

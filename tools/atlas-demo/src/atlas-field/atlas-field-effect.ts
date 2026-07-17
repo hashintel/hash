@@ -40,6 +40,14 @@ const exposureIntervalMilliseconds = 1_000;
 const baseSplatRadius = 6;
 const deliveryBandOffset = 7;
 const maximumFieldLevel = 13;
+/**
+ * Halo share of each splat kernel relative to its sharp core.
+ *
+ * This is the per-node glow knob: the halo is the broad dim skirt around
+ * every representative, so lowering it tightens isolated nodes while dense
+ * accumulation (many overlapping cores) keeps its brightness.
+ */
+const splatHaloWeight = 0.25;
 
 interface FieldUniformProps {
   baseRadius: number;
@@ -125,7 +133,7 @@ void main(void) {
   // outskirts, instead of one mid-width Gaussian flattening both.
   float core = exp(-distanceSquared * 9.0);
   float halo = exp(-distanceSquared * 2.2);
-  float kernel = (core + halo * 0.45) * edge;
+  float kernel = (core + halo * ${splatHaloWeight.toFixed(3)}) * edge;
   fragColor = vec4(vMass * kernel, 0.0, 0.0, 0.0);
 }
 `;

@@ -1,6 +1,7 @@
 export {
   atlasFlowControlPoints,
   bundleAtlasFlows,
+  nearestAtlasRegion,
   sampleClampedBSpline,
   type AtlasBundlingOptions,
   type AtlasFlowPath,
@@ -8,4 +9,5 @@ export {
 export {
   createAtlasContourLayer,
   createAtlasFlowLayer,
+  createAtlasRegionPeakLayer,
 } from "./atlas-overlays/atlas-overlay-layers";

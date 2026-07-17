@@ -133,6 +133,34 @@ export const bundleAtlasFlows = (
 };
 
 /**
+ * Returns the region whose peak lies nearest to a world coordinate.
+ *
+ * Hover focus uses this instead of GPU picking: with at most a few dozen
+ * watershed regions a linear scan is exact, deterministic, and free of
+ * picking-buffer subtleties. Peaks farther than `maximumDistance` world
+ * units return no focus so empty space clears the filter.
+ */
+export const nearestAtlasRegion = (
+  flows: DecodedAtlasFlows,
+  worldX: number,
+  worldY: number,
+  maximumDistance: number,
+): number | undefined => {
+  let nearest: number | undefined;
+  let nearestSquared = maximumDistance * maximumDistance;
+  for (const [index, region] of flows.regions.entries()) {
+    const deltaX = region.x - worldX;
+    const deltaY = region.y - worldY;
+    const squared = deltaX * deltaX + deltaY * deltaY;
+    if (squared <= nearestSquared) {
+      nearest = index;
+      nearestSquared = squared;
+    }
+  }
+  return nearest;
+};
+
+/**
  * Samples a clamped uniform B-spline through the control points.
  *
  * The degree adapts down for short polygons, and clamped end knots make the

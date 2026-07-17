@@ -1,20 +1,21 @@
 /** Deck.gl layers for the analytic contour and bundled-flow overlays. */
 
 import { COORDINATE_SYSTEM, type Layer } from "@deck.gl/core";
-import { PathLayer } from "@deck.gl/layers";
-
-import { bundleAtlasFlows, type AtlasFlowPath } from "./atlas-overlay-data";
+import { PathLayer, ScatterplotLayer } from "@deck.gl/layers";
 
 import type {
   AtlasContour,
   DecodedAtlasContours,
   DecodedAtlasFlows,
 } from "../atlas-client";
+import type { AtlasFlowPath } from "./atlas-overlay-data";
 
 /** Cool contour stroke sitting between the density field and the stars. */
 const contourColor = [126, 165, 205] as const;
 /** Warm additive ribbon tint so flows read against the blue field. */
 const flowColor = [255, 196, 110] as const;
+/** Alpha of ribbons outside the focused region; zero hides them outright. */
+const ghostFlowAlpha = 0;
 
 interface ContourPath {
   readonly contour: AtlasContour;
@@ -75,26 +76,35 @@ export const createAtlasContourLayer = (
  * Each ribbon's intensity and width grow with the log of its aggregated
  * semantic weight, and overlapping ribbons accumulate light exactly like
  * the starfield, so bright trunks indicate genuinely heavy semantic traffic
- * between density basins.
+ * between density basins. When `focusRegion` is set, only ribbons touching
+ * that region remain visible; the rest are hidden entirely so the focused
+ * subset stands alone.
  */
-export const createAtlasFlowLayer = (flows: DecodedAtlasFlows): Layer => {
-  const paths = bundleAtlasFlows(flows);
+export const createAtlasFlowLayer = (
+  paths: readonly AtlasFlowPath[],
+  focusRegion?: number,
+): Layer => {
   const maximumWeight = paths.reduce(
     (maximum, { weight }) => Math.max(maximum, weight),
     0,
   );
+  const inFocus = (flow: AtlasFlowPath): boolean =>
+    focusRegion === undefined ||
+    flow.source === focusRegion ||
+    flow.target === focusRegion;
 
   return new PathLayer<AtlasFlowPath>({
     id: "atlas-flows",
     coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
-    data: paths,
-    getColor: ({ weight }) => {
-      const share = maximumWeight > 0 ? weight / maximumWeight : 0;
+    data: paths as AtlasFlowPath[],
+    getColor: (flow) => {
+      const share = maximumWeight > 0 ? flow.weight / maximumWeight : 0;
+      const alpha = Math.round(28 + 132 * Math.sqrt(share));
       return [
         flowColor[0],
         flowColor[1],
         flowColor[2],
-        Math.round(28 + 132 * Math.sqrt(share)),
+        inFocus(flow) ? alpha : Math.min(alpha, ghostFlowAlpha),
       ];
     },
     getPath: ({ path }) => path,
@@ -112,8 +122,60 @@ export const createAtlasFlowLayer = (flows: DecodedAtlasFlows): Layer => {
     },
     pickable: false,
     positionFormat: "XY",
+    updateTriggers: {
+      getColor: [focusRegion],
+    },
     widthMinPixels: 0.75,
     widthMaxPixels: 4,
     widthUnits: "pixels",
+  });
+};
+
+interface RegionPeakDatum {
+  readonly index: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ * Marks every watershed region peak as a small ring.
+ *
+ * The rings are the hover affordance for flow focus: each marks the exact
+ * world position the nearest-peak search measures against, and the focused
+ * ring brightens so the active filter is visible even before its ribbons
+ * separate from the ghosted rest.
+ */
+export const createAtlasRegionPeakLayer = (
+  flows: DecodedAtlasFlows,
+  focusRegion?: number,
+): Layer => {
+  const data: RegionPeakDatum[] = flows.regions.map((region, index) => ({
+    index,
+    x: region.x,
+    y: region.y,
+  }));
+
+  return new ScatterplotLayer<RegionPeakDatum>({
+    id: "atlas-region-peaks",
+    antialiasing: true,
+    coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
+    data,
+    filled: false,
+    getLineColor: ({ index }) =>
+      index === focusRegion
+        ? [flowColor[0], flowColor[1], flowColor[2], 235]
+        : [contourColor[0], contourColor[1], contourColor[2], 88],
+    getLineWidth: ({ index }) => (index === focusRegion ? 1.6 : 1),
+    getPosition: ({ x, y }) => [x, y],
+    getRadius: ({ index }) => (index === focusRegion ? 7 : 4.5),
+    lineWidthUnits: "pixels",
+    pickable: false,
+    radiusUnits: "pixels",
+    stroked: true,
+    updateTriggers: {
+      getLineColor: [focusRegion],
+      getLineWidth: [focusRegion],
+      getRadius: [focusRegion],
+    },
   });
 };

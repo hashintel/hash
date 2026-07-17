@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   atlasFlowControlPoints,
   bundleAtlasFlows,
+  nearestAtlasRegion,
   sampleClampedBSpline,
 } from "./atlas-overlay-data";
 
@@ -62,6 +63,17 @@ describe("sampleClampedBSpline", () => {
     );
 
     expect([...path]).toEqual([0, 0, 5, 10, 10, 20]);
+  });
+});
+
+describe("nearestAtlasRegion", () => {
+  it("returns the closest peak inside the capture radius", () => {
+    expect(nearestAtlasRegion(flows, 20, 5, 50)).toBe(1);
+    expect(nearestAtlasRegion(flows, 940, 30, 100)).toBe(2);
+  });
+
+  it("returns no focus when every peak is out of reach", () => {
+    expect(nearestAtlasRegion(flows, 250, 250, 40)).toBeUndefined();
   });
 });
 
