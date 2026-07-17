@@ -116,11 +116,13 @@ pub(super) async fn connect_and_extract(
         worker.document.resources,
     )
     .await?;
-    transaction
-        .commit()
-        .await
-        .map_err(|report| PostgresExtractionError::Store(report.to_string()))?;
-    Ok(ConnectedExtraction { store, extraction })
+    // transaction
+    //     .as_mut_client()
+    //     .commit()
+    //     .await
+    //     .map_err(|report| PostgresExtractionError::Store(report.to_string()))?;
+    // Ok(ConnectedExtraction { store, extraction })
+    todo!()
 }
 
 pub(super) async fn optimistic_authorization_revision(
