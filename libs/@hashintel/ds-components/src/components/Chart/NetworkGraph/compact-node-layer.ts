@@ -178,60 +178,140 @@ export class CompactNodeLayer extends CompositeLayer<
     const colorFor = (point: NetworkGraphPoint): RgbColor =>
       colorByHex.get(point.color) ?? FALLBACK_COLOR;
 
+    // A "grown" node ring: a filled disc in the node's colour with a white stroke,
+    // scaled by the current zoom and clamped to a pixel range. Backs the neighbour,
+    // hovered, and backgrounded-selection highlights.
+    const growRing = ({
+      idSuffix,
+      data: ringData,
+      radiusMultiplier,
+      radiusMinPixels,
+      radiusMaxPixels = Number.MAX_SAFE_INTEGER,
+      opacity = 1,
+    }: {
+      idSuffix: string;
+      data: NetworkGraphPoint[];
+      radiusMultiplier: number;
+      radiusMinPixels: number;
+      radiusMaxPixels?: number;
+      opacity?: number;
+    }) =>
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-${idSuffix}`,
+        parameters: BASE_LAYER_PARAMETERS,
+        data: ringData,
+        getPosition: (point) => [point.x, point.y],
+        getFillColor: colorFor,
+        getRadius: POINT_RADIUS * radiusMultiplier,
+        radiusScale,
+        radiusUnits: "pixels",
+        radiusMinPixels,
+        radiusMaxPixels,
+        stroked: true,
+        getLineColor: [255, 255, 255, RGBA_OPAQUE],
+        getLineWidth: GROW_RING_STROKE,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: 1,
+        opacity,
+      });
+
+    // A ring around a node that a hovered edge connects: hollow, in the edge's
+    // colour and hover width, its radius inset by the white stroke so it seats just
+    // inside that node's white grow ring. Compact view only.
+    const edgeHoverRing = ({
+      idSuffix,
+      data: ringData,
+      radiusMultiplier,
+      radiusMinPixels,
+      radiusMaxPixels = Number.MAX_SAFE_INTEGER,
+    }: {
+      idSuffix: string;
+      data: NetworkGraphPoint[];
+      radiusMultiplier: number;
+      radiusMinPixels: number;
+      radiusMaxPixels?: number;
+    }) =>
+      new ScatterplotLayer<NetworkGraphPoint>({
+        id: `${id}-${idSuffix}`,
+        parameters: BASE_LAYER_PARAMETERS,
+        data: ringData,
+        getPosition: (point) => [point.x, point.y],
+        filled: false,
+        stroked: true,
+        getRadius: POINT_RADIUS * radiusMultiplier,
+        radiusScale,
+        radiusUnits: "pixels",
+        radiusMinPixels,
+        radiusMaxPixels,
+        getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+        getLineWidth: EDGE_HOVER_WIDTH,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: EDGE_MIN_WIDTH,
+      });
+
     return [
-      // The faint "all edges" of the detail view, bundled along the node
-      // hierarchy and drawn behind everything else so the nodes and hovered-edge
-      // highlight sit on top. Empty in the compact view. Pickable (so an edge can
-      // be hovered) only in the detail view, where these are the visible edges.
-      new PathLayer<BundledEdge>({
-        id: `${id}-background-edges`,
-        data: backgroundEdgePaths,
-        pickable: backgroundEdgesPickable,
-        parameters: BASE_LAYER_PARAMETERS,
-        getPath: (edge) => edge.path,
-        // The hovered edge is drawn (bold, arrow-gapped, above the nodes) by the
-        // parent's separate `highlight-edges` layer; here it is kept in the data
-        // only as a continuous, rim-to-rim pick target, so it's drawn fully
-        // transparent. The rest stay faint.
-        getColor: (edge) =>
-          [
-            ...EDGE_COLOR,
-            edge.edgeId === hoveredEdgeId ? 0 : BACKGROUND_EDGE_ALPHA,
-          ] as Color,
-        // Match the hovered edge's pick-target width to the bold width it's drawn
-        // at by the highlight layer, so the hitbox lines up with what's on screen.
-        getWidth: (edge) =>
-          edge.edgeId === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
-        widthUnits: "pixels",
-        widthMinPixels: EDGE_MIN_WIDTH,
-        capRounded: true,
-        jointRounded: true,
-        updateTriggers: {
-          getColor: hoveredEdgeId,
-          getWidth: hoveredEdgeId,
-        },
-      }),
-      // The active node's incident edges (compact view). Drawn before the points
-      // so a node's disc paints over the edges meeting at it — and so picking
-      // resolves the node, not its edge, at the node's centre. Pickable only when
-      // a node is selected, per the compact-view hover rule.
-      new LineLayer<HoverLine>({
-        id: `${id}-edges`,
-        data: edges,
-        pickable: highlightEdgesPickable,
-        parameters: BASE_LAYER_PARAMETERS,
-        getSourcePosition: (line) => line.source,
-        getTargetPosition: (line) => line.target,
-        // Already fully opaque, so a hovered edge only doubles its width.
-        getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getWidth: (line) =>
-          line.id === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
-        widthUnits: "pixels",
-        widthMinPixels: EDGE_MIN_WIDTH,
-        updateTriggers: {
-          getWidth: hoveredEdgeId,
-        },
-      }),
+      // The faint "all edges" of the detail view, bundled along the node hierarchy
+      // and drawn behind everything else so the nodes and hovered-edge highlight sit
+      // on top. Not instantiated in the compact view, where there are none. Pickable
+      // (so an edge can be hovered) only in the detail view, its visible edges.
+      ...(backgroundEdgePaths.length > 0
+        ? [
+            new PathLayer<BundledEdge>({
+              id: `${id}-background-edges`,
+              data: backgroundEdgePaths,
+              pickable: backgroundEdgesPickable,
+              parameters: BASE_LAYER_PARAMETERS,
+              getPath: (edge) => edge.path,
+              // The hovered edge is drawn (bold, arrow-gapped, above the nodes) by
+              // the parent's separate `highlight-edges` layer; here it is kept in
+              // the data only as a continuous, rim-to-rim pick target, so it's drawn
+              // fully transparent. The rest stay faint.
+              getColor: (edge) =>
+                [
+                  ...EDGE_COLOR,
+                  edge.edgeId === hoveredEdgeId ? 0 : BACKGROUND_EDGE_ALPHA,
+                ] as Color,
+              // Match the hovered edge's pick-target width to the bold width it's
+              // drawn at by the highlight layer, so the hitbox lines up on screen.
+              getWidth: (edge) =>
+                edge.edgeId === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
+              widthUnits: "pixels",
+              widthMinPixels: EDGE_MIN_WIDTH,
+              capRounded: true,
+              jointRounded: true,
+              updateTriggers: {
+                getColor: hoveredEdgeId,
+                getWidth: hoveredEdgeId,
+              },
+            }),
+          ]
+        : []),
+      // The active node's incident edges (compact view). Drawn before the points so
+      // a node's disc paints over the edges meeting at it — and so picking resolves
+      // the node, not its edge, at the node's centre. Pickable only when a node is
+      // selected, per the compact-view hover rule. Not instantiated in the detail
+      // view, where they're drawn as bundled curves instead (so `edges` is empty).
+      ...(edges.length > 0
+        ? [
+            new LineLayer<HoverLine>({
+              id: `${id}-edges`,
+              data: edges,
+              pickable: highlightEdgesPickable,
+              parameters: BASE_LAYER_PARAMETERS,
+              getSourcePosition: (line) => line.source,
+              getTargetPosition: (line) => line.target,
+              // Already fully opaque, so a hovered edge only doubles its width.
+              getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+              getWidth: (line) =>
+                line.id === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
+              widthUnits: "pixels",
+              widthMinPixels: EDGE_MIN_WIDTH,
+              updateTriggers: {
+                getWidth: hoveredEdgeId,
+              },
+            }),
+          ]
+        : []),
       // Hidden in the detail variation so the crowd doesn't show through behind the
       // translucent detailed nodes; the detailed layer resolves picking there.
       ...(showPoints
@@ -256,110 +336,78 @@ export class CompactNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-highlight-neighbours`,
-        parameters: BASE_LAYER_PARAMETERS,
-        data: showGrowHighlights ? neighbours : [],
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: colorFor,
-        getRadius: POINT_RADIUS * NEIGHBOUR_RADIUS_MULTIPLIER,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
-        stroked: true,
-        getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: GROW_RING_STROKE,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: 1,
-      }),
-      // The backgrounded selection: the same grown ring as the active node but
-      // dimmed, drawn before it so the hovered node's highlight reads on top. Its
-      // edges/neighbours aren't drawn — those belong to the active (hovered) node.
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-dimmed-selected`,
-        parameters: BASE_LAYER_PARAMETERS,
-        data:
-          showGrowHighlights && dimmedSelectedNode ? [dimmedSelectedNode] : [],
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: colorFor,
-        getRadius: POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: HOVERED_MIN_RADIUS,
-        radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
-        stroked: true,
-        getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: GROW_RING_STROKE,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: 1,
-        opacity: SELECTED_DIM_OPACITY,
-      }),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-highlight-hovered`,
-        parameters: BASE_LAYER_PARAMETERS,
-        data: showGrowHighlights && activeNode ? [activeNode] : [],
-        getPosition: (point) => [point.x, point.y],
-        getFillColor: colorFor,
-        getRadius: POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER,
-        radiusScale,
-        radiusUnits: "pixels",
-        // Keep the hovered node prominent regardless of zoom level.
-        radiusMinPixels: HOVERED_MIN_RADIUS,
-        radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
-        stroked: true,
-        getLineColor: [255, 255, 255, RGBA_OPAQUE],
-        getLineWidth: GROW_RING_STROKE,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: 1,
-      }),
-      // Ring around each node the hovered edge connects, in the edge's colour and
-      // hover width, sitting just inside that node's white grow ring (its radius
-      // inset by the white stroke). Two layers because the hovered endpoint and
-      // its neighbour draw white rings of different sizes; each edge ring mirrors
-      // the matching grow ring so it hugs the inside of the right one. Compact
-      // view only — the detailed layer draws its own endpoint outlines.
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-edge-hover-outline-hovered`,
-        parameters: BASE_LAYER_PARAMETERS,
-        data:
-          showPoints && activeNode
-            ? edgeHoverNodes.filter((point) => point.id === activeNode.id)
-            : [],
-        getPosition: (point) => [point.x, point.y],
-        filled: false,
-        stroked: true,
-        // Radius inset by the white ring's stroke so it hugs the inside of it.
-        getRadius: POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
-        radiusMaxPixels:
-          POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER - GROW_RING_STROKE,
-        getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getLineWidth: EDGE_HOVER_WIDTH,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: EDGE_MIN_WIDTH,
-      }),
-      new ScatterplotLayer<NetworkGraphPoint>({
-        id: `${id}-edge-hover-outline-neighbour`,
-        parameters: BASE_LAYER_PARAMETERS,
-        data:
-          showPoints && activeNode
-            ? edgeHoverNodes.filter((point) => point.id !== activeNode.id)
-            : [],
-        getPosition: (point) => [point.x, point.y],
-        filled: false,
-        stroked: true,
-        // Radius inset by the white ring's stroke so it hugs the inside of it.
-        getRadius: POINT_RADIUS * NEIGHBOUR_RADIUS_MULTIPLIER,
-        radiusScale,
-        radiusUnits: "pixels",
-        radiusMinPixels: NEIGHBOUR_MIN_RADIUS - GROW_RING_STROKE,
-        getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-        getLineWidth: EDGE_HOVER_WIDTH,
-        lineWidthUnits: "pixels",
-        lineWidthMinPixels: EDGE_MIN_WIDTH,
-      }),
+      // The neighbour, backgrounded-selection, and hovered grow rings. Suppressed
+      // in the detail variation (which highlights via a colour-matched outline), so
+      // none are instantiated there; each is skipped when it has no node.
+      ...(showGrowHighlights
+        ? [
+            ...(neighbours.length > 0
+              ? [
+                  growRing({
+                    idSuffix: "highlight-neighbours",
+                    data: neighbours,
+                    radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
+                    radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+                  }),
+                ]
+              : []),
+            // The backgrounded selection: the same grown ring as the active node but
+            // dimmed, drawn before it so the hovered node's highlight reads on top.
+            // Its edges/neighbours aren't drawn — those belong to the active node.
+            ...(dimmedSelectedNode
+              ? [
+                  growRing({
+                    idSuffix: "dimmed-selected",
+                    data: [dimmedSelectedNode],
+                    radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
+                    radiusMinPixels: HOVERED_MIN_RADIUS,
+                    radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
+                    opacity: SELECTED_DIM_OPACITY,
+                  }),
+                ]
+              : []),
+            // Keep the hovered node prominent regardless of zoom level.
+            ...(activeNode
+              ? [
+                  growRing({
+                    idSuffix: "highlight-hovered",
+                    data: [activeNode],
+                    radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
+                    radiusMinPixels: HOVERED_MIN_RADIUS,
+                    radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
+                  }),
+                ]
+              : []),
+          ]
+        : []),
+      // Rings around the nodes a hovered edge connects, in the edge's colour and
+      // hover width, each seated just inside that node's white grow ring. Two layers
+      // because the hovered endpoint and its neighbour draw white rings of different
+      // sizes; each edge ring mirrors the matching grow ring so it hugs the inside
+      // of the right one. Compact view only (showPoints) and only with a node active
+      // — the detailed layer draws its own endpoint outlines.
+      ...(showPoints && activeNode
+        ? [
+            edgeHoverRing({
+              idSuffix: "edge-hover-outline-hovered",
+              data: edgeHoverNodes.filter(
+                (point) => point.id === activeNode.id,
+              ),
+              radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
+              radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
+              radiusMaxPixels:
+                POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER - GROW_RING_STROKE,
+            }),
+            edgeHoverRing({
+              idSuffix: "edge-hover-outline-neighbour",
+              data: edgeHoverNodes.filter(
+                (point) => point.id !== activeNode.id,
+              ),
+              radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
+              radiusMinPixels: NEIGHBOUR_MIN_RADIUS - GROW_RING_STROKE,
+            }),
+          ]
+        : []),
     ];
   }
 }

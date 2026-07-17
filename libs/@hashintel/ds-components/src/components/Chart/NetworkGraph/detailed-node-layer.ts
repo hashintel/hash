@@ -266,6 +266,58 @@ export class DetailedNodeLayer extends CompositeLayer<
       (node): node is NetworkGraphPoint => Boolean(node?.label),
     );
 
+    // The detail label renders as up to four near-identical TextLayers: a white
+    // pill backdrop (part of the node's white silhouette, at the outline depth) and
+    // the inked label pill (at the label depth), each with an extra bold copy for
+    // the active/selected node — deck bakes font weight into a per-layer atlas, so
+    // bold needs its own layer. Built here from two axes: `outline` (white backdrop
+    // vs inked pill) and `active` (bold copy).
+    const labelLayer = ({
+      idSuffix,
+      data: layerData,
+      outline,
+      active,
+    }: {
+      idSuffix: string;
+      data: NetworkGraphPoint[];
+      outline: boolean;
+      active: boolean;
+    }) =>
+      new TextLayer<NetworkGraphPoint>({
+        id: `${id}-${idSuffix}`,
+        data: layerData,
+        getPosition: (point) => [
+          point.x,
+          point.y,
+          zFor(point, outline ? DETAIL_LEVEL_OUTLINE : DETAIL_LEVEL_LABEL),
+        ],
+        getText: (point) => truncateLabel(point.label ?? ""),
+        getSize: DETAIL_LABEL_FONT_SIZE,
+        sizeUnits: "pixels",
+        fontFamily: DETAIL_LABEL_FONT,
+        fontWeight: active ? DETAIL_LABEL_FONT_WEIGHT_ACTIVE : "normal",
+        characterSet: "auto",
+        getTextAnchor: "middle",
+        getAlignmentBaseline: "top",
+        getPixelOffset: [0, DETAIL_LABEL_OFFSET],
+        // Outline variants contribute only the white pill backdrop (invisible text);
+        // label variants carry the inked text with a colour-matched border.
+        getColor: outline ? DETAIL_TRANSPARENT : DETAIL_INK,
+        background: true,
+        backgroundPadding: outline
+          ? DETAIL_OUTLINE_PADDING
+          : DETAIL_LABEL_PADDING,
+        backgroundBorderRadius: outline
+          ? DETAIL_OUTLINE_RADIUS
+          : DETAIL_LABEL_RADIUS,
+        getBackgroundColor: DETAIL_WHITE,
+        getBorderColor: outline
+          ? DETAIL_WHITE
+          : (point) => [...rgbFor(point), RGBA_OPAQUE],
+        getBorderWidth: outline ? 0 : 1,
+        updateTriggers: { getPosition: stackTrigger },
+      });
+
     return [
       // The white outline around the circle: a stroked ring (hollow) rather than a
       // filled disk, so the translucent node fill shows the background through it
@@ -297,60 +349,23 @@ export class DetailedNodeLayer extends CompositeLayer<
           getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
-      new TextLayer<NetworkGraphPoint>({
-        id: `${id}-outline-pill`,
+      // The white pill backdrop behind the label (invisible text — only the pill
+      // shape), part of the node+label white silhouette.
+      labelLayer({
+        idSuffix: "outline-pill",
         data: labelPoints,
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          zFor(point, DETAIL_LEVEL_OUTLINE),
-        ],
-        getText: (point) => truncateLabel(point.label ?? ""),
-        getSize: DETAIL_LABEL_FONT_SIZE,
-        sizeUnits: "pixels",
-        fontFamily: DETAIL_LABEL_FONT,
-        characterSet: "auto",
-        getTextAnchor: "middle",
-        getAlignmentBaseline: "top",
-        getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-        // Invisible text — this layer contributes only the pill-shaped backdrop.
-        getColor: DETAIL_TRANSPARENT,
-        background: true,
-        backgroundPadding: DETAIL_OUTLINE_PADDING,
-        backgroundBorderRadius: DETAIL_OUTLINE_RADIUS,
-        getBackgroundColor: DETAIL_WHITE,
-        getBorderWidth: 0,
-        updateTriggers: { getPosition: stackTrigger },
+        outline: true,
+        active: false,
       }),
-      // The active label's outline backdrop — bold-sized so its white ring matches
-      // the bold label text. Same width as idle (the outline only thickens around
-      // the circle, not the label). Active (labelled) node only.
+      // The active label's bold-sized outline backdrop, so its white ring matches
+      // the bold label text. Active (labelled) node only.
       ...(boldLabelNodes.length > 0
         ? [
-            new TextLayer<NetworkGraphPoint>({
-              id: `${id}-active-outline-pill`,
+            labelLayer({
+              idSuffix: "active-outline-pill",
               data: boldLabelNodes,
-              getPosition: (point) => [
-                point.x,
-                point.y,
-                zFor(point, DETAIL_LEVEL_OUTLINE),
-              ],
-              getText: (point) => truncateLabel(point.label ?? ""),
-              getSize: DETAIL_LABEL_FONT_SIZE,
-              sizeUnits: "pixels",
-              fontFamily: DETAIL_LABEL_FONT,
-              fontWeight: DETAIL_LABEL_FONT_WEIGHT_ACTIVE,
-              characterSet: "auto",
-              getTextAnchor: "middle",
-              getAlignmentBaseline: "top",
-              getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-              getColor: DETAIL_TRANSPARENT,
-              background: true,
-              backgroundPadding: DETAIL_OUTLINE_PADDING,
-              backgroundBorderRadius: DETAIL_OUTLINE_RADIUS,
-              getBackgroundColor: DETAIL_WHITE,
-              getBorderWidth: 0,
-              updateTriggers: { getPosition: stackTrigger },
+              outline: true,
+              active: true,
             }),
           ]
         : []),
@@ -428,62 +443,22 @@ export class DetailedNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
-      // The label pill sits above the node (in front of the circle and icon).
-      new TextLayer<NetworkGraphPoint>({
-        id: `${id}-labels`,
+      // The label pill sits above the node (in front of the circle and icon): an
+      // opaque white pill with a border in the node's colour, tying label to node.
+      labelLayer({
+        idSuffix: "labels",
         data: labelPoints,
-        getPosition: (point) => [
-          point.x,
-          point.y,
-          zFor(point, DETAIL_LEVEL_LABEL),
-        ],
-        getText: (point) => truncateLabel(point.label ?? ""),
-        getSize: DETAIL_LABEL_FONT_SIZE,
-        sizeUnits: "pixels",
-        fontFamily: DETAIL_LABEL_FONT,
-        characterSet: "auto",
-        getTextAnchor: "middle",
-        getAlignmentBaseline: "top",
-        getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-        getColor: DETAIL_INK,
-        background: true,
-        backgroundPadding: DETAIL_LABEL_PADDING,
-        backgroundBorderRadius: DETAIL_LABEL_RADIUS,
-        // Opaque white pill so it stays solid over nodes and open space alike.
-        getBackgroundColor: DETAIL_WHITE,
-        // Border matches the entity colour, tying the label to its node.
-        getBorderColor: (point) => [...rgbFor(point), RGBA_OPAQUE],
-        getBorderWidth: 1,
-        updateTriggers: { getPosition: stackTrigger },
+        outline: false,
+        active: false,
       }),
       // The active node's label, redrawn bold on top of its normal-weight copy.
       ...(boldLabelNodes.length > 0
         ? [
-            new TextLayer<NetworkGraphPoint>({
-              id: `${id}-active-label`,
+            labelLayer({
+              idSuffix: "active-label",
               data: boldLabelNodes,
-              getPosition: (point) => [
-                point.x,
-                point.y,
-                zFor(point, DETAIL_LEVEL_LABEL),
-              ],
-              getText: (point) => truncateLabel(point.label ?? ""),
-              getSize: DETAIL_LABEL_FONT_SIZE,
-              sizeUnits: "pixels",
-              fontFamily: DETAIL_LABEL_FONT,
-              fontWeight: DETAIL_LABEL_FONT_WEIGHT_ACTIVE,
-              characterSet: "auto",
-              getTextAnchor: "middle",
-              getAlignmentBaseline: "top",
-              getPixelOffset: [0, DETAIL_LABEL_OFFSET],
-              getColor: DETAIL_INK,
-              background: true,
-              backgroundPadding: DETAIL_LABEL_PADDING,
-              backgroundBorderRadius: DETAIL_LABEL_RADIUS,
-              getBackgroundColor: DETAIL_WHITE,
-              getBorderColor: (point) => [...rgbFor(point), RGBA_OPAQUE],
-              getBorderWidth: 1,
-              updateTriggers: { getPosition: stackTrigger },
+              outline: false,
+              active: true,
             }),
           ]
         : []),
