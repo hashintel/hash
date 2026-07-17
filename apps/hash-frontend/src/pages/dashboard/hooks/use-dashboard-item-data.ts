@@ -13,10 +13,10 @@ import {
 import type { EntityId } from "@blockprotocol/type-system";
 import type { DashboardItemDataGenerationMetadata } from "@local/hash-isomorphic-utils/dashboard-types";
 
-/** Give up polling after this many "computing" responses. */
+/** Give up after this many responses. */
 const MAX_POLL_ATTEMPTS = 60;
 
-const DEFAULT_RETRY_AFTER_MS = 3_000;
+const DEFAULT_RETRY_AFTER_MS = 5_000;
 
 export type DashboardItemDataState = {
   /** The computed chart data, once available */
@@ -76,6 +76,7 @@ export const useDashboardItemData = (params: {
       const webId = extractWebIdFromEntityId(itemEntityId);
       const itemUuid = extractEntityUuidFromEntityId(itemEntityId);
       let refreshAfter: string | undefined;
+      let hasLoadedReadyData = false;
 
       try {
         for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
@@ -136,6 +137,7 @@ export const useDashboardItemData = (params: {
               return;
             }
             setData(chartData);
+            hasLoadedReadyData = true;
             if (!metadata.isRefreshing) {
               setLoading(false);
               setEstimatedProgress(100);
@@ -143,7 +145,7 @@ export const useDashboardItemData = (params: {
             }
           }
 
-          // status === "computing": wait and re-poll
+          // Wait for a computation or stale-while-revalidate refresh.
           await new Promise((resolve) => {
             setTimeout(resolve, result.retryAfterMs ?? DEFAULT_RETRY_AFTER_MS);
           });
@@ -158,6 +160,14 @@ export const useDashboardItemData = (params: {
         if (generation !== requestGenerationRef.current) {
           return;
         }
+
+        if (hasLoadedReadyData) {
+          setLoading(false);
+          setIsRefreshing(false);
+          setEstimatedProgress(null);
+          return;
+        }
+
         setError(err instanceof Error ? err.message : "Failed to load data");
         setLoading(false);
         setIsRefreshing(false);

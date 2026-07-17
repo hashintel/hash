@@ -182,20 +182,18 @@ export const refineDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDefin
         "User provides a refinement instruction and existing dashboard configuration",
       kind: "trigger",
       outputs: [
-        [
-          "userGoal",
-          "refinementInstruction",
-          "existingStructuralQuery",
-          "existingPythonScript",
-          "existingChartType",
-          "existingChartConfig",
-        ].map((name) => ({
-          payloadKind: "Text" as const,
-          name,
-          array: false,
-          required: true,
-        })),
-      ],
+        "userGoal",
+        "refinementInstruction",
+        "existingStructuralQuery",
+        "existingPythonScript",
+        "existingChartType",
+        "existingChartConfig",
+      ].map((name) => ({
+        payloadKind: "Text" as const,
+        name,
+        array: false,
+        required: true,
+      })),
     },
     steps: [
       {
@@ -204,21 +202,19 @@ export const refineDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDefin
         actionDefinitionId: "planDashboardRefinement",
         description: "Determine which configuration stages need refinement",
         inputSources: [
-          [
-            "userGoal",
-            "refinementInstruction",
-            "existingStructuralQuery",
-            "existingPythonScript",
-            "existingChartType",
-            "existingChartConfig",
-          ].map((inputName) => ({
-            inputName:
-              inputName as InputNameForAiFlowAction<"planDashboardRefinement">,
-            kind: "step-output" as const,
-            sourceStepId: "trigger",
-            sourceStepOutputName: inputName,
-          })),
-        ],
+          "userGoal",
+          "refinementInstruction",
+          "existingStructuralQuery",
+          "existingPythonScript",
+          "existingChartType",
+          "existingChartConfig",
+        ].map((inputName) => ({
+          inputName:
+            inputName as InputNameForAiFlowAction<"planDashboardRefinement">,
+          kind: "step-output" as const,
+          sourceStepId: "trigger",
+          sourceStepOutputName: inputName,
+        })),
       },
       {
         stepId: "1",
@@ -286,7 +282,7 @@ export const refineDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDefin
             sourceStepOutputName:
               "suggestedChartTypes" satisfies OutputNameForAiFlowAction<"generateStructuralQuery">,
           },
-          ["userGoal", "refinementInstruction", "existingPythonScript"].map(
+          ...["userGoal", "refinementInstruction", "existingPythonScript"].map(
             (inputName) => ({
               inputName:
                 inputName as InputNameForAiFlowAction<"analyzeEntityData">,
@@ -327,7 +323,7 @@ export const refineDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDefin
             sourceStepOutputName:
               "suggestedChartType" satisfies OutputNameForAiFlowAction<"analyzeEntityData">,
           },
-          ["userGoal", "refinementInstruction", "existingChartConfig"].map(
+          ...["userGoal", "refinementInstruction", "existingChartConfig"].map(
             (inputName) => ({
               inputName:
                 inputName as InputNameForAiFlowAction<"generateChartConfig">,
