@@ -1962,6 +1962,9 @@ export const NetworkGraph = ({
       neighbours: compactNeighbours,
       activeNode,
       dimmedSelectedNode,
+      // Hide the selected node's plain crowd point so it can't show through its own
+      // grow ring (which is translucent while a different node is hovered).
+      selectedPointId: selectedPoint?.id ?? null,
       colorByHex: colorByHexWithOverlay,
       radiusScale,
       pointOpacity,
