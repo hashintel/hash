@@ -17,6 +17,7 @@ use rayon::{
 
 use super::Similarity;
 use crate::math::{
+    dvec2::DVec2,
     rotation::Rotation,
     scalar::narrow_f32,
     vec2::{Vec2, Vec2x4, Vec2x4T},
@@ -151,10 +152,10 @@ struct FitSums {
     valid: bool,
     /// The total weight `sum(w)`.
     weight: f64,
-    /// The weighted source sum `sum(w * source)` per axis.
-    source: [f64; 2],
-    /// The weighted target sum `sum(w * target)` per axis.
-    target: [f64; 2],
+    /// The weighted source sum `sum(w * source)`.
+    source: DVec2,
+    /// The weighted target sum `sum(w * target)`.
+    target: DVec2,
     /// The weighted product moment `sum(w * dot(source, target))`.
     dot: f64,
     /// The weighted product moment `sum(w * perp_dot(source, target))`.
@@ -220,8 +221,8 @@ impl FitSums {
         let mut sums = Self {
             valid,
             weight: weight_sum.reduce_sum(),
-            source: [source_sum[0].reduce_sum(), source_sum[1].reduce_sum()],
-            target: [target_sum[0].reduce_sum(), target_sum[1].reduce_sum()],
+            source: DVec2::new(source_sum[0].reduce_sum(), source_sum[1].reduce_sum()),
+            target: DVec2::new(target_sum[0].reduce_sum(), target_sum[1].reduce_sum()),
             dot: dot_sum.reduce_sum(),
             perp_dot: perp_sum.reduce_sum(),
             source_norm: norm_sum.reduce_sum(),
@@ -232,26 +233,15 @@ impl FitSums {
                 weight.is_finite() && weight >= 0.0 && source.is_finite() && target.is_finite();
 
             let weight = f64::from(weight);
-            let source = [f64::from(source.x()), f64::from(source.y())];
-            let target = [f64::from(target.x()), f64::from(target.y())];
+            let source = DVec2::from(source);
+            let target = DVec2::from(target);
 
             sums.weight += weight;
-            sums.source[0] = weight.mul_add(source[0], sums.source[0]);
-            sums.source[1] = weight.mul_add(source[1], sums.source[1]);
-            sums.target[0] = weight.mul_add(target[0], sums.target[0]);
-            sums.target[1] = weight.mul_add(target[1], sums.target[1]);
-            sums.dot = weight.mul_add(
-                source[0].mul_add(target[0], source[1] * target[1]),
-                sums.dot,
-            );
-            sums.perp_dot = weight.mul_add(
-                source[0].mul_add(target[1], -(source[1] * target[0])),
-                sums.perp_dot,
-            );
-            sums.source_norm = weight.mul_add(
-                source[0].mul_add(source[0], source[1] * source[1]),
-                sums.source_norm,
-            );
+            sums.source = source.mul_add(weight, sums.source);
+            sums.target = target.mul_add(weight, sums.target);
+            sums.dot = source.dot(target).mul_add(weight, sums.dot);
+            sums.perp_dot = source.perp_dot(target).mul_add(weight, sums.perp_dot);
+            sums.source_norm = source.norm_squared().mul_add(weight, sums.source_norm);
         }
 
         sums
@@ -266,14 +256,8 @@ impl FitSums {
         Self {
             valid: self.valid && other.valid,
             weight: self.weight + other.weight,
-            source: [
-                self.source[0] + other.source[0],
-                self.source[1] + other.source[1],
-            ],
-            target: [
-                self.target[0] + other.target[0],
-                self.target[1] + other.target[1],
-            ],
+            source: self.source + other.source,
+            target: self.target + other.target,
             dot: self.dot + other.dot,
             perp_dot: self.perp_dot + other.perp_dot,
             source_norm: self.source_norm + other.source_norm,
@@ -293,8 +277,8 @@ impl FitSums {
             return None;
         }
 
-        let source_centroid = [self.source[0] / self.weight, self.source[1] / self.weight];
-        let target_centroid = [self.target[0] / self.weight, self.target[1] / self.weight];
+        let source_centroid = self.source / self.weight;
+        let target_centroid = self.target / self.weight;
 
         // Centered moments follow from the raw ones by the parallel-axis
         // identity. With `W = sum(w)`, `ms = sum(w s)`, `mt = sum(w t)`,
@@ -306,13 +290,9 @@ impl FitSums {
         //   sum(w |s - cs|^2)           = sum(w |s|^2)      - |ms|^2 / W
         // This fuses centering into the single accumulation pass shared
         // by the serial and parallel fits.
-        let dot = self.dot
-            - self.source[0].mul_add(self.target[0], self.source[1] * self.target[1]) / self.weight;
-        let perp_dot = self.perp_dot
-            - self.source[0].mul_add(self.target[1], -(self.source[1] * self.target[0]))
-                / self.weight;
-        let variance = self.source_norm
-            - self.source[0].mul_add(self.source[0], self.source[1] * self.source[1]) / self.weight;
+        let dot = self.dot - self.source.dot(self.target) / self.weight;
+        let perp_dot = self.perp_dot - self.source.perp_dot(self.target) / self.weight;
+        let variance = self.source_norm - self.source.norm_squared() / self.weight;
 
         // Coincident (up to weight) source points give no scale. The
         // identity's cancellation can round a mathematically zero
@@ -330,18 +310,16 @@ impl FitSums {
         let scale = covariance / variance;
         let cos = dot / covariance;
         let sin = perp_dot / covariance;
-        let rotated = [
-            cos.mul_add(source_centroid[0], -sin * source_centroid[1]),
-            sin.mul_add(source_centroid[0], cos * source_centroid[1]),
-        ];
+        let rotated = DVec2::new(
+            cos.mul_add(source_centroid.x(), -sin * source_centroid.y()),
+            sin.mul_add(source_centroid.x(), cos * source_centroid.y()),
+        );
+        let translation = rotated.mul_add(-scale, target_centroid);
 
         Similarity::new(
             narrow_f32(scale)?,
             Rotation::from_cos_sin(narrow_f32(cos)?, narrow_f32(sin)?),
-            Vec2::new(
-                narrow_f32(scale.mul_add(-rotated[0], target_centroid[0]))?,
-                narrow_f32(scale.mul_add(-rotated[1], target_centroid[1]))?,
-            ),
+            translation.narrow()?,
         )
     }
 }

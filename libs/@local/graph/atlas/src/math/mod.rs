@@ -74,6 +74,7 @@
 
 mod affinity;
 mod bounds;
+mod dvec2;
 mod dvecn;
 pub(crate) mod kernel;
 mod rotation;
@@ -90,6 +91,7 @@ mod tests;
 pub use self::{
     affinity::{AffinityCurve, AffinityFitConfig},
     bounds::Bounds2,
+    dvec2::DVec2,
     dvecn::DVecN,
     rotation::Rotation,
     scalar::{huber, narrow_f32, narrow_f32_exact, softplus},
