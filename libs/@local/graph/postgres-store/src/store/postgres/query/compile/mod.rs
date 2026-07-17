@@ -137,6 +137,8 @@ enum ShapeFallback {
     GeneratingHydrationJoin,
     /// The statement reads nothing from the key query, leaving the CTE without columns.
     NoKeyColumns,
+    /// A carried CTE already uses one of the names the split reserves for its own CTEs.
+    CteNameCollision,
 }
 
 /// A join collected during compilation. The `FROM` tree is assembled from these records in
@@ -737,14 +739,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 // An unpaged statement simply has nothing to split. Every other reason
                 // silently loses the shape the caller opted into and deserves a warning.
                 match fallback {
-                    ShapeFallback::Unlimited | ShapeFallback::Unsorted => {
+                    // Unpaged statements have nothing to split, and fanning-out joins are
+                    // structural for whole query families (link queries filter through one on
+                    // every request) — neither is an anomaly worth a warning.
+                    ShapeFallback::Unlimited
+                    | ShapeFallback::Unsorted
+                    | ShapeFallback::ToManyKeyJoin => {
                         tracing::debug!(?fallback, "compiling a single-pass statement");
                     }
                     ShapeFallback::AsteriskSelect
                     | ShapeFallback::OpaqueExpression
-                    | ShapeFallback::ToManyKeyJoin
                     | ShapeFallback::GeneratingHydrationJoin
-                    | ShapeFallback::NoKeyColumns => {
+                    | ShapeFallback::NoKeyColumns
+                    | ShapeFallback::CteNameCollision => {
                         tracing::warn!(?fallback, "falling back to a single-pass statement");
                     }
                 }
@@ -801,12 +808,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .as_ref()
             .map(|with| with.common_table_expressions.to_vec())
             .unwrap_or_default();
-        debug_assert!(
-            common_table_expressions
-                .iter()
-                .all(|cte| cte.name.as_str() != "roots" && cte.name.as_str() != "limited"),
-            "carried CTE names must not collide with the fence CTEs"
-        );
+        if common_table_expressions
+            .iter()
+            .any(|cte| matches!(cte.name.as_str(), "roots" | "limited"))
+        {
+            return Err(ShapeFallback::CteNameCollision);
+        }
         common_table_expressions.push(self.key_query_cte(
             &partition,
             &key_columns,
@@ -1193,6 +1200,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     #[must_use]
     pub const fn has_to_many_join(&self) -> bool {
         self.artifacts.has_to_many_join
+    }
+
+    /// Whether an embeddings distance filter was compiled into the statement.
+    #[must_use]
+    pub const fn has_embeddings_filter(&self) -> bool {
+        self.artifacts.has_embeddings_filter
     }
 
     /// Compiles a [`Filter`] to an [`Expression`].

@@ -2084,6 +2084,63 @@ fn fetch_keys_then_hydrate_entity_query() {
 }
 
 #[test]
+fn filter_joined_tables_stay_out_of_the_key_projection() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+
+    // Mirrors the read path's order: filters first, selections after. The archived filter
+    // and the properties projection then join `entity_editions` under separate aliases, so
+    // the wide columns stay out of the key query.
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Archived,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Boolean(false),
+            convert: None,
+        },
+    );
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::KeysFirst);
+
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS (SELECT "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_editions_0_1_0"."archived" = $3)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "entity_uuid" ASC
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."entity_uuid") "limited"."entity_uuid", "entity_editions_1_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_1_1_0"
+          ON "entity_editions_1_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[
+            &pinned_timestamp,
+            &temporal_axes.variable_interval(),
+            &false,
+        ],
+    );
+}
+
+#[test]
 fn keys_first_omits_the_fence() {
     let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
     let pinned_timestamp = temporal_axes.pinned_timestamp();
