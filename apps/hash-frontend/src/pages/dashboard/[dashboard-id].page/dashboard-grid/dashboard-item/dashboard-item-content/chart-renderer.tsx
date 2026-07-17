@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 
 import { isEntityId } from "@blockprotocol/type-system";
 import { EChart } from "@hashintel/design-system";
+import { chartConfigDisplayDefaults } from "@local/hash-isomorphic-utils/dashboard-types";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { Chart, ECOption } from "@hashintel/design-system";
@@ -85,9 +86,9 @@ const buildEChartsOption = (
     series: seriesConfig,
     xAxisLabel,
     yAxisLabel,
-    showLegend = true,
-    showGrid = true,
-    showTooltip = true,
+    showLegend = chartConfigDisplayDefaults.showLegend,
+    showGrid = chartConfigDisplayDefaults.showGrid,
+    showTooltip = chartConfigDisplayDefaults.showTooltip,
     tooltipLabelKey,
     colors = DEFAULT_COLORS,
   } = chartConfig;
@@ -362,25 +363,24 @@ const buildEChartsOption = (
               },
             }),
         }
-      : undefined,
+      : { show: false },
     legend: showLegend
       ? {
           show: true,
           bottom: 0,
         }
+      : { show: false },
+    grid: needsCartesianAxes
+      ? {
+          // With containLabel the tick labels sit inside the grid box, so
+          // the margins only need to fit the axis captions (and legend).
+          left: yAxisLabel ? 40 : 12,
+          right: 20,
+          bottom: (showLegend ? 30 : 0) + (xAxisLabel ? 32 : 8),
+          top: 20,
+          containLabel: true,
+        }
       : undefined,
-    grid:
-      showGrid && needsCartesianAxes
-        ? {
-            // With containLabel the tick labels sit inside the grid box, so
-            // the margins only need to fit the axis captions (and legend).
-            left: yAxisLabel ? 40 : 12,
-            right: 20,
-            bottom: (showLegend ? 30 : 0) + (xAxisLabel ? 32 : 8),
-            top: 20,
-            containLabel: true,
-          }
-        : undefined,
     ...(needsCartesianAxes &&
       !isGeoScatter && {
         xAxis: {
@@ -398,6 +398,9 @@ const buildEChartsOption = (
               overflow: "truncate" as const,
             }),
           },
+          splitLine: {
+            show: false,
+          },
         },
         yAxis: {
           type: "value" as const,
@@ -408,6 +411,9 @@ const buildEChartsOption = (
             fontSize: AXIS_LABEL_FONT_SIZE,
             hideOverlap: true,
             formatter: (value: number) => compactNumberFormatter.format(value),
+          },
+          splitLine: {
+            show: showGrid,
           },
         },
       }),
@@ -423,6 +429,7 @@ const buildEChartsOption = (
           fontSize: 10,
         },
         splitLine: {
+          show: showGrid,
           lineStyle: {
             type: "dashed" as const,
             color: "#e0e0e0",
@@ -440,6 +447,7 @@ const buildEChartsOption = (
           fontSize: 10,
         },
         splitLine: {
+          show: showGrid,
           lineStyle: {
             type: "dashed" as const,
             color: "#e0e0e0",

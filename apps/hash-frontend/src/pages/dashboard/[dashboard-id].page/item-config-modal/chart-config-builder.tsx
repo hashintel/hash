@@ -7,7 +7,10 @@ import {
   TextInput,
   Toggle,
 } from "@hashintel/ds-components";
-import { chartTypes } from "@local/hash-isomorphic-utils/dashboard-types";
+import {
+  chartConfigDisplayDefaults,
+  chartTypes,
+} from "@local/hash-isomorphic-utils/dashboard-types";
 
 import { DeleteIconButton } from "../delete-icon-button";
 
@@ -140,9 +143,7 @@ const ToggleRow = ({
 const emptyConfig: ChartConfig = {
   categoryKey: "",
   series: [{ type: "bar", dataKey: "" }],
-  showLegend: false,
-  showGrid: true,
-  showTooltip: true,
+  ...chartConfigDisplayDefaults,
 };
 
 type DataKeyInputProps = {

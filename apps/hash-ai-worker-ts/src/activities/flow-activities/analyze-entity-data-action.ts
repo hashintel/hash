@@ -7,12 +7,13 @@ import dedent from "dedent";
  */
 import {
   generateDashboardItemConfigHash,
+  getDashboardItemDataMetadataStorageKey,
   getDashboardItemDataStorageKey,
 } from "@local/hash-backend-utils/dashboards";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
+import { queryAllEntitySubgraphPages } from "@local/hash-backend-utils/query-all-entity-subgraph-pages";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   type ChartType,
   chartTypes,
@@ -228,13 +229,19 @@ type ActionOutputs = AiActionStepOutput<"analyzeEntityData">[];
 export const analyzeEntityDataAction: AiFlowActionActivity<
   "analyzeEntityData"
 > = async ({ inputs }) => {
-  const { structuralQuery, userGoal, targetChartType } =
-    getSimplifiedAiFlowActionInputs({
-      inputs,
-      actionType: "analyzeEntityData",
-    }) as {
-      [K in InputNameForAiFlowAction<"analyzeEntityData">]: string | undefined;
-    };
+  const {
+    structuralQuery,
+    userGoal,
+    targetChartType,
+    refinementInstruction,
+    existingPythonScript,
+    refinementScope,
+  } = getSimplifiedAiFlowActionInputs({
+    inputs,
+    actionType: "analyzeEntityData",
+  }) as {
+    [K in InputNameForAiFlowAction<"analyzeEntityData">]: string | undefined;
+  };
 
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
@@ -307,7 +314,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
 
   try {
     // Execute the query to get entity data
-    const { subgraph } = await queryEntitySubgraph(
+    const subgraph = await queryAllEntitySubgraphPages(
       { graphApi: graphApiClient },
       webMachineAuthentication,
       {
@@ -327,8 +334,36 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
       entityTypes,
     });
 
-    const { pythonScript, chartData, suggestedChartType, explanation } =
-      await runAgenticToolLoop<ToolName, LoopResult>({
+    let analysisResult: LoopResult;
+    if (refinementScope && ["chart", "none"].includes(refinementScope)) {
+      if (!existingPythonScript) {
+        throw new Error("Existing Python script is required for refinement");
+      }
+      const { stdout, stderr } = await runPythonCodeForCurrentActivity(
+        existingPythonScript,
+        entityDataJson,
+      );
+      let chartData: unknown;
+      try {
+        chartData = JSON.parse(stdout.trim());
+      } catch {
+        throw new Error(
+          `Existing Python script did not produce valid JSON.${
+            stderr ? ` stderr: ${stderr}` : ""
+          }`,
+        );
+      }
+      if (!Array.isArray(chartData)) {
+        throw new Error("Existing Python script output is not a JSON array");
+      }
+      analysisResult = {
+        pythonScript: existingPythonScript,
+        chartData,
+        suggestedChartType: targetChartTypes[0] ?? "bar",
+        explanation: "Existing data analysis preserved by refinement plan",
+      };
+    } else {
+      analysisResult = await runAgenticToolLoop<ToolName, LoopResult>({
         model,
         systemPrompt,
         tools,
@@ -502,6 +537,19 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
                 text: dedent(`
                 User's goal: "${userGoal}"
                 ${
+                  refinementInstruction && existingPythonScript
+                    ? dedent(`
+                        Refinement instruction: "${refinementInstruction}"
+
+                        Existing Python script:
+                        ${existingPythonScript}
+
+                        Refine the existing analysis only as required. You may submit the existing
+                        script unchanged if it remains appropriate.
+                      `)
+                    : ""
+                }
+                ${
                   targetChartTypes.length > 0
                     ? `Suggested chart type(s), in order of preference: ${targetChartTypes.join(
                         ", ",
@@ -540,6 +588,10 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
           },
         ],
       });
+    }
+
+    const { pythonScript, chartData, suggestedChartType, explanation } =
+      analysisResult;
 
     /**
      * Proactively write the computed chart data to the analysis artifact
@@ -554,6 +606,11 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
       await getStorageProvider().uploadDirect({
         key: getDashboardItemDataStorageKey({ webId, configHash }),
         body: JSON.stringify(chartData),
+        contentType: "application/json",
+      });
+      await getStorageProvider().uploadDirect({
+        key: getDashboardItemDataMetadataStorageKey({ webId, configHash }),
+        body: JSON.stringify({ generatedAt: new Date().toISOString() }),
         contentType: "application/json",
       });
     } catch (error) {

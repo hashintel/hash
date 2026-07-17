@@ -1,4 +1,5 @@
 import type { GraphApi } from "../../graph/context-types";
+import type { JsonObject } from "@blockprotocol/core";
 import type {
   ActorEntityUuid,
   RoleName,
@@ -54,6 +55,8 @@ export interface AnalysisResolution {
   artifacts?: ArtifactKeyRef[];
   /** Present when `status === "computing"`: client poll hint. */
   retryAfterMs?: number;
+  /** Analysis-specific metadata passed through to the caller. */
+  metadata?: JsonObject;
 }
 
 /**

@@ -511,7 +511,7 @@ export const processFlowWorkflow = async <
    * @todo flush logs by calling the debounced function's flush, flushLogs – need to deal with it importing code that
    *   the workflow can't
    */
-  await sleep(3_000);
+  await sleep(2_000);
 
   const stepErrors = Object.entries(processStepErrors).map(
     ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),

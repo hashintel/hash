@@ -11,6 +11,7 @@ import {
 } from "../../../shared/analysis-client";
 
 import type { EntityId } from "@blockprotocol/type-system";
+import type { DashboardItemDataGenerationMetadata } from "@local/hash-isomorphic-utils/dashboard-types";
 
 /** Give up polling after this many "computing" responses. */
 const MAX_POLL_ATTEMPTS = 60;
@@ -23,6 +24,10 @@ export type DashboardItemDataState = {
   /** Whether an initial fetch or recompute poll is in flight */
   loading: boolean;
   error: string | null;
+  generatedAt: string | null;
+  generationDurationMs: number | null;
+  isRefreshing: boolean;
+  estimatedProgress: number | null;
   /** Re-fetch, optionally forcing a server-side recompute */
   refresh: (options?: { force?: boolean }) => void;
 };
@@ -38,12 +43,22 @@ export const useDashboardItemData = (params: {
   itemEntityId: EntityId;
   /** Only fetch when the item is ready (configured) */
   enabled: boolean;
+  /** Changes whenever the query/script producing the chart data changes. */
+  configurationKey: string;
 }): DashboardItemDataState => {
-  const { itemEntityId, enabled } = params;
+  const { itemEntityId, enabled, configurationKey } = params;
 
   const [data, setData] = useState<unknown[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [generationDurationMs, setGenerationDurationMs] = useState<
+    number | null
+  >(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [estimatedProgress, setEstimatedProgress] = useState<number | null>(
+    null,
+  );
 
   /** Increments to invalidate in-flight polling loops (unmount / new request) */
   const requestGenerationRef = useRef(0);
@@ -54,9 +69,13 @@ export const useDashboardItemData = (params: {
 
       setLoading(true);
       setError(null);
+      setIsRefreshing(force);
+      setEstimatedProgress(null);
+      const generationStartedAt = Date.now();
 
       const webId = extractWebIdFromEntityId(itemEntityId);
       const itemUuid = extractEntityUuidFromEntityId(itemEntityId);
+      let refreshAfter: string | undefined;
 
       try {
         for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
@@ -69,6 +88,7 @@ export const useDashboardItemData = (params: {
                 itemUuid,
                 // Only force on the first request; polls just check status.
                 ...(force && attempt === 0 ? { force: true } : {}),
+                ...(refreshAfter ? { refreshAfter } : {}),
               },
             },
           ]);
@@ -85,6 +105,27 @@ export const useDashboardItemData = (params: {
             throw new Error(result.error ?? "Failed to compute chart data");
           }
 
+          const metadata =
+            (result.metadata as
+              | DashboardItemDataGenerationMetadata
+              | undefined) ?? {};
+          if (metadata.generatedAt) {
+            setGeneratedAt(metadata.generatedAt);
+          }
+          if (metadata.generationDurationMs !== undefined) {
+            setGenerationDurationMs(metadata.generationDurationMs);
+            setEstimatedProgress(
+              Math.min(
+                95,
+                ((Date.now() - generationStartedAt) /
+                  metadata.generationDurationMs) *
+                  100,
+              ),
+            );
+          }
+          refreshAfter = metadata.refreshAfter ?? refreshAfter;
+          setIsRefreshing(metadata.isRefreshing === true);
+
           if (result.status === "ready") {
             const artifact = result.artifacts?.[0];
             if (!artifact) {
@@ -95,8 +136,11 @@ export const useDashboardItemData = (params: {
               return;
             }
             setData(chartData);
-            setLoading(false);
-            return;
+            if (!metadata.isRefreshing) {
+              setLoading(false);
+              setEstimatedProgress(100);
+              return;
+            }
           }
 
           // status === "computing": wait and re-poll
@@ -116,6 +160,8 @@ export const useDashboardItemData = (params: {
         }
         setError(err instanceof Error ? err.message : "Failed to load data");
         setLoading(false);
+        setIsRefreshing(false);
+        setEstimatedProgress(null);
       }
     },
     [itemEntityId],
@@ -130,7 +176,7 @@ export const useDashboardItemData = (params: {
       // Invalidate any in-flight loop when deps change or on unmount
       requestGenerationRef.current += 1;
     };
-  }, [enabled, fetchData]);
+  }, [configurationKey, enabled, fetchData]);
 
   const refresh = useCallback(
     (options?: { force?: boolean }) => {
@@ -139,5 +185,14 @@ export const useDashboardItemData = (params: {
     [fetchData],
   );
 
-  return { data, loading, error, refresh };
+  return {
+    data,
+    loading,
+    error,
+    generatedAt,
+    generationDurationMs,
+    isRefreshing,
+    estimatedProgress,
+    refresh,
+  };
 };

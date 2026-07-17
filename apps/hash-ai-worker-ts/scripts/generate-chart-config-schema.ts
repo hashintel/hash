@@ -22,7 +22,10 @@ const config = {
   type: "ChartConfig",
 } satisfies generator.Config;
 
-const schema = generator.createGenerator(config).createSchema("ChartConfig");
+const schema = {
+  ...generator.createGenerator(config).createSchema("ChartConfig"),
+  $id: "https://hash.ai/schemas/chart-config.json",
+};
 
 const schemaContent = `/**
  * Auto-generated JSON schema for ChartConfig.

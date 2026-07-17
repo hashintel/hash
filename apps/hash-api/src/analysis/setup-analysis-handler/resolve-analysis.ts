@@ -155,6 +155,7 @@ export const resolveInvocation = async ({
       return asResult({
         status: "computing",
         retryAfterMs: resolution.retryAfterMs ?? 1000,
+        metadata: resolution.metadata,
       });
     }
 
@@ -212,7 +213,11 @@ export const resolveInvocation = async ({
       }),
     );
 
-    return asResult({ status: "ready", artifacts });
+    return asResult({
+      status: "ready",
+      artifacts,
+      metadata: resolution.metadata,
+    });
   } catch (error) {
     if (
       error instanceof WebAuthorisationError ||

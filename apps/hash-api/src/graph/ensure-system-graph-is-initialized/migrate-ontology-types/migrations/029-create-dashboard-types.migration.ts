@@ -141,6 +141,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Dashboard Item",
         titlePlural: "Dashboard Items",
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         icon: "/icons/types/chart-mixed.svg",
         description: "A visualization item within a dashboard.",
         properties: [
@@ -198,6 +199,7 @@ const migrate: MigrationFunction = async ({
       title: "Dashboard",
       titlePlural: "Dashboards",
       icon: "/icons/types/objects-column.svg",
+      labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
       description:
         "A customizable dashboard containing multiple visualization items arranged in a grid layout.",
       properties: [
