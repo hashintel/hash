@@ -590,4 +590,84 @@ return done.reduce(
     // Shipped order value 7 + one order total in the backlog concat.
     expect(metric.getLatestFrame()).toMatchObject({ value: 8 });
   });
+
+  it("reads each run's own net parameters when overridden per run", () => {
+    // A metric that only reads an ambient net parameter. Monte-Carlo overrides
+    // the parameter per run, so the two runs must report their own values —
+    // not the shared config value baked in once at experiment init.
+    const metricCode = `return parameters.weight;`;
+
+    const parameterizedSdcpn: SDCPN = {
+      types: [],
+      places: [
+        {
+          id: "p",
+          name: "P",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [],
+      differentialEquations: [],
+      parameters: [
+        {
+          id: "weight",
+          name: "Weight",
+          variableName: "weight",
+          type: "real",
+          defaultValue: "1",
+        },
+      ],
+      metrics: [{ id: "weight-metric", name: "Weight", code: metricCode }],
+    };
+
+    const { artifacts, failures } = compileHirArtifacts(parameterizedSdcpn);
+    expect(failures).toEqual([]);
+    const artifact = artifacts.metrics["weight-metric"];
+    expect(artifact).toBeDefined();
+
+    const [config] = createMonteCarloUserDefinedMetricConfigsFromSpecs(
+      [
+        {
+          id: "weight-metric",
+          label: "Weight",
+          kind: "expression",
+          code: metricCode,
+          artifact: artifact!,
+          sampleRuns: "all",
+          aggregateRuns: "mean",
+          aggregateTime: "none",
+        },
+      ],
+      parameterizedSdcpn,
+      // Construction-time fallback = the config default (weight 1); per-run
+      // overrides below must win over it.
+      { weight: 1 },
+    );
+    const metric = createMonteCarloUserDefinedMetric(config!);
+
+    const simulator = createMonteCarloSimulator({
+      sdcpn: parameterizedSdcpn,
+      hirArtifacts: artifacts,
+      runCount: 2,
+      initialMarking: {},
+      parameterValues: {},
+      runs: [
+        { parameterValues: { weight: "10" } },
+        { parameterValues: { weight: "20" } },
+      ],
+      seed: 1,
+      dt: 1,
+      maxTime: 2,
+      metrics: [metric],
+    });
+
+    const result = simulator.runUntilComplete({ maxBatches: 20 });
+    expect(result.allFinished).toBe(true);
+    // Mean of the two runs' own weights (10, 20) — not the config default (1).
+    expect(metric.getLatestFrame()).toMatchObject({ value: 15 });
+  });
 });

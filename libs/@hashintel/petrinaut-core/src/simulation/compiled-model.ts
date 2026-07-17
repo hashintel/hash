@@ -5,6 +5,7 @@ import {
   sanitizeSDCPNForExtensions,
 } from "../extensions";
 import { compileHirArtifacts } from "../hir";
+import { resolveNetParameterValues } from "../parameter-values";
 import { buildSimulation } from "./engine/build-simulation";
 import { computeNextFrame } from "./engine/compute-next-frame";
 import { readTokenRecord } from "./engine/token-layout";
@@ -13,6 +14,7 @@ import { readEngineFrame } from "./frames/internal-frame";
 
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
+import type { DefaultParameterValues } from "../parameter-values";
 import type { Color, Metric, Place, SDCPN, TokenRecord } from "../types/sdcpn";
 import type {
   InitialMarking,
@@ -276,8 +278,9 @@ function resolveMetrics(args: {
   sdcpn: SDCPN;
   artifacts: HirArtifacts;
   metricNamesOrIds: readonly string[];
+  parameterValues: DefaultParameterValues;
 }): ResolvedMetric[] {
-  const { sdcpn, artifacts, metricNamesOrIds } = args;
+  const { sdcpn, artifacts, metricNamesOrIds, parameterValues } = args;
 
   return metricNamesOrIds.map((metricNameOrId) => {
     const metric = findMetric(sdcpn, metricNameOrId);
@@ -294,6 +297,7 @@ function resolveMetrics(args: {
         metricName: metric.name,
         artifact,
         places: sdcpn.places,
+        parameterValues,
       }),
     };
   });
@@ -398,6 +402,11 @@ export function compilePetrinautModel(
         sdcpn,
         artifacts,
         metricNamesOrIds: runtimeConfig.metrics ?? [],
+        parameterValues: resolveNetParameterValues(
+          sdcpn.parameters,
+          runtimeConfig.parameterValues ?? {},
+          extensions.parameters,
+        ),
       });
 
       let simulation = buildSimulation({

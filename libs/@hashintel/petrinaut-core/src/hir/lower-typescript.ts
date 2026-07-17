@@ -44,10 +44,11 @@ const CONSTRUCTOR_NAMES: Record<Exclude<HirSurfaceKind, "metric">, string> = {
 };
 
 /**
- * Metric user code is a bare function *body* (with `state` in scope), not an
- * `export default` module. It is wrapped in this prefix (plus a closing
- * `\n}`) before parsing; all spans in the lowering result are shifted back by
- * the prefix length so they map onto the raw user body.
+ * Metric user code is a bare function *body* (with `state` in scope and net
+ * `parameters` available ambiently), not an `export default` module. It is
+ * wrapped in this prefix (plus a closing `\n}`) before parsing; all spans in
+ * the lowering result are shifted back by the prefix length so they map onto
+ * the raw user body.
  */
 const METRIC_PREFIX = "(state) => {\n";
 const METRIC_SUFFIX = "\n}";
@@ -188,8 +189,11 @@ class Lowering {
       distributionLocals: new Set(),
       destructuredFields: new Map(),
       parameterAliases: new Map(),
-      // Metrics have no parameters object.
-      parametersName: null,
+      // Net parameters are ambient in metric code: `parameters.<name>` (and
+      // `const { <name> } = parameters`) lower to parameter reads even though
+      // `parameters` is not a declared function argument. Scenario parameters
+      // are not exposed.
+      parametersName: "parameters",
     };
     const body = this.lowerBlock(arrowBody, scope);
     return {

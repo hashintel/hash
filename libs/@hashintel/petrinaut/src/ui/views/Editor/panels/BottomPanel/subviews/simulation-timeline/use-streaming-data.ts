@@ -9,11 +9,13 @@ import {
 
 import {
   createHirMetricEvaluator,
+  resolveNetParameterValues,
   sanitizeSDCPNForExtensions,
   type Metric,
 } from "@hashintel/petrinaut-core";
 import { fingerprintHirCompilationInput } from "@hashintel/petrinaut-core/hir-runtime";
 
+import { useSimulationParameters } from "../../../../../../../react/hooks/use-simulation";
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
@@ -139,8 +141,21 @@ const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
 function useTimelineMetric(metric: Metric | null): TimelineMetricState {
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { parameterValues } = useSimulationParameters();
   const [state, setState] = useState<TimelineMetricState>(
     EMPTY_TIMELINE_METRIC_STATE,
+  );
+  // Resolved net parameter values bound to ambient `parameters.<name>` reads
+  // in the metric. They can change between runs (including scenario
+  // overrides), so they participate in the metric key to rebind the evaluator.
+  const netParameterValues = useMemo(
+    () =>
+      resolveNetParameterValues(
+        petriNetDefinition.parameters,
+        parameterValues,
+        extensions.parameters,
+      ),
+    [petriNetDefinition.parameters, parameterValues, extensions.parameters],
   );
   const compilationFingerprint = useMemo(
     () =>
@@ -151,7 +166,7 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
     [extensions, petriNetDefinition],
   );
   const key = metric
-    ? `${compilationFingerprint}\u0000${metric.id}\u0000${metric.code}`
+    ? `${compilationFingerprint}\u0000${metric.id}\u0000${metric.code}\u0000${JSON.stringify(netParameterValues)}`
     : null;
 
   useEffect(() => {
@@ -192,6 +207,7 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
             metricName: metric.name,
             artifact,
             places: petriNetDefinition.places,
+            parameterValues: netParameterValues,
           }),
           error: null,
         });
@@ -209,7 +225,14 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
     return () => {
       cancelled = true;
     };
-  }, [metric, key, extensions, petriNetDefinition, requestHirArtifacts]);
+  }, [
+    metric,
+    key,
+    extensions,
+    petriNetDefinition,
+    requestHirArtifacts,
+    netParameterValues,
+  ]);
 
   // Effects run after render. Hide a previous evaluator/error synchronously
   // whenever the metric, schema, code, or extension settings change.

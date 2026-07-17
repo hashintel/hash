@@ -355,6 +355,7 @@ export {
   getParameterValueError,
   mergeParameterValues,
   parseParameterValue,
+  resolveNetParameterValues,
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";

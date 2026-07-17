@@ -592,7 +592,9 @@ export type MetricSessionData = {
  *
  * The user code is a function body whose `state` parameter exposes
  * `state.places.<PlaceName>` with `count` and (for colored places) `tokens`.
- * The expression is wrapped so the body is type-checked as `(state) => number`.
+ * Net parameters are available ambiently as `parameters.<name>` (scenario
+ * parameters are not). The expression is wrapped so the body is type-checked
+ * as `(state) => number`.
  */
 export function generateMetricSessionFiles(
   sdcpn: SDCPN,
@@ -600,6 +602,7 @@ export function generateMetricSessionFiles(
 ): Map<string, VirtualFile> {
   const files = new Map<string, VirtualFile>();
   const { sessionId } = session;
+  const parametersDefsPath = getItemFilePath("parameters-defs");
 
   // Build per-place state types. Colored places expose typed `tokens` arrays;
   // uncolored places (and places whose color can't be resolved) always yield
@@ -659,6 +662,9 @@ export function generateMetricSessionFiles(
   files.set(codePath, {
     prefix: [
       `import type { MetricState } from "${defsPath}";`,
+      `import type { Parameters } from "${parametersDefsPath}";`,
+      // Net parameters are ambient in metric code (not a function argument).
+      `declare const parameters: Parameters;`,
       `function __metric(state: MetricState): number {`,
       "",
     ].join("\n"),
