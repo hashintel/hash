@@ -28,6 +28,10 @@ export function createMonteCarloFrameReader(
         placeOffsets: currentFrame.placeOffsets,
         placeIndexById: frameLayout.placeIndexById,
         stringPool: simulation.stringPool,
+        // This run's resolved net parameters (config values merged with any
+        // per-run overrides), so ambient `parameters.<name>` reads in metrics
+        // reflect the parameters this run actually used.
+        parameterValues: run.parameterValues,
       };
     },
     getPlaceTokens(place) {

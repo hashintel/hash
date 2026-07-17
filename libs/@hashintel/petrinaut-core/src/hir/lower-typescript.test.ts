@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
 import type { HirExpr } from "./hir";
@@ -559,7 +560,7 @@ describe("lowerTypeScriptToHir", () => {
   });
 
   describe("metric surface", () => {
-    it("lowers a metric body with state in scope and no parameters object", () => {
+    it("lowers a metric body with state as the only function parameter", () => {
       const fn = lowerOk(
         `const pool = state.places.Pool.tokens;
 if (pool.length === 0) return 0;
@@ -569,6 +570,40 @@ return pool.reduce((sum, t) => sum + t.x, 0) / pool.length;`,
       expect(fn.surface).toBe("metric");
       expect(fn.params.map((parameter) => parameter.name)).toEqual(["state"]);
       expect(fn.body.kind).toBe("let");
+    });
+
+    it("lowers ambient `parameters.<name>` reads to paramRefs", () => {
+      const fn = lowerOk(
+        `return state.places.Pool.count * parameters.weight;`,
+        "metric",
+      );
+      const paramRefs: string[] = [];
+      walkHir(fn.body, (node) => {
+        if (node.kind === "paramRef") {
+          paramRefs.push(node.name);
+        }
+      });
+      expect(paramRefs).toEqual(["weight"]);
+    });
+
+    it("lowers `const { x } = parameters` in a metric to paramRefs", () => {
+      const fn = lowerOk(
+        `const { weight } = parameters;
+return state.places.Pool.count * weight;`,
+        "metric",
+      );
+      const paramRefs: string[] = [];
+      walkHir(fn.body, (node) => {
+        if (node.kind === "paramRef") {
+          paramRefs.push(node.name);
+        }
+      });
+      expect(paramRefs).toEqual(["weight"]);
+    });
+
+    it("rejects bare `parameters` in a metric", () => {
+      const [diagnostic] = lowerErr(`return parameters;`, "metric");
+      expect(diagnostic!.code).toBe("hir:bare-parameters-object");
     });
 
     it("maps node spans onto the raw metric body", () => {
@@ -614,11 +649,6 @@ return missing;`;
     it("requires the metric body to end in a return", () => {
       const [diagnostic] = lowerErr(`const a = 1;`, "metric");
       expect(diagnostic!.code).toBe("hir:missing-return");
-    });
-
-    it("rejects a bare parameters-style object (metrics have none)", () => {
-      const [diagnostic] = lowerErr(`return parameters.rate;`, "metric");
-      expect(diagnostic!.code).toBe("hir:unknown-identifier");
     });
   });
 

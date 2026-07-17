@@ -100,3 +100,25 @@ export function mergeParameterValues(
 
   return merged;
 }
+
+/**
+ * Resolves the effective net parameter values for a run: parameter defaults
+ * overridden by the run's (string) input values, keyed by variable name. This
+ * mirrors how `buildSimulation` derives the parameters bound to dynamics,
+ * lambdas and kernels, so metrics reading ambient `parameters.<name>` see the
+ * same values. Returns `{}` when the parameters extension is disabled.
+ */
+export function resolveNetParameterValues(
+  parameters: readonly Parameter[],
+  inputValues: Record<string, string> = {},
+  parametersEnabled = true,
+): DefaultParameterValues {
+  if (!parametersEnabled) {
+    return {};
+  }
+  return mergeParameterValues(
+    inputValues,
+    deriveDefaultParameterValues([...parameters]),
+    parameters,
+  );
+}
