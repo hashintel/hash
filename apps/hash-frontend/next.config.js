@@ -158,25 +158,6 @@ export default withSentryConfig(
               },
             ],
           },
-          {
-            /**
-             * Enable SharedArrayBuffer for the graph visualizer worker.
-             * COOP: same-origin isolates the browsing context.
-             * COEP: credentialless is less restrictive than require-corp
-             * (no need for Cross-Origin-Resource-Policy on every resource).
-             */
-            source: "/:path*",
-            headers: [
-              {
-                key: "Cross-Origin-Opener-Policy",
-                value: "same-origin",
-              },
-              {
-                key: "Cross-Origin-Embedder-Policy",
-                value: "credentialless",
-              },
-            ],
-          },
         ];
       },
       pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx", "api.ts"],

@@ -307,7 +307,6 @@ const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
 // The list of page pathnames that should be accessible whether or not the user is authenticated
 const publiclyAccessiblePagePathnames = [
   "/[shortname]/[page-slug]",
-  ...(process.env.NODE_ENV === "development" ? ["/dev-graph-visualizer"] : []),
   "/signin",
   "/signup",
   "/verification",
