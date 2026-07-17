@@ -87,9 +87,8 @@ pub enum Distinctness {
 /// How [`SelectCompiler::compile`] lays out the statement.
 ///
 /// Both keys-first shapes filter, sort, and limit a narrow key set in CTEs and hydrate the
-/// wide projection only for the surviving rows. They fall back to [`SinglePass`] for every
-/// [`ShapeFallback`] reason; the fallback is logged, since it silently loses the shape the
-/// caller opted into.
+/// wide projection only for the surviving rows. They fall back to [`SinglePass`]; the fallback is
+/// logged, since it silently loses the shape the caller opted into.
 ///
 /// Callers opting into a keys-first shape vouch for two preconditions the compiler cannot
 /// check. `INNER` hydration joins must always match their key row (foreign-key-total joins
