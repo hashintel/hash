@@ -348,7 +348,7 @@
           "kind": "continuous",
           "minimum": 20,
           "maximum": 250,
-          "scale": "log"
+          "scale": "linear"
         }
       },
       "reorder_threshold": {
@@ -368,20 +368,35 @@
           "minimum": 50,
           "maximum": 800,
           "step": 1,
-          "scale": "log"
+          "scale": "linear"
         }
       },
       "selling_price": {
-        "kind": "fixed",
-        "value": 34
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 10,
+          "maximum": 100,
+          "scale": "linear"
+        }
       },
       "expedite_fraction": {
-        "kind": "fixed",
-        "value": 0.25
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 0,
+          "maximum": 1,
+          "scale": "linear"
+        }
       },
       "marketing_spend": {
-        "kind": "fixed",
-        "value": 20
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 20,
+          "maximum": 100,
+          "scale": "linear"
+        }
       },
       "demand_multiplier": {
         "kind": "fixed",
@@ -399,7 +414,7 @@
     "maxTime": 36.5
   },
   "study": {
-    "trials": 100,
+    "trials": 1000,
     "sampler": "tpe"
   }
 }
