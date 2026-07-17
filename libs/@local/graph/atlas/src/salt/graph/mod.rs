@@ -69,7 +69,10 @@ mod weight;
     reason = "semantic graph backends and publication form the generation adapter surface"
 )]
 pub(crate) use self::{
-    artifact::{SemanticEdgeWeights, publish_semantic_graph},
+    artifact::{
+        INDICES as SEMANTIC_INDICES, SemanticEdgeWeights, WEIGHTS as SEMANTIC_WEIGHTS,
+        publish_semantic_graph,
+    },
     error::SemanticGraphError,
     usearch::{USearchConfig, USearchIndex},
     weight::fuzzy_edge_weights,

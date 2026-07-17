@@ -161,7 +161,9 @@ pub(crate) use self::{
     hash::{ContentHash, ContentHasher},
     manifest::{ArtifactManifest, ArtifactRole, GenerationAssuranceMode},
     materialize::{
-        EncodedTile, MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, encode_tile,
+        CONTOUR_WIRE_V1_CONTENT_TYPE, EncodedOverlay, EncodedTile, FLOW_WIRE_V1_CONTENT_TYPE,
+        MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, encode_contours, encode_flows,
+        encode_tile,
     },
     policy::Probability,
     relation::RelationConfidence,

@@ -5,10 +5,20 @@ const integerFormat = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+/** Toggle state and, once delivered, the overlay's measured wire cost. */
+export interface AtlasOverlayToggle {
+  readonly enabled: boolean;
+  readonly summary?: string;
+}
+
 interface AtlasToolbarProps {
+  readonly contourOverlay: AtlasOverlayToggle;
   readonly debugFraming: boolean;
+  readonly flowOverlay: AtlasOverlayToggle;
   readonly gpuError?: string;
+  readonly onContourOverlayChange: (enabled: boolean) => void;
   readonly onDebugFramingChange: (enabled: boolean) => void;
+  readonly onFlowOverlayChange: (enabled: boolean) => void;
   readonly onReload: () => void;
   readonly onResetView: () => void;
   readonly onRetryTiles: () => void;
@@ -40,9 +50,13 @@ const connectionState = (
 
 /** Compact engineering controls and live Atlas readouts. */
 export const AtlasToolbar = ({
+  contourOverlay,
   debugFraming,
+  flowOverlay,
   gpuError,
+  onContourOverlayChange,
   onDebugFramingChange,
+  onFlowOverlayChange,
   onReload,
   onResetView,
   onRetryTiles,
@@ -84,9 +98,41 @@ export const AtlasToolbar = ({
           <dt>Delivered points</dt>
           <dd>{integerFormat.format(snapshot.deliveredPointCount)}</dd>
         </div>
+        {contourOverlay.summary === undefined ? null : (
+          <div className="atlas-readout">
+            <dt>Contours</dt>
+            <dd>{contourOverlay.summary}</dd>
+          </div>
+        )}
+        {flowOverlay.summary === undefined ? null : (
+          <div className="atlas-readout">
+            <dt>Semantic flows</dt>
+            <dd>{flowOverlay.summary}</dd>
+          </div>
+        )}
       </dl>
 
       <div className="atlas-controls">
+        <label className="atlas-toggle">
+          <input
+            type="checkbox"
+            checked={contourOverlay.enabled}
+            onChange={(event) =>
+              onContourOverlayChange(event.currentTarget.checked)
+            }
+          />
+          <span>Contours</span>
+        </label>
+        <label className="atlas-toggle">
+          <input
+            type="checkbox"
+            checked={flowOverlay.enabled}
+            onChange={(event) =>
+              onFlowOverlayChange(event.currentTarget.checked)
+            }
+          />
+          <span>Flows</span>
+        </label>
         <label className="atlas-toggle">
           <input
             type="checkbox"

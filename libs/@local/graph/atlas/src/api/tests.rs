@@ -121,6 +121,51 @@ async fn tile_route_serves_binary_quadrants_and_reloads_the_active_generation() 
         .expect("tile body should buffer");
     assert_eq!(&body[..8], b"ATLTILE4");
 
+    let contours = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/v1/atlas/contours/{first_generation}/0"))
+                .body(Body::empty())
+                .expect("contour request should build"),
+        )
+        .await
+        .expect("contour request should complete");
+    assert_eq!(contours.status(), StatusCode::OK);
+    assert_eq!(
+        contours.headers().get(CONTENT_TYPE),
+        Some(&axum::http::HeaderValue::from_static(
+            CONTOUR_WIRE_V1_CONTENT_TYPE
+        ))
+    );
+    assert!(contours.headers().contains_key(ETAG));
+    let contour_body = to_bytes(contours.into_body(), 1_000_000)
+        .await
+        .expect("contour body should buffer");
+    assert_eq!(&contour_body[..8], b"ATLCONT1");
+
+    let flows = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!("/v1/atlas/flows/{first_generation}/0"))
+                .body(Body::empty())
+                .expect("flow request should build"),
+        )
+        .await
+        .expect("flow request should complete");
+    assert_eq!(flows.status(), StatusCode::OK);
+    assert_eq!(
+        flows.headers().get(CONTENT_TYPE),
+        Some(&axum::http::HeaderValue::from_static(
+            FLOW_WIRE_V1_CONTENT_TYPE
+        ))
+    );
+    let flow_body = to_bytes(flows.into_body(), 1_000_000)
+        .await
+        .expect("flow body should buffer");
+    assert_eq!(&flow_body[..8], b"ATLFLOW1");
+
     let invalid = application
         .clone()
         .oneshot(

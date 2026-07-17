@@ -12,9 +12,9 @@ use crate::salt::{
     },
 };
 
-const INDICES: SectionId = SectionId::new(1);
+pub(crate) const INDICES: SectionId = SectionId::new(1);
 const DISTANCES: SectionId = SectionId::new(2);
-const WEIGHTS: SectionId = SectionId::new(3);
+pub(crate) const WEIGHTS: SectionId = SectionId::new(3);
 const BACKEND_HASH: SectionId = SectionId::new(4);
 const CONFIGURATION_HASH: SectionId = SectionId::new(5);
 const WEIGHT_HASH: SectionId = SectionId::new(6);

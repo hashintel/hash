@@ -69,7 +69,11 @@ mod region;
     reason = "analytic views and diagnostics form the generation adapter surface"
 )]
 pub(crate) use self::{
-    artifact::publish_analytic_artifact,
+    artifact::{
+        BOUNDS as ANALYTIC_BOUNDS, DENSITY as ANALYTIC_DENSITY, LEAF_BIRTHS, LEAF_DEATHS,
+        LEAF_PARENTS, LEAF_REPRESENTATIVE_PIXELS, PEAK_PIXELS, POINT_REGIONS, REGION_PARENTS,
+        REGION_PERSISTENCE, publish_analytic_artifact,
+    },
     error::AnalyticError,
     label::{RegionLabelCandidate, select_region_labels},
     merge_tree::{MergeTree, MergeTreeConfig, PersistenceLeaf, merge_tree},

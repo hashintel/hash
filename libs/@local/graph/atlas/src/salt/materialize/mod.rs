@@ -47,6 +47,7 @@ mod canonical;
 mod error;
 mod importance;
 mod morton;
+mod overlay;
 mod tile;
 
 #[allow(
@@ -61,6 +62,10 @@ pub(crate) use self::{
         CoordinateBounds, ImportanceConfig, ImportanceInput, RankedPoint, rank_importance,
     },
     morton::MortonKey,
+    overlay::{
+        CONTOUR_WIRE_V1_CONTENT_TYPE, EncodedOverlay, FLOW_WIRE_V1_CONTENT_TYPE, OverlayError,
+        encode_contours, encode_flows,
+    },
     tile::{
         EncodedTile, MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileError, TileRequest,
         encode_tile,

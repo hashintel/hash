@@ -11,23 +11,23 @@ use crate::salt::{
 };
 
 const CONFIGURATION_HASH: SectionId = SectionId::new(1);
-const BOUNDS: SectionId = SectionId::new(2);
-const DENSITY: SectionId = SectionId::new(3);
-const LEAF_BIRTHS: SectionId = SectionId::new(4);
-const LEAF_DEATHS: SectionId = SectionId::new(5);
+pub(crate) const BOUNDS: SectionId = SectionId::new(2);
+pub(crate) const DENSITY: SectionId = SectionId::new(3);
+pub(crate) const LEAF_BIRTHS: SectionId = SectionId::new(4);
+pub(crate) const LEAF_DEATHS: SectionId = SectionId::new(5);
 const PIXEL_REGIONS: SectionId = SectionId::new(6);
-const POINT_REGIONS: SectionId = SectionId::new(7);
-const PEAK_PIXELS: SectionId = SectionId::new(8);
+pub(crate) const POINT_REGIONS: SectionId = SectionId::new(7);
+pub(crate) const PEAK_PIXELS: SectionId = SectionId::new(8);
 const PEAK_DENSITIES: SectionId = SectionId::new(9);
 const LABEL_REGIONS: SectionId = SectionId::new(10);
 const LABEL_ROWS: SectionId = SectionId::new(11);
 const LABEL_OFFSETS: SectionId = SectionId::new(12);
 const LABEL_TEXT: SectionId = SectionId::new(13);
-const LEAF_PARENTS: SectionId = SectionId::new(14);
-const LEAF_REPRESENTATIVE_PIXELS: SectionId = SectionId::new(15);
+pub(crate) const LEAF_PARENTS: SectionId = SectionId::new(14);
+pub(crate) const LEAF_REPRESENTATIVE_PIXELS: SectionId = SectionId::new(15);
 const LEAF_REGIONS: SectionId = SectionId::new(16);
-const REGION_PARENTS: SectionId = SectionId::new(17);
-const REGION_PERSISTENCE: SectionId = SectionId::new(18);
+pub(crate) const REGION_PARENTS: SectionId = SectionId::new(17);
+pub(crate) const REGION_PERSISTENCE: SectionId = SectionId::new(18);
 const REGION_LEAVES: SectionId = SectionId::new(19);
 const REGION_REPRESENTATIVE_ROWS: SectionId = SectionId::new(20);
 

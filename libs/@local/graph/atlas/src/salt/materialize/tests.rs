@@ -416,6 +416,382 @@ fn truncated_tiles_sample_fairly_and_deliver_in_progressive_order() {
 }
 
 #[test]
+fn outer_boundaries_trace_components_counterclockwise() {
+    // An L-triomino in a 3x3 mask: pixels (0, 0), (1, 0), and (0, 1).
+    let mut mask = [false; 9];
+    mask[0] = true;
+    mask[3] = true;
+    mask[1] = true;
+    let ring = super::overlay::outer_boundary(&mask, 3);
+
+    // The perimeter walks eight unit edges, so eight lattice corners.
+    assert_eq!(ring.len(), 8);
+    let mut doubled_area = 0.0;
+    for (index, corner) in ring.iter().enumerate() {
+        let next = ring[(index + 1) % ring.len()];
+        doubled_area += corner[0] * next[1] - next[0] * corner[1];
+    }
+    // Counterclockwise orientation gives the L-triomino's positive area.
+    assert!((doubled_area - 6.0).abs() < 1.0e-12);
+    for corner in [
+        [0.0, 0.0],
+        [2.0, 0.0],
+        [2.0, 1.0],
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [0.0, 2.0],
+    ] {
+        assert!(ring.contains(&corner), "boundary should turn at {corner:?}");
+    }
+}
+
+#[test]
+fn closed_ring_simplification_keeps_true_corners_and_drops_collinear_steps() {
+    let ring = [
+        [0.0, 0.0],
+        [1.0, 0.0],
+        [2.0, 0.0],
+        [2.0, 1.0],
+        [2.0, 2.0],
+        [1.0, 2.0],
+        [0.0, 2.0],
+        [0.0, 1.0],
+    ];
+
+    assert_eq!(
+        super::overlay::simplify_closed(&ring, 0.5),
+        [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0]]
+    );
+}
+
+#[test]
+fn overlays_encode_contours_and_region_flows_deterministically() {
+    use crate::salt::{
+        analytic::{
+            AnalyticPoint, MergeTreeConfig, RasterConfig, RegionConfig, density_raster,
+            density_regions, merge_tree, publish_analytic_artifact, select_region_labels,
+        },
+        format::{ANALYTIC_FORMAT, SEMANTIC_GRAPH_FORMAT},
+        storage::mmap::{ArtifactSection, SectionId, publish_artifact},
+    };
+
+    // Spread points so the analytic sweep produces several separated peaks.
+    // Every expectation below is derived from the computed analytic objects
+    // rather than from hardcoded topology. The values are dyadic because the
+    // base artifact requires exactly f32-representable coordinates.
+    let coordinates = [
+        [0.0, 0.25],
+        [0.25, 0.0],
+        [0.0, -0.25],
+        [1.0, 0.25],
+        [0.75, 0.0],
+        [1.0, -0.25],
+    ];
+    let points = coordinates.map(|coordinate| AnalyticPoint {
+        coordinate,
+        mass: 1.0,
+    });
+    let raster = density_raster(
+        &points,
+        RasterConfig {
+            grid_size: 32,
+            bandwidth_pixels: 1.5,
+        },
+    )
+    .expect("fixture raster should build");
+    let tree = merge_tree(&raster, MergeTreeConfig::default()).expect("fixture tree should build");
+    let regions = density_regions(&raster, &tree, &coordinates, RegionConfig::default())
+        .expect("fixture regions should build");
+    let labels = select_region_labels(&regions, Vec::new()).expect("empty labels should select");
+    assert!(!tree.leaves().is_empty());
+    assert!(!regions.peaks().is_empty());
+
+    let directory = tempdir().expect("temporary directory should exist");
+    let analytic_path = Utf8PathBuf::from_path_buf(directory.path().join("analytic.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_analytic_artifact(
+        &analytic_path,
+        ContentHash::digest(b"overlay-analytic-configuration"),
+        &raster,
+        &tree,
+        &regions,
+        &labels,
+    )
+    .expect("analytic artifact should publish");
+
+    // A base artifact over the same points supplies the world extent that
+    // the overlay frame maps the analytic bounds onto.
+    let entities = (0..coordinates.len() as u32)
+        .map(entity_id)
+        .collect::<Vec<_>>();
+    let identities = IdentityDirectory::new(entities).expect("identity directory should be valid");
+    let quantize = |value: f64, minimum: f64, maximum: f64| {
+        let normalized = (value - minimum) / (maximum - minimum);
+        (normalized * 65_536.0).floor().clamp(0.0, 65_535.0) as u16
+    };
+    let mut ranked = coordinates
+        .iter()
+        .enumerate()
+        .map(|(index, &[x, y])| RankedPoint {
+            row: row(index as u32),
+            bucket: 0,
+            morton: MortonKey::new(quantize(x, 0.0, 1.0), quantize(y, -0.25, 0.25)),
+            priority_rank: index as u32,
+        })
+        .collect::<Vec<_>>();
+    let base_path = Utf8PathBuf::from_path_buf(directory.path().join("base.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_base_artifact(
+        &base_path,
+        &identities,
+        &coordinates,
+        &mut ranked,
+        CanonicalProvenance {
+            field_hash: ContentHash::digest(b"field"),
+            condition: 1.0,
+            condition_domain_hash: ContentHash::digest(b"domain"),
+            selection_evidence_hash: ContentHash::digest(b"evidence"),
+            procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
+            quantization_step: 0.25,
+        },
+    )
+    .expect("base artifact should publish");
+
+    // A semantic graph whose second neighbor always crosses to the other
+    // cluster, so region flows are guaranteed whenever regions separate.
+    let rows = coordinates.len();
+    let neighbors = 2_usize;
+    let mut indices = Vec::with_capacity(rows * neighbors);
+    let mut weights = Vec::with_capacity(rows * neighbors);
+    for source in 0..rows {
+        indices.push(((source + 1) % rows) as u32);
+        weights.push(if source == 0 { 1.0_f32 } else { 0.5 });
+        indices.push(((source + 3) % rows) as u32);
+        weights.push(0.25);
+    }
+    let distances = vec![0.5_f32; rows * neighbors];
+    let graph_path = Utf8PathBuf::from_path_buf(directory.path().join("semantic.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_artifact(
+        &graph_path,
+        SEMANTIC_GRAPH_FORMAT,
+        &[
+            ArtifactSection::new(SectionId::new(1), &[rows, neighbors], &indices)
+                .expect("indices section should build"),
+            ArtifactSection::new(SectionId::new(2), &[rows, neighbors], &distances)
+                .expect("distances section should build"),
+            ArtifactSection::new(SectionId::new(3), &[rows, neighbors], &weights)
+                .expect("weights section should build"),
+            ArtifactSection::new(
+                SectionId::new(4),
+                &[32],
+                ContentHash::digest(b"backend").as_bytes(),
+            )
+            .expect("backend hash section should build"),
+            ArtifactSection::new(
+                SectionId::new(5),
+                &[32],
+                ContentHash::digest(b"config").as_bytes(),
+            )
+            .expect("configuration hash section should build"),
+            ArtifactSection::new(
+                SectionId::new(6),
+                &[32],
+                ContentHash::digest(b"weights").as_bytes(),
+            )
+            .expect("weight hash section should build"),
+        ],
+    )
+    .expect("semantic graph artifact should publish");
+
+    let analytic = MappedArtifact::map_immutable(
+        File::open(&analytic_path).expect("analytic artifact should open"),
+        ANALYTIC_FORMAT,
+    )
+    .expect("analytic artifact should map");
+    let base = MappedArtifact::map_immutable(
+        File::open(&base_path).expect("base artifact should open"),
+        BASE_ARTIFACT_FORMAT,
+    )
+    .expect("base artifact should map");
+    let semantic = MappedArtifact::map_immutable(
+        File::open(&graph_path).expect("semantic graph artifact should open"),
+        SEMANTIC_GRAPH_FORMAT,
+    )
+    .expect("semantic graph artifact should map");
+
+    let contours = encode_contours(
+        analytic.view(),
+        base.view(),
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+    )
+    .expect("contours should encode");
+    let bytes = contours.bytes();
+    assert_eq!(&bytes[..8], b"ATLCONT1");
+    assert_eq!(u16::from_le_bytes([bytes[8], bytes[9]]), 1);
+    assert_eq!(u16::from_le_bytes([bytes[10], bytes[11]]), 160);
+    let contour_count = u32::from_le_bytes(bytes[16..20].try_into().expect("count is u32"));
+    let vertex_total = u32::from_le_bytes(bytes[20..24].try_into().expect("count is u32"));
+    assert_eq!(
+        u32::from_le_bytes(bytes[24..28].try_into().expect("count is u32")),
+        32
+    );
+    assert_eq!(contour_count as usize, tree.leaves().len());
+    let mut vertex_sum = 0_u32;
+    for (index, leaf) in tree.leaves().iter().enumerate() {
+        let record = 160 + index * 20;
+        assert_eq!(
+            u32::from_le_bytes(bytes[record..record + 4].try_into().expect("leaf is u32")),
+            u32::try_from(leaf.id).expect("leaf id fits u32"),
+        );
+        assert_eq!(
+            u32::from_le_bytes(
+                bytes[record + 4..record + 8]
+                    .try_into()
+                    .expect("parent is u32")
+            ),
+            leaf.parent.map_or(u32::MAX, |parent| u32::try_from(parent)
+                .expect("parent fits u32")),
+        );
+        let vertex_count = u32::from_le_bytes(
+            bytes[record + 8..record + 12]
+                .try_into()
+                .expect("count is u32"),
+        );
+        assert!(vertex_count >= 3, "leaf {index} needs a real polygon");
+        vertex_sum += vertex_count;
+        assert_eq!(
+            f32::from_le_bytes(
+                bytes[record + 12..record + 16]
+                    .try_into()
+                    .expect("birth is f32")
+            ),
+            leaf.birth as f32,
+        );
+        assert_eq!(
+            f32::from_le_bytes(
+                bytes[record + 16..record + 20]
+                    .try_into()
+                    .expect("death is f32")
+            ),
+            leaf.death as f32,
+        );
+    }
+    assert_eq!(vertex_sum, vertex_total);
+    let vertices_offset = 160 + tree.leaves().len() * 20;
+    assert_eq!(bytes.len(), vertices_offset + vertex_total as usize * 4);
+
+    let contours_again = encode_contours(
+        analytic.view(),
+        base.view(),
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+    )
+    .expect("contours should encode deterministically");
+    assert_eq!(contours.bytes(), contours_again.bytes());
+    assert_eq!(contours.content_hash(), contours_again.content_hash());
+
+    let flows = encode_flows(
+        analytic.view(),
+        semantic.view(),
+        base.view(),
+        ActiveRelease::for_test(),
+        ContentHash::digest(b"fixture-store-snapshot"),
+        VariantId::CANONICAL,
+    )
+    .expect("flows should encode");
+    let bytes = flows.bytes();
+    assert_eq!(&bytes[..8], b"ATLFLOW1");
+    let region_count = u32::from_le_bytes(bytes[16..20].try_into().expect("count is u32"));
+    let flow_count = u32::from_le_bytes(bytes[20..24].try_into().expect("count is u32"));
+    assert_eq!(region_count as usize, regions.peaks().len());
+    for (index, peak) in regions.peaks().iter().enumerate() {
+        let record = 160 + index * 12;
+        assert_eq!(
+            u32::from_le_bytes(
+                bytes[record + 4..record + 8]
+                    .try_into()
+                    .expect("parent is u32")
+            ),
+            peak.parent_region.unwrap_or(u32::MAX),
+        );
+        assert_eq!(
+            f32::from_le_bytes(
+                bytes[record + 8..record + 12]
+                    .try_into()
+                    .expect("persistence is f32")
+            ),
+            peak.persistence as f32,
+        );
+    }
+
+    // The flow table must equal the aggregation of every directed semantic
+    // edge between two distinct assigned regions.
+    let point_regions = regions.point_regions();
+    let mut expected = std::collections::BTreeMap::<(u32, u32), (f64, u32)>::new();
+    for (source, &source_region) in point_regions.iter().enumerate() {
+        for slot in 0..neighbors {
+            let edge = source * neighbors + slot;
+            let target_region = point_regions[indices[edge] as usize];
+            if source_region == u32::MAX
+                || target_region == u32::MAX
+                || source_region == target_region
+            {
+                continue;
+            }
+            let pair = (
+                source_region.min(target_region),
+                source_region.max(target_region),
+            );
+            let flow = expected.entry(pair).or_insert((0.0, 0));
+            flow.0 += f64::from(weights[edge]);
+            flow.1 += 1;
+        }
+    }
+    assert!(
+        !expected.is_empty(),
+        "the fixture should produce cross-region flows"
+    );
+    assert_eq!(flow_count as usize, expected.len());
+    let flows_offset = 160 + regions.peaks().len() * 12;
+    for (index, (&(source, target), &(weight, edge_count))) in expected.iter().enumerate() {
+        let record = flows_offset + index * 16;
+        assert_eq!(
+            u32::from_le_bytes(bytes[record..record + 4].try_into().expect("source is u32")),
+            source,
+        );
+        assert_eq!(
+            u32::from_le_bytes(
+                bytes[record + 4..record + 8]
+                    .try_into()
+                    .expect("target is u32")
+            ),
+            target,
+        );
+        assert_eq!(
+            f32::from_le_bytes(
+                bytes[record + 8..record + 12]
+                    .try_into()
+                    .expect("weight is f32")
+            ),
+            weight as f32,
+        );
+        assert_eq!(
+            u32::from_le_bytes(
+                bytes[record + 12..record + 16]
+                    .try_into()
+                    .expect("edge count is u32")
+            ),
+            edge_count,
+        );
+    }
+    assert_eq!(bytes.len(), flows_offset + expected.len() * 16);
+}
+
+#[test]
 fn tile_requests_reject_invalid_zoom_quadrants_and_budgets() {
     assert!(TileRequest::new(17, 0, 0, NonZeroUsize::new(1).expect("one is non-zero")).is_err());
     assert!(TileRequest::new(4, 16, 0, NonZeroUsize::new(1).expect("one is non-zero")).is_err());

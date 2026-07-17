@@ -72,9 +72,10 @@ use camino::Utf8PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::salt::{
-    ArtifactManifest, ArtifactRole, ContentHash, EncodedTile, ExternalGateVerifierSet,
-    FileActivationStore, GateId, GateVerifier, GenerationAssuranceMode, LoadedGeneration,
-    MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, VariantId, encode_tile,
+    ArtifactManifest, ArtifactRole, CONTOUR_WIRE_V1_CONTENT_TYPE, ContentHash, EncodedOverlay,
+    EncodedTile, ExternalGateVerifierSet, FLOW_WIRE_V1_CONTENT_TYPE, FileActivationStore, GateId,
+    GateVerifier, GenerationAssuranceMode, LoadedGeneration, MAXIMUM_TILE_POINTS,
+    TILE_WIRE_V4_CONTENT_TYPE, TileRequest, VariantId, encode_contours, encode_flows, encode_tile,
 };
 
 const DEFAULT_TILE_POINT_BUDGET: usize = 4_096 * 4;
@@ -389,6 +390,11 @@ where
             "/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}",
             get(tile::<B>),
         )
+        .route(
+            "/v1/atlas/contours/{generation}/{variant}",
+            get(contours::<B>),
+        )
+        .route("/v1/atlas/flows/{generation}/{variant}", get(flows::<B>))
         .with_state(state)
 }
 
@@ -470,6 +476,122 @@ where
     .map_err(internal_error)?
     .map_err(internal_error)?;
     tile_response(tile)
+}
+
+async fn contours<B>(
+    State(state): State<Arc<AtlasApiState<B>>>,
+    Path((generation, variant)): Path<(String, u16)>,
+) -> Result<Response, HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    let (loaded, variant) = overlay_generation(state, &generation, variant).await?;
+    let release = loaded.release();
+    let store_snapshot_identity = loaded.manifest().input_snapshot.store_snapshot_identity;
+    let overlay = tokio::task::spawn_blocking(move || {
+        let analytic = loaded
+            .artifact(ArtifactRole::CanonicalAnalytics)
+            .ok_or_else(|| io::Error::other("active generation has no analytic artifact"))?;
+        let base = loaded
+            .artifact(ArtifactRole::CanonicalBase)
+            .ok_or_else(|| io::Error::other("active generation has no canonical base artifact"))?;
+        encode_contours(analytic, base, release, store_snapshot_identity, variant)
+            .map_err(io::Error::other)
+    })
+    .await
+    .map_err(internal_error)?
+    .map_err(internal_error)?;
+    overlay_response(overlay, CONTOUR_WIRE_V1_CONTENT_TYPE)
+}
+
+async fn flows<B>(
+    State(state): State<Arc<AtlasApiState<B>>>,
+    Path((generation, variant)): Path<(String, u16)>,
+) -> Result<Response, HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    let (loaded, variant) = overlay_generation(state, &generation, variant).await?;
+    let release = loaded.release();
+    let store_snapshot_identity = loaded.manifest().input_snapshot.store_snapshot_identity;
+    let overlay = tokio::task::spawn_blocking(move || {
+        let analytic = loaded
+            .artifact(ArtifactRole::CanonicalAnalytics)
+            .ok_or_else(|| io::Error::other("active generation has no analytic artifact"))?;
+        let semantic = loaded
+            .artifact(ArtifactRole::SemanticGraph)
+            .ok_or_else(|| io::Error::other("active generation has no semantic graph artifact"))?;
+        let base = loaded
+            .artifact(ArtifactRole::CanonicalBase)
+            .ok_or_else(|| io::Error::other("active generation has no canonical base artifact"))?;
+        encode_flows(
+            analytic,
+            semantic,
+            base,
+            release,
+            store_snapshot_identity,
+            variant,
+        )
+        .map_err(io::Error::other)
+    })
+    .await
+    .map_err(internal_error)?
+    .map_err(internal_error)?;
+    overlay_response(overlay, FLOW_WIRE_V1_CONTENT_TYPE)
+}
+
+/// Validates the immutable overlay route identity against the active head.
+async fn overlay_generation<B>(
+    state: Arc<AtlasApiState<B>>,
+    generation: &str,
+    variant: u16,
+) -> Result<(Arc<LoadedGeneration<B>>, VariantId), HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    let loaded = current_generation(state).await?;
+    if loaded.release().head().generation.to_string() != generation {
+        return Err(HttpError::not_found(
+            "requested Atlas generation is not active",
+        ));
+    }
+    let variant = VariantId::new(variant);
+    if !loaded
+        .manifest()
+        .variants
+        .entries
+        .iter()
+        .any(|entry| entry.id == variant)
+    {
+        return Err(HttpError::not_found(
+            "requested Atlas variant is not published",
+        ));
+    }
+    if variant != loaded.manifest().variants.canonical_variant {
+        return Err(HttpError::not_found(
+            "requested Atlas variant has no materialized overlay artifacts",
+        ));
+    }
+    Ok((loaded, variant))
+}
+
+fn overlay_response(
+    overlay: EncodedOverlay,
+    content_type: &'static str,
+) -> Result<Response, HttpError> {
+    let content_hash = overlay.content_hash();
+    let bytes = overlay.into_bytes();
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(CONTENT_TYPE, content_type)
+        .header(CACHE_CONTROL, "public, max-age=31536000, immutable")
+        .header(CONTENT_LENGTH, bytes.len().to_string())
+        .header(ETAG, format!("\"{content_hash}\""))
+        .body(Body::from(bytes))
+        .map_err(internal_error)
 }
 
 async fn current_generation<B>(

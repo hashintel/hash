@@ -15,7 +15,15 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { ATLAS_WORLD_SIZE, type AtlasSession } from "../atlas-client";
+import {
+  ATLAS_WORLD_SIZE,
+  fetchAtlasContours,
+  fetchAtlasFlows,
+  isAbortError,
+  type AtlasSession,
+  type DecodedAtlasContours,
+  type DecodedAtlasFlows,
+} from "../atlas-client";
 import {
   AtlasFieldEffect,
   AtlasFieldLayer,
@@ -29,6 +37,10 @@ import {
   atlasFitZoom,
   type AtlasFrontierSnapshot,
 } from "../atlas-frontier";
+import {
+  createAtlasContourLayer,
+  createAtlasFlowLayer,
+} from "../atlas-overlays";
 import { AtlasNotice, atlasErrorCopy } from "./atlas-notice";
 import { AtlasToolbar } from "./atlas-toolbar";
 import { createAtlasDebugLayers } from "./debug-layers";
@@ -98,6 +110,18 @@ const firstFailure = (
 ): AtlasFrontierSnapshot["failures"][number] | undefined =>
   snapshot.failures[0];
 
+const kibibyteFormat = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 1,
+});
+
+const overlaySummary = (
+  count: number,
+  unit: string,
+  byteLength: number,
+): string =>
+  `${count} ${unit} \u00b7 ${kibibyteFormat.format(byteLength / 1024)} KiB`;
+
 /** Interactive deck.gl surface for one immutable Atlas session. */
 export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   const [canvasSize, setCanvasSize] = useState(initialCanvasSize);
@@ -108,6 +132,25 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   const [autoFitPending, setAutoFitPending] = useState(true);
   const [debugFraming, setDebugFraming] = useState(false);
   const [gpuError, setGpuError] = useState<string>();
+  const [showContours, setShowContours] = useState(false);
+  const [showFlows, setShowFlows] = useState(false);
+  // Overlay payloads are keyed by generation: a reloaded session simply
+  // stops matching, so stale overlays vanish without an imperative reset.
+  const [contourState, setContourState] = useState<{
+    readonly data: DecodedAtlasContours;
+    readonly generation: string;
+  }>();
+  const [flowState, setFlowState] = useState<{
+    readonly data: DecodedAtlasFlows;
+    readonly generation: string;
+  }>();
+  const [overlayError, setOverlayError] = useState<string>();
+  const contourData =
+    contourState?.generation === session.generation
+      ? contourState.data
+      : undefined;
+  const flowData =
+    flowState?.generation === session.generation ? flowState.data : undefined;
 
   const frontier = useMemo(() => new AtlasFrontier(session), [session]);
   useEffect(
@@ -121,6 +164,52 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
     frontier.getSnapshot,
     frontier.getSnapshot,
   );
+
+  useEffect(() => {
+    if (!showContours || contourData !== undefined) {
+      return;
+    }
+    const controller = new AbortController();
+    fetchAtlasContours(session, controller.signal).then(
+      (data) => {
+        setContourState({ data, generation: session.generation });
+      },
+      (error: unknown) => {
+        if (!isAbortError(error)) {
+          setOverlayError(
+            error instanceof Error ? error.message : String(error),
+          );
+          setShowContours(false);
+        }
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [contourData, session, showContours]);
+
+  useEffect(() => {
+    if (!showFlows || flowData !== undefined) {
+      return;
+    }
+    const controller = new AbortController();
+    fetchAtlasFlows(session, controller.signal).then(
+      (data) => {
+        setFlowState({ data, generation: session.generation });
+      },
+      (error: unknown) => {
+        if (!isAbortError(error)) {
+          setOverlayError(
+            error instanceof Error ? error.message : String(error),
+          );
+          setShowFlows(false);
+        }
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [flowData, session, showFlows]);
 
   useEffect(() => {
     frontier.setView({
@@ -186,21 +275,36 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
     // per-record represented-mass accumulation (tone-mapped once, after
     // accumulation). The additive starfield above it carries the crisp
     // per-point evidence. Neither alone reads as both texture and mass.
+    // Overlays draw between them: contour outlines trace the analytic
+    // topology and bundled flows ride the same merge-tree hierarchy.
     const fieldLayer = new AtlasFieldLayer({
       id: "atlas-field-composite",
       opacity: 1,
       renderState,
     });
     const starLayer = createAtlasStarLayer(snapshot.activeTiles);
-    if (!debugFraming) {
-      return [fieldLayer, starLayer];
+    const stack: Layer[] = [fieldLayer];
+    if (showContours && contourData !== undefined) {
+      stack.push(createAtlasContourLayer(contourData));
     }
-    return [
-      fieldLayer,
-      starLayer,
-      ...createAtlasDebugLayers(snapshot.debugTiles),
-    ];
-  }, [debugFraming, renderState, snapshot.activeTiles, snapshot.debugTiles]);
+    if (showFlows && flowData !== undefined) {
+      stack.push(createAtlasFlowLayer(flowData));
+    }
+    stack.push(starLayer);
+    if (debugFraming) {
+      stack.push(...createAtlasDebugLayers(snapshot.debugTiles));
+    }
+    return stack;
+  }, [
+    contourData,
+    debugFraming,
+    flowData,
+    renderState,
+    showContours,
+    showFlows,
+    snapshot.activeTiles,
+    snapshot.debugTiles,
+  ]);
 
   const resetView = useCallback(() => {
     setCamera(fittedCamera(canvasSize, dataBounds));
@@ -317,9 +421,33 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   return (
     <main className="atlas-demo">
       <AtlasToolbar
+        contourOverlay={{
+          enabled: showContours,
+          summary:
+            contourData === undefined
+              ? undefined
+              : overlaySummary(
+                  contourData.contours.length,
+                  "rings",
+                  contourData.byteLength,
+                ),
+        }}
         debugFraming={debugFraming}
+        flowOverlay={{
+          enabled: showFlows,
+          summary:
+            flowData === undefined
+              ? undefined
+              : overlaySummary(
+                  flowData.flows.length,
+                  "pairs",
+                  flowData.byteLength,
+                ),
+        }}
         gpuError={gpuError}
+        onContourOverlayChange={setShowContours}
         onDebugFramingChange={setDebugFraming}
+        onFlowOverlayChange={setShowFlows}
         onReload={onReload}
         onResetView={resetView}
         onRetryTiles={() => frontier.retryFailed()}
@@ -353,6 +481,25 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
       <p className="sr-only" aria-live="polite">
         {liveSummary}
       </p>
+
+      {overlayError === undefined ? null : (
+        <AtlasNotice
+          title="Overlay unavailable"
+          detail={overlayError}
+          actions={
+            <button
+              type="button"
+              onClick={() => {
+                setOverlayError(undefined);
+              }}
+            >
+              Dismiss
+            </button>
+          }
+        >
+          The analytic overlay request failed; the tile field remains live.
+        </AtlasNotice>
+      )}
 
       {gpuError === undefined ? null : (
         <AtlasNotice

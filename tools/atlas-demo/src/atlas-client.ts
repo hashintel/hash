@@ -17,6 +17,16 @@ import {
   type AtlasTileCoordinate,
 } from "./atlas-client/atlas-tile-coordinate";
 import {
+  ATLAS_CONTOUR_MEDIA_TYPE,
+  ATLAS_FLOW_MEDIA_TYPE,
+  AtlasOverlayWireError,
+  decodeAtlasContours,
+  decodeAtlasFlows,
+  type AtlasOverlayExpectation,
+  type DecodedAtlasContours,
+  type DecodedAtlasFlows,
+} from "./atlas-client/decode-atlas-overlays";
+import {
   ATLAS_TILE_MEDIA_TYPE,
   AtlasTileWireError,
   decodeAtlasTile,
@@ -24,6 +34,8 @@ import {
 } from "./atlas-client/decode-atlas-tile";
 
 export {
+  ATLAS_CONTOUR_MEDIA_TYPE,
+  ATLAS_FLOW_MEDIA_TYPE,
   ATLAS_MAX_TILE_ZOOM,
   ATLAS_TILE_MEDIA_TYPE,
   ATLAS_WORLD_SIZE,
@@ -32,6 +44,13 @@ export {
   atlasTileKey,
   validateAtlasTileCoordinate,
 };
+export type {
+  AtlasContour,
+  AtlasFlowRegion,
+  AtlasRegionFlow,
+  DecodedAtlasContours,
+  DecodedAtlasFlows,
+} from "./atlas-client/decode-atlas-overlays";
 export type { AtlasTileBounds, AtlasTileCoordinate, DecodedAtlasTile };
 
 const sha256Pattern = /^[0-9a-f]{64}$/u;
@@ -471,6 +490,101 @@ export const fetchAtlasTile = async (
     );
   }
   return tile;
+};
+
+const overlayExpectation = (
+  session: AtlasSession,
+): AtlasOverlayExpectation => ({
+  generation: session.generation,
+  manifestHash: session.manifestHash,
+  releaseReportHash: session.releaseReportHash,
+  storeSnapshotIdentity: session.storeSnapshotIdentity,
+  variant: session.variant,
+});
+
+const fetchAtlasOverlay = async (
+  session: AtlasSession,
+  route: "contours" | "flows",
+  mediaType: string,
+  signal: AbortSignal,
+): Promise<ArrayBuffer> => {
+  const path = `/v1/atlas/${route}/${session.generation}/${session.variant}`;
+  const response = await fetchResponse(path, signal, mediaType);
+  if (!response.ok) {
+    const detail = await responseDetail(response);
+    const kind = response.status === 404 ? "stale-generation" : "http";
+    throw new AtlasClientError(
+      kind,
+      `${response.status} for the ${route} overlay: ${detail}`,
+      { status: response.status },
+    );
+  }
+  const received = response.headers.get("content-type")?.split(";", 1)[0];
+  if (received !== mediaType) {
+    throw new AtlasClientError(
+      "invalid-tile",
+      `The ${route} overlay returned ${received ?? "no content type"}`,
+      { retryable: false },
+    );
+  }
+  return response.arrayBuffer();
+};
+
+const rethrowOverlayError = (route: string, error: unknown): never => {
+  if (error instanceof AtlasOverlayWireError) {
+    throw new AtlasClientError(
+      "invalid-tile",
+      `The ${route} overlay is invalid: ${error.message}`,
+      { cause: error, retryable: false },
+    );
+  }
+  throw error;
+};
+
+/**
+ * Fetches and decodes the immutable contour overlay for a session.
+ *
+ * @throws {@link AtlasClientError} when HTTP headers or body bytes violate
+ *   the selected generation's contract.
+ */
+export const fetchAtlasContours = async (
+  session: AtlasSession,
+  signal: AbortSignal,
+): Promise<DecodedAtlasContours> => {
+  const buffer = await fetchAtlasOverlay(
+    session,
+    "contours",
+    ATLAS_CONTOUR_MEDIA_TYPE,
+    signal,
+  );
+  try {
+    return decodeAtlasContours(buffer, overlayExpectation(session));
+  } catch (error) {
+    return rethrowOverlayError("contours", error);
+  }
+};
+
+/**
+ * Fetches and decodes the immutable region-flow overlay for a session.
+ *
+ * @throws {@link AtlasClientError} when HTTP headers or body bytes violate
+ *   the selected generation's contract.
+ */
+export const fetchAtlasFlows = async (
+  session: AtlasSession,
+  signal: AbortSignal,
+): Promise<DecodedAtlasFlows> => {
+  const buffer = await fetchAtlasOverlay(
+    session,
+    "flows",
+    ATLAS_FLOW_MEDIA_TYPE,
+    signal,
+  );
+  try {
+    return decodeAtlasFlows(buffer, overlayExpectation(session));
+  } catch (error) {
+    return rethrowOverlayError("flows", error);
+  }
 };
 
 /** Returns whether an unknown failure is an intentional request cancellation. */
