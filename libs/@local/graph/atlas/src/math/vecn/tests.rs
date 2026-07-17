@@ -172,6 +172,22 @@ fn aligned_kernels_agree_with_vecn() {
 }
 
 #[test]
+fn boxed_vecn_zero_is_all_zeros_and_writable() {
+    let mut vector = BoxedVecN::<24>::zero();
+    assert_eq!(*vector.as_array(), [0.0_f32; 24]);
+
+    // The buffer is filled in place, the intended use of `zero`.
+    for (index, slot) in vector.as_array_mut().iter_mut().enumerate() {
+        *slot = f32::from(u8::try_from(index).expect("test dimensions are small"));
+    }
+    assert_eq!(vector.as_array()[23], 23.0);
+    assert_eq!(
+        vector.norm_squared(),
+        VecN::new(*vector.as_array()).norm_squared()
+    );
+}
+
+#[test]
 fn boxed_vecn_is_aligned_and_preserves_contents() {
     let source: [f32; 24] = core::array::from_fn(|index| {
         f32::from(u8::try_from(index).expect("test dimensions are small"))

@@ -464,6 +464,18 @@ impl<const N: usize> BoxedVecN<N> {
     pub fn new(value: &VecN<N>) -> Self {
         Self::new_in(value, Global)
     }
+
+    /// Creates the zero vector in a new aligned allocation in the global
+    /// allocator.
+    ///
+    /// This is the constructor for buffers that are filled in place
+    /// (decoding, accumulation): the components arrive already valid and
+    /// zeroed, so no staging copy is needed.
+    #[inline]
+    #[must_use]
+    pub fn zero() -> Self {
+        Self::zero_in(Global)
+    }
 }
 
 impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
@@ -474,6 +486,26 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
         Layout::array::<f32>(N)
             .and_then(|layout| layout.align_to(align_of::<f32x8>()))
             .expect("`N` 4-byte components rounded up to the SIMD alignment must fit `isize`")
+    }
+
+    /// Creates the zero vector in a new aligned allocation in `alloc`.
+    ///
+    /// The process is aborted through
+    /// [`handle_alloc_error`](std::alloc::handle_alloc_error) when the
+    /// allocator cannot provide the buffer.
+    #[inline]
+    #[must_use]
+    pub fn zero_in(alloc: A) -> Self {
+        let layout = Self::layout();
+        let Ok(allocation) = alloc.allocate_zeroed(layout) else {
+            alloc::alloc::handle_alloc_error(layout)
+        };
+
+        // All-zero bits are the valid `f32` value 0.0 in every component.
+        Self {
+            ptr: allocation.cast::<f32>(),
+            alloc,
+        }
     }
 
     /// Copies the vector into a new aligned allocation in `alloc`.

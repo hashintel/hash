@@ -65,6 +65,7 @@ serde_json                               = { workspace = true, features = ["floa
 sha2                                     = { workspace = true }
 simple-mermaid                           = { workspace = true }
 sleef                                    = "0.3"
+smallvec.workspace                       = true
 sprs                                     = { version = "0.11.4", default-features = false }
 sysinfo                                  = "0.39.6"
 tiktoken-rs                              = "0.12.0"

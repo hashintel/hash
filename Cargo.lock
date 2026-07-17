@@ -6192,6 +6192,7 @@ dependencies = [
  "sha2 0.11.0",
  "simple-mermaid",
  "sleef",
+ "smallvec 2.0.0-alpha.12",
  "sprs",
  "sysinfo 0.39.6",
  "tempfile",

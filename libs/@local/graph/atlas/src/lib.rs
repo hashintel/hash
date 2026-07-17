@@ -75,6 +75,7 @@
     // Library Features
     const_convert,
     const_iter,
+    impl_trait_in_assoc_type,
     const_ops,
     const_index,
     const_cmp,
@@ -97,6 +98,7 @@ extern crate alloc;
 
 pub mod api;
 pub mod cli;
+mod dataset;
 mod file;
 pub mod float;
 pub mod integrity;
