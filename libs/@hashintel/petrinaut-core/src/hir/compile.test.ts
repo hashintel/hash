@@ -11,6 +11,7 @@ import {
   productionMachines,
   sirModel,
   supplyChainWithDisruption,
+  supplyChainProfit,
 } from "../examples/index";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -29,6 +30,10 @@ const EXAMPLES: [string, SDCPN][] = [
   [
     "supply-chain-with-disruption",
     supplyChainWithDisruption.petriNetDefinition,
+  ],
+  [
+    "supply-chain-profit",
+    supplyChainProfit.petriNetDefinition,
   ],
 ];
 
