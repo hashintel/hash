@@ -247,6 +247,94 @@ fn spatial_index_resolves_nearest_and_radius_hits_in_grid_space() {
 }
 
 #[test]
+fn locate_resolves_identity_to_position_and_minimum_delivery_zoom() {
+    let entities = (0..3).map(entity_id).collect::<Vec<_>>();
+    let identities =
+        IdentityDirectory::new(entities.clone()).expect("identity directory should be valid");
+    let coordinates = [[0.0, 1.0], [10.0, 11.0], [20.0, 21.0]];
+    let mut ranked = [
+        RankedPoint {
+            row: row(2),
+            bucket: 0,
+            morton: MortonKey::new(2, 2),
+            priority_rank: 0,
+        },
+        RankedPoint {
+            row: row(0),
+            bucket: 1,
+            morton: MortonKey::new(1, 1),
+            priority_rank: 1,
+        },
+        RankedPoint {
+            row: row(1),
+            bucket: 1,
+            morton: MortonKey::new(0, 0),
+            priority_rank: 2,
+        },
+    ];
+    let directory = tempdir().expect("temporary directory should exist");
+    let path = Utf8PathBuf::from_path_buf(directory.path().join("base.salt"))
+        .expect("temporary path should be UTF-8");
+    publish_base_artifact(
+        &path,
+        &identities,
+        &coordinates,
+        &mut ranked,
+        CanonicalProvenance {
+            field_hash: ContentHash::digest(b"field"),
+            condition: 1.0,
+            condition_domain_hash: ContentHash::digest(b"domain"),
+            selection_evidence_hash: ContentHash::digest(b"evidence"),
+            procrustes_transform: [1.0, 1.0, 0.0, 0.0, 0.0],
+            quantization_step: 0.25,
+        },
+    )
+    .expect("base artifact should publish");
+    let artifact = MappedArtifact::map_immutable(
+        File::open(&path).expect("base artifact should open"),
+        BASE_ARTIFACT_FORMAT,
+    )
+    .expect("base artifact should map");
+    let index = SpatialIndex::build(artifact.view()).expect("spatial index should build");
+
+    let generous = NonZeroUsize::new(16).expect("sixteen is non-zero");
+    let located = index
+        .locate(&entities[0], generous)
+        .expect("row 0 should locate");
+    assert_eq!(located.entity_id, entities[0]);
+    assert_eq!(located.row, 0);
+    assert_eq!(located.grid, [1.0, 1.0]);
+    assert_eq!(located.canonical, [0.0, 1.0]);
+    assert_eq!(located.bucket, 1);
+    // Every point fits the root tile under a generous budget.
+    assert_eq!(located.minimum_zoom, 0);
+
+    // A one-point budget replays the tile scan's truncation rules:
+    // - row 2 (bucket 0, cell (2, 2)) always wins the first slot;
+    // - row 0 (bucket 1, cell (1, 1)) must wait for zoom 15, where the covering 2x2-cell tile
+    //   excludes (2, 2) and the fair-truncation stratum midpoint of its two-point bucket range
+    //   picks it;
+    // - row 1 (bucket 1, cell (0, 0)) loses that midpoint pick and is guaranteed only at zoom 16,
+    //   where its tile is its own cell.
+    let scarce = NonZeroUsize::new(1).expect("one is non-zero");
+    let zoom = |seed: u64| {
+        index
+            .locate(
+                &entities[usize::try_from(seed).expect("seed fits usize")],
+                scarce,
+            )
+            .expect("entity should locate")
+            .minimum_zoom
+    };
+    assert_eq!(zoom(2), 0);
+    assert_eq!(zoom(0), 15);
+    assert_eq!(zoom(1), 16);
+
+    // An identity outside the generation resolves to nothing.
+    assert_eq!(index.locate(&entity_id(99), generous), None);
+}
+
+#[test]
 fn lookup_requests_reject_invalid_coordinates_radii_and_limits() {
     let limit = NonZeroUsize::new(1).expect("one is non-zero");
     assert_eq!(

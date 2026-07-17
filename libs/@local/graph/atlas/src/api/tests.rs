@@ -338,6 +338,54 @@ async fn lookup_route_resolves_entities_at_grid_coordinates() {
         .expect("stale lookup request should complete");
     assert_eq!(stale.status(), StatusCode::NOT_FOUND);
 
+    // Locate inverts the lookup: identity to position and delivery zoom.
+    let nil_entity = "00000000-0000-0000-0000-000000000000~00000000-0000-0000-0000-000000000000";
+    let missing_entity =
+        "11111111-1111-1111-1111-111111111111~22222222-2222-2222-2222-222222222222";
+    let located = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/v1/atlas/locate/{generation}/0?entityId={nil_entity},{missing_entity}"
+                ))
+                .body(Body::empty())
+                .expect("locate request should build"),
+        )
+        .await
+        .expect("locate request should complete");
+    assert_eq!(located.status(), StatusCode::OK);
+    assert!(located.headers().contains_key(ETAG));
+    let body = to_bytes(located.into_body(), 1_000_000)
+        .await
+        .expect("locate body should buffer");
+    let body: serde_json::Value =
+        serde_json::from_slice(&body).expect("locate body should be JSON");
+    let points = body["points"]
+        .as_array()
+        .expect("points should be an array");
+    assert_eq!(points.len(), 1);
+    assert_eq!(points[0]["entityId"], serde_json::json!(nil_entity));
+    assert_eq!(points[0]["row"], serde_json::json!(0));
+    assert_eq!(points[0]["x"], serde_json::json!(0.0));
+    assert_eq!(points[0]["y"], serde_json::json!(0.0));
+    assert_eq!(points[0]["minimumZoom"], serde_json::json!(0));
+    assert_eq!(body["missing"], serde_json::json!([missing_entity]));
+
+    let malformed = application
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/v1/atlas/locate/{generation}/0?entityId=not-an-entity"
+                ))
+                .body(Body::empty())
+                .expect("malformed locate request should build"),
+        )
+        .await
+        .expect("malformed locate request should complete");
+    assert_eq!(malformed.status(), StatusCode::BAD_REQUEST);
+
     // Hydration is explicitly unavailable without a configured store.
     let subgraph = application
         .oneshot(

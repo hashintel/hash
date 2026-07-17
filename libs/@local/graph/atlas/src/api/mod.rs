@@ -31,6 +31,8 @@
 //!   quadrant in delivery-priority order.
 //! - `GET /v1/atlas/lookup/{generation}/{variant}` resolves quantized grid coordinates to the
 //!   nearest entity identities and positions (optionally every identity within a radius).
+//! - `GET /v1/atlas/locate/{generation}/{variant}` inverts the lookup: it resolves durable entity
+//!   IDs to grid positions plus the shallowest tile zoom guaranteed to deliver each point.
 //! - `POST /v1/atlas/lookup/{generation}/{variant}/subgraph` additionally hydrates the hits from
 //!   the live HASH Graph store as a traversable subgraph in one round trip; it answers `503` when
 //!   no store is configured.
@@ -88,15 +90,18 @@ use crate::salt::{
     ActiveRelease, ArtifactManifest, ArtifactRole, CONTOUR_WIRE_V1_CONTENT_TYPE, ContentHash,
     EncodedOverlay, EncodedTile, EntityHydrator, EntitySubgraph, ExternalGateVerifierSet,
     FLOW_WIRE_V1_CONTENT_TYPE, FileActivationStore, GateId, GateVerifier, GenerationAssuranceMode,
-    HydrationError, HydrationRequest, LoadedGeneration, LookupRequest, MAXIMUM_TILE_POINTS,
-    SpatialHit, SpatialIndex, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, VariantId, default_traversal,
-    encode_contours, encode_flows, encode_tile,
+    HydrationError, HydrationRequest, LoadedGeneration, LocatedEntity, LookupRequest,
+    MAXIMUM_TILE_POINTS, SpatialHit, SpatialIndex, TILE_WIRE_V4_CONTENT_TYPE, TileRequest,
+    VariantId, default_traversal, encode_contours, encode_flows, encode_tile,
 };
 
 const DEFAULT_TILE_POINT_BUDGET: usize = 4_096 * 4;
 
 /// Default hit budget for radius lookups without an explicit limit.
 const DEFAULT_RADIUS_LOOKUP_HITS: usize = 32;
+
+/// Maximum entity identities accepted by one locate request.
+const MAXIMUM_LOCATE_ENTITIES: usize = 128;
 
 /// One named Ed25519 verification key encoded as lowercase hexadecimal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -469,6 +474,7 @@ where
         )
         .route("/v1/atlas/flows/{generation}/{variant}", get(flows::<B>))
         .route("/v1/atlas/lookup/{generation}/{variant}", get(lookup::<B>))
+        .route("/v1/atlas/locate/{generation}/{variant}", get(locate::<B>))
         .route(
             "/v1/atlas/lookup/{generation}/{variant}/subgraph",
             post(lookup_subgraph::<B>),
@@ -702,7 +708,116 @@ where
         variant: variant.get(),
         hits,
     };
-    let bytes = serde_json::to_vec(&body).map_err(internal_error)?;
+    immutable_json_response(&body)
+}
+
+/// Query parameters for one identity-to-position resolution.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LocateQuery {
+    /// Comma-separated durable entity IDs in `web~entity[~draft]` form.
+    entity_id: String,
+}
+
+/// One located entity serialized for locate responses.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LocatePoint {
+    /// Durable graph identity in the canonical `web~entity[~draft]` form.
+    entity_id: EntityId,
+    /// Generation row identity, matching tile-wire records.
+    row: u32,
+    /// Quantized grid coordinates of the point.
+    x: f32,
+    y: f32,
+    /// Canonical generation coordinates of the point.
+    canonical_x: f32,
+    canonical_y: f32,
+    /// Importance rung of the point's delivery bucket.
+    bucket: u16,
+    /// Shallowest tile zoom guaranteed to deliver the point under the
+    /// serving point budget.
+    minimum_zoom: u8,
+}
+
+impl From<LocatedEntity> for LocatePoint {
+    fn from(located: LocatedEntity) -> Self {
+        Self {
+            entity_id: located.entity_id,
+            row: located.row,
+            x: located.grid[0],
+            y: located.grid[1],
+            canonical_x: located.canonical[0],
+            canonical_y: located.canonical[1],
+            bucket: located.bucket,
+            minimum_zoom: located.minimum_zoom,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LocateResponse {
+    generation: String,
+    variant: u16,
+    points: Vec<LocatePoint>,
+    /// Requested identities absent from the generation, original order.
+    missing: Vec<EntityId>,
+}
+
+async fn locate<B>(
+    State(state): State<Arc<AtlasApiState<B>>>,
+    Path((generation, variant)): Path<(String, u16)>,
+    Query(query): Query<LocateQuery>,
+) -> Result<Response, HttpError>
+where
+    B: Backend + Send + Sync + 'static,
+    B::Device: Send + Sync,
+{
+    let (loaded, variant) =
+        materialized_generation(Arc::clone(&state), &generation, variant).await?;
+    let entity_ids = query
+        .entity_id
+        .split(',')
+        .map(|raw| {
+            serde_json::from_value::<EntityId>(serde_json::Value::String(raw.trim().to_owned()))
+                .map_err(|error| {
+                    HttpError::bad_request(format!("invalid entityId `{raw}`: {error}"))
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if entity_ids.is_empty() {
+        return Err(HttpError::bad_request(
+            "locate requires at least one entityId",
+        ));
+    }
+    if entity_ids.len() > MAXIMUM_LOCATE_ENTITIES {
+        return Err(HttpError::bad_request(format!(
+            "locate accepts at most {MAXIMUM_LOCATE_ENTITIES} entity IDs"
+        )));
+    }
+    let budget = state.tile_point_budget;
+    let index = spatial_index(state, loaded).await?;
+    let mut points = Vec::with_capacity(entity_ids.len());
+    let mut missing = Vec::new();
+    for entity_id in entity_ids {
+        match index.locate(&entity_id, budget) {
+            Some(located) => points.push(LocatePoint::from(located)),
+            None => missing.push(entity_id),
+        }
+    }
+    let body = LocateResponse {
+        generation,
+        variant: variant.get(),
+        points,
+        missing,
+    };
+    immutable_json_response(&body)
+}
+
+/// Serializes one immutable, generation-bound payload with tile caching.
+fn immutable_json_response<T: Serialize>(body: &T) -> Result<Response, HttpError> {
+    let bytes = serde_json::to_vec(body).map_err(internal_error)?;
     let content_hash = ContentHash::digest(&bytes);
     Response::builder()
         .status(StatusCode::OK)

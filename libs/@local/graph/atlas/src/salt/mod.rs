@@ -167,8 +167,8 @@ pub(crate) use self::{
     manifest::{ArtifactManifest, ArtifactRole, GenerationAssuranceMode},
     materialize::{
         CONTOUR_WIRE_V1_CONTENT_TYPE, EncodedOverlay, EncodedTile, FLOW_WIRE_V1_CONTENT_TYPE,
-        LookupRequest, MAXIMUM_TILE_POINTS, SpatialHit, SpatialIndex, TILE_WIRE_V4_CONTENT_TYPE,
-        TileRequest, encode_contours, encode_flows, encode_tile,
+        LocatedEntity, LookupRequest, MAXIMUM_TILE_POINTS, SpatialHit, SpatialIndex,
+        TILE_WIRE_V4_CONTENT_TYPE, TileRequest, encode_contours, encode_flows, encode_tile,
     },
     policy::Probability,
     relation::RelationConfidence,

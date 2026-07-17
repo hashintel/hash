@@ -20,6 +20,8 @@
 //! arrives with the serving redesign.
 
 mod subgraph;
+#[cfg(test)]
+mod tests;
 
 use core::{error::Error, fmt, num::NonZeroUsize};
 
@@ -30,10 +32,12 @@ use hash_graph_postgres_store::store::{
 };
 use hash_graph_store::{
     entity::{
-        EntityQuerySorting, EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
+        EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord, EntityStore as _,
+        QueryEntitiesParams, QueryEntitySubgraphParams,
     },
     filter::Filter,
     pool::StorePool as _,
+    query::Ordering,
     subgraph::{
         edges::{
             EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
@@ -161,7 +165,7 @@ impl EntityHydrator {
         )
         .await
         .map_err(|report| HydrationError::Pool {
-            detail: report.to_string(),
+            detail: format!("{report:?}"),
         })?;
         Ok(Self {
             pool,
@@ -200,8 +204,27 @@ impl EntityHydrator {
             QueryEntitiesParams {
                 filter,
                 temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                // The Graph REST layer always sorts root queries by the
+                // variable temporal axis plus the entity identity; mirror it
+                // so hydration exercises the same store path.
                 sorting: EntityQuerySorting {
-                    paths: Vec::new(),
+                    paths: vec![
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::DecisionTime,
+                            ordering: Ordering::Descending,
+                            nulls: None,
+                        },
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::Uuid,
+                            ordering: Ordering::Ascending,
+                            nulls: None,
+                        },
+                        EntityQuerySortingRecord {
+                            path: EntityQueryPath::WebId,
+                            ordering: Ordering::Ascending,
+                            nulls: None,
+                        },
+                    ],
                     cursor: None,
                 },
                 conversions: Vec::new(),
@@ -217,13 +240,13 @@ impl EntityHydrator {
             .acquire(None)
             .await
             .map_err(|report| HydrationError::Pool {
-                detail: report.to_string(),
+                detail: format!("{report:?}"),
             })?;
         let response = store
             .query_entity_subgraph(actor, params)
             .await
             .map_err(|report| HydrationError::Query {
-                detail: report.to_string(),
+                detail: format!("{report:?}"),
             })?;
         Ok(response.subgraph.into())
     }

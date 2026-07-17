@@ -398,6 +398,61 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /v1/atlas/locate/{generation}/{variant}:
+    get:
+      operationId: getAtlasLocate
+      tags: [atlas]
+      summary: Resolve entity identities to positions and delivery zooms
+      description: |
+        The inverse of the spatial lookup: resolves up to 128 durable entity
+        IDs to their quantized grid positions, canonical coordinates,
+        generation rows, importance rungs, and the shallowest tile zoom at
+        which each point is guaranteed to be delivered under the serving
+        point budget (`minimumZoom` replays the tile scan's bucket backfill
+        and fair-truncation sampling exactly). A client centres its camera
+        on `(x, y)` and requests tiles at `minimumZoom` or deeper to make
+        the entity visible.
+
+        Identities absent from the generation are echoed in `missing`
+        rather than failing the request. Because generation and variant are
+        bound in the path and the answer derives from the immutable
+        canonical base, a successful response is immutable.
+      parameters:
+        - $ref: "#/components/parameters/Generation"
+        - $ref: "#/components/parameters/Variant"
+        - name: entityId
+          in: query
+          required: true
+          description: >-
+            Comma-separated durable entity IDs in the canonical
+            `webId~entityUuid[~draftId]` form; at most 128.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Immutable located points and missing identities.
+          headers:
+            ETag:
+              $ref: "#/components/headers/ContentHashETag"
+            Cache-Control:
+              $ref: "#/components/headers/ImmutableCacheControl"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocateResponse"
+        "400":
+          description: >-
+            An entity ID is malformed, the list is empty, or it exceeds 128
+            identities.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/OverlayNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /v1/atlas/lookup/{generation}/{variant}/subgraph:
     post:
       operationId: postAtlasLookupSubgraph
@@ -701,6 +756,73 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LookupHit"
+
+    LocatePoint:
+      type: object
+      description: One entity resolved to its immutable generation position.
+      required:
+        - entityId
+        - row
+        - x
+        - y
+        - canonicalX
+        - canonicalY
+        - bucket
+        - minimumZoom
+      additionalProperties: false
+      properties:
+        entityId:
+          $ref: "#/components/schemas/EntityId"
+        row:
+          type: integer
+          minimum: 0
+          description: >-
+            Generation-stable row identity, matching tile-wire point
+            records.
+        x:
+          type: number
+          description: Quantized grid x of the point.
+        y:
+          type: number
+          description: Quantized grid y of the point.
+        canonicalX:
+          type: number
+          description: Canonical generation x of the point.
+        canonicalY:
+          type: number
+          description: Canonical generation y of the point.
+        bucket:
+          type: integer
+          minimum: 0
+          description: Importance rung of the point's delivery bucket.
+        minimumZoom:
+          type: integer
+          minimum: 0
+          maximum: 16
+          description: >-
+            Shallowest tile zoom guaranteed to deliver the point under the
+            serving point budget.
+
+    LocateResponse:
+      type: object
+      required: [generation, variant, points, missing]
+      additionalProperties: false
+      properties:
+        generation:
+          $ref: "#/components/schemas/ContentHash"
+        variant:
+          type: integer
+          minimum: 0
+          maximum: 65535
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/LocatePoint"
+        missing:
+          type: array
+          description: Requested identities absent from the generation.
+          items:
+            $ref: "#/components/schemas/EntityId"
 
     LookupSubgraphRequest:
       type: object
