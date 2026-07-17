@@ -55,7 +55,7 @@ export const AtlasToolbar = ({
     <header className="atlas-toolbar" aria-label="Atlas field controls">
       <div className="atlas-title-group">
         <h1 className="atlas-title">Atlas tile field</h1>
-        <span className="atlas-subtitle">ATLTILE2 / total</span>
+        <span className="atlas-subtitle">ATLTILE4 / total</span>
       </div>
 
       <dl className="atlas-readouts">

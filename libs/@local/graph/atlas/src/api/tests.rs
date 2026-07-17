@@ -112,14 +112,14 @@ async fn tile_route_serves_binary_quadrants_and_reloads_the_active_generation() 
     assert_eq!(
         response.headers().get(CONTENT_TYPE),
         Some(&axum::http::HeaderValue::from_static(
-            TILE_WIRE_V2_CONTENT_TYPE
+            TILE_WIRE_V4_CONTENT_TYPE
         ))
     );
     assert!(response.headers().contains_key(ETAG));
     let body = to_bytes(response.into_body(), 1_000_000)
         .await
         .expect("tile body should buffer");
-    assert_eq!(&body[..8], b"ATLTILE2");
+    assert_eq!(&body[..8], b"ATLTILE4");
 
     let invalid = application
         .clone()

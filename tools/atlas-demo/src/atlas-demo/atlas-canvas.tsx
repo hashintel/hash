@@ -21,7 +21,7 @@ import {
   AtlasFieldLayer,
   atlasFieldBounds,
   createAtlasFieldRenderState,
-  createAtlasParticleLayer,
+  createAtlasStarLayer,
   type AtlasFieldBounds,
 } from "../atlas-field";
 import {
@@ -182,21 +182,25 @@ export const AtlasCanvas = ({ onReload, session }: AtlasCanvasProps) => {
   );
   const effects = useMemo(() => [fieldEffect], [fieldEffect]);
   const layers = useMemo((): Layer[] => {
-    // const fieldLayer = new AtlasFieldLayer({
-    //   id: "atlas-field-composite",
-    //   opacity: 1,
-    //   renderState,
-    // });
-    const particleLayer = createAtlasParticleLayer(snapshot.markTiles);
+    // The field layer is the density instrument: it composites the linear
+    // per-record represented-mass accumulation (tone-mapped once, after
+    // accumulation). The additive starfield above it carries the crisp
+    // per-point evidence. Neither alone reads as both texture and mass.
+    const fieldLayer = new AtlasFieldLayer({
+      id: "atlas-field-composite",
+      opacity: 1,
+      renderState,
+    });
+    const starLayer = createAtlasStarLayer(snapshot.activeTiles);
     if (!debugFraming) {
-      return [particleLayer];
+      return [fieldLayer, starLayer];
     }
     return [
-      // fieldLayer,
-      particleLayer,
+      fieldLayer,
+      starLayer,
       ...createAtlasDebugLayers(snapshot.debugTiles),
     ];
-  }, [debugFraming, renderState, snapshot.debugTiles, snapshot.markTiles]);
+  }, [debugFraming, renderState, snapshot.activeTiles, snapshot.debugTiles]);
 
   const resetView = useCallback(() => {
     setCamera(fittedCamera(canvasSize, dataBounds));

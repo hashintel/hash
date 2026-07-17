@@ -1,4 +1,4 @@
-# Atlas tile wire v2
+# Atlas tile wire v4
 
 The tile API exposes bounded spatial slices of the active SALT generation:
 
@@ -46,14 +46,40 @@ of the tile):
   bias. Records are therefore _not_ in ascending Morton order within a
   bucket.
 
+A per-bucket count table follows the header. Because records are
+bucket-major, the table assigns every record its importance rung.
+
+## Represented counts
+
+Importance buckets are occupancy samples — each rung admits at most one
+point per grid cell — so the delivered records of a truncated tile cover
+occupied space near-uniformly and carry almost no density information by
+position alone. The density signal lives in the undelivered points, which
+concentrate in dense cells.
+
+The wire therefore ends with a per-record **represented count**: the server
+attributes every undelivered visible point to the delivered record sharing
+its deepest Morton cell (the longest common Morton-key prefix, found at the
+point's Morton predecessor or successor within the delivered set;
+prefix-depth ties resolve to the predecessor). Each record counts itself,
+so every count is at least 1 and the counts sum to
+`visible_subtree_count`.
+
+Rendering delivered records with their represented counts as linear mass
+yields an unbiased density field at the delivery's own resolution: mass
+missing from the record stream reappears exactly where it lives, instead of
+brightening the whole tile or its final rung. Clients must accumulate the
+counts linearly (and tone-map afterwards) for regional brightness to stay
+proportional to true point density.
+
 ## Binary layout
 
 All scalar values are little-endian. The fixed header is 160 bytes:
 
 | Offset | Bytes | Field                                                |
 | -----: | ----: | ---------------------------------------------------- |
-|      0 |     8 | ASCII magic `ATLTILE2`                               |
-|      8 |     2 | wire version, `2`                                    |
+|      0 |     8 | ASCII magic `ATLTILE4`                               |
+|      8 |     2 | wire version, `4`                                    |
 |     10 |     2 | header length, `160`                                 |
 |     12 |     2 | variant ID                                           |
 |     14 |     1 | zoom                                                 |
@@ -67,7 +93,15 @@ All scalar values are little-endian. The fixed header is 160 bytes:
 |     96 |    32 | manifest content identity                            |
 |    128 |    32 | signed release-report identity                       |
 
-Exactly `delivered_count` point records follow. Each record is 8 bytes:
+The bucket count table follows the header:
+
+| Offset | Bytes | Field                                        |
+| -----: | ----: | -------------------------------------------- |
+|    160 |     4 | bucket count `n` (one entry per rung)        |
+|    164 | 4·`n` | delivered records per bucket, delivery order |
+
+The per-bucket counts must sum to `delivered_count`. Exactly
+`delivered_count` point records follow the table. Each record is 8 bytes:
 
 | Offset | Bytes | Field               |
 | -----: | ----: | ------------------- |
@@ -75,13 +109,18 @@ Exactly `delivered_count` point records follow. Each record is 8 bytes:
 |      4 |     2 | quantized x         |
 |      6 |     2 | quantized y         |
 
+After the records, exactly `delivered_count` unsigned 32-bit represented
+counts follow, parallel to the records in the same order. Every count is at
+least 1 (each record represents itself) and the counts sum to
+`visible_subtree_count`; a complete tile therefore carries all-ones.
+
 Rows are not an index-query surface. Their purpose is stable identity lookup
 inside the named generation.
 
 ## HTTP behavior
 
 Successful responses use
-`Content-Type: application/vnd.hash.atlas.tile-v2`. `ETag` is the quoted
+`Content-Type: application/vnd.hash.atlas.tile-v4`. `ETag` is the quoted
 SHA-256 identity of the exact response bytes. The immutable route identity and
 body allow `Cache-Control: public, max-age=31536000, immutable`.
 

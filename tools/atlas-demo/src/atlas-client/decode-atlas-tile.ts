@@ -1,5 +1,5 @@
 /**
- * Strict decoder for the immutable `ATLTILE2` response body.
+ * Strict decoder for the immutable `ATLTILE4` response body.
  *
  * The decoder treats path coordinates and bootstrap identities as part of the
  * wire contract. A syntactically valid body for another generation or tile is
@@ -13,15 +13,18 @@ import {
   type AtlasTileCoordinate,
 } from "./atlas-tile-coordinate";
 
-export const ATLAS_TILE_MEDIA_TYPE = "application/vnd.hash.atlas.tile-v2";
+export const ATLAS_TILE_MEDIA_TYPE = "application/vnd.hash.atlas.tile-v4";
 
-const tileMagic = [65, 84, 76, 84, 73, 76, 69, 50] as const;
-const tileWireVersion = 2;
+const tileMagic = [65, 84, 76, 84, 73, 76, 69, 52] as const;
+const tileWireVersion = 4;
 const tileHeaderBytes = 160;
+const tileBucketBytes = 4;
 const tilePointBytes = 8;
+const tileWeightBytes = 4;
 const completeFlag = 1;
 const knownFlags = completeFlag;
 const maximumDeliveredPoints = 65_536;
+const maximumBucketCount = 64;
 const hashBytes = 32;
 
 /** Bootstrap values that bind a tile response to one immutable generation. */
@@ -36,12 +39,23 @@ export interface AtlasTileExpectation {
 
 /** Decoded point representatives and immutable provenance for one tile. */
 export interface DecodedAtlasTile {
+  /** Delivered record count per importance bucket, in delivery order. */
+  readonly bucketCounts: Uint32Array;
   readonly byteLength: number;
   readonly complete: boolean;
   readonly coordinate: AtlasTileCoordinate;
   readonly deliveredCount: number;
   readonly generation: string;
   readonly manifestHash: string;
+  /**
+   * Visible points each record stands for, itself included.
+   *
+   * The server attributes every undelivered visible point to the delivered
+   * record sharing its deepest Morton cell, so the counts sum to
+   * {@link DecodedAtlasTile.visibleSubtreeCount} and render as an unbiased
+   * linear-mass density field.
+   */
+  readonly pointWeights: Uint32Array;
   readonly positions: Uint16Array;
   readonly releaseReportHash: string;
   readonly rowIds: Uint32Array;
@@ -50,7 +64,7 @@ export interface DecodedAtlasTile {
   readonly visibleSubtreeCount: number;
 }
 
-/** A tile body violated the fixed version-2 binary contract. */
+/** A tile body violated the fixed version-4 binary contract. */
 export class AtlasTileWireError extends Error {
   override readonly name = "AtlasTileWireError";
 }
@@ -173,10 +187,39 @@ export const decodeAtlasTile = (
     );
   }
 
-  const expectedByteLength = tileHeaderBytes + deliveredCount * tilePointBytes;
+  if (buffer.byteLength < tileHeaderBytes + tileBucketBytes) {
+    return fail(
+      `tile body is ${buffer.byteLength} bytes; the bucket table requires ${tileHeaderBytes + tileBucketBytes}`,
+    );
+  }
+  const bucketCount = view.getUint32(tileHeaderBytes, true);
+  if (bucketCount === 0 || bucketCount > maximumBucketCount) {
+    return fail(
+      `bucket count ${bucketCount} is outside 1..=${maximumBucketCount}`,
+    );
+  }
+  const recordsOffset =
+    tileHeaderBytes + tileBucketBytes + bucketCount * tileBucketBytes;
+  const weightsOffset = recordsOffset + deliveredCount * tilePointBytes;
+  const expectedByteLength = weightsOffset + deliveredCount * tileWeightBytes;
   if (buffer.byteLength !== expectedByteLength) {
     return fail(
       `tile body is ${buffer.byteLength} bytes; counts require ${expectedByteLength}`,
+    );
+  }
+  const bucketCounts = new Uint32Array(bucketCount);
+  let tabulated = 0;
+  for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
+    const count = view.getUint32(
+      tileHeaderBytes + tileBucketBytes + bucketIndex * tileBucketBytes,
+      true,
+    );
+    bucketCounts[bucketIndex] = count;
+    tabulated += count;
+  }
+  if (tabulated !== deliveredCount) {
+    return fail(
+      `bucket table sums to ${tabulated}; delivered count is ${deliveredCount}`,
     );
   }
 
@@ -186,7 +229,7 @@ export const decodeAtlasTile = (
   const bounds = atlasTileBounds(expectation.coordinate);
 
   for (let pointIndex = 0; pointIndex < deliveredCount; pointIndex += 1) {
-    const pointOffset = tileHeaderBytes + pointIndex * tilePointBytes;
+    const pointOffset = recordsOffset + pointIndex * tilePointBytes;
     const rowId = view.getUint32(pointOffset, true);
     const pointX = view.getUint16(pointOffset + 4, true);
     const pointY = view.getUint16(pointOffset + 6, true);
@@ -213,13 +256,34 @@ export const decodeAtlasTile = (
     positions[pointIndex * 2 + 1] = pointY;
   }
 
+  const pointWeights = new Uint32Array(deliveredCount);
+  let representedTotal = 0;
+  for (let pointIndex = 0; pointIndex < deliveredCount; pointIndex += 1) {
+    const weight = view.getUint32(
+      weightsOffset + pointIndex * tileWeightBytes,
+      true,
+    );
+    if (weight === 0) {
+      return fail(`record ${pointIndex} represents zero points`);
+    }
+    pointWeights[pointIndex] = weight;
+    representedTotal += weight;
+  }
+  if (representedTotal !== visibleSubtreeCount) {
+    return fail(
+      `represented counts sum to ${representedTotal}; visible count is ${visibleSubtreeCount}`,
+    );
+  }
+
   return {
+    bucketCounts,
     byteLength: buffer.byteLength,
     complete,
     coordinate: expectation.coordinate,
     deliveredCount,
     generation,
     manifestHash,
+    pointWeights,
     positions,
     releaseReportHash,
     rowIds,

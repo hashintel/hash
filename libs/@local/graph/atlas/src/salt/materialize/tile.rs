@@ -1,8 +1,8 @@
-//! Quadtree tile scans and the version-2 binary delivery wire.
+//! Quadtree tile scans and the version-4 binary delivery wire.
 
 #![expect(
     clippy::little_endian_bytes,
-    reason = "tile wire v2 requires explicit canonical little-endian scalars"
+    reason = "the tile wire requires explicit canonical little-endian scalars"
 )]
 
 use core::{error::Error, fmt, num::NonZeroUsize};
@@ -17,13 +17,15 @@ use crate::salt::{
 
 /// Maximum point budget accepted for one tile response.
 pub(crate) const MAXIMUM_TILE_POINTS: usize = 0x0001_0000;
-/// Media type for the fixed version-2 tile wire.
-pub(crate) const TILE_WIRE_V2_CONTENT_TYPE: &str = "application/vnd.hash.atlas.tile-v2";
+/// Media type for the fixed version-4 tile wire.
+pub(crate) const TILE_WIRE_V4_CONTENT_TYPE: &str = "application/vnd.hash.atlas.tile-v4";
 
-const TILE_WIRE_MAGIC: [u8; 8] = *b"ATLTILE2";
-const TILE_WIRE_VERSION: u16 = 2;
+const TILE_WIRE_MAGIC: [u8; 8] = *b"ATLTILE4";
+const TILE_WIRE_VERSION: u16 = 4;
 const TILE_WIRE_HEADER_BYTES: usize = 160;
 const TILE_WIRE_POINT_BYTES: usize = 8;
+const TILE_WIRE_BUCKET_BYTES: usize = 4;
+const TILE_WIRE_WEIGHT_BYTES: usize = 4;
 const COMPLETE_FLAG: u8 = 1;
 const MAXIMUM_TILE_ZOOM: u8 = 16;
 
@@ -87,7 +89,7 @@ pub(crate) struct EncodedTile {
 }
 
 impl EncodedTile {
-    /// Borrows the complete wire-v2 response body.
+    /// Borrows the complete wire-v4 response body.
     #[must_use]
     pub(crate) fn bytes(&self) -> &[u8] {
         &self.bytes
@@ -118,7 +120,7 @@ impl EncodedTile {
     }
 }
 
-/// Reads one quadrant from every delivery bucket and encodes wire-v2.
+/// Reads one quadrant from every delivery bucket and encodes wire-v3.
 ///
 /// Buckets deliver in importance order and backfill the response until
 /// `request.point_budget` is reached. Within the bucket where the budget
@@ -128,13 +130,20 @@ impl EncodedTile {
 /// staircase of the tile. Each bucket's selection is then emitted in
 /// progressive order (ascending bit-reversed tile-local Morton suffix), so
 /// every client-side prefix of the response is spatially stratified as well.
-/// The complete subtree count is measured independently of the budget.
+/// A per-bucket delivered-count table follows the header, assigning every
+/// bucket-major record its importance rung so clients can weight rungs
+/// consistently across tiles. After the records, a parallel per-record
+/// represented-count table attributes every undelivered visible point to
+/// the delivered record sharing its deepest Morton cell, so the counts sum
+/// to the visible subtree count and clients can render truncated tiles as
+/// an unbiased density field. The complete subtree count is measured
+/// independently of the budget.
 ///
 /// # Errors
 ///
 /// Returns an error when required base sections are absent, have inconsistent
 /// lengths or offsets, are not sorted by Morton key within a bucket, exceed
-/// wire-v2 count limits, or response allocation fails.
+/// wire-v3 count limits, or response allocation fails.
 pub(crate) fn encode_tile(
     artifact: ArtifactView<'_>,
     release: ActiveRelease,
@@ -152,6 +161,14 @@ pub(crate) fn encode_tile(
     selected
         .try_reserve_exact(request.point_budget.get())
         .map_err(|_error| TileError::Allocation)?;
+    let mut bucket_counts = Vec::<u32>::new();
+    bucket_counts
+        .try_reserve_exact(offsets.len().saturating_sub(1))
+        .map_err(|_error| TileError::Allocation)?;
+    let mut bucket_ranges = Vec::<(usize, usize)>::new();
+    bucket_ranges
+        .try_reserve_exact(offsets.len().saturating_sub(1))
+        .map_err(|_error| TileError::Allocation)?;
     let mut visible = 0_usize;
     for bucket in offsets.windows(2) {
         let &[start_offset, end_offset] = bucket else {
@@ -163,11 +180,13 @@ pub(crate) fn encode_tile(
         let local_start = keys.partition_point(|&key| u64::from(key) < minimum);
         let local_end = keys.partition_point(|&key| u64::from(key) < maximum);
         let range_length = local_end.saturating_sub(local_start);
+        bucket_ranges.push((start + local_start, start + local_end));
         visible = visible
             .checked_add(range_length)
             .ok_or(TileError::CountOverflow)?;
         let remaining = request.point_budget.get().saturating_sub(selected.len());
         if remaining == 0 || range_length == 0 {
+            bucket_counts.push(0);
             continue;
         }
         let bucket_selection_start = selected.len();
@@ -194,11 +213,16 @@ pub(crate) fn encode_tile(
         // stream deterministic.
         selected[bucket_selection_start..]
             .sort_by_key(|&(_row, key)| progressive_rank(key, minimum, suffix_bits));
+        bucket_counts.push(
+            u32::try_from(selected.len() - bucket_selection_start)
+                .map_err(|_error| TileError::CountOverflow)?,
+        );
     }
     let visible_subtree_count =
         u32::try_from(visible).map_err(|_error| TileError::CountOverflow)?;
     let delivered_count =
         u32::try_from(selected.len()).map_err(|_error| TileError::CountOverflow)?;
+    let weights = represented_counts(morton, &bucket_ranges, &bucket_counts, &selected)?;
     let bytes = encode(
         release,
         store_snapshot_identity,
@@ -206,7 +230,9 @@ pub(crate) fn encode_tile(
         request,
         visible_subtree_count,
         delivered_count,
+        &bucket_counts,
         &selected,
+        &weights,
     )?;
     let content_hash = ContentHash::digest(&bytes);
     Ok(EncodedTile {
@@ -256,6 +282,93 @@ fn midpoint_stride(pick: usize, total: usize, range_length: usize) -> Result<usi
     usize::try_from(offset).map_err(|_error| TileError::CountOverflow)
 }
 
+/// Computes how many visible points each delivered record stands for.
+///
+/// Every record counts itself. Every undelivered visible point — the rest
+/// of the truncated bucket plus every bucket the budget never reached — is
+/// attributed to the delivered record that shares its deepest Morton cell,
+/// i.e. the longest common key prefix. Over Morton-sorted delivered keys the
+/// longest common prefix is always achieved by the predecessor or successor
+/// of the point's key, so one binary search per point suffices; prefix-depth
+/// ties resolve to the predecessor. The resulting counts sum to the visible
+/// subtree count, which lets clients render truncated deliveries as an
+/// unbiased density field with mass placed at the delivery's own resolution.
+fn represented_counts(
+    morton: &[u32],
+    bucket_ranges: &[(usize, usize)],
+    bucket_counts: &[u32],
+    selected: &[(u32, u32)],
+) -> Result<Vec<u32>, TileError> {
+    let mut weights = Vec::<u32>::new();
+    weights
+        .try_reserve_exact(selected.len())
+        .map_err(|_error| TileError::Allocation)?;
+    weights.resize(selected.len(), 1);
+    let mut delivered = Vec::<(u32, usize)>::new();
+    delivered
+        .try_reserve_exact(selected.len())
+        .map_err(|_error| TileError::Allocation)?;
+    for (index, &(_row, key)) in selected.iter().enumerate() {
+        delivered.push((key, index));
+    }
+    delivered.sort_unstable();
+
+    for (&(range_start, range_end), &count) in bucket_ranges.iter().zip(bucket_counts) {
+        let range_length = range_end.saturating_sub(range_start);
+        let picks = count as usize;
+        if picks == range_length {
+            continue;
+        }
+        let mut pick = 0;
+        let mut next_pick_offset = if picks == 0 {
+            None
+        } else {
+            Some(midpoint_stride(0, picks, range_length)?)
+        };
+        for (offset, index) in (range_start..range_end).enumerate() {
+            if next_pick_offset == Some(offset) {
+                pick += 1;
+                next_pick_offset = if pick < picks {
+                    Some(midpoint_stride(pick, picks, range_length)?)
+                } else {
+                    None
+                };
+                continue;
+            }
+            attribute_to_deepest_cell(morton[index], &delivered, &mut weights)?;
+        }
+    }
+    Ok(weights)
+}
+
+/// Adds one undelivered point to its deepest-common-cell delivered record.
+fn attribute_to_deepest_cell(
+    key: u32,
+    delivered: &[(u32, usize)],
+    weights: &mut [u32],
+) -> Result<(), TileError> {
+    let position = delivered.partition_point(|&(delivered_key, _index)| delivered_key < key);
+    let predecessor = position.checked_sub(1).map(|index| delivered[index]);
+    let successor = delivered.get(position).copied();
+    let target = match (predecessor, successor) {
+        (Some((predecessor_key, predecessor_index)), Some((successor_key, successor_index))) => {
+            if (successor_key ^ key).leading_zeros() > (predecessor_key ^ key).leading_zeros() {
+                successor_index
+            } else {
+                predecessor_index
+            }
+        }
+        (Some((_, predecessor_index)), None) => predecessor_index,
+        (None, Some((_, successor_index))) => successor_index,
+        (None, None) => {
+            unreachable!("an undelivered point implies at least one delivered record")
+        }
+    };
+    let weight = &mut weights[target];
+    *weight = weight.checked_add(1).ok_or(TileError::CountOverflow)?;
+    Ok(())
+}
+
 /// Ranks a Morton key by its bit-reversed tile-local suffix.
 ///
 /// Keys inside one tile share the leading `32 - suffix_bits` prefix, so the
@@ -287,6 +400,10 @@ fn morton_range(request: TileRequest) -> (u64, u64) {
     (minimum, maximum)
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the encoder writes exactly the wire fields in wire order"
+)]
 fn encode(
     release: ActiveRelease,
     store_snapshot_identity: ContentHash,
@@ -294,14 +411,28 @@ fn encode(
     request: TileRequest,
     visible_subtree_count: u32,
     delivered_count: u32,
+    bucket_counts: &[u32],
     points: &[(u32, u32)],
+    weights: &[u32],
 ) -> Result<Vec<u8>, TileError> {
+    debug_assert_eq!(points.len(), weights.len());
+    let table_bytes = bucket_counts
+        .len()
+        .checked_mul(TILE_WIRE_BUCKET_BYTES)
+        .and_then(|counts| counts.checked_add(TILE_WIRE_BUCKET_BYTES))
+        .ok_or(TileError::CountOverflow)?;
     let body_bytes = points
         .len()
         .checked_mul(TILE_WIRE_POINT_BYTES)
         .ok_or(TileError::CountOverflow)?;
+    let weight_bytes = weights
+        .len()
+        .checked_mul(TILE_WIRE_WEIGHT_BYTES)
+        .ok_or(TileError::CountOverflow)?;
     let total_bytes = TILE_WIRE_HEADER_BYTES
-        .checked_add(body_bytes)
+        .checked_add(table_bytes)
+        .and_then(|bytes| bytes.checked_add(body_bytes))
+        .and_then(|bytes| bytes.checked_add(weight_bytes))
         .ok_or(TileError::CountOverflow)?;
     let mut bytes = Vec::new();
     bytes
@@ -327,11 +458,22 @@ fn encode(
     bytes.extend_from_slice(active.manifest.as_bytes());
     bytes.extend_from_slice(release.report().as_bytes());
     debug_assert_eq!(bytes.len(), TILE_WIRE_HEADER_BYTES);
+    bytes.extend_from_slice(
+        &u32::try_from(bucket_counts.len())
+            .map_err(|_error| TileError::CountOverflow)?
+            .to_le_bytes(),
+    );
+    for &bucket_count in bucket_counts {
+        bytes.extend_from_slice(&bucket_count.to_le_bytes());
+    }
     for &(row, morton) in points {
         let [x, y] = MortonKey::from_u32(morton).coordinates();
         bytes.extend_from_slice(&row.to_le_bytes());
         bytes.extend_from_slice(&x.to_le_bytes());
         bytes.extend_from_slice(&y.to_le_bytes());
+    }
+    for &weight in weights {
+        bytes.extend_from_slice(&weight.to_le_bytes());
     }
     debug_assert_eq!(bytes.len(), total_bytes);
     Ok(bytes)

@@ -74,7 +74,7 @@ use serde::{Deserialize, Serialize};
 use crate::salt::{
     ArtifactManifest, ArtifactRole, ContentHash, EncodedTile, ExternalGateVerifierSet,
     FileActivationStore, GateId, GateVerifier, GenerationAssuranceMode, LoadedGeneration,
-    MAXIMUM_TILE_POINTS, TILE_WIRE_V2_CONTENT_TYPE, TileRequest, VariantId, encode_tile,
+    MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileRequest, VariantId, encode_tile,
 };
 
 const DEFAULT_TILE_POINT_BUDGET: usize = 4_096 * 4;
@@ -510,7 +510,7 @@ fn tile_response(tile: EncodedTile) -> Result<Response, HttpError> {
     let bytes = tile.into_bytes();
     Response::builder()
         .status(StatusCode::OK)
-        .header(CONTENT_TYPE, TILE_WIRE_V2_CONTENT_TYPE)
+        .header(CONTENT_TYPE, TILE_WIRE_V4_CONTENT_TYPE)
         .header(CACHE_CONTROL, "public, max-age=31536000, immutable")
         .header(CONTENT_LENGTH, bytes.len().to_string())
         .header(ETAG, format!("\"{content_hash}\""))

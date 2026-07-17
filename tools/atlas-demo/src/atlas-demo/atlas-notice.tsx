@@ -52,7 +52,7 @@ export const atlasErrorCopy = (
     case "invalid-tile":
       return {
         title: "Malformed Atlas tile",
-        body: "The response violated the ATLTILE2 route, identity, or count contract.",
+        body: "The response violated the ATLTILE4 route, identity, or count contract.",
       };
     case "invalid-json":
     case "invalid-manifest":

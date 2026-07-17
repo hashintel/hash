@@ -45,12 +45,20 @@ const tileFor = (coordinate: AtlasTileCoordinate): DecodedAtlasTile => {
   const pointX = Math.floor((bounds.minimumX + bounds.maximumX) / 2);
   const pointY = Math.floor((bounds.minimumY + bounds.maximumY) / 2);
   return {
-    byteLength: 160 + deliveredCount * 8,
+    bucketCounts: new Uint32Array([deliveredCount]),
+    byteLength: 168 + deliveredCount * 12,
     complete: deliveredCount === visibleSubtreeCount,
     coordinate,
     deliveredCount,
     generation: hash,
     manifestHash: hash,
+    // The first record absorbs the undelivered remainder, mirroring the
+    // server's deepest-common-cell attribution for a co-located cluster.
+    pointWeights: new Uint32Array(
+      Array.from({ length: deliveredCount }, (_, index) =>
+        index === 0 ? visibleSubtreeCount - deliveredCount + 1 : 1,
+      ),
+    ),
     positions: new Uint16Array(
       Array.from({ length: deliveredCount }, () => [pointX, pointY]).flat(),
     ),

@@ -708,7 +708,7 @@ variant="$(curl -fsS http://127.0.0.1:4010/v1/atlas/current/manifest | \
   jq -r .variants.canonical_variant)"
 curl -fS \
   "http://127.0.0.1:4010/v1/atlas/tile/${generation}/${variant}/0/0/0" \
-  --output root.atlas-tile-v2
+  --output root.atlas-tile-v4
 ```
 
 Fetch quadrant `(x = 2, y = 1)` at zoom 3:
@@ -716,12 +716,12 @@ Fetch quadrant `(x = 2, y = 1)` at zoom 3:
 ```sh
 curl -fS \
   "http://127.0.0.1:4010/v1/atlas/tile/${generation}/${variant}/3/2/1" \
-  --output quadrant.atlas-tile-v2
+  --output quadrant.atlas-tile-v4
 ```
 
 Tile responses include:
 
-- `Content-Type: application/vnd.hash.atlas.tile-v2`;
+- `Content-Type: application/vnd.hash.atlas.tile-v4`;
 - `ETag` set to the quoted hash of the exact response bytes;
 - exact `Content-Length`;
 - complete visible and delivered counts in both the binary header and response
@@ -731,7 +731,7 @@ Tile responses include:
 The generation must be active, the variant must be published and have a
 materialized base, `z` must be at most 16, and each axis must be below `2^z`.
 The unrestricted artifact-stream route is not public. See
-[`docs/tile-wire-v2.md`](docs/tile-wire-v2.md) for exact bytes and quadrant
+[`docs/tile-wire-v4.md`](docs/tile-wire-v4.md) for exact bytes and quadrant
 math.
 
 The API checks `active.json` on every current-state request. If activation

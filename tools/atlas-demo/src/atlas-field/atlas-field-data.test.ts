@@ -5,6 +5,7 @@ import {
   deriveAtlasFieldExposure,
   packAtlasField,
   packAtlasMarks,
+  packAtlasStars,
 } from "./atlas-field-data";
 
 import type { DecodedAtlasTile } from "../atlas-client";
@@ -15,12 +16,14 @@ const tile = (
   rowIds: readonly number[],
   positions: readonly number[],
 ): DecodedAtlasTile => ({
-  byteLength: 160 + rowIds.length * 8,
+  bucketCounts: new Uint32Array([rowIds.length]),
+  byteLength: 168 + rowIds.length * 12,
   complete: false,
   coordinate: { z: 2, x: 0, y: 0 },
   deliveredCount: rowIds.length,
   generation: hash,
   manifestHash: hash,
+  pointWeights: new Uint32Array(rowIds.length).fill(1),
   positions: new Uint16Array(positions),
   releaseReportHash: hash,
   rowIds: new Uint32Array(rowIds),
@@ -30,17 +33,23 @@ const tile = (
 });
 
 describe("packAtlasField", () => {
-  it("packs position, mass, and delivery attributes", () => {
+  it("packs position and delivery attributes with wire-delivered masses", () => {
     const packed = packAtlasField([
       {
         massPerPoint: 5,
-        tile: tile([10, 11], [100, 200, 300, 400]),
+        tile: {
+          ...tile([10, 11], [100, 200, 300, 400]),
+          pointWeights: new Uint32Array([7, 3]),
+          visibleSubtreeCount: 10,
+        },
       },
     ]);
 
     expect(packed.instanceCount).toBe(2);
     expect([...packed.positions]).toEqual([100.5, 200.5, 300.5, 400.5]);
-    expect([...packed.masses]).toEqual([5, 5]);
+    // Masses come from the server's per-record represented counts, not any
+    // client-side redistribution of the tile's undelivered remainder.
+    expect([...packed.masses]).toEqual([7, 3]);
     expect([...packed.tileZooms]).toEqual([2, 2]);
   });
 
@@ -100,6 +109,10 @@ describe("packAtlasMarks", () => {
     );
     expect(packed.markColors[3]).toBeGreaterThan(0);
     expect(packed.markColors[3]).toBe(packed.markColors[7]);
+    expect(packed.markRadii).toHaveLength(2);
+    for (const radius of packed.markRadii) {
+      expect(radius).toBeCloseTo(0.65 * (1 + Math.log2(5) / 3), 5);
+    }
   });
 
   it("balances independently capped tile prefixes by represented mass", () => {
@@ -119,6 +132,10 @@ describe("packAtlasMarks", () => {
     ]);
 
     expect([...packed.rowIds]).toEqual([10, 11, 12, 13, 20]);
+    // Marks from the heavier tile represent ten entities each and read one
+    // log step larger than the fully delivered tile's unit marks.
+    expect(packed.markRadii[0]).toBeCloseTo(0.65 * (1 + Math.log2(10) / 3), 5);
+    expect(packed.markRadii[4]).toBeCloseTo(0.65, 5);
   });
 
   it("keeps surviving row marks stable when refinement adds rows", () => {
@@ -143,6 +160,51 @@ describe("packAtlasMarks", () => {
     expect(refined.markColors.slice(0, 3)).toEqual(
       parent.markColors.slice(0, 3),
     );
+  });
+});
+
+describe("packAtlasStars", () => {
+  it("packs every delivered representative with log-weight intensity", () => {
+    const unit = {
+      ...tile([10, 11], [100, 200, 300, 400]),
+      complete: true,
+      visibleSubtreeCount: 2,
+    };
+    const heavy = {
+      ...tile([20], [500, 600]),
+      coordinate: { z: 2, x: 1, y: 0 },
+      pointWeights: new Uint32Array([64]),
+      visibleSubtreeCount: 64,
+    };
+
+    const packed = packAtlasStars([
+      { massPerPoint: 1, tile: unit },
+      { massPerPoint: 64, tile: heavy },
+    ]);
+
+    expect(packed.instanceCount).toBe(3);
+    expect([...packed.positions]).toEqual([
+      100.5, 200.5, 300.5, 400.5, 500.5, 600.5,
+    ]);
+    // Weight 1 stays at the base intensity; the heavy tile's only delivered
+    // point carries its 63 undelivered siblings, six octaves brighter.
+    expect(packed.starColors[3]).toBe(Math.round(0.16 * 255));
+    expect(packed.starColors[11]).toBe(Math.round((0.16 + 0.11 * 6) * 255));
+  });
+
+  it("rejects a repeated row across active frontier cells", () => {
+    const first = tile([10], [100, 200]);
+    const second = {
+      ...tile([10], [30_000, 200]),
+      coordinate: { z: 2, x: 1, y: 0 },
+    };
+
+    expect(() =>
+      packAtlasStars([
+        { massPerPoint: 1, tile: first },
+        { massPerPoint: 1, tile: second },
+      ]),
+    ).toThrow(/repeats generation row 10/u);
   });
 });
 

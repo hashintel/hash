@@ -250,12 +250,20 @@ fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
     .expect("root tile should encode");
     assert_eq!(root.visible_subtree_count(), 3);
     assert_eq!(root.delivered_count(), 2);
-    assert_eq!(root.bytes().len(), 160 + 2 * 8);
+    // Header, a two-bucket count table, two records, and two weights.
+    assert_eq!(root.bytes().len(), 160 + 4 + 2 * 4 + 2 * 8 + 2 * 4);
     assert_eq!(&root.bytes()[160..164], &2_u32.to_le_bytes());
+    assert_eq!(&root.bytes()[164..168], &1_u32.to_le_bytes());
+    assert_eq!(&root.bytes()[168..172], &1_u32.to_le_bytes());
+    assert_eq!(&root.bytes()[172..176], &2_u32.to_le_bytes());
     // The budget lands inside the second bucket, so its two-point range is
     // midpoint-stride sampled: the single stratum midpoint is its second
     // record, row 0 at Morton key (1, 1).
-    assert_eq!(&root.bytes()[168..172], &0_u32.to_le_bytes());
+    assert_eq!(&root.bytes()[180..184], &0_u32.to_le_bytes());
+    // The undelivered row 1 at (0, 0) shares its deepest Morton cell with
+    // the delivered row 0 at (1, 1), so the second record represents both.
+    assert_eq!(&root.bytes()[188..192], &1_u32.to_le_bytes());
+    assert_eq!(&root.bytes()[192..196], &2_u32.to_le_bytes());
     let root_again = encode_tile(
         view,
         ActiveRelease::for_test(),
@@ -279,7 +287,13 @@ fn base_artifact_binds_spatial_delivery_order_to_generation_identities() {
     .expect("leaf tile should encode");
     assert_eq!(leaf.visible_subtree_count(), 1);
     assert_eq!(leaf.delivered_count(), 1);
+    // The single visible point comes from the first bucket.
     assert_eq!(&leaf.bytes()[160..164], &2_u32.to_le_bytes());
+    assert_eq!(&leaf.bytes()[164..168], &1_u32.to_le_bytes());
+    assert_eq!(&leaf.bytes()[168..172], &0_u32.to_le_bytes());
+    assert_eq!(&leaf.bytes()[172..176], &2_u32.to_le_bytes());
+    // A complete delivery represents exactly itself.
+    assert_eq!(&leaf.bytes()[180..184], &1_u32.to_le_bytes());
 }
 
 #[test]
@@ -329,12 +343,34 @@ fn truncated_tiles_sample_fairly_and_deliver_in_progressive_order() {
     )
     .expect("base artifact should map");
     let view = artifact.view();
+    let bucket_counts = |tile: &EncodedTile| {
+        let bucket_count = u32::from_le_bytes(
+            tile.bytes()[160..164]
+                .try_into()
+                .expect("the table length is a u32"),
+        ) as usize;
+        tile.bytes()[164..164 + bucket_count * 4]
+            .chunks_exact(4)
+            .map(|count| u32::from_le_bytes(count.try_into().expect("counts are u32")))
+            .collect::<Vec<_>>()
+    };
     let delivered_rows = |tile: &EncodedTile| {
-        tile.bytes()[160..]
+        let table_bytes = 4 + bucket_counts(tile).len() * 4;
+        let records_start = 160 + table_bytes;
+        let records_end = records_start + tile.delivered_count() as usize * 8;
+        tile.bytes()[records_start..records_end]
             .chunks_exact(8)
             .map(|record| {
                 u32::from_le_bytes(record[..4].try_into().expect("records carry a u32 row"))
             })
+            .collect::<Vec<_>>()
+    };
+    let represented_counts = |tile: &EncodedTile| {
+        let table_bytes = 4 + bucket_counts(tile).len() * 4;
+        let weights_start = 160 + table_bytes + tile.delivered_count() as usize * 8;
+        tile.bytes()[weights_start..]
+            .chunks_exact(4)
+            .map(|weight| u32::from_le_bytes(weight.try_into().expect("weights are u32")))
             .collect::<Vec<_>>()
     };
 
@@ -349,10 +385,16 @@ fn truncated_tiles_sample_fairly_and_deliver_in_progressive_order() {
     .expect("truncated tile should encode");
     assert_eq!(truncated.visible_subtree_count(), 8);
     assert_eq!(truncated.delivered_count(), 4);
+    assert_eq!(bucket_counts(&truncated), [4]);
     // Midpoint strides pick artifact offsets 1, 3, 5, 7: a Morton-prefix cut
     // would drop the bottom-right outlier (row 7); fair sampling keeps it.
     // Progressive (bit-reversed suffix) ordering then delivers it first.
     assert_eq!(delivered_rows(&truncated), [7, 5, 1, 3]);
+    // Each undelivered point rides on the delivered record sharing its
+    // deepest Morton cell: row 0 joins row 1, rows 2 and 4 join row 3, and
+    // row 6 joins row 5, while the outlier row 7 stands only for itself.
+    // The represented counts sum to the visible subtree count of 8.
+    assert_eq!(represented_counts(&truncated), [1, 2, 2, 3]);
 
     let complete = encode_tile(
         view,
@@ -365,10 +407,12 @@ fn truncated_tiles_sample_fairly_and_deliver_in_progressive_order() {
     .expect("complete tile should encode");
     assert_eq!(complete.visible_subtree_count(), 8);
     assert_eq!(complete.delivered_count(), 8);
+    assert_eq!(bucket_counts(&complete), [8]);
     // Every prefix of the progressive order spreads across the tile instead
     // of walking the Z-curve: the top-left origin and bottom-right outlier
     // arrive before the remaining top-left cluster fills in.
     assert_eq!(delivered_rows(&complete), [0, 7, 5, 4, 6, 2, 1, 3]);
+    assert_eq!(represented_counts(&complete), [1; 8]);
 }
 
 #[test]

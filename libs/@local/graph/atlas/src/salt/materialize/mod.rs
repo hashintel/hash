@@ -62,7 +62,7 @@ pub(crate) use self::{
     },
     morton::MortonKey,
     tile::{
-        EncodedTile, MAXIMUM_TILE_POINTS, TILE_WIRE_V2_CONTENT_TYPE, TileError, TileRequest,
+        EncodedTile, MAXIMUM_TILE_POINTS, TILE_WIRE_V4_CONTENT_TYPE, TileError, TileRequest,
         encode_tile,
     },
 };

@@ -29,6 +29,8 @@ export interface PackedAtlasField {
 export interface PackedAtlasMarks {
   readonly instanceCount: number;
   readonly markColors: Uint8Array;
+  /** Per-mark pixel radii, area-proportional to represented mass. */
+  readonly markRadii: Float32Array;
   readonly positions: Float32Array;
   readonly rowIds: Uint32Array;
 }
@@ -38,6 +40,13 @@ export type AtlasMarkColorAccessor = (
   rowId: number,
 ) => readonly [number, number, number] | undefined;
 
+/** Additive far-field star attributes covering every active representative. */
+export interface PackedAtlasStars {
+  readonly instanceCount: number;
+  readonly positions: Float32Array;
+  readonly starColors: Uint8Array;
+}
+
 /** Positive-density percentile used to expose the color-agnostic glow. */
 export interface AtlasFieldExposure {
   readonly densityScale: number;
@@ -45,6 +54,14 @@ export interface AtlasFieldExposure {
 
 const defaultMarkColor = [226, 234, 240] as const;
 const defaultMarkAlpha = 168;
+/** Mark radius for a fully delivered representative (mass 1). */
+const baseMarkRadius = 0.65;
+/** Cool star tint; accumulation toward white happens in the blend. */
+const starColor = [186, 208, 232] as const;
+/** Star intensity for a fully delivered representative (mass 1). */
+const baseStarIntensity = 0.16;
+/** Additional intensity per represented-mass octave. */
+const starIntensityPerOctave = 0.11;
 
 /**
  * Returns the tight extent of delivered field representatives.
@@ -110,7 +127,13 @@ export const packAtlasField = (
       const rowId = tile.rowIds[pointIndex];
       const pointX = tile.positions[pointIndex * 2];
       const pointY = tile.positions[pointIndex * 2 + 1];
-      if (rowId === undefined || pointX === undefined || pointY === undefined) {
+      const weight = tile.pointWeights[pointIndex];
+      if (
+        rowId === undefined ||
+        pointX === undefined ||
+        pointY === undefined ||
+        weight === undefined
+      ) {
         throw new Error(
           `Tile ${atlasTileKey(tile.coordinate)} has incomplete decoded arrays`,
         );
@@ -122,7 +145,7 @@ export const packAtlasField = (
       seenRows.add(rowId);
       positions[outputIndex * 2] = pointX + 0.5;
       positions[outputIndex * 2 + 1] = pointY + 0.5;
-      masses[outputIndex] = weightedTile.massPerPoint;
+      masses[outputIndex] = weight;
       tileZooms[outputIndex] = tile.coordinate.z;
       outputIndex += 1;
     }
@@ -168,6 +191,7 @@ export const packAtlasMarks = (
     0,
   );
   const markColors = new Uint8Array(instanceCount * 4);
+  const markRadii = new Float32Array(instanceCount);
   const positions = new Float32Array(instanceCount * 2);
   const rowIds = new Uint32Array(instanceCount);
   const seenRows = new Set<number>();
@@ -180,6 +204,14 @@ export const packAtlasMarks = (
       continue;
     }
     const { tile } = weightedTile;
+    // Represented mass spans decades (a truncated coarse tile's marks stand
+    // in for hundreds of entities), so area-proportional sizing saturates
+    // any pixel clamp. Log compression gives each mass decade a legible
+    // radius step instead: mass 1 -> 0.65px, 8 -> 1.3px, 64 -> 1.95px,
+    // 4096 -> 3.25px.
+    const markRadius =
+      baseMarkRadius *
+      (1 + Math.log2(Math.max(weightedTile.massPerPoint, 1)) / 3);
     for (
       let pointIndex = 0;
       pointIndex < tile.deliveredCount;
@@ -204,6 +236,7 @@ export const packAtlasMarks = (
       positions[outputIndex * 2] = pointX + 0.5;
       positions[outputIndex * 2 + 1] = pointY + 0.5;
       rowIds[outputIndex] = rowId;
+      markRadii[outputIndex] = markRadius;
       const markColor = colorForRow?.(rowId) ?? defaultMarkColor;
       markColors[outputIndex * 4] = markColor[0];
       markColors[outputIndex * 4 + 1] = markColor[1];
@@ -213,7 +246,72 @@ export const packAtlasMarks = (
     }
   }
 
-  return { instanceCount, markColors, positions, rowIds };
+  return { instanceCount, markColors, markRadii, positions, rowIds };
+};
+
+/**
+ * Packs every active representative as one additive star.
+ *
+ * The far-field effect is accumulation, not per-point size: each star is
+ * rendered dim and additively blended, so dense regions brighten toward
+ * white because light adds while isolated points stay faint sparks. Star
+ * intensity grows with the log of represented mass, keeping brightness a
+ * readout of delivered evidence rather than decoration.
+ */
+export const packAtlasStars = (
+  activeTiles: readonly WeightedAtlasTile[],
+): PackedAtlasStars => {
+  const instanceCount = activeTiles.reduce(
+    (total, weightedTile) => total + weightedTile.tile.deliveredCount,
+    0,
+  );
+  const positions = new Float32Array(instanceCount * 2);
+  const starColors = new Uint8Array(instanceCount * 4);
+  const seenRows = new Set<number>();
+  let outputIndex = 0;
+
+  for (const weightedTile of activeTiles) {
+    const { tile } = weightedTile;
+    for (
+      let pointIndex = 0;
+      pointIndex < tile.deliveredCount;
+      pointIndex += 1
+    ) {
+      const rowId = tile.rowIds[pointIndex];
+      const pointX = tile.positions[pointIndex * 2];
+      const pointY = tile.positions[pointIndex * 2 + 1];
+      const weight = tile.pointWeights[pointIndex];
+      if (
+        rowId === undefined ||
+        pointX === undefined ||
+        pointY === undefined ||
+        weight === undefined
+      ) {
+        throw new Error(
+          `Tile ${atlasTileKey(tile.coordinate)} has incomplete decoded arrays`,
+        );
+      }
+      if (seenRows.has(rowId)) {
+        throw new Error(`Active frontier repeats generation row ${rowId}`);
+      }
+
+      const intensity = Math.min(
+        baseStarIntensity +
+          starIntensityPerOctave * Math.log2(Math.max(weight, 1)),
+        1,
+      );
+      seenRows.add(rowId);
+      positions[outputIndex * 2] = pointX + 0.5;
+      positions[outputIndex * 2 + 1] = pointY + 0.5;
+      starColors[outputIndex * 4] = starColor[0];
+      starColors[outputIndex * 4 + 1] = starColor[1];
+      starColors[outputIndex * 4 + 2] = starColor[2];
+      starColors[outputIndex * 4 + 3] = Math.round(intensity * 255);
+      outputIndex += 1;
+    }
+  }
+
+  return { instanceCount, positions, starColors };
 };
 
 const percentile = (sorted: readonly number[], rank: number): number => {

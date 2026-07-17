@@ -22,6 +22,7 @@ const expectation: AtlasTileExpectation = {
 
 interface FixturePoint {
   readonly rowId: number;
+  readonly weight?: number;
   readonly x: number;
   readonly y: number;
 }
@@ -50,11 +51,17 @@ const createFixture = (options: FixtureOptions = {}): ArrayBuffer => {
   ];
   const visible = options.visible ?? points.length;
   const complete = options.complete ?? visible === points.length;
-  const buffer = new ArrayBuffer(160 + points.length * 8);
+  // Unless a point carries an explicit represented count, the first record
+  // absorbs the tile's undelivered remainder so the counts stay honest.
+  const weights = points.map(
+    (point, pointIndex) =>
+      point.weight ?? (pointIndex === 0 ? visible - points.length + 1 : 1),
+  );
+  const buffer = new ArrayBuffer(160 + 8 + points.length * 12);
   const bytes = new Uint8Array(buffer);
-  bytes.set(new TextEncoder().encode("ATLTILE2"));
+  bytes.set(new TextEncoder().encode("ATLTILE4"));
   const view = new DataView(buffer);
-  view.setUint16(8, 2, true);
+  view.setUint16(8, 4, true);
   view.setUint16(10, 160, true);
   view.setUint16(12, options.variant ?? expectation.variant, true);
   view.setUint8(14, coordinate.z);
@@ -67,12 +74,19 @@ const createFixture = (options: FixtureOptions = {}): ArrayBuffer => {
   writeHash(view, 64, storeSnapshotIdentity);
   writeHash(view, 96, manifestHash);
   writeHash(view, 128, releaseReportHash);
+  // Single-bucket count table covering the whole delivery.
+  view.setUint32(160, 1, true);
+  view.setUint32(164, points.length, true);
 
   for (const [pointIndex, point] of points.entries()) {
-    const offset = 160 + pointIndex * 8;
+    const offset = 168 + pointIndex * 8;
     view.setUint32(offset, point.rowId, true);
     view.setUint16(offset + 4, point.x, true);
     view.setUint16(offset + 6, point.y, true);
+  }
+  const weightsOffset = 168 + points.length * 8;
+  for (const [pointIndex, weight] of weights.entries()) {
+    view.setUint32(weightsOffset + pointIndex * 4, weight, true);
   }
   return buffer;
 };
@@ -84,9 +98,19 @@ describe("decodeAtlasTile", () => {
     expect(tile.complete).toBe(true);
     expect(tile.visibleSubtreeCount).toBe(2);
     expect(tile.deliveredCount).toBe(2);
+    expect([...tile.bucketCounts]).toEqual([2]);
     expect([...tile.rowIds]).toEqual([7, 9]);
     expect([...tile.positions]).toEqual([40_000, 2_000, 62_000, 31_000]);
+    expect([...tile.pointWeights]).toEqual([1, 1]);
     expect(tile.generation).toBe(generation);
+  });
+
+  it("rejects a bucket table that disagrees with the delivered count", () => {
+    const buffer = createFixture();
+    new DataView(buffer).setUint32(164, 5, true);
+    expect(() => decodeAtlasTile(buffer, expectation)).toThrow(
+      /bucket table sums to 5/u,
+    );
   });
 
   it("accepts a truncated delivery with a complete visible count", () => {
@@ -98,6 +122,22 @@ describe("decodeAtlasTile", () => {
     expect(tile.complete).toBe(false);
     expect(tile.visibleSubtreeCount).toBe(12);
     expect(tile.deliveredCount).toBe(2);
+    // The wire places the undelivered remainder onto specific records.
+    expect([...tile.pointWeights]).toEqual([11, 1]);
+  });
+
+  it("rejects represented counts that break the wire invariants", () => {
+    const zeroWeight = createFixture({ complete: false, visible: 12 });
+    new DataView(zeroWeight).setUint32(168 + 2 * 8, 0, true);
+    expect(() => decodeAtlasTile(zeroWeight, expectation)).toThrow(
+      /represents zero points/u,
+    );
+
+    const lostMass = createFixture({ complete: false, visible: 12 });
+    new DataView(lostMass).setUint32(168 + 2 * 8, 5, true);
+    expect(() => decodeAtlasTile(lostMass, expectation)).toThrow(
+      /represented counts sum to 6/u,
+    );
   });
 
   it("rejects malformed or truncated bodies", () => {

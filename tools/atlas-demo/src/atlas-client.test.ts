@@ -61,11 +61,11 @@ const writeHash = (view: DataView, offset: number, hash: string): void => {
 };
 
 const tileFixture = (): ArrayBuffer => {
-  const buffer = new ArrayBuffer(168);
+  const buffer = new ArrayBuffer(180);
   const bytes = new Uint8Array(buffer);
-  bytes.set(new TextEncoder().encode("ATLTILE2"));
+  bytes.set(new TextEncoder().encode("ATLTILE4"));
   const view = new DataView(buffer);
-  view.setUint16(8, 2, true);
+  view.setUint16(8, 4, true);
   view.setUint16(10, 160, true);
   view.setUint16(12, 0, true);
   view.setUint8(14, 0);
@@ -78,9 +78,13 @@ const tileFixture = (): ArrayBuffer => {
   writeHash(view, 64, storeSnapshotIdentity);
   writeHash(view, 96, manifestHash);
   writeHash(view, 128, releaseReportHash);
-  view.setUint32(160, 42, true);
-  view.setUint16(164, 12_345, true);
-  view.setUint16(166, 54_321, true);
+  // Single-bucket count table, one point record, and its represented count.
+  view.setUint32(160, 1, true);
+  view.setUint32(164, 1, true);
+  view.setUint32(168, 42, true);
+  view.setUint16(172, 12_345, true);
+  view.setUint16(174, 54_321, true);
+  view.setUint32(176, 1, true);
   return buffer;
 };
 
