@@ -253,24 +253,26 @@ const NetworkGraphStory = ({
   // a time). A node is a `{ node: id }` reference or an overlaid `{ node: { point,
   // edges, neighbours } }` neighbourhood; an edge is `{ edge: id }`.
   const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
-  // Selected node's live on-screen position and drawn radius, updated by the
-  // chart on zoom/pan so the tooltip tracks the node.
-  const [tooltipPos, setTooltipPos] = useState<{
-    x: number;
-    y: number;
-    nodeRadius: number;
-    variant: "detailed" | "compact";
-  } | null>(null);
-  // The clicked edge and where it was clicked, for the edge popover. Kept alongside
-  // `selected` (which carries only the edge id) so the popover has the edge's data
-  // and an anchor. Cleared whenever the selection isn't an edge.
+  // The selection's live on-screen anchor, reported by the chart and re-projected on
+  // zoom/pan so a tooltip tracks it: `type: "node"` (with the node's drawn radius and
+  // variant) or `type: "edge"` (at the edge's on-screen centre), or `null` off screen.
+  const [tooltipPos, setTooltipPos] = useState<
+    | {
+        type: "node";
+        x: number;
+        y: number;
+        nodeRadius: number;
+        variant: "detailed" | "compact";
+      }
+    | { type: "edge"; x: number; y: number }
+    | null
+  >(null);
+  // The clicked edge, for the edge popover's content. Kept alongside `selected`
+  // (which carries only the edge id); the popover's position comes from `tooltipPos`.
+  // Cleared whenever the selection isn't an edge.
   const [selectedEdge, setSelectedEdge] = useState<NetworkGraphEdge | null>(
     null,
   );
-  const [edgeTooltipPos, setEdgeTooltipPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
   // Id counter for fabricated overlay nodes/edges, kept well clear of the
   // fixture's ids so they never collide.
   const nextIdRef = useRef(1_000_000_000);
@@ -459,13 +461,11 @@ const NetworkGraphStory = ({
       if (!interaction.edge) {
         return;
       }
-      // Selecting an edge replaces any node selection (only one thing at a time).
+      // Selecting an edge replaces any node selection (only one thing at a time). The
+      // chart reports the edge's live on-screen anchor via `onSelectedPositionChange`,
+      // so the popover tracks it on zoom/pan (no need to capture the click point).
       setSelected({ edge: interaction.edge.id });
-      // Anchor the edge popover at the click point. Unlike the node tooltip it
-      // doesn't track pan/zoom (the chart reports node positions, not edges'),
-      // which is fine for this demo.
       setSelectedEdge(interaction.edge);
-      setEdgeTooltipPos({ x: interaction.x, y: interaction.y });
     },
     [],
   );
@@ -537,7 +537,7 @@ const NetworkGraphStory = ({
               <span className={zoomReadoutStyles}>{zoom.toFixed(2)}</span>
             ) : null}
           </div>
-          {selectedPoint && tooltipPos ? (
+          {selectedPoint && tooltipPos?.type === "node" ? (
             <Popover
               triggerRef={frameRef}
               position="bottom-start"
@@ -562,11 +562,11 @@ const NetworkGraphStory = ({
               </div>
             </Popover>
           ) : null}
-          {selectedEdge && edgeTooltipPos ? (
+          {selectedEdge && tooltipPos?.type === "edge" ? (
             <Popover
               triggerRef={frameRef}
               position="bottom-start"
-              positionFromPoint={edgeTooltipPos}
+              positionFromPoint={tooltipPos}
               onClose={() => {
                 setSelected(null);
                 setSelectedEdge(null);

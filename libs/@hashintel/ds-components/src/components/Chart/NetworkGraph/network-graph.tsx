@@ -154,19 +154,25 @@ export interface NetworkGraphProps {
    */
   selected?: NetworkGraphSelection | null;
   /**
-   * Called with the `selected` node's on-screen position (CSS px from the chart's
-   * top-left) and drawn radius whenever they change — including on zoom/pan — or
-   * `null` when nothing is selected or the node is outside the viewport. Lets a
-   * consumer anchor an overlay to the node, offsetting it by `nodeRadius`, and hide
-   * it while off screen.
+   * Called with the selection's on-screen anchor (CSS px from the chart's top-left)
+   * whenever it changes — including on zoom/pan — or `null` when nothing is selected
+   * or the anchor is outside the viewport. Lets a consumer anchor an overlay to the
+   * selection and hide it while off screen. A selected node reports `type: "node"`
+   * with its drawn `nodeRadius` (to offset an overlay clear of it) and node `variant`;
+   * a selected edge reports `type: "edge"` at the centre of its on-screen portion
+   * (where the label pill sits).
    */
   onSelectedPositionChange?: (
-    position: {
-      x: number;
-      y: number;
-      nodeRadius: number;
-      variant: "detailed" | "compact";
-    } | null,
+    position:
+      | {
+          type: "node";
+          x: number;
+          y: number;
+          nodeRadius: number;
+          variant: "detailed" | "compact";
+        }
+      | { type: "edge"; x: number; y: number }
+      | null,
   ) => void;
   /**
    * Called when the hovered node changes, with the newly hovered node (or `null`)
@@ -1142,48 +1148,6 @@ export const NetworkGraph = ({
     ? "detailed"
     : "compact";
 
-  /**
-   * Report the selected node's on-screen position, re-projecting on every view
-   * change so a consumer's overlay tracks the node as it zooms/pans. Reports `null`
-   * while the anchor lies outside the chart bounds, so the overlay is hidden until
-   * the node comes back into view.
-   */
-  useEffect(() => {
-    if (!onSelectedPositionChange) {
-      return;
-    }
-    const element = containerRef.current;
-    if (!element || !viewState || !selectedPoint) {
-      onSelectedPositionChange(null);
-      return;
-    }
-    const { width, height } = element.getBoundingClientRect();
-    const viewport = view.makeViewport({ width, height, viewState });
-    if (!viewport) {
-      onSelectedPositionChange(null);
-      return;
-    }
-    const [x = 0, y = 0] = viewport.project([selectedPoint.x, selectedPoint.y]);
-    // Hide once the anchor leaves the viewport; show again when it pans/zooms back in.
-    if (x < 0 || x > width || y < 0 || y > height) {
-      onSelectedPositionChange(null);
-      return;
-    }
-    onSelectedPositionChange({
-      x,
-      y,
-      nodeRadius: activeNodeRadius,
-      variant: nodeVariant,
-    });
-  }, [
-    onSelectedPositionChange,
-    selectedPoint,
-    viewState,
-    view,
-    activeNodeRadius,
-    nodeVariant,
-  ]);
-
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
   }, []);
@@ -1419,6 +1383,79 @@ export const NetworkGraph = ({
         ];
     return { edgeId: edge.id, path, endpoints: [from, to] };
   }, [selectedEdge, resolveEdge, resolvePoint, isDetailZoom, bundleHierarchy]);
+
+  /**
+   * Report the selection's on-screen anchor, re-projecting on every view change so a
+   * consumer's overlay tracks it as the view zooms/pans. A selected node reports its
+   * projected centre, drawn radius and node variant; a selected edge reports the
+   * centre of its on-screen portion (where the label pill sits). Reports `null` while
+   * the anchor lies off screen, so an anchored overlay is hidden until it returns.
+   */
+  useEffect(() => {
+    if (!onSelectedPositionChange) {
+      return;
+    }
+    const element = containerRef.current;
+    if (!element || !viewState) {
+      onSelectedPositionChange(null);
+      return;
+    }
+    const { width, height } = element.getBoundingClientRect();
+    const viewport = view.makeViewport({ width, height, viewState });
+    if (!viewport) {
+      onSelectedPositionChange(null);
+      return;
+    }
+    if (selectedPoint) {
+      const [x = 0, y = 0] = viewport.project([
+        selectedPoint.x,
+        selectedPoint.y,
+      ]);
+      // Hide once the anchor leaves the viewport; show again when it comes back.
+      if (x < 0 || x > width || y < 0 || y > height) {
+        onSelectedPositionChange(null);
+        return;
+      }
+      onSelectedPositionChange({
+        type: "node",
+        x,
+        y,
+        nodeRadius: activeNodeRadius,
+        variant: nodeVariant,
+      });
+      return;
+    }
+    if (selectedEdgeHoverable) {
+      // Anchor at the centre of the edge's on-screen portion — the same point the
+      // label pill uses (see the label effect) — clipped to the viewport, so this is
+      // `null` when the edge is entirely off screen.
+      const screenPoints = selectedEdgeHoverable.path.map(
+        (worldPoint): [number, number] => {
+          const [x = 0, y = 0] = viewport.project([
+            worldPoint[0],
+            worldPoint[1],
+          ]);
+          return [x, y];
+        },
+      );
+      const anchor = edgeLabelAnchor(screenPoints, width, height);
+      if (!anchor) {
+        onSelectedPositionChange(null);
+        return;
+      }
+      onSelectedPositionChange({ type: "edge", x: anchor[0], y: anchor[1] });
+      return;
+    }
+    onSelectedPositionChange(null);
+  }, [
+    onSelectedPositionChange,
+    selectedPoint,
+    selectedEdgeHoverable,
+    viewState,
+    view,
+    activeNodeRadius,
+    nodeVariant,
+  ]);
 
   /**
    * The edge shown with edge-hover emphasis: hovered, else externally selected.
