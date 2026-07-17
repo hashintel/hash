@@ -525,7 +525,7 @@ __metadata:
     "@local/hash-graph-client": "workspace:*"
     "@local/hash-graph-sdk": "workspace:*"
     "@local/hash-isomorphic-utils": "workspace:*"
-    "@local/petrinaut-optimizer-types": "workspace:*"
+    "@local/petrinaut-optimizer-client": "workspace:*"
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@mailchimp/mailchimp_marketing": "npm:3.0.80"
@@ -899,6 +899,7 @@ __metadata:
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
+    "@local/petrinaut-optimizer-client": "workspace:*"
     "@mantine/hooks": "npm:8.3.5"
     "@pandacss/dev": "npm:1.11.1"
     "@rolldown/plugin-babel": "npm:0.2.1"
@@ -910,7 +911,6 @@ __metadata:
     "@whatwg-node/server": "npm:0.10.18"
     ai: "npm:6.0.182"
     babel-plugin-react-compiler: "npm:1.0.0"
-    eventsource-parser: "npm:3.0.8"
     immer: "npm:10.1.3"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
@@ -8699,16 +8699,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/petrinaut-optimizer-types@workspace:*, @local/petrinaut-optimizer-types@workspace:libs/@local/petrinaut-optimizer-types":
+"@local/petrinaut-optimizer-client@workspace:*, @local/petrinaut-optimizer-client@workspace:libs/@local/petrinaut-optimizer-client":
   version: 0.0.0-use.local
-  resolution: "@local/petrinaut-optimizer-types@workspace:libs/@local/petrinaut-optimizer-types"
+  resolution: "@local/petrinaut-optimizer-client@workspace:libs/@local/petrinaut-optimizer-client"
   dependencies:
     "@apps/petrinaut-opt": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    eventsource-parser: "npm:3.0.8"
     openapi-typescript: "npm:7.13.0"
     oxfmt: "npm:0.50.0"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
+    vitest: "npm:4.1.8"
   languageName: unknown
   linkType: soft
 

@@ -2,15 +2,15 @@ import { once } from "node:events";
 
 import {
   petrinautOptimizationErrorEventSchema,
-  petrinautOptimizationEventSchema,
   petrinautOptimizationInputSchema,
 } from "@hashintel/petrinaut-core";
+import { decodePetrinautOptimizerStream } from "@local/petrinaut-optimizer-client";
 
 import type {
   PetrinautOptimizationEvent,
   PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
-import type { components } from "@local/petrinaut-optimizer-types";
+import type { components } from "@local/petrinaut-optimizer-client";
 import type { Express, Response as ExpressResponse } from "express";
 
 export const PETRINAUT_OPTIMIZER_STATUS_PATH =
@@ -39,12 +39,14 @@ const PETRINAUT_OPTIMIZER_PHASES = [
   "error",
 ] as const satisfies readonly NonNullable<PetrinautOptimizerStatus["phase"]>[];
 
+/** Return whether an unknown value is a supported optimizer phase. */
 const isPetrinautOptimizerPhase = (
   value: unknown,
 ): value is NonNullable<PetrinautOptimizerStatus["phase"]> =>
   typeof value === "string" &&
   PETRINAUT_OPTIMIZER_PHASES.some((phase) => phase === value);
 
+/** Validate one runtime status payload returned by Petrinaut Optimizer. */
 const isPetrinautOptimizerStatus = (
   value: unknown,
 ): value is PetrinautOptimizerStatus => {
@@ -70,11 +72,13 @@ const isPetrinautOptimizerStatus = (
   );
 };
 
+/** Validate the complete status list returned by Petrinaut Optimizer. */
 const isPetrinautOptimizerStatusList = (
   value: unknown,
 ): value is PetrinautOptimizerStatus[] =>
   Array.isArray(value) && value.every(isPetrinautOptimizerStatus);
 
+/** Remove run-specific details and select the process-level current status. */
 const summarizePetrinautOptimizerStatus = (
   statuses: readonly PetrinautOptimizerStatus[],
 ) => {
@@ -91,6 +95,7 @@ const summarizePetrinautOptimizerStatus = (
 type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 type WarningLogger = {
+  /** Record a recoverable integration failure and its diagnostic metadata. */
   warn: (message: string, metadata?: Record<string, unknown>) => void;
 };
 
@@ -128,15 +133,12 @@ export const getPetrinautOptimizerOrigin = (
   return new URL(`http://${urlHost}:${port}`);
 };
 
+/** Write one canonical optimization event as NDJSON with backpressure. */
 const writeOptimizationEvent = async (
   response: ExpressResponse,
-  event: unknown,
+  event: PetrinautOptimizationEvent,
 ): Promise<void> => {
-  const parsed = petrinautOptimizationEventSchema.safeParse(event);
-  if (!parsed.success) {
-    throw new Error("Petrinaut optimizer returned an invalid event");
-  }
-  if (!response.write(`${JSON.stringify(parsed.data)}\n`)) {
+  if (!response.write(`${JSON.stringify(event)}\n`)) {
     if (response.destroyed || response.writableEnded) {
       throw new Error("The optimization client disconnected");
     }
@@ -149,93 +151,7 @@ const writeOptimizationEvent = async (
   }
 };
 
-type JsonRecord = Record<string, unknown>;
-
-const isJsonRecord = (value: unknown): value is JsonRecord =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const parseTrialParameters = (
-  value: unknown,
-): Record<string, number | boolean> => {
-  if (!isJsonRecord(value)) {
-    throw new Error("Petrinaut optimizer returned invalid trial parameters");
-  }
-
-  const parameters: Record<string, number | boolean> = {};
-  for (const [identifier, parameterValue] of Object.entries(value)) {
-    if (
-      typeof parameterValue !== "boolean" &&
-      (typeof parameterValue !== "number" || !Number.isFinite(parameterValue))
-    ) {
-      throw new Error("Petrinaut optimizer returned invalid trial parameters");
-    }
-    parameters[identifier] = parameterValue;
-  }
-  return parameters;
-};
-
-type UpstreamTrial = {
-  step: number;
-  parameters: Record<string, number | boolean>;
-  objective: number | null;
-  state: "complete" | "pruned" | "failed";
-};
-
-const parseUpstreamTrial = (value: unknown): UpstreamTrial => {
-  if (!isJsonRecord(value)) {
-    throw new Error("Petrinaut optimizer returned an invalid SSE event");
-  }
-  if (!Number.isInteger(value.step) || (value.step as number) < 0) {
-    throw new Error("Petrinaut optimizer returned an invalid trial number");
-  }
-  if (typeof value.state !== "string") {
-    throw new Error("Petrinaut optimizer returned an invalid trial state");
-  }
-
-  const state = value.state.toUpperCase();
-  const normalizedState =
-    state === "COMPLETE"
-      ? "complete"
-      : state === "PRUNED"
-        ? "pruned"
-        : state === "FAIL" || state === "FAILED"
-          ? "failed"
-          : null;
-  if (!normalizedState) {
-    throw new Error("Petrinaut optimizer returned an invalid trial state");
-  }
-
-  const objective =
-    typeof value.metric === "number" && Number.isFinite(value.metric)
-      ? value.metric
-      : null;
-  if (normalizedState === "complete" && objective === null) {
-    throw new Error(
-      "Petrinaut optimizer returned a completed trial without an objective",
-    );
-  }
-
-  return {
-    step: value.step as number,
-    parameters: parseTrialParameters(value.params),
-    objective,
-    state: normalizedState,
-  };
-};
-
-const parseSseData = (data: string): unknown => {
-  try {
-    return JSON.parse(data);
-  } catch {
-    throw new Error("Petrinaut optimizer returned malformed SSE data");
-  }
-};
-
-/**
- * Adapt Yannis's optimizer SSE protocol to the canonical NDJSON protocol used
- * by Petrinaut's frontend capability. Chunk boundaries may occur anywhere,
- * including in the middle of a UTF-8 character or SSE line.
- */
+/** Decode upstream SSE and forward canonical events as NDJSON. */
 export const forwardPetrinautOptimizationStream = async (
   upstream: ReadableStream<Uint8Array>,
   response: ExpressResponse,
@@ -246,181 +162,20 @@ export const forwardPetrinautOptimizationStream = async (
     onTerminalEvent?: () => void;
   } = {},
 ): Promise<void> => {
-  const reader = upstream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let completed = false;
-  const requestedTrials = options.requestedTrials ?? 1;
-  const direction = options.direction ?? "maximize";
-  const streamState = { terminal: false };
-  let completedTrials = 0;
-  let prunedTrials = 0;
-  let failedTrials = 0;
-  let best: Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"] =
-    null;
-  let eventName = "message";
-  let dataLines: string[] = [];
-
-  const emit = async (event: PetrinautOptimizationEvent) => {
-    if (streamState.terminal) {
-      throw new Error(
-        "Petrinaut optimizer returned data after a terminal event",
-      );
-    }
+  for await (const event of decodePetrinautOptimizerStream(upstream, {
+    direction: options.direction ?? "maximize",
+    requestedTrials: options.requestedTrials ?? 1,
+    maxEventBytes: MAX_OPTIMIZATION_EVENT_BYTES,
+    ...(options.onActivity ? { onActivity: options.onActivity } : {}),
+  })) {
     await writeOptimizationEvent(response, event);
     if (event.type === "complete" || event.type === "error") {
-      streamState.terminal = true;
       options.onTerminalEvent?.();
     }
-  };
-
-  const emitError = async (value: unknown) => {
-    const message =
-      isJsonRecord(value) && typeof value.message === "string"
-        ? value.message
-        : "The optimizer reported an error";
-    await emit({
-      type: "error",
-      code: "optimization_failed",
-      message,
-      retryable: false,
-    });
-  };
-
-  const dispatchSseEvent = async () => {
-    if (dataLines.length === 0) {
-      eventName = "message";
-      return;
-    }
-
-    const data = dataLines.join("\n");
-    dataLines = [];
-    const currentEventName = eventName;
-    eventName = "message";
-    if (Buffer.byteLength(data, "utf8") > MAX_OPTIMIZATION_EVENT_BYTES) {
-      throw new Error("Petrinaut optimizer returned an oversized event");
-    }
-
-    const value = parseSseData(data);
-    if (currentEventName === "error") {
-      await emitError(value);
-      return;
-    }
-    if (currentEventName === "done") {
-      await emit({
-        type: "complete",
-        requestedTrials,
-        completedTrials,
-        prunedTrials,
-        failedTrials,
-        best,
-      });
-      return;
-    }
-    if (
-      isJsonRecord(value) &&
-      typeof value.state === "string" &&
-      value.state.toUpperCase() === "ERROR"
-    ) {
-      await emitError(value);
-      return;
-    }
-
-    const trial = parseUpstreamTrial(value);
-    if (trial.state === "complete") {
-      completedTrials += 1;
-    } else if (trial.state === "pruned") {
-      prunedTrials += 1;
-    } else {
-      failedTrials += 1;
-    }
-    if (
-      trial.state === "complete" &&
-      trial.objective !== null &&
-      (best === null ||
-        (direction === "maximize"
-          ? trial.objective > best.objective
-          : trial.objective < best.objective))
-    ) {
-      best = {
-        trial: trial.step,
-        parameters: trial.parameters,
-        objective: trial.objective,
-      };
-    }
-    await emit({
-      type: "trial",
-      trial: trial.step,
-      parameters: trial.parameters,
-      objective: trial.objective,
-      state: trial.state,
-      best,
-    });
-  };
-
-  const consumeLine = async (rawLine: string) => {
-    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
-    if (line === "") {
-      await dispatchSseEvent();
-      return;
-    }
-    if (line.startsWith(":")) {
-      return;
-    }
-
-    const colonIndex = line.indexOf(":");
-    const field = colonIndex === -1 ? line : line.slice(0, colonIndex);
-    let value = colonIndex === -1 ? "" : line.slice(colonIndex + 1);
-    if (value.startsWith(" ")) {
-      value = value.slice(1);
-    }
-    if (field === "event") {
-      eventName = value || "message";
-    } else if (field === "data") {
-      dataLines.push(value);
-    }
-  };
-
-  try {
-    await emit({ type: "started", requestedTrials });
-    let result = await reader.read();
-    while (!result.done) {
-      options.onActivity?.();
-      buffer += decoder.decode(result.value, { stream: true });
-
-      let newlineIndex = buffer.indexOf("\n");
-      while (newlineIndex !== -1) {
-        const line = buffer.slice(0, newlineIndex);
-        buffer = buffer.slice(newlineIndex + 1);
-        await consumeLine(line);
-        newlineIndex = buffer.indexOf("\n");
-      }
-
-      if (Buffer.byteLength(buffer, "utf8") > MAX_OPTIMIZATION_EVENT_BYTES) {
-        throw new Error("Petrinaut optimizer returned an oversized event");
-      }
-      result = await reader.read();
-    }
-    buffer += decoder.decode();
-    if (buffer !== "") {
-      await consumeLine(buffer);
-    }
-    await dispatchSseEvent();
-    if (!streamState.terminal) {
-      throw new Error(
-        "Petrinaut optimizer ended without returning a terminal event",
-      );
-    }
-    completed = true;
-  } finally {
-    if (!completed) {
-      await reader.cancel().catch(() => undefined);
-    }
-    reader.releaseLock();
   }
 };
 
-/** Mount the authenticated NodeAPI integration for Petrinaut optimization. */
+/** Mount authenticated NodeAPI routes for Petrinaut optimization. */
 export const setupPetrinautOptimizerHandler = (
   app: Express,
   { origin, fetchImpl = fetch, logger }: PetrinautOptimizerHandlerOptions,
@@ -543,10 +298,12 @@ export const setupPetrinautOptimizerHandler = (
     };
     let idleTimeout: ReturnType<typeof setTimeout> | undefined;
 
+    /** Abort the upstream request after the HASH client disconnects. */
     const abortForClientDisconnect = () => {
       lifecycle.clientDisconnected = true;
       abortController.abort();
     };
+    /** Record a timeout category and abort the upstream request. */
     const abortForTimeout = (kind: OptimizationTimeoutKind) => {
       lifecycle.timeoutKind ??= kind;
       abortController.abort();
@@ -559,6 +316,7 @@ export const setupPetrinautOptimizerHandler = (
       () => abortForTimeout("overall"),
       OPTIMIZATION_OVERALL_TIMEOUT_MS,
     );
+    /** Restart the inactivity deadline after any upstream bytes arrive. */
     const resetIdleTimeout = () => {
       clearTimeout(idleTimeout);
       idleTimeout = setTimeout(

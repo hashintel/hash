@@ -49,7 +49,7 @@
     "@local/hash-graph-client": "workspace:*",
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
-    "@local/petrinaut-optimizer-types": "workspace:*",
+    "@local/petrinaut-optimizer-client": "workspace:*",
     "@local/status": "workspace:*",
     "@mailchimp/mailchimp_marketing": "3.0.80",
     "@opentelemetry/api": "1.9.1",
