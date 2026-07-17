@@ -15,7 +15,6 @@ import {
   type NetManagement,
 } from "./net-management-context";
 import { NotificationsProvider } from "./notifications/provider";
-import { OptimizationsProvider } from "./optimizations/provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { SimulationProvider } from "./simulation/provider";
@@ -79,19 +78,17 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             workerFactory={simulationWorkerFactory}
           >
             <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-              <OptimizationsProvider>
-                <PlaybackProvider>
-                  <UserSettingsProvider>
-                    <ActiveNetProvider>
-                      <EditorProvider>
-                        <ExecutionFrameProvider>
-                          {children}
-                        </ExecutionFrameProvider>
-                      </EditorProvider>
-                    </ActiveNetProvider>
-                  </UserSettingsProvider>
-                </PlaybackProvider>
-              </OptimizationsProvider>
+              <PlaybackProvider>
+                <UserSettingsProvider>
+                  <ActiveNetProvider>
+                    <EditorProvider>
+                      <ExecutionFrameProvider>
+                        {children}
+                      </ExecutionFrameProvider>
+                    </EditorProvider>
+                  </ActiveNetProvider>
+                </UserSettingsProvider>
+              </PlaybackProvider>
             </ExperimentsProvider>
           </SimulationProvider>
         </NotificationsProvider>

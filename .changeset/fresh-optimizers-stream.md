@@ -1,6 +1,5 @@
 ---
 "@hashintel/petrinaut-core": patch
-"@hashintel/petrinaut": patch
 ---
 
-Add scenario-first optimization with flat parameter search spaces, metric objectives, progressive trial results, and hardened server-side scenario execution.
+Add scenario-first optimization manifests with flat parameter search spaces, metric objectives, and hardened server-side scenario execution.
