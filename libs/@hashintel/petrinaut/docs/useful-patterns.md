@@ -154,3 +154,24 @@ An input arc with **weight > 1** requires multiple tokens from the same place fo
 **Example:** the [Probabilistic Satellite Launcher](examples.md#probabilistic-satellite-launcher) example has a "Collision" transition with input weight 2 from the "Space" place -- it requires two satellites to be present and checks their distance in the lambda to detect collisions.
 
 The transition kernel receives the consumed tokens and can compute outputs based on all of them.
+
+## Optimization objectives (metrics that read parameters)
+
+A [metric](simulation.md) can read `parameters` directly, not just place token counts. This lets one metric express an economic objective -- revenue minus costs -- whose value depends both on how the run unfolded and on the decision parameters that drove it. Maximizing (or minimizing) that metric turns the model into an optimization problem.
+
+**Structure:**
+
+```ts
+// Profit objective: revenue from sold orders, net of holding, stockout, and
+// policy costs. `parameters` exposes the tunable decision levers.
+const revenue = state.places.SoldOrders.count * parameters.selling_price;
+const holdingCost = state.places.FinishedGoods.count * 0.05;
+const stockoutPenalty = state.places.LostSales.count * 12;
+const policyCost =
+  0.08 * parameters.production_rate + parameters.marketing_spend;
+return revenue - holdingCost - stockoutPenalty - policyCost;
+```
+
+Expose the levers you want to tune (production rate, price, reorder threshold, ...) as [global parameters](petri-net-extensions.md#global-parameters) or [scenario parameters](scenarios.md), keep the rest fixed, then search over parameter values to move the objective. Because policy costs are charged per observation, compare runs at the same simulation horizon.
+
+**Example:** the [Supply Chain Profit](examples.md#supply-chain-profit) example illustrated maximization of a `Profit` metric over six operational decision parameters. Its metric combines token counts (sold orders, finished goods, lost sales) with parameter-driven policy costs, and the Petrinaut CLI can drive the parameter search from an optimization manifest.

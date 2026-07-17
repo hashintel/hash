@@ -72,3 +72,7 @@ Experiments and the bottom-bar **Play** controls are independent systems:
 You can press Play in Edit mode while experiments are running in the background, and switching to Simulate mode does not stop them.
 
 Changing the net while an experiment is running does **not** retroactively affect that experiment -- it captured its model snapshot when you pressed Run.
+
+Experiments and [optimizations](optimization.md) are separate workflows.
+Experiments aggregate many runs of one fixed configuration; optimizations vary
+selected scenario parameters to improve one objective metric.

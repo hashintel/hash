@@ -899,6 +899,7 @@ __metadata:
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
+    "@local/petrinaut-optimizer-client": "workspace:*"
     "@mantine/hooks": "npm:8.3.5"
     "@pandacss/dev": "npm:1.11.1"
     "@rolldown/plugin-babel": "npm:0.2.1"
@@ -918,6 +919,7 @@ __metadata:
     react-icons: "npm:5.5.0"
     sharp: "npm:0.34.5"
     vite: "npm:8.1.0"
+    vitest: "npm:4.1.8"
     zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
