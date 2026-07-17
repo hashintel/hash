@@ -85,7 +85,8 @@
     allocator_api,
     array_try_from_fn,
     variant_count,
-    const_array
+    const_array,
+    const_option_ops
 )]
 #![expect(
     dead_code,
@@ -100,6 +101,7 @@ extern crate alloc;
 pub mod api;
 pub mod cli;
 // pub(crate) mod file2;
+mod file;
 pub mod float;
 pub mod integrity;
 pub(crate) mod macros;
