@@ -4,12 +4,9 @@ import {
   petrinautOptimizationErrorEventSchema,
   petrinautOptimizationInputSchema,
 } from "@hashintel/petrinaut-core";
-import { decodePetrinautOptimizerStream } from "@local/petrinaut-optimizer-client";
+import { openPetrinautOptimizationStream } from "@local/petrinaut-optimizer-client";
 
-import type {
-  PetrinautOptimizationEvent,
-  PetrinautOptimizationInput,
-} from "@hashintel/petrinaut-core";
+import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
 import type { components } from "@local/petrinaut-optimizer-client";
 import type { Express, Response as ExpressResponse } from "express";
 
@@ -151,23 +148,15 @@ const writeOptimizationEvent = async (
   }
 };
 
-/** Decode upstream SSE and forward canonical events as NDJSON. */
-export const forwardPetrinautOptimizationStream = async (
-  upstream: ReadableStream<Uint8Array>,
+/** Forward canonical optimization events as NDJSON. */
+const forwardPetrinautOptimizationEvents = async (
+  events: AsyncIterable<PetrinautOptimizationEvent>,
   response: ExpressResponse,
   options: {
-    direction?: PetrinautOptimizationInput["objective"]["direction"];
-    requestedTrials?: number;
-    onActivity?: () => void;
     onTerminalEvent?: () => void;
   } = {},
 ): Promise<void> => {
-  for await (const event of decodePetrinautOptimizerStream(upstream, {
-    direction: options.direction ?? "maximize",
-    requestedTrials: options.requestedTrials ?? 1,
-    maxEventBytes: MAX_OPTIMIZATION_EVENT_BYTES,
-    ...(options.onActivity ? { onActivity: options.onActivity } : {}),
-  })) {
+  for await (const event of events) {
     await writeOptimizationEvent(response, event);
     if (event.type === "complete" || event.type === "error") {
       options.onTerminalEvent?.();
@@ -183,21 +172,28 @@ export const setupPetrinautOptimizerHandler = (
   let activeOptimizationCount = 0;
   const activeUserIds = new Set<string>();
 
+  /**
+   * Report whether this deployment has Petrinaut Optimizer configured.
+   *
+   * This is intentionally configuration-only rather than a healthcheck: the
+   * frontend should keep the feature visible during a transient service outage
+   * and report that outage when the user tries to start an optimization.
+   */
   app.get(PETRINAUT_OPTIMIZER_CAPABILITIES_PATH, async (req, res) => {
     if (!req.user) {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
 
-    /**
-     * This reports deliberate deployment configuration, not live optimizer
-     * health. The frontend uses it to decide whether to expose optimization;
-     * transient optimizer outages should surface when a run is attempted,
-     * not make the feature disappear.
-     */
     res.json({ optimization: origin !== null });
   });
 
+  /**
+   * Return a sanitized process-level status for Petrinaut Optimizer.
+   *
+   * Upstream run identifiers and details are deliberately removed because a
+   * shared optimizer instance may contain runs belonging to other HASH users.
+   */
   app.get(PETRINAUT_OPTIMIZER_STATUS_PATH, async (req, res) => {
     if (!req.user) {
       res.status(401).json({ error: "Authentication required" });
@@ -236,6 +232,13 @@ export const setupPetrinautOptimizerHandler = (
     }
   });
 
+  /**
+   * Validate and proxy one authenticated optimization request.
+   *
+   * The route enforces request and concurrency limits, owns cancellation and
+   * execution deadlines, and converts the shared client's canonical events to
+   * the NDJSON protocol consumed by the HASH frontend.
+   */
   app.post(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH, async (req, res) => {
     if (!req.user) {
       res.status(401).json({ error: "Authentication required" });
@@ -329,25 +332,16 @@ export const setupPetrinautOptimizerHandler = (
     res.once("close", abortForClientDisconnect);
 
     try {
-      const upstreamResponse = await fetchImpl(
-        new URL("/optimize/all", origin),
-        {
-          method: "POST",
-          headers: {
-            accept: "text/event-stream",
-            "content-type": "application/json",
-          },
-          body: JSON.stringify(upstreamInput),
-          signal: abortController.signal,
-        },
-      );
+      const upstreamEvents = await openPetrinautOptimizationStream({
+        endpoint: new URL("/optimize/all", origin),
+        fetchImpl,
+        input: upstreamInput,
+        maxEventBytes: MAX_OPTIMIZATION_EVENT_BYTES,
+        onActivity: resetIdleTimeout,
+        signal: abortController.signal,
+      });
       clearTimeout(responseStartTimeout);
       resetIdleTimeout();
-      if (!upstreamResponse.ok || !upstreamResponse.body) {
-        throw new Error(
-          `Petrinaut optimizer returned status ${upstreamResponse.status}`,
-        );
-      }
 
       res.status(200);
       res.set({
@@ -356,10 +350,7 @@ export const setupPetrinautOptimizerHandler = (
         "X-Accel-Buffering": "no",
       });
       res.flushHeaders();
-      await forwardPetrinautOptimizationStream(upstreamResponse.body, res, {
-        direction: upstreamInput.objective.direction,
-        requestedTrials: upstreamInput.study.trials,
-        onActivity: resetIdleTimeout,
+      await forwardPetrinautOptimizationEvents(upstreamEvents, res, {
         onTerminalEvent: () => {
           lifecycle.terminalEventSent = true;
         },
