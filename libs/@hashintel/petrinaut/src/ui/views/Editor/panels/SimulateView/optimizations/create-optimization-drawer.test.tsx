@@ -25,9 +25,9 @@ import {
 } from "./create-optimization-drawer";
 import { createOptimizationParameterDraft } from "./optimization-parameter-row";
 
-import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
+import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
   Metric,
   PetrinautOptimizationInput,
@@ -39,7 +39,8 @@ import type { ReactNode } from "react";
 const { addMetricMock } = vi.hoisted(() => ({ addMetricMock: vi.fn() }));
 
 vi.mock("../../../../../../react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../../../../../react")>();
+  const actual =
+    await importOriginal<typeof import("../../../../../../react")>();
 
   return {
     ...actual,
@@ -324,9 +325,7 @@ describe("CreateOptimizationDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: /Run/ }));
 
     expect(
-      await screen.findByText(
-        'Metric "Infected Fraction" did not compile.',
-      ),
+      await screen.findByText('Metric "Infected Fraction" did not compile.'),
     ).toBeTruthy();
   });
 
@@ -491,7 +490,13 @@ describe("CreateOptimizationDrawer", () => {
         },
         count: {
           kind: "optimize",
-          domain: { kind: "integer", minimum: 2, maximum: 10, step: 2 },
+          domain: {
+            kind: "integer",
+            minimum: 2,
+            maximum: 10,
+            step: 2,
+            scale: "linear",
+          },
         },
         enabled: {
           kind: "optimize",
@@ -525,6 +530,26 @@ describe("CreateOptimizationDrawer", () => {
 
     expect(validateOptimizationParameterDraft(parameter, draft)).toBe(
       "count step must divide its range exactly so the maximum is reachable",
+    );
+  });
+
+  it("requires a unit step for logarithmic integer ranges", () => {
+    const parameter = {
+      type: "integer",
+      identifier: "count",
+      default: 4,
+    } satisfies Scenario["scenarioParameters"][number];
+    const draft = {
+      ...createOptimizationParameterDraft(parameter),
+      mode: "optimize",
+      minimum: 2,
+      maximum: 10,
+      step: 2,
+      scale: "log",
+    } satisfies OptimizationParameterDraft;
+
+    expect(validateOptimizationParameterDraft(parameter, draft)).toBe(
+      "count logarithmic integer ranges require a step of 1",
     );
   });
 });

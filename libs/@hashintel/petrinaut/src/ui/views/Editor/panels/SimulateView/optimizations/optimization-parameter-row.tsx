@@ -66,7 +66,7 @@ const modeStyle = css({
 
 const fieldsStyle = css({
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
   gap: "2",
 });
 
@@ -212,22 +212,27 @@ export const OptimizationParameterRow = ({
                 onChange={(step) => patch({ step })}
               />
             </div>
-          ) : (
-            <div className={fieldStyle}>
-              <span className={fieldLabelStyle}>Scale</span>
-              <SegmentGroup
-                size="sm"
-                value={draft.scale}
-                options={[
-                  { value: "linear", label: "Linear" },
-                  { value: "log", label: "Log" },
-                ]}
-                onChange={(scale) =>
-                  patch({ scale: scale as "linear" | "log" })
-                }
-              />
-            </div>
-          )}
+          ) : null}
+          <div className={fieldStyle}>
+            <span className={fieldLabelStyle}>Scale</span>
+            <SegmentGroup
+              size="sm"
+              value={draft.scale}
+              options={[
+                { value: "linear", label: "Linear" },
+                { value: "log", label: "Log" },
+              ]}
+              onChange={(scale) => {
+                const nextScale = scale as "linear" | "log";
+                patch({
+                  scale: nextScale,
+                  ...(parameter.type === "integer" && nextScale === "log"
+                    ? { step: 1 }
+                    : {}),
+                });
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

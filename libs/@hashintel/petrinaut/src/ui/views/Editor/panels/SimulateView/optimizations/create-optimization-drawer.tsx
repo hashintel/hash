@@ -236,6 +236,9 @@ export function validateOptimizationParameterDraft(
     if ((draft.maximum - draft.minimum) % draft.step !== 0) {
       return `${parameter.identifier} step must divide its range exactly so the maximum is reachable`;
     }
+    if (draft.scale === "log" && draft.step !== 1) {
+      return `${parameter.identifier} logarithmic integer ranges require a step of 1`;
+    }
   }
 
   return null;
@@ -381,6 +384,7 @@ export function buildPetrinautOptimizationInput({
           minimum: draft.minimum!,
           maximum: draft.maximum!,
           step: draft.step!,
+          scale: draft.scale,
         },
       };
     } else {

@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,7 +12,25 @@ import {
 import type { ScenarioParameter } from "@hashintel/petrinaut-core";
 
 vi.mock("../../../../../components/segment-group", () => ({
-  SegmentGroup: () => <div>Scale options</div>,
+  SegmentGroup: ({
+    onChange,
+    options,
+  }: {
+    onChange: (value: string) => void;
+    options: readonly { value: string; label: string }[];
+  }) => (
+    <div>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 afterEach(cleanup);
@@ -51,21 +69,30 @@ describe("OptimizationParameterRow", () => {
     expect(screen.queryByText("Fixed value")).toBeNull();
   });
 
-  it("uses integer step and boolean categorical controls", () => {
+  it("uses integer step and scale controls, and boolean categorical controls", () => {
     const integerParameter = {
       type: "integer",
       identifier: "count",
       default: 10,
     } satisfies ScenarioParameter;
     const integerDraft = createOptimizationParameterDraft(integerParameter);
+    const onChange = vi.fn();
     const view = render(
       <OptimizationParameterRow
         parameter={integerParameter}
-        draft={{ ...integerDraft, mode: "optimize" }}
-        onChange={vi.fn()}
+        draft={{ ...integerDraft, mode: "optimize", step: 2 }}
+        onChange={onChange}
       />,
     );
     expect(screen.getByText("Step")).toBeTruthy();
+    expect(screen.getByText("Scale")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Log" }));
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...integerDraft,
+      mode: "optimize",
+      step: 1,
+      scale: "log",
+    });
 
     const booleanParameter = {
       type: "boolean",
