@@ -196,6 +196,14 @@ export interface NetworkGraphProps {
   /** Called when the zoom level changes (log2 scale). Not called for pure panning. */
   onZoom?: (zoom: number) => void;
   /**
+   * Called when the pan position changes, with the viewport centre in world
+   * coordinates (`[x, y]`). Deduped like {@link NetworkGraphProps.onZoom}: fires only
+   * when the centre actually moves, so a pure zoom that keeps the centre put won't
+   * call it — but a zoom that re-anchors the view (e.g. zooming in toward the cursor,
+   * or a zoom-out that reframes inward) will.
+   */
+  onPan?: (center: [number, number]) => void;
+  /**
    * Imperative handle for driving the zoom from outside without making the view
    * state controlled. See {@link NetworkGraphHandle}.
    */
@@ -695,6 +703,7 @@ export const NetworkGraph = ({
   onEdgeHover,
   onEdgeClick,
   onZoom,
+  onPan,
   ref,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -704,6 +713,8 @@ export const NetworkGraph = ({
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
   const lastZoomRef = useRef<number | null>(null);
+  // Last pan centre reported to `onPan`, so we only fire on actual pan changes.
+  const lastCenterRef = useRef<[number, number] | null>(null);
   // Last hovered node id reported to `onNodeHover`, so we only fire on change.
   const lastHoveredIdRef = useRef<NetworkGraphId | null>(null);
   // Id of the currently hovered edge, so we only update state when it changes.
@@ -1113,6 +1124,15 @@ export const NetworkGraph = ({
     return Array.isArray(zoom) ? zoom[0] : zoom;
   }, [viewState?.zoom]);
 
+  // Current pan centre in world coords (`[x, y]`), or null before the view is framed.
+  const currentCenter = useMemo<[number, number] | null>(() => {
+    const target = viewState?.target;
+    if (!target) {
+      return null;
+    }
+    return [target[0] ?? 0, target[1] ?? 0];
+  }, [viewState?.target]);
+
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
   const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
     () =>
@@ -1223,6 +1243,21 @@ export const NetworkGraph = ({
     lastZoomRef.current = currentZoom;
     onZoom?.(currentZoom);
   }, [currentZoom, onZoom]);
+
+  // Report pan changes from an effect (after commit) for the same reason as
+  // `onZoom` above: `setViewState` updaters run during render. Deduped on the
+  // centre so it fires only when the pan position actually moves.
+  useEffect(() => {
+    if (currentCenter === null) {
+      return;
+    }
+    const last = lastCenterRef.current;
+    if (last && last[0] === currentCenter[0] && last[1] === currentCenter[1]) {
+      return;
+    }
+    lastCenterRef.current = currentCenter;
+    onPan?.(currentCenter);
+  }, [currentCenter, onPan]);
 
   /**
    * Nudge the zoom by `delta` levels about the viewport centre, clamped to
