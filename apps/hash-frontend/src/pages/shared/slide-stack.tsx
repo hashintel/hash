@@ -3,14 +3,10 @@ import { createRef, useCallback, useMemo, useRef, useState } from "react";
 
 import { useScrollLock } from "@hashintel/ds-components";
 
-import {
-  SlideOcclusionContext,
-  SlideStackContext,
-} from "./slide-stack/context";
+import { SlideStackContext } from "./slide-stack/context";
 import { DataTypeSlide } from "./slide-stack/data-type-slide";
 import { EntitySlide } from "./slide-stack/entity-slide";
 import { EntityTypeSlide } from "./slide-stack/entity-type-slide";
-import { LinkTableSlide } from "./slide-stack/link-table-slide";
 import { SlideBackForwardCloseBar } from "./slide-stack/slide-back-forward-close-bar";
 
 import type { SlideItem } from "./slide-stack/types";
@@ -21,12 +17,11 @@ import type {
   SetStateAction,
 } from "react";
 
-export { useSlideStack, useSlideStackOcclusion } from "./slide-stack/context";
+export { useSlideStack } from "./slide-stack/context";
 
 const SLIDE_WIDTH = 1_000;
 
 const StackSlide = ({
-  covered,
   item,
   open,
   onBack,
@@ -38,8 +33,6 @@ const StackSlide = ({
   slideContainerRef,
   stackPosition,
 }: {
-  /** True while a later slide is stacked on top of this one. */
-  covered: boolean;
   item: SlideItem;
   open: boolean;
   onBack?: () => void;
@@ -60,8 +53,6 @@ const StackSlide = ({
       onBack?.();
     }, 300);
   }, [setAnimateOut, onBack]);
-
-  const occlusion = useMemo(() => ({ inSlide: true, covered }), [covered]);
 
   return (
     <Slide
@@ -89,31 +80,20 @@ const StackSlide = ({
         />
 
         <Box sx={{ pt: 1, background: ({ palette }) => palette.common.white }}>
-          <SlideOcclusionContext.Provider value={occlusion}>
-            {item.kind === "dataType" && (
-              <DataTypeSlide
-                dataTypeId={item.itemId}
-                replaceItem={replaceItem}
-              />
-            )}
-            {item.kind === "entityType" && (
-              <EntityTypeSlide
-                replaceItem={replaceItem}
-                typeUrl={item.itemId}
-              />
-            )}
-            {item.kind === "entity" && (
-              <EntitySlide
-                {...item}
-                entityId={item.itemId}
-                removeItem={removeItem}
-                replaceItem={replaceItem}
-              />
-            )}
-            {item.kind === "linkTable" && (
-              <LinkTableSlide linkEntityIds={item.linkEntityIds} />
-            )}
-          </SlideOcclusionContext.Provider>
+          {item.kind === "dataType" && (
+            <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
+          )}
+          {item.kind === "entityType" && (
+            <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
+          )}
+          {item.kind === "entity" && (
+            <EntitySlide
+              {...item}
+              entityId={item.itemId}
+              removeItem={removeItem}
+              replaceItem={replaceItem}
+            />
+          )}
         </Box>
       </Box>
     </Slide>
@@ -187,7 +167,6 @@ export const SlideStack: FunctionComponent<{
           <StackSlide
             // eslint-disable-next-line react/no-array-index-key
             key={`${index}-${item.itemId}`}
-            covered={index < currentIndex}
             item={item}
             open={!animateOut}
             onBack={index > 0 ? handleBack : undefined}
@@ -275,7 +254,6 @@ export const SlideStackProvider = ({
     () => ({
       closeSlideStack,
       currentSlideRef: items[currentIndex]?.ref,
-      hasOpenSlides: items.length > 0,
       pushToSlideStack,
       setSlideContainerRef,
       slideContainerRef,

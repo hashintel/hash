@@ -5,21 +5,13 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import type { FunctionComponent } from "react";
 
-interface QueryCountProps {
-  /** Total entities in the displayed set. */
-  readonly count: number | null | undefined;
-  /**
-   * How many of those are loaded client-side. When it trails the total, the
-   * count reads "m of n entities" so partial loading is visible; equal (or
-   * unknown) collapses to "n entities".
-   */
-  readonly loadedCount?: number | null;
-  readonly loading: boolean;
-}
+type QueryCountProps = {
+  count: number | null | undefined;
+  loading: boolean;
+};
 
 export const QueryCount: FunctionComponent<QueryCountProps> = ({
   count,
-  loadedCount,
   loading,
 }) => {
   const theme = useTheme();
@@ -34,7 +26,6 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
         fontSize: 13,
         fontWeight: 500,
         justifyContent: "flex-end",
-        whiteSpace: "nowrap",
       }}
     >
       {loading ? (
@@ -43,11 +34,7 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
           <span>Loading</span>
         </>
       ) : count != null ? (
-        `${
-          loadedCount != null && loadedCount < count
-            ? `${formatNumber(loadedCount)} of `
-            : ""
-        }${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`
+        `${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`
       ) : (
         ""
       )}

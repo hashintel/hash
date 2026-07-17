@@ -1,3 +1,4 @@
+import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -126,3 +127,13 @@ export type EntitiesTableData = {
   rows: EntitiesTableRow[];
   visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
 };
+
+export type UpdateTableDataFn = (
+  params: Pick<
+    EntitiesVisualizerData,
+    "definitions" | "entities" | "subgraph"
+  > & {
+    appendRows: boolean;
+    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
+  },
+) => void;

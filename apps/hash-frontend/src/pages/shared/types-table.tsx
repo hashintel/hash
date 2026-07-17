@@ -38,7 +38,7 @@ import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { createRenderTextIconCell } from "./text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import { TypeGraphVisualizer } from "./graph-visualizer/type-graph/visualizer";
+import { TypeGraphVisualizer } from "./type-graph-visualizer";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";

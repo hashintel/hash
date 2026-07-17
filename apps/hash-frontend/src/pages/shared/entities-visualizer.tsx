@@ -1,67 +1,135 @@
-/**
- * Displays the entities matching a filterable query as a table, a grid of
- * file previews, or an interactive graph.
- *
- * This component is a composition root: the moving parts live in
- * `entities-visualizer/` as focused hooks. Query inputs (filters, sort,
- * conversions, view) are owned by {@link useEntitiesQueryState}; the fetched
- * result pages (including pagination) by {@link useEntitiesVisualizerData};
- * everything else is derived from those, so there is no state
- * synchronization between them.
- */
-import { Box, Stack, Typography, useTheme } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Box, Stack, useTheme } from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import {
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { useSnackbar } from "../../components/hooks/use-snackbar";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
-import { Button } from "../../shared/ui/button";
+import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { useMemoCompare } from "../../shared/use-memo-compare";
+import { useAuthenticatedUser } from "./auth-info-context";
 import {
   EntitiesTable,
   toolbarHeight,
 } from "./entities-visualizer/entities-table";
-import { withExpansionRows } from "./entities-visualizer/expansion-table-data";
 import { GridView } from "./entities-visualizer/grid-view";
 import {
-  downloadFilterConfigFile,
-  parseFilterConfigFile,
-} from "./entities-visualizer/shared/filter-config-file";
-import {
-  parseFilterStateFromQuery,
-  serializeFilterStateToQuery,
-  titleFromBaseUrl,
-} from "./entities-visualizer/shared/filter-state-url";
+  FilterRibbon,
+  QueryCount,
+  VisualizerHeader,
+  visualizerHeaderHeight,
+} from "./entities-visualizer/header";
+import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
-import { useEntitiesQueryState } from "./entities-visualizer/use-entities-query-state";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { useInternalWebs } from "./entities-visualizer/use-internal-webs";
-import { usePruneStaleFilters } from "./entities-visualizer/use-prune-stale-filters";
-import { useSlideStackHandlers } from "./entities-visualizer/use-slide-stack-handlers";
-import { useVisualizerHeights } from "./entities-visualizer/use-visualizer-heights";
-import { useVisualizerView } from "./entities-visualizer/use-visualizer-view";
-import { VisualizerToolbar } from "./entities-visualizer/visualizer-toolbar";
-import { useFrontierExpansionStore } from "./graph-visualizer/entity-graph/frontier-expansion-store";
-import { useOwnedFrontierStore } from "./graph-visualizer/entity-graph/use-frontier-expansion";
-import { EntityGraphVisualizer } from "./graph-visualizer/entity-graph/visualizer";
-import { useSlideStackOcclusion } from "./slide-stack";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
+import { useSlideStack } from "./slide-stack";
+import { TableHeaderToggle } from "./table-header-toggle";
+import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import { visualizerViewIcons } from "./visualizer-views";
 
-import type { EntitiesTableRow } from "./entities-visualizer/entities-table-data";
+import type { ColumnSort } from "../../components/grid/utils/sorting";
+import type {
+  EntitiesTableRow,
+  SortableEntitiesTableColumnKey,
+} from "./entities-visualizer/entities-table-data";
+import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
+import type { EntityEditorProps } from "./entity/entity-editor";
+import type { VisualizerView } from "./visualizer-views";
 import type {
   BaseUrl,
+  ClosedMultiEntityType,
   EntityId,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FunctionComponent } from "react";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingPath,
+  EntityQuerySortingRecord,
+  EntityQuerySortingToken,
+  NullOrdering,
+  Ordering,
+} from "@local/hash-graph-client";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 
-/** How many entities each request fetches; "Show more" appends another page of this size. */
-const entitiesPageSize = 500;
+/**
+ * @todo: avoid having to maintain this list, potentially by
+ * adding an `isFile` boolean to the generated ontology IDs file.
+ */
+const allFileEntityTypeOntologyIds = [
+  systemEntityTypes.file,
+  systemEntityTypes.imageFile,
+  systemEntityTypes.documentFile,
+  systemEntityTypes.docxDocument,
+  systemEntityTypes.pdfDocument,
+  systemEntityTypes.presentationFile,
+  systemEntityTypes.pptxPresentation,
+];
 
-const noSelectedRows: EntitiesTableRow[] = [];
+const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
+  ({ entityTypeId }) => entityTypeId,
+) as VersionedUrl[];
+
+const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
+  ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
+);
+
+const generateGraphSort = (
+  columnKey: SortableEntitiesTableColumnKey,
+  direction: "asc" | "desc",
+  convertTo?: BaseUrl,
+): EntityQuerySortingRecord => {
+  const nulls: NullOrdering = direction === "asc" ? "last" : "first";
+  const ordering: Ordering = direction === "asc" ? "ascending" : "descending";
+
+  let path: EntityQuerySortingPath;
+
+  switch (columnKey) {
+    case "entityLabel":
+      path = ["label" satisfies EntityQuerySortingToken];
+      break;
+    case "lastEdited":
+      path = [
+        "editionCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
+      ];
+      break;
+    case "created":
+      path = ["createdAtTransactionTime" satisfies EntityQuerySortingToken];
+      break;
+    case "entityTypes":
+      path = ["typeTitle" satisfies EntityQuerySortingToken];
+      break;
+    case "archived":
+      path = ["archived" satisfies EntityQuerySortingToken];
+      break;
+    default: {
+      if (!isBaseUrl(columnKey)) {
+        throw new Error(`Unexpected sorting column key: ${columnKey}`);
+      }
+      path = ["properties" satisfies EntityQuerySortingToken, columnKey];
+
+      if (convertTo) {
+        path.push("convert", convertTo);
+      }
+    }
+  }
+
+  return {
+    path,
+    nulls,
+    ordering,
+  };
+};
 
 export const EntitiesVisualizer: FunctionComponent<{
   /**
@@ -76,156 +144,209 @@ export const EntitiesVisualizer: FunctionComponent<{
    * Hide specific columns from the table
    */
   hideColumns?: (keyof EntitiesTableRow)[];
-  /**
-   * Persist the active filter state in the URL query string (hydrating from it
-   * on mount), so that refreshing, bookmarking, or sharing the page preserves
-   * the filters. Defaults to `false` for embedded usages (e.g. an entity type's
-   * entities tab) that should not take over the URL.
-   */
-  persistFilterStateInUrl?: boolean;
-}> = ({
-  entityTypeBaseUrl,
-  entityTypeId,
-  hideColumns,
-  persistFilterStateInUrl = false,
-}) => {
+}> = ({ entityTypeBaseUrl, entityTypeId, hideColumns }) => {
   const theme = useTheme();
 
-  const internalWebs = useInternalWebs();
+  const { authenticatedUser } = useAuthenticatedUser();
 
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
-  const {
-    activeConversions,
-    conversionRequests,
-    entitySetKey,
-    filterState,
-    graphSort,
-    queryView,
-    selectedView,
-    setActiveConversions,
-    setFilterState,
-    setSelectedView,
-    setSort,
-    sort,
-  } = useEntitiesQueryState({
-    entityTypeBaseUrl,
-    entityTypeId,
-    internalWebs,
-    isTypePinned,
-    persistFilterStateInUrl,
+  const internalWebs = useMemoCompare(
+    () => {
+      return [
+        {
+          webId: authenticatedUser.accountId as WebId,
+          name: `@${authenticatedUser.shortname}`,
+        },
+        ...authenticatedUser.memberOf.map(({ org }) => ({
+          webId: org.webId,
+          name: `@${org.shortname}`,
+        })),
+      ];
+    },
+    [authenticatedUser],
+    (oldValue, newValue) => {
+      return (
+        oldValue.length === newValue.length &&
+        oldValue.every((oldWeb) =>
+          newValue.some(
+            (newWeb) =>
+              oldWeb.webId === newWeb.webId && oldWeb.name === newWeb.name,
+          ),
+        )
+      );
+    },
+  );
+
+  const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
+    createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
+  );
+
+  const [cursor, setCursor] = useState<EntityQueryCursor>();
+  const [activeConversionsWithoutTitle, _setActiveConversions] = useState<{
+    [columnBaseUrl: BaseUrl]: VersionedUrl;
+  } | null>(null);
+
+  const setActiveConversions = useCallback<
+    Dispatch<
+      SetStateAction<{
+        [columnBaseUrl: BaseUrl]: VersionedUrl;
+      } | null>
+    >
+  >(
+    (newConversionsOrUpdater) => {
+      _setActiveConversions(newConversionsOrUpdater);
+      setCursor(undefined);
+    },
+    [setCursor],
+  );
+
+  const setFilterState = useCallback(
+    (
+      newFilterStateOrUpdater:
+        | EntitiesFilterState
+        | ((prev: EntitiesFilterState) => EntitiesFilterState),
+    ) => {
+      _setFilterState((prev) =>
+        typeof newFilterStateOrUpdater === "function"
+          ? newFilterStateOrUpdater(prev)
+          : newFilterStateOrUpdater,
+      );
+      setCursor(undefined);
+    },
+    [setCursor],
+  );
+
+  const [view, _setView] = useState<VisualizerView>("Table");
+
+  const setView = useCallback(
+    (newView: VisualizerView) => {
+      _setView(newView);
+      setCursor(undefined);
+    },
+    [setCursor],
+  );
+
+  const [sort, _setSort] = useState<
+    ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
+  >({
+    columnKey: "entityLabel",
+    direction: "asc",
   });
 
-  const entityTypeIds = useMemo(
-    () => (entityTypeId ? [entityTypeId] : undefined),
-    [entityTypeId],
-  );
-
-  /**
-   * Frontier expansions from the Graph view ("OR n entities"), owned here,
-   * above the visualizer, so they persist across view switches and surface
-   * outside the graph (the filter pill, table rows). Dismissing the pill
-   * bumps the epoch: that swaps in a fresh store and recreates the graph
-   * worker (via `graphSourceKey` below), since the worker's additive ingest
-   * cannot retract the expanded entities.
-   */
-  const [expansionEpoch, setExpansionEpoch] = useState(0);
-  const graphSourceKey = `${entitySetKey}::${expansionEpoch}`;
-  const frontierStore = useOwnedFrontierStore(graphSourceKey);
-  const frontierSnapshot = useFrontierExpansionStore(frontierStore);
-
-  const clearFrontierAdditions = useCallback(() => {
-    setExpansionEpoch((epoch) => epoch + 1);
-  }, []);
-
-  const { triggerSnackbar } = useSnackbar();
-
-  /**
-   * Expansion ids waiting to be replayed into the frontier store, set by a
-   * filter-config import. Import bumps the epoch (and possibly the filter),
-   * which swaps in a fresh store during the same render that sets this; the
-   * effect below then expands into that new generation, so the imported
-   * additions never mix with the pre-import ones.
-   */
-  const [pendingExpansionIds, setPendingExpansionIds] = useState<
-    EntityId[] | null
-  >(null);
-
-  useEffect(() => {
-    if (!pendingExpansionIds) {
-      return;
-    }
-    setPendingExpansionIds(null);
-
-    if (pendingExpansionIds.length > 0) {
-      void frontierStore.expand(pendingExpansionIds);
-    }
-  }, [pendingExpansionIds, frontierStore]);
-
-  /**
-   * Export/import of the whole filter configuration (filter state plus the
-   * graph-expansion ids) as a file. A file rather than the URL because the
-   * expansion ids are far too long for one (see
-   * `entities-visualizer/shared/filter-config-file.ts`); filter state alone
-   * still syncs to the URL as usual.
-   */
-  const exportFilters = useCallback(() => {
-    downloadFilterConfigFile({
-      filters: serializeFilterStateToQuery({
-        filterState,
-        internalWebIds: internalWebs.map(({ webId }) => webId),
-        isTypePinned,
-      }),
-      expandedEntityIds: [...frontierSnapshot.expandedRoots],
-    });
-  }, [filterState, internalWebs, isTypePinned, frontierSnapshot.expandedRoots]);
-
-  const importFilters = useCallback(
-    (fileText: string) => {
-      const config = parseFilterConfigFile(fileText);
-      if (!config) {
-        triggerSnackbar.error(
-          "That file is not a HASH filter export (or is from a newer version).",
-        );
-        return;
-      }
-
-      setFilterState(() =>
-        parseFilterStateFromQuery({
-          query: config.filters,
-          internalWebIds: internalWebs.map(({ webId }) => webId),
-          isTypePinned,
-        }),
-      );
-
-      // Fresh store generation so the imported additions replace (rather
-      // than pile onto) whatever was expanded before the import.
-      setExpansionEpoch((epoch) => epoch + 1);
-      setPendingExpansionIds(config.expandedEntityIds);
+  const setSort = useCallback(
+    (
+      newSort: ColumnSort<SortableEntitiesTableColumnKey> & {
+        convertTo?: BaseUrl;
+      },
+    ) => {
+      _setSort(newSort);
+      setCursor(undefined);
     },
-    [internalWebs, isTypePinned, setFilterState, triggerSnackbar],
+    [setCursor],
   );
 
-  /**
-   * Pause the graph simulation while a slide is open over this page: the
-   * slide may itself contain a visualizer, and only the one the user sees
-   * should spend CPU.
-   */
-  const occluded = useSlideStackOcclusion();
+  const graphSort = useMemo(
+    () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
+    [sort],
+  );
 
   const entitiesData = useEntitiesVisualizerData({
-    conversions: conversionRequests,
+    conversions: activeConversionsWithoutTitle
+      ? typedEntries(activeConversionsWithoutTitle).map(
+          ([columnBaseUrl, dataTypeId]) => ({
+            path: [columnBaseUrl],
+            dataTypeId,
+          }),
+        )
+      : undefined,
+    cursor,
     entityTypeBaseUrl,
-    entityTypeIds,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     filterState,
     hideColumns,
     internalWebs,
-    limit: entitiesPageSize,
+    limit: 500,
     sort: graphSort,
-    view: queryView,
+    view,
   });
 
-  const readyData = entitiesData.status === "ready" ? entitiesData : undefined;
+  const [dataLoading, setDataLoading] = useState(entitiesData.loading);
+  const [visualizerData, setVisualizerData] = useState(entitiesData);
+
+  const {
+    cursor: nextCursor,
+    definitions,
+    entities,
+    closedMultiEntityTypes: closedMultiEntityTypesRootMap,
+    subgraph,
+  } = visualizerData;
+
+  const closedMultiEntityTypes = useMemo(() => {
+    if (!entities || !definitions || !closedMultiEntityTypesRootMap) {
+      return [];
+    }
+
+    const relevantEntityTypesMap = new Map<string, ClosedMultiEntityType>();
+
+    for (const { metadata } of entities) {
+      const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypesRootMap,
+        metadata.entityTypeIds,
+      );
+
+      const key = metadata.entityTypeIds.toSorted().join(",");
+
+      relevantEntityTypesMap.set(key, closedMultiEntityType);
+    }
+
+    const relevantTypes = Array.from(relevantEntityTypesMap.values());
+
+    return relevantTypes;
+  }, [entities, definitions, closedMultiEntityTypesRootMap]);
+
+  const activeConversions = useMemo(() => {
+    return activeConversionsWithoutTitle
+      ? Object.fromEntries(
+          typedEntries(activeConversionsWithoutTitle).map(
+            ([columnBaseUrl, dataTypeId]) => {
+              const dataType = definitions?.dataTypes[dataTypeId];
+
+              if (!dataType) {
+                throw new Error(
+                  `No data type found for column base URL: ${columnBaseUrl}`,
+                );
+              }
+
+              return [
+                columnBaseUrl,
+                {
+                  dataTypeId,
+                  title: dataType.schema.title,
+                },
+              ];
+            },
+          ),
+        )
+      : null;
+  }, [activeConversionsWithoutTitle, definitions]);
+
+  /**
+   * We don't want to clear the old table data when a new request is triggered,
+   * so we hold the visualizerData here rather than relying on the useEntitiesVisualizerData hook directly,
+   * as it will clear the data when a new request is triggered.
+   *
+   * An alternative would be to have an onComplete callback in the hook.
+   */
+  useEffect(() => {
+    setDataLoading(entitiesData.loading);
+
+    if (!entitiesData.loading) {
+      setVisualizerData(entitiesData);
+    }
+  }, [entitiesData]);
+
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
 
   const {
     availableEntityTypes,
@@ -235,63 +356,198 @@ export const EntitiesVisualizer: FunctionComponent<{
     filterState,
     internalWebs,
     entityTypeBaseUrl,
-    entityTypeIds,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
   });
 
-  usePruneStaleFilters({
+  useEffect(() => {
+    if (availableTypesLoading) {
+      return;
+    }
+
+    let nextSelectedTypeIds = filterState.type.selectedTypeIds;
+
+    if (!isTypePinned && filterState.type.selectedTypeIds) {
+      const availableEntityTypeIds = new Set(
+        availableEntityTypes.map(
+          ({ entityTypeId: availableEntityTypeId }) => availableEntityTypeId,
+        ),
+      );
+
+      const retainedSelectedTypeIds = [
+        ...filterState.type.selectedTypeIds,
+      ].filter((selectedTypeId) => availableEntityTypeIds.has(selectedTypeId));
+
+      if (
+        retainedSelectedTypeIds.length !== filterState.type.selectedTypeIds.size
+      ) {
+        nextSelectedTypeIds =
+          retainedSelectedTypeIds.length === 0
+            ? null
+            : new Set(retainedSelectedTypeIds);
+      }
+    }
+
+    let nextPropertyFilters = filterState.propertyFilters;
+    if (filterState.propertyFilters.length) {
+      const filterablePropertyKindsByBaseUrl = new Map(
+        propertyFilterData
+          .filter((property) => property.filterable)
+          .map((property) => [property.baseUrl, property.kind]),
+      );
+
+      nextPropertyFilters = filterState.propertyFilters.filter(
+        ({ baseUrl, kind }) =>
+          filterablePropertyKindsByBaseUrl.get(baseUrl) === kind,
+      );
+    }
+
+    const typeFilterChanged =
+      nextSelectedTypeIds !== filterState.type.selectedTypeIds;
+    const propertyFiltersChanged =
+      nextPropertyFilters.length !== filterState.propertyFilters.length;
+
+    if (!typeFilterChanged && !propertyFiltersChanged) {
+      return;
+    }
+
+    setFilterState((prev) => ({
+      ...prev,
+      type: typeFilterChanged
+        ? { selectedTypeIds: nextSelectedTypeIds }
+        : prev.type,
+      propertyFilters: propertyFiltersChanged
+        ? nextPropertyFilters
+        : prev.propertyFilters,
+    }));
+  }, [
     availableEntityTypes,
     availableTypesLoading,
-    filterState,
+    filterState.propertyFilters,
+    filterState.type.selectedTypeIds,
     isTypePinned,
     propertyFilterData,
     setFilterState,
-  });
+  ]);
 
-  const { view, viewOptions } = useVisualizerView({
-    closedMultiEntityTypesRootMap: readyData?.closedMultiEntityTypesRootMap,
-    definitions: readyData?.definitions,
-    entities: readyData?.entities,
-    entityTypeBaseUrl,
-    entityTypeId,
-    selectedView,
-  });
-
-  const { contentTopRef, availableHeight, tableHeight } =
-    useVisualizerHeights();
-
-  const { handleEntityClick, handleEntityTypeClick, handleOpenLinkTable } =
-    useSlideStackHandlers();
-
-  /**
-   * Row selection, tied to the entity set it was made against: when the
-   * filters change, the rows the selection referred to are no longer the
-   * displayed set, so it is implicitly dropped (no reset effect needed).
-   * Sorting, unit conversions and pagination keep the same set, so the
-   * selection survives those.
-   */
-  const [tableSelection, setTableSelection] = useState<{
-    forEntitySetKey: string;
-    rows: EntitiesTableRow[];
-  } | null>(null);
-
-  const selectedTableRows =
-    tableSelection !== null && tableSelection.forEntitySetKey === entitySetKey
-      ? tableSelection.rows
-      : noSelectedRows;
-
-  const setSelectedTableRows = useCallback(
-    (rows: EntitiesTableRow[]) => {
-      setTableSelection({ forEntitySetKey: entitySetKey, rows });
-    },
-    [entitySetKey],
+  const isDisplayingFilesOnly = useMemo(
+    () =>
+      /**
+       * To allow the `Grid` view to come into view on first render where
+       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
+       * matches a `File` entity type from a statically defined list.
+       */
+      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
+      (entityTypeBaseUrl &&
+        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
+      /**
+       * Otherwise we check the fetched `entityTypes` as a fallback.
+       */
+      (closedMultiEntityTypes.length &&
+        closedMultiEntityTypes.every(({ allOf }) =>
+          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+        )),
+    [
+      entityTypeBaseUrl,
+      entityTypeId,
+      closedMultiEntityTypes,
+      isSpecialEntityTypeLookup,
+    ],
   );
 
-  const entities = readyData?.entities;
+  const supportGridView = isDisplayingFilesOnly;
 
-  const { expandedById } = frontierSnapshot;
+  useEffect(() => {
+    if (isDisplayingFilesOnly) {
+      setView("Grid");
+    } else {
+      setView("Table");
+    }
+  }, [isDisplayingFilesOnly, setView]);
+
+  const isViewingOnlyPages =
+    entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl ||
+    entityTypeId === systemEntityTypes.page.entityTypeId;
+
+  const { pushToSlideStack } = useSlideStack();
+
+  const handleEntityClick = useCallback(
+    (
+      entityId: EntityId,
+      options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
+    ) => {
+      pushToSlideStack({
+        kind: "entity",
+        itemId: entityId,
+        defaultOutgoingLinkFilters: options?.defaultOutgoingLinkFilters,
+      });
+    },
+    [pushToSlideStack],
+  );
+
+  const handleEntityTypeClick = useCallback(
+    ({ entityTypeId: itemId }: { entityTypeId: VersionedUrl }) => {
+      pushToSlideStack({ kind: "entityType", itemId });
+    },
+    [pushToSlideStack],
+  );
+
+  const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
+  const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
+
+  const contentTopRef = useRef<HTMLDivElement>(null);
+  const [contentTop, setContentTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = contentTopRef.current;
+    if (!el) {
+      return;
+    }
+
+    const measure = () => {
+      setContentTop(el.getBoundingClientRect().top);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.documentElement);
+    return () => observer.disconnect();
+  }, []);
+
+  const availableHeight = `calc(100vh - ${
+    contentTop != null
+      ? `${contentTop}px - ${theme.spacing(5)}`
+      : `(${
+          HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)}`
+  })`;
+
+  const tableHeight = `min(${availableHeight}, 1000px)`;
+
+  const isPrimaryEntity = useCallback(
+    (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
+      entityTypeBaseUrl
+        ? entity.metadata.entityTypeIds.some(
+            (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,
+          )
+        : entityTypeId
+          ? entity.metadata.entityTypeIds.includes(entityTypeId)
+          : false,
+    [entityTypeId, entityTypeBaseUrl],
+  );
+
+  const [showTableSearch, setShowTableSearch] = useState(false);
+
+  const [selectedTableRows, setSelectedTableRows] = useState<
+    EntitiesTableRow[]
+  >([]);
+
+  const nextPage = useCallback(() => {
+    setCursor(nextCursor ?? undefined);
+  }, [nextCursor]);
 
   const selectedEntities = useMemo(() => {
-    if (view !== "Table" || selectedTableRows.length === 0) {
+    if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
       return [];
     }
 
@@ -299,176 +555,64 @@ export const EntitiesVisualizer: FunctionComponent<{
       selectedTableRows.map(({ entityId }) => entityId),
     );
 
-    const selectedById = new Map<EntityId, HashEntity>();
-
-    for (const entity of entities ?? []) {
-      if (selectedEntityIds.has(entity.metadata.recordId.entityId)) {
-        selectedById.set(entity.metadata.recordId.entityId, entity);
-      }
-    }
-
-    // Rows appended by graph expansion aren't in the query result; resolve
-    // them from the expansion state instead.
-    for (const entityId of selectedEntityIds) {
-      if (!selectedById.has(entityId)) {
-        const context = expandedById.get(entityId);
-        if (context) {
-          selectedById.set(entityId, context.entity);
-        }
-      }
-    }
-
-    return [...selectedById.values()];
-  }, [entities, expandedById, selectedTableRows, view]);
-
-  const refresh = readyData?.refresh;
+    return entities.filter((entity) =>
+      selectedEntityIds.has(entity.metadata.recordId.entityId),
+    );
+  }, [entities, selectedTableRows, view]);
 
   const handleBulkActionCompleted = useCallback(() => {
-    refresh?.();
-    setTableSelection(null);
-  }, [refresh]);
+    void entitiesData.refetch();
+    setSelectedTableRows([]);
+  }, [entitiesData]);
 
-  const definitions = readyData?.definitions;
+  const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
 
-  /**
-   * The active conversions enriched with each target data type's display
-   * title. `definitions` comes from the last-loaded response, so a
-   * just-activated conversion's target may not be in the pool until the
-   * converted response lands; fall back to a title derived from the type's
-   * URL slug for that window.
-   */
-  const activeConversionsWithTitles = useMemo(() => {
-    if (!activeConversions) {
-      return null;
-    }
-
-    return Object.fromEntries(
-      typedEntries(activeConversions).map(([columnBaseUrl, dataTypeId]) => [
-        columnBaseUrl,
-        {
-          dataTypeId,
-          title:
-            definitions?.dataTypes[dataTypeId]?.schema.title ??
-            titleFromBaseUrl(extractBaseUrl(dataTypeId)),
-        },
-      ]),
-    );
-  }, [activeConversions, definitions]);
-
-  const isViewingOnlyPages =
-    entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl ||
-    entityTypeId === systemEntityTypes.page.entityTypeId;
-
-  const queryTableData = readyData?.tableData ?? null;
-
-  /**
-   * The table shows the query's rows plus the graph-expansion additions
-   * (each generated against the type maps its expansion arrived with).
-   * Identity-stable when there are no additions.
-   */
-  const tableDataWithAdditions = useMemo(() => {
-    if (!queryTableData) {
-      return null;
-    }
-
-    return withExpansionRows(queryTableData, frontierSnapshot.records, {
-      hideColumns,
-      hideArchivedColumn: !filterState.includeArchived,
-    });
-  }, [
-    queryTableData,
-    frontierSnapshot.records,
-    hideColumns,
-    filterState.includeArchived,
-  ]);
-
-  /**
-   * How many entities the graph expansions add beyond the query's own
-   * results, measured as the extra table rows so it can never disagree with
-   * what is displayed (an expanded entity a later "Show more" page fetched
-   * as a query root no longer counts). Drives the "OR n entities" pill and
-   * is folded into both sides of the "m of n entities" count, so the header
-   * describes the whole displayed set: query matches OR these additions.
-   */
-  const frontierAdditionsCount =
-    tableDataWithAdditions && queryTableData
-      ? tableDataWithAdditions.rows.length - queryTableData.rows.length
-      : 0;
-
-  // A stable element, so passing it to the memoized graph visualizer doesn't
-  // re-render it every time this component renders.
-  const loadingSpinner = useMemo(
-    () => <LoadingSpinner size={42} color={theme.palette.blue[60]} />,
-    [theme],
-  );
+  const { totalResultCount } = visualizerData;
 
   return (
     <Box>
-      <VisualizerToolbar
-        availableEntityTypes={availableEntityTypes}
-        availableTypesLoading={availableTypesLoading}
-        filterState={filterState}
-        frontierAdditionsCount={frontierAdditionsCount}
-        internalWebs={internalWebs}
-        isTypePinned={isTypePinned}
-        loadedResultCount={
-          readyData
-            ? readyData.rootEntityIds.length + frontierAdditionsCount
-            : null
+      <VisualizerHeader
+        left={
+          selectedEntities.length > 0 ? (
+            <BulkActionsDropdown
+              selectedItems={selectedEntities}
+              onBulkActionCompleted={handleBulkActionCompleted}
+            />
+          ) : (
+            <FilterRibbon
+              availableEntityTypes={availableEntityTypes}
+              availableTypesLoading={availableTypesLoading}
+              propertyFilterMetadata={propertyFilterData}
+              filterState={filterState}
+              internalWebs={internalWebs}
+              isTypePinned={isTypePinned}
+              setFilterState={(updater) => setFilterState(updater)}
+            />
+          )
         }
-        onBulkActionCompleted={handleBulkActionCompleted}
-        onClearFrontierAdditions={clearFrontierAdditions}
-        onExportFilters={exportFilters}
-        onImportFilters={importFilters}
-        propertyFilterData={propertyFilterData}
-        selectedEntities={selectedEntities}
-        setFilterState={setFilterState}
-        setView={setSelectedView}
-        totalResultCount={
-          entitiesData.totalResultCount !== null
-            ? entitiesData.totalResultCount + frontierAdditionsCount
-            : null
+        right={
+          <>
+            <QueryCount count={totalResultCount} loading={dataLoading} />
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(
+                [
+                  "Table",
+                  ...(supportGridView ? (["Grid"] as const) : []),
+                  "Graph",
+                ] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
+          </>
         }
-        totalResultCountLoading={entitiesData.fetching}
-        view={view}
-        viewOptions={viewOptions}
       />
       <Box ref={contentTopRef} />
-      {entitiesData.status === "error" ? (
-        <Stack
-          sx={[
-            {
-              alignItems: "center",
-              justifyContent: "center",
-              height: tableHeight,
-              px: 4,
-              width: "100%",
-            },
-            tableContentSx,
-          ]}
-        >
-          <Typography
-            variant="smallTextLabels"
-            sx={{ color: ({ palette }) => palette.red[90], fontWeight: 600 }}
-          >
-            Could not load entities
-          </Typography>
-          <Typography
-            variant="smallTextParagraphs"
-            sx={{
-              color: ({ palette }) => palette.gray[70],
-              maxWidth: 560,
-              mt: 0.75,
-              textAlign: "center",
-            }}
-          >
-            {entitiesData.error.message}
-          </Typography>
-          <Button onClick={entitiesData.retry} size="small" sx={{ mt: 2 }}>
-            Try again
-          </Button>
-        </Stack>
-      ) : !readyData ? (
+      {showLoading ? (
         <Stack
           sx={[
             {
@@ -480,49 +624,47 @@ export const EntitiesVisualizer: FunctionComponent<{
             tableContentSx,
           ]}
         >
-          <Box>{loadingSpinner}</Box>
+          <Box>
+            <LoadingSpinner size={42} color={theme.palette.blue[60]} />
+          </Box>
         </Stack>
       ) : view === "Graph" ? (
         <Box height={availableHeight} sx={tableContentSx}>
           <EntityGraphVisualizer
-            entities={readyData.entities}
-            rootEntityIds={readyData.rootEntityIds}
-            sourceKey={graphSourceKey}
-            occluded={occluded}
-            frontierStore={frontierStore}
-            closedMultiEntityTypesRootMap={
-              readyData.closedMultiEntityTypesRootMap
+            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+            entities={entities}
+            loadingComponent={
+              <LoadingSpinner size={42} color={theme.palette.blue[60]} />
             }
-            definitions={readyData.definitions}
-            loadingComponent={loadingSpinner}
+            isPrimaryEntity={isPrimaryEntity}
             onEntityClick={handleEntityClick}
-            onOpenLinkTable={handleOpenLinkTable}
           />
         </Box>
       ) : view === "Grid" ? (
-        <GridView
-          entities={readyData.entities}
-          onEntityClick={handleEntityClick}
-        />
+        <GridView entities={entities} onEntityClick={handleEntityClick} />
       ) : (
         <EntitiesTable
-          activeConversions={activeConversionsWithTitles}
+          activeConversions={activeConversions}
           csvFileTitle="Entities"
+          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           handleEntityClick={handleEntityClick}
-          hasMoreRowsAvailable={readyData.hasNextPage}
-          loading={entitiesData.fetching}
+          hasMoreRowsAvailable={nextCursor != null}
+          loading={dataLoading}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
-          loadMoreRows={readyData.fetchNextPage}
+          loadMoreRows={nextCursor ? nextPage : undefined}
           setActiveConversions={setActiveConversions}
           setSelectedEntityType={handleEntityTypeClick}
           setSelectedRows={setSelectedTableRows}
           selectedRows={selectedTableRows}
+          showSearch={showTableSearch}
+          setShowSearch={setShowTableSearch}
           sort={sort}
           setSort={setSort}
-          tableData={tableDataWithAdditions}
-          totalResultCount={entitiesData.totalResultCount}
-          queryRowCount={readyData.tableData.rows.length}
+          subgraph={subgraph}
+          tableData={visualizerData.tableData}
+          totalResultCount={totalResultCount}
         />
       )}
     </Box>

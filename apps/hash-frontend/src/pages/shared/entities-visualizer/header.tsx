@@ -4,4 +4,3 @@ export {
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./header/visualizer-header";
-export type { InternalWeb } from "./header/web-filter-pill";

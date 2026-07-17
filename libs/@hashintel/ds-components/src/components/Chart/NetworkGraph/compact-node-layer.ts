@@ -60,6 +60,8 @@ type _CompactNodeLayerProps = {
   activeNode: NetworkGraphPoint | null;
   /** The selected node while a different node is hovered: same grown ring as {@link activeNode} but dimmed so it stays visible without competing. Null unless backgrounded by a hover. */
   dimmedSelectedNode: NetworkGraphPoint | null;
+  /** Id of the selected node, whose plain crowd point is hidden so it doesn't show through its own (translucent, when dimmed) grow ring. `null` when nothing is selected. */
+  selectedPointId: NetworkGraphId | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
   colorByHex: Map<string, RgbColor>;
   /** Zoom multiplier applied to every node's base radius (deck's `radiusScale`). */
@@ -93,6 +95,7 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   showGrowHighlights: true,
   showPoints: true,
   dimmedSelectedNode: null,
+  selectedPointId: null,
 };
 
 /**
@@ -123,6 +126,7 @@ export class CompactNodeLayer extends CompositeLayer<
       neighbours,
       activeNode,
       dimmedSelectedNode,
+      selectedPointId,
       colorByHex,
       radiusScale,
       pointOpacity,
@@ -171,9 +175,15 @@ export class CompactNodeLayer extends CompositeLayer<
         opacity,
       });
 
-    // Hollow ring around a node a hovered edge connects: edge colour and hover
-    // width, radius inset by the white stroke so it seats just inside that node's
-    // white grow ring. Compact view only.
+    // A slate ring around a node the emphasised edge connects, seated just inside that
+    // node's white grow ring — the compact echo of the detail node's edge outline. It
+    // sits one grow-ring stroke inside the white ring (`slate radius = grow radius −
+    // GROW_RING_STROKE`), matching how the detail layer seats its slate outline inside
+    // the white outline. The inset is applied in *pixels* at the current zoom, not via
+    // `radiusMinPixels` alone: a min-only inset holds only while the ring is pinned to
+    // its minimum size, and once the ring grows with zoom the slate would ride back out
+    // level with (and over) the white. `radiusScale` converts the pixel inset back
+    // through deck's `getRadius · radiusScale` so it holds at every zoom. Compact only.
     const edgeHoverRing = ({
       idSuffix,
       data: ringData,
@@ -194,11 +204,22 @@ export class CompactNodeLayer extends CompositeLayer<
         getPosition: (point) => [point.x, point.y],
         filled: false,
         stroked: true,
-        getRadius: POINT_RADIUS * radiusMultiplier,
+        // Grow-ring radius minus one stroke, in pixels. `radiusScale` multiplies
+        // `getRadius`, so divide the pixel inset by it here to land a constant pixel
+        // inset; the min/max are inset too so the clamp tracks the grow ring's clamp.
+        // (Guard the divide against a zero scale when fully zoomed out.)
+        getRadius:
+          radiusScale > 0
+            ? Math.max(
+                0,
+                POINT_RADIUS * radiusMultiplier -
+                  GROW_RING_STROKE / radiusScale,
+              )
+            : 0,
         radiusScale,
         radiusUnits: "pixels",
-        radiusMinPixels,
-        radiusMaxPixels,
+        radiusMinPixels: radiusMinPixels - GROW_RING_STROKE,
+        radiusMaxPixels: radiusMaxPixels - GROW_RING_STROKE,
         getLineColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
         getLineWidth: EDGE_HOVER_WIDTH,
         lineWidthUnits: "pixels",
@@ -274,7 +295,11 @@ export class CompactNodeLayer extends CompositeLayer<
               pickable: true,
               parameters: BASE_LAYER_PARAMETERS,
               getPosition: (point) => [point.x, point.y],
-              getFillColor: colorFor,
+              // Hide the selected node's plain point (drawn transparent) so it never
+              // shows through its own grow ring — which is translucent while a
+              // different node is hovered. It stays pickable regardless of fill alpha.
+              getFillColor: (point): Color =>
+                point.id === selectedPointId ? [0, 0, 0, 0] : colorFor(point),
               getRadius: POINT_RADIUS,
               radiusScale,
               radiusUnits: "pixels",
@@ -285,6 +310,7 @@ export class CompactNodeLayer extends CompositeLayer<
               opacity: dimmed
                 ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
                 : pointOpacity,
+              updateTriggers: { getFillColor: selectedPointId },
             }),
           ]
         : []),
@@ -331,11 +357,12 @@ export class CompactNodeLayer extends CompositeLayer<
           ]
         : []),
       // Rings around the nodes the emphasised edge connects, seated just inside each
-      // node's white grow ring. Split into two layers because an endpoint that is the
-      // active node draws a larger (hovered) white ring than a neighbour, so each edge
-      // ring mirrors the matching grow ring's clamps to hug the right one. Any
-      // endpoint that isn't the active node — including both endpoints of a lone
-      // selected edge (no active node) — hugs a neighbour-sized ring. Compact view only.
+      // node's white grow ring (see `edgeHoverRingPair` for the inset). Split by size
+      // because an endpoint that is the active node draws a larger (hovered) grow ring
+      // than a neighbour, so each edge ring mirrors the matching grow ring's radius
+      // clamps to hug the right one. Any endpoint that isn't the active node —
+      // including both endpoints of a lone selected edge (no active node) — hugs a
+      // neighbour-sized ring. Compact view only.
       ...(showPoints && edgeHoverNodes.length > 0
         ? [
             ...(activeNode
@@ -346,10 +373,8 @@ export class CompactNodeLayer extends CompositeLayer<
                       (point) => point.id === activeNode.id,
                     ),
                     radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
-                    radiusMinPixels: HOVERED_MIN_RADIUS - GROW_RING_STROKE,
-                    radiusMaxPixels:
-                      POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER -
-                      GROW_RING_STROKE,
+                    radiusMinPixels: HOVERED_MIN_RADIUS,
+                    radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
                   }),
                 ]
               : []),
@@ -359,7 +384,7 @@ export class CompactNodeLayer extends CompositeLayer<
                 (point) => point.id !== activeNode?.id,
               ),
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
-              radiusMinPixels: NEIGHBOUR_MIN_RADIUS - GROW_RING_STROKE,
+              radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
             }),
           ]
         : []),
