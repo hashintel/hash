@@ -1,6 +1,6 @@
 ---
-"@hashintel/petrinaut-core": minor
-"@hashintel/petrinaut": minor
+"@hashintel/petrinaut-core": patch
+"@hashintel/petrinaut": patch
 ---
 
-Add scenario-first optimization contracts, host-provided streamed execution, and a dedicated Optimization workflow with flat parameter search spaces, metric objectives, and progressive trial results.
+Add scenario-first optimization with flat parameter search spaces, metric objectives, progressive trial results, and hardened server-side scenario execution.
