@@ -1,14 +1,7 @@
-import { once } from "node:events";
+import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
 
-import {
-  petrinautOptimizationErrorEventSchema,
-  petrinautOptimizationInputSchema,
-} from "@hashintel/petrinaut-core";
-import { openPetrinautOptimizationStream } from "@local/petrinaut-optimizer-client";
-
-import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
 import type { components } from "@local/petrinaut-optimizer-client";
-import type { Express, Response as ExpressResponse } from "express";
+import type { Express } from "express";
 
 export const PETRINAUT_OPTIMIZER_STATUS_PATH =
   "/api/petrinaut-optimizer/status";
@@ -18,14 +11,6 @@ export const PETRINAUT_OPTIMIZER_OPTIMIZE_PATH =
   "/api/petrinaut-optimizer/optimize";
 
 const STATUS_REQUEST_TIMEOUT_MS = 5_000;
-const OPTIMIZATION_RESPONSE_START_TIMEOUT_MS = 30_000;
-const OPTIMIZATION_IDLE_TIMEOUT_MS = 5 * 60_000;
-const OPTIMIZATION_OVERALL_TIMEOUT_MS = 15 * 60_000;
-const MAX_OPTIMIZATION_REQUEST_BYTES = 8 * 1024 * 1024;
-// A trial repeats optimized parameter identifiers from the accepted manifest,
-// so use the same bound rather than rejecting a valid large search space.
-const MAX_OPTIMIZATION_EVENT_BYTES = MAX_OPTIMIZATION_REQUEST_BYTES;
-const MAX_CONCURRENT_OPTIMIZATIONS = 4;
 
 type PetrinautOptimizerStatus = components["schemas"]["RunStatus"];
 
@@ -130,48 +115,11 @@ export const getPetrinautOptimizerOrigin = (
   return new URL(`http://${urlHost}:${port}`);
 };
 
-/** Write one canonical optimization event as NDJSON with backpressure. */
-const writeOptimizationEvent = async (
-  response: ExpressResponse,
-  event: PetrinautOptimizationEvent,
-): Promise<void> => {
-  if (!response.write(`${JSON.stringify(event)}\n`)) {
-    if (response.destroyed || response.writableEnded) {
-      throw new Error("The optimization client disconnected");
-    }
-    await Promise.race([
-      once(response, "drain"),
-      once(response, "close").then(() => {
-        throw new Error("The optimization client disconnected");
-      }),
-    ]);
-  }
-};
-
-/** Forward canonical optimization events as NDJSON. */
-const forwardPetrinautOptimizationEvents = async (
-  events: AsyncIterable<PetrinautOptimizationEvent>,
-  response: ExpressResponse,
-  options: {
-    onTerminalEvent?: () => void;
-  } = {},
-): Promise<void> => {
-  for await (const event of events) {
-    await writeOptimizationEvent(response, event);
-    if (event.type === "complete" || event.type === "error") {
-      options.onTerminalEvent?.();
-    }
-  }
-};
-
 /** Mount authenticated NodeAPI routes for Petrinaut optimization. */
 export const setupPetrinautOptimizerHandler = (
   app: Express,
   { origin, fetchImpl = fetch, logger }: PetrinautOptimizerHandlerOptions,
 ) => {
-  let activeOptimizationCount = 0;
-  const activeUserIds = new Set<string>();
-
   /**
    * Report whether this deployment has Petrinaut Optimizer configured.
    *
@@ -239,171 +187,8 @@ export const setupPetrinautOptimizerHandler = (
    * execution deadlines, and converts the shared client's canonical events to
    * the NDJSON protocol consumed by the HASH frontend.
    */
-  app.post(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH, async (req, res) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    if (!origin) {
-      res.status(503).json({ error: "Petrinaut optimizer is not configured" });
-      return;
-    }
-
-    let serializedBody: unknown;
-    try {
-      serializedBody = JSON.stringify(req.body);
-    } catch {
-      res.status(400).json({ error: "Invalid optimization request" });
-      return;
-    }
-    if (typeof serializedBody !== "string") {
-      res.status(400).json({ error: "Invalid optimization request" });
-      return;
-    }
-    if (
-      Buffer.byteLength(serializedBody, "utf8") > MAX_OPTIMIZATION_REQUEST_BYTES
-    ) {
-      res.status(413).json({ error: "Optimization request is too large" });
-      return;
-    }
-
-    const input = petrinautOptimizationInputSchema.safeParse(req.body);
-    if (!input.success) {
-      res.status(400).json({
-        error: "Invalid optimization request",
-        issues: input.error.issues,
-      });
-      return;
-    }
-    const upstreamInput = input.data;
-
-    const userId = req.user.accountId;
-    if (
-      activeOptimizationCount >= MAX_CONCURRENT_OPTIMIZATIONS ||
-      activeUserIds.has(userId)
-    ) {
-      res.status(429).json({ error: "An optimization is already running" });
-      return;
-    }
-
-    activeOptimizationCount += 1;
-    activeUserIds.add(userId);
-    const abortController = new AbortController();
-    type OptimizationTimeoutKind = "response_start" | "idle" | "overall";
-    const lifecycle: {
-      clientDisconnected: boolean;
-      terminalEventSent: boolean;
-      timeoutKind: OptimizationTimeoutKind | null;
-    } = {
-      clientDisconnected: false,
-      terminalEventSent: false,
-      timeoutKind: null,
-    };
-    let idleTimeout: ReturnType<typeof setTimeout> | undefined;
-
-    /** Abort the upstream request after the HASH client disconnects. */
-    const abortForClientDisconnect = () => {
-      lifecycle.clientDisconnected = true;
-      abortController.abort();
-    };
-    /** Record a timeout category and abort the upstream request. */
-    const abortForTimeout = (kind: OptimizationTimeoutKind) => {
-      lifecycle.timeoutKind ??= kind;
-      abortController.abort();
-    };
-    const responseStartTimeout = setTimeout(
-      () => abortForTimeout("response_start"),
-      OPTIMIZATION_RESPONSE_START_TIMEOUT_MS,
-    );
-    const overallTimeout = setTimeout(
-      () => abortForTimeout("overall"),
-      OPTIMIZATION_OVERALL_TIMEOUT_MS,
-    );
-    /** Restart the inactivity deadline after any upstream bytes arrive. */
-    const resetIdleTimeout = () => {
-      clearTimeout(idleTimeout);
-      idleTimeout = setTimeout(
-        () => abortForTimeout("idle"),
-        OPTIMIZATION_IDLE_TIMEOUT_MS,
-      );
-    };
-
-    req.once("aborted", abortForClientDisconnect);
-    res.once("close", abortForClientDisconnect);
-
-    try {
-      const upstreamEvents = await openPetrinautOptimizationStream({
-        endpoint: new URL("/optimize/all", origin),
-        fetchImpl,
-        input: upstreamInput,
-        maxEventBytes: MAX_OPTIMIZATION_EVENT_BYTES,
-        onActivity: resetIdleTimeout,
-        signal: abortController.signal,
-      });
-      clearTimeout(responseStartTimeout);
-      resetIdleTimeout();
-
-      res.status(200);
-      res.set({
-        "Cache-Control": "no-cache, no-store",
-        "Content-Type": "application/x-ndjson; charset=utf-8",
-        "X-Accel-Buffering": "no",
-      });
-      res.flushHeaders();
-      await forwardPetrinautOptimizationEvents(upstreamEvents, res, {
-        onTerminalEvent: () => {
-          lifecycle.terminalEventSent = true;
-        },
-      });
-      res.end();
-    } catch (error) {
-      if (lifecycle.clientDisconnected || res.destroyed) {
-        return;
-      }
-      logger.warn("Petrinaut optimization failed", {
-        error,
-        timeoutKind: lifecycle.timeoutKind,
-      });
-      if (!res.headersSent) {
-        res.status(lifecycle.timeoutKind ? 504 : 502).json({
-          error: lifecycle.timeoutKind
-            ? "Petrinaut optimization timed out"
-            : "Petrinaut optimization failed",
-        });
-        return;
-      }
-      if (!lifecycle.terminalEventSent) {
-        try {
-          await writeOptimizationEvent(
-            res,
-            petrinautOptimizationErrorEventSchema.parse({
-              type: "error",
-              code: lifecycle.timeoutKind
-                ? "optimization_timeout"
-                : "upstream_stream_error",
-              message: lifecycle.timeoutKind
-                ? "The optimization exceeded its execution time limit"
-                : "The optimizer stream ended unexpectedly",
-              retryable: true,
-            }),
-          );
-        } catch (writeError) {
-          logger.warn("Could not report Petrinaut optimization failure", {
-            error: writeError,
-          });
-        }
-      }
-      if (!res.writableEnded) {
-        res.end();
-      }
-    } finally {
-      clearTimeout(responseStartTimeout);
-      clearTimeout(idleTimeout);
-      clearTimeout(overallTimeout);
-      req.off("aborted", abortForClientDisconnect);
-      res.off("close", abortForClientDisconnect);
-      activeOptimizationCount -= 1;
-      activeUserIds.delete(userId);
-    }
-  });
+  app.post(
+    PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
+    createPetrinautOptimizationHandler({ fetchImpl, logger, origin }),
+  );
 };
