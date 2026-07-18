@@ -68,7 +68,7 @@ async function createManifest() {
 }
 
 describe("createOptimizationProtocol", () => {
-  it("reproduces the supply-chain optimization previously hardcoded in Python", async () => {
+  it("executes the checked-in supply-chain optimization manifest", async () => {
     const manifest = await loadOptimizationManifest(
       supplyChainOptimizationPath,
     );
@@ -97,13 +97,13 @@ describe("createOptimizationProtocol", () => {
           default: 100,
           minimum: 20,
           maximum: 250,
-          scale: "log",
+          scale: "linear",
         },
         {
           identifier: "reorder_threshold",
           type: "int",
           default: 160,
-          minimum: 100,
+          minimum: 81,
           maximum: 1_000,
           step: 1,
           scale: "log",
@@ -115,7 +115,31 @@ describe("createOptimizationProtocol", () => {
           minimum: 50,
           maximum: 800,
           step: 1,
-          scale: "log",
+          scale: "linear",
+        },
+        {
+          identifier: "selling_price",
+          type: "float",
+          default: 34,
+          minimum: 10,
+          maximum: 100,
+          scale: "linear",
+        },
+        {
+          identifier: "expedite_fraction",
+          type: "float",
+          default: 0.25,
+          minimum: 0,
+          maximum: 1,
+          scale: "linear",
+        },
+        {
+          identifier: "marketing_spend",
+          type: "float",
+          default: 20,
+          minimum: 20,
+          maximum: 100,
+          scale: "linear",
         },
       ],
     });
@@ -125,6 +149,9 @@ describe("createOptimizationProtocol", () => {
           production_rate: 125,
           reorder_threshold: 300,
           batch_size: 250,
+          selling_price: 50,
+          expedite_fraction: 0.4,
+          marketing_spend: 40,
         },
       }),
     ).toEqual({ objective: 42 });
@@ -134,15 +161,15 @@ describe("createOptimizationProtocol", () => {
           production_rate: "125",
           reorder_threshold: "300",
           batch_size: "250",
-          selling_price: "34",
-          expedite_fraction: "0.25",
-          marketing_spend: "20",
+          selling_price: "50",
+          expedite_fraction: "0.4",
+          marketing_spend: "40",
           demand_multiplier: "1",
         },
         metrics: ["metric_profit"],
         seed: 1234,
         dt: 0.1,
-        maxTime: 10,
+        maxTime: 36.5,
       }),
     );
   });

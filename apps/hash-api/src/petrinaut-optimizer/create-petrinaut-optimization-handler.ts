@@ -1,7 +1,10 @@
 import { once } from "node:events";
 
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
-import { openPetrinautOptimizationStream } from "@local/petrinaut-optimizer-client";
+import {
+  openPetrinautOptimizationStream,
+  PetrinautOptimizerHttpError,
+} from "@local/petrinaut-optimizer-client";
 
 import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
 import type { Logger } from "@local/hash-backend-utils/logger";
@@ -138,6 +141,8 @@ const writeOptimizationEvent = async (
   response: ExpressResponse,
   event: PetrinautOptimizationEvent,
 ): Promise<void> => {
+  // This is schema-validated NDJSON served with `nosniff`, never HTML.
+  // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write
   if (!response.write(`${JSON.stringify(event)}\n`)) {
     if (response.destroyed || response.writableEnded) {
       throw new Error("The optimization client disconnected");
@@ -264,11 +269,21 @@ export const createPetrinautOptimizationHandler = ({
         timeoutKind: lifecycle.state.timeoutKind,
       });
       if (!response.headersSent) {
-        response.status(lifecycle.state.timeoutKind ? 504 : 502).json({
-          error: lifecycle.state.timeoutKind
-            ? "Petrinaut optimization timed out"
-            : "Petrinaut optimization failed",
-        });
+        if (
+          error instanceof PetrinautOptimizerHttpError &&
+          error.status === 429
+        ) {
+          if (error.retryAfter) {
+            response.set({ "Retry-After": error.retryAfter });
+          }
+          response.status(429).json({ error: "Petrinaut optimizer is busy" });
+        } else {
+          response.status(lifecycle.state.timeoutKind ? 504 : 502).json({
+            error: lifecycle.state.timeoutKind
+              ? "Petrinaut optimization timed out"
+              : "Petrinaut optimization failed",
+          });
+        }
         return;
       }
       if (!lifecycle.state.terminalEventSent) {

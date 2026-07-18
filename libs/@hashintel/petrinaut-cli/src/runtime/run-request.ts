@@ -258,20 +258,22 @@ function parseScenario(value: unknown): ServerRunRequest["scenario"] {
     throw new Error("scenario.parameterValues must be an object");
   }
 
-  const parameterValues: Record<string, number | boolean> = {};
-  for (const [identifier, parameterValue] of Object.entries(
-    value.parameterValues,
-  )) {
-    if (
-      typeof parameterValue !== "boolean" &&
-      (typeof parameterValue !== "number" || !Number.isFinite(parameterValue))
-    ) {
-      throw new Error(
-        `Scenario parameter "${identifier}" must be a finite number or boolean`,
-      );
-    }
-    parameterValues[identifier] = parameterValue;
-  }
+  const parameterValues: Record<string, number | boolean> = Object.fromEntries(
+    Object.entries(value.parameterValues).map(
+      ([identifier, parameterValue]) => {
+        if (
+          typeof parameterValue !== "boolean" &&
+          (typeof parameterValue !== "number" ||
+            !Number.isFinite(parameterValue))
+        ) {
+          throw new Error(
+            `Scenario parameter "${identifier}" must be a finite number or boolean`,
+          );
+        }
+        return [identifier, parameterValue] as const;
+      },
+    ),
+  );
 
   return { id: value.id, parameterValues };
 }
@@ -286,51 +288,54 @@ function normalizeScenarioParameterValues(
       parameter,
     ]),
   );
-  const normalized: Record<string, number> = {};
 
-  for (const [identifier, value] of Object.entries(values)) {
-    const parameter = parametersByIdentifier.get(identifier);
-    if (!parameter) {
-      throw new Error(
-        `Scenario "${scenario.name}" has no parameter "${identifier}"`,
-      );
-    }
+  return Object.fromEntries(
+    Object.entries(values).map(([identifier, value]) => {
+      const parameter = parametersByIdentifier.get(identifier);
+      if (!parameter) {
+        throw new Error(
+          `Scenario "${scenario.name}" has no parameter "${identifier}"`,
+        );
+      }
 
-    switch (parameter.type) {
-      case "boolean":
-        if (typeof value !== "boolean") {
-          throw new Error(`Scenario parameter "${identifier}" must be boolean`);
-        }
-        normalized[identifier] = value ? 1 : 0;
-        break;
-      case "integer":
-        if (typeof value !== "number" || !Number.isInteger(value)) {
-          throw new Error(
-            `Scenario parameter "${identifier}" must be an integer`,
-          );
-        }
-        normalized[identifier] = value;
-        break;
-      case "ratio":
-        if (typeof value !== "number" || value < 0 || value > 1) {
-          throw new Error(
-            `Scenario parameter "${identifier}" must be between 0 and 1`,
-          );
-        }
-        normalized[identifier] = value;
-        break;
-      case "real":
-        if (typeof value !== "number") {
-          throw new Error(
-            `Scenario parameter "${identifier}" must be a number`,
-          );
-        }
-        normalized[identifier] = value;
-        break;
-    }
-  }
-
-  return normalized;
+      let normalizedValue: number;
+      switch (parameter.type) {
+        case "boolean":
+          if (typeof value !== "boolean") {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be boolean`,
+            );
+          }
+          normalizedValue = value ? 1 : 0;
+          break;
+        case "integer":
+          if (typeof value !== "number" || !Number.isInteger(value)) {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be an integer`,
+            );
+          }
+          normalizedValue = value;
+          break;
+        case "ratio":
+          if (typeof value !== "number" || value < 0 || value > 1) {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be between 0 and 1`,
+            );
+          }
+          normalizedValue = value;
+          break;
+        case "real":
+          if (typeof value !== "number") {
+            throw new Error(
+              `Scenario parameter "${identifier}" must be a number`,
+            );
+          }
+          normalizedValue = value;
+          break;
+      }
+      return [identifier, normalizedValue] as const;
+    }),
+  );
 }
 
 function compileRunScenario(

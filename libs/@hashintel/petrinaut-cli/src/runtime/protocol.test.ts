@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { handleProtocolLine } from "./protocol";
+import { parseServerRunRequest } from "./run-request";
 
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
@@ -128,6 +129,19 @@ describe("handleProtocolLine", () => {
       dt: 0.25,
       seed: 42,
     });
+  });
+
+  it("constructs scenario parameter records without prototype mutation", () => {
+    const request = parseServerRunRequest(
+      JSON.parse(
+        '{"scenario":{"id":"scenario","parameterValues":{"__proto__":1}},"maxSteps":0}',
+      ),
+    );
+
+    expect(request.scenario?.parameterValues).toHaveProperty("__proto__", 1);
+    expect(Object.getPrototypeOf(request.scenario?.parameterValues)).toBe(
+      Object.prototype,
+    );
   });
 
   it("returns metric values under the requested stable id", () => {

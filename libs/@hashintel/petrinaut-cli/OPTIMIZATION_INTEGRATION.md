@@ -33,8 +33,7 @@ alive and send one request per line; it handles requests serially.
 
 ### Supply-chain example
 
-The checked-in example reproduces the supply-chain profit study that was
-previously hardcoded in `petrinaut-opt`:
+The checked-in example defines a reproducible supply-chain profit study:
 
 ```sh
 node libs/@hashintel/petrinaut-cli/dist/cli.js serve \
@@ -43,11 +42,10 @@ node libs/@hashintel/petrinaut-cli/dist/cli.js serve \
 ```
 
 It maximizes `Profit` with TPE over 1,000 trials. Optuna varies
-`production_rate`, `reorder_threshold`, and `batch_size`; the manifest fixes
-`selling_price`, `expedite_fraction`, `marketing_spend`, and
-`demand_multiplier`. The selected scenario retains the old fixed initial
-marking. Its seven scenario parameters override the corresponding seven net
-parameters before every trial.
+`production_rate`, `reorder_threshold`, `batch_size`, `selling_price`,
+`expedite_fraction`, and `marketing_spend`; the manifest fixes
+`demand_multiplier`. Its seven scenario parameters override the corresponding
+seven net parameters before every trial.
 
 ### Read the search space
 

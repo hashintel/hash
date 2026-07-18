@@ -2,13 +2,16 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["@hashintel/petrinaut-core#build", "codegen"],
       "outputs": ["dist/**"]
     },
     "codegen": {
       "dependsOn": [],
       "inputs": ["../../../apps/petrinaut-opt/openapi/openapi.json"],
       "outputs": ["src/openapi.gen.ts"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["@hashintel/petrinaut-core#build", "codegen"]
     }
   }
 }

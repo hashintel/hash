@@ -176,6 +176,23 @@ describe("createPetrinautOptimizationHandler", () => {
     });
   });
 
+  it("preserves an upstream optimizer busy response", async () => {
+    const result = await callHandler({
+      body: validOptimizationInput,
+      fetchImpl: async () =>
+        Response.json(
+          { detail: "The optimizer is busy" },
+          { status: 429, headers: { "retry-after": "10" } },
+        ),
+    });
+
+    expect(result).toMatchObject({
+      body: { error: "Petrinaut optimizer is busy" },
+      headers: { "Retry-After": "10" },
+      statusCode: 429,
+    });
+  });
+
   it("keeps a quiet downstream optimization stream alive", async () => {
     vi.useFakeTimers();
     let activeRequest: EventEmitter | undefined;

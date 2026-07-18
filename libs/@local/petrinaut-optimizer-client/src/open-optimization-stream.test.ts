@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { openPetrinautOptimizationStream } from "./open-optimization-stream.js";
+import {
+  openPetrinautOptimizationStream,
+  PetrinautOptimizerHttpError,
+} from "./open-optimization-stream.js";
 
 import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
 
@@ -75,17 +78,22 @@ describe("openPetrinautOptimizationStream", () => {
   });
 
   it("surfaces a FastAPI error message", async () => {
-    await expect(
-      openPetrinautOptimizationStream({
-        endpoint: "/optimize/all",
-        fetchImpl: async () =>
-          Response.json(
-            { detail: "Invalid optimization manifest" },
-            { status: 422 },
-          ),
-        input,
-      }),
-    ).rejects.toThrow("Invalid optimization manifest");
+    const result = openPetrinautOptimizationStream({
+      endpoint: "/optimize/all",
+      fetchImpl: async () =>
+        Response.json(
+          { detail: "Invalid optimization manifest" },
+          { status: 422, headers: { "retry-after": "5" } },
+        ),
+      input,
+    });
+
+    await expect(result).rejects.toBeInstanceOf(PetrinautOptimizerHttpError);
+    await expect(result).rejects.toMatchObject({
+      message: "Invalid optimization manifest",
+      retryAfter: "5",
+      status: 422,
+    });
   });
 
   it("falls back to the upstream status for an unstructured error", async () => {

@@ -14,6 +14,19 @@ export type PetrinautOptimizerFetch = (
   init?: RequestInit,
 ) => Promise<Response>;
 
+/** Error returned when Petrinaut Optimizer rejects an HTTP request. */
+export class PetrinautOptimizerHttpError extends Error {
+  /** Create an optimizer HTTP error while retaining transport metadata. */
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly retryAfter: string | null,
+  ) {
+    super(message);
+    this.name = "PetrinautOptimizerHttpError";
+  }
+}
+
 /** Configuration for opening one Petrinaut Optimizer study stream. */
 export type OpenPetrinautOptimizationStreamOptions = {
   /** URL of Petrinaut Optimizer's `/optimize/all` endpoint. */
@@ -78,7 +91,11 @@ export const openPetrinautOptimizationStream = async ({
     signal: signal as AbortSignal | undefined,
   });
   if (!response.ok) {
-    throw new Error(await responseErrorMessage(response));
+    throw new PetrinautOptimizerHttpError(
+      await responseErrorMessage(response),
+      response.status,
+      response.headers.get("retry-after"),
+    );
   }
   if (!response.body) {
     throw new Error("Petrinaut optimizer returned an empty response");

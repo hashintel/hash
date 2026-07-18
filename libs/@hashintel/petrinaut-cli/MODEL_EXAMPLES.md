@@ -171,9 +171,9 @@ with PetrinautClient(
     profit = result["metrics"]["Profit"]
 ```
 
-Because `Profit` depends on the parameters, sweeping values such as
-`production_rate`, `reorder_threshold`, and `batch_size` (holding price,
-marketing, expedite fraction, and demand fixed) searches for the most
+Because `Profit` depends on the parameters, sweeping `production_rate`,
+`reorder_threshold`, `batch_size`, `selling_price`, `marketing_spend`, and
+`expedite_fraction` while fixing `demand_multiplier` searches for the most
 profitable operating policy. The CLI runs that search from an optimization
 manifest rather than one call at a time -- see
 [Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md), which drives

@@ -141,8 +141,8 @@ number as `{ "objective": 42.5 }`.
 
 For an end-to-end local request, use the checked-in
 `libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-optimization.json`
-manifest. It reproduces the supply-chain `Profit` study that this service
-previously defined with hardcoded Python bounds and values.
+manifest. It defines the supply-chain `Profit` study used for an end-to-end
+optimization test.
 
 CLI startup is limited to 25 seconds and each protocol response to 240 seconds.
 Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once
