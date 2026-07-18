@@ -256,6 +256,12 @@ export const SiteOverview = ({
   const [planningProductHidden, setPlanningProductHidden] = useState<
     Set<string>
   >(() => new Set());
+  const [planningSupplierHidden, setPlanningSupplierHidden] = useState<
+    Set<string>
+  >(() => new Set());
+  const [planningBasisHidden, setPlanningBasisHidden] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [trendProductHidden, setTrendProductHidden] = useState<Set<string>>(
     () => new Set(),
   );
@@ -599,6 +605,10 @@ export const SiteOverview = ({
               onTypeHiddenChange={setPlanningTypeHidden}
               productHidden={planningProductHidden}
               onProductHiddenChange={setPlanningProductHidden}
+              supplierHidden={planningSupplierHidden}
+              onSupplierHiddenChange={setPlanningSupplierHidden}
+              basisHidden={planningBasisHidden}
+              onBasisHiddenChange={setPlanningBasisHidden}
               statusHidden={planningStatusHidden}
               onStatusHiddenChange={setPlanningStatusHidden}
             />

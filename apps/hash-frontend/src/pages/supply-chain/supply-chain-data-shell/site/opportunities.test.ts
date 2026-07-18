@@ -211,6 +211,9 @@ describe("buildSiteOpportunities", () => {
         ({ confidenceLabel }) => confidenceLabel === "Good sample",
       ),
     ).toBe(true);
+    expect(
+      opportunities.find(({ stepId }) => stepId === "mat-a-buy")?.title,
+    ).toBe("Material / Supplier A / Buy");
   });
 
   it("uses current sample size for planning confidence", () => {

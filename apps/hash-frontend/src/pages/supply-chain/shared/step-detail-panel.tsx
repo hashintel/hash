@@ -28,7 +28,10 @@ import { MaterialTag } from "./material-tag";
 import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
-import { planningWarningTexts } from "./procurement-planning-ui";
+import {
+  planningWarningTexts,
+  procurementStepDisplayLabel,
+} from "./procurement-planning-ui";
 import {
   dwellStepScopesOpenCarryOnProduct,
   scopeDwellStepToProduct,
@@ -143,6 +146,20 @@ const metaItem = css({
   whiteSpace: "nowrap",
 });
 const metaDivider = css({ width: "[1px]", height: "3", bg: "bd.subtle" });
+const procurementMetaStack = css({
+  display: "inline-grid",
+  gridTemplateColumns: "[auto auto]",
+  columnGap: "2",
+  rowGap: "0.5",
+  alignItems: "baseline",
+});
+const metaLabel = css({ color: "fg.subtle" });
+const lastUpdatedStack = css({
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "0.5",
+});
 const strongText = css({ fontWeight: "medium", color: "fg.max" });
 const headerActions = css({
   display: "flex",
@@ -635,8 +652,12 @@ export const StepDetailPanel = ({
     if (!step?.label) {
       return undefined;
     }
-    return productName ? `${step.label}: ${productName}` : step.label;
-  }, [step?.label, productName]);
+    const label =
+      step.type === "procurement"
+        ? procurementStepDisplayLabel(step.label, "qualified")
+        : step.label;
+    return productName ? `${label}: ${productName}` : label;
+  }, [step, productName]);
   const defaultTableFilters = useMemo(
     (): DataTableFilters => ({ periodRange: timeRange }),
     [timeRange],
@@ -741,7 +762,11 @@ export const StepDetailPanel = ({
             <div className={titleRow}>
               <h2 className={titleStyles}>
                 <MaterialTag material={stepMaterial}>
-                  {step?.label ?? "Loading..."}
+                  {step
+                    ? step.type === "procurement"
+                      ? procurementStepDisplayLabel(step.label, "qualified")
+                      : step.label
+                    : "Loading..."}
                 </MaterialTag>
               </h2>
               <div className={titleActions}>
@@ -782,40 +807,29 @@ export const StepDetailPanel = ({
                   previousCount={periodComparison.previousStats?.n ?? 0}
                 />
                 {filteredStep.type === "procurement" && (
-                  <>
-                    <span className={metaItem}>
-                      <span className={metaDivider} />
-                      <span>
-                        <span className={strongText}>
-                          {filteredStep.supplier_name ??
-                            filteredStep.supplier_id ??
-                            "Unknown"}
-                        </span>{" "}
-                        <span className={css({ color: "fg.subtle" })}>
-                          Supplier
-                        </span>
+                  <span className={metaItem}>
+                    <span className={metaDivider} />
+                    <span className={procurementMetaStack}>
+                      <span className={metaLabel}>Supplier</span>
+                      <span className={strongText}>
+                        {filteredStep.supplier_name ??
+                          filteredStep.supplier_id ??
+                          "Unknown"}
                       </span>
-                    </span>
-                    <span className={metaItem}>
-                      <span className={metaDivider} />
-                      <span>
-                        <span className={strongText}>
+                      <span className={metaLabel}>Basis</span>
+                      <span className={strongText}>
+                        {
                           {
-                            {
-                              ordinary: "Buy",
-                              consignment: "Consignment",
-                              subcontract: "Subcontract",
-                              mixed: "Mixed",
-                              unknown: "Unknown",
-                            }[filteredStep.receipt_basis ?? "unknown"]
-                          }
-                        </span>{" "}
-                        <span className={css({ color: "fg.subtle" })}>
-                          Basis
-                        </span>
+                            ordinary: "Buy",
+                            consignment: "Consignment",
+                            subcontract: "Subcontract",
+                            mixed: "Mixed",
+                            unknown: "Unknown",
+                          }[filteredStep.receipt_basis ?? "unknown"]
+                        }
                       </span>
                     </span>
-                  </>
+                  </span>
                 )}
 
                 {excludeOutliers && (filteredStep.excluded_count ?? 0) > 0 && (
@@ -832,11 +846,9 @@ export const StepDetailPanel = ({
                 {lastObsDate && (
                   <span className={metaItem}>
                     <span className={metaDivider} />
-                    <span>
-                      <span className={strongText}>{lastObsDate}</span>{" "}
-                      <span className={css({ color: "fg.subtle" })}>
-                        Last updated
-                      </span>
+                    <span className={lastUpdatedStack}>
+                      <span className={strongText}>{lastObsDate}</span>
+                      <span className={metaLabel}>Last updated</span>
                     </span>
                   </span>
                 )}

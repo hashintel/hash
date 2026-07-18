@@ -6,6 +6,18 @@ import type {
   ProcurementPlanningSource,
 } from "./types";
 
+const PROCUREMENT_LABEL_SEPARATOR = " — ";
+
+export function procurementStepDisplayLabel(
+  label: string,
+  presentation: "compact" | "qualified",
+): string {
+  if (presentation === "compact") {
+    return label.split(PROCUREMENT_LABEL_SEPARATOR)[0] ?? label;
+  }
+  return label.split(PROCUREMENT_LABEL_SEPARATOR).join(" / ");
+}
+
 function planningValueLabel(value: number | null): string {
   return value == null
     ? "–"
@@ -48,33 +60,4 @@ export function planningWarningTexts(
         .filter(Boolean),
     ),
   );
-}
-
-export function observedSpreadNote(values: number[]): string | null {
-  const vals = values
-    .filter((value) => Number.isFinite(value))
-    .sort((left, right) => left - right);
-  const count = vals.length;
-  if (count < 10) {
-    return null;
-  }
-  const percentile = (product: number) => {
-    const idx = Math.min(
-      count - 1,
-      Math.max(0, Math.round((product / 100) * (count - 1))),
-    );
-    const value = vals[idx];
-    if (value === undefined) {
-      throw new Error(
-        "Percentile index was outside the observed spread series",
-      );
-    }
-    return value;
-  };
-  const median = percentile(50);
-  const p25 = percentile(25);
-  const p75 = percentile(75);
-  const fmtDays = (value: number) =>
-    `${formatNumber(value, { maximumFractionDigits: Number.isInteger(value) ? 0 : 1 })}d`;
-  return `Median ${fmtDays(median)} · middle 50% of events: ${fmtDays(p25)}–${fmtDays(p75)} · n=${count}`;
 }

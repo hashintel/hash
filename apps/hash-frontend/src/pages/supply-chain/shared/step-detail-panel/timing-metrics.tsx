@@ -22,10 +22,7 @@ import {
 
 import type { BaseMeasure } from "../measure-context";
 import type { TimeRange } from "../time-range";
-import type {
-  InventoryPolicySource,
-  StepDetail as StepDetailType,
-} from "../types";
+import type { StepDetail as StepDetailType } from "../types";
 
 const card = css({
   borderWidth: "1px",
@@ -130,7 +127,6 @@ const policyCell = css({
   borderRightColor: "bd.subtle",
   _last: { borderRightWidth: "0" },
 });
-const policySource = css({ mt: "1", textStyle: "xs", color: "fg.subtle" });
 const policyWarnings = css({
   borderTopWidth: "1px",
   borderTopStyle: "solid",
@@ -146,17 +142,6 @@ const policyQuantity = (value: number, uom: string | null): string => {
   return uom ? `${quantity} ${uom}` : quantity;
 };
 
-const sourceLabel = (
-  source: InventoryPolicySource | null,
-  field: "minimum" | "safety",
-): string => {
-  if (!source) {
-    return "";
-  }
-  const sourceField = field === "minimum" ? source.minimum_field : source.field;
-  return [source.system, source.table, sourceField].filter(Boolean).join(" · ");
-};
-
 export const InventoryPolicyRow = ({ step }: { step: StepDetailType }) => {
   const policy = step.inventory_policy;
   if (!policy) {
@@ -168,14 +153,12 @@ export const InventoryPolicyRow = ({ step }: { step: StepDetailType }) => {
       ? {
           label: "Minimum order quantity",
           value: policyQuantity(policy.minimum_order_qty, policy.order_uom),
-          source: sourceLabel(policy.minimum_order_source, "minimum"),
         }
       : null,
     policy.order_multiple_qty != null
       ? {
           label: "Order multiple",
           value: policyQuantity(policy.order_multiple_qty, policy.order_uom),
-          source: sourceLabel(policy.minimum_order_source, "minimum"),
         }
       : null,
     policy.safety_stock_qty != null
@@ -185,7 +168,6 @@ export const InventoryPolicyRow = ({ step }: { step: StepDetailType }) => {
             policy.safety_stock_qty,
             policy.safety_stock_uom,
           ),
-          source: sourceLabel(policy.safety_stock_source, "safety"),
         }
       : null,
   ].filter((cell): cell is NonNullable<typeof cell> => cell != null);
@@ -201,7 +183,6 @@ export const InventoryPolicyRow = ({ step }: { step: StepDetailType }) => {
           <div key={cell.label} className={policyCell}>
             <div className={label}>{cell.label}</div>
             <div className={cx(valueBase, valueStrong)}>{cell.value}</div>
-            {cell.source && <div className={policySource}>{cell.source}</div>}
           </div>
         ))}
       </div>

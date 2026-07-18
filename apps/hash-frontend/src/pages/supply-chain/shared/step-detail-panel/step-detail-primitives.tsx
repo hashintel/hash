@@ -3,7 +3,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { formatNumber } from "../cost";
 import { countNoun, countTooltip } from "../observation-labels";
-import { observedSpreadNote } from "../procurement-planning-ui";
 import { formatMonthLabel, previousPeriodLabel } from "./step-detail-format";
 
 import type { PeriodComparison } from "../period-trends";
@@ -118,11 +117,6 @@ const deltaValueBase = css({
 });
 
 const statsWrap = css({ display: "flex", flexDirection: "column", gap: "1.5" });
-const spreadNoteText = css({
-  textStyle: "xs",
-  color: "fg.subtle",
-  letterSpacing: "[0.1px]",
-});
 const normNoteText = css({
   textStyle: "xs",
   color: "fg.muted",
@@ -372,7 +366,6 @@ export const StatsRow = ({
   };
 
   const prevRangeLabel = previousPeriodLabel(comparison?.previousRange);
-  const spreadNote = unit === "d" ? observedSpreadNote(step.durations) : null;
   const norm = step.normalization;
 
   return (
@@ -384,14 +377,6 @@ export const StatsRow = ({
           {formatNumber(norm.qty, { maximumFractionDigits: 0 })}{" "}
           {norm.unit ?? ""} batch ({norm.basis}; n={norm.n_batches},{" "}
           {norm.window})
-        </div>
-      )}
-      {spreadNote && (
-        <div
-          className={spreadNoteText}
-          title="Half of the event values were in this range. This describes the spread of the actual data; it is not a prediction or confidence interval."
-        >
-          {spreadNote}
         </div>
       )}
       <div className={statsGrid}>

@@ -7,6 +7,8 @@ export type Tab = "dwell" | "planning" | "trends" | "suppliers";
 export type SortKey =
   | "median"
   | "cost"
+  | "moq"
+  | "safetyStock"
   | "material"
   | "deviation"
   | "exceeding"
@@ -16,6 +18,8 @@ export type SortKey =
   | "previous"
   | "sample"
   | "status"
+  | "supplier"
+  | "basis"
   | "impact"
   | "opportunity"
   | "vendor"

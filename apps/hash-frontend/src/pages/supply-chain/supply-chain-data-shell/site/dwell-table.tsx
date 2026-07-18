@@ -128,10 +128,24 @@ export const DwellTable = ({
               />
             </th>
             <th className={threshold.thRight}>
-              <ColumnHeader label="MOQ" />
+              <ColumnHeader
+                label="MOQ"
+                sort={{
+                  active: sort.key === "moq",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("moq"),
+                }}
+              />
             </th>
             <th className={threshold.thRight}>
-              <ColumnHeader label="Safety stock" />
+              <ColumnHeader
+                label="Safety stock"
+                sort={{
+                  active: sort.key === "safetyStock",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("safetyStock"),
+                }}
+              />
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
@@ -182,7 +196,7 @@ export const DwellTable = ({
               <td className={threshold.td}>
                 <div className={threshold.cellFlex}>
                   <span
-                    className={threshold.catDot}
+                    className={cx(threshold.catDot, threshold.stepDot)}
                     style={{ backgroundColor: getCategoryColor(row.type) }}
                   />
 
@@ -192,7 +206,7 @@ export const DwellTable = ({
                 </div>
               </td>
               <td className={threshold.td}>
-                <ProductTags products={row.products} />
+                <ProductTags products={row.products} maxVisible={12} />
               </td>
               <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>
@@ -209,34 +223,30 @@ export const DwellTable = ({
                 </div>
               </td>
               <td className={threshold.tdRight}>
-                <div className={threshold.stackedCell}>
-                  <span className={threshold.valueStrong}>
-                    {formatPolicyQuantity(
-                      row.inventory_policy?.minimum_order_qty,
-                      row.inventory_policy?.order_uom,
-                    )}
-                  </span>
-                  {row.inventory_policy?.minimum_order_source?.system && (
-                    <span className={threshold.stackedTrend}>
-                      {row.inventory_policy.minimum_order_source.system}
-                    </span>
+                <span
+                  className={cx(
+                    threshold.valueStrong,
+                    threshold.policyQuantity,
                   )}
-                </div>
+                >
+                  {formatPolicyQuantity(
+                    row.inventory_policy?.minimum_order_qty,
+                    row.inventory_policy?.order_uom,
+                  )}
+                </span>
               </td>
               <td className={threshold.tdRight}>
-                <div className={threshold.stackedCell}>
-                  <span className={threshold.valueStrong}>
-                    {formatPolicyQuantity(
-                      row.inventory_policy?.safety_stock_qty,
-                      row.inventory_policy?.safety_stock_uom,
-                    )}
-                  </span>
-                  {row.inventory_policy?.safety_stock_source?.system && (
-                    <span className={threshold.stackedTrend}>
-                      {row.inventory_policy.safety_stock_source.system}
-                    </span>
+                <span
+                  className={cx(
+                    threshold.valueStrong,
+                    threshold.policyQuantity,
                   )}
-                </div>
+                >
+                  {formatPolicyQuantity(
+                    row.inventory_policy?.safety_stock_qty,
+                    row.inventory_policy?.safety_stock_uom,
+                  )}
+                </span>
               </td>
               <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>

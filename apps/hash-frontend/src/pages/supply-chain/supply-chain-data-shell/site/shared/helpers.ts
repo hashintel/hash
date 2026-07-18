@@ -100,6 +100,20 @@ export function sortRows(
     } else if (sort.key === "cost") {
       va = left.periodCost;
       vb = right.periodCost;
+    } else if (sort.key === "moq") {
+      const nullRank =
+        sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY;
+      va = left.inventory_policy?.minimum_order_qty ?? nullRank;
+      vb = right.inventory_policy?.minimum_order_qty ?? nullRank;
+    } else if (sort.key === "safetyStock") {
+      const nullRank =
+        sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY;
+      va = left.inventory_policy?.safety_stock_qty ?? nullRank;
+      vb = right.inventory_policy?.safety_stock_qty ?? nullRank;
     } else if (sort.key === "sample") {
       va = left.stats.n;
       vb = right.stats.n;
@@ -128,6 +142,19 @@ export function sortPlanningRows(
   sort: { key: SortKey; dir: SortDir },
   measure: BaseMeasure = "median",
 ): PlanningRow[] {
+  const basisSortLabel = (row: PlanningRow): string => {
+    if (row.type !== "procurement") {
+      return "–";
+    }
+    return {
+      ordinary: "Buy",
+      consignment: "Consignment",
+      subcontract: "Subcontract",
+      mixed: "Mixed",
+      unknown: "Unknown",
+    }[row.receipt_basis ?? "unknown"];
+  };
+
   return [...rows].sort((left, right) => {
     let va = 0;
     let vb = 0;
@@ -169,6 +196,24 @@ export function sortPlanningRows(
         (sort.dir === "desc"
           ? Number.NEGATIVE_INFINITY
           : Number.POSITIVE_INFINITY);
+    } else if (sort.key === "supplier") {
+      const leftSupplier =
+        left.type === "procurement"
+          ? (left.supplier_name ?? left.supplier_id ?? "Unknown")
+          : "–";
+      const rightSupplier =
+        right.type === "procurement"
+          ? (right.supplier_name ?? right.supplier_id ?? "Unknown")
+          : "–";
+      return sort.dir === "desc"
+        ? rightSupplier.localeCompare(leftSupplier)
+        : leftSupplier.localeCompare(rightSupplier);
+    } else if (sort.key === "basis") {
+      const leftBasis = basisSortLabel(left);
+      const rightBasis = basisSortLabel(right);
+      return sort.dir === "desc"
+        ? rightBasis.localeCompare(leftBasis)
+        : leftBasis.localeCompare(rightBasis);
     } else if (sort.key === "material") {
       return sort.dir === "desc"
         ? right.label.localeCompare(left.label)

@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  observedSpreadNote,
   planningWarningTexts,
   procurementPlanningTooltipLines,
+  procurementStepDisplayLabel,
 } from "./procurement-planning-ui";
 
 describe("procurement planning UI", () => {
+  it("formats procurement labels for qualified and compact displays", () => {
+    const label = "Procurement: Material — Supplier A — Buy";
+
+    expect(procurementStepDisplayLabel(label, "qualified")).toBe(
+      "Procurement: Material / Supplier A / Buy",
+    );
+    expect(procurementStepDisplayLabel(label, "compact")).toBe(
+      "Procurement: Material",
+    );
+  });
+
   it("uses producer labels for the applicable source and distinct alternatives", () => {
     const source = {
       label: "Preferred source",
@@ -48,15 +59,5 @@ describe("procurement planning UI", () => {
         { code: "three", level: "info", text: "Audit metadata." },
       ]),
     ).toEqual(["Review this parameter."]);
-  });
-
-  it("suppresses observed spread below ten samples", () => {
-    expect(observedSpreadNote([1, 2, 3, 4, 5, 6, 7, 8, 9])).toBeNull();
-  });
-
-  it("retains the middle-50% spread for ten or more samples", () => {
-    expect(observedSpreadNote([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])).toBe(
-      "Median 6d · middle 50% of events: 3d–8d · n=10",
-    );
   });
 });

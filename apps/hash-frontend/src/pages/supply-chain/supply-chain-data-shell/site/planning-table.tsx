@@ -1,4 +1,6 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { useMemo } from "react";
+
+import { cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
@@ -9,6 +11,7 @@ import {
   useBaseMeasure,
 } from "../../shared/measure-context";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
+import { procurementStepDisplayLabel } from "../../shared/procurement-planning-ui";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -17,6 +20,7 @@ import {
   type StatusStore,
 } from "../../shared/status";
 import { TrendIndicator } from "../../shared/trend-indicator";
+import { buildColumnFilter, countBy } from "./shared/column-filter";
 import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortPlanningRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
@@ -32,8 +36,6 @@ import { useStepTableView } from "./shared/use-step-table-view";
 
 import type { SiteNode, StepType } from "../../shared/types";
 
-const planNote = css({ textStyle: "xxs", color: "fg.subtle", ml: "4" });
-
 function basisLabel(row: PlanningRow): string {
   if (row.type !== "procurement") {
     return "–";
@@ -45,6 +47,19 @@ function basisLabel(row: PlanningRow): string {
     mixed: "Mixed",
     unknown: "Unknown",
   }[row.receipt_basis ?? "unknown"];
+}
+
+function supplierLabel(row: PlanningRow): string {
+  return row.type === "procurement"
+    ? (row.supplier_name ?? row.supplier_id ?? "Unknown")
+    : "–";
+}
+
+function planningStepLabel(row: PlanningRow): string {
+  const label = siteNodeDisplayLabel(row);
+  return row.type === "procurement"
+    ? procurementStepDisplayLabel(label, "compact")
+    : label;
 }
 
 function isLowSample(row: PlanningRow): boolean {
@@ -90,6 +105,10 @@ export const PlanningTable = ({
   onTypeHiddenChange,
   productHidden,
   onProductHiddenChange,
+  supplierHidden,
+  onSupplierHiddenChange,
+  basisHidden,
+  onBasisHiddenChange,
   statusHidden,
   onStatusHiddenChange,
 }: {
@@ -105,28 +124,76 @@ export const PlanningTable = ({
   onTypeHiddenChange: (next: Set<StepType>) => void;
   productHidden: Set<string>;
   onProductHiddenChange: (next: Set<string>) => void;
+  supplierHidden: Set<string>;
+  onSupplierHiddenChange: (next: Set<string>) => void;
+  basisHidden: Set<string>;
+  onBasisHiddenChange: (next: Set<string>) => void;
   statusHidden: Set<StatusActionLabel>;
   onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
   const measureLabel = MEASURE_LABELS[measure];
 
-  const { typeFilter, productFilter, statusFilter, displayedRows, toggleSort } =
-    useStepTableView<PlanningRow>({
-      rows,
-      siteId,
-      sort,
-      onSort,
-      statusHistory,
-      typeHidden,
-      onTypeHiddenChange,
-      productHidden,
-      onProductHiddenChange,
-      statusHidden,
-      onStatusHiddenChange,
-      sortRows: sortPlanningRows,
-      source: "planning_table",
+  const {
+    typeFilter,
+    productFilter,
+    statusFilter,
+    displayedRows: stepFilteredRows,
+    toggleSort,
+  } = useStepTableView<PlanningRow>({
+    rows,
+    siteId,
+    sort,
+    onSort,
+    statusHistory,
+    typeHidden,
+    onTypeHiddenChange,
+    productHidden,
+    onProductHiddenChange,
+    statusHidden,
+    onStatusHiddenChange,
+    sortRows: sortPlanningRows,
+    source: "planning_table",
+  });
+
+  const supplierFilter = useMemo(() => {
+    const values = [...new Set(rows.map(supplierLabel))].sort((left, right) =>
+      left.localeCompare(right),
+    );
+    return buildColumnFilter<string>({
+      header: "Supplier",
+      values,
+      labelOf: (supplier) => supplier,
+      counts: countBy(rows, supplierLabel),
+      hidden: supplierHidden,
+      onHiddenChange: onSupplierHiddenChange,
     });
+  }, [rows, supplierHidden, onSupplierHiddenChange]);
+
+  const basisFilter = useMemo(() => {
+    const values = [...new Set(rows.map(basisLabel))].sort((left, right) =>
+      left.localeCompare(right),
+    );
+    return buildColumnFilter<string>({
+      header: "Basis",
+      values,
+      labelOf: (basis) => basis,
+      counts: countBy(rows, basisLabel),
+      hidden: basisHidden,
+      onHiddenChange: onBasisHiddenChange,
+      searchable: false,
+    });
+  }, [rows, basisHidden, onBasisHiddenChange]);
+
+  const displayedRows = useMemo(
+    () =>
+      stepFilteredRows.filter(
+        (row) =>
+          !supplierHidden.has(supplierLabel(row)) &&
+          !basisHidden.has(basisLabel(row)),
+      ),
+    [stepFilteredRows, supplierHidden, basisHidden],
+  );
 
   return (
     <div
@@ -148,10 +215,26 @@ export const PlanningTable = ({
               />
             </th>
             <th className={threshold.th}>
-              <ColumnHeader label="Supplier" />
+              <ColumnHeader
+                label="Supplier"
+                sort={{
+                  active: sort.key === "supplier",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("supplier"),
+                }}
+                filter={supplierFilter}
+              />
             </th>
             <th className={threshold.th}>
-              <ColumnHeader label="Basis" />
+              <ColumnHeader
+                label="Basis"
+                sort={{
+                  active: sort.key === "basis",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("basis"),
+                }}
+                filter={basisFilter}
+              />
             </th>
             <th className={threshold.th}>
               <ColumnHeader label="Products" filter={productFilter} />
@@ -238,32 +321,26 @@ export const PlanningTable = ({
               >
                 <td className={threshold.td}>
                   <div className={threshold.cellFlex}>
-                    <span
-                      className={threshold.catDot}
-                      style={{ backgroundColor: getCategoryColor(row.type) }}
-                    />
-
-                    <span className={threshold.stepLabel}>
-                      {siteNodeDisplayLabel(row)}
-                    </span>
-                    {row.type === "procurement" && (
-                      <PlanningWarningIndicator
-                        warnings={row.planning_warnings}
+                    <span className={threshold.stepMarker}>
+                      <span
+                        className={cx(threshold.catDot, threshold.stepDot)}
+                        style={{ backgroundColor: getCategoryColor(row.type) }}
                       />
-                    )}
+                      {row.type === "procurement" && (
+                        <PlanningWarningIndicator
+                          warnings={row.planning_warnings}
+                        />
+                      )}
+                    </span>
+                    <span className={threshold.stepLabel}>
+                      {planningStepLabel(row)}
+                    </span>
                   </div>
-                  {row.plan_note !== "No planning parameter set" && (
-                    <span className={planNote}>{row.plan_note}</span>
-                  )}
                 </td>
-                <td className={threshold.td}>
-                  {row.type === "procurement"
-                    ? (row.supplier_name ?? row.supplier_id ?? "Unknown")
-                    : "–"}
-                </td>
+                <td className={threshold.td}>{supplierLabel(row)}</td>
                 <td className={threshold.td}>{basisLabel(row)}</td>
                 <td className={threshold.td}>
-                  <ProductTags products={row.products} />
+                  <ProductTags products={row.products} maxVisible={12} />
                 </td>
                 <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                   {formatNumber(row.plan, { maximumFractionDigits: 0 })}d
@@ -307,7 +384,8 @@ export const PlanningTable = ({
                       : undefined
                   }
                 >
-                  <span className={threshold.sampleCell}>
+                  <span className={threshold.stackedCell}>
+                    <TrendIndicator pctChange={row.trendPct} />
                     {isLowSample(row) && (
                       <span className={threshold.badgeWrap}>
                         <LowSampleBadge
@@ -321,7 +399,6 @@ export const PlanningTable = ({
                         />
                       </span>
                     )}
-                    <TrendIndicator pctChange={row.trendPct} />
                   </span>
                 </td>
                 <td className={cx(threshold.tdRight, threshold.valueMuted)}>
