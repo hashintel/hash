@@ -7,18 +7,19 @@
 use alloc::borrow::Cow;
 
 use super::{
-    Card, CardContext, CardError, CardsConfig, Cl100kTokenizer, HeuristicTokenizer,
-    IdentifierLeakError, ReservedTokenError, Tokenizer as _, UnicodeSegmenter, build_card,
+    CardContext, CardsConfig, Cl100kTokenizer, UnicodeSegmenter, build_card,
     constraints::{Constraints, Direction, EndpointConstraint},
     contents::CardContents,
     epilogue::Epilogue,
     example::Example,
+    format::{Card, CardError},
     group::GroupItem,
-    lint_card_text,
+    lint::{IdentifierLeakError, lint_card_text},
     phrase::Phrase,
     prelude::Prelude,
     select::{Candidate, DEFAULT_GROUP_SLOT_CAP, Group, Selected, select_diverse_examples},
     text::slugify,
+    token::{HeuristicTokenizer, ReservedTokenError, Tokenizer as _},
 };
 
 const BIG: usize = 10_000_000;
@@ -159,6 +160,17 @@ fn owns_contents() -> CardContents<'static> {
         },
         ..minimal_contents("owns")
     }
+}
+
+#[test]
+fn verbatim_adopts_text_with_heuristic_diagnostics() {
+    let card = Card::verbatim("Relation: fixture".to_owned());
+
+    assert_eq!(card.card_text(), "Relation: fixture");
+    // 17 UTF-8 bytes count as ceil(17 / 4) = 5 heuristic tokens.
+    assert_eq!(card.token_count(), 5);
+    assert!(card.truncations().is_empty());
+    assert!(!card.severely_truncated());
 }
 
 #[test]

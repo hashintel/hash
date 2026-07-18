@@ -1,4 +1,3 @@
-use core::pin::Pin;
 use std::collections::HashMap;
 
 use futures::TryStreamExt as _;
@@ -14,7 +13,7 @@ use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 use super::{
     ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId, CANONICAL_DIMENSIONS,
     Dataset as _, Edge, EdgeRowId, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
-    memory::MemoryDataset,
+    card::Card, memory::MemoryDataset,
 };
 use crate::math::{BoxedVecN, VecN};
 
@@ -131,7 +130,10 @@ fn fixture() -> MemoryDataset {
             },
         ],
         HashMap::from([(10, BoxedVecN::new(&VecN::new(canonical_components)))]),
-        HashMap::from([(31, "Link type card".to_owned())]),
+        HashMap::from([
+            (30, Card::verbatim("Root type card".to_owned())),
+            (31, Card::verbatim("Link type card".to_owned())),
+        ]),
     )
 }
 
@@ -203,13 +205,19 @@ async fn memory_dataset_serves_canonical_embeddings() {
 async fn memory_dataset_renders_cards() {
     let dataset = fixture();
 
-    let mut card = Vec::new();
-    dataset
-        .render_card(U64::new(31), Pin::new(&mut card))
+    let cards: Vec<_> = dataset
+        .render_cards()
+        .try_collect()
         .await
-        .expect("should render into an in-memory writer");
+        .expect("the fixture holds a card for every ontology row");
 
-    assert_eq!(card, b"Link type card");
+    assert_eq!(
+        cards,
+        [
+            (U64::new(30), Card::verbatim("Root type card".to_owned())),
+            (U64::new(31), Card::verbatim("Link type card".to_owned())),
+        ]
+    );
 }
 
 #[test]

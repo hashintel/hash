@@ -1,23 +1,29 @@
 //! A [`Dataset`] over the live HASH graph store.
 
-use core::{error::Error, fmt, pin::Pin};
+use core::{error::Error, fmt};
 use std::io;
 
-use futures::{FutureExt as _, Stream, TryStreamExt as _};
+use futures::{FutureExt as _, Stream, TryStreamExt as _, stream};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use smallvec::SmallVec;
-use tokio::io::AsyncWrite;
+use tokio::sync::OnceCell;
 use tokio_postgres::{
     IsolationLevel, Row, Transaction,
     types::{FromSql, ToSql, Type},
 };
 use uuid::Uuid;
 
+pub(crate) use self::card::CardParameters;
 use super::{
     ArchivedEntityId, ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Dataset, Edge, Node,
-    NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS, memory::write_all,
+    NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
+    card::{
+        Card, CardContext, Cl100kTokenizer, UnicodeSegmenter, build_card, hash::build_contents,
+    },
 };
 use crate::math::BoxedVecN;
+
+mod card;
 
 /// The bitemporal point one dataset observes.
 ///
@@ -44,28 +50,22 @@ impl TemporalAxes {
     }
 }
 
-/// The scope and type-table derivation shared by every query.
+/// The node universe shared by every corpus query.
 ///
 /// `$1` is the transaction-time point and `$2` the decision-time point of
 /// the dataset's [`TemporalAxes`].
 ///
-/// `scope` is the node universe: every non-draft, non-archived entity
-/// holding a whole-entity embedding whose edition is current at the
-/// dataset's temporal axes, with its dense row assigned by canonical
-/// `(web_id, entity_uuid)` order. `links` pairs each link
-/// entity's left and right attachments and densifies both endpoints
-/// through `scope`, so links with out-of-scope endpoints drop out here.
-/// `type_set` collects every type reachable from scope or links at any
-/// inheritance depth (the store materializes closures, so all-depth rows
-/// are exactly the closure), and `ordinals` assigns dense type rows by
-/// uuid byte order.
+/// `scope` is every non-draft, non-archived entity holding a
+/// whole-entity embedding whose edition is current at the dataset's
+/// temporal axes, with its dense row assigned by canonical
+/// `(web_id, entity_uuid)` order.
 //
 // The embeddings table's own `draft_id` column is deliberately not
 // consulted: the unique index `(web_id, entity_uuid, property)` NULLS NOT
 // DISTINCT already guarantees one whole-entity row per identity, and the
 // draft axis is decided by `entity_temporal_metadata.draft_id IS NULL`.
-const COMMON_TABLE_EXPRESSIONS: &str = "
-    WITH scope AS (
+const SCOPE: &str = "
+    scope AS (
         SELECT
             meta.web_id,
             meta.entity_uuid,
@@ -82,7 +82,14 @@ const COMMON_TABLE_EXPRESSIONS: &str = "
           ON edition.entity_edition_id = meta.entity_edition_id
          AND NOT edition.archived
         WHERE embedding.property IS NULL
-    ),
+    )";
+
+/// The link universe, composed after [`SCOPE`].
+///
+/// `links` pairs each link entity's left and right attachments and
+/// densifies both endpoints through `scope`, so links with out-of-scope
+/// endpoints drop out here.
+const LINKS: &str = "
     links AS (
         SELECT
             left_edge.source_web_id AS web_id,
@@ -115,24 +122,33 @@ const COMMON_TABLE_EXPRESSIONS: &str = "
          AND NOT edition.archived
         WHERE left_edge.kind = 'has-left-entity'
           AND left_edge.direction = 'outgoing'
-    ),
-    type_set AS (
-        SELECT DISTINCT is_of_type.entity_type_ontology_id AS ontology_id
-        FROM (
-            SELECT entity_edition_id FROM scope
-            UNION ALL
-            SELECT entity_edition_id FROM links
-        ) AS editions
-        JOIN entity_is_of_type AS is_of_type
-          ON is_of_type.entity_edition_id = editions.entity_edition_id
-    ),
-    ordinals AS (
+    )";
+
+/// The `type_rows` CTE: per-edition ordinal arrays over the type table.
+///
+/// `$3` is the ordinal-ordered type table and `editions` names the CTE
+/// whose rows receive their direct-type ordinals. The aggregation is
+/// set-based over one hash join, so its cost scales with the edition
+/// count, not with rendered output rows.
+fn type_rows_cte(editions: &str) -> String {
+    format!(
+        "
+    type_rows AS (
         SELECT
-            ontology_id,
-            row_number() OVER (ORDER BY ontology_id) - 1 AS ordinal
-        FROM type_set
+            is_of_type.entity_edition_id,
+            array_agg(mapping.ordinal ORDER BY mapping.ordinal) AS ordinals
+        FROM entity_is_of_type AS is_of_type
+        JOIN (
+            SELECT ontology_id, ordinality - 1 AS ordinal
+            FROM unnest($3::uuid[]) WITH ORDINALITY AS mapping(ontology_id, ordinality)
+        ) AS mapping
+          ON mapping.ontology_id = is_of_type.entity_type_ontology_id
+        WHERE is_of_type.inheritance_depth = 0
+          AND is_of_type.entity_edition_id IN (SELECT entity_edition_id FROM {editions})
+        GROUP BY is_of_type.entity_edition_id
+    )"
     )
-";
+}
 
 /// A failure while reading from the graph store.
 #[derive(Debug)]
@@ -318,14 +334,42 @@ fn decode_edge(row: &Row) -> Result<Edge<ArchivedEntityId>, PostgresDatasetError
     })
 }
 
-fn decode_ontology(row: &Row) -> Result<Ontology<ArchivedOntologyTypeUuid>, PostgresDatasetError> {
-    let ontology_id: Uuid = row.try_get(0)?;
-    let parents: Vec<i64> = row.try_get(1)?;
+/// Renders one type's gathered facts into its finished card.
+fn render_card(
+    id: Uuid,
+    facts: &card::RelationFacts,
+    parameters: CardParameters,
+) -> io::Result<(ArchivedOntologyTypeUuid, Card)> {
+    let context = CardContext {
+        language: "en",
+        segmenter: UnicodeSegmenter,
+        tokenizer: Cl100kTokenizer,
+    };
 
-    Ok(Ontology {
-        id: ontology_id.into(),
-        parents: ontology_rows(parents)?,
-    })
+    let (type_facts, associations, examples) = facts.contents_inputs();
+    let Ok(contents) = build_contents(
+        type_facts,
+        associations,
+        examples,
+        parameters.example_count,
+        &context,
+    );
+    let Some(contents) = contents else {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("the stored constraints on {id} violate the card contract"),
+        ));
+    };
+
+    let card = build_card(
+        contents,
+        parameters.budgets,
+        &context.tokenizer,
+        &facts.forbidden_identifiers(),
+    )
+    .map_err(io::Error::other)?;
+
+    Ok((id.into(), card))
 }
 
 /// A [`Dataset`] reading one frozen view of the HASH graph store.
@@ -339,6 +383,10 @@ fn decode_ontology(row: &Row) -> Result<Ontology<ArchivedOntologyTypeUuid>, Post
 pub(crate) struct PostgresDataset<'client> {
     transaction: Transaction<'client>,
     axes: TemporalAxes,
+    type_table: OnceCell<Vec<Uuid>>,
+    /// Content-affecting card extraction controls, consumed by
+    /// [`render_cards`](Dataset::render_cards).
+    pub cards: CardParameters,
 }
 
 impl<'client> PostgresDataset<'client> {
@@ -348,7 +396,8 @@ impl<'client> PostgresDataset<'client> {
     /// The view stays frozen until the dataset is dropped. The axes are
     /// the fit's declared bitemporal inputs: record them in the
     /// generation metadata, and pass axes in the past to read the graph
-    /// as it stood then.
+    /// as it stood then. Card extraction starts from the default
+    /// [`CardParameters`]; assign [`cards`](Self::cards) to change them.
     ///
     /// # Errors
     ///
@@ -367,18 +416,67 @@ impl<'client> PostgresDataset<'client> {
             .start()
             .await?;
 
-        // The scope CTE materializes once per query and feeds two hash
-        // joins in the edge query; the default 4 MiB work_mem would spill
-        // both to disk at realistic corpus sizes.
+        // The scope CTE feeds several parallel hash joins per corpus
+        // query, and every parallel hash lives in the workers' shared
+        // memory, which Postgres allocates as power-of-two DSM segments
+        // (a 64MB work_mem still requested a 256MB segment). The edge
+        // query overflowed the 1 GiB /dev/shm of the containerized dev
+        // store at 64MB and above; 32MB runs it in memory at the
+        // million-entity scale.
         transaction
-            .batch_execute("SET LOCAL work_mem = '256MB'")
+            .batch_execute("SET LOCAL work_mem = '32MB'")
             .await?;
 
-        Ok(Self { transaction, axes })
+        Ok(Self {
+            transaction,
+            axes,
+            type_table: OnceCell::new(),
+            cards: CardParameters::default(),
+        })
     }
 
-    /// Issues `sql` with the dataset's temporal axes as `$1`/`$2` and
-    /// adapts the row stream through `decode`.
+    /// Returns the type table: every type reachable from the corpus at
+    /// any inheritance depth, in ordinal (uuid byte) order.
+    ///
+    /// The table bootstraps on first use by any stream and stays cached
+    /// for the dataset's lifetime; the frozen transaction guarantees
+    /// every later query observes the types the bootstrap saw. The store
+    /// materializes closures, so all-depth rows are exactly the closure.
+    async fn type_table(&self) -> Result<&[Uuid], PostgresDatasetError> {
+        self.type_table
+            .get_or_try_init(|| async {
+                let sql = format!(
+                    "WITH {SCOPE}, {LINKS}
+                    SELECT DISTINCT is_of_type.entity_type_ontology_id
+                    FROM (
+                        SELECT entity_edition_id FROM scope
+                        UNION ALL
+                        SELECT entity_edition_id FROM links
+                    ) AS editions
+                    JOIN entity_is_of_type AS is_of_type
+                      ON is_of_type.entity_edition_id = editions.entity_edition_id
+                    ORDER BY is_of_type.entity_type_ontology_id"
+                );
+
+                let rows = self
+                    .transaction
+                    .query(
+                        &sql,
+                        &[&self.axes.transaction_time, &self.axes.decision_time],
+                    )
+                    .await?;
+
+                rows.iter()
+                    .map(|row| row.try_get(0))
+                    .collect::<Result<Vec<Uuid>, _>>()
+                    .map_err(PostgresDatasetError::from)
+            })
+            .await
+            .map(Vec::as_slice)
+    }
+
+    /// Issues `sql` with the dataset's temporal axes as `$1`/`$2` and the
+    /// type table as `$3`, and adapts the row stream through `decode`.
     fn stream_query<'this, T>(
         &'this self,
         sql: String,
@@ -390,19 +488,23 @@ impl<'client> PostgresDataset<'client> {
         // The `async move` here is required, so that `sql` lives just enough for the stream to be
         // born, releasing the borrow.
         async move {
+            let types = self.type_table().await?;
+
             self.transaction
                 .query_raw(
                     &sql,
                     [
                         &self.axes.transaction_time as &(dyn ToSql + Sync),
                         &self.axes.decision_time as &(dyn ToSql + Sync),
+                        &types as &(dyn ToSql + Sync),
                     ],
                 )
                 .await
+                .map(|rows| rows.map_err(PostgresDatasetError::from))
+                .map_err(PostgresDatasetError::from)
         }
         .into_stream()
         .try_flatten()
-        .map_err(PostgresDatasetError::from)
         .and_then(move |row| core::future::ready(decode(&row)))
     }
 }
@@ -422,6 +524,10 @@ impl Dataset for PostgresDataset<'_> {
         > + use<'this, I>
     where
         Self: 'this;
+    type CardStream<'this>
+        = impl Stream<Item = io::Result<(ArchivedOntologyTypeUuid, Card)>> + 'this
+    where
+        Self: 'this;
     type EdgeStream<'this>
         = impl Stream<Item = Result<Edge<ArchivedEntityId>, PostgresDatasetError>> + 'this
     where
@@ -437,8 +543,9 @@ impl Dataset for PostgresDataset<'_> {
         Self: 'this;
 
     fn nodes(&self) -> Self::NodeStream<'_> {
+        let type_rows = type_rows_cte("scope");
         let sql = format!(
-            "{COMMON_TABLE_EXPRESSIONS}
+            "WITH {SCOPE}, {type_rows}
             SELECT
                 scope.web_id,
                 scope.entity_uuid,
@@ -446,7 +553,7 @@ impl Dataset for PostgresDataset<'_> {
                     subvector(embedding.embedding, 1, {PROJECTOR_DIMENSIONS})
                 )::vector({PROJECTOR_DIMENSIONS}),
                 edition.confidence,
-                COALESCE(types.ordinals, '{{}}')
+                COALESCE(type_rows.ordinals, '{{}}')
             FROM scope
             JOIN entity_embeddings AS embedding
               ON embedding.web_id = scope.web_id
@@ -454,14 +561,8 @@ impl Dataset for PostgresDataset<'_> {
              AND embedding.property IS NULL
             JOIN entity_editions AS edition
               ON edition.entity_edition_id = scope.entity_edition_id
-            LEFT JOIN LATERAL (
-                SELECT array_agg(ordinals.ordinal ORDER BY ordinals.ordinal) AS ordinals
-                FROM entity_is_of_type AS is_of_type
-                JOIN ordinals
-                  ON ordinals.ontology_id = is_of_type.entity_type_ontology_id
-                WHERE is_of_type.entity_edition_id = scope.entity_edition_id
-                  AND is_of_type.inheritance_depth = 0
-            ) AS types ON TRUE
+            LEFT JOIN type_rows
+              ON type_rows.entity_edition_id = scope.entity_edition_id
             ORDER BY scope.row"
         );
 
@@ -469,14 +570,15 @@ impl Dataset for PostgresDataset<'_> {
     }
 
     fn edges(&self) -> Self::EdgeStream<'_> {
+        let type_rows = type_rows_cte("links");
         let sql = format!(
-            "{COMMON_TABLE_EXPRESSIONS}
+            "WITH {SCOPE}, {LINKS}, {type_rows}
             SELECT
                 links.web_id,
                 links.entity_uuid,
                 links.source_row,
                 links.target_row,
-                COALESCE(types.ordinals, '{{}}'),
+                COALESCE(type_rows.ordinals, '{{}}'),
                 l2_normalize(
                     subvector(embedding.embedding, 1, {PROJECTOR_DIMENSIONS})
                 )::vector({PROJECTOR_DIMENSIONS}),
@@ -490,14 +592,8 @@ impl Dataset for PostgresDataset<'_> {
               ON embedding.web_id = links.web_id
              AND embedding.entity_uuid = links.entity_uuid
              AND embedding.property IS NULL
-            LEFT JOIN LATERAL (
-                SELECT array_agg(ordinals.ordinal ORDER BY ordinals.ordinal) AS ordinals
-                FROM entity_is_of_type AS is_of_type
-                JOIN ordinals
-                  ON ordinals.ontology_id = is_of_type.entity_type_ontology_id
-                WHERE is_of_type.entity_edition_id = links.entity_edition_id
-                  AND is_of_type.inheritance_depth = 0
-            ) AS types ON TRUE
+            LEFT JOIN type_rows
+              ON type_rows.entity_edition_id = links.entity_edition_id
             ORDER BY links.web_id, links.entity_uuid, links.source_row, links.target_row"
         );
 
@@ -505,24 +601,55 @@ impl Dataset for PostgresDataset<'_> {
     }
 
     fn ontology(&self) -> Self::OntologyStream<'_> {
-        let sql = format!(
-            "{COMMON_TABLE_EXPRESSIONS}
-            SELECT
-                ordinals.ontology_id,
-                COALESCE(parents.ordinals, '{{}}')
-            FROM ordinals
-            LEFT JOIN LATERAL (
-                SELECT array_agg(parent.ordinal ORDER BY parent.ordinal) AS ordinals
-                FROM entity_type_inherits_from AS inherits
-                JOIN ordinals AS parent
-                  ON parent.ontology_id = inherits.target_entity_type_ontology_id
-                WHERE inherits.source_entity_type_ontology_id = ordinals.ontology_id
-                  AND inherits.depth = 0
-            ) AS parents ON TRUE
-            ORDER BY ordinals.ordinal"
-        );
+        async move {
+            let types = self.type_table().await?;
 
-        self.stream_query(sql, decode_ontology)
+            // Parents outside the type table cannot occur: the store
+            // materializes closures per edition, so every depth-0 parent
+            // of a reachable type is itself reachable.
+            let rows = self
+                .transaction
+                .query(
+                    "SELECT
+                         inherits.source_entity_type_ontology_id,
+                         inherits.target_entity_type_ontology_id
+                     FROM entity_type_inherits_from AS inherits
+                     WHERE inherits.depth = 0
+                       AND inherits.source_entity_type_ontology_id = ANY($1::uuid[])
+                     ORDER BY
+                         inherits.source_entity_type_ontology_id,
+                         inherits.target_entity_type_ontology_id",
+                    &[&types],
+                )
+                .await
+                .map_err(PostgresDatasetError::from)?;
+
+            let mut parents = vec![SmallVec::<OntologyRowId, 2>::new(); types.len()];
+            for row in &rows {
+                let source: Uuid = row.try_get(0)?;
+                let target: Uuid = row.try_get(1)?;
+
+                let node = types
+                    .binary_search(&source)
+                    .expect("the parent query filters sources to the type table");
+                if let Ok(parent) = types.binary_search(&target) {
+                    let ordinal = u64::try_from(parent)
+                        .expect("the type table is shorter than u64::MAX rows");
+                    parents[node].push(OntologyRowId::new(ordinal));
+                }
+            }
+
+            Ok::<_, PostgresDatasetError>(stream::iter(types.iter().zip(parents).map(
+                |(id, parents)| {
+                    Ok(Ontology {
+                        id: (*id).into(),
+                        parents,
+                    })
+                },
+            )))
+        }
+        .into_stream()
+        .try_flatten()
     }
 
     fn canonical_node_embeddings<I: Iterator<Item = Self::NodeId>>(
@@ -569,73 +696,39 @@ impl Dataset for PostgresDataset<'_> {
             .map_err(PostgresDatasetError::Query)
     }
 
-    /// Renders the card for one ontology type into `write`.
+    /// Opens the stream of canonical relation cards, in ontology row
+    /// order.
     ///
-    /// The card lists the type's title and description, then the titles
-    /// and descriptions of its ancestors in ascending inheritance depth,
-    /// ties broken by type id, so equal ids produce equal bytes.
+    /// Each card is built from the store facts observed at the dataset's
+    /// temporal axes: the type's prose and ancestor chain, the source
+    /// types constraining it as a link, and pooled live link instances
+    /// as examples. A type that nothing constrains and nothing
+    /// instantiates as a link - every non-link entity type - renders
+    /// prose and ancestry alone. All facts arrive in one pass over the
+    /// store before the first card renders, so the per-card cost is
+    /// rendering alone. [`cards`](Self::cards) controls example
+    /// selection and the token budgets, and the rendered bytes are
+    /// deterministic in the dataset and those parameters.
     ///
-    /// # Errors
-    ///
-    /// Returns an error when the writer fails, when the store fails, or -
-    /// as [`io::ErrorKind::NotFound`] - when `id` names no type the store
-    /// holds.
-    async fn render_card<W>(
-        &self,
-        id: ArchivedOntologyTypeUuid,
-        mut write: Pin<&mut W>,
-    ) -> io::Result<()>
-    where
-        W: AsyncWrite + ?Sized,
-    {
-        let id = Uuid::from_bytes(id.0);
+    /// Items carry [`io::ErrorKind::InvalidData`] when a type's stored
+    /// constraints violate the card contract, and `io::Error::other`
+    /// when a query fails, a rendered text cannot be tokenized, or a
+    /// final text leaks a source identifier.
+    fn render_cards(&self) -> Self::CardStream<'_> {
+        async move {
+            let types = self.type_table().await.map_err(io::Error::other)?;
+            let facts = card::corpus_facts(&self.transaction, self.axes, self.cards, types)
+                .await
+                .map_err(io::Error::other)?;
 
-        let rows = self
-            .transaction
-            .query(
-                "SELECT
-                     types.schema ->> 'title',
-                     types.schema ->> 'description',
-                     chain.depth
-                 FROM (
-                     SELECT $1::uuid AS ontology_id, -1 AS depth
-                     UNION ALL
-                     SELECT inherits.target_entity_type_ontology_id, inherits.depth
-                     FROM entity_type_inherits_from AS inherits
-                     WHERE inherits.source_entity_type_ontology_id = $1::uuid
-                 ) AS chain
-                 JOIN entity_types AS types
-                   ON types.ontology_id = chain.ontology_id
-                 ORDER BY chain.depth, chain.ontology_id",
-                &[&id],
-            )
-            .await
-            .map_err(io::Error::other)?;
-
-        if rows.is_empty() {
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                format!("ontology type {id} is not in the store"),
-            ));
+            Ok::<_, io::Error>(stream::iter(
+                types
+                    .iter()
+                    .zip(facts)
+                    .map(|(id, facts)| render_card(*id, &facts, self.cards)),
+            ))
         }
-
-        let mut card = String::new();
-        for row in &rows {
-            let title: Option<&str> = row.try_get(0).map_err(io::Error::other)?;
-            let description: Option<&str> = row.try_get(1).map_err(io::Error::other)?;
-            let depth: i32 = row.try_get(2).map_err(io::Error::other)?;
-
-            if depth >= 0 {
-                card.push_str("\nInherits: ");
-            }
-            card.push_str(title.unwrap_or("(untitled)"));
-            if let Some(description) = description {
-                card.push('\n');
-                card.push_str(description);
-            }
-            card.push('\n');
-        }
-
-        write_all(write.as_mut(), card.as_bytes()).await
+        .into_stream()
+        .try_flatten()
     }
 }

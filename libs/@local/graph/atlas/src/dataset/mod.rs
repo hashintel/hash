@@ -1,12 +1,12 @@
 //! Fit inputs behind one trait.
 //!
 //! A [`Dataset`] is the pipeline's only window onto the graph it maps. It
-//! exposes three row-ordered streams - [`nodes`], [`edges`], and
-//! [`ontology`] - plus a card renderer and a probe fetch for canonical
-//! embeddings. Everything the fit learns about the graph arrives through
-//! these five methods; where the data physically lives (a live Postgres
-//! store, a synthetic fixture) is an implementation concern the pipeline
-//! cannot observe.
+//! exposes four row-ordered streams - [`nodes`], [`edges`], [`ontology`],
+//! and [`render_cards`] - plus a probe fetch for canonical embeddings.
+//! Everything the fit learns about the graph arrives through these five
+//! methods; where the data physically lives (a live Postgres store, a
+//! synthetic fixture) is an implementation concern the pipeline cannot
+//! observe.
 //!
 //! # Rows and identity
 //!
@@ -46,20 +46,21 @@
 //! [`nodes`]: Dataset::nodes
 //! [`edges`]: Dataset::edges
 //! [`ontology`]: Dataset::ontology
+//! [`render_cards`]: Dataset::render_cards
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use core::{ops::Deref, pin::Pin};
+use core::ops::Deref;
 use std::io;
 
 use futures::Stream;
 use smallvec::SmallVec;
-use tokio::io::AsyncWrite;
 use type_system::{
     knowledge::entity::id::EntityUuid, ontology::id::OntologyTypeUuid,
     principal::actor_group::WebId,
 };
 use zerocopy::{LE, U64};
 
+use self::card::Card;
 use crate::math::BoxedVecN;
 
 pub(crate) mod card;
@@ -308,6 +309,17 @@ impl OntologyRowId {
     pub(crate) const fn get(self) -> u64 {
         self.0.get()
     }
+
+    /// Returns the row as an index into a row-aligned column.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "row ids index in-memory columns, which cannot outgrow the address space"
+    )]
+    #[inline]
+    #[must_use]
+    pub(crate) const fn index(self) -> usize {
+        self.0.get() as usize
+    }
 }
 
 /// The byte-level form of a non-draft entity identity.
@@ -485,6 +497,11 @@ pub(crate) trait Dataset {
     where
         Self: 'this;
 
+    /// The stream of finished cards, in ontology row order.
+    type CardStream<'this>: Stream<Item = io::Result<(Self::OntologyId, Card)>>
+    where
+        Self: 'this;
+
     /// Opens the node stream.
     ///
     /// The `n`-th item occupies node row `n`. Every [`NodeRowId`] emitted
@@ -522,19 +539,21 @@ pub(crate) trait Dataset {
         nodes: I,
     ) -> Self::CanonicalNodeEmbeddingsStream<'_, I>;
 
-    /// Renders the card for one ontology type into `write`.
+    /// Opens the card stream.
     ///
-    /// The card is the UTF-8 text an embedding model consumes to represent
-    /// the type: title, description, and constraints, resolved through the
-    /// type's full inheritance chain. Rendering is deterministic for a
-    /// given dataset, so equal ids produce equal bytes.
+    /// The `n`-th item is the finished [`Card`] for ontology row `n`,
+    /// paired with the type's source identifier. The card text is what
+    /// an embedding model consumes to represent the type - title,
+    /// description, and constraints, resolved through the type's full
+    /// inheritance chain - and the card carries its budget diagnostics
+    /// (token count, truncation passes) for artifact metadata. One pass
+    /// renders every card, so implementations amortize fact gathering
+    /// across the whole type table. Rendering is deterministic for a
+    /// given dataset, so equal datasets produce equal bytes.
     ///
-    /// # Errors
-    ///
-    /// Returns an error when the writer fails or the underlying source
-    /// cannot deliver the card; source failures surface through
-    /// [`io::Error::other`].
-    async fn render_card<W>(&self, id: Self::OntologyId, write: Pin<&mut W>) -> io::Result<()>
-    where
-        W: AsyncWrite + ?Sized;
+    /// Items carry `io::Error`: source failures surface through
+    /// `io::Error::other`, and a type whose stored facts cannot render
+    /// under the card contract surfaces as [`io::ErrorKind::InvalidData`].
+    #[must_use]
+    fn render_cards(&self) -> Self::CardStream<'_>;
 }

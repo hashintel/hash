@@ -76,7 +76,6 @@ harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
 hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
-hash-graph-atlas.path               = "libs/@local/graph/atlas"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
@@ -241,7 +240,6 @@ rpds                               = { version = "1.1.2", default-features = fal
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
-schemars                           = { version = "1.2.1", default-features = false }
 semver                             = { version = "1.0.27", default-features = false }
 sentry                             = { version = "0.48.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 sentry-core                        = { version = "0.48.0", default-features = false }

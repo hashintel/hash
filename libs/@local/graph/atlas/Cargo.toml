@@ -22,9 +22,13 @@ uuid           = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
+camino.workspace               = true
 futures.workspace              = true
+hannoy                         = "0.1.7-nested-rtxns"
+heed                           = "0.22.1"
 memchr.workspace               = true
 pin-project-lite.workspace     = true
+rand_core_06                   = { version = "0.6", package = "rand_core" }
 rayon                          = { workspace = true }
 regex                          = { workspace = true }
 serde                          = { workspace = true, features = ["derive"] }
@@ -33,6 +37,7 @@ sha2                           = { workspace = true }
 simple-mermaid                 = { workspace = true }
 sleef                          = "0.3"
 smallvec.workspace             = true
+sprs                           = "0.11.4"
 tiktoken-rs                    = "0.12.0"
 unicode-segmentation.workspace = true
 unidecode                      = "0.3.0"

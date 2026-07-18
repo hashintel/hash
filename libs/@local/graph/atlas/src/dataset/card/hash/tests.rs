@@ -8,8 +8,8 @@ use std::collections::HashSet;
 
 use super::{EndpointAssociation, ExampleRow, TypeFacts, TypePhrase, build_contents};
 use crate::dataset::card::{
-    CardContext, CardsConfig, HeuristicTokenizer, UnicodeSegmenter, build_card,
-    contents::CardContents,
+    CardContext, CardsConfig, UnicodeSegmenter, build_card, contents::CardContents,
+    token::HeuristicTokenizer,
 };
 
 const RELATION_ID: &str = "https://example.com/@acme/types/entity-type/owns/";

@@ -26,20 +26,11 @@
 //!
 //! [`Display`]: core::fmt::Display
 
-#[cfg_attr(
-    not(test),
-    expect(
-        unused_imports,
-        reason = "the exported card surface; the lint dissolves when `render_card` wiring \
-                  consumes it outside of tests"
-    )
-)]
 pub(crate) use self::{
     context::CardContext,
-    format::{Card, CardError, CardsConfig, build_card},
-    lint::{IdentifierLeakError, lint_card_text},
+    format::{Card, CardsConfig, build_card},
     segment::{TextSegmenter, UnicodeSegmenter},
-    token::{Cl100kTokenizer, HeuristicTokenizer, ReservedTokenError, Tokenizer},
+    token::Cl100kTokenizer,
 };
 
 pub(crate) mod hash;

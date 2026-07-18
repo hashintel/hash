@@ -17,6 +17,9 @@ use rand::{
     seq::index::{IndexVec, sample, sample_array},
 };
 
+pub(crate) use self::compat::Compat;
+
+mod compat;
 #[cfg(test)]
 mod tests;
 

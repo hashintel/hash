@@ -4,7 +4,7 @@ use core::{error::Error, fmt, fmt::Write as _};
 use super::{
     contents::{CardContents, TruncationPass},
     lint::{IdentifierLeakError, lint_card_text},
-    token::Tokenizer,
+    token::{HeuristicTokenizer, Tokenizer},
 };
 
 // Pass order is normative: diagnostics recorded on persisted cards name
@@ -70,6 +70,23 @@ pub(crate) struct Card {
 }
 
 impl Card {
+    /// Adopts pre-rendered text as a finished card.
+    ///
+    /// The text is adopted unchanged: no truncation and no lint run, the
+    /// diagnostics record zero truncation passes, and the token count is
+    /// [`HeuristicTokenizer`]'s deterministic byte estimate.
+    #[must_use]
+    pub(crate) fn verbatim(card_text: String) -> Self {
+        let Ok(token_count) = HeuristicTokenizer.count_tokens(&card_text);
+
+        Self {
+            card_text,
+            token_count,
+            truncations: Vec::new(),
+            severely_truncated: false,
+        }
+    }
+
     /// Returns the canonical rendered text.
     ///
     /// Callers derive the persisted card hash from these UTF-8 bytes.

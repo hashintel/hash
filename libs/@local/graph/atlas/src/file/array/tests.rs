@@ -77,6 +77,19 @@ fn shape_is_the_longest_nonzero_prefix() {
 }
 
 #[test]
+fn u8_variant_pins_its_identity_and_width() {
+    let header = FileHeader::new(ArrayVariant::U8, shape(&[3, 32]));
+    assert_eq!(header.as_bytes()[12], 0x01);
+    assert_eq!(ArrayVariant::U8.width(), 1);
+    assert_eq!(header.byte_length(), Some(96));
+    assert_eq!(header.expected_file_len(), Some(4096 + 96));
+
+    let parsed =
+        FileHeader::try_read_from_bytes(header.as_bytes()).expect("a u8 header should parse");
+    assert_eq!(parsed.variant(), ArrayVariant::U8);
+}
+
+#[test]
 fn element_count_overflow_matches_no_file() {
     let huge = shape(&[u64::MAX, 2]);
     assert_eq!(huge.element_count(), None);

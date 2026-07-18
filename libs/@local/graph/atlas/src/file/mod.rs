@@ -148,7 +148,7 @@
 //   means a binary search faults the index page plus one data page instead of log2(N) scattered
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
-mod array;
+pub(crate) mod array;
 mod morton;
 mod quad;
 mod repository;

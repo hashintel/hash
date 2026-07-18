@@ -8,3 +8,5 @@
 
 // The previous pipeline generation is parked uncompiled at
 // `src/salt-BAK` as reference semantics for the port.
+mod embedding;
+mod knn;

@@ -1,30 +1,12 @@
 //! An in-memory [`Dataset`] for tests and synthetic corpora.
 
-use core::pin::Pin;
 use std::{collections::HashMap, io};
 
-use futures::{Stream, StreamExt as _, future::poll_fn, stream};
-use tokio::io::AsyncWrite;
+use futures::{Stream, StreamExt as _, stream};
 use zerocopy::{LE, U64};
 
-use super::{CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology};
+use super::{CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, card::Card};
 use crate::math::BoxedVecN;
-
-/// Writes all of `bytes` into a pinned, possibly unsized writer.
-pub(super) async fn write_all<W>(mut write: Pin<&mut W>, mut bytes: &[u8]) -> io::Result<()>
-where
-    W: AsyncWrite + ?Sized,
-{
-    while !bytes.is_empty() {
-        let written = poll_fn(|context| write.as_mut().poll_write(context, bytes)).await?;
-        if written == 0 {
-            return Err(io::ErrorKind::WriteZero.into());
-        }
-        bytes = &bytes[written..];
-    }
-
-    Ok(())
-}
 
 /// A [`Dataset`] held entirely in memory.
 ///
@@ -40,16 +22,18 @@ pub(crate) struct MemoryDataset {
     edges: Vec<Edge<U64<LE>>>,
     ontology: Vec<Ontology<U64<LE>>>,
     canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
-    cards: HashMap<u64, String>,
+    cards: HashMap<u64, Card>,
 }
 
 impl MemoryDataset {
     /// Creates a dataset serving exactly the given rows.
     ///
     /// `canonical` maps node ids to their full canonical embeddings and
-    /// `cards` maps ontology ids to their rendered card text; both may
-    /// cover any subset of the rows, and lookups outside the covered
-    /// subset panic when the corresponding method is called.
+    /// may cover any subset of the nodes; requests outside the covered
+    /// subset panic. `cards` maps ontology ids to their finished cards
+    /// and must cover every ontology row once
+    /// [`render_cards`](Dataset::render_cards) streams; uncovered rows
+    /// panic there.
     ///
     /// # Panics
     ///
@@ -61,7 +45,7 @@ impl MemoryDataset {
         edges: Vec<Edge<U64<LE>>>,
         ontology: Vec<Ontology<U64<LE>>>,
         canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
-        cards: HashMap<u64, String>,
+        cards: HashMap<u64, Card>,
     ) -> Self {
         let types = ontology.len() as u64;
 
@@ -128,6 +112,7 @@ impl Dataset for MemoryDataset {
 
     type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>> =
         impl Stream<Item = Result<(U64<LE>, BoxedVecN<CANONICAL_DIMENSIONS>), !>> + use<'this, I>;
+    type CardStream<'this> = impl Stream<Item = io::Result<(U64<LE>, Card)>> + 'this;
     type EdgeStream<'this> = impl Stream<Item = Result<Edge<U64<LE>>, !>> + 'this;
     type NodeStream<'this> = impl Stream<Item = Result<Node<U64<LE>>, !>> + 'this;
     type OntologyStream<'this> = impl Stream<Item = Result<Ontology<U64<LE>>, !>> + 'this;
@@ -164,24 +149,20 @@ impl Dataset for MemoryDataset {
         })
     }
 
-    /// Renders the fixture's card text for one ontology type into `write`.
+    /// Opens the stream of fixture cards, in ontology row order.
     ///
     /// # Panics
     ///
-    /// Panics when the fixture holds no card for `id`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the writer fails.
-    async fn render_card<W>(&self, id: U64<LE>, write: Pin<&mut W>) -> io::Result<()>
-    where
-        W: AsyncWrite + ?Sized,
-    {
-        let card = self
-            .cards
-            .get(&id.get())
-            .unwrap_or_else(|| panic!("ontology type {} has no card", id.get()));
+    /// The stream panics when the fixture holds no card for an ontology
+    /// row's type.
+    fn render_cards(&self) -> Self::CardStream<'_> {
+        stream::iter(self.ontology.iter().map(|entry| {
+            let card = self
+                .cards
+                .get(&entry.id.get())
+                .unwrap_or_else(|| panic!("ontology type {} has no card", entry.id.get()));
 
-        write_all(write, card.as_bytes()).await
+            Ok((entry.id, card.clone()))
+        }))
     }
 }

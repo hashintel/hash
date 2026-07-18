@@ -140,6 +140,7 @@ pub(crate) enum Version {
 #[repr(u8)]
 pub(crate) enum ArrayVariant {
     F32 = 0x00,
+    U8 = 0x01,
 }
 
 impl ArrayVariant {
@@ -149,6 +150,7 @@ impl ArrayVariant {
     pub(crate) const fn width(self) -> u64 {
         match self {
             Self::F32 => 4,
+            Self::U8 => 1,
         }
     }
 }
