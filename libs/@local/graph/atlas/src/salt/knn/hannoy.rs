@@ -46,15 +46,13 @@ const INDEX: u16 = 0;
 
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
-// Both ef defaults are starting points, not certified values: nothing
-// certifies a frontier breadth a priori, so the recall spot check
-// gates every generation and ef_search is the first knob to raise on
+// Starting points, pending full-scale evidence: the recall spot check
+// gates every generation, and ef_search is the first knob to raise on
 // a failed gate. Construction sits at the low end of the 100-500 band
 // HNSW deployments use at million-row scale; search sits at 2.5x the
-// deepest query breadth in this crate (the 50-neighbour recall audit)
-// and above hannoy's own default of 100. The first fit against a
-// full-scale corpus should record the measured recall headroom and
-// revise these from evidence.
+// deepest query in this crate (the 50-neighbour recall audit) and
+// above hannoy's default of 100. The first full-scale fit should
+// record the measured recall headroom and revise both from evidence.
 const DEFAULT_EF_CONSTRUCTION: usize = 128;
 const DEFAULT_EF_SEARCH: usize = 128;
 

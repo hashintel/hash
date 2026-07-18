@@ -148,8 +148,21 @@ pub(crate) enum Version {
 )]
 #[repr(u8)]
 pub(crate) enum ArrayVariant {
-    F32 = 0x00,
     U8 = 0x01,
+    U16 = 0x02,
+    U32 = 0x03,
+    U64 = 0x04,
+    U128 = 0x05,
+    I8 = 0x06,
+    I16 = 0x07,
+    I32 = 0x08,
+    I64 = 0x09,
+    I128 = 0x0A,
+    F16 = 0x0B,
+    BF16 = 0x0C,
+    F32 = 0x0D,
+    F64 = 0x0E,
+    F128 = 0x0F,
 }
 
 impl ArrayVariant {
@@ -158,8 +171,11 @@ impl ArrayVariant {
     #[must_use]
     pub(crate) const fn width(self) -> u64 {
         match self {
-            Self::F32 => 4,
-            Self::U8 => 1,
+            Self::U8 | Self::I8 => 1,
+            Self::U16 | Self::I16 | Self::F16 | Self::BF16 => 2,
+            Self::U32 | Self::I32 | Self::F32 => 4,
+            Self::U64 | Self::I64 | Self::F64 => 8,
+            Self::U128 | Self::I128 | Self::F128 => 16,
         }
     }
 }

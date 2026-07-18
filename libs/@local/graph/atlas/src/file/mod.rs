@@ -11,6 +11,8 @@
 //!   by the packed elements, so a whole-file mapping yields page-aligned data.
 //! - [`morton`] is the combined-file archetype: a page index in front of the sorted code array it
 //!   indexes, both page-aligned.
+//! - [`knn`](mod@knn) is the k-nearest-neighbour file: neighbour columns and their distances,
+//!   entry-aligned regions of one table.
 //! - [`quad`] is quadtree topology: a node table referencing point-cloud files by identifier.
 //! - [`repository`] names published files and binds each to a strong hash.
 //! - [`salt`] is the SALT generation repository: the files one published generation consists of and
@@ -76,7 +78,9 @@
 //! |                                 | the aligned code array                       |        |
 //! | importance ranks, bucket cascade| mmap, tile assembly (`u32`/`u64` arrays)     | array  |
 //! | quantized deltas                | mmap, wire assembly (`i16` arrays)           | array  |
-//! | semantic graph adjacency        | training reads, audits (`u32[N, k]` + `f32`) | array  |
+//! | semantic graph adjacency        | training reads, audits; entry-aligned        | combined |
+//! |                                 | `u32[N, k]` columns + `f32[N, k]` distances, |        |
+//! |                                 | never read apart                             |        |
 //! | landmark skeleton               | small `f32`/`u32` arrays                     | array  |
 //! | analytic raster                 | mmap (`f32` grid)                            | array  |
 //! | merge tree                      | small, structured; flattens to parent/birth/ | array  |
@@ -149,6 +153,7 @@
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
 pub(crate) mod array;
+pub(crate) mod knn;
 mod morton;
 mod quad;
 mod repository;

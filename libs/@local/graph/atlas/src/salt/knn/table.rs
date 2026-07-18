@@ -3,10 +3,22 @@
 use core::{error::Error, fmt, num::NonZero};
 
 use rayon::prelude::*;
-use sprs::{CsMat, CsMatView};
+use sprs::{CsMatI, CsMatViewI};
 
 use super::{NearestNeighboursIndex, Neighbour, error::KnnError};
 use crate::dataset::NodeRowId;
+
+/// The table's matrix layout: `u32` neighbour columns under `usize`
+/// row pointers.
+///
+/// Columns are `u32` because node rows are bound to a `u32` encoding
+/// end to end (the wire row ids, the search backend's item keys, the
+/// persisted column file); row pointers are `usize` because they are
+/// derived from the uniform row width and never persisted.
+pub(crate) type KnnMatrix = CsMatI<f32, u32, usize>;
+
+/// A borrowed [`KnnMatrix`].
+pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, f32, u32, usize>;
 
 /// The persisted directed k-nearest-neighbour table of one generation.
 ///
@@ -21,7 +33,7 @@ use crate::dataset::NodeRowId;
 /// A `0.0` distance is a stored value (duplicate embeddings are exactly
 /// coincident), never an absent entry.
 #[derive(Debug, Clone)]
-pub(crate) struct Knn(CsMat<f32>);
+pub(crate) struct Knn(KnnMatrix);
 
 impl Knn {
     /// Validates a neighbour matrix against the table invariants.
@@ -31,7 +43,7 @@ impl Knn {
     /// Returns an error when the matrix is not row-compressed, not
     /// square over at least two rows, ragged, self-referencing, or
     /// carries a distance outside the finite `[0, 2]` range.
-    pub(crate) fn new(matrix: CsMat<f32>) -> Result<Self, InvalidKnn> {
+    pub(crate) fn new(matrix: KnnMatrix) -> Result<Self, InvalidKnn> {
         validate(matrix.view())?;
         Ok(Self(matrix))
     }
@@ -66,11 +78,16 @@ impl Knn {
         if neighbours >= rows {
             return Err(InvalidKnn::NeighbourBounds { neighbours, rows }.into());
         }
+        // Columns encode as u32; the largest possible column is the
+        // last row.
+        if u32::try_from(rows - 1).is_err() {
+            return Err(KnnError::TooManyRows { rows });
+        }
         let entries = rows
             .checked_mul(neighbours)
             .ok_or(KnnError::TooManyEntries { rows, neighbours })?;
 
-        let mut indices = vec![0_usize; entries];
+        let mut indices = vec![0_u32; entries];
         let mut distances = vec![0.0_f32; entries];
         indices
             .par_chunks_mut(neighbours)
@@ -94,15 +111,18 @@ impl Knn {
                 // CSR keys rows by ascending neighbour; the backend's
                 // distance ordering is recomputable from the values.
                 found.sort_unstable_by_key(|neighbour| neighbour.id.get());
+                let rows_u64 = u64::try_from(rows).expect("node rows fit u64");
                 for (slot, neighbour) in row_indices.iter_mut().zip(&found) {
-                    *slot = usize::try_from(neighbour.id.get())
-                        .ok()
-                        .filter(|&column| column < rows)
-                        .ok_or(KnnError::NeighbourOutOfBounds {
+                    let column = neighbour.id.get();
+                    if column >= rows_u64 {
+                        return Err(KnnError::NeighbourOutOfBounds {
                             row,
-                            neighbour: neighbour.id.get(),
+                            neighbour: column,
                             rows,
-                        })?;
+                        });
+                    }
+                    *slot =
+                        u32::try_from(column).expect("columns below the checked row bound fit u32");
                 }
                 if let Some((&duplicate, _)) = row_indices
                     .iter()
@@ -111,7 +131,7 @@ impl Knn {
                 {
                     return Err(KnnError::DuplicateNeighbour {
                         row,
-                        neighbour: u64::try_from(duplicate).expect("node rows fit u64"),
+                        neighbour: u64::from(duplicate),
                     });
                 }
                 for (slot, neighbour) in row_distances.iter_mut().zip(&found) {
@@ -121,7 +141,7 @@ impl Knn {
             })?;
 
         let indptr: Vec<usize> = (0..=rows).map(|row| row * neighbours).collect();
-        let matrix = CsMat::try_new((rows, rows), indptr, indices, distances)
+        let matrix = KnnMatrix::try_new((rows, rows), indptr, indices, distances)
             .map_err(|(_, _, _, error)| error)
             .expect("per-row validation establishes the compressed structure");
         Ok(Self::new(matrix)?)
@@ -156,23 +176,33 @@ impl Knn {
     /// Borrows the neighbour matrix for sparse operations.
     #[inline]
     #[must_use]
-    pub(crate) fn matrix(&self) -> CsMatView<'_, f32> {
+    pub(crate) fn matrix(&self) -> KnnMatrixView<'_> {
         self.0.view()
     }
 
     /// Unwraps the neighbour matrix.
     #[inline]
     #[must_use]
-    pub(crate) fn into_matrix(self) -> CsMat<f32> {
+    pub(crate) fn into_matrix(self) -> KnnMatrix {
         self.0
     }
 }
 
 /// Borrowed rows of one validated [`Knn`] table.
 #[derive(Debug, Clone)]
-pub(crate) struct KnnView<'view>(CsMatView<'view, f32>);
+pub(crate) struct KnnView<'view>(KnnMatrixView<'view>);
 
 impl<'view> KnnView<'view> {
+    /// Wraps a matrix whose invariants already hold.
+    ///
+    /// The caller promises the matrix passed [`validate`]; the wrapper
+    /// performs no checks of its own.
+    #[inline]
+    #[must_use]
+    pub(super) const fn new_trusted(matrix: KnnMatrixView<'view>) -> Self {
+        Self(matrix)
+    }
+
     /// Returns the node-row count.
     #[inline]
     #[must_use]
@@ -195,7 +225,7 @@ impl<'view> KnnView<'view> {
     /// Borrows the neighbour matrix for sparse operations.
     #[inline]
     #[must_use]
-    pub(crate) const fn matrix(&self) -> CsMatView<'view, f32> {
+    pub(crate) const fn matrix(&self) -> KnnMatrixView<'view> {
         self.0
     }
 
@@ -213,7 +243,7 @@ impl<'view> KnnView<'view> {
             .iter()
             .zip(&distances[range])
             .map(|(&column, &distance)| Neighbour {
-                id: NodeRowId::new(u64::try_from(column).expect("node rows fit u64")),
+                id: NodeRowId::new(u64::from(column)),
                 distance,
             })
     }
@@ -302,9 +332,9 @@ impl Error for InvalidKnn {}
 /// Checks every table invariant over a borrowed matrix.
 ///
 /// Structural invariants (in-bounds, strictly ascending row entries,
-/// consistent pointers) hold for any existing [`CsMatView`]; this
+/// consistent pointers) hold for any existing [`KnnMatrixView`]; this
 /// checks the domain invariants layered on top.
-fn validate(matrix: CsMatView<'_, f32>) -> Result<(), InvalidKnn> {
+pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), InvalidKnn> {
     if !matrix.is_csr() {
         return Err(InvalidKnn::ColumnCompressed);
     }

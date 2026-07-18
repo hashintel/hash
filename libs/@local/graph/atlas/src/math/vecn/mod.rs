@@ -346,28 +346,30 @@ impl<const N: usize> AlignedVecN<N> {
     /// multiple of that alignment (`N % 8 == 0` at the widest, 32-byte
     /// alignment) so the base alignment carries to every row, and the
     /// length is a whole number of vectors. `N` must be nonzero.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the divisibility check above makes the element-count division exact"
-    )]
     #[must_use]
     pub fn from_slice(components: &[f32]) -> Option<&[Self]> {
+        // The zero-dimension guard must precede `as_chunks`, whose own
+        // non-zero check panics.
         if N == 0
             || !components.as_ptr().is_aligned_to(align_of::<f32x8>())
             || !(N * size_of::<f32>()).is_multiple_of(align_of::<f32x8>())
-            || !components.len().is_multiple_of(N)
         {
             return None;
         }
 
+        let (chunks, remainder) = components.as_chunks::<N>();
+        if !remainder.is_empty() {
+            return None;
+        }
+
+        let chunks_ptr = &raw const *chunks;
+        let ptr = chunks_ptr as *const [Self];
+
         // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so
-        // `len / N` elements exactly cover the slice, and the checks
-        // above place every element a multiple of `align_of::<f32x8>()`
-        // bytes past an aligned base, which is the alignment invariant.
-        Some(unsafe {
-            core::slice::from_raw_parts(components.as_ptr().cast::<Self>(), components.len() / N)
-        })
+        // the chunk slice reinterprets element-wise, and the checks above
+        // place every element a multiple of `align_of::<f32x8>()` bytes
+        // past an aligned base, which is the alignment invariant.
+        Some(unsafe { &*ptr })
     }
 
     /// Returns the components as an array reference.

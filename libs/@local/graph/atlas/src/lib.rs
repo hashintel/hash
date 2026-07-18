@@ -30,6 +30,7 @@
     const_trait_impl,
     default_field_values,
     never_type,
+    exhaustive_patterns,
 
     // Library Features
     allocator_api,

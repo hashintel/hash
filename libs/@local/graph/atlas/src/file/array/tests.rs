@@ -213,14 +213,15 @@ fn open_rejects_what_the_header_contradicts() {
     let file = TempFile::create(&unfinished);
     assert!(matches!(
         ArrayFile::open(&file.path),
-        Err(OpenArrayError::Header)
+        Err(OpenArrayError::Header(_))
     ));
 
-    // A file shorter than one header cannot carry one.
+    // A file shorter than one header is a length problem, not a parse
+    // problem.
     let file = TempFile::create(&[0xAB; 16]);
     assert!(matches!(
         ArrayFile::open(&file.path),
-        Err(OpenArrayError::Header)
+        Err(OpenArrayError::Undersized { actual: 16 })
     ));
 
     // A truncated data region violates the length rule.

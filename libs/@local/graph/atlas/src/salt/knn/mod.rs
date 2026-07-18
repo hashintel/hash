@@ -1,8 +1,8 @@
-//! The semantic k-nearest-neighbour graph: ANN construction and exact
-//! recall verification.
+//! The semantic k-nearest-neighbour graph.
 //!
-//! The deliverable is [`table::Knn`]: a directed cosine k-nearest-neighbour
-//! table over the projector representations, stored as a compressed
+//! The deliverable is [`table::Knn`]: a directed cosine
+//! k-nearest-neighbour table over the projector representations,
+//! stored as a compressed
 //! sparse row matrix whose row `i` holds the `k` nearest non-self
 //! neighbours of node row `i` with their cosine distances. Every row
 //! stores exactly `k` entries, no row references itself or repeats a
@@ -14,15 +14,21 @@
 //! [`NearestNeighboursIndex`] separates the table's semantics from the
 //! search backend. [`hannoy::HannoyIndex`] is the LMDB-backed HNSW
 //! production backend; a backend serves one generation by ingesting
-//! every node row
-//! through [`insert_many`](NearestNeighboursIndex::insert_many),
-//! linking the graph with [`build`](NearestNeighboursIndex::build), and
-//! answering searches from then on.
+//! every node row through
+//! [`insert_many`](NearestNeighboursIndex::insert_many), linking the
+//! graph with [`build`](NearestNeighboursIndex::build), and answering
+//! searches from then on.
 //!
 //! A built backend is accepted by exact comparison:
 //! [`recall::spot_check`] intersects sampled approximate queries with
-//! brute-force [`VecN`](crate::math::VecN) cosine rankings and gates
-//! aggregate recall@50 at [`recall::MINIMUM_RECALL`].
+//! brute-force [`AlignedVecN`] cosine rankings and gates aggregate
+//! recall at a configured minimum ([`recall::SpotCheckOptions`]).
+//!
+//! The validated table publishes as one k-nearest-neighbour file
+//! ([`crate::file::knn`]: neighbour columns and distances,
+//! entry-aligned regions of one table); [`artifact::MappedKnn`]
+//! reopens it over a whole-file mapping, so stages after the build
+//! read the table from the page cache without holding it on the heap.
 //!
 //! # Reproducibility boundary
 //!
@@ -39,6 +45,7 @@ use crate::{
     math::AlignedVecN,
 };
 
+pub(crate) mod artifact;
 pub(crate) mod error;
 pub(crate) mod hannoy;
 pub(crate) mod recall;

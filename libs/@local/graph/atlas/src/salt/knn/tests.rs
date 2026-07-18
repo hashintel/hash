@@ -8,19 +8,52 @@ use core::num::NonZero;
 
 use rand::{Rng, RngExt as _, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use sprs::CsMat;
 
 use super::{
     DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex, Neighbour,
+    artifact::{InvalidKnnFile, MappedKnn},
     error::KnnError,
     hannoy::{HannoyIndex, HannoyIndexOptions},
     recall,
-    table::{InvalidKnn, Knn},
+    table::{InvalidKnn, Knn, KnnMatrix},
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::{BoxedVecN, VecN},
+    file::knn::{FileHeader, KnnFile, read::OpenKnnError},
+    math::{AlignedVecN, BoxedVecN},
 };
+
+/// Fixture capacity in components: the largest test corpus.
+const MATRIX_CAPACITY: usize = 128 * PROJECTOR_DIMENSIONS;
+
+/// Fixture rows in SIMD-aligned row-major storage, the shape a mapped
+/// `f32[T, 512]` artifact yields.
+struct Matrix {
+    storage: BoxedVecN<MATRIX_CAPACITY>,
+    rows: usize,
+}
+
+impl Matrix {
+    fn new(rows: &[[f32; PROJECTOR_DIMENSIONS]]) -> Self {
+        let mut storage = BoxedVecN::zero();
+        let (chunks, _) = storage
+            .as_array_mut()
+            .as_chunks_mut::<PROJECTOR_DIMENSIONS>();
+        assert!(rows.len() <= chunks.len(), "the fixture fits the capacity");
+        for (slot, row) in chunks.iter_mut().zip(rows) {
+            *slot = *row;
+        }
+        Self {
+            storage,
+            rows: rows.len(),
+        }
+    }
+
+    fn view(&self) -> &[AlignedVecN<PROJECTOR_DIMENSIONS>] {
+        AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
+            .expect("boxed storage is aligned")
+    }
+}
 
 /// A brute-force reference backend over resident rows.
 struct ExactIndex {
@@ -44,10 +77,9 @@ impl ExactIndex {
     /// Ranks every stored row against `query` by `(distance, id)`.
     fn ranked(
         &self,
-        query: &[f32; PROJECTOR_DIMENSIONS],
+        query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         exclude: Option<usize>,
     ) -> Vec<Neighbour> {
-        let query = VecN::from_ref(query);
         let mut all: Vec<Neighbour> = self
             .rows
             .iter()
@@ -55,7 +87,7 @@ impl ExactIndex {
             .filter(|&(row, _)| Some(row) != exclude)
             .map(|(row, stored)| Neighbour {
                 id: NodeRowId::new(u64::try_from(row).expect("test rows fit u64")),
-                distance: query.cosine_distance(VecN::from_ref(stored.as_array())),
+                distance: query.cosine_distance(stored),
             })
             .collect();
         all.sort_unstable_by(|left, right| {
@@ -68,7 +100,7 @@ impl ExactIndex {
 
     fn ranked_by_id(&self, id: NodeRowId) -> Vec<Neighbour> {
         let row = usize::try_from(id.get()).expect("test rows fit usize");
-        self.ranked(self.rows[row].as_array(), Some(row))
+        self.ranked(&self.rows[row], Some(row))
     }
 }
 
@@ -104,10 +136,10 @@ impl NearestNeighboursIndex for ExactIndex {
 
     fn search_by_vector(
         &self,
-        query: &crate::math::AlignedVecN<PROJECTOR_DIMENSIONS>,
+        query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
     ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
-        let mut ranked = self.ranked(query.as_array(), None);
+        let mut ranked = self.ranked(query, None);
         ranked.truncate(limit);
         Ok(ranked)
     }
@@ -271,9 +303,9 @@ fn build_matches_hand_computed_neighbours() {
     assert_eq!(knn.rows(), 4);
     assert_eq!(knn.neighbours(), 2);
 
-    let distance = |left: usize, right: usize| {
-        VecN::from_ref(&rows[left]).cosine_distance(VecN::from_ref(&rows[right]))
-    };
+    let matrix = Matrix::new(&rows);
+    let embeddings = matrix.view();
+    let distance = |left: usize, right: usize| embeddings[left].cosine_distance(&embeddings[right]);
     let diagonal = distance(0, 2);
     assert!((f64::from(diagonal) - (1.0 - 0.5_f64.sqrt())).abs() < 1e-6);
 
@@ -346,14 +378,14 @@ fn build_rejects_malformed_backend_responses() {
 #[test]
 fn validation_rejects_each_broken_invariant() {
     // Row 0 referencing itself.
-    let matrix = CsMat::new((2, 2), vec![0, 1, 2], vec![0, 0], vec![0.5, 0.5]);
+    let matrix = KnnMatrix::new((2, 2), vec![0, 1, 2], vec![0, 0], vec![0.5, 0.5]);
     assert_eq!(
         Knn::new(matrix).expect_err("self reference"),
         InvalidKnn::SelfNeighbour { row: 0 }
     );
 
     // A distance beyond the cosine range.
-    let matrix = CsMat::new((3, 3), vec![0, 1, 2, 3], vec![1, 2, 0], vec![2.5, 1.0, 1.0]);
+    let matrix = KnnMatrix::new((3, 3), vec![0, 1, 2, 3], vec![1, 2, 0], vec![2.5, 1.0, 1.0]);
     assert_eq!(
         Knn::new(matrix).expect_err("distance beyond 2"),
         InvalidKnn::DistanceOutOfRange {
@@ -364,7 +396,7 @@ fn validation_rejects_each_broken_invariant() {
     );
 
     // A non-finite distance.
-    let matrix = CsMat::new(
+    let matrix = KnnMatrix::new(
         (3, 3),
         vec![0, 1, 2, 3],
         vec![1, 2, 0],
@@ -380,7 +412,7 @@ fn validation_rejects_each_broken_invariant() {
     ));
 
     // Ragged rows.
-    let matrix = CsMat::new(
+    let matrix = KnnMatrix::new(
         (3, 3),
         vec![0, 2, 3, 4],
         vec![1, 2, 0, 0],
@@ -396,14 +428,14 @@ fn validation_rejects_each_broken_invariant() {
     );
 
     // Column-compressed storage.
-    let matrix = CsMat::new_csc((2, 2), vec![0, 1, 2], vec![1, 0], vec![0.5, 0.5]);
+    let matrix = KnnMatrix::new_csc((2, 2), vec![0, 1, 2], vec![1, 0], vec![0.5, 0.5]);
     assert_eq!(
         Knn::new(matrix).expect_err("column compression"),
         InvalidKnn::ColumnCompressed,
     );
 
     // A rectangular domain.
-    let matrix = CsMat::new((2, 3), vec![0, 1, 2], vec![1, 2], vec![0.5, 0.5]);
+    let matrix = KnnMatrix::new((2, 3), vec![0, 1, 2], vec![1, 2], vec![0.5, 0.5]);
     assert_eq!(
         Knn::new(matrix).expect_err("rectangular domain"),
         InvalidKnn::NotSquare {
@@ -413,7 +445,7 @@ fn validation_rejects_each_broken_invariant() {
     );
 
     // An empty neighbour set.
-    let matrix = CsMat::new((2, 2), vec![0, 0, 0], vec![], vec![]);
+    let matrix = KnnMatrix::new((2, 2), vec![0, 0, 0], vec![], vec![]);
     assert_eq!(
         Knn::new(matrix).expect_err("empty rows"),
         InvalidKnn::NeighbourBounds {
@@ -430,9 +462,15 @@ fn validation_rejects_each_broken_invariant() {
 )]
 fn spot_check_scores_an_exact_backend_perfectly() {
     let rows = fan_fixture(8, 0.15);
+    let matrix = Matrix::new(&rows);
     let index = ExactIndex::from_rows(&rows);
-    let check = recall::spot_check(&index, &rows, Xoshiro256PlusPlus::seed_from_u64(42))
-        .expect("the exact backend answers every query");
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions { .. },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the exact backend answers every query");
 
     assert_eq!(check.sampled_rows, 8);
     assert_eq!(check.neighbours_per_row, 7);
@@ -449,9 +487,15 @@ fn spot_check_scores_an_exact_backend_perfectly() {
 )]
 fn spot_check_fails_a_degraded_backend() {
     let rows = fan_fixture(60, 0.02);
+    let matrix = Matrix::new(&rows);
     let index = FarthestIndex(ExactIndex::from_rows(&rows));
-    let check = recall::spot_check(&index, &rows, Xoshiro256PlusPlus::seed_from_u64(42))
-        .expect("the degraded backend still answers every query");
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions { .. },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the degraded backend still answers every query");
 
     // Per row: the nearest 50 and farthest 50 of 59 candidates share
     // exactly 41 rows, whatever the distances.
@@ -460,6 +504,159 @@ fn spot_check_fails_a_degraded_backend() {
     assert_eq!(check.matched, 60 * 41);
     assert_eq!(check.expected, 60 * 50);
     assert!(!check.meets_minimum());
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn spot_check_honours_configured_options() {
+    // The same degraded backend passes under a laxer gate: the gate
+    // travels with the options, and the evidence records it.
+    let rows = fan_fixture(60, 0.02);
+    let matrix = Matrix::new(&rows);
+    let index = FarthestIndex(ExactIndex::from_rows(&rows));
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions {
+            minimum_recall: 0.8,
+            ..
+        },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the degraded backend still answers every query");
+    assert_eq!(check.minimum_recall, 0.8);
+    assert!(check.meets_minimum(), "recall 0.82 passes a 0.8 gate");
+
+    // The comparison depth is the k of the measured recall@k.
+    let rows = fan_fixture(8, 0.15);
+    let matrix = Matrix::new(&rows);
+    let index = ExactIndex::from_rows(&rows);
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions {
+            neighbours: NonZero::new(3).expect("three is nonzero"),
+            ..
+        },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the exact backend answers every query");
+    assert_eq!(check.neighbours_per_row, 3);
+    assert_eq!(check.expected, 8 * 3);
+    assert_eq!(check.matched, 8 * 3);
+}
+
+#[test]
+fn spot_check_rejects_a_meaningless_sampling_budget() {
+    let rows = fan_fixture(2, 0.15);
+    let matrix = Matrix::new(&rows);
+    let index = ExactIndex::from_rows(&rows);
+    let result = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions {
+            defect_rate: 0.0,
+            ..
+        },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    );
+    assert!(matches!(
+        result,
+        Err(KnnError::SampleBudget {
+            defect_rate: 0.0,
+            confidence: 0.999,
+        }),
+    ));
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "whole-file mappings and the parallel build go through machinery Miri cannot execute"
+)]
+fn published_table_reopens_mapped() {
+    let dir = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-knn-artifact-{}",
+        std::process::id(),
+    ));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+
+    let rows = plane_fixture();
+    let index = ExactIndex::from_rows(&rows);
+    let knn = Knn::build(&index, rows.len(), two_neighbours()).expect("the fixture is well-formed");
+
+    let mut bytes = Vec::new();
+    knn.write_into(&mut bytes)
+        .expect("writing to a buffer succeeds");
+    let path = dir.join("table.knn");
+    std::fs::write(&path, &bytes).expect("the table file writes");
+
+    let mapped = MappedKnn::new(KnnFile::open(&path).expect("the published file reopens"))
+        .expect("the published file opens as a table");
+
+    // The mapped view is the owned table, entry for entry.
+    let owned = knn.view();
+    let reopened = mapped.view();
+    assert_eq!(reopened.rows(), owned.rows());
+    assert_eq!(reopened.neighbours(), owned.neighbours());
+    for row in 0..owned.rows() {
+        let owned_row: Vec<(u64, f32)> = owned
+            .row(row)
+            .map(|neighbour| (neighbour.id.get(), neighbour.distance))
+            .collect();
+        let reopened_row: Vec<(u64, f32)> = reopened
+            .row(row)
+            .map(|neighbour| (neighbour.id.get(), neighbour.distance))
+            .collect();
+        assert_eq!(reopened_row, owned_row);
+    }
+
+    // Foreign bytes fail the pinned parse.
+    let mut foreign = bytes.clone();
+    foreign[0] ^= 0x01;
+    let foreign_path = dir.join("foreign.knn");
+    std::fs::write(&foreign_path, &foreign).expect("the foreign file writes");
+    assert!(matches!(
+        KnnFile::open(&foreign_path),
+        Err(OpenKnnError::Header(_)),
+    ));
+
+    // A truncated file contradicts the length equation.
+    let truncated_path = dir.join("truncated.knn");
+    std::fs::write(&truncated_path, &bytes[..bytes.len() - 4]).expect("the short file writes");
+    assert!(matches!(
+        KnnFile::open(&truncated_path),
+        Err(OpenKnnError::Length { .. }),
+    ));
+
+    // A tampered distance fails the table invariants at open.
+    let distances_offset = usize::try_from(
+        FileHeader::new(4, 2)
+            .distances_offset()
+            .expect("the fixture geometry fits u64"),
+    )
+    .expect("the fixture geometry fits usize");
+    let mut tampered = bytes.clone();
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the format stores little-endian elements"
+    )]
+    tampered[distances_offset..distances_offset + 4].copy_from_slice(&3.0_f32.to_le_bytes());
+    let tampered_path = dir.join("tampered.knn");
+    std::fs::write(&tampered_path, &tampered).expect("the tampered file writes");
+    assert!(matches!(
+        MappedKnn::new(KnnFile::open(&tampered_path).expect("the tampered file parses")),
+        Err(InvalidKnnFile::Invalid(InvalidKnn::DistanceOutOfRange {
+            row: 0,
+            ..
+        })),
+    ));
+
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -482,14 +679,8 @@ fn hannoy_honours_the_seam_contract() {
         .take(128)
         .collect()
     };
-    let boxed: Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> = rows
-        .iter()
-        .map(|row| {
-            let mut vector = BoxedVecN::zero();
-            vector.as_array_mut().copy_from_slice(row);
-            vector
-        })
-        .collect();
+    let matrix = Matrix::new(&rows);
+    let embeddings = matrix.view();
 
     let mut index = HannoyIndex::new(
         &base,
@@ -500,10 +691,15 @@ fn hannoy_honours_the_seam_contract() {
     )
     .expect("the environment opens on a fresh directory");
     index
-        .insert_many(boxed.iter().enumerate().map(|(row, components)| Embedding {
-            id: NodeRowId::new(u64::try_from(row).expect("test rows fit u64")),
-            components,
-        }))
+        .insert_many(
+            embeddings
+                .iter()
+                .enumerate()
+                .map(|(row, components)| Embedding {
+                    id: NodeRowId::new(u64::try_from(row).expect("test rows fit u64")),
+                    components,
+                }),
+        )
         .expect("insertion succeeds");
     index
         .build(Xoshiro256PlusPlus::seed_from_u64(42))
@@ -525,7 +721,7 @@ fn hannoy_honours_the_seam_contract() {
     );
     for neighbour in &found {
         let row = usize::try_from(neighbour.id.get()).expect("test rows fit usize");
-        let exact = VecN::from_ref(&rows[query_row]).cosine_distance(VecN::from_ref(&rows[row]));
+        let exact = embeddings[query_row].cosine_distance(&embeddings[row]);
         assert!(
             (0.0..=2.0).contains(&neighbour.distance),
             "distances arrive on the [0, 2] cosine scale",
@@ -540,7 +736,7 @@ fn hannoy_honours_the_seam_contract() {
     }
 
     let by_vector: Vec<Neighbour> = index
-        .search_by_vector(&boxed[query_row], 5)
+        .search_by_vector(&embeddings[query_row], 5)
         .expect("the search succeeds")
         .into_iter()
         .collect();
@@ -555,8 +751,13 @@ fn hannoy_honours_the_seam_contract() {
     assert_eq!(knn.rows(), 128);
     assert_eq!(knn.neighbours(), 30);
 
-    let check = recall::spot_check(&index, &rows, Xoshiro256PlusPlus::seed_from_u64(9))
-        .expect("the spot check completes");
+    let check = recall::spot_check(
+        &index,
+        embeddings,
+        recall::SpotCheckOptions { .. },
+        Xoshiro256PlusPlus::seed_from_u64(9),
+    )
+    .expect("the spot check completes");
     assert!(
         check.meets_minimum(),
         "recall {} misses the gate",
