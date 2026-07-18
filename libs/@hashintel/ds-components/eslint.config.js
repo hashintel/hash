@@ -76,26 +76,6 @@ export default [
     },
   },
   {
-    // Test files are intentionally excluded from `tsconfig.json`, so — like the
-    // story files above — running type-aware lint rules on them forces ESLint's
-    // project service into a per-file default-project fallback (which errors:
-    // "was not found by the project service"). Drop the type-aware project
-    // lookup for tests; they are not shipped to consumers.
-    files: ["src/**/*.test.ts{x,}", "src/**/*.spec.ts{x,}"],
-    languageOptions: {
-      parserOptions: {
-        projectService: false,
-        project: false,
-      },
-    },
-    rules: {
-      ...disableTypeCheckedRules,
-      "@typescript-eslint/no-shadow": "off",
-      "id-length": "off",
-      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
-    },
-  },
-  {
     files: ["scripts/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unnecessary-condition": "off",

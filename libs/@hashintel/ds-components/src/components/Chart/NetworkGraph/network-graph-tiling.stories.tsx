@@ -9,15 +9,12 @@ import {
   type NetworkGraphPoint,
 } from "./network-graph";
 import {
-  getViewportNodes,
-  TileCache,
   tileZoomForViewport,
+  useGetViewportNodes,
   WORLD_SIZE,
-  type TileFetcher,
   type Viewport,
   type ViewportNode,
-} from "./tiling/fetch-graph-tiles";
-import { fetchTileNodes } from "./tiling/fetch-tile-nodes";
+} from "./tiling/use-get-viewport-nodes";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -62,10 +59,6 @@ const colorForId = (id: number | string): string => {
   const seed = typeof id === "number" ? id : id.length;
   return PALETTE[Math.abs(seed) % PALETTE.length] ?? PALETTE[0];
 };
-
-/** Routes tile fetches through the dev proxy so the browser stays same-origin. */
-const tilingFetcher: TileFetcher = (zoom, tileIndex) =>
-  fetchTileNodes(zoom, tileIndex, { baseUrl: ATLAS_PROXY_BASE });
 
 interface Camera {
   readonly zoom: number | null;
@@ -198,64 +191,51 @@ type Status = "loading" | "idle" | "error";
 
 /**
  * Drives the tiling pipeline from the graph's live camera: every pan/zoom (and
- * resize) recomputes the viewport, fetches its tiles through a persistent
- * {@link TileCache}, and feeds the merged nodes back to the graph. `graphBounds`
- * and `nodeMinDistance` are stable so streaming new points never reframes the
- * camera. Requires the local Atlas server (proxied via `/atlas-api`).
+ * resize) recomputes the viewport and hands it to {@link useGetViewportNodes},
+ * which fetches its tiles through a persistent cache and returns the merged
+ * nodes plus loading/error state. `graphBounds` and `nodeMinDistance` are stable
+ * so streaming new points never reframes the camera. Requires the local Atlas
+ * server (proxied via `/atlas-api`).
  */
 const AtlasTilingStory = () => {
   const frameRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const timerRef = useRef<number | undefined>(undefined);
-  // Bumped per request so a slow in-flight fetch can't overwrite a newer one.
-  const generationRef = useRef(0);
 
-  const cache = useMemo(() => new TileCache({ fetcher: tilingFetcher }), []);
-
-  const [points, setPoints] = useState<NetworkGraphPoint[]>([]);
+  const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const [status, setStatus] = useState<Status>("loading");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stats, setStats] = useState({ depth: 1, nodes: 0, tiles: 0 });
 
-  const runFetch = useCallback(() => {
-    const viewport = deriveViewport(cameraRef.current, sizeRef.current);
-    generationRef.current += 1;
-    const generation = generationRef.current;
-    setStatus("loading");
-    setErrorMessage(null);
-    void getViewportNodes(viewport, cache)
-      .then((nodes) => {
-        if (generation !== generationRef.current) {
-          return;
-        }
-        const nextPoints = nodes.map(toPoint);
-        setPoints(nextPoints);
-        // Frame once, off the first (overview) load, then keep it stable.
-        setBounds((previous) => previous ?? boundsOf(nextPoints));
-        setStats({
-          depth: viewport ? tileZoomForViewport(viewport.zoom) : 1,
-          nodes: nextPoints.length,
-          tiles: cache.tileCount,
-        });
-        setStatus("idle");
-      })
-      .catch((error: unknown) => {
-        if (generation !== generationRef.current) {
-          return;
-        }
-        setStatus("error");
-        setErrorMessage(error instanceof Error ? error.message : String(error));
-      });
-  }, [cache]);
+  const { data, isFetching, isError, error, tileCount, prefetchStats } =
+    useGetViewportNodes(viewport, { baseUrl: ATLAS_PROXY_BASE });
+
+  const points = useMemo(() => (data ?? []).map(toPoint), [data]);
+
+  // TEMP prefetch-measurement hook: expose live telemetry for Playwright.
+  useEffect(() => {
+    (window as unknown as { __atlasTiling?: unknown }).__atlasTiling = {
+      viewport,
+      tileCount,
+      prefetchStats,
+    };
+  }, [viewport, tileCount, prefetchStats]);
+
+  // Frame once, off the first (overview) load, then keep it stable so streaming
+  // new points never reframes the camera. Adjusting state during render (rather
+  // than in an effect) is React's recommended way to derive state from freshly
+  // loaded data: the guard fires exactly once, with no extra commit.
+  if (bounds === null && points.length > 0) {
+    setBounds(boundsOf(points));
+  }
 
   const schedule = useCallback(() => {
     if (timerRef.current !== undefined) {
       window.clearTimeout(timerRef.current);
     }
-    timerRef.current = window.setTimeout(runFetch, DEBOUNCE_MS);
-  }, [runFetch]);
+    timerRef.current = window.setTimeout(() => {
+      setViewport(deriveViewport(cameraRef.current, sizeRef.current));
+    }, DEBOUNCE_MS);
+  }, []);
 
   const handleZoom = useCallback(
     (zoom: number) => {
@@ -299,10 +279,12 @@ const AtlasTilingStory = () => {
       if (timerRef.current !== undefined) {
         window.clearTimeout(timerRef.current);
       }
-      // Invalidate any in-flight fetch so it can't setState after unmount.
-      generationRef.current += 1;
     };
   }, [schedule]);
+
+  const status: Status = isError ? "error" : isFetching ? "loading" : "idle";
+  const errorMessage = error?.message ?? null;
+  const depth = viewport ? tileZoomForViewport(viewport.zoom) : 1;
 
   return (
     <div ref={frameRef} className={frameStyles}>
@@ -321,15 +303,15 @@ const AtlasTilingStory = () => {
         <div className={panelTitleStyles}>Atlas tiling</div>
         <div className={panelRowStyles}>
           <span>tile depth</span>
-          <span>{stats.depth}</span>
+          <span>{depth}</span>
         </div>
         <div className={panelRowStyles}>
           <span>nodes drawn</span>
-          <span>{stats.nodes.toLocaleString()}</span>
+          <span>{points.length.toLocaleString()}</span>
         </div>
         <div className={panelRowStyles}>
           <span>tiles cached</span>
-          <span>{stats.tiles}</span>
+          <span>{tileCount}</span>
         </div>
         <div className={panelRowStyles}>
           <span>status</span>

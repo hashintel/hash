@@ -29,7 +29,17 @@
  * therefore walks the whole depth stack, and the cache's eviction distance
  * keeps a viewport's ancestor stack resident (their world rectangles contain
  * the viewport, so their spatial distance is zero).
+ *
+ * ## Request state
+ *
+ * {@link useGetViewportNodes} wraps the fetch in {@link useAtlasQuery} — a
+ * small, dependency-free async state machine (TanStack-Query-shaped: `data` /
+ * `error` / `isLoading` / ...) for code that already owns its caching (the
+ * {@link TileCache}) and wants only the request *state machine*, not a second
+ * cache.
  */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ATLAS_TILE_AXIS_SIZE,
@@ -38,7 +48,7 @@ import {
   atlasTileKey,
   type AtlasTileCoordinate,
 } from "./atlas-tile-coordinate";
-import { fetchTileNodes, type TileNode } from "./fetch-tile-nodes";
+import { ATLAS_API_BASE_URL, fetchTile, type TileNode } from "./fetch-tile";
 
 /** Width and height of the world axis the grid tiles over (`65536`). */
 export const WORLD_SIZE = ATLAS_TILE_AXIS_SIZE;
@@ -116,7 +126,7 @@ export interface ViewportNode {
   readonly y: number;
 }
 
-/** Fetches the nodes of one tile, addressed as `fetchTileNodes` does. */
+/** Fetches the nodes of one tile, addressed as `fetchTile` does. */
 export type TileFetcher = (
   zoom: number,
   tileIndex: number,
@@ -126,7 +136,7 @@ export type TileFetcher = (
 export interface TileCacheOptions {
   /** Soft memory budget in bytes before eviction runs. */
   readonly maxBytes?: number;
-  /** Tile fetcher; defaults to {@link fetchTileNodes}. Injectable for tests. */
+  /** Tile fetcher; defaults to {@link fetchTile}. Injectable for tests. */
   readonly fetcher?: TileFetcher;
 }
 
@@ -236,7 +246,7 @@ const requiredTiles = (
   return coordinates;
 };
 
-/** `tileIndex` (row-major) of a coordinate, as `fetchTileNodes` expects. */
+/** `tileIndex` (row-major) of a coordinate, as `fetchTile` expects. */
 const tileIndexOf = (coordinate: AtlasTileCoordinate): number =>
   coordinate.y * 2 ** coordinate.z + coordinate.x;
 
@@ -277,10 +287,34 @@ const tileDistance = (
   return Math.hypot(planar, ZOOM_DISTANCE_WEIGHT * zoomGap);
 };
 
+/** Whether a cached tile arrived because a viewport required it, or ahead of need. */
+type TileOrigin = "required" | "prefetch";
+
 interface CacheEntry {
   readonly coordinate: AtlasTileCoordinate;
   readonly nodes: readonly TileNode[];
   readonly bytes: number;
+  readonly origin: TileOrigin;
+  /** A prefetch-origin tile that a later required load has since claimed. */
+  used: boolean;
+}
+
+/** Prefetch effectiveness counters accumulated over a {@link TileCache}'s life. */
+export interface PrefetchStats {
+  /** Prefetch fetches started (tiles pulled ahead of need). */
+  readonly issued: number;
+  /** Prefetched tiles a later viewport required before eviction (hits). */
+  readonly used: number;
+  /** Prefetched tiles evicted before any viewport required them. */
+  readonly wasted: number;
+  /** Prefetched tiles still resident but not yet required. */
+  readonly residentUnused: number;
+  /** Required tiles fetched cold — neither cached nor prefetched in time. */
+  readonly requiredColdMiss: number;
+  /** `used / issued`: the fraction of prefetches that paid off. */
+  readonly precision: number;
+  /** `used / (used + requiredColdMiss)`: first-need tiles prefetch had ready. */
+  readonly coverage: number;
 }
 
 interface ViewportRecord {
@@ -317,6 +351,10 @@ export class TileCache {
 
   #bytes = 0;
   #viewport: ViewportRecord | null = null;
+  #prefetchIssued = 0;
+  #prefetchUsed = 0;
+  #prefetchWasted = 0;
+  #requiredColdMiss = 0;
 
   constructor(options: TileCacheOptions = {}) {
     this.maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
@@ -325,7 +363,7 @@ export class TileCache {
         `TileCache maxBytes must be positive, got ${String(this.maxBytes)}`,
       );
     }
-    this.#fetcher = options.fetcher ?? fetchTileNodes;
+    this.#fetcher = options.fetcher ?? fetchTile;
   }
 
   /** Number of tiles currently resident. */
@@ -341,6 +379,28 @@ export class TileCache {
   /** Fraction of the byte budget in use, clamped to `[0, 1]`. */
   get fullness(): number {
     return Math.min(this.#bytes / this.maxBytes, 1);
+  }
+
+  /** Prefetch effectiveness accumulated over this cache's lifetime. */
+  get prefetchStats(): PrefetchStats {
+    let residentUnused = 0;
+    for (const entry of this.#entries.values()) {
+      if (entry.origin === "prefetch" && !entry.used) {
+        residentUnused += 1;
+      }
+    }
+    const issued = this.#prefetchIssued;
+    const used = this.#prefetchUsed;
+    const coldTotal = used + this.#requiredColdMiss;
+    return {
+      issued,
+      used,
+      wasted: this.#prefetchWasted,
+      residentUnused,
+      requiredColdMiss: this.#requiredColdMiss,
+      precision: issued === 0 ? 0 : used / issued,
+      coverage: coldTotal === 0 ? 0 : used / coldTotal,
+    };
   }
 
   has(coordinate: AtlasTileCoordinate): boolean {
@@ -384,17 +444,46 @@ export class TileCache {
     const key = atlasTileKey(coordinate);
     const cached = this.#entries.get(key);
     if (cached) {
+      // A required load landing on a prefetched tile is the prefetch paying off.
+      if (cached.origin === "prefetch" && !cached.used) {
+        cached.used = true;
+        this.#prefetchUsed += 1;
+      }
       return cached.nodes;
     }
     const inFlight = this.#inflight.get(key);
     if (inFlight) {
       return inFlight;
     }
+    // A required tile that was neither resident nor prefetched in time.
+    this.#requiredColdMiss += 1;
+    return this.#fetch(key, coordinate, "required");
+  }
 
+  /**
+   * Speculatively loads a tile the cache does not yet hold, tagged so its later
+   * use (or eviction) feeds {@link prefetchStats}. A no-op for a tile already
+   * resident or already in flight.
+   */
+  async prefetch(coordinate: AtlasTileCoordinate): Promise<void> {
+    const key = atlasTileKey(coordinate);
+    if (this.#entries.has(key) || this.#inflight.has(key)) {
+      return;
+    }
+    this.#prefetchIssued += 1;
+    // Speculative: swallow failures so a bad prediction never surfaces.
+    await this.#fetch(key, coordinate, "prefetch").catch(() => undefined);
+  }
+
+  #fetch(
+    key: string,
+    coordinate: AtlasTileCoordinate,
+    origin: TileOrigin,
+  ): Promise<readonly TileNode[]> {
     const pending = this.#fetcher(coordinate.z, tileIndexOf(coordinate))
       .then((nodes) => {
         this.#inflight.delete(key);
-        this.#store(key, coordinate, nodes);
+        this.#store(key, coordinate, nodes, origin);
         return nodes;
       })
       .catch((error: unknown) => {
@@ -423,13 +512,14 @@ export class TileCache {
     key: string,
     coordinate: AtlasTileCoordinate,
     nodes: readonly TileNode[],
+    origin: TileOrigin,
   ): void {
     const existing = this.#entries.get(key);
     if (existing) {
       this.#bytes -= existing.bytes;
     }
     const bytes = estimateBytes(nodes);
-    this.#entries.set(key, { coordinate, nodes, bytes });
+    this.#entries.set(key, { coordinate, nodes, bytes, origin, used: false });
     this.#bytes += bytes;
     this.#evict();
   }
@@ -455,6 +545,9 @@ export class TileCache {
     for (const entry of candidates) {
       if (this.#bytes <= this.maxBytes) {
         break;
+      }
+      if (entry.origin === "prefetch" && !entry.used) {
+        this.#prefetchWasted += 1;
       }
       this.#entries.delete(atlasTileKey(entry.coordinate));
       this.#bytes -= entry.bytes;
@@ -559,8 +652,7 @@ const prefetchAhead = (
     .slice(0, budget);
 
   for (const { coordinate } of candidates) {
-    // Speculative: swallow failures so a bad prediction never surfaces.
-    void cache.load(coordinate).catch(() => undefined);
+    void cache.prefetch(coordinate);
   }
 };
 
@@ -629,4 +721,181 @@ export const getViewportNodes = async (
   }
 
   return [...nodes.values()];
+};
+
+/** TanStack-Query-like snapshot of one async resource. */
+export interface AtlasQueryState<T> {
+  /** The latest resolved value, or `undefined` before the first success. */
+  readonly data: T | undefined;
+  /** The latest rejection, cleared when a fetch starts or succeeds. */
+  readonly error: Error | undefined;
+  /** A fetch is in flight and there is no data to show yet. */
+  readonly isLoading: boolean;
+  /** A fetch is in flight (including a background refetch over existing data). */
+  readonly isFetching: boolean;
+  /** The latest fetch rejected. */
+  readonly isError: boolean;
+  /** There is resolved data and no outstanding error. */
+  readonly isSuccess: boolean;
+  /** Re-runs the fetcher for the current key. */
+  readonly refetch: () => void;
+}
+
+const toError = (caught: unknown): Error =>
+  caught instanceof Error ? caught : new Error(String(caught));
+
+/**
+ * A minimal, TanStack-Query-shaped async request state machine for the tiling
+ * layer: it runs `fetcher` from `key`, tracking the request lifecycle as `data`
+ * / `error` / `isLoading` / ... — a dependency-free stand-in for `useQuery` for
+ * code that already owns its caching (the {@link TileCache}) and so wants the
+ * request *state machine* without a second cache.
+ *
+ * `key` must fully identify the request: when it changes the hook aborts the old
+ * fetch and starts a new one. `fetcher` may be a fresh closure each render (its
+ * identity is not a trigger); only `key` and {@link AtlasQueryState.refetch}
+ * start fetches. Previous `data` stays visible across a `key` change until the
+ * next result resolves (stale-while-revalidate), so panning never blanks the
+ * view; a superseded request (its `key` changed, or the hook unmounted) is
+ * aborted and its result ignored.
+ */
+export const useAtlasQuery = <T>(
+  key: string,
+  fetcher: (signal: AbortSignal) => Promise<T>,
+): AtlasQueryState<T> => {
+  const [data, setData] = useState<T | undefined>(undefined);
+  const [error, setError] = useState<Error | undefined>(undefined);
+  const [isFetching, setIsFetching] = useState(true);
+  const [renderedKey, setRenderedKey] = useState(key);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  // A new key means a fetch is about to start in the effect below. Reflect that
+  // during render — React's recommended alternative to a setState-in-effect —
+  // keeping any previous data visible until the new result resolves.
+  if (key !== renderedKey) {
+    setRenderedKey(key);
+    setIsFetching(true);
+    setError(undefined);
+  }
+
+  // Hold the latest fetcher without making it an effect dependency, so a new
+  // closure identity each render does not, on its own, retrigger the fetch.
+  const fetcherRef = useRef(fetcher);
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    fetcherRef.current(controller.signal).then(
+      (result) => {
+        if (active) {
+          setData(result);
+          setError(undefined);
+          setIsFetching(false);
+        }
+      },
+      (caught: unknown) => {
+        // Ignore the rejection of a request we deliberately superseded.
+        if (active && !controller.signal.aborted) {
+          setError(toError(caught));
+          setIsFetching(false);
+        }
+      },
+    );
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [key, reloadToken]);
+
+  const refetch = useCallback(() => {
+    setIsFetching(true);
+    setError(undefined);
+    setReloadToken((token) => token + 1);
+  }, []);
+
+  return {
+    data,
+    error,
+    isLoading: isFetching && data === undefined,
+    isFetching,
+    isError: error !== undefined,
+    isSuccess: data !== undefined && error === undefined,
+    refetch,
+  };
+};
+
+/** Options for {@link useGetViewportNodes}. */
+export interface UseGetViewportNodesOptions {
+  /** Atlas API origin forwarded to every tile fetch. */
+  readonly baseUrl?: string;
+  /** Retries per tile on a transient failure. */
+  readonly retry?: number;
+  /** Soft cache budget in bytes before eviction runs; see {@link TileCache}. */
+  readonly maxBytes?: number;
+}
+
+/** {@link useGetViewportNodes}' result: nodes plus the backing cache's fill. */
+export interface UseGetViewportNodesResult extends AtlasQueryState<
+  ViewportNode[]
+> {
+  /** Tiles resident in the cache after the latest load. */
+  readonly tileCount: number;
+  /** Prefetch effectiveness accumulated over the session. */
+  readonly prefetchStats: PrefetchStats;
+}
+
+/** Stable identity for a viewport, so a fetch reruns only on a real change. */
+const viewportKey = (viewport: Viewport | null, baseUrl: string): string =>
+  viewport === null
+    ? `${baseUrl}|initial`
+    : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}`;
+
+/**
+ * Returns the nodes visible in `viewport` as a hook, with TanStack-Query-style
+ * loading and error state (see {@link AtlasQueryState}). It owns a persistent
+ * {@link TileCache} — created once per `(origin, budget)` and kept across
+ * renders — so tiles, in-flight deduplication, distance eviction, and prefetch
+ * prediction all persist as the viewport pans and zooms.
+ *
+ * `data` holds the merged nodes for the current viewport (the previous
+ * viewport's nodes stay visible until the new ones resolve, so navigating never
+ * blanks the graph). `error` is set only when {@link getViewportNodes} rejects —
+ * a malformed viewport, or every required tile failing; a partial failure still
+ * resolves with whatever loaded. Requires no provider.
+ */
+export const useGetViewportNodes = (
+  viewport: Viewport | null,
+  options: UseGetViewportNodesOptions = {},
+): UseGetViewportNodesResult => {
+  const { baseUrl = ATLAS_API_BASE_URL, retry, maxBytes } = options;
+
+  const cache = useMemo(
+    () =>
+      new TileCache({
+        maxBytes,
+        fetcher: (zoom, tileIndex) =>
+          fetchTile(zoom, tileIndex, { baseUrl, retry }),
+      }),
+    [baseUrl, retry, maxBytes],
+  );
+
+  const query = useAtlasQuery(viewportKey(viewport, baseUrl), async () => {
+    const nodes = await getViewportNodes(viewport, cache);
+    return { nodes, tileCount: cache.tileCount };
+  });
+
+  return {
+    data: query.data?.nodes,
+    error: query.error,
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    isSuccess: query.isSuccess,
+    refetch: query.refetch,
+    tileCount: query.data?.tileCount ?? 0,
+    prefetchStats: cache.prefetchStats,
+  };
 };

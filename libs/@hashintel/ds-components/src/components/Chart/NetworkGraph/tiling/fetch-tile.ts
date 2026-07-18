@@ -16,6 +16,12 @@
  *
  * Positions arrive as global 16-bit world coordinates (`[0, 65536)` per axis),
  * not relative to the zoom level, so they are returned unchanged.
+ *
+ * HTTP requests are retried with exponential backoff on transient failures —
+ * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}).
+ * Terminal failures (`4xx`, a decode mismatch) are not retried; a `404`, meaning
+ * the cached generation rotated, has its own one-shot metadata refresh in
+ * {@link fetchTile}.
  */
 
 import {
@@ -32,6 +38,13 @@ import {
 /** Default binding of the local `hash-graph atlas` dev server. */
 export const ATLAS_API_BASE_URL = "http://127.0.0.1:4010";
 
+/** Retries (after the first attempt) for a transient HTTP failure. */
+const DEFAULT_RETRIES = 2;
+/** First backoff step; doubles each retry up to {@link RETRY_MAX_DELAY_MS}. */
+const RETRY_BASE_DELAY_MS = 200;
+/** Ceiling on a single backoff wait. */
+const RETRY_MAX_DELAY_MS = 2_000;
+
 /** One decoded point: a durable row id and its global world coordinates. */
 export interface TileNode {
   readonly id: number;
@@ -39,26 +52,28 @@ export interface TileNode {
   readonly y: number;
 }
 
-/** Optional per-call overrides for {@link fetchTileNodes}. */
-export interface FetchTileNodesOptions {
+/** Optional per-call overrides for {@link fetchTile}. */
+export interface FetchTileOptions {
   /** Atlas API origin. Defaults to {@link ATLAS_API_BASE_URL}. */
   readonly baseUrl?: string;
   /** Cancels the tile request. */
   readonly signal?: AbortSignal;
+  /** Retries on a transient failure. Defaults to {@link DEFAULT_RETRIES}. */
+  readonly retry?: number;
 }
 
-interface FetchTileNodesErrorOptions extends ErrorOptions {
+interface FetchTileErrorOptions extends ErrorOptions {
   /** HTTP status when the failure came from a non-2xx response. */
   readonly status?: number;
 }
 
 /** A tile could not be fetched, was rejected by the server, or failed to decode. */
-export class FetchTileNodesError extends Error {
-  override readonly name = "FetchTileNodesError";
+export class FetchTileError extends Error {
+  override readonly name = "FetchTileError";
   /** Present when the failure originated from a non-2xx HTTP response. */
   readonly status: number | undefined;
 
-  constructor(message: string, options?: FetchTileNodesErrorOptions) {
+  constructor(message: string, options?: FetchTileErrorOptions) {
     super(message, options);
     this.status = options?.status;
   }
@@ -66,7 +81,7 @@ export class FetchTileNodesError extends Error {
 
 const asObject = (value: unknown, label: string): Record<string, unknown> => {
   if (typeof value !== "object" || value === null) {
-    throw new FetchTileNodesError(`${label} is not a JSON object`);
+    throw new FetchTileError(`${label} is not a JSON object`);
   }
   return value as Record<string, unknown>;
 };
@@ -86,7 +101,7 @@ const stringField = (
 ): string => {
   const value = record[key];
   if (typeof value !== "string") {
-    throw new FetchTileNodesError(`${label} is missing or not a string`);
+    throw new FetchTileError(`${label} is missing or not a string`);
   }
   return value;
 };
@@ -98,9 +113,96 @@ const numberField = (
 ): number => {
   const value = record[key];
   if (typeof value !== "number") {
-    throw new FetchTileNodesError(`${label} is missing or not a number`);
+    throw new FetchTileError(`${label} is missing or not a number`);
   }
   return value;
+};
+
+const abortError = (signal: AbortSignal | undefined): FetchTileError =>
+  new FetchTileError("Atlas request aborted", { cause: signal?.reason });
+
+/**
+ * A failure worth retrying: a transport error (no HTTP status reached us) or the
+ * server asking us to try again (`429`, `5xx`). Terminal failures — `4xx`
+ * (including the `404` generation-rotation signal) and non-HTTP errors such as a
+ * decode mismatch — are not retried.
+ */
+const isRetryableError = (error: unknown): boolean => {
+  if (!(error instanceof FetchTileError)) {
+    return false;
+  }
+  return (
+    error.status === undefined || error.status === 429 || error.status >= 500
+  );
+};
+
+const backoffDelayMs = (attempt: number, base: number, max: number): number => {
+  const window = Math.min(base * 2 ** attempt, max);
+  // Full jitter spreads a viewport's simultaneous tile retries over the window,
+  // so they do not resynchronise into bursts against the server.
+  return window / 2 + Math.random() * (window / 2);
+};
+
+/** A `setTimeout` that also settles (rejecting) the moment `signal` aborts. */
+const sleep = (ms: number, signal: AbortSignal | undefined): Promise<void> =>
+  new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onAbort = (): void => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      reject(abortError(signal));
+    };
+    timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+
+/** Retry policy for {@link withAtlasRetry}. */
+export interface AtlasRetryPolicy {
+  /** Aborts the operation and any pending backoff wait. */
+  readonly signal?: AbortSignal;
+  /** Retries after the first attempt. Defaults to {@link DEFAULT_RETRIES}. */
+  readonly retries?: number;
+  /** First backoff step in ms. Defaults to {@link RETRY_BASE_DELAY_MS}. */
+  readonly baseDelayMs?: number;
+  /** Ceiling on a backoff wait in ms. Defaults to {@link RETRY_MAX_DELAY_MS}. */
+  readonly maxDelayMs?: number;
+}
+
+/**
+ * Runs `operation`, retrying it on a transient failure (see
+ * {@link isRetryableError}) with exponential, jittered backoff. Stops early —
+ * rethrowing the last error — on a terminal failure, once `retries` is
+ * exhausted, or as soon as `signal` aborts.
+ */
+export const withAtlasRetry = async <T>(
+  operation: () => Promise<T>,
+  policy: AtlasRetryPolicy = {},
+): Promise<T> => {
+  const {
+    signal,
+    retries = DEFAULT_RETRIES,
+    baseDelayMs = RETRY_BASE_DELAY_MS,
+    maxDelayMs = RETRY_MAX_DELAY_MS,
+  } = policy;
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt >= retries || signal?.aborted || !isRetryableError(error)) {
+        throw error;
+      }
+      await sleep(backoffDelayMs(attempt, baseDelayMs, maxDelayMs), signal);
+    }
+  }
 };
 
 /**
@@ -123,8 +225,8 @@ const readErrorDetail = async (response: Response): Promise<string> => {
   return text || response.statusText || "no error detail";
 };
 
-/** GETs `url`, resolving only on a 2xx response and otherwise throwing. */
-const requestAtlas = async (
+/** A single GET that resolves only on a 2xx response and otherwise throws. */
+const requestAtlasOnce = async (
   url: string,
   accept: string,
   signal: AbortSignal | undefined,
@@ -133,16 +235,28 @@ const requestAtlas = async (
   try {
     response = await fetch(url, { headers: { accept }, signal });
   } catch (cause) {
-    throw new FetchTileNodesError(`Atlas request to ${url} failed`, { cause });
+    throw new FetchTileError(`Atlas request to ${url} failed`, { cause });
   }
   if (!response.ok) {
-    throw new FetchTileNodesError(
+    throw new FetchTileError(
       `Atlas responded ${response.status} for ${url}: ${await readErrorDetail(response)}`,
       { status: response.status },
     );
   }
   return response;
 };
+
+/** GETs `url`, retrying transient failures, resolving only on a 2xx response. */
+const requestAtlas = (
+  url: string,
+  accept: string,
+  signal: AbortSignal | undefined,
+  retries?: number,
+): Promise<Response> =>
+  withAtlasRetry(() => requestAtlasOnce(url, accept, signal), {
+    signal,
+    retries,
+  });
 
 const fetchAtlasJson = async (
   url: string,
@@ -152,7 +266,7 @@ const fetchAtlasJson = async (
   try {
     return (await response.json()) as unknown;
   } catch (cause) {
-    throw new FetchTileNodesError(`Atlas response from ${url} was not JSON`, {
+    throw new FetchTileError(`Atlas response from ${url} was not JSON`, {
       cause,
     });
   }
@@ -221,7 +335,7 @@ const fetchAtlasMetadata = async (baseUrl: string): Promise<AtlasMetadata> => {
   // The tile is bound to a single generation; if the active generation rotated
   // between the two metadata reads the hashes would not match the tile header.
   if (currentGeneration !== generation) {
-    throw new FetchTileNodesError(
+    throw new FetchTileError(
       `active generation changed while reading metadata: manifest ${generation} vs current ${currentGeneration}`,
     );
   }
@@ -239,7 +353,7 @@ const fetchAtlasMetadata = async (baseUrl: string): Promise<AtlasMetadata> => {
  * Memoized metadata promise per origin. The active generation rarely changes,
  * so this is held for the lifetime of the session and only dropped on an
  * explicit {@link clearAtlasMetadataCache} or a `404` that signals the cached
- * generation is no longer active (see {@link fetchTileNodes}). Caching the
+ * generation is no longer active (see {@link fetchTile}). Caching the
  * promise (not the resolved value) also collapses the concurrent first-callers
  * of a fresh viewport into a single round-trip.
  */
@@ -263,7 +377,7 @@ const getAtlasMetadata = (baseUrl: string): Promise<AtlasMetadata> => {
 
 /**
  * Drops the memoized active-generation metadata, forcing the next
- * {@link fetchTileNodes} call to re-read it. Pass a `baseUrl` to clear one
+ * {@link fetchTile} call to re-read it. Pass a `baseUrl` to clear one
  * origin, or omit it to clear all.
  */
 export const clearAtlasMetadataCache = (baseUrl?: string): void => {
@@ -279,6 +393,7 @@ const fetchAndDecodeTile = async (
   coordinate: AtlasTileCoordinate,
   baseUrl: string,
   signal: AbortSignal | undefined,
+  retries: number | undefined,
 ): Promise<TileNode[]> => {
   const { z, x, y } = coordinate;
   const expectation: AtlasTileExpectation = {
@@ -295,6 +410,7 @@ const fetchAndDecodeTile = async (
     tileUrl,
     ATLAS_TILE_MEDIA_TYPE,
     signal,
+    retries,
   );
   const buffer = await tileResponse.arrayBuffer();
 
@@ -302,7 +418,7 @@ const fetchAndDecodeTile = async (
   try {
     tile = decodeAtlasTile(buffer, expectation);
   } catch (cause) {
-    throw new FetchTileNodesError(
+    throw new FetchTileError(
       `failed to decode tile ${atlasTileKey(coordinate)}`,
       { cause },
     );
@@ -317,7 +433,7 @@ const fetchAndDecodeTile = async (
     // Unreachable: `decodeAtlasTile` guarantees these array lengths. The guard
     // satisfies the strict typed-array index type without a non-null assertion.
     if (id === undefined || nodeX === undefined || nodeY === undefined) {
-      throw new FetchTileNodesError(
+      throw new FetchTileError(
         `tile ${atlasTileKey(coordinate)} record ${index} is truncated`,
       );
     }
@@ -338,19 +454,19 @@ const fetchAndDecodeTile = async (
  * @returns The delivered points, each as a durable id and its global 16-bit
  *   world coordinates. May be empty (or a truncated, spatially fair prefix) when
  *   the server's point budget caps delivery for the quadrant.
- * @throws {@link FetchTileNodesError} when the arguments are out of range, a
+ * @throws {@link FetchTileError} when the arguments are out of range, a
  *   request fails or is rejected, or the tile payload fails to decode or does
  *   not belong to the requested route and active generation.
  */
-export const fetchTileNodes = async (
+export const fetchTile = async (
   zoom: number,
   tileIndex: number,
-  options: FetchTileNodesOptions = {},
+  options: FetchTileOptions = {},
 ): Promise<TileNode[]> => {
-  const { baseUrl = ATLAS_API_BASE_URL, signal } = options;
+  const { baseUrl = ATLAS_API_BASE_URL, signal, retry } = options;
 
   if (!Number.isInteger(zoom) || zoom < 0 || zoom > ATLAS_TILE_MAX_ZOOM) {
-    throw new FetchTileNodesError(
+    throw new FetchTileError(
       `zoom ${zoom} must be an integer in 0..=${ATLAS_TILE_MAX_ZOOM}`,
     );
   }
@@ -359,7 +475,7 @@ export const fetchTileNodes = async (
   const gridSize = 2 ** zoom;
   const tileCount = gridSize * gridSize;
   if (!Number.isInteger(tileIndex) || tileIndex < 0 || tileIndex >= tileCount) {
-    throw new FetchTileNodesError(
+    throw new FetchTileError(
       `tileIndex ${tileIndex} must be an integer in 0..${tileCount} at zoom ${zoom}`,
     );
   }
@@ -373,14 +489,26 @@ export const fetchTileNodes = async (
 
   const metadata = await getAtlasMetadata(baseUrl);
   try {
-    return await fetchAndDecodeTile(metadata, coordinate, baseUrl, signal);
+    return await fetchAndDecodeTile(
+      metadata,
+      coordinate,
+      baseUrl,
+      signal,
+      retry,
+    );
   } catch (error) {
     // A 404 on a well-formed request means the generation we cached is no
     // longer active. Refresh the metadata once and retry before giving up.
-    if (error instanceof FetchTileNodesError && error.status === 404) {
+    if (error instanceof FetchTileError && error.status === 404) {
       clearAtlasMetadataCache(baseUrl);
       const refreshed = await getAtlasMetadata(baseUrl);
-      return await fetchAndDecodeTile(refreshed, coordinate, baseUrl, signal);
+      return await fetchAndDecodeTile(
+        refreshed,
+        coordinate,
+        baseUrl,
+        signal,
+        retry,
+      );
     }
     throw error;
   }

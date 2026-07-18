@@ -193,8 +193,15 @@ export interface NetworkGraphProps {
    * `{ edge: id }`.
    */
   onEdgeClick?: (interaction: NetworkGraphEdgeInteraction) => void;
-  /** Called when the zoom level changes (log2 scale). Not called for pure panning. */
-  onZoom?: (zoom: number) => void;
+  /**
+   * Called when the zoom level changes with the framing-normalised zoom — `0` is the
+   * fully-framed-out view and each `+1` doubles the on-screen scale, whatever the
+   * graph's world extent — plus `framingBaseZoom`, the absolute orthographic zoom of
+   * that framed-out view. Add them to recover the absolute zoom
+   * (`2 ** (zoom + framingBaseZoom)` = pixels per world unit) for screen↔world
+   * mapping. Not called for pure panning.
+   */
+  onZoom?: (zoom: number, framingBaseZoom: number) => void;
   /**
    * Called when the pan position changes, with the viewport centre in world
    * coordinates (`[x, y]`). Deduped like {@link NetworkGraphProps.onZoom}: fires only
@@ -999,7 +1006,11 @@ export const NetworkGraph = ({
           ),
         );
       const framingZoom = fitZoom(padding);
-      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills the viewport.
+      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills the
+      // viewport. This framing-out zoom is also the graph's zero reference: the view
+      // opens here and the zoom-dependent attributes rebase against it (see
+      // `framingBaseZoom`), so the framing-normalised zoom starts at 0 for any dataset
+      // regardless of its world extent.
       const minZoom = fitZoom(outPadding);
       // Furthest zoom-in: the closest two nodes sit `2 · detailHoverRadius + 10px`
       // apart on screen (their hovered detail circles clear by a 10px gap). Scale is
@@ -1009,6 +1020,9 @@ export const NetworkGraph = ({
       const detailHoverRadius = 1;
       const targetClosestPx = detailHoverRadius;
       // Floored at `minZoom` so a very sparse graph never yields an inverted zoom range.
+      // The normalised zoom range the view exposes is `maxZoom − minZoom` — min zoom
+      // fits the graph's extent, max zoom fits the node spacing, so the range is the
+      // node-spacing↔extent ratio and doesn't depend on the absolute world size.
       const maxZoom = Math.max(
         minZoom,
         Number.isFinite(nodeMinDistance) && nodeMinDistance > 0
@@ -1024,7 +1038,7 @@ export const NetworkGraph = ({
               (graphBounds.minY + graphBounds.maxY) / 2,
               0,
             ],
-            // Start fully zoomed out.
+            // Start fully zoomed out (normalised zoom 0).
             zoom: minZoom,
             minZoom,
             maxZoom,
@@ -1133,15 +1147,27 @@ export const NetworkGraph = ({
     return [target[0] ?? 0, target[1] ?? 0];
   }, [viewState?.target]);
 
+  // The framing-out zoom (`minZoom`) is the graph's zero reference: the zoom-dependent
+  // attributes work in framing-normalised zoom (0 = framed out), so we rebase the
+  // absolute orthographic zoom by it below. The absolute zoom stays the source of
+  // truth for deck and the geometry (pan clamps, edge trims, `onZoom`); only these
+  // presentation attributes are normalised, so they frame every dataset alike.
+  const framingBaseZoom = viewState?.minZoom ?? null;
+
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
   const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
     () =>
       deriveZoomAttributes(
-        currentZoom,
-        // Detail view shows in the top 0.5 zoom levels, just below the max zoom.
-        viewState?.maxZoom != null ? viewState.maxZoom - 0.5 : null,
+        currentZoom != null && framingBaseZoom != null
+          ? currentZoom - framingBaseZoom
+          : null,
+        // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
+        // expressed here on the normalised axis (`maxZoom − framingBase − 0.5`).
+        viewState?.maxZoom != null && framingBaseZoom != null
+          ? viewState.maxZoom - framingBaseZoom - 0.5
+          : null,
       ),
-    [currentZoom, viewState?.maxZoom],
+    [currentZoom, viewState?.maxZoom, framingBaseZoom],
   );
 
   /**
@@ -1235,14 +1261,16 @@ export const NetworkGraph = ({
 
   // Report zoom changes from an effect (after commit), not inline: `setViewState`
   // updaters run during render, so calling `onZoom` there would update the parent
-  // mid-render. Deduped so it fires only on an actual change.
+  // mid-render. Deduped (on the absolute zoom) so it fires only on an actual change,
+  // and reports the framing-normalised zoom plus the framing base (see `onZoom`).
   useEffect(() => {
     if (currentZoom === null || currentZoom === lastZoomRef.current) {
       return;
     }
     lastZoomRef.current = currentZoom;
-    onZoom?.(currentZoom);
-  }, [currentZoom, onZoom]);
+    const base = framingBaseZoom ?? 0;
+    onZoom?.(currentZoom - base, base);
+  }, [currentZoom, onZoom, framingBaseZoom]);
 
   // Report pan changes from an effect (after commit) for the same reason as
   // `onZoom` above: `setViewState` updaters run during render. Deduped on the

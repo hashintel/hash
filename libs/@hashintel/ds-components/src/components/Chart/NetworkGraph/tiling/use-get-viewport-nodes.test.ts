@@ -7,9 +7,9 @@ import {
   ViewportTilesError,
   type TileFetcher,
   type Viewport,
-} from "./fetch-graph-tiles";
+} from "./use-get-viewport-nodes";
 
-import type { TileNode } from "./fetch-tile-nodes";
+import type { TileNode } from "./fetch-tile";
 
 /** A fetcher returning three unique nodes per tile, tracking calls per tile. */
 const countingFetcher = (): TileFetcher & {
