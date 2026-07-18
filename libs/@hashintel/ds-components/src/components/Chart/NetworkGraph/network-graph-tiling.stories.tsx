@@ -78,31 +78,76 @@ interface Bounds {
 }
 
 /**
- * Turns the graph's camera (log2 world→pixel zoom + world-space centre) and the
- * container size into an Atlas-world viewport rectangle and a fractional tile
- * depth. Returns `null` until the camera has reported in, so the first fetch is
- * the whole-map overview.
+ * The **graphWorld**: the coordinate space node positions live in, and the extent
+ * the **tileWorld** (quadtree grid) tiles. For the Atlas dataset that is the full
+ * 16-bit axis `[0, WORLD_SIZE)`. {@link deriveViewport} measures tile depth
+ * against this — deliberately *not* against the framing bounds passed to
+ * `NetworkGraph`, which track where the dataset actually sits so the camera opens
+ * bounding the data. Keeping the two apart is the point: the graphWorld fixes the
+ * tile grid; the framing bounds decide the opening zoom and pan limits. A
+ * consumer whose nodes occupy a different range passes that range as its
+ * graphWorld; the **projectionWorld** deck pans within may extend beyond it
+ * (those regions resolve to empty tiles).
  */
-const deriveViewport = (camera: Camera, size: Size): Viewport | null => {
+const GRAPH_WORLD: Bounds = {
+  minX: 0,
+  maxX: WORLD_SIZE,
+  minY: 0,
+  maxY: WORLD_SIZE,
+};
+
+/**
+ * Turns the graph's camera (absolute log2 pixels-per-unit zoom + centre, in
+ * graphWorld coordinates — see {@link GRAPH_WORLD}), the container size, and the
+ * graph's own bounds into a tiling viewport plus a fractional tile depth.
+ *
+ * The rectangle the camera shows is clipped to `graphBounds`, so the tiling
+ * follows the *visible graph* rather than the raw viewport. When the graph is
+ * framed smaller than the viewport (contained and centred, with empty margin
+ * around it) only the graph region is tiled — tiling the margin would pull in
+ * empty tiles (and, past the graphWorld edge, whole-world/capped tiles), which is
+ * what skews the density. Depth is chosen so the visible graph spans
+ * ~TARGET_TILES_ACROSS tiles.
+ *
+ * Returns `null` before the camera reports in (so the first fetch is the
+ * overview) or when the camera sits entirely off the graph.
+ */
+const deriveViewport = (
+  camera: Camera,
+  size: Size,
+  graphBounds: Bounds | null,
+): Viewport | null => {
   if (camera.zoom === null || camera.center === null || size.width === 0) {
     return null;
   }
-  const scale = 2 ** camera.zoom; // pixels per world unit
-  const worldWidth = size.width / scale;
-  const worldHeight = size.height / scale;
+  const scale = 2 ** camera.zoom; // pixels per graphWorld unit
   const [centreX, centreY] = camera.center;
-  // Depth where the visible width spans ~TARGET_TILES_ACROSS tiles.
-  const depth = Math.log2((TARGET_TILES_ACROSS * WORLD_SIZE) / worldWidth);
-  return {
-    x1: centreX - worldWidth / 2,
-    x2: centreX + worldWidth / 2,
-    y1: centreY - worldHeight / 2,
-    y2: centreY + worldHeight / 2,
-    zoom: Math.min(depth, DEMO_MAX_DEPTH),
-  };
+  const halfWidth = size.width / scale / 2;
+  const halfHeight = size.height / scale / 2;
+
+  // Clip the camera rectangle to the graph's bounds: tile the visible graph, not
+  // the empty margin around a contained graph.
+  const x1 = Math.max(centreX - halfWidth, graphBounds?.minX ?? -Infinity);
+  const x2 = Math.min(centreX + halfWidth, graphBounds?.maxX ?? Infinity);
+  const y1 = Math.max(centreY - halfHeight, graphBounds?.minY ?? -Infinity);
+  const y2 = Math.min(centreY + halfHeight, graphBounds?.maxY ?? Infinity);
+  if (x2 <= x1 || y2 <= y1) {
+    return null; // camera is entirely off the graph
+  }
+
+  // Depth where the *visible graph* width spans ~TARGET_TILES_ACROSS tiles,
+  // measured against the graphWorld (its width equals the tileWorld's).
+  const graphWorldWidth = GRAPH_WORLD.maxX - GRAPH_WORLD.minX;
+  const depth = Math.log2((TARGET_TILES_ACROSS * graphWorldWidth) / (x2 - x1));
+  return { x1, x2, y1, y2, zoom: Math.min(depth, DEMO_MAX_DEPTH) };
 };
 
-/** Bounding box over points, falling back to the whole world when empty. */
+/**
+ * Bounding box over points (the dataset extent), falling back to the whole
+ * graphWorld when empty. Used as `NetworkGraph`'s framing bounds so the camera
+ * opens bounding the data — distinct from {@link GRAPH_WORLD}, which fixes the
+ * tile grid.
+ */
 const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   let minX = Infinity;
   let maxX = -Infinity;
@@ -115,7 +160,7 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
     maxY = Math.max(maxY, point.y);
   }
   if (!Number.isFinite(minX)) {
-    return { minX: 0, maxX: WORLD_SIZE, minY: 0, maxY: WORLD_SIZE };
+    return GRAPH_WORLD;
   }
   return { minX, maxX, minY, maxY };
 };
@@ -201,6 +246,7 @@ const AtlasTilingStory = () => {
   const frameRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
+  const boundsRef = useRef<Bounds | null>(null);
   const timerRef = useRef<number | undefined>(undefined);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -213,26 +259,42 @@ const AtlasTilingStory = () => {
 
   const points = useMemo(() => (data ?? []).map(toPoint), [data]);
 
-  // Frame once, off the first (overview) load, then keep it stable so streaming
-  // new points never reframes the camera. Adjusting state during render (rather
-  // than in an effect) is React's recommended way to derive state from freshly
-  // loaded data: the guard fires exactly once, with no extra commit.
+  // Freeze the framing bounds to the dataset extent off the first (overview)
+  // load, so the camera opens bounding the data and never reframes as more points
+  // stream in. The graphWorld the tiles are measured against stays fixed (see
+  // `GRAPH_WORLD`); this only drives the opening zoom and pan limits. Deriving
+  // state during render (not in an effect) is React's recommended pattern here.
   if (bounds === null && points.length > 0) {
     setBounds(boundsOf(points));
   }
+
+  // Mirror the framing bounds into a ref so the debounced `deriveViewport` can
+  // clip the viewport to the graph without `schedule` depending on `bounds`.
+  useEffect(() => {
+    boundsRef.current = bounds;
+  }, [bounds]);
 
   const schedule = useCallback(() => {
     if (timerRef.current !== undefined) {
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      setViewport(deriveViewport(cameraRef.current, sizeRef.current));
+      setViewport(
+        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
+      );
     }, DEBOUNCE_MS);
   }, []);
 
   const handleZoom = useCallback(
-    (zoom: number) => {
-      cameraRef.current = { ...cameraRef.current, zoom };
+    (zoom: number, framingBaseZoom: number) => {
+      // `onZoom` reports a framing-normalised zoom (0 = fully framed out), but
+      // `deriveViewport` needs the absolute world→pixel zoom (`2 ** zoom` px per
+      // world unit). Add the framing base back to recover it — without this the
+      // framed-out overview reads as zoom 0 and derives the deepest tile depth.
+      cameraRef.current = {
+        ...cameraRef.current,
+        zoom: zoom + framingBaseZoom,
+      };
       schedule();
     },
     [schedule],

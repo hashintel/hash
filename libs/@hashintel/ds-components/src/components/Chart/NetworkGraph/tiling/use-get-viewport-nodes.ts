@@ -31,6 +31,17 @@
  * keeps a viewport's ancestor stack resident (their world rectangles contain
  * the viewport, so their spatial distance is zero).
  *
+ * ## Even density
+ *
+ * The tiles at one depth partition the viewport, so rendering only some of them
+ * — the rest still loading, failed, or beyond the enumeration cap — shows as
+ * uneven node density that traces the tile grid: covered tiles look dense, the
+ * gaps between them sparse. {@link getViewportNodes} therefore contributes a
+ * depth's nodes only when it holds *every* tile needed to completely cover the
+ * viewport at that depth (an uncapped count; see {@link viewportTileCount}),
+ * dropping partial depths so the merged result covers the viewport at uniform
+ * density (at the cost of some detail until the whole depth is in).
+ *
  * ## Request state
  *
  * {@link useGetViewportNodes} wraps the fetch in {@link useAtlasQuery} — a
@@ -53,6 +64,7 @@ import {
   tileDistance,
   tileIndexOf,
   tileZoomForViewport,
+  viewportTileCount,
   WORLD_SIZE,
   type Rect,
   type ViewportRegion,
@@ -448,6 +460,17 @@ const resolveViewport = (viewport: Viewport | null): ViewportRegion => {
 };
 
 /**
+ * One required tile's load outcome, kept paired with its coordinate so a
+ * success can be grouped under its depth without indexing a parallel array.
+ */
+type TileLoad =
+  | {
+      readonly coordinate: AtlasTileCoordinate;
+      readonly nodes: readonly TileNode[];
+    }
+  | { readonly coordinate: AtlasTileCoordinate; readonly error: unknown };
+
+/**
  * Returns the nodes visible in `viewport`, fetching any missing tiles through
  * `cache` and returning the rest from it.
  *
@@ -455,7 +478,10 @@ const resolveViewport = (viewport: Viewport | null): ViewportRegion => {
  * four depth-1 quadrant tiles and their depth-0 root ancestor. Otherwise the
  * viewport's rectangle and zoom select a target depth, and the union of that
  * depth's tiles and all shallower ancestor tiles covering the rectangle is
- * fetched and merged (deduplicated by node id).
+ * fetched and merged (deduplicated by node id). A depth is included only when
+ * every tile needed to completely cover the viewport at that depth is present;
+ * a depth held only partially is dropped, so the result never mixes a full depth
+ * with a partial one — see the module's "Even density" note.
  *
  * After serving the current viewport it records the movement and, while the
  * user is navigating, prefetches the tiles the next viewport is predicted to
@@ -477,23 +503,32 @@ export const getViewportNodes = async (
   // drop a tile this call is about to return.
   cache.setActiveViewport(rect, depth, requiredKeys);
 
-  const results = await Promise.allSettled(
-    coordinates.map((coordinate) => cache.load(coordinate)),
+  // Load every required tile, catching each rejection into an outcome tagged
+  // with its coordinate — a bare rejection loses which depth failed, and the
+  // depth-completeness check below needs it. `Promise.all` thus never rejects
+  // here; total failure is detected from `failures` instead.
+  const loads = await Promise.all(
+    coordinates.map((coordinate) =>
+      cache.load(coordinate).then(
+        (tileNodes): TileLoad => ({ coordinate, nodes: tileNodes }),
+        (error: unknown): TileLoad => ({ coordinate, error }),
+      ),
+    ),
   );
 
-  const nodes = new Map<number | string, ViewportNode>();
+  // Collect the loaded tiles' nodes, grouped by depth, so each depth's coverage
+  // can be judged on its own below.
+  const tilesByDepth = new Map<number, (readonly TileNode[])[]>();
   let failures = 0;
   let firstError: unknown;
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      for (const node of result.value) {
-        // Dedupe by id. Tiles at a single depth partition space and deeper
-        // tiles never repeat ancestor nodes, so this is defensive.
-        nodes.set(node.id, { id: node.id, x: node.x, y: node.y });
-      }
+  for (const load of loads) {
+    if ("nodes" in load) {
+      const tiles = tilesByDepth.get(load.coordinate.z) ?? [];
+      tilesByDepth.set(load.coordinate.z, tiles);
+      tiles.push(load.nodes);
     } else {
       failures += 1;
-      firstError ??= result.reason;
+      firstError ??= load.error;
     }
   }
 
@@ -502,6 +537,27 @@ export const getViewportNodes = async (
       `all ${failures} tile fetch(es) failed for the viewport`,
       firstError === undefined ? undefined : { cause: firstError },
     );
+  }
+
+  // A depth's tiles partition the viewport, so showing only some of them renders
+  // as uneven density that traces the tile grid. Include a depth only when we
+  // hold every tile needed to completely cover the viewport at that depth:
+  // compare the count we loaded against the uncapped cover count. This drops a
+  // depth with a failed tile, and one whose cover exceeds the enumeration cap
+  // (so `requiredTiles` never fetched it whole) — in both cases we can't render
+  // it without gaps.
+  const nodes = new Map<number | string, ViewportNode>();
+  for (const [z, tiles] of tilesByDepth) {
+    if (tiles.length !== viewportTileCount(rect, z)) {
+      continue;
+    }
+    for (const tileNodes of tiles) {
+      for (const node of tileNodes) {
+        // Dedupe by id. Tiles at a single depth partition space and deeper
+        // tiles never repeat ancestor nodes, so this is defensive.
+        nodes.set(node.id, { id: node.id, x: node.x, y: node.y });
+      }
+    }
   }
 
   // Record movement, then prefetch for where the viewport is heading.

@@ -137,6 +137,43 @@ describe("getViewportNodes", () => {
     expect(nodes).toHaveLength(12);
   });
 
+  it("drops a depth entirely when only some of its tiles load", async () => {
+    // The depth-2 block spanning this viewport is 2×2; fail one of its four
+    // tiles ({ z: 2, x: 1, y: 1 }, row-major index 5). Depths 0 and 1 load in
+    // full (3 nodes each); depth 2 is partial and so must be dropped wholesale
+    // rather than rendering three of four tiles as uneven density.
+    const partial: TileFetcher = (zoom, tileIndex) =>
+      zoom === 2 && tileIndex === 5
+        ? Promise.reject(new Error("gap"))
+        : fetcher(zoom, tileIndex);
+    const nodes = await getViewportNodes(
+      viewportAt(20_000, 20_000, 10_000, 2),
+      new TileCache({ fetcher: partial }),
+    );
+    expect(nodes).toHaveLength(6);
+  });
+
+  it("drops a depth whose cover exceeds the fetch cap, keeping coarser depths", async () => {
+    // This viewport is wide enough that depth 4 needs a 10×10 tile cover, but
+    // the per-depth enumeration cap fetches only a centred 8×8 block. All those
+    // load successfully, yet rendering them would show as a dense square in a
+    // sparse field — so depth 4 must be dropped, while depths 0–3 (whose covers
+    // fit within the cap) are shown. Node ids encode their tile's zoom.
+    const cache = new TileCache({ fetcher });
+    const nodes = await getViewportNodes(
+      viewportAt(20_000, 20_000, 20_000, 4),
+      cache,
+    );
+
+    const shownDepths = new Set(
+      nodes.map((node) =>
+        typeof node.id === "number" ? Math.floor(node.id / 1_000_000) : -1,
+      ),
+    );
+    expect(shownDepths.has(3)).toBe(true);
+    expect(shownDepths.has(4)).toBe(false);
+  });
+
   it("prefetches ahead of a detected pan", async () => {
     const cache = new TileCache({ fetcher });
     await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);

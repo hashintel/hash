@@ -91,25 +91,50 @@ const clampSpan = (
   return [start, clampInt(start + MAX_TILES_ACROSS - 1, 0, gridMaximum)];
 };
 
-/** Tile-index range covering `rect` at depth `z`. */
-const tileRangeForDepth = (
-  rect: Rect,
-  z: number,
-): { minX: number; maxX: number; minY: number; maxY: number } => {
+/** A closed tile-index range on each axis, `[minX, maxX] x [minY, maxY]`. */
+interface TileRange {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minY: number;
+  readonly maxY: number;
+}
+
+/**
+ * Uncapped tile-index range covering `rect` at depth `z`: every tile the
+ * rectangle overlaps. {@link viewportTileCount} counts these; {@link
+ * requiredTiles} caps the span (see {@link clampSpan}) before enumerating them.
+ */
+const coverRangeForDepth = (rect: Rect, z: number): TileRange => {
   const gridSize = 2 ** z;
   const span = WORLD_SIZE / gridSize;
   const gridMaximum = gridSize - 1;
-  const [minX, maxX] = clampSpan(
-    clampInt(Math.floor(rect.x1 / span), 0, gridMaximum),
-    clampInt(Math.floor(rect.x2 / span), 0, gridMaximum),
-    gridMaximum,
-  );
-  const [minY, maxY] = clampSpan(
-    clampInt(Math.floor(rect.y1 / span), 0, gridMaximum),
-    clampInt(Math.floor(rect.y2 / span), 0, gridMaximum),
-    gridMaximum,
-  );
-  return { minX, maxX, minY, maxY };
+  return {
+    minX: clampInt(Math.floor(rect.x1 / span), 0, gridMaximum),
+    maxX: clampInt(Math.floor(rect.x2 / span), 0, gridMaximum),
+    minY: clampInt(Math.floor(rect.y1 / span), 0, gridMaximum),
+    maxY: clampInt(Math.floor(rect.y2 / span), 0, gridMaximum),
+  };
+};
+
+/**
+ * Number of tiles needed to completely cover `rect` at depth `z`, uncapped —
+ * the size of {@link coverRangeForDepth}, not of the capped {@link
+ * requiredTiles}. A depth can be shown without gaps only when this many of its
+ * tiles are resident, so the loader compares it against how many actually
+ * loaded to decide whether to display the depth.
+ */
+export const viewportTileCount = (rect: Rect, z: number): number => {
+  const { minX, maxX, minY, maxY } = coverRangeForDepth(rect, z);
+  return (maxX - minX + 1) * (maxY - minY + 1);
+};
+
+/** Tile-index range covering `rect` at depth `z`, capped to bound enumeration. */
+const tileRangeForDepth = (rect: Rect, z: number): TileRange => {
+  const { minX, maxX, minY, maxY } = coverRangeForDepth(rect, z);
+  const gridMaximum = 2 ** z - 1;
+  const [spanMinX, spanMaxX] = clampSpan(minX, maxX, gridMaximum);
+  const [spanMinY, spanMaxY] = clampSpan(minY, maxY, gridMaximum);
+  return { minX: spanMinX, maxX: spanMaxX, minY: spanMinY, maxY: spanMaxY };
 };
 
 /**
