@@ -1,7 +1,7 @@
 //! The bounded landmark skeleton: selection, assignment, contraction.
 //!
-//! The skeleton (SPEC 3.5) caps the nonlinear layout problem at a
-//! configured landmark count `M` independent of the corpus size `N`:
+//! The skeleton caps the nonlinear layout problem at a configured
+//! landmark count `M` independent of the corpus size `N`:
 //!
 //! 1. [`select_landmarks`](select::select_landmarks) draws `M` representative node rows by weighted
 //!    sampling without replacement, honoring subgroup minimums and a retained fraction of the prior
@@ -12,6 +12,9 @@
 //!    [`SemanticGraph`](super::semantic::SemanticGraph) through the assignment into a semantic
 //!    graph over the landmark domain: the structure the nonlinear layout optimizes over, `M x M`
 //!    instead of `N x N`.
+//! 4. [`layout_landmarks`](layout::layout_landmarks) places the landmarks in 2D by stochastic
+//!    gradient descent of the UMAP objective over the quotient graph, on the
+//!    [`AffinityCurve`](crate::math::AffinityCurve) gradient kernels.
 //!
 //! The quotient is a [`SemanticGraph`] like the corpus graph it
 //! contracts, so the layout consumes one graph type at either scale.
@@ -22,6 +25,7 @@
 //! [`SemanticGraph`]: super::semantic::SemanticGraph
 
 pub(crate) mod assignment;
+pub(crate) mod layout;
 pub(crate) mod quotient;
 pub(crate) mod select;
 

@@ -5,15 +5,16 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     assignment::{AssignmentError, LandmarkAssignment, assign_landmarks},
+    layout::{LayoutError, LayoutOptions, layout_landmarks},
     quotient::{QuotientError, QuotientOptions, quotient_graph},
     select::{
-        LandmarkCandidate, SelectionError, SelectionOptions, Subgroup, SubgroupDimension,
-        SubgroupMinimum, select_landmarks,
+        LandmarkCandidate, LandmarkOrdinal, SelectionError, SelectionOptions, Subgroup,
+        SubgroupAxes, SubgroupDimension, SubgroupMinimum, select_landmarks,
     },
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::{AlignedVecN, BoxedVecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
         semantic::{SemanticGraph, SemanticMatrix},
@@ -28,13 +29,7 @@ fn candidate(row: u64) -> LandmarkCandidate {
     LandmarkCandidate {
         row: NodeRowId::new(row),
         sampling_weight: 1.0,
-        density: 0,
-        language: 0,
-        source: 0,
-        entity_role: 0,
-        type_family: 0,
-        community: 0,
-        temporal_cohort: 0,
+        axes: SubgroupAxes::default(),
         prior_landmark: false,
     }
 }
@@ -43,7 +38,7 @@ fn candidates(count: u64) -> Vec<LandmarkCandidate> {
     (0..count).map(candidate).collect()
 }
 
-fn options(maximum: usize) -> SelectionOptions {
+fn options(maximum: u32) -> SelectionOptions {
     SelectionOptions {
         maximum_count: NonZero::new(maximum).expect("test capacities are nonzero"),
         ..
@@ -89,7 +84,7 @@ fn selection_honors_subgroup_minimums() {
     // Rows 90..100 carry language 7; demand five of them.
     let mut candidates = candidates(100);
     for candidate in &mut candidates[90..100] {
-        candidate.language = 7;
+        candidate.axes[SubgroupDimension::Language] = 7;
     }
     let subgroup = Subgroup {
         dimension: SubgroupDimension::Language,
@@ -245,7 +240,7 @@ fn selection_rejects_unsatisfiable_minimums() {
     // The minimum alone exceeds the capacity.
     let mut tagged = candidates(10);
     for candidate in &mut tagged {
-        candidate.community = 9;
+        candidate.axes[SubgroupDimension::Community] = 9;
     }
     assert_eq!(
         select_landmarks(
@@ -395,8 +390,18 @@ impl Matrix {
 
 fn selection_of(rows: &[u64]) -> super::select::LandmarkSelection {
     let candidates: Vec<LandmarkCandidate> = rows.iter().map(|&row| candidate(row)).collect();
-    select_landmarks(&candidates, &[], options(rows.len()), rng())
+    let capacity = u32::try_from(rows.len()).expect("test fixtures are small");
+    select_landmarks(&candidates, &[], options(capacity), rng())
         .expect("selecting every candidate succeeds")
+}
+
+/// Ordinals from bare positions, for fixtures.
+fn ordinals(positions: &[u32]) -> Box<[LandmarkOrdinal]> {
+    positions
+        .iter()
+        .copied()
+        .map(LandmarkOrdinal::new)
+        .collect()
 }
 
 #[test]
@@ -408,8 +413,9 @@ fn assignment_maps_rows_to_their_nearest_landmark() {
     let assignment = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection)
         .expect("the exact backend assigns every row");
 
-    assert_eq!(assignment.as_slice(), [0, 0, 1, 1, 2, 2]);
-    assert_eq!(assignment.get(NodeRowId::new(3)), 1);
+    assert_eq!(assignment.as_slice(), &*ordinals(&[0, 0, 1, 1, 2, 2]));
+    assert_eq!(assignment.get(NodeRowId::new(3)), LandmarkOrdinal::new(1));
+    assert_eq!(assignment.landmarks(), 3);
 }
 
 #[test]
@@ -426,8 +432,8 @@ fn assignment_rejects_landmarks_outside_the_corpus() {
 }
 
 /// An assignment straight from ordinals, for quotient fixtures.
-fn assignment_of(ordinals: &[u32]) -> LandmarkAssignment {
-    LandmarkAssignment::from_ordinals(ordinals.to_vec().into_boxed_slice())
+fn assignment_of(positions: &[u32], landmarks: usize) -> LandmarkAssignment {
+    LandmarkAssignment::from_ordinals(ordinals(positions), landmarks)
 }
 
 /// A semantic graph over `count` rows from undirected weighted edges.
@@ -472,9 +478,9 @@ fn corpus_graph() -> SemanticGraph {
 #[test]
 fn quotient_contracts_cross_landmark_edges() {
     let graph = corpus_graph();
-    let assignment = assignment_of(&[0, 0, 1, 1, 2, 2]);
+    let assignment = assignment_of(&[0, 0, 1, 1, 2, 2], 3);
 
-    let quotient = quotient_graph(&graph.view(), &assignment, 3, QuotientOptions { .. })
+    let quotient = quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
         .expect("the fixture quotient has edges");
 
     // Directed inflows: L0 <- 0.5 (edge 1-2), L1 <- 0.5 + 0.25, L2 <-
@@ -508,12 +514,11 @@ fn quotient_keeps_only_the_strongest_neighbours() {
             (1, 6, 0.25), // L0 - L3
         ],
     );
-    let assignment = assignment_of(&[0, 0, 1, 1, 2, 2, 3, 3]);
+    let assignment = assignment_of(&[0, 0, 1, 1, 2, 2, 3, 3], 4);
 
     let quotient = quotient_graph(
         &graph.view(),
         &assignment,
-        4,
         QuotientOptions {
             maximum_neighbours: NonZero::new(1).expect("one is nonzero"),
         },
@@ -536,8 +541,7 @@ fn quotient_rejects_inconsistent_inputs() {
     assert_eq!(
         quotient_graph(
             &graph.view(),
-            &assignment_of(&[0, 0, 1, 1]),
-            2,
+            &assignment_of(&[0, 0, 1, 1], 2),
             QuotientOptions { .. },
         )
         .expect_err("the inconsistent assignment must be rejected"),
@@ -547,30 +551,164 @@ fn quotient_rejects_inconsistent_inputs() {
         },
     );
 
-    assert_eq!(
-        quotient_graph(
-            &graph.view(),
-            &assignment_of(&[0, 0, 1, 1, 2, 9]),
-            3,
-            QuotientOptions { .. },
-        )
-        .expect_err("the out-of-domain ordinal must be rejected"),
-        QuotientError::AssignmentOrdinal {
-            row: 5,
-            ordinal: 9,
-            landmarks: 3,
-        },
-    );
-
     // Everything in one landmark: nothing crosses.
     assert_eq!(
         quotient_graph(
             &graph.view(),
-            &assignment_of(&[0, 0, 0, 0, 0, 0]),
-            1,
+            &assignment_of(&[0, 0, 0, 0, 0, 0], 1),
             QuotientOptions { .. },
         )
         .expect_err("the edgeless quotient must be rejected"),
         QuotientError::EmptyQuotient,
+    );
+}
+
+#[test]
+#[should_panic(expected = "every ordinal lies below the landmark count")]
+fn assignment_fixtures_validate_their_domain() {
+    assignment_of(&[0, 0, 1, 1, 2, 9], 3);
+}
+
+fn curve() -> AffinityCurve {
+    AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned")
+}
+
+fn layout_options(epochs: u32) -> LayoutOptions {
+    LayoutOptions {
+        epochs: NonZero::new(epochs).expect("test epoch budgets are nonzero"),
+        ..
+    }
+}
+
+#[test]
+fn layout_is_deterministic_under_a_seed() {
+    let graph = corpus_graph();
+
+    let first = layout_landmarks(&graph.view(), curve(), layout_options(50), rng())
+        .expect("the fixture graph lays out");
+    let second = layout_landmarks(&graph.view(), curve(), layout_options(50), rng())
+        .expect("the fixture graph lays out");
+    assert_eq!(first, second);
+
+    let third = layout_landmarks(
+        &graph.view(),
+        curve(),
+        layout_options(50),
+        Xoshiro256PlusPlus::seed_from_u64(43),
+    )
+    .expect("the fixture graph lays out");
+    assert_ne!(first, third, "a different seed draws a different layout");
+}
+
+#[test]
+fn layout_separates_clusters() {
+    // Two 3-cliques with no edge between them: attraction gathers each
+    // clique, repulsion drives the cliques apart.
+    let graph = semantic_from_edges(
+        6,
+        &[
+            (0, 1, 1.0),
+            (0, 2, 1.0),
+            (1, 2, 1.0),
+            (3, 4, 1.0),
+            (3, 5, 1.0),
+            (4, 5, 1.0),
+        ],
+    );
+
+    let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
+        .expect("the fixture graph lays out");
+
+    assert_eq!(coordinates.len(), 6);
+    for point in &coordinates {
+        assert!(
+            point.x().is_finite() && point.y().is_finite(),
+            "every optimized coordinate is finite",
+        );
+    }
+
+    let clusters: [&[usize]; 2] = [&[0, 1, 2], &[3, 4, 5]];
+    let mut widest_within = 0.0_f32;
+    for cluster in clusters {
+        for (position, &left) in cluster.iter().enumerate() {
+            for &right in &cluster[position + 1..] {
+                widest_within = widest_within.max(coordinates[left].distance(coordinates[right]));
+            }
+        }
+    }
+    let mut narrowest_across = f32::INFINITY;
+    for &left in clusters[0] {
+        for &right in clusters[1] {
+            narrowest_across = narrowest_across.min(coordinates[left].distance(coordinates[right]));
+        }
+    }
+
+    assert!(
+        widest_within < narrowest_across,
+        "cliques gather ({widest_within}) closer than the gap between them ({narrowest_across})",
+    );
+}
+
+#[test]
+fn layout_leaves_edgeless_rows_on_the_initial_circle() {
+    // One edge between rows 0 and 1; rows 2 and 3 are isolated.
+    let graph = semantic_from_edges(4, &[(0, 1, 1.0)]);
+
+    let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
+        .expect("the fixture graph lays out");
+    assert_eq!(coordinates.len(), 4);
+
+    // The initial circle has radius 5 with up to 1% radial jitter; no
+    // force acts on an edgeless row, so it stays in that annulus (the
+    // bounds carry rounding slop from the trigonometric placement).
+    for &isolated in &[2_usize, 3] {
+        let radius = coordinates[isolated].length();
+        assert!(
+            (4.999..=5.051).contains(&radius),
+            "row {isolated} sits at radius {radius}, off the initial annulus",
+        );
+    }
+
+    // The connected pair starts half a circle apart (distance ~10) and
+    // attraction draws it in.
+    assert!(
+        coordinates[0].distance(coordinates[1]) < 2.0,
+        "the connected pair gathers",
+    );
+}
+
+#[test]
+fn layout_rejects_malformed_inputs() {
+    let edgeless = semantic_from_edges(2, &[]);
+    assert_eq!(
+        layout_landmarks(&edgeless.view(), curve(), LayoutOptions { .. }, rng()),
+        Err(LayoutError::NoEdges),
+    );
+
+    let graph = corpus_graph();
+    assert!(matches!(
+        layout_landmarks(
+            &graph.view(),
+            curve(),
+            LayoutOptions {
+                initial_learning_rate: f32::NAN,
+                ..
+            },
+            rng(),
+        ),
+        Err(LayoutError::InvalidLearningRate { .. }),
+    ));
+
+    assert_eq!(
+        layout_landmarks(
+            &graph.view(),
+            curve(),
+            LayoutOptions {
+                repulsion_strength: -1.0,
+                ..
+            },
+            rng(),
+        ),
+        Err(LayoutError::InvalidRepulsionStrength { value: -1.0 }),
     );
 }

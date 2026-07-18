@@ -298,6 +298,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "argmin"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7ab7ca97779074715a402e5e8045fae27e7191acaec9b4c5653276316e9e404"
+dependencies = [
+ "anyhow",
+ "argmin-math",
+ "num-traits",
+ "paste",
+ "rand_xoshiro 0.7.0",
+ "thiserror 2.0.18",
+ "web-time",
+]
+
+[[package]]
 name = "argmin-math"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3756,6 +3771,7 @@ dependencies = [
 name = "hash-graph-atlas"
 version = "0.0.0"
 dependencies = [
+ "argmin",
  "argmin-math",
  "camino",
  "codspeed-criterion-compat",
@@ -3775,7 +3791,7 @@ dependencies = [
  "rand 0.10.1",
  "rand_core 0.10.1",
  "rand_core 0.6.4",
- "rand_xoshiro",
+ "rand_xoshiro 0.8.1",
  "rayon",
  "regex",
  "serde",
@@ -3870,7 +3886,7 @@ dependencies = [
  "error-stack",
  "hash-graph-types",
  "rand 0.10.1",
- "rand_xoshiro",
+ "rand_xoshiro 0.8.1",
  "rayon",
  "reqwest",
  "reqwest-middleware",
@@ -8301,6 +8317,15 @@ name = "rand_xorshift"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "513962919efc330f829edb2535844d1b912b0fbe2ca165d613e4e8788bb05a5a"
+dependencies = [
+ "rand_core 0.9.5",
+]
+
+[[package]]
+name = "rand_xoshiro"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f703f4665700daf5512dcca5f43afa6af89f09db47fb56be587f80636bda2d41"
 dependencies = [
  "rand_core 0.9.5",
 ]

@@ -1,9 +1,9 @@
 //! Prepare representations: persist the working artifacts of one
 //! generation.
 //!
-//! The stage (SPEC 3.2) consumes dataset streams once and writes the
-//! artifacts every later stage reads, so downstream stages address rows
-//! in mapped files instead of re-consuming the source.
+//! The stage consumes dataset streams once and writes the artifacts
+//! every later stage reads, so downstream stages address rows in
+//! mapped files instead of re-consuming the source.
 //! [`write_node_representations`] covers the node half: the `f32[N, 512]`
 //! representation matrix, row-aligned with the node stream, and
 //! [`norm::spot_check`] certifies the written rows' source contract

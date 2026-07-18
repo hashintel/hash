@@ -12,7 +12,7 @@ use core::{error::Error, fmt};
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
 
-use super::select::LandmarkSelection;
+use super::select::{LandmarkOrdinal, LandmarkSelection};
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
     math::AlignedVecN,
@@ -20,16 +20,34 @@ use crate::{
 };
 
 /// Dense corpus-to-landmark assignment in node-row order.
+///
+/// Every stored ordinal lies below [`landmarks`](Self::landmarks), the
+/// length of the selection the assignment was built against, so
+/// consumers index landmark-domain tables without re-validation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LandmarkAssignment {
-    landmark_by_row: Box<[u32]>,
+    landmark_by_row: Box<[LandmarkOrdinal]>,
+    landmarks: usize,
 }
 
 impl LandmarkAssignment {
     /// Wraps precomputed ordinals, for fixtures.
+    ///
+    /// # Panics
+    ///
+    /// Panics when an ordinal lies at or beyond `landmarks`.
     #[cfg(test)]
-    pub(super) const fn from_ordinals(landmark_by_row: Box<[u32]>) -> Self {
-        Self { landmark_by_row }
+    pub(super) fn from_ordinals(landmark_by_row: Box<[LandmarkOrdinal]>, landmarks: usize) -> Self {
+        assert!(
+            landmark_by_row
+                .iter()
+                .all(|ordinal| ordinal.usize() < landmarks),
+            "every ordinal lies below the landmark count",
+        );
+        Self {
+            landmark_by_row,
+            landmarks,
+        }
     }
 
     /// Returns the assigned landmark ordinal of one node row.
@@ -39,15 +57,23 @@ impl LandmarkAssignment {
     /// Panics when `row` is outside the assigned corpus.
     #[inline]
     #[must_use]
-    pub(crate) fn get(&self, row: NodeRowId) -> u32 {
+    pub(crate) fn get(&self, row: NodeRowId) -> LandmarkOrdinal {
         self.landmark_by_row[row.usize()]
     }
 
     /// Borrows every assignment ordinal in node-row order.
     #[inline]
     #[must_use]
-    pub(crate) fn as_slice(&self) -> &[u32] {
+    pub(crate) fn as_slice(&self) -> &[LandmarkOrdinal] {
         &self.landmark_by_row
+    }
+
+    /// Returns the ordinal domain size: every stored ordinal lies
+    /// below it.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn landmarks(&self) -> usize {
+        self.landmarks
     }
 }
 
@@ -141,7 +167,7 @@ where
         .map(|(row, components)| {
             let row = NodeRowId::new(row as u64);
             if let Some(ordinal) = selection.ordinal(row) {
-                return Ok(ordinal_u32(ordinal));
+                return Ok(ordinal);
             }
 
             let nearest = index
@@ -150,24 +176,18 @@ where
                 .into_iter()
                 .next()
                 .ok_or(AssignmentError::MissingMatch { row: row.get() })?;
-            let ordinal =
-                selection
-                    .ordinal(nearest.id)
-                    .ok_or(AssignmentError::ForeignNeighbour {
-                        row: row.get(),
-                        neighbour: nearest.id.get(),
-                    })?;
 
-            Ok(ordinal_u32(ordinal))
+            selection
+                .ordinal(nearest.id)
+                .ok_or(AssignmentError::ForeignNeighbour {
+                    row: row.get(),
+                    neighbour: nearest.id.get(),
+                })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(LandmarkAssignment {
         landmark_by_row: landmark_by_row.into_boxed_slice(),
+        landmarks: selection.len(),
     })
-}
-
-/// Narrows a landmark ordinal to its persisted `u32` encoding.
-fn ordinal_u32(ordinal: usize) -> u32 {
-    u32::try_from(ordinal).expect("the bounded landmark capacity fits u32")
 }

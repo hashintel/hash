@@ -25,7 +25,7 @@ use crate::{
     random::{acceptance_sample_size, sample_indices_vec},
 };
 
-// The defaults are SPEC 3.4's admission gate, recall@50 >= 0.89: the
+// The defaults are the backend admission gate, recall@50 >= 0.89: the
 // gate is aggregate recall over the sample, so a long per-row tail
 // cannot fail a backend whose aggregate holds. The acceptance bound
 // sizes the sample (688 rows certify a 1% defect rate at 99.9%

@@ -42,7 +42,10 @@
     impl_trait_in_assoc_type,
     iter_intersperse,
     pointer_is_aligned_to,
-    portable_simd
+    portable_simd,
+    variant_count,
+    const_closures,
+    const_array
 )]
 #![expect(
     dead_code,

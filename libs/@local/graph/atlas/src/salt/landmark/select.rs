@@ -17,12 +17,20 @@
 //! Priorities come from the caller's seeded generator in candidate
 //! order, so a rerun over equal candidates with an equally seeded
 //! generator selects identical rows.
+#![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use alloc::collections::BinaryHeap;
-use core::{cmp::Ordering, error::Error, fmt, num::NonZero};
+use core::{
+    cmp::Ordering,
+    error::Error,
+    fmt, mem,
+    num::NonZero,
+    ops::{Index, IndexMut},
+};
 use std::collections::HashSet;
 
 use rand::{Rng, RngExt as _};
+use zerocopy::{LE, U32};
 
 use crate::dataset::NodeRowId;
 
@@ -40,6 +48,9 @@ pub(crate) enum SubgroupDimension {
 }
 
 impl SubgroupDimension {
+    /// The number of stratification axes.
+    pub(crate) const COUNT: usize = mem::variant_count::<Self>();
+
     /// Returns the axis name.
     const fn name(self) -> &'static str {
         match self {
@@ -51,6 +62,27 @@ impl SubgroupDimension {
             Self::Community => "community",
             Self::TemporalCohort => "temporal-cohort",
         }
+    }
+}
+
+/// Categorical values on every stratification axis, indexed by
+/// [`SubgroupDimension`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub(crate) struct SubgroupAxes([u32; SubgroupDimension::COUNT]);
+
+const impl Index<SubgroupDimension> for SubgroupAxes {
+    type Output = u32;
+
+    #[inline]
+    fn index(&self, index: SubgroupDimension) -> &u32 {
+        &self.0[index as usize]
+    }
+}
+
+const impl IndexMut<SubgroupDimension> for SubgroupAxes {
+    #[inline]
+    fn index_mut(&mut self, index: SubgroupDimension) -> &mut u32 {
+        &mut self.0[index as usize]
     }
 }
 
@@ -80,13 +112,8 @@ pub(crate) struct LandmarkCandidate {
     pub row: NodeRowId,
     /// Relative selection propensity, finite and strictly positive.
     pub sampling_weight: f64,
-    pub density: u32,
-    pub language: u32,
-    pub source: u32,
-    pub entity_role: u32,
-    pub type_family: u32,
-    pub community: u32,
-    pub temporal_cohort: u32,
+    /// The candidate's value on every stratification axis.
+    pub axes: SubgroupAxes,
     /// Whether the row was a landmark of the prior generation.
     pub prior_landmark: bool,
 }
@@ -95,16 +122,7 @@ impl LandmarkCandidate {
     /// Returns whether the candidate carries the subgroup's value.
     #[inline]
     const fn belongs_to(self, subgroup: Subgroup) -> bool {
-        let value = match subgroup.dimension {
-            SubgroupDimension::Density => self.density,
-            SubgroupDimension::Language => self.language,
-            SubgroupDimension::Source => self.source,
-            SubgroupDimension::EntityRole => self.entity_role,
-            SubgroupDimension::TypeFamily => self.type_family,
-            SubgroupDimension::Community => self.community,
-            SubgroupDimension::TemporalCohort => self.temporal_cohort,
-        };
-        value == subgroup.value
+        self.axes[subgroup.dimension] == subgroup.value
     }
 }
 
@@ -112,12 +130,64 @@ impl LandmarkCandidate {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SelectionOptions {
     /// The landmark capacity `M`: at most this many rows are selected,
-    /// fewer only when the corpus is smaller.
-    pub maximum_count: NonZero<usize>,
+    /// fewer only when the corpus is smaller. The `u32` width is the
+    /// [`LandmarkOrdinal`] encoding's contract: every selection
+    /// position fits the persisted ordinal form.
+    pub maximum_count: NonZero<u32>,
     /// Fraction of the capacity reserved for prior landmarks when
     /// enough are on offer, in `[0, 1]`. Retention stabilizes
     /// generation-to-generation orientation. Defaults to 0.25.
+    // The default is an unvalidated starting point (legacy required
+    // the value as config, setting no precedent); the temporal-drift
+    // and landmark rank-correlation gates revise it from evidence.
     pub retained_fraction: f64 = 0.25,
+}
+
+/// A reference to a landmark by its position in a [`LandmarkSelection`].
+///
+/// Ordinals are dense and zero-based: the value is the position of the
+/// landmark's node row in the selection's ascending row order. The
+/// little-endian representation is the persisted form, so a column of
+/// these ordinals is written to and read from artifact files without
+/// conversion.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialOrd,
+    Ord,
+    zerocopy::ByteEq,
+    zerocopy::ByteHash,
+    zerocopy::IntoBytes,
+    zerocopy::FromBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
+pub(crate) struct LandmarkOrdinal(U32<LE>);
+
+impl LandmarkOrdinal {
+    /// Creates an ordinal referencing the landmark at `position`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(position: u32) -> Self {
+        Self(U32::new(position))
+    }
+
+    /// Returns the referenced selection position.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn get(self) -> u32 {
+        self.0.get()
+    }
+
+    /// Returns the ordinal as an index into a landmark-aligned column.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn usize(self) -> usize {
+        self.get() as usize
+    }
 }
 
 /// Canonically ordered selected rows.
@@ -151,10 +221,15 @@ impl LandmarkSelection {
 
     /// Returns the ordinal of a selected row, or `None` when the row
     /// is not a landmark.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the selection length is bounded by the u32 capacity at construction"
+    )]
     #[inline]
     #[must_use]
-    pub(crate) fn ordinal(&self, row: NodeRowId) -> Option<usize> {
-        self.rows.binary_search(&row).ok()
+    pub(crate) fn ordinal(&self, row: NodeRowId) -> Option<LandmarkOrdinal> {
+        let position = self.rows.binary_search(&row).ok()?;
+        Some(LandmarkOrdinal::new(position as u32))
     }
 }
 
@@ -245,7 +320,7 @@ pub(crate) fn select_landmarks(
 ) -> Result<LandmarkSelection, SelectionError> {
     validate(candidates, minimums, options)?;
 
-    let capacity = options.maximum_count.get().min(candidates.len());
+    let capacity = (options.maximum_count.get() as usize).min(candidates.len());
     let priorities: Vec<f64> = candidates
         .iter()
         .map(|candidate| {

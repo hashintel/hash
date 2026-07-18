@@ -19,7 +19,7 @@
 use core::{error::Error, fmt, num::NonZero};
 use std::collections::HashMap;
 
-use super::assignment::LandmarkAssignment;
+use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
 use crate::salt::semantic::{
     SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError,
 };
@@ -29,6 +29,11 @@ use crate::salt::semantic::{
 pub(crate) struct QuotientOptions {
     /// Strongest directed edges each landmark row keeps before the
     /// symmetric union. Defaults to 64.
+    // The default is an unvalidated starting point (legacy required
+    // the value as config, setting no precedent). It bounds quotient
+    // memory at roughly `M * 64` directed edges before the union; the
+    // layout quality gates (trustworthiness, landmark rank
+    // correlation) revise it from evidence.
     pub maximum_neighbours: NonZero<usize> = const { NonZero::new(64).unwrap() },
 }
 
@@ -37,12 +42,6 @@ pub(crate) struct QuotientOptions {
 pub(crate) enum QuotientError {
     /// The assignment covers a different corpus than the graph.
     AssignmentRows { expected: usize, actual: usize },
-    /// An assignment names an ordinal outside the landmark domain.
-    AssignmentOrdinal {
-        row: usize,
-        ordinal: u32,
-        landmarks: usize,
-    },
     /// No corpus edge crosses landmarks: the quotient has no edges.
     EmptyQuotient,
     /// The contracted matrix violates a [`SemanticGraph`] invariant.
@@ -62,14 +61,6 @@ impl fmt::Display for QuotientError {
                 fmt,
                 "the assignment covers {actual} rows; the semantic graph covers {expected}",
             ),
-            Self::AssignmentOrdinal {
-                row,
-                ordinal,
-                landmarks,
-            } => write!(
-                fmt,
-                "the assignment maps row {row} to ordinal {ordinal}, outside {landmarks} landmarks",
-            ),
             Self::EmptyQuotient => {
                 fmt.write_str("no semantic edge crosses landmarks; the quotient has no edges")
             }
@@ -82,24 +73,23 @@ impl Error for QuotientError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Invalid(invalid) => Some(invalid),
-            Self::AssignmentRows { .. } | Self::AssignmentOrdinal { .. } | Self::EmptyQuotient => {
-                None
-            }
+            Self::AssignmentRows { .. } | Self::EmptyQuotient => None,
         }
     }
 }
 
 /// Contracts the corpus semantic graph into the landmark domain.
 ///
+/// The landmark domain is the assignment's: the quotient has exactly
+/// [`landmarks`](LandmarkAssignment::landmarks) rows.
+///
 /// # Errors
 ///
 /// Returns an error when the assignment does not cover the graph's
-/// rows, names an ordinal at or beyond `landmarks`, or when no edge
-/// crosses landmark boundaries.
+/// rows or when no edge crosses landmark boundaries.
 pub(crate) fn quotient_graph(
     semantic: &SemanticGraphView<'_>,
     assignment: &LandmarkAssignment,
-    landmarks: usize,
     options: QuotientOptions,
 ) -> Result<SemanticGraph, QuotientError> {
     let rows = semantic.rows();
@@ -109,35 +99,27 @@ pub(crate) fn quotient_graph(
             actual: assignment.as_slice().len(),
         });
     }
-    for (row, &ordinal) in assignment.as_slice().iter().enumerate() {
-        if ordinal as usize >= landmarks {
-            return Err(QuotientError::AssignmentOrdinal {
-                row,
-                ordinal,
-                landmarks,
-            });
-        }
-    }
 
-    let mut directed: Vec<HashMap<u32, f64>> = vec![HashMap::new(); landmarks];
+    let landmarks = assignment.landmarks();
+    let mut directed: Vec<HashMap<LandmarkOrdinal, f64>> = vec![HashMap::new(); landmarks];
     for row in 0..rows {
         let left = assignment.as_slice()[row];
         for edge in semantic.row(row) {
             let right = assignment.as_slice()[edge.id.usize()];
             if left != right {
-                *directed[left as usize].entry(right).or_default() += f64::from(edge.weight);
+                *directed[left.usize()].entry(right).or_default() += f64::from(edge.weight);
             }
         }
     }
 
-    let mut undirected = HashMap::<(u32, u32), f32>::new();
+    let mut undirected = HashMap::<(LandmarkOrdinal, LandmarkOrdinal), f32>::new();
     for (left, row) in directed.into_iter().enumerate() {
         let maximum = row.values().copied().fold(0.0_f64, f64::max);
         if maximum == 0.0 {
             continue;
         }
 
-        let mut strongest: Vec<(u32, f64)> = row.into_iter().collect();
+        let mut strongest: Vec<(LandmarkOrdinal, f64)> = row.into_iter().collect();
         strongest.sort_unstable_by(
             |&(left_column, left_weight), &(right_column, right_weight)| {
                 right_weight
@@ -147,7 +129,12 @@ pub(crate) fn quotient_graph(
         );
         strongest.truncate(options.maximum_neighbours.get());
 
-        let left = u32::try_from(left).expect("the bounded landmark capacity fits u32");
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "positions in the ordinal-indexed table lie below the assignment's \
+                      u32-bounded landmark count"
+        )]
+        let left = LandmarkOrdinal::new(left as u32);
         for (right, weight) in strongest {
             let pair = if left < right {
                 (left, right)
@@ -170,10 +157,10 @@ pub(crate) fn quotient_graph(
         return Err(QuotientError::EmptyQuotient);
     }
 
-    let mut rows: Vec<Vec<(u32, f32)>> = vec![Vec::new(); landmarks];
+    let mut rows: Vec<Vec<(LandmarkOrdinal, f32)>> = vec![Vec::new(); landmarks];
     for (&(left, right), &weight) in &undirected {
-        rows[left as usize].push((right, weight));
-        rows[right as usize].push((left, weight));
+        rows[left.usize()].push((right, weight));
+        rows[right.usize()].push((left, weight));
     }
 
     let mut indptr = Vec::with_capacity(landmarks + 1);
@@ -182,7 +169,7 @@ pub(crate) fn quotient_graph(
     indptr.push(0_u64);
     for row in &mut rows {
         row.sort_unstable_by_key(|&(column, _)| column);
-        indices.extend(row.iter().map(|&(column, _)| column));
+        indices.extend(row.iter().map(|&(column, _)| column.get()));
         weights.extend(row.iter().map(|&(_, weight)| weight));
         indptr.push(indices.len() as u64);
     }
