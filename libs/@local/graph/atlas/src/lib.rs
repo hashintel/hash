@@ -40,7 +40,8 @@
     const_ops,
     impl_trait_in_assoc_type,
     pointer_is_aligned_to,
-    portable_simd
+    portable_simd,
+    formatting_options
 )]
 #![expect(
     dead_code,

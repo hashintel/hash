@@ -22,19 +22,21 @@ uuid           = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
-futures.workspace          = true
-pin-project-lite.workspace = true
-rand_xoshiro               = { workspace = true }
-rayon                      = { workspace = true }
-regex                      = { workspace = true }
-serde                      = { workspace = true, features = ["derive"] }
-serde_json                 = { workspace = true, features = ["float_roundtrip"] }
-sha2                       = { workspace = true }
-simple-mermaid             = { workspace = true }
-sleef                      = "0.3"
-smallvec.workspace         = true
-tiktoken-rs                = "0.12.0"
-zerocopy                   = "0.8.54"
+futures.workspace              = true
+memchr.workspace               = true
+pin-project-lite.workspace     = true
+rand_xoshiro                   = { workspace = true }
+rayon                          = { workspace = true }
+regex                          = { workspace = true }
+serde                          = { workspace = true, features = ["derive"] }
+serde_json                     = { workspace = true, features = ["float_roundtrip"] }
+sha2                           = { workspace = true }
+simple-mermaid                 = { workspace = true }
+sleef                          = "0.3"
+smallvec.workspace             = true
+tiktoken-rs                    = "0.12.0"
+unicode-segmentation.workspace = true
+zerocopy                       = "0.8.54"
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }

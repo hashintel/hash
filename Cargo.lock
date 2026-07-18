@@ -3651,6 +3651,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "hash-graph-temporal-versioning",
+ "memchr",
  "pin-project-lite",
  "proptest",
  "rand 0.10.1",
@@ -3668,6 +3669,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "type-system",
+ "unicode-segmentation",
  "uuid",
  "zerocopy",
 ]
