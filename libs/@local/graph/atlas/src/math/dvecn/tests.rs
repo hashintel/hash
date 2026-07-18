@@ -159,6 +159,100 @@ fn wrapping_is_in_place() {
     );
 }
 
+/// Deterministic, sign-varying components crossing several 8-lane chunks.
+fn scattered<const N: usize>(offset: f64) -> [f64; N] {
+    core::array::from_fn(|index| {
+        let value = f64::from(u8::try_from(index % 200).expect("bounded by modulus"));
+
+        (value - 100.0).mul_add(0.125, offset)
+    })
+}
+
+#[test]
+fn dot_matches_a_plain_reference_across_chunk_sizes() {
+    #[expect(
+        clippy::suboptimal_flops,
+        reason = "the reference deliberately uses plain multiply-and-sum, independent of the FMA \
+                  path under test"
+    )]
+    fn check<const N: usize>() {
+        let left: [f64; N] = scattered(0.5);
+        let right: [f64; N] = scattered(-1.25);
+        let expected = left
+            .iter()
+            .zip(&right)
+            .map(|(&lhs, &rhs)| lhs * rhs)
+            .sum::<f64>();
+
+        let actual = DVecN::new(left).dot(DVecN::from_ref(&right));
+        assert!(
+            (actual - expected).abs() <= expected.abs().mul_add(1e-12, 1e-12),
+            "dot over {N}: {actual} vs {expected}",
+        );
+    }
+
+    check::<0>();
+    check::<3>();
+    check::<8>();
+    check::<11>();
+    check::<19>();
+    check::<512>();
+}
+
+#[test]
+fn norm_squared_and_abs_sum_match_plain_references() {
+    let components: [f64; 19] = scattered(-0.75);
+    let vec = DVecN::new(components);
+
+    let expected_norm = components.iter().map(|&value| value * value).sum::<f64>();
+    assert!((vec.norm_squared() - expected_norm).abs() <= expected_norm * 1e-12);
+
+    let expected_abs = components.iter().map(|&value| value.abs()).sum::<f64>();
+    assert!((vec.abs_sum() - expected_abs).abs() <= expected_abs * 1e-12);
+
+    // The empty folds hit their identities exactly.
+    assert_eq!(DVecN::new([]).norm_squared(), 0.0);
+    assert_eq!(DVecN::new([]).abs_sum(), 0.0);
+}
+
+#[test]
+fn boxed_dvecn_is_aligned_deep_cloned_and_writable() {
+    let source: [f64; 11] = scattered(2.5);
+    let mut boxed = crate::math::BoxedDVecN::from(source);
+
+    // The allocation satisfies the alignment invariant by construction.
+    assert!(
+        boxed
+            .as_array()
+            .as_ptr()
+            .is_aligned_to(align_of::<core::simd::f64x8>())
+    );
+    assert_eq!(boxed.as_array(), &source);
+
+    // Clones are deep: writes through one box never reach the other.
+    let cloned = boxed.clone();
+    boxed.as_array_mut()[0] = 9.0;
+    assert_eq!(cloned.as_array()[0], source[0]);
+    assert_eq!(boxed.as_array()[0], 9.0);
+
+    // Lane writes land in place, exactly as for the f32 twin.
+    let (lanes, remainder) = boxed.lanes_mut();
+    for lane in lanes.iter_mut() {
+        *lane = core::simd::Simd::splat(2.0);
+    }
+    remainder.fill(5.0);
+    assert_eq!(boxed.as_array()[..8], [2.0; 8]);
+    assert_eq!(boxed.as_array()[8..], [5.0; 3]);
+}
+
+#[test]
+fn boxed_dvecn_zero_is_all_zeros() {
+    let zero = crate::math::BoxedDVecN::<19>::zero();
+
+    assert_eq!(zero.as_array(), &[0.0; 19]);
+    assert_eq!(zero.norm_squared(), 0.0);
+}
+
 // The fixed dimension 11 crosses the reductions' 4-lane chunk boundary
 // (two full chunks plus a remainder of three) and `add_scaled`'s 8-lane
 // boundary (one chunk plus three).

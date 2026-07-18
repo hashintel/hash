@@ -75,6 +75,20 @@ pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
     sleef::f64x::exp_u10(values)
 }
 
+/// Exponential of each lane, accurate to 1.0 unit in the last place.
+///
+/// Exact at the special points consumers lean on: a zero lane yields
+/// exactly one and a negative-infinity lane yields exactly zero.
+#[expect(
+    clippy::inline_always,
+    reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
+              transparent so only sleef's own call remains"
+)]
+#[inline(always)]
+pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
+    sleef::f32x::exp_u10(values)
+}
+
 /// Raises each lane of `base` to the matching lane of `exponent`, for
 /// strictly positive bases.
 ///
@@ -126,7 +140,7 @@ pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
 mod tests {
     use core::simd::Simd;
 
-    use super::{exp_f64x4, mul_add_f32x4, pow_f32x4};
+    use super::{exp_f32x8, exp_f64x4, mul_add_f32x4, pow_f32x4};
 
     #[test]
     fn mul_add_matches_scalar() {
@@ -211,6 +225,38 @@ mod tests {
         assert_eq!(
             pow_f32x4(Simd::splat(7.5), Simd::splat(0.0)).to_array(),
             [1.0; 4]
+        );
+    }
+
+    #[test]
+    fn exp_f32_stays_within_one_ulp_of_libm() {
+        let values = [
+            -87.0_f32, -12.5, -1.0, -1e-9, 0.0, 1e-9, 0.5, 1.0, 44.3, 88.0,
+        ];
+
+        for chunk in values.chunks(8) {
+            let mut lanes = [0.0_f32; 8];
+            lanes[..chunk.len()].copy_from_slice(chunk);
+
+            let vectorized = exp_f32x8(Simd::from_array(lanes)).to_array();
+            for (lane, &value) in chunk.iter().enumerate() {
+                let reference = value.exp();
+                let ulp = ulp_f32(reference);
+                assert!(
+                    (vectorized[lane] - reference).abs() <= ulp,
+                    "exp({value}): sleef {} vs libm {reference}",
+                    vectorized[lane],
+                );
+            }
+        }
+
+        // Exact special points: the smooth-kNN kernel encodes "at or
+        // below rho" as an adjusted distance of zero and padding lanes
+        // as negative infinity, so these must not merely be close.
+        assert_eq!(exp_f32x8(Simd::splat(0.0)).to_array(), [1.0; 8]);
+        assert_eq!(
+            exp_f32x8(Simd::splat(f32::NEG_INFINITY)).to_array(),
+            [0.0; 8],
         );
     }
 

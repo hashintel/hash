@@ -11,3 +11,4 @@
 mod embedding;
 mod knn;
 mod prepare;
+mod semantic;

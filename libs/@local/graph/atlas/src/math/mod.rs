@@ -92,7 +92,7 @@ pub use self::{
     affinity::{AffinityCurve, AffinityFitConfig},
     bounds::Bounds2,
     dvec2::DVec2,
-    dvecn::DVecN,
+    dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
     rotation::Rotation,
     scalar::{huber, narrow_f32, narrow_f32_exact, softplus},
     similarity::Similarity,
