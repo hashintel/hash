@@ -15,11 +15,17 @@ use super::{
     error::KnnError,
     hannoy::{HannoyIndex, HannoyIndexOptions},
     recall,
-    table::{InvalidKnn, Knn, KnnMatrix},
+    table::{Knn, KnnMatrix, KnnValidationError},
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    file::knn::{FileHeader, KnnFile, read::OpenKnnError},
+    file::{
+        array::{ArrayShape, ArrayVariant, Dim},
+        sprs::{
+            FileHeader, IndexVariant,
+            read::{OpenSprsError, SprsFile},
+        },
+    },
     math::{AlignedVecN, BoxedVecN},
 };
 
@@ -333,11 +339,13 @@ fn build_rejects_unsatisfiable_shapes() {
 
     assert!(matches!(
         Knn::build(&index, 1, two_neighbours()),
-        Err(KnnError::Invalid(InvalidKnn::InsufficientRows { rows: 1 })),
+        Err(KnnError::Invalid(KnnValidationError::InsufficientRows {
+            rows: 1
+        })),
     ));
     assert!(matches!(
         Knn::build(&index, 4, NonZero::new(4).expect("four is nonzero")),
-        Err(KnnError::Invalid(InvalidKnn::NeighbourBounds {
+        Err(KnnError::Invalid(KnnValidationError::NeighbourBounds {
             neighbours: 4,
             rows: 4,
         })),
@@ -381,14 +389,14 @@ fn validation_rejects_each_broken_invariant() {
     let matrix = KnnMatrix::new((2, 2), vec![0, 1, 2], vec![0, 0], vec![0.5, 0.5]);
     assert_eq!(
         Knn::new(matrix).expect_err("self reference"),
-        InvalidKnn::SelfNeighbour { row: 0 }
+        KnnValidationError::SelfNeighbour { row: 0 }
     );
 
     // A distance beyond the cosine range.
     let matrix = KnnMatrix::new((3, 3), vec![0, 1, 2, 3], vec![1, 2, 0], vec![2.5, 1.0, 1.0]);
     assert_eq!(
         Knn::new(matrix).expect_err("distance beyond 2"),
-        InvalidKnn::DistanceOutOfRange {
+        KnnValidationError::DistanceOutOfRange {
             row: 0,
             neighbour: 1,
             distance: 2.5,
@@ -404,7 +412,7 @@ fn validation_rejects_each_broken_invariant() {
     );
     assert!(matches!(
         Knn::new(matrix).expect_err("non-finite distance"),
-        InvalidKnn::NonFiniteDistance {
+        KnnValidationError::NonFiniteDistance {
             row: 0,
             neighbour: 1,
             ..
@@ -420,7 +428,7 @@ fn validation_rejects_each_broken_invariant() {
     );
     assert_eq!(
         Knn::new(matrix).expect_err("ragged rows"),
-        InvalidKnn::RaggedRow {
+        KnnValidationError::RaggedRow {
             row: 0,
             expected: 1,
             actual: 2,
@@ -431,14 +439,14 @@ fn validation_rejects_each_broken_invariant() {
     let matrix = KnnMatrix::new_csc((2, 2), vec![0, 1, 2], vec![1, 0], vec![0.5, 0.5]);
     assert_eq!(
         Knn::new(matrix).expect_err("column compression"),
-        InvalidKnn::ColumnCompressed,
+        KnnValidationError::ColumnCompressed,
     );
 
     // A rectangular domain.
     let matrix = KnnMatrix::new((2, 3), vec![0, 1, 2], vec![1, 2], vec![0.5, 0.5]);
     assert_eq!(
         Knn::new(matrix).expect_err("rectangular domain"),
-        InvalidKnn::NotSquare {
+        KnnValidationError::NotSquare {
             rows: 2,
             columns: 3
         },
@@ -448,7 +456,7 @@ fn validation_rejects_each_broken_invariant() {
     let matrix = KnnMatrix::new((2, 2), vec![0, 0, 0], vec![], vec![]);
     assert_eq!(
         Knn::new(matrix).expect_err("empty rows"),
-        InvalidKnn::NeighbourBounds {
+        KnnValidationError::NeighbourBounds {
             neighbours: 0,
             rows: 2,
         },
@@ -592,10 +600,10 @@ fn published_table_reopens_mapped() {
     let mut bytes = Vec::new();
     knn.write_into(&mut bytes)
         .expect("writing to a buffer succeeds");
-    let path = dir.join("table.knn");
+    let path = dir.join("table.sprs");
     std::fs::write(&path, &bytes).expect("the table file writes");
 
-    let mapped = MappedKnn::new(KnnFile::open(&path).expect("the published file reopens"))
+    let mapped = MappedKnn::new(SprsFile::open(&path).expect("the published file reopens"))
         .expect("the published file opens as a table");
 
     // The mapped view is the owned table, entry for entry.
@@ -618,26 +626,33 @@ fn published_table_reopens_mapped() {
     // Foreign bytes fail the pinned parse.
     let mut foreign = bytes.clone();
     foreign[0] ^= 0x01;
-    let foreign_path = dir.join("foreign.knn");
+    let foreign_path = dir.join("foreign.sprs");
     std::fs::write(&foreign_path, &foreign).expect("the foreign file writes");
     assert!(matches!(
-        KnnFile::open(&foreign_path),
-        Err(OpenKnnError::Header(_)),
+        SprsFile::open(&foreign_path),
+        Err(OpenSprsError::Header(_)),
     ));
 
     // A truncated file contradicts the length equation.
-    let truncated_path = dir.join("truncated.knn");
+    let truncated_path = dir.join("truncated.sprs");
     std::fs::write(&truncated_path, &bytes[..bytes.len() - 4]).expect("the short file writes");
     assert!(matches!(
-        KnnFile::open(&truncated_path),
-        Err(OpenKnnError::Length { .. }),
+        SprsFile::open(&truncated_path),
+        Err(OpenSprsError::Length { .. }),
     ));
 
     // A tampered distance fails the table invariants at open.
-    let distances_offset = usize::try_from(
-        FileHeader::new(4, 2)
-            .distances_offset()
-            .expect("the fixture geometry fits u64"),
+    let values_offset = usize::try_from(
+        FileHeader::new(
+            ArrayVariant::F32,
+            IndexVariant::U32,
+            IndexVariant::U64,
+            ArrayShape::new(&[Dim::new(4), Dim::new(4)])
+                .expect("two dimensions fit the maximum shape rank"),
+            8,
+        )
+        .values_offset()
+        .expect("the fixture geometry fits u64"),
     )
     .expect("the fixture geometry fits usize");
     let mut tampered = bytes.clone();
@@ -645,15 +660,14 @@ fn published_table_reopens_mapped() {
         clippy::little_endian_bytes,
         reason = "the format stores little-endian elements"
     )]
-    tampered[distances_offset..distances_offset + 4].copy_from_slice(&3.0_f32.to_le_bytes());
-    let tampered_path = dir.join("tampered.knn");
+    tampered[values_offset..values_offset + 4].copy_from_slice(&3.0_f32.to_le_bytes());
+    let tampered_path = dir.join("tampered.sprs");
     std::fs::write(&tampered_path, &tampered).expect("the tampered file writes");
     assert!(matches!(
-        MappedKnn::new(KnnFile::open(&tampered_path).expect("the tampered file parses")),
-        Err(InvalidKnnFile::Invalid(InvalidKnn::DistanceOutOfRange {
-            row: 0,
-            ..
-        })),
+        MappedKnn::new(SprsFile::open(&tampered_path).expect("the tampered file parses")),
+        Err(InvalidKnnFile::Invalid(
+            KnnValidationError::DistanceOutOfRange { row: 0, .. },
+        )),
     ));
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);

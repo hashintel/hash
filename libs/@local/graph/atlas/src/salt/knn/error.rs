@@ -1,6 +1,6 @@
 use core::{error::Error, fmt};
 
-use super::table::InvalidKnn;
+use super::table::KnnValidationError;
 
 /// Building or spot-checking against a backend failed.
 #[derive(Debug)]
@@ -9,7 +9,7 @@ pub(crate) enum KnnError<E> {
     Backend(E),
     /// The assembled table violates a [`Knn`](super::table::Knn)
     /// invariant.
-    Invalid(InvalidKnn),
+    Invalid(KnnValidationError),
     /// The row domain exceeds the table's `u32` column encoding.
     TooManyRows { rows: usize },
     /// The requested table shape overflows the entry count.
@@ -33,8 +33,8 @@ pub(crate) enum KnnError<E> {
     },
 }
 
-impl<E> From<InvalidKnn> for KnnError<E> {
-    fn from(invalid: InvalidKnn) -> Self {
+impl<E> From<KnnValidationError> for KnnError<E> {
+    fn from(invalid: KnnValidationError) -> Self {
         Self::Invalid(invalid)
     }
 }

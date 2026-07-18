@@ -18,7 +18,7 @@ use core::{cmp::Ordering, num::NonZero};
 use rand::Rng;
 use rayon::prelude::*;
 
-use super::{NearestNeighboursIndex, error::KnnError, table::InvalidKnn};
+use super::{NearestNeighboursIndex, error::KnnError, table::KnnValidationError};
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
     math::AlignedVecN,
@@ -61,9 +61,9 @@ pub(crate) struct SpotCheckOptions {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RecallSpotCheck {
     /// Distinct rows compared.
-    pub sampled_rows: usize,
+    pub sampled_rows: u64,
     /// Exact neighbours compared per row.
-    pub neighbours_per_row: usize,
+    pub neighbours_per_row: u64,
     /// Exact neighbours the approximate results contained.
     pub matched: u64,
     /// Exact neighbours across the whole sample.
@@ -94,112 +94,9 @@ impl RecallSpotCheck {
     }
 }
 
-/// Measures recall of `index` against exact cosine rankings.
-///
-/// `embeddings` holds the projector representations the backend
-/// indexed, in row order; a mapped `f32[T, 512]` artifact yields the
-/// slice directly. Sampled rows are queried through
-/// [`search_by_id`](NearestNeighboursIndex::search_by_id) and compared
-/// in parallel.
-///
-/// # Errors
-///
-/// Returns an error when the corpus holds fewer than two rows, the
-/// sampling budget lies outside the open unit interval, or the
-/// backend fails a query.
-pub(crate) fn spot_check<I>(
-    index: &I,
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-    options: SpotCheckOptions,
-    rng: impl Rng,
-) -> Result<RecallSpotCheck, KnnError<I::Error>>
-where
-    I: NearestNeighboursIndex + Sync,
-    I::Error: Send,
-{
-    let rows = embeddings.len();
-    if rows < 2 {
-        return Err(InvalidKnn::InsufficientRows { rows }.into());
-    }
-
-    let neighbours_per_row = options.neighbours.get().min(rows - 1);
-    let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence)
-        .ok_or(KnnError::SampleBudget {
-            defect_rate: options.defect_rate,
-            confidence: options.confidence,
-        })?
-        .min(rows);
-
-    let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
-    let matched = sample
-        .par_iter()
-        .map(|&row| {
-            let id = NodeRowId::new(u64::try_from(row).expect("node rows fit u64"));
-            let mut approximate: Vec<usize> = index
-                .search_by_id(id, neighbours_per_row)
-                .map_err(KnnError::Backend)?
-                .into_iter()
-                // A neighbour outside the row domain can never match an
-                // exact neighbour; malformedness is the table build's
-                // concern, the spot check only scores.
-                .filter_map(|neighbour| usize::try_from(neighbour.id.get()).ok())
-                .collect();
-            approximate.sort_unstable();
-            approximate.dedup();
-
-            let matches = exact_neighbours(embeddings, row, neighbours_per_row)
-                .into_iter()
-                .filter(|exact| approximate.binary_search(exact).is_ok())
-                .count();
-            Ok::<_, KnnError<I::Error>>(u64::try_from(matches).expect("match counts fit u64"))
-        })
-        .try_reduce(|| 0, |left, right| Ok(left + right))?;
-
-    let expected = (sampled_rows * neighbours_per_row) as u64;
-
-    Ok(RecallSpotCheck {
-        sampled_rows,
-        neighbours_per_row,
-        matched,
-        expected,
-        minimum_recall: options.minimum_recall,
-    })
-}
-
-/// Returns the `limit` exact nearest non-self neighbours of `query`.
-fn exact_neighbours(
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-    query: usize,
-    limit: usize,
-) -> Vec<usize> {
-    let query_embedding = &embeddings[query];
-    let mut nearest = BinaryHeap::with_capacity(limit);
-    for (row, embedding) in embeddings.iter().enumerate() {
-        if row == query {
-            continue;
-        }
-        let candidate = ExactNeighbour {
-            row,
-            distance: query_embedding.cosine_distance(embedding),
-        };
-        if nearest.len() == limit {
-            if nearest.peek().is_none_or(|farthest| candidate >= *farthest) {
-                continue;
-            }
-            nearest.pop();
-        }
-        nearest.push(candidate);
-    }
-    nearest
-        .into_sorted_vec()
-        .into_iter()
-        .map(|neighbour| neighbour.row)
-        .collect()
-}
-
 #[derive(Debug, Copy, Clone)]
 struct ExactNeighbour {
-    row: usize,
+    row: NodeRowId,
     distance: f32,
 }
 
@@ -226,4 +123,116 @@ impl Ord for ExactNeighbour {
             .total_cmp(&other.distance)
             .then_with(|| self.row.cmp(&other.row))
     }
+}
+
+/// Returns the `limit` exact nearest non-self neighbours of `query`.
+fn exact_neighbours(
+    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    query: NodeRowId,
+    limit: usize,
+) -> impl IntoIterator<Item = NodeRowId> {
+    let query_embedding = &embeddings[query.usize()];
+
+    let mut nearest = BinaryHeap::with_capacity(limit);
+    for (row, embedding) in embeddings.iter().enumerate() {
+        let row = NodeRowId::new(row as u64);
+        if row == query {
+            continue;
+        }
+
+        let candidate = ExactNeighbour {
+            row,
+            distance: query_embedding.cosine_distance(embedding),
+        };
+
+        if nearest.len() == limit {
+            if nearest.peek().is_none_or(|farthest| candidate >= *farthest) {
+                continue;
+            }
+
+            nearest.pop();
+        }
+
+        nearest.push(candidate);
+    }
+
+    nearest
+        .into_sorted_vec()
+        .into_iter()
+        .map(|neighbour| neighbour.row)
+}
+
+/// Measures recall of `index` against exact cosine rankings.
+///
+/// `embeddings` holds the projector representations the backend
+/// indexed, in row order; a mapped `f32[T, 512]` artifact yields the
+/// slice directly. Sampled rows are queried through
+/// [`search_by_id`](NearestNeighboursIndex::search_by_id) and compared
+/// in parallel.
+///
+/// # Errors
+///
+/// Returns an error when the corpus holds fewer than two rows, the
+/// sampling budget lies outside the open unit interval, or the
+/// backend fails a query.
+pub(crate) fn spot_check<I>(
+    index: &I,
+    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    options: SpotCheckOptions,
+    rng: impl Rng,
+) -> Result<RecallSpotCheck, KnnError<I::Error>>
+where
+    I: NearestNeighboursIndex + Sync,
+    I::Error: Send,
+{
+    let rows = embeddings.len();
+    if rows < 2 {
+        return Err(KnnValidationError::InsufficientRows { rows }.into());
+    }
+
+    let neighbours_per_row = options.neighbours.get().min(rows - 1);
+    let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence)
+        .ok_or(KnnError::SampleBudget {
+            defect_rate: options.defect_rate,
+            confidence: options.confidence,
+        })?
+        .min(rows);
+
+    let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
+    let matched = sample
+        .par_iter()
+        .map(|&row| {
+            let id = NodeRowId::new(row as u64);
+
+            // A neighbour outside the row domain can never match an exact neighbour; malformedness
+            // is the table build's concern, the spot check only scores.
+            let mut approximate: Vec<NodeRowId> = index
+                .search_by_id(id, neighbours_per_row)
+                .map_err(KnnError::Backend)?
+                .into_iter()
+                .map(|neighbour| neighbour.id)
+                .collect();
+            approximate.sort_unstable();
+            approximate.dedup();
+
+            let matches = exact_neighbours(embeddings, id, neighbours_per_row)
+                .into_iter()
+                .filter(|exact| approximate.binary_search(exact).is_ok())
+                .count();
+
+            Ok::<_, KnnError<I::Error>>(matches as u64)
+        })
+        .try_reduce(|| 0, |left, right| Ok(left + right))?;
+
+    let sampled_rows = sampled_rows as u64;
+    let neighbours_per_row = neighbours_per_row as u64;
+    let expected = sampled_rows * neighbours_per_row;
+
+    Ok(RecallSpotCheck {
+        sampled_rows,
+        neighbours_per_row,
+        matched,
+        expected,
+        minimum_recall: options.minimum_recall,
+    })
 }

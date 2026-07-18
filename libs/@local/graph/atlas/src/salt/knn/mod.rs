@@ -24,11 +24,11 @@
 //! brute-force [`AlignedVecN`] cosine rankings and gates aggregate
 //! recall at a configured minimum ([`recall::SpotCheckOptions`]).
 //!
-//! The validated table publishes as one k-nearest-neighbour file
-//! ([`crate::file::knn`]: neighbour columns and distances,
-//! entry-aligned regions of one table); [`artifact::MappedKnn`]
-//! reopens it over a whole-file mapping, so stages after the build
-//! read the table from the page cache without holding it on the heap.
+//! The validated table publishes as one sparse matrix file
+//! ([`crate::file::sprs`]) holding its matrix verbatim;
+//! [`artifact::MappedKnn`] reopens it over a whole-file mapping, so
+//! stages after the build read the table from the page cache without
+//! holding it on the heap.
 //!
 //! # Reproducibility boundary
 //!

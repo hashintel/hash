@@ -210,6 +210,8 @@ impl Deref for ArchivedOntologyTypeUuid {
     Debug,
     Copy,
     Clone,
+    PartialOrd,
+    Ord,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,
@@ -234,6 +236,10 @@ impl NodeRowId {
     #[must_use]
     pub(crate) const fn get(self) -> u64 {
         self.0.get()
+    }
+
+    pub(crate) const fn usize(self) -> usize {
+        self.get() as usize
     }
 }
 
