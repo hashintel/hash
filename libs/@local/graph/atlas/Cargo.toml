@@ -25,6 +25,10 @@ hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 
 # Private third-party dependencies
+# argmin-math: default features stay OFF (`vec` unconditionally drags `rand 0.9`
+# beside our `rand 0.10`); `primitives` supplies the scalar impls argmin's
+# float plumbing needs.
+argmin-math                    = { version = "0.5.1", default-features = false, features = ["primitives"] }
 camino.workspace               = true
 futures.workspace              = true
 hannoy                         = "0.1.7-nested-rtxns"

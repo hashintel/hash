@@ -51,7 +51,7 @@ fn header_wire_layout() {
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTARRY");
     assert_eq!(bytes[8..12], 0_u32.to_le_bytes());
-    assert_eq!(bytes[12], 0x00);
+    assert_eq!(bytes[12], 0x0D);
     assert_eq!(bytes[13..21], (1_u64 << 18).to_le_bytes());
     assert_eq!(bytes[21..29], 2_u64.to_le_bytes());
     assert!(bytes[29..].iter().all(|&byte| byte == 0));

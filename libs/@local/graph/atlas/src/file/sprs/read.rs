@@ -10,7 +10,7 @@ use zerocopy::{
     error::{ConvertError, ValidityError},
 };
 
-use super::{ArrayVariant, FileHeader, IndexVariant, SprsIndex, SprsValue};
+use super::{ArrayVariant, FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant};
 
 /// Opening a sparse matrix file failed.
 #[derive(Debug)]
@@ -194,11 +194,18 @@ impl SprsFile {
         self.header().index()
     }
 
-    /// Returns the row-pointer element type.
+    /// Returns the pointer element type.
     #[inline]
     #[must_use]
     pub(crate) fn iptr(&self) -> IndexVariant {
         self.header().iptr()
+    }
+
+    /// Returns the compressed dimension.
+    #[inline]
+    #[must_use]
+    pub(crate) fn order(&self) -> StorageVariant {
+        self.header().order()
     }
 
     /// Returns the `(rows, columns)` shape.
@@ -264,10 +271,8 @@ impl SprsFile {
             &self.map[offset..offset + len]
         };
         let entries = header.nnz();
-        let indptr = region(
-            FileHeader::SIZE as u64,
-            (row_count + 1) * Iptr::VARIANT.width(),
-        );
+        let outer = header.outer_count().expect("open validated the geometry");
+        let indptr = region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
         let indices = region(
             header
                 .indices_offset()
@@ -280,12 +285,15 @@ impl SprsFile {
         );
 
         let expect = "open validated the region sizes and the mapping their alignment";
-        CsMatViewI::try_new(
-            (rows, columns),
-            <[Iptr]>::ref_from_bytes(indptr).expect(expect),
-            <[I]>::ref_from_bytes(indices).expect(expect),
-            <[N]>::ref_from_bytes(values).expect(expect),
-        )
+        let indptr = <[Iptr]>::ref_from_bytes(indptr).expect(expect);
+        let indices = <[I]>::ref_from_bytes(indices).expect(expect);
+        let values = <[N]>::ref_from_bytes(values).expect(expect);
+        match header.order() {
+            StorageVariant::Csr => CsMatViewI::try_new((rows, columns), indptr, indices, values),
+            StorageVariant::Csc => {
+                CsMatViewI::try_new_csc((rows, columns), indptr, indices, values)
+            }
+        }
         .map_err(|(_, _, _, error)| SprsMatrixError::Structure(error))
     }
 }

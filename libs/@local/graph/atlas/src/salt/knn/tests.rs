@@ -22,7 +22,7 @@ use crate::{
     file::{
         array::{ArrayShape, ArrayVariant, Dim},
         sprs::{
-            FileHeader, IndexVariant,
+            FileHeader, IndexVariant, StorageVariant,
             read::{OpenSprsError, SprsFile},
         },
     },
@@ -92,7 +92,7 @@ impl ExactIndex {
             .enumerate()
             .filter(|&(row, _)| Some(row) != exclude)
             .map(|(row, stored)| Neighbour {
-                id: NodeRowId::new(u64::try_from(row).expect("test rows fit u64")),
+                id: NodeRowId::new(row as u64),
                 distance: query.cosine_distance(stored),
             })
             .collect();
@@ -249,7 +249,7 @@ impl NearestNeighboursIndex for EscapingIndex {
         id: NodeRowId,
         limit: usize,
     ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
-        let rows = u64::try_from(self.0.rows.len()).expect("test rows fit u64");
+        let rows = self.0.rows.len() as u64;
         let mut ranked = self.0.ranked_by_id(id);
         ranked.truncate(limit);
         Ok(ranked.into_iter().map(move |neighbour| Neighbour {
@@ -647,6 +647,7 @@ fn published_table_reopens_mapped() {
             ArrayVariant::F32,
             IndexVariant::U32,
             IndexVariant::U64,
+            StorageVariant::Csr,
             ArrayShape::new(&[Dim::new(4), Dim::new(4)])
                 .expect("two dimensions fit the maximum shape rank"),
             8,
@@ -710,7 +711,7 @@ fn hannoy_honours_the_seam_contract() {
                 .iter()
                 .enumerate()
                 .map(|(row, components)| Embedding {
-                    id: NodeRowId::new(u64::try_from(row).expect("test rows fit u64")),
+                    id: NodeRowId::new(row as u64),
                     components,
                 }),
         )

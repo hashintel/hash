@@ -14,7 +14,7 @@ use super::table::{Knn, KnnValidationError, KnnView, validate};
 use crate::{
     file::sprs::{
         read::{SprsFile, SprsMatrixError},
-        write::write_matrix,
+        write::{WriteSprsError, write_matrix},
     },
     integrity::{Sha256, Sha256Digest, Writer},
 };
@@ -33,7 +33,14 @@ impl Knn {
             accumulator: Sha256::new(),
             writer: write,
         };
-        write_matrix(&self.matrix(), &mut writer)?;
+        write_matrix(&self.matrix(), &mut writer).map_err(|error| match error {
+            WriteSprsError::Io(error) => error,
+            // A validated table is row-compressed, unsliced, and at
+            // least 2 x 2, so no non-IO write failure exists for it.
+            error @ (WriteSprsError::Sliced | WriteSprsError::ZeroDimension { .. }) => {
+                unreachable!("a validated table is writable: {error}")
+            }
+        })?;
 
         Ok(writer.accumulator.finalize())
     }

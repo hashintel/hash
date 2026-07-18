@@ -6,8 +6,8 @@
 //! mode; no migration or compatibility machinery exists on purpose until
 //! the format stabilizes.
 //!
-//! This is a combined file: a CSR matrix is three columns - row
-//! pointers, column indices, values - derived together, meaningless
+//! This is a combined file: a compressed sparse matrix is three
+//! columns - pointers, indices, values - derived together, meaningless
 //! apart, and always read together, so all three live in one file and
 //! cannot fall out of sync. The regions:
 //!
@@ -18,19 +18,25 @@
 //! | 8      | 4    | layout version, `u32` = 0                       |
 //! | 12     | 1    | value element type, [`ArrayVariant`]            |
 //! | 13     | 1    | index element type, [`IndexVariant`]            |
-//! | 14     | 1    | row-pointer element type, [`IndexVariant`]      |
-//! | 15     | 64   | shape, [`ArrayShape`]: `[rows, columns]`        |
-//! | 79     | 8    | stored entries `nnz`, `u64`                     |
-//! | 87     | 4009 | padding; writers emit zero, readers ignore      |
-//! | 4096   |      | row pointers: `iptr[rows + 1]`, ascending from  |
-//! |        |      | zero to `nnz`;                                  |
+//! | 14     | 1    | pointer element type, [`IndexVariant`]          |
+//! | 15     | 1    | compressed dimension, [`StorageVariant`]        |
+//! | 16     | 64   | shape, [`ArrayShape`]: `[rows, columns]`        |
+//! | 80     | 8    | stored entries `nnz`, `u64`                     |
+//! | 88     | 4008 | padding; writers emit zero, readers ignore      |
+//! | 4096   |      | pointers: `iptr[outer + 1]`, ascending from     |
+//! |        |      | zero to `nnz`, where `outer` is the compressed  |
+//! |        |      | dimension's extent (rows for [`Csr`], columns   |
+//! |        |      | for [`Csc`]);                                   |
 //! |        |      | zero padding to the next 4096-byte boundary     |
-//! | ...    |      | column indices: `index[nnz]`, strictly          |
-//! |        |      | ascending within each row;                      |
+//! | ...    |      | indices: `index[nnz]`, strictly ascending       |
+//! |        |      | within each pointer range;                      |
 //! |        |      | zero padding to the next 4096-byte boundary     |
 //! | ...    |      | values: `value[nnz]`, entry-aligned with the    |
-//! |        |      | column indices                                  |
+//! |        |      | indices                                         |
 //! ```
+//!
+//! [`Csr`]: StorageVariant::Csr
+//! [`Csc`]: StorageVariant::Csc
 //!
 //! The element types describe the regions exactly; [`read::SprsFile`]'s
 //! typed accessor exists only for the described combination, so a file
@@ -58,7 +64,7 @@
 
 use core::fmt;
 
-use sprs::SpIndex;
+use sprs::{CompressedStorage, SpIndex};
 use zerocopy::{FromBytes, Immutable, IntoBytes, LE, U64, Unalign};
 
 use super::array::{ArrayShape, ArrayVariant, Dim};
@@ -179,7 +185,13 @@ impl IndexVariant {
 ///
 /// The variant is the type's wire identity: a value region reads back
 /// as `N` exactly when the header records `N::VARIANT`.
-pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + Copy {
+///
+/// # Safety
+///
+/// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry
+/// and byte reinterpretation both derive from the variant's width, so
+/// a lying implementation reads regions at the wrong boundaries.
+pub(crate) unsafe trait SprsValue: FromBytes + IntoBytes + Immutable + Copy {
     /// The wire identity of `Self`.
     const VARIANT: ArrayVariant;
 }
@@ -190,26 +202,47 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + Copy {
 /// as `I` exactly when the header records `I::VARIANT`. Every
 /// implementor is an [`SpIndex`], so a mapped region drives sparse
 /// algorithms directly.
-pub(crate) trait SprsIndex: SpIndex + FromBytes + IntoBytes + Immutable {
+///
+/// # Safety
+///
+/// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry
+/// and byte reinterpretation both derive from the variant's width, so
+/// a lying implementation reads regions at the wrong boundaries.
+pub(crate) unsafe trait SprsIndex:
+    SpIndex + FromBytes + IntoBytes + Immutable
+{
     /// The wire identity of `Self`.
     const VARIANT: IndexVariant;
 }
 
 // One-line impls over every fixed-width scalar: enough expansions that
-// drift between hand-written copies is the likelier bug.
+// drift between hand-written copies is the likelier bug. Each impl's
+// safety obligation is discharged by the compile-time width assert.
 macro_rules! sprs_value {
     ($($element:ty => $variant:ident,)*) => {
-        $(impl SprsValue for $element {
-            const VARIANT: ArrayVariant = ArrayVariant::$variant;
-        })*
+        $(
+            const _: () =
+                assert!(ArrayVariant::$variant.width() == size_of::<$element>() as u64);
+
+            // SAFETY: the width equality is asserted at compile time.
+            unsafe impl SprsValue for $element {
+                const VARIANT: ArrayVariant = ArrayVariant::$variant;
+            }
+        )*
     };
 }
 
 macro_rules! sprs_index {
     ($($element:ty => $variant:ident,)*) => {
-        $(impl SprsIndex for $element {
-            const VARIANT: IndexVariant = IndexVariant::$variant;
-        })*
+        $(
+            const _: () =
+                assert!(IndexVariant::$variant.width() == size_of::<$element>() as u64);
+
+            // SAFETY: the width equality is asserted at compile time.
+            unsafe impl SprsIndex for $element {
+                const VARIANT: IndexVariant = IndexVariant::$variant;
+            }
+        )*
     };
 }
 
@@ -237,6 +270,38 @@ sprs_index! {
     i64 => I64,
 }
 
+/// The compressed dimension of the stored matrix.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    zerocopy::TryFromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(u8)]
+pub(crate) enum StorageVariant {
+    /// Row-compressed: the pointer region spans the rows.
+    Csr = 0x00,
+    /// Column-compressed: the pointer region spans the columns.
+    Csc = 0x01,
+}
+
+impl From<CompressedStorage> for StorageVariant {
+    #[inline]
+    fn from(storage: CompressedStorage) -> Self {
+        match storage {
+            CompressedStorage::CSR => Self::Csr,
+            CompressedStorage::CSC => Self::Csc,
+        }
+    }
+}
+
 /// The 4096-byte header of a sparse matrix file.
 #[derive(
     Copy,
@@ -253,23 +318,25 @@ pub(crate) struct FileHeader {
     value: ArrayVariant,
     index: IndexVariant,
     iptr: IndexVariant,
+    order: StorageVariant,
     shape: ArrayShape,
     nnz: U64<LE>,
     padding: [u8; Self::PADDING],
 }
 
 impl FileHeader {
-    const PADDING: usize = 4009;
-    /// Size of the header, and the offset of the row-pointer region.
+    const PADDING: usize = 4008;
+    /// Size of the header, and the offset of the pointer region.
     pub(crate) const SIZE: usize = 4096;
 
     /// Creates a header for an `nnz`-entry matrix shaped `[rows,
-    /// columns]` with the given element types.
+    /// columns]` with the given element types and compressed dimension.
     #[must_use]
     pub(crate) const fn new(
         value: ArrayVariant,
         index: IndexVariant,
         iptr: IndexVariant,
+        order: StorageVariant,
         shape: ArrayShape,
         nnz: u64,
     ) -> Self {
@@ -279,6 +346,7 @@ impl FileHeader {
             value,
             index,
             iptr,
+            order,
             shape,
             nnz: U64::new(nnz),
             padding: [0; Self::PADDING],
@@ -299,11 +367,18 @@ impl FileHeader {
         self.index
     }
 
-    /// Returns the row-pointer element type.
+    /// Returns the pointer element type.
     #[inline]
     #[must_use]
     pub(crate) const fn iptr(&self) -> IndexVariant {
         self.iptr
+    }
+
+    /// Returns the compressed dimension.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn order(&self) -> StorageVariant {
+        self.order
     }
 
     /// Returns the number of stored entries.
@@ -325,24 +400,38 @@ impl FileHeader {
         }
     }
 
-    /// Returns the offset of the column-index region.
+    /// Returns the compressed dimension's extent.
     ///
-    /// The row-pointer region sits between the header and this offset,
+    /// Returns `None` unless the shape has rank 2, in which case no
+    /// real file matches the header.
+    #[must_use]
+    pub(crate) fn outer_count(&self) -> Option<u64> {
+        let (rows, columns) = self.matrix_shape()?;
+        Some(match self.order {
+            StorageVariant::Csr => rows,
+            StorageVariant::Csc => columns,
+        })
+    }
+
+    /// Returns the offset of the index region.
+    ///
+    /// The pointer region sits between the header and this offset,
     /// zero padded to the boundary. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn indices_offset(&self) -> Option<u64> {
-        let (rows, _) = self.matrix_shape()?;
-        let iptr_bytes = rows.checked_add(1)?.checked_mul(self.iptr.width())?;
+        let iptr_bytes = self
+            .outer_count()?
+            .checked_add(1)?
+            .checked_mul(self.iptr.width())?;
         PAGE.checked_add(iptr_bytes.checked_next_multiple_of(PAGE)?)
     }
 
     /// Returns the offset of the value region.
     ///
-    /// The column-index region sits between the previous offset and
-    /// this one, zero padded to the boundary. Returns `None` when the
-    /// geometry overflows `u64`, in which case no real file matches
-    /// the header.
+    /// The index region sits between the previous offset and this one,
+    /// zero padded to the boundary. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn values_offset(&self) -> Option<u64> {
         let index_bytes = self.nnz.get().checked_mul(self.index.width())?;
@@ -375,6 +464,7 @@ impl fmt::Debug for FileHeader {
             .field("value", &self.value)
             .field("index", &self.index)
             .field("iptr", &self.iptr)
+            .field("order", &self.order)
             .field("shape", &self.shape)
             .field("nnz", &self.nnz)
             .finish_non_exhaustive()

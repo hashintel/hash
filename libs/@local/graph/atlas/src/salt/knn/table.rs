@@ -287,9 +287,7 @@ impl Knn {
                 Ok(())
             })?;
 
-        let indptr: Vec<u64> = (0..=rows)
-            .map(|row| u64::try_from(row * neighbours).expect("entry counts fit u64"))
-            .collect();
+        let indptr: Vec<u64> = (0..=rows).map(|row| (row * neighbours) as u64).collect();
         let matrix = KnnMatrix::try_new((rows, rows), indptr, indices, distances)
             .map_err(|(_, _, _, error)| error)
             .expect("per-row validation establishes the compressed structure");

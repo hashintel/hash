@@ -405,7 +405,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
         stats.reused += 1;
         let card = &unique[&hash];
         for &position in &card.rows {
-            rows[position.index()] = *source;
+            rows[position.usize()] = *source;
         }
     }
 
@@ -436,7 +436,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
 
         stats.embedded += 1;
         for &position in &card.rows {
-            rows[position.index()] = *embedding.as_array();
+            rows[position.usize()] = *embedding.as_array();
         }
     }
 

@@ -323,7 +323,7 @@ impl OntologyRowId {
     )]
     #[inline]
     #[must_use]
-    pub(crate) const fn index(self) -> usize {
+    pub(crate) const fn usize(self) -> usize {
         self.0.get() as usize
     }
 }
