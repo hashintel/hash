@@ -60,6 +60,12 @@ export interface FetchTileOptions {
   readonly signal?: AbortSignal;
   /** Retries on a transient failure. Defaults to {@link DEFAULT_RETRIES}. */
   readonly retry?: number;
+  /**
+   * Network priority hint for the tile request. Speculative prefetches pass
+   * `"low"` so required loads win the connection's bandwidth (an HTTP/2 stream
+   * priority; a lower scheduling priority on HTTP/1.1).
+   */
+  readonly priority?: RequestPriority;
 }
 
 interface FetchTileErrorOptions extends ErrorOptions {
@@ -230,10 +236,11 @@ const requestAtlasOnce = async (
   url: string,
   accept: string,
   signal: AbortSignal | undefined,
+  priority: RequestPriority | undefined,
 ): Promise<Response> => {
   let response: Response;
   try {
-    response = await fetch(url, { headers: { accept }, signal });
+    response = await fetch(url, { headers: { accept }, signal, priority });
   } catch (cause) {
     throw new FetchTileError(`Atlas request to ${url} failed`, { cause });
   }
@@ -252,8 +259,9 @@ const requestAtlas = (
   accept: string,
   signal: AbortSignal | undefined,
   retries?: number,
+  priority?: RequestPriority,
 ): Promise<Response> =>
-  withAtlasRetry(() => requestAtlasOnce(url, accept, signal), {
+  withAtlasRetry(() => requestAtlasOnce(url, accept, signal, priority), {
     signal,
     retries,
   });
@@ -394,6 +402,7 @@ const fetchAndDecodeTile = async (
   baseUrl: string,
   signal: AbortSignal | undefined,
   retries: number | undefined,
+  priority: RequestPriority | undefined,
 ): Promise<TileNode[]> => {
   const { z, x, y } = coordinate;
   const expectation: AtlasTileExpectation = {
@@ -411,6 +420,7 @@ const fetchAndDecodeTile = async (
     ATLAS_TILE_MEDIA_TYPE,
     signal,
     retries,
+    priority,
   );
   const buffer = await tileResponse.arrayBuffer();
 
@@ -463,7 +473,7 @@ export const fetchTile = async (
   tileIndex: number,
   options: FetchTileOptions = {},
 ): Promise<TileNode[]> => {
-  const { baseUrl = ATLAS_API_BASE_URL, signal, retry } = options;
+  const { baseUrl = ATLAS_API_BASE_URL, signal, retry, priority } = options;
 
   if (!Number.isInteger(zoom) || zoom < 0 || zoom > ATLAS_TILE_MAX_ZOOM) {
     throw new FetchTileError(
@@ -495,6 +505,7 @@ export const fetchTile = async (
       baseUrl,
       signal,
       retry,
+      priority,
     );
   } catch (error) {
     // A 404 on a well-formed request means the generation we cached is no
@@ -508,6 +519,7 @@ export const fetchTile = async (
         baseUrl,
         signal,
         retry,
+        priority,
       );
     }
     throw error;

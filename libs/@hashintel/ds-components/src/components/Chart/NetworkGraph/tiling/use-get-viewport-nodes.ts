@@ -94,10 +94,22 @@ export interface ViewportNode {
   readonly y: number;
 }
 
+/** Per-request controls the cache threads to a {@link TileFetcher}. */
+export interface TileFetchControls {
+  /**
+   * Relative network priority; the cache passes `"low"` for a speculative
+   * prefetch so required loads win the connection's bandwidth.
+   */
+  readonly priority?: "high" | "low";
+  /** Aborts a superseded prefetch (required loads are never given a signal). */
+  readonly signal?: AbortSignal;
+}
+
 /** Fetches the nodes of one tile, addressed as `fetchTile` does. */
 export type TileFetcher = (
   zoom: number,
   tileIndex: number,
+  controls?: TileFetchControls,
 ) => Promise<readonly TileNode[]>;
 
 /** Construction options for {@link TileCache}. */
@@ -149,6 +161,8 @@ interface CacheEntry {
 export interface PrefetchStats {
   /** Prefetch fetches started (tiles pulled ahead of need). */
   readonly issued: number;
+  /** Started prefetches aborted before completing because the viewport moved on. */
+  readonly cancelled: number;
   /** Prefetched tiles a later viewport required before eviction (hits). */
   readonly used: number;
   /** Prefetched tiles evicted before any viewport required them. */
@@ -157,7 +171,7 @@ export interface PrefetchStats {
   readonly residentUnused: number;
   /** Required tiles fetched cold — neither cached nor prefetched in time. */
   readonly requiredColdMiss: number;
-  /** `used / issued`: the fraction of prefetches that paid off. */
+  /** `used / (issued - cancelled)`: of completed prefetches, the fraction that paid off. */
   readonly precision: number;
   /** `used / (used + requiredColdMiss)`: first-need tiles prefetch had ready. */
   readonly coverage: number;
@@ -182,12 +196,14 @@ export class TileCache {
   readonly #fetcher: TileFetcher;
   readonly #entries = new Map<string, CacheEntry>();
   readonly #inflight = new Map<string, Promise<readonly TileNode[]>>();
+  readonly #prefetchControllers = new Map<string, AbortController>();
   readonly #history: ViewportRegion[] = [];
   readonly #pinned = new Set<string>();
 
   #bytes = 0;
   #viewport: ViewportRegion | null = null;
   #prefetchIssued = 0;
+  #prefetchCancelled = 0;
   #prefetchUsed = 0;
   #prefetchWasted = 0;
   #requiredColdMiss = 0;
@@ -226,15 +242,18 @@ export class TileCache {
       }
     }
     const issued = this.#prefetchIssued;
+    const cancelled = this.#prefetchCancelled;
     const used = this.#prefetchUsed;
+    const completed = issued - cancelled;
     const coldTotal = used + this.#requiredColdMiss;
     return {
       issued,
+      cancelled,
       used,
       wasted: this.#prefetchWasted,
       residentUnused,
       requiredColdMiss: this.#requiredColdMiss,
-      precision: issued === 0 ? 0 : used / issued,
+      precision: completed <= 0 ? 0 : used / completed,
       coverage: coldTotal === 0 ? 0 : used / coldTotal,
     };
   }
@@ -289,6 +308,9 @@ export class TileCache {
     }
     const inFlight = this.#inflight.get(key);
     if (inFlight) {
+      // A required load riding an in-flight prefetch claims it: a later batch
+      // must not abort a fetch this viewport now depends on.
+      this.#prefetchControllers.delete(key);
       return inFlight;
     }
     // A required tile that was neither resident nor prefetched in time.
@@ -297,33 +319,61 @@ export class TileCache {
   }
 
   /**
-   * Speculatively loads a tile the cache does not yet hold, tagged so its later
-   * use (or eviction) feeds {@link prefetchStats}. A no-op for a tile already
-   * resident or already in flight.
+   * Issues the batch of speculative prefetches for the current viewport, and
+   * cancels any still-in-flight prefetch this batch no longer wants — superseded
+   * speculation whose bytes are better spent on the current viewport (and, on a
+   * slow link, on the required loads it was starving). A prefetch already
+   * claimed by a required load (see {@link load}) is never cancelled.
    */
-  async prefetch(coordinate: AtlasTileCoordinate): Promise<void> {
+  prefetchBatch(coordinates: readonly AtlasTileCoordinate[]): void {
+    const wanted = new Set(coordinates.map(atlasTileKey));
+    for (const [key, controller] of [...this.#prefetchControllers]) {
+      if (!wanted.has(key)) {
+        this.#prefetchControllers.delete(key);
+        this.#prefetchCancelled += 1;
+        controller.abort();
+      }
+    }
+    for (const coordinate of coordinates) {
+      this.#prefetchOne(coordinate);
+    }
+  }
+
+  /** Starts one low-priority, cancellable prefetch; a no-op if already held. */
+  #prefetchOne(coordinate: AtlasTileCoordinate): void {
     const key = atlasTileKey(coordinate);
     if (this.#entries.has(key) || this.#inflight.has(key)) {
       return;
     }
     this.#prefetchIssued += 1;
-    // Speculative: swallow failures so a bad prediction never surfaces.
-    await this.#fetch(key, coordinate, "prefetch").catch(() => undefined);
+    const controller = new AbortController();
+    this.#prefetchControllers.set(key, controller);
+    // Speculative: swallow failures (including cancellation) so a bad prediction
+    // never surfaces.
+    void this.#fetch(key, coordinate, "prefetch", controller.signal).catch(
+      () => undefined,
+    );
   }
 
   #fetch(
     key: string,
     coordinate: AtlasTileCoordinate,
     origin: TileOrigin,
+    signal?: AbortSignal,
   ): Promise<readonly TileNode[]> {
-    const pending = this.#fetcher(coordinate.z, tileIndexOf(coordinate))
+    const pending = this.#fetcher(coordinate.z, tileIndexOf(coordinate), {
+      priority: origin === "prefetch" ? "low" : "high",
+      signal,
+    })
       .then((nodes) => {
         this.#inflight.delete(key);
+        this.#prefetchControllers.delete(key);
         this.#store(key, coordinate, nodes, origin);
         return nodes;
       })
       .catch((error: unknown) => {
         this.#inflight.delete(key);
+        this.#prefetchControllers.delete(key);
         throw error;
       });
     this.#inflight.set(key, pending);
@@ -614,8 +664,13 @@ export const useGetViewportNodes = (
     () =>
       new TileCache({
         maxBytes,
-        fetcher: (zoom, tileIndex) =>
-          fetchTile(zoom, tileIndex, { baseUrl, retry }),
+        fetcher: (zoom, tileIndex, controls) =>
+          fetchTile(zoom, tileIndex, {
+            baseUrl,
+            retry,
+            priority: controls?.priority,
+            signal: controls?.signal,
+          }),
       }),
     [baseUrl, retry, maxBytes],
   );

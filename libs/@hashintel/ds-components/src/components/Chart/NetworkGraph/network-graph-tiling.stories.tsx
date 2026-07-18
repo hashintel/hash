@@ -206,19 +206,12 @@ const AtlasTilingStory = () => {
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
 
-  const { data, isFetching, isError, error, tileCount, prefetchStats } =
-    useGetViewportNodes(viewport, { baseUrl: ATLAS_PROXY_BASE });
+  const { data, isFetching, isError, error, tileCount } = useGetViewportNodes(
+    viewport,
+    { baseUrl: ATLAS_PROXY_BASE },
+  );
 
   const points = useMemo(() => (data ?? []).map(toPoint), [data]);
-
-  // TEMP prefetch-measurement hook: expose live telemetry for Playwright.
-  useEffect(() => {
-    (window as unknown as { __atlasTiling?: unknown }).__atlasTiling = {
-      viewport,
-      tileCount,
-      prefetchStats,
-    };
-  }, [viewport, tileCount, prefetchStats]);
 
   // Frame once, off the first (overview) load, then keep it stable so streaming
   // new points never reframes the camera. Adjusting state during render (rather

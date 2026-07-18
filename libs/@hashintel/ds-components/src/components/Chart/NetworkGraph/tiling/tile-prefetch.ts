@@ -89,8 +89,11 @@ export interface PrefetchCache {
   readonly history: readonly ViewportRegion[];
   /** Whether a tile is already resident. */
   has(coordinate: AtlasTileCoordinate): boolean;
-  /** Speculatively load a tile (a no-op if resident or in flight). */
-  prefetch(coordinate: AtlasTileCoordinate): void | Promise<void>;
+  /**
+   * Issues this batch of speculative loads and cancels any still-in-flight
+   * prefetch no longer in the batch (superseded speculation).
+   */
+  prefetchBatch(coordinates: readonly AtlasTileCoordinate[]): void;
 }
 
 /** Tiles to prefetch given cache fullness: 0 when near full, tapering below. */
@@ -294,7 +297,7 @@ export const schedulePrefetch = (
   }
 
   candidates.sort((a, b) => a.distance - b.distance);
-  for (const { coordinate } of candidates.slice(0, budget)) {
-    void cache.prefetch(coordinate);
-  }
+  cache.prefetchBatch(
+    candidates.slice(0, budget).map(({ coordinate }) => coordinate),
+  );
 };

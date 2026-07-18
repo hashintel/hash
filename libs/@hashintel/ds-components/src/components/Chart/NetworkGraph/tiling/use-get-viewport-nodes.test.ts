@@ -191,6 +191,44 @@ describe("getViewportNodes", () => {
     // drives the prefetch budget to zero.
     expect(cache.prefetchStats.issued).toBe(0);
   });
+
+  it("loads required tiles at high priority and prefetches at low", async () => {
+    const priorities: (string | undefined)[] = [];
+    const priorityFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      priorities.push(controls?.priority);
+      return Promise.resolve([{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }]);
+    };
+    const cache = new TileCache({ fetcher: priorityFetcher });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache);
+    await cache.settled();
+
+    expect(priorities).toContain("high"); // required loads
+    expect(priorities).toContain("low"); // prefetches
+  });
+
+  it("cancels superseded prefetches when the viewport jumps away", async () => {
+    // Prefetches (low priority) stay in flight until aborted; required loads
+    // (high) resolve at once — so a later jump can supersede the pending ring.
+    const pendingFetcher: TileFetcher = (zoom, tileIndex, controls) => {
+      if (controls?.priority === "low") {
+        return new Promise<TileNode[]>((_resolve, reject) => {
+          controls.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true },
+          );
+        });
+      }
+      return Promise.resolve([{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }]);
+    };
+    const cache = new TileCache({ fetcher: pendingFetcher });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache); // ring fires
+    await getViewportNodes(viewportAt(55_000, 55_000, 1_024, 5), cache); // jump away
+
+    expect(cache.prefetchStats.cancelled).toBeGreaterThan(0);
+  });
 });
 
 describe("TileCache", () => {

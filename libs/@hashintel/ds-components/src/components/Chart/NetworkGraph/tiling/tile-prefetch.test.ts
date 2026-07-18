@@ -41,8 +41,8 @@ const fakeCache = (
     fullness: options.fullness ?? 0,
     history,
     has: (coordinate) => cached.has(atlasTileKey(coordinate)),
-    prefetch: (coordinate) => {
-      prefetched.push(coordinate);
+    prefetchBatch: (coordinates) => {
+      prefetched.push(...coordinates);
     },
     prefetched,
   };
