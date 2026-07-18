@@ -1,12 +1,10 @@
 import { once } from "node:events";
 
-import {
-  petrinautOptimizationErrorEventSchema,
-  petrinautOptimizationInputSchema,
-} from "@hashintel/petrinaut-core";
+import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
 import { openPetrinautOptimizationStream } from "@local/petrinaut-optimizer-client";
 
 import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
 import type {
   Request,
@@ -15,18 +13,20 @@ import type {
 } from "express";
 
 const RESPONSE_START_TIMEOUT_MS = 30_000;
+const DOWNSTREAM_HEARTBEAT_INTERVAL_MS = 25_000;
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 const OVERALL_TIMEOUT_MS = 15 * 60_000;
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
+const MAX_VALIDATION_ISSUES = 5;
+const MAX_VALIDATION_MESSAGE_LENGTH = 300;
 // A trial repeats optimized parameter identifiers from the accepted manifest,
 // so use the same bound rather than rejecting a valid large search space.
 const MAX_EVENT_BYTES = MAX_REQUEST_BYTES;
 const MAX_CONCURRENT_OPTIMIZATIONS = 4;
-
-type WarningLogger = {
-  /** Record a recoverable integration failure and its diagnostic metadata. */
-  warn: (message: string, metadata?: Record<string, unknown>) => void;
-};
+const INVALID_OPTIMIZATION_REQUEST = {
+  code: "invalid_optimization_request",
+  error: "Invalid optimization request",
+} as const;
 
 type OptimizationTimeoutKind = "response_start" | "idle" | "overall";
 
@@ -39,9 +39,9 @@ type OptimizationRequestLifecycle = {
     terminalEventSent: boolean;
     timeoutKind: OptimizationTimeoutKind | null;
   };
-  /** Stop timers and remove request/response listeners. */
+  /** Stop timers, heartbeats, and request/response listeners. */
   cleanup: () => void;
-  /** Clear the response-start deadline and begin idle tracking. */
+  /** Clear the response-start deadline and begin idle/heartbeat tracking. */
   markResponseStarted: () => void;
   /** Remember that the public stream already contains its terminal event. */
   markTerminalEvent: () => void;
@@ -60,6 +60,7 @@ const createOptimizationRequestLifecycle = (
     terminalEventSent: false,
     timeoutKind: null,
   };
+  let downstreamHeartbeat: ReturnType<typeof setInterval> | undefined;
   let idleTimeout: ReturnType<typeof setTimeout> | undefined;
 
   /** Abort the upstream request after the HASH client disconnects. */
@@ -97,6 +98,7 @@ const createOptimizationRequestLifecycle = (
     state,
     cleanup: () => {
       clearTimeout(responseStartTimeout);
+      clearInterval(downstreamHeartbeat);
       clearTimeout(idleTimeout);
       clearTimeout(overallTimeout);
       request.off("aborted", abortForClientDisconnect);
@@ -105,6 +107,13 @@ const createOptimizationRequestLifecycle = (
     markResponseStarted: () => {
       clearTimeout(responseStartTimeout);
       resetIdleTimeout();
+      downstreamHeartbeat = setInterval(() => {
+        if (!response.destroyed && !response.writableEnded) {
+          // Blank NDJSON lines are transport heartbeats, not domain events.
+          response.write("\n");
+        }
+      }, DOWNSTREAM_HEARTBEAT_INTERVAL_MS);
+      downstreamHeartbeat.unref();
     },
     markTerminalEvent: () => {
       state.terminalEventSent = true;
@@ -112,6 +121,17 @@ const createOptimizationRequestLifecycle = (
     resetIdleTimeout,
   };
 };
+
+/** Return a bounded, transport-stable summary of manifest validation errors. */
+const summarizeValidationIssues = (
+  issues: readonly { message: string; path: readonly PropertyKey[] }[],
+) => ({
+  issues: issues.slice(0, MAX_VALIDATION_ISSUES).map(({ message, path }) => ({
+    path: path.map(String).join(".") || "$",
+    message: message.slice(0, MAX_VALIDATION_MESSAGE_LENGTH),
+  })),
+  truncated: issues.length > MAX_VALIDATION_ISSUES,
+});
 
 /** Write one canonical optimization event as NDJSON with backpressure. */
 const writeOptimizationEvent = async (
@@ -152,7 +172,7 @@ export const createPetrinautOptimizationHandler = ({
   origin,
 }: {
   fetchImpl: PetrinautOptimizerFetch;
-  logger: WarningLogger;
+  logger: Pick<Logger, "warn">;
   origin: URL | null;
 }): RequestHandler => {
   let activeOptimizationCount = 0;
@@ -170,15 +190,27 @@ export const createPetrinautOptimizationHandler = ({
       return;
     }
 
+    const userId = request.user.accountId;
+    if (activeUserIds.has(userId)) {
+      response.status(429).json({
+        error: "An optimization is already running for this account",
+      });
+      return;
+    }
+    if (activeOptimizationCount >= MAX_CONCURRENT_OPTIMIZATIONS) {
+      response.status(429).json({ error: "Petrinaut optimizer is busy" });
+      return;
+    }
+
     let serializedBody: unknown;
     try {
       serializedBody = JSON.stringify(request.body);
     } catch {
-      response.status(400).json({ error: "Invalid optimization request" });
+      response.status(400).json(INVALID_OPTIMIZATION_REQUEST);
       return;
     }
     if (typeof serializedBody !== "string") {
-      response.status(400).json({ error: "Invalid optimization request" });
+      response.status(400).json(INVALID_OPTIMIZATION_REQUEST);
       return;
     }
     if (Buffer.byteLength(serializedBody, "utf8") > MAX_REQUEST_BYTES) {
@@ -189,20 +221,9 @@ export const createPetrinautOptimizationHandler = ({
     const input = petrinautOptimizationInputSchema.safeParse(request.body);
     if (!input.success) {
       response.status(400).json({
-        error: "Invalid optimization request",
-        issues: input.error.issues,
+        ...INVALID_OPTIMIZATION_REQUEST,
+        details: summarizeValidationIssues(input.error.issues),
       });
-      return;
-    }
-
-    const userId = request.user.accountId;
-    if (
-      activeOptimizationCount >= MAX_CONCURRENT_OPTIMIZATIONS ||
-      activeUserIds.has(userId)
-    ) {
-      response
-        .status(429)
-        .json({ error: "An optimization is already running" });
       return;
     }
 
@@ -219,7 +240,6 @@ export const createPetrinautOptimizationHandler = ({
         onActivity: lifecycle.resetIdleTimeout,
         signal: lifecycle.signal,
       });
-      lifecycle.markResponseStarted();
 
       response.status(200);
       response.set({
@@ -228,6 +248,7 @@ export const createPetrinautOptimizationHandler = ({
         "X-Accel-Buffering": "no",
       });
       response.flushHeaders();
+      lifecycle.markResponseStarted();
       await forwardOptimizationEvents(
         upstreamEvents,
         response,
@@ -252,19 +273,16 @@ export const createPetrinautOptimizationHandler = ({
       }
       if (!lifecycle.state.terminalEventSent) {
         try {
-          await writeOptimizationEvent(
-            response,
-            petrinautOptimizationErrorEventSchema.parse({
-              type: "error",
-              code: lifecycle.state.timeoutKind
-                ? "optimization_timeout"
-                : "upstream_stream_error",
-              message: lifecycle.state.timeoutKind
-                ? "The optimization exceeded its execution time limit"
-                : "The optimizer stream ended unexpectedly",
-              retryable: true,
-            }),
-          );
+          await writeOptimizationEvent(response, {
+            type: "error",
+            code: lifecycle.state.timeoutKind
+              ? "optimization_timeout"
+              : "upstream_stream_error",
+            message: lifecycle.state.timeoutKind
+              ? "The optimization exceeded its execution time limit"
+              : "The optimizer stream ended unexpectedly",
+            retryable: true,
+          } satisfies PetrinautOptimizationEvent);
         } catch (writeError) {
           logger.warn("Could not report Petrinaut optimization failure", {
             error: writeError,

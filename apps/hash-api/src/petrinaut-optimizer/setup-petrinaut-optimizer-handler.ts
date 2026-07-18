@@ -1,91 +1,33 @@
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+
 import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
 
-import type { components } from "@local/petrinaut-optimizer-client";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
 import type { Express } from "express";
 
-export const PETRINAUT_OPTIMIZER_STATUS_PATH =
-  "/api/petrinaut-optimizer/status";
 export const PETRINAUT_OPTIMIZER_CAPABILITIES_PATH =
   "/api/petrinaut-optimizer/capabilities";
 export const PETRINAUT_OPTIMIZER_OPTIMIZE_PATH =
   "/api/petrinaut-optimizer/optimize";
 
-const STATUS_REQUEST_TIMEOUT_MS = 5_000;
-
-type PetrinautOptimizerStatus = components["schemas"]["RunStatus"];
-
-const PETRINAUT_OPTIMIZER_PHASES = [
-  "idle",
-  "running",
-  "done",
-  "error",
-] as const satisfies readonly NonNullable<PetrinautOptimizerStatus["phase"]>[];
-
-/** Return whether an unknown value is a supported optimizer phase. */
-const isPetrinautOptimizerPhase = (
-  value: unknown,
-): value is NonNullable<PetrinautOptimizerStatus["phase"]> =>
-  typeof value === "string" &&
-  PETRINAUT_OPTIMIZER_PHASES.some((phase) => phase === value);
-
-/** Validate one runtime status payload returned by Petrinaut Optimizer. */
-const isPetrinautOptimizerStatus = (
-  value: unknown,
-): value is PetrinautOptimizerStatus => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const {
-    detail,
-    phase,
-    run_id: runId,
-    updated_at: updatedAt,
-  } = value as Record<string, unknown>;
-
-  return (
-    typeof runId === "string" &&
-    runId.length > 0 &&
-    isPetrinautOptimizerPhase(phase) &&
-    (detail === undefined || detail === null || typeof detail === "string") &&
-    (updatedAt === undefined ||
-      updatedAt === null ||
-      typeof updatedAt === "string")
-  );
-};
-
-/** Validate the complete status list returned by Petrinaut Optimizer. */
-const isPetrinautOptimizerStatusList = (
-  value: unknown,
-): value is PetrinautOptimizerStatus[] =>
-  Array.isArray(value) && value.every(isPetrinautOptimizerStatus);
-
-/** Remove run-specific details and select the process-level current status. */
-const summarizePetrinautOptimizerStatus = (
-  statuses: readonly PetrinautOptimizerStatus[],
-) => {
-  const current =
-    statuses.findLast((status) => status.phase === "running") ??
-    statuses.at(-1);
-  return {
-    phase: current?.phase ?? "idle",
-    detail: null,
-    updated_at: current?.updated_at ?? null,
-  };
-};
-
-type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
-
-type WarningLogger = {
-  /** Record a recoverable integration failure and its diagnostic metadata. */
-  warn: (message: string, metadata?: Record<string, unknown>) => void;
-};
-
 type PetrinautOptimizerHandlerOptions = {
   origin: URL | null;
-  fetchImpl?: Fetch;
-  logger: WarningLogger;
+  fetchImpl?: PetrinautOptimizerFetch;
+  logger: Pick<Logger, "warn">;
 };
+
+/** Bound expensive optimization attempts per authenticated account or IP. */
+const optimizationRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 60_000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (request) =>
+    request.user?.accountId ??
+    (request.ip ? ipKeyGenerator(request.ip) : "ip-unavailable"),
+  message: { error: "Too many optimization requests" },
+});
 
 /** Resolve the private optimizer origin from the environment. */
 export const getPetrinautOptimizerOrigin = (
@@ -127,57 +69,13 @@ export const setupPetrinautOptimizerHandler = (
    * frontend should keep the feature visible during a transient service outage
    * and report that outage when the user tries to start an optimization.
    */
-  app.get(PETRINAUT_OPTIMIZER_CAPABILITIES_PATH, async (req, res) => {
+  app.get(PETRINAUT_OPTIMIZER_CAPABILITIES_PATH, (req, res) => {
     if (!req.user) {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
 
     res.json({ optimization: origin !== null });
-  });
-
-  /**
-   * Return a sanitized process-level status for Petrinaut Optimizer.
-   *
-   * Upstream run identifiers and details are deliberately removed because a
-   * shared optimizer instance may contain runs belonging to other HASH users.
-   */
-  app.get(PETRINAUT_OPTIMIZER_STATUS_PATH, async (req, res) => {
-    if (!req.user) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-
-    if (!origin) {
-      res.status(503).json({ error: "Petrinaut optimizer is not configured" });
-      return;
-    }
-
-    try {
-      const upstreamResponse = await fetchImpl(new URL("/status", origin), {
-        headers: { accept: "application/json" },
-        signal: AbortSignal.timeout(STATUS_REQUEST_TIMEOUT_MS),
-      });
-
-      if (!upstreamResponse.ok) {
-        throw new Error(
-          `Petrinaut optimizer returned status ${upstreamResponse.status}`,
-        );
-      }
-
-      const status: unknown = await upstreamResponse.json();
-      if (!isPetrinautOptimizerStatusList(status)) {
-        throw new Error(
-          "Petrinaut optimizer returned an invalid status payload",
-        );
-      }
-      // Run IDs and details are service-internal and may belong to another
-      // authenticated HASH user. Expose only a process-level health summary.
-      res.json(summarizePetrinautOptimizerStatus(status));
-    } catch (error) {
-      logger.warn("Could not reach Petrinaut optimizer", { error });
-      res.status(503).json({ error: "Petrinaut optimizer is unavailable" });
-    }
   });
 
   /**
@@ -189,6 +87,7 @@ export const setupPetrinautOptimizerHandler = (
    */
   app.post(
     PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
+    optimizationRateLimiter,
     createPetrinautOptimizationHandler({ fetchImpl, logger, origin }),
   );
 };

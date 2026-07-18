@@ -1,9 +1,10 @@
 import { EventEmitter } from "node:events";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
 
+import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Request, Response as ExpressResponse } from "express";
 
 const validOptimizationInput = {
@@ -53,7 +54,7 @@ const validOptimizationInput = {
   study: { trials: 2, sampler: "tpe" },
 };
 
-const logger = { warn: () => undefined };
+const logger = { warn: () => undefined } as unknown as Pick<Logger, "warn">;
 const unexpectedFetch = async (): Promise<Response> => {
   throw new Error("Unexpected upstream request");
 };
@@ -139,12 +140,77 @@ describe("createPetrinautOptimizationHandler", () => {
   });
 
   it("validates the public optimization request", async () => {
-    const result = await callHandler({ body: {} });
+    const result = await callHandler({
+      body: {
+        ...validOptimizationInput,
+        scenario: {
+          ...validOptimizationInput.scenario,
+          parameterBindings: {
+            rate: {
+              kind: "optimize",
+              domain: {
+                kind: "continuous",
+                minimum: 0.1,
+                maximum: 1,
+                scale: "sqrt",
+              },
+            },
+          },
+        },
+      },
+    });
 
     expect(result.statusCode).toBe(400);
-    expect(result.body).toMatchObject({
+    expect(result.body).toEqual({
+      code: "invalid_optimization_request",
+      details: {
+        issues: [
+          {
+            message: expect.any(String),
+            path: "scenario.parameterBindings.rate.domain.scale",
+          },
+        ],
+        truncated: false,
+      },
       error: "Invalid optimization request",
     });
+  });
+
+  it("keeps a quiet downstream optimization stream alive", async () => {
+    vi.useFakeTimers();
+    let activeRequest: EventEmitter | undefined;
+
+    try {
+      const resultPromise = callHandler({
+        body: validOptimizationInput,
+        fetchImpl: async (_input, init) =>
+          new Response(
+            new ReadableStream({
+              start(controller) {
+                init?.signal?.addEventListener(
+                  "abort",
+                  () =>
+                    controller.error(new DOMException("Aborted", "AbortError")),
+                  { once: true },
+                );
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          ),
+        onRequest: (request) => {
+          activeRequest = request;
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(25_000);
+      activeRequest?.emit("aborted");
+
+      const result = await resultPromise;
+      expect(result.output).toContain("\n");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("proxies optimizer SSE as canonical NDJSON", async () => {
