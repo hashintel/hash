@@ -1,13 +1,13 @@
-use core::fmt::Display;
-use std::{
+use alloc::{
     alloc::{Allocator, Global},
     borrow::Cow,
-    fmt,
 };
+use core::{fmt, fmt::Display};
 
 use super::phrase::Phrase;
 
-pub struct Prelude<'text, A: Allocator = Global> {
+/// The untruncatable head of every card.
+pub(crate) struct Prelude<'text, A: Allocator = Global> {
     pub relation: Cow<'text, str>,
     pub description: Option<Cow<'text, str>>,
     pub aliases: Vec<Cow<'text, str>, A>,

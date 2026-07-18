@@ -1,5 +1,5 @@
-use core::fmt::Display;
-use std::{borrow::Cow, fmt};
+use alloc::borrow::Cow;
+use core::{fmt, fmt::Display};
 
 pub(crate) struct Epilogue<'text> {
     pub slug: Cow<'text, str>,

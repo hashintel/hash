@@ -1,22 +1,37 @@
-//! Golden tests transcribed from the Python relation-card renderer.
+//! Golden tests for the canonical card format.
 //!
-//! The expected strings come from `tools/atlas-tools/tests/relation_cards/`
-//! (`test_card.py`, `test_endpoint_constraints.py`, `test_examples.py`); the
-//! rendered text is asserted byte-for-byte against those fixtures.
+//! The expected strings are the format's contract: rendered text is
+//! asserted byte-for-byte, so any layout change is a deliberate format
+//! revision that shows up here.
+
+use alloc::borrow::Cow;
 
 use super::{
-    Card, CardsConfig, EndpointTypeConstraint, PhraseInput, RelationCardInput, RelationConstraints,
-    RelationDirection, RelationExample, build_card,
-    error::{CardError, IdentifierLeakError, TokenCountError},
-    examples::{
-        DEFAULT_STRATUM_SLOT_CAP, ExampleCandidate, ExampleStratum, SelectedExample,
-        select_diverse_examples,
-    },
-    lint_card_text,
-    token::{Cl100kTokenCounter, HeuristicTokenCounter, NaiveSentenceSplitter, TokenCounter as _},
+    constraints::{Constraints, Direction, EndpointConstraint},
+    contents::CardContents,
+    context::CardContext,
+    epilogue::Epilogue,
+    example::Example,
+    format::{Card, CardError, CardsConfig, build_card},
+    group::GroupItem,
+    lint::{IdentifierLeakError, lint_card_text},
+    phrase::Phrase,
+    prelude::Prelude,
+    segment::UnicodeSegmenter,
+    select::{Candidate, DEFAULT_GROUP_SLOT_CAP, Group, Selected, select_diverse_examples},
+    text::slugify,
+    token::{Cl100kTokenizer, HeuristicTokenizer, ReservedTokenError, Tokenizer as _},
 };
 
 const BIG: usize = 10_000_000;
+
+fn context() -> CardContext<UnicodeSegmenter, HeuristicTokenizer> {
+    CardContext {
+        language: "en",
+        segmenter: UnicodeSegmenter,
+        tokenizer: HeuristicTokenizer,
+    }
+}
 
 fn cards_config(token_budget: usize, hard_token_budget: usize) -> CardsConfig {
     CardsConfig {
@@ -25,51 +40,67 @@ fn cards_config(token_budget: usize, hard_token_budget: usize) -> CardsConfig {
     }
 }
 
-fn render(input: &RelationCardInput, config: CardsConfig) -> Result<Card, CardError> {
-    build_card(
-        input,
-        config,
-        &HeuristicTokenCounter,
-        &NaiveSentenceSplitter,
-        &[],
-    )
+fn render(contents: CardContents<'_>, config: CardsConfig) -> Result<Card, CardError<!>> {
+    build_card(contents, config, &HeuristicTokenizer, &[])
 }
 
-fn phrase(label: &str, description: Option<&str>) -> PhraseInput {
-    PhraseInput {
-        label: label.to_owned(),
-        description: description.map(str::to_owned),
-    }
+fn phrase<'text>(label: &'text str, description: Option<&'text str>) -> Phrase<'text> {
+    Phrase::new(label, description, &context())
+        .unwrap_or_else(|never| never)
+        .expect("fixture labels are non-empty")
 }
 
-fn minimal_input(title: &str) -> RelationCardInput {
-    RelationCardInput {
-        language: "en".to_owned(),
-        title: title.to_owned(),
-        description: None,
-        aliases: Vec::new(),
-        inverse: None,
+fn minimal_contents(title: &'static str) -> CardContents<'static> {
+    CardContents {
+        prelude: Prelude {
+            relation: Cow::Borrowed(title),
+            description: None,
+            aliases: Vec::new(),
+            inverse: None,
+        },
         ancestors: Vec::new(),
-        endpoint_constraints: Vec::new(),
         source_types: Vec::new(),
         target_types: Vec::new(),
-        constraints: RelationConstraints {
+        endpoint_constraints: Vec::new(),
+        constraints: Constraints {
             symmetric: None,
             transitive: None,
-            single_value: None,
-            distinct_values: None,
-            direction: RelationDirection::SourceToTarget,
+            singleton: None,
+            distinct: None,
+            direction: Direction::SourceToTarget,
         },
         examples: Vec::new(),
-        slug: None,
+        epilogue: Epilogue {
+            slug: Cow::Owned(slugify(title)),
+        },
     }
 }
 
-fn canonical_input() -> RelationCardInput {
-    RelationCardInput {
-        description: Some("this item is a part of that item".to_owned()),
-        aliases: vec!["contained within".to_owned(), "component of".to_owned()],
-        inverse: Some(phrase("has part", Some("this item has the listed part"))),
+fn example(
+    source: &'static str,
+    target: &'static str,
+    group: &'static str,
+) -> GroupItem<'static, Example<'static>> {
+    GroupItem {
+        data: Example {
+            source: phrase(source, None),
+            target: phrase(target, None),
+        },
+        group: Some(Cow::Borrowed(group)),
+    }
+}
+
+fn canonical_contents() -> CardContents<'static> {
+    CardContents {
+        prelude: Prelude {
+            relation: Cow::Borrowed("part of"),
+            description: Some(Cow::Borrowed("this item is a part of that item")),
+            aliases: vec![
+                Cow::Borrowed("contained within"),
+                Cow::Borrowed("component of"),
+            ],
+            inverse: Some(phrase("has part", Some("this item has the listed part"))),
+        },
         ancestors: vec![phrase(
             "broader relation",
             Some("Lead ancestor sentence. Removable ancestor detail."),
@@ -79,33 +110,25 @@ fn canonical_input() -> RelationCardInput {
             Some("Lead source sentence. Removable source detail."),
         )],
         target_types: vec![phrase("creative work", Some("a creative artifact"))],
-        constraints: RelationConstraints {
+        constraints: Constraints {
             symmetric: Some(false),
             transitive: Some(true),
-            single_value: Some(false),
-            distinct_values: Some(false),
-            direction: RelationDirection::SourceToTarget,
+            singleton: Some(false),
+            distinct: Some(false),
+            direction: Direction::SourceToTarget,
         },
         examples: vec![
-            RelationExample {
-                subject_label: "Chapter One".to_owned(),
-                object_label: "Synthetic Novel".to_owned(),
-                stratum_label: Some("written work".to_owned()),
-            },
-            RelationExample {
-                subject_label: "Appendix".to_owned(),
-                object_label: "Field Guide".to_owned(),
-                stratum_label: Some("written work".to_owned()),
-            },
+            example("Chapter One", "Synthetic Novel", "written work"),
+            example("Appendix", "Field Guide", "written work"),
         ],
-        ..minimal_input("part of")
+        ..minimal_contents("part of")
     }
 }
 
-fn owns_input() -> RelationCardInput {
-    RelationCardInput {
+fn owns_contents() -> CardContents<'static> {
+    CardContents {
         endpoint_constraints: vec![
-            EndpointTypeConstraint::new(
+            EndpointConstraint::new(
                 phrase(
                     "Organization",
                     Some("A formal group. Additional source detail."),
@@ -121,7 +144,7 @@ fn owns_input() -> RelationCardInput {
                 Some(2),
             )
             .expect("cardinality 1..2 should validate"),
-            EndpointTypeConstraint::new(
+            EndpointConstraint::new(
                 phrase("Person", None),
                 vec![phrase("Asset", None)],
                 None,
@@ -129,22 +152,23 @@ fn owns_input() -> RelationCardInput {
             )
             .expect("cardinality <= 1 should validate"),
         ],
-        constraints: RelationConstraints {
+        constraints: Constraints {
             symmetric: None,
             transitive: None,
-            single_value: Some(false),
-            distinct_values: None,
-            direction: RelationDirection::SourceToTarget,
+            singleton: Some(false),
+            distinct: None,
+            direction: Direction::SourceToTarget,
         },
-        ..minimal_input("owns")
+        ..minimal_contents("owns")
     }
 }
 
 #[test]
 fn canonical_block_rendering_is_deterministic() {
-    let input = canonical_input();
-    let first = render(&input, cards_config(BIG, BIG)).expect("canonical fixture should render");
-    let second = render(&input, cards_config(BIG, BIG)).expect("canonical fixture should render");
+    let first =
+        render(canonical_contents(), cards_config(BIG, BIG)).expect("canonical fixture renders");
+    let second =
+        render(canonical_contents(), cards_config(BIG, BIG)).expect("canonical fixture renders");
 
     assert_eq!(first.card_text(), second.card_text());
     assert_eq!(
@@ -180,8 +204,8 @@ fn canonical_block_rendering_is_deterministic() {
 
 #[test]
 fn unavailable_constraint_facts_render_as_not_recorded() {
-    let input = minimal_input("related to");
-    let card = render(&input, cards_config(BIG, BIG)).expect("minimal fixture should render");
+    let card = render(minimal_contents("related to"), cards_config(BIG, BIG))
+        .expect("minimal fixture renders");
     let text = card.card_text();
 
     assert!(text.contains("Constraints:\n  - symmetric? not recorded\n"));
@@ -193,8 +217,8 @@ fn unavailable_constraint_facts_render_as_not_recorded() {
 
 #[test]
 fn soft_truncation_uses_shared_structural_passes() {
-    let card = render(&canonical_input(), cards_config(1, BIG))
-        .expect("fixture should render after structural truncation");
+    let card = render(canonical_contents(), cards_config(1, BIG))
+        .expect("fixture renders after structural truncation");
 
     assert_eq!(
         card.truncations(),
@@ -209,34 +233,33 @@ fn soft_truncation_uses_shared_structural_passes() {
 
 #[test]
 fn identifier_linter_rejects_embedded_source_keys() {
-    let url_input = RelationCardInput {
-        description: Some("see https://example.com/types/entity-type/part-of/v/1".to_owned()),
-        ..minimal_input("related to")
-    };
+    let mut url_contents = minimal_contents("related to");
+    url_contents.prelude.description = Some(Cow::Borrowed(
+        "see https://example.com/types/entity-type/part-of/v/1",
+    ));
     assert!(matches!(
-        render(&url_input, cards_config(BIG, BIG)),
-        Err(CardError::IdentifierLeak(IdentifierLeakError::Url))
+        render(url_contents, cards_config(BIG, BIG)),
+        Err(CardError::Lint(IdentifierLeakError::Url))
     ));
 
-    let uuid_input = RelationCardInput {
-        description: Some("database key 123e4567-e89b-12d3-a456-426614174000".to_owned()),
-        ..minimal_input("related to")
-    };
+    let mut uuid_contents = minimal_contents("related to");
+    uuid_contents.prelude.description = Some(Cow::Borrowed(
+        "database key 123e4567-e89b-12d3-a456-426614174000",
+    ));
     assert!(matches!(
-        render(&uuid_input, cards_config(BIG, BIG)),
-        Err(CardError::IdentifierLeak(IdentifierLeakError::Uuid))
+        render(uuid_contents, cards_config(BIG, BIG)),
+        Err(CardError::Lint(IdentifierLeakError::Uuid))
     ));
 }
 
 #[test]
 fn identifier_linter_allows_similar_ordinary_prose() {
-    let input = RelationCardInput {
-        description: Some("The Audi Q5 and release 123e4567-e89b are ordinary prose.".to_owned()),
-        ..minimal_input("P2P relation")
-    };
+    let mut contents = minimal_contents("P2P relation");
+    contents.prelude.description = Some(Cow::Borrowed(
+        "The Audi Q5 and release 123e4567-e89b are ordinary prose.",
+    ));
 
-    let card =
-        render(&input, cards_config(BIG, BIG)).expect("ordinary prose should pass the linter");
+    let card = render(contents, cards_config(BIG, BIG)).expect("ordinary prose passes the linter");
     assert!(card.card_text().starts_with("Relation: P2P relation\n"));
 }
 
@@ -254,8 +277,8 @@ fn identifier_linter_rejects_adapter_supplied_source_identifier() {
 
 #[test]
 fn endpoint_constraints_preserve_source_target_associations() {
-    let card = render(&owns_input(), cards_config(BIG, BIG))
-        .expect("endpoint constraint fixture should render");
+    let card = render(owns_contents(), cards_config(BIG, BIG))
+        .expect("endpoint constraint fixture renders");
     let text = card.card_text();
 
     assert!(!text.contains("Source types:"));
@@ -264,7 +287,7 @@ fn endpoint_constraints_preserve_source_target_associations() {
     assert!(text.contains(concat!(
         "  - Organization (A formal group. Additional source detail.) -> ",
         "one of: Subsidiary (A controlled company. Additional target detail.) | Office ",
-        "[targets per source: 1..2]\n",
+        "[targets per source: 1..2 (inclusive)]\n",
     )));
     assert!(text.contains("  - Person -> Asset [targets per source: <= 1]\n"));
     assert!(!text.contains("Organization -> Asset"));
@@ -273,8 +296,8 @@ fn endpoint_constraints_preserve_source_target_associations() {
 
 #[test]
 fn endpoint_description_details_are_truncated_without_losing_pairs() {
-    let card = render(&owns_input(), cards_config(1, BIG))
-        .expect("endpoint constraint fixture should render after truncation");
+    let card = render(owns_contents(), cards_config(1, BIG))
+        .expect("endpoint constraint fixture renders after truncation");
     let text = card.card_text();
 
     assert!(
@@ -291,9 +314,9 @@ fn endpoint_description_details_are_truncated_without_losing_pairs() {
 
 #[test]
 fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
-    let input = RelationCardInput {
+    let contents = CardContents {
         endpoint_constraints: vec![
-            EndpointTypeConstraint::new(
+            EndpointConstraint::new(
                 phrase("Person", None),
                 vec![phrase("Asset", None)],
                 None,
@@ -301,17 +324,17 @@ fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
             )
             .expect("cardinality <= 1 should validate"),
         ],
-        constraints: RelationConstraints {
+        constraints: Constraints {
             symmetric: None,
             transitive: None,
-            single_value: Some(true),
-            distinct_values: None,
-            direction: RelationDirection::SourceToTarget,
+            singleton: Some(true),
+            distinct: None,
+            direction: Direction::SourceToTarget,
         },
-        ..minimal_input("owns")
+        ..minimal_contents("owns")
     };
 
-    let card = render(&input, cards_config(BIG, BIG)).expect("simple pair should render");
+    let card = render(contents, cards_config(BIG, BIG)).expect("simple pair renders");
     let text = card.card_text();
     assert!(!text.contains("Endpoint constraints:"));
     assert!(text.contains("Source types:\n  - Person\n"));
@@ -321,49 +344,47 @@ fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
 #[test]
 fn endpoint_cardinality_rejects_an_inverted_range() {
     assert!(
-        EndpointTypeConstraint::new(phrase("Person", None), Vec::new(), Some(2), Some(1)).is_none()
+        EndpointConstraint::<'_>::new(phrase("Person", None), Vec::new(), Some(2), Some(1))
+            .is_none()
     );
 }
 
 #[test]
-fn cl100k_counter_matches_known_tokens_and_rejects_protocol_tokens() {
+fn cl100k_tokenizer_matches_known_tokens_and_rejects_protocol_tokens() {
     assert_eq!(
-        Cl100kTokenCounter
-            .count("hello world")
+        Cl100kTokenizer
+            .count_tokens("hello world")
             .expect("ordinary text should tokenize"),
         2
     );
     assert!(matches!(
-        Cl100kTokenCounter.count("<|endoftext|>"),
-        Err(TokenCountError::ReservedToken {
+        Cl100kTokenizer.count_tokens("<|endoftext|>"),
+        Err(ReservedTokenError {
             token: "<|endoftext|>"
         })
     ));
 }
 
-// --- Example selection (transcribed from test_examples.py) -----------------
-
-#[derive(Debug, Clone)]
 struct Payload {
     name: String,
 }
 
 const SHARED_ENDPOINT: &str = "entity:shared";
 
-fn candidate(name: &str) -> ExampleCandidate<Payload, &'static str> {
-    ExampleCandidate {
+fn candidate(name: &str) -> Candidate<'static, Payload, &'static str> {
+    Candidate {
         payload: Payload {
             name: name.to_owned(),
         },
-        subject_token: format!("subject:{name}"),
-        object_token: format!("object:{name}"),
+        source: Cow::Owned(format!("source:{name}")),
+        target: Cow::Owned(format!("target:{name}")),
         subgroup: "default",
         recognizability: 0.0,
-        additional_conflict_tokens: Vec::new(),
+        conflicts: Vec::new(),
     }
 }
 
-fn names<Stratum>(selected: &[SelectedExample<Stratum, Payload>]) -> Vec<&str> {
+fn names<K>(selected: &[Selected<K, Payload>]) -> Vec<&str> {
     selected
         .iter()
         .map(|example| example.payload.name.as_str())
@@ -373,20 +394,20 @@ fn names<Stratum>(selected: &[SelectedExample<Stratum, Payload>]) -> Vec<&str> {
 #[test]
 fn recognizable_head_then_distinct_subgroups_before_repeats() {
     let selected = select_diverse_examples(
-        vec![ExampleStratum {
+        vec![Group {
             key: "source",
             candidates: vec![
-                ExampleCandidate {
+                Candidate {
                     subgroup: "country",
                     recognizability: 10.0,
                     ..candidate("France")
                 },
-                ExampleCandidate {
+                Candidate {
                     subgroup: "country",
                     recognizability: 9.0,
                     ..candidate("Spain")
                 },
-                ExampleCandidate {
+                Candidate {
                     subgroup: "village",
                     recognizability: 1.0,
                     ..candidate("Casefabre")
@@ -394,23 +415,23 @@ fn recognizable_head_then_distinct_subgroups_before_repeats() {
             ],
         }],
         3,
-        DEFAULT_STRATUM_SLOT_CAP,
+        DEFAULT_GROUP_SLOT_CAP,
     );
 
     assert_eq!(names(&selected), ["France", "Casefabre", "Spain"]);
 }
 
 #[test]
-fn slot_cap_preserves_small_strata_then_relaxes_to_fill_budget() {
+fn slot_cap_preserves_small_groups_then_relaxes_to_fill_budget() {
     let selected = select_diverse_examples(
         vec![
-            ExampleStratum {
+            Group {
                 key: "large",
                 candidates: (0..20)
                     .map(|index| candidate(&format!("large-{index}")))
                     .collect(),
             },
-            ExampleStratum {
+            Group {
                 key: "small",
                 candidates: (0..2)
                     .map(|index| candidate(&format!("small-{index}")))
@@ -418,12 +439,12 @@ fn slot_cap_preserves_small_strata_then_relaxes_to_fill_budget() {
             },
         ],
         8,
-        DEFAULT_STRATUM_SLOT_CAP,
+        DEFAULT_GROUP_SLOT_CAP,
     );
 
-    let strata: Vec<_> = selected.iter().map(|example| example.stratum).collect();
+    let groups: Vec<_> = selected.iter().map(|example| example.group).collect();
     assert_eq!(
-        strata,
+        groups,
         [
             "large", "large", "large", "large", "large", "large", "small", "small",
         ]
@@ -431,90 +452,90 @@ fn slot_cap_preserves_small_strata_then_relaxes_to_fill_budget() {
 }
 
 #[test]
-fn endpoint_conflict_shortfall_refills_from_another_stratum() {
+fn endpoint_conflict_shortfall_refills_from_another_group() {
     let selected = select_diverse_examples(
         vec![
-            ExampleStratum {
+            Group {
                 key: "first",
-                candidates: vec![ExampleCandidate {
-                    object_token: SHARED_ENDPOINT.to_owned(),
+                candidates: vec![Candidate {
+                    target: Cow::Borrowed(SHARED_ENDPOINT),
                     ..candidate("first")
                 }],
             },
-            ExampleStratum {
+            Group {
                 key: "conflicting",
-                candidates: vec![ExampleCandidate {
-                    object_token: SHARED_ENDPOINT.to_owned(),
+                candidates: vec![Candidate {
+                    target: Cow::Borrowed(SHARED_ENDPOINT),
                     ..candidate("conflicting")
                 }],
             },
-            ExampleStratum {
+            Group {
                 key: "refill",
                 candidates: vec![candidate("refill-1"), candidate("refill-2")],
             },
         ],
         3,
-        DEFAULT_STRATUM_SLOT_CAP,
+        DEFAULT_GROUP_SLOT_CAP,
     );
 
     assert_eq!(names(&selected), ["first", "refill-1", "refill-2"]);
 }
 
 #[test]
-fn additional_conflict_token_skips_duplicate_text_but_keeps_alternates() {
+fn conflict_token_skips_duplicate_text_but_keeps_alternates() {
     let duplicate_line = "rendered:source\0A\0B";
     let selected = select_diverse_examples(
-        vec![ExampleStratum {
+        vec![Group {
             key: "source",
             candidates: vec![
-                ExampleCandidate {
+                Candidate {
                     recognizability: 3.0,
-                    additional_conflict_tokens: vec![duplicate_line.to_owned()],
+                    conflicts: vec![Cow::Borrowed(duplicate_line)],
                     ..candidate("first")
                 },
-                ExampleCandidate {
+                Candidate {
                     recognizability: 2.0,
-                    additional_conflict_tokens: vec![duplicate_line.to_owned()],
+                    conflicts: vec![Cow::Borrowed(duplicate_line)],
                     ..candidate("duplicate")
                 },
-                ExampleCandidate {
+                Candidate {
                     recognizability: 1.0,
                     ..candidate("alternate")
                 },
             ],
         }],
         3,
-        DEFAULT_STRATUM_SLOT_CAP,
+        DEFAULT_GROUP_SLOT_CAP,
     );
 
     assert_eq!(names(&selected), ["first", "alternate"]);
 }
 
 #[test]
-fn empty_strata_do_not_consume_guaranteed_slots() {
+fn empty_groups_do_not_consume_guaranteed_slots() {
     let selected = select_diverse_examples(
         vec![
-            ExampleStratum {
+            Group {
                 key: "empty",
                 candidates: Vec::new(),
             },
-            ExampleStratum {
+            Group {
                 key: "alpha",
                 candidates: vec![candidate("a")],
             },
-            ExampleStratum {
+            Group {
                 key: "beta",
                 candidates: vec![candidate("b")],
             },
         ],
         2,
-        DEFAULT_STRATUM_SLOT_CAP,
+        DEFAULT_GROUP_SLOT_CAP,
     );
 
-    let strata: Vec<_> = selected.iter().map(|example| example.stratum).collect();
-    assert_eq!(strata, ["alpha", "beta"]);
+    let groups: Vec<_> = selected.iter().map(|example| example.group).collect();
+    assert_eq!(groups, ["alpha", "beta"]);
 }
 
-// The Python suite also rejects a negative example count and a zero slot cap
-// at runtime; both are unrepresentable here (`count` is unsigned and
-// `slot_cap` is `NonZeroUsize`), so no test is transcribed.
+// A negative example count and a zero slot cap are unrepresentable
+// (`count` is unsigned and `slot_cap` is `NonZeroUsize`), so no
+// rejection tests exist.

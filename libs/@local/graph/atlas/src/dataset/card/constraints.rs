@@ -3,25 +3,68 @@ use core::{fmt, fmt::Display};
 
 use super::phrase::Phrase;
 
+/// One source type's allowed target types and per-source cardinality.
 pub(crate) struct EndpointConstraint<'text, A: Allocator = Global> {
     pub source: Phrase<'text>,
     pub targets: Vec<Phrase<'text>, A>,
+    minimum_targets: Option<usize>,
+    maximum_targets: Option<usize>,
+}
 
-    pub minimum_targets: Option<usize>,
-    pub maximum_targets: Option<usize>,
+impl<'text, A: Allocator> EndpointConstraint<'text, A> {
+    /// Validates the per-source cardinality range.
+    ///
+    /// `None` reports a minimum that exceeds the maximum.
+    #[must_use]
+    pub(crate) fn new(
+        source: Phrase<'text>,
+        targets: Vec<Phrase<'text>, A>,
+        minimum_targets: Option<usize>,
+        maximum_targets: Option<usize>,
+    ) -> Option<Self> {
+        if let (Some(minimum), Some(maximum)) = (minimum_targets, maximum_targets)
+            && minimum > maximum
+        {
+            return None;
+        }
+
+        Some(Self {
+            source,
+            targets,
+            minimum_targets,
+            maximum_targets,
+        })
+    }
+
+    /// Reports whether the constraint allows at most one target per
+    /// source.
+    ///
+    /// A lone simple pair carries no association a paired block could
+    /// disambiguate, so the card renders it through the independent
+    /// source and target sections instead.
+    pub(super) const fn is_simple_pair(&self) -> bool {
+        self.minimum_targets.is_none() && matches!(self.maximum_targets, None | Some(1))
+    }
 }
 
 impl<A: Allocator> Display for EndpointConstraint<'_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.source, fmt)?;
+        let Self {
+            source,
+            targets,
+            minimum_targets,
+            maximum_targets,
+        } = self;
+
+        Display::fmt(source, fmt)?;
         fmt.write_str(" -> ")?;
 
-        match self.targets.as_slice() {
+        match targets.as_slice() {
             [] => fmt.write_str("any target type")?,
             [only] => Display::fmt(only, fmt)?,
-            _ => {
+            targets => {
                 fmt.write_str("one of: ")?;
-                for (index, target) in self.targets.iter().enumerate() {
+                for (index, target) in targets.iter().enumerate() {
                     if index > 0 {
                         fmt.write_str(" | ")?;
                     }
@@ -30,28 +73,28 @@ impl<A: Allocator> Display for EndpointConstraint<'_, A> {
             }
         }
 
-        match (self.minimum_targets, self.maximum_targets) {
-            (Some(min), None) => {
-                write!(fmt, " [targets per source: >= {min}]")?;
+        match (minimum_targets, maximum_targets) {
+            (None, None) => Ok(()),
+            (None, Some(maximum)) => write!(fmt, " [targets per source: <= {maximum}]"),
+            (Some(minimum), None) => write!(fmt, " [targets per source: >= {minimum}]"),
+            (Some(minimum), Some(maximum)) if minimum == maximum => {
+                write!(fmt, " [targets per source: exactly {minimum}]")
             }
-            (None, Some(max)) => {
-                write!(fmt, " [targets per source: <= {max}]")?;
+            // "(inclusive)" disambiguates against Rust's exclusive `a..b`
+            // range notation.
+            (Some(minimum), Some(maximum)) => {
+                write!(
+                    fmt,
+                    " [targets per source: {minimum}..{maximum} (inclusive)]"
+                )
             }
-            (Some(min), Some(max)) if min == max => {
-                write!(fmt, " [targets per source: exactly {min}]")?;
-            }
-            (Some(min), Some(max)) => {
-                write!(fmt, " [targets per source: {min}..{max} (inclusive)]")?;
-            }
-            (None, None) => {}
         }
-
-        Ok(())
     }
 }
 
+/// The direction described by a card.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Direction {
+pub(crate) enum Direction {
     Symmetric,
     SourceToTarget,
 }
@@ -59,18 +102,23 @@ pub enum Direction {
 impl Display for Direction {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Symmetric => write!(fmt, "symmetric"),
-            Self::SourceToTarget => write!(fmt, "source -> target"),
+            Self::Symmetric => fmt.write_str("symmetric"),
+            Self::SourceToTarget => fmt.write_str("source -> target"),
         }
     }
 }
 
+/// The shared constraint vocabulary.
+///
+/// `None` means the datasource does not record that fact and renders as
+/// "not recorded"; `Some(false)` is a recorded negative assertion. Cards
+/// report the ontology as-is.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Constraints {
+pub(crate) struct Constraints {
     pub symmetric: Option<bool>,
     pub transitive: Option<bool>,
     pub singleton: Option<bool>,
-    pub unique: Option<bool>,
+    pub distinct: Option<bool>,
     pub direction: Direction,
 }
 
@@ -80,22 +128,25 @@ impl Display for Constraints {
             symmetric,
             transitive,
             singleton,
-            unique,
+            distinct,
             direction,
         } = self;
 
-        let flag_value = |flag: Option<bool>| {
-            fmt::from_fn(move |fmt| match flag {
-                Some(true) => write!(fmt, "yes"),
-                Some(false) => write!(fmt, "no"),
-                None => write!(fmt, "not recorded"),
+        let flag = |flag: Option<bool>| {
+            fmt::from_fn(move |fmt| {
+                fmt.write_str(match flag {
+                    Some(true) => "yes",
+                    Some(false) => "no",
+                    None => "not recorded",
+                })
             })
         };
 
-        writeln!(fmt, "symmetric? {}", flag_value(symmetric))?;
-        writeln!(fmt, "transitive? {}", flag_value(transitive))?;
-        writeln!(fmt, "single value? {}", flag_value(singleton))?;
-        writeln!(fmt, "distinct values? {}", flag_value(unique))?;
-        write!(fmt, "direction? {direction}")
+        writeln!(fmt, "Constraints:")?;
+        writeln!(fmt, "  - symmetric? {}", flag(symmetric))?;
+        writeln!(fmt, "  - transitive? {}", flag(transitive))?;
+        writeln!(fmt, "  - single value? {}", flag(singleton))?;
+        writeln!(fmt, "  - distinct values? {}", flag(distinct))?;
+        writeln!(fmt, "  - direction: {direction}")
     }
 }

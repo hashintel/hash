@@ -1,19 +1,36 @@
 use alloc::borrow::Cow;
 use core::{fmt, fmt::Display};
 
-use super::{context::CardContext, segment::TextSegmenter, text::collapse_whitespace};
+use super::{context::CardContext, segment::TextSegmenter, text::normalize_whitespace};
 
+/// A phrase description divided at its first sentence boundary.
 pub(crate) struct Description<'text> {
+    /// The first sentence, retained through every truncation pass.
     pub lead: Cow<'text, str>,
+    /// The remaining sentences, removable under budget pressure.
     pub tail: Option<Cow<'text, str>>,
 }
 
+/// A transferable label and optional description, with no source id.
+///
+/// Every labeled item on a card - inverse, ancestor, endpoint type,
+/// example endpoint - is a phrase, so rendering and detail truncation
+/// are uniform whether or not a description is present today.
 pub(crate) struct Phrase<'text> {
     pub label: Cow<'text, str>,
     pub description: Option<Description<'text>>,
 }
 
 impl<'text> Phrase<'text> {
+    /// Normalizes a labeled input into a phrase.
+    ///
+    /// A whitespace-only label yields `Ok(None)`; a whitespace-only
+    /// description yields a bare label.
+    ///
+    /// # Errors
+    ///
+    /// Returns the segmenter's error when the description cannot be
+    /// segmented.
     pub(crate) fn new<S, T>(
         label: &'text str,
         description: Option<&'text str>,
@@ -22,11 +39,14 @@ impl<'text> Phrase<'text> {
     where
         S: TextSegmenter,
     {
-        let label = collapse_whitespace(label);
+        let label = normalize_whitespace(label);
         if label.is_empty() {
             return Ok(None);
         }
 
+        let description = description
+            .map(normalize_whitespace)
+            .filter(|description| !description.is_empty());
         let Some(description) = description else {
             return Ok(Some(Self {
                 label,
@@ -34,60 +54,54 @@ impl<'text> Phrase<'text> {
             }));
         };
 
-        let description = collapse_whitespace(description);
-        if description.is_empty() {
-            return Ok(None);
-        }
-
-        match description {
+        #[expect(
+            clippy::string_slice,
+            reason = "the offset and length come from the segmenter's sentence boundaries, which \
+                      lie on character boundaries"
+        )]
+        let description = match description {
             Cow::Borrowed(text) => {
                 let sentences = context.segmenter.split_sentences(text, context.language)?;
-                let Some((offset, value)) = sentences.into_iter().next() else {
-                    return Ok(Some(Self {
-                        label,
-                        description: None,
-                    }));
-                };
-
-                let lead = Cow::Borrowed(value);
-                let tail = Some(Cow::Borrowed(&text[offset + value.len()..]))
-                    .filter(|value| !value.is_empty());
-
-                Ok(Some(Self {
-                    label,
-                    description: Some(Description { lead, tail }),
-                }))
+                sentences.into_iter().next().map(|(offset, lead)| {
+                    let tail = &text[offset + lead.len()..];
+                    Description {
+                        lead: Cow::Borrowed(lead),
+                        tail: (!tail.is_empty()).then_some(Cow::Borrowed(tail)),
+                    }
+                })
             }
             Cow::Owned(mut text) => {
-                let sentences = context.segmenter.split_sentences(&text, context.language)?;
-                let Some((offset, value)) = sentences.into_iter().next() else {
-                    return Ok(Some(Self {
-                        label,
-                        description: None,
-                    }));
+                let bounds = {
+                    let sentences = context.segmenter.split_sentences(&text, context.language)?;
+                    sentences
+                        .into_iter()
+                        .next()
+                        .map(|(offset, lead)| (offset, lead.len()))
                 };
 
-                let length = value.len();
-                let tail = text.split_off(offset + length);
-                let mut lead = text;
+                bounds.map(|(offset, length)| {
+                    let tail = text.split_off(offset + length);
+                    text.replace_range(..offset, "");
 
-                // TODO: there's gotta be a better way...
-                unsafe {
-                    lead.as_mut_vec().rotate_left(offset);
-                };
-                lead.truncate(length);
-
-                let tail = Some(tail).filter(|value| !value.is_empty()).map(Cow::Owned);
-
-                Ok(Some(Self {
-                    label,
-                    description: Some(Description {
-                        lead: Cow::Owned(lead),
-                        tail,
-                    }),
-                }))
+                    Description {
+                        lead: Cow::Owned(text),
+                        tail: (!tail.is_empty()).then_some(Cow::Owned(tail)),
+                    }
+                })
             }
-        }
+        };
+
+        Ok(Some(Self { label, description }))
+    }
+
+    /// Removes the description's removable detail.
+    ///
+    /// Reports whether any detail was present to remove.
+    pub(crate) fn strip_tail(&mut self) -> bool {
+        self.description
+            .as_mut()
+            .and_then(|description| description.tail.take())
+            .is_some()
     }
 }
 
