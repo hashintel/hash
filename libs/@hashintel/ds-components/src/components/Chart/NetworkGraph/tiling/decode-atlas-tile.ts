@@ -166,6 +166,7 @@ export const decodeAtlasTile = (
     "release-report identity",
   );
 
+  // eslint-disable-next-line no-bitwise -- masking off known flag bits is the point
   if ((flags & ~knownFlags) !== 0) {
     return fail(`tile flags contain unsupported bits: 0x${flags.toString(16)}`);
   }
@@ -180,6 +181,7 @@ export const decodeAtlasTile = (
     );
   }
 
+  // eslint-disable-next-line no-bitwise -- extracting the complete flag bit
   const complete = (flags & completeFlag) !== 0;
   if (complete !== (visibleSubtreeCount === deliveredCount)) {
     return fail(
