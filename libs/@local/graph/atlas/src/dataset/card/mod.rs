@@ -30,7 +30,7 @@ pub(crate) use self::{
     context::CardContext,
     format::{Card, CardsConfig, build_card},
     segment::{TextSegmenter, UnicodeSegmenter},
-    token::Cl100kTokenizer,
+    token::{Cl100kTokenizer, Tokenizer},
 };
 
 pub(crate) mod hash;

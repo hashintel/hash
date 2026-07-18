@@ -10,7 +10,7 @@
 
 use core::{
     iter,
-    simd::{Simd, num::SimdFloat as _},
+    simd::{Simd, f32x8, num::SimdFloat as _},
 };
 
 use proptest::prelude::*;
@@ -363,6 +363,48 @@ fn try_as_aligned_agrees_between_shared_and_mutable() {
     aligned.as_array_mut()[0] = 7.0;
 
     assert_eq!(boxed.as_array()[0], 7.0);
+}
+
+#[test]
+fn from_slice_yields_every_row_aligned_and_in_place() {
+    let source: [f32; 32] = scattered(0.5);
+    let matrix = BoxedVecN::from(source);
+
+    let rows = AlignedVecN::<8>::from_slice(matrix.as_array()).expect("boxed storage is aligned");
+    assert_eq!(rows.len(), 4);
+    for (index, row) in rows.iter().enumerate() {
+        assert!(
+            row.as_array().as_ptr().is_aligned_to(align_of::<f32x8>()),
+            "row {index} must satisfy the alignment invariant",
+        );
+        assert_eq!(row.as_array()[..], source[index * 8..(index + 1) * 8]);
+    }
+
+    // The rows alias the source storage: no copy happened.
+    assert!(core::ptr::eq(
+        rows.as_ptr().cast::<f32>(),
+        matrix.as_array().as_ptr(),
+    ));
+}
+
+#[test]
+fn from_slice_rejects_what_would_break_the_invariant() {
+    let matrix = BoxedVecN::<32>::zero();
+    let components = matrix.as_array().as_slice();
+
+    // A zero dimension has no rows to hand out.
+    assert!(AlignedVecN::<0>::from_slice(components).is_none());
+
+    // A partial trailing row cannot be a vector.
+    assert!(AlignedVecN::<12>::from_slice(components).is_none());
+
+    // One component past an aligned base is misaligned: a single `f32`
+    // is narrower than `f32x8`'s alignment on every supported target.
+    assert!(AlignedVecN::<8>::from_slice(&components[1..25]).is_none());
+
+    // An empty slice at an aligned base is zero rows, not a failure.
+    let empty = AlignedVecN::<8>::from_slice(&components[..0]).expect("zero rows are valid");
+    assert!(empty.is_empty());
 }
 
 /// Components bounded to the well-conditioned `-1e3..1e3` range, in the

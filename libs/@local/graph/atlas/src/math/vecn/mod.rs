@@ -334,6 +334,42 @@ impl<const N: usize> AlignedVecN<N> {
         unsafe { Some(Self::from_mut_unchecked(value)) }
     }
 
+    /// Wraps a borrowed slice in place as consecutive aligned vectors.
+    ///
+    /// Vector `i` of the returned slice occupies components `N * i`
+    /// through `N * i + N - 1`, so a row-major `f32[T, N]` matrix reads
+    /// as its `T` rows with every SIMD kernel available on each.
+    ///
+    /// Returns [`None`] unless every vector satisfies the alignment
+    /// invariant: `components` starts at an address aligned to
+    /// `align_of::<f32x8>()` bytes, one vector's `N * 4` bytes are a
+    /// multiple of that alignment (`N % 8 == 0` at the widest, 32-byte
+    /// alignment) so the base alignment carries to every row, and the
+    /// length is a whole number of vectors. `N` must be nonzero.
+    #[expect(
+        clippy::integer_division,
+        clippy::integer_division_remainder_used,
+        reason = "the divisibility check above makes the element-count division exact"
+    )]
+    #[must_use]
+    pub fn from_slice(components: &[f32]) -> Option<&[Self]> {
+        if N == 0
+            || !components.as_ptr().is_aligned_to(align_of::<f32x8>())
+            || !(N * size_of::<f32>()).is_multiple_of(align_of::<f32x8>())
+            || !components.len().is_multiple_of(N)
+        {
+            return None;
+        }
+
+        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so
+        // `len / N` elements exactly cover the slice, and the checks
+        // above place every element a multiple of `align_of::<f32x8>()`
+        // bytes past an aligned base, which is the alignment invariant.
+        Some(unsafe {
+            core::slice::from_raw_parts(components.as_ptr().cast::<Self>(), components.len() / N)
+        })
+    }
+
     /// Returns the components as an array reference.
     #[inline]
     #[must_use]

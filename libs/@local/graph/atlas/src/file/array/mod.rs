@@ -48,6 +48,10 @@
 //! There are no checksums. Torn writes are prevented by writing to a
 //! temporary path and renaming into place; corruption detection, where
 //! wanted, is a strong hash stored beside the file by whoever names it.
+//!
+//! [`ArrayFile`] opens a file under these rules and hands out typed views
+//! of its data; [`ArrayWriter`] streams rows behind a reserved header for
+//! arrays whose leading dimension is discovered by writing.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -58,8 +62,13 @@ use core::fmt;
 
 use zerocopy::{LE, U64, Unalign};
 
+mod read;
 #[cfg(test)]
 mod tests;
+mod write;
+
+// `read`'s types re-export here when their first non-test consumer lands.
+pub(crate) use self::write::ArrayWriter;
 
 // not pretty, but allows us to pin a specific version, required for the derive
 #[derive(

@@ -1,6 +1,39 @@
+use core::sync::atomic::{AtomicU64, Ordering};
+use std::{io::Cursor, path::PathBuf};
+
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
-use super::{ArrayShape, ArrayVariant, Dim, FileHeader};
+use super::{
+    ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader,
+    read::{ArrayFile, OpenArrayError},
+};
+
+/// A uniquely named file in the system temporary directory, removed on
+/// drop.
+struct TempFile {
+    path: PathBuf,
+}
+
+impl TempFile {
+    fn create(bytes: &[u8]) -> Self {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+        let path = std::env::temp_dir().join(format!(
+            "atlas-array-{}-{}",
+            std::process::id(),
+            COUNTER.fetch_add(1, Ordering::Relaxed),
+        ));
+        std::fs::write(&path, bytes).expect("the temporary file should be writable");
+
+        Self { path }
+    }
+}
+
+impl Drop for TempFile {
+    fn drop(&mut self) {
+        drop(std::fs::remove_file(&self.path));
+    }
+}
 
 fn shape(dims: &[u64]) -> ArrayShape {
     let dims = dims.iter().copied().map(Dim::new).collect::<Vec<_>>();
@@ -113,4 +146,120 @@ fn expected_file_len_is_the_single_rule() {
     // A zero-element array is exactly its header.
     let empty = FileHeader::new(ArrayVariant::F32, shape(&[0]));
     assert_eq!(empty.expected_file_len(), Some(4096));
+}
+
+#[test]
+#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
+fn writer_and_file_round_trip_aligned_vectors() {
+    let rows: [[f32; 8]; 3] = [[0.5; 8], [-2.0; 8], [1024.0; 8]];
+
+    let mut buffer = Cursor::new(Vec::new());
+    let mut writer = ArrayWriter::new(&mut buffer, ArrayVariant::F32, &[Dim::new(8)])
+        .expect("writing to a cursor should succeed");
+    for row in &rows {
+        writer
+            .write_row(row.as_bytes())
+            .expect("writing to a cursor should succeed");
+    }
+    let written = writer.finish().expect("sealing a cursor should succeed");
+    assert_eq!(written, 3);
+
+    let file = TempFile::create(buffer.get_ref());
+    let opened = ArrayFile::open(&file.path).expect("a sealed file should open");
+
+    assert_eq!(opened.variant(), ArrayVariant::F32);
+    assert_eq!(extents(opened.shape()), [3, 8]);
+    assert!(opened.data().as_ptr().is_aligned_to(4096));
+
+    let vectors = opened
+        .vectors::<8>()
+        .expect("an f32 file shaped [3, 8] should view as 8-vectors");
+    assert_eq!(vectors.len(), 3);
+    for (vector, row) in vectors.iter().zip(&rows) {
+        // Bit-exact storage is the contract, so bytes compare exactly.
+        assert_eq!(vector.as_array().as_bytes(), row.as_bytes());
+    }
+
+    // A different width is a different file.
+    assert!(opened.vectors::<16>().is_none());
+}
+
+#[test]
+#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
+fn zero_rows_seal_as_the_empty_array() {
+    let mut buffer = Cursor::new(Vec::new());
+    let writer = ArrayWriter::new(&mut buffer, ArrayVariant::F32, &[Dim::new(512)])
+        .expect("writing to a cursor should succeed");
+    let written = writer.finish().expect("sealing a cursor should succeed");
+    assert_eq!(written, 0);
+    assert_eq!(buffer.get_ref().len(), FileHeader::SIZE);
+
+    // A zero-element file records no row width, so it is zero vectors of
+    // every dimension.
+    let file = TempFile::create(buffer.get_ref());
+    let opened = ArrayFile::open(&file.path).expect("an empty array should open");
+    assert!(opened.shape().dims().is_empty());
+    assert!(opened.vectors::<512>().expect("zero rows").is_empty());
+    assert!(opened.vectors::<8>().expect("zero rows").is_empty());
+}
+
+#[test]
+#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
+fn open_rejects_what_the_header_contradicts() {
+    // An unfinished write leaves the reserved zero header, which no
+    // parse accepts.
+    let mut unfinished = vec![0_u8; FileHeader::SIZE];
+    unfinished.extend_from_slice([1.0_f32; 8].as_bytes());
+    let file = TempFile::create(&unfinished);
+    assert!(matches!(
+        ArrayFile::open(&file.path),
+        Err(OpenArrayError::Header)
+    ));
+
+    // A file shorter than one header cannot carry one.
+    let file = TempFile::create(&[0xAB; 16]);
+    assert!(matches!(
+        ArrayFile::open(&file.path),
+        Err(OpenArrayError::Header)
+    ));
+
+    // A truncated data region violates the length rule.
+    let mut truncated = Vec::new();
+    truncated.extend_from_slice(FileHeader::new(ArrayVariant::F32, shape(&[2, 4])).as_bytes());
+    truncated.extend_from_slice([1.0_f32; 4].as_bytes());
+    let file = TempFile::create(&truncated);
+    assert!(matches!(
+        ArrayFile::open(&file.path),
+        Err(OpenArrayError::Length {
+            expected: Some(expected),
+            actual,
+        }) if expected == 4096 + 32 && actual == 4096 + 16
+    ));
+
+    // A missing file surfaces the io error.
+    let missing = std::env::temp_dir().join("atlas-array-missing");
+    assert!(matches!(
+        ArrayFile::open(&missing),
+        Err(OpenArrayError::Io(_))
+    ));
+}
+
+#[test]
+#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
+fn vectors_exists_exactly_for_f32_matrices() {
+    // A u8 file never views as vectors.
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(FileHeader::new(ArrayVariant::U8, shape(&[3, 32])).as_bytes());
+    bytes.extend_from_slice(&[7; 96]);
+    let file = TempFile::create(&bytes);
+    let opened = ArrayFile::open(&file.path).expect("a u8 array should open");
+    assert!(opened.vectors::<32>().is_none());
+
+    // A rank-1 f32 array is not a matrix.
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(FileHeader::new(ArrayVariant::F32, shape(&[8])).as_bytes());
+    bytes.extend_from_slice([1.0_f32; 8].as_bytes());
+    let file = TempFile::create(&bytes);
+    let opened = ArrayFile::open(&file.path).expect("a rank-1 array should open");
+    assert!(opened.vectors::<8>().is_none());
 }

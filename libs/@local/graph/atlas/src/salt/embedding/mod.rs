@@ -41,6 +41,8 @@ use crate::{
     math::{AlignedVecN, BoxedVecN, VecN},
 };
 
+pub(crate) mod external;
+
 #[cfg(test)]
 mod tests;
 
@@ -95,7 +97,7 @@ pub(crate) trait CardEmbedder {
     /// treats the whole workload as failed.
     fn embed(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str>> + Send,
+        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send;
 }
 
