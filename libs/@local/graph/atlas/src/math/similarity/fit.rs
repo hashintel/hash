@@ -17,7 +17,7 @@ use rayon::{
 
 use super::Similarity;
 use crate::math::{
-    dvec2::DVec2,
+    dvec2::{DVec2, DVec2x4T},
     rotation::Rotation,
     scalar::narrow_f32,
     vec2::{Vec2, Vec2x4, Vec2x4T},
@@ -178,8 +178,8 @@ impl FitSums {
 
         let mut valid = true;
         let mut weight_sum = Simd::splat(0.0_f64);
-        let mut source_sum = [Simd::splat(0.0_f64); 2];
-        let mut target_sum = [Simd::splat(0.0_f64); 2];
+        let mut source_sum = DVec2x4T::ZERO;
+        let mut target_sum = DVec2x4T::ZERO;
         let mut dot_sum = Simd::splat(0.0_f64);
         let mut perp_sum = Simd::splat(0.0_f64);
         let mut norm_sum = Simd::splat(0.0_f64);
@@ -198,31 +198,27 @@ impl FitSums {
                 && weight.simd_ge(Simd::splat(0.0)).all();
 
             // `f32` values widen exactly, and each product of two widened
-            // values fits in `f64`'s 53-bit significand, so the plain
-            // lane multiplies below are exact; only the running additions
-            // round. That exactness is what keeps the centered-moment
-            // cancellation in `solve` accurate.
+            // values fits in `f64`'s 53-bit significand, so the batch
+            // products and the fused axis accumulations below are exact;
+            // only the running additions round. That exactness is what
+            // keeps the centered-moment cancellation in `solve` accurate.
             let weight: Simd<f64, 4> = weight.cast();
-            let source = Vec2x4T::from(source);
-            let target = Vec2x4T::from(target);
-            let source = [source.xs().cast::<f64>(), source.ys().cast::<f64>()];
-            let target = [target.xs().cast::<f64>(), target.ys().cast::<f64>()];
+            let source = DVec2x4T::from(Vec2x4T::from(source));
+            let target = DVec2x4T::from(Vec2x4T::from(target));
 
             weight_sum += weight;
-            source_sum[0] += weight * source[0];
-            source_sum[1] += weight * source[1];
-            target_sum[0] += weight * target[0];
-            target_sum[1] += weight * target[1];
-            dot_sum += weight * (source[0] * target[0] + source[1] * target[1]);
-            perp_sum += weight * (source[0] * target[1] - source[1] * target[0]);
-            norm_sum += weight * (source[0] * source[0] + source[1] * source[1]);
+            source_sum = source.mul_add(weight, source_sum);
+            target_sum = target.mul_add(weight, target_sum);
+            dot_sum += weight * source.dot(target);
+            perp_sum += weight * source.perp_dot(target);
+            norm_sum += weight * source.length_squared();
         }
 
         let mut sums = Self {
             valid,
             weight: weight_sum.reduce_sum(),
-            source: DVec2::new(source_sum[0].reduce_sum(), source_sum[1].reduce_sum()),
-            target: DVec2::new(target_sum[0].reduce_sum(), target_sum[1].reduce_sum()),
+            source: source_sum.reduce(),
+            target: target_sum.reduce(),
             dot: dot_sum.reduce_sum(),
             perp_dot: perp_sum.reduce_sum(),
             source_norm: norm_sum.reduce_sum(),

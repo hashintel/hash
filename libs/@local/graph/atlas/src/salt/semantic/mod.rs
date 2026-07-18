@@ -50,7 +50,7 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 pub(crate) struct SmoothingOptions {
     /// Absolute tolerance on the membership-sum equation at which the
     /// bisection stops early. Defaults to `1e-5`.
-    pub tolerance: f32 = 1.0e-5,
+    pub tolerance: f64 = 1.0e-5,
     /// Scale factor of the `sigma` floor: `sigma` never falls below
     /// this fraction of the row's mean distance (the corpus mean for
     /// rows without a positive distance). Defaults to `1e-3`.
@@ -237,7 +237,7 @@ impl SemanticGraph {
     /// combine by the probabilistic union. Rows calibrate in parallel
     /// and deterministically: every row's result lands in its own slot
     /// regardless of completion order.
-    pub(crate) fn build(knn: KnnView<'_>, options: SmoothingOptions) -> Self {
+    pub(crate) fn build(knn: &KnnView<'_>, options: SmoothingOptions) -> Self {
         let rows = knn.rows();
         let neighbours = knn.neighbours();
         let (_, indices, distances) = knn.matrix().into_raw_storage();
@@ -246,9 +246,10 @@ impl SemanticGraph {
             clippy::cast_precision_loss,
             reason = "neighbour counts stay far below exact f32 integer precision"
         )]
-        let target = (neighbours as f32).log2();
+        let target = (neighbours as f64).log2();
         #[expect(
             clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
             reason = "the mean is a bandwidth floor scale; entry counts far exceed f32 integer \
                       precision only where the mean's low bits are irrelevant"
         )]
@@ -278,13 +279,13 @@ impl SemanticGraph {
             .expect("the validated k-NN table's structure carries over");
 
         let transposed = directed.transpose_view().to_csr();
-        // (a + b) - a * b: both operations are commutative, so the two
-        // directions of an edge compute bit-equal weights; the clamp
-        // discharges the one representable overshoot (rounding can lift
-        // the expression a few ulps above one when both memberships
+
+        // (a + b) - a * b: both operations are commutative, so the two directions of an edge
+        // compute bit-equal weights; the clamp discharges the one representable overshoot
+        // (rounding can lift the expression a few ulps above one when both memberships
         // approach one).
-        let union = csmat_binop(directed.view(), transposed.view(), |&a, &b| {
-            ((a + b) - a * b).min(1.0)
+        let union = csmat_binop(directed.view(), transposed.view(), |&lhs, &rhs| {
+            lhs.mul_add(-rhs, lhs + rhs).min(1.0)
         });
 
         Self::new(union).expect("the union of validated memberships satisfies every invariant")
@@ -368,7 +369,9 @@ impl<'view> SemanticGraphView<'view> {
         let position = |pointer: u64| {
             usize::try_from(pointer).expect("a resident graph's entries fit the address space")
         };
+
         let range = position(indptr[row])..position(indptr[row + 1]);
+
         columns[range.clone()]
             .iter()
             .zip(&weights[range])

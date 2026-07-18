@@ -76,42 +76,38 @@ fn zip<const N: usize, A: Allocator + Clone>(
     output
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminDot<BoxedDVecN<N, A>, f64> for BoxedDVecN<N, A> {
+impl<const N: usize, A: Allocator + Clone> ArgminDot<Self, f64> for BoxedDVecN<N, A> {
     #[inline]
-    fn dot(&self, other: &BoxedDVecN<N, A>) -> f64 {
+    fn dot(&self, other: &Self) -> f64 {
         (**self).dot(other)
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminAdd<BoxedDVecN<N, A>, BoxedDVecN<N, A>>
-    for BoxedDVecN<N, A>
-{
+impl<const N: usize, A: Allocator + Clone> ArgminAdd<Self, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn add(&self, other: &BoxedDVecN<N, A>) -> BoxedDVecN<N, A> {
+    fn add(&self, other: &Self) -> Self {
         zip(self, other, |lhs, rhs| lhs + rhs, |lhs, rhs| lhs + rhs)
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminAdd<f64, BoxedDVecN<N, A>> for BoxedDVecN<N, A> {
+impl<const N: usize, A: Allocator + Clone> ArgminAdd<f64, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn add(&self, other: &f64) -> BoxedDVecN<N, A> {
+    fn add(&self, other: &f64) -> Self {
         let addend = f64x8::splat(*other);
         map(self, |lanes| lanes + addend, |component| component + *other)
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminSub<BoxedDVecN<N, A>, BoxedDVecN<N, A>>
-    for BoxedDVecN<N, A>
-{
+impl<const N: usize, A: Allocator + Clone> ArgminSub<Self, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn sub(&self, other: &BoxedDVecN<N, A>) -> BoxedDVecN<N, A> {
+    fn sub(&self, other: &Self) -> Self {
         zip(self, other, |lhs, rhs| lhs - rhs, |lhs, rhs| lhs - rhs)
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminSub<f64, BoxedDVecN<N, A>> for BoxedDVecN<N, A> {
+impl<const N: usize, A: Allocator + Clone> ArgminSub<f64, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn sub(&self, other: &f64) -> BoxedDVecN<N, A> {
+    fn sub(&self, other: &f64) -> Self {
         let subtrahend = f64x8::splat(*other);
         map(
             self,
@@ -121,28 +117,24 @@ impl<const N: usize, A: Allocator + Clone> ArgminSub<f64, BoxedDVecN<N, A>> for 
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminMul<BoxedDVecN<N, A>, BoxedDVecN<N, A>>
-    for BoxedDVecN<N, A>
-{
+impl<const N: usize, A: Allocator + Clone> ArgminMul<Self, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn mul(&self, other: &BoxedDVecN<N, A>) -> BoxedDVecN<N, A> {
+    fn mul(&self, other: &Self) -> Self {
         zip(self, other, |lhs, rhs| lhs * rhs, |lhs, rhs| lhs * rhs)
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminMul<f64, BoxedDVecN<N, A>> for BoxedDVecN<N, A> {
+impl<const N: usize, A: Allocator + Clone> ArgminMul<f64, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn mul(&self, other: &f64) -> BoxedDVecN<N, A> {
+    fn mul(&self, other: &f64) -> Self {
         let factor = f64x8::splat(*other);
         map(self, |lanes| lanes * factor, |component| component * *other)
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminScaledAdd<BoxedDVecN<N, A>, f64, BoxedDVecN<N, A>>
-    for BoxedDVecN<N, A>
-{
+impl<const N: usize, A: Allocator + Clone> ArgminScaledAdd<Self, f64, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn scaled_add(&self, factor: &f64, vec: &BoxedDVecN<N, A>) -> BoxedDVecN<N, A> {
+    fn scaled_add(&self, factor: &f64, vec: &Self) -> Self {
         let scale = f64x8::splat(*factor);
         zip(
             self,
@@ -153,11 +145,9 @@ impl<const N: usize, A: Allocator + Clone> ArgminScaledAdd<BoxedDVecN<N, A>, f64
     }
 }
 
-impl<const N: usize, A: Allocator + Clone> ArgminScaledSub<BoxedDVecN<N, A>, f64, BoxedDVecN<N, A>>
-    for BoxedDVecN<N, A>
-{
+impl<const N: usize, A: Allocator + Clone> ArgminScaledSub<Self, f64, Self> for BoxedDVecN<N, A> {
     #[inline]
-    fn scaled_sub(&self, factor: &f64, vec: &BoxedDVecN<N, A>) -> BoxedDVecN<N, A> {
+    fn scaled_sub(&self, factor: &f64, vec: &Self) -> Self {
         // Negating the factor is exact, so the subtraction fuses like the
         // addition.
         let negated = -*factor;

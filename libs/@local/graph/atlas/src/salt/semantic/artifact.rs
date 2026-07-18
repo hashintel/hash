@@ -34,6 +34,7 @@ impl SemanticGraph {
             accumulator: Sha256::new(),
             writer: write,
         };
+
         write_matrix(&self.matrix(), &mut writer).map_err(|error| match error {
             WriteSprsError::Io(error) => error,
             // A validated graph is row-compressed, unsliced, and at
@@ -44,43 +45,6 @@ impl SemanticGraph {
         })?;
 
         Ok(writer.accumulator.finalize())
-    }
-}
-
-/// A published semantic graph opened over its mapped file.
-///
-/// Construction checks the graph invariants once, so an open graph only
-/// serves valid views; the matrix regions stay in the page cache under
-/// memory pressure and off the heap. Each [`view`](Self::view)
-/// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
-/// contract), so stages call it once and hold the view.
-#[derive(Debug)]
-pub(crate) struct MappedSemanticGraph {
-    file: SprsFile,
-}
-
-impl MappedSemanticGraph {
-    /// Opens the graph over its mapped file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the file does not hold the graph's matrix
-    /// layout or the matrix violates a [`SemanticGraph`] invariant.
-    pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidSemanticFile> {
-        let matrix = file.matrix().map_err(InvalidSemanticFile::Matrix)?;
-        validate(matrix)?;
-
-        Ok(Self { file })
-    }
-
-    /// Borrows the validated graph.
-    #[must_use]
-    pub(crate) fn view(&self) -> SemanticGraphView<'_> {
-        let matrix = self
-            .file
-            .matrix()
-            .expect("construction viewed this immutable file's matrix");
-        SemanticGraphView::new_unchecked(matrix)
     }
 }
 
@@ -119,5 +83,42 @@ impl Error for InvalidSemanticFile {
             Self::Matrix(error) => Some(error),
             Self::Invalid(invalid) => Some(invalid),
         }
+    }
+}
+
+/// A published semantic graph opened over its mapped file.
+///
+/// Construction checks the graph invariants once, so an open graph only
+/// serves valid views; the matrix regions stay in the page cache under
+/// memory pressure and off the heap. Each [`view`](Self::view)
+/// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
+/// contract), so stages call it once and hold the view.
+#[derive(Debug)]
+pub(crate) struct MappedSemanticGraph {
+    file: SprsFile,
+}
+
+impl MappedSemanticGraph {
+    /// Opens the graph over its mapped file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the file does not hold the graph's matrix
+    /// layout or the matrix violates a [`SemanticGraph`] invariant.
+    pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidSemanticFile> {
+        let matrix = file.matrix().map_err(InvalidSemanticFile::Matrix)?;
+        validate(matrix)?;
+
+        Ok(Self { file })
+    }
+
+    /// Borrows the validated graph.
+    #[must_use]
+    pub(crate) fn view(&self) -> SemanticGraphView<'_> {
+        let matrix = self
+            .file
+            .matrix()
+            .expect("construction viewed this immutable file's matrix");
+        SemanticGraphView::new_unchecked(matrix)
     }
 }

@@ -238,6 +238,13 @@ impl NodeRowId {
         self.0.get()
     }
 
+    /// Returns the row as an index into a row-aligned column.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "row ids index in-memory columns, which cannot outgrow the address space"
+    )]
+    #[inline]
+    #[must_use]
     pub(crate) const fn usize(self) -> usize {
         self.get() as usize
     }

@@ -10,5 +10,6 @@
 // `src/salt-BAK` as reference semantics for the port.
 mod embedding;
 mod knn;
+mod landmark;
 mod prepare;
 mod semantic;

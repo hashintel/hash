@@ -70,12 +70,6 @@ fn scaled_updates_fuse_like_the_reference_mul_add() {
 
 #[test]
 fn dot_and_norms_match_plain_references() {
-    #![expect(
-        clippy::suboptimal_flops,
-        reason = "the references deliberately use plain multiply-and-sum, independent of the FMA \
-                  path under test"
-    )]
-
     let left = scattered(0.5);
     let right = scattered(-2.0);
 

@@ -65,7 +65,7 @@ impl RowSolver {
     pub(super) fn calibrate(
         &mut self,
         distances: &[f32],
-        target: f32,
+        target: f64,
         fallback_scale: f32,
         options: &SmoothingOptions,
     ) -> Bandwidth {
@@ -81,14 +81,13 @@ impl RowSolver {
         }
         self.adjusted[distances.len()..].fill(f32::INFINITY);
 
-        let target = f64::from(target);
-        let tolerance = f64::from(options.tolerance);
         let mut low = 0.0_f32;
         let mut high = None;
         let mut sigma = 1.0_f32;
+
         for _ in 0..options.bisection_iterations {
             let sum = self.membership_sum(sigma);
-            if (sum - target).abs() < tolerance {
+            if (sum - target).abs() < options.tolerance {
                 break;
             }
 
@@ -133,6 +132,7 @@ impl RowSolver {
         let sigma = f32x8::splat(sigma);
         let mut sum = f64x8::splat(0.0);
         let (lanes, _) = self.adjusted.as_chunks::<LANES>();
+
         for &lanes in lanes {
             sum += exp_f32x8(-(f32x8::from_array(lanes) / sigma)).cast::<f64>();
         }

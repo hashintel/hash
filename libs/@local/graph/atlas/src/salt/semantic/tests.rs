@@ -45,21 +45,22 @@ fn knn_from_rows(rows: &[Vec<(u32, f32)>]) -> Knn {
 /// Brute-force cosine k-NN over random points on the unit circle arc.
 fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
-    let points: Vec<[f32; 2]> = (0..rows)
-        .map(|_| {
-            let angle = rng.random::<f32>() * core::f32::consts::FRAC_PI_2;
-            [angle.cos(), angle.sin()]
-        })
-        .collect();
+    let points: Vec<[f32; 2]> = core::iter::repeat_with(|| {
+        let angle = rng.random::<f32>() * core::f32::consts::FRAC_PI_2;
+        [angle.cos(), angle.sin()]
+    })
+    .take(rows)
+    .collect();
 
     let table: Vec<Vec<(u32, f32)>> = (0..rows)
         .map(|row| {
             let mut candidates: Vec<(u32, f32)> = (0..rows)
                 .filter(|&other| other != row)
                 .map(|other| {
-                    let distance =
-                        1.0 - points[row][0] * points[other][0] - points[row][1] * points[other][1];
-                    (other as u32, distance.max(0.0))
+                    let dot =
+                        points[row][0].mul_add(points[other][0], points[row][1] * points[other][1]);
+                    let column = u32::try_from(other).expect("fixture rows fit u32");
+                    (column, (1.0 - dot).max(0.0))
                 })
                 .collect();
             candidates.sort_unstable_by(|&(left_column, left), &(right_column, right)| {
@@ -79,6 +80,7 @@ fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn {
 #[expect(
     clippy::suboptimal_flops,
     clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
     reason = "the reference deliberately mirrors the naive scalar kernel, independent of the SIMD \
               path under test"
 )]
@@ -86,12 +88,15 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
     let view = knn.view();
     let rows = view.rows();
     let neighbours = view.neighbours();
-    let target = (neighbours as f32).log2();
+    let target = (neighbours as f64).log2();
 
     let all_distances: Vec<f32> = (0..rows)
         .flat_map(|row| view.row(row).map(|neighbour| neighbour.distance))
         .collect();
-    let corpus_mean = (all_distances.iter().map(|&d| f64::from(d)).sum::<f64>()
+    let corpus_mean = (all_distances
+        .iter()
+        .map(|&distance| f64::from(distance))
+        .sum::<f64>()
         / all_distances.len() as f64) as f32;
 
     let mut directed = HashMap::new();
@@ -108,12 +113,12 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
         let mut high = f32::MAX;
         let mut sigma = 1.0_f32;
         for _ in 0..options.bisection_iterations {
-            let sum: f32 = distances
+            let sum: f64 = distances
                 .iter()
                 .map(|&distance| {
                     let adjusted = distance - rho;
                     if adjusted > 0.0 {
-                        (-adjusted / sigma).exp()
+                        f64::from((-adjusted / sigma).exp())
                     } else {
                         1.0
                     }
@@ -124,13 +129,13 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
             }
             if sum > target {
                 high = sigma;
-                sigma = (low + high) / 2.0;
+                sigma = f32::midpoint(low, high);
             } else {
                 low = sigma;
                 sigma = if high == f32::MAX {
                     sigma * 2.0
                 } else {
-                    (low + high) / 2.0
+                    f32::midpoint(low, high)
                 };
             }
         }
@@ -167,17 +172,23 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
 }
 
 #[test]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "the fixture length is far below exact f64 integer precision"
+)]
 fn calibration_solves_the_membership_sum_equation() {
     let distances = [0.05_f32, 0.11, 0.18, 0.21, 0.33, 0.4, 0.52, 0.61];
-    let target = (distances.len() as f32).log2();
+    let target = (distances.len() as f64).log2();
 
     let mut solver = RowSolver::new(distances.len());
     let bandwidth = solver.calibrate(&distances, target, 1.0, &options());
 
     // The defining equation, recomputed through scalar libm.
-    let sum: f32 = distances
+    let sum: f64 = distances
         .iter()
-        .map(|&distance| ((-(distance - bandwidth.rho).max(0.0)) / bandwidth.sigma).exp())
+        .map(|&distance| {
+            f64::from(((-(distance - bandwidth.rho).max(0.0)) / bandwidth.sigma).exp())
+        })
         .sum();
     assert!(
         (sum - target).abs() < 1e-3,
@@ -213,7 +224,7 @@ fn duplicate_rows_saturate_at_full_membership() {
 #[test]
 fn agrees_with_the_scalar_reference() {
     let knn = random_knn(48, 4, 7);
-    let graph = SemanticGraph::build(knn.view(), options());
+    let graph = SemanticGraph::build(&knn.view(), options());
     let reference = scalar_reference(&knn, &options());
 
     let view = graph.view();
@@ -238,7 +249,7 @@ fn agrees_with_the_scalar_reference() {
 
 #[test]
 fn every_edge_is_stored_twice_with_equal_weight() {
-    let graph = SemanticGraph::build(random_knn(32, 3, 11).view(), options());
+    let graph = SemanticGraph::build(&random_knn(32, 3, 11).view(), options());
     let view = graph.view();
 
     for row in 0..view.rows() {
@@ -258,7 +269,7 @@ fn every_edge_is_stored_twice_with_equal_weight() {
 #[test]
 fn union_support_covers_every_directed_edge() {
     let knn = random_knn(24, 3, 13);
-    let graph = SemanticGraph::build(knn.view(), options());
+    let graph = SemanticGraph::build(&knn.view(), options());
     let view = graph.view();
 
     for row in 0..knn.rows() {
@@ -284,7 +295,7 @@ fn one_sided_edges_keep_their_directed_membership() {
         vec![(0, 0.4), (1, 0.5)],
         vec![(0, 0.2), (1, 0.3)],
     ]);
-    let graph = SemanticGraph::build(knn.view(), options());
+    let graph = SemanticGraph::build(&knn.view(), options());
     let reference = scalar_reference(&knn, &options());
 
     let view = graph.view();
@@ -312,7 +323,7 @@ fn published_graph_reopens_mapped() {
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
 
-    let graph = SemanticGraph::build(random_knn(16, 3, 17).view(), options());
+    let graph = SemanticGraph::build(&random_knn(16, 3, 17).view(), options());
 
     let mut bytes = Vec::new();
     let digest = graph
@@ -361,7 +372,8 @@ fn symmetric_pair(weight_forward: f32, weight_reverse: f32) -> SemanticMatrix {
 #[test]
 fn validation_rejects_invariant_violations() {
     assert_eq!(
-        SemanticGraph::new(symmetric_pair(0.5, 0.25)).unwrap_err(),
+        SemanticGraph::new(symmetric_pair(0.5, 0.25))
+            .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::AsymmetricWeight {
             row: 0,
             column: 1,
@@ -371,7 +383,8 @@ fn validation_rejects_invariant_violations() {
     );
 
     assert_eq!(
-        SemanticGraph::new(symmetric_pair(1.5, 1.5)).unwrap_err(),
+        SemanticGraph::new(symmetric_pair(1.5, 1.5))
+            .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::WeightOutOfRange {
             row: 0,
             column: 1,
@@ -380,7 +393,8 @@ fn validation_rejects_invariant_violations() {
     );
 
     assert!(matches!(
-        SemanticGraph::new(symmetric_pair(f32::NAN, 0.5)).unwrap_err(),
+        SemanticGraph::new(symmetric_pair(f32::NAN, 0.5))
+            .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::NonFiniteWeight {
             row: 0,
             column: 1,
@@ -392,7 +406,7 @@ fn validation_rejects_invariant_violations() {
         .map_err(|(_, _, _, error)| error)
         .expect("the self-edge matrix is structurally valid");
     assert_eq!(
-        SemanticGraph::new(self_edge).unwrap_err(),
+        SemanticGraph::new(self_edge).expect_err("the invariant violation must be rejected"),
         SemanticValidationError::SelfEdge { row: 0 },
     );
 
@@ -400,7 +414,7 @@ fn validation_rejects_invariant_violations() {
         .map_err(|(_, _, _, error)| error)
         .expect("the one-sided matrix is structurally valid");
     assert_eq!(
-        SemanticGraph::new(one_sided).unwrap_err(),
+        SemanticGraph::new(one_sided).expect_err("the invariant violation must be rejected"),
         SemanticValidationError::AsymmetricSupport { row: 0, column: 1 },
     );
 }
@@ -411,7 +425,7 @@ fn validation_rejects_degenerate_domains() {
         .map_err(|(_, _, _, error)| error)
         .expect("the single-row matrix is structurally valid");
     assert_eq!(
-        SemanticGraph::new(single).unwrap_err(),
+        SemanticGraph::new(single).expect_err("the invariant violation must be rejected"),
         SemanticValidationError::InsufficientRows { rows: 1 },
     );
 }

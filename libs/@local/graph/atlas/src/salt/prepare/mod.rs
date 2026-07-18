@@ -5,8 +5,11 @@
 //! artifacts every later stage reads, so downstream stages address rows
 //! in mapped files instead of re-consuming the source.
 //! [`write_node_representations`] covers the node half: the `f32[N, 512]`
-//! representation matrix, row-aligned with the node stream. The
-//! card-embedding half of the stage is [`embedding`](super::embedding).
+//! representation matrix, row-aligned with the node stream, and
+//! [`norm::spot_check`] certifies the written rows' source contract
+//! (finite, unit-norm) by acceptance sampling over the mapped matrix.
+//! The card-embedding half of the stage is
+//! [`embedding`](super::embedding).
 
 use core::{error::Error, fmt, pin::pin};
 use std::io::{self, Seek, Write};
@@ -18,6 +21,8 @@ use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS},
     file::array::{ArrayVariant, ArrayWriter, Dim},
 };
+
+pub(crate) mod norm;
 
 #[cfg(test)]
 mod tests;

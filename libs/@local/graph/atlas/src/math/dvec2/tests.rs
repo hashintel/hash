@@ -6,7 +6,7 @@
 
 use proptest::prelude::*;
 
-use crate::math::{DVec2, Vec2};
+use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
 
 #[test]
 fn operators_match_component_arithmetic() {
@@ -53,6 +53,87 @@ fn narrow_follows_the_checked_narrowing_contract() {
     // Overflow in either component poisons the whole vector.
     assert_eq!(DVec2::new(1e300, 0.0).narrow(), None);
     assert_eq!(DVec2::new(0.0, f64::NAN).narrow(), None);
+}
+
+/// Four sign-varying, exactly representable vectors.
+fn batch_points() -> [Vec2; 4] {
+    [
+        Vec2::new(1.5, -2.25),
+        Vec2::new(0.75, 3.5),
+        Vec2::new(-4.125, 0.5),
+        Vec2::new(2.0, -0.375),
+    ]
+}
+
+#[test]
+fn dvec2x4t_widens_exactly_per_lane() {
+    let points = batch_points();
+    let batch = DVec2x4T::from(Vec2x4T::from(points));
+
+    for (index, point) in points.iter().enumerate() {
+        assert_eq!(batch.xs()[index], f64::from(point.x()));
+        assert_eq!(batch.ys()[index], f64::from(point.y()));
+    }
+}
+
+#[test]
+fn dvec2x4t_products_match_the_scalar_twin_per_lane() {
+    let sources = batch_points();
+    let targets = [
+        Vec2::new(-0.5, 1.25),
+        Vec2::new(2.5, -3.0),
+        Vec2::new(0.125, 4.0),
+        Vec2::new(-1.75, -0.25),
+    ];
+
+    let source = DVec2x4T::from(Vec2x4T::from(sources));
+    let target = DVec2x4T::from(Vec2x4T::from(targets));
+    let dot = source.dot(target);
+    let perp_dot = source.perp_dot(target);
+    let length_squared = source.length_squared();
+
+    // The lane kernels share `DVec2`'s fused shape, so the paths agree
+    // bit for bit on every input.
+    for index in 0..4 {
+        let source = DVec2::from(sources[index]);
+        let target = DVec2::from(targets[index]);
+        assert_eq!(dot[index], source.dot(target));
+        assert_eq!(perp_dot[index], source.perp_dot(target));
+        assert_eq!(length_squared[index], source.norm_squared());
+    }
+}
+
+#[test]
+fn dvec2x4t_mul_add_matches_the_scalar_twin_per_lane() {
+    let points = batch_points();
+    let batch = DVec2x4T::from(Vec2x4T::from(points));
+    let factors = core::simd::Simd::from_array([0.5, -2.0, 0.25, 3.0]);
+    let accumulator = DVec2x4T::from_lanes(
+        core::simd::Simd::splat(10.0),
+        core::simd::Simd::splat(-20.0),
+    );
+
+    let accumulated = batch.mul_add(factors, accumulator);
+
+    for index in 0..4 {
+        let expected = DVec2::from(points[index]).mul_add(factors[index], DVec2::new(10.0, -20.0));
+        assert_eq!(accumulated.xs()[index], expected.x());
+        assert_eq!(accumulated.ys()[index], expected.y());
+    }
+}
+
+#[test]
+fn dvec2x4t_reduce_sums_each_axis() {
+    // Integer-valued components sum exactly in any association order.
+    let batch = DVec2x4T::from(Vec2x4T::from([
+        Vec2::new(1.0, 16.0),
+        Vec2::new(2.0, 32.0),
+        Vec2::new(4.0, 64.0),
+        Vec2::new(8.0, 128.0),
+    ]));
+
+    assert_eq!(batch.reduce(), DVec2::new(15.0, 240.0));
+    assert_eq!(DVec2x4T::ZERO.reduce(), DVec2::ZERO);
 }
 
 proptest! {

@@ -160,6 +160,7 @@ fn wrapping_is_in_place() {
 }
 
 /// Deterministic, sign-varying components crossing several 8-lane chunks.
+#[expect(clippy::integer_division_remainder_used)]
 fn scattered<const N: usize>(offset: f64) -> [f64; N] {
     core::array::from_fn(|index| {
         let value = f64::from(u8::try_from(index % 200).expect("bounded by modulus"));
@@ -170,11 +171,6 @@ fn scattered<const N: usize>(offset: f64) -> [f64; N] {
 
 #[test]
 fn dot_matches_a_plain_reference_across_chunk_sizes() {
-    #[expect(
-        clippy::suboptimal_flops,
-        reason = "the reference deliberately uses plain multiply-and-sum, independent of the FMA \
-                  path under test"
-    )]
     fn check<const N: usize>() {
         let left: [f64; N] = scattered(0.5);
         let right: [f64; N] = scattered(-1.25);
