@@ -4,10 +4,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { LoadingSpinner } from "../../Loading/loading-spinner";
 import { Popover } from "../../Popover/popover";
-// `?url` so the ~23 MB of fixtures are served as static assets and fetched at
-// runtime, not inlined into the story bundle.
-import edgesUrl from "./fixtures/edges.json?url";
-import pointsUrl from "./fixtures/points.json?url";
+// `?url` so the gzipped fixtures (~5 MB, ~42 MB uncompressed) are served as
+// static assets and fetched at runtime, not inlined into the story bundle. They
+// are decompressed in the browser via `fetchGzippedJson`.
+import edgesUrl from "./fixtures/edges.json.gz?url";
+import pointsUrl from "./fixtures/points.json.gz?url";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
@@ -85,9 +86,30 @@ function minDistance(points: Array<{ x: number; y: number }>): number {
 }
 
 /**
+ * Fetches a gzipped JSON fixture and decompresses it in the browser via the
+ * native `DecompressionStream`.
+ *
+ * The gzip magic bytes (`0x1f 0x8b`) are checked first: if a static host served
+ * the file with `Content-Encoding: gzip` the browser will have already inflated
+ * it, in which case the body is plain JSON and is parsed directly.
+ */
+const fetchGzippedJson = async <T,>(url: string): Promise<T> => {
+  const response = await fetch(url);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const isGzip = bytes[0] === 0x1f && bytes[1] === 0x8b;
+  if (!isGzip) {
+    return JSON.parse(new TextDecoder().decode(bytes)) as T;
+  }
+  const stream = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream("gzip"));
+  return (await new Response(stream).json()) as T;
+};
+
+/**
  * Loads the full fixture once. Per-dataset trimming happens downstream (the
  * `data` memo in {@link NetworkGraphStory}), so switching datasets never
- * re-fetches the ~23 MB of fixtures.
+ * re-fetches the fixtures.
  */
 const useFullGraphData = (): GraphData | null => {
   const [data, setData] = useState<GraphData | null>(null);
@@ -98,12 +120,8 @@ const useFullGraphData = (): GraphData | null => {
     const status = { active: true };
     void (async () => {
       const [points, edges] = await Promise.all([
-        fetch(pointsUrl).then(
-          (response) => response.json() as Promise<NetworkGraphPoint[]>,
-        ),
-        fetch(edgesUrl).then(
-          (response) => response.json() as Promise<NetworkGraphEdge[]>,
-        ),
+        fetchGzippedJson<NetworkGraphPoint[]>(pointsUrl),
+        fetchGzippedJson<NetworkGraphEdge[]>(edgesUrl),
       ]);
       if (!status.active) {
         return;
