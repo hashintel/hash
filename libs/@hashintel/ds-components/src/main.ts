@@ -14,6 +14,15 @@ export {
   type NetworkGraphProps,
   type NetworkGraphSelection,
 } from "./components/Chart/NetworkGraph/network-graph";
+export {
+  tileZoomForViewport,
+  useGetViewportNodes,
+  type UseGetViewportNodesOptions,
+  type UseGetViewportNodesResult,
+  type Viewport,
+  type ViewportNode,
+  WORLD_SIZE,
+} from "./components/Chart/NetworkGraph/tiling/use-get-viewport-nodes";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";
