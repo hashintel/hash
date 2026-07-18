@@ -172,6 +172,13 @@ const toPoint = (node: ViewportNode): NetworkGraphPoint => ({
   color: colorForId(node.id),
 });
 
+/** World coordinates are quantized to an integer grid; show them rounded. */
+const formatCoord = (value: number): string =>
+  Math.round(value).toLocaleString();
+
+const formatRange = (from: number, to: number): string =>
+  `${formatCoord(from)} → ${formatCoord(to)}`;
+
 const frameStyles = css({
   position: "relative",
   width: "full",
@@ -357,8 +364,20 @@ const AtlasTilingStory = () => {
       <div className={panelStyles}>
         <div className={panelTitleStyles}>Atlas tiling</div>
         <div className={panelRowStyles}>
+          <span>zoom</span>
+          <span>{viewport ? viewport.zoom.toFixed(2) : "—"}</span>
+        </div>
+        <div className={panelRowStyles}>
           <span>tile depth</span>
           <span>{depth}</span>
+        </div>
+        <div className={panelRowStyles}>
+          <span>viewport x</span>
+          <span>{viewport ? formatRange(viewport.x1, viewport.x2) : "—"}</span>
+        </div>
+        <div className={panelRowStyles}>
+          <span>viewport y</span>
+          <span>{viewport ? formatRange(viewport.y1, viewport.y2) : "—"}</span>
         </div>
         <div className={panelRowStyles}>
           <span>nodes drawn</span>

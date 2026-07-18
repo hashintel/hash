@@ -25,6 +25,15 @@ import {
   iconTextureUrl,
 } from "./network-graph-util";
 import {
+  arealSpacingWorld,
+  blendSpacing,
+  countPointsInRect,
+  DENSITY_AREAL_WEIGHT,
+  DENSITY_EASE_MS,
+  densityPointRadiusPx,
+  medianNearestNeighbourWorld,
+} from "./node-density";
+import {
   deriveZoomAttributes,
   HOVERED_MAX_MULTIPLIER,
   HOVERED_MIN_RADIUS,
@@ -1170,6 +1179,98 @@ export const NetworkGraph = ({
     [currentZoom, viewState?.maxZoom, framingBaseZoom],
   );
 
+  // Density sizing measured as a world-space inter-node spacing, later multiplied by
+  // the live world→pixel scale so plain zooming stays smooth. Two measures are
+  // blended by DENSITY_AREAL_WEIGHT:
+  //  - nearest-neighbour: a property of the node set, so it only re-measures when the
+  //    set changes.
+  //  - areal: √(viewport area / visible count), so it re-measures as the viewport
+  //    pans/zooms (which nodes are visible, and over how much world, both change).
+  const nearestNeighbourSpacing = useMemo(
+    () => medianNearestNeighbourWorld(points),
+    [points],
+  );
+  const arealSpacing = useMemo(() => {
+    if (
+      currentCenter === null ||
+      currentZoom === null ||
+      containerSize === null
+    ) {
+      return null;
+    }
+    const scale = 2 ** currentZoom;
+    const halfWidth = containerSize.width / (2 * scale);
+    const halfHeight = containerSize.height / (2 * scale);
+    const worldArea =
+      (containerSize.width * containerSize.height) / (scale * scale);
+    const visible = countPointsInRect(
+      points,
+      currentCenter[0] - halfWidth,
+      currentCenter[1] - halfHeight,
+      currentCenter[0] + halfWidth,
+      currentCenter[1] + halfHeight,
+    );
+    return arealSpacingWorld(visible, worldArea);
+  }, [points, currentCenter, currentZoom, containerSize]);
+  const targetSpacing = blendSpacing(
+    nearestNeighbourSpacing,
+    arealSpacing,
+    DENSITY_AREAL_WEIGHT,
+  );
+
+  // The eased density spacing, tweened toward `targetSpacing` over DENSITY_EASE_MS
+  // so a tile-depth swap drifts the node size rather than popping it. Held in a ref
+  // for the animation frame; mirrored to state to drive re-renders.
+  const easedSpacingRef = useRef<number | null>(null);
+  const [easedSpacing, setEasedSpacing] = useState<number | null>(null);
+  const spacingRafRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (targetSpacing === null) {
+      easedSpacingRef.current = null;
+      setEasedSpacing(null);
+      return undefined;
+    }
+    const from = easedSpacingRef.current;
+    // No prior value (or no rAF): snap, so the first measurement isn't animated in.
+    if (from === null || typeof requestAnimationFrame === "undefined") {
+      easedSpacingRef.current = targetSpacing;
+      setEasedSpacing(targetSpacing);
+      return undefined;
+    }
+    if (from === targetSpacing) {
+      return undefined;
+    }
+    let start: number | null = null;
+    const step = (now: number) => {
+      start ??= now;
+      const progress = Math.min(1, (now - start) / DENSITY_EASE_MS);
+      // Ease-out cubic.
+      const amount = 1 - (1 - progress) ** 3;
+      const value = from + (targetSpacing - from) * amount;
+      easedSpacingRef.current = value;
+      setEasedSpacing(value);
+      if (progress < 1) {
+        spacingRafRef.current = requestAnimationFrame(step);
+      }
+    };
+    spacingRafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (spacingRafRef.current !== undefined) {
+        cancelAnimationFrame(spacingRafRef.current);
+      }
+    };
+  }, [targetSpacing]);
+
+  // The crowd radius tracks on-screen inter-node spacing (`getRadius · radiusScale`,
+  // with `getRadius = POINT_RADIUS`). Falls back to the zoom-derived scale until the
+  // spacing has been measured (before the first frame, or a <2-node graph).
+  const effectiveRadiusScale = useMemo(() => {
+    if (easedSpacing === null || currentZoom === null) {
+      return radiusScale;
+    }
+    return densityPointRadiusPx(easedSpacing, 2 ** currentZoom) / POINT_RADIUS;
+  }, [easedSpacing, currentZoom, radiusScale]);
+
   /**
    * The on-screen radius (px) of an emphasised node as drawn: the grown ring
    * clamped to its pixel range (compact), or the detailed node's circle. Reported
@@ -1183,10 +1284,10 @@ export const NetworkGraph = ({
             POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
             Math.max(
               HOVERED_MIN_RADIUS,
-              POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * radiusScale,
+              POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * effectiveRadiusScale,
             ),
           ),
-    [isDetailZoom, radiusScale],
+    [isDetailZoom, effectiveRadiusScale],
   );
 
   /** Which node rendering is showing, reported to consumers alongside position. */
@@ -2029,7 +2130,7 @@ export const NetworkGraph = ({
       // grow ring (which is translucent while a different node is hovered).
       selectedPointId: selectedPoint?.id ?? null,
       colorByHex: colorByHexWithOverlay,
-      radiusScale,
+      radiusScale: effectiveRadiusScale,
       pointOpacity,
       dimmed: highlight !== null,
       // In detail the grow highlights give way to the detailed layer's outline.
@@ -2147,7 +2248,7 @@ export const NetworkGraph = ({
           activeNode,
           dimmedSelectedNode: null,
           colorByHex: colorByHexWithOverlay,
-          radiusScale,
+          radiusScale: effectiveRadiusScale,
           pointOpacity,
           dimmed: false,
           showGrowHighlights: true,
@@ -2170,7 +2271,7 @@ export const NetworkGraph = ({
     activeNode,
     dimmedSelectedNode,
     colorByHexWithOverlay,
-    radiusScale,
+    effectiveRadiusScale,
     pointOpacity,
     isDetailZoom,
     detailPoints,
