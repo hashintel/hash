@@ -327,12 +327,18 @@ export class DetailedNodeLayer extends CompositeLayer<
         },
       }),
       // The white pill backdrop behind the label, part of the white silhouette.
-      labelLayer({
-        idSuffix: "outline-pill",
-        data: labelPoints,
-        outline: true,
-        active: false,
-      }),
+      // Omitted when no node has a label: a TextLayer with empty data builds a
+      // zero-height font atlas that WebGL rejects (`texSubImage2D: no canvas`).
+      ...(labelPoints.length > 0
+        ? [
+            labelLayer({
+              idSuffix: "outline-pill",
+              data: labelPoints,
+              outline: true,
+              active: false,
+            }),
+          ]
+        : []),
       // The active label's bold-sized outline backdrop, so its white ring matches
       // the bold label text.
       ...(boldLabelNodes.length > 0
@@ -416,13 +422,18 @@ export class DetailedNodeLayer extends CompositeLayer<
           ]
         : []),
       // The label pill in front of the circle and icon: an opaque white pill with a
-      // border in the node's colour, tying label to node.
-      labelLayer({
-        idSuffix: "labels",
-        data: labelPoints,
-        outline: false,
-        active: false,
-      }),
+      // border in the node's colour, tying label to node. Omitted when no node has a
+      // label (empty TextLayer → zero-height atlas → `texSubImage2D: no canvas`).
+      ...(labelPoints.length > 0
+        ? [
+            labelLayer({
+              idSuffix: "labels",
+              data: labelPoints,
+              outline: false,
+              active: false,
+            }),
+          ]
+        : []),
       // The active node's label, redrawn bold on top of its normal-weight copy.
       ...(boldLabelNodes.length > 0
         ? [
