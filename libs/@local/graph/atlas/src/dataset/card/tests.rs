@@ -7,20 +7,18 @@
 use alloc::borrow::Cow;
 
 use super::{
+    Card, CardContext, CardError, CardsConfig, Cl100kTokenizer, HeuristicTokenizer,
+    IdentifierLeakError, ReservedTokenError, Tokenizer as _, UnicodeSegmenter, build_card,
     constraints::{Constraints, Direction, EndpointConstraint},
     contents::CardContents,
-    context::CardContext,
     epilogue::Epilogue,
     example::Example,
-    format::{Card, CardError, CardsConfig, build_card},
     group::GroupItem,
-    lint::{IdentifierLeakError, lint_card_text},
+    lint_card_text,
     phrase::Phrase,
     prelude::Prelude,
-    segment::UnicodeSegmenter,
     select::{Candidate, DEFAULT_GROUP_SLOT_CAP, Group, Selected, select_diverse_examples},
     text::slugify,
-    token::{Cl100kTokenizer, HeuristicTokenizer, ReservedTokenError, Tokenizer as _},
 };
 
 const BIG: usize = 10_000_000;
@@ -339,6 +337,20 @@ fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
     assert!(!text.contains("Endpoint constraints:"));
     assert!(text.contains("Source types:\n  - Person\n"));
     assert!(text.contains("Target types:\n  - Asset\n"));
+}
+
+#[test]
+fn slugify_transliterates_and_joins_words() {
+    assert_eq!(slugify("part of"), "part-of");
+    assert_eq!(slugify("Caf\u{e9} P2P"), "cafe-p2p");
+    // Transliterations that emit separators ("Bei ", "1/2") become word
+    // boundaries.
+    assert_eq!(
+        slugify("\u{5317}\u{4eac} Restaurant"),
+        "bei-jing-restaurant"
+    );
+    assert_eq!(slugify("\u{bd} split"), "1-2-split");
+    assert_eq!(slugify("  "), "");
 }
 
 #[test]

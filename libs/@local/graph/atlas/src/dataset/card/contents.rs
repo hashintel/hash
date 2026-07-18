@@ -59,6 +59,7 @@ impl<W: fmt::Write> fmt::Write for IndentationWriter<W> {
             if self.at_line_start && line.len() > 1 {
                 write!(self.writer, "{:indent$}", "", indent = self.indent)?;
             }
+
             self.writer.write_str(line)?;
             self.at_line_start = true;
             previous = newline + 1;
@@ -73,6 +74,7 @@ impl<W: fmt::Write> fmt::Write for IndentationWriter<W> {
             write!(self.writer, "{:indent$}", "", indent = self.indent)?;
             self.at_line_start = false;
         }
+
         self.writer.write_str(rest)
     }
 }
@@ -99,10 +101,13 @@ fn bullets<'this, T: Display>(header: &'this str, items: &'this [T]) -> impl Dis
 pub(crate) struct CardContents<'text, A: Allocator = Global> {
     pub prelude: Prelude<'text, A>,
     pub ancestors: Vec<Phrase<'text>, A>,
+
     pub source_types: Vec<Phrase<'text>, A>,
     pub target_types: Vec<Phrase<'text>, A>,
+
     pub endpoint_constraints: Vec<EndpointConstraint<'text, A>, A>,
     pub constraints: Constraints,
+
     pub examples: Vec<GroupItem<'text, Example<'text>>, A>,
     pub epilogue: Epilogue<'text>,
 }
@@ -121,6 +126,7 @@ impl<A: Allocator> CardContents<'_, A> {
         let [only] = &*self.endpoint_constraints else {
             return;
         };
+
         if !only.is_simple_pair() {
             return;
         }
@@ -129,6 +135,7 @@ impl<A: Allocator> CardContents<'_, A> {
             .endpoint_constraints
             .pop()
             .expect("a simple pair holds exactly one constraint");
+
         self.source_types.clear();
         self.source_types.push(only.source);
         self.target_types = only.targets;
@@ -182,6 +189,7 @@ impl<A: Allocator> CardContents<'_, A> {
                 .iter()
                 .rev()
                 .find(|(_, indices)| indices.len() == largest)?;
+
             *indices.last()?
         };
 
@@ -281,6 +289,7 @@ impl<A: Allocator> Display for CardContents<'_, A> {
         if !examples.is_empty() {
             write!(fmt, "\n{}", bullets("Examples:", examples))?;
         }
+
         write!(fmt, "\n{epilogue}\n")
     }
 }

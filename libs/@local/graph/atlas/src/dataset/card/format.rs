@@ -186,10 +186,12 @@ where
             let Some(label) = contents.apply(*pass) else {
                 break;
             };
+
             truncations.push(label);
             token_count = measure(contents, tokenizer, rendered)?;
         }
     }
+
     Ok(token_count)
 }
 

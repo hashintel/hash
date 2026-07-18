@@ -3,11 +3,11 @@
 //! Cards are deterministic labeled text, never JSON. Datasource adapters
 //! build [`contents::CardContents`] directly from their own rows -
 //! [`phrase::Phrase::new`] normalizes labeled prose under a
-//! [`context::CardContext`] - and hand it to [`format::build_card`]
-//! together with the source identifiers they resolved, which the final
-//! text linter forbids. Independent domain/range summaries and paired
-//! endpoint constraints ([`constraints::EndpointConstraint`]) are
-//! distinct blocks.
+//! [`CardContext`] - and hand it to [`build_card`] together with the
+//! source identifiers they resolved, which the final text linter
+//! forbids. Independent domain/range summaries and paired endpoint
+//! constraints ([`constraints::EndpointConstraint`]) are distinct
+//! blocks.
 //!
 //! The card text exists exactly once: sections are types whose [`Display`]
 //! impls stream into the output, and every field borrows from the
@@ -26,20 +26,38 @@
 //!
 //! [`Display`]: core::fmt::Display
 
-pub(crate) mod constraints;
-pub(crate) mod contents;
-pub(crate) mod context;
-pub(crate) mod epilogue;
-pub(crate) mod example;
-pub(crate) mod format;
-pub(crate) mod group;
-pub(crate) mod lint;
-pub(crate) mod phrase;
-pub(crate) mod prelude;
-pub(crate) mod segment;
-pub(crate) mod select;
-pub(crate) mod text;
-pub(crate) mod token;
+#[cfg_attr(
+    not(test),
+    expect(
+        unused_imports,
+        reason = "the exported card surface; the lint dissolves when `render_card` wiring \
+                  consumes it outside of tests"
+    )
+)]
+pub(crate) use self::{
+    context::CardContext,
+    format::{Card, CardError, CardsConfig, build_card},
+    lint::{IdentifierLeakError, lint_card_text},
+    segment::{TextSegmenter, UnicodeSegmenter},
+    token::{Cl100kTokenizer, HeuristicTokenizer, ReservedTokenError, Tokenizer},
+};
+
+pub(crate) mod hash;
+
+mod constraints;
+mod contents;
+mod context;
+mod epilogue;
+mod example;
+mod format;
+mod group;
+mod lint;
+mod phrase;
+mod prelude;
+mod segment;
+mod select;
+mod text;
+mod token;
 
 #[cfg(test)]
 mod tests;

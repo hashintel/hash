@@ -35,6 +35,7 @@ sleef                          = "0.3"
 smallvec.workspace             = true
 tiktoken-rs                    = "0.12.0"
 unicode-segmentation.workspace = true
+unidecode                      = "0.3.0"
 zerocopy                       = { version = "0.8.54", features = ["derive"] }
 
 [dev-dependencies]
