@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@hashintel/petrinaut-core": "workspace:*",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   },
   "devDependencies": {
     "@types/node": "22.18.13",
