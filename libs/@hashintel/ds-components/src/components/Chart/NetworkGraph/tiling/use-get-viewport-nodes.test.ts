@@ -159,6 +159,38 @@ describe("getViewportNodes", () => {
     await cache.settled();
     expect(cache.tileCount).toBe(stable);
   });
+
+  it("keeps prefetch paying off across a mode-switching path (ring covers a turn)", async () => {
+    const cache = new TileCache({ fetcher });
+    // Pan right, then turn and pan down: a purely-directional predictor would
+    // miss the turn, but the omnidirectional ring has the new tiles ready.
+    const path = [
+      viewportAt(20_000, 20_000, 1_024, 5),
+      viewportAt(22_048, 20_000, 1_024, 5),
+      viewportAt(24_096, 20_000, 1_024, 5),
+      viewportAt(24_096, 22_048, 1_024, 5),
+      viewportAt(24_096, 24_096, 1_024, 5),
+    ];
+    for (const viewport of path) {
+      await getViewportNodes(viewport, cache);
+      await cache.settled();
+    }
+
+    const stats = cache.prefetchStats;
+    expect(stats.issued).toBeGreaterThan(0);
+    expect(stats.used).toBeGreaterThan(0);
+  });
+
+  it("issues no prefetches when the cache is full", async () => {
+    const cache = new TileCache({ fetcher, maxBytes: 1 });
+    await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
+    await getViewportNodes(viewportAt(12_048, 10_000, 1_024, 5), cache);
+    await cache.settled();
+
+    // A 1-byte budget keeps the cache permanently full, so the fullness taper
+    // drives the prefetch budget to zero.
+    expect(cache.prefetchStats.issued).toBe(0);
+  });
 });
 
 describe("TileCache", () => {
@@ -204,17 +236,5 @@ describe("TileCache", () => {
     expect(cache.byteEstimate).toBeLessThanOrEqual(cache.maxBytes);
     expect(cache.tileCount).toBeLessThanOrEqual(3);
     expect(cache.has({ z: 5, x: 0, y: 0 })).toBe(true);
-  });
-
-  it("tapers the prefetch budget as it fills and stops when near full", async () => {
-    const empty = new TileCache({ fetcher: countingFetcher() });
-    expect(empty.prefetchBudget()).toBeGreaterThan(0);
-
-    const full = new TileCache({ fetcher: countingFetcher(), maxBytes: 1 });
-    // Pin the tile so eviction keeps it; a single tile then exceeds the 1-byte
-    // budget, so the cache reads as full and refuses to prefetch.
-    full.setActiveViewport(viewportAt(0, 0, 1, 0), 0, new Set(["0/0/0"]));
-    await full.load({ z: 0, x: 0, y: 0 });
-    expect(full.prefetchBudget()).toBe(0);
   });
 });

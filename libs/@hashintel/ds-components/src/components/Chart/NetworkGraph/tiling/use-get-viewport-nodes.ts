@@ -4,7 +4,8 @@
  * {@link getViewportNodes} turns a camera viewport into the set of nodes that
  * should be on screen. It fetches the quadtree tiles the viewport covers (plus
  * their ancestors — see below), serving them from a {@link TileCache} and only
- * hitting the network for tiles it has never seen.
+ * hitting the network for tiles it has never seen. The spatial geometry lives in
+ * `./tile-geometry` and the speculative prefetch in `./tile-prefetch`.
  *
  * ## Coordinate model
  *
@@ -18,7 +19,7 @@
  * `viewport.zoom` is a continuous (fractional) quadtree depth, matching the
  * slippy-map convention where map zoom and tile zoom share a scale. Between
  * integer levels we snap to the nearest one (`Math.round`, ties toward the more
- * detailed level) and clamp to `[0, {@link ATLAS_TILE_MAX_ZOOM}]`. The viewport
+ * detailed level) and clamp to `[0, ATLAS_TILE_MAX_ZOOM]`. The viewport
  * rectangle then selects which tiles at that depth are on screen.
  *
  * ## Ancestors
@@ -42,16 +43,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  ATLAS_TILE_AXIS_SIZE,
-  ATLAS_TILE_MAX_ZOOM,
-  atlasTileBounds,
   atlasTileKey,
   type AtlasTileCoordinate,
 } from "./atlas-tile-coordinate";
 import { ATLAS_API_BASE_URL, fetchTile, type TileNode } from "./fetch-tile";
+import {
+  clampRectToWorld,
+  requiredTiles,
+  tileDistance,
+  tileIndexOf,
+  tileZoomForViewport,
+  WORLD_SIZE,
+  type Rect,
+  type ViewportRegion,
+} from "./tile-geometry";
+import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
-/** Width and height of the world axis the grid tiles over (`65536`). */
-export const WORLD_SIZE = ATLAS_TILE_AXIS_SIZE;
+export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
 
 /**
  * Tile depth used for a `null` (freshly loaded) viewport: the first level that
@@ -72,46 +80,6 @@ const APPROX_BYTES_PER_NODE = 64;
 
 /** Baseline cost of a cached tile independent of its node count. */
 const APPROX_BYTES_PER_TILE = 256;
-
-/**
- * Cap on tiles fetched per depth along each axis. Bounds the work when a caller
- * passes a viewport rectangle and zoom that disagree (e.g. the whole world at a
- * deep zoom), which would otherwise enumerate an entire grid level.
- */
-const MAX_TILES_ACROSS = 8;
-
-/** How many recent viewports to retain for movement prediction. */
-const HISTORY_LENGTH = 5;
-
-/** Upper bound on tiles speculatively prefetched per call. */
-const PREFETCH_LIMIT = 6;
-
-/**
- * Above this cache fullness, prefetching stops entirely; below it, the budget
- * tapers with fullness so a busy cache prefetches less aggressively.
- */
-const PREFETCH_FULLNESS_CEILING = 0.85;
-
-/**
- * Minimum pan, as a fraction of the viewport's smaller side, before a movement
- * is treated as intentional (rather than jitter) and triggers prefetching.
- */
-const MIN_PAN_FRACTION = 0.15;
-
-/**
- * Relative weight of a one-level zoom gap against a full-world spatial gap in
- * the eviction distance. Below 1 so spatial distance dominates: the depth stack
- * over the current location outlives tiles from a location left behind.
- */
-const ZOOM_DISTANCE_WEIGHT = 0.5;
-
-/** A world-space rectangle, `[x1, x2] x [y1, y2]`. */
-export interface Rect {
-  readonly x1: number;
-  readonly x2: number;
-  readonly y1: number;
-  readonly y2: number;
-}
 
 /** A camera viewport: a world rectangle plus a fractional quadtree depth. */
 export interface Viewport extends Rect {
@@ -145,26 +113,6 @@ export class ViewportTilesError extends Error {
   override readonly name = "ViewportTilesError";
 }
 
-const clampInt = (value: number, minimum: number, maximum: number): number =>
-  Math.min(Math.max(value, minimum), maximum);
-
-const rectWidth = (rect: Rect): number => rect.x2 - rect.x1;
-const rectHeight = (rect: Rect): number => rect.y2 - rect.y1;
-const rectCenterX = (rect: Rect): number => (rect.x1 + rect.x2) / 2;
-const rectCenterY = (rect: Rect): number => (rect.y1 + rect.y2) / 2;
-
-/** Snaps a fractional zoom to an integer, deliverable tile depth. */
-export const tileZoomForViewport = (zoom: number): number =>
-  clampInt(Math.round(zoom), 0, ATLAS_TILE_MAX_ZOOM);
-
-/** Clamps a rectangle to the world bounds, keeping `min <= max`. */
-const clampRectToWorld = (rect: Rect): Rect => ({
-  x1: clampInt(Math.min(rect.x1, rect.x2), 0, WORLD_SIZE),
-  x2: clampInt(Math.max(rect.x1, rect.x2), 0, WORLD_SIZE),
-  y1: clampInt(Math.min(rect.y1, rect.y2), 0, WORLD_SIZE),
-  y2: clampInt(Math.max(rect.y1, rect.y2), 0, WORLD_SIZE),
-});
-
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
@@ -183,108 +131,6 @@ const validateViewport = (viewport: Viewport): void => {
       );
     }
   }
-};
-
-/** Clamps a tile-index span to at most `MAX_TILES_ACROSS`, centred on itself. */
-const clampSpan = (
-  minimum: number,
-  maximum: number,
-  gridMaximum: number,
-): readonly [number, number] => {
-  if (maximum - minimum + 1 <= MAX_TILES_ACROSS) {
-    return [minimum, maximum];
-  }
-  const centre = Math.floor((minimum + maximum) / 2);
-  const start = clampInt(
-    centre - Math.floor(MAX_TILES_ACROSS / 2),
-    0,
-    gridMaximum,
-  );
-  return [start, clampInt(start + MAX_TILES_ACROSS - 1, 0, gridMaximum)];
-};
-
-/** Tile-index range covering `rect` at depth `z`. */
-const tileRangeForDepth = (
-  rect: Rect,
-  z: number,
-): { minX: number; maxX: number; minY: number; maxY: number } => {
-  const gridSize = 2 ** z;
-  const span = WORLD_SIZE / gridSize;
-  const gridMaximum = gridSize - 1;
-  const [minX, maxX] = clampSpan(
-    clampInt(Math.floor(rect.x1 / span), 0, gridMaximum),
-    clampInt(Math.floor(rect.x2 / span), 0, gridMaximum),
-    gridMaximum,
-  );
-  const [minY, maxY] = clampSpan(
-    clampInt(Math.floor(rect.y1 / span), 0, gridMaximum),
-    clampInt(Math.floor(rect.y2 / span), 0, gridMaximum),
-    gridMaximum,
-  );
-  return { minX, maxX, minY, maxY };
-};
-
-/**
- * All tiles whose nodes are needed to fill `rect` at `targetDepth`: the tiles
- * at that depth intersecting the rectangle, plus every ancestor depth `0..z`
- * (which the depth loop yields for free, since shallower tiles cover the same
- * region).
- */
-const requiredTiles = (
-  rect: Rect,
-  targetDepth: number,
-): AtlasTileCoordinate[] => {
-  const coordinates: AtlasTileCoordinate[] = [];
-  for (let z = 0; z <= targetDepth; z += 1) {
-    const { minX, maxX, minY, maxY } = tileRangeForDepth(rect, z);
-    for (let y = minY; y <= maxY; y += 1) {
-      for (let x = minX; x <= maxX; x += 1) {
-        coordinates.push({ z, x, y });
-      }
-    }
-  }
-  return coordinates;
-};
-
-/** `tileIndex` (row-major) of a coordinate, as `fetchTile` expects. */
-const tileIndexOf = (coordinate: AtlasTileCoordinate): number =>
-  coordinate.y * 2 ** coordinate.z + coordinate.x;
-
-/** Gap between two closed intervals; `0` when they overlap or touch. */
-const intervalGap = (
-  aMin: number,
-  aMax: number,
-  bMin: number,
-  bMax: number,
-): number => {
-  if (aMax < bMin) {
-    return bMin - aMax;
-  }
-  if (bMax < aMin) {
-    return aMin - bMax;
-  }
-  return 0;
-};
-
-/**
- * Distance from a cached tile to the current viewport, in three dimensions:
- * planar gap between the tile's world rectangle and the viewport (normalised to
- * the world size), plus a weighted zoom-level gap. The rectangle gap — rather
- * than a centre-to-centre distance — is what keeps an ancestor tile "near": its
- * rectangle contains the viewport, so the planar term is zero and only the
- * (down-weighted) zoom term remains.
- */
-const tileDistance = (
-  coordinate: AtlasTileCoordinate,
-  rect: Rect,
-  targetDepth: number,
-): number => {
-  const bounds = atlasTileBounds(coordinate);
-  const gapX = intervalGap(rect.x1, rect.x2, bounds.minimumX, bounds.maximumX);
-  const gapY = intervalGap(rect.y1, rect.y2, bounds.minimumY, bounds.maximumY);
-  const planar = Math.hypot(gapX, gapY) / WORLD_SIZE;
-  const zoomGap = Math.abs(coordinate.z - targetDepth) / ATLAS_TILE_MAX_ZOOM;
-  return Math.hypot(planar, ZOOM_DISTANCE_WEIGHT * zoomGap);
 };
 
 /** Whether a cached tile arrived because a viewport required it, or ahead of need. */
@@ -317,28 +163,18 @@ export interface PrefetchStats {
   readonly coverage: number;
 }
 
-interface ViewportRecord {
-  readonly rect: Rect;
-  readonly depth: number;
-}
-
-interface ResolvedViewport {
-  readonly rect: Rect;
-  readonly depth: number;
-}
-
 const estimateBytes = (nodes: readonly TileNode[]): number =>
   APPROX_BYTES_PER_TILE + nodes.length * APPROX_BYTES_PER_NODE;
 
 /**
  * A distance-evicting, in-flight-deduplicating store of decoded tiles plus the
- * recent-viewport history that drives prefetching.
+ * recent-viewport history that drives prefetching. Satisfies the
+ * `PrefetchCache` slice that {@link schedulePrefetch} reads and drives.
  *
  * Callers construct one and pass it to {@link getViewportNodes} across renders
  * so tiles (and movement history) persist. When it exceeds its byte budget it
  * evicts the tiles furthest from the current viewport in the 3-D
- * {@link tileDistance} metric, never evicting a tile the current viewport
- * requires.
+ * `tileDistance` metric, never evicting a tile the current viewport requires.
  */
 export class TileCache {
   readonly maxBytes: number;
@@ -346,11 +182,11 @@ export class TileCache {
   readonly #fetcher: TileFetcher;
   readonly #entries = new Map<string, CacheEntry>();
   readonly #inflight = new Map<string, Promise<readonly TileNode[]>>();
-  readonly #history: ViewportRecord[] = [];
+  readonly #history: ViewportRegion[] = [];
   readonly #pinned = new Set<string>();
 
   #bytes = 0;
-  #viewport: ViewportRecord | null = null;
+  #viewport: ViewportRegion | null = null;
   #prefetchIssued = 0;
   #prefetchUsed = 0;
   #prefetchWasted = 0;
@@ -408,7 +244,7 @@ export class TileCache {
   }
 
   /** Recent viewports, oldest first. */
-  get history(): readonly ViewportRecord[] {
+  get history(): readonly ViewportRegion[] {
     return this.#history;
   }
 
@@ -494,15 +330,6 @@ export class TileCache {
     return pending;
   }
 
-  /** How many tiles to prefetch given current fullness (0 when near full). */
-  prefetchBudget(): number {
-    const { fullness } = this;
-    if (fullness >= PREFETCH_FULLNESS_CEILING) {
-      return 0;
-    }
-    return Math.max(0, Math.ceil(PREFETCH_LIMIT * (1 - fullness)));
-  }
-
   /** Resolves once all in-flight fetches (including prefetches) settle. */
   async settled(): Promise<void> {
     await Promise.allSettled([...this.#inflight.values()]);
@@ -556,7 +383,7 @@ export class TileCache {
 }
 
 /** Resolves a viewport (or the initial `null`) to a clamped rect and depth. */
-const resolveViewport = (viewport: Viewport | null): ResolvedViewport => {
+const resolveViewport = (viewport: Viewport | null): ViewportRegion => {
   if (viewport === null) {
     return {
       rect: { x1: 0, x2: WORLD_SIZE, y1: 0, y2: WORLD_SIZE },
@@ -571,92 +398,6 @@ const resolveViewport = (viewport: Viewport | null): ResolvedViewport => {
 };
 
 /**
- * Predicts the next viewport by extrapolating the last movement, so tiles can
- * be prefetched ahead of a drag or scroll. Returns `null` when there is too
- * little history or the movement is below the jitter threshold.
- *
- * A mouse drag pans (the rectangle translates) and a scroll zooms (the depth
- * shifts); both show up as a consistent delta between the last two viewports,
- * which we project one step forward. Prediction is intentionally conservative —
- * a single lookahead step, gated on real movement — so it never runs far ahead
- * of the user.
- */
-const predictNextViewport = (
-  history: readonly ViewportRecord[],
-): ResolvedViewport | null => {
-  if (history.length < 2) {
-    return null;
-  }
-  const current = history[history.length - 1];
-  const previous = history[history.length - 2];
-  if (!current || !previous) {
-    return null;
-  }
-
-  const deltaX = rectCenterX(current.rect) - rectCenterX(previous.rect);
-  const deltaY = rectCenterY(current.rect) - rectCenterY(previous.rect);
-  const deltaDepth = current.depth - previous.depth;
-
-  const smallerSide = Math.min(
-    rectWidth(current.rect),
-    rectHeight(current.rect),
-  );
-  const panThreshold = smallerSide * MIN_PAN_FRACTION;
-  const panned = Math.hypot(deltaX, deltaY) >= panThreshold && panThreshold > 0;
-  const zoomed = deltaDepth !== 0;
-  if (!panned && !zoomed) {
-    return null;
-  }
-
-  const centreX = rectCenterX(current.rect) + deltaX;
-  const centreY = rectCenterY(current.rect) + deltaY;
-  const halfWidth = rectWidth(current.rect) / 2;
-  const halfHeight = rectHeight(current.rect) / 2;
-  const predictedDepth = clampInt(
-    current.depth + Math.sign(deltaDepth),
-    0,
-    ATLAS_TILE_MAX_ZOOM,
-  );
-
-  return {
-    rect: clampRectToWorld({
-      x1: centreX - halfWidth,
-      x2: centreX + halfWidth,
-      y1: centreY - halfHeight,
-      y2: centreY + halfHeight,
-    }),
-    depth: predictedDepth,
-  };
-};
-
-/** Kicks off speculative prefetches for a predicted viewport (never awaited). */
-const prefetchAhead = (
-  cache: TileCache,
-  prediction: ResolvedViewport,
-  currentKeys: ReadonlySet<string>,
-): void => {
-  const budget = cache.prefetchBudget();
-  if (budget <= 0) {
-    return;
-  }
-  const candidates = requiredTiles(prediction.rect, prediction.depth)
-    .filter(
-      (coordinate) =>
-        !currentKeys.has(atlasTileKey(coordinate)) && !cache.has(coordinate),
-    )
-    .map((coordinate) => ({
-      coordinate,
-      distance: tileDistance(coordinate, prediction.rect, prediction.depth),
-    }))
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, budget);
-
-  for (const { coordinate } of candidates) {
-    void cache.prefetch(coordinate);
-  }
-};
-
-/**
  * Returns the nodes visible in `viewport`, fetching any missing tiles through
  * `cache` and returning the rest from it.
  *
@@ -666,9 +407,9 @@ const prefetchAhead = (
  * depth's tiles and all shallower ancestor tiles covering the rectangle is
  * fetched and merged (deduplicated by node id).
  *
- * After serving the current viewport it records the movement and, when a drag
- * or scroll is detected, prefetches a conservative, fullness-scaled set of the
- * tiles the next viewport is predicted to need.
+ * After serving the current viewport it records the movement and, while the
+ * user is navigating, prefetches the tiles the next viewport is predicted to
+ * need (see {@link schedulePrefetch}).
  *
  * @throws {@link ViewportTilesError} when the viewport is malformed, or when
  *   every required tile fetch fails (partial failures return what loaded).
@@ -715,10 +456,7 @@ export const getViewportNodes = async (
 
   // Record movement, then prefetch for where the viewport is heading.
   cache.recordHistory(rect, depth);
-  const prediction = predictNextViewport(cache.history);
-  if (prediction) {
-    prefetchAhead(cache, prediction, requiredKeys);
-  }
+  schedulePrefetch(cache, requiredKeys);
 
   return [...nodes.values()];
 };
