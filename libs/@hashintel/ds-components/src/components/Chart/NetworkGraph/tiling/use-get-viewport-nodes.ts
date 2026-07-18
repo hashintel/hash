@@ -321,8 +321,14 @@ export class TileCache {
     const inFlight = this.#inflight.get(key);
     if (inFlight) {
       // A required load riding an in-flight prefetch claims it: a later batch
-      // must not abort a fetch this viewport now depends on.
+      // must not abort a fetch this viewport now depends on, and the prefetch
+      // counts as a hit once it lands (marked when it settles, since the tile
+      // stores only after this shared promise has already returned).
       this.#prefetchControllers.delete(key);
+      void inFlight.then(
+        () => this.#markUsed(key),
+        () => {},
+      );
       return inFlight;
     }
     // A required tile that was neither resident nor prefetched in time.
@@ -411,6 +417,19 @@ export class TileCache {
     this.#entries.set(key, { coordinate, nodes, bytes, origin, used: false });
     this.#bytes += bytes;
     this.#evict();
+  }
+
+  /**
+   * Marks a resident prefetch tile as a hit. Used when a required load rode an
+   * in-flight prefetch (see {@link load}): the tile stores after that load has
+   * already returned the shared promise, so it can't be counted used inline.
+   */
+  #markUsed(key: string): void {
+    const entry = this.#entries.get(key);
+    if (entry && entry.origin === "prefetch" && !entry.used) {
+      entry.used = true;
+      this.#prefetchUsed += 1;
+    }
   }
 
   #evict(): void {

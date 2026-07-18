@@ -6,6 +6,12 @@ import {
   EDGE_HOVER_WIDTH,
   EDGE_MIN_WIDTH,
   EDGE_WIDTH,
+  FALLBACK_COLOR,
+  type HoverLine,
+  type NetworkGraphId,
+  type NetworkGraphPoint,
+  RGBA_OPAQUE,
+  type RgbColor,
 } from "./network-graph-util";
 import {
   GROW_RING_STROKE,
@@ -19,18 +25,8 @@ import {
 } from "./zoom-attributes";
 
 import type { BundledEdge } from "./edge-bundling";
-import type {
-  HoverLine,
-  NetworkGraphId,
-  NetworkGraphPoint,
-} from "./network-graph-util";
 import type { Color, CompositeLayerProps, DefaultProps } from "@deck.gl/core";
 
-type RgbColor = [number, number, number];
-
-const RGBA_OPAQUE = 255;
-/** Colour used if a point's hex value cannot be resolved. */
-const FALLBACK_COLOR: RgbColor = [148, 148, 148];
 /** Opacity of the faint "all edges" drawn behind the detail view. */
 const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
@@ -357,7 +353,7 @@ export class CompactNodeLayer extends CompositeLayer<
           ]
         : []),
       // Rings around the nodes the emphasised edge connects, seated just inside each
-      // node's white grow ring (see `edgeHoverRingPair` for the inset). Split by size
+      // node's white grow ring (see `edgeHoverRing` for the inset). Split by size
       // because an endpoint that is the active node draws a larger (hovered) grow ring
       // than a neighbour, so each edge ring mirrors the matching grow ring's radius
       // clamps to hug the right one. Any endpoint that isn't the active node —

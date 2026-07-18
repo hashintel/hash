@@ -16,13 +16,19 @@ import { CompactNodeLayer } from "./compact-node-layer";
 import { DetailedNodeLayer, DETAIL_NODE_DIAMETER } from "./detailed-node-layer";
 import { buildBundleHierarchy, bundleEdgePath } from "./edge-bundling";
 import {
+  arrowIconAtlas,
+  clampPanTarget,
+  clampPanTargetBlocking,
   DETAIL_ICON_TEXTURE,
+  drawEdgeLabel,
   EDGE_COLOR,
   EDGE_HOVER_WIDTH,
+  edgeLabelAnchor,
   EDGE_MIN_WIDTH,
   EDGE_WIDTH,
   hexToRgb,
   iconTextureUrl,
+  trimPathBothEnds,
 } from "./network-graph-util";
 import {
   arealSpacingWorld,
@@ -242,8 +248,6 @@ const ZOOM_OUT_MARGIN = 0.05;
  * `maxZoom` is derived from the node spacing (see the framing effect).
  */
 const MAX_ZOOM_OFFSET = 9;
-/** Screen-space padding (px) the viewport may show beyond the network when panning. */
-const PAN_PADDING_PX = 10;
 /**
  * Screen-space margin (px) reserved when framing, so nodes near the edge aren't
  * clipped by their radius — the bounds cover node centres only, and a disc extends
@@ -266,283 +270,11 @@ const DETAIL_MAX_EDGES = 400;
 /** Extra viewport margin (px) within which nodes are still included, so one straddling the edge isn't culled. */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
 /**
- * Style of the pill drawn on a hovered edge, mirroring the detail node label but
- * outlined in black. Drawn imperatively on a 2D overlay canvas (not a deck.gl
- * layer) so it can track the edge's on-screen centre as the view pans and zooms.
- */
-const EDGE_LABEL_FONT =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const EDGE_LABEL_FONT_SIZE = 12;
-const EDGE_LABEL_PADDING_X = 6;
-const EDGE_LABEL_PADDING_Y = 2;
-const EDGE_LABEL_RADIUS = 6;
-const EDGE_LABEL_INK = "rgb(15, 18, 25)";
-const EDGE_LABEL_BACKGROUND = "rgb(255, 255, 255)";
-const EDGE_LABEL_BORDER = "rgb(0, 0, 0)";
-const EDGE_LABEL_BORDER_WIDTH = 1;
-/**
  * On-screen size (px) of the direction arrow at the target end of a highlighted
  * edge. (The gap to the node's edge is zoom-derived — see `arrowGapPx` in {@link
  * deriveZoomAttributes}.)
  */
 const ARROW_SIZE_PX = 10;
-/** Resolution (px) the arrow triangle sprite is rasterised at. */
-const ARROW_ICON_TEXTURE = 64;
-
-/**
- * The inclusive range a pan `center` may take on one axis so the viewport shows
- * at most {@link PAN_PADDING_PX} beyond the network on either side. `scale` is the
- * world→pixel factor (`2 ** zoom`). The two per-side limits order as `[lo, hi]`
- * zoomed in but swap zoomed out — sorting covers both regimes.
- */
-const panAxisLimits = (
-  min: number,
-  max: number,
-  viewportPx: number,
-  scale: number,
-): [number, number] => {
-  const pad = PAN_PADDING_PX / scale;
-  const half = viewportPx / (2 * scale);
-  const a = min - pad + half;
-  const b = max + pad - half;
-  return [Math.min(a, b), Math.max(a, b)];
-};
-
-/**
- * Hard-clamp an orthographic pan `target` to the nearest in-range value so the
- * viewport never shows more than {@link PAN_PADDING_PX} beyond the network's
- * bounding box. Used where the target is computed afresh ({@link
- * NetworkGraphHandle.revealPoint}) and must land inside the limits regardless of
- * where the view previously sat. `viewport{Width,Height}` are in CSS pixels.
- */
-const clampPanTarget = (
-  target: number[],
-  scale: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number },
-): [number, number, number] => {
-  const [loX, hiX] = panAxisLimits(
-    bounds.minX,
-    bounds.maxX,
-    viewportWidth,
-    scale,
-  );
-  const [loY, hiY] = panAxisLimits(
-    bounds.minY,
-    bounds.maxY,
-    viewportHeight,
-    scale,
-  );
-  return [
-    Math.min(hiX, Math.max(loX, target[0] ?? 0)),
-    Math.min(hiY, Math.max(loY, target[1] ?? 0)),
-    target[2] ?? 0,
-  ];
-};
-
-/**
- * Constrain a pan *relative to where the view already is*, so the clamp only
- * resists the user's own panning and never pans the view on its own. On each axis
- * the target may move freely back toward the network but is blocked from moving
- * further out than `previous` (the committed target) already sits.
- *
- * Matters when a zoom shrinks the pan limits: a target parked at the edge would
- * fall outside the new limits and {@link clampPanTarget} would snap it inward,
- * jerking the view sideways as the user merely zoomed. Relaxing each bound to
- * include `previous` leaves the view put and only stops further outward panning.
- */
-const clampPanTargetBlocking = (
-  target: number[],
-  previous: number[],
-  scale: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number },
-): [number, number, number] => {
-  const clampAxis = (
-    center: number,
-    prev: number,
-    min: number,
-    max: number,
-    viewportPx: number,
-  ) => {
-    const [lo, hi] = panAxisLimits(min, max, viewportPx, scale);
-    // Relax whichever bound `prev` sits beyond, so the view is never pulled inward.
-    return Math.min(Math.max(hi, prev), Math.max(Math.min(lo, prev), center));
-  };
-  return [
-    clampAxis(
-      target[0] ?? 0,
-      previous[0] ?? 0,
-      bounds.minX,
-      bounds.maxX,
-      viewportWidth,
-    ),
-    clampAxis(
-      target[1] ?? 0,
-      previous[1] ?? 0,
-      bounds.minY,
-      bounds.maxY,
-      viewportHeight,
-    ),
-    target[2] ?? 0,
-  ];
-};
-
-/**
- * Clip a screen-space segment `a → b` to the rect `[0, 0] … [width, height]`
- * (Liang–Barsky), returning the visible sub-segment or `null` if it lies wholly
- * outside. Used to find the part of a hovered edge that is actually on screen.
- */
-const clipSegmentToViewport = (
-  a: [number, number],
-  b: [number, number],
-  width: number,
-  height: number,
-): [[number, number], [number, number]] | null => {
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  // Each boundary as (pk, qk): inside where `pk * t <= qk` (Liang–Barsky).
-  const tests: [number, number][] = [
-    [-dx, a[0]],
-    [dx, width - a[0]],
-    [-dy, a[1]],
-    [dy, height - a[1]],
-  ];
-  let t0 = 0;
-  let t1 = 1;
-  for (const [pk, qk] of tests) {
-    if (pk === 0) {
-      // Parallel to this boundary: reject only if it starts outside it.
-      if (qk < 0) {
-        return null;
-      }
-      continue;
-    }
-    const rk = qk / pk;
-    if (pk < 0) {
-      if (rk > t1) {
-        return null;
-      }
-      if (rk > t0) {
-        t0 = rk;
-      }
-    } else {
-      if (rk < t0) {
-        return null;
-      }
-      if (rk < t1) {
-        t1 = rk;
-      }
-    }
-  }
-  return [
-    [a[0] + t0 * dx, a[1] + t0 * dy],
-    [a[0] + t1 * dx, a[1] + t1 * dy],
-  ];
-};
-
-/**
- * The point at the middle of a polyline's on-screen length: project each vertex,
- * clip every segment to the viewport, then walk to half the total visible arc
- * length. This lands the edge label at the centre of the edge, or — when the edge
- * runs off screen — at the centre of the portion still in view. Returns `null`
- * when no part of the polyline is visible.
- */
-const edgeLabelAnchor = (
-  screenPoints: [number, number][],
-  width: number,
-  height: number,
-): [number, number] | null => {
-  const segments: [[number, number], [number, number], number][] = [];
-  let totalLength = 0;
-  for (let index = 0; index + 1 < screenPoints.length; index += 1) {
-    const start = screenPoints[index];
-    const end = screenPoints[index + 1];
-    if (!start || !end) {
-      continue;
-    }
-    const clipped = clipSegmentToViewport(start, end, width, height);
-    if (!clipped) {
-      continue;
-    }
-    const length = Math.hypot(
-      clipped[1][0] - clipped[0][0],
-      clipped[1][1] - clipped[0][1],
-    );
-    segments.push([clipped[0], clipped[1], length]);
-    totalLength += length;
-  }
-  const first = segments[0];
-  if (!first) {
-    return null;
-  }
-  if (totalLength === 0) {
-    // Every visible part is a single point (e.g. a dot-length edge): use it.
-    return first[0];
-  }
-  let remaining = totalLength / 2;
-  for (const [start, end, length] of segments) {
-    if (remaining <= length) {
-      const fraction = length === 0 ? 0 : remaining / length;
-      return [
-        start[0] + (end[0] - start[0]) * fraction,
-        start[1] + (end[1] - start[1]) * fraction,
-      ];
-    }
-    remaining -= length;
-  }
-  return first[0];
-};
-
-const roundRectPath = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-): void => {
-  const clampedRadius = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + clampedRadius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, clampedRadius);
-  ctx.arcTo(x + width, y + height, x, y + height, clampedRadius);
-  ctx.arcTo(x, y + height, x, y, clampedRadius);
-  ctx.arcTo(x, y, x + width, y, clampedRadius);
-  ctx.closePath();
-};
-
-/** Draw the edge label pill (white fill, black outline) centred at `anchor`. */
-const drawEdgeLabel = (
-  ctx: CanvasRenderingContext2D,
-  anchor: [number, number],
-  text: string,
-): void => {
-  ctx.font = `${EDGE_LABEL_FONT_SIZE}px ${EDGE_LABEL_FONT}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const textWidth = ctx.measureText(text).width;
-  const rectWidth = textWidth + EDGE_LABEL_PADDING_X * 2;
-  const rectHeight = EDGE_LABEL_FONT_SIZE + EDGE_LABEL_PADDING_Y * 2;
-  const [centerX, centerY] = anchor;
-  roundRectPath(
-    ctx,
-    centerX - rectWidth / 2,
-    centerY - rectHeight / 2,
-    rectWidth,
-    rectHeight,
-    EDGE_LABEL_RADIUS,
-  );
-  ctx.fillStyle = EDGE_LABEL_BACKGROUND;
-  ctx.fill();
-  ctx.lineWidth = EDGE_LABEL_BORDER_WIDTH;
-  ctx.strokeStyle = EDGE_LABEL_BORDER;
-  ctx.stroke();
-  ctx.fillStyle = EDGE_LABEL_INK;
-  ctx.fillText(text, centerX, centerY);
-};
 
 /** One direction arrow: where its tip sits and how it's oriented. */
 interface EdgeArrow {
@@ -556,119 +288,6 @@ interface EdgeArrow {
   /** Rotation (deg) aligning the triangle with the edge's tangent at the target. */
   angle: number;
 }
-
-type ArrowIconAtlas = {
-  url: string;
-  mapping: DetailIconAtlas["mapping"];
-};
-
-let arrowIconAtlasCache: ArrowIconAtlas | null = null;
-
-/**
- * A solid-triangle sprite (white mask, tinted via the layer's `getColor`) pointing
- * along +x, anchored at its tip so a per-arrow pixel offset places the tip exactly.
- * Rasterised once and cached; `null` outside the browser.
- */
-const arrowIconAtlas = (): ArrowIconAtlas | null => {
-  if (arrowIconAtlasCache) {
-    return arrowIconAtlasCache;
-  }
-  if (typeof document === "undefined") {
-    return null;
-  }
-  const size = ARROW_ICON_TEXTURE;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return null;
-  }
-  // Equilateral triangle pointing along +x, height `side · √3/2`, centred in the canvas.
-  const side = size * 0.8;
-  const height = (side * Math.sqrt(3)) / 2;
-  const tipX = (size + height) / 2;
-  const baseX = (size - height) / 2;
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.moveTo(tipX, size / 2);
-  ctx.lineTo(baseX, size / 2 - side / 2);
-  ctx.lineTo(baseX, size / 2 + side / 2);
-  ctx.closePath();
-  ctx.fill();
-  arrowIconAtlasCache = {
-    url: canvas.toDataURL(),
-    mapping: {
-      arrow: {
-        x: 0,
-        y: 0,
-        width: size,
-        height: size,
-        // Anchor at the tip so `getPosition` + `getPixelOffset` place the tip.
-        anchorX: tipX,
-        anchorY: size / 2,
-        mask: true,
-      },
-    },
-  };
-  return arrowIconAtlasCache;
-};
-
-/**
- * Shorten a world-space polyline by `trim` world units from its **end** (target),
- * interpolating a new endpoint. Used to open the arrow's gap between a highlighted
- * edge and the node it points at.
- */
-const trimPathEnd = (
-  path: [number, number][],
-  trim: number,
-): [number, number][] => {
-  if (path.length < 2 || trim <= 0) {
-    return path;
-  }
-  let remaining = trim;
-  for (let index = path.length - 1; index >= 1; index -= 1) {
-    const end = path[index];
-    const previous = path[index - 1];
-    if (!end || !previous) {
-      continue;
-    }
-    const dx = end[0] - previous[0];
-    const dy = end[1] - previous[1];
-    const segment = Math.hypot(dx, dy);
-    if (segment === 0) {
-      continue;
-    }
-    if (remaining < segment) {
-      const fraction = remaining / segment;
-      return [
-        ...path.slice(0, index),
-        [end[0] - dx * fraction, end[1] - dy * fraction],
-      ];
-    }
-    remaining -= segment;
-  }
-  // The trim consumed the whole path (edge shorter than the gap): draw nothing.
-  const first = path[0];
-  return first ? [first, first] : path;
-};
-
-/**
- * Shorten a polyline from both ends — `startTrim` world units off the source end
- * and `endTrim` off the target end — so a detail-view edge stops at each node's
- * edge instead of running to its centre (under the translucent node).
- */
-const trimPathBothEnds = (
-  path: [number, number][],
-  startTrim: number,
-  endTrim: number,
-): [number, number][] => {
-  let result = trimPathEnd(path, endTrim);
-  if (startTrim > 0 && result.length >= 2) {
-    result = [...trimPathEnd([...result].reverse(), startTrim)].reverse();
-  }
-  return result;
-};
 
 const containerStyles = css({
   position: "relative",
@@ -869,6 +488,17 @@ export const NetworkGraph = ({
     },
     [resolvePoint],
   );
+
+  // Clear a hover whose node has left the graph (e.g. tiling swapped the node
+  // set), so its grow ring/label doesn't linger under a stationary pointer until
+  // the next pointer move re-picks. `selected` is derived from props and heals on
+  // its own; `hovered` is internal state, so reconcile it here.
+  useEffect(() => {
+    if (hovered && !resolvePoint(hovered.id)) {
+      lastHoveredIdRef.current = null;
+      setHovered(null);
+    }
+  }, [hovered, resolvePoint]);
 
   // {@link colorByHex} extended with any overlay points' colours.
   const colorByHexWithOverlay = useMemo(() => {
