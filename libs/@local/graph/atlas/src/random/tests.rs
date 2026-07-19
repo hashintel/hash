@@ -4,7 +4,10 @@ use proptest::prelude::*;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{acceptance_sample_size, sample_indices, sample_indices_vec, uniform_below};
+use super::{
+    acceptance_sample_size, mean_sample_size, normal_quantile, sample_indices, sample_indices_vec,
+    uniform_below,
+};
 
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
@@ -213,4 +216,96 @@ proptest! {
         }
         prop_assert!(picked.iter().all(|&index| index < population));
     }
+}
+
+/// The quantile matches tabulated standard normal values through both
+/// rational-approximation regions.
+#[test]
+fn normal_quantile_matches_tabulated_values() {
+    // Central region.
+    for (probability, expected) in [
+        (0.5, 0.0),
+        (0.75, 0.674_489_750_196_082),
+        (0.9, 1.281_551_565_544_6),
+        (0.95, 1.644_853_626_951_472),
+        (0.975, 1.959_963_984_540_054),
+        (0.99, 2.326_347_874_040_841),
+    ] {
+        let quantile = normal_quantile(probability).expect("the probability is in domain");
+        assert!(
+            (quantile - expected).abs() < 1e-8,
+            "quantile({probability}) = {quantile}, expected {expected}",
+        );
+    }
+
+    // Tail regions (the approximation switches at 0.02425).
+    for (probability, expected) in [
+        (0.999, 3.090_232_306_167_813),
+        (0.000_1, -3.719_016_485_455_68),
+        (0.02, -2.053_748_910_631_823),
+    ] {
+        let quantile = normal_quantile(probability).expect("the probability is in domain");
+        assert!(
+            (quantile - expected).abs() < 1e-8,
+            "quantile({probability}) = {quantile}, expected {expected}",
+        );
+    }
+}
+
+/// The quantile is antisymmetric about the median.
+#[test]
+fn normal_quantile_is_antisymmetric() {
+    for probability in [0.001, 0.02425, 0.1, 0.3, 0.49] {
+        let lower = normal_quantile(probability).expect("in domain");
+        let upper = normal_quantile(1.0 - probability).expect("in domain");
+        assert!(
+            (lower + upper).abs() < 1e-8,
+            "quantile({probability}) = {lower} does not mirror {upper}",
+        );
+    }
+}
+
+/// Endpoints and out-of-domain probabilities have no quantile.
+#[test]
+fn normal_quantile_rejects_out_of_domain_probabilities() {
+    assert_eq!(normal_quantile(0.0), None);
+    assert_eq!(normal_quantile(1.0), None);
+    assert_eq!(normal_quantile(-0.5), None);
+    assert_eq!(normal_quantile(1.5), None);
+    assert_eq!(normal_quantile(f64::NAN), None);
+}
+
+/// The mean sample size follows the closed form and its monotonicity
+/// laws: tighter margins and higher confidence grow the sample,
+/// smaller deviations shrink it.
+#[test]
+fn mean_sample_size_follows_the_closed_form() {
+    // ceil((2.326348 * 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.
+    assert_eq!(mean_sample_size(0.32, 0.012, 0.99), Some(3849));
+    // A deviation of zero needs no sample.
+    assert_eq!(mean_sample_size(0.0, 0.01, 0.99), Some(0));
+
+    let base = mean_sample_size(0.32, 0.012, 0.99).expect("in domain");
+    let tighter_margin = mean_sample_size(0.32, 0.006, 0.99).expect("in domain");
+    let higher_confidence = mean_sample_size(0.32, 0.012, 0.999).expect("in domain");
+    let smaller_deviation = mean_sample_size(0.16, 0.012, 0.99).expect("in domain");
+    assert!(tighter_margin > base);
+    assert!(higher_confidence > base);
+    assert!(smaller_deviation < base);
+
+    // Halving the margin exactly quadruples the requirement before
+    // rounding; allow one count of ceiling slack.
+    assert!(tighter_margin >= base * 4 - 4 && tighter_margin <= base * 4 + 4);
+}
+
+/// Degenerate margins, confidences, and deviations have no sample size.
+#[test]
+fn mean_sample_size_rejects_out_of_domain_parameters() {
+    assert_eq!(mean_sample_size(0.32, 0.0, 0.99), None);
+    assert_eq!(mean_sample_size(0.32, -0.01, 0.99), None);
+    assert_eq!(mean_sample_size(0.32, f64::INFINITY, 0.99), None);
+    assert_eq!(mean_sample_size(0.32, 0.01, 0.0), None);
+    assert_eq!(mean_sample_size(0.32, 0.01, 1.0), None);
+    assert_eq!(mean_sample_size(-0.1, 0.01, 0.99), None);
+    assert_eq!(mean_sample_size(f64::NAN, 0.01, 0.99), None);
 }

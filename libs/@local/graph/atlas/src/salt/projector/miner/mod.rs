@@ -64,7 +64,7 @@ impl MinerOptions {
     /// Returns [`None`] unless the weight bound and the rank exponent
     /// are finite and strictly positive.
     #[must_use]
-    pub(crate) fn new(
+    pub(crate) const fn new(
         neighbours: NonZero<usize>,
         search_margin: NonZero<usize>,
         maximum_weight: f32,
@@ -75,7 +75,10 @@ impl MinerOptions {
             && rank_exponent.is_finite()
             && rank_exponent > 0.0;
 
-        valid.then_some(Self {
+        if !valid {
+            return None;
+        }
+        Some(Self {
             neighbours,
             search_margin,
             maximum_weight,
@@ -90,11 +93,25 @@ impl MinerOptions {
         self.neighbours
     }
 
+    /// Returns the search-quota multiplier over the admission quota.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn search_margin(self) -> NonZero<usize> {
+        self.search_margin
+    }
+
     /// Returns the bound every rank weight stays within.
     #[inline]
     #[must_use]
     pub(crate) const fn maximum_weight(self) -> f32 {
         self.maximum_weight
+    }
+
+    /// Returns the rank-decay exponent.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn rank_exponent(self) -> f32 {
+        self.rank_exponent
     }
 
     /// Computes the weight of the candidate at closeness `rank`.

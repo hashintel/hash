@@ -46,14 +46,19 @@ const INDEX: u16 = 0;
 
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
-// Starting points, pending full-scale evidence: the recall spot check
-// judges every generation, and ef_search is the first knob to raise
-// on a failed check. Construction sits at the low end of the 100-500 band
-// HNSW deployments use at million-row scale; search sits at 2.5x the
-// deepest query in this crate (the 50-neighbour recall audit) and
-// above hannoy's default of 100. The first full-scale fit should
-// record the measured recall headroom and revise both from evidence.
-const DEFAULT_EF_CONSTRUCTION: usize = 128;
+// Revised from the full-scale sweep (2026-07-19, 985,932 rows,
+// recall@50, exact references replaying the fit's streams; ratified):
+// construction 128 -> 256 buys ~+0.009 population recall (~0.893 ->
+// ~0.902 against the 0.89 floor) for ~+90s build (155 -> 245s), and
+// same-seed rebuilds spread +-0.007 (hannoy links in parallel; the
+// seed pins the level stream, not the link order), so the margin must
+// clear that spread. Search breadth measured INERT: 64 -> 256 bought
+// +0.002-0.005 on every build at 2.2x query cost, so 128 stays - it
+// is 2.5x the deepest query in this crate (the 50-neighbour recall
+// audit) and above hannoy's default of 100. Sweep harness:
+// `bench::knn::sweep` (`examples/knn_sweep.rs`); raise construction
+// before search on a failed recall check.
+const DEFAULT_EF_CONSTRUCTION: usize = 256;
 const DEFAULT_EF_SEARCH: usize = 128;
 
 /// Pinned hannoy storage, build, and query settings.

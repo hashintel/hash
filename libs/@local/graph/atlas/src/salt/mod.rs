@@ -31,7 +31,8 @@ pub(crate) mod fit;
 mod importance;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod knn;
-mod ladder;
+// Crate-visible for the metadata document's ladder evidence.
+pub(crate) mod ladder;
 mod landmark;
 mod lod;
 mod policy;

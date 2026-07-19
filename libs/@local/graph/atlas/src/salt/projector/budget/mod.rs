@@ -51,7 +51,7 @@ impl BudgetOptions {
     /// Returns [`None`] unless every value is finite and strictly
     /// positive and `positive <= total`.
     #[must_use]
-    pub(crate) fn new(positive: f32, total: f32, floor: f32, epsilon: f32) -> Option<Self> {
+    pub(crate) const fn new(positive: f32, total: f32, floor: f32, epsilon: f32) -> Option<Self> {
         let coefficients_valid = positive.is_finite()
             && positive > 0.0
             && total.is_finite()
@@ -59,7 +59,10 @@ impl BudgetOptions {
             && positive <= total;
 
         let guards_valid = floor.is_finite() && floor > 0.0 && epsilon.is_finite() && epsilon > 0.0;
-        (coefficients_valid && guards_valid).then_some(Self {
+        if !(coefficients_valid && guards_valid) {
+            return None;
+        }
+        Some(Self {
             positive,
             total,
             floor,

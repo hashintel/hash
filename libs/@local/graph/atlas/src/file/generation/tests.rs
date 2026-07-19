@@ -101,6 +101,7 @@ fn repository() -> SaltRepository {
             ontology_identities: file("ontology-identities.idnt"),
             edge_endpoints: file("edge-endpoints.arr"),
             adjacency: file("adjacency.adjc"),
+            projector: None,
             reviewed_verdicts: Some(file("reviewed-verdicts.json")),
         },
         metadata: SaltMetadata {
@@ -117,63 +118,71 @@ fn repository() -> SaltRepository {
             },
             placement: Placement::LandmarkBaseline,
             ranking: RankingOrigin::ConstantColumns,
-            evidence: Evidence {
-                cards: CardEmbeddingStats {
-                    reused: 0,
-                    embedded: 3,
-                },
-                norm: NormSpotCheck {
-                    rows: 4,
-                    sampled_rows: 4,
-                    tolerance: 1.0e-4,
-                    defect_rate: 0.01,
-                    confidence: 0.999,
-                    defects: Vec::new(),
-                },
-                recall: RecallSpotCheck {
-                    sampled_rows: 4,
-                    neighbours_per_row: 2,
-                    matched: 8,
-                    expected: 8,
-                    minimum_recall: 0.89,
-                },
-                landmarks: LandmarkEvidence {
-                    selected: 2,
-                    retained: 1,
-                    layout_epochs: NonZero::new(5).expect("the fixture epoch count is nonzero"),
-                },
-                policy: PolicyEvidence {
-                    relations: 1,
-                    overridden: 0,
-                },
-                relations: BuildEvidence {
-                    pruning_threshold: 0.0,
-                    retained_edges: 2,
-                    pruned_edges: 0,
-                    retained_mass: 1.5,
-                    pruned_mass: 0.0,
-                    self_references: 0,
-                },
-                lod: LodEvidence {
-                    world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
-                        .expect("the fixture corners are finite and ordered"),
-                    bucket_histogram: {
-                        let mut histogram = [0; Fenceposts::SEGMENTS];
-                        histogram[2] = 4;
-                        histogram
-                    },
-                    catch_all_population: 0,
-                    co_location_excess: 0,
-                    max_tile_delta: 2,
-                },
-                quad: QuadEvidence {
-                    nodes: 1,
-                    leaves: 1,
-                    depth: Depth::new(0).expect("the root depth is within the key width"),
-                    type_entries: 3,
-                },
-            },
+            evidence: evidence(),
         },
+    }
+}
+
+fn evidence() -> Evidence {
+    Evidence {
+        cards: CardEmbeddingStats {
+            reused: 0,
+            embedded: 3,
+        },
+        norm: NormSpotCheck {
+            rows: 4,
+            sampled_rows: 4,
+            tolerance: 1.0e-4,
+            defect_rate: 0.01,
+            confidence: 0.999,
+            defects: Vec::new(),
+        },
+        recall: RecallSpotCheck {
+            sampled_rows: 4,
+            neighbours_per_row: 2,
+            matched: 8,
+            expected: 8,
+            deviation: 0.0,
+            minimum_recall: 0.89,
+            margin: 0.012,
+            confidence: 0.99,
+        },
+        landmarks: LandmarkEvidence {
+            selected: 2,
+            retained: 1,
+            layout_epochs: NonZero::new(5).expect("the fixture epoch count is nonzero"),
+        },
+        policy: PolicyEvidence {
+            relations: 1,
+            overridden: 0,
+        },
+        relations: BuildEvidence {
+            pruning_threshold: 0.0,
+            retained_edges: 2,
+            pruned_edges: 0,
+            retained_mass: 1.5,
+            pruned_mass: 0.0,
+            self_references: 0,
+        },
+        lod: LodEvidence {
+            world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
+                .expect("the fixture corners are finite and ordered"),
+            bucket_histogram: {
+                let mut histogram = [0; Fenceposts::SEGMENTS];
+                histogram[2] = 4;
+                histogram
+            },
+            catch_all_population: 0,
+            co_location_excess: 0,
+            max_tile_delta: 2,
+        },
+        quad: QuadEvidence {
+            nodes: 1,
+            leaves: 1,
+            depth: Depth::new(0).expect("the root depth is within the key width"),
+            type_entries: 3,
+        },
+        projector: None,
     }
 }
 

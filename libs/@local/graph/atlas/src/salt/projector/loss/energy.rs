@@ -39,6 +39,13 @@ impl AffinityEnergy {
             .then_some(Self { curve, epsilon })
     }
 
+    /// Returns the logarithm offset.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn epsilon(self) -> f32 {
+        self.epsilon
+    }
+
     /// Evaluates the attraction energy and its derivative in the
     /// squared distance.
     ///
@@ -158,9 +165,12 @@ impl CoincidentEnergy {
     /// Returns [`None`] unless the radius is finite and non-negative
     /// and the Huber threshold is finite and strictly positive.
     #[must_use]
-    pub(crate) fn new(radius: f32, threshold: f32) -> Option<Self> {
+    pub(crate) const fn new(radius: f32, threshold: f32) -> Option<Self> {
         let valid = radius.is_finite() && radius >= 0.0 && threshold.is_finite() && threshold > 0.0;
-        valid.then_some(Self { radius, threshold })
+        if !valid {
+            return None;
+        }
+        Some(Self { radius, threshold })
     }
 
     /// Returns the target radius.
@@ -168,6 +178,13 @@ impl CoincidentEnergy {
     #[must_use]
     pub(crate) const fn radius(self) -> f32 {
         self.radius
+    }
+
+    /// Returns the Huber threshold.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn threshold(self) -> f32 {
+        self.threshold
     }
 
     /// Evaluates the energy and its derivative at a normalized distance.

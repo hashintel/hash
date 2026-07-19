@@ -23,6 +23,11 @@ Decoded columns are typed-array views over the response
 `ArrayBuffer` - never copies. `POSITIONS` is interleaved xy with
 stride 8, directly usable as a vec2 vertex attribute.
 
+The tiling layer consumes this package through
+`../tiling/fetch-saltile-tile.ts`, a fetcher with the tile cache's
+injectable-transport signature; the "Atlas Tiling / Saltile" story
+wires it into the NetworkGraph chrome.
+
 ## Coordinate frame
 
 Positions arrive in the wire frame: each axis spans `[-1, 1]`, as

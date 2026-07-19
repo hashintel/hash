@@ -733,6 +733,14 @@ export interface UseGetViewportNodesOptions {
   readonly retry?: number;
   /** Soft cache budget in bytes before eviction runs; see {@link TileCache}. */
   readonly maxBytes?: number;
+  /**
+   * Tile transport override; defaults to the legacy-wire {@link fetchTile}
+   * (which consumes `baseUrl`/`retry`). Passing one selects the wire the
+   * cache loads through - the SALTILE fetcher plugs in here. Must be
+   * referentially stable across renders: a new function identity
+   * recreates the cache and drops every resident tile.
+   */
+  readonly fetcher?: TileFetcher;
 }
 
 /** {@link useGetViewportNodes}' result: nodes plus the backing cache's fill. */
@@ -768,21 +776,23 @@ export const useGetViewportNodes = (
   viewport: Viewport | null,
   options: UseGetViewportNodesOptions = {},
 ): UseGetViewportNodesResult => {
-  const { baseUrl = ATLAS_API_BASE_URL, retry, maxBytes } = options;
+  const { baseUrl = ATLAS_API_BASE_URL, retry, maxBytes, fetcher } = options;
 
   const cache = useMemo(
     () =>
       new TileCache({
         maxBytes,
-        fetcher: (zoom, tileIndex, controls) =>
-          fetchTile(zoom, tileIndex, {
-            baseUrl,
-            retry,
-            priority: controls?.priority,
-            signal: controls?.signal,
-          }),
+        fetcher:
+          fetcher ??
+          ((zoom, tileIndex, controls) =>
+            fetchTile(zoom, tileIndex, {
+              baseUrl,
+              retry,
+              priority: controls?.priority,
+              signal: controls?.signal,
+            })),
       }),
-    [baseUrl, retry, maxBytes],
+    [baseUrl, retry, maxBytes, fetcher],
   );
 
   const query = useAtlasQuery(viewportKey(viewport, baseUrl), async () => {

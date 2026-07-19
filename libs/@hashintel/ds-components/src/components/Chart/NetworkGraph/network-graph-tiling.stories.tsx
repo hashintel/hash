@@ -8,10 +8,12 @@ import {
   type NetworkGraphEdge,
   type NetworkGraphPoint,
 } from "./network-graph";
+import { createSaltileTileFetcher } from "./tiling/fetch-saltile-tile";
 import {
   tileZoomForViewport,
   useGetViewportNodes,
   WORLD_SIZE,
+  type TileFetcher,
   type Viewport,
   type ViewportNode,
 } from "./tiling/use-get-viewport-nodes";
@@ -250,7 +252,7 @@ type Status = "loading" | "idle" | "error";
  * streaming new points never reframes the camera. Requires the local Atlas
  * server (proxied via `/atlas-api`).
  */
-const AtlasTilingStory = () => {
+const AtlasTilingStory = ({ fetcher }: { fetcher?: TileFetcher }) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
@@ -262,7 +264,7 @@ const AtlasTilingStory = () => {
 
   const { data, isFetching, isError, error, tileCount } = useGetViewportNodes(
     viewport,
-    { baseUrl: ATLAS_PROXY_BASE },
+    { baseUrl: ATLAS_PROXY_BASE, fetcher },
   );
 
   const points = useMemo(() => (data ?? []).map(toPoint), [data]);
@@ -423,3 +425,20 @@ const AtlasTilingStory = () => {
  * `hash-graph atlas` server (proxied at `/atlas-api`).
  */
 export const Default: Story = () => <AtlasTilingStory />;
+
+/**
+ * Module-scope so the fetcher (and therefore the tile cache keyed on it) is
+ * created once, not per render. Session bootstrap happens lazily on the first
+ * tile load.
+ */
+const saltileFetcher = createSaltileTileFetcher({ baseUrl: ATLAS_PROXY_BASE });
+
+/**
+ * The same chrome over the SALTILE wire (Surface v1): session bootstrap from
+ * `/v1/atlas/current` + manifest, POST tile requests in delta mode, zero-copy
+ * binary decode. Requires a server speaking SALTILE behind the `/atlas-api`
+ * proxy (set `ATLAS_API_URL` to point the proxy elsewhere).
+ */
+export const Saltile: Story = () => (
+  <AtlasTilingStory fetcher={saltileFetcher} />
+);

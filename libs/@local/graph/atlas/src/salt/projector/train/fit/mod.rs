@@ -67,6 +67,10 @@ pub(crate) enum TrainError {
     /// The semantic graph carries no edge weight: there is no layout
     /// evidence to train against.
     NoSemanticEvidence,
+    /// The schedule's boundary is step zero, so the Proximal radius
+    /// would be measured on an untrained map instead of the
+    /// semantic-only baseline the measurement is defined over.
+    UnbaselinedRadius,
     /// The attraction index carries Proximal force but no reviewed
     /// verdict covers any of it, so no radius can be measured.
     MissingProximalReviews,
@@ -95,6 +99,11 @@ impl fmt::Display for TrainError {
             Self::NoSemanticEvidence => {
                 formatter.write_str("the semantic graph carries no edge weight to train against")
             }
+            Self::UnbaselinedRadius => formatter.write_str(
+                "the boundary sits at step zero, so the Proximal radius would be measured on an \
+                 untrained map; give the opening segment steps or supply the configured radius \
+                 assertion",
+            ),
             Self::MissingProximalReviews => formatter.write_str(
                 "the attraction index carries Proximal force but no reviewed-Proximal verdict \
                  covers any of it; confirm Proximal types in review or supply the configured \
@@ -125,6 +134,7 @@ impl Error for TrainError {
             Self::Refresh(error) => Some(error),
             Self::Step(error) => Some(error),
             Self::NoSemanticEvidence
+            | Self::UnbaselinedRadius
             | Self::MissingProximalReviews
             | Self::CoincidentWithoutProximal
             | Self::DegenerateRadius { .. }
@@ -170,7 +180,7 @@ impl TrainingSchedule {
     /// the learning rates satisfy the cosine schedule's domain:
     /// `0 < initial <= 1` and `0 <= minimum <= initial`.
     #[must_use]
-    pub(crate) fn new(
+    pub(crate) const fn new(
         steps: NonZero<usize>,
         boundary: usize,
         refresh_interval: NonZero<usize>,
@@ -182,7 +192,10 @@ impl TrainingSchedule {
             && minimum_learning_rate >= 0.0
             && minimum_learning_rate <= initial_learning_rate;
 
-        (boundary <= steps.get() && rates).then_some(Self {
+        if !(boundary <= steps.get() && rates) {
+            return None;
+        }
+        Some(Self {
             steps,
             boundary,
             refresh_interval,
@@ -252,7 +265,7 @@ impl RelationLens {
     /// supplied - is finite and strictly above the Coincident radius,
     /// the ordering the composed energy requires.
     #[must_use]
-    pub(crate) fn new(
+    pub(crate) const fn new(
         coincident: CoincidentEnergy,
         temperature: f32,
         epsilon: f32,
@@ -260,15 +273,49 @@ impl RelationLens {
     ) -> Option<Self> {
         let constants =
             temperature.is_finite() && temperature > 0.0 && epsilon.is_finite() && epsilon > 0.0;
-        let assertion =
-            asserted_radius.is_none_or(|radius| radius.is_finite() && radius > coincident.radius());
+        let assertion = match asserted_radius {
+            Some(radius) => radius.is_finite() && radius > coincident.radius(),
+            None => true,
+        };
 
-        (constants && assertion).then_some(Self {
+        if !(constants && assertion) {
+            return None;
+        }
+        Some(Self {
             coincident,
             temperature,
             epsilon,
             asserted_radius,
         })
+    }
+
+    /// Returns the configured Coincident energy.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn coincident(self) -> CoincidentEnergy {
+        self.coincident
+    }
+
+    /// Returns the Proximal transition temperature.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn temperature(self) -> f32 {
+        self.temperature
+    }
+
+    /// Returns the local-scale guard.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn epsilon(self) -> f32 {
+        self.epsilon
+    }
+
+    /// Returns the configured radius superseding the boundary
+    /// measurement, when one is asserted.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn asserted_radius(self) -> Option<f32> {
+        self.asserted_radius
     }
 }
 
@@ -489,10 +536,11 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 /// # Errors
 ///
 /// Returns an error when the corpus cannot train (no semantic edge
-/// weight), when the boundary cannot freeze a Proximal radius (Proximal
-/// force without reviewed coverage or a configured assertion, Coincident
-/// force without any Proximal force, or a radius ordering the energy
-/// rejects), or when training diverges in a step or a tick.
+/// weight), when the boundary cannot freeze a Proximal radius (a
+/// measured radius with no opening segment in front of the boundary,
+/// Proximal force without reviewed coverage or a configured assertion,
+/// Coincident force without any Proximal force, or a radius ordering
+/// the energy rejects), or when training diverges in a step or a tick.
 ///
 /// # Panics
 ///

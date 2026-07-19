@@ -166,11 +166,17 @@ impl ChannelConfig {
 /// `hard.threshold <= ordinary.threshold`: hard negatives are aimed at
 /// specific pairs, so their channel warrants at least as much caution
 /// in the floor and no more evidence to trip in the threshold.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProtectionConfig {
-    hard: ChannelConfig,
-    ordinary: ChannelConfig,
+    hard: ChannelConfig = ChannelConfig { .. },
+    ordinary: ChannelConfig = ChannelConfig { .. },
     protect_ordinary: bool = true,
+}
+
+const impl Default for ProtectionConfig {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 impl ProtectionConfig {

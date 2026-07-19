@@ -22,6 +22,10 @@
 //! capacity caps, and a response that could exceed that is a wire
 //! version bump recorded in advance - the writer enforces the bound as
 //! the producer contract it is.
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "envelope integers are pinned little-endian by the wire contract"
+)]
 
 use super::{Kind, WIRE_VERSION};
 
@@ -99,7 +103,7 @@ impl EnvelopeWriter {
     /// # Panics
     ///
     /// Panics when every declared slot is already recorded, and on
-    /// slot 0 - the HEAD is always present.
+    /// slot 0 - the `HEAD` is always present.
     pub(crate) fn absent(&mut self) {
         assert!(
             self.recorded < self.slots,

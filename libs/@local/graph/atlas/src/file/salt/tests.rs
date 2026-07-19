@@ -5,7 +5,8 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use super::{
     SaltFiles, SaltRepository,
     metadata::{
-        Evidence, LandmarkEvidence, Placement, PolicyEvidence, RankingOrigin, Reproducibility,
+        Evidence, FrozenRadiusEvidence, LadderEvidence, LandmarkEvidence, Placement,
+        PolicyEvidence, ProjectorEvidence, RankingOrigin, Reproducibility, RungEvidence,
         SaltMetadata, Snapshot,
     },
 };
@@ -16,12 +17,15 @@ use crate::{
         repository::{FileName, RepositoryFile, RepositoryVersion},
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Bounds2, Vec2},
+    math::{AffinityCurve, Bounds2, Rotation, Similarity, Vec2},
     morton::Depth,
     salt::{
         BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
         NormSpotCheck, PolicyOptions, PolicyOverride, PolicySource, Posterior, QuadEvidence,
         RecallSpotCheck, RepresentationDefect, SelectionOptions,
+        fit::{PlacementOptions, ProjectorOptions},
+        ladder::{Conditions, LadderOptions},
+        projector::train::TrainingSchedule,
     },
 };
 
@@ -38,6 +42,24 @@ fn file(name: &str) -> RepositoryFile {
     }
 }
 
+fn placement() -> PlacementOptions {
+    let schedule = TrainingSchedule::new(
+        NonZero::new(12).expect("the fixture step count is nonzero"),
+        6,
+        NonZero::new(4).expect("the fixture cadence is nonzero"),
+        1.0e-3,
+        1.0e-5,
+    )
+    .expect("the fixture schedule is valid");
+    let mut options = ProjectorOptions::reference(schedule);
+    options.ladder = LadderOptions {
+        conditions: Conditions::new(vec![0.0, 1.0]).expect("the fixture schedule is valid"),
+        ..
+    };
+
+    PlacementOptions::Projector(Box::new(options))
+}
+
 fn config() -> FitConfig {
     FitConfig {
         seed: 0x5A17_F17D,
@@ -47,6 +69,7 @@ fn config() -> FitConfig {
         },
         curve: AffinityCurve::new(1.577, 0.895)
             .expect("the fixture parameters are finite and strictly positive"),
+        placement: placement(),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(7),
@@ -85,6 +108,7 @@ fn files() -> SaltFiles {
         ontology_identities: file("ontology-identities.idnt"),
         edge_endpoints: file("edge-endpoints.arr"),
         adjacency: file("adjacency.adjc"),
+        projector: Some(file("projector.mpk")),
         reviewed_verdicts: Some(file("reviewed-verdicts.json")),
     }
 }
@@ -112,66 +136,110 @@ fn repository() -> SaltRepository {
                 embedder: EmbedderFingerprint::new(digest("embedder contract")),
                 prior: None,
             },
-            placement: Placement::LandmarkBaseline,
+            placement: Placement::Projector,
             ranking: RankingOrigin::IncidentDegree,
-            evidence: Evidence {
-                cards: CardEmbeddingStats {
-                    reused: 30,
-                    embedded: 19,
-                },
-                norm: NormSpotCheck {
-                    rows: 1_000_000,
-                    sampled_rows: 688,
-                    tolerance: 1.0e-4,
-                    defect_rate: 0.01,
-                    confidence: 0.999,
-                    defects: Vec::new(),
-                },
-                recall: RecallSpotCheck {
-                    sampled_rows: 688,
-                    neighbours_per_row: 50,
-                    matched: 34_000,
-                    expected: 34_400,
-                    minimum_recall: 0.89,
-                },
-                landmarks: LandmarkEvidence {
-                    selected: 4_096,
-                    retained: 1_024,
-                    layout_epochs: NonZero::new(500).expect("the fixture epoch count is nonzero"),
-                },
-                policy: PolicyEvidence {
-                    relations: 49,
-                    overridden: 1,
-                },
-                relations: BuildEvidence {
-                    pruning_threshold: 0.001,
-                    retained_edges: 8_700_000,
-                    pruned_edges: 100_000,
-                    retained_mass: 4_200_000.0,
-                    pruned_mass: 32.0,
-                    self_references: 1_024,
-                },
-                lod: LodEvidence {
-                    world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
-                        .expect("the fixture corners are finite and ordered"),
-                    bucket_histogram: {
-                        let mut histogram = [0; Fenceposts::SEGMENTS];
-                        histogram[4] = 900_000;
-                        histogram[Fenceposts::SEGMENTS - 1] = 100_000;
-                        histogram
-                    },
-                    catch_all_population: 100_000,
-                    co_location_excess: 4_096,
-                    max_tile_delta: 4_096,
-                },
-                quad: QuadEvidence {
-                    nodes: 21_845,
-                    leaves: 16_000,
-                    depth: Depth::new(7).expect("the fixture depth is within the key width"),
-                    type_entries: 65_000,
-                },
-            },
+            evidence: evidence(),
         },
+    }
+}
+
+fn evidence() -> Evidence {
+    Evidence {
+        cards: CardEmbeddingStats {
+            reused: 30,
+            embedded: 19,
+        },
+        norm: NormSpotCheck {
+            rows: 1_000_000,
+            sampled_rows: 688,
+            tolerance: 1.0e-4,
+            defect_rate: 0.01,
+            confidence: 0.999,
+            defects: Vec::new(),
+        },
+        recall: RecallSpotCheck {
+            sampled_rows: 3_849,
+            neighbours_per_row: 50,
+            matched: 173_600,
+            expected: 192_450,
+            deviation: 0.32,
+            minimum_recall: 0.89,
+            margin: 0.012,
+            confidence: 0.99,
+        },
+        landmarks: LandmarkEvidence {
+            selected: 4_096,
+            retained: 1_024,
+            layout_epochs: NonZero::new(500).expect("the fixture epoch count is nonzero"),
+        },
+        policy: PolicyEvidence {
+            relations: 49,
+            overridden: 1,
+        },
+        relations: BuildEvidence {
+            pruning_threshold: 0.001,
+            retained_edges: 8_700_000,
+            pruned_edges: 100_000,
+            retained_mass: 4_200_000.0,
+            pruned_mass: 32.0,
+            self_references: 1_024,
+        },
+        lod: LodEvidence {
+            world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+                .expect("the fixture corners are finite and ordered"),
+            bucket_histogram: {
+                let mut histogram = [0; Fenceposts::SEGMENTS];
+                histogram[4] = 900_000;
+                histogram[Fenceposts::SEGMENTS - 1] = 100_000;
+                histogram
+            },
+            catch_all_population: 100_000,
+            co_location_excess: 4_096,
+            max_tile_delta: 4_096,
+        },
+        quad: QuadEvidence {
+            nodes: 21_845,
+            leaves: 16_000,
+            depth: Depth::new(7).expect("the fixture depth is within the key width"),
+            type_entries: 65_000,
+        },
+        projector: Some(ProjectorEvidence {
+            steps: 12,
+            boundary: Some(FrozenRadiusEvidence::Measured { radius: 0.35 }),
+            unresolved_verdicts: 1,
+            ladder: Some(LadderEvidence {
+                rungs: vec![
+                    RungEvidence {
+                        condition: 0.0,
+                        relation_loss: 421.5,
+                        alignment: Similarity::IDENTITY,
+                        baseline_movement: 0.0,
+                        adjacent_movement: 0.0,
+                        monotonic: true,
+                        distinguishable: true,
+                    },
+                    RungEvidence {
+                        condition: 1.0,
+                        relation_loss: 397.25,
+                        // (0.6, 0.8) lies exactly on the unit
+                        // circle in f32.
+                        alignment: Similarity::new(
+                            1.25,
+                            Rotation::from_cos_sin(0.6, 0.8),
+                            Vec2::new(0.5, -0.25),
+                        )
+                        .expect("the fixture scale is finite, positive, and normal"),
+                        baseline_movement: 0.125,
+                        adjacent_movement: 0.125,
+                        monotonic: true,
+                        distinguishable: true,
+                    },
+                ],
+                canonical: 1.0,
+                canonical_index: 1,
+                persisted_relation_loss: 397.25,
+            }),
+        }),
     }
 }
 
@@ -227,6 +295,29 @@ fn an_absent_verdicts_role_round_trips_as_explicit_null() {
 }
 
 #[test]
+fn a_baseline_generation_records_projector_absence_as_explicit_null() {
+    let mut repository = repository();
+    repository.files.projector = None;
+    repository.metadata.placement = Placement::LandmarkBaseline;
+    repository.metadata.reproducibility.config.placement = PlacementOptions::LandmarkBaseline;
+    repository.metadata.evidence.projector = None;
+
+    let json = serde_json::to_string(&repository).expect("the repository should serialize");
+    assert!(
+        json.contains(r#""projector":null"#),
+        "the absent role should serialize as an explicit null: {json}"
+    );
+    assert!(
+        json.contains(r#""placement":"landmark-baseline""#),
+        "the placement should record the baseline: {json}"
+    );
+
+    let decoded: SaltRepository =
+        serde_json::from_str(&json).expect("the serialized repository should deserialize");
+    assert_eq!(decoded, repository);
+}
+
+#[test]
 fn a_tampered_configuration_echo_refuses_to_deserialize() {
     // Each tampered value violates a construction invariant of its
     // field's type; the validating deserialization is what turns the
@@ -263,6 +354,36 @@ fn a_tampered_configuration_echo_refuses_to_deserialize() {
         (
             "/metadata/reproducibility/config/policy/admission/class_probability_threshold",
             serde_json::json!(1.5),
+        ),
+        // The boundary must lie within the run.
+        (
+            "/metadata/reproducibility/config/placement/projector/schedule/boundary",
+            serde_json::json!(100),
+        ),
+        // The semantic coefficient anchors the budget and must be
+        // strictly positive.
+        (
+            "/metadata/reproducibility/config/placement/projector/coefficients",
+            serde_json::json!([0.0, 1.0, 1.0, 1.0, 0.0, 1.0]),
+        ),
+        // Rungs must ascend strictly from the exact zero baseline.
+        (
+            "/metadata/reproducibility/config/placement/projector/ladder/conditions",
+            serde_json::json!([0.0, 0.5, 0.25]),
+        ),
+        (
+            "/metadata/reproducibility/config/placement/projector/lens/temperature",
+            serde_json::json!(0.0),
+        ),
+        // The rotation of a recorded alignment must lie on the unit
+        // circle.
+        (
+            "/metadata/evidence/projector/ladder/rungs/1/alignment/rotation",
+            serde_json::json!([2.0, 2.0]),
+        ),
+        (
+            "/metadata/evidence/projector/ladder/rungs/1/alignment/scale",
+            serde_json::json!(0.0),
         ),
     ] {
         let mut document =

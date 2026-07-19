@@ -108,9 +108,11 @@ impl<'run> Session<'run> {
     /// # Errors
     ///
     /// Returns an error when the corpus cannot train (no semantic edge
-    /// weight) or the boundary is structurally inadmissible (Proximal
-    /// force without reviewed coverage or a configured assertion, or
-    /// Coincident force without any Proximal force).
+    /// weight) or the boundary is structurally inadmissible (a
+    /// measured radius with no opening segment in front of the
+    /// boundary, Proximal force without reviewed coverage or a
+    /// configured assertion, or Coincident force without any Proximal
+    /// force).
     pub(super) fn new(
         inputs: &'run TrainerInputs<'run>,
         options: &'run TrainOptions,
@@ -227,7 +229,7 @@ impl<'run> Session<'run> {
                 });
             }
 
-            let rung_index = rung(step_index, schedule.boundary);
+            let rung_index = rung(step_index, schedule.boundary, self.vacuous);
             let batch = draw_batch(
                 &self.sampler,
                 rung_index,
@@ -257,12 +259,20 @@ impl<'run> Session<'run> {
 
 /// Selects a step's rung index: zero through the opening segment,
 /// round-robin across [`RUNGS`] once the ladder opens.
+///
+/// A vacuous run pins the zero rung throughout. With no relation
+/// force the objective is identical at every rung, so lens variation
+/// could teach the modulation head nothing but batch-sampling noise;
+/// a zero condition instead leaves the head's condition weights with
+/// exactly zero gradient, so every projected rung of a forceless
+/// corpus is bit-identical - the flat ladder is a certificate, not an
+/// accident.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "the rung round-robin is a step-count modulus"
 )]
-const fn rung(step_index: usize, boundary: usize) -> usize {
-    if step_index < boundary {
+const fn rung(step_index: usize, boundary: usize, vacuous: bool) -> usize {
+    if vacuous || step_index < boundary {
         0
     } else {
         (step_index - boundary) % RUNGS.len()
@@ -303,9 +313,10 @@ fn draw_batch<R: Rng + ?Sized>(
 /// admissibility; returns whether the run is vacuous.
 ///
 /// The decision whether the boundary can freeze a radius is
-/// structural: force and review coverage are properties of the index
-/// and the verdicts, not of coordinates, so an impossible boundary
-/// fails here instead of after the opening segment.
+/// structural: force, review coverage, and the presence of an opening
+/// segment to measure after are properties of the index, the
+/// verdicts, and the schedule, not of coordinates, so an impossible
+/// boundary fails here instead of after the opening segment.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "a row-domain mismatch between one generation's artifacts is a wiring defect \
@@ -333,6 +344,12 @@ fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, Tra
 
     let force = ForceClasses::measure(inputs.attraction);
     if options.lens.asserted_radius.is_none() {
+        // A measured radius needs the semantic-only baseline in front
+        // of the boundary; measuring on the untrained init map would
+        // freeze a meaningless radius.
+        if force.proximal && options.schedule.boundary == 0 {
+            return Err(TrainError::UnbaselinedRadius);
+        }
         if force.proximal && !reviewed_proximal_force(inputs.attraction, inputs.verdicts) {
             return Err(TrainError::MissingProximalReviews);
         }

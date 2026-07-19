@@ -1,0 +1,544 @@
+//! The placement stage: the trained projector or the landmark baseline.
+//!
+//! The stage owns the coordinate seam of one fit. Under the baseline
+//! placement every row takes its assigned landmark's layout coordinate;
+//! under the projector placement the stage trains the conditioned model
+//! over the staged artifacts, stages its checkpoint, projects the whole
+//! corpus at every ladder rung, measures the ladder, and publishes the
+//! canonical rung's field aligned into the baseline frame. The metadata
+//! records which placement ran and, for a trained one, the training and
+//! ladder measurements.
+//!
+//! Rung frames are transient: each projects into the run's scratch
+//! directory and maps back for measurement, so the stage's owned
+//! working set stays one frame regardless of the schedule length. Only
+//! the canonical aligned column publishes - version 1 publishes one
+//! variant.
+
+use std::{
+    fs::File,
+    io::{BufWriter, Write as _},
+};
+
+use burn::{
+    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
+    module::AutodiffModule as _,
+};
+use camino::{Utf8Path, Utf8PathBuf};
+use zerocopy::{FromBytes as _, IntoBytes as _};
+
+use super::{
+    super::{
+        PlacementOptions, ProjectorOptions, Stage, SuppliedVerdicts,
+        error::{PlacementError, StageError},
+        prepare::identity::MappedIdentityTable,
+        role::{Role, digest_file},
+        stage_rng,
+    },
+    Context,
+};
+use crate::{
+    dataset::{ArchivedOntologyTypeUuid, NodeRowId, PROJECTOR_DIMENSIONS},
+    file::{
+        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+        identity::read::IdentityFile,
+        repository::RepositoryFile,
+        salt::metadata::{
+            FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
+        },
+    },
+    integrity::{Sha256, Writer},
+    math::{AlignedVecN, Vec2},
+    salt::{
+        knn::artifact::MappedKnn,
+        ladder::{Field, measure_ladder, select_canonical},
+        landmark::artifact::MappedLandmarkSkeleton,
+        projector::{
+            artifact,
+            loss::{AffinityEnergy, ProximalEnergy, RelationEnergy},
+            model::{NodeRole, Projector},
+            scale::LocalScales,
+            train::{
+                self, FrozenRadius, NodeColumns, SupportAnchor, TrainOptions, TrainerInputs,
+                refresh,
+            },
+            verdict::ResolvedVerdict,
+        },
+        relation::{RelationIndexes, attraction::AttractionIndex},
+        semantic::artifact::MappedSemanticGraph,
+    },
+};
+
+/// The training and inference backend of the placement stage.
+type TrainerBackend = Autodiff<NdArray>;
+
+/// The mapped artifacts one placement consumes, bound once per fit.
+pub(super) struct PlacementInputs<'fit> {
+    /// The mapped representation matrix, one aligned row per node.
+    pub rows: &'fit [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    /// The staged landmark skeleton.
+    pub skeleton: &'fit MappedLandmarkSkeleton,
+    /// The admitted neighbour table.
+    pub knn: &'fit MappedKnn,
+    /// The staged semantic graph.
+    pub semantic: &'fit MappedSemanticGraph,
+    /// The relation indexes, in the owned form the trainer consumes.
+    pub indexes: &'fit RelationIndexes,
+    /// The supplied reviewed verdicts, when the fit carries one.
+    pub verdicts: Option<&'fit SuppliedVerdicts>,
+}
+
+/// What the placement stage hands the assembly.
+pub(super) struct PlacementArtifacts {
+    /// The staged canonical coordinate column.
+    pub coordinates: RepositoryFile,
+    /// The staged projector checkpoint; present exactly for a trained
+    /// placement.
+    pub checkpoint: Option<RepositoryFile>,
+    /// Which placement ran.
+    pub placement: Placement,
+    /// The training and ladder measurements of a trained placement.
+    pub evidence: Option<ProjectorEvidence>,
+}
+
+impl Context<'_> {
+    /// Stages the canonical coordinates under the configured placement.
+    ///
+    /// `I` is the dataset's id type: verdict resolution reads the
+    /// staged ontology identity column under it.
+    pub(super) fn stage_placement<I>(
+        &self,
+        inputs: &PlacementInputs<'_>,
+    ) -> Result<PlacementArtifacts, StageError>
+    where
+        I: Copy
+            + zerocopy::IntoBytes
+            + zerocopy::FromBytes
+            + zerocopy::Immutable
+            + zerocopy::Unaligned
+            + zerocopy::KnownLayout,
+    {
+        let PlacementOptions::Projector(options) = &self.config.placement else {
+            let coordinates = self.stage_baseline_coordinates(inputs.skeleton)?;
+            tracing::info!("staged the baseline coordinates");
+            return Ok(PlacementArtifacts {
+                coordinates,
+                checkpoint: None,
+                placement: Placement::LandmarkBaseline,
+                evidence: None,
+            });
+        };
+
+        let _span = tracing::info_span!("projector").entered();
+        self.stage_projector::<I>(options, inputs)
+    }
+
+    /// Trains the projector, stages its checkpoint, and publishes the
+    /// canonical rung's aligned field.
+    fn stage_projector<I>(
+        &self,
+        options: &ProjectorOptions,
+        inputs: &PlacementInputs<'_>,
+    ) -> Result<PlacementArtifacts, StageError>
+    where
+        I: Copy
+            + zerocopy::IntoBytes
+            + zerocopy::FromBytes
+            + zerocopy::Immutable
+            + zerocopy::Unaligned
+            + zerocopy::KnownLayout,
+    {
+        let configured = options.architecture.representation_dimensions.get();
+        if configured != PROJECTOR_DIMENSIONS {
+            return Err(placement(PlacementError::RepresentationWidth {
+                configured,
+            }));
+        }
+        let affinity =
+            AffinityEnergy::new(self.config.curve, options.affinity_offset).ok_or_else(|| {
+                placement(PlacementError::ObjectiveCurve {
+                    exponent: self.config.curve.b(),
+                    offset: options.affinity_offset,
+                })
+            })?;
+
+        // Every corpus row is a knowledge entity: the dataset streams
+        // entities, and no other role projects yet.
+        let roles = vec![NodeRole::KnowledgeEntity; inputs.rows.len()];
+        let landmarks = landmark_anchors(inputs.skeleton, options);
+        let (resolved, unresolved) = self.resolve_verdicts::<I>(inputs.verdicts)?;
+
+        let columns = NodeColumns {
+            representations: inputs.rows,
+            roles: &roles,
+        };
+        let trainer_inputs = TrainerInputs {
+            semantic: inputs.semantic.view(),
+            protection: inputs.indexes.protection.view(),
+            protection_config: options.protection,
+            attraction: &inputs.indexes.attraction,
+            knn: inputs.knn.view(),
+            columns,
+            landmarks: &landmarks,
+            // TODO: prior-generation temporal anchors enter here once a
+            //       retained-anchor stage translates them.
+            anchors: &[],
+            verdicts: &resolved,
+        };
+        let train_options = TrainOptions {
+            schedule: options.schedule,
+            plan: options.plan,
+            affinity,
+            support: options.support,
+            budget: options.budget,
+            coefficients: options.coefficients,
+            miner: options.miner,
+            lens: options.lens,
+            forward_rows: options.forward_rows,
+        };
+
+        let fitted = self.train(options, &trainer_inputs, &train_options)?;
+        let checkpoint = self.stage_checkpoint(&fitted.model)?;
+
+        // Inference runs on the inner backend. The lens is trained
+        // exactly when the boundary froze a radius; without one the
+        // condition column received zero gradient at every step, every
+        // rung provably projects the identical field, and the baseline
+        // publishes directly with no ladder to measure.
+        let device = NdArrayDevice::default();
+        let model = fitted.model.valid();
+        let energy = fitted
+            .evidence
+            .boundary
+            .as_ref()
+            .and_then(|boundary| compose_energy(options, boundary.radius));
+
+        let ladder = if let Some(energy) = energy {
+            let _span = tracing::info_span!("ladder").entered();
+            Some(self.measure_conditions(options, &model, columns, inputs, energy)?)
+        } else {
+            let frame = refresh::forward(&model, columns, 0.0, options.forward_rows, &device)
+                .map_err(placement)?;
+            self.stage_coordinate_column(frame.iter().copied())?;
+            None
+        };
+        let coordinates = {
+            let digest = digest_file(self.staging.path_of(&Role::Coordinates.file_name()))?;
+            Role::Coordinates.file(digest)
+        };
+        tracing::info!("staged the canonical coordinates");
+
+        Ok(PlacementArtifacts {
+            coordinates,
+            checkpoint: Some(checkpoint),
+            placement: Placement::Projector,
+            evidence: Some(ProjectorEvidence {
+                steps: options.schedule.steps().get(),
+                boundary: fitted
+                    .evidence
+                    .boundary
+                    .as_ref()
+                    .map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
+                unresolved_verdicts: unresolved,
+                ladder,
+            }),
+        })
+    }
+
+    /// Runs the training loop under its own span.
+    fn train(
+        &self,
+        options: &ProjectorOptions,
+        inputs: &TrainerInputs<'_>,
+        train_options: &TrainOptions,
+    ) -> Result<train::Fitted<TrainerBackend>, StageError> {
+        let _span = tracing::info_span!("train").entered();
+        let device = NdArrayDevice::default();
+        let model = Projector::<TrainerBackend>::new(
+            options.architecture,
+            stage_rng(self.config.seed, Stage::ProjectorInit),
+            &device,
+        );
+        let fitted = train::fit(
+            model,
+            inputs,
+            train_options,
+            &mut stage_rng(self.config.seed, Stage::ProjectorDraws),
+            &device,
+        )
+        .map_err(placement)?;
+        tracing::info!(
+            steps = options.schedule.steps().get(),
+            "trained the projector"
+        );
+
+        Ok(fitted)
+    }
+
+    /// Stages the published model checkpoint, digesting the framework
+    /// bytes as they stream.
+    fn stage_checkpoint(
+        &self,
+        model: &Projector<TrainerBackend>,
+    ) -> Result<RepositoryFile, StageError> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: BufWriter::new(self.staging.create(&Role::Projector.file_name())?),
+        };
+        artifact::write_model(model, &mut writer).map_err(placement)?;
+        writer.writer.flush()?;
+        tracing::info!("staged the projector checkpoint");
+
+        Ok(Role::Projector.file(writer.accumulator.finalize()))
+    }
+
+    /// Projects, measures, and publishes the condition ladder,
+    /// returning its evidence.
+    ///
+    /// Every rung projects into the scratch directory and maps back;
+    /// the canonical rung's field, aligned into the baseline frame,
+    /// stages as the coordinate column, and the relation loss
+    /// re-measures over the persisted bytes.
+    fn measure_conditions(
+        &self,
+        options: &ProjectorOptions,
+        model: &Projector<NdArray>,
+        columns: NodeColumns<'_>,
+        inputs: &PlacementInputs<'_>,
+        energy: RelationEnergy,
+    ) -> Result<LadderEvidence, StageError> {
+        let device = NdArrayDevice::default();
+        let ladder = self.scratch.directory("ladder")?;
+        let conditions = options.ladder.conditions.values();
+
+        let mut losses = Vec::with_capacity(conditions.len());
+        for (index, &eta) in conditions.iter().enumerate() {
+            let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)
+                .map_err(placement)?;
+            let scales = refresh::scales(&frame, &inputs.knn.view(), eta).map_err(placement)?;
+            losses.push(relation_loss(
+                &frame,
+                &scales,
+                &inputs.indexes.attraction,
+                energy,
+            ));
+            write_frame(rung_path(&ladder, index), &frame)?;
+        }
+
+        // The frames map back together for the alignment fits; each is
+        // one scratch array file, so the resident set is the mapped
+        // pages the fits touch, not the owned frames.
+        let files = (0..conditions.len())
+            .map(|index| {
+                ArrayFile::open(rung_path(&ladder, index)).map_err(StageError::MapCoordinates)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let fields: Vec<Field<'_>> = files
+            .iter()
+            .zip(&losses)
+            .map(|(file, &relation_loss)| Field {
+                coordinates: file
+                    .points()
+                    .expect("the rung frame was written as f32 pairs"),
+                relation_loss,
+            })
+            .collect();
+
+        let measurements = measure_ladder(
+            &options.ladder.conditions,
+            &fields,
+            options.ladder.measurement,
+        )
+        .map_err(placement)?;
+        let selection =
+            select_canonical(&measurements, options.ladder.canonical).map_err(placement)?;
+        let alignment = selection.measurement.alignment;
+        tracing::info!(
+            canonical = selection.measurement.condition,
+            index = selection.index,
+            "selected the canonical rung"
+        );
+
+        let canonical = fields[selection.index].coordinates;
+        self.stage_coordinate_column(canonical.iter().map(|&point| alignment.apply(point)))?;
+
+        // Re-measured over the persisted bytes: the narrowing to `f32`
+        // and the alignment application are inside the measurement.
+        let persisted_relation_loss = {
+            let file = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
+                .map_err(StageError::MapCoordinates)?;
+            let frame = file
+                .points()
+                .expect("the coordinate column was sealed as f32 pairs");
+            let scales =
+                refresh::scales(frame, &inputs.knn.view(), selection.measurement.condition)
+                    .map_err(placement)?;
+            relation_loss(frame, &scales, &inputs.indexes.attraction, energy)
+        };
+
+        Ok(LadderEvidence {
+            rungs: measurements.iter().map(RungEvidence::from).collect(),
+            canonical: selection.measurement.condition,
+            canonical_index: selection.index,
+            persisted_relation_loss,
+        })
+    }
+
+    /// Streams one coordinate frame into the staged canonical column.
+    fn stage_coordinate_column(
+        &self,
+        points: impl Iterator<Item = Vec2>,
+    ) -> Result<(), StageError> {
+        let mut writer = BufWriter::new(self.staging.create(&Role::Coordinates.file_name())?);
+        let mut array = ArrayWriter::new(&mut writer, ArrayVariant::F32, &[Dim::new(2)])?;
+        for point in points {
+            array.write_row(point.as_bytes())?;
+        }
+        array.finish()?;
+        writer.flush()?;
+        Ok(())
+    }
+
+    /// Resolves the supplied verdicts against the staged ontology
+    /// identity column.
+    ///
+    /// Resolution binds store identities: when the dataset's id type is
+    /// not identity-shaped, no verdict can name a row of this corpus
+    /// and every one records as unresolved.
+    fn resolve_verdicts<I>(
+        &self,
+        verdicts: Option<&SuppliedVerdicts>,
+    ) -> Result<(Vec<ResolvedVerdict>, usize), StageError>
+    where
+        I: Copy
+            + zerocopy::IntoBytes
+            + zerocopy::FromBytes
+            + zerocopy::Immutable
+            + zerocopy::Unaligned
+            + zerocopy::KnownLayout,
+    {
+        let Some(supplied) = verdicts else {
+            return Ok((Vec::new(), 0));
+        };
+
+        if size_of::<I>() != size_of::<ArchivedOntologyTypeUuid>() {
+            return Ok((Vec::new(), supplied.document().type_verdicts().len()));
+        }
+
+        let table = MappedIdentityTable::<I>::new(IdentityFile::open(
+            self.staging.path_of(&Role::OntologyIdentities.file_name()),
+        )?)?;
+        let ids = <[ArchivedOntologyTypeUuid]>::ref_from_bytes(table.ids().as_bytes())
+            .expect("both id types are unaligned and equally wide");
+        let resolution = supplied.document().resolve(ids);
+        let unresolved = resolution.unresolved().len();
+        tracing::info!(
+            resolved = resolution.resolved().len(),
+            unresolved,
+            "resolved the supplied verdicts"
+        );
+
+        Ok((resolution.resolved().to_vec(), unresolved))
+    }
+}
+
+/// Wraps a placement failure for the stage surface.
+fn placement(error: impl Into<PlacementError>) -> StageError {
+    StageError::Placement(error.into())
+}
+
+/// Composes the relation energy the ladder measures with, from the
+/// configured lens and the boundary's frozen radius.
+///
+/// Returns [`None`] for a vacuous boundary: no force means no relation
+/// loss to measure.
+fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<RelationEnergy> {
+    let radius = match radius {
+        FrozenRadius::Measured { radius } | FrozenRadius::Asserted { radius } => radius,
+        FrozenRadius::Vacuous => return None,
+    };
+    let proximal = ProximalEnergy::new(radius, options.lens.temperature())
+        .expect("the trainer froze a finite, non-negative radius");
+    Some(
+        RelationEnergy::new(options.lens.coincident(), proximal, options.lens.epsilon())
+            .expect("the trainer composed this energy at the boundary"),
+    )
+}
+
+/// Anchors every skeleton landmark at its laid-out coordinate.
+fn landmark_anchors(
+    skeleton: &MappedLandmarkSkeleton,
+    options: &ProjectorOptions,
+) -> Vec<SupportAnchor> {
+    skeleton
+        .selected_rows()
+        .iter()
+        .zip(skeleton.coordinates())
+        .map(|(&row, &target)| SupportAnchor {
+            row,
+            target,
+            radius: options.landmark_support.radius(),
+            weight: options.landmark_support.weight(),
+        })
+        .collect()
+}
+
+/// Returns one rung's scratch frame path.
+fn rung_path(ladder: &Utf8Path, index: usize) -> Utf8PathBuf {
+    ladder.join(format!("rung-{index}.arr"))
+}
+
+/// Writes one rung's frame as a scratch array file.
+fn write_frame(path: impl AsRef<Utf8Path>, frame: &[Vec2]) -> Result<(), StageError> {
+    let mut writer = BufWriter::new(File::create(path.as_ref().as_std_path())?);
+    let mut array = ArrayWriter::new(&mut writer, ArrayVariant::F32, &[Dim::new(2)])?;
+    for point in frame {
+        array.write_row(point.as_bytes())?;
+    }
+    array.finish()?;
+    writer.flush()?;
+    Ok(())
+}
+
+/// Measures the corpus-total relation loss of one frame: every
+/// attraction instance's weighted class-mixture energy at its locally
+/// normalized distance, accumulated in double precision.
+///
+/// The per-instance formula is the batch relation term's with the
+/// estimator scale at one; the twin lives at
+/// [`relation_term`](crate::salt::projector::loss::relation_term).
+fn relation_loss(
+    frame: &[Vec2],
+    scales: &LocalScales,
+    index: &AttractionIndex,
+    energy: RelationEnergy,
+) -> f64 {
+    let epsilon = energy.epsilon();
+    let rho = scales.as_slice();
+
+    let mut total = 0.0_f64;
+    for group in index.groups() {
+        let weights = group.weights();
+        for edge in group.edges() {
+            let source = row_index(edge.source);
+            let target = row_index(edge.target);
+            let difference = frame[source] - frame[target];
+            let distance = difference.length();
+            let normalization = ((rho[source] + epsilon) * (rho[target] + epsilon)).sqrt();
+            let (value, _) = energy.mixture(
+                distance / normalization,
+                weights.coincident,
+                weights.proximal,
+            );
+            let factor = edge.confidence.value() * edge.degree_normalization * weights.strength;
+
+            total = f64::from(factor).mul_add(f64::from(value), total);
+        }
+    }
+    total
+}
+
+/// Narrows a node row to a slice position.
+fn row_index(row: NodeRowId) -> usize {
+    usize::try_from(row.get()).expect("rows fit the address space")
+}

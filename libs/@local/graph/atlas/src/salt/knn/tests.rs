@@ -173,6 +173,11 @@ struct DoubledIndex(ExactIndex);
 /// A misbehaving backend naming rows outside the domain.
 struct EscapingIndex(ExactIndex);
 
+/// A backend degraded by a per-row offset: row `i` skips the nearest
+/// `i & 7` candidates, so per-row recall spans a linear ramp and any
+/// non-degenerate sample measures real spread.
+struct MixedIndex(ExactIndex);
+
 macro_rules! delegate_all_but_search_by_id {
     () => {
         type Error = !;
@@ -256,6 +261,24 @@ impl NearestNeighboursIndex for EscapingIndex {
             id: NodeRowId::new(neighbour.id.get() + rows),
             distance: neighbour.distance,
         }))
+    }
+}
+
+impl NearestNeighboursIndex for MixedIndex {
+    delegate_all_but_search_by_id!();
+
+    fn search_by_id(
+        &self,
+        id: NodeRowId,
+        limit: usize,
+    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+        let ranked = self.0.ranked_by_id(id);
+        let skip = (id.get() & 7) as usize;
+        Ok(ranked
+            .into_iter()
+            .skip(skip)
+            .take(limit)
+            .collect::<Vec<_>>())
     }
 }
 
@@ -558,26 +581,94 @@ fn spot_check_honours_configured_options() {
 }
 
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
 fn spot_check_rejects_a_meaningless_sampling_budget() {
-    let rows = fan_fixture(2, 0.15);
+    let rows = fan_fixture(4, 0.15);
     let matrix = Matrix::new(&rows);
     let index = ExactIndex::from_rows(&rows);
     let result = recall::spot_check(
         &index,
         matrix.view(),
-        recall::SpotCheckOptions {
-            defect_rate: 0.0,
-            ..
-        },
+        recall::SpotCheckOptions { margin: 0.0, .. },
         Xoshiro256PlusPlus::seed_from_u64(42),
     );
     assert!(matches!(
         result,
         Err(KnnError::SampleBudget {
-            defect_rate: 0.0,
-            confidence: 0.999,
+            margin: 0.0,
+            confidence: 0.99,
         }),
     ));
+}
+
+/// A pilot whose spread already resolves the margin decides the check
+/// without a second sample.
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn spot_check_stops_at_a_decisive_pilot() {
+    let rows = fan_fixture(60, 0.02);
+    let matrix = Matrix::new(&rows);
+    let index = ExactIndex::from_rows(&rows);
+
+    // An exact backend reads recall 1.0 on every pilot row: zero
+    // spread requires zero further samples, so the verdict comes from
+    // the pilot alone.
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions {
+            pilot: NonZero::new(4).expect("four is nonzero"),
+            ..
+        },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the exact backend answers every query");
+
+    assert_eq!(check.sampled_rows, 4);
+    assert_eq!(check.deviation, 0.0);
+    assert_eq!(check.recall(), 1.0);
+    assert!(check.meets_minimum());
+}
+
+/// A pilot too spread to resolve the margin triggers a correctly
+/// sized second sample.
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn spot_check_resizes_an_uncertain_pilot() {
+    let rows = fan_fixture(60, 0.02);
+    let matrix = Matrix::new(&rows);
+    let index = MixedIndex(ExactIndex::from_rows(&rows));
+
+    // Row `i` matches exactly `50 - (i & 7)` of its exact top 50, so
+    // per-row recall ramps 0.86..1.0 and any pilot mixing residues
+    // measures real spread. Under the tight margin the requirement
+    // far exceeds the corpus, capping at an exhaustive second sample:
+    // ids 0..59 sum their residues to 7 * 28 + 6 = 202 skipped rows.
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions {
+            margin: 0.001,
+            pilot: NonZero::new(4).expect("four is nonzero"),
+            ..
+        },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the mixed backend answers every query");
+
+    assert_eq!(check.sampled_rows, 60, "the second sample is exhaustive");
+    assert_eq!(check.matched, 60 * 50 - 202);
+    assert_eq!(check.expected, 60 * 50);
+    assert!(check.deviation > 0.0);
 }
 
 #[test]

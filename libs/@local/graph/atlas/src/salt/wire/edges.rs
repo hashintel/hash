@@ -1,17 +1,21 @@
-//! The edges response: HEAD and three edge columns as one envelope.
+//! The edges response: `HEAD` and three edge columns as one envelope.
 //!
 //! An edges document carries its delivery-order columns directly -
 //! the endpoint assembles them by merging the adjacency artifact over
 //! the requested tiles' delivered rows and applying the rank-ordered
 //! cap - so unlike the tile document nothing here slices base-order
-//! arrays. The `SALTILEE` envelope has four slots: HEAD,
-//! EDGE_SOURCES, EDGE_TARGETS, EDGE_ROW_IDS, every one always
+//! arrays. The `SALTILEE` envelope has four slots: `HEAD`,
+//! `EDGE_SOURCES`, `EDGE_TARGETS`, `EDGE_ROW_IDS`, every one always
 //! present (a tile set without visible edges delivers present-empty
 //! columns).
 //!
-//! The HEAD keeps an explicit `complete` flag: cap truncation is not
+//! The `HEAD` keeps an explicit `complete` flag: cap truncation is not
 //! derivable client-side, while auth-invisible edges are not
 //! truncation at all - missing is denied.
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "column integers are pinned little-endian by the wire contract"
+)]
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::integrity::Sha256Digest;
@@ -19,18 +23,18 @@ use crate::integrity::Sha256Digest;
 /// One edges response in writable form.
 #[derive(Debug)]
 pub(crate) struct EdgesResponse<'doc> {
-    /// HEAD key 0: the generation identity, echoing the route.
+    /// `HEAD` key 0: the generation identity, echoing the route.
     pub generation: Sha256Digest,
-    /// HEAD key 1: the variant index, echoing the route.
+    /// `HEAD` key 1: the variant index, echoing the route.
     pub variant: u64,
-    /// HEAD key 3: `false` when the rank-ordered cap truncated the
+    /// `HEAD` key 3: `false` when the rank-ordered cap truncated the
     /// set.
     pub complete: bool,
-    /// The EDGE_SOURCES column: node row ids, delivery order.
+    /// The `EDGE_SOURCES` column: node row ids, delivery order.
     pub sources: &'doc [u32],
-    /// The EDGE_TARGETS column: node row ids, delivery order.
+    /// The `EDGE_TARGETS` column: node row ids, delivery order.
     pub targets: &'doc [u32],
-    /// The EDGE_ROW_IDS column: edge row ids, delivery order.
+    /// The `EDGE_ROW_IDS` column: edge row ids, delivery order.
     pub edge_rows: &'doc [u32],
     /// The hydrated detail trailer; `Some` iff the request set
     /// `includeDetailedData`.
@@ -74,7 +78,7 @@ impl EdgesResponse<'_> {
         }
     }
 
-    /// Encodes the HEAD map: keys 0 through 4.
+    /// Encodes the `HEAD` map: keys 0 through 4.
     fn encode_head(&self, count: u64) -> Vec<u8> {
         let mut cbor = CborWriter::new();
         cbor.map(5);
@@ -96,6 +100,10 @@ impl EdgesResponse<'_> {
 
 /// The edges detail trailer: four per-edge detail arrays, edge order,
 /// `null` marking an edge whose entry did not resolve.
+#[expect(
+    clippy::struct_field_names,
+    reason = "the fields mirror the wire trailer key names verbatim"
+)]
 #[derive(Debug)]
 pub(crate) struct EdgesTrailer<'doc> {
     /// Trailer key 0.

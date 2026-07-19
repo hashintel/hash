@@ -1,6 +1,7 @@
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
+use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use camino::{Utf8Path, Utf8PathBuf};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -8,8 +9,8 @@ use smallvec::smallvec;
 use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{
-    FitConfig, FitError, PolicyOptions, StageError, SuppliedVerdicts, fit,
-    prepare::identity::MappedIdentityTable,
+    FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions, StageError,
+    SuppliedVerdicts, error::PlacementError, fit, prepare::identity::MappedIdentityTable,
 };
 use crate::{
     dataset::{
@@ -29,15 +30,16 @@ use crate::{
         quad::read::QuadFile,
         salt::{
             SaltRepository,
-            metadata::{Placement, RankingOrigin},
+            metadata::{FrozenRadiusEvidence, Placement, RankingOrigin},
         },
         sprs::read::SprsFile,
     },
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Similarity, Vec2, VecN},
     salt::{
         adjacency::{EdgeList, MappedAdjacency},
         embedding::{CardEmbedder, EmbedderFingerprint},
+        ladder::CanonicalError,
         landmark::{artifact::MappedLandmarkSkeleton, select::SelectionOptions},
         policy::{
             PolicyOverride, PolicySource, Posterior,
@@ -47,7 +49,13 @@ use crate::{
                 fit as fit_classifier,
             },
         },
-        projector::verdict::ReviewedVerdicts,
+        projector::{
+            artifact,
+            loss::CoincidentEnergy,
+            model::NodeRole,
+            train::{BatchPlan, NodeColumns, RelationLens, TrainingSchedule, refresh},
+            verdict::ReviewedVerdicts,
+        },
         relation::artifact::{MappedAttraction, MappedProtection},
     },
 };
@@ -280,6 +288,10 @@ async fn fit_publishes_a_complete_generation() {
 
     // No verdicts were supplied: the manifest records the absence.
     assert!(repository.files.reviewed_verdicts.is_none());
+    // The baseline placement trains no model: the manifest records
+    // the checkpoint's absence beside the placement identity.
+    assert!(repository.files.projector.is_none());
+    assert!(repository.metadata.evidence.projector.is_none());
 
     // The snapshot records what the dataset streamed.
     assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
@@ -781,6 +793,305 @@ async fn a_defective_corpus_publishes_nothing() {
     );
 
     // Failure leaves nothing behind: no generation, no transients.
+    let entries: Vec<_> = fs::read_dir(&path)
+        .expect("the root should list")
+        .map(|entry| entry.expect("the entry should read").file_name())
+        .collect();
+    assert!(
+        entries.is_empty(),
+        "a failed fit should leave nothing visible: {entries:?}"
+    );
+}
+
+/// The projector fixture's training run: short enough for a test,
+/// long enough that the boundary and every rung run.
+fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
+    let schedule = TrainingSchedule::new(
+        NonZero::new(12).expect("the fixture step count is nonzero"),
+        6,
+        NonZero::new(4).expect("the fixture cadence is nonzero"),
+        1.0e-3,
+        1.0e-5,
+    )
+    .expect("the fixture schedule is valid");
+
+    let mut options = ProjectorOptions::reference(schedule);
+    options.plan = BatchPlan {
+        semantic_pairs: NonZero::new(8).expect("the fixture draw is nonzero"),
+        ordinary_pairs: 4,
+        relation_types: 1,
+        relation_cap: NonZero::new(4).expect("the fixture cap is nonzero"),
+        hard_queries: 2,
+        landmark_anchors: 2,
+        temporal_anchors: 0,
+    };
+    options.lens = RelationLens::new(
+        CoincidentEnergy::new(0.5, 0.5).expect("the fixture energy is valid"),
+        0.25,
+        1.0e-8,
+        asserted_radius,
+    )
+    .expect("the fixture lens is valid");
+    options.forward_rows = NonZero::new(16).expect("the fixture slice is nonzero");
+    options
+}
+
+/// Reproduces one corpus forward of a published generation's model.
+fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<Vec2> {
+    let checkpoint = fs::read(published.join("projector.mpk")).expect("the checkpoint reads");
+    let model = artifact::open_model::<NdArray>(
+        checkpoint.as_slice(),
+        options.architecture,
+        &NdArrayDevice::default(),
+    )
+    .expect("the checkpoint opens on the plain backend");
+
+    let representations =
+        ArrayFile::open(published.join("representations.arr")).expect("the matrix maps");
+    let rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>] = representations
+        .vectors()
+        .expect("the matrix holds projector-width rows");
+    let roles = vec![NodeRole::KnowledgeEntity; rows.len()];
+
+    refresh::forward(
+        &model,
+        NodeColumns {
+            representations: rows,
+            roles: &roles,
+        },
+        eta,
+        options.forward_rows,
+        &NdArrayDevice::default(),
+    )
+    .expect("the published model projects finitely")
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_forceless_projector_publishes_the_baseline_rung() {
+    let root = GenerationRoot::new(scratch("projector-vacuous")).expect("the root should open");
+    let dataset = dataset();
+
+    // An Overlay override strips the fixture's link type of force: the
+    // boundary freezes nothing, the lens provably never trains, and the
+    // ladder is skipped whole.
+    let options = projector_options(None);
+    let config = FitConfig {
+        placement: PlacementOptions::Projector(Box::new(options.clone())),
+        policy: PolicyOptions {
+            overrides: vec![PolicyOverride {
+                relation: OntologyRowId::new(2),
+                source: PolicySource::Human,
+                distribution: Posterior::new([0.0, 0.0, 1.0])
+                    .expect("the asserted distribution sums to one"),
+            }],
+            ..
+        },
+        ..config()
+    };
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+
+    assert_eq!(repository.metadata.placement, Placement::Projector);
+    assert_eq!(repository.metadata.reproducibility.config, config);
+    let evidence = repository
+        .metadata
+        .evidence
+        .projector
+        .as_ref()
+        .expect("a trained placement records projector evidence");
+    assert_eq!(evidence.steps, 12);
+    assert_eq!(
+        evidence.boundary,
+        Some(FrozenRadiusEvidence::Vacuous),
+        "a forceless index freezes nothing"
+    );
+    assert!(
+        evidence.ladder.is_none(),
+        "a forceless run measures no ladder"
+    );
+
+    // The published checkpoint reproduces the published coordinates:
+    // reopening the model on a plain backend and projecting the
+    // published representations at the baseline rung is bit-identical
+    // to the staged column.
+    let projected = reproject(published.path(), &options, 0.0);
+    let coordinates =
+        ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
+    let placed = coordinates.points().expect("the column holds 2D points");
+    assert_eq!(placed.len(), projected.len());
+    assert!(
+        placed
+            .iter()
+            .zip(&projected)
+            .all(
+                |(persisted, fresh)| persisted.x().to_bits() == fresh.x().to_bits()
+                    && persisted.y().to_bits() == fresh.y().to_bits()
+            ),
+        "the published column should be the model's own projection",
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
+    let root = GenerationRoot::new(scratch("projector-ladder")).expect("the root should open");
+    let dataset = dataset();
+
+    // A Proximal override gives the link type full force; the memory
+    // dataset's ids carry no store identity, so the radius must be
+    // asserted for the boundary to freeze.
+    let options = projector_options(Some(1.0));
+    let config = FitConfig {
+        placement: PlacementOptions::Projector(Box::new(options.clone())),
+        policy: PolicyOptions {
+            overrides: vec![PolicyOverride {
+                relation: OntologyRowId::new(2),
+                source: PolicySource::Human,
+                distribution: Posterior::new([0.0, 1.0, 0.0])
+                    .expect("the asserted distribution sums to one"),
+            }],
+            ..
+        },
+        ..config()
+    };
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+
+    assert_eq!(repository.metadata.placement, Placement::Projector);
+    let evidence = repository
+        .metadata
+        .evidence
+        .projector
+        .as_ref()
+        .expect("a trained placement records projector evidence");
+    assert_eq!(
+        evidence.boundary,
+        Some(FrozenRadiusEvidence::Asserted { radius: 1.0 }),
+        "the configured radius supersedes the empty review set"
+    );
+
+    let ladder = evidence
+        .ladder
+        .as_ref()
+        .expect("a trained lens measures the ladder");
+    assert_eq!(ladder.rungs.len(), options.ladder.conditions.len());
+    assert_eq!(ladder.canonical.to_bits(), 1.0_f32.to_bits());
+    assert_eq!(ladder.canonical_index, ladder.rungs.len() - 1);
+    assert!(ladder.persisted_relation_loss.is_finite());
+
+    // The baseline rung is its own frame; every recorded loss is a
+    // real measurement.
+    assert_eq!(ladder.rungs[0].alignment, Similarity::IDENTITY);
+    assert_eq!(
+        ladder.rungs[0].baseline_movement.to_bits(),
+        0.0_f64.to_bits()
+    );
+    assert!(
+        ladder
+            .rungs
+            .iter()
+            .all(|rung| rung.relation_loss.is_finite()),
+    );
+    // The lens is trained: the canonical rung moved measurably against
+    // its predecessor.
+    let canonical = &ladder.rungs[ladder.canonical_index];
+    assert!(canonical.distinguishable && canonical.monotonic);
+    assert!(canonical.adjacent_movement > 0.0);
+
+    // The published column is the canonical rung's projection under
+    // the recorded alignment, bit for bit: checkpoint, evidence, and
+    // column describe one field.
+    let projected = reproject(published.path(), &options, ladder.canonical);
+    let coordinates =
+        ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
+    let placed = coordinates.points().expect("the column holds 2D points");
+    assert_eq!(placed.len(), projected.len());
+    assert!(
+        placed.iter().zip(&projected).all(|(persisted, fresh)| {
+            let aligned = canonical.alignment.apply(*fresh);
+            persisted.x().to_bits() == aligned.x().to_bits()
+                && persisted.y().to_bits() == aligned.y().to_bits()
+        }),
+        "the published column should be the aligned canonical projection",
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_canonical_condition_outside_the_schedule_publishes_nothing() {
+    let path = scratch("projector-unknown-rung");
+    let root = GenerationRoot::new(&path).expect("the root should open");
+    let dataset = dataset();
+
+    // 0.3 names no rung of the measured schedule: the configuration
+    // contradicts itself and the fit must refuse to publish.
+    let mut options = projector_options(Some(1.0));
+    options.ladder.canonical = 0.3;
+    let config = FitConfig {
+        placement: PlacementOptions::Projector(Box::new(options)),
+        policy: PolicyOptions {
+            overrides: vec![PolicyOverride {
+                relation: OntologyRowId::new(2),
+                source: PolicySource::Human,
+                distribution: Posterior::new([0.0, 1.0, 0.0])
+                    .expect("the asserted distribution sums to one"),
+            }],
+            ..
+        },
+        ..config()
+    };
+
+    let result = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await;
+    assert!(
+        matches!(
+            result,
+            Err(FitError::Stage(StageError::Placement(
+                PlacementError::Canonical(CanonicalError::UnknownRung { .. })
+            ))),
+        ),
+        "an off-schedule canonical condition should abort the fit",
+    );
+
     let entries: Vec<_> = fs::read_dir(&path)
         .expect("the root should list")
         .map(|entry| entry.expect("the entry should read").file_name())

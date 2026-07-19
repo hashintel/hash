@@ -249,8 +249,23 @@ export type FetchLike = (
     method?: string;
     headers?: Record<string, string>;
     body?: string;
+    signal?: AbortSignal;
+    priority?: RequestPriority;
   },
 ) => Promise<Response>;
+
+/**
+ * Per-request transport controls, forwarded to the fetch
+ * implementation verbatim. Never part of the response cache identity:
+ * an aborted request rejects before caching, so a cancelled prefetch
+ * costs a refetch, never a poisoned entry.
+ */
+export interface RequestControls {
+  /** Aborts the request (speculative prefetches are cancellable). */
+  readonly signal?: AbortSignal;
+  /** Network priority hint; prefetches pass "low". */
+  readonly priority?: RequestPriority;
+}
 
 export interface AtlasSession {
   readonly generation: string;
@@ -326,6 +341,7 @@ export class AtlasClient {
     session: AtlasSession,
     coordinate: TileCoordinate,
     query: TileQuery = {},
+    controls: RequestControls = {},
   ): Promise<DecodedSaltileTile> {
     const typeIds = query.coloredTypeIds ?? [];
     if (typeIds.length > session.manifest.limits.coloredTypeIds) {
@@ -334,7 +350,7 @@ export class AtlasClient {
       );
     }
     const route = `/v1/atlas/tile/${session.generation}/${session.variant}/${coordinate.z}/${coordinate.x}/${coordinate.y}`;
-    const buffer = await this.#post(route, query);
+    const buffer = await this.#post(route, query, controls);
     return decodeSaltileTile(buffer, {
       generation: session.generationBytes,
       variant: session.manifest.variants.indexOf(session.variant),
@@ -349,6 +365,7 @@ export class AtlasClient {
   async edges(
     session: AtlasSession,
     query: EdgesQuery,
+    controls: RequestControls = {},
   ): Promise<DecodedSaltileEdges> {
     if (query.tiles.length > session.manifest.limits.edgesTiles) {
       contractFail(
@@ -356,7 +373,7 @@ export class AtlasClient {
       );
     }
     const route = `/v1/atlas/edges/${session.generation}/${session.variant}`;
-    const buffer = await this.#post(route, query);
+    const buffer = await this.#post(route, query, controls);
     return decodeSaltileEdges(buffer, {
       generation: session.generationBytes,
       variant: session.manifest.variants.indexOf(session.variant),
@@ -364,7 +381,11 @@ export class AtlasClient {
     });
   }
 
-  async #post(route: string, query: unknown): Promise<ArrayBuffer> {
+  async #post(
+    route: string,
+    query: unknown,
+    controls: RequestControls,
+  ): Promise<ArrayBuffer> {
     const key = `${route} ${stableStringify(query)}`;
     const cached = this.#cache.get(key);
     if (cached !== undefined) {
@@ -375,6 +396,10 @@ export class AtlasClient {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(query),
+      ...(controls.signal === undefined ? {} : { signal: controls.signal }),
+      ...(controls.priority === undefined
+        ? {}
+        : { priority: controls.priority }),
     });
     if (!response.ok) {
       return raiseProblem(response);

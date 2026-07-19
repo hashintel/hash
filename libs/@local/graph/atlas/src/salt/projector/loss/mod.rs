@@ -370,10 +370,27 @@ impl SupportOptions {
     ///
     /// Returns [`None`] unless both are finite and strictly positive.
     #[must_use]
-    pub(crate) fn new(threshold: f32, epsilon: f32) -> Option<Self> {
+    pub(crate) const fn new(threshold: f32, epsilon: f32) -> Option<Self> {
         let valid =
             threshold.is_finite() && threshold > 0.0 && epsilon.is_finite() && epsilon > 0.0;
-        valid.then_some(Self { threshold, epsilon })
+        if !valid {
+            return None;
+        }
+        Some(Self { threshold, epsilon })
+    }
+
+    /// Returns the Huber threshold.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn threshold(self) -> f32 {
+        self.threshold
+    }
+
+    /// Returns the radius guard.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn epsilon(self) -> f32 {
+        self.epsilon
     }
 }
 

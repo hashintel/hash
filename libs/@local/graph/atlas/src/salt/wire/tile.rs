@@ -1,4 +1,4 @@
-//! The tile response: HEAD, columns, and trailer as one envelope.
+//! The tile response: `HEAD`, columns, and trailer as one envelope.
 //!
 //! A tile document borrows the generation's base-order columns and
 //! names its delivered set as contiguous base-position ranges in
@@ -7,14 +7,18 @@
 //! tile are bucket-major run lists). Encoding gathers the column
 //! slices, assembles the per-point type masks from the postings
 //! membership, and lays everything into the `SALTILET` five-slot
-//! envelope: HEAD, POSITIONS, ROW_IDS, TYPE_MASK, and the reserved
-//! MASS slot, absent until the product wants density.
+//! envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved
+//! `MASS` slot, absent until the product wants density.
 //!
 //! The document's consistency laws are producer contracts and panic
-//! when violated: the range lengths and the HEAD's per-bucket runs
+//! when violated: the range lengths and the `HEAD`'s per-bucket runs
 //! must agree on the delivered count, trailer arrays cover exactly
 //! the delivered points, and children bits beyond the low four are
 //! reserved zero.
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "column integers are pinned little-endian by the wire contract"
+)]
 
 use core::ops::Range;
 
@@ -28,7 +32,7 @@ use crate::{
 /// One tile response in writable form.
 #[derive(Debug)]
 pub(crate) struct TileResponse<'doc> {
-    /// The HEAD document, slot 0.
+    /// The `HEAD` document, slot 0.
     pub head: TileHead<'doc>,
     /// The delivered set: contiguous base-position ranges in delivery
     /// order. Zero-length ranges are legal and deliver nothing.
@@ -40,7 +44,7 @@ pub(crate) struct TileResponse<'doc> {
     /// Per-type membership for the request's `coloredTypeIds`, in
     /// request order: bit `i` of every point's mask reads from
     /// `masks[i]`. `None` when the request carried no ids - the
-    /// TYPE_MASK slot is then absent rather than empty.
+    /// `TYPE_MASK` slot is then absent rather than empty.
     pub masks: Option<&'doc [Membership<'doc>]>,
     /// The hydrated detail trailer; `Some` iff the request set
     /// `includeDetailedData`.
@@ -53,7 +57,7 @@ impl TileResponse<'_> {
     /// # Panics
     ///
     /// Panics when the document is inconsistent: range lengths and
-    /// HEAD runs disagreeing on the delivered count, reserved children
+    /// `HEAD` runs disagreeing on the delivered count, reserved children
     /// bits set, or trailer arrays not covering the delivered points.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
@@ -94,7 +98,7 @@ impl TileResponse<'_> {
         }
     }
 
-    /// Gathers the POSITIONS column: f32 xy pairs, delivered order.
+    /// Gathers the `POSITIONS` column: f32 xy pairs, delivered order.
     fn positions_column(&self) -> Vec<u8> {
         let mut column = Vec::new();
         for range in self.ranges {
@@ -107,7 +111,7 @@ impl TileResponse<'_> {
         column
     }
 
-    /// Gathers the ROW_IDS column: u32 row ids, delivered order.
+    /// Gathers the `ROW_IDS` column: u32 row ids, delivered order.
     fn rows_column(&self) -> Vec<u8> {
         let mut column = Vec::new();
         for range in self.ranges {
@@ -119,7 +123,7 @@ impl TileResponse<'_> {
         column
     }
 
-    /// Assembles the TYPE_MASK column: one `ceil(n/8)`-byte mask per
+    /// Assembles the `TYPE_MASK` column: one `ceil(n/8)`-byte mask per
     /// delivered point, bit `i` LSB-first when the point carries the
     /// request's type `i`.
     ///
@@ -150,7 +154,7 @@ impl TileResponse<'_> {
     }
 }
 
-/// The tile HEAD document, slot 0: keys 0 through 10.
+/// The tile `HEAD` document, slot 0: keys 0 through 10.
 #[derive(Debug)]
 pub(crate) struct TileHead<'doc> {
     /// Key 0: the generation identity, echoing the route.
@@ -178,7 +182,7 @@ pub(crate) struct TileHead<'doc> {
 }
 
 impl TileHead<'_> {
-    /// Encodes the HEAD map; key 4 (`delivered`) and key 10
+    /// Encodes the `HEAD` map; key 4 (`delivered`) and key 10
     /// (`trailer`) are derived from the response rather than stored.
     fn encode(&self, delivered: u64, trailer: bool) -> Vec<u8> {
         assert!(
@@ -224,7 +228,7 @@ impl TileHead<'_> {
     }
 }
 
-/// A tile address: the route's `z/x/y`, echoed as HEAD key 2.
+/// A tile address: the route's `z/x/y`, echoed as `HEAD` key 2.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct TileCoordinate {
     /// The zoom, a subdivision depth.
@@ -235,7 +239,7 @@ pub(crate) struct TileCoordinate {
     pub y: u32,
 }
 
-/// HEAD key 8: metadata of the entire post-intersection visible set.
+/// `HEAD` key 8: metadata of the entire post-intersection visible set.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct GlobalHead {
     /// Entry 0: points visible at the current zoom.
@@ -249,7 +253,7 @@ pub(crate) struct GlobalHead {
 }
 
 impl GlobalHead {
-    /// Encodes the global map as the value of HEAD key 8.
+    /// Encodes the global map as the value of `HEAD` key 8.
     fn encode(&self, cbor: &mut CborWriter) {
         cbor.map(2 + u64::from(self.bounds.is_some()));
 

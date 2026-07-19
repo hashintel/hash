@@ -122,6 +122,11 @@ uv run audit run --embeddings X.f32 --dims 128,256,512,1024 --k 15,30,50 \
 uv run audit run --embeddings X.f32 --dims 512 --k 50 --sample 1000 \
     --backend gpu --memory-cap-gb 4 --out report-smoke/
 uv run audit synth-fixture --out X.f32   # synthetic acceptance fixture
+# Re-score an audit at near-tie clump granularity (same corpus + seed as the audit;
+# the recorded sample-row hash proves row alignment).
+uv run audit clump-recall --embeddings X.f32 --dim 512 --k 15,30,50 \
+    --epsilon 0.002 --strata strata.parquet --out clump-recall/ \
+    --expected-sample-rows-sha256 <report.meta.json sample_rows_sha256>
 ```
 
 `export-postgres` streams whole-entity rows (`property IS NULL`) directly from
@@ -137,6 +142,17 @@ the local development defaults available through `--help`.
 compared exactly with every corpus row. The work is therefore proportional to
 `sample × corpus rows × (full pass + prefix passes)`. The default sample is 20,000;
 use 500-1,000 for a smoke run before starting the full audit.
+
+`clump-recall` regenerates an audit's seeded query sample (verified against the
+recorded `sample_rows_sha256`) and both top-k lists, then re-scores recall with
+members of one near-tie clump treated as interchangeable. Clumps are
+epsilon-connected components over a whole-corpus prefix-space top-`--label-k`
+table: an edge joins two rows when either stores the other within `--epsilon` on
+the doubled-cosine (`1 - cos`) scale. Collapsed recall counts sorted multiset
+intersections of clump labels, so a clump the retrieval shows fewer members of
+earns exactly the members shown; singleton labels reproduce plain recall, and
+collapsed recall never reads below plain. The whole-corpus label pass dominates
+the runtime (`corpus rows`, not `sample`, queries).
 
 Exact cosine kNN uses FAISS `IndexFlatIP` over L2-normalized vectors. Corpus blocks
 are streamed through a flat index and FAISS merges their top-k results, so no full

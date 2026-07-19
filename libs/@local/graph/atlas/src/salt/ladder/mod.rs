@@ -36,6 +36,7 @@
 //! objective; both enter here as plain values, so the seam between the
 //! stages stays artifact-level.
 
+use alloc::borrow::Cow;
 use core::{error::Error, fmt};
 
 use crate::math::{Similarity, Vec2};
@@ -250,13 +251,24 @@ impl Error for CanonicalError {}
 /// bit-exactly `0.0` (the semantic baseline every other rung is
 /// measured against; `-0.0` is rejected because the value conditions
 /// the projector and enters reproducibility records bit-for-bit),
-/// strictly ascending, every value finite.
+/// strictly ascending, every value finite. The values sit behind a
+/// [`Cow`] so the reference schedule is a constant.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Conditions {
-    values: Vec<f32>,
+    values: Cow<'static, [f32]>,
 }
 
 impl Conditions {
+    /// The reference schedule: the baseline plus four evenly spaced
+    /// rungs.
+    ///
+    /// An unvalidated starting point carried over from the legacy
+    /// pipeline; the ladder's own distinguishability evidence revises
+    /// it.
+    pub(crate) const REFERENCE: Self = Self {
+        values: Cow::Borrowed(&[0.0, 0.25, 0.5, 0.75, 1.0]),
+    };
+
     /// Validates a condition schedule.
     ///
     /// # Errors
@@ -264,7 +276,8 @@ impl Conditions {
     /// Returns an error when fewer than two rungs are offered, the
     /// first rung is not bit-exactly `0.0`, a rung is not finite, or a
     /// rung does not strictly exceed its predecessor.
-    pub(crate) fn new(values: Vec<f32>) -> Result<Self, ConditionsError> {
+    pub(crate) fn new(values: impl Into<Cow<'static, [f32]>>) -> Result<Self, ConditionsError> {
+        let values = values.into();
         if values.len() < 2 {
             return Err(ConditionsError::TooFew {
                 count: values.len(),
@@ -309,15 +322,9 @@ impl Conditions {
     }
 }
 
-/// The reference schedule: the baseline plus four evenly spaced rungs.
-///
-/// An unvalidated starting point carried over from the legacy pipeline;
-/// the ladder's own distinguishability evidence revises it.
-impl Default for Conditions {
+const impl Default for Conditions {
     fn default() -> Self {
-        Self {
-            values: vec![0.0, 0.25, 0.5, 0.75, 1.0],
-        }
+        Self::REFERENCE
     }
 }
 
@@ -348,6 +355,30 @@ pub(crate) struct MeasurementOptions {
 }
 
 const impl Default for MeasurementOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
+/// One fit's whole ladder configuration: the schedule, the
+/// cross-condition thresholds, and the rung that publishes.
+///
+/// The canonical value names a schedule member bit-exactly
+/// ([`select_canonical`]); a value outside the schedule is a
+/// configuration contradiction and fails the fit at selection.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct LadderOptions {
+    /// The condition schedule the ladder projects.
+    pub conditions: Conditions = Conditions::REFERENCE,
+    /// The cross-condition measurement thresholds.
+    pub measurement: MeasurementOptions = MeasurementOptions::default(),
+    /// The condition whose aligned field publishes as the canonical
+    /// coordinates. Defaults to `1.0`, the full-strength lens, matching
+    /// the reference pipeline's canonical condition.
+    pub canonical: f32 = 1.0,
+}
+
+const impl Default for LadderOptions {
     fn default() -> Self {
         Self { .. }
     }

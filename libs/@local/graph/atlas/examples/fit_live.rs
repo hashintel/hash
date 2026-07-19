@@ -21,6 +21,10 @@
 //!   activates what it publishes, so two plain runs back to back measure the reuse path.
 //! - `ATLAS_FIT_VERDICTS` - path of a reviewed-verdicts document to supply; the fit stages it
 //!   verbatim as the generation's `reviewed-verdicts.json` role.
+//! - `ATLAS_FIT_PROJECTOR_STEPS` - train the projector placement for this many steps under the
+//!   reference options (boundary at the midpoint); absent, the landmark baseline places. The
+//!   trainer's phase boundary needs reviewed-Proximal coverage, so pair it with
+//!   `ATLAS_FIT_VERDICTS` on a corpus whose relations carry Proximal force.
 #![feature(default_field_values)]
 #![expect(
     clippy::print_stdout,
@@ -28,6 +32,7 @@
     reason = "the harness reports its measurements on stdout; `Duration` formats through `Debug`"
 )]
 
+use core::num::NonZero;
 use std::time::Instant;
 
 use hash_graph_atlas::bench::fit::{RunOptions, connect, run};
@@ -64,6 +69,13 @@ async fn main() {
     }
     options.reuse_current = std::env::var("ATLAS_FIT_PRIOR").is_ok_and(|value| value == "current");
     options.verdicts = std::env::var("ATLAS_FIT_VERDICTS").ok();
+    if let Ok(value) = std::env::var("ATLAS_FIT_PROJECTOR_STEPS") {
+        options.projector_steps = Some(
+            value
+                .parse()
+                .expect("ATLAS_FIT_PROJECTOR_STEPS should be a positive integer"),
+        );
+    }
 
     tracing::info!(
         root,
@@ -71,6 +83,7 @@ async fn main() {
         landmarks = options.landmarks.get(),
         reuse_current = options.reuse_current,
         verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
+        projector_steps = options.projector_steps.map_or(0, NonZero::get),
         "starting the measured fit"
     );
 

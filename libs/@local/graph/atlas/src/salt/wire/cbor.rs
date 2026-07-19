@@ -20,6 +20,10 @@
 //! below 24 and in the narrowest of 1, 2, 4, or 8 big-endian bytes
 //! otherwise. CBOR arguments are network byte order - the one
 //! big-endian region of a little-endian wire.
+#![expect(
+    clippy::big_endian_bytes,
+    reason = "CBOR arguments are network byte order (RFC 8949 section 3)"
+)]
 
 /// An emitter over one growing byte buffer.
 #[derive(Debug, Default)]
@@ -120,20 +124,22 @@ impl CborWriter {
     fn head(&mut self, major: u8, argument: u64) {
         let ty = major << 5;
         match argument {
-            0..24 => self.bytes.push(ty | argument as u8),
-            24..=0xFF => self.bytes.extend_from_slice(&[ty | 24, argument as u8]),
+            // Additional information 0..24: the argument is inline.
+            0..0x18 => self.bytes.push(ty | argument as u8),
+            // 24 through 27: one, two, four, or eight argument bytes.
+            0x18..=0xFF => self.bytes.extend_from_slice(&[ty | 0x18, argument as u8]),
             0x100..=0xFFFF => {
-                self.bytes.push(ty | 25);
+                self.bytes.push(ty | 0x19);
                 self.bytes
                     .extend_from_slice(&(argument as u16).to_be_bytes());
             }
             0x1_0000..=0xFFFF_FFFF => {
-                self.bytes.push(ty | 26);
+                self.bytes.push(ty | 0x1A);
                 self.bytes
                     .extend_from_slice(&(argument as u32).to_be_bytes());
             }
             _ => {
-                self.bytes.push(ty | 27);
+                self.bytes.push(ty | 0x1B);
                 self.bytes.extend_from_slice(&argument.to_be_bytes());
             }
         }

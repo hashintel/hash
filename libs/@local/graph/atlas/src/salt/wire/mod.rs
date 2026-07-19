@@ -42,7 +42,7 @@ pub(crate) const WIRE_VERSION: u16 = 1;
 /// A response kind: the eighth magic byte, an ASCII initial.
 ///
 /// The seven-byte family prefix `SALTILE` is constant; the kind byte
-/// selects the HEAD schema and slot table the decoder applies. The
+/// selects the `HEAD` schema and slot table the decoder applies. The
 /// locate kind (`SALTILEL`) joins with the locate endpoint.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Kind {
@@ -63,7 +63,7 @@ impl Kind {
     }
 }
 
-/// A tile delivery mode, HEAD key 3.
+/// A tile delivery mode, `HEAD` key 3.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Mode {
     /// The client-accumulated default: own-cut points only.

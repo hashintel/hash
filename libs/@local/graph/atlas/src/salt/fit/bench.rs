@@ -16,7 +16,7 @@ use core::{future::ready, num::NonZero};
 use camino::Utf8PathBuf;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
 
-use super::{FitConfig, SuppliedVerdicts, fit};
+use super::{FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts, fit};
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
@@ -29,8 +29,12 @@ use crate::{
             Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
             fit as fit_classifier,
         },
+        projector::train::TrainingSchedule,
     },
 };
+
+/// The reference refresh cadence of a measured projector run.
+const REFRESH: NonZero<usize> = const { NonZero::new(100).unwrap() };
 
 /// Options of one measured fit.
 #[derive(Debug, Clone)]
@@ -47,6 +51,14 @@ pub struct RunOptions {
     /// staged role and its manifest binding then exercise the same
     /// path production takes.
     pub verdicts: Option<String> = None,
+    /// Override the trained placement's step count, keeping the
+    /// reference options and the midpoint boundary. Absent, the
+    /// configuration default (the reference schedule) trains.
+    pub projector_steps: Option<NonZero<usize>> = None,
+    /// Place at the landmark baseline instead of training: the
+    /// fallback placer, for measuring the pipeline without the
+    /// training stage.
+    pub baseline: bool = false,
 }
 
 /// Plain-number summary of one published fit.
@@ -134,7 +146,7 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         .await
         .expect("the store should open a snapshot transaction");
 
-    let config = FitConfig {
+    let mut config = FitConfig {
         seed: options.seed,
         selection: SelectionOptions {
             maximum_count: options.landmarks,
@@ -143,6 +155,16 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
         ..
     };
+    if options.baseline {
+        config.placement = PlacementOptions::LandmarkBaseline;
+    } else if let Some(steps) = options.projector_steps {
+        // The midpoint boundary splits the opening segment and the
+        // ladder evenly.
+        let boundary = steps.get().div_euclid(2);
+        let schedule = TrainingSchedule::new(steps, boundary, REFRESH, 1.0e-3, 1.0e-5)
+            .expect("the reference schedule domain admits any step count");
+        config.placement = PlacementOptions::Projector(ProjectorOptions::reference(schedule));
+    }
 
     let verdicts = options
         .verdicts

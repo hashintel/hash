@@ -7,7 +7,8 @@
 //! a staged file or a value [`Ingested`] carried across the boundary,
 //! and every failure is a [`StageError`].
 
-use super::{FitConfig, error::StageError, ingest::Ingested, role::Role};
+use self::projector::PlacementInputs;
+use super::{FitConfig, SuppliedVerdicts, error::StageError, ingest::Ingested, role::Role};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
@@ -18,8 +19,8 @@ use crate::{
         salt::{
             SaltFiles, SaltRepository,
             metadata::{
-                Evidence, LandmarkEvidence, Placement, PolicyEvidence, RankingOrigin,
-                Reproducibility, SaltMetadata, Snapshot,
+                Evidence, LandmarkEvidence, Placement, PolicyEvidence, ProjectorEvidence,
+                RankingOrigin, Reproducibility, SaltMetadata, Snapshot,
             },
         },
         sprs::read::SprsFile,
@@ -38,6 +39,7 @@ mod graph;
 mod landmark;
 mod lod;
 mod policy;
+mod projector;
 mod relation;
 
 /// The owned inputs one fit hands across the thread boundary.
@@ -47,9 +49,12 @@ pub(super) struct Inputs {
     /// The supplied relation-policy model.
     pub classifier: Classifier,
     /// The staged supplied reviewed-verdicts file, when one was
-    /// offered; staging happened before ingest, so only the manifest
-    /// binding crosses the boundary.
+    /// offered; staging happened before ingest, so the manifest
+    /// binding crosses the boundary beside the document itself.
     pub reviewed_verdicts: Option<RepositoryFile>,
+    /// The validated reviewed-verdicts document: the trainer's phase
+    /// boundary resolves it against the staged ontology identities.
+    pub verdicts: Option<SuppliedVerdicts>,
     /// The generation seeding reuse, when one was offered.
     pub prior: Option<Generation>,
 }
@@ -78,6 +83,9 @@ struct Computed {
     landmarks: RepositoryFile,
     landmark_evidence: LandmarkEvidence,
     coordinates: RepositoryFile,
+    projector: Option<RepositoryFile>,
+    placement: Placement,
+    projector_evidence: Option<ProjectorEvidence>,
     lod: lod::LodArtifacts,
     lod_evidence: LodEvidence,
     quad_evidence: QuadEvidence,
@@ -139,9 +147,9 @@ where
     // policies and stage both relation indexes.
     let relations = context.stage_relations(rows.len(), &ingested.instances)?;
     tracing::info!(
-        retained = relations.evidence.retained_edges,
-        pruned = relations.evidence.pruned_edges,
-        self_references = relations.evidence.self_references,
+        retained = relations.indexes.evidence.retained_edges,
+        pruned = relations.indexes.evidence.pruned_edges,
+        self_references = relations.indexes.evidence.self_references,
         "staged the attraction and protection indexes"
     );
 
@@ -173,13 +181,17 @@ where
         "staged the landmark skeleton"
     );
 
-    // Placement baseline: every row takes its assigned landmark's layout
-    // coordinate.
-    // TODO: the trained projector replaces this placer at the same
-    //       artifact seam; the metadata's `Placement` records which one
-    //       ran.
-    let coordinates_file = context.stage_baseline_coordinates(&skeleton)?;
-    tracing::info!("staged the baseline coordinates");
+    // Placement: the configured placer stages the canonical
+    // coordinates - the landmark baseline directly, or the trained
+    // projector through its checkpoint and condition ladder.
+    let placement = context.stage_placement::<I>(&PlacementInputs {
+        rows,
+        skeleton: &skeleton,
+        knn: &knn,
+        semantic: &semantic,
+        indexes: &relations.indexes,
+        verdicts: inputs.verdicts.as_ref(),
+    })?;
 
     // Level of detail: rank, cascade, and gather the served columns
     // over the staged coordinates, cutting the quadtree over them.
@@ -201,13 +213,16 @@ where
             adjacency: adjacency_file,
             attraction: relations.attraction,
             protection: relations.protection,
-            relation_evidence: relations.evidence,
+            relation_evidence: relations.indexes.evidence,
             knn: knn_file,
             recall,
             semantic: semantic_file,
             landmarks: landmarks_file,
             landmark_evidence,
-            coordinates: coordinates_file,
+            coordinates: placement.coordinates,
+            projector: placement.checkpoint,
+            placement: placement.placement,
+            projector_evidence: placement.evidence,
             lod: lod_outputs.files,
             lod_evidence: lod_outputs.evidence,
             quad_evidence: lod_outputs.quad_evidence,
@@ -247,6 +262,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             ontology_identities: ingested.cards.identities,
             edge_endpoints: ingested.edge_endpoints,
             adjacency: computed.adjacency,
+            projector: computed.projector,
             reviewed_verdicts: inputs.reviewed_verdicts.clone(),
         },
         metadata: SaltMetadata {
@@ -261,7 +277,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 embedder: ingested.fingerprint,
                 prior: inputs.prior.as_ref().map(Generation::id),
             },
-            placement: Placement::LandmarkBaseline,
+            placement: computed.placement,
             ranking: RankingOrigin::from(inputs.config.ranking),
             evidence: Evidence {
                 cards: ingested.cards.stats,
@@ -272,6 +288,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 relations: computed.relation_evidence,
                 lod: computed.lod_evidence,
                 quad: computed.quad_evidence,
+                projector: computed.projector_evidence,
             },
         },
     }

@@ -26,11 +26,32 @@ const atlasApiProxy = (): VitePlugin<never> => ({
         // connect strips the `/atlas-api` mount prefix from `req.url`.
         const upstream = `${target}${req.url ?? ""}`;
         const { accept } = req.headers;
+        const contentTypeIn = req.headers["content-type"];
+        const method = req.method ?? "GET";
         void (async () => {
           try {
+            // Forward the method and, for non-GET requests, the raw body
+            // (the SALTILE endpoints are POST with JSON bodies).
+            const body =
+              method === "GET" || method === "HEAD"
+                ? undefined
+                : new Uint8Array(
+                    await new Promise<Buffer>((resolve, reject) => {
+                      const chunks: Buffer[] = [];
+                      req.on("data", (chunk: Buffer) => chunks.push(chunk));
+                      req.on("end", () => resolve(Buffer.concat(chunks)));
+                      req.on("error", reject);
+                    }),
+                  );
             const response = await fetch(upstream, {
-              headers:
-                accept === undefined ? undefined : { accept: String(accept) },
+              method,
+              headers: {
+                ...(accept === undefined ? {} : { accept: String(accept) }),
+                ...(contentTypeIn === undefined
+                  ? {}
+                  : { "content-type": String(contentTypeIn) }),
+              },
+              body,
             });
             res.statusCode = response.status;
             const contentType = response.headers.get("content-type");

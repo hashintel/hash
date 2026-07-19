@@ -29,6 +29,7 @@ pub(super) enum Role {
     Policy,
     Attraction,
     Protection,
+    Projector,
     Coordinates,
     Morton,
     Quad,
@@ -59,6 +60,7 @@ impl Role {
             Self::Policy => FileName::pinned("policy.plcy"),
             Self::Attraction => FileName::pinned("attraction.atrc"),
             Self::Protection => FileName::pinned("protection.sprs"),
+            Self::Projector => FileName::pinned("projector.mpk"),
             Self::Coordinates => FileName::pinned("coordinates.arr"),
             Self::Morton => FileName::pinned("morton.mrtn"),
             Self::Quad => FileName::pinned("quadtree.quad"),
@@ -86,7 +88,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 24] = [
+const _: [FileName; 25] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -97,6 +99,7 @@ const _: [FileName; 24] = [
     Role::Policy.file_name(),
     Role::Attraction.file_name(),
     Role::Protection.file_name(),
+    Role::Projector.file_name(),
     Role::Coordinates.file_name(),
     Role::Morton.file_name(),
     Role::Quad.file_name(),

@@ -6,6 +6,14 @@
 //! the assertions. The checked-in goldens (`goldens.rs`) carry the
 //! cross-language corpus; these tests pin the layers separately so a
 //! failure names its layer.
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "the tests read and write the contract's little-endian wire integers"
+)]
+#![expect(
+    clippy::single_range_in_vec_init,
+    reason = "a delta tile's delivered set really is one contiguous range"
+)]
 
 use proptest::prelude::*;
 
@@ -63,8 +71,8 @@ mod cbor {
             (255, vec![0x18, 0xFF]),
             (256, vec![0x19, 0x01, 0x00]),
             (1000, vec![0x19, 0x03, 0xE8]),
-            (65535, vec![0x19, 0xFF, 0xFF]),
-            (65536, vec![0x1A, 0x00, 0x01, 0x00, 0x00]),
+            (0xFFFF, vec![0x19, 0xFF, 0xFF]),
+            (0x1_0000, vec![0x1A, 0x00, 0x01, 0x00, 0x00]),
             (1_000_000, vec![0x1A, 0x00, 0x0F, 0x42, 0x40]),
             (u64::from(u32::MAX), vec![0x1A, 0xFF, 0xFF, 0xFF, 0xFF]),
             (
@@ -88,7 +96,7 @@ mod cbor {
     fn simple_values_and_floats() {
         assert_eq!(encoded(|cbor| cbor.boolean(false)), [0xF4]);
         assert_eq!(encoded(|cbor| cbor.boolean(true)), [0xF5]);
-        assert_eq!(encoded(|cbor| cbor.null()), [0xF6]);
+        assert_eq!(encoded(CborWriter::null), [0xF6]);
 
         // RFC 8949 appendix A: 100000.0f32 = 0xFA_47C35000; the f32
         // maximum = 0xFA_7F7FFFFF. 1.0 and -0.5 derived by hand from
@@ -249,7 +257,7 @@ proptest! {
             payloads[0] = Some(vec![0xFF]);
         }
 
-        let slots = payloads.len() as u16;
+        let slots = u16::try_from(payloads.len()).expect("the strategy draws at most 12 slots");
         let mut envelope = EnvelopeWriter::new(Kind::Tile, slots);
         for payload in &payloads {
             match payload {
@@ -260,21 +268,20 @@ proptest! {
         let bytes = envelope.finish();
 
         let mut cursor = 16 + 8 * payloads.len();
-        prop_assert_eq!(cursor % 8, 0);
+        prop_assert_eq!(cursor & 7, 0);
         for (slot, payload) in payloads.iter().enumerate() {
             let (start, end) = directory(&bytes, slot);
-            match payload {
-                Some(expected) => {
-                    prop_assert_eq!(start as usize, cursor);
-                    prop_assert_eq!(start % 8, 0);
-                    prop_assert_eq!((end - start) as usize, expected.len());
-                    prop_assert_eq!(&bytes[start as usize..end as usize], &expected[..]);
+            if let Some(expected) = payload {
+                prop_assert_eq!(start as usize, cursor);
+                prop_assert_eq!(start & 7, 0);
+                prop_assert_eq!((end - start) as usize, expected.len());
+                prop_assert_eq!(&bytes[start as usize..end as usize], expected.as_slice());
 
-                    let padded = (end as usize).next_multiple_of(8);
-                    prop_assert!(bytes[end as usize..padded].iter().all(|&byte| byte == 0));
-                    cursor = padded;
-                }
-                None => prop_assert_eq!((start, end), (0, 0)),
+                let padded = (end as usize).next_multiple_of(8);
+                prop_assert!(bytes[end as usize..padded].iter().all(|&byte| byte == 0));
+                cursor = padded;
+            } else {
+                prop_assert_eq!((start, end), (0, 0));
             }
         }
         prop_assert_eq!(bytes.len(), cursor);
@@ -378,7 +385,12 @@ mod tile {
     #[test]
     fn columns_gather_across_ranges() {
         let positions: Vec<Vec2> = (0_u16..8)
-            .map(|index| Vec2::new(f32::from(index) * 0.25, -1.0 + f32::from(index) * 0.125))
+            .map(|index| {
+                Vec2::new(
+                    f32::from(index) * 0.25,
+                    f32::from(index).mul_add(0.125, -1.0),
+                )
+            })
             .collect();
         let rows: Vec<u32> = (0..8).map(|index| 100 + index).collect();
         let ranges = [1_u32..3, 6..7];

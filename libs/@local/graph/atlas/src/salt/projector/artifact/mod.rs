@@ -175,6 +175,11 @@ pub(crate) fn open_model<B: Backend>(
 /// boundary; a resumed ladder continues it, which is what makes the
 /// resumed run's draws identical to the straight run's.
 ///
+/// The written bytes are not canonical: the optimizer record is a
+/// map whose serialization order may differ between processes, so
+/// two writes of one training state need not be byte-equal. Identity
+/// lives in the decoded state, which round-trips exactly.
+///
 /// # Errors
 ///
 /// Returns an error when encoding or writing fails.

@@ -529,6 +529,73 @@ fn a_forceless_corpus_trains_vacuously() {
 }
 
 #[test]
+fn a_vacuous_run_trains_a_flat_ladder() {
+    let corpus = semantic_corpus();
+    // The ladder opens at step 3, but a forceless corpus pins the
+    // zero rung through it: the condition weights never receive
+    // gradient, so every rung projects the identical map.
+    let options = options(schedule(9, 3, 4), None);
+    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(19), &device())
+        .expect("a forceless corpus trains vacuously");
+
+    let low = project(&fitted.model, &corpus, 0.0);
+    assert_eq!(
+        low,
+        project(&fitted.model, &corpus, 1.0),
+        "the lens extremes should project bit-identical maps"
+    );
+    assert_eq!(
+        low,
+        project(&fitted.model, &corpus, 0.5),
+        "the middle rung should project the same map as the extremes"
+    );
+    assert!(
+        fitted.evidence.telemetry.iter().all(|tick| tick
+            .displacement
+            .overall()
+            .moments()
+            .maximum()
+            == 0.0),
+        "every tick should measure a zero displacement field"
+    );
+}
+
+#[test]
+fn a_measured_radius_requires_an_opening_segment() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let error = fit(
+        model(),
+        &corpus.inputs(),
+        &options(schedule(8, 0, 4), None),
+        &mut rng(23),
+        &device(),
+    )
+    .expect_err("a boundary at step zero cannot measure a radius");
+    assert_eq!(error, TrainError::UnbaselinedRadius);
+}
+
+#[test]
+fn an_asserted_radius_permits_a_zero_boundary() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options(schedule(8, 0, 4), Some(1.5)),
+        &mut rng(23),
+        &device(),
+    )
+    .expect("an asserted radius makes a zero boundary trainable");
+
+    let boundary = fitted
+        .evidence
+        .boundary
+        .as_ref()
+        .expect("the boundary ran at step zero");
+    assert_eq!(boundary.step, 0);
+    assert_eq!(boundary.radius, FrozenRadius::Asserted { radius: 1.5 });
+}
+
+#[test]
 fn coincident_only_force_requires_an_assertion() {
     let coincident_policy = RelationPolicy {
         relation: OntologyRowId::new(RELATION),

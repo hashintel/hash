@@ -2,24 +2,38 @@
 //!
 //! Each golden is one encoded response checked in as fixture bytes
 //! plus a JSON sidecar of the expected decoded values (floats as u32
-//! bit patterns). The Rust side proves the encoder reproduces the
-//! pinned bytes; the TypeScript decoder consumes the same files and
-//! asserts field-for-field equality against the sidecar - "matches
-//! the Rust side" is never asserted by eye
-//! (`SPEC-ADDENDUM-WIRE.md` section 8).
+//! bit patterns), the envelope prefix, and the directory - so the
+//! padding sweep is assertable client-side from the sidecar alone.
+//! The Rust side proves the encoder reproduces the pinned bytes; the
+//! TypeScript decoder consumes the same files and asserts
+//! field-for-field equality - "matches the Rust side" is never
+//! asserted by eye (`SPEC-ADDENDUM-WIRE.md` section 8). The decoder
+//! derives its request echo context from the sidecar `HEAD`; a
+//! request field the `HEAD` does not echo joins the sidecar the day
+//! a golden needs one (settled with Hannah, 2026-07-19 - her
+//! request-block proposal was superseded by this shape the same
+//! day). The coverage spread is Hannah's, folded 2026-07-19.
 //!
 //! The corpus follows the addendum's enumeration. G7 (locate) is
-//! deliberately missing: the locate HEAD schema lands with the locate
+//! deliberately missing: the locate `HEAD` schema lands with the locate
 //! endpoint (Track 2 step 6), and pinning bytes before the schema
 //! exists would pin an invention. The end-to-end golden over a real
 //! published generation is likewise separate: it waits on the
 //! fit-pipeline postings wiring and pins a whole artifact tree, not
-//! an envelope.
+//! an envelope. Every golden here uses `spanLog2 = 2`, so the cut
+//! rule reads `bucket = z + 2` and the root spans buckets `0..=2`.
 //!
 //! Regenerate with `ATLAS_WIRE_BLESS=1` in the environment; the
 //! default run compares byte-for-byte and fails on any drift.
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "the goldens write the contract's little-endian wire integers"
+)]
+#![expect(
+    clippy::single_range_in_vec_init,
+    reason = "a delta tile's delivered set really is one contiguous range"
+)]
 
-use core::ops::Range;
 use std::fs;
 
 use camino::Utf8PathBuf;
@@ -38,7 +52,7 @@ use crate::{
     salt::postings::mapped::Membership,
 };
 
-/// One pinned golden: fixture name, response bytes, decoded sidecar.
+/// One pinned golden: fixture name, response bytes, sidecar.
 struct Golden {
     name: &'static str,
     bytes: Vec<u8>,
@@ -117,7 +131,7 @@ fn corpus() -> Vec<Golden> {
         g1_minimal_tile(),
         g2_root_tile(),
         g3_total_tile(),
-        g4_empty_tile(),
+        g4_empty_root(),
         g5_trailer_tile(),
         g6_edges(),
         g8_appended_slot(),
@@ -126,7 +140,90 @@ fn corpus() -> Vec<Golden> {
     ]
 }
 
-/// Renders one prefix object for a sidecar.
+/// Renders a tile golden's sidecar: prefix, directory, decoded
+/// `HEAD`, gathered columns, and trailer.
+///
+/// `colored` is the request's coloredTypeIds count; `type_mask` is
+/// the hand-derived expected column (present iff `colored > 0`).
+/// `mass` and `appended` describe populated beyond-v1 slots (G8/G10),
+/// which a v1 decoder ignores by contract.
+fn tile_sidecar(
+    name: &str,
+    response: &TileResponse<'_>,
+    bytes: &[u8],
+    colored: u64,
+    type_mask: Option<&[u8]>,
+    mass: Option<&[u32]>,
+    appended: Value,
+) -> Value {
+    assert_eq!(
+        type_mask.is_some(),
+        colored > 0,
+        "TYPE_MASK rides exactly the requests that color types",
+    );
+    let head = &response.head;
+
+    let mut positions_bits = Vec::new();
+    let mut row_ids = Vec::new();
+    for range in response.ranges {
+        for point in &response.positions[range.start as usize..range.end as usize] {
+            positions_bits.push(point.x().to_bits());
+            positions_bits.push(point.y().to_bits());
+        }
+        row_ids.extend_from_slice(&response.rows[range.start as usize..range.end as usize]);
+    }
+
+    let global = head.global.as_ref().map_or(Value::Null, |global| {
+        let bounds_bits = global.bounds.as_ref().map_or(Value::Null, |bounds| {
+            json!([
+                bounds.min().x().to_bits(),
+                bounds.min().y().to_bits(),
+                bounds.max().x().to_bits(),
+                bounds.max().y().to_bits(),
+            ])
+        });
+        json!({
+            "visibleAtZoom": global.visible,
+            "boundsBits": bounds_bits,
+            "minResolution": global.min_resolution,
+        })
+    });
+
+    let trailer = response.trailer.as_ref().map_or(Value::Null, |trailer| {
+        json!({
+            "labels": details_sidecar(trailer.labels),
+            "icons": details_sidecar(trailer.icons),
+        })
+    });
+
+    json!({
+        "golden": name,
+        "layer": "tile",
+        "prefix": prefix_sidecar(bytes),
+        "directory": directory_sidecar(bytes),
+        "head": {
+            "generation": head.generation.to_string(),
+            "variant": head.variant,
+            "coordinate": [head.coordinate.z, head.coordinate.x, head.coordinate.y],
+            "mode": head.mode.code(),
+            "delivered": row_ids.len(),
+            "visible": head.visible,
+            "firstBucket": head.first_bucket,
+            "runs": head.runs,
+            "global": global,
+            "children": head.children,
+            "trailer": response.trailer.is_some(),
+        },
+        "positions": positions_bits,
+        "rowIds": row_ids,
+        "typeMask": type_mask.map_or(Value::Null, |mask| json!(mask)),
+        "mass": mass.map_or(Value::Null, |values| json!(values)),
+        "appended": appended,
+        "trailer": trailer,
+    })
+}
+
+/// Renders the envelope prefix fields.
 fn prefix_sidecar(bytes: &[u8]) -> Value {
     let magic = core::str::from_utf8(&bytes[0..8]).expect("the magic is ASCII");
     json!({
@@ -138,7 +235,7 @@ fn prefix_sidecar(bytes: &[u8]) -> Value {
     })
 }
 
-/// Renders the directory as `[[start, end], ...]` for a sidecar.
+/// Renders the directory as `[[start, end], ...]`.
 fn directory_sidecar(bytes: &[u8]) -> Value {
     let slots = u16::from_le_bytes(bytes[12..14].try_into().expect("two bytes"));
     Value::Array(
@@ -151,29 +248,6 @@ fn directory_sidecar(bytes: &[u8]) -> Value {
     )
 }
 
-/// Gathers the delivered f32 bit patterns, xy interleaved.
-fn positions_sidecar(positions: &[Vec2], ranges: &[Range<u32>]) -> Value {
-    let mut patterns = Vec::new();
-    for range in ranges {
-        for point in &positions[range.start as usize..range.end as usize] {
-            patterns.push(point.x().to_bits());
-            patterns.push(point.y().to_bits());
-        }
-    }
-
-    json!(patterns)
-}
-
-/// Gathers the delivered row ids.
-fn rows_sidecar(rows: &[u32], ranges: &[Range<u32>]) -> Value {
-    let mut gathered = Vec::new();
-    for range in ranges {
-        gathered.extend_from_slice(&rows[range.start as usize..range.end as usize]);
-    }
-
-    json!(gathered)
-}
-
 /// Renders a detail array: strings and nulls.
 fn details_sidecar(entries: &[Option<&str>]) -> Value {
     Value::Array(
@@ -184,48 +258,16 @@ fn details_sidecar(entries: &[Option<&str>]) -> Value {
     )
 }
 
-/// Renders a tile HEAD object for a sidecar; `delivered` and
-/// `trailer` mirror the encoder's derivation.
-fn tile_head_sidecar(head: &TileHead<'_>, delivered: u64, trailer: bool) -> Value {
-    let global = head.global.as_ref().map_or(Value::Null, |global| {
-        let bounds = global.bounds.as_ref().map_or(Value::Null, |bounds| {
-            json!([
-                bounds.min().x().to_bits(),
-                bounds.min().y().to_bits(),
-                bounds.max().x().to_bits(),
-                bounds.max().y().to_bits(),
-            ])
-        });
-        json!({
-            "visible": global.visible,
-            "bounds": bounds,
-            "minResolution": global.min_resolution,
-        })
-    });
-
-    json!({
-        "generation": head.generation.to_string(),
-        "variant": head.variant,
-        "coordinate": [head.coordinate.z, head.coordinate.x, head.coordinate.y],
-        "mode": head.mode.code(),
-        "delivered": delivered,
-        "visible": head.visible,
-        "firstBucket": head.first_bucket,
-        "runs": head.runs,
-        "global": global,
-        "children": head.children,
-        "trailer": trailer,
-    })
-}
-
 /// G1: a non-root delta tile - one run, three points, all columns,
-/// TYPE_MASK over three requested types, no trailer.
+/// `TYPE_MASK` over three requested types (stride 1, `n % 8 != 0`), a
+/// multi-bit point carrying types 0 and 2, an all-zero point, a
+/// single children bit.
 fn g1_minimal_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..12)
         .map(|index| {
             Vec2::new(
-                f32::from(index) * 0.125 - 0.5,
-                0.75 - f32::from(index) * 0.125,
+                f32::from(index).mul_add(0.125, -0.5),
+                f32::from(index).mul_add(-0.125, 0.75),
             )
         })
         .collect();
@@ -233,26 +275,26 @@ fn g1_minimal_tile() -> Golden {
     let ranges = [8_u32..11];
 
     // type 0: base positions 8 and 9 deliver; 3 and 11 lie outside
-    // the run. type 1: dense bit 9 delivers; bit 2 lies outside.
-    // type 2: no members. Expected masks: point 8 = 0b001,
-    // point 9 = 0b011 (multi-bit), point 10 = 0b000 (no match).
-    let list = [3_u32, 8, 9, 11];
-    let dense = [(1_u32 << 9) | (1 << 2)];
-    let empty: [u32; 0] = [];
+    // the run. type 1: dense representation, no delivered bit (bit 2
+    // is outside the run). type 2: position 9, making point 9 the
+    // multi-bit point (types 0 and 2). Point 10 matches nothing.
+    let t0 = [3_u32, 8, 9, 11];
+    let t1_dense = [1_u32 << 2];
+    let t2 = [9_u32];
     let masks = [
-        Membership::List(&list),
-        Membership::Dense(&dense),
-        Membership::List(&empty),
+        Membership::List(&t0),
+        Membership::Dense(&t1_dense),
+        Membership::List(&t2),
     ];
 
     let response = TileResponse {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x11; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 4, x: 9, y: 6 },
+            coordinate: TileCoordinate { z: 2, x: 3, y: 1 },
             mode: Mode::Delta,
             visible: 17,
-            first_bucket: 7,
+            first_bucket: 4,
             runs: &[3],
             global: None,
             children: 0b0100,
@@ -265,27 +307,22 @@ fn g1_minimal_tile() -> Golden {
     };
     let bytes = response.encode();
 
-    let expected_mask = [0b001_u8, 0b011, 0b000];
+    let expected_mask = [0b001_u8, 0b101, 0b000];
     assert_eq!(
         section(&bytes, 3).expect("TYPE_MASK is present"),
         expected_mask,
         "the hand-derived G1 masks must match the encoder",
     );
 
-    let sidecar = json!({
-        "golden": "g1-minimal-tile",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 3, false),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": expected_mask,
-        "mass": Value::Null,
-        "appended": Value::Null,
-        "trailer": Value::Null,
-    });
-
+    let sidecar = tile_sidecar(
+        "g1-minimal-tile",
+        &response,
+        &bytes,
+        3,
+        Some(&expected_mask),
+        None,
+        Value::Null,
+    );
     Golden {
         name: "g1-minimal-tile",
         bytes,
@@ -293,26 +330,23 @@ fn g1_minimal_tile() -> Golden {
     }
 }
 
-/// G2: the delta root - buckets `0..=m` with a zero-length run slot
-/// in the middle, one contiguous multi-segment range, the required
-/// global map, all four children.
+/// G2: the delta root - buckets `0..=2` with the middle run
+/// zero-length, one contiguous multi-segment range, no
+/// coloredTypeIds (`TYPE_MASK` absent), the required global map with
+/// bounds present, all four children.
 fn g2_root_tile() -> Golden {
-    let positions: Vec<Vec2> = (0_u16..8)
+    let positions: Vec<Vec2> = (0_u16..4)
         .map(|index| {
             Vec2::new(
-                f32::from(index) * 0.25 - 0.875,
-                f32::from(index) * 0.125 - 0.5,
+                f32::from(index).mul_add(0.25, -0.875),
+                f32::from(index).mul_add(0.125, -0.5),
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..8).map(|index| 90 - 10 * index).collect();
+    let rows: Vec<u32> = (0..4).map(|index| 90 - 10 * index).collect();
     // The root's runs are bucket fencepost differences; its delivered
     // set is one contiguous range.
-    let ranges = [0_u32..7];
-
-    // One requested type, dense representation: bits 0, 2, 4, 6.
-    let dense = [0b0101_0101_u32];
-    let masks = [Membership::Dense(&dense)];
+    let ranges = [0_u32..3];
 
     let response = TileResponse {
         head: TileHead {
@@ -320,12 +354,12 @@ fn g2_root_tile() -> Golden {
             variant: 0,
             coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
-            visible: 8,
+            visible: 4,
             first_bucket: 0,
-            runs: &[1, 0, 2, 4],
+            runs: &[1, 0, 2],
             global: Some(GlobalHead {
-                visible: 7,
-                bounds: Bounds2::new(Vec2::new(-0.875, -0.75), Vec2::new(0.9375, 0.5)),
+                visible: 3,
+                bounds: Bounds2::new(Vec2::new(-0.875, -0.5), Vec2::new(0.9375, 0.5)),
                 min_resolution: 5,
             }),
             children: 0b1111,
@@ -333,32 +367,20 @@ fn g2_root_tile() -> Golden {
         ranges: &ranges,
         positions: &positions,
         rows: &rows,
-        masks: Some(&masks),
+        masks: None,
         trailer: None,
     };
     let bytes = response.encode();
 
-    let expected_mask = [1_u8, 0, 1, 0, 1, 0, 1];
-    assert_eq!(
-        section(&bytes, 3).expect("TYPE_MASK is present"),
-        expected_mask,
-        "the hand-derived G2 masks must match the encoder",
+    let sidecar = tile_sidecar(
+        "g2-root-tile",
+        &response,
+        &bytes,
+        0,
+        None,
+        None,
+        Value::Null,
     );
-
-    let sidecar = json!({
-        "golden": "g2-root-tile",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 7, false),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": expected_mask,
-        "mass": Value::Null,
-        "appended": Value::Null,
-        "trailer": Value::Null,
-    });
-
     Golden {
         name: "g2-root-tile",
         bytes,
@@ -366,23 +388,29 @@ fn g2_root_tile() -> Golden {
     }
 }
 
-/// G3: a total tile - one run per bucket, zero-length runs
+/// G3: a total tile - four runs from bucket 0 with a zero-length run
 /// interspersed, bucket-major concatenation, nine requested types
-/// (two-byte mask stride).
+/// (two-byte mask stride), zero children.
 fn g3_total_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..10)
-        .map(|index| Vec2::new(0.9 - f32::from(index) * 0.1875, f32::from(index) * 0.0625))
+        .map(|index| {
+            Vec2::new(
+                f32::from(index).mul_add(-0.1875, 0.9),
+                f32::from(index) * 0.0625,
+            )
+        })
         .collect();
     let rows: Vec<u32> = (0..10).map(|index| 1000 + 7 * index).collect();
-    // Buckets 0..=4: one contiguous base slice each, two of them
-    // empty. Base position 3 belongs to no run and never delivers.
-    let ranges = [0_u32..2, 2..2, 5..8, 8..8, 9..10];
+    // Buckets 0..=3: one contiguous base slice each, the second
+    // empty. Base positions 2, 3, and 7 belong to no run and never
+    // deliver.
+    let ranges = [0_u32..1, 1..1, 4..7, 8..10];
 
     // Nine types: stride 2, type 8's bit lands in the second byte.
     let t0 = [0_u32, 5, 9];
     let t1_dense = [(1_u32 << 5) | (1 << 3)];
-    let t3 = [1_u32];
-    let t7 = [6_u32, 7];
+    let t3 = [4_u32];
+    let t7 = [6_u32, 8];
     let t8 = [9_u32];
     let empty: [u32; 0] = [];
     let masks = [
@@ -401,13 +429,13 @@ fn g3_total_tile() -> Golden {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x33; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 2, x: 1, y: 3 },
+            coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
             mode: Mode::Total,
-            visible: 10,
+            visible: 6,
             first_bucket: 0,
-            runs: &[2, 0, 3, 0, 1],
+            runs: &[1, 0, 3, 2],
             global: None,
-            children: 0b1001,
+            children: 0,
         },
         ranges: &ranges,
         positions: &positions,
@@ -417,7 +445,7 @@ fn g3_total_tile() -> Golden {
     };
     let bytes = response.encode();
 
-    // Delivered order 0, 1, 5, 6, 7, 9:
+    // Delivered order 0, 4, 5, 6, 8, 9:
     // t0 | t3 | t0+t1 | t7 | t7 | t0+t8.
     let expected_mask = [
         0x01_u8, 0x00, 0x08, 0x00, 0x03, 0x00, 0x80, 0x00, 0x80, 0x00, 0x01, 0x01,
@@ -428,20 +456,15 @@ fn g3_total_tile() -> Golden {
         "the hand-derived G3 masks must match the encoder",
     );
 
-    let sidecar = json!({
-        "golden": "g3-total-tile",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 6, false),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": expected_mask,
-        "mass": Value::Null,
-        "appended": Value::Null,
-        "trailer": Value::Null,
-    });
-
+    let sidecar = tile_sidecar(
+        "g3-total-tile",
+        &response,
+        &bytes,
+        9,
+        Some(&expected_mask),
+        None,
+        Value::Null,
+    );
     Golden {
         name: "g3-total-tile",
         bytes,
@@ -449,19 +472,20 @@ fn g3_total_tile() -> Golden {
     }
 }
 
-/// G4: an empty tile - zero delivered, present-empty columns, absent
-/// TYPE_MASK (the request carried no coloredTypeIds), a global map
-/// whose bounds are absent because the visible set is empty.
-fn g4_empty_tile() -> Golden {
+/// G4: the empty root - zero delivered, present-empty columns at one
+/// shared offset, `TYPE_MASK` absent, zero children, and the required
+/// global map with `visibleAtZoom = 0` and bounds ABSENT - the
+/// bounds-absent-iff-empty rule, pinned.
+fn g4_empty_root() -> Golden {
     let response = TileResponse {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x44; 32]),
             variant: 0,
-            coordinate: TileCoordinate { z: 6, x: 41, y: 23 },
+            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
             mode: Mode::Delta,
             visible: 0,
-            first_bucket: 9,
-            runs: &[0],
+            first_bucket: 0,
+            runs: &[0, 0, 0],
             global: Some(GlobalHead {
                 visible: 0,
                 bounds: None,
@@ -477,40 +501,36 @@ fn g4_empty_tile() -> Golden {
     };
     let bytes = response.encode();
 
-    let sidecar = json!({
-        "golden": "g4-empty-tile",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 0, false),
-        "positions": [],
-        "rowIds": [],
-        "typeMask": Value::Null,
-        "mass": Value::Null,
-        "appended": Value::Null,
-        "trailer": Value::Null,
-    });
-
+    let sidecar = tile_sidecar(
+        "g4-empty-root",
+        &response,
+        &bytes,
+        0,
+        None,
+        None,
+        Value::Null,
+    );
     Golden {
-        name: "g4-empty-tile",
+        name: "g4-empty-root",
         bytes,
         sidecar,
     }
 }
 
-/// G5: a trailer tile - labels and icons with null entries and
-/// non-ASCII UTF-8 (multi-byte sequences and a combining mark).
+/// G5: a delta trailer tile - labels and icons with null entries and
+/// non-ASCII UTF-8 (multi-byte sequences and a combining mark),
+/// children bits 0 and 2.
 fn g5_trailer_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
             Vec2::new(
-                -0.25 + f32::from(index) * 0.125,
-                0.5 - f32::from(index) * 0.25,
+                f32::from(index).mul_add(0.125, -0.25),
+                f32::from(index).mul_add(-0.25, 0.5),
             )
         })
         .collect();
     let rows: Vec<u32> = (0..8).map(|index| 11 * index + 5).collect();
-    let ranges = [0_u32..1, 3..5, 6..7];
+    let ranges = [2_u32..6];
 
     let labels = [
         Some("Z\u{fc}rich"),
@@ -525,12 +545,12 @@ fn g5_trailer_tile() -> Golden {
             generation: Sha256Digest::from_bytes_unchecked([0x55; 32]),
             variant: 0,
             coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
-            mode: Mode::Total,
+            mode: Mode::Delta,
             visible: 8,
-            first_bucket: 0,
-            runs: &[1, 2, 1],
+            first_bucket: 3,
+            runs: &[4],
             global: None,
-            children: 0b0110,
+            children: 0b0101,
         },
         ranges: &ranges,
         positions: &positions,
@@ -543,23 +563,15 @@ fn g5_trailer_tile() -> Golden {
     };
     let bytes = response.encode();
 
-    let sidecar = json!({
-        "golden": "g5-trailer-tile",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 4, true),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": Value::Null,
-        "mass": Value::Null,
-        "appended": Value::Null,
-        "trailer": {
-            "labels": details_sidecar(&labels),
-            "icons": details_sidecar(&icons),
-        },
-    });
-
+    let sidecar = tile_sidecar(
+        "g5-trailer-tile",
+        &response,
+        &bytes,
+        0,
+        None,
+        None,
+        Value::Null,
+    );
     Golden {
         name: "g5-trailer-tile",
         bytes,
@@ -567,8 +579,8 @@ fn g5_trailer_tile() -> Golden {
     }
 }
 
-/// G6: an edges response - three columns, explicit `complete` in the
-/// HEAD, the four-array detail trailer.
+/// G6: an edges response - three columns, `complete = false` (the
+/// cap flag is the point), the four-array detail trailer with nulls.
 fn g6_edges() -> Golden {
     let link_labels = [Some("created by"), None, Some("\u{153}uvre")];
     let link_icons = [None, None, Some("\u{1f517}")];
@@ -598,7 +610,7 @@ fn g6_edges() -> Golden {
         "directory": directory_sidecar(&bytes),
         "head": {
             "generation": response.generation.to_string(),
-            "variant": 0,
+            "variant": response.variant,
             "count": 3,
             "complete": false,
             "trailer": true,
@@ -623,10 +635,16 @@ fn g6_edges() -> Golden {
 
 /// G8: the evolution scenario proven in advance - a slot count one
 /// past the v1 tile table, a populated appended slot, and a populated
-/// MASS slot; a v1 decoder ignores both by contract.
+/// `MASS` slot; a v1 decoder ignores both by contract, so the sidecar's
+/// expectations cover only the v1 surface.
 fn g8_appended_slot() -> Golden {
     let positions: Vec<Vec2> = (0_u16..6)
-        .map(|index| Vec2::new(f32::from(index) * 0.25 - 0.5, f32::from(index) * 0.125))
+        .map(|index| {
+            Vec2::new(
+                f32::from(index).mul_add(0.25, -0.5),
+                f32::from(index) * 0.125,
+            )
+        })
         .collect();
     let rows: Vec<u32> = (0..6).map(|index| 2 * index + 1).collect();
     let ranges = [2_u32..5];
@@ -638,7 +656,7 @@ fn g8_appended_slot() -> Golden {
             coordinate: TileCoordinate { z: 3, x: 5, y: 2 },
             mode: Mode::Delta,
             visible: 6,
-            first_bucket: 6,
+            first_bucket: 5,
             runs: &[3],
             global: None,
             children: 0b0001,
@@ -669,20 +687,15 @@ fn g8_appended_slot() -> Golden {
     envelope.present(&appended);
     let bytes = envelope.finish();
 
-    let sidecar = json!({
-        "golden": "g8-appended-slot",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 3, false),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": Value::Null,
-        "mass": mass,
-        "appended": { "5": appended },
-        "trailer": Value::Null,
-    });
-
+    let sidecar = tile_sidecar(
+        "g8-appended-slot",
+        &response,
+        &bytes,
+        0,
+        None,
+        Some(&mass),
+        json!({ "5": appended }),
+    );
     Golden {
         name: "g8-appended-slot",
         bytes,
@@ -690,11 +703,16 @@ fn g8_appended_slot() -> Golden {
     }
 }
 
-/// G9: padding sweep, low widths - HEAD sized for pad 1, TYPE_MASK
-/// for pad 3, ROW_IDS for pad 4.
+/// G9: padding sweep, low widths - `HEAD` sized for pad 1, `TYPE_MASK`
+/// for pad 3, `ROW_IDS` for pad 4 (odd delivered).
 fn g9_padding_low() -> Golden {
     let positions: Vec<Vec2> = (0_u16..10)
-        .map(|index| Vec2::new(f32::from(index) * 0.1875 - 0.75, f32::from(index) * 0.09375))
+        .map(|index| {
+            Vec2::new(
+                f32::from(index).mul_add(0.1875, -0.75),
+                f32::from(index) * 0.09375,
+            )
+        })
         .collect();
     let rows: Vec<u32> = (0..10).map(|index| 5 * index + 2).collect();
     let ranges = [3_u32..8];
@@ -713,8 +731,9 @@ fn g9_padding_low() -> Golden {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x99; 32]),
             variant: 0,
-            // x = 1000 and visible = 1200 take two-byte arguments,
-            // sizing the HEAD to 63 bytes: pad 1.
+            // x = 1000 and visible = 1200 take two-byte arguments and
+            // y = 30 a one-byte argument, sizing the HEAD to 63
+            // bytes: pad 1.
             coordinate: TileCoordinate {
                 z: 10,
                 x: 1000,
@@ -722,7 +741,7 @@ fn g9_padding_low() -> Golden {
             },
             mode: Mode::Delta,
             visible: 1200,
-            first_bucket: 13,
+            first_bucket: 12,
             runs: &[5],
             global: None,
             children: 0b0011,
@@ -743,20 +762,15 @@ fn g9_padding_low() -> Golden {
         "the hand-derived G9 masks must match the encoder",
     );
 
-    let sidecar = json!({
-        "golden": "g9-padding-low",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 5, false),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": expected_mask,
-        "mass": Value::Null,
-        "appended": Value::Null,
-        "trailer": Value::Null,
-    });
-
+    let sidecar = tile_sidecar(
+        "g9-padding-low",
+        &response,
+        &bytes,
+        3,
+        Some(&expected_mask),
+        None,
+        Value::Null,
+    );
     Golden {
         name: "g9-padding-low",
         bytes,
@@ -764,14 +778,14 @@ fn g9_padding_low() -> Golden {
     }
 }
 
-/// G10: padding sweep, high widths - HEAD sized for pad 2, TYPE_MASK
+/// G10: padding sweep, high widths - `HEAD` sized for pad 2, `TYPE_MASK`
 /// for pad 5, two appended opaque slots for pads 6 and 7.
 fn g10_padding_high() -> Golden {
     let positions: Vec<Vec2> = (0_u16..6)
         .map(|index| {
             Vec2::new(
-                0.625 - f32::from(index) * 0.125,
-                f32::from(index) * 0.25 - 0.5,
+                f32::from(index).mul_add(-0.125, 0.625),
+                f32::from(index).mul_add(0.25, -0.5),
             )
         })
         .collect();
@@ -786,8 +800,9 @@ fn g10_padding_high() -> Golden {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0xAA; 32]),
             variant: 0,
-            // x = 300 and visible = 400 take two-byte arguments,
-            // sizing the HEAD to 62 bytes: pad 2.
+            // x = 300 and visible = 400 take two-byte arguments and
+            // y = 17 rides inline, sizing the HEAD to 62 bytes:
+            // pad 2.
             coordinate: TileCoordinate {
                 z: 9,
                 x: 300,
@@ -795,7 +810,7 @@ fn g10_padding_high() -> Golden {
             },
             mode: Mode::Delta,
             visible: 400,
-            first_bucket: 12,
+            first_bucket: 11,
             runs: &[3],
             global: None,
             children: 0b1000,
@@ -830,20 +845,15 @@ fn g10_padding_high() -> Golden {
     envelope.present(&seven);
     let bytes = envelope.finish();
 
-    let sidecar = json!({
-        "golden": "g10-padding-high",
-        "layer": "tile",
-        "prefix": prefix_sidecar(&bytes),
-        "directory": directory_sidecar(&bytes),
-        "head": tile_head_sidecar(&response.head, 3, false),
-        "positions": positions_sidecar(&positions, &ranges),
-        "rowIds": rows_sidecar(&rows, &ranges),
-        "typeMask": expected_mask,
-        "mass": Value::Null,
-        "appended": { "5": six, "6": seven },
-        "trailer": Value::Null,
-    });
-
+    let sidecar = tile_sidecar(
+        "g10-padding-high",
+        &response,
+        &bytes,
+        1,
+        Some(&expected_mask),
+        None,
+        json!({ "5": six, "6": seven }),
+    );
     Golden {
         name: "g10-padding-high",
         bytes,

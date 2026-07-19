@@ -14,8 +14,8 @@ pub(crate) enum KnnError<E> {
     TooManyRows { rows: usize },
     /// The requested table shape overflows the entry count.
     TooManyEntries { rows: usize, neighbours: usize },
-    /// A sampling budget lies outside the open unit interval.
-    SampleBudget { defect_rate: f64, confidence: f64 },
+    /// A sampling budget cannot size a sample.
+    SampleBudget { margin: f64, confidence: f64 },
     /// A search returned a different neighbour count than the table
     /// stores per row.
     SearchCount {
@@ -51,13 +51,10 @@ impl<E: fmt::Display> fmt::Display for KnnError<E> {
                 fmt,
                 "{rows} rows with {neighbours} neighbours each overflow the entry count",
             ),
-            Self::SampleBudget {
-                defect_rate,
-                confidence,
-            } => write!(
+            Self::SampleBudget { margin, confidence } => write!(
                 fmt,
-                "a defect rate of {defect_rate} at confidence {confidence} does not size a \
-                 sample; both must lie strictly inside (0, 1)",
+                "a margin of {margin} at confidence {confidence} does not size a sample; the \
+                 margin must be positive and finite and the confidence strictly inside (0, 1)",
             ),
             Self::SearchCount {
                 row,

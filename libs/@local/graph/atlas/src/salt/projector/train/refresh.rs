@@ -163,7 +163,7 @@ impl Refresh<'_> {
 ///
 /// Returns an error when a projected coordinate is non-finite:
 /// training diverged.
-pub(super) fn forward<B: Backend<FloatElem = f32>>(
+pub(crate) fn forward<B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
     columns: NodeColumns<'_>,
     eta: f32,
@@ -202,7 +202,7 @@ pub(super) fn forward<B: Backend<FloatElem = f32>>(
 ///
 /// Returns an error when a scale comes out non-finite: the frame holds
 /// pre-divergence coordinates whose distances overflow.
-pub(super) fn scales(
+pub(crate) fn scales(
     frame: &[Vec2],
     knn: &KnnView<'_>,
     eta: f32,

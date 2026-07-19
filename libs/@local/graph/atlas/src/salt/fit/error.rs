@@ -16,6 +16,7 @@ use super::prepare::{
     norm::{NormSpotCheck, SpotCheckError},
 };
 use crate::{
+    dataset::PROJECTOR_DIMENSIONS,
     file::{
         adjacency::read::OpenAdjacencyError,
         array::OpenArrayError,
@@ -29,16 +30,117 @@ use crate::{
         adjacency::InvalidAdjacencyFile,
         embedding::CardEmbeddingError,
         knn::{artifact::InvalidKnnFile, error::KnnError, hannoy::HannoyIndexError, recall},
+        ladder::{CanonicalError, LadderError},
         landmark::{
             artifact::InvalidLandmarkFile, assignment::AssignmentError, layout::EdgelessGraphError,
             quotient::QuotientError, select::SelectionError,
         },
         lod::{quad::QuadError, stage::LodError},
         policy::{ResolveError, artifact::InvalidPolicyFile, classifier::PredictError},
+        projector::{
+            artifact::CheckpointError,
+            train::{TrainError, refresh::RefreshError},
+        },
         relation::RelationIndexError,
         semantic::artifact::InvalidSemanticFile,
     },
 };
+
+/// The projector placement could not produce its canonical field.
+///
+/// Every variant aborts the fit: a generation whose coordinates the
+/// configured placement could not produce publishes nothing.
+#[derive(Debug)]
+pub(crate) enum PlacementError {
+    /// The projector objective rejects the fit's low-dimensional
+    /// kernel or affinity offset.
+    ObjectiveCurve { exponent: f32, offset: f32 },
+    /// The configured architecture disagrees with the dataset's
+    /// representation width.
+    RepresentationWidth { configured: usize },
+    /// Projector training failed.
+    Train(TrainError),
+    /// The projector checkpoint could not be encoded or staged.
+    Checkpoint(CheckpointError),
+    /// A whole-corpus inference pass failed.
+    Projection(RefreshError),
+    /// The ladder measurement rejected its fields.
+    Ladder(LadderError),
+    /// The configured canonical condition was refused.
+    Canonical(CanonicalError),
+}
+
+impl fmt::Display for PlacementError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ObjectiveCurve { exponent, offset } => write!(
+                fmt,
+                "the projector objective rejects the configuration: the curve exponent {exponent} \
+                 must be at least 0.5 and the affinity offset {offset} finite and strictly \
+                 positive",
+            ),
+            Self::RepresentationWidth { configured } => write!(
+                fmt,
+                "the architecture's representation width {configured} does not match the \
+                 dataset's {PROJECTOR_DIMENSIONS}-dimensional projector contract",
+            ),
+            Self::Train(error) => write!(fmt, "projector training failed: {error}"),
+            Self::Checkpoint(error) => {
+                write!(fmt, "the projector checkpoint failed to stage: {error}")
+            }
+            Self::Projection(error) => {
+                write!(fmt, "a whole-corpus inference pass failed: {error}")
+            }
+            Self::Ladder(error) => write!(fmt, "the ladder measurement failed: {error}"),
+            Self::Canonical(error) => {
+                write!(fmt, "the canonical condition was refused: {error}")
+            }
+        }
+    }
+}
+
+impl Error for PlacementError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Train(error) => Some(error),
+            Self::Checkpoint(error) => Some(error),
+            Self::Projection(error) => Some(error),
+            Self::Ladder(error) => Some(error),
+            Self::Canonical(error) => Some(error),
+            Self::ObjectiveCurve { .. } | Self::RepresentationWidth { .. } => None,
+        }
+    }
+}
+
+impl From<TrainError> for PlacementError {
+    fn from(error: TrainError) -> Self {
+        Self::Train(error)
+    }
+}
+
+impl From<CheckpointError> for PlacementError {
+    fn from(error: CheckpointError) -> Self {
+        Self::Checkpoint(error)
+    }
+}
+
+impl From<RefreshError> for PlacementError {
+    fn from(error: RefreshError) -> Self {
+        Self::Projection(error)
+    }
+}
+
+impl From<LadderError> for PlacementError {
+    fn from(error: LadderError) -> Self {
+        Self::Ladder(error)
+    }
+}
+
+impl From<CanonicalError> for PlacementError {
+    fn from(error: CanonicalError) -> Self {
+        Self::Canonical(error)
+    }
+}
 
 /// A prior generation offered for reuse could not serve it.
 ///
@@ -183,6 +285,8 @@ pub(crate) enum StageError {
     MapIdentities(OpenIdentityError),
     /// A staged identity file does not hold a valid table.
     InvalidIdentities(InvalidIdentityFile),
+    /// The projector placement failed to train, measure, or publish.
+    Placement(PlacementError),
     /// The prior generation offered for reuse could not serve it.
     Prior(PriorError),
     /// The finished staging failed to seal into a generation.
@@ -337,6 +441,12 @@ impl From<InvalidIdentityFile> for StageError {
     }
 }
 
+impl From<PlacementError> for StageError {
+    fn from(error: PlacementError) -> Self {
+        Self::Placement(error)
+    }
+}
+
 impl From<PriorError> for StageError {
     fn from(error: PriorError) -> Self {
         Self::Prior(error)
@@ -430,6 +540,9 @@ impl fmt::Display for StageError {
             Self::InvalidIdentities(error) => {
                 write!(fmt, "a staged identity file is not a valid table: {error}")
             }
+            Self::Placement(error) => {
+                write!(fmt, "the placement stage failed: {error}")
+            }
             Self::Prior(error) => {
                 write!(fmt, "the prior generation could not serve reuse: {error}")
             }
@@ -477,6 +590,7 @@ impl Error for StageError {
             Self::InvalidLandmarks(error) => Some(error),
             Self::MapIdentities(error) => Some(error),
             Self::InvalidIdentities(error) => Some(error),
+            Self::Placement(error) => Some(error),
             Self::Prior(error) => Some(error),
             Self::Seal(error) => Some(error),
             Self::RepresentationDefects(_)

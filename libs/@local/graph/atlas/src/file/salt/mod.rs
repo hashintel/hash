@@ -85,6 +85,10 @@ pub(crate) struct SaltFiles {
     /// The incident-edge adjacency: per-node outgoing and incoming edge
     /// rows over one value array, one combined adjacency file.
     pub adjacency: RepositoryFile,
+    /// The trained projector checkpoint, the framework's named
+    /// `MessagePack` record. `None` records that the coordinates came
+    /// from the landmark baseline, not a trained model.
+    pub projector: Option<RepositoryFile>,
     /// The reviewed-verdicts document supplied to the fit, staged
     /// verbatim: the trainer's human-review input. `None` records that
     /// the fit ran without one.
@@ -93,7 +97,8 @@ pub(crate) struct SaltFiles {
 
 impl SaltFiles {
     /// Returns every file of the generation, in role order; the
-    /// supplied-verdicts role appears exactly when one was staged.
+    /// projector and supplied-verdicts roles appear exactly when they
+    /// were staged.
     ///
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
@@ -122,6 +127,7 @@ impl SaltFiles {
             ontology_identities,
             edge_endpoints,
             adjacency,
+            projector,
             reviewed_verdicts,
         } = self;
 
@@ -151,6 +157,7 @@ impl SaltFiles {
             adjacency,
         ]
         .into_iter()
+        .chain(projector.as_ref())
         .chain(reviewed_verdicts.as_ref())
     }
 }

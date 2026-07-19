@@ -10,9 +10,9 @@
   "golden": "g1-minimal-tile",
   "head": {
     "children": 4,
-    "coordinate": [4, 9, 6],
+    "coordinate": [2, 3, 1],
     "delivered": 3,
-    "firstBucket": 7,
+    "firstBucket": 4,
     "generation": "1111111111111111111111111111111111111111111111111111111111111111",
     "global": null,
     "mode": 0,
@@ -35,5 +35,5 @@
   },
   "rowIds": [31, 34, 37],
   "trailer": null,
-  "typeMask": [1, 3, 0]
+  "typeMask": [1, 5, 0]
 }

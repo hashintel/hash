@@ -18,7 +18,7 @@
 //! has no recovery path, and the error is the diagnosis.
 
 use alloc::borrow::Cow;
-use core::time::Duration;
+use core::{num::NonZero, time::Duration};
 use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -39,6 +39,12 @@ use crate::{
 const DEFAULT_SEEDS: &[u64] = &[0, 0, 1, 2];
 const DEFAULT_CONSTRUCTIONS: &[usize] = &[128, 256];
 const DEFAULT_SEARCHES: &[usize] = &[64, 128, 192, 256];
+
+// Fixed reference size: the sweep compares settings against each
+// other, so its samples are sized once (SE ~0.007 at the measured
+// per-row deviation, resolving the construction effect) rather than
+// per-reading like the production check's two-stage procedure.
+const REFERENCE_ROWS: NonZero<usize> = NonZero::new(2_048).expect("the reference size is nonzero");
 
 /// The sweep grid.
 #[derive(Debug, Clone)]
@@ -152,9 +158,13 @@ pub fn sweep(root: &str, options: &SweepOptions) -> BackendSweep {
             continue;
         }
         let started = Instant::now();
-        let reference =
-            ExactReference::new::<!>(embeddings, check, stage_rng(seed, Stage::RecallCheck))
-                .expect("the corpus hosts the sampling budget");
+        let reference = ExactReference::new::<!>(
+            embeddings,
+            check.neighbours,
+            REFERENCE_ROWS,
+            stage_rng(seed, Stage::RecallCheck),
+        )
+        .expect("the corpus holds at least two rows");
         let wall = started.elapsed();
         tracing::info!(
             seed,
@@ -185,7 +195,7 @@ pub fn sweep(root: &str, options: &SweepOptions) -> BackendSweep {
                 "index built"
             );
 
-            let points = score_grid(&directory, &references, ef_construction, options, check);
+            let points = score_grid(&directory, &references, ef_construction, options);
 
             // Bounds peak disk to one environment; the scratch drop
             // would also remove it at the end of the sweep.
@@ -258,7 +268,6 @@ fn score_grid(
     references: &[(u64, ExactReference)],
     ef_construction: usize,
     options: &SweepOptions,
-    check: SpotCheckOptions,
 ) -> Vec<SweepPoint> {
     options
         .searches
@@ -277,7 +286,7 @@ fn score_grid(
             references.iter().map(move |(sample_seed, reference)| {
                 let started = Instant::now();
                 let reading = reference
-                    .score(&index, check.minimum_recall)
+                    .score(&index)
                     .expect("every sampled query should answer");
                 let query_wall = started.elapsed();
                 tracing::info!(

@@ -36,24 +36,27 @@
 mod batch;
 mod fit;
 mod metrics;
-mod refresh;
+pub(crate) mod refresh;
 mod step;
 #[cfg(test)]
 mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
-pub(crate) use self::fit::{BoundaryState, TrainerOptimizerRecord, TrainingSchedule};
-#[expect(
-    unused_imports,
-    reason = "the trainer's surface awaits its consumer: the fit pipeline's projector stage"
-)]
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
-        BoundaryEvidence, Fitted, FrozenRadius, RelationLens, TickTelemetry, TrainError,
-        TrainOptions, TrainerInputs, TrainingEvidence, fit, fit_from_boundary, fit_to_boundary,
+        BoundaryState, Fitted, FrozenRadius, RelationLens, TrainError, TrainOptions, TrainerInputs,
+        TrainerOptimizerRecord, TrainingSchedule, fit,
     },
+};
+#[expect(
+    unused_imports,
+    reason = "the evidence and boundary-fork surfaces await their consumers: training-telemetry \
+              metadata summaries and the checkpoint-fork tuning protocol"
+)]
+pub(crate) use self::{
+    fit::{BoundaryEvidence, TickTelemetry, TrainingEvidence, fit_from_boundary, fit_to_boundary},
     metrics::{BudgetBreakdown, DisplacementHistogram, DisplacementMoments, DisplacementSummary},
     step::LossBreakdown,
 };
@@ -117,7 +120,7 @@ impl Coefficients {
     /// Returns [`None`] unless every coefficient is finite and
     /// non-negative and the semantic coefficient is strictly positive.
     #[must_use]
-    pub(crate) fn new(
+    pub(crate) const fn new(
         semantic: f32,
         ordinary: f32,
         hard: f32,
@@ -125,11 +128,20 @@ impl Coefficients {
         anchor: f32,
         landmark: f32,
     ) -> Option<Self> {
-        let non_negative = [semantic, ordinary, hard, relation, anchor, landmark]
-            .into_iter()
-            .all(|value| value.is_finite() && value >= 0.0);
+        const fn admissible(value: f32) -> bool {
+            value.is_finite() && value >= 0.0
+        }
+        let non_negative = admissible(semantic)
+            && admissible(ordinary)
+            && admissible(hard)
+            && admissible(relation)
+            && admissible(anchor)
+            && admissible(landmark);
 
-        (non_negative && semantic > 0.0).then_some(Self {
+        if !(non_negative && semantic > 0.0) {
+            return None;
+        }
+        Some(Self {
             semantic,
             ordinary,
             hard,
@@ -137,6 +149,48 @@ impl Coefficients {
             anchor,
             landmark,
         })
+    }
+
+    /// Returns the semantic attraction coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn semantic(self) -> f32 {
+        self.semantic
+    }
+
+    /// Returns the ordinary repulsion coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn ordinary(self) -> f32 {
+        self.ordinary
+    }
+
+    /// Returns the hard-negative repulsion coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn hard(self) -> f32 {
+        self.hard
+    }
+
+    /// Returns the lens-independent relation coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn relation(self) -> f32 {
+        self.relation
+    }
+
+    /// Returns the temporal-anchor support coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn anchor(self) -> f32 {
+        self.anchor
+    }
+
+    /// Returns the landmark support coefficient.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn landmark(self) -> f32 {
+        self.landmark
     }
 }
 

@@ -10,11 +10,12 @@ use core::num::NonZero;
 use crate::{
     dataset::TemporalAxes,
     file::{generation::GenerationId, morton::Fenceposts},
-    math::Bounds2,
+    math::{Bounds2, Similarity},
     morton::Depth,
     salt::{
         BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef,
         LodEvidence, NormSpotCheck, QuadEvidence, RankingConfig, RecallSpotCheck,
+        ladder::RungMeasurement, projector::train::FrozenRadius,
     },
 };
 
@@ -43,6 +44,10 @@ pub(crate) enum Placement {
     /// Every row takes its assigned landmark's layout coordinate: the
     /// 1-NN placement the landmark assignment already encodes.
     LandmarkBaseline,
+    /// The trained conditioned projector placed every row; the
+    /// published coordinates are the canonical rung's aligned field,
+    /// and the checkpoint publishes as the `projector` role.
+    Projector,
 }
 
 /// Where the generation's rank inputs came from.
@@ -134,6 +139,158 @@ pub(crate) struct Evidence {
     /// The quadtree build's publish measurements.
     #[serde(with = "QuadEvidenceDef")]
     pub quad: QuadEvidence,
+    /// The projector training and ladder measurements; present exactly
+    /// when the placement is [`Placement::Projector`].
+    pub projector: Option<ProjectorEvidence>,
+}
+
+/// The training and ladder measurements of one trained placement.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ProjectorEvidence {
+    /// The optimization steps the run took.
+    pub steps: usize,
+    /// The phase boundary's frozen-radius record; absent when the
+    /// schedule ended before the boundary step.
+    pub boundary: Option<FrozenRadiusEvidence>,
+    /// Supplied verdicts that resolved to no ontology row of this
+    /// snapshot; evidence, not an error, because snapshots legitimately
+    /// move on.
+    pub unresolved_verdicts: usize,
+    /// The measured condition ladder. Absent when the corpus carries no
+    /// relation force: the lens receives zero gradient there, every
+    /// rung projects the identical field, and the baseline publishes
+    /// directly.
+    pub ladder: Option<LadderEvidence>,
+}
+
+/// How the Proximal radius was frozen at the trainer's phase boundary.
+///
+/// The identity mirrors the trainer's frozen-radius outcome, recording
+/// what actually ran.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "provenance")]
+pub(crate) enum FrozenRadiusEvidence {
+    /// Measured from the reviewed-Proximal pairs.
+    Measured { radius: f32 },
+    /// Asserted by configuration, superseding the measurement.
+    Asserted { radius: f32 },
+    /// Nothing to freeze: the attraction index carries no force.
+    Vacuous,
+}
+
+impl From<FrozenRadius> for FrozenRadiusEvidence {
+    fn from(radius: FrozenRadius) -> Self {
+        match radius {
+            FrozenRadius::Measured { radius } => Self::Measured { radius },
+            FrozenRadius::Asserted { radius } => Self::Asserted { radius },
+            FrozenRadius::Vacuous => Self::Vacuous,
+        }
+    }
+}
+
+/// The measured condition ladder and its published canonical rung.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct LadderEvidence {
+    /// One record per rung, in schedule order.
+    pub rungs: Vec<RungEvidence>,
+    /// The published rung's condition.
+    pub canonical: f32,
+    /// The published rung's schedule index.
+    pub canonical_index: usize,
+    /// The relation loss re-measured over the persisted aligned column,
+    /// guarding the alignment application and the narrowing to `f32`.
+    pub persisted_relation_loss: f64,
+}
+
+/// One rung's cross-condition evidence.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct RungEvidence {
+    /// The rung's condition value.
+    pub condition: f32,
+    /// The field's frozen relation loss at projection time.
+    pub relation_loss: f64,
+    /// The similarity aligning the rung's field onto the baseline
+    /// field; the identity for the baseline itself.
+    #[serde(with = "similarity")]
+    pub alignment: Similarity,
+    /// RMS movement against the baseline field after alignment.
+    pub baseline_movement: f64,
+    /// RMS movement against the preceding field after alignment.
+    pub adjacent_movement: f64,
+    /// Whether the relation loss stayed within tolerance of the
+    /// preceding rung's.
+    pub monotonic: bool,
+    /// Whether the adjacent movement reached the floor.
+    pub distinguishable: bool,
+}
+
+impl From<&RungMeasurement> for RungEvidence {
+    fn from(measurement: &RungMeasurement) -> Self {
+        Self {
+            condition: measurement.condition,
+            relation_loss: measurement.relation_loss,
+            alignment: measurement.alignment,
+            baseline_movement: measurement.baseline_movement,
+            adjacent_movement: measurement.adjacent_movement,
+            monotonic: measurement.monotonic,
+            distinguishable: measurement.distinguishable,
+        }
+    }
+}
+
+/// Serializes a [`Similarity`] as its decomposed coefficients,
+/// validating through [`Similarity::new`] on deserialize.
+mod similarity {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::math::{Rotation, Similarity, Vec2};
+
+    /// The alignment's wire form; the rotation is its unit vector.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Record {
+        scale: f32,
+        rotation: [f32; 2],
+        translation: [f32; 2],
+    }
+
+    pub(super) fn serialize<S>(alignment: &Similarity, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Record {
+            scale: alignment.scale(),
+            rotation: [alignment.rotation().cos(), alignment.rotation().sin()],
+            translation: [alignment.translation().x(), alignment.translation().y()],
+        }
+        .serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Similarity, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let Record {
+            scale,
+            rotation: [cos, sin],
+            translation: [x, y],
+        } = Record::deserialize(deserializer)?;
+
+        // The rotation's unit-circle contract admits the rounding a
+        // fitted alignment carries and nothing more.
+        let unit_defect = f64::from(cos).mul_add(f64::from(cos), f64::from(sin) * f64::from(sin));
+        if !((unit_defect - 1.0).abs() <= 1.0e-6 && x.is_finite() && y.is_finite()) {
+            return Err(D::Error::custom(format_args!(
+                "the rotation ({cos}, {sin}) does not lie on the unit circle or the translation \
+                 ({x}, {y}) is not finite"
+            )));
+        }
+
+        Similarity::new(scale, Rotation::from_cos_sin(cos, sin), Vec2::new(x, y)).ok_or_else(|| {
+            D::Error::custom(format_args!(
+                "the scale {scale} is not a finite, strictly positive, normal number"
+            ))
+        })
+    }
 }
 
 /// Serializes a [`Bounds2`] as its corner coordinates, validating

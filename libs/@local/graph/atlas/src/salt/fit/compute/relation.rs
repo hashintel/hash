@@ -16,15 +16,21 @@ use crate::{
     salt::{
         adjacency::Adjacency,
         policy::artifact::MappedPolicyTable,
-        relation::{BuildEvidence, Policies, RelationIndexes, RelationInstance},
+        relation::{Policies, RelationIndexes, RelationInstance},
     },
 };
 
 /// The staged relation artifacts of one fit.
+///
+/// The built indexes ride along beside their staged files: the
+/// projector stage consumes them in their owned form, so handing them
+/// on saves a decode round-trip through the artifacts just written.
+/// They are edge-scale - bounded by the retained instance count, not
+/// the corpus - and drop at the placement stage's exit.
 pub(super) struct RelationArtifacts {
     pub attraction: RepositoryFile,
     pub protection: RepositoryFile,
-    pub evidence: BuildEvidence,
+    pub indexes: RelationIndexes,
 }
 
 impl Context<'_> {
@@ -90,7 +96,7 @@ impl Context<'_> {
         Ok(RelationArtifacts {
             attraction,
             protection,
-            evidence: indexes.evidence,
+            indexes,
         })
     }
 }
