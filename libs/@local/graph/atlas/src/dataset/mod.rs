@@ -597,6 +597,13 @@ pub(crate) trait Dataset {
     where
         Self: 'this;
 
+    /// The stream of requested direct-type lists.
+    type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>>: Stream<
+        Item = Result<(Self::NodeId, SmallVec<OntologyRowId, 2>), Self::Error>,
+    >
+    where
+        Self: 'this;
+
     /// The stream of finished cards, in ontology row order.
     type CardStream<'this>: Stream<Item = io::Result<(Self::OntologyId, Card)>>
     where
@@ -647,6 +654,20 @@ pub(crate) trait Dataset {
         &self,
         nodes: I,
     ) -> Self::CanonicalNodeEmbeddingsStream<'_, I>;
+
+    /// Opens a stream of direct-type lists for the given nodes.
+    ///
+    /// Each requested node yields its direct types, ascending by
+    /// ontology row and deduplicated: the same lists the node stream
+    /// carries, without the embeddings that make a corpus pass heavy.
+    /// Requests are probe-scoped: bounded anchor sets for grouping
+    /// quality readings by subgroup. The corpus-scale source is
+    /// [`Node::ontology`].
+    #[must_use]
+    fn node_types<I: Iterator<Item = Self::NodeId>>(
+        &self,
+        nodes: I,
+    ) -> Self::NodeTypesStream<'_, I>;
 
     /// Opens the card stream.
     ///

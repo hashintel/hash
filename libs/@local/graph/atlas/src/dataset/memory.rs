@@ -3,9 +3,12 @@
 use std::{collections::HashMap, io};
 
 use futures::{Stream, StreamExt as _, stream};
+use smallvec::SmallVec;
 use zerocopy::{LE, U64};
 
-use super::{CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, TemporalAxes, card::Card};
+use super::{
+    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes, card::Card,
+};
 use crate::math::BoxedVecN;
 
 /// A [`Dataset`] held entirely in memory.
@@ -115,6 +118,8 @@ impl Dataset for MemoryDataset {
     type CardStream<'this> = impl Stream<Item = io::Result<(U64<LE>, Card)>> + 'this;
     type EdgeStream<'this> = impl Stream<Item = Result<Edge<U64<LE>>, !>> + 'this;
     type NodeStream<'this> = impl Stream<Item = Result<Node<U64<LE>>, !>> + 'this;
+    type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>> =
+        impl Stream<Item = Result<(U64<LE>, SmallVec<OntologyRowId, 2>), !>> + use<'this, I>;
     type OntologyStream<'this> = impl Stream<Item = Result<Ontology<U64<LE>>, !>> + 'this;
 
     fn axes(&self) -> Option<TemporalAxes> {
@@ -150,6 +155,23 @@ impl Dataset for MemoryDataset {
                 .unwrap_or_else(|| panic!("node {} has no canonical embedding", id.get()));
 
             Ok::<_, !>((id, embedding.clone()))
+        })
+    }
+
+    /// Opens a stream of direct-type lists for the given nodes.
+    ///
+    /// # Panics
+    ///
+    /// The stream panics when a requested node is not in the fixture.
+    fn node_types<I: Iterator<Item = U64<LE>>>(&self, nodes: I) -> Self::NodeTypesStream<'_, I> {
+        stream::iter(nodes).map(|id| {
+            let node = self
+                .nodes
+                .iter()
+                .find(|node| node.id == id)
+                .unwrap_or_else(|| panic!("node {} is not in the fixture", id.get()));
+
+            Ok::<_, !>((id, node.ontology.clone()))
         })
     }
 

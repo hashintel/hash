@@ -40,9 +40,8 @@
 use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, num::NonZero, pin::pin};
 
-use futures::TryStreamExt as _;
+use futures::{Stream, TryStreamExt as _};
 use rand::Rng;
-use zerocopy::IntoBytes as _;
 
 use self::pass::{CorpusPass, SampledPass};
 pub(crate) use self::readings::{ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair};
@@ -486,11 +485,68 @@ fn transpose_pairs(
     pairs
 }
 
-/// Fetches the sampled rows' canonical embeddings, in sample order.
+/// An unordered id-keyed delivery did not match its requests.
+#[derive(Debug)]
+pub(super) enum DeliveryError<E> {
+    /// The stream failed.
+    Dataset(E),
+    /// The stream delivered an id that was never requested.
+    Unrequested,
+    /// The stream ended before covering every requested id.
+    Missing { requested: usize, delivered: usize },
+}
+
+/// Matches an unordered delivery stream against its requests.
 ///
-/// The stream owes no delivery order and identifies rows only by their
-/// source ids, so deliveries are matched by id bytes and checked for
-/// completeness: every requested row exactly once, nothing else.
+/// Probe-scoped dataset streams owe no delivery order and identify
+/// their items only by source id, so deliveries are matched by id
+/// bytes and checked for completeness - every requested id exactly
+/// once, nothing else - and the payloads return in request order.
+pub(super) async fn match_deliveries<Id, T, E>(
+    requests: &[Id],
+    deliveries: impl Stream<Item = Result<(Id, T), E>>,
+) -> Result<Vec<T>, DeliveryError<E>>
+where
+    Id: zerocopy::IntoBytes + zerocopy::Immutable,
+{
+    let key = |slot: u32| requests[slot as usize].as_bytes();
+
+    let mut order: Vec<u32> = (0..requests.len() as u32).collect();
+    order.sort_unstable_by(|&one, &other| key(one).cmp(key(other)));
+
+    let mut received: Vec<Option<T>> = requests.iter().map(|_| None).collect();
+    let mut delivered = 0_usize;
+
+    let mut deliveries = pin!(deliveries);
+    while let Some((id, payload)) = deliveries
+        .try_next()
+        .await
+        .map_err(DeliveryError::Dataset)?
+    {
+        // The search's `Err` is an insertion point, not a failure to keep.
+        let position = order
+            .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
+            .map_err(|_insertion| DeliveryError::Unrequested)?;
+        let slot = order[position] as usize;
+        if received[slot].replace(payload).is_none() {
+            delivered += 1;
+        }
+    }
+
+    if delivered != requests.len() {
+        return Err(DeliveryError::Missing {
+            requested: requests.len(),
+            delivered,
+        });
+    }
+
+    Ok(received
+        .into_iter()
+        .map(|slot| slot.expect("every slot was delivered"))
+        .collect())
+}
+
+/// Fetches the sampled rows' canonical embeddings, in sample order.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -501,42 +557,21 @@ async fn fetch_canonical<D: Dataset>(
     node_ids: &[D::NodeId],
     sample: &[usize],
 ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, ProbeError<D::Error>> {
-    let key_width = size_of::<D::NodeId>();
-    let mut keys = Vec::with_capacity(sample.len() * key_width);
-    for &row in sample {
-        keys.extend_from_slice(node_ids[row].as_bytes());
-    }
-    let key = |slot: u32| &keys[slot as usize * key_width..(slot as usize + 1) * key_width];
-
-    let mut order: Vec<u32> = (0..sample.len() as u32).collect();
-    order.sort_unstable_by(|&one, &other| key(one).cmp(key(other)));
-
     let requests: Vec<D::NodeId> = sample.iter().map(|&row| node_ids[row]).collect();
-    let mut received: Vec<Option<BoxedVecN<CANONICAL_DIMENSIONS>>> =
-        sample.iter().map(|_| None).collect();
-    let mut delivered = 0_usize;
-
-    let mut stream = pin!(dataset.canonical_node_embeddings(requests.into_iter()));
-    while let Some((id, embedding)) = stream.try_next().await.map_err(ProbeError::Dataset)? {
-        // The search's `Err` is an insertion point, not a failure to keep.
-        let position = order
-            .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
-            .map_err(|_insertion| ProbeError::UnrequestedEmbedding)?;
-        let slot = order[position] as usize;
-        if received[slot].replace(embedding).is_none() {
-            delivered += 1;
-        }
-    }
-
-    if delivered != sample.len() {
-        return Err(ProbeError::MissingEmbeddings {
-            requested: sample.len(),
+    match_deliveries(
+        &requests,
+        dataset.canonical_node_embeddings(requests.iter().copied()),
+    )
+    .await
+    .map_err(|error| match error {
+        DeliveryError::Dataset(error) => ProbeError::Dataset(error),
+        DeliveryError::Unrequested => ProbeError::UnrequestedEmbedding,
+        DeliveryError::Missing {
+            requested,
             delivered,
-        });
-    }
-
-    Ok(received
-        .into_iter()
-        .map(|slot| slot.expect("every slot was delivered"))
-        .collect())
+        } => ProbeError::MissingEmbeddings {
+            requested,
+            delivered,
+        },
+    })
 }

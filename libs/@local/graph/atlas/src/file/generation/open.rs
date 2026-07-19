@@ -86,6 +86,7 @@ impl GenerationRoot {
     /// document's bytes do not hash to `id`, [`OpenError::Document`]
     /// when they do not parse as a repository this module speaks, and
     /// [`OpenError::Io`] when they cannot be read.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn open(&self, id: GenerationId) -> Result<Generation, OpenError> {
         let path = self.generation_path(id);
 

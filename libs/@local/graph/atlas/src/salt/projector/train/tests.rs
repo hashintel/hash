@@ -21,7 +21,10 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{
     BatchPlan, Coefficients, ObjectiveOptions, StepError,
     batch::{Batch, BatchSampler, Populations},
-    metrics::{BudgetBreakdown, DegreeDeciles},
+    metrics::{
+        BudgetBreakdown, DegreeDeciles, DisplacementHistogram, DisplacementSummary,
+        TypeParticipants,
+    },
     step::evaluate,
 };
 use crate::{
@@ -788,5 +791,102 @@ fn evaluate_rejects_non_finite_coordinates() {
             StepError::Diverged { row } => row.get(),
         }),
         Some(1)
+    );
+}
+
+#[test]
+fn displacement_histogram_buckets_by_exponent() {
+    // Buckets are f32 biased exponents: 0.5 -> 126, 1.0 and 1.5 ->
+    // 127, 2.0 -> 128, exact zero -> 0. The moments are dyadic sums:
+    // 0.25 + 1 + 2.25 + 4 = 7.5 for the squares.
+    let mut histogram = DisplacementHistogram::default();
+    for displacement in [0.0, 0.5, 1.0, 1.5, 2.0] {
+        histogram.record(displacement);
+    }
+
+    assert_eq!(histogram.counts()[0], 1);
+    assert_eq!(histogram.counts()[126], 1);
+    assert_eq!(histogram.counts()[127], 2);
+    assert_eq!(histogram.counts()[128], 1);
+    assert_eq!(histogram.counts().iter().sum::<u64>(), 5);
+
+    let moments = histogram.moments();
+    assert_eq!(moments.count(), 5);
+    assert_eq!(moments.sum(), 5.0);
+    assert_eq!(moments.sum_squares(), 7.5);
+    assert_eq!(moments.maximum(), 2.0);
+}
+
+#[test]
+fn type_participants_deduplicate_and_order_rows() {
+    let indexes = relation_indexes(
+        4,
+        &[proximal_policy(7), proximal_policy(9)],
+        vec![
+            instance(0, 9, 2, 3),
+            instance(1, 7, 0, 1),
+            instance(2, 7, 0, 2),
+            instance(3, 7, 1, 2),
+        ],
+    );
+
+    let participants = TypeParticipants::new(&indexes.attraction);
+    let collected: Vec<(u64, Vec<usize>)> = participants
+        .iter()
+        .map(|(relation, rows)| (relation.get(), rows.to_vec()))
+        .collect();
+    assert_eq!(
+        collected,
+        [(7, vec![0, 1, 2]), (9, vec![2, 3])],
+        "rows deduplicate within a type and types ascend by ontology row"
+    );
+}
+
+#[test]
+fn displacement_summary_reports_every_axis() {
+    // Rows 0 and 1 participate in relation 11 (degree one each, upper
+    // rank two of two participants: decile (2-1)*10/2 = 5); row 2 has
+    // no attraction evidence and lands in the overall bucket only.
+    // Displacements: row 0 moves by exactly 1, row 1 not at all, and
+    // row 2 by exactly 5 (a 3-4-5 triangle).
+    let indexes = relation_indexes(3, &[proximal_policy(11)], vec![instance(0, 11, 0, 1)]);
+    let deciles = DegreeDeciles::new(&indexes.attraction, 3);
+    let participants = TypeParticipants::new(&indexes.attraction);
+
+    let low = [Vec2::splat(0.0), Vec2::splat(0.0), Vec2::splat(0.0)];
+    let high = [Vec2::new(1.0, 0.0), Vec2::splat(0.0), Vec2::new(3.0, 4.0)];
+    let summary = DisplacementSummary::measure(&low, &high, &participants, &deciles);
+
+    let overall = summary.overall();
+    assert_eq!(overall.moments().count(), 3);
+    assert_eq!(overall.moments().sum(), 6.0);
+    assert_eq!(overall.moments().maximum(), 5.0);
+    assert_eq!(overall.counts()[0], 1, "the still row");
+    assert_eq!(overall.counts()[127], 1, "the unit displacement");
+    assert_eq!(overall.counts()[129], 1, "five lies in [4, 8)");
+
+    let decile = &summary.deciles()[5];
+    assert_eq!(
+        decile.moments().count(),
+        2,
+        "only participating rows carry a decile"
+    );
+    assert_eq!(decile.moments().maximum(), 1.0);
+
+    let types: Vec<(u64, u64, f64, f32)> = summary
+        .types()
+        .map(|(relation, moments)| {
+            (
+                relation.get(),
+                moments.count(),
+                moments.sum(),
+                moments.maximum(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        types,
+        [(11, 2, 1.0, 1.0)],
+        "the type bucket covers its participants' displacements"
     );
 }

@@ -276,6 +276,22 @@ fn decode_node(row: &Row) -> Result<Node<ArchivedEntityId>, PostgresDatasetError
     })
 }
 
+fn decode_node_types(
+    row: &Row,
+) -> Result<(ArchivedEntityId, SmallVec<OntologyRowId, 2>), PostgresDatasetError> {
+    let web_id: Uuid = row.try_get(0)?;
+    let entity_uuid: Uuid = row.try_get(1)?;
+    let ordinals: Vec<i64> = row.try_get(2)?;
+
+    Ok((
+        ArchivedEntityId {
+            web_id: web_id.into(),
+            entity_uuid: entity_uuid.into(),
+        },
+        ontology_rows(ordinals)?,
+    ))
+}
+
 fn decode_edge(row: &Row) -> Result<Edge<ArchivedEntityId>, PostgresDatasetError> {
     let web_id: Uuid = row.try_get(0)?;
     let entity_uuid: Uuid = row.try_get(1)?;
@@ -510,6 +526,11 @@ impl Dataset for PostgresDataset<'_> {
         = impl Stream<Item = Result<Node<ArchivedEntityId>, PostgresDatasetError>> + 'this
     where
         Self: 'this;
+    type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>>
+        = impl Stream<Item = Result<(ArchivedEntityId, SmallVec<OntologyRowId, 2>), PostgresDatasetError>>
+        + use<'this, I>
+    where
+        Self: 'this;
     type OntologyStream<'this>
         =
         impl Stream<Item = Result<Ontology<ArchivedOntologyTypeUuid>, PostgresDatasetError>> + 'this
@@ -672,6 +693,74 @@ impl Dataset for PostgresDataset<'_> {
                 Ok((id, embedding.0))
             })
             .map_err(PostgresDatasetError::Query)
+    }
+
+    fn node_types<I: Iterator<Item = Self::NodeId>>(
+        &self,
+        nodes: I,
+    ) -> Self::NodeTypesStream<'_, I> {
+        let (entity_uuids, web_ids): (Vec<_>, Vec<_>) = nodes
+            .into_iter()
+            .map(|id| {
+                (
+                    Uuid::from_bytes(id.entity_uuid.0),
+                    Uuid::from_bytes(id.web_id.0),
+                )
+            })
+            .collect();
+
+        // The requests CTE densifies nothing: it resolves each requested
+        // identity to its current edition at the dataset's axes, exactly
+        // the edition whose depth-0 type rows the node stream carries.
+        let type_rows = type_rows_cte("requests");
+        let sql = format!(
+            "WITH requests AS (
+                SELECT
+                    meta.web_id,
+                    meta.entity_uuid,
+                    meta.entity_edition_id
+                FROM unnest($4::uuid[], $5::uuid[]) AS request(web_id, entity_uuid)
+                JOIN entity_temporal_metadata AS meta
+                  ON meta.web_id = request.web_id
+                 AND meta.entity_uuid = request.entity_uuid
+                 AND meta.draft_id IS NULL
+                 AND meta.transaction_time @> $1::timestamptz
+                 AND meta.decision_time @> $2::timestamptz
+                JOIN entity_editions AS edition
+                  ON edition.entity_edition_id = meta.entity_edition_id
+                 AND NOT edition.archived
+            ),
+            {type_rows}
+            SELECT
+                requests.web_id,
+                requests.entity_uuid,
+                COALESCE(type_rows.ordinals, '{{}}')
+            FROM requests
+            LEFT JOIN type_rows
+              ON type_rows.entity_edition_id = requests.entity_edition_id"
+        );
+
+        async move {
+            let types = self.type_table().await?;
+
+            self.transaction
+                .query_raw(
+                    &sql,
+                    [
+                        &self.axes.transaction_time as &(dyn ToSql + Sync),
+                        &self.axes.decision_time as &(dyn ToSql + Sync),
+                        &types as &(dyn ToSql + Sync),
+                        &web_ids as &(dyn ToSql + Sync),
+                        &entity_uuids as &(dyn ToSql + Sync),
+                    ],
+                )
+                .await
+                .map(|rows| rows.map_err(PostgresDatasetError::from))
+                .map_err(PostgresDatasetError::from)
+        }
+        .into_stream()
+        .try_flatten()
+        .and_then(|row| core::future::ready(decode_node_types(&row)))
     }
 
     /// Opens the stream of canonical relation cards, in ontology row

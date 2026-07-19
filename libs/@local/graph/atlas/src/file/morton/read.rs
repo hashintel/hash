@@ -108,6 +108,7 @@ impl MortonFile {
     /// [`OpenMortonError::Fenceposts`] when the header's fenceposts
     /// break a structural rule, and [`OpenMortonError::Length`] when
     /// the file length contradicts the header's geometry.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenMortonError> {
         let file = File::open(path).map_err(OpenMortonError::Io)?;
         // SAFETY: published artifact files are immutable (the `crate::file`
