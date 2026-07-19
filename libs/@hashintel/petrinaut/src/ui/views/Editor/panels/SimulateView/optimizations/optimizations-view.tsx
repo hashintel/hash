@@ -93,7 +93,7 @@ const optimizationColumns = [
   },
   {
     id: "trials",
-    header: "Trials",
+    header: "Steps",
     width: 120,
     tone: "subtle",
     render: (optimization) =>

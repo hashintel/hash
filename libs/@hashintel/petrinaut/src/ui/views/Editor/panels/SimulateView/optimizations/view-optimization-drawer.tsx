@@ -58,7 +58,7 @@ const errorStyle = css({
   whiteSpace: "pre-wrap",
 });
 
-const trialHintStyle = css({
+const stepHintStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
 });
@@ -93,10 +93,10 @@ function formatStatus(status: OptimizationRecord["status"]): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-const trialColumns = [
+const stepColumns = [
   {
     id: "trial",
-    header: "Trial",
+    header: "Step",
     width: 70,
     render: (trial) => trial.trial + 1,
   },
@@ -139,13 +139,13 @@ const OptimizationSummary = ({
 }: {
   optimization: OptimizationRecord;
 }) => {
-  const finishedTrials =
+  const finishedSteps =
     optimization.completedTrials +
     optimization.prunedTrials +
     optimization.failedTrials;
   const progressPercent =
     optimization.requestedTrials > 0
-      ? Math.min(100, (finishedTrials / optimization.requestedTrials) * 100)
+      ? Math.min(100, (finishedSteps / optimization.requestedTrials) * 100)
       : 0;
   const scenario = optimization.input.model.definition.scenarios?.find(
     (candidate) => candidate.id === optimization.input.scenario.id,
@@ -179,9 +179,9 @@ const OptimizationSummary = ({
           </span>
         </div>
         <div className={statStyle}>
-          <span className={statLabelStyle}>Trials</span>
+          <span className={statLabelStyle}>Steps</span>
           <span className={statValueStyle}>
-            {finishedTrials} / {optimization.requestedTrials}
+            {finishedSteps} / {optimization.requestedTrials}
           </span>
         </div>
         <div className={statStyle}>
@@ -228,7 +228,7 @@ export const ViewOptimizationDrawer = ({
   }
 
   const active = isOptimizationActive(optimization);
-  const displayedTrials = optimization.trials.slice(-200).reverse();
+  const displayedSteps = optimization.trials.slice(-200).reverse();
 
   return (
     <Drawer
@@ -239,7 +239,7 @@ export const ViewOptimizationDrawer = ({
     >
       <Drawer.Header
         title={optimization.input.name}
-        description="Optuna optimization progress and results"
+        description="Optimization progress and results"
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
@@ -261,18 +261,18 @@ export const ViewOptimizationDrawer = ({
             </Section>
           ) : null}
           {optimization.trials.length > 0 ? (
-            <Section title="Trials" collapsible defaultOpen>
-              {optimization.trials.length > displayedTrials.length ? (
-                <span className={trialHintStyle}>
-                  Showing the latest {displayedTrials.length} of{" "}
-                  {optimization.trials.length} received trials.
+            <Section title="Steps" collapsible defaultOpen>
+              {optimization.trials.length > displayedSteps.length ? (
+                <span className={stepHintStyle}>
+                  Showing the latest {displayedSteps.length} of{" "}
+                  {optimization.trials.length} received steps.
                 </span>
               ) : null}
               <Table
-                columns={trialColumns}
-                emptyLabel="No trials completed yet"
+                columns={stepColumns}
+                emptyLabel="No steps completed yet"
                 getRowId={(trial) => String(trial.trial)}
-                rows={displayedTrials}
+                rows={displayedSteps}
               />
             </Section>
           ) : null}

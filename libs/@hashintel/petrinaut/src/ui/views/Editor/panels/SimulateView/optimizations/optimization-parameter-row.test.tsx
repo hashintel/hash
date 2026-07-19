@@ -108,7 +108,7 @@ describe("OptimizationParameterRow", () => {
       />,
     );
     expect(
-      screen.getByText("Optuna will try both false and true."),
+      screen.getByText("The optimizer will try both false and true."),
     ).toBeTruthy();
   });
 });

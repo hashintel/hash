@@ -1,10 +1,9 @@
 # Optimization
 
-An **optimization** asks Optuna to search for scenario parameter values that
-maximize or minimize one metric. The objective can be a saved model metric or
-a custom metric defined only for that optimization. Use it when you know the
-outcome you want and want Petrinaut to explore a bounded set of scenario
-inputs.
+An **optimization** searches for scenario parameter values that maximize or
+minimize one metric. The objective can be a saved model metric or a custom
+metric defined only for that optimization. Use it when you know the outcome
+you want and want Petrinaut to explore a bounded set of scenario inputs.
 
 Optimizations live under the **Simulate** global mode. The **Optimizations** tab
 is available only when the host application reports that an optimization
@@ -20,16 +19,17 @@ An optimization requires:
   while creating the optimization.
 
 Only scenario parameters can be optimized. Petrinaut does not expose arbitrary
-model fields or nested paths to Optuna.
+model fields or nested paths to the optimizer.
 
 ## Creating an optimization
 
 1. Switch to **Simulate** mode and choose **Optimizations**.
 2. Click **Create**.
-3. Explicitly select a scenario, then click **Continue**. Petrinaut never picks
-   a scenario automatically.
-4. Give the optimization a name and choose its trial count (between 1 and
-   1,000), sampler, seed, time step, and maximum simulation time.
+3. Explicitly select a scenario in the first section. Petrinaut never picks a
+   scenario automatically. Selecting another scenario resets the optimization
+   form for that scenario.
+4. Give the optimization a name and choose its number of optimization steps
+   (between 1 and 1,000), time step, and maximum simulation time.
 5. In **Scenario parameters**, leave a parameter **Fixed** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.
@@ -40,10 +40,10 @@ model fields or nested paths to Optuna.
      a saved metric, but does not add it to the model.
 7. Click **Run**.
 
-The metric is evaluated on the final frame of each trial's simulation. The
-current model is reduced to an immutable snapshot containing the selected
-scenario and objective metric when the optimization starts. Later edits do not
-change an in-flight run.
+The metric is evaluated on the final frame of each optimization step's
+simulation. The current model is reduced to an immutable snapshot containing
+the selected scenario and objective metric when the optimization starts. Later
+edits do not change an in-flight run.
 
 ## Search domains
 
@@ -54,7 +54,7 @@ The controls depend on the scenario parameter type:
 | **Real**       | Minimum, maximum, and linear or logarithmic scale.                             |
 | **Ratio**      | Minimum and maximum constrained to `0`–`1`, plus linear or logarithmic scale.  |
 | **Integer**    | Integer minimum, maximum, and positive step that lands exactly on the maximum. |
-| **Boolean**    | Optuna tries both `false` and `true`.                                          |
+| **Boolean**    | The optimizer tries both `false` and `true`.                                   |
 
 Parameters are fixed by default. Search ranges belong to this optimization run,
 not to the saved scenario.
@@ -62,13 +62,13 @@ not to the saved scenario.
 ## Watching results
 
 Open an optimization row to follow it while it runs. The drawer updates as
-trials arrive and shows:
+steps arrive and shows:
 
-- Completed, pruned, and failed trial counts.
+- Completed, pruned, and failed step counts.
 - The current best metric value.
 - The best flat scenario-parameter assignment.
-- The latest received trials and their best-so-far values. For long runs, the
-  drawer displays the newest 200 trials while retaining aggregate progress and
+- The latest received steps and their best-so-far values. For long runs, the
+  drawer displays the newest 200 steps while retaining aggregate progress and
   the current best result.
 
 Closing the drawer does not stop the optimization. Use **Cancel** to abort an

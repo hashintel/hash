@@ -12,7 +12,6 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  PETRINAUT_OPTIMIZATION_MAX_SEED,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
@@ -79,49 +78,10 @@ const gridStyle = css({
   gap: "3",
 });
 
-const settingsGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "3",
-});
-
 const parameterListStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-});
-
-const scenarioSummaryStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "3",
-  padding: "3",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-});
-
-const scenarioSummaryTextStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[0]",
-});
-
-const scenarioNameStyle = css({
-  fontSize: "sm",
-  fontWeight: "semibold",
-  color: "neutral.s120",
-});
-
-const scenarioDescriptionStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
 });
 
 const errorStyle = css({
@@ -131,7 +91,6 @@ const errorStyle = css({
   whiteSpace: "pre-wrap",
 });
 
-type Stage = "scenario" | "configure";
 type Direction = "maximize" | "minimize";
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
@@ -145,6 +104,9 @@ const metricSourceOptions = [
   { value: "saved", label: "Saved metric" },
   { value: "custom", label: "Custom metric" },
 ];
+
+const OPTIMIZATION_SEED = 1234;
+const OPTIMIZATION_SAMPLER = "tpe" as const;
 
 const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
   const values = useStore(form.store, (state) => state.values);
@@ -251,8 +213,7 @@ function getConfigurationError({
   objectiveMetricReady,
   missingObjectiveMessage,
   direction,
-  trials,
-  seed,
+  optimizationSteps,
   dt,
   maxTime,
 }: {
@@ -262,8 +223,7 @@ function getConfigurationError({
   objectiveMetricReady: boolean;
   missingObjectiveMessage: string;
   direction: Direction | null;
-  trials: number | null;
-  seed: number | null;
+  optimizationSteps: number | null;
   dt: number | null;
   maxTime: number | null;
 }): string | null {
@@ -296,20 +256,12 @@ function getConfigurationError({
     return "Choose whether to maximize or minimize the objective";
   }
   if (
-    trials === null ||
-    !Number.isInteger(trials) ||
-    trials < 1 ||
-    trials > PETRINAUT_OPTIMIZATION_MAX_TRIALS
+    optimizationSteps === null ||
+    !Number.isInteger(optimizationSteps) ||
+    optimizationSteps < 1 ||
+    optimizationSteps > PETRINAUT_OPTIMIZATION_MAX_TRIALS
   ) {
-    return `Trials must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_TRIALS.toLocaleString()}`;
-  }
-  if (
-    seed === null ||
-    !Number.isInteger(seed) ||
-    seed < 0 ||
-    seed > PETRINAUT_OPTIMIZATION_MAX_SEED
-  ) {
-    return `Seed must be an integer between 0 and ${PETRINAUT_OPTIMIZATION_MAX_SEED.toLocaleString()}`;
+    return `Optimization steps must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_TRIALS.toLocaleString()}`;
   }
   if (dt === null || !Number.isFinite(dt) || dt <= 0) {
     return "Time step must be a positive number";
@@ -317,15 +269,18 @@ function getConfigurationError({
   if (maxTime === null || !Number.isFinite(maxTime) || maxTime <= 0) {
     return "Max time must be a positive number";
   }
-  const stepsPerTrial = Math.ceil(maxTime / dt);
+  const simulationStepsPerOptimization = Math.ceil(maxTime / dt);
   if (
-    !Number.isSafeInteger(stepsPerTrial) ||
-    stepsPerTrial > PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL
+    !Number.isSafeInteger(simulationStepsPerOptimization) ||
+    simulationStepsPerOptimization > PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL
   ) {
-    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per trial`;
+    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per optimization step`;
   }
-  if (stepsPerTrial * trials > PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS) {
-    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across all trials`;
+  if (
+    simulationStepsPerOptimization * optimizationSteps >
+    PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
+  ) {
+    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across the optimization`;
   }
   return null;
 }
@@ -339,11 +294,9 @@ export function buildPetrinautOptimizationInput({
   drafts,
   metric,
   direction,
-  trials,
-  seed,
+  optimizationSteps,
   dt,
   maxTime,
-  sampler,
 }: {
   name: string;
   title: string;
@@ -352,11 +305,9 @@ export function buildPetrinautOptimizationInput({
   drafts: ParameterDrafts;
   metric: Metric;
   direction: Direction;
-  trials: number;
-  seed: number;
+  optimizationSteps: number;
   dt: number;
   maxTime: number;
-  sampler: "tpe" | "random";
 }): PetrinautOptimizationInput {
   const parameterBindings: Record<
     string,
@@ -414,8 +365,8 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed, dt, maxTime },
-    study: { trials, sampler },
+    execution: { seed: OPTIMIZATION_SEED, dt, maxTime },
+    study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
 
@@ -433,7 +384,6 @@ export const CreateOptimizationDrawer = ({
   const { createOptimization } = use(OptimizationsContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
-  const [stage, setStage] = useState<Stage>("scenario");
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
     null,
   );
@@ -445,11 +395,11 @@ export const CreateOptimizationDrawer = ({
     crypto.randomUUID(),
   );
   const [direction, setDirection] = useState<Direction | null>(null);
-  const [trials, setTrials] = useState<number | null>(100);
-  const [seed, setSeed] = useState<number | null>(1);
+  const [optimizationSteps, setOptimizationSteps] = useState<number | null>(
+    100,
+  );
   const [dt, setDt] = useState<number | null>(1);
   const [maxTime, setMaxTime] = useState<number | null>(180);
-  const [sampler, setSampler] = useState<"tpe" | "random">("tpe");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -468,22 +418,23 @@ export const CreateOptimizationDrawer = ({
     text: metric.name,
   }));
 
-  const resetState = () => {
-    setStage("scenario");
-    setSelectedScenarioId(null);
+  const resetConfigurationState = (scenario?: Scenario) => {
     setName("Optimization");
-    setDrafts({});
+    setDrafts(scenario ? createParameterDrafts(scenario) : {});
     setMetricSource("saved");
     setSavedMetricId(null);
     setCustomMetricId(crypto.randomUUID());
     setDirection(null);
-    setTrials(100);
-    setSeed(1);
+    setOptimizationSteps(100);
     setDt(1);
     setMaxTime(180);
-    setSampler("tpe");
     setError(null);
     setIsSubmitting(false);
+  };
+
+  const resetState = () => {
+    setSelectedScenarioId(null);
+    resetConfigurationState();
   };
 
   const submitOptimization = async (
@@ -499,8 +450,7 @@ export const CreateOptimizationDrawer = ({
           objectiveMetricReady: true,
           missingObjectiveMessage: "Select an objective metric",
           direction,
-          trials,
-          seed,
+          optimizationSteps,
           dt,
           maxTime,
         })
@@ -510,8 +460,7 @@ export const CreateOptimizationDrawer = ({
       !selectedScenario ||
       validationError ||
       direction === null ||
-      trials === null ||
-      seed === null ||
+      optimizationSteps === null ||
       dt === null ||
       maxTime === null
     ) {
@@ -547,11 +496,9 @@ export const CreateOptimizationDrawer = ({
         drafts,
         metric,
         direction,
-        trials,
-        seed,
+        optimizationSteps,
         dt,
         maxTime,
-        sampler,
       });
       const optimizationId = await createOptimization(input);
       resetState();
@@ -632,8 +579,7 @@ export const CreateOptimizationDrawer = ({
             ? "Select an objective metric"
             : "Define the custom objective metric",
         direction,
-        trials,
-        seed,
+        optimizationSteps,
         dt,
         maxTime,
       })
@@ -648,13 +594,14 @@ export const CreateOptimizationDrawer = ({
     onClose();
   };
 
-  const handleContinue = () => {
-    if (!selectedScenario || selectedScenario.scenarioParameters.length === 0) {
+  const handleScenarioChange = (scenarioId: string | null | undefined) => {
+    if (scenarioId === selectedScenarioId) {
       return;
     }
-    setDrafts(createParameterDrafts(selectedScenario));
-    setStage("configure");
-    setError(null);
+    const scenario = scenarios.find(({ id }) => id === scenarioId);
+    setSelectedScenarioId(scenario?.id ?? null);
+    resetConfigurationState(scenario);
+    customMetricForm.reset();
   };
 
   const handleSubmit = () => {
@@ -671,279 +618,181 @@ export const CreateOptimizationDrawer = ({
     return null;
   }
 
-  if (stage === "scenario") {
-    const selectedScenarioHasParameters =
-      selectedScenario && selectedScenario.scenarioParameters.length > 0;
-
-    return (
-      <Drawer size="xl" showBackdrop={false} onClose={handleClose}>
-        <Drawer.Header
-          title="Create an optimization"
-          description="First choose the scenario whose parameters Optuna may vary"
-        />
-        <Drawer.Body className={css({ paddingTop: "[0]" })}>
-          <SectionList>
-            <Section title="Scenario" collapsible defaultOpen>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Scenario</span>
-                <Select
-                  placeholder="Select a scenario"
-                  value={selectedScenarioId}
-                  onChange={(scenarioId) => {
-                    setSelectedScenarioId(scenarioId ?? null);
-                    setError(null);
-                  }}
-                  items={scenarioOptions}
-                  emptyState="Create a scenario before starting an optimization."
-                  size="sm"
-                />
-              </div>
-              {selectedScenario ? (
-                selectedScenario.scenarioParameters.length > 0 ? (
-                  <span className={hintStyle}>
-                    {selectedScenario.scenarioParameters.length} scenario
-                    parameter
-                    {selectedScenario.scenarioParameters.length === 1
-                      ? ""
-                      : "s"}
-                    available.
-                  </span>
-                ) : (
-                  <span className={emptyStyle}>
-                    This scenario has no parameters. Add at least one scenario
-                    parameter before optimizing it.
-                  </span>
-                )
-              ) : scenarios.length === 0 ? (
-                <span className={emptyStyle}>
-                  This model has no scenarios. Create one with user-tunable
-                  parameters first.
-                </span>
-              ) : null}
-            </Section>
-          </SectionList>
-        </Drawer.Body>
-        <Drawer.Footer
-          actions={
-            <>
-              <Button
-                variant="subtle"
-                tone="neutral"
-                size="sm"
-                onClick={handleClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="solid"
-                tone="neutral"
-                size="sm"
-                disabled={!selectedScenarioHasParameters}
-                tooltip={
-                  selectedScenario && !selectedScenarioHasParameters
-                    ? "The selected scenario has no parameters"
-                    : !selectedScenario
-                      ? "Select a scenario"
-                      : undefined
-                }
-                onClick={handleContinue}
-              >
-                Continue
-              </Button>
-            </>
-          }
-        />
-      </Drawer>
-    );
-  }
-
-  if (!selectedScenario) {
-    return null;
-  }
-
   return (
     <Drawer
-      size="xl"
+      size="lg"
       shouldCloseOn={submissionInProgress ? "none" : undefined}
       showBackdrop={false}
       onClose={handleClose}
     >
       <Drawer.Header
-        title="Configure optimization"
-        description="Choose a flat search space and one final-frame metric objective"
+        title="Create an optimization"
+        description="Choose a scenario, a flat search space, and one final-frame metric objective"
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Scenario" collapsible defaultOpen>
-            <div className={scenarioSummaryStyle}>
-              <div className={scenarioSummaryTextStyle}>
-                <span className={scenarioNameStyle}>
-                  {selectedScenario.name}
-                </span>
-                <span className={scenarioDescriptionStyle}>
-                  {selectedScenario.description ??
-                    `${selectedScenario.scenarioParameters.length} parameters`}
-                </span>
-              </div>
-              <Button
-                variant="subtle"
-                tone="neutral"
-                size="sm"
+            <div className={fieldStyle}>
+              <Select
+                placeholder="Select a scenario"
+                value={selectedScenarioId}
+                onChange={handleScenarioChange}
+                items={scenarioOptions}
+                emptyState="Create a scenario before starting an optimization."
+                size="md"
                 disabled={submissionInProgress}
-                onClick={() => {
-                  setStage("scenario");
-                  setDrafts({});
-                }}
+              />
+            </div>
+            {selectedScenario ? (
+              selectedScenario.scenarioParameters.length > 0 ? (
+                <span className={hintStyle}>
+                  {selectedScenario.scenarioParameters.length} parameter
+                  {selectedScenario.scenarioParameters.length === 1 ? "" : "s"}
+                  {" available. Changing your selection resets the form."}
+                </span>
+              ) : (
+                <span className={emptyStyle}>
+                  No configurable parameters. Add at least one before creating
+                  an optimization.
+                </span>
+              )
+            ) : scenarios.length === 0 ? (
+              <span className={emptyStyle}>
+                Create a scenario with configurable parameters before starting
+                an optimization.
+              </span>
+            ) : null}
+          </Section>
+
+          {selectedScenario ? (
+            <>
+              <Section title="Optimization" collapsible defaultOpen>
+                <div className={gridStyle}>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Name</span>
+                    <TextInput size="sm" value={name} onChange={setName} />
+                  </div>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Optimization steps</span>
+                    <NumberInput
+                      size="sm"
+                      min={1}
+                      max={PETRINAUT_OPTIMIZATION_MAX_TRIALS}
+                      step={1}
+                      value={optimizationSteps}
+                      onChange={setOptimizationSteps}
+                    />
+                  </div>
+                </div>
+                <div className={gridStyle}>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Time step</span>
+                    <NumberInput
+                      size="sm"
+                      min={0}
+                      step="any"
+                      value={dt}
+                      onChange={setDt}
+                    />
+                  </div>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Max time</span>
+                    <NumberInput
+                      size="sm"
+                      min={0}
+                      step="any"
+                      value={maxTime}
+                      onChange={setMaxTime}
+                    />
+                  </div>
+                </div>
+              </Section>
+
+              <Section
+                title="Scenario parameters"
+                tooltip="Only scenario parameters can be optimized. The optimizer receives a flat list of identifiers."
+                collapsible
+                defaultOpen
               >
-                Change
-              </Button>
-            </div>
-          </Section>
+                <span className={hintStyle}>
+                  Parameters are fixed by default. Enable Optimize and define a
+                  domain for every value the optimizer may vary.
+                </span>
+                <div className={parameterListStyle}>
+                  {selectedScenario.scenarioParameters.map((parameter) => (
+                    <OptimizationParameterRow
+                      key={parameter.identifier}
+                      parameter={parameter}
+                      draft={drafts[parameter.identifier]!}
+                      onChange={(draft) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [parameter.identifier]: draft,
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              </Section>
 
-          <Section title="Optimization" collapsible defaultOpen>
-            <div className={gridStyle}>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Name</span>
-                <TextInput size="sm" value={name} onChange={setName} />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Sampler</span>
-                <Select
-                  required
-                  size="sm"
-                  value={sampler}
-                  onChange={setSampler}
-                  items={[
-                    { value: "tpe", text: "TPE" },
-                    { value: "random", text: "Random" },
-                  ]}
-                />
-              </div>
-            </div>
-            <div className={settingsGridStyle}>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Trials</span>
-                <NumberInput
-                  size="sm"
-                  min={1}
-                  max={PETRINAUT_OPTIMIZATION_MAX_TRIALS}
-                  step={1}
-                  value={trials}
-                  onChange={setTrials}
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Seed</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  max={PETRINAUT_OPTIMIZATION_MAX_SEED}
-                  step={1}
-                  value={seed}
-                  onChange={setSeed}
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Time step</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  step="any"
-                  value={dt}
-                  onChange={setDt}
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Max time</span>
-                <NumberInput
-                  size="sm"
-                  min={0}
-                  step="any"
-                  value={maxTime}
-                  onChange={setMaxTime}
-                />
-              </div>
-            </div>
-          </Section>
-
-          <Section
-            title="Scenario parameters"
-            tooltip="Only scenario parameters can be optimized. Optuna receives a flat list of identifiers."
-            collapsible
-            defaultOpen
-          >
-            <span className={hintStyle}>
-              Parameters are fixed by default. Enable Optimize and define a
-              domain for every value Optuna may vary.
-            </span>
-            <div className={parameterListStyle}>
-              {selectedScenario.scenarioParameters.map((parameter) => (
-                <OptimizationParameterRow
-                  key={parameter.identifier}
-                  parameter={parameter}
-                  draft={drafts[parameter.identifier]!}
-                  onChange={(draft) =>
-                    setDrafts((current) => ({
-                      ...current,
-                      [parameter.identifier]: draft,
-                    }))
-                  }
-                />
-              ))}
-            </div>
-          </Section>
-
-          <Section title="Objective" collapsible defaultOpen>
-            <span className={hintStyle}>
-              Choose a saved metric or define a custom metric for this run. Its
-              value at the final simulation frame is the Optuna objective.
-            </span>
-            <div className={gridStyle}>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Metric source</span>
-                <SegmentGroup
-                  size="sm"
-                  value={metricSource}
-                  options={metricSourceOptions}
-                  onChange={(value) => {
-                    setMetricSource(value as MetricSource);
-                    setError(null);
-                  }}
-                />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Direction</span>
-                <SegmentGroup
-                  size="sm"
-                  value={direction ?? ""}
-                  options={directionOptions}
-                  onChange={(value) => setDirection(value as Direction)}
-                />
-              </div>
-            </div>
-            {metricSource === "saved" ? (
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Metric</span>
-                <Select
-                  placeholder="Select a metric"
-                  value={savedMetricId}
-                  onChange={(value) => setSavedMetricId(value ?? null)}
-                  items={metricOptions}
-                  emptyState="This model has no saved metrics. Define a custom metric instead."
-                  size="sm"
-                />
-              </div>
-            ) : (
-              <InlineObjectiveMetricForm form={customMetricForm} />
-            )}
-          </Section>
+              <Section title="Objective" collapsible defaultOpen>
+                <span className={hintStyle}>
+                  Choose a saved metric or define a custom metric for this run.
+                  Its value at the final simulation frame is the optimization
+                  objective.
+                </span>
+                <div className={gridStyle}>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Metric source</span>
+                    <SegmentGroup
+                      size="sm"
+                      value={metricSource}
+                      options={metricSourceOptions}
+                      onChange={(value) => {
+                        setMetricSource(value as MetricSource);
+                        setError(null);
+                      }}
+                    />
+                  </div>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Direction</span>
+                    <SegmentGroup
+                      size="sm"
+                      value={direction ?? ""}
+                      options={directionOptions}
+                      onChange={(value) => setDirection(value as Direction)}
+                    />
+                  </div>
+                </div>
+                {metricSource === "saved" ? (
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Metric</span>
+                    <Select
+                      placeholder="Select a metric"
+                      value={savedMetricId}
+                      onChange={(value) => setSavedMetricId(value ?? null)}
+                      items={metricOptions}
+                      emptyState="This model has no saved metrics. Define a custom metric instead."
+                      size="sm"
+                    />
+                  </div>
+                ) : (
+                  <InlineObjectiveMetricForm form={customMetricForm} />
+                )}
+              </Section>
+            </>
+          ) : null}
         </SectionList>
       </Drawer.Body>
       <Drawer.Footer
         secondaryActions={
-          error || configurationError || visibleCustomMetricError ? (
+          error ||
+          (selectedScenario ? configurationError : null) ||
+          visibleCustomMetricError ? (
             <span className={errorStyle}>
-              {error ?? configurationError ?? visibleCustomMetricError}
+              {error ??
+                (selectedScenario ? configurationError : null) ??
+                visibleCustomMetricError}
             </span>
           ) : undefined
         }

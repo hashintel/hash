@@ -175,7 +175,7 @@ export const OptimizationParameterRow = ({
         </div>
       ) : parameter.type === "boolean" ? (
         <span className={booleanHintStyle}>
-          Optuna will try both false and true.
+          The optimizer will try both false and true.
         </span>
       ) : (
         <div className={fieldsStyle}>

@@ -27,6 +27,7 @@ import { createOptimizationParameterDraft } from "./optimization-parameter-row";
 
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
+import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
   Metric,
@@ -171,11 +172,13 @@ vi.mock("../../../../../monaco/code-editor", () => ({
 type TestProviderProps = {
   createOptimization?: OptimizationsContextValue["createOptimization"];
   languageClient?: LanguageClientContextValue;
+  sdcpnContextValue?: SDCPNContextValue;
 };
 
 const TestProviders = ({
   createOptimization = async () => "optimization-test",
   languageClient,
+  sdcpnContextValue = sirSdcpnContextValue,
 }: TestProviderProps) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const optimizations: OptimizationsContextValue = {
@@ -189,7 +192,7 @@ const TestProviders = ({
   };
   const drawer = (
     <OptimizationsContext value={optimizations}>
-      <SDCPNContext value={sirSdcpnContextValue}>
+      <SDCPNContext value={sdcpnContextValue}>
         <UserSettingsProvider>
           <div ref={portalContainerRef} />
           <CreateOptimizationDrawer open onClose={() => {}} />
@@ -262,21 +265,89 @@ const openConfiguration = (props: TestProviderProps = {}) => {
     screen.getByRole("combobox", { name: "Select a scenario" }),
     { target: { value: "scenario__seasonal_flu" } },
   );
-  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
-  expect(screen.getByText("Configure optimization")).toBeTruthy();
+  expect(screen.getByText("Scenario parameters")).toBeTruthy();
 };
 
 describe("CreateOptimizationDrawer", () => {
-  it("requires an explicit scenario before showing configuration", () => {
+  it("shows one creation form after explicitly selecting a scenario", () => {
     render(<TestProviders />);
 
     expect(screen.getByText("Select a scenario")).toBeTruthy();
     expect(screen.queryByText("Scenario parameters")).toBeNull();
     expect(
-      (screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement)
+      (screen.getByRole("button", { name: /Run/ }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a scenario" }),
+      { target: { value: "scenario__seasonal_flu" } },
+    );
+
+    expect(screen.getByText("Scenario parameters")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+  });
+
+  it("resets the configuration when selecting another scenario", () => {
+    const firstScenario =
+      sirSdcpnContextValue.petriNetDefinition.scenarios?.[0];
+    expect(firstScenario).toBeDefined();
+    const secondScenario = {
+      ...firstScenario!,
+      id: "scenario__second",
+      name: "Second scenario",
+      scenarioParameters: [
+        { type: "real", identifier: "recovery_rate", default: 0.5 },
+      ],
+    } satisfies Scenario;
+    const sdcpnContextValue = {
+      ...sirSdcpnContextValue,
+      petriNetDefinition: {
+        ...sirSdcpnContextValue.petriNetDefinition,
+        scenarios: [firstScenario!, secondScenario],
+      },
+    } satisfies SDCPNContextValue;
+    render(<TestProviders sdcpnContextValue={sdcpnContextValue} />);
+
+    const scenarioSelect = screen.getByRole("combobox", {
+      name: "Select a scenario",
+    });
+    fireEvent.change(scenarioSelect, {
+      target: { value: firstScenario!.id },
+    });
+    fireEvent.change(screen.getByDisplayValue("Optimization"), {
+      target: { value: "Changed name" },
+    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      { target: { value: "metric__infected_fraction" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+
+    fireEvent.change(scenarioSelect, {
+      target: { value: secondScenario.id },
+    });
+
+    expect(screen.getByDisplayValue("Optimization")).toBeTruthy();
+    expect(
+      (
+        screen.getByRole("combobox", {
+          name: "Select a metric",
+        }) as HTMLSelectElement
+      ).value,
+    ).toBe("");
+    expect(
+      screen
+        .getByRole("button", { name: "Maximize" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(
+      screen.getByRole("checkbox", { name: "Optimize recovery_rate" }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("checkbox", { name: "Optimize infected_ratio" }),
+    ).toBeNull();
   });
 
   it("offers saved and custom objective metric sources", () => {
@@ -467,11 +538,9 @@ describe("CreateOptimizationDrawer", () => {
       drafts,
       metric,
       direction: "minimize",
-      trials: 20,
-      seed: 42,
+      optimizationSteps: 20,
       dt: 0.5,
       maxTime: 100,
-      sampler: "tpe",
     });
 
     expect(input.kind).toBe("petrinaut-optimization");
@@ -512,6 +581,8 @@ describe("CreateOptimizationDrawer", () => {
       metricId: metric.id,
       direction: "minimize",
     });
+    expect(input.execution).toEqual({ seed: 1234, dt: 0.5, maxTime: 100 });
+    expect(input.study).toEqual({ trials: 20, sampler: "tpe" });
   });
 
   it("explains when an integer step cannot reach the maximum", () => {
