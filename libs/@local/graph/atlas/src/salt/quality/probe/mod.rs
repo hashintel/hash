@@ -289,23 +289,10 @@ pub(crate) async fn probe<D: Dataset>(
     mut rng: impl Rng,
 ) -> Result<ProbeReadings, ProbeError<D::Error>> {
     let rows = corpus.rows();
-    if u32::try_from(rows).is_err() {
-        return Err(ProbeError::RowsExceedProbeDomain { rows });
-    }
-    if options.neighbourhoods.is_empty() {
-        return Err(ProbeError::NoNeighbourhoods);
-    }
+    validate_design(rows, options)?;
 
     let anchors = options.anchors.get();
     let comparisons = options.comparisons.get();
-    if rows < anchors + comparisons {
-        return Err(ProbeError::Design {
-            rows,
-            anchors,
-            comparisons,
-        });
-    }
-
     let corpus_template = aggregate_template(rows - anchors, options)?;
     let sampled_template = aggregate_template(comparisons, options)?;
     let search = options
@@ -339,7 +326,7 @@ pub(crate) async fn probe<D: Dataset>(
     .run(anchor_rows);
 
     let (corpus_cells, radii, clump_cells) = split_anchor_readings(anchor_readings);
-    let (sampled_cells, triplets, baseline_clump_cells) = split_sampled_readings(
+    let sampled = split_sampled_readings(
         SampledPass {
             representations: corpus.representations,
             coordinates: corpus.coordinates,
@@ -355,11 +342,11 @@ pub(crate) async fn probe<D: Dataset>(
     );
 
     let rungs = options.neighbourhoods.len();
-    let mut triplet_columns = transpose_triplets(triplets);
+    let mut triplet_columns = transpose_triplets(sampled.triplets);
 
     // The pair-indexed arrays move into named fields through the enum,
     // so reordering the pair schema cannot silently swap readings.
-    let mut sampled_grids = transpose_pairs(sampled_cells)
+    let mut sampled_grids = transpose_pairs(sampled.cells)
         .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, rungs)));
     let mut sampled_grid = |pair: SpacePair| {
         sampled_grids[pair as usize]
@@ -386,7 +373,10 @@ pub(crate) async fn probe<D: Dataset>(
             groups: clumps.groups(),
             grouped_rows: clumps.grouped_rows(),
             map_representation: ReadingGrid::from_anchor_cells(clump_cells, rungs),
-            representation_canonical: ReadingGrid::from_anchor_cells(baseline_clump_cells, rungs),
+            representation_canonical: ReadingGrid::from_anchor_cells(
+                sampled.baseline_clumps,
+                rungs,
+            ),
         }),
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
         sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
@@ -420,14 +410,18 @@ fn split_anchor_readings(
     (cells, radii, clumps)
 }
 
+/// The sampled pass's per-anchor readings split into grid inputs.
+struct SampledColumns {
+    /// Per-anchor cell arrays, one entry per space pair.
+    cells: Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
+    /// Per-anchor triplet aggregates, one entry per space pair.
+    triplets: Vec<[TripletAggregate; SpacePair::COUNT]>,
+    /// Per-anchor baseline clump cells.
+    baseline_clumps: Vec<Vec<ClumpAggregate>>,
+}
+
 /// Splits the sampled pass's per-anchor readings into grid inputs.
-fn split_sampled_readings(
-    readings: Vec<pass::SampledReading>,
-) -> (
-    Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
-    Vec<[TripletAggregate; SpacePair::COUNT]>,
-    Vec<Vec<ClumpAggregate>>,
-) {
+fn split_sampled_readings(readings: Vec<pass::SampledReading>) -> SampledColumns {
     let mut cells = Vec::with_capacity(readings.len());
     let mut triplets = Vec::with_capacity(readings.len());
     let mut baseline_clumps = Vec::with_capacity(readings.len());
@@ -438,7 +432,37 @@ fn split_sampled_readings(
         baseline_clumps.push(reading.baseline_clumps);
     }
 
-    (cells, triplets, baseline_clumps)
+    SampledColumns {
+        cells,
+        triplets,
+        baseline_clumps,
+    }
+}
+
+/// Checks the probe design fits the corpus.
+///
+/// The design holds when the row count fits the `u32` probe domain,
+/// at least one neighbourhood size is named, and the corpus can host
+/// the disjoint anchor and comparison samples.
+fn validate_design<E>(rows: usize, options: &ProbeOptions) -> Result<(), ProbeError<E>> {
+    if u32::try_from(rows).is_err() {
+        return Err(ProbeError::RowsExceedProbeDomain { rows });
+    }
+    if options.neighbourhoods.is_empty() {
+        return Err(ProbeError::NoNeighbourhoods);
+    }
+
+    let anchors = options.anchors.get();
+    let comparisons = options.comparisons.get();
+    if rows < anchors + comparisons {
+        return Err(ProbeError::Design {
+            rows,
+            anchors,
+            comparisons,
+        });
+    }
+
+    Ok(())
 }
 
 /// Builds one empty aggregate per neighbourhood size over `universe`.
@@ -555,6 +579,10 @@ impl<E: Error + 'static> Error for DeliveryError<E> {
 /// their items only by source id, so deliveries are matched by id
 /// bytes and checked for completeness - every requested id exactly
 /// once, nothing else - and the payloads return in request order.
+#[expect(
+    clippy::future_not_send,
+    reason = "the delivery stream owes no `Send`; the future's sendability follows the dataset's"
+)]
 pub(super) async fn match_deliveries<Id, T, E>(
     requests: &[Id],
     deliveries: impl Stream<Item = Result<(Id, T), E>>,

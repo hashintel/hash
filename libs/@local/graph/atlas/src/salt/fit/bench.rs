@@ -16,7 +16,7 @@ use core::{future::ready, num::NonZero};
 use camino::Utf8PathBuf;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
 
-use super::{FitConfig, fit};
+use super::{FitConfig, SuppliedVerdicts, fit};
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
@@ -33,7 +33,7 @@ use crate::{
 };
 
 /// Options of one measured fit.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct RunOptions {
     /// The fit seed; equal seeds replay every stage's random draws.
     pub seed: u64 = 0,
@@ -43,6 +43,10 @@ pub struct RunOptions {
     /// Reuse the root's active generation as the prior: card rows by
     /// text hash, landmarks competing for the retained share.
     pub reuse_current: bool = false,
+    /// Path of a reviewed-verdicts document to supply to the fit; the
+    /// staged role and its manifest binding then exercise the same
+    /// path production takes.
+    pub verdicts: Option<String> = None,
 }
 
 /// Plain-number summary of one published fit.
@@ -140,12 +144,18 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         ..
     };
 
+    let verdicts = options
+        .verdicts
+        .as_deref()
+        .map(|path| SuppliedVerdicts::open(path).expect("the supplied verdicts file should admit"));
+
     let classifier = stub_classifier();
     let published = fit(
         &dataset,
         &StubEmbedder,
         &config,
         &classifier,
+        verdicts.as_ref(),
         prior.as_ref(),
         &root,
     )
@@ -178,7 +188,8 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
 /// ingestion seam is unbuilt, keeping the measured pipeline's policy
 /// stage real: classification, resolution, and both artifacts run
 /// against it.
-fn stub_classifier() -> Classifier {
+#[must_use]
+pub(crate) fn stub_classifier() -> Classifier {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
     const PATTERN: [f32; 13] = [

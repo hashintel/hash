@@ -19,6 +19,8 @@
 //! - `ATLAS_FIT_LANDMARKS` - landmark capacity; overrides the seam default.
 //! - `ATLAS_FIT_PRIOR=current` - reuse the root's active generation as the prior. Every run
 //!   activates what it publishes, so two plain runs back to back measure the reuse path.
+//! - `ATLAS_FIT_VERDICTS` - path of a reviewed-verdicts document to supply; the fit stages it
+//!   verbatim as the generation's `reviewed-verdicts.json` role.
 #![feature(default_field_values)]
 #![expect(
     clippy::print_stdout,
@@ -61,12 +63,14 @@ async fn main() {
             .expect("ATLAS_FIT_LANDMARKS should be a positive integer");
     }
     options.reuse_current = std::env::var("ATLAS_FIT_PRIOR").is_ok_and(|value| value == "current");
+    options.verdicts = std::env::var("ATLAS_FIT_VERDICTS").ok();
 
     tracing::info!(
         root,
         seed = options.seed,
         landmarks = options.landmarks.get(),
         reuse_current = options.reuse_current,
+        verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
         "starting the measured fit"
     );
 

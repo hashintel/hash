@@ -46,6 +46,10 @@ pub(super) struct Inputs {
     pub config: FitConfig,
     /// The supplied relation-policy model.
     pub classifier: Classifier,
+    /// The staged supplied reviewed-verdicts file, when one was
+    /// offered; staging happened before ingest, so only the manifest
+    /// binding crosses the boundary.
+    pub reviewed_verdicts: Option<RepositoryFile>,
     /// The generation seeding reuse, when one was offered.
     pub prior: Option<Generation>,
 }
@@ -243,6 +247,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             ontology_identities: ingested.cards.identities,
             edge_endpoints: ingested.edge_endpoints,
             adjacency: computed.adjacency,
+            reviewed_verdicts: inputs.reviewed_verdicts.clone(),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {

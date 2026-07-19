@@ -101,6 +101,7 @@ fn repository() -> SaltRepository {
             ontology_identities: file("ontology-identities.idnt"),
             edge_endpoints: file("edge-endpoints.arr"),
             adjacency: file("adjacency.adjc"),
+            reviewed_verdicts: Some(file("reviewed-verdicts.json")),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {

@@ -42,6 +42,7 @@ pub(super) enum Role {
     OntologyIdentities,
     EdgeEndpoints,
     Adjacency,
+    ReviewedVerdicts,
 }
 
 impl Role {
@@ -71,6 +72,7 @@ impl Role {
             Self::OntologyIdentities => FileName::pinned("ontology-identities.idnt"),
             Self::EdgeEndpoints => FileName::pinned("edge-endpoints.arr"),
             Self::Adjacency => FileName::pinned("adjacency.adjc"),
+            Self::ReviewedVerdicts => FileName::pinned("reviewed-verdicts.json"),
         }
     }
 
@@ -84,7 +86,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 23] = [
+const _: [FileName; 24] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -108,6 +110,7 @@ const _: [FileName; 23] = [
     Role::OntologyIdentities.file_name(),
     Role::EdgeEndpoints.file_name(),
     Role::Adjacency.file_name(),
+    Role::ReviewedVerdicts.file_name(),
 ];
 
 /// Runs `write` against the role's buffered staged file, surfacing

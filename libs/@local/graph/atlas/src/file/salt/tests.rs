@@ -85,6 +85,7 @@ fn files() -> SaltFiles {
         ontology_identities: file("ontology-identities.idnt"),
         edge_endpoints: file("edge-endpoints.arr"),
         adjacency: file("adjacency.adjc"),
+        reviewed_verdicts: Some(file("reviewed-verdicts.json")),
     }
 }
 
@@ -204,6 +205,24 @@ fn absent_axes_round_trip() {
     let decoded: SaltRepository =
         serde_json::from_str(&json).expect("the serialized repository should deserialize");
 
+    assert_eq!(decoded, repository);
+}
+
+#[test]
+fn an_absent_verdicts_role_round_trips_as_explicit_null() {
+    let mut repository = repository();
+    repository.files.reviewed_verdicts = None;
+
+    let json = serde_json::to_string(&repository).expect("the repository should serialize");
+    // The document stays self-describing: the role's absence is a
+    // recorded null, not a missing key.
+    assert!(
+        json.contains(r#""reviewed_verdicts":null"#),
+        "the absent role should serialize as an explicit null: {json}"
+    );
+
+    let decoded: SaltRepository =
+        serde_json::from_str(&json).expect("the serialized repository should deserialize");
     assert_eq!(decoded, repository);
 }
 

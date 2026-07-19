@@ -1318,6 +1318,24 @@ fn runner_classifier() -> Classifier {
         .classifier
 }
 
+/// The runner fixture's probe design: a handful of anchors and
+/// comparisons sized to the 48-row corpus.
+fn runner_probe_options() -> QualityRunOptions {
+    QualityRunOptions {
+        probe: ProbeOptions {
+            anchors: NonZero::new(8).expect("nonzero"),
+            comparisons: NonZero::new(16).expect("nonzero"),
+            neighbourhoods: Cow::Owned(vec![
+                NonZero::new(2).expect("nonzero"),
+                NonZero::new(4).expect("nonzero"),
+            ]),
+            triplet_pairs: 8,
+            ..
+        },
+        ..
+    }
+}
+
 /// The runner end to end: the real fit publishes a generation, the
 /// runner reopens its artifacts, probes them against the same
 /// dataset, resolves anchor types, and reports.
@@ -1339,26 +1357,22 @@ async fn runner_reports_a_published_generation() {
         ..
     };
 
-    let published = fit(&dataset, &HashEmbedder, &config, &classifier, None, &root)
-        .await
-        .expect("the fit should publish");
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &classifier,
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
     let generation = root
         .open(published.id())
         .expect("the published generation should open");
 
-    let options = QualityRunOptions {
-        probe: ProbeOptions {
-            anchors: NonZero::new(8).expect("nonzero"),
-            comparisons: NonZero::new(16).expect("nonzero"),
-            neighbourhoods: Cow::Owned(vec![
-                NonZero::new(2).expect("nonzero"),
-                NonZero::new(4).expect("nonzero"),
-            ]),
-            triplet_pairs: 8,
-            ..
-        },
-        ..
-    };
+    let options = runner_probe_options();
     let report = run(
         &dataset,
         &generation,

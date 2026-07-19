@@ -49,6 +49,12 @@ const cborMap = (entries: [number, number[]][]): number[] => [
 const cborNull = (): number[] => [0xf6];
 const cborBool = (value: boolean): number[] => [value ? 0xf5 : 0xf4];
 
+const cborF32 = (value: number): number[] => {
+  const view = new DataView(new ArrayBuffer(4));
+  view.setFloat32(0, value, false);
+  return [0xfa, ...new Uint8Array(view.buffer)];
+};
+
 const f32le = (values: number[]): number[] => {
   const view = new DataView(new ArrayBuffer(values.length * 4));
   for (const [index, value] of values.entries()) {
@@ -242,17 +248,62 @@ describe("decodeSaltileTile", () => {
     expect(tile.detail?.icons).toEqual([null, null, "rocket"]);
   });
 
-  it("validates run shape for the delta root", () => {
+  it("decodes the root tile with its required global bounds", () => {
+    const rootHead = defaultHead({
+      2: cborArray([cborUint(0), cborUint(0), cborUint(0)]),
+      6: cborUint(0),
+      7: cborArray([cborUint(1), cborUint(0), cborUint(2)]),
+      8: cborMap([
+        [0, cborUint(40)],
+        [
+          1,
+          cborArray([cborF32(-0.5), cborF32(-0.25), cborF32(0.75), cborF32(1)]),
+        ],
+        [2, cborUint(7)],
+      ]),
+      9: cborUint(15),
+    });
     const { buffer, request } = fixture({
+      request: { coordinate: { z: 0, x: 0, y: 0 }, spanLog2: 2 },
+      head: rootHead,
+    });
+    const tile = decodeSaltileTile(buffer, request);
+    expect(tile.runs).toEqual([1, 0, 2]);
+    expect(tile.global?.bounds).toEqual([-0.5, -0.25, 0.75, 1]);
+    expect(tile.global?.visibleAtZoom).toBe(40);
+
+    const missingGlobal = fixture({
       request: { coordinate: { z: 0, x: 0, y: 0 }, spanLog2: 2 },
       head: defaultHead({
         2: cborArray([cborUint(0), cborUint(0), cborUint(0)]),
         6: cborUint(0),
         7: cborArray([cborUint(1), cborUint(0), cborUint(2)]),
-        9: cborUint(15),
       }),
     });
-    expect(decodeSaltileTile(buffer, request).runs).toEqual([1, 0, 2]);
+    expect(failure(missingGlobal)).toMatch(/global is required on the root/u);
+  });
+
+  it("accepts absent bounds only for the empty visible set", () => {
+    const emptyGlobal = cborMap([
+      [0, cborUint(0)],
+      [2, cborUint(0)],
+    ]);
+    const { buffer, request } = fixture({
+      head: defaultHead({ 8: emptyGlobal }),
+    });
+    expect(decodeSaltileTile(buffer, request).global?.bounds).toBeNull();
+
+    const nonEmptyNoBounds = fixture({
+      head: defaultHead({
+        8: cborMap([
+          [0, cborUint(12)],
+          [2, cborUint(0)],
+        ]),
+      }),
+    });
+    expect(failure(nonEmptyNoBounds)).toMatch(
+      /bounds are absent but the visible set is not empty/u,
+    );
   });
 
   it("ignores populated slots it does not consume", () => {

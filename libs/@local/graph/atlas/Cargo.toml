@@ -101,6 +101,10 @@ name              = "fit_live"
 required-features = ["bench"]
 
 [[example]]
+name              = "generation_live"
+required-features = ["bench"]
+
+[[example]]
 name              = "quality_live"
 required-features = ["bench"]
 

@@ -55,6 +55,11 @@ const impl Default for RankingConfig {
 // learned score read from an artifact) validates them behind a column
 // newtype at its own boundary; the constant and integer-cast signals
 // prove finiteness structurally.
+// PERF: derive materializes one f32[N] column per fit (4 MB at a
+// million rows), borrowed by the rank pass and dropped. A lazy return
+// cannot remove it - the rank comparator indexes by row - so if the
+// allocation ever shows in a fit profile, the fix is the house
+// `derive_in(allocator)` variant.
 pub(crate) trait ImportanceSignal {
     /// Derives the importance column, one entry per node row.
     fn derive(&self, rows: usize) -> Vec<f32>;

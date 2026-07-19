@@ -39,11 +39,7 @@ mod open;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use self::open::Generation;
-// The serve loop is the first non-test consumer of the open error;
-// the re-export widens beyond tests when it arrives.
-#[cfg(test)]
-pub(crate) use self::open::OpenError;
+pub(crate) use self::open::{Generation, OpenError};
 
 /// The metadata document's file name within a generation directory.
 pub(crate) const METADATA_FILE: &str = "metadata.json";

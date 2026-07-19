@@ -23,6 +23,9 @@
 //!   parameters in the header.
 //! - [`policy`] is the policy file: the resolved geometry policy table, one fixed-width record per
 //!   relation type, ascending by relation.
+//! - [`postings`] is the postings file: per-type membership over the base delivery order - sorted
+//!   position lists or dense bitmaps, flagged per type - beside the type graph's direct parent
+//!   edges, page-aligned regions of one file.
 //! - [`sprs`](mod@sprs) is the sparse matrix file: one compressed-sparse-row matrix - row pointers,
 //!   column indices, values - as page-aligned regions of one file, written from and reopened as
 //!   [`sprs::CsMatBase`](::sprs::CsMatBase) views.
@@ -116,6 +119,10 @@
 //! | quadtree topology (`.quad`)     | mmap, tile traversal; node table, own-bucket | combined |
 //! |                                 | runs into the base order, and per-node       |        |
 //! |                                 | direct-type sets, never read apart           |        |
+//! | type postings (`.post`)         | mmap, filter/coloring lookups; per-type      | combined |
+//! |                                 | membership runs and the parent edges the     |        |
+//! |                                 | closure derives from, one type domain,       |        |
+//! |                                 | never read apart                             |        |
 //! | node/edge identities (`.idnt`)  | mmap, serving lookups both ways: `row -> id` | combined |
 //! |                                 | by indexing the id column, `id -> row` by    |        |
 //! |                                 | binary search over sorted pairs behind an    |        |
@@ -190,6 +197,7 @@ pub(crate) mod identity;
 pub(crate) mod landmark;
 pub(crate) mod morton;
 pub(crate) mod policy;
+pub(crate) mod postings;
 pub(crate) mod quad;
 pub(crate) mod repository;
 pub(crate) mod salt;

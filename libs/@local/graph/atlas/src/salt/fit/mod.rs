@@ -42,6 +42,7 @@
 //! exactly when every stage and every check of one run passed.
 
 use core::num::NonZero;
+use std::io::Write as _;
 
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -50,6 +51,7 @@ use self::prepare::norm;
 pub(crate) use self::{
     echo::FitConfigDef,
     error::{FitError, StageError},
+    verdicts::SuppliedVerdicts,
 };
 use crate::{
     dataset::Dataset,
@@ -76,6 +78,7 @@ mod error;
 mod ingest;
 pub(crate) mod prepare;
 mod role;
+pub(crate) mod verdicts;
 
 #[cfg(test)]
 mod tests;
@@ -198,6 +201,14 @@ fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
 /// ([`Classifier::from_artifact`]). It classifies every relation
 /// type's card, and the resolved policy table publishes beside it.
 ///
+/// The `verdicts` are a supplied input in the policy-override
+/// category: a validated reviewed-verdicts document
+/// ([`SuppliedVerdicts`]) staged verbatim as the generation's
+/// `reviewed_verdicts` role for the trainer's phase boundary to
+/// consume. The fit itself never acts on it; a fit run without one
+/// publishes with the role absent, and the manifest records the
+/// absence.
+///
 /// A `prior` generation seeds reuse: card texts whose hash appears in
 /// its card table keep their embeddings without touching the provider
 /// (under a matching embedder fingerprint), and its landmarks compete
@@ -228,6 +239,7 @@ pub(crate) async fn fit<D, E>(
     embedder: &E,
     config: &FitConfig,
     classifier: &Classifier,
+    verdicts: Option<&SuppliedVerdicts>,
     prior: Option<&Generation>,
     root: &GenerationRoot,
 ) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
@@ -238,6 +250,25 @@ where
     let staging = root.stage()?;
     let scratch = root.scratch()?;
 
+    // The supplied verdicts stage before any derivation: construction
+    // already validated the document, so nothing after this write can
+    // reject it, and the staged bytes are the supplied file verbatim.
+    let reviewed_verdicts = match verdicts {
+        Some(supplied) => {
+            let file = role::write_staged(&staging, role::Role::ReviewedVerdicts, |writer| {
+                writer.write_all(supplied.bytes())?;
+                Ok(supplied.hash())
+            })?;
+            tracing::info!(
+                type_verdicts = supplied.document().type_verdicts().len(),
+                pair_verdicts = supplied.document().pair_verdicts().len(),
+                "staged the supplied reviewed verdicts"
+            );
+            Some(file)
+        }
+        None => None,
+    };
+
     let ingested = ingest::run(dataset, embedder, config, &staging, &scratch, prior).await?;
 
     // Everything after the last dataset touch is CPU-and-file work:
@@ -245,6 +276,7 @@ where
     let inputs = compute::Inputs {
         config: config.clone(),
         classifier: classifier.clone(),
+        reviewed_verdicts,
         prior: prior.cloned(),
     };
     let published =

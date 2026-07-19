@@ -10,5 +10,5 @@
 
 pub use crate::salt::{
     fit::bench as fit, projector::bench as projector, quality::bench as quality,
-    relation::bench as relation,
+    relation::bench as relation, runner::bench as runner,
 };

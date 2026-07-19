@@ -16,6 +16,7 @@
 use core::{error::Error, fmt};
 
 use rand::Rng;
+use tracing::Instrument as _;
 
 use super::{
     clump::Clumps,
@@ -196,6 +197,11 @@ pub(crate) async fn run<D: Dataset>(
 
     let node_ids = identities.ids();
     let view = knn.view();
+    #[expect(
+        clippy::suspicious_operation_groupings,
+        reason = "the identity count is deliberately the reference every artifact is compared \
+                  against"
+    )]
     if node_ids.len() != representations.len()
         || node_ids.len() != coordinates.len()
         || node_ids.len() != view.rows()
@@ -213,26 +219,24 @@ pub(crate) async fn run<D: Dataset>(
         Clumps::from_knn(&view, options.epsilon)
     };
 
-    let readings = {
-        let _span = tracing::info_span!("probe").entered();
-        probe(
-            dataset,
-            ProbeCorpus::new(node_ids, representations, coordinates).with_clumps(&clumps),
-            &options.probe,
-            rng,
-        )
-        .await
-        .map_err(QualityRunError::Probe)?
-    };
+    let readings = probe(
+        dataset,
+        ProbeCorpus::new(node_ids, representations, coordinates).with_clumps(&clumps),
+        &options.probe,
+        rng,
+    )
+    .instrument(tracing::info_span!("probe"))
+    .await
+    .map_err(QualityRunError::Probe)?;
 
     let anchor_types = {
-        let _span = tracing::info_span!("types").entered();
         let requests: Vec<D::NodeId> = readings
             .anchors
             .iter()
             .map(|&row| node_ids[row.usize()])
             .collect();
         match_deliveries(&requests, dataset.node_types(requests.iter().copied()))
+            .instrument(tracing::info_span!("types"))
             .await
             .map_err(QualityRunError::Types)?
     };

@@ -8,15 +8,20 @@
 
 import { decodeCbor, type CborValue } from "./saltile-cbor";
 import {
-  readEnvelope,
-  SaltileMode,
-  SaltileWireError,
-  TileSlot,
-  type SaltileSlot,
-} from "./saltile-wire";
-
-/** Length of a generation identity in bytes (sha256). */
-const GENERATION_BYTES = 32;
+  expectEqual,
+  fail,
+  GENERATION_BYTES,
+  isCborMap,
+  isNullableStringArray,
+  isNumberArray,
+  isUint,
+  isUintArray,
+  requireBool,
+  requireGenerationEcho,
+  requireSlot,
+  requireUint,
+} from "./saltile-schema";
+import { readEnvelope, SaltileMode, TileSlot } from "./saltile-wire";
 
 /** The request context a tile response must echo. */
 export interface SaltileTileRequest {
@@ -36,11 +41,17 @@ export interface SaltileTileRequest {
   readonly includeDetailedData: boolean;
 }
 
-/** Filtered-set metadata carried by HEAD key 8 when present. */
+/**
+ * Post-intersection set metadata carried by HEAD key 8. Required on
+ * the root tile - `bounds` is the initial camera framing datum.
+ */
 export interface SaltileTileGlobal {
   readonly visibleAtZoom: number;
-  /** World-frame extent as [minX, minY, maxX, maxY]. */
-  readonly bounds: readonly number[];
+  /**
+   * Tight wire-frame extent of the entire visible set as
+   * [minX, minY, maxX, maxY]; null iff that set is empty.
+   */
+  readonly bounds: readonly number[] | null;
   readonly minResolution: number;
 }
 
@@ -70,68 +81,6 @@ export interface DecodedSaltileTile {
   readonly detail: SaltileTileDetail | null;
   readonly global: SaltileTileGlobal | null;
 }
-
-const fail = (detail: string, offset: number): never => {
-  throw new SaltileWireError(detail, offset);
-};
-
-const isUint = (value: CborValue | undefined): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 0;
-
-const isCborArray = (
-  value: CborValue | undefined,
-): value is readonly CborValue[] => Array.isArray(value);
-
-const isCborMap = (
-  value: CborValue | undefined,
-): value is ReadonlyMap<number, CborValue> => value instanceof Map;
-
-const isUintArray = (
-  value: CborValue | undefined,
-): value is readonly number[] =>
-  isCborArray(value) && value.every((entry) => isUint(entry));
-
-const isNumberArray = (
-  value: CborValue | undefined,
-): value is readonly number[] =>
-  isCborArray(value) && value.every((entry) => typeof entry === "number");
-
-const isNullableStringArray = (
-  value: CborValue | undefined,
-): value is readonly (string | null)[] =>
-  isCborArray(value) &&
-  value.every((entry) => entry === null || typeof entry === "string");
-
-const requireUint = (
-  map: ReadonlyMap<number, CborValue>,
-  key: number,
-  name: string,
-  offset: number,
-): number => {
-  const value = map.get(key);
-  if (!isUint(value)) {
-    return fail(
-      `HEAD ${name} (key ${key}) must be an unsigned integer`,
-      offset,
-    );
-  }
-  return value;
-};
-
-const expectEqual = (
-  actual: number,
-  expected: number,
-  name: string,
-  offset: number,
-): void => {
-  if (actual !== expected) {
-    fail(`HEAD ${name} is ${actual}; the request expects ${expected}`, offset);
-  }
-};
-
-const bytesEqual = (left: Uint8Array, right: Uint8Array): boolean =>
-  left.length === right.length &&
-  left.every((byte, index) => byte === right[index]);
 
 /** HEAD keys of the tile schema. */
 const tileHeadKeys = {
@@ -164,6 +113,15 @@ const readGlobal = (value: CborValue, offset: number): SaltileTileGlobal => {
   const minResolution = value.get(2);
   if (!isUint(visibleAtZoom) || !isUint(minResolution)) {
     return fail("HEAD global counts must be unsigned integers", offset);
+  }
+  if (bounds === undefined) {
+    if (visibleAtZoom !== 0) {
+      return fail(
+        "HEAD global bounds are absent but the visible set is not empty",
+        offset,
+      );
+    }
+    return { visibleAtZoom, bounds: null, minResolution };
   }
   if (!isNumberArray(bounds) || bounds.length !== 4) {
     return fail("HEAD global bounds must be four floats", offset);
@@ -205,27 +163,6 @@ const readDetail = (
   return { labels: columns[0]!, icons: columns[1]! };
 };
 
-const requireSlot = (
-  slots: readonly (SaltileSlot | null)[],
-  slot: number,
-  name: string,
-  expectedLength: number,
-  responseLength: number,
-): SaltileSlot => {
-  const extent = slots[slot] ?? null;
-  if (extent === null) {
-    return fail(`required slot ${slot} (${name}) is absent`, responseLength);
-  }
-  const length = extent.end - extent.start;
-  if (length !== expectedLength) {
-    return fail(
-      `slot ${slot} (${name}) is ${length} bytes; ${expectedLength} required`,
-      extent.start,
-    );
-  }
-  return extent;
-};
-
 /**
  * Decodes one tile response against the request that produced it.
  *
@@ -262,16 +199,7 @@ export const decodeSaltileTile = (
     }
   }
 
-  const generation = head.get(tileHeadKeys.generation);
-  if (
-    !(generation instanceof Uint8Array) ||
-    generation.length !== GENERATION_BYTES
-  ) {
-    return fail("HEAD generation must be a 32-byte identity", headOffset);
-  }
-  if (!bytesEqual(generation, request.generation)) {
-    return fail("HEAD generation does not match the request", headOffset);
-  }
+  requireGenerationEcho(head, request.generation, headOffset);
 
   expectEqual(
     requireUint(head, tileHeadKeys.variant, "variant", headOffset),
@@ -354,10 +282,12 @@ export const decodeSaltileTile = (
     );
   }
 
-  const trailerDeclared = head.get(tileHeadKeys.trailer);
-  if (typeof trailerDeclared !== "boolean") {
-    return fail("HEAD trailer (key 10) must be a boolean", headOffset);
-  }
+  const trailerDeclared = requireBool(
+    head,
+    tileHeadKeys.trailer,
+    "trailer",
+    headOffset,
+  );
   if (trailerDeclared !== request.includeDetailedData) {
     return fail(
       `HEAD trailer is ${trailerDeclared}; the request expects ${request.includeDetailedData}`,
@@ -366,6 +296,12 @@ export const decodeSaltileTile = (
   }
 
   const globalValue = head.get(tileHeadKeys.global);
+  if (globalValue === undefined && z === 0) {
+    return fail(
+      "HEAD global is required on the root tile (bootstrap framing)",
+      headOffset,
+    );
+  }
   const global =
     globalValue === undefined ? null : readGlobal(globalValue, headOffset);
 

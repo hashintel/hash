@@ -43,6 +43,7 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
+pub(crate) use self::fit::{BoundaryState, TrainerOptimizerRecord, TrainingSchedule};
 #[expect(
     unused_imports,
     reason = "the trainer's surface awaits its consumer: the fit pipeline's projector stage"
@@ -51,7 +52,7 @@ pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
         BoundaryEvidence, Fitted, FrozenRadius, RelationLens, TickTelemetry, TrainError,
-        TrainOptions, TrainerInputs, TrainingEvidence, TrainingSchedule, fit,
+        TrainOptions, TrainerInputs, TrainingEvidence, fit, fit_from_boundary, fit_to_boundary,
     },
     metrics::{BudgetBreakdown, DisplacementHistogram, DisplacementMoments, DisplacementSummary},
     step::LossBreakdown,

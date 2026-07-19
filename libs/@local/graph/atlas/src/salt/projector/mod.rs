@@ -19,6 +19,7 @@
 //! objective. The training loop and checkpoint artifact land as
 //! siblings.
 
+pub(crate) mod artifact;
 // Fully public: the root `bench` facade re-exports it; the private
 // module chain above keeps it unreachable except through the facade.
 #[cfg(feature = "bench")]
