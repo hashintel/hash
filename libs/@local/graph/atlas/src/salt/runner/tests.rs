@@ -19,7 +19,7 @@ use crate::{
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::FitConfig,
+        fit::{FitConfig, PlacementOptions},
         landmark::select::SelectionOptions,
         policy::classifier::{
             Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
@@ -207,6 +207,9 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             },
             curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
             neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
+            // The runner fixtures probe the run protocol, not the
+            // placement: they opt out of the default's training run.
+            placement: PlacementOptions::LandmarkBaseline,
             ..
         },
         quality: QualityRunOptions {

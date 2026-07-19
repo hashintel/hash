@@ -39,7 +39,7 @@ use crate::{
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::{FitConfig, fit},
+        fit::{FitConfig, PlacementOptions, fit},
         knn::table::Knn,
         landmark::select::SelectionOptions,
         policy::classifier::{
@@ -1354,6 +1354,9 @@ async fn runner_reports_a_published_generation() {
         },
         curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
         neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
+        // The quality fixture probes the metric suite, not the
+        // placement: it opts out of the default's training run.
+        placement: PlacementOptions::LandmarkBaseline,
         ..
     };
 

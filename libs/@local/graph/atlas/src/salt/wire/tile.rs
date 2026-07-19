@@ -229,8 +229,8 @@ impl TileHead<'_> {
 }
 
 /// A tile address: the route's `z/x/y`, echoed as `HEAD` key 2.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct TileCoordinate {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
+pub struct TileCoordinate {
     /// The zoom, a subdivision depth.
     pub z: u8,
     /// The cell's x index on the `2^z` grid.

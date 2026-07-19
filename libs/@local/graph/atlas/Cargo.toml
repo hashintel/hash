@@ -15,7 +15,10 @@ type-system = { workspace = true, public = true }
 # public API. Default features stay OFF (`vec` unconditionally drags
 # `rand 0.9` beside our `rand 0.10`); `primitives` supplies the scalar
 # impls argmin's float plumbing needs.
-argmin-math    = { version = "0.5.1", default-features = false, features = ["primitives"], public = true }
+argmin-math = { version = "0.5.1", default-features = false, features = ["primitives"], public = true }
+# camino: `Utf8PathBuf` rides the serving surface (`GenerationRoot::new`
+# takes the root directory), so the path types are public API.
+camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
 rand           = { workspace = true, public = true }
 rand_core      = { workspace = true, public = true }
@@ -34,12 +37,15 @@ hash-graph-types               = { workspace = true }
 # features stay OFF (`rand` drags rand 0.9 beside our rand 0.10); the
 # solver runs on the argmin-math impls over `math::BoxedDVecN`.
 argmin = { version = "0.11.0", default-features = false }
+# axum + clap + tracing-subscriber: the `atlas` operator binary only
+# (the `cli` feature); the library proper never touches them.
+axum = { workspace = true, optional = true }
+clap = { workspace = true, optional = true, features = ["derive", "env"] }
 # burn: the projector's training/inference framework. `ndarray` is the
 # CPU backend every test runs on; `autodiff` is the decorator the
 # training loop wraps around whichever backend the benchmark selects
 # (a GPU feature would be added beside `ndarray`, not instead of it).
 burn              = { version = "0.21.0", features = ["autodiff", "ndarray"] }
-camino.workspace  = true
 futures.workspace = true
 hannoy            = "0.1.7-nested-rtxns"
 heed              = "0.22.1"
@@ -67,6 +73,7 @@ smallvec.workspace             = true
 sprs                           = "0.11.4"
 tiktoken-rs                    = "0.12.0"
 tracing                        = { workspace = true }
+tracing-subscriber             = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation.workspace = true
 unidecode                      = "0.3.0"
 zerocopy                       = { version = "0.8.54", features = ["derive"] }
@@ -91,6 +98,21 @@ bench = ["tokio/net"]
 # running it requires an Apple GPU, so its tests are ignored by
 # default.
 bench-gpu = ["bench", "burn/metal"]
+# Trains the projector placement on the Metal GPU backend instead of
+# the CPU. Compiles anywhere; running a fit requires an Apple GPU.
+# The CPU backend stays the fixture/CI harness, so tests run without
+# this feature.
+gpu = ["burn/metal"]
+# Builds the `atlas` operator binary: `fit` runs the production
+# generation runner against a live store, `serve` hosts the atlas
+# read API. A testing tool, not API for consumers of the crate; it
+# rides the `bench` seams until the serving module's public surface
+# lands.
+cli = ["bench", "dep:axum", "dep:clap", "dep:tracing-subscriber", "tokio/signal"]
+
+[[bin]]
+name              = "atlas"
+required-features = ["cli"]
 
 [[example]]
 name              = "clump_sweep"

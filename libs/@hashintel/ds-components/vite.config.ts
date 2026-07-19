@@ -19,7 +19,7 @@ const { ATLAS_API_URL } = process.env;
 const atlasApiProxy = (): VitePlugin<never> => ({
   name: "atlas-api-proxy",
   configureServer(server) {
-    const target = ATLAS_API_URL ?? "http://127.0.0.1:4010";
+    const target = ATLAS_API_URL ?? "http://127.0.0.1:4003";
     server.middlewares.use(
       "/atlas-api",
       (req: Connect.IncomingMessage, res: ServerResponse) => {

@@ -8,6 +8,10 @@
 //! /usr/bin/time -l ./target/release/examples/fit_live
 //! ```
 //!
+//! Add `--features bench,gpu` to train the projector placement on the
+//! Metal backend; the CPU backend trains identically, around twenty
+//! times slower.
+//!
 //! Environment:
 //!
 //! - `ATLAS_FIT_DSN` - connection string; defaults to the development store (`host=localhost
@@ -21,10 +25,12 @@
 //!   activates what it publishes, so two plain runs back to back measure the reuse path.
 //! - `ATLAS_FIT_VERDICTS` - path of a reviewed-verdicts document to supply; the fit stages it
 //!   verbatim as the generation's `reviewed-verdicts.json` role.
-//! - `ATLAS_FIT_PROJECTOR_STEPS` - train the projector placement for this many steps under the
-//!   reference options (boundary at the midpoint); absent, the landmark baseline places. The
-//!   trainer's phase boundary needs reviewed-Proximal coverage, so pair it with
+//! - `ATLAS_FIT_PROJECTOR_STEPS` - override the trained placement's step count (reference options,
+//!   boundary at the midpoint); absent, the configuration default trains 2000 steps. The trainer's
+//!   phase boundary needs reviewed-Proximal coverage, so pair a trained run with
 //!   `ATLAS_FIT_VERDICTS` on a corpus whose relations carry Proximal force.
+//! - `ATLAS_FIT_BASELINE=1` - place at the landmark baseline instead of training: the fallback
+//!   placer, for measuring the pipeline without the training stage.
 #![feature(default_field_values)]
 #![expect(
     clippy::print_stdout,
@@ -76,6 +82,7 @@ async fn main() {
                 .expect("ATLAS_FIT_PROJECTOR_STEPS should be a positive integer"),
         );
     }
+    options.baseline = std::env::var("ATLAS_FIT_BASELINE").is_ok_and(|value| value == "1");
 
     tracing::info!(
         root,
@@ -84,6 +91,7 @@ async fn main() {
         reuse_current = options.reuse_current,
         verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),
+        baseline = options.baseline,
         "starting the measured fit"
     );
 

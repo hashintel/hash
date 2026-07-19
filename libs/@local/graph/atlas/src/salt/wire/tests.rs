@@ -31,7 +31,7 @@ use crate::{
 };
 
 /// Reads slot `slot`'s directory entry from a finished response.
-pub(super) fn directory(bytes: &[u8], slot: usize) -> (u32, u32) {
+pub(crate) fn directory(bytes: &[u8], slot: usize) -> (u32, u32) {
     let entry = 16 + 8 * slot;
     let start = u32::from_le_bytes(bytes[entry..entry + 4].try_into().expect("four bytes"));
     let end = u32::from_le_bytes(bytes[entry + 4..entry + 8].try_into().expect("four bytes"));
@@ -40,7 +40,7 @@ pub(super) fn directory(bytes: &[u8], slot: usize) -> (u32, u32) {
 }
 
 /// Slices slot `slot`'s payload; [`None`] when the slot is absent.
-pub(super) fn section(bytes: &[u8], slot: usize) -> Option<&[u8]> {
+pub(crate) fn section(bytes: &[u8], slot: usize) -> Option<&[u8]> {
     let (start, end) = directory(bytes, slot);
     if (start, end) == (0, 0) {
         return None;

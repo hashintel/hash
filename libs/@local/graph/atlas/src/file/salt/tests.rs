@@ -43,7 +43,8 @@ fn file(name: &str) -> RepositoryFile {
 }
 
 fn placement() -> PlacementOptions {
-    let schedule = TrainingSchedule::new(
+    let mut options = ProjectorOptions::ratified();
+    options.schedule = TrainingSchedule::new(
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
         NonZero::new(4).expect("the fixture cadence is nonzero"),
@@ -51,13 +52,12 @@ fn placement() -> PlacementOptions {
         1.0e-5,
     )
     .expect("the fixture schedule is valid");
-    let mut options = ProjectorOptions::reference(schedule);
     options.ladder = LadderOptions {
         conditions: Conditions::new(vec![0.0, 1.0]).expect("the fixture schedule is valid"),
         ..
     };
 
-    PlacementOptions::Projector(Box::new(options))
+    PlacementOptions::Projector(options)
 }
 
 fn config() -> FitConfig {

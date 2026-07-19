@@ -29,8 +29,10 @@ pub(crate) mod tile;
 
 #[cfg(test)]
 mod goldens;
+// Crate-visible so the serving tests reuse the section-carving
+// helpers against served bytes.
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 /// The envelope wire version, prefix field and media-type suffix.
 ///
@@ -64,9 +66,14 @@ impl Kind {
 }
 
 /// A tile delivery mode, `HEAD` key 3.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum Mode {
+///
+/// Requests carry the mode as the JSON strings `"delta"` and
+/// `"total"`; delta is the default when a request names none.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
     /// The client-accumulated default: own-cut points only.
+    #[default]
     Delta,
     /// The total delivered set for the tile at its zoom.
     Total,

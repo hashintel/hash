@@ -5843,8 +5843,10 @@ version = "0.0.0"
 dependencies = [
  "argmin",
  "argmin-math",
+ "axum",
  "burn",
  "camino",
+ "clap",
  "codspeed-criterion-compat",
  "darwin-kperf-criterion",
  "error-stack",

@@ -22,15 +22,19 @@ use crate::{
     math::AffinityCurve,
     salt::{
         fit::{
-            FitConfig,
+            FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts,
             bench::{StubEmbedder, stub_classifier},
         },
         landmark::select::SelectionOptions,
+        projector::train::TrainingSchedule,
     },
 };
 
+/// The refresh cadence of a step-count-overridden projector run.
+const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
+
 /// Options of one measured production run.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct LiveOptions {
     /// The fit seed; equal seeds replay every draw of the run, the
     /// admission probe's included.
@@ -44,6 +48,20 @@ pub struct LiveOptions {
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Sampled comparison rows of the admission probe.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },
+    /// Path of a reviewed-verdicts document to supply to the run.
+    /// The trained placement's phase boundary freezes its Proximal
+    /// radius from the reviewed pairs, so a corpus whose relations
+    /// carry Proximal force needs one (or an asserted radius) to
+    /// train.
+    pub verdicts: Option<String> = None,
+    /// Override the trained placement's step count, keeping the
+    /// ratified options and the midpoint boundary. Absent, the
+    /// configuration default trains.
+    pub projector_steps: Option<NonZero<usize>> = None,
+    /// Place at the landmark baseline instead of training: the
+    /// fallback placer, for measuring the run without the training
+    /// stage.
+    pub baseline: bool = false,
 }
 
 /// Plain-number summary of one production run.
@@ -67,6 +85,22 @@ pub struct RunSummary {
     pub activated: bool,
     /// The full admission report as pretty-printed JSON.
     pub report: String,
+}
+
+/// Returns the root's active generation in directory-name form, or
+/// [`None`] before the first activation.
+///
+/// # Panics
+///
+/// Panics when the root cannot open or the pointer cannot be read; a
+/// measurement target reports its failures by failing.
+#[must_use]
+pub fn current_generation(root: &str) -> Option<String> {
+    let root =
+        GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");
+    root.current()
+        .expect("the current pointer should read")
+        .map(|id| id.to_string())
 }
 
 /// Runs one production generation run over the store's current
@@ -103,13 +137,31 @@ pub async fn run_live(client: &mut Client, root: &str, options: LiveOptions) -> 
     };
     runner_options.quality.probe.anchors = options.anchors;
     runner_options.quality.probe.comparisons = options.comparisons;
+    match (options.baseline, options.projector_steps) {
+        (true, _) => runner_options.fit.placement = PlacementOptions::LandmarkBaseline,
+        (false, Some(steps)) => {
+            // The midpoint boundary splits the opening segment and the
+            // ladder evenly, mirroring the ratified schedule's shape.
+            let boundary = steps.get().div_euclid(2);
+            let mut projector = ProjectorOptions::ratified();
+            projector.schedule = TrainingSchedule::new(steps, boundary, REFRESH, 1.0e-3, 1.0e-5)
+                .expect("the ratified schedule domain admits any step count");
+            runner_options.fit.placement = PlacementOptions::Projector(projector);
+        }
+        (false, None) => {}
+    }
+
+    let verdicts = options
+        .verdicts
+        .as_deref()
+        .map(|path| SuppliedVerdicts::open(path).expect("the supplied verdicts file should admit"));
 
     let classifier = stub_classifier();
     let outcome = run(
         &dataset,
         &StubEmbedder,
         &classifier,
-        None,
+        verdicts.as_ref(),
         &root,
         &runner_options,
     )

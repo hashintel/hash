@@ -33,8 +33,8 @@ use crate::{
     },
 };
 
-/// The reference refresh cadence of a measured projector run.
-const REFRESH: NonZero<usize> = const { NonZero::new(100).unwrap() };
+/// The refresh cadence of a step-count-overridden projector run.
+const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
 
 /// Options of one measured fit.
 #[derive(Debug, Clone)]
@@ -155,15 +155,18 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
         ..
     };
-    if options.baseline {
-        config.placement = PlacementOptions::LandmarkBaseline;
-    } else if let Some(steps) = options.projector_steps {
-        // The midpoint boundary splits the opening segment and the
-        // ladder evenly.
-        let boundary = steps.get().div_euclid(2);
-        let schedule = TrainingSchedule::new(steps, boundary, REFRESH, 1.0e-3, 1.0e-5)
-            .expect("the reference schedule domain admits any step count");
-        config.placement = PlacementOptions::Projector(ProjectorOptions::reference(schedule));
+    match (options.baseline, options.projector_steps) {
+        (true, _) => config.placement = PlacementOptions::LandmarkBaseline,
+        (false, Some(steps)) => {
+            // The midpoint boundary splits the opening segment and the
+            // ladder evenly, mirroring the ratified schedule's shape.
+            let boundary = steps.get().div_euclid(2);
+            let mut projector = ProjectorOptions::ratified();
+            projector.schedule = TrainingSchedule::new(steps, boundary, REFRESH, 1.0e-3, 1.0e-5)
+                .expect("the ratified schedule domain admits any step count");
+            config.placement = PlacementOptions::Projector(projector);
+        }
+        (false, None) => {}
     }
 
     let verdicts = options

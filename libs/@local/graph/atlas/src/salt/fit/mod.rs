@@ -112,15 +112,17 @@ const impl Default for PolicyOptions {
     }
 }
 
-/// The landmark support anchors' shared constants.
+/// The landmark support anchors' shared weight.
 ///
 /// Every skeleton landmark anchors its node at the laid-out coordinate
-/// with this radius and weight; both are finite and strictly positive
-/// by construction. The defaults are the reference pipeline's unit
-/// radius and weight.
+/// with this weight; the anchor's radius is measured, not configured -
+/// the skeleton's own local ruler, the median layout distance to its
+/// nearest skeleton neighbours, the same convention as the relation
+/// loss's local scales. The unit weight is the neutral value: no
+/// evidence distinguishes landmark reliability yet, and the per-anchor
+/// slot exists for the day it does.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LandmarkSupport {
-    radius: f32 = 1.0,
     weight: f32 = 1.0,
 }
 
@@ -131,25 +133,16 @@ const impl Default for LandmarkSupport {
 }
 
 impl LandmarkSupport {
-    /// Validates landmark support constants.
+    /// Validates a landmark support weight.
     ///
-    /// Returns [`None`] unless both are finite and strictly positive.
+    /// Returns [`None`] unless the weight is finite and strictly
+    /// positive.
     #[must_use]
-    pub(crate) const fn new(radius: f32, weight: f32) -> Option<Self> {
-        if !(radius.is_finite() && radius > 0.0) {
-            return None;
-        }
+    pub(crate) const fn new(weight: f32) -> Option<Self> {
         if !(weight.is_finite() && weight > 0.0) {
             return None;
         }
-        Some(Self { radius, weight })
-    }
-
-    /// Returns the anchor radius the residual is normalized by.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn radius(self) -> f32 {
-        self.radius
+        Some(Self { weight })
     }
 
     /// Returns each anchor's mass in the support sum.
@@ -163,10 +156,9 @@ impl LandmarkSupport {
 /// Every setting of the projector placement: the model, its training
 /// run, and the condition ladder that publishes the canonical field.
 ///
-/// Each field is a validated value; the struct is plain wiring. The
-/// schedule is the one choice no fit can imply - how long to train -
-/// so [`reference`](Self::reference) takes it and fills everything
-/// else with the reference values.
+/// Each field is a validated value; the struct is plain wiring.
+/// [`ratified`](Self::ratified) is the stamped live configuration and
+/// the placement default.
 ///
 /// The semantic affinity energy composes at stage entry from the
 /// fit's low-dimensional kernel and [`affinity_offset`]: the projector
@@ -184,13 +176,23 @@ pub(crate) struct ProjectorOptions {
     /// The per-step sampling plan.
     pub plan: BatchPlan,
     /// The logarithm offset of the semantic affinity energy, finite
-    /// and strictly positive.
+    /// and strictly positive. It bounds the near-coincidence repulsion
+    /// derivative, so it is a force ceiling, not a numerical crumb.
     pub affinity_offset: f32,
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
-    /// The per-node relation-gradient budget.
+    /// The per-node relation-gradient budget. The floor doubles as the
+    /// relation budget of nodes whose semantic pairs are not co-drawn -
+    /// in a sampled batch that is most of them - so it is sized to the
+    /// typical per-draw semantic gradient, not to epsilon.
     pub budget: BudgetOptions,
-    /// The objective coefficients.
+    /// The objective coefficients' mass bases. The placement stage
+    /// normalizes them at assembly: the semantic and ordinary bases
+    /// divide by the corpus's total semantic edge weight, the
+    /// hard-negative base by the row count, and the support bases by
+    /// their pool sizes - so a configured base weighs the same
+    /// objective share on every corpus. The relation base passes
+    /// through: its estimator is already mass-free.
     pub coefficients: Coefficients,
     /// The hard-negative mining schedule.
     pub miner: MinerOptions,
@@ -198,7 +200,7 @@ pub(crate) struct ProjectorOptions {
     pub lens: RelationLens,
     /// The trainer's protection-channel thresholds.
     pub protection: ProtectionConfig,
-    /// The landmark support anchors' constants.
+    /// The landmark support anchors' shared weight.
     pub landmark_support: LandmarkSupport,
     /// Rows per corpus-forward slice, bounding the peak device memory
     /// of a whole-corpus pass.
@@ -208,71 +210,69 @@ pub(crate) struct ProjectorOptions {
 }
 
 impl ProjectorOptions {
-    /// Returns the reference options under `schedule`.
+    /// Returns the ratified live configuration: every value stamped
+    /// for production training, schedule included.
     ///
-    /// The values are the reference pipeline's, carried as unvalidated
-    /// starting points, with three exceptions: the gradient budget uses
-    /// the specification's `0.10` default candidate with
-    /// `beta_+ = beta_R`; the relation draw is a fixed 32-type,
-    /// 128-edge-cap split of the reference's 4096-edge budget (the
-    /// reference divided it across the corpus's whole type universe,
-    /// which no corpus-independent configuration can express); and
-    /// hard-negative mining draws zero queries, as the reference
-    /// shipped.
+    /// The value set, in brief: 20k steps with the boundary at 5k and
+    /// refresh every 250; 2048-pair semantic and ordinary draws, 12
+    /// relation types capped at 256 edges, 512 hard queries and 512
+    /// landmark anchors per step; mass bases `(1, 5, 1, 1, 0, 1)`
+    /// normalized at assembly; budget floor `2e-4`, the typical
+    /// per-draw semantic gradient under the normalization; affinity
+    /// offset and lens/support guards at `1e-3` in units of the local
+    /// rulers; Coincident radius `0.05`, safely below any plausible
+    /// measured Proximal radius; mining margin 3; 65536-row forward
+    /// slices, the measured GPU sweet spot (on the CPU backend it
+    /// just means fewer, larger slices).
     #[must_use]
-    pub(crate) const fn reference(schedule: TrainingSchedule) -> Self {
+    pub(crate) const fn ratified() -> Self {
         Self {
             architecture: Architecture { .. },
-            schedule,
+            schedule: TrainingSchedule::new(
+                NonZero::new(20_000).expect("the ratified step count is nonzero"),
+                5_000,
+                NonZero::new(250).expect("the ratified cadence is nonzero"),
+                1.0e-3,
+                1.0e-5,
+            )
+            .expect("the ratified schedule is valid"),
             plan: BatchPlan {
-                semantic_pairs: NonZero::new(4096).expect("the reference draw is nonzero"),
-                ordinary_pairs: 4096,
-                relation_types: 32,
-                relation_cap: NonZero::new(128).expect("the reference cap is nonzero"),
-                hard_queries: 0,
-                landmark_anchors: 4096,
+                semantic_pairs: NonZero::new(2048).expect("the ratified draw is nonzero"),
+                ordinary_pairs: 2048,
+                relation_types: 12,
+                relation_cap: NonZero::new(256).expect("the ratified cap is nonzero"),
+                hard_queries: 512,
+                landmark_anchors: 512,
                 temporal_anchors: 0,
             },
-            affinity_offset: 1.0e-8,
-            support: SupportOptions::new(1.0, 1.0e-8)
-                .expect("the reference support constants are valid"),
-            budget: BudgetOptions::new(0.10, 0.10, 1.0e-6, 1.0e-12)
-                .expect("the reference budget is valid"),
-            coefficients: Coefficients::new(1.0, 1.0, 1.0, 1.0, 0.0, 1.0)
-                .expect("the reference coefficients are valid"),
+            affinity_offset: 1.0e-3,
+            support: SupportOptions::new(3.0, 1.0e-3)
+                .expect("the ratified support constants are valid"),
+            budget: BudgetOptions::new(0.10, 0.10, 2.0e-4, 1.0e-12)
+                .expect("the ratified budget is valid"),
+            coefficients: Coefficients::new(1.0, 5.0, 1.0, 1.0, 0.0, 1.0)
+                .expect("the ratified coefficient bases are valid"),
             miner: MinerOptions::new(
-                NonZero::new(8).expect("the reference quota is nonzero"),
-                NonZero::new(32).expect("the reference margin is nonzero"),
+                NonZero::new(8).expect("the ratified quota is nonzero"),
+                NonZero::new(3).expect("the ratified margin is nonzero"),
                 1.0,
                 1.0,
             )
-            .expect("the reference miner options are valid"),
+            .expect("the ratified miner options are valid"),
             lens: RelationLens::new(
-                CoincidentEnergy::new(0.5, 0.5).expect("the reference energy is valid"),
+                CoincidentEnergy::new(0.05, 1.0).expect("the ratified energy is valid"),
                 0.25,
-                1.0e-8,
+                1.0e-3,
                 None,
             )
-            .expect("the reference lens is valid"),
+            .expect("the ratified lens is valid"),
             protection: ProtectionConfig::default(),
             landmark_support: LandmarkSupport { .. },
-            forward_rows: NonZero::new(4096).expect("the reference slice is nonzero"),
+            forward_rows: NonZero::new(1 << 16).expect("the ratified slice is nonzero"),
             ladder: LadderOptions { .. },
         }
     }
 }
-
-/// The reference step schedule: the legacy pipeline's 2000 steps and
-/// learning-rate envelope, with the phase boundary at the midpoint
-/// splitting the opening segment and the rung ladder evenly.
-const REFERENCE_SCHEDULE: TrainingSchedule = TrainingSchedule::new(
-    NonZero::new(2000).expect("the reference step count is nonzero"),
-    1000,
-    NonZero::new(100).expect("the reference cadence is nonzero"),
-    1.0e-3,
-    1.0e-5,
-)
-.expect("the reference schedule is valid");
 
 /// How one fit produces its canonical coordinates.
 ///
@@ -282,6 +282,11 @@ const REFERENCE_SCHEDULE: TrainingSchedule = TrainingSchedule::new(
 /// pipeline's architecture, and the landmark baseline is the
 /// configured fallback - a placer for fits that deliberately skip
 /// training.
+#[expect(
+    clippy::large_enum_variant,
+    reason = "the projector default must be a const expression, which a boxed variant cannot \
+              produce; the asymmetry costs one embedded options struct per configuration value"
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PlacementOptions {
     /// Every row takes its assigned landmark's layout coordinate: the
@@ -326,8 +331,7 @@ pub(crate) struct FitConfig {
     /// Shared attraction weighting and force pruning.
     pub attraction: AttractionOptions = AttractionOptions::default(),
     /// How the canonical coordinates are produced.
-    pub placement: PlacementOptions =
-        PlacementOptions::Projector(ProjectorOptions::reference(REFERENCE_SCHEDULE)),
+    pub placement: PlacementOptions = PlacementOptions::Projector(ProjectorOptions::ratified()),
     /// The importance signal behind the delivery ranking.
     pub ranking: RankingConfig = RankingConfig::default(),
     /// The level-of-detail schedule.

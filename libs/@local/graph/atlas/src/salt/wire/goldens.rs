@@ -24,7 +24,10 @@
 //! rule reads `bucket = z + 2` and the root spans buckets `0..=2`.
 //!
 //! Regenerate with `ATLAS_WIRE_BLESS=1` in the environment; the
-//! default run compares byte-for-byte and fails on any drift.
+//! default run compares response bytes byte-for-byte and sidecars
+//! by parsed value - the sidecar contract is structural (decoders
+//! parse it, never byte-compare it), so repository JSON formatting
+//! passes over the checked-in fixtures are not drift.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the goldens write the contract's little-endian wire integers"
@@ -90,8 +93,14 @@ fn goldens_match_the_checked_in_fixtures() {
         let pinned = fs::read_to_string(&sidecar_path).unwrap_or_else(|_| {
             panic!("{sidecar_path} is missing; regenerate with ATLAS_WIRE_BLESS=1")
         });
+        let pinned: Value = serde_json::from_str(&pinned).unwrap_or_else(|error| {
+            panic!(
+                "{sidecar_path} does not parse as JSON ({error}); regenerate with \
+                 ATLAS_WIRE_BLESS=1"
+            )
+        });
         assert_eq!(
-            sidecar, pinned,
+            golden.sidecar, pinned,
             "{} sidecar drifted from the pinned fixture",
             golden.name,
         );
@@ -154,7 +163,7 @@ fn tile_sidecar(
     colored: u64,
     type_mask: Option<&[u8]>,
     mass: Option<&[u32]>,
-    appended: Value,
+    appended: &Value,
 ) -> Value {
     assert_eq!(
         type_mask.is_some(),
@@ -225,6 +234,10 @@ fn tile_sidecar(
 
 /// Renders the envelope prefix fields.
 fn prefix_sidecar(bytes: &[u8]) -> Value {
+    assert!(
+        bytes.len() >= 16,
+        "every envelope opens with a 16-byte prefix"
+    );
     let magic = core::str::from_utf8(&bytes[0..8]).expect("the magic is ASCII");
     json!({
         "magic": magic,
@@ -321,7 +334,7 @@ fn g1_minimal_tile() -> Golden {
         3,
         Some(&expected_mask),
         None,
-        Value::Null,
+        &Value::Null,
     );
     Golden {
         name: "g1-minimal-tile",
@@ -379,7 +392,7 @@ fn g2_root_tile() -> Golden {
         0,
         None,
         None,
-        Value::Null,
+        &Value::Null,
     );
     Golden {
         name: "g2-root-tile",
@@ -463,7 +476,7 @@ fn g3_total_tile() -> Golden {
         9,
         Some(&expected_mask),
         None,
-        Value::Null,
+        &Value::Null,
     );
     Golden {
         name: "g3-total-tile",
@@ -508,7 +521,7 @@ fn g4_empty_root() -> Golden {
         0,
         None,
         None,
-        Value::Null,
+        &Value::Null,
     );
     Golden {
         name: "g4-empty-root",
@@ -570,7 +583,7 @@ fn g5_trailer_tile() -> Golden {
         0,
         None,
         None,
-        Value::Null,
+        &Value::Null,
     );
     Golden {
         name: "g5-trailer-tile",
@@ -694,7 +707,7 @@ fn g8_appended_slot() -> Golden {
         0,
         None,
         Some(&mass),
-        json!({ "5": appended }),
+        &json!({ "5": appended }),
     );
     Golden {
         name: "g8-appended-slot",
@@ -769,7 +782,7 @@ fn g9_padding_low() -> Golden {
         3,
         Some(&expected_mask),
         None,
-        Value::Null,
+        &Value::Null,
     );
     Golden {
         name: "g9-padding-low",
@@ -852,7 +865,7 @@ fn g10_padding_high() -> Golden {
         1,
         Some(&expected_mask),
         None,
-        json!({ "5": six, "6": seven }),
+        &json!({ "5": six, "6": seven }),
     );
     Golden {
         name: "g10-padding-high",

@@ -20,10 +20,7 @@ use std::{
     io::{BufWriter, Write as _},
 };
 
-use burn::{
-    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
-    module::AutodiffModule as _,
-};
+use burn::{backend::Autodiff, module::AutodiffModule as _};
 use camino::{Utf8Path, Utf8PathBuf};
 use zerocopy::{FromBytes as _, IntoBytes as _};
 
@@ -57,20 +54,40 @@ use crate::{
             artifact,
             loss::{AffinityEnergy, ProximalEnergy, RelationEnergy},
             model::{NodeRole, Projector},
-            scale::LocalScales,
+            scale::{LOCAL_SCALE_NEIGHBOURS, LocalScales},
             train::{
-                self, FrozenRadius, NodeColumns, SupportAnchor, TrainOptions, TrainerInputs,
-                refresh,
+                self, Coefficients, FrozenRadius, NodeColumns, SupportAnchor, TrainOptions,
+                TrainerInputs, refresh,
             },
             verdict::ResolvedVerdict,
         },
         relation::{RelationIndexes, attraction::AttractionIndex},
-        semantic::artifact::MappedSemanticGraph,
+        semantic::{SemanticGraphView, artifact::MappedSemanticGraph},
     },
 };
 
+/// The inference half of the placement backend: Metal behind the
+/// `gpu` feature, the CPU otherwise. The CPU backend stays the
+/// fixture and determinism harness, so tests run without the feature.
+#[cfg(feature = "gpu")]
+type TrainerInner = burn::backend::Metal;
+#[cfg(not(feature = "gpu"))]
+type TrainerInner = burn::backend::NdArray;
+
 /// The training and inference backend of the placement stage.
-type TrainerBackend = Autodiff<NdArray>;
+type TrainerBackend = Autodiff<TrainerInner>;
+
+/// Returns the placement backend's device.
+#[cfg(feature = "gpu")]
+fn device() -> burn::backend::wgpu::WgpuDevice {
+    burn::backend::wgpu::WgpuDevice::default()
+}
+
+/// Returns the placement backend's device.
+#[cfg(not(feature = "gpu"))]
+fn device() -> burn::backend::ndarray::NdArrayDevice {
+    burn::backend::ndarray::NdArrayDevice::default()
+}
 
 /// The mapped artifacts one placement consumes, bound once per fit.
 pub(super) struct PlacementInputs<'fit> {
@@ -172,6 +189,20 @@ impl Context<'_> {
             representations: inputs.rows,
             roles: &roles,
         };
+        // Mass normalization: the configured coefficients are
+        // corpus-free bases. The semantic and ordinary bases divide by
+        // the total semantic edge weight, the hard-negative base by
+        // the corpus row count, and the support bases by their pool
+        // sizes, so each base weighs the same objective share on
+        // every corpus; the relation base is already mass-free. A
+        // weightless graph passes the bases through - the trainer
+        // rejects it as evidence-free immediately after.
+        let coefficients = normalized_coefficients(
+            options.coefficients,
+            semantic_weight(&inputs.semantic.view()),
+            inputs.rows.len(),
+            landmarks.len(),
+        );
         let trainer_inputs = TrainerInputs {
             semantic: inputs.semantic.view(),
             protection: inputs.indexes.protection.view(),
@@ -191,7 +222,7 @@ impl Context<'_> {
             affinity,
             support: options.support,
             budget: options.budget,
-            coefficients: options.coefficients,
+            coefficients,
             miner: options.miner,
             lens: options.lens,
             forward_rows: options.forward_rows,
@@ -205,7 +236,7 @@ impl Context<'_> {
         // condition column received zero gradient at every step, every
         // rung provably projects the identical field, and the baseline
         // publishes directly with no ladder to measure.
-        let device = NdArrayDevice::default();
+        let device = device();
         let model = fitted.model.valid();
         let energy = fitted
             .evidence
@@ -253,7 +284,7 @@ impl Context<'_> {
         train_options: &TrainOptions,
     ) -> Result<train::Fitted<TrainerBackend>, StageError> {
         let _span = tracing::info_span!("train").entered();
-        let device = NdArrayDevice::default();
+        let device = device();
         let model = Projector::<TrainerBackend>::new(
             options.architecture,
             stage_rng(self.config.seed, Stage::ProjectorInit),
@@ -302,12 +333,12 @@ impl Context<'_> {
     fn measure_conditions(
         &self,
         options: &ProjectorOptions,
-        model: &Projector<NdArray>,
+        model: &Projector<TrainerInner>,
         columns: NodeColumns<'_>,
         inputs: &PlacementInputs<'_>,
         energy: RelationEnergy,
     ) -> Result<LadderEvidence, StageError> {
-        let device = NdArrayDevice::default();
+        let device = device();
         let ladder = self.scratch.directory("ladder")?;
         let conditions = options.ladder.conditions.values();
 
@@ -465,22 +496,127 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
     )
 }
 
-/// Anchors every skeleton landmark at its laid-out coordinate.
+/// Anchors every skeleton landmark at its laid-out coordinate, with
+/// the skeleton's own local ruler as its radius.
+///
+/// The radius is the median layout distance to the landmark's nearest
+/// skeleton neighbours - the same local-scale convention the relation
+/// loss normalizes by - so a landmark in a dense skeleton region holds
+/// its row tighter than one in a sparse region. A one-landmark
+/// skeleton has no ruler and anchors at radius zero; the support
+/// term's epsilon guards the division.
 fn landmark_anchors(
     skeleton: &MappedLandmarkSkeleton,
     options: &ProjectorOptions,
 ) -> Vec<SupportAnchor> {
+    let coordinates = skeleton.coordinates();
+
     skeleton
         .selected_rows()
         .iter()
-        .zip(skeleton.coordinates())
-        .map(|(&row, &target)| SupportAnchor {
+        .zip(coordinates)
+        .enumerate()
+        .map(|(ordinal, (&row, &target))| SupportAnchor {
             row,
             target,
-            radius: options.landmark_support.radius(),
+            radius: skeleton_scale(coordinates, ordinal),
             weight: options.landmark_support.weight(),
         })
         .collect()
+}
+
+/// Computes one landmark's median layout distance to its nearest
+/// skeleton neighbours.
+///
+/// The neighbour count and even-count midpoint mirror the corpus
+/// local-scale kernel; the skeleton is capacity-bounded, so the
+/// nearest set comes from a plain pass over the layout.
+fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
+    let mut nearest = [f32::INFINITY; LOCAL_SCALE_NEIGHBOURS];
+    let mut count = 0_usize;
+    for (other, &coordinate) in coordinates.iter().enumerate() {
+        if other == ordinal {
+            continue;
+        }
+        let distance = coordinates[ordinal].distance(coordinate);
+        let mut slot = LOCAL_SCALE_NEIGHBOURS;
+        while slot > 0 && distance < nearest[slot - 1] {
+            slot -= 1;
+        }
+        if slot < LOCAL_SCALE_NEIGHBOURS {
+            nearest[slot..].rotate_right(1);
+            nearest[slot] = distance;
+            count += 1;
+        }
+    }
+
+    let count = count.min(LOCAL_SCALE_NEIGHBOURS);
+    if count == 0 {
+        return 0.0;
+    }
+
+    let middle = count >> 1;
+    if count & 1 == 0 {
+        nearest[middle - 1].midpoint(nearest[middle])
+    } else {
+        nearest[middle]
+    }
+}
+
+/// Sums the semantic graph's positive edge weight in double precision.
+fn semantic_weight(view: &SemanticGraphView<'_>) -> f64 {
+    let mut total = 0.0_f64;
+    for row in 0..view.rows() {
+        for edge in view.row(row) {
+            total += f64::from(edge.weight);
+        }
+    }
+    total
+}
+
+/// Normalizes the configured coefficient bases by their objective
+/// masses: semantic and ordinary by the total semantic edge weight,
+/// hard by the corpus row count, landmark by the anchor pool size.
+///
+/// The relation base passes through, and a pool of zero keeps its
+/// base inert rather than dividing by nothing - the temporal-anchor
+/// pool is empty until its seam lands. A weightless graph passes
+/// every base through unchanged.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "corpus and pool counts remain exactly representable in f64 far beyond any corpus"
+)]
+fn normalized_coefficients(
+    bases: Coefficients,
+    weight: f64,
+    rows: usize,
+    landmark_pool: usize,
+) -> Coefficients {
+    if weight <= 0.0 {
+        return bases;
+    }
+
+    let scaled = |base: f32, mass: f64| -> f32 {
+        if mass <= 0.0 {
+            return 0.0;
+        }
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the normalized coefficient narrows back to the trainer's f32 contract"
+        )]
+        let value = (f64::from(base) / mass) as f32;
+        value
+    };
+
+    Coefficients::new(
+        scaled(bases.semantic(), weight),
+        scaled(bases.ordinary(), weight),
+        scaled(bases.hard(), rows as f64),
+        bases.relation(),
+        scaled(bases.anchor(), 0.0),
+        scaled(bases.landmark(), landmark_pool as f64),
+    )
+    .expect("scaling finite non-negative bases by positive masses preserves the domain")
 }
 
 /// Returns one rung's scratch frame path.

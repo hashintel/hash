@@ -310,14 +310,14 @@ impl Conditions {
     /// Returns the rungs in ascending order, the baseline first.
     #[inline]
     #[must_use]
-    pub(crate) const fn values(&self) -> &[f32] {
+    pub(crate) fn values(&self) -> &[f32] {
         &self.values
     }
 
     /// Returns the rung count; at least two by construction.
     #[inline]
     #[must_use]
-    pub(crate) const fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.values.len()
     }
 }

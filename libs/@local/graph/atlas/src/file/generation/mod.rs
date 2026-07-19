@@ -123,7 +123,7 @@ impl Error for SealError {
 
 /// The current-generation pointer could not be read.
 #[derive(Debug)]
-pub(crate) enum CurrentError {
+pub enum CurrentError {
     /// The pointer's content is not a generation id.
     Corrupt(ParseHexError),
     /// The pointer could not be read.
@@ -197,7 +197,7 @@ impl Error for ActivateError {
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
 #[serde(transparent)]
-pub(crate) struct GenerationId(Sha256Digest);
+pub struct GenerationId(Sha256Digest);
 
 impl GenerationId {
     /// Returns the digest of the generation's metadata document.
@@ -226,7 +226,7 @@ impl FromStr for GenerationId {
 
 /// The directory of published generations.
 #[derive(Debug)]
-pub(crate) struct GenerationRoot {
+pub struct GenerationRoot {
     path: Utf8PathBuf,
 }
 
@@ -236,7 +236,7 @@ impl GenerationRoot {
     /// # Errors
     ///
     /// Returns an error when the directory cannot be created.
-    pub(crate) fn new(path: impl Into<Utf8PathBuf>) -> io::Result<Self> {
+    pub fn new(path: impl Into<Utf8PathBuf>) -> io::Result<Self> {
         let path = path.into();
         fs::create_dir_all(&path)?;
 
@@ -291,7 +291,7 @@ impl GenerationRoot {
     ///
     /// Returns an error when the pointer cannot be read or does not name
     /// a generation.
-    pub(crate) fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
+    pub fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
         // Parsed, never mapped: the pointer is one hex line, rewritten
         // on every activation, and hand-editable for rollback.
         let content = match fs::read_to_string(self.path.join(CURRENT_FILE)) {

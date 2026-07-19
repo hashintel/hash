@@ -292,7 +292,7 @@ mod placement {
         miner: MinerRecord,
         lens: LensRecord,
         protection: ProtectionRecord,
-        landmark_support: [f32; 2],
+        landmark_weight: f32,
         forward_rows: NonZero<usize>,
         ladder: LadderRecord,
     }
@@ -439,10 +439,7 @@ mod placement {
                     ],
                     protect_ordinary: options.protection.protect_ordinary(),
                 },
-                landmark_support: [
-                    options.landmark_support.radius(),
-                    options.landmark_support.weight(),
-                ],
+                landmark_weight: options.landmark_support.weight(),
                 forward_rows: options.forward_rows,
                 ladder: LadderRecord {
                     conditions: options.ladder.conditions.values().to_vec(),
@@ -461,9 +458,7 @@ mod placement {
     {
         match Record::deserialize(deserializer)? {
             Record::LandmarkBaseline => Ok(PlacementOptions::LandmarkBaseline),
-            Record::Projector(record) => Ok(PlacementOptions::Projector(Box::new(
-                record.into_options()?,
-            ))),
+            Record::Projector(record) => Ok(PlacementOptions::Projector(record.into_options()?)),
         }
     }
 
@@ -515,10 +510,10 @@ mod placement {
             let lens = record.lens.into_lens()?;
             let protection = record.protection.into_config()?;
 
-            let [radius, weight] = record.landmark_support;
-            let landmark_support = LandmarkSupport::new(radius, weight).ok_or_else(|| {
-                E::custom("the landmark support constants are not finite and strictly positive")
-            })?;
+            let landmark_support =
+                LandmarkSupport::new(record.landmark_weight).ok_or_else(|| {
+                    E::custom("the landmark support weight is not finite and strictly positive")
+                })?;
 
             let conditions = Conditions::new(record.ladder.conditions)
                 .map_err(|error| E::custom(format_args!("invalid condition schedule: {error}")))?;

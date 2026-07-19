@@ -159,15 +159,15 @@ const SUB: u64 = 0x1000_0000_0000_0000;
 /// ```
 fn fixture_codes() -> Vec<MortonKey> {
     [
-        Q10 | 5,
+        Q10 | 0x5,
         2,
-        Q10 | 6,
-        Q11 | 9,
+        Q10 | 0x6,
+        Q11 | 0x9,
         1,
-        SUB | 3,
-        SUB | 3,
-        Q01 | 8,
-        Q11 | 14,
+        SUB | 0x3,
+        SUB | 0x3,
+        Q01 | 0x8,
+        Q11 | 0xE,
     ]
     .into_iter()
     .map(MortonKey::from_bits)

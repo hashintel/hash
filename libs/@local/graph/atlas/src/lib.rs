@@ -20,6 +20,7 @@
 //!   lives, plus the relation-card format.
 //! - `salt` - the pipeline: graph construction, landmark layout, projector training, evaluation,
 //!   and materialization.
+//! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! The previous pipeline generation is parked at `src/salt-BAK`,
 //! uncompiled: reference semantics for the port, deleted when `salt`
@@ -69,3 +70,4 @@ pub mod math;
 pub mod morton;
 pub mod random;
 mod salt;
+pub mod serve;

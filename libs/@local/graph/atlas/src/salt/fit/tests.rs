@@ -200,6 +200,10 @@ fn config() -> FitConfig {
         },
         curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
         neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
+        // The fixtures whose subject is not the placement opt out of
+        // the default's training run; the projector tests configure
+        // their own schedules.
+        placement: PlacementOptions::LandmarkBaseline,
         ..
     }
 }
@@ -806,7 +810,8 @@ async fn a_defective_corpus_publishes_nothing() {
 /// The projector fixture's training run: short enough for a test,
 /// long enough that the boundary and every rung run.
 fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
-    let schedule = TrainingSchedule::new(
+    let mut options = ProjectorOptions::ratified();
+    options.schedule = TrainingSchedule::new(
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
         NonZero::new(4).expect("the fixture cadence is nonzero"),
@@ -814,8 +819,6 @@ fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
         1.0e-5,
     )
     .expect("the fixture schedule is valid");
-
-    let mut options = ProjectorOptions::reference(schedule);
     options.plan = BatchPlan {
         semantic_pairs: NonZero::new(8).expect("the fixture draw is nonzero"),
         ordinary_pairs: 4,
@@ -866,6 +869,30 @@ fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<
     .expect("the published model projects finitely")
 }
 
+#[test]
+fn the_default_placement_is_the_trained_projector() {
+    // The conditioned projector is the pipeline's architecture; a bare
+    // configuration trains it under the reference schedule. The
+    // baseline is the configured fallback, never the default.
+    let config = FitConfig {
+        seed: 0,
+        selection: SelectionOptions {
+            maximum_count: NonZero::new(LANDMARKS).expect("the fixture capacity is nonzero"),
+            ..
+        },
+        curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+        ..
+    };
+
+    let PlacementOptions::Projector(options) = &config.placement else {
+        panic!("the default placement should train the projector");
+    };
+    assert_eq!(*options, ProjectorOptions::ratified());
+    assert_eq!(options.schedule.steps().get(), 20_000);
+    assert_eq!(options.schedule.boundary(), 5_000);
+    assert_eq!(options.ladder.canonical.to_bits(), 1.0_f32.to_bits());
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_forceless_projector_publishes_the_baseline_rung() {
@@ -877,7 +904,7 @@ async fn a_forceless_projector_publishes_the_baseline_rung() {
     // ladder is skipped whole.
     let options = projector_options(None);
     let config = FitConfig {
-        placement: PlacementOptions::Projector(Box::new(options.clone())),
+        placement: PlacementOptions::Projector(options.clone()),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
@@ -958,7 +985,7 @@ async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
     // asserted for the boundary to freeze.
     let options = projector_options(Some(1.0));
     let config = FitConfig {
-        placement: PlacementOptions::Projector(Box::new(options.clone())),
+        placement: PlacementOptions::Projector(options.clone()),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
@@ -1059,7 +1086,7 @@ async fn a_canonical_condition_outside_the_schedule_publishes_nothing() {
     let mut options = projector_options(Some(1.0));
     options.ladder.canonical = 0.3;
     let config = FitConfig {
-        placement: PlacementOptions::Projector(Box::new(options)),
+        placement: PlacementOptions::Projector(options),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
