@@ -188,7 +188,7 @@ impl CoincidentEnergy {
 /// ask for a strictly closer placement than the loose one. `epsilon`
 /// guards the local scales in the normalization
 /// `z = d / sqrt((scale_i + epsilon) (scale_j + epsilon))`, keeping `z`
-/// finite where a diverged neighborhood measured a zero radius.
+/// finite where a diverged neighbourhood measured a zero radius.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationEnergy {
     coincident: CoincidentEnergy,

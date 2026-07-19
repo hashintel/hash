@@ -9,6 +9,7 @@ use core::num::NonZero;
 
 use crate::{
     dataset::TemporalAxes,
+    file::generation::GenerationId,
     salt::{
         CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef, NormSpotCheck,
         RecallSpotCheck,
@@ -73,6 +74,9 @@ pub(crate) struct Reproducibility {
     pub config: FitConfig,
     /// The embedding contract the card embeddings were produced under.
     pub embedder: EmbedderFingerprint,
+    /// The generation whose artifacts seeded reuse - card embeddings
+    /// and landmark retention - when one was offered.
+    pub prior: Option<GenerationId>,
 }
 
 /// The admission evidence of one published generation.

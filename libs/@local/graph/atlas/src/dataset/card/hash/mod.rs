@@ -21,8 +21,8 @@
 //!    separate webs appear at most once.
 //!
 //! Candidates matching no source type surface only when every per-source
-//! group is empty, as one unlabeled group; with no constraining source
-//! types at all, every candidate forms one unlabeled group.
+//! group is empty, as one unlabelled group; with no constraining source
+//! types at all, every candidate forms one unlabelled group.
 
 use alloc::{
     alloc::{Allocator, Global},
@@ -360,8 +360,8 @@ fn order_key<A: Allocator>(relation_id: &str, row: &ExampleRow<'_, A>) -> Sha256
 ///
 /// Grouping matches type ids, so title collisions between source types
 /// leave assignment unchanged. Candidates matching no source type appear
-/// only when every per-source group is empty, as one unlabeled group;
-/// with no source types at all, every candidate forms one unlabeled
+/// only when every per-source group is empty, as one unlabelled group;
+/// with no source types at all, every candidate forms one unlabelled
 /// group.
 fn example_groups<'text, A: Allocator + Clone>(
     associations: &[EndpointAssociation<'text, A>],
@@ -370,7 +370,7 @@ fn example_groups<'text, A: Allocator + Clone>(
     let alloc = candidates.allocator().clone();
 
     if associations.is_empty() {
-        return unlabeled_group(candidates, &alloc);
+        return unlabelled_group(candidates, &alloc);
     }
 
     let mut pools = Vec::with_capacity_in(associations.len(), alloc.clone());
@@ -384,7 +384,7 @@ fn example_groups<'text, A: Allocator + Clone>(
     }
 
     if pools.iter().all(Vec::is_empty) {
-        return unlabeled_group(unmatched, &alloc);
+        return unlabelled_group(unmatched, &alloc);
     }
 
     let mut groups = Vec::with_capacity_in(pools.len(), alloc.clone());
@@ -398,7 +398,7 @@ fn example_groups<'text, A: Allocator + Clone>(
 }
 
 /// Wraps `pool` as the only group, without a label.
-fn unlabeled_group<'text, A: Allocator + Clone>(
+fn unlabelled_group<'text, A: Allocator + Clone>(
     pool: Vec<NormalizedExample<'text, A>, A>,
     alloc: &A,
 ) -> Vec<ExampleGroup<'text, A>, A> {
@@ -471,7 +471,7 @@ fn example_group<'text, A: Allocator + Clone>(
 
 /// Builds a candidate's rendered-pair conflict token.
 ///
-/// The token joins the casefolded group title (empty for the unlabeled
+/// The token joins the casefolded group title (empty for the unlabelled
 /// group) and both casefolded endpoint labels with NUL bytes under the
 /// `rendered:` prefix, so one card never repeats a line of identical
 /// rendered text even when the underlying entities differ.

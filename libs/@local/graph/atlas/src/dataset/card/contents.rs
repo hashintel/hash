@@ -95,7 +95,7 @@ fn bullets<'this, T: Display>(header: &'this str, items: &'this [T]) -> impl Dis
 /// Structured card body; its [`Display`] output is the canonical text.
 ///
 /// Adapters construct the contents directly from their own data: every
-/// field is public, [`Phrase::new`] normalizes labeled prose, and
+/// field is public, [`Phrase::new`] normalizes labelled prose, and
 /// [`format::build_card`](super::format::build_card) budgets, renders,
 /// and lints the result.
 pub(crate) struct CardContents<'text, A: Allocator = Global> {

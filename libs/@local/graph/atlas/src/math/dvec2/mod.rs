@@ -288,7 +288,7 @@ impl DVec2x4T {
     /// lanes.
     ///
     /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign
-    /// semantics of [`Vec2::perp_dot`]. The rounding behavior is
+    /// semantics of [`Vec2::perp_dot`]. The rounding behaviour is
     /// [`dot`](Self::dot)'s.
     #[inline]
     #[must_use]

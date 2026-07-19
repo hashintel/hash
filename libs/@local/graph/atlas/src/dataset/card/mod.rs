@@ -1,8 +1,8 @@
 //! Canonical relation-card construction, rendering, and truncation.
 //!
-//! Cards are deterministic labeled text, never JSON. Datasource adapters
+//! Cards are deterministic labelled text, never JSON. Datasource adapters
 //! build [`contents::CardContents`] directly from their own rows -
-//! [`phrase::Phrase::new`] normalizes labeled prose under a
+//! [`phrase::Phrase::new`] normalizes labelled prose under a
 //! [`CardContext`] - and hand it to [`build_card`] together with the
 //! source identifiers they resolved, which the final text linter
 //! forbids. Independent domain/range summaries and paired endpoint

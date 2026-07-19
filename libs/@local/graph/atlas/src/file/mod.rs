@@ -13,6 +13,9 @@
 //!   flat edge-record array, both page-aligned regions of one file.
 //! - [`morton`] is the combined-file archetype: a page index in front of the sorted code array it
 //!   indexes, both page-aligned.
+//! - [`identity`] is the identity file: a row-ordered id column and its sorted `(id, row)` lookup
+//!   pairs behind an index prelude, page-aligned regions of one file, so rows translate to source
+//!   identities and back without decoding.
 //! - [`landmark`] is the landmark skeleton file: selected rows, the corpus assignment, and the
 //!   layout coordinates - three ordinal-keyed regions of one file, page-aligned.
 //! - [`sprs`](mod@sprs) is the sparse matrix file: one compressed-sparse-row matrix - row pointers,
@@ -98,16 +101,18 @@
 //! |                                 | in the metadata document                     |        |
 //! | quadtree topology (`.quad`)     | mmap, node table referencing point clouds    | zerocopy |
 //! | point clouds                    | served directly, replaced per node           | array  |
-//! | entity identities               | `(web_id, uuid, row)` table, read once,      | parquet |
-//! |                                 | joined and queried                           |        |
+//! | node/edge identities (`.idnt`)  | mmap, serving lookups both ways: `row -> id` | combined |
+//! |                                 | by indexing the id column, `id -> row` by    |        |
+//! |                                 | binary search over sorted pairs behind an    |        |
+//! |                                 | index prelude                                |        |
 //! | relation edges                  | wide table (endpoints, class, probability,   | parquet |
-//! |                                 | strength), read once, analyzed               |        |
+//! |                                 | strength), read once, analysed               |        |
 //! | projector checkpoint            | burn training restore                        | mpk    |
 //! | generation metadata             | inputs, seeds, config, quality metrics, file | JSON   |
 //! |                                 | names + hashes; the root of trust            |        |
 //!
-//! The parquet rows are pending the dependency decision; until then both
-//! store as struct-of-arrays array files without losing anything but
+//! The parquet row is pending the dependency decision; until then it
+//! stores as struct-of-arrays array files without losing anything but
 //! external queryability.
 
 // Design notes (rationale, not contract):
@@ -164,6 +169,7 @@
 pub(crate) mod array;
 pub(crate) mod attraction;
 pub(crate) mod generation;
+pub(crate) mod identity;
 pub(crate) mod landmark;
 mod morton;
 mod quad;

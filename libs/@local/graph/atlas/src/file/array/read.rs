@@ -10,7 +10,10 @@ use zerocopy::{
 };
 
 use super::{ArrayShape, ArrayVariant, FileHeader};
-use crate::math::{AlignedVecN, Vec2};
+use crate::{
+    integrity::Sha256Digest,
+    math::{AlignedVecN, Vec2},
+};
 
 /// Opening an array file failed.
 #[derive(Debug)]
@@ -227,5 +230,26 @@ impl ArrayFile {
         }
 
         <[u32]>::ref_from_bytes(self.data()).ok()
+    }
+
+    /// Views the data as SHA-256 digests in row order.
+    ///
+    /// The view exists exactly when the file holds `u8` elements shaped
+    /// `[T, 32]`; the returned slice holds the `T` digests in order. A
+    /// zero-element file is zero digests, since its shape records no
+    /// row width.
+    #[must_use]
+    pub(crate) fn digests(&self) -> Option<&[Sha256Digest]> {
+        if self.header().variant() != ArrayVariant::U8 {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] => {}
+            &[_, width] if width.get() == 32 => {}
+            _ => return None,
+        }
+
+        <[Sha256Digest]>::ref_from_bytes(self.data()).ok()
     }
 }

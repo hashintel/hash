@@ -30,9 +30,9 @@ fn nonzero(value: usize) -> NonZero<usize> {
     NonZero::new(value).expect("test counts are nonzero")
 }
 
-fn options(neighbors: usize, margin: usize, maximum_weight: f32, exponent: f32) -> MinerOptions {
+fn options(neighbours: usize, margin: usize, maximum_weight: f32, exponent: f32) -> MinerOptions {
     MinerOptions::new(
-        nonzero(neighbors),
+        nonzero(neighbours),
         nonzero(margin),
         maximum_weight,
         exponent,
@@ -144,7 +144,7 @@ fn reference_mine(
     config: ProtectionConfig,
     options: MinerOptions,
 ) -> Vec<Vec<(u32, f32)>> {
-    let quota = options.neighbors().get();
+    let quota = options.neighbours().get();
     (0..coordinates.len())
         .map(|row| {
             let mut candidates: Vec<(f32, usize)> = (0..coordinates.len())

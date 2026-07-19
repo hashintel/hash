@@ -346,16 +346,16 @@ impl<const N: usize> DVecN<N> {
         let (mean_chunks, mean_remainder) = mean.0.as_chunks::<8>();
 
         for ((chunk, narrow), mean) in chunks.iter_mut().zip(value_chunks).zip(mean_chunks) {
-            let centered = f32x8::from_array(*narrow).cast::<f64>() - f64x8::from_array(*mean);
-            *chunk = mul_add_f64x8(centered, centered, f64x8::from_array(*chunk)).to_array();
+            let centred = f32x8::from_array(*narrow).cast::<f64>() - f64x8::from_array(*mean);
+            *chunk = mul_add_f64x8(centred, centred, f64x8::from_array(*chunk)).to_array();
         }
         for ((component, &narrow), &mean) in remainder
             .iter_mut()
             .zip(value_remainder)
             .zip(mean_remainder)
         {
-            let centered = f64::from(narrow) - mean;
-            *component = centered.mul_add(centered, *component);
+            let centred = f64::from(narrow) - mean;
+            *component = centred.mul_add(centred, *component);
         }
     }
 

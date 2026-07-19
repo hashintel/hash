@@ -44,7 +44,7 @@ mod tests;
 /// assert_eq!(bounds.min(), Vec2::new(2.0, -1.0));
 /// assert_eq!(bounds.max(), Vec2::new(6.0, 3.0));
 /// assert_eq!(bounds.size(), Vec2::new(4.0, 4.0));
-/// assert_eq!(bounds.center(), Vec2::new(4.0, 1.0));
+/// assert_eq!(bounds.centre(), Vec2::new(4.0, 1.0));
 /// ```
 // No `FromBytes`: it would mint boxes with NaN or inverted corners in
 // safe code, bypassing the validating constructors. `FromZeros` is fine
@@ -217,10 +217,10 @@ impl Bounds2 {
         self.max - self.min
     }
 
-    /// Returns the center of the box.
+    /// Returns the centre of the box.
     #[inline]
     #[must_use]
-    pub const fn center(self) -> Vec2 {
+    pub const fn centre(self) -> Vec2 {
         (self.min + self.max) * 0.5
     }
 
@@ -247,7 +247,7 @@ impl Bounds2 {
     }
 
     /// Widens any axis narrower than `minimum` to exactly `minimum`,
-    /// symmetrically around its center.
+    /// symmetrically around its centre.
     ///
     /// This repairs degenerate boxes (all points on a line, or a single
     /// point) before operations that divide by the extent, such as
@@ -256,13 +256,13 @@ impl Bounds2 {
     #[must_use]
     pub fn with_minimum_extent(self, minimum: f32) -> Self {
         let size = self.size();
-        let center = self.center();
+        let centre = self.centre();
 
         let half = Vec2::new((size.x().max(minimum)) * 0.5, (size.y().max(minimum)) * 0.5);
 
         Self {
-            min: center - half,
-            max: center + half,
+            min: centre - half,
+            max: centre + half,
         }
     }
 

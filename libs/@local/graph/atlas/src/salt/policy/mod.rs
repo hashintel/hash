@@ -7,7 +7,7 @@
 //! higher-precedence explicit policy record; [`precedence`] resolves
 //! the winning source per relation into the certified policy table.
 //!
-//! The classes describe geometric behavior, never semantic valence:
+//! The classes describe geometric behaviour, never semantic valence:
 //! opposition, contradiction, and citation are rendering concerns. No
 //! class imposes a repulsive force - a mistaken attraction is bounded,
 //! while a mistaken repulsion destroys local structure.

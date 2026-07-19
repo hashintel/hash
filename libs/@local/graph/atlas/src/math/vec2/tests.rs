@@ -269,7 +269,7 @@ fn from_lanes_inverts_lane_extraction() {
 
 /// A coordinate bounded to a well-conditioned range.
 ///
-/// The laws below are algebraic contracts; overflow behavior is pinned
+/// The laws below are algebraic contracts; overflow behaviour is pinned
 /// separately by the example-based tests above.
 fn coordinate() -> impl Strategy<Value = f32> {
     -1e5_f32..1e5

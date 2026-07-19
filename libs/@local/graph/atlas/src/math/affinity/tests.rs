@@ -131,7 +131,7 @@ fn fit_result_is_a_local_minimum_of_the_sampled_objective() {
     // the same sampled objective recomputed independently in f64.
     let fitted = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
     let (curve_a, curve_b) = (f64::from(fitted.a()), f64::from(fitted.b()));
-    let center = reference_rss(1.0, 0.1, curve_a, curve_b);
+    let centre = reference_rss(1.0, 0.1, curve_a, curve_b);
 
     for epsilon_a in [-1e-3, 0.0, 1e-3] {
         for epsilon_b in [-1e-3, 0.0, 1e-3] {
@@ -142,9 +142,9 @@ fn fit_result_is_a_local_minimum_of_the_sampled_objective() {
             let perturbed =
                 reference_rss(1.0, 0.1, curve_a * (1.0 + epsilon_a), curve_b + epsilon_b);
             assert!(
-                center <= perturbed,
+                centre <= perturbed,
                 "perturbation ({epsilon_a}, {epsilon_b}) scores {perturbed}, better than the \
-                 fitted parameters' {center}",
+                 fitted parameters' {centre}",
             );
         }
     }
@@ -423,7 +423,7 @@ fn gradients_stay_finite_at_extreme_distances() {
 }
 
 /// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
-/// range; extreme-distance behavior is pinned by the example-based tests
+/// range; extreme-distance behaviour is pinned by the example-based tests
 /// above.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))

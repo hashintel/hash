@@ -73,7 +73,7 @@ fn apply_x4_matches_scalar_apply() {
 }
 
 #[test]
-fn widening_to_transform_preserves_behavior() {
+fn widening_to_transform_preserves_behaviour() {
     let rotation = Rotation::from_radians(0.4);
     let translation = Translation::new(5.0, -1.0);
 

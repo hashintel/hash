@@ -395,10 +395,10 @@ fn overconfident_logits_calibrate_above_one() {
     let expected = 6.0 / 3.0_f64.ln();
     assert!(temperature > 1.0);
     assert!((temperature - expected).abs() <= 1.0e-6 * expected);
-    // Local optimality: the returned temperature beats its neighbors.
+    // Local optimality: the returned temperature beats its neighbours.
     let optimum = calibration::metrics(&rows, &logits, temperature).calibrated_cross_entropy;
-    for neighbor in [temperature * 1.05, temperature / 1.05] {
-        let value = calibration::metrics(&rows, &logits, neighbor).calibrated_cross_entropy;
+    for neighbour in [temperature * 1.05, temperature / 1.05] {
+        let value = calibration::metrics(&rows, &logits, neighbour).calibrated_cross_entropy;
         assert!(optimum <= value);
     }
 }

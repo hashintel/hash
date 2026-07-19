@@ -37,7 +37,7 @@ fn from_points_finds_tight_extent() {
     assert_eq!(bounds.min(), Vec2::new(1.0, 5.0));
     assert_eq!(bounds.max(), Vec2::new(4.0, 8.0));
     assert_eq!(bounds.size(), Vec2::new(3.0, 3.0));
-    assert_eq!(bounds.center(), Vec2::new(2.5, 6.5));
+    assert_eq!(bounds.centre(), Vec2::new(2.5, 6.5));
 }
 
 #[test]
@@ -83,8 +83,8 @@ fn minimum_extent_widens_degenerate_axes_only() {
 
     let widened = bounds.with_minimum_extent(2.0);
     assert_eq!(widened.size(), Vec2::new(2.0, 4.0));
-    // Widening is symmetric around the center.
-    assert_eq!(widened.center(), bounds.center());
+    // Widening is symmetric around the centre.
+    assert_eq!(widened.centre(), bounds.centre());
     assert_eq!(widened.min().x(), 2.0);
     assert_eq!(widened.max().x(), 4.0);
 }
@@ -164,7 +164,7 @@ fn fit_maps_corners_onto_target() {
     // within rounding of the target rather than exactly on it.
     assert_vec2_close(transform.apply(layout.min()), viewport.min());
     assert_vec2_close(transform.apply(layout.max()), viewport.max());
-    assert_vec2_close(transform.apply(layout.center()), viewport.center());
+    assert_vec2_close(transform.apply(layout.centre()), viewport.centre());
 
     // The batched application agrees with the scalar one up to FMA
     // contraction.

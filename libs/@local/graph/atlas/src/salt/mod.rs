@@ -22,8 +22,10 @@ mod embedding;
 mod fit;
 mod knn;
 mod landmark;
+mod lod;
 mod policy;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod projector;
+pub(crate) mod quality;
 pub(crate) mod relation;
 mod semantic;

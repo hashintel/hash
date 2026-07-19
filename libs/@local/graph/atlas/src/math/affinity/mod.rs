@@ -7,7 +7,7 @@
 //! ```
 //!
 //! over the 2D distance `d` between points, and descends its cross-entropy
-//! against the high-dimensional neighbor graph by stochastic gradient
+//! against the high-dimensional neighbour graph by stochastic gradient
 //! steps: sampled edges pull their endpoints together (attraction), and
 //! sampled non-edges push them apart (repulsion). [`AffinityCurve`] holds
 //! the fitted `a` and `b` parameters and evaluates both gradient families

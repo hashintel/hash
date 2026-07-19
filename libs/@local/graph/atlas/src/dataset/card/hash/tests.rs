@@ -526,7 +526,7 @@ fn association_outside_its_contract_yields_no_contents() {
     .unwrap_or_else(|never| never);
     assert!(inverted.is_none());
 
-    let unlabeled = build_contents(
+    let unlabelled = build_contents(
         facts(),
         vec![EndpointAssociation {
             source: TypePhrase {
@@ -540,7 +540,7 @@ fn association_outside_its_contract_yields_no_contents() {
         &context(),
     )
     .unwrap_or_else(|never| never);
-    assert!(unlabeled.is_none());
+    assert!(unlabelled.is_none());
 }
 
 #[test]

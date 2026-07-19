@@ -596,7 +596,7 @@ pub(crate) trait Dataset {
     /// [`CANONICAL_DIMENSIONS`]-component embedding as stored, with every
     /// component finite. Requests are probe-scoped: bounded anchor and
     /// comparison sets for evaluating the fitted map against exact
-    /// canonical-space neighborhoods. The corpus-scale representation is
+    /// canonical-space neighbourhoods. The corpus-scale representation is
     /// [`Node::embedding`].
     #[must_use]
     fn canonical_node_embeddings<I: Iterator<Item = Self::NodeId>>(

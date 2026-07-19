@@ -62,6 +62,7 @@ extern crate alloc;
 pub mod bench;
 pub mod bitset;
 pub(crate) mod dataset;
+pub mod disjoint;
 mod file;
 pub mod integrity;
 pub mod math;

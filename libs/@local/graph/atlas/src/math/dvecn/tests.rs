@@ -194,8 +194,8 @@ fn aligned_accumulators_delegate_to_the_widening_kernels() {
 
     let expected: [f64; 11] = core::array::from_fn(|index| {
         let widened = f64::from(value.as_array()[index]);
-        let centered = widened - 0.5;
-        centered.mul_add(centered, widened)
+        let centred = widened - 0.5;
+        centred.mul_add(centred, widened)
     });
     assert_eq!(accumulator.as_array(), &expected);
 }
@@ -213,8 +213,8 @@ fn add_squared_deviation_matches_scalar_reference() {
         f64::from(u8::try_from(index).expect("test sizes are small")).mul_add(-0.5, 1.0)
     }));
     let expected: [f64; 11] = core::array::from_fn(|index| {
-        let centered = f64::from(value.as_array()[index]) - mean.as_array()[index];
-        centered.mul_add(centered, accumulator.as_array()[index])
+        let centred = f64::from(value.as_array()[index]) - mean.as_array()[index];
+        centred.mul_add(centred, accumulator.as_array()[index])
     });
 
     accumulator.add_squared_deviation(&value, &mean);

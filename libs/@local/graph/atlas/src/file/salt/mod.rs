@@ -37,6 +37,12 @@ pub(crate) struct SaltFiles {
     /// The canonical `f32[N, 2]` coordinates, row-aligned with the node
     /// stream; an array file.
     pub coordinates: RepositoryFile,
+    /// The node identities: source id per node row and the sorted
+    /// lookup pairs, one identity file.
+    pub node_identities: RepositoryFile,
+    /// The edge identities: source id per edge row and the sorted
+    /// lookup pairs, one identity file.
+    pub edge_identities: RepositoryFile,
 }
 
 impl SaltFiles {
@@ -45,7 +51,7 @@ impl SaltFiles {
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
     #[must_use]
-    pub(crate) const fn files(&self) -> [&RepositoryFile; 7] {
+    pub(crate) const fn files(&self) -> [&RepositoryFile; 9] {
         let Self {
             representations,
             card_embeddings,
@@ -54,6 +60,8 @@ impl SaltFiles {
             semantic,
             landmarks,
             coordinates,
+            node_identities,
+            edge_identities,
         } = self;
 
         [
@@ -64,6 +72,8 @@ impl SaltFiles {
             semantic,
             landmarks,
             coordinates,
+            node_identities,
+            edge_identities,
         ]
     }
 }

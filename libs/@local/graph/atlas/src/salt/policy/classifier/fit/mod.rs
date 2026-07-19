@@ -258,7 +258,7 @@ impl<'training> TrainingSet<'training> {
         Ok(Self { embeddings, rows })
     }
 
-    /// Returns the embedding labeled by row `row`.
+    /// Returns the embedding labelled by row `row`.
     #[inline]
     pub(super) const fn embedding(
         self,
@@ -267,7 +267,7 @@ impl<'training> TrainingSet<'training> {
         &self.embeddings[row]
     }
 
-    /// Returns the labeled rows.
+    /// Returns the labelled rows.
     #[inline]
     pub(super) const fn rows(self) -> &'training [TrainingRow] {
         self.rows

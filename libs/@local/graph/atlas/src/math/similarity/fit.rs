@@ -36,7 +36,7 @@ impl Similarity {
     ///
     /// The result is the similarity minimizing the weighted squared
     /// error `sum(weights[i] * |apply(source[i]) - target[i]|^2)`, in
-    /// closed form: the weighted covariance between the centered point
+    /// closed form: the weighted covariance between the centred point
     /// sets determines the rotation and scale, and the translation
     /// recovers the target centroid from the transformed source
     /// centroid. Pairs are folded four at a time with SIMD lanes, the
@@ -201,7 +201,7 @@ impl FitSums {
             // values fits in `f64`'s 53-bit significand, so the batch
             // products and the fused axis accumulations below are exact;
             // only the running additions round. That exactness is what
-            // keeps the centered-moment cancellation in `solve` accurate.
+            // keeps the centred-moment cancellation in `solve` accurate.
             let weight: Simd<f64, 4> = weight.cast();
             let source = DVec2x4T::from(Vec2x4T::from(source));
             let target = DVec2x4T::from(Vec2x4T::from(target));
@@ -279,12 +279,12 @@ impl FitSums {
         // Centered moments follow from the raw ones by the parallel-axis
         // identity. With `W = sum(w)`, `ms = sum(w s)`, `mt = sum(w t)`,
         // and centroids `cs = ms / W`, `ct = mt / W`, expanding each
-        // centered product leaves cross terms that all collapse into one
+        // centred product leaves cross terms that all collapse into one
         // correction because `sum(w (s - cs)) = 0`:
         //   sum(w dot(s - cs, t - ct))  = sum(w dot(s, t))  - dot(ms, mt) / W
         //   sum(w perp(s - cs, t - ct)) = sum(w perp(s, t)) - perp(ms, mt) / W
         //   sum(w |s - cs|^2)           = sum(w |s|^2)      - |ms|^2 / W
-        // This fuses centering into the single accumulation pass shared
+        // This fuses centring into the single accumulation pass shared
         // by the serial and parallel fits.
         let dot = self.dot - self.source.dot(self.target) / self.weight;
         let perp_dot = self.perp_dot - self.source.perp_dot(self.target) / self.weight;

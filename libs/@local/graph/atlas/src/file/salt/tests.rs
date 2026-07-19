@@ -54,6 +54,8 @@ fn repository() -> SaltRepository {
             semantic: file("semantic.sprs"),
             landmarks: file("landmarks.lndm"),
             coordinates: file("coordinates.arr"),
+            node_identities: file("node-identities.idnt"),
+            edge_identities: file("edge-identities.idnt"),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -72,6 +74,7 @@ fn repository() -> SaltRepository {
             reproducibility: Reproducibility {
                 config: config(),
                 embedder: EmbedderFingerprint::new(digest("embedder contract")),
+                prior: None,
             },
             placement: Placement::LandmarkBaseline,
             evidence: Evidence {

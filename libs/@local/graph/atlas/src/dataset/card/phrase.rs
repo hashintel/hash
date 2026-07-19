@@ -13,7 +13,7 @@ pub(crate) struct Description<'text> {
 
 /// A transferable label and optional description, with no source id.
 ///
-/// Every labeled item on a card - inverse, ancestor, endpoint type,
+/// Every labelled item on a card - inverse, ancestor, endpoint type,
 /// example endpoint - is a phrase, so rendering and detail truncation
 /// are uniform whether or not a description is present today.
 pub(crate) struct Phrase<'text> {
@@ -22,7 +22,7 @@ pub(crate) struct Phrase<'text> {
 }
 
 impl<'text> Phrase<'text> {
-    /// Normalizes a labeled input into a phrase.
+    /// Normalizes a labelled input into a phrase.
     ///
     /// A whitespace-only label yields `Ok(None)`; a whitespace-only
     /// description yields a bare label.

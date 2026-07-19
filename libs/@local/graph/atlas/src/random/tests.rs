@@ -126,7 +126,7 @@ fn sample_indices_vec_matches_the_array_contract() {
 
 #[test]
 fn acceptance_sample_size_matches_hand_checked_values() {
-    // ln(0.05) / ln(0.99) = 298.07...; the rule-of-three neighborhood.
+    // ln(0.05) / ln(0.99) = 298.07...; the rule-of-three neighbourhood.
     assert_eq!(acceptance_sample_size(0.01, 0.95), Some(299));
     // The doc example: one-in-a-hundred defects at 99.9% confidence.
     assert_eq!(acceptance_sample_size(0.01, 0.999), Some(688));

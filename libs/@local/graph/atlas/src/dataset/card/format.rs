@@ -8,7 +8,7 @@ use super::{
 };
 
 // Pass order is normative: diagnostics recorded on persisted cards name
-// these passes, so reordering changes observable behavior.
+// these passes, so reordering changes observable behaviour.
 const BUDGET_PASSES: [TruncationPass; 6] = [
     TruncationPass::DropExampleSlot,
     TruncationPass::StripAncestorDetails,

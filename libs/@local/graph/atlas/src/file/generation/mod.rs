@@ -39,8 +39,9 @@ mod open;
 #[cfg(test)]
 mod tests;
 
-// The serve loop is the first non-test consumer; the re-export widens
-// beyond tests when it arrives.
+pub(crate) use self::open::Generation;
+// The serve loop is the first non-test consumer of the open error;
+// the re-export widens beyond tests when it arrives.
 #[cfg(test)]
 pub(crate) use self::open::OpenError;
 
@@ -194,8 +195,12 @@ impl Error for ActivateError {
 ///
 /// The canonical lowercase hexadecimal form names the generation's
 /// directory, so the directory name is verifiable against the document
-/// it holds.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// it holds. It is also the serialized form, so a metadata document
+/// naming a prior generation names a checkable directory.
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(transparent)]
 pub(crate) struct GenerationId(Sha256Digest);
 
 impl GenerationId {
