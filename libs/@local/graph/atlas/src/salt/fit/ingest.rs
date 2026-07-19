@@ -262,8 +262,9 @@ struct EdgeArtifacts {
     clippy::cast_possible_truncation,
     reason = "confidences lie in [0, 1] by the dataset contract; f32 is the working precision"
 )]
-fn narrow_confidence(confidence: Option<f64>) -> Option<f32> {
-    confidence.map(|value| value as f32)
+#[inline]
+const fn narrow(confidence: f64) -> f32 {
+    confidence as f32
 }
 
 /// Drains the edge stream once: ids into the staged identity file,
@@ -307,9 +308,9 @@ where
         )?;
 
         let confidence = RelationConfidence {
-            link: narrow_confidence(edge.confidence),
-            source: narrow_confidence(edge.source_confidence),
-            target: narrow_confidence(edge.target_confidence),
+            link: edge.confidence.map(narrow),
+            source: edge.source_confidence.map(narrow),
+            target: edge.target_confidence.map(narrow),
         };
         for &relation in &edge.ontology {
             relations.insert(relation.get());
@@ -342,18 +343,21 @@ where
 
 /// The staged card-embedding artifacts of one fit.
 pub(super) struct CardArtifacts {
-    /// Ontology types embedded: the row count of both staged files.
+    /// Ontology types embedded: the row count of the staged files.
     pub types: u64,
     /// The staged embedding matrix.
     pub embeddings: RepositoryFile,
     /// The staged text-hash column.
     pub hashes: RepositoryFile,
+    /// The staged ontology identity table.
+    pub identities: RepositoryFile,
     /// How the rows were obtained; metadata evidence.
     pub stats: CardEmbeddingStats,
 }
 
 /// Renders every card, embeds the unique texts, and stages the two
-/// card-embedding columns.
+/// card-embedding columns beside the ontology identity table collected
+/// from the same stream.
 ///
 /// A prior generation's card files map back as the reuse table:
 /// texts whose hash appears there keep their rows without touching
@@ -374,18 +378,23 @@ where
     D: Dataset,
     E: CardEmbedder + Sync,
 {
-    let cards = async {
+    let (cards, ids) = async {
         let mut stream = pin!(dataset.render_cards());
         let mut cards = Vec::new();
-        while let Some((_, card)) = stream.try_next().await.map_err(FitError::Cards)? {
+        let mut ids = IdentityTable::new();
+        while let Some((id, card)) = stream.try_next().await.map_err(FitError::Cards)? {
+            ids.push(id);
             cards.push(card);
         }
-        Ok::<_, FitError<D::Error, E::Error>>(cards)
+        Ok::<_, FitError<D::Error, E::Error>>((cards, ids))
     }
     .instrument(tracing::info_span!("render-cards"))
     .await?;
 
     let types = cards.len() as u64;
+    let identities = write_staged(staging, Role::OntologyIdentities, |writer| {
+        ids.write_into(writer)
+    })?;
 
     let prior_files = prior
         .map(|generation| -> Result<_, PriorError> {
@@ -434,6 +443,7 @@ where
         types,
         embeddings,
         hashes,
+        identities,
         stats,
     })
 }

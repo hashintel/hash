@@ -13,7 +13,7 @@
               pass-through, and exact gradient deposition are contracts, not rounding accidents"
 )]
 
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
@@ -30,7 +30,7 @@ use crate::{
     salt::projector::model::{Architecture, Projector, ProjectorInput},
 };
 
-type B = Autodiff<NdArray>;
+type TestBackend = Autodiff<NdArray>;
 
 fn device() -> NdArrayDevice {
     NdArrayDevice::default()
@@ -160,7 +160,7 @@ fn summary_is_empty_before_any_record() {
 #[test]
 fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
     let device = device();
-    let coordinates: Tensor<B, 2> = Tensor::from_data(
+    let coordinates: Tensor<TestBackend, 2> = Tensor::from_data(
         TensorData::new(vec![0.5_f32, -1.25, 2.0, 0.0, -0.75, 4.0], [3, 2]),
         &device,
     )
@@ -190,8 +190,11 @@ fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
 /// every parameter's gradient generically nonzero.
 struct Perturb;
 
-impl ModuleMapper<B> for Perturb {
-    fn map_float<const D: usize>(&mut self, param: Param<Tensor<B, D>>) -> Param<Tensor<B, D>> {
+impl ModuleMapper<TestBackend> for Perturb {
+    fn map_float<const D: usize>(
+        &mut self,
+        param: Param<Tensor<TestBackend, D>>,
+    ) -> Param<Tensor<TestBackend, D>> {
         let (id, tensor, mapper) = param.consume();
         let elements = tensor.shape().num_elements();
         let ramp = (0..elements)
@@ -216,12 +219,12 @@ impl ModuleMapper<B> for Perturb {
 
 /// Collects every parameter gradient a backward pass produced.
 struct GradientCollector<'graph> {
-    gradients: &'graph <B as AutodiffBackend>::Gradients,
+    gradients: &'graph <TestBackend as AutodiffBackend>::Gradients,
     collected: BTreeMap<ParamId, Vec<f32>>,
 }
 
-impl ModuleVisitor<B> for GradientCollector<'_> {
-    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<B, D>>) {
+impl ModuleVisitor<TestBackend> for GradientCollector<'_> {
+    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<TestBackend, D>>) {
         if let Some(gradient) = param.val().grad(self.gradients) {
             self.collected.insert(
                 param.id,
@@ -235,8 +238,8 @@ impl ModuleVisitor<B> for GradientCollector<'_> {
 }
 
 fn parameter_gradients(
-    model: &Projector<B>,
-    gradients: &<B as AutodiffBackend>::Gradients,
+    model: &Projector<TestBackend>,
+    gradients: &<TestBackend as AutodiffBackend>::Gradients,
 ) -> BTreeMap<ParamId, Vec<f32>> {
     let mut collector = GradientCollector {
         gradients,
@@ -261,8 +264,9 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
         role_dimensions: 4.try_into().expect("4 is nonzero"),
         condition_dimensions: 1.try_into().expect("1 is nonzero"),
     };
-    let model = Projector::<B>::new(architecture, Xoshiro256PlusPlus::seed_from_u64(11), &device)
-        .map(&mut Perturb);
+    let model =
+        Projector::<TestBackend>::new(architecture, Xoshiro256PlusPlus::seed_from_u64(11), &device)
+            .map(&mut Perturb);
 
     let representation = || {
         let values = (0..3 * 6)
@@ -275,11 +279,13 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
                 index.mul_add(0.375, -1.5)
             })
             .collect::<Vec<_>>();
-        Tensor::<B, 2>::from_data(TensorData::new(values, [3, 6]), &device)
+        Tensor::<TestBackend, 2>::from_data(TensorData::new(values, [3, 6]), &device)
     };
-    let roles = || Tensor::<B, 1, Int>::from_data(TensorData::new(vec![0_i64, 1, 2], [3]), &device);
+    let roles = || {
+        Tensor::<TestBackend, 1, Int>::from_data(TensorData::new(vec![0_i64, 1, 2], [3]), &device)
+    };
     let condition =
-        || Tensor::<B, 2>::from_data(TensorData::new(vec![0.5_f32; 3], [3, 1]), &device);
+        || Tensor::<TestBackend, 2>::from_data(TensorData::new(vec![0.5_f32; 3], [3, 1]), &device);
     let input = || ProjectorInput {
         representation: representation(),
         roles: roles(),

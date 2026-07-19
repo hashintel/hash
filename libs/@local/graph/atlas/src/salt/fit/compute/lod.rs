@@ -14,6 +14,7 @@ use super::{
 use crate::{
     dataset::OntologyRowId,
     file::{
+        adjacency::read::AdjacencyFile,
         array::{ArrayFile, ArrayVariant, Dim},
         identity::read::IdentityFile,
         morton::write::{PAGE_STRIDE, write_regions},
@@ -21,10 +22,14 @@ use crate::{
         repository::RepositoryFile,
     },
     integrity::{Sha256, Writer},
-    salt::lod::{
-        quad::{QuadEvidence, QuadTree},
-        rank::RankInputs,
-        stage::{Lod, LodEvidence},
+    salt::{
+        adjacency::MappedAdjacency,
+        importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
+        lod::{
+            quad::{QuadEvidence, QuadTree},
+            rank::RankInputs,
+            stage::{Lod, LodEvidence},
+        },
     },
 };
 
@@ -52,11 +57,12 @@ impl Context<'_> {
     /// coordinates, stages every served column, and cuts the finished
     /// columns into the staged quadtree.
     ///
-    /// The rank inputs are constant columns - the dataset carries no
-    /// importance or priority yet - so the delivery order reduces to
-    /// the seeded identity tiebreak; the metadata's ranking origin
-    /// records it. `types` is each node row's direct types in row
-    /// order, the quadtree's per-tile type sets.
+    /// The importance column comes from the configured signal over the
+    /// staged artifacts; the priority column stays constant - it is
+    /// the override lane for a product notion that does not exist yet.
+    /// The metadata's ranking origin records the signal that ran.
+    /// `types` is each node row's direct types in row order, the
+    /// quadtree's per-tile type sets.
     pub(super) fn stage_lod<I>(
         &self,
         types: &[SmallVec<OntologyRowId, 2>],
@@ -82,12 +88,22 @@ impl Context<'_> {
             self.staging.path_of(&Role::NodeIdentities.file_name()),
         )?)?;
 
-        let zeros = vec![0.0_f32; points.len()];
-        let inputs = RankInputs::new(&zeros, &zeros, ids.ids())
+        let importance = match self.config.ranking {
+            RankingConfig::ConstantColumns => ConstantImportance.derive(points.len()),
+            RankingConfig::IncidentDegree => {
+                let adjacency = MappedAdjacency::new(AdjacencyFile::open(
+                    self.staging.path_of(&Role::Adjacency.file_name()),
+                )?)?;
+                DegreeImportance::new(&adjacency).derive(points.len())
+            }
+        };
+        let priority = vec![0.0_f32; points.len()];
+        let inputs = RankInputs::new(&importance, &priority, ids.ids())
             .ok_or_else(|| StageError::WireEncoding { rows: ids.len() })?;
 
         let lod = Lod::build(points, inputs, self.config.seed, self.config.lod)?;
-        drop(zeros);
+        drop(importance);
+        drop(priority);
 
         let morton = write_staged(self.staging, Role::Morton, |writer| {
             let mut writer = Writer {

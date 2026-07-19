@@ -20,7 +20,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     BatchPlan, Coefficients, ObjectiveOptions, StepError,
-    batch::{Batch, BatchSampler, Populations},
+    batch::{Batch, BatchSampler, Populations, SupportAnchor},
     metrics::{
         BudgetBreakdown, DegreeDeciles, DisplacementHistogram, DisplacementSummary,
         TypeParticipants,
@@ -35,8 +35,8 @@ use crate::{
         projector::{
             budget::BudgetOptions,
             loss::{
-                AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportAnchor,
-                SupportOptions,
+                AffinityEnergy, BatchPair, BatchRowId, CoincidentEnergy, ProximalEnergy,
+                RelationEnergy, SupportOptions,
             },
             miner::{HardNegativeMiner, MinerOptions, SpatialField},
             sample::SampledRelationEdges,
@@ -59,6 +59,11 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
 
 fn pair(one: u64, other: u64) -> NodePair {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
+}
+
+/// A batch-local pair, for asserting re-indexed populations.
+fn local(one: u32, other: u32) -> BatchPair {
+    BatchPair::new(BatchRowId::new(one), BatchRowId::new(other))
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
@@ -209,7 +214,7 @@ fn leaf(coordinates: &[f32], rows: usize) -> Tensor<TestBackend, 2> {
 /// Runs the objective on a leaf and returns its gradient, flattened.
 fn leaf_gradient(
     coordinates: &[f32],
-    batch: &Batch<'_>,
+    batch: &Batch,
     options: &ObjectiveOptions,
     deciles: &DegreeDeciles,
     metrics: &mut BudgetBreakdown,
@@ -379,19 +384,19 @@ fn draw_computes_the_estimator_scales() {
 
     let landmarks = [
         SupportAnchor {
-            row: 0,
+            row: NodeRowId::new(0),
             target: Vec2::new(0.0, 0.0),
             radius: 1.0,
             weight: 1.0,
         },
         SupportAnchor {
-            row: 1,
+            row: NodeRowId::new(1),
             target: Vec2::new(1.0, 0.0),
             radius: 1.0,
             weight: 1.0,
         },
         SupportAnchor {
-            row: 2,
+            row: NodeRowId::new(2),
             target: Vec2::new(2.0, 0.0),
             radius: 1.0,
             weight: 1.0,
@@ -500,7 +505,7 @@ fn assemble_reindexes_into_the_local_domain() {
     populations.ordinary = vec![pair(2, 9)];
     populations.ordinary_scale = 1.0;
     populations.landmarks = vec![SupportAnchor {
-        row: 5,
+        row: NodeRowId::new(5),
         target: Vec2::new(0.25, -0.5),
         radius: 1.0,
         weight: 1.0,
@@ -519,9 +524,9 @@ fn assemble_reindexes_into_the_local_domain() {
 
     let rows: Vec<u64> = batch.rows.iter().map(|row| row.get()).collect();
     assert_eq!(rows, [2, 5, 9]);
-    assert_eq!(batch.semantic, [pair(1, 2)]);
-    assert_eq!(batch.ordinary, [pair(0, 2)]);
-    assert_eq!(batch.landmarks[0].row, 1);
+    assert_eq!(batch.semantic, [local(1, 2)]);
+    assert_eq!(batch.ordinary, [local(0, 2)]);
+    assert_eq!(batch.landmarks[0].row.get(), 1);
     let gathered = batch.scales.expect("the table was supplied");
     assert_eq!(gathered.as_slice(), [1.0, 2.5, 4.5]);
 }
@@ -596,11 +601,7 @@ fn relation_fixture() -> (RelationIndexes, LocalScales) {
     (indexes, scales)
 }
 
-fn relation_batch<'index>(
-    indexes: &'index RelationIndexes,
-    scales: &LocalScales,
-    eta: f32,
-) -> Batch<'index> {
+fn relation_batch(indexes: &RelationIndexes, scales: &LocalScales, eta: f32) -> Batch {
     let group = &indexes.attraction.groups()[0];
 
     // Pin the hand-derivation's fixture facts before using them.
@@ -730,7 +731,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 2.0;
     populations.landmarks = vec![SupportAnchor {
-        row: 1,
+        row: NodeRowId::new(1),
         target: Vec2::new(2.0, 0.0),
         radius: 0.5,
         weight: 1.0,

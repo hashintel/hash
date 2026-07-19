@@ -7,8 +7,8 @@
 //! mode; no migration or compatibility machinery exists on purpose until
 //! the format stabilizes.
 //!
-//! One file binds a row domain (nodes or edges) to its source
-//! identifiers, in both directions: `row -> id` is indexing into the id
+//! One file binds a row domain (nodes, edges, or ontology types) to its
+//! source identifiers, in both directions: `row -> id` is indexing into the id
 //! column, and `id -> row` is binary search over the sorted pairs, with
 //! an index prelude in front so a cold lookup faults two pages instead
 //! of `log2(N)` scattered ones. Ids are opaque `K`-byte strings; the

@@ -39,6 +39,7 @@ pub(super) enum Role {
     RowOfPosition,
     NodeIdentities,
     EdgeIdentities,
+    OntologyIdentities,
     EdgeEndpoints,
     Adjacency,
 }
@@ -67,6 +68,7 @@ impl Role {
             Self::RowOfPosition => FileName::pinned("row-of-position.arr"),
             Self::NodeIdentities => FileName::pinned("node-identities.idnt"),
             Self::EdgeIdentities => FileName::pinned("edge-identities.idnt"),
+            Self::OntologyIdentities => FileName::pinned("ontology-identities.idnt"),
             Self::EdgeEndpoints => FileName::pinned("edge-endpoints.arr"),
             Self::Adjacency => FileName::pinned("adjacency.adjc"),
         }
@@ -82,7 +84,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 22] = [
+const _: [FileName; 23] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -103,6 +105,7 @@ const _: [FileName; 22] = [
     Role::RowOfPosition.file_name(),
     Role::NodeIdentities.file_name(),
     Role::EdgeIdentities.file_name(),
+    Role::OntologyIdentities.file_name(),
     Role::EdgeEndpoints.file_name(),
     Role::Adjacency.file_name(),
 ];

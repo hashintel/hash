@@ -76,6 +76,9 @@ pub(crate) struct SaltFiles {
     /// The edge identities: source id per edge row and the sorted
     /// lookup pairs, one identity file.
     pub edge_identities: RepositoryFile,
+    /// The ontology identities: source type id per ontology row and
+    /// the sorted lookup pairs, one identity file.
+    pub ontology_identities: RepositoryFile,
     /// The `u64[E, 2]` endpoint column: each edge row's source and
     /// target node rows; an array file.
     pub edge_endpoints: RepositoryFile,
@@ -90,7 +93,7 @@ impl SaltFiles {
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
     #[must_use]
-    pub(crate) const fn files(&self) -> [&RepositoryFile; 22] {
+    pub(crate) const fn files(&self) -> [&RepositoryFile; 23] {
         let Self {
             representations,
             card_embeddings,
@@ -112,6 +115,7 @@ impl SaltFiles {
             row_of_position,
             node_identities,
             edge_identities,
+            ontology_identities,
             edge_endpoints,
             adjacency,
         } = self;
@@ -137,6 +141,7 @@ impl SaltFiles {
             row_of_position,
             node_identities,
             edge_identities,
+            ontology_identities,
             edge_endpoints,
             adjacency,
         ]

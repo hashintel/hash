@@ -9,6 +9,7 @@
 pub(crate) use self::{
     embedding::{CardEmbeddingStats, EmbedderFingerprint},
     fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
+    importance::RankingConfig,
     knn::recall::RecallSpotCheck,
     lod::{quad::QuadEvidence, stage::LodEvidence},
     relation::BuildEvidence,
@@ -27,6 +28,7 @@ mod adjacency;
 mod embedding;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod fit;
+mod importance;
 mod knn;
 mod ladder;
 mod landmark;

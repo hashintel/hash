@@ -249,10 +249,6 @@ fn resolution_feeds_the_certified_policy_table() {
     let policies =
         resolve(&classifications, &[], CoincidentAdmission::default()).expect("the table resolves");
 
-    assert!(
-        policies
-            .windows(2)
-            .all(|window| window[0].relation.get() < window[1].relation.get())
-    );
-    assert!(Policies::new(&policies).is_ok());
+    assert!(policies.is_sorted_by(|previous, next| previous.relation.get() < next.relation.get()));
+    Policies::new(&policies).expect("the resolved table passes certification");
 }

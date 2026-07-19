@@ -909,6 +909,10 @@ fn a_published_attraction_index_reopens_mapped() {
     miri,
     ignore = "whole-file mappings go through FFI Miri cannot execute"
 )]
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "the corrupted fields are pinned to the format's canonical little-endian bytes"
+)]
 fn a_corrupted_attraction_file_names_its_broken_invariant() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-attraction-corrupt-{}",
@@ -941,7 +945,7 @@ fn a_corrupted_attraction_file_names_its_broken_invariant() {
     };
 
     // The pristine bytes validate.
-    assert!(open("pristine.atrc", &bytes).is_ok());
+    open("pristine.atrc", &bytes).expect("the pristine bytes validate");
 
     // Group records start at 4096, 32 bytes each, relation first;
     // lowering the second group's relation below the first breaks the

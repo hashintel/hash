@@ -60,33 +60,38 @@ fn config() -> FitConfig {
     }
 }
 
+fn files() -> SaltFiles {
+    SaltFiles {
+        representations: file("representations.arr"),
+        card_embeddings: file("card-embeddings.arr"),
+        card_hashes: file("card-hashes.arr"),
+        knn: file("knn.sprs"),
+        semantic: file("semantic.sprs"),
+        landmarks: file("landmarks.lndm"),
+        classifier: file("classifier.clsf"),
+        policy: file("policy.plcy"),
+        attraction: file("attraction.atrc"),
+        protection: file("protection.sprs"),
+        coordinates: file("coordinates.arr"),
+        morton: file("morton.mrtn"),
+        quad: file("quadtree.quad"),
+        wire_coordinates: file("wire-coordinates.arr"),
+        rank_of_position: file("rank-of-position.arr"),
+        position_of_rank: file("position-of-rank.arr"),
+        position_of_row: file("position-of-row.arr"),
+        row_of_position: file("row-of-position.arr"),
+        node_identities: file("node-identities.idnt"),
+        edge_identities: file("edge-identities.idnt"),
+        ontology_identities: file("ontology-identities.idnt"),
+        edge_endpoints: file("edge-endpoints.arr"),
+        adjacency: file("adjacency.adjc"),
+    }
+}
+
 fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V0,
-        files: SaltFiles {
-            representations: file("representations.arr"),
-            card_embeddings: file("card-embeddings.arr"),
-            card_hashes: file("card-hashes.arr"),
-            knn: file("knn.sprs"),
-            semantic: file("semantic.sprs"),
-            landmarks: file("landmarks.lndm"),
-            classifier: file("classifier.clsf"),
-            policy: file("policy.plcy"),
-            attraction: file("attraction.atrc"),
-            protection: file("protection.sprs"),
-            coordinates: file("coordinates.arr"),
-            morton: file("morton.mrtn"),
-            quad: file("quadtree.quad"),
-            wire_coordinates: file("wire-coordinates.arr"),
-            rank_of_position: file("rank-of-position.arr"),
-            position_of_rank: file("position-of-rank.arr"),
-            position_of_row: file("position-of-row.arr"),
-            row_of_position: file("row-of-position.arr"),
-            node_identities: file("node-identities.idnt"),
-            edge_identities: file("edge-identities.idnt"),
-            edge_endpoints: file("edge-endpoints.arr"),
-            adjacency: file("adjacency.adjc"),
-        },
+        files: files(),
         metadata: SaltMetadata {
             snapshot: Snapshot {
                 axes: Some(TemporalAxes {
@@ -107,7 +112,7 @@ fn repository() -> SaltRepository {
                 prior: None,
             },
             placement: Placement::LandmarkBaseline,
-            ranking: RankingOrigin::ConstantColumns,
+            ranking: RankingOrigin::IncidentDegree,
             evidence: Evidence {
                 cards: CardEmbeddingStats {
                     reused: 30,
@@ -160,9 +165,9 @@ fn repository() -> SaltRepository {
                 },
                 quad: QuadEvidence {
                     nodes: 21_845,
-                    leaves: 16_384,
+                    leaves: 16_000,
                     depth: Depth::new(7).expect("the fixture depth is within the key width"),
-                    type_entries: 65_536,
+                    type_entries: 65_000,
                 },
             },
         },

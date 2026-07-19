@@ -484,6 +484,10 @@ fn instance_records_round_trip_their_option_confidences() {
 }
 
 #[test]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "the scratch directory must outlive the spool mapped from it"
+)]
 fn the_spool_round_trips_through_its_scratch_file() {
     let root = GenerationRoot::new(spool_root("round-trip")).expect("the root should open");
     let scratch = root.scratch().expect("the scratch directory should create");
@@ -529,6 +533,10 @@ fn the_spool_round_trips_through_its_scratch_file() {
 }
 
 #[test]
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "the scratch directory must outlive the spool mapped from it"
+)]
 fn an_empty_spool_maps_to_zero_readings() {
     let root = GenerationRoot::new(spool_root("empty")).expect("the root should open");
     let scratch = root.scratch().expect("the scratch directory should create");

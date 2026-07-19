@@ -4,8 +4,10 @@
 //! exists, so the drain spools every `(edge, relation)` reading into a
 //! scratch file and the relation stage maps it back once the policies
 //! are resolved. The spool is transient by design: it lives in the
+//! The spool is transient by design: it lives in the
 //! run's [`ScratchDirectory`], is consumed by the run that wrote it,
 //! and never publishes.
+#![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use std::{
     fs::File,

@@ -34,6 +34,7 @@ use super::{EdgeWidth, FileHeader};
 )]
 #[expect(
     clippy::integer_division,
+    clippy::integer_division_remainder_used,
     reason = "the counts divide exactly under the asserted parities: 2N + 1 posts, 2E slots"
 )]
 pub(crate) fn write_lists(

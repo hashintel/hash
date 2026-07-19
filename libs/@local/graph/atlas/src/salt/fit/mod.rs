@@ -58,6 +58,7 @@ use crate::{
     math::AffinityCurve,
     salt::{
         embedding::CardEmbedder,
+        importance::RankingConfig,
         knn::{self, hannoy::HannoyIndexOptions, recall},
         landmark::{layout::LayoutOptions, quotient::QuotientOptions, select::SelectionOptions},
         lod::stage::LodConfig,
@@ -132,6 +133,8 @@ pub(crate) struct FitConfig {
     pub policy: PolicyOptions = PolicyOptions::default(),
     /// Shared attraction weighting and force pruning.
     pub attraction: AttractionOptions = AttractionOptions::default(),
+    /// The importance signal behind the delivery ranking.
+    pub ranking: RankingConfig = RankingConfig::default(),
     /// The level-of-detail schedule.
     pub lod: LodConfig = LodConfig::default(),
 }

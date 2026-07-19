@@ -111,9 +111,9 @@ impl EdgeValues<'_> {
     /// slice.
     #[inline]
     #[must_use]
-    pub(crate) fn get(&self, index: usize) -> u64 {
+    pub(crate) const fn get(&self, index: usize) -> u64 {
         match self {
-            Self::U32(values) => u64::from(values[index]),
+            Self::U32(values) => values[index] as u64,
             Self::U64(values) => values[index],
         }
     }
@@ -125,7 +125,7 @@ impl EdgeValues<'_> {
     /// Panics when `range` escapes [`len`](Self::len), like a slice.
     #[inline]
     #[must_use]
-    pub(crate) fn slice(&self, range: Range<usize>) -> Self {
+    pub(crate) const fn slice(&self, range: Range<usize>) -> Self {
         match self {
             Self::U32(values) => Self::U32(&values[range]),
             Self::U64(values) => Self::U64(&values[range]),

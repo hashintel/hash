@@ -32,10 +32,14 @@ use crate::{
         policy::ClassProbabilities,
         projector::{
             budget::BudgetOptions,
-            loss::{AffinityEnergy, CoincidentEnergy, SupportAnchor, SupportOptions},
+            loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
             miner::MinerOptions,
             model::{Architecture, NodeRole, Projector},
-            train::{BatchPlan, Coefficients, batch::NodeColumns, refresh},
+            train::{
+                BatchPlan, Coefficients,
+                batch::{NodeColumns, SupportAnchor},
+                refresh,
+            },
             verdict::{PlacementClass, ResolvedVerdict},
         },
         relation::{
@@ -153,13 +157,13 @@ fn corpus_with(
         roles: vec![NodeRole::KnowledgeEntity; ROWS],
         landmarks: vec![
             SupportAnchor {
-                row: 0,
+                row: NodeRowId::new(0),
                 target: Vec2::new(-1.0, 0.0),
                 radius: 1.0,
                 weight: 1.0,
             },
             SupportAnchor {
-                row: HALF,
+                row: NodeRowId::new(HALF as u64),
                 target: Vec2::new(1.0, 0.0),
                 radius: 1.0,
                 weight: 1.0,
@@ -389,11 +393,11 @@ fn landmark_support_keeps_the_frame() {
 
     let layout = project(&fitted.model, &corpus, 0.0);
     for anchor in &corpus.landmarks {
-        let distance = layout[anchor.row].distance(anchor.target);
+        let distance = layout[anchor.row.usize()].distance(anchor.target);
         assert!(
             distance < anchor.radius,
             "row {} should hold near its landmark: distance {distance}",
-            anchor.row
+            anchor.row.get()
         );
     }
 }

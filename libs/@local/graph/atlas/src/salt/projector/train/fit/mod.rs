@@ -40,7 +40,7 @@ use rand::Rng;
 
 use super::{
     BatchPlan, Coefficients, ObjectiveOptions, RUNGS, StepError,
-    batch::{Batch, BatchSampler, NodeColumns},
+    batch::{Batch, BatchSampler, NodeColumns, SupportAnchor},
     metrics::{BudgetBreakdown, DegreeDeciles, DisplacementSummary, TypeParticipants},
     refresh::{self, Refresh, RefreshError},
     step::{Evaluation, LossBreakdown},
@@ -49,10 +49,7 @@ use crate::salt::{
     knn::table::KnnView,
     projector::{
         budget::BudgetOptions,
-        loss::{
-            AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportAnchor,
-            SupportOptions,
-        },
+        loss::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportOptions},
         miner::{HardNegativeMiner, MinedFrame, MinerOptions},
         model::Projector,
         scale::LocalScales,
@@ -496,14 +493,14 @@ const fn rung(step_index: usize, boundary: usize) -> usize {
 ///
 /// Panics when relation edges are drawn before a scale-bearing tick;
 /// the boundary always runs one, so a miss is a wiring defect.
-fn draw_batch<'index, R: Rng + ?Sized>(
-    sampler: &BatchSampler<'index>,
+fn draw_batch<R: Rng + ?Sized>(
+    sampler: &BatchSampler<'_>,
     rung_index: usize,
     mined: Option<&MinedFrame>,
     scales: Option<&[LocalScales; RUNGS.len()]>,
     inputs: &TrainerInputs<'_>,
     rng: &mut R,
-) -> Batch<'index> {
+) -> Batch {
     let populations = sampler.draw(
         RUNGS[rung_index],
         mined,
@@ -547,7 +544,7 @@ fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, Tra
 
     for anchor in inputs.landmarks.iter().chain(inputs.anchors) {
         assert!(
-            anchor.row < rows,
+            anchor.row.usize() < rows,
             "support anchors should reference corpus rows"
         );
     }

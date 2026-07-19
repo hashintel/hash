@@ -113,6 +113,7 @@ impl Adjacency {
     /// Returns an error when the underlying writer fails.
     #[expect(
         clippy::integer_division,
+        clippy::integer_division_remainder_used,
         reason = "the value array holds exactly two slots per edge by construction"
     )]
     pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
@@ -171,7 +172,7 @@ impl core::fmt::Display for InvalidAdjacencyFile {
                 "slot {slot} names an edge row at or beyond the edge count",
             ),
             Self::Duplicate { edge } => {
-                write!(fmt, "edge row {edge} occupies two slots of one direction",)
+                write!(fmt, "edge row {edge} occupies two slots of one direction")
             }
         }
     }
@@ -311,6 +312,18 @@ impl MappedAdjacency {
         let posts = self.posts(node)?;
         Some(self.run(posts, posts + 2))
     }
+
+    /// Returns the number of edge slots touching `node` - the incident
+    /// run's length, a self-loop counting twice - when the node row is
+    /// in domain.
+    #[must_use]
+    pub(crate) fn degree(&self, node: NodeRowId) -> Option<usize> {
+        let posts = self.posts(node)?;
+        let fenceposts = self.file.fenceposts();
+        let length = fenceposts[posts + 2] - fenceposts[posts];
+
+        Some(usize::try_from(length).expect("slots fit the address space"))
+    }
 }
 
 /// One node's edge rows, borrowed from the mapped value array.
@@ -342,7 +355,7 @@ impl EdgeList<'_> {
     /// slice.
     #[inline]
     #[must_use]
-    pub(crate) fn get(&self, index: usize) -> EdgeRowId {
+    pub(crate) const fn get(&self, index: usize) -> EdgeRowId {
         EdgeRowId::new(self.values.get(index))
     }
 

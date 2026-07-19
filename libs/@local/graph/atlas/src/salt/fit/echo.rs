@@ -25,6 +25,7 @@ use super::{FitConfig, PolicyOptions, prepare::norm};
 use crate::{
     math::{AffinityCurve, UnitFraction},
     salt::{
+        importance::RankingConfig,
         knn::{hannoy::HannoyIndexOptions, recall},
         landmark::{
             layout::{LayoutOptions, LearningRate, RepulsionStrength},
@@ -321,6 +322,15 @@ struct LodConfigDef {
     max_tile_depth: u8,
 }
 
+/// serde shadow of [`RankingConfig`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "RankingConfig")]
+#[serde(rename_all = "kebab-case")]
+enum RankingConfigDef {
+    ConstantColumns,
+    IncidentDegree,
+}
+
 /// serde shadow of [`CoincidentAdmission`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "CoincidentAdmission")]
@@ -369,6 +379,8 @@ pub(crate) struct FitConfigDef {
     policy: PolicyOptions,
     #[serde(with = "attraction_options")]
     attraction: AttractionOptions,
+    #[serde(with = "RankingConfigDef")]
+    ranking: RankingConfig,
     #[serde(with = "LodConfigDef")]
     lod: LodConfig,
 }

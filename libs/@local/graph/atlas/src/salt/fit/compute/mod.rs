@@ -240,6 +240,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             row_of_position: computed.lod.row_of_position,
             node_identities: ingested.node_identities,
             edge_identities: ingested.edge_identities,
+            ontology_identities: ingested.cards.identities,
             edge_endpoints: ingested.edge_endpoints,
             adjacency: computed.adjacency,
         },
@@ -256,10 +257,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 prior: inputs.prior.as_ref().map(Generation::id),
             },
             placement: Placement::LandmarkBaseline,
-            // TODO: importance and priority columns have no source yet;
-            //       the origin marker records the constant-column
-            //       stopgap until one lands.
-            ranking: RankingOrigin::ConstantColumns,
+            ranking: RankingOrigin::from(inputs.config.ranking),
             evidence: Evidence {
                 cards: ingested.cards.stats,
                 norm: ingested.norm,

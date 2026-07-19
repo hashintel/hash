@@ -4,10 +4,16 @@
  * `libs/@local/graph/atlas/SPEC-ADDENDUM-WIRE.md`; agreement with the
  * Rust encoder is proven by shared fixture bytes, never asserted.
  *
- * A response is a 16-byte prefix followed by self-delimiting sections.
- * Every section header and payload starts 8-byte aligned, so column
- * payloads are viewed as typed arrays in place - the decoder never
- * copies point data.
+ * A response is a 16-byte prefix, a fixed offset directory of
+ * `slotCount` (start, end) pairs, payloads sequential in slot order,
+ * and an optional self-delimiting CBOR trailer tail after the last
+ * payload. The directory gives random access to any payload with zero
+ * parsing; every payload starts 8-byte aligned, so columns are viewed
+ * as typed arrays in place - the decoder never copies point data.
+ *
+ * Slot meanings are frozen per (kind, wireVersion) and evolution
+ * appends: a decoder reads the slots it supports and ignores the rest,
+ * so a populated slot it does not consume costs nothing.
  */
 
 /** Response kind, discriminated by the magic's eighth byte. */
@@ -26,33 +32,39 @@ const kindBytes: Readonly<Record<SaltileKind, number>> = {
 export const SALTILE_MEDIA_TYPE = "application/vnd.hash.saltile-v1";
 export const SALTILE_WIRE_VERSION = 1;
 
-/** Byte length of the response prefix (magic u64, version u16, flags u16, reserved u32). */
+/** Byte length of the prefix (magic u64, version u16, flags u16, slotCount u16, reserved u16). */
 export const PREFIX_BYTES = 16;
-/** Byte length of a section header (id u16, flags u16, byteLen u32). */
-export const SECTION_HEADER_BYTES = 8;
-/** Alignment of every section header and payload start. */
-export const SECTION_ALIGNMENT = 8;
+/** Byte length of one directory entry (start u32, end u32). */
+export const DIRECTORY_ENTRY_BYTES = 8;
+/** Alignment of every payload start. */
+export const PAYLOAD_ALIGNMENT = 8;
 
-/** Section ids of the v1 registry. */
-export const SectionId = {
-  Head: 0x0001,
-  Positions: 0x0010,
-  RowIds: 0x0011,
-  ColorIndex: 0x0012,
-  /** Reserved for the enshrined mass channel; ships nothing in v1. */
-  Mass: 0x0013,
-  EdgeSources: 0x0020,
-  EdgeTargets: 0x0021,
-  EdgeRowIds: 0x0022,
-  Trailer: 0x00ff,
+/** Tile slot table (v1). */
+export const TileSlot = {
+  Head: 0,
+  Positions: 1,
+  RowIds: 2,
+  TypeMask: 3,
+  /** Reserved for the enshrined mass channel; (0, 0) in v1. */
+  Mass: 4,
 } as const;
 
-export type SectionId = (typeof SectionId)[keyof typeof SectionId];
+/** Edges slot table (v1). */
+export const EdgesSlot = {
+  Head: 0,
+  Sources: 1,
+  Targets: 2,
+  RowIds: 3,
+} as const;
 
-/** Section-header flag marking a section a decoder may skip unrecognized. */
-export const SECTION_FLAG_OPTIONAL = 0x0001;
+/** Minimum slotCount per kind: the v1 table sizes. */
+const minimumSlots: Readonly<Record<SaltileKind, number>> = {
+  tile: 5,
+  edges: 4,
+  locate: 1,
+};
 
-/** Tile delivery mode carried by HEAD key 3. */
+/** Tile delivery mode carried by the HEAD. */
 export const SaltileMode = {
   Delta: 0,
   Total: 1,
@@ -60,21 +72,20 @@ export const SaltileMode = {
 
 export type SaltileMode = (typeof SaltileMode)[keyof typeof SaltileMode];
 
-/** One decoded section boundary: payload located, nothing interpreted. */
-export interface SaltileSection {
-  readonly id: number;
-  readonly flags: number;
-  /** Absolute byte offset of the payload within the response buffer. */
-  readonly payloadOffset: number;
-  /** Unpadded payload byte length. */
-  readonly byteLength: number;
+/** One present payload extent; `end` is exclusive and unpadded. */
+export interface SaltileSlot {
+  readonly start: number;
+  readonly end: number;
 }
 
-/** Envelope structure of one response: kind, version, section table. */
+/** Envelope structure of one response. */
 export interface SaltileEnvelope {
   readonly kind: SaltileKind;
   readonly wireVersion: number;
-  readonly sections: readonly SaltileSection[];
+  /** Directory in slot order; null marks an absent (0, 0) slot. */
+  readonly slots: readonly (SaltileSlot | null)[];
+  /** 8-aligned offset after the last present payload, where a trailer tail may begin. */
+  readonly tailOffset: number;
 }
 
 /** A response body violated the SALTILE envelope contract. */
@@ -102,14 +113,18 @@ const kindOfByte = (byte: number): SaltileKind | undefined =>
         ? "locate"
         : undefined;
 
+const align8 = (offset: number): number =>
+  Math.ceil(offset / PAYLOAD_ALIGNMENT) * PAYLOAD_ALIGNMENT;
+
 /**
- * Locates every section of a SALTILE response and validates the envelope
- * grammar: magic and kind, wire version, zero reserved bits, section
- * ordering (HEAD first, columns ascending, TRAILER last), single
- * occurrence per id, zero padding bytes, and exact buffer coverage.
+ * Validates the prefix and offset directory of a SALTILE response:
+ * magic and kind, wire version, zero reserved bits, slot count at
+ * least the kind's table size, HEAD present, present slots strictly
+ * sequential and 8-aligned with zero padding bytes between payloads.
  *
- * Section payloads are located, not interpreted; schema validation
- * belongs to the per-kind decoders layered above.
+ * Payloads are located, not interpreted; slot meaning, presence
+ * requirements, and the trailer tail belong to the per-kind decoders
+ * layered above.
  *
  * @throws {@link SaltileWireError} on the first violated check.
  */
@@ -153,79 +168,62 @@ export const readEnvelope = (
   if (view.getUint16(10, true) !== 0) {
     return fail("prefix flags must be zero", 10);
   }
-  if (view.getUint32(12, true) !== 0) {
-    return fail("prefix reserved bytes must be zero", 12);
+  const slotCount = view.getUint16(12, true);
+  if (view.getUint16(14, true) !== 0) {
+    return fail("prefix reserved bytes must be zero", 14);
   }
-
-  const sections: SaltileSection[] = [];
-  const seen = new Set<number>();
-  let cursor = PREFIX_BYTES;
-
-  while (cursor < buffer.byteLength) {
-    if (cursor + SECTION_HEADER_BYTES > buffer.byteLength) {
-      return fail("response ends inside a section header", cursor);
-    }
-    const id = view.getUint16(cursor, true);
-    const flags = view.getUint16(cursor + 2, true);
-    const byteLength = view.getUint32(cursor + 4, true);
-    if (flags !== 0 && flags !== SECTION_FLAG_OPTIONAL) {
-      return fail(
-        `section 0x${id.toString(16)} carries reserved flag bits`,
-        cursor + 2,
-      );
-    }
-    if (seen.has(id)) {
-      return fail(`section 0x${id.toString(16)} occurs twice`, cursor);
-    }
-    seen.add(id);
-
-    if (sections.length === 0 && id !== SectionId.Head) {
-      return fail("the first section must be HEAD", cursor);
-    }
-    const previous = sections.at(-1);
-    if (previous !== undefined && previous.id === SectionId.Trailer) {
-      return fail("TRAILER must be the last section", cursor);
-    }
-    if (
-      previous !== undefined &&
-      previous.id !== SectionId.Head &&
-      id !== SectionId.Trailer &&
-      id <= previous.id
-    ) {
-      return fail(
-        `section 0x${id.toString(16)} breaks ascending column order`,
-        cursor,
-      );
-    }
-
-    const payloadOffset = cursor + SECTION_HEADER_BYTES;
-    if (payloadOffset + byteLength > buffer.byteLength) {
-      return fail("response ends inside a section payload", payloadOffset);
-    }
-    const padded =
-      Math.ceil(byteLength / SECTION_ALIGNMENT) * SECTION_ALIGNMENT;
-    if (payloadOffset + padded > buffer.byteLength) {
-      return fail(
-        "response ends inside section padding",
-        payloadOffset + byteLength,
-      );
-    }
-    for (let index = byteLength; index < padded; index += 1) {
-      if (bytes[payloadOffset + index] !== 0) {
-        return fail("padding bytes must be zero", payloadOffset + index);
-      }
-    }
-
-    sections.push({ id, flags, payloadOffset, byteLength });
-    cursor = payloadOffset + padded;
-  }
-
-  if (sections.length === 0) {
+  if (slotCount < minimumSlots[kind]) {
     return fail(
-      "response carries no sections; HEAD is mandatory",
-      PREFIX_BYTES,
+      `slot count ${slotCount} is below the ${kind} table size ${minimumSlots[kind]}`,
+      12,
     );
   }
 
-  return { kind, wireVersion, sections };
+  const payloadBase = PREFIX_BYTES + slotCount * DIRECTORY_ENTRY_BYTES;
+  if (buffer.byteLength < payloadBase) {
+    return fail("response ends inside the directory", buffer.byteLength);
+  }
+
+  const slots: (SaltileSlot | null)[] = [];
+  let expectedStart = payloadBase;
+
+  for (let slot = 0; slot < slotCount; slot += 1) {
+    const entryOffset = PREFIX_BYTES + slot * DIRECTORY_ENTRY_BYTES;
+    const start = view.getUint32(entryOffset, true);
+    const end = view.getUint32(entryOffset + 4, true);
+
+    if (start === 0 && end === 0) {
+      slots.push(null);
+      continue;
+    }
+    if (end < start) {
+      return fail(`slot ${slot} ends before it starts`, entryOffset);
+    }
+    if (start !== expectedStart) {
+      return fail(
+        `slot ${slot} starts at ${start}; the sequential layout requires ${expectedStart}`,
+        entryOffset,
+      );
+    }
+    if (end > buffer.byteLength) {
+      return fail(`slot ${slot} extends beyond the response`, entryOffset);
+    }
+    for (let cursor = end; cursor < align8(end); cursor += 1) {
+      if (cursor >= buffer.byteLength) {
+        return fail("response ends inside payload padding", cursor);
+      }
+      if (bytes[cursor] !== 0) {
+        return fail("padding bytes must be zero", cursor);
+      }
+    }
+
+    slots.push({ start, end });
+    expectedStart = align8(end);
+  }
+
+  if (slots[0] === null) {
+    return fail("slot 0 (HEAD) must be present", PREFIX_BYTES);
+  }
+
+  return { kind, wireVersion, slots, tailOffset: expectedStart };
 };

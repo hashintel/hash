@@ -4,7 +4,7 @@ use camino::Utf8PathBuf;
 
 use super::{Adjacency, InvalidAdjacencyFile, MappedAdjacency};
 use crate::{
-    dataset::NodeRowId,
+    dataset::{EdgeRowId, NodeRowId},
     file::adjacency::{EdgeWidth, read::AdjacencyFile, write::write_lists},
 };
 
@@ -44,7 +44,7 @@ fn list(edges: Option<super::EdgeList<'_>>) -> Vec<u64> {
     edges
         .expect("the queried node row is in domain")
         .iter()
-        .map(|edge| edge.get())
+        .map(EdgeRowId::get)
         .collect()
 }
 
@@ -132,36 +132,42 @@ fn violated_list_invariants_are_rejected() {
     let dir = scratch("invariants");
 
     // One node, one self-loop edge: the minimal valid shape.
-    assert!(open_raw(&dir, "valid.adjc", &[0, 1, 2], &[0, 0]).is_ok());
+    let _valid = open_raw(&dir, "valid.adjc", &[0, 1, 2], &[0, 0])
+        .expect("the minimal valid shape validates");
 
     // The first fencepost must open the value array.
     assert_eq!(
-        open_raw(&dir, "start.adjc", &[1, 1, 2], &[0, 0]).unwrap_err(),
+        open_raw(&dir, "start.adjc", &[1, 1, 2], &[0, 0])
+            .expect_err("a nonzero opening fencepost is invalid"),
         InvalidAdjacencyFile::Start,
     );
 
     // Fenceposts must not step backwards.
     assert_eq!(
-        open_raw(&dir, "unordered.adjc", &[0, 2, 1, 1, 2], &[0, 0]).unwrap_err(),
+        open_raw(&dir, "unordered.adjc", &[0, 2, 1, 1, 2], &[0, 0])
+            .expect_err("a backwards fencepost is invalid"),
         InvalidAdjacencyFile::Unordered { position: 2 },
     );
 
     // A value must stay below the edge count.
     assert_eq!(
-        open_raw(&dir, "domain.adjc", &[0, 1, 2], &[0, 1]).unwrap_err(),
+        open_raw(&dir, "domain.adjc", &[0, 1, 2], &[0, 1])
+            .expect_err("an out-of-domain edge row is invalid"),
         InvalidAdjacencyFile::Domain { slot: 1 },
     );
 
     // Runs must ascend strictly.
     assert_eq!(
-        open_raw(&dir, "run-order.adjc", &[0, 2, 4], &[1, 0, 0, 1]).unwrap_err(),
+        open_raw(&dir, "run-order.adjc", &[0, 2, 4], &[1, 0, 0, 1])
+            .expect_err("an unsorted run is invalid"),
         InvalidAdjacencyFile::RunOrder { run: 0 },
     );
 
     // An edge must not occupy two slots of one direction, even across
     // different nodes' runs.
     assert_eq!(
-        open_raw(&dir, "duplicate.adjc", &[0, 1, 1, 2, 2], &[0, 0]).unwrap_err(),
+        open_raw(&dir, "duplicate.adjc", &[0, 1, 1, 2, 2], &[0, 0])
+            .expect_err("a doubled outgoing slot is invalid"),
         InvalidAdjacencyFile::Duplicate { edge: 0 },
     );
 }

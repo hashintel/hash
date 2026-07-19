@@ -48,7 +48,7 @@ use core::{error::Error, fmt, num::NonZero};
     reason = "the trainer's surface awaits its consumer: the fit pipeline's projector stage"
 )]
 pub(crate) use self::{
-    batch::NodeColumns,
+    batch::{NodeColumns, SupportAnchor},
     fit::{
         BoundaryEvidence, Fitted, FrozenRadius, RelationLens, TickTelemetry, TrainError,
         TrainOptions, TrainerInputs, TrainingEvidence, TrainingSchedule, fit,

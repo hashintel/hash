@@ -292,9 +292,9 @@ fn negatives_pass_every_veto() {
     // pool-limited and exhaustive, so the admissible set is asserted
     // exactly - no self pairs, no semantic edge (0, 1), no protected
     // pair (2, 3).
-    let mut sampled = keys(&sampler.sample(16, rng(23)));
-    sampled.sort_unstable();
-    assert_eq!(sampled, [(0, 2), (0, 3), (1, 2), (1, 3)]);
+    let mut draws = keys(&sampler.sample(16, rng(23)));
+    draws.sort_unstable();
+    assert_eq!(draws, [(0, 2), (0, 3), (1, 2), (1, 3)]);
 }
 
 #[test]
@@ -304,10 +304,10 @@ fn disabling_ordinary_protection_admits_linked_pairs() {
         .expect("the fixture channels are ordered");
     let sampler = OrdinaryNegativeSampler::new(graph.view(), indexes.protection.view(), config);
 
-    let mut sampled = keys(&sampler.sample(16, rng(23)));
-    sampled.sort_unstable();
+    let mut draws = keys(&sampler.sample(16, rng(23)));
+    draws.sort_unstable();
     assert_eq!(
-        sampled,
+        draws,
         [(0, 2), (0, 3), (1, 2), (1, 3), (2, 3)],
         "the linked pair joins the pool once its channel is off"
     );

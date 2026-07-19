@@ -33,8 +33,11 @@ fn wire_bytes_admit_only_declared_discriminants() {
         assert_eq!(parsed, class);
     }
 
-    assert!(GeometryClass::try_read_from_bytes(&[GeometryClass::COUNT as u8]).is_err());
-    assert!(GeometryClass::try_read_from_bytes(&[u8::MAX]).is_err());
+    let overflow = u8::try_from(GeometryClass::COUNT).expect("the class count fits in a byte");
+    GeometryClass::try_read_from_bytes(&[overflow])
+        .expect_err("one past the last declared discriminant must not parse");
+    GeometryClass::try_read_from_bytes(&[u8::MAX])
+        .expect_err("an undeclared discriminant must not parse");
 }
 
 #[test]

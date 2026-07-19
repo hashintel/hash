@@ -17,6 +17,7 @@ use super::prepare::{
 };
 use crate::{
     file::{
+        adjacency::read::OpenAdjacencyError,
         array::OpenArrayError,
         generation::SealError,
         identity::read::OpenIdentityError,
@@ -25,6 +26,7 @@ use crate::{
         sprs::{read::OpenSprsError, write::WriteSprsError},
     },
     salt::{
+        adjacency::InvalidAdjacencyFile,
         embedding::CardEmbeddingError,
         knn::{artifact::InvalidKnnFile, error::KnnError, hannoy::HannoyIndexError, recall},
         landmark::{
@@ -143,6 +145,10 @@ pub(crate) enum StageError {
     WriteProtection(WriteSprsError),
     /// The staged endpoint column failed to map back.
     MapEndpoints(OpenArrayError),
+    /// The staged adjacency file failed to map back.
+    MapAdjacency(OpenAdjacencyError),
+    /// The staged adjacency file does not hold valid lists.
+    InvalidAdjacency(InvalidAdjacencyFile),
     /// The staged card-embedding matrix failed to map back.
     MapCards(OpenArrayError),
     /// The staged coordinate column failed to map back.
@@ -247,6 +253,18 @@ impl From<QuadError> for StageError {
     }
 }
 
+impl From<OpenAdjacencyError> for StageError {
+    fn from(error: OpenAdjacencyError) -> Self {
+        Self::MapAdjacency(error)
+    }
+}
+
+impl From<InvalidAdjacencyFile> for StageError {
+    fn from(error: InvalidAdjacencyFile) -> Self {
+        Self::InvalidAdjacency(error)
+    }
+}
+
 impl From<LodError> for StageError {
     fn from(error: LodError) -> Self {
         Self::Lod(error)
@@ -335,9 +353,7 @@ impl fmt::Display for StageError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(fmt, "a staged write failed: {error}"),
-            Self::NormCheck(error) => {
-                write!(fmt, "the norm spot check could not run: {error}")
-            }
+            Self::NormCheck(error) => write!(fmt, "the norm spot check could not run: {error}"),
             Self::RepresentationDefects(check) => write!(
                 fmt,
                 "{} of {} sampled representation rows violate the source contract",
@@ -355,9 +371,7 @@ impl fmt::Display for StageError {
                 check.minimum_recall,
             ),
             Self::Knn(error) => write!(fmt, "the k-NN table failed to assemble: {error}"),
-            Self::Classify(error) => {
-                write!(fmt, "a relation card failed to classify: {error}")
-            }
+            Self::Classify(error) => write!(fmt, "a relation card failed to classify: {error}"),
             Self::Policy(error) => write!(fmt, "the policy resolution failed: {error}"),
             Self::MapPolicies(error) => {
                 write!(fmt, "the staged policy file failed to map back: {error}")
@@ -365,9 +379,7 @@ impl fmt::Display for StageError {
             Self::InvalidPolicies(error) => {
                 write!(fmt, "the staged policy file is not a valid table: {error}")
             }
-            Self::Relation(error) => {
-                write!(fmt, "the relation index build failed: {error}")
-            }
+            Self::Relation(error) => write!(fmt, "the relation index build failed: {error}"),
             Self::WriteProtection(error) => {
                 write!(fmt, "the protection index failed to write: {error}")
             }
@@ -375,6 +387,12 @@ impl fmt::Display for StageError {
                 fmt,
                 "the staged endpoint column failed to map back: {error}"
             ),
+            Self::MapAdjacency(error) => {
+                write!(fmt, "the staged adjacency failed to map back: {error}")
+            }
+            Self::InvalidAdjacency(error) => {
+                write!(fmt, "the staged adjacency holds invalid lists: {error}")
+            }
             Self::MapCards(error) => write!(
                 fmt,
                 "the staged card-embedding matrix failed to map back: {error}"
@@ -387,9 +405,7 @@ impl fmt::Display for StageError {
                 fmt,
                 "the corpus holds {rows} rows, beyond the u32 wire position encoding"
             ),
-            Self::Lod(error) => {
-                write!(fmt, "the level-of-detail derivation failed: {error}")
-            }
+            Self::Lod(error) => write!(fmt, "the level-of-detail derivation failed: {error}"),
             Self::Quad(error) => write!(fmt, "the quadtree build failed: {error}"),
             Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
             Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
@@ -428,13 +444,12 @@ impl fmt::Display for StageError {
                 write!(fmt, "the prior generation could not serve reuse: {error}")
             }
             Self::Seal(error) => write!(fmt, "the generation failed to publish: {error}"),
-            Self::Panicked {
-                message: Some(message),
-            } => {
-                write!(fmt, "a stage panicked on the compute pool: {message}")
-            }
-            Self::Panicked { message: None } => {
-                fmt.write_str("a stage panicked on the compute pool")
+            Self::Panicked { message } => {
+                fmt.write_str("a stage panicked on the compute pool")?;
+                if let Some(message) = message {
+                    write!(fmt, ": {message}")?;
+                }
+                Ok(())
             }
         }
     }
@@ -453,6 +468,8 @@ impl Error for StageError {
             Self::InvalidPolicies(error) => Some(error),
             Self::Relation(error) => Some(error),
             Self::WriteProtection(error) => Some(error),
+            Self::MapAdjacency(error) => Some(error),
+            Self::InvalidAdjacency(error) => Some(error),
             Self::Selection(error) => Some(error),
             Self::Assignment(error) => Some(error),
             Self::Quotient(error) => Some(error),

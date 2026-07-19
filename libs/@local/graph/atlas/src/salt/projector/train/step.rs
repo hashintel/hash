@@ -120,7 +120,7 @@ impl Evaluation<'_> {
     pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>>(
         &self,
         model: &Projector<B>,
-        batch: &Batch<'_>,
+        batch: &Batch,
         metrics: &mut BudgetBreakdown,
         device: &B::Device,
     ) -> Result<Objective<B>, StepError> {
@@ -152,7 +152,7 @@ impl Evaluation<'_> {
 )]
 pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
-    batch: &Batch<'_>,
+    batch: &Batch,
     options: &ObjectiveOptions,
     deciles: &DegreeDeciles,
     metrics: &mut BudgetBreakdown,
@@ -250,7 +250,7 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
 /// Returns the relation loss value and the flattened combined field.
 fn relation_pass(
     frame: &[Vec2],
-    batch: &Batch<'_>,
+    batch: &Batch,
     options: &ObjectiveOptions,
     semantic_field: &GradientField,
     deciles: &DegreeDeciles,
@@ -303,7 +303,7 @@ fn relation_pass(
                 continue;
             }
             relation_field.accumulate(row, gradient);
-            contributions.push((row, sampled.group.relation(), gradient));
+            contributions.push((row, sampled.relation, gradient));
         }
     }
 

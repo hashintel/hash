@@ -16,8 +16,8 @@ use burn::{
 };
 
 use super::{
-    AffinityEnergy, GradientField, RelationEnergy, SupportAnchor, SupportOptions, SupportTargets,
-    attraction_term,
+    AffinityEnergy, BatchAnchor, BatchPair, BatchRelationEdge, BatchRelationEdges, BatchRowId,
+    GradientField, RelationEnergy, SupportOptions, SupportTargets, attraction_term,
     energy::{CoincidentEnergy, ProximalEnergy},
     relation_term, repulsion_term, support_term,
 };
@@ -26,25 +26,32 @@ use crate::{
     math::{AffinityCurve, Vec2},
     salt::{
         policy::ClassProbabilities,
-        projector::{sample::SampledRelationEdges, scale::LocalScales},
+        projector::scale::LocalScales,
         relation::{
             Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
             attraction::{AttractionIndex, AttractionOptions},
-            protection::NodePair,
         },
     },
 };
 
-type B = Autodiff<NdArray>;
+type TestBackend = Autodiff<NdArray>;
 
 fn device() -> NdArrayDevice {
     NdArrayDevice::default()
 }
 
+#[expect(
+    clippy::min_ident_chars,
+    reason = "`a` and `b` are the affinity curve's literature parameter names"
+)]
 fn curve(a: f32, b: f32) -> AffinityCurve {
     AffinityCurve::new(a, b).expect("test curve parameters are positive and finite")
 }
 
+#[expect(
+    clippy::min_ident_chars,
+    reason = "`a` and `b` are the affinity curve's literature parameter names"
+)]
 fn affinity_energy(a: f32, b: f32, epsilon: f32) -> AffinityEnergy {
     AffinityEnergy::new(curve(a, b), epsilon).expect("test epsilon is positive and finite")
 }
@@ -62,8 +69,8 @@ fn relation_energy(epsilon: f32) -> RelationEnergy {
         .expect("test relation parameters are valid")
 }
 
-fn pair(one: u64, other: u64) -> NodePair {
-    NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
+fn pair(one: u32, other: u32) -> BatchPair {
+    BatchPair::new(BatchRowId::new(one), BatchRowId::new(other))
 }
 
 fn scales(values: &[f32]) -> LocalScales {
@@ -101,7 +108,7 @@ fn coordinate_difference(
 #[track_caller]
 fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
     assert!(
-        (derivative - difference).abs() <= 1e-3 + 2e-2 * difference.abs(),
+        (derivative - difference).abs() <= 2e-2_f32.mul_add(difference.abs(), 1e-3),
         "{context}: derivative {derivative} against finite difference {difference}"
     );
 }
@@ -146,18 +153,30 @@ fn affinity_energies_have_zero_derivative_at_coincidence() {
 fn affinity_derivatives_match_finite_differences() {
     // Both an integer and a fractional exponent: the derivative's
     // u^(b - 1) factor follows different code paths through powf.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`a` and `b` are the affinity curve's literature parameter names"
+    )]
     for (a, b) in [(1.0, 1.0), (1.577, 0.895)] {
         let energy = affinity_energy(a, b, 0.125);
         for at in [0.25_f32, 0.5, 1.0, 2.0, 5.0] {
             let step = at * 1e-3;
-            let difference = scalar_difference(|u| energy.attraction(u).0, at, step);
+            let difference = scalar_difference(
+                |distance_squared| energy.attraction(distance_squared).0,
+                at,
+                step,
+            );
             assert_derivative_close(
                 energy.attraction(at).1,
                 difference,
                 &format!("attraction a {a} b {b} at {at}"),
             );
 
-            let difference = scalar_difference(|u| energy.repulsion(u).0, at, step);
+            let difference = scalar_difference(
+                |distance_squared| energy.repulsion(distance_squared).0,
+                at,
+                step,
+            );
             assert_derivative_close(
                 energy.repulsion(at).1,
                 difference,
@@ -175,7 +194,7 @@ fn proximal_energy_matches_hand_computed_values() {
     let energy = proximal(1.0, 0.5);
 
     let (value, derivative) = energy.evaluate(1.0);
-    assert!((value - 0.5 * core::f32::consts::LN_2).abs() < 1e-7);
+    assert!(0.5_f32.mul_add(-core::f32::consts::LN_2, value).abs() < 1e-7);
     assert_eq!(derivative, 0.5);
 
     // Far outside, the pull saturates at unit slope; far inside it
@@ -467,13 +486,29 @@ fn attraction_fixture() -> AttractionIndex {
 
 /// Wraps every group of an index with all its edges, as a sampler
 /// emitting everything would.
-fn full_batch(index: &AttractionIndex) -> Vec<SampledRelationEdges<'_>> {
+/// Converts every group into the batch-local shape under the identity
+/// row map: the fixture coordinates are corpus-length, so corpus rows
+/// and batch positions coincide.
+fn full_batch(index: &AttractionIndex) -> Vec<BatchRelationEdges> {
+    let position = |row: NodeRowId| {
+        BatchRowId::new(u32::try_from(row.get()).expect("fixture rows fit the batch encoding"))
+    };
     index
         .groups()
         .iter()
-        .map(|group| SampledRelationEdges {
-            group,
-            edges: group.edges().to_vec(),
+        .map(|group| BatchRelationEdges {
+            relation: group.relation(),
+            weights: group.weights(),
+            edges: group
+                .edges()
+                .iter()
+                .map(|edge| BatchRelationEdge {
+                    source: position(edge.source),
+                    target: position(edge.target),
+                    confidence: edge.confidence.value(),
+                    degree_normalization: edge.degree_normalization,
+                })
+                .collect(),
         })
         .collect()
 }
@@ -491,7 +526,7 @@ fn relation_term_matches_hand_computed_values() {
     let batch = full_batch(&index);
     let proximal_only = &batch[1..];
     assert_eq!(proximal_only.len(), 1);
-    assert_eq!(proximal_only[0].group.relation().get(), 9);
+    assert_eq!(proximal_only[0].relation.get(), 9);
 
     let coordinates = [
         Vec2::new(0.0, 0.0),
@@ -512,7 +547,7 @@ fn relation_term_matches_hand_computed_values() {
     );
 
     // value = 0.5 (nu) * temperature (0.5) * softplus(0) = 0.25 ln 2.
-    assert!((value - 0.25 * core::f32::consts::LN_2).abs() < 1e-6);
+    assert!(0.25_f32.mul_add(-core::f32::consts::LN_2, value).abs() < 1e-6);
     assert_eq!(field.as_slice()[0], Vec2::new(-0.25, 0.0));
     assert_eq!(field.as_slice()[2], Vec2::new(0.25, 0.0));
     assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
@@ -583,17 +618,17 @@ fn relation_term_skips_gradient_at_coincident_points() {
 #[test]
 fn support_targets_reject_invalid_anchors() {
     let device = device();
-    let valid = SupportAnchor {
-        row: 0,
+    let valid = BatchAnchor {
+        row: BatchRowId::new(0),
         target: Vec2::new(1.0, -1.0),
         radius: 0.5,
         weight: 1.0,
     };
 
-    assert!(SupportTargets::<B>::new(&[], &device).is_none());
+    assert!(SupportTargets::<TestBackend>::new(&[], &device).is_none());
     assert!(
-        SupportTargets::<B>::new(
-            &[SupportAnchor {
+        SupportTargets::<TestBackend>::new(
+            &[BatchAnchor {
                 target: Vec2::new(f32::NAN, 0.0),
                 ..valid
             }],
@@ -602,8 +637,8 @@ fn support_targets_reject_invalid_anchors() {
         .is_none()
     );
     assert!(
-        SupportTargets::<B>::new(
-            &[SupportAnchor {
+        SupportTargets::<TestBackend>::new(
+            &[BatchAnchor {
                 radius: -1.0,
                 ..valid
             }],
@@ -612,8 +647,8 @@ fn support_targets_reject_invalid_anchors() {
         .is_none()
     );
     assert!(
-        SupportTargets::<B>::new(
-            &[SupportAnchor {
+        SupportTargets::<TestBackend>::new(
+            &[BatchAnchor {
                 weight: -0.5,
                 ..valid
             }],
@@ -621,7 +656,7 @@ fn support_targets_reject_invalid_anchors() {
         )
         .is_none()
     );
-    assert!(SupportTargets::<B>::new(&[valid], &device).is_some());
+    assert!(SupportTargets::<TestBackend>::new(&[valid], &device).is_some());
 }
 
 #[test]
@@ -632,27 +667,33 @@ fn support_options_reject_invalid_constants() {
     assert!(SupportOptions::new(1.0, 0.25).is_some());
 }
 
-fn support_fixture(device: &NdArrayDevice) -> (Tensor<B, 2>, SupportTargets<B>, SupportOptions) {
+fn support_fixture(
+    device: NdArrayDevice,
+) -> (
+    Tensor<TestBackend, 2>,
+    SupportTargets<TestBackend>,
+    SupportOptions,
+) {
     let coordinates = Tensor::from_data(
         TensorData::new(vec![0.5_f32, -0.25, 2.0, 1.5, -1.0, 0.75], [3, 2]),
-        device,
+        &device,
     )
     .require_grad();
     let anchors = [
-        SupportAnchor {
-            row: 0,
+        BatchAnchor {
+            row: BatchRowId::new(0),
             target: Vec2::new(0.25, 0.5),
             radius: 0.75,
             weight: 1.5,
         },
-        SupportAnchor {
-            row: 2,
+        BatchAnchor {
+            row: BatchRowId::new(2),
             target: Vec2::new(-2.0, 1.25),
             radius: 1.5,
             weight: 0.5,
         },
     ];
-    let targets = SupportTargets::new(&anchors, device).expect("the fixture anchors are valid");
+    let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");
     let options = SupportOptions::new(1.0, 0.25).expect("the fixture constants are valid");
     (coordinates, targets, options)
 }
@@ -664,7 +705,7 @@ fn support_term_gradient_matches_the_analytic_formula() {
     // (sqrt(d^2 + eps^2) * (r + eps)) with n the smoothed normalized
     // distance. The autodiff backward pass must agree.
     let device = device();
-    let (coordinates, targets, options) = support_fixture(&device);
+    let (coordinates, targets, options) = support_fixture(device);
     let scale = 1.25;
 
     let gradients = support_term(&coordinates, &targets, options, scale).backward();
@@ -712,10 +753,10 @@ fn support_term_is_finite_at_exact_coincidence() {
     // Anchored nodes start exactly on their targets; the smoothed
     // distance keeps the gradient defined (and zero) there.
     let device = device();
-    let coordinates: Tensor<B, 2> =
+    let coordinates: Tensor<TestBackend, 2> =
         Tensor::from_data(TensorData::new(vec![0.5_f32, -0.25], [1, 2]), &device).require_grad();
-    let anchors = [SupportAnchor {
-        row: 0,
+    let anchors = [BatchAnchor {
+        row: BatchRowId::new(0),
         target: Vec2::new(0.5, -0.25),
         radius: 0.75,
         weight: 1.0,
