@@ -70,6 +70,10 @@ const rootStyle = css({
   flexDirection: "column",
   flex: "1",
   minH: "0",
+  minW: "0",
+  w: "full",
+  maxW: "full",
+  boxSizing: "border-box",
 });
 const headerBar = css({
   borderBottomWidth: "1px",
@@ -111,10 +115,25 @@ const controlsBottomRow = css({
   alignItems: "center",
   gap: "2",
 });
-const contentBase = css({ px: "6", py: "3", flex: "1", minH: "0" });
+const contentBase = css({
+  px: "6",
+  py: "3",
+  flex: "1",
+  minH: "0",
+  minW: "0",
+  w: "full",
+  maxW: "full",
+  boxSizing: "border-box",
+});
 const overflowHidden = css({ overflow: "hidden" });
 const overflowAuto = css({ overflow: "auto" });
-const paneShow = css({ h: "full", minH: "0" });
+const paneShow = css({
+  h: "full",
+  minH: "0",
+  minW: "0",
+  w: "full",
+  maxW: "full",
+});
 const hidden = css({ display: "none" });
 const scheduleLoadState = css({ h: "full", minH: "56", p: "6" });
 const pipelineWrap = css({
@@ -278,20 +297,9 @@ export const Overview = ({
       products.find((product) => product.id === productId)?.material ?? null,
     [products, productId],
   );
-  const productionStepByMaterial = useMemo(
-    () =>
-      new Map(
-        graph.nodes
-          .filter(
-            (
-              node,
-            ): node is GraphNode & {
-              material: string;
-            } => node.type === "production" && Boolean(node.material),
-          )
-          .map((node) => [node.material, node.id]),
-      ),
-    [graph.nodes],
+  const productNameByMaterial = useMemo(
+    () => new Map(products.map((product) => [product.material, product.name])),
+    [products],
   );
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -336,7 +344,7 @@ export const Overview = ({
           setScheduleError(
             caught instanceof Error
               ? caught.message
-              : "Production schedule is unavailable for this product.",
+              : "Production timeline is unavailable for this product.",
           );
         }
       })
@@ -670,7 +678,7 @@ export const Overview = ({
                 options={[
                   { value: "category", label: "Category" },
                   { value: "canvas", label: "Canvas" },
-                  { value: "schedule", label: "Schedule" },
+                  { value: "schedule", label: "Timeline" },
                 ]}
               />
 
@@ -720,24 +728,23 @@ export const Overview = ({
         <div className={viewMode === "schedule" ? paneShow : hidden}>
           {scheduleLoading ? (
             <LoadingState
-              message="Loading production schedule…"
+              message="Loading production timeline…"
               className={scheduleLoadState}
             />
           ) : scheduleError ? (
             <div className={scheduleLoadState}>
               <ErrorState
-                message={`Production schedule unavailable. ${scheduleError}`}
+                message={`Production timeline unavailable. ${scheduleError}`}
               />
             </div>
           ) : productionSchedule ? (
             <ProductionScheduleView
               schedule={productionSchedule}
-              onStepSelect={handleStepClick}
-              stepIdByMaterial={productionStepByMaterial}
+              productNameByMaterial={productNameByMaterial}
             />
           ) : (
             <div className={scheduleLoadState}>
-              Production schedule data is not available.
+              Production timeline data is not available.
             </div>
           )}
         </div>

@@ -28,6 +28,14 @@ export interface ProductionScheduleOutputCandidate {
   path: string[];
 }
 
+export interface ProductionScheduleDirectOutputCandidate {
+  material: string;
+  batch: string | null;
+  order: string;
+  output_date: string | null;
+  quantity: number | null;
+}
+
 export interface ProductionScheduleAllocation {
   consuming_order: string | null;
   consumption_date: string | null;
@@ -36,6 +44,7 @@ export interface ProductionScheduleAllocation {
   confidence: ProductionScheduleConfidence;
   reason: string;
   output_candidates: ProductionScheduleOutputCandidate[];
+  direct_output_candidates?: ProductionScheduleDirectOutputCandidate[];
 }
 
 export type ProductionScheduleAllocationTotals = Record<
@@ -73,7 +82,6 @@ export interface ProductionScheduleCampaign {
   campaign_core: string | null;
   campaign_id: string | null;
   building: string | null;
-  sheet: string;
   daily_batch_counts: ProductionScheduleDailyPoint[];
   daily_fill_weights: ProductionScheduleDailyPoint[];
 }
@@ -104,7 +112,7 @@ export interface ProductionScheduleSource {
 export interface ProductionSchedule {
   schema_version: "1.1";
   artifact_type: "production_schedule";
-  artifact_version: "1.0";
+  artifact_version: "1.0" | "1.1";
   product_id: string;
   product_name: string;
   product_material: string;

@@ -102,7 +102,6 @@ const isProductionSchedule = (value: unknown, productId: string): boolean => {
   const schedule = value as JsonObject;
   if (
     schedule.artifact_type !== "production_schedule" ||
-    schedule.artifact_version !== "1.0" ||
     schedule.product_id !== productId ||
     !Array.isArray(schedule.lanes) ||
     schedule.lanes.length === 0

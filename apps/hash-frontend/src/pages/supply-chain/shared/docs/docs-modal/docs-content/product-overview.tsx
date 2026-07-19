@@ -150,33 +150,27 @@ export const productOverviewSection: DocSectionDef = {
     },
     {
       id: "schedule-view",
-      title: "Production schedule",
+      title: "Production timeline",
       render: () => (
         <>
           <Lead>
-            The schedule view shows confirmed production windows and recorded
-            daily cadence on one shared date axis, with upstream intermediate
-            lanes ordered by BOM depth and the finished good highlighted last.
+            The Timeline view shows actual production windows on one shared date
+            axis, with upstream intermediate lanes ordered by BOM depth and the
+            finished good highlighted last.
           </Lead>
           <P>
-            Batch colour and hatching describe how confirmed output is
-            allocated: selected product, shared candidate lineage, another
-            product, still open, or unresolved. The strip under each batch
-            partitions its quantity across those statuses. Select a finished
-            good batch to highlight exact and candidate upstream lineage.
+            Intermediate batch colour describes its recorded next use. Blue
+            means the batch was only used by materials in the view. Purple means
+            some or all of the batch was also used for other products. Grey
+            means there is no recorded consumption.
           </P>
           <P>
-            Range, material, role, campaign, status and minimum-gap controls
-            apply only to this schedule. The global outlier setting does not
-            remove schedule events. Switch to Daily cadence to see recorded
-            batch-count intensity; hover events for source, output, allocation
-            and confidence details.
+            Use Range to choose the production period and the zoom controls to
+            fit or inspect the timeline. Hover or focus a batch to see its
+            output quantity, direct consuming materials and any quantity with no
+            recorded consumption. Consumers outside the visible hierarchy are
+            identified explicitly.
           </P>
-          <Note>
-            Empty lanes or periods can mean the source is sparse, not that
-            production stopped. Unresolved lineage is kept visible rather than
-            assigned speculatively.
-          </Note>
         </>
       ),
     },

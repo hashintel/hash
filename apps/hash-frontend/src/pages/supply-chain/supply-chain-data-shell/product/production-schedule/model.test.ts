@@ -1,14 +1,93 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveScheduleModel } from "./model";
+import { deriveBatchDirectUse, deriveScheduleModel } from "./model";
 
-import type { ProductionSchedule } from "../../../shared/production-schedule-types";
+import type {
+  ProductionSchedule,
+  ProductionScheduleAllocation,
+  ProductionScheduleBatch,
+} from "../../../shared/production-schedule-types";
 
-const schedule = {
+const directAllocation = (
+  netQuantity: number,
+  materials: string[],
+): ProductionScheduleAllocation => ({
+  consuming_order: "consume-order",
+  consumption_date: "2026-01-10",
+  net_quantity: netQuantity,
+  status: "selected",
+  confidence: "exact",
+  reason: "direct output",
+  output_candidates: [],
+  direct_output_candidates: materials.map((material, index) => ({
+    material,
+    batch: `${material}-${index}`,
+    order: "consume-order",
+    output_date: "2026-01-11",
+    quantity: netQuantity,
+  })),
+});
+
+const openAllocation = (netQuantity: number): ProductionScheduleAllocation => ({
+  consuming_order: null,
+  consumption_date: null,
+  net_quantity: netQuantity,
+  status: "open",
+  confidence: "exact",
+  reason: "no recorded consumption",
+  output_candidates: [],
+  direct_output_candidates: [],
+});
+
+const batch = (
+  id: string,
+  start: string,
+  end: string,
+  allocations: ProductionScheduleAllocation[],
+): ProductionScheduleBatch => {
+  const allocatedQuantity = allocations
+    .filter((allocation) => allocation.status !== "open")
+    .reduce((total, allocation) => total + allocation.net_quantity, 0);
+  const unallocatedQuantity = allocations
+    .filter((allocation) => allocation.status === "open")
+    .reduce((total, allocation) => total + allocation.net_quantity, 0);
+  return {
+    id,
+    material: "input",
+    batch: id,
+    order: `make-${id}`,
+    start,
+    end,
+    span_days: 2,
+    quantity: allocatedQuantity + unallocatedQuantity,
+    uom: "KG",
+    campaign_core: null,
+    campaign_id: null,
+    building: null,
+    start_source: "charge_day",
+    finish_source: "fill_day",
+    derivation: "confirmed",
+    allocation_status: "selected",
+    allocations,
+    allocation_totals: {
+      selected: allocatedQuantity,
+      shared: 0,
+      other: 0,
+      open: unallocatedQuantity,
+      unresolved: 0,
+    },
+    allocated_quantity: allocatedQuantity,
+    unallocated_quantity: unallocatedQuantity,
+    allocation_tolerance: 0.000001,
+    allocation_tolerance_reason: "rounding",
+  };
+};
+
+const schedule: ProductionSchedule = {
   schema_version: "1.1",
   artifact_type: "production_schedule",
-  artifact_version: "1.0",
-  product_id: "p",
+  artifact_version: "1.1",
+  product_id: "product",
   product_name: "Product",
   product_material: "fg",
   plant: "P",
@@ -30,264 +109,144 @@ const schedule = {
       campaigns: [],
       batches: [
         {
-          id: "fg::A",
+          ...batch("fg::one", "2026-01-10", "2026-01-11", [
+            directAllocation(100, ["fg"]),
+          ]),
           material: "fg",
-          batch: "A",
-          order: "O-A",
-          start: "2026-01-10",
-          end: "2026-01-11",
-          span_days: 2,
-          quantity: 100,
-          uom: "KG",
-          campaign_core: "C",
-          campaign_id: "campaign",
-          building: "B",
-          start_source: "charge_day",
-          finish_source: "fill_day",
-          derivation: "confirmed",
-          allocation_status: "selected",
-          allocations: [],
-          allocation_totals: {
-            selected: 100,
-            shared: 0,
-            other: 0,
-            open: 0,
-            unresolved: 0,
-          },
-          allocated_quantity: 100,
-          unallocated_quantity: 0,
-          allocation_tolerance: 0.000001,
-          allocation_tolerance_reason: "rounding",
         },
       ],
     },
     {
-      material: "input",
-      name: "Input",
+      material: "intermediate",
+      name: "Intermediate",
       bom_depth: 1,
       role: "intermediate",
       uom: "KG",
       campaigns: [
         {
-          campaign_core: "C",
-          campaign_id: "campaign",
-          building: "B",
-          sheet: "202601",
-          daily_batch_counts: [
-            { date: "2026-01-01", value: 1 },
-            { date: "2026-01-06", value: 1 },
-            { date: "2026-01-07", value: 1 },
-          ],
-          daily_fill_weights: [{ date: "2026-01-09", value: 100 }],
+          campaign_core: "old-zeroes",
+          campaign_id: null,
+          building: null,
+          daily_batch_counts: [{ date: "2025-01-01", value: 0 }],
+          daily_fill_weights: [{ date: "2025-01-01", value: 0 }],
         },
       ],
       batches: [
-        {
-          id: "input::1",
-          material: "input",
-          batch: "I1",
-          order: "I-1",
-          start: "2026-01-01",
-          end: "2026-01-02",
-          span_days: 2,
-          quantity: 100,
-          uom: "KG",
-          campaign_core: "C",
-          campaign_id: "campaign",
-          building: "B",
-          start_source: "waterline",
-          finish_source: "fill_day",
-          derivation: "confirmed",
-          allocation_status: "shared",
-          allocations: [
-            {
-              consuming_order: "O-A",
-              consumption_date: "2026-01-10",
-              net_quantity: 60,
-              status: "shared",
-              confidence: "candidate",
-              reason: "mixed outputs",
-              output_candidates: [
-                {
-                  material: "fg",
-                  batch: "A",
-                  order: "O-A",
-                  product_relation: "selected",
-                  path: ["O-A"],
-                },
-              ],
-            },
-            {
-              consuming_order: null,
-              consumption_date: null,
-              net_quantity: 40,
-              status: "open",
-              confidence: "exact",
-              reason: "not consumed",
-              output_candidates: [],
-            },
-          ],
-          allocation_totals: {
-            selected: 0,
-            shared: 60,
-            other: 0,
-            open: 40,
-            unresolved: 0,
-          },
-          allocated_quantity: 60,
-          unallocated_quantity: 40,
-          allocation_tolerance: 0.000001,
-          allocation_tolerance_reason: "rounding",
-        },
-        {
-          id: "input::2",
-          material: "input",
-          batch: "I2",
-          order: "I-2",
-          start: "2026-01-06",
-          end: "2026-01-07",
-          span_days: 2,
-          quantity: 100,
-          uom: "KG",
-          campaign_core: "C",
-          campaign_id: "campaign",
-          building: "B",
-          start_source: "charge_day",
-          finish_source: "fill_day",
-          derivation: "confirmed",
-          allocation_status: "open",
-          allocations: [],
-          allocation_totals: {
-            selected: 0,
-            shared: 0,
-            other: 0,
-            open: 100,
-            unresolved: 0,
-          },
-          allocated_quantity: 0,
-          unallocated_quantity: 100,
-          allocation_tolerance: 0.000001,
-          allocation_tolerance_reason: "rounding",
-        },
+        batch("input::one", "2026-01-01", "2026-01-02", [
+          directAllocation(60, ["fg"]),
+          openAllocation(40),
+        ]),
       ],
     },
   ],
-} satisfies ProductionSchedule;
-
-const filters = {
-  start: null,
-  end: null,
-  material: null,
-  role: "all" as const,
-  campaign: null,
-  status: "all" as const,
-  minGapDays: 2,
 };
 
+describe("deriveBatchDirectUse", () => {
+  const hierarchy = new Set(["fg", "intermediate", "visible-sibling"]);
+
+  it("keeps all visible direct consumers in the hierarchy state", () => {
+    const directUse = deriveBatchDirectUse(
+      batch("visible", "2026-01-01", "2026-01-02", [
+        directAllocation(60, ["fg"]),
+        directAllocation(40, ["visible-sibling"]),
+      ]),
+      hierarchy,
+    );
+
+    expect(directUse.state).toBe("in_hierarchy");
+    expect(directUse.consumers).toEqual([
+      { material: "fg", quantity: 60, isOutsideHierarchy: false },
+      {
+        material: "visible-sibling",
+        quantity: 40,
+        isOutsideHierarchy: false,
+      },
+    ]);
+  });
+
+  it("marks any off-view direct consumer as used elsewhere", () => {
+    const directUse = deriveBatchDirectUse(
+      batch("shared", "2026-01-01", "2026-01-02", [
+        directAllocation(60, ["fg"]),
+        directAllocation(40, ["other-product"]),
+      ]),
+      hierarchy,
+    );
+
+    expect(directUse.state).toBe("used_elsewhere");
+    expect(directUse.consumers[1]).toEqual({
+      material: "other-product",
+      quantity: 40,
+      isOutsideHierarchy: true,
+    });
+  });
+
+  it("does not invent a split for a multi-material order", () => {
+    const directUse = deriveBatchDirectUse(
+      batch("multi-output", "2026-01-01", "2026-01-02", [
+        directAllocation(100, ["fg", "other-product"]),
+      ]),
+      hierarchy,
+    );
+
+    expect(directUse.consumers.map(({ quantity }) => quantity)).toEqual([
+      null,
+      null,
+    ]);
+  });
+
+  it("distinguishes no consumption from an unknown immediate output", () => {
+    const unconsumed = deriveBatchDirectUse(
+      batch("open", "2026-01-01", "2026-01-02", [openAllocation(100)]),
+      hierarchy,
+    );
+    const unknown = deriveBatchDirectUse(
+      batch("unknown", "2026-01-01", "2026-01-02", [
+        {
+          ...directAllocation(100, []),
+          status: "unresolved",
+          confidence: "unresolved",
+        },
+      ]),
+      hierarchy,
+    );
+
+    expect(unconsumed).toMatchObject({
+      state: "no_recorded_consumption",
+      unconsumedQuantity: 100,
+      hasUnknownOutput: false,
+    });
+    expect(unknown).toMatchObject({
+      state: "unknown_output",
+      hasUnknownOutput: true,
+    });
+  });
+});
+
 describe("deriveScheduleModel", () => {
-  it("orders lanes, derives gaps and allocation KPIs", () => {
-    const model = deriveScheduleModel(schedule, filters, null);
+  it("uses production windows, not zero cadence, for the default domain", () => {
+    const model = deriveScheduleModel(schedule, { start: null, end: null });
+
     expect(model.lanes.map(({ material }) => material)).toEqual([
-      "input",
+      "intermediate",
       "fg",
     ]);
-    expect(model.gaps).toEqual([
-      {
-        laneMaterial: "input",
-        start: "2026-01-03",
-        end: "2026-01-05",
-        days: 3,
-      },
-    ]);
-    expect(model.kpis).toMatchObject({
-      campaigns: 1,
-      batches: 3,
-      activeDays: 4,
-      medianGapDays: 3,
-      longestGapDays: 3,
-      longestRunDays: 2,
-      selectedQuantity: [
-        { material: "fg", name: "Finished", uom: "KG", value: 100 },
-      ],
-      sharedQuantity: [
-        { material: "input", name: "Input", uom: "KG", value: 60 },
-      ],
-      openQuantity: [
-        { material: "input", name: "Input", uom: "KG", value: 140 },
-      ],
+    expect(model.start).toBe("2025-12-29");
+    expect(model.end).toBe("2026-01-14");
+    expect(model.directUseByBatch.get("input::one")).toMatchObject({
+      state: "in_hierarchy",
+      unconsumedQuantity: 40,
     });
-    expect(model.maxFillWeight).toBe(100);
   });
 
-  it("marks exact and candidate lineage for a selected FG batch", () => {
-    const model = deriveScheduleModel(schedule, filters, "A");
-    expect(model.lineage.get("fg::A")).toBe("exact");
-    expect(model.lineage.get("input::1")).toBe("candidate");
-    expect(model.lineage.has("input::2")).toBe(false);
-  });
-
-  it("filters status without applying global outlier state", () => {
-    const model = deriveScheduleModel(
-      schedule,
-      { ...filters, status: "open" },
-      null,
-    );
-    expect(
-      model.lanes.flatMap(({ batches }) => batches).map(({ id }) => id),
-    ).toEqual(["input::1", "input::2"]);
-  });
-
-  it("does not retain out-of-range campaigns as blank lanes", () => {
-    const model = deriveScheduleModel(
-      schedule,
-      {
-        ...filters,
-        start: "2030-01-01",
-        end: "2030-01-31",
-      },
-      null,
-    );
-    expect(model.lanes).toEqual([]);
-  });
-
-  it("calculates gaps from all production, not the status-filtered subset", () => {
-    const gapSchedule: ProductionSchedule = structuredClone(schedule);
-    const inputLane = gapSchedule.lanes.find(
-      ({ material }) => material === "input",
-    )!;
-    for (const batch of inputLane.batches) {
-      batch.allocation_status = "selected";
-      batch.allocation_totals = {
-        selected: batch.quantity ?? 0,
-        shared: 0,
-        other: 0,
-        open: 0,
-        unresolved: 0,
-      };
-    }
-    inputLane.batches.push({
-      ...structuredClone(inputLane.batches[0]!),
-      id: "input::hidden",
-      batch: "HIDDEN",
-      start: "2026-01-03",
-      end: "2026-01-05",
-      span_days: 3,
-      allocation_status: "open",
-      allocation_totals: {
-        selected: 0,
-        shared: 0,
-        other: 0,
-        open: 100,
-        unresolved: 0,
-      },
+  it("uses explicit range bounds and removes empty lanes", () => {
+    const model = deriveScheduleModel(schedule, {
+      start: "2026-01-09",
+      end: "2026-01-15",
     });
-    const model = deriveScheduleModel(
-      gapSchedule,
-      { ...filters, status: "selected", minGapDays: 1 },
-      null,
-    );
-    expect(
-      model.gaps.filter(({ laneMaterial }) => laneMaterial === "input"),
-    ).toEqual([]);
+
+    expect(model.start).toBe("2026-01-09");
+    expect(model.end).toBe("2026-01-15");
+    expect(model.lanes.map(({ material }) => material)).toEqual(["fg"]);
   });
 });

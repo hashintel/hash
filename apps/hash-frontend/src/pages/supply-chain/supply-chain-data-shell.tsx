@@ -53,6 +53,9 @@ const screenBg = css({
   flexDirection: "column",
   h: "full",
   minH: "0",
+  minW: "0",
+  w: "full",
+  maxW: "full",
   bg: "bgSolid.min",
 });
 
@@ -68,6 +71,7 @@ const emptyText = css({ color: "fg.subtle" });
 const mainArea = css({
   flex: "1",
   minH: "0",
+  minW: "0",
   w: "full",
   maxW: "[1800px]",
   mx: "auto",

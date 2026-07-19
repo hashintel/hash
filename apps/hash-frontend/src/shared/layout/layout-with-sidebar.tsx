@@ -20,6 +20,8 @@ const Main = styled("main")(({ theme }) => ({
   flexGrow: 1,
   marginLeft: "auto",
   marginRight: "auto",
+  minWidth: 0,
+  width: "100%",
   minHeight: "100%",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
@@ -52,6 +54,9 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
         sx={{
           display: "flex",
           position: "relative",
+          minWidth: 0,
+          width: "100%",
+          overflowX: "hidden",
         }}
       >
         {!isReadonlyMode && <PageSidebar />}
@@ -59,7 +64,9 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
         <Stack
           direction="row"
           sx={(theme) => ({
-            width: "100%",
+            flex: 1,
+            minWidth: 0,
+            width: "auto",
             position: "relative",
             marginLeft: `-${SIDEBAR_WIDTH}px`,
             overflowX: "hidden",
@@ -116,7 +123,8 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
               display: "flex",
               minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
               flex: 1,
-              width: "100%",
+              minWidth: 0,
+              width: "auto",
             })}
           >
             <Main

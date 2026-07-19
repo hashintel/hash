@@ -26,7 +26,7 @@ describe("supply-chain dataset import", () => {
     }
   });
 
-  const makeDataset = () => {
+  const makeDataset = (scheduleVersion = "1.1") => {
     const sourceDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "supply-chain-import-"),
     );
@@ -52,7 +52,7 @@ describe("supply-chain dataset import", () => {
       path.join(sourceDir, "demo-product", "production_schedule.json"),
       {
         artifact_type: "production_schedule",
-        artifact_version: "1.0",
+        artifact_version: scheduleVersion,
         product_id: "demo-product",
         lanes: [
           {
@@ -111,6 +111,15 @@ describe("supply-chain dataset import", () => {
         version: "local-test",
       }),
     ).toThrow("invalid production_schedule.json");
+  });
+
+  it("accepts future production schedule versions with a valid shape", () => {
+    const plan = planSupplyChainDatasetImport({
+      sourceDir: makeDataset("2.0"),
+      version: "local-test",
+    });
+
+    expect(plan.manifest.productionSchedules).toEqual(["demo-product"]);
   });
 
   it("uploads source artifacts under the version and flips current last", async () => {
