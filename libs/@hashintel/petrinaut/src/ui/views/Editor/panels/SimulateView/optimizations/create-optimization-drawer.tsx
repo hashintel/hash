@@ -107,6 +107,7 @@ const metricSourceOptions = [
 
 const OPTIMIZATION_SEED = 1234;
 const OPTIMIZATION_SAMPLER = "tpe" as const;
+const DEFAULT_DT = 0.1;
 
 const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
   const values = useStore(form.store, (state) => state.values);
@@ -398,7 +399,7 @@ export const CreateOptimizationDrawer = ({
   const [optimizationSteps, setOptimizationSteps] = useState<number | null>(
     100,
   );
-  const [dt, setDt] = useState<number | null>(1);
+  const [dt, setDt] = useState<number | null>(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState<number | null>(180);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -426,7 +427,7 @@ export const CreateOptimizationDrawer = ({
     setCustomMetricId(crypto.randomUUID());
     setDirection(null);
     setOptimizationSteps(100);
-    setDt(1);
+    setDt(DEFAULT_DT);
     setMaxTime(180);
     setError(null);
     setIsSubmitting(false);

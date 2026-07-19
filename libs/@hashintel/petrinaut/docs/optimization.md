@@ -29,7 +29,8 @@ model fields or nested paths to the optimizer.
    scenario automatically. Selecting another scenario resets the optimization
    form for that scenario.
 4. Give the optimization a name and choose its number of optimization steps
-   (between 1 and 1,000), time step, and maximum simulation time.
+   (between 1 and 1,000), time step (default `0.1`), and maximum simulation
+   time.
 5. In **Scenario parameters**, leave a parameter **Fixed** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.

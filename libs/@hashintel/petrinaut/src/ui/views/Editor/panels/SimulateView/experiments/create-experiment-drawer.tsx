@@ -225,7 +225,7 @@ const DEFAULT_EXPERIMENT_NAME = "Experiment";
 const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
 const DEFAULT_SEED = "1";
-const DEFAULT_DT = "1";
+const DEFAULT_DT = "0.1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = `/**
 * Custom metric code that will be run on each frame.

@@ -428,6 +428,11 @@ describe("CreateOptimizationDrawer", () => {
     const submittedInput = createOptimization.mock.calls[0]![0];
     expect(submittedInput.model.definition.metrics).toEqual([savedMetric]);
     expect(submittedInput.objective.metricId).toBe(savedMetric!.id);
+    expect(submittedInput.execution).toEqual({
+      seed: 1234,
+      dt: 0.1,
+      maxTime: 180,
+    });
   });
 
   it("submits a transient custom metric without persisting it", async () => {
