@@ -147,3 +147,32 @@ fn summary_self_references(corpus: &Corpus) -> usize {
         .filter(|instance| instance.source == instance.target)
         .count()
 }
+
+#[test]
+fn judge_layouts_agree() {
+    let live = corpus(Profile::Live);
+    let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
+
+    // Hit-poor and hit-rich sweeps: both layouts must count the same
+    // protected pairs at every hit rate.
+    for fraction in [0.0, 0.25, 0.9] {
+        let probes = live.judge_probes::<Xoshiro256PlusPlus>(per_row, fraction, SEED);
+        assert_eq!(probes.pairs(), live.rows() * per_row.get());
+
+        let pointwise = live.judge_pointwise(&probes);
+        let by_row = live.judge_by_row(&probes);
+        assert_eq!(pointwise, by_row, "fraction {fraction}");
+    }
+}
+
+#[test]
+fn judge_hit_rate_follows_partner_fraction() {
+    let live = corpus(Profile::Live);
+    let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
+
+    // Under zero thresholds every linked pair is protected, so drawing
+    // candidates from the partner lists must raise the protected count.
+    let uniform = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.0, SEED);
+    let linked = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.9, SEED);
+    assert!(live.judge_pointwise(&linked) > live.judge_pointwise(&uniform) * 4);
+}

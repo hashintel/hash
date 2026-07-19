@@ -9,7 +9,7 @@ use proptest::prelude::*;
 use super::{
     ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,
     RelationPolicy,
-    artifact::MappedProtection,
+    artifact::{InvalidAttractionIndex, MappedAttraction, MappedProtection},
     attraction::AttractionOptions,
     build,
     error::RelationIndexError,
@@ -822,6 +822,181 @@ fn a_published_index_reopens_mapped() {
         digest,
         hasher.finalize(),
         "the returned digest hashes the written bytes",
+    );
+
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "whole-file mappings go through FFI Miri cannot execute"
+)]
+fn a_published_attraction_index_reopens_mapped() {
+    let dir = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-attraction-{}",
+        std::process::id(),
+    ));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+
+    // Two relations with distinct weights; one scored instance so the
+    // provenance bits round-trip a non-default value.
+    let policies = [
+        RelationPolicy {
+            attraction: ClassProbabilities {
+                coincident: 0.5,
+                proximal: 0.5,
+            },
+            ..proximal_policy(3)
+        },
+        proximal_policy(9),
+    ];
+    let indexes = build(
+        ROWS,
+        &policies,
+        vec![
+            scored(instance(0, 3, 0, 1), 0.5),
+            instance(1, 3, 2, 3),
+            instance(2, 9, 0, 2),
+        ],
+        AttractionOptions::new(1.0, 0.0).expect("the fixture options are valid"),
+    );
+
+    let mut bytes = Vec::new();
+    let digest = indexes
+        .attraction
+        .write_into(ROWS as u64, &mut bytes)
+        .expect("writing to a buffer succeeds");
+    let path = dir.join("attraction.atrc");
+    std::fs::write(&path, &bytes).expect("the file writes");
+
+    let mapped = MappedAttraction::new(
+        crate::file::attraction::read::AttractionFile::open(&path)
+            .expect("the written file reopens"),
+    )
+    .expect("the published index validates");
+
+    // The mapped view serves the same groups, weights, and edges as
+    // the resident index it was written from.
+    assert_eq!(mapped.rows(), ROWS as u64);
+    assert_eq!(mapped.group_count(), indexes.attraction.groups().len());
+    assert_eq!(mapped.edge_count(), indexes.attraction.edges());
+    for (index, resident) in indexes.attraction.groups().iter().enumerate() {
+        let group = mapped.group(index);
+        assert_eq!(group.relation(), resident.relation());
+        assert_eq!(group.weights(), resident.weights());
+        assert_eq!(group.len(), resident.edges().len());
+        let edges: Vec<_> = group.edges().collect();
+        assert_eq!(edges, resident.edges());
+        assert_eq!(group.edge(0), resident.edges()[0]);
+    }
+
+    // The digest is the written bytes' identity.
+    let mut hasher = crate::integrity::Sha256::new();
+    crate::integrity::Update::update(&mut hasher, &bytes);
+    assert_eq!(
+        digest,
+        hasher.finalize(),
+        "the returned digest hashes the written bytes",
+    );
+
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "whole-file mappings go through FFI Miri cannot execute"
+)]
+fn a_corrupted_attraction_file_names_its_broken_invariant() {
+    let dir = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-attraction-corrupt-{}",
+        std::process::id(),
+    ));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+
+    let indexes = build_default(
+        &[proximal_policy(3), proximal_policy(9)],
+        vec![
+            instance(0, 3, 0, 1),
+            instance(1, 3, 2, 3),
+            instance(2, 9, 0, 2),
+        ],
+    );
+    let mut bytes = Vec::new();
+    indexes
+        .attraction
+        .write_into(ROWS as u64, &mut bytes)
+        .expect("writing to a buffer succeeds");
+
+    let open = |name: &str, bytes: &[u8]| {
+        let path = dir.join(name);
+        std::fs::write(&path, bytes).expect("the file writes");
+        MappedAttraction::new(
+            crate::file::attraction::read::AttractionFile::open(&path)
+                .expect("the corrupted geometry still parses"),
+        )
+    };
+
+    // The pristine bytes validate.
+    assert!(open("pristine.atrc", &bytes).is_ok());
+
+    // Group records start at 4096, 32 bytes each, relation first;
+    // lowering the second group's relation below the first breaks the
+    // ascending order while leaving the ranges intact.
+    let mut unordered = bytes.clone();
+    unordered[4096 + 32..4096 + 40].copy_from_slice(&1_u64.to_le_bytes());
+    assert_eq!(
+        open("unordered.atrc", &unordered).expect_err("unordered relations are invalid"),
+        InvalidAttractionIndex::UnorderedRelations { group: 1 },
+    );
+
+    // Pointing the second group's range past the edge region breaks
+    // the range partition.
+    let mut oversized = bytes.clone();
+    oversized[4096 + 32 + 8..4096 + 32 + 16].copy_from_slice(&99_u64.to_le_bytes());
+    assert_eq!(
+        open("oversized.atrc", &oversized).expect_err("an oversized range is invalid"),
+        InvalidAttractionIndex::BrokenEdgeRanges { group: 1 },
+    );
+
+    // Edge records live at 8192 (one group unit past the header);
+    // pointing an edge's source row outside the corpus domain fails
+    // the row check. The source field sits 8 bytes into the record.
+    let mut orphaned = bytes.clone();
+    orphaned[8192 + 8..8192 + 16].copy_from_slice(&(ROWS as u64).to_le_bytes());
+    assert_eq!(
+        open("out-of-domain.atrc", &orphaned).expect_err("an out-of-domain row is invalid"),
+        InvalidAttractionIndex::RowOutOfDomain { edge: 0 },
+    );
+
+    // A confidence above one fails the score check. The confidence
+    // field sits 24 bytes into the record.
+    let mut confident = bytes.clone();
+    confident[8192 + 24..8192 + 28].copy_from_slice(&2.0_f32.to_le_bytes());
+    assert_eq!(
+        open("confidence.atrc", &confident).expect_err("an out-of-range confidence is invalid"),
+        InvalidAttractionIndex::InvalidConfidence { edge: 0 },
+    );
+
+    // Unknown provenance bits fail the score check. The scored field
+    // sits 32 bytes into the record.
+    let mut scored_bits = bytes.clone();
+    scored_bits[8192 + 32..8192 + 36].copy_from_slice(&8_u32.to_le_bytes());
+    assert_eq!(
+        open("scored.atrc", &scored_bits).expect_err("unknown provenance bits are invalid"),
+        InvalidAttractionIndex::UnknownScoredBits { edge: 0 },
+    );
+
+    // Swapping a group's two edge records breaks the in-group order.
+    let mut disordered = bytes.clone();
+    disordered.copy_within(8192 + 40..8192 + 80, 8192);
+    disordered[8192 + 40..8192 + 80].copy_from_slice(&bytes[8192..8192 + 40]);
+    assert_eq!(
+        open("disordered.atrc", &disordered).expect_err("swapped edges are invalid"),
+        InvalidAttractionIndex::UnorderedEdges { edge: 1 },
     );
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);

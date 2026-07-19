@@ -9,6 +9,8 @@
 //!
 //! - [`array`](mod@array) is the raw scalar array file: a self-describing 4096-byte header followed
 //!   by the packed elements, so a whole-file mapping yields page-aligned data.
+//! - [`attraction`] is the attraction index file: relation group records delimiting ranges of one
+//!   flat edge-record array, both page-aligned regions of one file.
 //! - [`morton`] is the combined-file archetype: a page index in front of the sorted code array it
 //!   indexes, both page-aligned.
 //! - [`landmark`] is the landmark skeleton file: selected rows, the corpus assignment, and the
@@ -86,6 +88,8 @@
 //! | semantic graph adjacency        | training reads, audits; a CSR matrix over    | sprs   |
 //! |                                 | the row domain, its three columns never read |        |
 //! |                                 | apart                                        |        |
+//! | attraction index                | training sampling; group records delimiting  | combined |
+//! |                                 | a flat edge array, never read apart          |        |
 //! | landmark skeleton               | small `f32`/`u32` arrays                     | array  |
 //! | analytic raster                 | mmap (`f32` grid)                            | array  |
 //! | merge tree                      | small, structured; flattens to parent/birth/ | array  |
@@ -158,6 +162,7 @@
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
 pub(crate) mod array;
+pub(crate) mod attraction;
 pub(crate) mod generation;
 pub(crate) mod landmark;
 mod morton;

@@ -9,7 +9,10 @@ use core::num::NonZero;
 
 use crate::{
     dataset::TemporalAxes,
-    salt::{CardEmbeddingStats, EmbedderFingerprint, NormSpotCheck, RecallSpotCheck},
+    salt::{
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef, NormSpotCheck,
+        RecallSpotCheck,
+    },
 };
 
 /// Metadata describing one published SALT generation: the input snapshot,
@@ -59,10 +62,15 @@ pub(crate) struct Snapshot {
 /// The record identifies the run; replaying it re-derives
 /// deterministic stages bit-for-bit, and the pipeline as a whole best
 /// effort.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Reproducibility {
-    /// The fit's seed; every stage generator derives from it by name.
-    pub seed: u64,
+    /// Every setting the fit ran under, the seed included: a replay
+    /// takes its configuration from this echo, not from the defaults
+    /// compiled into the replaying binary. Validated fields
+    /// deserialize through their validating constructors, so a
+    /// tampered echo refuses to parse.
+    #[serde(with = "FitConfigDef")]
+    pub config: FitConfig,
     /// The embedding contract the card embeddings were produced under.
     pub embedder: EmbedderFingerprint,
 }

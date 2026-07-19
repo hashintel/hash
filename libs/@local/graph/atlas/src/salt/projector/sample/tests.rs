@@ -120,6 +120,23 @@ fn semantic_draws_are_graph_edges() {
 }
 
 #[test]
+fn semantic_total_weight_sums_both_edge_directions() {
+    // The symmetric graph stores each undirected edge twice, and the
+    // estimator's total is the stored sum: exactly 3.5 over dyadic
+    // weights.
+    let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
+    let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
+
+    #[expect(
+        clippy::float_cmp,
+        reason = "dyadic weights sum exactly in double precision and narrow exactly"
+    )]
+    {
+        assert_eq!(sampler.total_weight(), 3.5);
+    }
+}
+
+#[test]
 fn semantic_draws_follow_the_weights() {
     // The second edge's weight is vanishing: one draw landing on it in
     // a 128-draw batch would be a 1-in-1e28 event for the fixed seed.

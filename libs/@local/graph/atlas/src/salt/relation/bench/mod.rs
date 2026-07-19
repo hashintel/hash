@@ -16,8 +16,16 @@
 //! Stages that reorder their input take a [`Scratch`] buffer the caller
 //! clones outside the timed region; stages that only read consume the
 //! corpus's pre-sorted copies directly.
+//!
+//! Beside the build seams, the judge runners (`judge`) compare the two
+//! access layouts hard-negative mining could vet candidates through:
+//! pointwise pair probes against per-row partner merges, over one
+//! synthesized mining sweep ([`JudgeProbes`]).
 
-pub use self::fixture::{Corpus, Profile};
+pub use self::{
+    fixture::{Corpus, Profile},
+    judge::JudgeProbes,
+};
 use super::{
     RelationIndexes,
     attraction::AttractionOptions,
@@ -25,6 +33,7 @@ use super::{
 };
 
 mod fixture;
+mod judge;
 
 #[cfg(test)]
 mod tests;

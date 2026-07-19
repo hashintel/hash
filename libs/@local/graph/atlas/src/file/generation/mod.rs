@@ -1,4 +1,5 @@
-//! Generation directories: staging, atomic publish, and activation.
+//! Generation directories: staging, atomic publish, activation, and
+//! open.
 //!
 //! A [`GenerationRoot`] holds published generations, one directory per
 //! generation, named by the SHA-256 of the generation's metadata
@@ -7,7 +8,10 @@
 //! staging directory ([`GenerationRoot::stage`]), sealed by writing the
 //! metadata document and renaming the directory into place
 //! ([`StagedGeneration::seal`]), and activated by atomically replacing
-//! the pointer ([`GenerationRoot::activate`]).
+//! the pointer ([`GenerationRoot::activate`]). Readers resolve the
+//! pointer ([`GenerationRoot::current`]) and open the named generation
+//! ([`GenerationRoot::open`]), which verifies the document against the
+//! hash that names the directory.
 //!
 //! Every visible entry of the root is a complete generation or the
 //! pointer: staging directories and the pointer's replacement file are
@@ -31,8 +35,14 @@ use uuid::Uuid;
 use super::{repository::FileName, salt::SaltRepository};
 use crate::integrity::{ParseHexError, Sha256, Sha256Digest, Update as _};
 
+mod open;
 #[cfg(test)]
 mod tests;
+
+// The serve loop is the first non-test consumer; the re-export widens
+// beyond tests when it arrives.
+#[cfg(test)]
+pub(crate) use self::open::OpenError;
 
 /// The metadata document's file name within a generation directory.
 pub(crate) const METADATA_FILE: &str = "metadata.json";

@@ -9,7 +9,7 @@ use std::{fs, io::Write as _};
 use camino::Utf8PathBuf;
 
 use super::{
-    ActivateError, CurrentError, GenerationId, GenerationRoot, METADATA_FILE, SealError,
+    ActivateError, CurrentError, GenerationId, GenerationRoot, METADATA_FILE, OpenError, SealError,
     StagedGeneration,
 };
 use crate::{
@@ -23,7 +23,11 @@ use crate::{
         },
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    salt::{CardEmbeddingStats, EmbedderFingerprint, NormSpotCheck, RecallSpotCheck},
+    math::AffinityCurve,
+    salt::{
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, NormSpotCheck, RecallSpotCheck,
+        SelectionOptions,
+    },
 };
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -54,6 +58,19 @@ fn file(file_name: &str) -> RepositoryFile {
     }
 }
 
+fn config(seed: u64) -> FitConfig {
+    FitConfig {
+        seed,
+        selection: SelectionOptions {
+            maximum_count: NonZero::new(2).expect("the fixture capacity is nonzero"),
+            ..
+        },
+        curve: AffinityCurve::new(1.577, 0.895)
+            .expect("the fixture parameters are finite and strictly positive"),
+        ..
+    }
+}
+
 fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V0,
@@ -74,7 +91,7 @@ fn repository() -> SaltRepository {
                 ontology_types: 3,
             },
             reproducibility: Reproducibility {
-                seed: 7,
+                config: config(7),
                 embedder: EmbedderFingerprint::new(digest("embedder")),
             },
             placement: Placement::LandmarkBaseline,
@@ -248,7 +265,7 @@ fn activation_flips_the_pointer_and_supports_rollback() {
     let first = staging.seal(&first).expect("the staging should seal");
 
     let mut second = repository();
-    second.metadata.reproducibility.seed = 8;
+    second.metadata.reproducibility.config.seed = 8;
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &second);
     let second = staging.seal(&second).expect("the staging should seal");
@@ -282,6 +299,75 @@ fn a_corrupt_pointer_is_rejected() {
     fs::write(root.path.join("current"), "not a digest").expect("the pointer should write");
 
     assert!(matches!(root.current(), Err(CurrentError::Corrupt(_))));
+}
+
+#[test]
+fn an_activated_generation_opens_verified() {
+    let root = GenerationRoot::new(scratch("open")).expect("the root should open");
+    let repository = repository();
+
+    let staging = root.stage().expect("the staging should create");
+    stage_all(&staging, &repository);
+    let published = staging.seal(&repository).expect("the staging should seal");
+    root.activate(published.id())
+        .expect("the generation should activate");
+
+    // The serving entry: resolve the pointer, open what it names.
+    let id = root
+        .current()
+        .expect("the pointer should read")
+        .expect("a generation is active");
+    let generation = root.open(id).expect("the active generation should open");
+
+    assert_eq!(generation.id(), published.id());
+    assert_eq!(generation.path(), published.path());
+    assert_eq!(generation.repository(), &repository);
+
+    // Every manifest file is where path_of points, with its bytes.
+    for entry in repository.files.files() {
+        let bytes =
+            fs::read(generation.path_of(&entry.name)).expect("a published file should read");
+        assert_eq!(bytes, entry.name.as_str().as_bytes());
+    }
+}
+
+#[test]
+fn open_rejects_missing_tampered_and_foreign_documents() {
+    let root = GenerationRoot::new(scratch("open-reject")).expect("the root should open");
+
+    // An unpublished generation.
+    let unpublished = GenerationId(digest("unpublished"));
+    assert!(matches!(
+        root.open(unpublished),
+        Err(OpenError::Unpublished(id)) if id == unpublished
+    ));
+
+    // A tampered document still parses but no longer hashes to the
+    // directory-naming id.
+    let repository = repository();
+    let staging = root.stage().expect("the staging should create");
+    stage_all(&staging, &repository);
+    let published = staging.seal(&repository).expect("the staging should seal");
+
+    let document_path = published.path().join(METADATA_FILE);
+    let mut document = fs::read(&document_path).expect("the document should read");
+    document.push(b'\n');
+    fs::write(&document_path, &document).expect("the document should write");
+
+    assert!(matches!(
+        root.open(published.id()),
+        Err(OpenError::Identity { id, .. }) if id == published.id()
+    ));
+
+    // A hand-built directory whose document hashes to its name but is
+    // no repository fails to parse; the seal path cannot produce this.
+    let foreign = "not a repository";
+    let id = GenerationId(digest(foreign));
+    let path = root.generation_path(id);
+    fs::create_dir_all(&path).expect("the foreign directory should create");
+    fs::write(path.join(METADATA_FILE), foreign).expect("the foreign document should write");
+
+    assert!(matches!(root.open(id), Err(OpenError::Document(_))));
 }
 
 #[test]

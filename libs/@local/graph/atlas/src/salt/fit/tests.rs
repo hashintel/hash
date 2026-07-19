@@ -206,7 +206,9 @@ async fn fit_publishes_a_complete_generation() {
     assert_eq!(repository.metadata.snapshot.edges, 2);
     assert_eq!(repository.metadata.snapshot.ontology_types, 3);
     assert!(repository.metadata.snapshot.axes.is_none());
-    assert_eq!(repository.metadata.reproducibility.seed, 7);
+    // The document echoes the whole configuration the fit ran under,
+    // defaults included: a replay reads its settings from here.
+    assert_eq!(repository.metadata.reproducibility.config, config());
     assert_eq!(repository.metadata.placement, Placement::LandmarkBaseline);
 
     // The recorded evidence passed - a published generation implies it.

@@ -152,6 +152,23 @@ impl Scored {
     const SOURCE: u8 = 1 << 1;
     const TARGET: u8 = 1 << 2;
 
+    /// Creates presence bits from the three score flags.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(link: bool, source: bool, target: bool) -> Self {
+        let mut bits = 0;
+        if link {
+            bits |= Self::LINK;
+        }
+        if source {
+            bits |= Self::SOURCE;
+        }
+        if target {
+            bits |= Self::TARGET;
+        }
+        Self(bits)
+    }
+
     /// Returns whether the link score was present.
     #[inline]
     #[must_use]
@@ -182,6 +199,20 @@ pub(crate) struct EffectiveConfidence {
 }
 
 impl EffectiveConfidence {
+    /// Validates an externally produced confidence.
+    ///
+    /// Returns [`None`] unless the value is finite and lies in
+    /// `[0, 1]`, the range [`RelationConfidence::effective`] produces.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(value: f32, scored: Scored) -> Option<Self> {
+        if !(value >= 0.0 && value <= 1.0) {
+            return None;
+        }
+
+        Some(Self { value, scored })
+    }
+
     /// Returns the combined confidence, in `0.0..=1.0`.
     #[inline]
     #[must_use]

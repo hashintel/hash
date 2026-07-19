@@ -10,9 +10,10 @@ use crate::{
     dataset::{NodeRowId, TemporalAxes},
     file::repository::{FileName, RepositoryFile, RepositoryVersion},
     integrity::{Sha256, Sha256Digest, Update as _},
+    math::AffinityCurve,
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, NormSpotCheck, RecallSpotCheck,
-        RepresentationDefect,
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, NormSpotCheck, RecallSpotCheck,
+        RepresentationDefect, SelectionOptions,
     },
 };
 
@@ -26,6 +27,19 @@ fn file(name: &str) -> RepositoryFile {
     RepositoryFile {
         name: FileName::new(name.to_owned()).expect("the fixture name is a plain file name"),
         hash: digest(name),
+    }
+}
+
+fn config() -> FitConfig {
+    FitConfig {
+        seed: 0x5A17_F17D,
+        selection: SelectionOptions {
+            maximum_count: NonZero::new(4_096).expect("the fixture capacity is nonzero"),
+            ..
+        },
+        curve: AffinityCurve::new(1.577, 0.895)
+            .expect("the fixture parameters are finite and strictly positive"),
+        ..
     }
 }
 
@@ -56,7 +70,7 @@ fn repository() -> SaltRepository {
                 ontology_types: 49,
             },
             reproducibility: Reproducibility {
-                seed: 0x5A17_F17D,
+                config: config(),
                 embedder: EmbedderFingerprint::new(digest("embedder contract")),
             },
             placement: Placement::LandmarkBaseline,
@@ -121,6 +135,50 @@ fn absent_axes_round_trip() {
         serde_json::from_str(&json).expect("the serialized repository should deserialize");
 
     assert_eq!(decoded, repository);
+}
+
+#[test]
+fn a_tampered_configuration_echo_refuses_to_deserialize() {
+    // Each tampered value violates a construction invariant of its
+    // field's type; the validating deserialization is what turns the
+    // echo from a record into a contract.
+    for (pointer, tampered) in [
+        (
+            "/metadata/reproducibility/config/selection/retained_fraction",
+            serde_json::json!(1.5),
+        ),
+        (
+            "/metadata/reproducibility/config/selection/maximum_count",
+            serde_json::json!(0),
+        ),
+        (
+            "/metadata/reproducibility/config/curve/a",
+            serde_json::json!(-1.0),
+        ),
+        (
+            "/metadata/reproducibility/config/layout/initial_learning_rate",
+            serde_json::json!(0.0),
+        ),
+        (
+            "/metadata/reproducibility/config/layout/repulsion_strength",
+            serde_json::json!(-1.0),
+        ),
+        (
+            "/metadata/reproducibility/config/layout/epochs",
+            serde_json::json!(0),
+        ),
+    ] {
+        let mut document =
+            serde_json::to_value(repository()).expect("the repository should serialize");
+        *document
+            .pointer_mut(pointer)
+            .expect("the tampered field should exist in the document") = tampered;
+
+        assert!(
+            serde_json::from_value::<SaltRepository>(document).is_err(),
+            "the tampered {pointer} should refuse to deserialize",
+        );
+    }
 }
 
 #[test]

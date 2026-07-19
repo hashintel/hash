@@ -122,10 +122,27 @@ fn summary_reports_hand_computed_fractions_and_ratios() {
     assert_eq!(summary.nodes(), 2);
     assert_eq!(summary.clipped_fraction(), Some(0.5));
     assert_eq!(summary.capped_fraction(), Some(0.0));
+    // Both total factors saturated at exactly one.
+    assert_eq!(summary.mean_cap_factor(), Some(1.0));
     // Unclipped ratios: 63.75 / 4 and 0.5 / 4; mean = (15.9375 + 0.125) / 2.
     assert_eq!(summary.mean_unclipped_ratio(), Some(8.03125));
     // Applied ratios: 3.984375 / 4 and 0.5 / 4; mean = 0.560546875.
     assert_eq!(summary.mean_clipped_ratio(), Some(0.560_546_9));
+}
+
+#[test]
+fn equal_coefficients_couple_the_cap_to_the_clip_by_an_epsilon() {
+    // With positive == total, a positively clipped gradient lands
+    // within one epsilon of the shared budget, so the trailing factor
+    // dips just below one: activation is the epsilon signature, and
+    // the mean cap factor is what separates it from real capping.
+    let outcome = options(1.0, 1.0, 0.5, 0.25).clip(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75));
+
+    assert!(outcome.positive_factor < 1.0);
+    assert!(outcome.total_factor < 1.0);
+    // The shave is bounded by epsilon over the budget: factor >=
+    // budget / (budget + epsilon) = 4 / 4.25.
+    assert!(outcome.total_factor >= 4.0 / 4.25);
 }
 
 #[test]
@@ -135,6 +152,7 @@ fn summary_is_empty_before_any_record() {
     assert_eq!(summary.nodes(), 0);
     assert_eq!(summary.clipped_fraction(), None);
     assert_eq!(summary.capped_fraction(), None);
+    assert_eq!(summary.mean_cap_factor(), None);
     assert_eq!(summary.mean_unclipped_ratio(), None);
     assert_eq!(summary.mean_clipped_ratio(), None);
 }

@@ -69,8 +69,13 @@ zerocopy                       = { version = "0.8.54", features = ["derive"] }
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
-proptest.workspace        = true
-tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+# kiddo + usearch: candidates in the hard-negative miner's 2D index
+# shootout (`benches/miner_index.rs`); dev-only, never in the library.
+# kiddo drags num-traits, ordered-float, and cmov into the dev graph.
+kiddo              = "5.3.2"
+proptest.workspace = true
+tokio              = { workspace = true, features = ["macros", "rt-multi-thread"] }
+usearch            = "2.26.0"
 
 [features]
 # Exposes `hash_graph_atlas::bench`, the measurement seams the
@@ -85,6 +90,11 @@ bench-gpu = ["bench", "burn/metal"]
 [[bench]]
 name    = "math_kernels"
 harness = false
+
+[[bench]]
+name              = "miner_index"
+harness           = false
+required-features = ["bench"]
 
 [[bench]]
 name              = "projector_backend"

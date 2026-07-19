@@ -43,8 +43,8 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use zerocopy::IntoBytes as _;
 
-pub(crate) use self::error::FitError;
 use self::prepare::{PrepareError, norm};
+pub(crate) use self::{echo::FitConfigDef, error::FitError};
 use crate::{
     dataset::{Dataset, NodeRowId, PROJECTOR_DIMENSIONS},
     file::{
@@ -84,6 +84,7 @@ use crate::{
     },
 };
 
+mod echo;
 mod error;
 pub(crate) mod prepare;
 
@@ -382,10 +383,8 @@ where
                 edges,
                 ontology_types: cards.types,
             },
-            // TODO: echo the `FitConfig` here once the option newtypes
-            //       deserialize through their validating constructors.
             reproducibility: Reproducibility {
-                seed: config.seed,
+                config: *config,
                 embedder: embedder.fingerprint(),
             },
             placement: Placement::LandmarkBaseline,

@@ -44,9 +44,27 @@ use crate::{
     salt::semantic::SemanticGraphView,
 };
 
+/// A value offered as a [`LearningRate`] is not finite and strictly
+/// positive.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct LearningRateError(f32);
+
+impl fmt::Display for LearningRateError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "the value {} is not a finite, strictly positive learning rate",
+            self.0
+        )
+    }
+}
+
+impl Error for LearningRateError {}
+
 /// An epoch-zero learning rate: finite and strictly positive, valid by
 /// construction.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "f32", into = "f32")]
 pub(crate) struct LearningRate(f32);
 
 impl LearningRate {
@@ -72,10 +90,44 @@ impl LearningRate {
     }
 }
 
+impl TryFrom<f32> for LearningRate {
+    type Error = LearningRateError;
+
+    #[inline]
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        Self::new(value).ok_or(LearningRateError(value))
+    }
+}
+
+impl From<LearningRate> for f32 {
+    #[inline]
+    fn from(rate: LearningRate) -> Self {
+        rate.get()
+    }
+}
+
+/// A value offered as a [`RepulsionStrength`] is not finite and
+/// non-negative.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct RepulsionStrengthError(f32);
+
+impl fmt::Display for RepulsionStrengthError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "the value {} is not a finite, non-negative repulsion weight",
+            self.0
+        )
+    }
+}
+
+impl Error for RepulsionStrengthError {}
+
 /// A repulsion weight: finite and non-negative, valid by construction.
 ///
 /// Zero disables repulsion.
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "f32", into = "f32")]
 pub(crate) struct RepulsionStrength(f32);
 
 impl RepulsionStrength {
@@ -97,6 +149,22 @@ impl RepulsionStrength {
     #[must_use]
     pub(crate) const fn get(self) -> f32 {
         self.0
+    }
+}
+
+impl TryFrom<f32> for RepulsionStrength {
+    type Error = RepulsionStrengthError;
+
+    #[inline]
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        Self::new(value).ok_or(RepulsionStrengthError(value))
+    }
+}
+
+impl From<RepulsionStrength> for f32 {
+    #[inline]
+    fn from(strength: RepulsionStrength) -> Self {
+        strength.get()
     }
 }
 

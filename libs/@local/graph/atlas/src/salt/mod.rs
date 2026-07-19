@@ -6,12 +6,14 @@
 //! indexes serving reads from them. The stages land here as they are
 //! built; `PLAN.md` at the crate root tracks the order.
 
-#[cfg(test)]
-pub(crate) use self::fit::prepare::norm::RepresentationDefect;
 pub(crate) use self::{
     embedding::{CardEmbeddingStats, EmbedderFingerprint},
-    fit::prepare::norm::NormSpotCheck,
+    fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
     knn::recall::RecallSpotCheck,
+};
+#[cfg(test)]
+pub(crate) use self::{
+    fit::prepare::norm::RepresentationDefect, landmark::select::SelectionOptions,
 };
 
 // The previous pipeline generation is parked uncompiled at
