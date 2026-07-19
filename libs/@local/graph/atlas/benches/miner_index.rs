@@ -1,30 +1,30 @@
-//! Wall-time shootout for the hard-negative miner's 2D spatial index.
+//! Wall-time benchmarks for the hard-negative miner's 2D spatial index.
 //!
 //! Mining queries every projected point's k nearest neighbours in the
 //! bounded 2D frame, at both relation-lens extremes, at a configured
 //! cadence: one tick is two index builds plus two full query sweeps,
 //! and each build starts from scratch because every point moves
-//! between ticks. Three candidates compete:
+//! between ticks. Two engines are measured against each other:
 //!
-//! - `grid`: a uniform bucket grid over the known frame, written here. Counting-sort build,
-//!   ring-expansion exact kNN; the frame bounds and the target row count are known ahead of time,
-//!   which is the assumption the grid trades on.
-//! - `kiddo`: `ImmutableKdTree`, a balanced pure-Rust kd-tree. Exact kNN without any frame
-//!   assumption, so bucket skew cannot hurt it.
-//! - `usearch`: HNSW. Approximate - its sweep time reads against the recall the report prints - and
-//!   the only candidate whose build buys a navigable graph; the measurement asks whether that buy
-//!   earns anything at 2 dimensions.
+//! - `kiddo`: `ImmutableKdTree`, the miner's index. A balanced kd-tree adapts its partition depth
+//!   to local density, so its query cost is immune to the cluster skew attraction exists to produce
+//!   - the property the timings here certify.
+//! - `grid`: a uniform bucket grid over the known frame, written here (counting-sort build,
+//!   ring-expansion exact kNN). The natural alternative when the frame is known ahead of time, and
+//!   the control that prices its one assumption: a query scans whole cells, so one global cell size
+//!   makes the sweep's cost grow with the sum of squared cell occupancies, quadratic in exactly the
+//!   density skew a projected map carries.
 //!
 //! Fixtures are synthesized point sets in the `[0, 10]^2` frame:
 //! `clustered` (Gaussian mixture over a uniform background - the shape
 //! a projected map takes), `uniform` (the grid's best case), and
 //! `pathological` (an eighth of all points in one near-coincident
 //! blob - the bucket-skew stress a coincident-geometry pile-up would
-//! produce). All three engines are measured per fixture on:
+//! produce). Both engines are measured per fixture on:
 //!
 //! - `build`: one index construction, single-threaded.
 //! - `sweep`: one full per-point kNN pass at k = 24, single-threaded. Sweeps parallelize
-//!   embarrassingly and identically for all three engines, so the single-threaded number is the
+//!   embarrassingly and identically for both engines, so the single-threaded number is the
 //!   comparative one.
 //! - `tick`: two builds plus two sweeps over the two lens extremes' point sets, on the clustered
 //!   shape - the unit the training-loop cadence actually spends.
@@ -38,7 +38,7 @@
 //! index hands its neighbours over.
 //!
 //! Before the timed groups, one report prints each engine's recall
-//! against brute-force ground truth on sampled queries (grid and kiddo
+//! against brute-force ground truth on sampled queries (both engines
 //! are exact by design; ties at the k-boundary can shave a fraction)
 //! and the grid's occupancy skew, the number that explains its
 //! pathological-fixture behaviour.
@@ -82,7 +82,6 @@ use hash_graph_atlas::bench::relation::{Corpus, Profile};
 use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use usearch::{Index, IndexOptions, MetricKind, ScalarKind};
 
 /// The frame's side length: projected maps land in `[0, FRAME]^2`.
 const FRAME: f32 = 10.0;
@@ -95,11 +94,6 @@ const DEFAULT_POINTS: usize = 250_000;
 
 /// Ground-truth queries per fixture for the recall report.
 const RECALL_SAMPLE: usize = 512;
-
-/// `usearch` HNSW settings: its own defaults, reported beside recall.
-const CONNECTIVITY: usize = 16;
-const EXPANSION_ADD: usize = 128;
-const EXPANSION_SEARCH: usize = 64;
 
 const SEED: u64 = 0x2D5A_17ED;
 /// The second lens extreme's point set for the tick unit.
@@ -369,28 +363,6 @@ fn build_kiddo(points: &[[f32; 2]]) -> KdTree {
     KdTree::new_from_slice(points)
 }
 
-fn build_usearch(points: &[[f32; 2]]) -> Index {
-    let options = IndexOptions {
-        dimensions: 2,
-        metric: MetricKind::L2sq,
-        quantization: ScalarKind::F32,
-        connectivity: CONNECTIVITY,
-        expansion_add: EXPANSION_ADD,
-        expansion_search: EXPANSION_SEARCH,
-        multi: false,
-    };
-    let index = Index::new(&options).expect("the HNSW options are valid");
-    index
-        .reserve(points.len())
-        .expect("the fixture fits memory");
-    for (row, point) in points.iter().enumerate() {
-        index
-            .add(row as u64, point.as_slice())
-            .expect("the row and point are valid");
-    }
-    index
-}
-
 /// Sums neighbour ids over a full per-point sweep, so the pass has an
 /// observable result.
 fn sweep_grid(grid: &Grid, points: &[[f32; 2]], k: usize) -> u64 {
@@ -414,20 +386,6 @@ fn sweep_kiddo(tree: &KdTree, points: &[[f32; 2]], k: usize) -> u64 {
             tree.nearest_n::<SquaredEuclidean>(point, limit)
                 .iter()
                 .map(|neighbour| u64::from(neighbour.item))
-                .sum::<u64>()
-        })
-        .sum()
-}
-
-fn sweep_usearch(index: &Index, points: &[[f32; 2]], k: usize) -> u64 {
-    points
-        .iter()
-        .map(|point| {
-            index
-                .search(point.as_slice(), k)
-                .expect("the query is well-formed")
-                .keys
-                .iter()
                 .sum::<u64>()
         })
         .sum()
@@ -487,10 +445,6 @@ fn recall(truth: &[Vec<u32>], results: &[Vec<u32>], k: usize) -> f64 {
 /// Prints each engine's recall and the grid's occupancy skew.
 fn report_recall(count: usize) {
     eprintln!("miner index recall audit: {count} points, k = {K}, {RECALL_SAMPLE} sampled queries");
-    eprintln!(
-        "  usearch: connectivity {CONNECTIVITY}, expansion add {EXPANSION_ADD}, expansion search \
-         {EXPANSION_SEARCH}"
-    );
 
     for shape in [Shape::Clustered, Shape::Uniform, Shape::Pathological] {
         let points = synthesize(shape, count, SEED);
@@ -526,29 +480,11 @@ fn report_recall(count: usize) {
             })
             .collect();
 
-        let index = build_usearch(&points);
-        let usearch_results: Vec<Vec<u32>> = samples
-            .iter()
-            .map(|&sample| {
-                let mut ids: Vec<u32> = index
-                    .search(points[sample].as_slice(), K)
-                    .expect("the query is well-formed")
-                    .keys
-                    .iter()
-                    .map(|&key| key as u32)
-                    .collect();
-                ids.sort_unstable();
-                ids
-            })
-            .collect();
-
         eprintln!(
-            "  {:>12}: grid {:.4}, kiddo {:.4}, usearch {:.4}; grid {}^2 cells, peak occupancy {} \
-             (mean {:.1})",
+            "  {:>12}: grid {:.4}, kiddo {:.4}; grid {}^2 cells, peak occupancy {} (mean {:.1})",
             shape.label(),
             recall(&truth, &grid_results, K),
             recall(&truth, &kiddo_results, K),
-            recall(&truth, &usearch_results, K),
             grid.dim,
             grid.peak_occupancy(),
             points.len() as f64 / (grid.dim * grid.dim) as f64,
@@ -570,9 +506,6 @@ fn bench_build(criterion: &mut Criterion) {
         });
         group.bench_function(format!("kiddo/{}", shape.label()), |bencher| {
             bencher.iter(|| black_box(build_kiddo(black_box(&points)).size()));
-        });
-        group.bench_function(format!("usearch/{}", shape.label()), |bencher| {
-            bencher.iter(|| black_box(build_usearch(black_box(&points)).size()));
         });
     }
 
@@ -597,11 +530,6 @@ fn bench_sweep(criterion: &mut Criterion) {
         let tree = build_kiddo(&points);
         group.bench_function(format!("kiddo/{}", shape.label()), |bencher| {
             bencher.iter(|| black_box(sweep_kiddo(&tree, black_box(&points), K)));
-        });
-
-        let index = build_usearch(&points);
-        group.bench_function(format!("usearch/{}", shape.label()), |bencher| {
-            bencher.iter(|| black_box(sweep_usearch(&index, black_box(&points), K)));
         });
     }
 
@@ -633,13 +561,6 @@ fn bench_tick(criterion: &mut Criterion) {
         bencher.iter(|| {
             black_box(tick(&extremes, build_kiddo, |tree, points| {
                 sweep_kiddo(tree, points, K)
-            }));
-        });
-    });
-    group.bench_function("usearch", |bencher| {
-        bencher.iter(|| {
-            black_box(tick(&extremes, build_usearch, |index, points| {
-                sweep_usearch(index, points, K)
             }));
         });
     });

@@ -21,6 +21,7 @@
 pub mod bench;
 pub(crate) mod budget;
 pub(crate) mod loss;
+pub(crate) mod miner;
 pub(crate) mod model;
 pub(crate) mod sample;
 pub(crate) mod scale;

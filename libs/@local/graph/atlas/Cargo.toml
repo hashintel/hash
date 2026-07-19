@@ -38,11 +38,16 @@ argmin = { version = "0.11.0", default-features = false }
 # CPU backend every test runs on; `autodiff` is the decorator the
 # training loop wraps around whichever backend the benchmark selects
 # (a GPU feature would be added beside `ndarray`, not instead of it).
-burn                       = { version = "0.21.0", features = ["autodiff", "ndarray"] }
-camino.workspace           = true
-futures.workspace          = true
-hannoy                     = "0.1.7-nested-rtxns"
-heed                       = "0.22.1"
+burn              = { version = "0.21.0", features = ["autodiff", "ndarray"] }
+camino.workspace  = true
+futures.workspace = true
+hannoy            = "0.1.7-nested-rtxns"
+heed              = "0.22.1"
+# kiddo: the hard-negative miner's exact 2D index. Ratified by
+# measurement (`benches/miner_index.rs`): skew-immune where the
+# uniform grid degrades with cluster occupancy and usearch's graph
+# build buys nothing at 2D. Drags num-traits, ordered-float, and cmov.
+kiddo                      = "5.3.2"
 memchr.workspace           = true
 memmap2                    = "0.9"
 pin-project-lite.workspace = true
@@ -69,13 +74,8 @@ zerocopy                       = { version = "0.8.54", features = ["derive"] }
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
-# kiddo + usearch: candidates in the hard-negative miner's 2D index
-# shootout (`benches/miner_index.rs`); dev-only, never in the library.
-# kiddo drags num-traits, ordered-float, and cmov into the dev graph.
-kiddo              = "5.3.2"
-proptest.workspace = true
-tokio              = { workspace = true, features = ["macros", "rt-multi-thread"] }
-usearch            = "2.26.0"
+proptest.workspace        = true
+tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [features]
 # Exposes `hash_graph_atlas::bench`, the measurement seams the
