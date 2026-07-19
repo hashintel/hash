@@ -4,7 +4,6 @@ use core::{error::Error, fmt};
 use std::io;
 
 use futures::{FutureExt as _, Stream, TryStreamExt as _, stream};
-use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 use tokio_postgres::{
@@ -16,7 +15,7 @@ use uuid::Uuid;
 pub(crate) use self::card::CardParameters;
 use super::{
     ArchivedEntityId, ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Dataset, Edge, Node,
-    NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
+    NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes,
     card::{
         Card, CardContext, Cl100kTokenizer, UnicodeSegmenter, build_card, hash::build_contents,
     },
@@ -24,31 +23,6 @@ use super::{
 use crate::math::BoxedVecN;
 
 mod card;
-
-/// The bitemporal point one dataset observes.
-///
-/// The axes are declared inputs of a fit: a generation records them, and
-/// a rerun with equal axes over unchanged history reads equal data. Axes
-/// in the past read the graph as it stood then; the store's temporal
-/// tables retain that history.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct TemporalAxes {
-    /// The transaction-time point: which writes are visible.
-    pub transaction_time: Timestamp<TransactionTime>,
-    /// The decision-time point: which decisions are in effect.
-    pub decision_time: Timestamp<DecisionTime>,
-}
-
-impl TemporalAxes {
-    /// The current moment on both axes.
-    #[must_use]
-    pub(crate) fn now() -> Self {
-        Self {
-            transaction_time: Timestamp::now(),
-            decision_time: Timestamp::now(),
-        }
-    }
-}
 
 /// The node universe shared by every corpus query.
 ///
@@ -541,6 +515,10 @@ impl Dataset for PostgresDataset<'_> {
         impl Stream<Item = Result<Ontology<ArchivedOntologyTypeUuid>, PostgresDatasetError>> + 'this
     where
         Self: 'this;
+
+    fn axes(&self) -> Option<TemporalAxes> {
+        Some(self.axes)
+    }
 
     fn nodes(&self) -> Self::NodeStream<'_> {
         let type_rows = type_rows_cte("scope");

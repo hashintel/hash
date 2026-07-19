@@ -53,6 +53,7 @@ use core::ops::Deref;
 use std::io;
 
 use futures::Stream;
+use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use smallvec::SmallVec;
 use type_system::{
     knowledge::entity::id::EntityUuid, ontology::id::OntologyTypeUuid,
@@ -76,6 +77,31 @@ pub(crate) const CANONICAL_DIMENSIONS: usize = 3072;
 /// Components in the projector representation: the l2-normalized leading
 /// slice of the canonical embedding.
 pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
+
+/// The bitemporal point one dataset observes.
+///
+/// The axes are declared inputs of a fit: a generation records them, and
+/// a rerun with equal axes over unchanged history reads equal data. Axes
+/// in the past read the graph as it stood then; the store's temporal
+/// tables retain that history.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct TemporalAxes {
+    /// The transaction-time point: which writes are visible.
+    pub transaction_time: Timestamp<TransactionTime>,
+    /// The decision-time point: which decisions are in effect.
+    pub decision_time: Timestamp<DecisionTime>,
+}
+
+impl TemporalAxes {
+    /// The current moment on both axes.
+    #[must_use]
+    pub(crate) fn now() -> Self {
+        Self {
+            transaction_time: Timestamp::now(),
+            decision_time: Timestamp::now(),
+        }
+    }
+}
 
 /// The byte-level form of an [`EntityUuid`].
 #[derive(
@@ -531,6 +557,15 @@ pub(crate) trait Dataset {
     type CardStream<'this>: Stream<Item = io::Result<(Self::OntologyId, Card)>>
     where
         Self: 'this;
+
+    /// Returns the bitemporal point this dataset observes, when its
+    /// source has temporal axes.
+    ///
+    /// A generation's metadata records the value as part of its input
+    /// snapshot. Sources without temporal history, such as synthetic
+    /// fixtures, return [`None`].
+    #[must_use]
+    fn axes(&self) -> Option<TemporalAxes>;
 
     /// Opens the node stream.
     ///

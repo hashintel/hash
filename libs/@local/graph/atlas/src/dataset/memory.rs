@@ -5,7 +5,7 @@ use std::{collections::HashMap, io};
 use futures::{Stream, StreamExt as _, stream};
 use zerocopy::{LE, U64};
 
-use super::{CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, card::Card};
+use super::{CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, TemporalAxes, card::Card};
 use crate::math::BoxedVecN;
 
 /// A [`Dataset`] held entirely in memory.
@@ -116,6 +116,10 @@ impl Dataset for MemoryDataset {
     type EdgeStream<'this> = impl Stream<Item = Result<Edge<U64<LE>>, !>> + 'this;
     type NodeStream<'this> = impl Stream<Item = Result<Node<U64<LE>>, !>> + 'this;
     type OntologyStream<'this> = impl Stream<Item = Result<Ontology<U64<LE>>, !>> + 'this;
+
+    fn axes(&self) -> Option<TemporalAxes> {
+        None
+    }
 
     fn nodes(&self) -> Self::NodeStream<'_> {
         stream::iter(self.nodes.iter().cloned().map(Ok::<_, !>))

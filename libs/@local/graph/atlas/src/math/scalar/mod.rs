@@ -81,6 +81,37 @@ pub fn softplus(value: f32) -> f32 {
     value.max(0.0) + (-value.abs()).exp().ln_1p()
 }
 
+/// Computes the logistic function `1 / (1 + exp(-value))`.
+///
+/// The evaluation feeds the negated magnitude to `exp`, keeping the
+/// intermediate exponent non-positive: the result is finite for every
+/// input, lies in `(0, 1)` for finite inputs, and satisfies
+/// `sigmoid(-value) == 1 - sigmoid(value)` up to rounding. The sigmoid is
+/// the first derivative of [`softplus`].
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::sigmoid;
+///
+/// assert_eq!(sigmoid(0.0), 0.5);
+/// // A naive `exp(200.0)` overflows; the stable form saturates.
+/// assert_eq!(sigmoid(200.0), 1.0);
+/// assert!(sigmoid(-200.0) < 1e-30);
+/// ```
+#[inline]
+#[must_use]
+pub fn sigmoid(value: f32) -> f32 {
+    let bounded = (-value.abs()).exp();
+    if value >= 0.0 {
+        (1.0 + bounded).recip()
+    } else {
+        // The direct ratio keeps relative precision where the
+        // complement `1 - 1/(1 + bounded)` would round to zero.
+        bounded / (1.0 + bounded)
+    }
+}
+
 /// Computes the Huber penalty: quadratic below the threshold, linear above.
 ///
 /// For `value <= threshold` the penalty is `value * value / 2`; above the

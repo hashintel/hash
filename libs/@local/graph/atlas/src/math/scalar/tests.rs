@@ -6,7 +6,7 @@
 
 use proptest::prelude::*;
 
-use crate::math::scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, softplus};
+use crate::math::scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus};
 
 #[test]
 fn unit_fraction_accepts_exactly_the_closed_interval() {
@@ -53,6 +53,25 @@ fn softplus_matches_naive_on_small_values() {
         let naive = (1.0 + value.exp()).ln();
         assert!((softplus(value) - naive).abs() < 1e-5, "value {value}");
     }
+}
+
+#[test]
+fn sigmoid_matches_hand_computed_values() {
+    // At zero the two branches agree exactly: 1 / (1 + 1).
+    assert_eq!(sigmoid(0.0), 0.5);
+    // Saturation: exp(-200) underflows f32, so the asymptotes are exact.
+    assert_eq!(sigmoid(200.0), 1.0);
+    assert_eq!(sigmoid(-200.0), 0.0);
+}
+
+#[test]
+fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
+    // The complement form `1 - 1/(1 + exp(-|x|))` rounds to zero once
+    // exp(-|x|) drops below f32 epsilon; the direct ratio keeps the tail.
+    let tail = sigmoid(-20.0);
+    let expected = (-20.0_f32).exp();
+    assert!(tail > 0.0);
+    assert!((tail - expected).abs() <= 1e-6 * expected, "tail {tail}");
 }
 
 #[test]
@@ -130,6 +149,32 @@ proptest! {
         prop_assert!(
             (difference - value).abs() <= 1e-5 * value.abs().max(1.0),
             "softplus({0}) - softplus(-{0}) = {1}", value, difference,
+        );
+    }
+
+    /// The sigmoid lies in `[0, 1]`, is monotone non-decreasing, and
+    /// satisfies the complement identity `sigmoid(-x) == 1 - sigmoid(x)`
+    /// up to rounding. Inputs are bounded to `-1e4..1e4`; the asymptotes
+    /// are pinned above.
+    #[test]
+    fn sigmoid_is_bounded_monotone_and_complementary(
+        first in -1e4_f32..1e4,
+        second in -1e4_f32..1e4,
+    ) {
+        let (lower, upper) = if first <= second { (first, second) } else { (second, first) };
+
+        prop_assert!((0.0..=1.0).contains(&sigmoid(lower)));
+        prop_assert!(
+            sigmoid(lower) <= sigmoid(upper),
+            "sigmoid({}) = {} above sigmoid({}) = {}",
+            lower, sigmoid(lower), upper, sigmoid(upper),
+        );
+
+        let complement = 1.0 - sigmoid(first);
+        prop_assert!(
+            (sigmoid(-first) - complement).abs() <= 1e-6,
+            "sigmoid(-{0}) = {1} against 1 - sigmoid({0}) = {2}",
+            first, sigmoid(-first), complement,
         );
     }
 
