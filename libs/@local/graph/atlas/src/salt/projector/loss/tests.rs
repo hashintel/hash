@@ -1,0 +1,742 @@
+//! Certificates for the loss terms: every hand-derived derivative is
+//! cross-checked against a finite difference of its own value function,
+//! hand-computed dyadic points are asserted bit-exactly, and the
+//! autodiff support term is compared against an independent analytic
+//! gradient formula.
+
+#![expect(
+    clippy::float_cmp,
+    reason = "bit-exact assertions over dyadic values are contracts: the chosen points make every \
+              intermediate exactly representable"
+)]
+
+use burn::{
+    backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
+    tensor::{Tensor, TensorData},
+};
+
+use super::{
+    AffinityEnergy, GradientField, RelationEnergy, SupportAnchor, SupportOptions, SupportTargets,
+    attraction_term,
+    energy::{CoincidentEnergy, ProximalEnergy},
+    relation_term, repulsion_term, support_term,
+};
+use crate::{
+    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    math::{AffinityCurve, Vec2},
+    salt::{
+        policy::ClassProbabilities,
+        projector::{sample::SampledRelationEdges, scale::LocalScales},
+        relation::{
+            Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
+            attraction::{AttractionIndex, AttractionOptions},
+            protection::NodePair,
+        },
+    },
+};
+
+type B = Autodiff<NdArray>;
+
+fn device() -> NdArrayDevice {
+    NdArrayDevice::default()
+}
+
+fn curve(a: f32, b: f32) -> AffinityCurve {
+    AffinityCurve::new(a, b).expect("test curve parameters are positive and finite")
+}
+
+fn affinity_energy(a: f32, b: f32, epsilon: f32) -> AffinityEnergy {
+    AffinityEnergy::new(curve(a, b), epsilon).expect("test epsilon is positive and finite")
+}
+
+fn proximal(radius: f32, temperature: f32) -> ProximalEnergy {
+    ProximalEnergy::new(radius, temperature).expect("test proximal parameters are valid")
+}
+
+fn coincident(radius: f32, threshold: f32) -> CoincidentEnergy {
+    CoincidentEnergy::new(radius, threshold).expect("test coincident parameters are valid")
+}
+
+fn relation_energy(epsilon: f32) -> RelationEnergy {
+    RelationEnergy::new(coincident(0.25, 1.0), proximal(1.0, 0.5), epsilon)
+        .expect("test relation parameters are valid")
+}
+
+fn pair(one: u64, other: u64) -> NodePair {
+    NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
+}
+
+fn scales(values: &[f32]) -> LocalScales {
+    LocalScales::new(values.into()).expect("test scales are finite and non-negative")
+}
+
+/// Central finite difference of `value` in one scalar argument.
+fn scalar_difference(value: impl Fn(f32) -> f32, at: f32, step: f32) -> f32 {
+    (value(at + step) - value(at - step)) / (2.0 * step)
+}
+
+/// Central finite difference of a term value in one coordinate axis.
+fn coordinate_difference(
+    value: impl Fn(&[Vec2]) -> f32,
+    coordinates: &[Vec2],
+    row: usize,
+    axis: usize,
+    step: f32,
+) -> f32 {
+    let mut perturbed = coordinates.to_vec();
+    let offset = if axis == 0 {
+        Vec2::new(step, 0.0)
+    } else {
+        Vec2::new(0.0, step)
+    };
+    perturbed[row] = coordinates[row] + offset;
+    let above = value(&perturbed);
+    perturbed[row] = coordinates[row] - offset;
+    let below = value(&perturbed);
+    (above - below) / (2.0 * step)
+}
+
+/// Asserts a derivative against its finite difference with tolerance
+/// scaled to the finite difference's own f32 conditioning.
+#[track_caller]
+fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
+    assert!(
+        (derivative - difference).abs() <= 1e-3 + 2e-2 * difference.abs(),
+        "{context}: derivative {derivative} against finite difference {difference}"
+    );
+}
+
+#[test]
+fn affinity_energy_rejects_an_invalid_epsilon() {
+    assert_eq!(AffinityEnergy::new(curve(1.0, 1.0), 0.0), None);
+    assert_eq!(AffinityEnergy::new(curve(1.0, 1.0), -0.5), None);
+    assert_eq!(AffinityEnergy::new(curve(1.0, 1.0), f32::NAN), None);
+}
+
+#[test]
+fn affinity_energies_match_hand_computed_dyadic_values() {
+    // a = 1, b = 1, u = 1: q = 0.5 exactly. With epsilon = 0.5 both
+    // logarithm arguments are exactly 1, so both values are exactly
+    // zero and the derivative mass is a b q^2 = 0.25 exactly.
+    let energy = affinity_energy(1.0, 1.0, 0.5);
+
+    let (value, derivative) = energy.attraction(1.0);
+    assert_eq!(value, 0.0);
+    assert_eq!(derivative, 0.25);
+
+    let (value, derivative) = energy.repulsion(1.0);
+    assert_eq!(value, 0.0);
+    assert_eq!(derivative, -0.25);
+}
+
+#[test]
+fn affinity_energies_have_zero_derivative_at_coincidence() {
+    let energy = affinity_energy(1.577, 0.895, 0.125);
+
+    let (value, derivative) = energy.attraction(0.0);
+    assert!(value.is_finite());
+    assert_eq!(derivative, 0.0);
+
+    let (value, derivative) = energy.repulsion(0.0);
+    assert!(value.is_finite());
+    assert_eq!(derivative, 0.0);
+}
+
+#[test]
+fn affinity_derivatives_match_finite_differences() {
+    // Both an integer and a fractional exponent: the derivative's
+    // u^(b - 1) factor follows different code paths through powf.
+    for (a, b) in [(1.0, 1.0), (1.577, 0.895)] {
+        let energy = affinity_energy(a, b, 0.125);
+        for at in [0.25_f32, 0.5, 1.0, 2.0, 5.0] {
+            let step = at * 1e-3;
+            let difference = scalar_difference(|u| energy.attraction(u).0, at, step);
+            assert_derivative_close(
+                energy.attraction(at).1,
+                difference,
+                &format!("attraction a {a} b {b} at {at}"),
+            );
+
+            let difference = scalar_difference(|u| energy.repulsion(u).0, at, step);
+            assert_derivative_close(
+                energy.repulsion(at).1,
+                difference,
+                &format!("repulsion a {a} b {b} at {at}"),
+            );
+        }
+    }
+}
+
+#[test]
+fn proximal_energy_matches_hand_computed_values() {
+    // At the radius the argument is exactly zero: the value is
+    // temperature * softplus(0) = 0.5 * ln 2 and the derivative is
+    // sigmoid(0) = 0.5 exactly.
+    let energy = proximal(1.0, 0.5);
+
+    let (value, derivative) = energy.evaluate(1.0);
+    assert!((value - 0.5 * core::f32::consts::LN_2).abs() < 1e-7);
+    assert_eq!(derivative, 0.5);
+
+    // Far outside, the pull saturates at unit slope; far inside it
+    // vanishes.
+    assert!((energy.evaluate(9.0).1 - 1.0).abs() < 1e-6);
+    assert!(energy.evaluate(-7.0).1 < 1e-6);
+}
+
+#[test]
+fn proximal_derivative_matches_finite_differences() {
+    let energy = proximal(1.0, 0.5);
+    for at in [0.0_f32, 0.5, 0.875, 1.0, 1.5, 3.0] {
+        let difference = scalar_difference(|z| energy.evaluate(z).0, at, 1e-3);
+        assert_derivative_close(
+            energy.evaluate(at).1,
+            difference,
+            &format!("proximal at {at}"),
+        );
+    }
+}
+
+#[test]
+fn coincident_energy_matches_hand_computed_regimes() {
+    let energy = coincident(1.0, 1.0);
+
+    // Inside the radius: exactly zero value and derivative.
+    assert_eq!(energy.evaluate(0.5), (0.0, 0.0));
+    // Quadratic regime: excess 0.5, huber 0.125, derivative the excess.
+    assert_eq!(energy.evaluate(1.5), (0.125, 0.5));
+    // Linear regime: excess 2, value 1 * (2 - 0.5), derivative capped.
+    assert_eq!(energy.evaluate(3.0), (1.5, 1.0));
+}
+
+#[test]
+fn coincident_derivative_matches_finite_differences() {
+    let energy = coincident(1.0, 1.0);
+    // The grid avoids the exact kink points, where a central
+    // difference straddles two regimes.
+    for at in [0.25_f32, 0.875, 1.25, 1.75, 2.5, 4.0] {
+        let difference = scalar_difference(|z| energy.evaluate(z).0, at, 1e-3);
+        assert_derivative_close(
+            energy.evaluate(at).1,
+            difference,
+            &format!("coincident at {at}"),
+        );
+    }
+}
+
+#[test]
+fn relation_energy_requires_ordered_radii() {
+    // The Coincident radius must lie strictly below the Proximal one.
+    assert!(RelationEnergy::new(coincident(1.0, 1.0), proximal(1.0, 0.5), 0.25).is_none());
+    assert!(RelationEnergy::new(coincident(2.0, 1.0), proximal(1.0, 0.5), 0.25).is_none());
+    assert!(RelationEnergy::new(coincident(0.5, 1.0), proximal(1.0, 0.5), 0.0).is_none());
+    assert!(RelationEnergy::new(coincident(0.5, 1.0), proximal(1.0, 0.5), 0.25).is_some());
+}
+
+#[test]
+fn relation_mixture_is_the_weighted_class_sum() {
+    let energy = relation_energy(0.25);
+    let z = 1.75;
+
+    let (coincident_value, coincident_derivative) = coincident(0.25, 1.0).evaluate(z);
+    let (proximal_value, proximal_derivative) = proximal(1.0, 0.5).evaluate(z);
+    let (value, derivative) = energy.mixture(z, 0.5, 0.25);
+
+    assert_eq!(
+        value,
+        0.5_f32.mul_add(coincident_value, 0.25 * proximal_value)
+    );
+    assert_eq!(
+        derivative,
+        0.5_f32.mul_add(coincident_derivative, 0.25 * proximal_derivative)
+    );
+}
+
+#[test]
+fn gradient_field_accumulates_and_resets() {
+    let mut field = GradientField::new(3);
+    field.accumulate(0, Vec2::new(1.0, -2.0));
+    field.accumulate(0, Vec2::new(0.5, 0.5));
+    field.accumulate(2, Vec2::new(-1.0, 4.0));
+
+    assert_eq!(field.rows(), 3);
+    assert_eq!(field.as_slice()[0], Vec2::new(1.5, -1.5));
+    assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
+    assert_eq!(field.as_slice()[2], Vec2::new(-1.0, 4.0));
+
+    field.reset();
+    assert!(
+        field
+            .as_slice()
+            .iter()
+            .all(|&entry| entry == Vec2::splat(0.0))
+    );
+}
+
+#[test]
+fn attraction_term_matches_hand_computed_gradient() {
+    // One unit-distance pair under the dyadic energy: value exactly
+    // zero, per-endpoint gradient 2 * derivative * difference =
+    // (-0.5, 0) at the first node and its negation at the second.
+    let energy = affinity_energy(1.0, 1.0, 0.5);
+    let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+    let mut field = GradientField::new(2);
+
+    let value = attraction_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+
+    assert_eq!(value, 0.0);
+    assert_eq!(field.as_slice()[0], Vec2::new(-0.5, 0.0));
+    assert_eq!(field.as_slice()[1], Vec2::new(0.5, 0.0));
+}
+
+#[test]
+fn attraction_pulls_and_repulsion_pushes() {
+    let energy = affinity_energy(1.577, 0.895, 0.125);
+    let coordinates = [Vec2::new(0.25, -0.5), Vec2::new(1.5, 0.75)];
+    let toward = coordinates[0] - coordinates[1];
+
+    let mut field = GradientField::new(2);
+    attraction_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+    // The loss gradient ascends distance; the descent step moves the
+    // endpoints together.
+    assert!(field.as_slice()[0].dot(toward) > 0.0);
+
+    let mut field = GradientField::new(2);
+    repulsion_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+    assert!(field.as_slice()[0].dot(toward) < 0.0);
+}
+
+#[test]
+fn coincident_pair_contributes_value_but_no_gradient() {
+    let energy = affinity_energy(1.0, 1.0, 0.125);
+    let coordinates = [Vec2::new(0.5, 0.5), Vec2::new(0.5, 0.5)];
+    let mut field = GradientField::new(2);
+
+    let value = repulsion_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+
+    // A coincident negative pair is maximally improbable placement, so
+    // its value is large - but it has no direction to push along.
+    assert!(value > 0.0);
+    assert_eq!(field.as_slice()[0], Vec2::splat(0.0));
+    assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
+}
+
+/// A varied four-node frame with no coincident or symmetric pairs.
+fn frame() -> [Vec2; 4] {
+    [
+        Vec2::new(0.0, 0.125),
+        Vec2::new(1.0, -0.25),
+        Vec2::new(-0.75, 0.875),
+        Vec2::new(0.375, 1.5),
+    ]
+}
+
+#[test]
+fn attraction_term_gradient_matches_finite_differences() {
+    let energy = affinity_energy(1.577, 0.895, 0.125);
+    // A duplicate pair certifies accumulation: proportional sampling
+    // legitimately draws one edge twice.
+    let pairs = [
+        (pair(0, 1), 1.0),
+        (pair(1, 2), 0.5),
+        (pair(0, 3), 0.75),
+        (pair(0, 1), 1.0),
+    ];
+    let scale = 1.25;
+
+    let coordinates = frame();
+    let mut field = GradientField::new(4);
+    attraction_term(&coordinates, pairs, energy, scale, &mut field);
+
+    for row in 0..4 {
+        for axis in 0..2 {
+            let difference = coordinate_difference(
+                |perturbed| {
+                    let mut scratch = GradientField::new(4);
+                    attraction_term(perturbed, pairs, energy, scale, &mut scratch)
+                },
+                &coordinates,
+                row,
+                axis,
+                1e-3,
+            );
+            assert_derivative_close(
+                field.as_slice()[row][axis],
+                difference,
+                &format!("attraction node {row} axis {axis}"),
+            );
+        }
+    }
+}
+
+#[test]
+fn repulsion_term_gradient_matches_finite_differences() {
+    let energy = affinity_energy(1.577, 0.895, 0.125);
+    let pairs = [(pair(0, 2), 1.0), (pair(1, 3), 0.25), (pair(2, 3), 0.5)];
+    let scale = 0.75;
+
+    let coordinates = frame();
+    let mut field = GradientField::new(4);
+    repulsion_term(&coordinates, pairs, energy, scale, &mut field);
+
+    for row in 0..4 {
+        for axis in 0..2 {
+            let difference = coordinate_difference(
+                |perturbed| {
+                    let mut scratch = GradientField::new(4);
+                    repulsion_term(perturbed, pairs, energy, scale, &mut scratch)
+                },
+                &coordinates,
+                row,
+                axis,
+                1e-3,
+            );
+            assert_derivative_close(
+                field.as_slice()[row][axis],
+                difference,
+                &format!("repulsion node {row} axis {axis}"),
+            );
+        }
+    }
+}
+
+/// Builds an attraction index over four nodes and two relations: one
+/// mixed-class relation (Coincident coefficient 1) and one pure
+/// Proximal relation.
+fn attraction_fixture() -> AttractionIndex {
+    let policies = [
+        RelationPolicy {
+            relation: OntologyRowId::new(3),
+            attraction: ClassProbabilities {
+                coincident: 0.5,
+                proximal: 0.5,
+            },
+            selected: ClassProbabilities {
+                coincident: 0.5,
+                proximal: 0.5,
+            },
+            applicability: 1.0,
+            strength: 1.0,
+        },
+        RelationPolicy {
+            relation: OntologyRowId::new(9),
+            attraction: ClassProbabilities {
+                coincident: 0.0,
+                proximal: 1.0,
+            },
+            selected: ClassProbabilities {
+                coincident: 0.0,
+                proximal: 1.0,
+            },
+            applicability: 1.0,
+            strength: 1.0,
+        },
+    ];
+    let mut instances = vec![
+        RelationInstance {
+            edge: EdgeRowId::new(0),
+            relation: OntologyRowId::new(3),
+            source: NodeRowId::new(0),
+            target: NodeRowId::new(1),
+            confidence: RelationConfidence::default(),
+        },
+        RelationInstance {
+            edge: EdgeRowId::new(1),
+            relation: OntologyRowId::new(3),
+            source: NodeRowId::new(2),
+            target: NodeRowId::new(3),
+            confidence: RelationConfidence::default(),
+        },
+        RelationInstance {
+            edge: EdgeRowId::new(2),
+            relation: OntologyRowId::new(9),
+            source: NodeRowId::new(0),
+            target: NodeRowId::new(2),
+            confidence: RelationConfidence::default(),
+        },
+    ];
+    RelationIndexes::build(
+        4,
+        Policies::new(&policies).expect("the fixture policies are certified"),
+        &mut instances,
+        AttractionOptions::new(1.0, 0.0).expect("the fixture options are valid"),
+    )
+    .expect("the fixture instances satisfy the input contract")
+    .attraction
+}
+
+/// Wraps every group of an index with all its edges, as a sampler
+/// emitting everything would.
+fn full_batch(index: &AttractionIndex) -> Vec<SampledRelationEdges<'_>> {
+    index
+        .groups()
+        .iter()
+        .map(|group| SampledRelationEdges {
+            group,
+            edges: group.edges().to_vec(),
+        })
+        .collect()
+}
+
+#[test]
+fn relation_term_matches_hand_computed_values() {
+    // One pure-Proximal instance between rows 0 and 2 at distance 1.
+    // Scales 0.75 with guard 0.25 normalize by exactly 1, so z = 1
+    // sits exactly on the Proximal radius: derivative sigmoid(0) = 0.5.
+    // Degree normalization for two degree-one endpoints is 0.5, and
+    // the unscored confidence is neutral 1, so the instance factor is
+    // 0.5. The gradient on the source is direction * (factor 0.5 *
+    // derivative 0.5) with direction (-1, 0).
+    let index = attraction_fixture();
+    let batch = full_batch(&index);
+    let proximal_only = &batch[1..];
+    assert_eq!(proximal_only.len(), 1);
+    assert_eq!(proximal_only[0].group.relation().get(), 9);
+
+    let coordinates = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(5.0, 5.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(-5.0, 5.0),
+    ];
+    let rho = scales(&[0.75, 0.75, 0.75, 0.75]);
+    let mut field = GradientField::new(4);
+
+    let value = relation_term(
+        &coordinates,
+        &rho,
+        proximal_only,
+        relation_energy(0.25),
+        1.0,
+        &mut field,
+    );
+
+    // value = 0.5 (nu) * temperature (0.5) * softplus(0) = 0.25 ln 2.
+    assert!((value - 0.25 * core::f32::consts::LN_2).abs() < 1e-6);
+    assert_eq!(field.as_slice()[0], Vec2::new(-0.25, 0.0));
+    assert_eq!(field.as_slice()[2], Vec2::new(0.25, 0.0));
+    assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
+    assert_eq!(field.as_slice()[3], Vec2::splat(0.0));
+}
+
+#[test]
+fn relation_term_gradient_matches_finite_differences() {
+    let index = attraction_fixture();
+    let batch = full_batch(&index);
+    let energy = relation_energy(0.25);
+    let rho = scales(&[0.5, 1.25, 0.75, 2.0]);
+    let scale = 1.5;
+
+    let coordinates = frame();
+    let mut field = GradientField::new(4);
+    relation_term(&coordinates, &rho, &batch, energy, scale, &mut field);
+
+    for row in 0..4 {
+        for axis in 0..2 {
+            let difference = coordinate_difference(
+                |perturbed| {
+                    let mut scratch = GradientField::new(4);
+                    relation_term(perturbed, &rho, &batch, energy, scale, &mut scratch)
+                },
+                &coordinates,
+                row,
+                axis,
+                1e-3,
+            );
+            assert_derivative_close(
+                field.as_slice()[row][axis],
+                difference,
+                &format!("relation node {row} axis {axis}"),
+            );
+        }
+    }
+}
+
+#[test]
+fn relation_term_skips_gradient_at_coincident_points() {
+    let index = attraction_fixture();
+    let batch = full_batch(&index);
+    let coordinates = [Vec2::splat(1.0); 4];
+    let rho = scales(&[0.75; 4]);
+    let mut field = GradientField::new(4);
+
+    let value = relation_term(
+        &coordinates,
+        &rho,
+        &batch,
+        relation_energy(0.25),
+        1.0,
+        &mut field,
+    );
+
+    // z = 0 still carries Proximal energy mass, but a coincident pair
+    // has no direction to pull along.
+    assert!(value > 0.0);
+    assert!(
+        field
+            .as_slice()
+            .iter()
+            .all(|&entry| entry == Vec2::splat(0.0))
+    );
+}
+
+#[test]
+fn support_targets_reject_invalid_anchors() {
+    let device = device();
+    let valid = SupportAnchor {
+        row: 0,
+        target: Vec2::new(1.0, -1.0),
+        radius: 0.5,
+        weight: 1.0,
+    };
+
+    assert!(SupportTargets::<B>::new(&[], &device).is_none());
+    assert!(
+        SupportTargets::<B>::new(
+            &[SupportAnchor {
+                target: Vec2::new(f32::NAN, 0.0),
+                ..valid
+            }],
+            &device
+        )
+        .is_none()
+    );
+    assert!(
+        SupportTargets::<B>::new(
+            &[SupportAnchor {
+                radius: -1.0,
+                ..valid
+            }],
+            &device
+        )
+        .is_none()
+    );
+    assert!(
+        SupportTargets::<B>::new(
+            &[SupportAnchor {
+                weight: -0.5,
+                ..valid
+            }],
+            &device
+        )
+        .is_none()
+    );
+    assert!(SupportTargets::<B>::new(&[valid], &device).is_some());
+}
+
+#[test]
+fn support_options_reject_invalid_constants() {
+    assert!(SupportOptions::new(0.0, 0.25).is_none());
+    assert!(SupportOptions::new(1.0, 0.0).is_none());
+    assert!(SupportOptions::new(f32::INFINITY, 0.25).is_none());
+    assert!(SupportOptions::new(1.0, 0.25).is_some());
+}
+
+fn support_fixture(device: &NdArrayDevice) -> (Tensor<B, 2>, SupportTargets<B>, SupportOptions) {
+    let coordinates = Tensor::from_data(
+        TensorData::new(vec![0.5_f32, -0.25, 2.0, 1.5, -1.0, 0.75], [3, 2]),
+        device,
+    )
+    .require_grad();
+    let anchors = [
+        SupportAnchor {
+            row: 0,
+            target: Vec2::new(0.25, 0.5),
+            radius: 0.75,
+            weight: 1.5,
+        },
+        SupportAnchor {
+            row: 2,
+            target: Vec2::new(-2.0, 1.25),
+            radius: 1.5,
+            weight: 0.5,
+        },
+    ];
+    let targets = SupportTargets::new(&anchors, device).expect("the fixture anchors are valid");
+    let options = SupportOptions::new(1.0, 0.25).expect("the fixture constants are valid");
+    (coordinates, targets, options)
+}
+
+#[test]
+fn support_term_gradient_matches_the_analytic_formula() {
+    // Independent reference: for each anchor, the hand-derived chain
+    // rule gives dL/dy = scale * weight * min(n, threshold) * (y - t) /
+    // (sqrt(d^2 + eps^2) * (r + eps)) with n the smoothed normalized
+    // distance. The autodiff backward pass must agree.
+    let device = device();
+    let (coordinates, targets, options) = support_fixture(&device);
+    let scale = 1.25;
+
+    let gradients = support_term(&coordinates, &targets, options, scale).backward();
+    let gradient = coordinates
+        .grad(&gradients)
+        .expect("the support term should reach the coordinates")
+        .into_data()
+        .to_vec::<f32>()
+        .expect("gradients should convert to f32 values");
+
+    let anchors = [
+        (
+            0_usize,
+            Vec2::new(0.5, -0.25),
+            Vec2::new(0.25, 0.5),
+            0.75,
+            1.5,
+        ),
+        (2, Vec2::new(-1.0, 0.75), Vec2::new(-2.0, 1.25), 1.5, 0.5),
+    ];
+    let (threshold, epsilon) = (1.0_f32, 0.25_f32);
+    for (row, coordinate, target, radius, weight) in anchors {
+        let difference = coordinate - target;
+        let smoothed = epsilon.mul_add(epsilon, difference.length_squared()).sqrt();
+        let normalized = (smoothed - epsilon) / (radius + epsilon);
+        let factor = scale * weight * normalized.min(threshold) / (smoothed * (radius + epsilon));
+        let expected = difference * factor;
+        for axis in 0..2 {
+            let actual = gradient[row * 2 + axis];
+            assert!(
+                (actual - expected[axis]).abs() <= 1e-5 * expected[axis].abs().max(1.0),
+                "anchor row {row} axis {axis}: autodiff {actual} against analytic {}",
+                expected[axis],
+            );
+        }
+    }
+
+    // Unanchored rows receive no support gradient.
+    assert_eq!(gradient[2], 0.0);
+    assert_eq!(gradient[3], 0.0);
+}
+
+#[test]
+fn support_term_is_finite_at_exact_coincidence() {
+    // Anchored nodes start exactly on their targets; the smoothed
+    // distance keeps the gradient defined (and zero) there.
+    let device = device();
+    let coordinates: Tensor<B, 2> =
+        Tensor::from_data(TensorData::new(vec![0.5_f32, -0.25], [1, 2]), &device).require_grad();
+    let anchors = [SupportAnchor {
+        row: 0,
+        target: Vec2::new(0.5, -0.25),
+        radius: 0.75,
+        weight: 1.0,
+    }];
+    let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");
+    let options = SupportOptions::new(1.0, 0.25).expect("the fixture constants are valid");
+
+    let value = support_term(&coordinates, &targets, options, 1.0);
+    let scalar = value
+        .clone()
+        .into_data()
+        .to_vec::<f32>()
+        .expect("the value should convert to f32 values")[0];
+    assert_eq!(scalar, 0.0);
+
+    let gradients = value.backward();
+    let gradient = coordinates
+        .grad(&gradients)
+        .expect("the support term should reach the coordinates")
+        .into_data()
+        .to_vec::<f32>()
+        .expect("gradients should convert to f32 values");
+    assert_eq!(gradient, vec![0.0, 0.0]);
+}
