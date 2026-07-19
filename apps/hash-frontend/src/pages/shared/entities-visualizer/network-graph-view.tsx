@@ -47,11 +47,12 @@ const MAX_DEPTH = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
- * Fixed camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world
- * unit) passed to the graph. A constant keeps the camera stable as tiles stream
- * in.
+ * Camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world unit). A
+ * cell is one world unit — a depth-16 tile, the finest the quadtree addresses. We
+ * cap where one screen dimension shows `max(width, height) / 100` cells, which
+ * reduces to 100 px per cell (`2 ** zoom = 100`), independent of canvas size.
  */
-const MAX_ZOOM = 16;
+const MAX_ZOOM = Math.log2(100);
 
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
