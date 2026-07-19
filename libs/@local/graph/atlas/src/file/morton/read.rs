@@ -130,6 +130,11 @@ impl MortonFile {
             }
         };
 
+        // The 34 posts are copied out of the mapping rather than viewed:
+        // `Fenceposts` carries the structural rules as a type invariant a
+        // raw `U64<LE>` view cannot, and the copy keeps `bucket_of`'s
+        // partition search on native integers instead of `.get()` per
+        // probe. 272 bytes once per open buys both.
         let fenceposts = Fenceposts::new(&header.posts()).map_err(OpenMortonError::Fenceposts)?;
 
         let expected = header.expected_file_len();

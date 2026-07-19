@@ -95,6 +95,7 @@ impl LandmarkFile {
     /// are not a header this module speaks, and
     /// [`OpenLandmarkError::Length`] when the file length contradicts
     /// the header's geometry.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenLandmarkError> {
         let file = File::open(path).map_err(OpenLandmarkError::Io)?;
         // SAFETY: published artifact files are immutable (the `crate::file`

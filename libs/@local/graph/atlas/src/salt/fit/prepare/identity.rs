@@ -215,6 +215,7 @@ where
         clippy::integer_division_remainder_used,
         reason = "stride-block arithmetic is exact: pair `i` belongs to index key `i / stride`"
     )]
+    #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: IdentityFile) -> Result<Self, InvalidIdentityFile> {
         let expected = size_of::<I>() as u32;
         if file.key_width() != expected {

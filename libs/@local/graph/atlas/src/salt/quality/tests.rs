@@ -96,6 +96,21 @@ fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
     assert_eq!(none.groups(), 0);
 }
 
+/// The default threshold groups at duplicate scale: the fixture's
+/// coincident pair joins while its 0.05-distant chain - twenty-five
+/// defaults wide - stays apart.
+#[test]
+fn default_epsilon_groups_duplicates_not_neighbours() {
+    let table = clump_fixture();
+    let clumps = Clumps::from_knn(&table.view(), super::clump::DEFAULT_EPSILON);
+
+    assert_eq!(clumps.epsilon(), super::clump::DEFAULT_EPSILON);
+    assert_eq!(clumps.clump(3), clumps.clump(4));
+    assert_ne!(clumps.clump(0), clumps.clump(1));
+    assert_eq!(clumps.groups(), 1);
+    assert_eq!(clumps.grouped_rows(), 2);
+}
+
 #[test]
 fn hand_built_labels_read_like_a_grouping() {
     let clumps = Clumps::from_labels(vec![0, 0, 1, 2, 2, 2], 0.25);
@@ -606,7 +621,7 @@ async fn clump_readings_match_a_sorting_reference() {
     // Blocks of four rows form one clump each: neighbours on the
     // circle collapse onto shared labels, and the readings replay
     // from sorted orderings collapsed the same way.
-    let labels: Vec<u32> = (0..40_u32).map(|row| row / 4).collect();
+    let labels: Vec<u32> = (0..10_u32).flat_map(|block| [block; 4]).collect();
     let grouped = Clumps::from_labels(labels.clone(), 0.2);
     let readings = probe(
         &fixture.dataset(),
@@ -740,7 +755,7 @@ fn assess_flags_degraded_subgroups() {
         .iter()
         .map(|subgroup| {
             (
-                subgroup.ontology_row,
+                subgroup.ontology_row.get(),
                 subgroup.anchors,
                 subgroup.rows[0].recall,
             )
@@ -752,7 +767,7 @@ fn assess_flags_degraded_subgroups() {
     // 1/2 stays inside 2/3; type 100 has no degradation at all.
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
-    assert_eq!(flag.ontology_row, 200);
+    assert_eq!(flag.ontology_row, OntologyRowId::new(200));
     assert_eq!(flag.neighbourhood, 1);
     assert_eq!(flag.anchors, 2);
     assert_eq!(flag.degradation, 1.0);
@@ -816,7 +831,7 @@ fn clump_resolution_triages_flags() {
 
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
-    assert_eq!(flag.ontology_row, 200);
+    assert_eq!(flag.ontology_row, OntologyRowId::new(200));
     assert_eq!(flag.clump_degradation, Some(0.0));
     assert_eq!(flag.clump_overall_degradation, Some(0.0));
     assert!(flag.clump_resolved);

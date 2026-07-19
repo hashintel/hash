@@ -347,13 +347,17 @@ proptest! {
             let run = file.run(bucket, cell);
 
             // The reference: scan the segment linearly.
-            let segment = posts.segment(bucket);
-            let expected: Vec<u64> = (segment.start..segment.end)
-                .filter(|&position| cell.contains(codes[position as usize]))
+            let expected: Vec<u64> = posts
+                .segment(bucket)
+                .filter(|&position| {
+                    let position =
+                        usize::try_from(position).expect("test columns fit the address space");
+                    cell.contains(codes[position])
+                })
                 .collect();
 
             prop_assert_eq!(
-                (run.start..run.end).collect::<Vec<u64>>(),
+                run.collect::<Vec<u64>>(),
                 expected,
                 "bucket {} of cell {:?}",
                 bucket.get(),

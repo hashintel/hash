@@ -157,6 +157,7 @@ impl MappedLandmarkSkeleton {
     /// # Errors
     ///
     /// Returns an error when the file violates a skeleton invariant.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: LandmarkFile) -> Result<Self, InvalidLandmarkFile> {
         let landmarks = file.landmarks();
 

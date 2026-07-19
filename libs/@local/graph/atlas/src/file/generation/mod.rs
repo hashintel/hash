@@ -296,6 +296,8 @@ impl GenerationRoot {
     /// Returns an error when the pointer cannot be read or does not name
     /// a generation.
     pub(crate) fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
+        // Parsed, never mapped: the pointer is one hex line, rewritten
+        // on every activation, and hand-editable for rollback.
         let content = match fs::read_to_string(self.path.join(CURRENT_FILE)) {
             Ok(content) => content,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),

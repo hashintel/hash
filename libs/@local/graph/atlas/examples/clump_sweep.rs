@@ -19,6 +19,10 @@
     clippy::print_stderr,
     reason = "the harness reports its measurements on stdout and its usage on stderr"
 )]
+#![expect(
+    clippy::float_arithmetic,
+    reason = "coverage and mean group size are the sweep's derived readings"
+)]
 
 use std::process::ExitCode;
 

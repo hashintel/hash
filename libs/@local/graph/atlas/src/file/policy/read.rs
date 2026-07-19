@@ -93,6 +93,7 @@ impl PolicyFile {
     /// are not a header this module speaks, and
     /// [`OpenPolicyError::Length`] when the file length contradicts the
     /// header's geometry.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPolicyError> {
         let file = File::open(path).map_err(OpenPolicyError::Io)?;
         // SAFETY: published artifact files are immutable (the `crate::file`

@@ -26,7 +26,7 @@ fn cell(depth_value: u8, x: u32, y: u32) -> MortonCell {
 /// A per-test scratch file path under the system temp directory.
 fn scratch(name: &str) -> PathBuf {
     let dir =
-        std::env::temp_dir().join(format!("hash-graph-atlas-quad-file-{}", std::process::id(),));
+        std::env::temp_dir().join(format!("hash-graph-atlas-quad-file-{}", std::process::id()));
     fs::create_dir_all(&dir).expect("the temp directory is writable");
     dir.join(name)
 }
@@ -336,7 +336,14 @@ proptest! {
     fn written_tables_roundtrip(
         // Children generated strictly deeper, so the pre-order rule
         // holds by construction; the format admits shared children.
-        seeds in prop::collection::vec(any::<(u64, [Option<u16>; 4], u8)>(), 0..12),
+        seeds in prop::collection::vec(
+            (
+                any::<u64>(),
+                prop::array::uniform4(prop::option::of(any::<prop::sample::Index>())),
+                0_u8..5,
+            ),
+            0..12,
+        ),
         probe: u64,
         probe_depth in 0_u8..=4,
     ) {
@@ -344,21 +351,22 @@ proptest! {
         let nodes: Vec<Node> = seeds
             .iter()
             .enumerate()
-            .map(|(index, &(start, children, sets))| {
-                let children = children.map(|child| {
+            .map(|(index, &(start, picks, _))| {
+                let children = picks.map(|child| {
                     child
-                        .map(|pick| index + 1 + pick as usize % (count - index))
+                        .map(|pick| index + 1 + pick.index(count - index))
                         .filter(|&deeper| deeper < count)
-                        .map(|deeper| deeper as u32)
+                        .map(|deeper| {
+                            u32::try_from(deeper).expect("test tables stay far below u32 indexes")
+                        })
                 });
-                let _ = sets;
                 Node::new(children, start, 2, 3)
             })
             .collect();
         let sets = TypeSets::from_sets(
             &seeds
                 .iter()
-                .map(|&(_, _, sets)| (0..sets % 5).map(u32::from).collect())
+                .map(|&(_, _, set_len)| (0..set_len).map(u32::from).collect())
                 .collect::<Vec<Vec<u32>>>(),
         );
 
@@ -373,11 +381,8 @@ proptest! {
 
         prop_assert_eq!(file.nodes(), nodes.as_slice());
         for node in 0..count {
-            let stored: Vec<u32> = file
-                .type_set(node as u32)
-                .iter()
-                .map(|id| id.get())
-                .collect();
+            let index = u32::try_from(node).expect("test tables stay far below u32 indexes");
+            let stored: Vec<u32> = file.type_set(index).iter().map(|id| id.get()).collect();
             prop_assert_eq!(stored, sets.set(node), "node {}'s set", node);
         }
 

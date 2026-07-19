@@ -61,7 +61,7 @@ fn round_trip_is_bit_exact() {
     let table = reopen("roundtrip.plcy", &fixture_bytes()).expect("the fixture is valid");
 
     assert_eq!(table.len(), 3);
-    assert_eq!(table.policies().collect::<Vec<_>>(), fixture());
+    assert_eq!(table.policies(), fixture());
 }
 
 #[test]

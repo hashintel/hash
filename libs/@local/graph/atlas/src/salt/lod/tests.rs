@@ -122,6 +122,7 @@ fn keys_quantize_the_frame_corners_center_and_degenerate_axis() {
     ];
 
     let keys = key::keys(&points, frame);
+    assert_eq!(keys.len(), 3, "one key per point");
     assert_eq!(keys[0].coordinates(), [0, 0]);
     assert_eq!(keys[1].coordinates(), [u32::MAX, u32::MAX]);
     assert_eq!(keys[2].coordinates(), [1 << 31, 1 << 31]);
@@ -291,11 +292,16 @@ proptest! {
             prop_assert_eq!(order.position_of_row[row as usize] as usize, rank);
         }
 
-        for pair in order.row_of_position.windows(2) {
-            let (left, right) = (pair[0] as usize, pair[1] as usize);
-            let left = (buckets[left], keys[left], ranking.rank_of_row[left]);
-            let right = (buckets[right], keys[right], ranking.rank_of_row[right]);
-
+        let sort_key = |row: u32| {
+            let row = row as usize;
+            (buckets[row], keys[row], ranking.rank_of_row[row])
+        };
+        for (previous, next) in order
+            .row_of_position
+            .iter()
+            .zip(&order.row_of_position[1..])
+        {
+            let (left, right) = (sort_key(*previous), sort_key(*next));
             prop_assert!(left < right, "adjacent positions out of order: {left:?} vs {right:?}");
         }
     }
@@ -339,14 +345,17 @@ fn lod_config_carries_the_key_width_bound() {
         0,
         beyond,
     );
-    assert_eq!(build.unwrap_err(), LodError::Schedule { config: beyond });
+    assert_eq!(
+        build.expect_err("a schedule beyond the key width must not build"),
+        LodError::Schedule { config: beyond },
+    );
 }
 
 /// The hand stage fixture: four points whose wire positions and
 /// cascade buckets are computed in the comments.
 ///
-/// World frame [0, 1] x [0, 1]; span_log2 = 1, max_tile_depth = 1, so
-/// the deepest grid is 2 and the catch-all is bucket 2.
+/// World frame [0, 1] x [0, 1]; `span_log2` = 1, `max_tile_depth` = 1,
+/// so the deepest grid is 2 and the catch-all is bucket 2.
 ///
 /// ```text
 /// row  world         wire           depth-1 quadrant  depth-2 cell
@@ -522,14 +531,16 @@ fn build_rejects_what_no_columns_cover() {
 
     // One coordinate against two rank rows.
     assert_eq!(
-        Lod::build(&[Vec2::new(0.0, 0.0)], inputs, 0, LodConfig::default()).unwrap_err(),
+        Lod::build(&[Vec2::new(0.0, 0.0)], inputs, 0, LodConfig::default())
+            .expect_err("disagreeing columns must not build"),
         LodError::Columns { coordinates: 1 },
     );
 
     // No rows admit no frame.
     let empty = RankInputs::<ArchivedEntityId>::new(&[], &[], &[]).expect("empty columns agree");
     assert_eq!(
-        Lod::build(&[], empty, 0, LodConfig::default()).unwrap_err(),
+        Lod::build(&[], empty, 0, LodConfig::default())
+            .expect_err("an empty column must not build"),
         LodError::Frame,
     );
 
@@ -541,7 +552,7 @@ fn build_rejects_what_no_columns_cover() {
             0,
             LodConfig::default(),
         )
-        .unwrap_err(),
+        .expect_err("a non-finite coordinate must not build"),
         LodError::Frame,
     );
 }
@@ -557,7 +568,7 @@ fn the_columns_round_trip_through_the_morton_file() {
         .expect("writing into a vector cannot fail");
 
     let dir =
-        std::env::temp_dir().join(format!("hash-graph-atlas-lod-stage-{}", std::process::id(),));
+        std::env::temp_dir().join(format!("hash-graph-atlas-lod-stage-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
     let path = dir.join("stage-roundtrip.mrtn");
     std::fs::write(&path, bytes).expect("the scratch file is writable");
@@ -644,6 +655,41 @@ proptest! {
             cascade::verify_coverage(&lod.codes, &buckets, deepest),
             Ok(()),
         );
+
+        // At most one delivered point per depth-d cell at every cut
+        // d below the deepest grid, jointly across buckets - the
+        // addendum section 2 claim the mass channel leans on. The
+        // cascade's represented rule guarantees it: a claim never
+        // lands in a cell holding an earlier-assigned point, so two
+        // points sharing a depth-d cell cannot both carry buckets at
+        // or below d unless the later one is a catch-all leftover
+        // (bucket = deepest, never delivered below the deepest cut).
+        for cut in 0..deepest.get() {
+            let cut = depth(cut);
+            let mut occupied = std::collections::HashSet::new();
+            for (position, code) in lod.codes.iter().enumerate() {
+                if buckets[position] <= cut {
+                    prop_assert!(
+                        occupied.insert(code.prefix(cut)),
+                        "two points delivered at cut {} share a cell",
+                        cut.get(),
+                    );
+                }
+            }
+        }
+
+        // At the deepest cut only catch-all co-residents remain: a
+        // cell holds at most one point claimed below the deepest
+        // grid.
+        let mut occupied = std::collections::HashSet::new();
+        for (position, code) in lod.codes.iter().enumerate() {
+            if buckets[position] < deepest {
+                prop_assert!(
+                    occupied.insert(code.prefix(deepest)),
+                    "two sub-deepest claimants share a deepest-grid cell",
+                );
+            }
+        }
 
         // Evidence is internally consistent.
         let evidence = lod.evidence(config);
@@ -764,7 +810,7 @@ fn quad_build_rejects_what_no_tree_covers() {
                 max_tile_depth: 1,
             },
         )
-        .unwrap_err(),
+        .expect_err("a schedule beyond the key width must not build"),
         QuadError::Schedule {
             config: LodConfig {
                 span_log2: 32,
@@ -775,7 +821,8 @@ fn quad_build_rejects_what_no_tree_covers() {
 
     // A type column covering a different row count.
     assert_eq!(
-        QuadTree::build(&lod, &hand_types()[..3], config).unwrap_err(),
+        QuadTree::build(&lod, &hand_types()[..3], config)
+            .expect_err("a short type column must not build"),
         QuadError::Columns { rows: 4 },
     );
 
@@ -790,7 +837,7 @@ fn quad_build_rejects_what_no_tree_covers() {
                 max_tile_depth: 0,
             },
         )
-        .unwrap_err(),
+        .expect_err("a mismatched configuration must not build"),
         QuadError::Bucket { bucket: 2 },
     );
 
@@ -798,7 +845,8 @@ fn quad_build_rejects_what_no_tree_covers() {
     let mut types = hand_types();
     types[2] = smallvec![OntologyRowId::new(u64::from(u32::MAX) + 1)];
     assert_eq!(
-        QuadTree::build(&lod, &types, config).unwrap_err(),
+        QuadTree::build(&lod, &types, config)
+            .expect_err("an oversized type ordinal must not build"),
         QuadError::TypeOrdinal {
             row: 2,
             id: u64::from(u32::MAX) + 1,
@@ -855,7 +903,7 @@ proptest! {
         let ids = identities(rows.len() as u128);
         let types: Vec<SmallVec<OntologyRowId, 2>> = rows
             .iter()
-            .map(|&(.., t)| smallvec![OntologyRowId::new(t)])
+            .map(|&(.., type_row)| smallvec![OntologyRowId::new(type_row)])
             .collect();
         let config = LodConfig { span_log2, max_tile_depth };
 

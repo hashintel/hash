@@ -7,7 +7,9 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use zerocopy::{FromBytes as _, LE, U64};
 
-use super::{FitConfig, FitError, PolicyOptions, fit, prepare::identity::MappedIdentityTable};
+use super::{
+    FitConfig, FitError, PolicyOptions, StageError, fit, prepare::identity::MappedIdentityTable,
+};
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
@@ -677,7 +679,10 @@ async fn a_defective_corpus_publishes_nothing() {
     )
     .await;
     assert!(
-        matches!(result, Err(FitError::RepresentationDefects(ref check)) if !check.passes()),
+        matches!(
+            result,
+            Err(FitError::Stage(StageError::RepresentationDefects(ref check))) if !check.passes(),
+        ),
         "the defective corpus should fail the norm check",
     );
 

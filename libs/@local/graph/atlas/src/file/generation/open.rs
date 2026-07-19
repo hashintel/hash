@@ -69,7 +69,7 @@ impl Error for OpenError {
 /// located by [`path_of`](Self::path_of) and opened by their format
 /// modules; the per-file hashes the document records are verified by
 /// tooling, not on every open.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Generation {
     id: GenerationId,
     path: Utf8PathBuf,
@@ -89,6 +89,9 @@ impl GenerationRoot {
     pub(crate) fn open(&self, id: GenerationId) -> Result<Generation, OpenError> {
         let path = self.generation_path(id);
 
+        // Parsed, never mapped: the document is the JSON root of trust,
+        // kilobyte-scale, read once per open, and inspected by humans
+        // more often than machines - the palette's one JSON slot.
         let document = match fs::read(path.join(METADATA_FILE)) {
             Ok(document) => document,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {

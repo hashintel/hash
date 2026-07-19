@@ -122,10 +122,10 @@ proptest! {
 
         prop_assert_eq!(children[0].min_key(), parent.min_key());
         prop_assert_eq!(children[3].max_key(), parent.max_key());
-        for pair in children.windows(2) {
+        for (previous, next) in children.iter().zip(&children[1..]) {
             prop_assert_eq!(
-                pair[0].max_key().to_bits() + 1,
-                pair[1].min_key().to_bits(),
+                previous.max_key().to_bits() + 1,
+                next.min_key().to_bits(),
                 "adjacent children meet without gap or overlap"
             );
         }
@@ -142,7 +142,7 @@ proptest! {
             .expect("one more subdivision stays within the documented domain");
         let [x, y] = key.coordinates();
         let axis_bit = |axis: u32| (axis >> (32 - u32::from(child_depth.get()))) & 1;
-        let index = (axis_bit(y) << 1 | axis_bit(x)) as usize;
+        let index = ((axis_bit(y) << 1) | axis_bit(x)) as usize;
 
         prop_assert_eq!(children[index], key.cell(child_depth));
         prop_assert!(children[index].contains(key));

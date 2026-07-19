@@ -137,6 +137,7 @@ impl Classifier {
     /// foreign dimension, a non-finite parameter, a non-positive
     /// temperature or inverse scale, or training distances that are
     /// empty, negative, or unordered.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn from_artifact(file: &ClassifierFile) -> Result<Self, InvalidClassifierFile> {
         if file.dimension() != CANONICAL_DIMENSIONS as u64 {
             return Err(InvalidClassifierFile::Dimension {
