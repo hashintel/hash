@@ -14,7 +14,11 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { LoadingSpinner } from "@hashintel/design-system";
+import {
+  ArrowDownLeftAndArrowUpRightToCenterIcon,
+  ArrowUpRightAndArrowDownLeftFromCenterIcon,
+  LoadingSpinner,
+} from "@hashintel/design-system";
 import {
   NetworkGraph,
   useGetViewportNodes,
@@ -43,11 +47,11 @@ const MAX_DEPTH = 6;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
- * Fixed minimum node distance passed to the graph. Atlas positions are quantized
- * to an integer grid, so distinct points are at least one unit apart; a constant
- * keeps the camera's max-zoom stable (and avoids an O(n²) recompute per fetch).
+ * Fixed camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world
+ * unit) passed to the graph. A constant keeps the camera stable as tiles stream
+ * in.
  */
-const NODE_MIN_DISTANCE = 1;
+const MAX_ZOOM = 16;
 
 /** The tiling endpoint returns nodes only; edges stay empty. */
 const EMPTY_EDGES: NetworkGraphEdge[] = [];
@@ -165,9 +169,9 @@ const toPoint = (node: ViewportNode): NetworkGraphPoint => ({
  * Drives the tiling pipeline from the graph's live camera: every pan/zoom (and
  * resize) recomputes the viewport and hands it to {@link useGetViewportNodes},
  * which fetches its tiles through a persistent cache and returns the merged nodes
- * plus loading/error state. `graphBounds` and `nodeMinDistance` are frozen so
- * streaming new points never reframes the camera. Requires the `hash-graph
- * atlas` server (proxied via `/atlas-api`).
+ * plus loading/error state. `graphBounds` and `maxZoom` are frozen so streaming
+ * new points never reframes the camera. Requires the `hash-graph atlas` server
+ * (proxied via `/atlas-api`).
  */
 export const NetworkGraphView = () => {
   const theme = useTheme();
@@ -181,6 +185,32 @@ export const NetworkGraphView = () => {
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Full-screen the frame element itself (not the document) so the graph fills
+  // the screen while its overlaid controls come along. The ResizeObserver below
+  // already reflows the graph when the frame resizes.
+  const toggleFullScreen = useCallback(() => {
+    const frame = frameRef.current;
+    if (!frame) {
+      return;
+    }
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void frame.requestFullscreen();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleChange = () => {
+      setIsFullScreen(document.fullscreenElement === frameRef.current);
+    };
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleChange);
+    };
+  }, []);
 
   const { data, isError, error } = useGetViewportNodes(viewport, {
     baseUrl: ATLAS_PROXY_BASE,
@@ -272,7 +302,12 @@ export const NetworkGraphView = () => {
     <Box
       ref={frameRef}
       className="hash-ds-root"
-      sx={{ position: "relative", width: "100%", height: "100%" }}
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "white",
+      }}
     >
       {bounds ? (
         <>
@@ -281,7 +316,7 @@ export const NetworkGraphView = () => {
             points={points}
             edges={EMPTY_EDGES}
             graphBounds={bounds}
-            nodeMinDistance={NODE_MIN_DISTANCE}
+            maxZoom={MAX_ZOOM}
             onZoom={handleZoom}
             onPan={handlePan}
           />
@@ -290,6 +325,18 @@ export const NetworkGraphView = () => {
             gap={1}
             sx={{ position: "absolute", bottom: 8, right: 8 }}
           >
+            {document.fullscreenEnabled ? (
+              <GrayToBlueIconButton
+                aria-label={isFullScreen ? "Exit full screen" : "Full screen"}
+                onClick={toggleFullScreen}
+              >
+                {isFullScreen ? (
+                  <ArrowDownLeftAndArrowUpRightToCenterIcon />
+                ) : (
+                  <ArrowUpRightAndArrowDownLeftFromCenterIcon />
+                )}
+              </GrayToBlueIconButton>
+            ) : null}
             <GrayToBlueIconButton
               aria-label="Zoom in"
               onClick={() => graphRef.current?.zoomIn()}

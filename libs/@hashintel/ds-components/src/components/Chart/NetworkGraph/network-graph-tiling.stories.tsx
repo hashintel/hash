@@ -36,11 +36,11 @@ const DEMO_MAX_DEPTH = 6;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
- * Fixed minimum node distance passed to the graph. Atlas positions are quantized
- * to an integer grid, so distinct points are at least one unit apart; a constant
- * keeps the camera's max-zoom stable (and avoids an O(n²) recompute per fetch).
+ * Fixed camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world
+ * unit) passed to the graph. A constant keeps the camera stable as tiles stream
+ * in.
  */
-const NODE_MIN_DISTANCE = 1;
+const MAX_ZOOM = 16;
 
 /** The tiling endpoint returns nodes only; edges stay empty. */
 const EMPTY_EDGES: NetworkGraphEdge[] = [];
@@ -245,8 +245,8 @@ type Status = "loading" | "idle" | "error";
  * Drives the tiling pipeline from the graph's live camera: every pan/zoom (and
  * resize) recomputes the viewport and hands it to {@link useGetViewportNodes},
  * which fetches its tiles through a persistent cache and returns the merged
- * nodes plus loading/error state. `graphBounds` and `nodeMinDistance` are stable
- * so streaming new points never reframes the camera. Requires the local Atlas
+ * nodes plus loading/error state. `graphBounds` and `maxZoom` are stable so
+ * streaming new points never reframes the camera. Requires the local Atlas
  * server (proxied via `/atlas-api`).
  */
 const AtlasTilingStory = () => {
@@ -355,7 +355,7 @@ const AtlasTilingStory = () => {
           points={points}
           edges={EMPTY_EDGES}
           graphBounds={bounds}
-          nodeMinDistance={NODE_MIN_DISTANCE}
+          maxZoom={MAX_ZOOM}
           onZoom={handleZoom}
           onPan={handlePan}
         />

@@ -153,11 +153,13 @@ export interface NetworkGraphProps {
    */
   graphBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /**
-   * The smallest distance between any two nodes, in world coordinates. Sets the
-   * camera's maximum zoom: at max zoom the closest two nodes sit `2 · the detail
-   * hover radius + 10px` apart on screen.
+   * The camera's maximum zoom, as an absolute orthographic zoom (`2 ** zoom` =
+   * pixels per world unit). Floored at the framing-out zoom so the range is never
+   * inverted. Omit (or pass `null`) to fall back to a fixed offset above the
+   * framed-in zoom — e.g. when node spacing is unknown. Non-tiled callers derive
+   * it from node spacing via {@link maxZoomForNodeMinDistance}.
    */
-  nodeMinDistance: number;
+  maxZoom?: number | null;
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
@@ -243,9 +245,9 @@ const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.05;
 /**
- * Fallback furthest zoom-in (levels above the framing zoom), used only when
- * `nodeMinDistance` is unavailable (an empty/single-node graph). Otherwise
- * `maxZoom` is derived from the node spacing (see the framing effect).
+ * Fallback furthest zoom-in (levels above the framing zoom), used only when the
+ * `maxZoom` prop is unspecified (e.g. an empty/single-node graph, where node
+ * spacing is unknown). Otherwise `maxZoom` comes from the caller.
  */
 const MAX_ZOOM_OFFSET = 9;
 /**
@@ -329,7 +331,7 @@ export const NetworkGraph = ({
   points,
   edges,
   graphBounds,
-  nodeMinDistance,
+  maxZoom: maxZoomProp,
   className,
   selected,
   onSelectedPositionChange,
@@ -651,22 +653,15 @@ export const NetworkGraph = ({
       // `framingBaseZoom`), so the framing-normalised zoom starts at 0 for any dataset
       // regardless of its world extent.
       const minZoom = fitZoom(outPadding);
-      // Furthest zoom-in: the closest two nodes sit `2 · detailHoverRadius + 10px`
-      // apart on screen (their hovered detail circles clear by a 10px gap). Scale is
-      // `2 ** zoom` px/world unit, so solve `nodeMinDistance · 2 ** maxZoom = target`.
-      // Falls back to a fixed offset above framing when spacing is unknown (empty or
-      // single-node graph, where `nodeMinDistance` is 0/Infinity).
-      const detailHoverRadius = 1;
-      const targetClosestPx = detailHoverRadius;
-      // Floored at `minZoom` so a very sparse graph never yields an inverted zoom range.
-      // The normalised zoom range the view exposes is `maxZoom − minZoom` — min zoom
-      // fits the graph's extent, max zoom fits the node spacing, so the range is the
-      // node-spacing↔extent ratio and doesn't depend on the absolute world size.
+      // Furthest zoom-in comes from the caller (see the `maxZoom` prop), floored at
+      // `minZoom` so a sparse graph never yields an inverted range, and falling back
+      // to a fixed offset above the framed-in zoom when unspecified. The normalised
+      // range the view exposes is `maxZoom − minZoom`: min fits the graph's extent,
+      // max the node spacing, so it's the node-spacing↔extent ratio, independent of
+      // the absolute world size.
       const maxZoom = Math.max(
         minZoom,
-        Number.isFinite(nodeMinDistance) && nodeMinDistance > 0
-          ? Math.log2(targetClosestPx / nodeMinDistance)
-          : framingZoom + MAX_ZOOM_OFFSET,
+        maxZoomProp ?? framingZoom + MAX_ZOOM_OFFSET,
       );
       // Only auto-frame until the user takes control of the view.
       setViewState(
@@ -688,7 +683,7 @@ export const NetworkGraph = ({
     const observer = new ResizeObserver(fit);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [graphBounds, nodeMinDistance]);
+  }, [graphBounds, maxZoomProp]);
 
   // Distinct icon names used by the graph points.
   const pointIconNames = useMemo(
@@ -783,7 +778,7 @@ export const NetworkGraph = ({
     if (!target) {
       return null;
     }
-    return [target[0] ?? 0, target[1] ?? 0];
+    return [target[0], target[1]];
   }, [viewState?.target]);
 
   // The framing-out zoom (`minZoom`) is the graph's zero reference: the zoom-dependent

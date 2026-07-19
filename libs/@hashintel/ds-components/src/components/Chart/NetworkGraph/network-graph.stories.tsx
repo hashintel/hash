@@ -9,6 +9,7 @@ import { Popover } from "../../Popover/popover";
 // are decompressed in the browser via `fetchGzippedJson`.
 import edgesUrl from "./fixtures/edges.json.gz?url";
 import pointsUrl from "./fixtures/points.json.gz?url";
+import { maxZoomForNodeMinDistance } from "./max-zoom";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
@@ -344,12 +345,16 @@ const NetworkGraphStory = ({
   }, [data, graphBounds]);
 
   /**
-   * Smallest distance between any two nodes, passed to the chart. `minDistance`
-   * is O(n²), so the full dataset supplies `precomputedMinDistance` rather than
-   * recomputing here; smaller datasets compute it on the fly.
+   * The camera's max zoom, derived from the smallest distance between any two
+   * nodes. `minDistance` is O(n²), so the full dataset supplies
+   * `precomputedMinDistance` rather than recomputing here; smaller datasets
+   * compute it on the fly.
    */
-  const nodeMinDistance = useMemo(
-    () => dataset.precomputedMinDistance ?? minDistance(data?.points ?? []),
+  const maxZoom = useMemo(
+    () =>
+      maxZoomForNodeMinDistance(
+        dataset.precomputedMinDistance ?? minDistance(data?.points ?? []),
+      ),
     [dataset, data],
   );
 
@@ -497,7 +502,7 @@ const NetworkGraphStory = ({
             points={data.points}
             edges={data.edges}
             graphBounds={graphBounds}
-            nodeMinDistance={nodeMinDistance}
+            maxZoom={maxZoom}
             selected={selected}
             onNodeClick={handleClick}
             onEdgeClick={handleEdgeClick}
