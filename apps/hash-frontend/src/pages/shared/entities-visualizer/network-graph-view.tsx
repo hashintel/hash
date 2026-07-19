@@ -33,6 +33,9 @@ import {
 import { MinusRegularIcon } from "../../../shared/icons/minus-regular";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
+import { NetworkGraphSearch } from "./network-graph-search";
+
+import type { NetworkGraphSearchResult } from "./network-graph-search";
 
 /**
  * Same-origin path the view fetches tiles from. The `/atlas-api` rewrite in
@@ -57,16 +60,14 @@ const MAX_ZOOM = Math.log2(100);
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
 
-/**
- * Disabled zoom button: keep the enabled resting look (white fill, gray.30
- * border) and only fade the icon, rather than the shared component's heavier
- * grey-fill disabled state.
- */
-const disabledZoomButtonSx = {
+const zoomButtonSx = {
+  background: "rgba(107, 114, 128, 0.16)",
+  backdropFilter: "blur(8px)",
   "&.Mui-disabled": {
-    background: "white",
+    background: "rgba(127, 134, 148, 0.06)",
+    backdropFilter: "blur(8px)",
     borderColor: "gray.30",
-    color: "gray.50",
+    color: "gray.40",
   },
 };
 
@@ -202,6 +203,9 @@ export const NetworkGraphView = () => {
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  const [searchedPoint, setSearchedPoint] = useState<NetworkGraphPoint | null>(
+    null,
+  );
   const [isFullScreen, setIsFullScreen] = useState(false);
   // The graph opens fully framed out, so zoom-out starts at its limit.
   const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
@@ -235,7 +239,10 @@ export const NetworkGraphView = () => {
     baseUrl: ATLAS_PROXY_BASE,
   });
 
-  const points = useMemo(() => (data ?? []).map(toPoint), [data]);
+  const points = useMemo(() => {
+    const tilePoints = (data ?? []).map(toPoint);
+    return searchedPoint ? [...tilePoints, searchedPoint] : tilePoints;
+  }, [data, searchedPoint]);
 
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
@@ -291,6 +298,22 @@ export const NetworkGraphView = () => {
     [schedule],
   );
 
+  // The search endpoint has no coordinates, so drop the picked node at a random
+  // spot within the graph bounds, select it, and reveal it in the camera.
+  const handleSearchSelect = useCallback((result: NetworkGraphSearchResult) => {
+    const region = boundsRef.current ?? GRAPH_WORLD;
+    const x = region.minX + Math.random() * (region.maxX - region.minX);
+    const y = region.minY + Math.random() * (region.maxY - region.minY);
+    setSearchedPoint({
+      id: result.entityId,
+      x,
+      y,
+      color: colorForId(result.entityId),
+      label: result.label,
+    });
+    graphRef.current?.revealPoint([x, y]);
+  }, []);
+
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) {
@@ -333,6 +356,9 @@ export const NetworkGraphView = () => {
         width: "100%",
         height: "100%",
         backgroundColor: "white",
+        // Clip the search panel's off-screen (collapsed) position so it doesn't
+        // peek out to the left of the graph while closed.
+        overflow: "hidden",
       }}
     >
       {bounds ? (
@@ -343,8 +369,13 @@ export const NetworkGraphView = () => {
             edges={EMPTY_EDGES}
             graphBounds={bounds}
             maxZoom={MAX_ZOOM}
+            selected={searchedPoint ? { node: searchedPoint.id } : null}
             onZoom={handleZoom}
             onPan={handlePan}
+          />
+          <NetworkGraphSearch
+            onSelect={handleSearchSelect}
+            popperContainer={frameRef.current}
           />
           <Stack
             direction="column"
@@ -367,7 +398,7 @@ export const NetworkGraphView = () => {
               aria-label="Zoom in"
               disabled={zoomLimits.atMax}
               onClick={() => graphRef.current?.zoomIn()}
-              sx={disabledZoomButtonSx}
+              sx={zoomButtonSx}
             >
               <PlusRegularIcon />
             </GrayToBlueIconButton>
@@ -375,7 +406,7 @@ export const NetworkGraphView = () => {
               aria-label="Zoom out"
               disabled={zoomLimits.atMin}
               onClick={() => graphRef.current?.zoomOut()}
-              sx={disabledZoomButtonSx}
+              sx={zoomButtonSx}
             >
               <MinusRegularIcon />
             </GrayToBlueIconButton>
