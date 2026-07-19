@@ -63,7 +63,7 @@ pub(crate) struct Snapshot {
 /// The record identifies the run; replaying it re-derives
 /// deterministic stages bit-for-bit, and the pipeline as a whole best
 /// effort.
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Reproducibility {
     /// Every setting the fit ran under, the seed included: a replay
     /// takes its configuration from this echo, not from the defaults
@@ -95,6 +95,8 @@ pub(crate) struct Evidence {
     pub recall: RecallSpotCheck,
     /// The landmark stage's scale record.
     pub landmarks: LandmarkEvidence,
+    /// The policy stage's scale record.
+    pub policy: PolicyEvidence,
 }
 
 /// Scale record of the landmark stage.
@@ -106,4 +108,15 @@ pub(crate) struct LandmarkEvidence {
     pub retained: u32,
     /// Layout optimization epochs run over the quotient graph.
     pub layout_epochs: NonZero<u32>,
+}
+
+/// Scale record of the policy stage.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct PolicyEvidence {
+    /// Relation types resolved into the published policy table: the
+    /// distinct ontology rows the edge stream carried.
+    pub relations: u64,
+    /// Resolved relations whose policy came from an override record
+    /// instead of the classifier.
+    pub overridden: u64,
 }

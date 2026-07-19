@@ -31,6 +31,7 @@
 //! themselves. A generation therefore exists exactly when every stage
 //! and every check of one run passed.
 
+use alloc::collections::BTreeSet;
 use core::{num::NonZero, pin::pin};
 use std::{
     fs::File,
@@ -55,7 +56,7 @@ pub(crate) use self::{
 };
 use crate::{
     bitset::BitSet,
-    dataset::{Dataset, NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::{CANONICAL_DIMENSIONS, Dataset, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         generation::{
@@ -67,7 +68,8 @@ use crate::{
         salt::{
             SaltFiles, SaltRepository,
             metadata::{
-                Evidence, LandmarkEvidence, Placement, Reproducibility, SaltMetadata, Snapshot,
+                Evidence, LandmarkEvidence, Placement, PolicyEvidence, Reproducibility,
+                SaltMetadata, Snapshot,
             },
         },
         sprs::read::SprsFile,
@@ -92,6 +94,10 @@ use crate::{
                 LandmarkCandidate, SamplingWeight, SelectionOptions, SubgroupAxes, select_landmarks,
             },
         },
+        policy::{
+            Classification, CoincidentAdmission, PolicyOverride, artifact::write_policies,
+            classifier::Classifier, resolve,
+        },
         semantic::{SemanticGraph, SmoothingOptions, artifact::MappedSemanticGraph},
     },
 };
@@ -105,12 +111,33 @@ pub(crate) mod prepare;
 #[cfg(test)]
 mod tests;
 
+/// Policy resolution inputs of one fit.
+///
+/// The overrides supersede classifier predictions by precedence and
+/// must name relation types the edge stream carries: an override for a
+/// relation without edges contradicts the corpus and aborts the fit at
+/// resolution.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct PolicyOptions {
+    /// Higher-precedence policy records superseding classifier
+    /// predictions.
+    pub overrides: Vec<PolicyOverride> = Vec::new(),
+    /// The generation's Coincident admission criteria.
+    pub admission: CoincidentAdmission = CoincidentAdmission::default(),
+}
+
+const impl Default for PolicyOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
 /// Every setting of one fit, valid by construction.
 ///
 /// Stage options keep their own documented defaults; the fields without
 /// defaults are the choices no fit can imply: the seed, the landmark
 /// capacity, and the low-dimensional kernel.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FitConfig {
     /// The fit's seed; every stage generator derives from it by name.
     pub seed: u64,
@@ -133,6 +160,8 @@ pub(crate) struct FitConfig {
     pub quotient: QuotientOptions = QuotientOptions::default(),
     /// The landmark layout schedule.
     pub layout: LayoutOptions = LayoutOptions::default(),
+    /// Policy overrides and admission criteria.
+    pub policy: PolicyOptions = PolicyOptions::default(),
 }
 
 /// The randomized stages, each naming its seed derivation.
@@ -173,6 +202,8 @@ enum Role {
     Knn,
     Semantic,
     Landmarks,
+    Classifier,
+    Policy,
     Coordinates,
     NodeIdentities,
     EdgeIdentities,
@@ -188,6 +219,8 @@ impl Role {
             Self::Knn => FileName::pinned("knn.sprs"),
             Self::Semantic => FileName::pinned("semantic.sprs"),
             Self::Landmarks => FileName::pinned("landmarks.lndm"),
+            Self::Classifier => FileName::pinned("classifier.clsf"),
+            Self::Policy => FileName::pinned("policy.plcy"),
             Self::Coordinates => FileName::pinned("coordinates.arr"),
             Self::NodeIdentities => FileName::pinned("node-identities.idnt"),
             Self::EdgeIdentities => FileName::pinned("edge-identities.idnt"),
@@ -204,13 +237,15 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 9] = [
+const _: [FileName; 11] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
     Role::Knn.file_name(),
     Role::Semantic.file_name(),
     Role::Landmarks.file_name(),
+    Role::Classifier.file_name(),
+    Role::Policy.file_name(),
     Role::Coordinates.file_name(),
     Role::NodeIdentities.file_name(),
     Role::EdgeIdentities.file_name(),
@@ -269,6 +304,11 @@ fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest> {
 /// metadata document. Activation stays with the caller: publishing a
 /// generation and serving it are separate decisions.
 ///
+/// The `classifier` is a supplied input: a freshly fitted model or a
+/// prior generation's artifact read back
+/// ([`Classifier::from_artifact`]). It classifies every relation
+/// type's card, and the resolved policy table publishes beside it.
+///
 /// A `prior` generation seeds reuse: card texts whose hash appears in
 /// its card table keep their embeddings without touching the provider
 /// (under a matching embedder fingerprint), and its landmarks compete
@@ -289,10 +329,15 @@ fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest> {
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
               follows the dataset's"
 )]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the fit is one linear stage transaction; every stage body is already extracted"
+)]
 pub(crate) async fn fit<D, E>(
     dataset: &D,
     embedder: &E,
     config: &FitConfig,
+    classifier: &Classifier,
     prior: Option<&Generation>,
     root: &GenerationRoot,
 ) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
@@ -320,14 +365,14 @@ where
 
     let norm = certify_representations::<D::Error, E::Error>(rows, config)?;
 
-    // Edges: the identity column is staged; the endpoint columns, the
-    // adjacency the serving contract wants, and the relation stage
-    // rework land together.
+    // Edges: the identity column and the relation universe are drained;
+    // the endpoint columns, the adjacency the serving contract wants,
+    // and the relation stage rework land together.
     // TODO: persist the endpoint columns and the incident-edge
     //       adjacency, and assemble `RelationInstance`s from this
-    //       stream once the classifier and policy artifacts have
-    //       writers (the attraction writer already landed).
-    let (edges, edge_identities_file) = stage_edge_identities(dataset, &staging)
+    //       stream against the staged policy table (the attraction
+    //       writer already landed).
+    let (edges, relations, edge_identities_file) = stage_edge_identities(dataset, &staging)
         .instrument(tracing::info_span!("edge-identities"))
         .await?;
     tracing::info!(edges, "staged the edge identities");
@@ -342,6 +387,16 @@ where
         reused = cards.stats.reused,
         embedded = cards.stats.embedded,
         "staged the card-embedding table"
+    );
+
+    // Policy: classify every relation type's card and resolve the
+    // certified policy table beside the classifier that produced it.
+    let (classifier_file, policy_file, policy_evidence) =
+        stage_policy(&staging, config, classifier, &relations)?;
+    tracing::info!(
+        relations = policy_evidence.relations,
+        overridden = policy_evidence.overridden,
+        "staged the classifier and the resolved policy table"
     );
 
     // Neighbours: build the search backend, admit it by exact recall,
@@ -396,8 +451,8 @@ where
     let coordinates_file = stage_baseline_coordinates(&staging, &skeleton)?;
     tracing::info!("staged the baseline coordinates");
 
-    // TODO: attraction, protection, classifier, and policy roles join
-    //       `SaltFiles` when their stages wire in at the edge drain.
+    // TODO: the attraction and protection roles join `SaltFiles` when
+    //       the relation stage wires in at the edge drain.
     let repository = SaltRepository {
         version: RepositoryVersion::V0,
         files: SaltFiles {
@@ -407,6 +462,8 @@ where
             knn: knn_file,
             semantic: semantic_file,
             landmarks: landmarks_file,
+            classifier: classifier_file,
+            policy: policy_file,
             coordinates: coordinates_file,
             node_identities: node_identities_file,
             edge_identities: edge_identities_file,
@@ -419,7 +476,7 @@ where
                 ontology_types: cards.types,
             },
             reproducibility: Reproducibility {
-                config: *config,
+                config: config.clone(),
                 embedder: embedder.fingerprint(),
                 prior: prior.map(Generation::id),
             },
@@ -429,6 +486,7 @@ where
                 norm,
                 recall,
                 landmarks: landmark_evidence,
+                policy: policy_evidence,
             },
         },
     };
@@ -501,7 +559,8 @@ fn certify_representations<D, E>(
 }
 
 /// Streams every edge's id into the staged identity file, returning
-/// the edge count with the staged file.
+/// the edge count, the relation universe - the distinct ontology rows
+/// the edges carried, ascending - and the staged file.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -510,20 +569,28 @@ fn certify_representations<D, E>(
 async fn stage_edge_identities<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
-) -> Result<(u64, RepositoryFile), FitError<D::Error, E>>
+) -> Result<(u64, Vec<OntologyRowId>, RepositoryFile), FitError<D::Error, E>>
 where
     D: Dataset,
 {
     let mut ids = IdentityTable::new();
+    let mut relations = BTreeSet::new();
     let mut stream = pin!(dataset.edges());
+
     while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {
         ids.push(edge.id);
+        relations.extend(edge.ontology.iter().map(|relation| relation.get()));
     }
+
     let file = write_staged(staging, Role::EdgeIdentities, |writer| {
         ids.write_into(writer)
     })?;
 
-    Ok((ids.len(), file))
+    Ok((
+        ids.len(),
+        relations.into_iter().map(OntologyRowId::new).collect(),
+        file,
+    ))
 }
 
 /// Marks the current rows whose nodes were landmarks of the prior
@@ -674,6 +741,71 @@ where
         hashes,
         stats,
     })
+}
+
+/// Classifies every relation type's card, resolves the policy table,
+/// and stages the classifier beside it.
+///
+/// The relation universe is the distinct ontology rows the edge stream
+/// carried; each indexes the staged card table, which is row-aligned
+/// with the type table. Every card exists, so every relation
+/// classifies; the Overlay fallback for unclassifiable relations stays
+/// reserved for datasets that cannot render a card.
+fn stage_policy<D, E>(
+    staging: &StagedGeneration,
+    config: &FitConfig,
+    classifier: &Classifier,
+    relations: &[OntologyRowId],
+) -> Result<(RepositoryFile, RepositoryFile, PolicyEvidence), FitError<D, E>> {
+    let _span = tracing::info_span!("policy").entered();
+
+    let classifier_file = write_staged(staging, Role::Classifier, |writer| {
+        classifier.write_into(writer)
+    })?;
+
+    let cards = ArrayFile::open(staging.path_of(&Role::CardEmbeddings.file_name()))
+        .map_err(FitError::MapCards)?;
+    let embeddings: &[AlignedVecN<CANONICAL_DIMENSIONS>] = cards
+        .vectors()
+        .expect("the card matrix was sealed as f32 rows of the canonical width");
+
+    let classifications = relations
+        .iter()
+        .map(|&relation| {
+            classifier
+                .predict(&embeddings[relation.usize()])
+                .map(|prediction| (relation, Classification::Predicted(prediction)))
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(FitError::Classify)?;
+
+    let policies = resolve(
+        &classifications,
+        &config.policy.overrides,
+        config.policy.admission,
+    )
+    .map_err(FitError::Policy)?;
+
+    let policy_file = write_staged(staging, Role::Policy, |writer| {
+        write_policies(&policies, writer)
+    })?;
+
+    let overridden = config
+        .policy
+        .overrides
+        .iter()
+        .map(|record| record.relation.get())
+        .collect::<BTreeSet<_>>()
+        .len() as u64;
+
+    Ok((
+        classifier_file,
+        policy_file,
+        PolicyEvidence {
+            relations: policies.len() as u64,
+            overridden,
+        },
+    ))
 }
 
 /// Builds the search backend over the mapped representations, admits it

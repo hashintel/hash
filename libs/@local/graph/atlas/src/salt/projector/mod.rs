@@ -14,8 +14,10 @@
 //! objective normalizes by; [`sample`] draws the seeded minibatch
 //! populations; [`loss`] and [`budget`] compute the composite
 //! objective and its clipped relation forces; [`miner`] finds 2D hard
-//! negatives; [`verdict`] reads the supplied human-review input. The
-//! training loop and checkpoint artifact land as siblings.
+//! negatives; [`verdict`] reads the supplied human-review input;
+//! [`train`] assembles minibatches and evaluates the budgeted step
+//! objective. The training loop and checkpoint artifact land as
+//! siblings.
 
 // Fully public: the root `bench` facade re-exports it; the private
 // module chain above keeps it unreachable except through the facade.
@@ -27,4 +29,5 @@ pub(crate) mod miner;
 pub(crate) mod model;
 pub(crate) mod sample;
 pub(crate) mod scale;
+pub(crate) mod train;
 pub(crate) mod verdict;

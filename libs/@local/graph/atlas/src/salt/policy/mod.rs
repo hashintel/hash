@@ -17,17 +17,16 @@ use core::{fmt, mem};
 
 use crate::dataset::OntologyRowId;
 
+pub(crate) mod artifact;
 pub(crate) mod classifier;
 mod precedence;
 
 #[cfg(test)]
 mod tests;
 
-#[expect(
-    unused_imports,
-    reason = "the generation runner consumes the resolution surface"
-)]
-pub(crate) use self::precedence::{CoincidentAdmission, PolicyOverride, PolicySource, resolve};
+pub(crate) use self::precedence::{
+    Classification, CoincidentAdmission, PolicyOverride, PolicySource, ResolveError, resolve,
+};
 
 /// Geometry classes a relation type distributes over.
 ///

@@ -18,6 +18,11 @@
 //!   identities and back without decoding.
 //! - [`landmark`] is the landmark skeleton file: selected rows, the corpus assignment, and the
 //!   layout coordinates - three ordinal-keyed regions of one file, page-aligned.
+//! - [`classifier`] is the classifier file: the fitted relation-policy model - coefficient rows,
+//!   applicability moments, and training distances as page-aligned regions of one file, the scalar
+//!   parameters in the header.
+//! - [`policy`] is the policy file: the resolved geometry policy table, one fixed-width record per
+//!   relation type, ascending by relation.
 //! - [`sprs`](mod@sprs) is the sparse matrix file: one compressed-sparse-row matrix - row pointers,
 //!   column indices, values - as page-aligned regions of one file, written from and reopened as
 //!   [`sprs::CsMatBase`](::sprs::CsMatBase) views.
@@ -93,12 +98,16 @@
 //! |                                 | apart                                        |        |
 //! | attraction index                | training sampling; group records delimiting  | combined |
 //! |                                 | a flat edge array, never read apart          |        |
-//! | landmark skeleton               | small `f32`/`u32` arrays                     | array  |
+//! | landmark skeleton (`.lndm`)     | selection, assignment, and layout sharing    | combined |
+//! |                                 | one ordinal vocabulary, never read apart     |        |
 //! | analytic raster                 | mmap (`f32` grid)                            | array  |
 //! | merge tree                      | small, structured; flattens to parent/birth/ | array  |
 //! |                                 | death columns                                |        |
-//! | classifier, strength head       | small weight matrices; hyperparameters live  | array  |
-//! |                                 | in the metadata document                     |        |
+//! | classifier (`.clsf`)            | one small model - coefficients, moments,     | combined |
+//! |                                 | distances - fitted together, never read      |        |
+//! |                                 | apart                                        |        |
+//! | policy table (`.plcy`)          | resolved per-relation records, read whole    | zerocopy |
+//! |                                 | and searched by relation                     |        |
 //! | quadtree topology (`.quad`)     | mmap, node table referencing point clouds    | zerocopy |
 //! | point clouds                    | served directly, replaced per node           | array  |
 //! | node/edge identities (`.idnt`)  | mmap, serving lookups both ways: `row -> id` | combined |
@@ -168,10 +177,12 @@
 
 pub(crate) mod array;
 pub(crate) mod attraction;
+pub(crate) mod classifier;
 pub(crate) mod generation;
 pub(crate) mod identity;
 pub(crate) mod landmark;
 pub(crate) mod morton;
+pub(crate) mod policy;
 mod quad;
 pub(crate) mod repository;
 pub(crate) mod salt;

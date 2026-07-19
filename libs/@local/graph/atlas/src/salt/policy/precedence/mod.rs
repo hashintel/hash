@@ -137,7 +137,7 @@ pub(crate) struct PolicyOverride {
 /// downstream. The default thresholds are maximally conservative
 /// placeholders: a generation enforcing admission configures them
 /// from its precision release evidence.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CoincidentAdmission {
     /// Whether admission is enforced. Defaults to unenforced.
     pub enforced: bool = false,
@@ -145,6 +145,12 @@ pub(crate) struct CoincidentAdmission {
     pub class_probability_threshold: UnitFraction = UnitFraction::ONE,
     /// Minimum applicability `tau_A`. Defaults to 1.
     pub applicability_threshold: UnitFraction = UnitFraction::ONE,
+}
+
+const impl Default for CoincidentAdmission {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 /// Resolves every relation's geometry policy.

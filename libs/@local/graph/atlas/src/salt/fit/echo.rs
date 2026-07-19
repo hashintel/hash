@@ -21,7 +21,7 @@
 
 use core::num::NonZero;
 
-use super::{FitConfig, prepare::norm};
+use super::{FitConfig, PolicyOptions, prepare::norm};
 use crate::{
     math::{AffinityCurve, UnitFraction},
     salt::{
@@ -31,6 +31,7 @@ use crate::{
             quotient::QuotientOptions,
             select::SelectionOptions,
         },
+        policy::{CoincidentAdmission, PolicyOverride},
         semantic::SmoothingOptions,
     },
 };
@@ -115,6 +116,89 @@ mod affinity_curve {
     }
 }
 
+/// Serializes policy overrides as named records, validating each
+/// distribution through [`Posterior::new`] on deserialize.
+///
+/// [`Posterior::new`]: crate::salt::policy::Posterior::new
+mod policy_overrides {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::{
+        dataset::OntologyRowId,
+        salt::policy::{GeometryClass, PolicyOverride, PolicySource, Posterior},
+    };
+
+    /// The precedence tier's wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case")]
+    enum SourceRecord {
+        Human,
+        Reviewed,
+        Synthetic,
+    }
+
+    /// One override's wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Record {
+        relation: u64,
+        source: SourceRecord,
+        distribution: [f64; GeometryClass::COUNT],
+    }
+
+    #[expect(
+        clippy::ptr_arg,
+        reason = "serde's `with` contract passes the field type by reference"
+    )]
+    pub(super) fn serialize<S>(
+        overrides: &Vec<PolicyOverride>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let records: Vec<Record> = overrides
+            .iter()
+            .map(|record| Record {
+                relation: record.relation.get(),
+                source: match record.source {
+                    PolicySource::Human => SourceRecord::Human,
+                    PolicySource::Reviewed => SourceRecord::Reviewed,
+                    PolicySource::Synthetic => SourceRecord::Synthetic,
+                },
+                distribution: *record.distribution.as_array(),
+            })
+            .collect();
+        records.serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<PolicyOverride>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Vec::<Record>::deserialize(deserializer)?
+            .into_iter()
+            .map(|record| {
+                let distribution = Posterior::new(record.distribution).ok_or_else(|| {
+                    D::Error::custom(format_args!(
+                        "the override for relation row {} does not assert a probability \
+                         distribution over the geometry classes",
+                        record.relation,
+                    ))
+                })?;
+                Ok(PolicyOverride {
+                    relation: OntologyRowId::new(record.relation),
+                    source: match record.source {
+                        SourceRecord::Human => PolicySource::Human,
+                        SourceRecord::Reviewed => PolicySource::Reviewed,
+                        SourceRecord::Synthetic => PolicySource::Synthetic,
+                    },
+                    distribution,
+                })
+            })
+            .collect()
+    }
+}
+
 /// serde shadow of [`SelectionOptions`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "SelectionOptions")]
@@ -178,6 +262,27 @@ struct LayoutOptionsDef {
     negative_sample_rate: NonZero<u32>,
 }
 
+/// serde shadow of [`CoincidentAdmission`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "CoincidentAdmission")]
+struct CoincidentAdmissionDef {
+    enforced: bool,
+    #[serde(with = "unit_fraction")]
+    class_probability_threshold: UnitFraction,
+    #[serde(with = "unit_fraction")]
+    applicability_threshold: UnitFraction,
+}
+
+/// serde shadow of [`PolicyOptions`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "PolicyOptions")]
+struct PolicyOptionsDef {
+    #[serde(with = "policy_overrides")]
+    overrides: Vec<PolicyOverride>,
+    #[serde(with = "CoincidentAdmissionDef")]
+    admission: CoincidentAdmission,
+}
+
 /// serde shadow of [`FitConfig`]: the metadata document's echo of every
 /// setting one fit ran under.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -201,4 +306,6 @@ pub(crate) struct FitConfigDef {
     quotient: QuotientOptions,
     #[serde(with = "LayoutOptionsDef")]
     layout: LayoutOptions,
+    #[serde(with = "PolicyOptionsDef")]
+    policy: PolicyOptions,
 }

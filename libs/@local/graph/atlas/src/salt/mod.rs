@@ -13,7 +13,10 @@ pub(crate) use self::{
 };
 #[cfg(test)]
 pub(crate) use self::{
-    fit::prepare::norm::RepresentationDefect, landmark::select::SelectionOptions,
+    fit::PolicyOptions,
+    fit::prepare::norm::RepresentationDefect,
+    landmark::select::SelectionOptions,
+    policy::{PolicyOverride, PolicySource, Posterior},
 };
 
 // The previous pipeline generation is parked uncompiled at

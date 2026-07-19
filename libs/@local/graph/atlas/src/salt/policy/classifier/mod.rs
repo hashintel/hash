@@ -50,6 +50,7 @@ use crate::{
     math::{AlignedDVecN, AlignedVecN, BoxedDVecN, kernel::mul_add_f64x8},
 };
 
+pub(crate) mod artifact;
 mod fit;
 
 #[cfg(test)]

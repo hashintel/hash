@@ -7,7 +7,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use zerocopy::{LE, U64};
 
-use super::{FitConfig, FitError, fit, prepare::identity::MappedIdentityTable};
+use super::{FitConfig, FitError, PolicyOptions, fit, prepare::identity::MappedIdentityTable};
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
@@ -15,16 +15,26 @@ use crate::{
     },
     file::{
         array::ArrayFile,
+        classifier::read::ClassifierFile,
         generation::GenerationRoot,
         identity::read::IdentityFile,
         landmark::read::LandmarkFile,
+        policy::read::PolicyFile,
         salt::{SaltRepository, metadata::Placement},
     },
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, BoxedVecN, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::{artifact::MappedLandmarkSkeleton, select::SelectionOptions},
+        policy::{
+            PolicyOverride, PolicySource, Posterior,
+            artifact::MappedPolicyTable,
+            classifier::{
+                Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
+                fit as fit_classifier,
+            },
+        },
     },
 };
 
@@ -172,14 +182,58 @@ fn config() -> FitConfig {
     }
 }
 
+/// A deterministic classifier fitted from a synthetic corpus: the
+/// supplied model input of every fixture fit.
+fn fixture_classifier() -> Classifier {
+    const ROWS: usize = 4;
+    // Coprime to the dimension, so no two corpus rows repeat.
+    const PATTERN: [f32; 13] = [
+        -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
+    ];
+
+    let mut storage = BoxedVecN::<{ ROWS * CANONICAL_DIMENSIONS }>::zero();
+    for (component, &value) in storage
+        .as_array_mut()
+        .iter_mut()
+        .zip(PATTERN.iter().cycle())
+    {
+        *component = value;
+    }
+    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+
+    let rows: Vec<TrainingRow> = [
+        ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
+        ([0.2, 0.6, 0.2], b"group-b"),
+        ([0.1, 0.2, 0.7], b"group-c"),
+        ([0.3, 0.4, 0.3], b"group-d"),
+    ]
+    .into_iter()
+    .map(|(target, group)| {
+        let mut hasher = Sha256::new();
+        hasher.update(group);
+        TrainingRow {
+            target,
+            weight: 1.0,
+            group: hasher.finalize(),
+        }
+    })
+    .collect();
+
+    let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
+    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+        .expect("the fixture classifier fits")
+        .classifier
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fit_publishes_a_complete_generation() {
     let path = scratch("complete");
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
+    let classifier = fixture_classifier();
 
-    let published = fit(&dataset, &HashEmbedder, &config(), None, &root)
+    let published = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
         .await
         .expect("the fit should publish");
 
@@ -221,6 +275,11 @@ async fn fit_publishes_a_complete_generation() {
     // Without a prior generation every unique card text embeds fresh.
     assert_eq!(repository.metadata.evidence.cards.reused, 0);
     assert_eq!(repository.metadata.evidence.cards.embedded, 3);
+
+    // The policy stage resolved exactly the edge stream's relation
+    // universe: the fixture's single link type, no overrides.
+    assert_eq!(repository.metadata.evidence.policy.relations, 1);
+    assert_eq!(repository.metadata.evidence.policy.overridden, 0);
 
     // Every row's baseline coordinate is bit-equal to its assigned
     // landmark's layout coordinate in the published skeleton.
@@ -284,20 +343,84 @@ async fn fit_publishes_a_complete_generation() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_policy_artifacts_publish_and_read_back() {
+    let root = GenerationRoot::new(scratch("policy")).expect("the root should open");
+    let dataset = dataset();
+    let classifier = fixture_classifier();
+
+    let published = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
+        .await
+        .expect("the fit should publish");
+
+    // The published classifier reads back to the supplied model.
+    let reopened = Classifier::from_artifact(
+        &ClassifierFile::open(published.path().join("classifier.clsf"))
+            .expect("the classifier should map"),
+    )
+    .expect("the classifier should validate");
+    assert_eq!(reopened, classifier);
+
+    // The policy table holds one policy: the fixture's link type.
+    let policies = MappedPolicyTable::new(
+        PolicyFile::open(published.path().join("policy.plcy")).expect("the table should map"),
+    )
+    .expect("the table should validate");
+    assert_eq!(policies.len(), 1);
+    let policy = policies
+        .find(OntologyRowId::new(2))
+        .expect("the link type resolves");
+
+    // The resolved values are the classifier's own prediction of the
+    // staged card embedding, narrowed at the resolution boundary.
+    let cards = ArrayFile::open(published.path().join("card-embeddings.arr"))
+        .expect("the card matrix should map");
+    let embeddings: &[AlignedVecN<CANONICAL_DIMENSIONS>] = cards
+        .vectors()
+        .expect("the card matrix holds canonical-width rows");
+    let prediction = classifier
+        .predict(&embeddings[2])
+        .expect("the fixture card classifies");
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the resolution boundary narrows probabilities the same way"
+    )]
+    {
+        assert_eq!(
+            policy.applicability.to_bits(),
+            (prediction.applicability as f32).to_bits(),
+        );
+    }
+    assert_eq!(
+        policy.strength.to_bits(),
+        1.0_f32.to_bits(),
+        "the strength head is disabled",
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_prior_generation_seeds_reuse_and_retention() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
     let dataset = dataset();
+    let classifier = fixture_classifier();
 
-    let first = fit(&dataset, &HashEmbedder, &config(), None, &root)
+    let first = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
         .await
         .expect("the first fit should publish");
     let prior = root
         .open(first.id())
         .expect("the published generation should open");
 
-    let second = fit(&dataset, &HashEmbedder, &config(), Some(&prior), &root)
-        .await
-        .expect("the second fit should publish");
+    let second = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        Some(&prior),
+        &root,
+    )
+    .await
+    .expect("the second fit should publish");
     let document = fs::read(second.path().join("metadata.json")).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
@@ -328,17 +451,91 @@ async fn a_prior_generation_seeds_reuse_and_retention() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn an_override_supersedes_the_classifier() {
+    let root = GenerationRoot::new(scratch("override")).expect("the root should open");
+    let dataset = dataset();
+
+    // A human override asserts an exactly representable distribution
+    // for the fixture's link type.
+    let config = FitConfig {
+        policy: PolicyOptions {
+            overrides: vec![PolicyOverride {
+                relation: OntologyRowId::new(2),
+                source: PolicySource::Human,
+                distribution: Posterior::new([0.25, 0.5, 0.25])
+                    .expect("the asserted distribution sums to one"),
+            }],
+            ..
+        },
+        ..config()
+    };
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &fixture_classifier(),
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    let policies = MappedPolicyTable::new(
+        PolicyFile::open(published.path().join("policy.plcy")).expect("the table should map"),
+    )
+    .expect("the table should validate");
+    let policy = policies
+        .find(OntologyRowId::new(2))
+        .expect("the link type resolves");
+
+    // The override's distribution is the selected one, asserted with
+    // applicability 1, so the attraction mix passes it through
+    // unchanged.
+    assert_eq!(policy.selected.coincident.to_bits(), 0.25_f32.to_bits());
+    assert_eq!(policy.selected.proximal.to_bits(), 0.5_f32.to_bits());
+    assert_eq!(policy.attraction.coincident.to_bits(), 0.25_f32.to_bits());
+    assert_eq!(policy.attraction.proximal.to_bits(), 0.5_f32.to_bits());
+    assert_eq!(policy.applicability.to_bits(), 1.0_f32.to_bits());
+
+    // The document echoes the overrides and admission verbatim: the
+    // record round-trips through the metadata schema.
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+    assert_eq!(repository.metadata.reproducibility.config, config);
+    assert_eq!(repository.metadata.evidence.policy.overridden, 1);
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn equal_seeds_publish_equal_generations() {
     let first_root = GenerationRoot::new(scratch("repeat-a")).expect("the root should open");
     let second_root = GenerationRoot::new(scratch("repeat-b")).expect("the root should open");
     let dataset = dataset();
+    let classifier = fixture_classifier();
 
-    let first = fit(&dataset, &HashEmbedder, &config(), None, &first_root)
-        .await
-        .expect("the first fit should publish");
-    let second = fit(&dataset, &HashEmbedder, &config(), None, &second_root)
-        .await
-        .expect("the second fit should publish");
+    let first = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        None,
+        &first_root,
+    )
+    .await
+    .expect("the first fit should publish");
+    let second = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        None,
+        &second_root,
+    )
+    .await
+    .expect("the second fit should publish");
 
     // The generation id digests the metadata document, which digests
     // every artifact: equal ids certify byte-equal generations. The
@@ -377,7 +574,15 @@ async fn a_defective_corpus_publishes_nothing() {
     let cards = HashMap::from([(0, Card::verbatim("Only type card".to_owned()))]);
     let dataset = MemoryDataset::new(nodes, Vec::new(), ontology, HashMap::new(), cards);
 
-    let result = fit(&dataset, &HashEmbedder, &config(), None, &root).await;
+    let result = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &fixture_classifier(),
+        None,
+        &root,
+    )
+    .await;
     assert!(
         matches!(result, Err(FitError::RepresentationDefects(ref check)) if !check.passes()),
         "the defective corpus should fail the norm check",

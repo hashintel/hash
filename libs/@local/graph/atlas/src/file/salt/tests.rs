@@ -4,16 +4,20 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 
 use super::{
     SaltFiles, SaltRepository,
-    metadata::{Evidence, LandmarkEvidence, Placement, Reproducibility, SaltMetadata, Snapshot},
+    metadata::{
+        Evidence, LandmarkEvidence, Placement, PolicyEvidence, Reproducibility, SaltMetadata,
+        Snapshot,
+    },
 };
 use crate::{
-    dataset::{NodeRowId, TemporalAxes},
+    dataset::{NodeRowId, OntologyRowId, TemporalAxes},
     file::repository::{FileName, RepositoryFile, RepositoryVersion},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::AffinityCurve,
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, NormSpotCheck, RecallSpotCheck,
-        RepresentationDefect, SelectionOptions,
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, NormSpotCheck, PolicyOptions,
+        PolicyOverride, PolicySource, Posterior, RecallSpotCheck, RepresentationDefect,
+        SelectionOptions,
     },
 };
 
@@ -39,6 +43,15 @@ fn config() -> FitConfig {
         },
         curve: AffinityCurve::new(1.577, 0.895)
             .expect("the fixture parameters are finite and strictly positive"),
+        policy: PolicyOptions {
+            overrides: vec![PolicyOverride {
+                relation: OntologyRowId::new(7),
+                source: PolicySource::Human,
+                distribution: Posterior::new([0.25, 0.5, 0.25])
+                    .expect("the fixture distribution sums to one"),
+            }],
+            ..
+        },
         ..
     }
 }
@@ -53,6 +66,8 @@ fn repository() -> SaltRepository {
             knn: file("knn.sprs"),
             semantic: file("semantic.sprs"),
             landmarks: file("landmarks.lndm"),
+            classifier: file("classifier.clsf"),
+            policy: file("policy.plcy"),
             coordinates: file("coordinates.arr"),
             node_identities: file("node-identities.idnt"),
             edge_identities: file("edge-identities.idnt"),
@@ -101,6 +116,10 @@ fn repository() -> SaltRepository {
                     selected: 4_096,
                     retained: 1_024,
                     layout_epochs: NonZero::new(500).expect("the fixture epoch count is nonzero"),
+                },
+                policy: PolicyEvidence {
+                    relations: 49,
+                    overridden: 1,
                 },
             },
         },
@@ -169,6 +188,14 @@ fn a_tampered_configuration_echo_refuses_to_deserialize() {
         (
             "/metadata/reproducibility/config/layout/epochs",
             serde_json::json!(0),
+        ),
+        (
+            "/metadata/reproducibility/config/policy/overrides/0/distribution",
+            serde_json::json!([0.5, 0.5, 0.5]),
+        ),
+        (
+            "/metadata/reproducibility/config/policy/admission/class_probability_threshold",
+            serde_json::json!(1.5),
         ),
     ] {
         let mut document =

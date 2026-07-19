@@ -18,7 +18,8 @@ use crate::{
         salt::{
             SaltFiles, SaltRepository,
             metadata::{
-                Evidence, LandmarkEvidence, Placement, Reproducibility, SaltMetadata, Snapshot,
+                Evidence, LandmarkEvidence, Placement, PolicyEvidence, Reproducibility,
+                SaltMetadata, Snapshot,
             },
         },
     },
@@ -81,6 +82,8 @@ fn repository() -> SaltRepository {
             knn: file("knn.sprs"),
             semantic: file("semantic.sprs"),
             landmarks: file("landmarks.lndm"),
+            classifier: file("classifier.clsf"),
+            policy: file("policy.plcy"),
             coordinates: file("coordinates.arr"),
             node_identities: file("node-identities.idnt"),
             edge_identities: file("edge-identities.idnt"),
@@ -122,6 +125,10 @@ fn repository() -> SaltRepository {
                     selected: 2,
                     retained: 1,
                     layout_epochs: NonZero::new(5).expect("the fixture epoch count is nonzero"),
+                },
+                policy: PolicyEvidence {
+                    relations: 1,
+                    overridden: 0,
                 },
             },
         },

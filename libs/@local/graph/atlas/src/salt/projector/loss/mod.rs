@@ -29,6 +29,10 @@ mod tests;
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 
 pub(crate) use self::energy::{AffinityEnergy, RelationEnergy};
+// The class energies compose into `RelationEnergy` at the training
+// loop's phase boundary; until that lands, only tests build them.
+#[cfg(test)]
+pub(crate) use self::energy::{CoincidentEnergy, ProximalEnergy};
 use crate::{
     math::Vec2,
     salt::{

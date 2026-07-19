@@ -21,10 +21,14 @@ use crate::{
     dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, BoxedVecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::select::SelectionOptions,
+        policy::classifier::{
+            Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
+            fit as fit_classifier,
+        },
     },
 };
 
@@ -136,9 +140,17 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         ..
     };
 
-    let published = fit(&dataset, &StubEmbedder, &config, prior.as_ref(), &root)
-        .await
-        .expect("the fit should publish");
+    let classifier = stub_classifier();
+    let published = fit(
+        &dataset,
+        &StubEmbedder,
+        &config,
+        &classifier,
+        prior.as_ref(),
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
     root.activate(published.id())
         .expect("the published generation should activate");
 
@@ -158,6 +170,53 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         selected: metadata.evidence.landmarks.selected,
         retained: metadata.evidence.landmarks.retained,
     }
+}
+
+/// A deterministic classifier fitted from a synthetic corpus.
+///
+/// The stub stands in for the supplied model input while the training
+/// ingestion seam is unbuilt, keeping the measured pipeline's policy
+/// stage real: classification, resolution, and both artifacts run
+/// against it.
+fn stub_classifier() -> Classifier {
+    const ROWS: usize = 4;
+    // Coprime to the dimension, so no two corpus rows repeat.
+    const PATTERN: [f32; 13] = [
+        -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
+    ];
+
+    let mut storage = BoxedVecN::<{ ROWS * CANONICAL_DIMENSIONS }>::zero();
+    for (component, &value) in storage
+        .as_array_mut()
+        .iter_mut()
+        .zip(PATTERN.iter().cycle())
+    {
+        *component = value;
+    }
+    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+
+    let rows: Vec<TrainingRow> = [
+        ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
+        ([0.2, 0.6, 0.2], b"group-b"),
+        ([0.1, 0.2, 0.7], b"group-c"),
+        ([0.3, 0.4, 0.3], b"group-d"),
+    ]
+    .into_iter()
+    .map(|(target, group)| {
+        let mut hasher = Sha256::new();
+        hasher.update(group);
+        TrainingRow {
+            target,
+            weight: 1.0,
+            group: hasher.finalize(),
+        }
+    })
+    .collect();
+
+    let training = TrainingSet::new(embeddings, &rows).expect("the stub corpus validates");
+    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+        .expect("the stub classifier fits")
+        .classifier
 }
 
 /// A deterministic provider deriving each embedding from its text

@@ -19,6 +19,7 @@ use crate::{
             artifact::InvalidLandmarkFile, assignment::AssignmentError, layout::EdgelessGraphError,
             quotient::QuotientError, select::SelectionError,
         },
+        policy::{ResolveError, classifier::PredictError},
         semantic::artifact::InvalidSemanticFile,
     },
 };
@@ -119,6 +120,12 @@ pub(crate) enum FitError<D, E> {
     RecallBelowMinimum(recall::RecallSpotCheck),
     /// The k-NN table failed to assemble.
     Knn(KnnError<HannoyIndexError>),
+    /// A relation card's classification overflowed.
+    Classify(PredictError),
+    /// The policy resolution rejected its input.
+    Policy(ResolveError),
+    /// The staged card-embedding matrix failed to map back.
+    MapCards(OpenArrayError),
     /// The landmark selection rejected its input.
     Selection(SelectionError),
     /// The landmark assignment failed.
@@ -236,6 +243,14 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
                 check.minimum_recall,
             ),
             Self::Knn(error) => write!(fmt, "the k-NN table failed to assemble: {error}"),
+            Self::Classify(error) => {
+                write!(fmt, "a relation card failed to classify: {error}")
+            }
+            Self::Policy(error) => write!(fmt, "the policy resolution failed: {error}"),
+            Self::MapCards(error) => write!(
+                fmt,
+                "the staged card-embedding matrix failed to map back: {error}"
+            ),
             Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
             Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
             Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
@@ -290,11 +305,13 @@ where
             Self::NormCheck(error) => Some(error),
             Self::Index(error) => Some(error),
             Self::RecallCheck(error) | Self::Knn(error) => Some(error),
+            Self::Classify(error) => Some(error),
+            Self::Policy(error) => Some(error),
             Self::Selection(error) => Some(error),
             Self::Assignment(error) => Some(error),
             Self::Quotient(error) => Some(error),
             Self::Layout(error) => Some(error),
-            Self::MapRepresentations(error) => Some(error),
+            Self::MapRepresentations(error) | Self::MapCards(error) => Some(error),
             Self::MapSparse(error) => Some(error),
             Self::InvalidKnn(error) => Some(error),
             Self::InvalidSemantic(error) => Some(error),

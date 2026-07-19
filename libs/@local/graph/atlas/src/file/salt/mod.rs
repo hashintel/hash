@@ -34,6 +34,13 @@ pub(crate) struct SaltFiles {
     /// The landmark skeleton: selected rows, assignment, and layout
     /// coordinates in one combined file.
     pub landmarks: RepositoryFile,
+    /// The fitted relation-policy classifier: coefficient rows,
+    /// applicability moments, and training distances in one combined
+    /// file.
+    pub classifier: RepositoryFile,
+    /// The resolved geometry policy table, one record per relation
+    /// type, ascending by relation; a policy file.
+    pub policy: RepositoryFile,
     /// The canonical `f32[N, 2]` coordinates, row-aligned with the node
     /// stream; an array file.
     pub coordinates: RepositoryFile,
@@ -51,7 +58,7 @@ impl SaltFiles {
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
     #[must_use]
-    pub(crate) const fn files(&self) -> [&RepositoryFile; 9] {
+    pub(crate) const fn files(&self) -> [&RepositoryFile; 11] {
         let Self {
             representations,
             card_embeddings,
@@ -59,6 +66,8 @@ impl SaltFiles {
             knn,
             semantic,
             landmarks,
+            classifier,
+            policy,
             coordinates,
             node_identities,
             edge_identities,
@@ -71,6 +80,8 @@ impl SaltFiles {
             knn,
             semantic,
             landmarks,
+            classifier,
+            policy,
             coordinates,
             node_identities,
             edge_identities,
