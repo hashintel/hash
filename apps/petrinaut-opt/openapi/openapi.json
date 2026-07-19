@@ -176,7 +176,15 @@
             "description": "Validation Error"
           },
           "429": {
-            "description": "The service is already at its study limit"
+            "description": "The service is already at its study limit",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying the study",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "description": "The CLI or optimization study could not initialize"
@@ -226,7 +234,15 @@
             "description": "Validation Error"
           },
           "429": {
-            "description": "The service is already at its study limit"
+            "description": "The service is already at its study limit",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying the study",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "500": {
             "description": "The CLI or optimization study could not initialize"

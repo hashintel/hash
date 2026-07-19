@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncIterator
+import threading
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.petrinaut_client import PetrinautModel
@@ -24,6 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(REPO_ROOT / ".env")
 MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
+RETRY_AFTER_SECONDS = 30
 _OPTIMIZATION_PATHS = {"/optimize/all", "/optimize/best"}
 _SSE_RESPONSES = {
     200: {
@@ -31,7 +34,15 @@ _SSE_RESPONSES = {
         "content": {"text/event-stream": {"schema": {"type": "string"}}},
     },
     413: {"description": "The optimization manifest exceeds 8 MiB"},
-    429: {"description": "The service is already at its study limit"},
+    429: {
+        "description": "The service is already at its study limit",
+        "headers": {
+            "Retry-After": {
+                "description": "Seconds to wait before retrying the study",
+                "schema": {"type": "string"},
+            },
+        },
+    },
     500: {"description": "The CLI or optimization study could not initialize"},
 }
 
@@ -129,6 +140,7 @@ async def _acquire_optimization_slot(app: FastAPI) -> None:
                 detail=(
                     "The optimizer is already running its maximum number of studies"
                 ),
+                headers={"Retry-After": str(RETRY_AFTER_SECONDS)},
             )
         app.state.active_optimizations += 1
 
@@ -148,26 +160,72 @@ async def _initialize_admitted_optimizer(
     try:
         return await asyncio.shield(initializer)
     except asyncio.CancelledError:
+        # Backstop for a second cancellation racing the recovery below: once
+        # the initializer finishes, close whatever CLI it started even if no
+        # coroutine is left awaiting it. close() is idempotent, so the
+        # awaited recovery close and this callback can coexist.
+        def _close_abandoned_optimizer(task: asyncio.Task[PetrinautOptimizer]) -> None:
+            if task.cancelled() or task.exception() is not None:
+                return
+            threading.Thread(
+                target=task.result().pn_model.close,
+                kwargs={"graceful": False},
+                daemon=True,
+                name="petrinaut-abandoned-cli-close",
+            ).start()
+
+        initializer.add_done_callback(_close_abandoned_optimizer)
         optimizer: PetrinautOptimizer | None = None
         try:
             with suppress(Exception, asyncio.CancelledError):
                 optimizer = await asyncio.shield(initializer)
             if optimizer is not None:
                 with suppress(Exception):
-                    await asyncio.to_thread(optimizer.pn_model.close)
+                    await asyncio.to_thread(
+                        optimizer.pn_model.close, graceful=False
+                    )
         finally:
             await asyncio.shield(_release_optimization_slot(app))
         raise
 
 
-async def _stream_with_admission_slot(
-    app: FastAPI, stream: AsyncIterator[str]
+def _create_admitted_run_cleanup(
+    app: FastAPI, optimizer: PetrinautOptimizer
+) -> Callable[[], Awaitable[None]]:
+    """Build the idempotent teardown for one admitted optimization run.
+
+    The teardown runs from the stream wrapper's ``finally`` on every consumed
+    stream, and again as the response's background task: when a client aborts
+    before the response body is ever pulled, the never-started generators skip
+    their ``finally`` blocks entirely, which would otherwise leak both the
+    admission slot and a live CLI process.
+    """
+    cleaned_up = False
+
+    async def cleanup() -> None:
+        nonlocal cleaned_up
+        if cleaned_up:
+            return
+        cleaned_up = True
+        try:
+            # No-op when the stream already closed the CLI; prompt when the
+            # stream generators never ran at all.
+            with suppress(Exception):
+                await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
+        finally:
+            await _release_optimization_slot(app)
+
+    return cleanup
+
+
+async def _stream_with_cleanup(
+    stream: AsyncIterator[str], cleanup: Callable[[], Awaitable[None]]
 ) -> AsyncIterator[str]:
     try:
         async for frame in stream:
             yield frame
     finally:
-        await asyncio.shield(_release_optimization_slot(app))
+        await asyncio.shield(cleanup())
 
 
 def _initialization_error(app: FastAPI, run_id: str, error: Exception) -> HTTPException:
@@ -214,14 +272,15 @@ async def post_optimize_all(
     except Exception as error:
         if optimizer is not None:
             with suppress(Exception):
-                await asyncio.to_thread(optimizer.pn_model.close)
+                await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(request.app, run_id, error) from error
 
+    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
-        _stream_with_admission_slot(
-            request.app,
+        _stream_with_cleanup(
             optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
+            cleanup,
         ),
         media_type="text/event-stream",
         headers={
@@ -229,6 +288,7 @@ async def post_optimize_all(
             "X-Accel-Buffering": "no",
             "X-Optimization-Run-ID": run_id,
         },
+        background=BackgroundTask(cleanup),
     )
 
 
@@ -262,14 +322,15 @@ async def post_optimize_best(
     except Exception as error:
         if optimizer is not None:
             with suppress(Exception):
-                await asyncio.to_thread(optimizer.pn_model.close)
+                await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(request.app, run_id, error) from error
 
+    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
-        _stream_with_admission_slot(
-            request.app,
+        _stream_with_cleanup(
             optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),
+            cleanup,
         ),
         media_type="text/event-stream",
         headers={
@@ -277,6 +338,7 @@ async def post_optimize_best(
             "X-Accel-Buffering": "no",
             "X-Optimization-Run-ID": run_id,
         },
+        background=BackgroundTask(cleanup),
     )
 
 

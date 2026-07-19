@@ -130,7 +130,7 @@ class PetrinautModel:
             self._process = process
 
         if process.stdin is None or process.stdout is None or process.stderr is None:
-            self.close()
+            self.close(graceful=False)
             raise PetrinautClientError("the Petrinaut CLI pipes are unavailable")
 
         try:
@@ -143,14 +143,14 @@ class PetrinautModel:
                 description="Petrinaut optimization bootstrap",
             ).strip()
         except (BrokenPipeError, OSError, ValueError, PetrinautClientError) as error:
-            self.close()
+            self.close(graceful=False)
             raise PetrinautClientError(
                 "failed to bootstrap the Petrinaut CLI"
             ) from error
 
         if not status.startswith("Petrinaut stdio ready"):
             details = status.strip() or f"process exited with code {process.poll()}"
-            self.close()
+            self.close(graceful=False)
             raise PetrinautClientError(
                 f"Petrinaut failed to load the optimization manifest: {details}"
             )
@@ -268,7 +268,7 @@ class PetrinautModel:
                 description="Petrinaut protocol response",
             )
         except PetrinautProtocolError:
-            self.close()
+            self.close(graceful=False)
             raise
         except (
             BrokenPipeError,
@@ -276,20 +276,20 @@ class PetrinautModel:
             ValueError,
             PetrinautClientError,
         ) as error:
-            self.close()
+            self.close(graceful=False)
             raise PetrinautClientError(
                 "failed to communicate with the Petrinaut CLI"
             ) from error
 
         if not line:
-            self.close()
+            self.close(graceful=False)
             raise PetrinautClientError(
                 f"the Petrinaut CLI exited without a response (code {process.poll()})"
             )
         try:
             return self._parse_response(line, request_id)
         except PetrinautProtocolError:
-            self.close()
+            self.close(graceful=False)
             raise
 
     @staticmethod
@@ -323,7 +323,7 @@ class PetrinautModel:
         """Return the CLI-owned Optuna study and parameter description."""
         result = self._exchange("optimization.describe")
         if not isinstance(result, dict):
-            self.close()
+            self.close(graceful=False)
             raise PetrinautProtocolError(
                 "optimization.describe returned a non-object result"
             )
@@ -336,7 +336,7 @@ class PetrinautModel:
             {"parameterValues": dict(parameter_values)},
         )
         if not isinstance(result, dict):
-            self.close()
+            self.close(graceful=False)
             raise PetrinautProtocolError(
                 "optimization.evaluate returned a non-object result"
             )
@@ -368,8 +368,16 @@ class PetrinautModel:
         else:
             process.kill()
 
-    def close(self) -> None:
-        """Terminate the owned CLI process; safe to call repeatedly."""
+    def close(self, *, graceful: bool = True) -> None:
+        """Terminate the owned CLI process; safe to call repeatedly.
+
+        A busy CLI only observes stdin EOF between protocol requests, so the
+        graceful EOF wait is reserved for shutdowns after a study finished and
+        the CLI is idle. Cancellation, timeouts, and failure paths must pass
+        ``graceful=False`` so the process group is signalled immediately and
+        optimizer capacity is released promptly instead of after the full
+        shutdown timeout.
+        """
         with self._state_lock:
             process = self._process
             self._process = None
@@ -381,19 +389,21 @@ class PetrinautModel:
                 process.stdin.close()
             except (BrokenPipeError, OSError, ValueError):
                 pass
-        if process.poll() is None:
+        if process.poll() is None and graceful:
             try:
                 process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
             except subprocess.TimeoutExpired:
-                self._signal_process(process, signal.SIGTERM)
+                pass
+        if process.poll() is None:
+            self._signal_process(process, signal.SIGTERM)
+            try:
+                process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
+            except subprocess.TimeoutExpired:
+                self._signal_process(process, signal.SIGKILL)
                 try:
                     process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
                 except subprocess.TimeoutExpired:
-                    self._signal_process(process, signal.SIGKILL)
-                    try:
-                        process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
-                    except subprocess.TimeoutExpired:
-                        pass
+                    pass
         for stream in (process.stdout, process.stderr):
             if stream is not None and not stream.closed:
                 try:

@@ -96,6 +96,41 @@ describe("openPetrinautOptimizationStream", () => {
     });
   });
 
+  it("preserves the busy status and Retry-After of an optimizer 429", async () => {
+    const result = openPetrinautOptimizationStream({
+      endpoint: "/optimize/all",
+      fetchImpl: async () =>
+        Response.json(
+          {
+            detail:
+              "The optimizer is already running its maximum number of studies",
+          },
+          { status: 429, headers: { "retry-after": "30" } },
+        ),
+      input,
+    });
+
+    await expect(result).rejects.toBeInstanceOf(PetrinautOptimizerHttpError);
+    await expect(result).rejects.toMatchObject({
+      message: "The optimizer is already running its maximum number of studies",
+      retryAfter: "30",
+      status: 429,
+    });
+  });
+
+  it("reports a null Retry-After when the optimizer 429 omits the header", async () => {
+    const result = openPetrinautOptimizationStream({
+      endpoint: "/optimize/all",
+      fetchImpl: async () => Response.json({ detail: "busy" }, { status: 429 }),
+      input,
+    });
+
+    await expect(result).rejects.toMatchObject({
+      retryAfter: null,
+      status: 429,
+    });
+  });
+
   it("falls back to the upstream status for an unstructured error", async () => {
     await expect(
       openPetrinautOptimizationStream({

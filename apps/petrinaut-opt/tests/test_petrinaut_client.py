@@ -241,6 +241,63 @@ def test_close_signals_the_isolated_process_group(
     ]
 
 
+def test_prompt_close_signals_the_group_before_any_shutdown_wait(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    process = FakeProcess([])
+    process.pid = 12345
+    events: list[str] = []
+
+    def wait(*, timeout: float | None = None) -> int:
+        events.append("wait")
+        process.returncode = -signal.SIGTERM
+        return process.returncode
+
+    process.wait = wait  # type: ignore[method-assign]
+    monkeypatch.setattr(
+        petrinaut_client.os,
+        "killpg",
+        lambda _pid, sent_signal: events.append(
+            f"killpg:{signal.Signals(sent_signal).name}"
+        ),
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    model.close(graceful=False)
+
+    assert events == ["killpg:SIGTERM", "wait"]
+
+
+def test_prompt_close_terminates_a_busy_process_quickly(
+    optimization_manifest: dict,
+) -> None:
+    """A mid-trial CLI never notices stdin EOF, so cancellation must signal."""
+    script = """
+import sys
+import time
+sys.stdin.readline()
+sys.stderr.write("Petrinaut stdio ready for optimization\\n")
+sys.stderr.flush()
+while True:
+    time.sleep(0.1)
+"""
+    model = PetrinautModel(
+        optimization_manifest,
+        command=(sys.executable, "-c", script),
+    )
+    model.start()
+
+    started_at = time.monotonic()
+    model.close(graceful=False)
+
+    assert time.monotonic() - started_at < 2
+
+
 def test_cli_error_during_evaluation_is_recoverable(
     optimization_manifest: dict,
 ) -> None:

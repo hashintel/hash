@@ -59,16 +59,27 @@ const unexpectedFetch = async (): Promise<Response> => {
   throw new Error("Unexpected upstream request");
 };
 
+/** Mutable fake Express response the backpressure tests can drive. */
+type FakeResponse = EventEmitter & ExpressResponse & { destroyed: boolean };
+
 const callHandler = async ({
   authenticated = true,
   body,
   fetchImpl = unexpectedFetch,
+  handler,
   onRequest,
+  onResponse,
+  writeReturns,
 }: {
   authenticated?: boolean;
   body: unknown;
   fetchImpl?: (input: string | URL, init?: RequestInit) => Promise<Response>;
+  /** Reuse one handler across calls to observe its slot bookkeeping. */
+  handler?: ReturnType<typeof createPetrinautOptimizationHandler>;
   onRequest?: (request: EventEmitter) => void;
+  onResponse?: (response: FakeResponse) => void;
+  /** Decide each write's backpressure result; defaults to no backpressure. */
+  writeReturns?: (value: string) => boolean;
 }) => {
   let statusCode = 200;
   let bodyResult: unknown;
@@ -76,14 +87,25 @@ const callHandler = async ({
   const output: string[] = [];
   let headersSent = false;
   let writableEnded = false;
-  const response = Object.assign(new EventEmitter(), {
+  let writableNeedDrain = false;
+  const responseEmitter = new EventEmitter();
+  // `Object.assign` would copy getter *values*, freezing them at `false`.
+  Object.defineProperties(responseEmitter, {
+    headersSent: { get: () => headersSent },
+    writableEnded: { get: () => writableEnded },
+    writableNeedDrain: { get: () => writableNeedDrain },
+  });
+  // Clear the drain flag without registering a listener, so the tests can
+  // assert that the handler leaves no listeners of its own behind.
+  const originalEmit = responseEmitter.emit.bind(responseEmitter);
+  responseEmitter.emit = (eventName: string | symbol, ...args: unknown[]) => {
+    if (eventName === "drain") {
+      writableNeedDrain = false;
+    }
+    return originalEmit(eventName, ...args);
+  };
+  const response = Object.assign(responseEmitter, {
     destroyed: false,
-    get headersSent() {
-      return headersSent;
-    },
-    get writableEnded() {
-      return writableEnded;
-    },
     end: () => {
       writableEnded = true;
     },
@@ -107,26 +129,33 @@ const callHandler = async ({
     write: (value: string) => {
       headersSent = true;
       output.push(value);
-      return true;
+      const flushed = writeReturns?.(value) ?? true;
+      if (!flushed) {
+        writableNeedDrain = true;
+      }
+      return flushed;
     },
-  }) as unknown as ExpressResponse;
+  }) as unknown as FakeResponse;
   const request = Object.assign(new EventEmitter(), {
     body,
     user: authenticated
       ? ({ accountId: "user-1" } as NonNullable<Request["user"]>)
       : undefined,
   }) as unknown as Request;
-  const handler = createPetrinautOptimizationHandler({
-    fetchImpl,
-    logger,
-    origin: new URL("http://petrinaut-opt:4004"),
-  });
+  const activeHandler =
+    handler ??
+    createPetrinautOptimizationHandler({
+      fetchImpl,
+      logger,
+      origin: new URL("http://petrinaut-opt:4004"),
+    });
 
-  const handlerPromise = handler(request, response, () => undefined);
+  const handlerPromise = activeHandler(request, response, () => undefined);
   onRequest?.(request);
+  onResponse?.(response);
   await handlerPromise;
 
-  return { body: bodyResult, headers, output, statusCode };
+  return { body: bodyResult, headers, output, response, statusCode };
 };
 
 describe("createPetrinautOptimizationHandler", () => {
@@ -267,6 +296,240 @@ describe("createPetrinautOptimizationHandler", () => {
     expect(JSON.parse(upstreamRequest?.body ?? "null")).toEqual(
       validOptimizationInput,
     );
+  });
+
+  it("preserves an upstream busy response without a Retry-After header", async () => {
+    const result = await callHandler({
+      body: validOptimizationInput,
+      fetchImpl: async () =>
+        Response.json({ detail: "The optimizer is busy" }, { status: 429 }),
+    });
+
+    expect(result.statusCode).toBe(429);
+    expect(result.body).toEqual({ error: "Petrinaut optimizer is busy" });
+    expect(result.headers).not.toHaveProperty("Retry-After");
+  });
+
+  it("cleans up backpressure listeners and survives a late close", async () => {
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown) =>
+      unhandledRejections.push(reason);
+    process.on("unhandledRejection", onUnhandledRejection);
+    let activeResponse: FakeResponse | undefined;
+
+    try {
+      const upstream = [
+        'data: {"step":0,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n',
+        'data: {"step":1,"params":{"rate":0.8},"init_state":{},"metric":4,"state":"COMPLETE"}\n\n',
+        "event: done\ndata: {}\n\n",
+      ].join("");
+
+      const result = await callHandler({
+        body: validOptimizationInput,
+        fetchImpl: async () =>
+          new Response(upstream, {
+            headers: { "content-type": "text/event-stream" },
+          }),
+        onResponse: (response) => {
+          activeResponse = response;
+        },
+        writeReturns: (value) => {
+          if (value.includes('"trial":0')) {
+            // Backpressure this write, then let the buffer drain shortly
+            // after the handler has started waiting.
+            setImmediate(() => activeResponse?.emit("drain"));
+            return false;
+          }
+          return true;
+        },
+      });
+
+      expect(result.statusCode).toBe(200);
+      expect(result.output).toHaveLength(4);
+      expect(result.response.listenerCount("drain")).toBe(0);
+      expect(result.response.listenerCount("close")).toBe(0);
+
+      // The response closing after completion must not trip the listener
+      // that lost the earlier drain/close race.
+      result.response.emit("close");
+      await new Promise(setImmediate);
+      expect(unhandledRejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandledRejection);
+    }
+  });
+
+  it("stops a backpressured stream when the client closes and frees the slot", async () => {
+    const handler = createPetrinautOptimizationHandler({
+      fetchImpl: async (_input, init) =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  'data: {"step":0,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n',
+                ),
+              );
+              init?.signal?.addEventListener(
+                "abort",
+                () =>
+                  controller.error(new DOMException("Aborted", "AbortError")),
+                { once: true },
+              );
+            },
+          }),
+          { headers: { "content-type": "text/event-stream" } },
+        ),
+      logger,
+      origin: new URL("http://petrinaut-opt:4004"),
+    });
+    let activeResponse: FakeResponse | undefined;
+
+    const first = await callHandler({
+      body: validOptimizationInput,
+      handler,
+      onResponse: (response) => {
+        activeResponse = response;
+      },
+      writeReturns: (value) => {
+        if (value.includes('"trial":0')) {
+          setImmediate(() => {
+            if (activeResponse) {
+              activeResponse.destroyed = true;
+              activeResponse.emit("close");
+            }
+          });
+          return false;
+        }
+        return true;
+      },
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(first.response.listenerCount("drain")).toBe(0);
+    expect(first.response.listenerCount("close")).toBe(0);
+
+    // The same user must be admitted again: the slot was released.
+    const second = await callHandler({
+      body: validOptimizationInput,
+      handler,
+      writeReturns: (value) => {
+        if (value.includes('"trial":0')) {
+          setImmediate(() => {
+            activeResponse!.destroyed = true;
+            activeResponse!.emit("close");
+          });
+          return false;
+        }
+        return true;
+      },
+      onResponse: (response) => {
+        activeResponse = response;
+      },
+    });
+    expect(second.statusCode).toBe(200);
+    expect(second.body).toBeUndefined();
+  });
+
+  it("breaks a backpressured wait on timeout instead of holding the slot", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const handler = createPetrinautOptimizationHandler({
+        fetchImpl: async (_input, init) =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    'data: {"step":0,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n',
+                  ),
+                );
+                init?.signal?.addEventListener(
+                  "abort",
+                  () =>
+                    controller.error(new DOMException("Aborted", "AbortError")),
+                  { once: true },
+                );
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          ),
+        logger,
+        origin: new URL("http://petrinaut-opt:4004"),
+      });
+
+      const firstPromise = callHandler({
+        body: validOptimizationInput,
+        handler,
+        // The client never drains and never disconnects.
+        writeReturns: (value) => !value.includes('"trial":0'),
+      });
+
+      // The 5 minute idle timeout aborts the stalled stream.
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(5 * 60_000 + 1_000);
+      const first = await firstPromise;
+
+      expect(first.statusCode).toBe(200);
+      expect(first.output.at(-1)).toContain('"code":"optimization_timeout"');
+      expect(first.response.writableEnded).toBe(true);
+      expect(first.response.listenerCount("drain")).toBe(0);
+      expect(first.response.listenerCount("close")).toBe(0);
+      // Heartbeats must not stuff a buffer that already needs draining.
+      expect(first.output.filter((frame) => frame === "\n")).toHaveLength(0);
+
+      // The user slot must be free again after the timeout teardown.
+      const secondPromise = callHandler({
+        body: validOptimizationInput,
+        handler,
+        writeReturns: (value) => !value.includes('"trial":0'),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(5 * 60_000 + 1_000);
+      const second = await secondPromise;
+      expect(second.statusCode).toBe(200);
+      expect(second.body).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a single terminal event when a timeout hits the final write", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const upstream = [
+        'data: {"step":0,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n',
+        "event: done\ndata: {}\n\n",
+      ].join("");
+
+      const resultPromise = callHandler({
+        body: validOptimizationInput,
+        fetchImpl: async () =>
+          new Response(upstream, {
+            headers: { "content-type": "text/event-stream" },
+          }),
+        // The final complete event is committed to the buffer, but the
+        // client never drains it before the idle timeout fires.
+        writeReturns: (value) => !value.includes('"type":"complete"'),
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(5 * 60_000 + 1_000);
+      const result = await resultPromise;
+
+      const terminalEvents = result.output.filter(
+        (frame) =>
+          frame.includes('"type":"complete"') ||
+          frame.includes('"type":"error"'),
+      );
+      expect(terminalEvents).toHaveLength(1);
+      expect(terminalEvents[0]).toContain('"type":"complete"');
+      expect(result.response.writableEnded).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("aborts disconnected requests and releases the user slot", async () => {

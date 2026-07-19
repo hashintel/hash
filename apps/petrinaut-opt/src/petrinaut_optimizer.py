@@ -269,6 +269,7 @@ class PetrinautOptimizer:
         worker = threading.Thread(target=run, daemon=True)
         worker.start()
         next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
+        completed = False
 
         try:
             while True:
@@ -299,6 +300,7 @@ class PetrinautOptimizer:
                         phase=Phase.done,
                         detail="optimization completed",
                     )
+                    completed = True
                     yield "event: done\ndata: {}\n\n"
                     break
                 event = cast(dict[str, Any], item)
@@ -315,7 +317,10 @@ class PetrinautOptimizer:
         finally:
             stop_flag.set()
             try:
-                await asyncio.to_thread(self.pn_model.close)
+                # Only a study that ran to completion left the CLI idle enough
+                # for the graceful EOF shutdown; every other exit (disconnect,
+                # error, cancellation) terminates the process group promptly.
+                await asyncio.to_thread(self.pn_model.close, graceful=completed)
                 await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
                 if worker.is_alive():
                     log.error(
@@ -373,6 +378,7 @@ class PetrinautOptimizer:
         worker = threading.Thread(target=run, daemon=True)
         worker.start()
         next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
+        completed = False
 
         try:
             while True:
@@ -403,6 +409,7 @@ class PetrinautOptimizer:
                         phase=Phase.done,
                         detail="optimization completed",
                     )
+                    completed = True
                     yield "event: done\ndata: {}\n\n"
                     break
                 event = cast(dict[str, Any], item)
@@ -419,7 +426,10 @@ class PetrinautOptimizer:
         finally:
             stop_flag.set()
             try:
-                await asyncio.to_thread(self.pn_model.close)
+                # Only a study that ran to completion left the CLI idle enough
+                # for the graceful EOF shutdown; every other exit (disconnect,
+                # error, cancellation) terminates the process group promptly.
+                await asyncio.to_thread(self.pn_model.close, graceful=completed)
                 await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
                 if worker.is_alive():
                     log.error(

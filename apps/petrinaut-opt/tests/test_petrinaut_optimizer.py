@@ -23,6 +23,7 @@ class FakeModel:
         self.description = description
         self.evaluations: list[dict[str, Any]] = []
         self.closed = False
+        self.close_calls: list[bool] = []
 
     def describe_optimization(self) -> dict[str, Any]:
         return self.description
@@ -35,8 +36,9 @@ class FakeModel:
             + int(parameter_values["enabled"])
         )
 
-    def close(self) -> None:
+    def close(self, *, graceful: bool = True) -> None:
         self.closed = True
+        self.close_calls.append(graceful)
 
 
 class SlowModel(FakeModel):
@@ -241,6 +243,7 @@ def test_stream_all_preserves_the_existing_sse_frame_shape(
         set(payload["params"]) == {"rate", "count", "enabled"} for payload in data
     )
     assert model.closed is True
+    assert model.close_calls == [True]
 
 
 def test_stream_best_preserves_the_existing_sse_frame_shape(
@@ -272,6 +275,7 @@ def test_stream_best_preserves_the_existing_sse_frame_shape(
     assert all(payload["state"] == "COMPLETE" for payload in data)
     assert all(payload["init_state"] == {} for payload in data)
     assert model.closed is True
+    assert model.close_calls == [True]
 
 
 def test_stream_sends_comment_heartbeats_while_a_trial_is_running(
@@ -336,6 +340,7 @@ def test_stream_error_is_terminal_and_is_not_followed_by_done(
     assert status is not None
     assert status.phase is Phase.error
     assert model.closed is True
+    assert model.close_calls == [False]
 
 
 def test_disconnect_closes_cli_before_a_bounded_worker_join(
@@ -369,5 +374,6 @@ def test_disconnect_closes_cli_before_a_bounded_worker_join(
 
     assert frames == []
     assert model.closed is True
+    assert model.close_calls == [False]
     assert status is not None
     assert status.phase is Phase.idle

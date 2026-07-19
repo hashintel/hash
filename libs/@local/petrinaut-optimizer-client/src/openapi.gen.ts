@@ -216,6 +216,8 @@ export interface operations {
       /** @description The service is already at its study limit */
       429: {
         headers: {
+          /** @description Seconds to wait before retrying the study */
+          "Retry-After"?: string;
           [name: string]: unknown;
         };
         content?: never;
@@ -272,6 +274,8 @@ export interface operations {
       /** @description The service is already at its study limit */
       429: {
         headers: {
+          /** @description Seconds to wait before retrying the study */
+          "Retry-After"?: string;
           [name: string]: unknown;
         };
         content?: never;
