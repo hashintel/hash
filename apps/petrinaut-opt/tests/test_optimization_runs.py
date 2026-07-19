@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from typing import Any
 
 import pytest
 from fastapi import FastAPI
 
 from src import optimization_runs
+from src.petrinaut_optimizer import PetrinautOptimizer
 from src.optimization_runs import (
     CANCELLED_FRAME,
     DETACH_GRACE_ENVIRONMENT_VARIABLE,
@@ -59,11 +61,14 @@ class HoldingPumpOptimizer:
         *,
         on_event: Any,
         cancel_event: asyncio.Event,
+        on_outcome: Any = None,
         correlation: Any = None,
     ) -> str:
         on_event(FIRST_FRAME)
         self.pump_started.set()
         await cancel_event.wait()
+        if on_outcome is not None:
+            on_outcome("cancelled")
         return "cancelled"
 
 
@@ -80,10 +85,46 @@ class CompletingPumpOptimizer:
         *,
         on_event: Any,
         cancel_event: asyncio.Event,
+        on_outcome: Any = None,
         correlation: Any = None,
     ) -> str:
         on_event(FIRST_FRAME)
         on_event(DONE_FRAME)
+        if on_outcome is not None:
+            on_outcome("completed")
+        return "completed"
+
+
+class CompletedThenBlockedPumpOptimizer:
+    """Pump double stuck in its (cancellable) teardown after deciding.
+
+    Mirrors the real engine's shape: the done frame is appended and the
+    outcome recorded before the CLI-shutdown ``finally`` — a cancellable
+    window in which ``registry.shutdown()`` may land its cancellation.
+    """
+
+    n_trials = 1
+
+    def __init__(self) -> None:
+        self.teardown_entered = asyncio.Event()
+
+    async def pump_events(
+        self,
+        _app: Any,
+        _run_id: str,
+        _n_trials: int,
+        *,
+        on_event: Any,
+        cancel_event: asyncio.Event,
+        on_outcome: Any = None,
+        correlation: Any = None,
+    ) -> str:
+        on_event(FIRST_FRAME)
+        on_event(DONE_FRAME)
+        if on_outcome is not None:
+            on_outcome("completed")
+        self.teardown_entered.set()
+        await asyncio.Event().wait()
         return "completed"
 
 
@@ -123,6 +164,15 @@ def test_detach_grace_environment_parsing(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setenv(DETACH_GRACE_ENVIRONMENT_VARIABLE, "0")
     assert detach_grace_seconds_from_environment() == 0.0
+
+
+@pytest.mark.parametrize("raw", ["inf", "-inf", "nan", "1e400"])
+def test_detach_grace_rejects_non_finite_values(
+    monkeypatch: pytest.MonkeyPatch, raw: str
+) -> None:
+    """`float()` accepts inf/nan spellings, which must not become a period."""
+    monkeypatch.setenv(DETACH_GRACE_ENVIRONMENT_VARIABLE, raw)
+    assert detach_grace_seconds_from_environment() == 300.0
 
 
 def test_event_log_sequences_start_at_one_and_increment() -> None:
@@ -192,6 +242,38 @@ def test_attachment_tails_live_appends_after_the_replay() -> None:
     ]
 
 
+def test_attachment_with_a_cursor_past_the_log_end_still_tails_live_events() -> None:
+    """An out-of-range cursor must not swallow later frames or the terminal."""
+
+    async def scenario() -> list[str]:
+        _calls, cleanup = _cleanup_recorder()
+        run = OptimizationRun(run_id="r1", optimizer=None, cleanup=cleanup)
+        run.append_event(FIRST_FRAME)
+        epoch = run.begin_attachment()
+        stream = attachment_event_stream(
+            run, cursor=999, epoch=epoch, request=ConnectedRequest()
+        )
+
+        async def append_rest() -> None:
+            await asyncio.sleep(0.01)
+            run.append_event(FIRST_FRAME)
+            run.append_event(DONE_FRAME)
+            run.mark_terminal(RunState.completed)
+
+        appender = asyncio.create_task(append_rest())
+        frames = [
+            frame async for frame in stream if not frame.startswith(": heartbeat")
+        ]
+        await appender
+        return frames
+
+    frames = asyncio.run(scenario())
+
+    # The clamped cursor skips the already-buffered frame but delivers every
+    # frame appended after attaching, including the terminal one.
+    assert frames == [f"id: 2\n{FIRST_FRAME}", f"id: 3\n{DONE_FRAME}"]
+
+
 def test_a_second_attachment_supersedes_the_first() -> None:
     async def scenario() -> None:
         _calls, cleanup = _cleanup_recorder()
@@ -205,8 +287,10 @@ def test_a_second_attachment_supersedes_the_first() -> None:
         assert await anext(first_stream) == f"id: 1\n{FIRST_FRAME}"
 
         second_epoch = run.begin_attachment()
+        # Bounded so a supersession regression fails fast instead of
+        # stalling until the ~30s heartbeat.
         with pytest.raises(StopAsyncIteration):
-            await anext(first_stream)
+            await asyncio.wait_for(anext(first_stream), timeout=1)
         # The stale attachment must not clear the newer one's attached mark.
         assert run.attached is True
 
@@ -360,6 +444,87 @@ def test_registry_shutdown_cancels_running_pumps() -> None:
         assert run.cancel_reason == "service shutting down"
         assert run.events[-1] == (2, CANCELLED_FRAME)
         assert calls == [1]
+
+    asyncio.run(scenario())
+
+
+def test_shutdown_during_pump_teardown_keeps_the_decided_outcome() -> None:
+    """A cancel landing after `done` must not relabel the run as cancelled."""
+
+    async def scenario() -> None:
+        app, run_id = _status_app_with_run()
+        registry = OptimizationRunRegistry(detach_grace_seconds=0)
+        calls, cleanup = _cleanup_recorder()
+        optimizer = CompletedThenBlockedPumpOptimizer()
+        run = registry.create_run(
+            app, run_id=run_id, optimizer=optimizer, cleanup=cleanup
+        )
+        await asyncio.wait_for(optimizer.teardown_entered.wait(), 1)
+
+        await registry.shutdown()
+
+        assert run.state is RunState.completed
+        # The event log ends with the single decided terminal frame; no
+        # cancelled frame is appended after it.
+        assert run.events == [(1, FIRST_FRAME), (2, DONE_FRAME)]
+        assert calls == [1]
+
+    asyncio.run(scenario())
+
+
+class SlowCloseStudyModel:
+    """Real-optimizer model whose CLI close blocks until released."""
+
+    def __init__(self, description: dict[str, Any]) -> None:
+        self.description = description
+        self.close_started = threading.Event()
+        self.close_release = threading.Event()
+        self.close_calls: list[bool] = []
+
+    def describe_optimization(self) -> dict[str, Any]:
+        return self.description
+
+    def objective(self, _parameter_values: dict[str, Any]) -> float:
+        return 1.0
+
+    def close(self, *, graceful: bool = True) -> None:
+        self.close_started.set()
+        self.close_release.wait(timeout=2)
+        self.close_calls.append(graceful)
+
+
+def test_cancel_during_the_real_pumps_cli_close_keeps_completed(
+    optimization_description: dict,
+) -> None:
+    """The real engine records its outcome before the cancellable close."""
+
+    async def scenario() -> None:
+        app, run_id = _status_app_with_run()
+        registry = OptimizationRunRegistry(detach_grace_seconds=0)
+        calls, cleanup = _cleanup_recorder()
+        model = SlowCloseStudyModel(optimization_description)
+        optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+        run = registry.create_run(
+            app, run_id=run_id, optimizer=optimizer, cleanup=cleanup
+        )
+        try:
+            # The study finishes, the done frame lands, then the pump blocks
+            # in its CLI-shutdown finally; cancel it right there.
+            await asyncio.to_thread(model.close_started.wait, 2)
+            assert run.task is not None
+            run.task.cancel()
+            model.close_release.set()
+            await asyncio.gather(run.task, return_exceptions=True)
+
+            assert run.state is RunState.completed
+            assert run.events[-1][1] == DONE_FRAME
+            assert CANCELLED_FRAME not in [frame for _seq, frame in run.events]
+            assert calls == [1]
+            status = app.state.statuses.get(run_id)
+            assert status is not None
+            assert status.phase is Phase.done
+        finally:
+            await registry.shutdown()
 
     asyncio.run(scenario())
 

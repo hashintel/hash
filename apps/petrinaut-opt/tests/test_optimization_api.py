@@ -491,8 +491,10 @@ class ScriptedDetachedOptimizer:
         *,
         on_event: Callable[[str], Any],
         cancel_event: asyncio.Event,
+        on_outcome: Callable[[str], Any] | None = None,
         correlation: Any = None,
     ) -> str:
+        record_outcome = on_outcome if on_outcome is not None else lambda _o: None
         on_event(
             'data: {"step": 0, "params": {"rate": 1.0}, '
             '"init_state": {}, "metric": 2.0, "state": "COMPLETE"}\n\n'
@@ -500,6 +502,7 @@ class ScriptedDetachedOptimizer:
         while self.hold and not self.release.is_set():
             if cancel_event.is_set():
                 self.pn_model.close(graceful=False)
+                record_outcome("cancelled")
                 return "cancelled"
             await asyncio.sleep(0.005)
         on_event(
@@ -508,6 +511,7 @@ class ScriptedDetachedOptimizer:
         )
         on_event("event: done\ndata: {}\n\n")
         self.pn_model.close(graceful=True)
+        record_outcome("completed")
         return "completed"
 
 
@@ -751,9 +755,11 @@ def test_a_second_attachment_supersedes_the_first(
             assert first_frame.startswith("id: 1\n")
 
             second = await _attach(test_app, run_id)
-            # The superseded first stream ends without a terminal frame.
+            # The superseded first stream ends without a terminal frame;
+            # bounded so a supersession regression fails fast instead of
+            # stalling until the ~30s heartbeat.
             with pytest.raises(StopAsyncIteration):
-                await anext(first)
+                await asyncio.wait_for(anext(first), timeout=1)
             run = registry.get(run_id)
             assert run is not None
             assert run.attached is True
@@ -868,6 +874,54 @@ def test_the_reaper_spares_a_run_with_an_attached_consumer(
             assert _frame_ids(remaining) == [2, 3]
             assert run.state is RunState.completed
         finally:
+            await registry.shutdown()
+
+    asyncio.run(scenario())
+
+
+def test_background_detach_covers_an_attachment_that_never_starts(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An aborted attach may never pull the body, skipping generator finallys.
+
+    Only the response's background task remains to end the attachment, and it
+    must run on the event loop (a sync callable would land in Starlette's
+    threadpool, where ``end_attachment``'s ``get_running_loop()`` raises) —
+    otherwise the run stays marked attached and is shielded from the reaper.
+    """
+    optimizer = ScriptedDetachedOptimizer(hold=True)
+    monkeypatch.setattr(
+        optimization_api, "initialize_optimizer", lambda _manifest, **_kwargs: optimizer
+    )
+
+    async def scenario() -> None:
+        test_app, run_id = await _start_detached_run(optimization_manifest)
+        registry = test_app.state.optimization_runs
+        try:
+            run = registry.get(run_id)
+            assert run is not None
+            response = await optimization_api.get_optimize_run_events(
+                run_id,
+                _AttachedConsumerRequest(test_app),  # type: ignore[arg-type]
+                cursor=None,
+            )
+            assert run.attached is True
+            assert response.background is not None
+
+            # The client is gone before the body iterator ever starts.
+            await response.background()
+
+            assert run.attached is False
+            # The reaper's grace clock restarts from the backstop detach.
+            assert run.last_detached_at > run.created_at
+            # A later attachment is unaffected by the stale epoch.
+            replay = await _attach(test_app, run_id)
+            assert (await anext(replay)).startswith("id: 1\n")
+            await replay.aclose()
+            await response.body_iterator.aclose()
+        finally:
+            optimizer.release.set()
             await registry.shutdown()
 
     asyncio.run(scenario())

@@ -10,15 +10,17 @@ lifetime: the idempotent cleanup (prompt CLI close plus slot release) runs
 when the run reaches a terminal state or is cancelled/reaped, never when a
 consumer detaches.
 
-The event log needs no explicit cap: it holds one frame per completed trial
-plus a handful of control frames, and the optimization manifest contract caps
-a study at 1000 trials, so a run's log is naturally bounded.
+The event log holds one frame per completed trial plus a handful of control
+frames; it is bounded because the optimizer itself rejects study descriptions
+above ``MAX_STUDY_TRIALS`` (1000) trials — mirroring the optimization
+manifest contract — rather than trusting the CLI's reported trial count.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import suppress
@@ -43,15 +45,19 @@ def detach_grace_seconds_from_environment() -> float:
     """Read the orphan grace period; invalid values fall back to the default.
 
     A value of zero or below disables the orphan reaper (terminal-run log
-    retention then falls back to the default period).
+    retention then falls back to the default period). Invalid and non-finite
+    values (``inf``, ``nan``, overflowing literals) fall back to the default.
     """
     raw = os.environ.get(DETACH_GRACE_ENVIRONMENT_VARIABLE, "").strip()
     if not raw:
         return DEFAULT_DETACH_GRACE_SECONDS
     try:
-        return float(raw)
+        value = float(raw)
     except ValueError:
         return DEFAULT_DETACH_GRACE_SECONDS
+    if not math.isfinite(value):
+        return DEFAULT_DETACH_GRACE_SECONDS
+    return value
 
 
 class RunState(str, Enum):
@@ -166,6 +172,11 @@ async def attachment_event_stream(
     """
     log_context = {**(correlation or {}), "run_id": run.run_id}
     loop = asyncio.get_running_loop()
+    # A cursor pointing past the end of the log would otherwise also filter
+    # out every frame appended after attaching — including the terminal one.
+    # Clamping is safe: sequence numbers are dense, append-only, and never
+    # truncated, so nothing past the current length can have been delivered.
+    cursor = min(cursor, len(run.events))
     next_index = 0
     next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
     log.info(
@@ -264,6 +275,10 @@ class OptimizationRunRegistry:
         """Pump one run to a terminal state, then release its resources."""
         state = RunState.failed
         cancellation: asyncio.CancelledError | None = None
+        # The pump records its outcome right before returning — ahead of its
+        # cancellable CLI-shutdown finally — so a cancellation landing in
+        # that teardown window cannot relabel an already-decided study.
+        recorded_outcomes: list[str] = []
         try:
             state = RunState(
                 await run.optimizer.pump_events(
@@ -272,13 +287,20 @@ class OptimizationRunRegistry:
                     run.optimizer.n_trials,
                     on_event=run.append_event,
                     cancel_event=run.cancel_requested,
+                    on_outcome=recorded_outcomes.append,
                     correlation=run.correlation,
                 )
             )
         except asyncio.CancelledError as error:
             # Service shutdown cancels the pump task; the pump's own finally
-            # already closed the CLI on its way out.
-            state = RunState.cancelled
+            # already closed the CLI on its way out. Keep a decided outcome:
+            # its terminal frame is already in the log, and appending a
+            # cancelled frame after it would corrupt the replay.
+            state = (
+                RunState(recorded_outcomes[0])
+                if recorded_outcomes
+                else RunState.cancelled
+            )
             cancellation = error
         except Exception as error:
             # Backstop only: the pump reports study failures itself. The raw

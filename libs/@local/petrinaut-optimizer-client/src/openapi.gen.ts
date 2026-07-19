@@ -64,6 +64,77 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/optimize/runs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Optimize Runs
+     * @description Start a detached optimization run and return its run id immediately.
+     *
+     *     The run keeps optimizing with no consumer attached; its admission slot is
+     *     held until the run completes, fails, is cancelled via
+     *     ``DELETE /optimize/runs/{run_id}``, or is reaped after the detach grace
+     *     period without an attached consumer.
+     */
+    post: operations["post_optimize_runs_optimize_runs_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/optimize/runs/{run_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Optimize Run
+     * @description Cancel a detached run; idempotent once the run is terminal.
+     *
+     *     Returns after the run's CLI is closed, its terminal frame is appended,
+     *     and its admission slot is released.
+     */
+    delete: operations["delete_optimize_run_optimize_runs__run_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/optimize/runs/{run_id}/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Optimize Run Events
+     * @description Attach to a detached run's SSE log, replaying frames past the cursor.
+     *
+     *     ``cursor`` defaults to the ``Last-Event-ID`` header (the query parameter
+     *     wins), then to 0 — a full replay. Disconnecting never affects the run.
+     */
+    get: operations["get_optimize_run_events_optimize_runs__run_id__events_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/status": {
     parameters: {
       query?: never;
@@ -286,6 +357,142 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  post_optimize_runs_optimize_runs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description The detached optimization run was admitted and started in the background; consume its Server-Sent Events via GET /optimize/runs/{run_id}/events */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            [key: string]: string;
+          };
+        };
+      };
+      /** @description The optimization manifest exceeds 8 MiB */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description The service is already at its study limit */
+      429: {
+        headers: {
+          /** @description Seconds to wait before retrying the study */
+          "Retry-After"?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The CLI or optimization study could not initialize */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete_optimize_run_optimize_runs__run_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The run was cancelled (or had already reached a terminal state); when this call stopped it, the event log's terminal frame is `event: cancelled` */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No optimization run with this id is registered */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_optimize_run_events_optimize_runs__run_id__events_get: {
+    parameters: {
+      query?: {
+        cursor?: number | null;
+      };
+      header?: never;
+      path: {
+        run_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "text/event-stream": string;
+        };
+      };
+      /** @description No optimization run with this id is registered */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

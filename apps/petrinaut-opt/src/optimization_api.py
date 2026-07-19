@@ -56,7 +56,13 @@ _CREATE_RUN_RESPONSES = {
     500: _SSE_RESPONSES[500],
 }
 _RUN_EVENTS_RESPONSES = {
-    200: {"description": "A replayable Server-Sent Events attachment"},
+    200: {
+        "description": (
+            "A replayable Server-Sent Events attachment. Terminal frames are "
+            "`event: done`, an ERROR data frame, or `event: cancelled`."
+        ),
+        "content": {"text/event-stream": {"schema": {"type": "string"}}},
+    },
     404: {"description": "No optimization run with this id is registered"},
 }
 _DELETE_RUN_RESPONSES = {
@@ -449,6 +455,14 @@ async def get_optimize_run_events(
     if cursor is None:
         cursor = _cursor_from_last_event_id(request)
     epoch = run.begin_attachment()
+
+    async def detach_if_never_started() -> None:
+        # A consumer that aborts before the body iterator ever starts would
+        # otherwise stay marked attached and shield the run from the reaper.
+        # This must be async: Starlette runs sync background callables in a
+        # threadpool, where end_attachment's get_running_loop() would fail.
+        run.end_attachment(epoch)
+
     return StreamingResponse(
         attachment_event_stream(
             run,
@@ -463,7 +477,7 @@ async def get_optimize_run_events(
             "X-Accel-Buffering": "no",
             "X-Optimization-Run-ID": run_id,
         },
-        background=BackgroundTask(run.end_attachment, epoch),
+        background=BackgroundTask(detach_if_never_started),
     )
 
 

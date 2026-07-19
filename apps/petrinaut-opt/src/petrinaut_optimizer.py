@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import math
+import os
 import queue
 import threading
 from collections.abc import AsyncIterator, Callable, Mapping
@@ -32,12 +33,37 @@ SAMPLERS = {
 }
 DEFAULT_STUDY_NAME = "opt_study"
 SSE_HEARTBEAT_SECONDS = 30
+# The service-side mirror of the optimization manifest's trial cap; it also
+# bounds every run's in-memory event log to one frame per trial plus a
+# handful of control frames, even against a CLI reporting a huge study.
+MAX_STUDY_TRIALS = 1000
+MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE = "HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS"
+DEFAULT_MAX_STUDY_SECONDS = 900.0
 _DISCONNECT_POLL_SECONDS = 0.1
 _WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
 _SENTINEL = object()
 
 Scalar: TypeAlias = int | float | bool
 ParameterDescriptor: TypeAlias = Mapping[str, Any]
+
+
+def max_study_seconds_from_environment() -> float:
+    """Read the detached-study wall-clock ceiling in seconds.
+
+    Defaults to ``DEFAULT_MAX_STUDY_SECONDS``; a value of zero or below
+    disables the ceiling. Invalid and non-finite values (``inf``, ``nan``,
+    overflowing literals) fall back to the default.
+    """
+    raw = os.environ.get(MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, "").strip()
+    if not raw:
+        return DEFAULT_MAX_STUDY_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        return DEFAULT_MAX_STUDY_SECONDS
+    if not math.isfinite(value):
+        return DEFAULT_MAX_STUDY_SECONDS
+    return value
 
 
 def _finite_number(value: Any, name: str) -> float:
@@ -73,6 +99,10 @@ def _parse_description(
     n_trials = study.get("trials")
     if isinstance(n_trials, bool) or not isinstance(n_trials, int) or n_trials < 1:
         raise ValueError("optimization.describe study.trials must be positive")
+    if n_trials > MAX_STUDY_TRIALS:
+        raise ValueError(
+            f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}"
+        )
     seed = study.get("seed")
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise ValueError(
@@ -236,11 +266,16 @@ class PetrinautOptimizer:
 
     def _start_study_worker(
         self,
-        *,
-        n_trials: int,
-        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None],
-        events: asyncio.Queue[dict[str, Any] | object],
         loop: asyncio.AbstractEventLoop,
+        events: asyncio.Queue[dict[str, Any] | object],
+        stop_flag: threading.Event | None = None,
+        n_trials: int | None = None,
+        payload_builder: (
+            Callable[[optuna.Study, optuna.trial.FrozenTrial], dict[str, Any] | None]
+            | None
+        ) = None,
+        *,
+        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None] | None = None,
     ) -> tuple[threading.Thread, Span]:
         """Run the study on a worker thread that inherits the request's context.
 
@@ -250,6 +285,21 @@ class PetrinautOptimizer:
         span. The returned ``optimization.study`` span is the parent of those
         trial spans; the caller must ``end()`` it once the stream is torn down.
         """
+        if n_trials is None:
+            raise ValueError("n_trials is required")
+        if callback is None:
+            if stop_flag is None or payload_builder is None:
+                raise ValueError("callback or detached-run callback inputs are required")
+
+            def callback(
+                study: optuna.Study, trial: optuna.trial.FrozenTrial
+            ) -> None:
+                payload = payload_builder(study, trial)
+                if payload is not None:
+                    loop.call_soon_threadsafe(events.put_nowait, payload)
+                if stop_flag.is_set():
+                    study.stop()
+
         study_span = tracer.start_span("optimization.study")
         study_span.set_attribute("optuna.study.trials", n_trials)
         study_span.set_attribute("optuna.study.direction", self.direction)
@@ -301,12 +351,15 @@ class PetrinautOptimizer:
         *,
         on_event: Callable[[str], Any],
         cancel_event: asyncio.Event,
+        on_outcome: Callable[[str], Any] | None = None,
         correlation: Mapping[str, str | None] | None = None,
     ) -> str:
-        """Run a detached study and append its frames to the supplied event log."""
+        """Run a bounded detached study and append its frames to the event log."""
         log_context = {**(correlation or {}), "run_id": run_id}
+        record_outcome = on_outcome if on_outcome is not None else lambda _outcome: None
         if not self.lock.acquire(blocking=False):
             on_event('event: error\ndata: {"message": "already running"}\n\n')
+            record_outcome("failed")
             return "failed"
 
         set_status(app, run_id, phase=Phase.running, detail="optimization running")
@@ -323,8 +376,16 @@ class PetrinautOptimizer:
             if stop_flag.is_set():
                 study.stop()
 
-        worker, study_span = self._start_study_worker(
-            n_trials=n_trials, callback=callback, events=events, loop=loop
+        started = self._start_study_worker(
+            loop, events, stop_flag, n_trials, self._trial_payload
+        )
+        if isinstance(started, tuple):
+            worker, study_span = started
+        else:
+            worker, study_span = started, None
+        max_study_seconds = max_study_seconds_from_environment()
+        study_deadline = (
+            loop.time() + max_study_seconds if max_study_seconds > 0 else None
         )
         completed = False
         try:
@@ -335,7 +396,32 @@ class PetrinautOptimizer:
                         "optimization run cancelled, stopping study",
                         extra={"event": "study_cancelled", **log_context},
                     )
+                    record_outcome("cancelled")
                     return "cancelled"
+                if study_deadline is not None and loop.time() >= study_deadline:
+                    stop_flag.set()
+                    if events.empty():
+                        message = (
+                            "optimization study exceeded its "
+                            f"{max_study_seconds:g} second execution limit"
+                        )
+                        set_status(app, run_id, phase=Phase.error, detail=message)
+                        log.warning(
+                            "optimization study timed out",
+                            extra={
+                                "event": "study_timeout",
+                                "max_study_seconds": max_study_seconds,
+                                "trials": n_trials,
+                                **log_context,
+                            },
+                        )
+                        payload = {"state": "ERROR", "message": message}
+                        on_event(f"data: {json.dumps(payload)}\n\n")
+                        record_outcome("failed")
+                        return "failed"
+                    # Items are still queued — possibly the completion
+                    # sentinel — so keep draining: a study that actually
+                    # finished within the limit is reported as completed.
                 try:
                     item = await asyncio.wait_for(
                         events.get(), timeout=_DISCONNECT_POLL_SECONDS
@@ -350,6 +436,7 @@ class PetrinautOptimizer:
                         extra={"event": "study_completed", "trials": n_trials, **log_context},
                     )
                     on_event("event: done\ndata: {}\n\n")
+                    record_outcome("completed")
                     return "completed"
                 event = cast(dict[str, Any], item)
                 if event.get("state") == "ERROR":
@@ -364,6 +451,7 @@ class PetrinautOptimizer:
                         extra={"event": "study_failed", **log_context},
                     )
                     on_event(f"data: {json.dumps(event)}\n\n")
+                    record_outcome("failed")
                     return "failed"
                 on_event(f"data: {json.dumps(event)}\n\n")
         finally:
@@ -378,11 +466,14 @@ class PetrinautOptimizer:
                     )
             finally:
                 self.lock.release()
-                try:
-                    study_span.set_attribute("optuna.study.best_value", self.study.best_value)
-                except ValueError:
-                    pass
-                study_span.end()
+                if study_span is not None:
+                    try:
+                        study_span.set_attribute(
+                            "optuna.study.best_value", self.study.best_value
+                        )
+                    except ValueError:
+                        pass
+                    study_span.end()
 
     async def stream_all(
         self, request: Request, run_id: str, n_trials: int
@@ -419,7 +510,7 @@ class PetrinautOptimizer:
                 study.stop()
 
         worker, study_span = self._start_study_worker(
-            n_trials=n_trials, callback=callback, events=events, loop=loop
+            loop, events, n_trials=n_trials, callback=callback
         )
         next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
         completed = False
@@ -551,7 +642,7 @@ class PetrinautOptimizer:
                 study.stop()
 
         worker, study_span = self._start_study_worker(
-            n_trials=n_trials, callback=callback, events=events, loop=loop
+            loop, events, n_trials=n_trials, callback=callback
         )
         next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
         completed = False

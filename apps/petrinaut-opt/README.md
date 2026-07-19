@@ -85,6 +85,12 @@ failures, completion, disconnect, or detached-run cancellation/reaping.
 `GET /status` retains the 100 most recent runs so process memory cannot grow
 without bound.
 
+Detached runs reject descriptions above 1,000 trials and, by default, stop
+after 900 seconds (`HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS`); invalid values use
+the default and zero disables the wall-clock limit. Their event log is retained
+for the detach-grace period and an attachment cursor is clamped to the current
+log, so malformed resume requests cannot suppress later terminal events.
+
 Optimization request bodies are limited to 8 MiB, including chunked bodies.
 
 ## CLI protocol
