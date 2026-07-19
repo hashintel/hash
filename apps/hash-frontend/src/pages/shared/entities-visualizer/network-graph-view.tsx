@@ -356,9 +356,6 @@ export const NetworkGraphView = () => {
         width: "100%",
         height: "100%",
         backgroundColor: "white",
-        // Clip the search panel's off-screen (collapsed) position so it doesn't
-        // peek out to the left of the graph while closed.
-        overflow: "hidden",
       }}
     >
       {bounds ? (
