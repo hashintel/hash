@@ -7,7 +7,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use zerocopy::{LE, U64};
 
-use super::{FitConfig, FitError, fit};
+use super::{FitConfig, FitError, fit, prepare::identity::MappedIdentityTable};
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
@@ -16,6 +16,7 @@ use crate::{
     file::{
         array::ArrayFile,
         generation::GenerationRoot,
+        identity::read::IdentityFile,
         landmark::read::LandmarkFile,
         salt::{SaltRepository, metadata::Placement},
     },
@@ -178,7 +179,7 @@ async fn fit_publishes_a_complete_generation() {
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
 
-    let published = fit(&dataset, &HashEmbedder, &config(), &root)
+    let published = fit(&dataset, &HashEmbedder, &config(), None, &root)
         .await
         .expect("the fit should publish");
 
@@ -209,6 +210,7 @@ async fn fit_publishes_a_complete_generation() {
     // The document echoes the whole configuration the fit ran under,
     // defaults included: a replay reads its settings from here.
     assert_eq!(repository.metadata.reproducibility.config, config());
+    assert!(repository.metadata.reproducibility.prior.is_none());
     assert_eq!(repository.metadata.placement, Placement::LandmarkBaseline);
 
     // The recorded evidence passed - a published generation implies it.
@@ -244,6 +246,29 @@ async fn fit_publishes_a_complete_generation() {
         "every row should sit exactly on its assigned landmark",
     );
 
+    // The identity artifacts translate rows to source ids and back:
+    // node ids are the fixture's row numbers, edge ids its 100 and 101.
+    let nodes = MappedIdentityTable::<U64<LE>>::new(
+        IdentityFile::open(published.path().join("node-identities.idnt"))
+            .expect("the node identities should map"),
+    )
+    .expect("the node identities should validate");
+    assert_eq!(nodes.len(), NODES as u64);
+    for row in 0..NODES as u64 {
+        assert_eq!(nodes.id(row), Some(U64::new(row)), "row {row}");
+        assert_eq!(nodes.row_of(U64::new(row)), Some(row), "id {row}");
+    }
+    assert!(nodes.row_of(U64::new(NODES as u64 + 7)).is_none());
+
+    let edge_ids = MappedIdentityTable::<U64<LE>>::new(
+        IdentityFile::open(published.path().join("edge-identities.idnt"))
+            .expect("the edge identities should map"),
+    )
+    .expect("the edge identities should validate");
+    assert_eq!(edge_ids.len(), 2);
+    assert_eq!(edge_ids.id(0), Some(U64::new(100)));
+    assert_eq!(edge_ids.row_of(U64::new(101)), Some(1));
+
     // No transient state outlives the run: the root holds exactly the
     // generation and nothing dot-prefixed.
     let entries: Vec<_> = fs::read_dir(&path)
@@ -259,15 +284,59 @@ async fn fit_publishes_a_complete_generation() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_prior_generation_seeds_reuse_and_retention() {
+    let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
+    let dataset = dataset();
+
+    let first = fit(&dataset, &HashEmbedder, &config(), None, &root)
+        .await
+        .expect("the first fit should publish");
+    let prior = root
+        .open(first.id())
+        .expect("the published generation should open");
+
+    let second = fit(&dataset, &HashEmbedder, &config(), Some(&prior), &root)
+        .await
+        .expect("the second fit should publish");
+    let document = fs::read(second.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+
+    // The lineage names the seeding generation.
+    assert_eq!(repository.metadata.reproducibility.prior, Some(first.id()),);
+
+    // Every unique card text hashes into the prior table: nothing
+    // touches the provider.
+    assert_eq!(repository.metadata.evidence.cards.reused, 3);
+    assert_eq!(repository.metadata.evidence.cards.embedded, 0);
+
+    // Equal corpus, seed, and config draw equal selection priorities,
+    // and retention prefers prior landmarks among equal candidates:
+    // the selection reproduces and every selected row is a retained
+    // one. The skeleton is then bit-identical, which the recorded
+    // digests certify.
+    assert_eq!(repository.metadata.evidence.landmarks.retained, LANDMARKS);
+    assert_eq!(
+        repository.files.landmarks.hash,
+        prior.repository().files.landmarks.hash,
+    );
+    assert_eq!(
+        repository.files.node_identities.hash,
+        prior.repository().files.node_identities.hash,
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn equal_seeds_publish_equal_generations() {
     let first_root = GenerationRoot::new(scratch("repeat-a")).expect("the root should open");
     let second_root = GenerationRoot::new(scratch("repeat-b")).expect("the root should open");
     let dataset = dataset();
 
-    let first = fit(&dataset, &HashEmbedder, &config(), &first_root)
+    let first = fit(&dataset, &HashEmbedder, &config(), None, &first_root)
         .await
         .expect("the first fit should publish");
-    let second = fit(&dataset, &HashEmbedder, &config(), &second_root)
+    let second = fit(&dataset, &HashEmbedder, &config(), None, &second_root)
         .await
         .expect("the second fit should publish");
 
@@ -308,7 +377,7 @@ async fn a_defective_corpus_publishes_nothing() {
     let cards = HashMap::from([(0, Card::verbatim("Only type card".to_owned()))]);
     let dataset = MemoryDataset::new(nodes, Vec::new(), ontology, HashMap::new(), cards);
 
-    let result = fit(&dataset, &HashEmbedder, &config(), &root).await;
+    let result = fit(&dataset, &HashEmbedder, &config(), None, &root).await;
     assert!(
         matches!(result, Err(FitError::RepresentationDefects(ref check)) if !check.passes()),
         "the defective corpus should fail the norm check",

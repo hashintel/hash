@@ -3,11 +3,14 @@
 use core::{error::Error, fmt};
 use std::io;
 
-use super::prepare::norm::{NormSpotCheck, SpotCheckError};
+use super::prepare::{
+    identity::InvalidIdentityFile,
+    norm::{NormSpotCheck, SpotCheckError},
+};
 use crate::{
     file::{
-        array::OpenArrayError, generation::SealError, landmark::read::OpenLandmarkError,
-        sprs::read::OpenSprsError,
+        array::OpenArrayError, generation::SealError, identity::read::OpenIdentityError,
+        landmark::read::OpenLandmarkError, sprs::read::OpenSprsError,
     },
     salt::{
         embedding::CardEmbeddingError,
@@ -19,6 +22,77 @@ use crate::{
         semantic::artifact::InvalidSemanticFile,
     },
 };
+
+/// A prior generation offered for reuse could not serve it.
+///
+/// The prior's artifacts are read exactly as published ones are; a
+/// prior that fails here is corrupt, of another layout version, or of
+/// another dataset's id type, and the fit aborts rather than silently
+/// running without reuse.
+#[derive(Debug)]
+pub(crate) enum PriorError {
+    /// A prior card-embedding array failed to map.
+    MapCards(OpenArrayError),
+    /// The prior card files do not hold row-aligned digest and
+    /// embedding columns.
+    MalformedCards,
+    /// The prior landmark file failed to map.
+    MapLandmarks(OpenLandmarkError),
+    /// The prior landmark file does not hold a valid skeleton.
+    InvalidLandmarks(InvalidLandmarkFile),
+    /// A prior identity file failed to map.
+    MapIdentities(OpenIdentityError),
+    /// A prior identity file does not hold a valid table over the
+    /// dataset's id type.
+    InvalidIdentities(InvalidIdentityFile),
+    /// The prior skeleton selects a row beyond the prior identity
+    /// table: the two artifacts describe different corpora.
+    SkeletonBeyondIdentities { row: u64 },
+}
+
+impl fmt::Display for PriorError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MapCards(error) => {
+                write!(fmt, "a prior card-embedding array failed to map: {error}")
+            }
+            Self::MalformedCards => fmt.write_str(
+                "the prior card files do not hold row-aligned digest and embedding columns",
+            ),
+            Self::MapLandmarks(error) => {
+                write!(fmt, "the prior landmark file failed to map: {error}")
+            }
+            Self::InvalidLandmarks(error) => write!(
+                fmt,
+                "the prior landmark file is not a valid skeleton: {error}"
+            ),
+            Self::MapIdentities(error) => {
+                write!(fmt, "a prior identity file failed to map: {error}")
+            }
+            Self::InvalidIdentities(error) => write!(
+                fmt,
+                "a prior identity file is not a valid table over the dataset's id type: {error}"
+            ),
+            Self::SkeletonBeyondIdentities { row } => write!(
+                fmt,
+                "the prior skeleton selects row {row}, beyond its own identity table"
+            ),
+        }
+    }
+}
+
+impl Error for PriorError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::MapCards(error) => Some(error),
+            Self::MapLandmarks(error) => Some(error),
+            Self::InvalidLandmarks(error) => Some(error),
+            Self::MapIdentities(error) => Some(error),
+            Self::InvalidIdentities(error) => Some(error),
+            Self::MalformedCards | Self::SkeletonBeyondIdentities { .. } => None,
+        }
+    }
+}
 
 /// One fit failed; nothing was published.
 ///
@@ -65,6 +139,12 @@ pub(crate) enum FitError<D, E> {
     MapLandmarks(OpenLandmarkError),
     /// The staged landmark file does not hold a valid skeleton.
     InvalidLandmarks(InvalidLandmarkFile),
+    /// A staged identity file failed to map back.
+    MapIdentities(OpenIdentityError),
+    /// A staged identity file does not hold a valid table.
+    InvalidIdentities(InvalidIdentityFile),
+    /// The prior generation offered for reuse could not serve it.
+    Prior(PriorError),
     /// The finished staging failed to seal into a generation.
     Seal(SealError),
 }
@@ -123,6 +203,12 @@ impl<D, E> From<OpenLandmarkError> for FitError<D, E> {
     }
 }
 
+impl<D, E> From<PriorError> for FitError<D, E> {
+    fn from(error: PriorError) -> Self {
+        Self::Prior(error)
+    }
+}
+
 impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -177,6 +263,15 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
                 fmt,
                 "the staged landmark file is not a valid skeleton: {error}"
             ),
+            Self::MapIdentities(error) => {
+                write!(fmt, "a staged identity file failed to map back: {error}")
+            }
+            Self::InvalidIdentities(error) => {
+                write!(fmt, "a staged identity file is not a valid table: {error}")
+            }
+            Self::Prior(error) => {
+                write!(fmt, "the prior generation could not serve reuse: {error}")
+            }
             Self::Seal(error) => write!(fmt, "the generation failed to publish: {error}"),
         }
     }
@@ -205,6 +300,9 @@ where
             Self::InvalidSemantic(error) => Some(error),
             Self::MapLandmarks(error) => Some(error),
             Self::InvalidLandmarks(error) => Some(error),
+            Self::MapIdentities(error) => Some(error),
+            Self::InvalidIdentities(error) => Some(error),
+            Self::Prior(error) => Some(error),
             Self::Seal(error) => Some(error),
             Self::RepresentationDefects(_) | Self::RecallBelowMinimum(_) => None,
         }

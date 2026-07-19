@@ -43,13 +43,24 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use zerocopy::IntoBytes as _;
 
-use self::prepare::{PrepareError, norm};
-pub(crate) use self::{echo::FitConfigDef, error::FitError};
+use self::prepare::{
+    PrepareError,
+    identity::{IdentityTable, MappedIdentityTable},
+    norm,
+};
+pub(crate) use self::{
+    echo::FitConfigDef,
+    error::{FitError, PriorError},
+};
 use crate::{
+    bitset::BitSet,
     dataset::{Dataset, NodeRowId, PROJECTOR_DIMENSIONS},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
-        generation::{GenerationRoot, PublishedGeneration, ScratchDirectory, StagedGeneration},
+        generation::{
+            Generation, GenerationRoot, PublishedGeneration, ScratchDirectory, StagedGeneration,
+        },
+        identity::read::IdentityFile,
         landmark::read::LandmarkFile,
         repository::{FileName, RepositoryFile, RepositoryVersion},
         salt::{
@@ -63,7 +74,7 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _, Writer},
     math::{AffinityCurve, AlignedVecN},
     salt::{
-        embedding::{CardEmbedder, CardEmbeddingStats, embed_cards},
+        embedding::{CardEmbedder, CardEmbeddingStats, CardEmbeddingView, embed_cards},
         knn::{
             self, Embedding, NearestNeighboursIndex as _,
             artifact::MappedKnn,
@@ -160,6 +171,8 @@ enum Role {
     Semantic,
     Landmarks,
     Coordinates,
+    NodeIdentities,
+    EdgeIdentities,
 }
 
 impl Role {
@@ -173,6 +186,8 @@ impl Role {
             Self::Semantic => FileName::pinned("semantic.sprs"),
             Self::Landmarks => FileName::pinned("landmarks.lndm"),
             Self::Coordinates => FileName::pinned("coordinates.arr"),
+            Self::NodeIdentities => FileName::pinned("node-identities.idnt"),
+            Self::EdgeIdentities => FileName::pinned("edge-identities.idnt"),
         }
     }
 
@@ -186,7 +201,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 7] = [
+const _: [FileName; 9] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -194,6 +209,8 @@ const _: [FileName; 7] = [
     Role::Semantic.file_name(),
     Role::Landmarks.file_name(),
     Role::Coordinates.file_name(),
+    Role::NodeIdentities.file_name(),
+    Role::EdgeIdentities.file_name(),
 ];
 
 /// Derives one stage's generator from the fit seed and the stage's
@@ -246,13 +263,21 @@ fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest> {
 /// metadata document. Activation stays with the caller: publishing a
 /// generation and serving it are separate decisions.
 ///
+/// A `prior` generation seeds reuse: card texts whose hash appears in
+/// its card table keep their embeddings without touching the provider
+/// (under a matching embedder fingerprint), and its landmarks compete
+/// for the retained share of the new selection, translated across
+/// snapshots through the identity artifacts. The metadata records
+/// which generation seeded the run.
+///
 /// # Errors
 ///
 /// Returns an error when the dataset or embedding provider fails, a
 /// stage rejects its input, an admission check fails
 /// ([`FitError::RepresentationDefects`],
-/// [`FitError::RecallBelowMinimum`]), or a write, map, or publish step
-/// fails. Nothing is published on any error.
+/// [`FitError::RecallBelowMinimum`]), a write, map, or publish step
+/// fails, or the offered prior's artifacts cannot serve reuse
+/// ([`FitError::Prior`]). Nothing is published on any error.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -262,6 +287,7 @@ pub(crate) async fn fit<D, E>(
     dataset: &D,
     embedder: &E,
     config: &FitConfig,
+    prior: Option<&Generation>,
     root: &GenerationRoot,
 ) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
 where
@@ -271,10 +297,12 @@ where
     let staging = root.stage()?;
     let scratch = root.scratch()?;
 
-    // Nodes: stream every representation into the staged matrix, map it
-    // back, and certify the source contract on the mapped rows.
-    let (nodes, representations_file) = stage_representations(dataset, &staging).await?;
-    tracing::info!(nodes, "staged the node representations");
+    // Nodes: stream every representation into the staged matrix beside
+    // its identity table, map the matrix back, and certify the source
+    // contract on the mapped rows.
+    let (nodes, representations_file, node_identities_file) =
+        stage_representations(dataset, &staging).await?;
+    tracing::info!(nodes, "staged the node representations and identities");
 
     let representations = ArrayFile::open(staging.path_of(&Role::Representations.file_name()))
         .map_err(FitError::MapRepresentations)?;
@@ -282,36 +310,21 @@ where
         .vectors()
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
-    let norm = norm::spot_check(
-        rows,
-        config.norm_check,
-        stage_rng(config.seed, Stage::NormCheck),
-    )?;
-    if !norm.passes() {
-        return Err(FitError::RepresentationDefects(norm));
-    }
-    tracing::info!(
-        sampled = norm.sampled_rows,
-        "the representations passed the norm spot check"
-    );
+    let norm = certify_representations::<D::Error, E::Error>(rows, config)?;
 
-    // Edges: only the snapshot count is consumed. The relation build
-    // (`RelationIndexes::build`) wants these rows as instances, but its
-    // policy table has no producer yet.
-    // TODO: assemble `RelationInstance`s from this stream and wire the
-    //       relation stage once the classifier and policy artifacts have
-    //       writers.
-    let edges = {
-        let mut stream = pin!(dataset.edges());
-        let mut count = 0_u64;
-        while (stream.try_next().await.map_err(FitError::Dataset)?).is_some() {
-            count += 1;
-        }
-        count
-    };
+    // Edges: the identity column is staged; the endpoint columns, the
+    // adjacency the serving contract wants, and the relation stage
+    // rework land together.
+    // TODO: persist the endpoint columns and the incident-edge
+    //       adjacency, and assemble `RelationInstance`s from this
+    //       stream once the classifier and policy artifacts have
+    //       writers (the attraction writer already landed).
+    let (edges, edge_identities_file) = stage_edge_identities(dataset, &staging).await?;
+    tracing::info!(edges, "staged the edge identities");
 
-    // Ontology: render every card and embed the unique texts.
-    let cards = embed_card_table(dataset, embedder, &staging).await?;
+    // Ontology: render every card and embed the unique texts, reusing
+    // the prior generation's rows where the text hash matches.
+    let cards = embed_card_table(dataset, embedder, &staging, prior).await?;
     tracing::info!(
         types = cards.types,
         reused = cards.stats.reused,
@@ -338,8 +351,21 @@ where
     tracing::info!("staged the semantic graph");
 
     // Landmarks: select, assign, contract, and lay out the skeleton.
-    let (landmarks_file, landmark_evidence) =
-        build_landmark_skeleton(&staging, &scratch, config, rows, &semantic)?;
+    // The prior generation's landmarks translate to current rows
+    // through the identity artifacts and compete for the retained
+    // share of the selection.
+    let prior_marks = prior
+        .map(|generation| prior_landmark_marks::<D, E::Error>(generation, &staging))
+        .transpose()?;
+
+    let (landmarks_file, landmark_evidence) = build_landmark_skeleton(
+        &staging,
+        &scratch,
+        config,
+        rows,
+        &semantic,
+        prior_marks.as_ref(),
+    )?;
     let skeleton = MappedLandmarkSkeleton::new(LandmarkFile::open(
         staging.path_of(&Role::Landmarks.file_name()),
     )?)
@@ -350,21 +376,15 @@ where
     );
 
     // Placement baseline: every row takes its assigned landmark's layout
-    // coordinate. The coordinate digest streams over the finished file
-    // for the same header-sealing reason as the representations'.
+    // coordinate.
     // TODO: the trained projector replaces this placer at the same
     //       artifact seam; the metadata's `Placement` records which one
     //       ran.
-    {
-        let mut writer = BufWriter::new(staging.create(&Role::Coordinates.file_name())?);
-        place_at_landmarks(&skeleton, &mut writer)?;
-        writer.flush()?;
-    }
-    let coordinates_digest = digest_file(staging.path_of(&Role::Coordinates.file_name()))?;
+    let coordinates_file = stage_baseline_coordinates(&staging, &skeleton)?;
     tracing::info!("staged the baseline coordinates");
 
     // TODO: attraction, protection, classifier, and policy roles join
-    //       `SaltFiles` when their stages' artifact writers land.
+    //       `SaltFiles` when their stages wire in at the edge drain.
     let repository = SaltRepository {
         version: RepositoryVersion::V0,
         files: SaltFiles {
@@ -374,7 +394,9 @@ where
             knn: knn_file,
             semantic: semantic_file,
             landmarks: landmarks_file,
-            coordinates: Role::Coordinates.file(coordinates_digest),
+            coordinates: coordinates_file,
+            node_identities: node_identities_file,
+            edge_identities: edge_identities_file,
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -386,6 +408,7 @@ where
             reproducibility: Reproducibility {
                 config: *config,
                 embedder: embedder.fingerprint(),
+                prior: prior.map(Generation::id),
             },
             placement: Placement::LandmarkBaseline,
             evidence: Evidence {
@@ -401,10 +424,12 @@ where
 }
 
 /// Streams every node's representation into the staged `f32[N, 512]`
-/// matrix, returning the row count with the staged file.
+/// matrix and its ids into the staged identity file, returning the row
+/// count with both staged files.
 ///
 /// The matrix digest streams over the finished file because the writer
-/// seals its header by seeking.
+/// seals its header by seeking; the identity writer is forward-only
+/// and digests inline.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -413,12 +438,12 @@ where
 async fn stage_representations<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
-) -> Result<(u64, RepositoryFile), FitError<D::Error, E>>
+) -> Result<(u64, RepositoryFile, RepositoryFile), FitError<D::Error, E>>
 where
     D: Dataset,
 {
     let mut writer = BufWriter::new(staging.create(&Role::Representations.file_name())?);
-    let nodes = prepare::write_node_representations(dataset, &mut writer)
+    let ids = prepare::write_node_representations(dataset, &mut writer)
         .await
         .map_err(|error| match error {
             PrepareError::Dataset(error) => FitError::Dataset(error),
@@ -426,9 +451,112 @@ where
         })?;
     writer.flush()?;
 
+    let nodes = ids.len();
+    let identities = write_staged(staging, Role::NodeIdentities, |writer| {
+        ids.write_into(writer)
+    })?;
+
     let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
 
-    Ok((nodes, Role::Representations.file(digest)))
+    Ok((nodes, Role::Representations.file(digest), identities))
+}
+
+/// Certifies the source contract on the mapped representation rows,
+/// returning the passing evidence.
+fn certify_representations<D, E>(
+    rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    config: &FitConfig,
+) -> Result<norm::NormSpotCheck, FitError<D, E>> {
+    let norm = norm::spot_check(
+        rows,
+        config.norm_check,
+        stage_rng(config.seed, Stage::NormCheck),
+    )?;
+    if !norm.passes() {
+        return Err(FitError::RepresentationDefects(norm));
+    }
+    tracing::info!(
+        sampled = norm.sampled_rows,
+        "the representations passed the norm spot check"
+    );
+
+    Ok(norm)
+}
+
+/// Streams every edge's id into the staged identity file, returning
+/// the edge count with the staged file.
+#[expect(
+    clippy::future_not_send,
+    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
+              follows the dataset's"
+)]
+async fn stage_edge_identities<D, E>(
+    dataset: &D,
+    staging: &StagedGeneration,
+) -> Result<(u64, RepositoryFile), FitError<D::Error, E>>
+where
+    D: Dataset,
+{
+    let mut ids = IdentityTable::new();
+    let mut stream = pin!(dataset.edges());
+    while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {
+        ids.push(edge.id);
+    }
+    let file = write_staged(staging, Role::EdgeIdentities, |writer| {
+        ids.write_into(writer)
+    })?;
+
+    Ok((ids.len(), file))
+}
+
+/// Marks the current rows whose nodes were landmarks of the prior
+/// generation.
+///
+/// The prior skeleton's rows translate through the prior identity
+/// table to source ids and through the staged current table back to
+/// rows; nodes that left the corpus since the prior generation simply
+/// mark nothing.
+fn prior_landmark_marks<D, E>(
+    prior: &Generation,
+    staging: &StagedGeneration,
+) -> Result<BitSet, FitError<D::Error, E>>
+where
+    D: Dataset,
+{
+    let files = &prior.repository().files;
+    let skeleton = MappedLandmarkSkeleton::new(
+        LandmarkFile::open(prior.path_of(&files.landmarks.name))
+            .map_err(PriorError::MapLandmarks)?,
+    )
+    .map_err(PriorError::InvalidLandmarks)?;
+    let prior_ids = MappedIdentityTable::<D::NodeId>::new(
+        IdentityFile::open(prior.path_of(&files.node_identities.name))
+            .map_err(PriorError::MapIdentities)?,
+    )
+    .map_err(PriorError::InvalidIdentities)?;
+
+    let current = MappedIdentityTable::<D::NodeId>::new(
+        IdentityFile::open(staging.path_of(&Role::NodeIdentities.file_name()))
+            .map_err(FitError::MapIdentities)?,
+    )
+    .map_err(FitError::InvalidIdentities)?;
+
+    let mut marks =
+        BitSet::new(usize::try_from(current.len()).expect("rows fit the address space"));
+    for &row in skeleton.selected_rows() {
+        let id = prior_ids
+            .id(row.get())
+            .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.get() })?;
+        if let Some(current_row) = current.row_of(id) {
+            marks.insert(usize::try_from(current_row).expect("rows fit the address space"));
+        }
+    }
+    tracing::info!(
+        prior_landmarks = marks.count(),
+        "translated the prior landmarks onto the current corpus"
+    );
+
+    Ok(marks)
 }
 
 /// The staged card-embedding artifacts of one fit.
@@ -445,6 +573,11 @@ struct CardArtifacts {
 
 /// Renders every card, embeds the unique texts, and stages the two
 /// card-embedding columns.
+///
+/// A prior generation's card files map back as the reuse table:
+/// texts whose hash appears there keep their rows without touching
+/// the provider. Reuse is fingerprint-guarded inside [`embed_cards`],
+/// so a changed embedding contract re-embeds everything.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -454,6 +587,7 @@ async fn embed_card_table<D, E>(
     dataset: &D,
     embedder: &E,
     staging: &StagedGeneration,
+    prior: Option<&Generation>,
 ) -> Result<CardArtifacts, FitError<D::Error, E::Error>>
 where
     D: Dataset,
@@ -470,10 +604,37 @@ where
 
     let types = cards.len() as u64;
 
-    // TODO: pass the previous generation's mapped table as `prior` so
-    //       unchanged card texts reuse their embeddings across
-    //       generations.
-    let (table, stats) = embed_cards(embedder, &cards, None)
+    let prior_files = prior
+        .map(|generation| -> Result<_, PriorError> {
+            let files = &generation.repository().files;
+            let hashes = ArrayFile::open(generation.path_of(&files.card_hashes.name))
+                .map_err(PriorError::MapCards)?;
+            let embeddings = ArrayFile::open(generation.path_of(&files.card_embeddings.name))
+                .map_err(PriorError::MapCards)?;
+            Ok((
+                hashes,
+                embeddings,
+                generation.repository().metadata.reproducibility.embedder,
+            ))
+        })
+        .transpose()?;
+    let prior_view = prior_files
+        .as_ref()
+        .map(
+            |(hashes, embeddings, fingerprint)| -> Result<_, PriorError> {
+                CardEmbeddingView::new(
+                    *fingerprint,
+                    hashes.digests().ok_or(PriorError::MalformedCards)?,
+                    embeddings
+                        .f32_elements()
+                        .ok_or(PriorError::MalformedCards)?,
+                )
+                .ok_or(PriorError::MalformedCards)
+            },
+        )
+        .transpose()?;
+
+    let (table, stats) = embed_cards(embedder, &cards, prior_view)
         .await
         .map_err(FitError::Embedding)?;
     drop(cards);
@@ -528,16 +689,17 @@ fn build_neighbour_table<D, E>(
 /// Selects, assigns, contracts, and lays out the landmark skeleton,
 /// staging it as one combined file.
 ///
-/// Candidates are uniform over the corpus.
+/// Candidates are uniform over the corpus; `prior_marks` names the
+/// rows competing for the retained share.
 // TODO: candidates take stratification axes and subgroup minimums once
-//       a stage computes them, and `prior_landmark` marks once fit
-//       consumes the previous generation's skeleton.
+//       a stage computes them.
 fn build_landmark_skeleton<D, E>(
     staging: &StagedGeneration,
     scratch: &ScratchDirectory,
     config: &FitConfig,
     rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     semantic: &MappedSemanticGraph,
+    prior_marks: Option<&BitSet>,
 ) -> Result<(RepositoryFile, LandmarkEvidence), FitError<D, E>> {
     let selection = {
         let candidates: Vec<LandmarkCandidate> = (0..rows.len())
@@ -545,7 +707,7 @@ fn build_landmark_skeleton<D, E>(
                 row: NodeRowId::new(row as u64),
                 sampling_weight: SamplingWeight::UNIFORM,
                 axes: SubgroupAxes::default(),
-                prior_landmark: false,
+                prior_landmark: prior_marks.is_some_and(|marks| marks.contains(row)),
             })
             .collect();
         select_landmarks(
@@ -555,6 +717,7 @@ fn build_landmark_skeleton<D, E>(
             stage_rng(config.seed, Stage::LandmarkSelection),
         )?
     };
+
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the selection count is bounded by the u32 landmark capacity"
@@ -590,6 +753,25 @@ fn build_landmark_skeleton<D, E>(
     })?;
 
     Ok((file, evidence))
+}
+
+/// Stages the baseline coordinates: every row's assigned landmark
+/// coordinate as one `f32[N, 2]` array file.
+///
+/// The digest streams over the finished file for the same
+/// header-sealing reason as the representations'.
+fn stage_baseline_coordinates<D, E>(
+    staging: &StagedGeneration,
+    skeleton: &MappedLandmarkSkeleton,
+) -> Result<RepositoryFile, FitError<D, E>> {
+    {
+        let mut writer = BufWriter::new(staging.create(&Role::Coordinates.file_name())?);
+        place_at_landmarks(skeleton, &mut writer)?;
+        writer.flush()?;
+    }
+
+    let digest = digest_file(staging.path_of(&Role::Coordinates.file_name()))?;
+    Ok(Role::Coordinates.file(digest))
 }
 
 /// Streams every row's assigned landmark coordinate into one `f32[N, 2]`

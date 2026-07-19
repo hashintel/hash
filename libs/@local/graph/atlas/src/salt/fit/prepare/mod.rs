@@ -5,11 +5,13 @@
 //! every later stage reads, so downstream stages address rows in
 //! mapped files instead of re-consuming the source.
 //! [`write_node_representations`] covers the node half: the `f32[N, 512]`
-//! representation matrix, row-aligned with the node stream, and
-//! [`norm::spot_check`] certifies the written rows' source contract
-//! (finite, unit-norm) by acceptance sampling over the mapped matrix.
-//! The card-embedding half of the stage is
-//! [`embedding`](crate::salt::embedding).
+//! representation matrix, row-aligned with the node stream, with the
+//! node ids collected into an [`identity::IdentityTable`] in the same
+//! pass, and [`norm::spot_check`] certifies the written rows' source
+//! contract (finite, unit-norm) by acceptance sampling over the mapped
+//! matrix. [`identity`] owns both domains' identity artifacts - the
+//! edge table fills during the fit's edge drain. The card-embedding
+//! half of the stage is [`embedding`](crate::salt::embedding).
 
 use core::{error::Error, fmt, pin::pin};
 use std::io::{self, Seek, Write};
@@ -22,6 +24,7 @@ use crate::{
     file::array::{ArrayVariant, ArrayWriter, Dim},
 };
 
+pub(crate) mod identity;
 pub(crate) mod norm;
 
 #[cfg(test)]
@@ -54,12 +57,14 @@ impl<E: Error + 'static> Error for PrepareError<E> {
     }
 }
 
-/// Streams every node's representation into one `f32[N, 512]` array file.
+/// Streams every node's representation into one `f32[N, 512]` array
+/// file, collecting the node ids in the same pass.
 ///
 /// Row `i` of the written matrix is the embedding of node row `i`, so the
 /// matrix is row-aligned with every artifact keyed by
-/// [`NodeRowId`](crate::dataset::NodeRowId). Returns the number of rows
-/// written. The finished file's repository digest is computed at publish.
+/// [`NodeRowId`](crate::dataset::NodeRowId), and entry `i` of the
+/// returned table is that row's source id. The finished file's
+/// repository digest is computed at publish.
 ///
 /// Every node issues one write; wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter).
@@ -77,7 +82,7 @@ impl<E: Error + 'static> Error for PrepareError<E> {
 pub(crate) async fn write_node_representations<D: Dataset>(
     dataset: &D,
     writer: impl Write + Seek,
-) -> Result<u64, PrepareError<D::Error>> {
+) -> Result<identity::IdentityTable<D::NodeId>, PrepareError<D::Error>> {
     let mut writer = ArrayWriter::new(
         writer,
         ArrayVariant::F32,
@@ -85,12 +90,16 @@ pub(crate) async fn write_node_representations<D: Dataset>(
     )
     .map_err(PrepareError::Io)?;
 
+    let mut ids = identity::IdentityTable::new();
     let mut nodes = pin!(dataset.nodes());
     while let Some(node) = nodes.try_next().await.map_err(PrepareError::Dataset)? {
+        ids.push(node.id);
         writer
             .write_row(node.embedding.as_bytes())
             .map_err(PrepareError::Io)?;
     }
 
-    writer.finish().map_err(PrepareError::Io)
+    writer.finish().map_err(PrepareError::Io)?;
+
+    Ok(ids)
 }

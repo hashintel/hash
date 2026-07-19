@@ -42,17 +42,17 @@ use crate::{
 
 /// Validated mining schedule and rank-weight coefficients.
 ///
-/// Per row, the miner examines the nearest `neighbors * search_margin`
-/// projected points and admits up to `neighbors` of them past the
+/// Per row, the miner examines the nearest `neighbours * search_margin`
+/// projected points and admits up to `neighbours` of them past the
 /// exclusions; the margin is what keeps a row surrounded by its own
 /// semantic cluster from starving. An admitted candidate at closeness
-/// rank `r` weighs `maximum_weight * (1 - r / neighbors)^rank_exponent`:
+/// rank `r` weighs `maximum_weight * (1 - r / neighbours)^rank_exponent`:
 /// the nearest surviving false neighbour carries the full weight and
 /// the last admissible rank fades toward zero, satisfying the bounded
 /// rank-weight contract.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct MinerOptions {
-    neighbors: NonZero<usize>,
+    neighbours: NonZero<usize>,
     search_margin: NonZero<usize>,
     maximum_weight: f32,
     rank_exponent: f32,
@@ -65,7 +65,7 @@ impl MinerOptions {
     /// are finite and strictly positive.
     #[must_use]
     pub(crate) fn new(
-        neighbors: NonZero<usize>,
+        neighbours: NonZero<usize>,
         search_margin: NonZero<usize>,
         maximum_weight: f32,
         rank_exponent: f32,
@@ -74,8 +74,9 @@ impl MinerOptions {
             && maximum_weight > 0.0
             && rank_exponent.is_finite()
             && rank_exponent > 0.0;
+
         valid.then_some(Self {
-            neighbors,
+            neighbours,
             search_margin,
             maximum_weight,
             rank_exponent,
@@ -85,8 +86,8 @@ impl MinerOptions {
     /// Returns the per-row admission quota `h`.
     #[inline]
     #[must_use]
-    pub(crate) const fn neighbors(self) -> NonZero<usize> {
-        self.neighbors
+    pub(crate) const fn neighbours(self) -> NonZero<usize> {
+        self.neighbours
     }
 
     /// Returns the bound every rank weight stays within.
@@ -104,14 +105,15 @@ impl MinerOptions {
             clippy::cast_precision_loss,
             reason = "ranks stay below the quota, far inside exact f32 integers"
         )]
-        let relative = rank as f32 / self.neighbors.get() as f32;
+        let relative = rank as f32 / self.neighbours.get() as f32;
+
         self.maximum_weight * (1.0 - relative).powf(self.rank_exponent)
     }
 
     /// Returns the per-row search size: quota times margin, plus the
     /// query point itself.
     const fn search_size(self) -> usize {
-        self.neighbors
+        self.neighbours
             .get()
             .saturating_mul(self.search_margin.get())
             .saturating_add(1)
@@ -205,12 +207,14 @@ impl<'frame> SpatialField<'frame> {
     fn nearest(&self, row: usize, count: usize) -> Vec<(f32, u32)> {
         let count = NonZero::new(count.min(self.points.len()))
             .expect("search sizes are at least one by construction");
+
         let mut nearest: Vec<(f32, u32)> = self
             .tree
             .nearest_n::<SquaredEuclidean>(&self.points[row], count)
             .into_iter()
             .map(|neighbour| (neighbour.distance, neighbour.item))
             .collect();
+
         nearest.sort_unstable_by(|(left_distance, left_row), (right_distance, right_row)| {
             left_distance
                 .total_cmp(right_distance)
@@ -257,6 +261,7 @@ impl<'view> HardNegativeMiner<'view> {
             protection.rows(),
             "the semantic graph and protection evidence should cover the same rows"
         );
+
         Self {
             semantic,
             protection,
@@ -291,6 +296,7 @@ impl<'view> HardNegativeMiner<'view> {
         let mut offsets = Vec::with_capacity(rows.len() + 1);
         let mut targets = Vec::new();
         let mut weights = Vec::new();
+
         offsets.push(0);
         for mined in rows {
             for (target, weight) in mined {
@@ -299,6 +305,7 @@ impl<'view> HardNegativeMiner<'view> {
             }
             offsets.push(targets.len());
         }
+
         MinedFrame {
             offsets: offsets.into_boxed_slice(),
             targets: targets.into_boxed_slice(),
@@ -308,21 +315,25 @@ impl<'view> HardNegativeMiner<'view> {
 
     /// Mines one row's admissible candidates in closeness-rank order.
     fn mine_row(&self, field: &SpatialField<'_>, row: usize) -> Vec<(u32, f32)> {
-        let quota = self.options.neighbors().get();
+        let quota = self.options.neighbours().get();
         let row_id = NodeRowId::new(row as u64);
+
         let mut accepted = Vec::with_capacity(quota);
         for (_, candidate) in field.nearest(row, self.options.search_size()) {
             let candidate_id = NodeRowId::new(u64::from(candidate));
             if candidate_id == row_id {
                 continue;
             }
+
             if self.is_semantic_positive(row, candidate_id) {
                 continue;
             }
+
             let pair = NodePair::new(row_id, candidate_id);
             if self.protection.judge(pair, self.config).hard {
                 continue;
             }
+
             let weight = self.options.weight(accepted.len());
             accepted.push((candidate, weight));
             if accepted.len() == quota {
@@ -376,6 +387,7 @@ impl MinedFrame {
     pub(crate) fn row(&self, row: usize) -> impl ExactSizeIterator<Item = (NodePair, f32)> + '_ {
         let span = self.offsets[row]..self.offsets[row + 1];
         let anchor = NodeRowId::new(row as u64);
+
         self.targets[span.clone()]
             .iter()
             .zip(&self.weights[span])
@@ -408,6 +420,7 @@ impl MinedFrame {
         let mut targets = Vec::new();
         let mut weights = Vec::new();
         let mut merged: Vec<(u32, f32)> = Vec::new();
+
         offsets.push(0);
         for row in 0..self.rows() {
             merged.clear();
@@ -420,18 +433,22 @@ impl MinedFrame {
                         .zip(frame.weights[span].iter().copied()),
                 );
             }
+
             merged.sort_unstable_by(|(left_target, left_weight), (right_target, right_weight)| {
                 left_target
                     .cmp(right_target)
                     .then(left_weight.total_cmp(right_weight).reverse())
             });
             merged.dedup_by_key(|(target, _)| *target);
+
             for &(target, weight) in &merged {
                 targets.push(target);
                 weights.push(weight);
             }
+
             offsets.push(targets.len());
         }
+
         Self {
             offsets: offsets.into_boxed_slice(),
             targets: targets.into_boxed_slice(),
