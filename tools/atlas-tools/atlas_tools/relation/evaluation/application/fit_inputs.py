@@ -32,7 +32,8 @@ class FitInputsArtifact:
     classifier_hash: Sha256Hex
 
 
-def _versioned_url(card: ConcatCardRow) -> str | None:
+def card_versioned_url(card: ConcatCardRow) -> str | None:
+    """Return the card's validated versioned URL, or ``None`` when its producer records none."""
     payload = card.model_dump(mode="json")
     candidate = payload.get("versioned_url")
     if candidate is None:
@@ -44,7 +45,8 @@ def _versioned_url(card: ConcatCardRow) -> str | None:
     return url
 
 
-def _raw_cards(cards_path: Path) -> tuple[ConcatCardRow, ...]:
+def raw_concat_cards(cards_path: Path) -> tuple[ConcatCardRow, ...]:
+    """Read unprojected concat card rows, preserving producer-specific fields."""
     rows: list[ConcatCardRow] = []
     with cards_path.open("rb") as source:
         for line_number, line in enumerate(source, start=1):
@@ -54,7 +56,7 @@ def _raw_cards(cards_path: Path) -> tuple[ConcatCardRow, ...]:
                 rows.append(ConcatCardRow.model_validate_json(line, strict=True))
             except ValueError as error:
                 raise ValueError(
-                    f"invalid fit-input card at cards.jsonl line {line_number}: {error}"
+                    f"invalid concat card at cards.jsonl line {line_number}: {error}"
                 ) from error
     return tuple(rows)
 
@@ -74,7 +76,7 @@ def _policy_relations(
             ) from error
         if embedding.card_hash != card.card_hash:
             raise ValueError(f"embedding card hash differs for relation {embedding.relation_id}")
-        url = _versioned_url(card)
+        url = card_versioned_url(card)
         if url is None:
             continue
         if url in relations:
@@ -124,7 +126,7 @@ def export_fit_inputs(
     if embeddings.metadata.source_hashes.get("cards.jsonl") != expected_cards_hash:
         raise ValueError("embeddings do not bind the verified cards.jsonl content")
 
-    raw_cards = _raw_cards(deck.cards_path)
+    raw_cards = raw_concat_cards(deck.cards_path)
     projected = tuple((card.relation_id, card.card_hash) for card in deck.cards)
     raw = tuple((card.relation_id, card.card_hash) for card in raw_cards)
     if raw != projected:
@@ -143,4 +145,4 @@ def export_fit_inputs(
     )
 
 
-__all__ = ["FitInputsArtifact", "export_fit_inputs"]
+__all__ = ["FitInputsArtifact", "card_versioned_url", "export_fit_inputs", "raw_concat_cards"]

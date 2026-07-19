@@ -41,6 +41,7 @@ use camino::Utf8Path;
 use futures::TryStreamExt as _;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
+use tracing::Instrument as _;
 use zerocopy::IntoBytes as _;
 
 use self::prepare::{
@@ -95,6 +96,8 @@ use crate::{
     },
 };
 
+#[cfg(feature = "bench")]
+pub mod bench;
 mod echo;
 mod error;
 pub(crate) mod prepare;
@@ -246,11 +249,14 @@ fn write_staged(
 
 /// Returns the SHA-256 of the file at `path`, streaming its bytes.
 fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest> {
+    let path = path.as_ref();
+    let _span = tracing::info_span!("digest", file = %path).entered();
+
     let mut writer = Writer {
         accumulator: Sha256::new(),
         writer: io::sink(),
     };
-    io::copy(&mut File::open(path.as_ref())?, &mut writer)?;
+    io::copy(&mut File::open(path)?, &mut writer)?;
 
     Ok(writer.accumulator.finalize())
 }
@@ -301,7 +307,9 @@ where
     // its identity table, map the matrix back, and certify the source
     // contract on the mapped rows.
     let (nodes, representations_file, node_identities_file) =
-        stage_representations(dataset, &staging).await?;
+        stage_representations(dataset, &staging)
+            .instrument(tracing::info_span!("representations"))
+            .await?;
     tracing::info!(nodes, "staged the node representations and identities");
 
     let representations = ArrayFile::open(staging.path_of(&Role::Representations.file_name()))
@@ -319,12 +327,16 @@ where
     //       adjacency, and assemble `RelationInstance`s from this
     //       stream once the classifier and policy artifacts have
     //       writers (the attraction writer already landed).
-    let (edges, edge_identities_file) = stage_edge_identities(dataset, &staging).await?;
+    let (edges, edge_identities_file) = stage_edge_identities(dataset, &staging)
+        .instrument(tracing::info_span!("edge-identities"))
+        .await?;
     tracing::info!(edges, "staged the edge identities");
 
     // Ontology: render every card and embed the unique texts, reusing
     // the prior generation's rows where the text hash matches.
-    let cards = embed_card_table(dataset, embedder, &staging, prior).await?;
+    let cards = embed_card_table(dataset, embedder, &staging, prior)
+        .instrument(tracing::info_span!("cards"))
+        .await?;
     tracing::info!(
         types = cards.types,
         reused = cards.stats.reused,
@@ -341,6 +353,7 @@ where
 
     // Semantic graph: smooth the mapped table into fuzzy memberships.
     let semantic_file = {
+        let _span = tracing::info_span!("semantic").entered();
         let graph = SemanticGraph::build(&knn.view(), config.smoothing);
         write_staged(&staging, Role::Semantic, |writer| graph.write_into(writer))?
     };
@@ -420,6 +433,7 @@ where
         },
     };
 
+    let _span = tracing::info_span!("seal").entered();
     staging.seal(&repository).map_err(FitError::Seal)
 }
 
@@ -444,6 +458,7 @@ where
 {
     let mut writer = BufWriter::new(staging.create(&Role::Representations.file_name())?);
     let ids = prepare::write_node_representations(dataset, &mut writer)
+        .instrument(tracing::info_span!("stream"))
         .await
         .map_err(|error| match error {
             PrepareError::Dataset(error) => FitError::Dataset(error),
@@ -467,6 +482,8 @@ fn certify_representations<D, E>(
     rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     config: &FitConfig,
 ) -> Result<norm::NormSpotCheck, FitError<D, E>> {
+    let _span = tracing::info_span!("norm-check").entered();
+
     let norm = norm::spot_check(
         rows,
         config.norm_check,
@@ -523,6 +540,8 @@ fn prior_landmark_marks<D, E>(
 where
     D: Dataset,
 {
+    let _span = tracing::info_span!("prior-marks").entered();
+
     let files = &prior.repository().files;
     let skeleton = MappedLandmarkSkeleton::new(
         LandmarkFile::open(prior.path_of(&files.landmarks.name))
@@ -593,14 +612,16 @@ where
     D: Dataset,
     E: CardEmbedder + Sync,
 {
-    let cards = {
+    let cards = async {
         let mut stream = pin!(dataset.render_cards());
         let mut cards = Vec::new();
         while let Some((_, card)) = stream.try_next().await.map_err(FitError::Cards)? {
             cards.push(card);
         }
-        cards
-    };
+        Ok::<_, FitError<D::Error, E::Error>>(cards)
+    }
+    .instrument(tracing::info_span!("render-cards"))
+    .await?;
 
     let types = cards.len() as u64;
 
@@ -635,6 +656,7 @@ where
         .transpose()?;
 
     let (table, stats) = embed_cards(embedder, &cards, prior_view)
+        .instrument(tracing::info_span!("embed"))
         .await
         .map_err(FitError::Embedding)?;
     drop(cards);
@@ -662,26 +684,37 @@ fn build_neighbour_table<D, E>(
     config: &FitConfig,
     rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
 ) -> Result<(recall::RecallSpotCheck, RepositoryFile), FitError<D, E>> {
-    let mut index = HannoyIndex::new(scratch.directory("knn")?, config.index)?;
-    index.insert_many(rows.iter().enumerate().map(|(row, components)| Embedding {
-        id: NodeRowId::new(row as u64),
-        components,
-    }))?;
-    index.build(stage_rng(config.seed, Stage::KnnLink))?;
+    let _span = tracing::info_span!("knn").entered();
 
-    let recall = recall::spot_check(
-        &index,
-        rows,
-        config.recall_check,
-        stage_rng(config.seed, Stage::RecallCheck),
-    )
-    .map_err(FitError::RecallCheck)?;
+    let mut index = HannoyIndex::new(scratch.directory("knn")?, config.index)?;
+    {
+        let _span = tracing::info_span!("knn-link").entered();
+        index.insert_many(rows.iter().enumerate().map(|(row, components)| Embedding {
+            id: NodeRowId::new(row as u64),
+            components,
+        }))?;
+        index.build(stage_rng(config.seed, Stage::KnnLink))?;
+    }
+
+    let recall = tracing::info_span!("recall-check")
+        .in_scope(|| {
+            recall::spot_check(
+                &index,
+                rows,
+                config.recall_check,
+                stage_rng(config.seed, Stage::RecallCheck),
+            )
+        })
+        .map_err(FitError::RecallCheck)?;
     if !recall.meets_minimum() {
         return Err(FitError::RecallBelowMinimum(recall));
     }
 
-    let table = Knn::build(&index, rows.len(), config.neighbours).map_err(FitError::Knn)?;
-    let file = write_staged(staging, Role::Knn, |writer| table.write_into(writer))?;
+    let file = {
+        let _span = tracing::info_span!("knn-table").entered();
+        let table = Knn::build(&index, rows.len(), config.neighbours).map_err(FitError::Knn)?;
+        write_staged(staging, Role::Knn, |writer| table.write_into(writer))?
+    };
 
     Ok((recall, file))
 }
@@ -701,7 +734,10 @@ fn build_landmark_skeleton<D, E>(
     semantic: &MappedSemanticGraph,
     prior_marks: Option<&BitSet>,
 ) -> Result<(RepositoryFile, LandmarkEvidence), FitError<D, E>> {
+    let _span = tracing::info_span!("landmarks").entered();
+
     let selection = {
+        let _span = tracing::info_span!("landmark-selection").entered();
         let candidates: Vec<LandmarkCandidate> = (0..rows.len())
             .map(|row| LandmarkCandidate {
                 row: NodeRowId::new(row as u64),
@@ -729,6 +765,7 @@ fn build_landmark_skeleton<D, E>(
     };
 
     let assignment = {
+        let _span = tracing::info_span!("landmark-assignment").entered();
         let mut index = HannoyIndex::new(scratch.directory("assignment")?, config.index)?;
         assign_landmarks(
             &mut index,
@@ -738,13 +775,16 @@ fn build_landmark_skeleton<D, E>(
         )?
     };
 
-    let quotient = quotient_graph(&semantic.view(), &assignment, config.quotient)?;
-    let coordinates = layout_landmarks(
-        &quotient.view(),
-        config.curve,
-        config.layout,
-        stage_rng(config.seed, Stage::LandmarkLayout),
-    )?;
+    let quotient = tracing::info_span!("quotient")
+        .in_scope(|| quotient_graph(&semantic.view(), &assignment, config.quotient))?;
+    let coordinates = tracing::info_span!("landmark-layout").in_scope(|| {
+        layout_landmarks(
+            &quotient.view(),
+            config.curve,
+            config.layout,
+            stage_rng(config.seed, Stage::LandmarkLayout),
+        )
+    })?;
     drop(quotient);
 
     let skeleton = LandmarkSkeleton::new(selection, assignment, coordinates);
@@ -764,6 +804,8 @@ fn stage_baseline_coordinates<D, E>(
     staging: &StagedGeneration,
     skeleton: &MappedLandmarkSkeleton,
 ) -> Result<RepositoryFile, FitError<D, E>> {
+    let _span = tracing::info_span!("coordinates").entered();
+
     {
         let mut writer = BufWriter::new(staging.create(&Role::Coordinates.file_name())?);
         place_at_landmarks(skeleton, &mut writer)?;

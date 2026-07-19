@@ -1,14 +1,30 @@
 #![expect(
     clippy::float_cmp,
     reason = "perfect and worst-case orderings hit the metric bounds exactly: the penalties are \
-              integer sums divided by their own integer maxima"
+              integer sums divided by their own integer maxima, and cross-path readings divide \
+              identical integers"
 )]
+#![expect(
+    clippy::min_ident_chars,
+    reason = "k is the canonical neighbourhood-size name across the metric literature"
+)]
+
+use std::collections::HashMap;
+
+use rand::SeedableRng as _;
+use rand_xoshiro::Xoshiro256PlusPlus;
+use zerocopy::{LE, U64};
 
 use super::{
     clump::Clumps,
     metric::{NeighbourhoodAggregate, RankScratch, rank_correlation},
+    probe::{ProbeError, ProbeOptions, probe},
 };
-use crate::salt::knn::table::Knn;
+use crate::{
+    dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS, memory::MemoryDataset},
+    math::{AlignedVecN, BoxedVecN, Vec2},
+    salt::knn::table::Knn,
+};
 
 /// A six-row, two-neighbour table: a chained near-duplicate triple
 /// {0, 1, 2}, an exact-duplicate pair {3, 4}, and a far singleton 5.
@@ -193,4 +209,322 @@ fn rank_correlation_bounds_and_signs() {
     );
     // Order information needs at least two points.
     assert_eq!(rank_correlation(&[1.0], &[2.0]), 0.0);
+}
+
+/// Rank-vector observation agrees with full-ordering observation.
+#[test]
+fn observe_ranks_matches_observe() {
+    // Universe of 8, k = 3, horizon 5, deliberately tangled orderings.
+    let by_reference = [4_u32, 0, 6, 2, 7, 1, 3, 5];
+    let by_map = [2_u32, 4, 1, 5, 0, 6, 7, 3];
+
+    let mut through_orderings =
+        NeighbourhoodAggregate::new(8, 3, 5).expect("3 <= 8 / 2 and 3 <= 5 <= 8");
+    let mut scratch = RankScratch::new(8);
+    through_orderings.observe(&by_reference, &by_map, &mut scratch);
+
+    // The same query as opposite-rank vectors, read off by hand: map
+    // top-3 = {2, 4, 1} at reference positions 3, 0, 5; reference
+    // top-3 = {4, 0, 6} at map positions 1, 4, 5.
+    let mut through_ranks =
+        NeighbourhoodAggregate::new(8, 3, 5).expect("3 <= 8 / 2 and 3 <= 5 <= 8");
+    through_ranks.observe_ranks(&[3, 0, 5], &[1, 4, 5]);
+
+    assert_eq!(through_orderings, through_ranks);
+}
+
+/// Merging per-query aggregates equals one joint observation.
+#[test]
+fn merged_aggregates_match_joint_observation() {
+    let reference: Vec<u32> = (0..6).collect();
+    let swapped = [0, 2, 1, 3, 4, 5];
+    let reversed: Vec<u32> = (0..6).rev().collect();
+    let mut scratch = RankScratch::new(6);
+
+    let mut joint = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    joint.observe(&reference, &swapped, &mut scratch);
+    joint.observe(&reference, &reversed, &mut scratch);
+
+    let mut first = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    first.observe(&reference, &swapped, &mut scratch);
+    let mut second = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    second.observe(&reference, &reversed, &mut scratch);
+    first.merge(&second);
+
+    assert_eq!(first, joint);
+}
+
+/// Rows the probe fixture's aligned backing store can hold.
+const FIXTURE_CAPACITY: usize = 48 * PROJECTOR_DIMENSIONS;
+
+/// A probe corpus whose three spaces share one deterministic geometry.
+///
+/// Row `i` sits at an angle on the unit circle in every space: the
+/// representation is `(cos, sin)` in the leading two components, the
+/// canonical embedding extends it with zeros, and the coordinates are
+/// the circle point itself. Chord length and cosine distance are both
+/// monotone in the angular gap, so equal embedding and map angles make
+/// all three spaces order every universe identically - a perfect map.
+struct ProbeFixture {
+    node_ids: Vec<U64<LE>>,
+    storage: BoxedVecN<FIXTURE_CAPACITY>,
+    rows: usize,
+    coordinates: Vec<Vec2>,
+    canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
+}
+
+impl ProbeFixture {
+    fn on_circle(angles: &[f32]) -> Self {
+        Self::new(angles, angles)
+    }
+
+    /// Places the embeddings at `angles` and the map at `map_angles`.
+    fn new(angles: &[f32], map_angles: &[f32]) -> Self {
+        assert_eq!(angles.len(), map_angles.len());
+        assert!(angles.len() * PROJECTOR_DIMENSIONS <= FIXTURE_CAPACITY);
+
+        let mut storage = BoxedVecN::zero();
+        let mut canonical = HashMap::new();
+        for (row, &angle) in angles.iter().enumerate() {
+            storage.as_array_mut()[row * PROJECTOR_DIMENSIONS] = angle.cos();
+            storage.as_array_mut()[row * PROJECTOR_DIMENSIONS + 1] = angle.sin();
+
+            let mut extended = BoxedVecN::zero();
+            extended.as_array_mut()[0] = angle.cos();
+            extended.as_array_mut()[1] = angle.sin();
+            canonical.insert(row as u64, extended);
+        }
+
+        Self {
+            node_ids: (0..angles.len() as u64).map(U64::new).collect(),
+            storage,
+            rows: angles.len(),
+            coordinates: map_angles
+                .iter()
+                .map(|&angle| Vec2::new(angle.cos(), angle.sin()))
+                .collect(),
+            canonical,
+        }
+    }
+
+    fn dataset(&self) -> MemoryDataset {
+        MemoryDataset::new(
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            self.canonical.clone(),
+            HashMap::new(),
+        )
+    }
+
+    fn representations(&self) -> &[AlignedVecN<PROJECTOR_DIMENSIONS>] {
+        AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
+            .expect("boxed storage is aligned")
+    }
+}
+
+/// Irregularly spaced angles inside a quarter circle: no two gaps
+/// coincide, so no space carries distance ties.
+fn irregular_angles(rows: usize) -> Vec<f32> {
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "fixture row counts stay far inside exact f32 integers"
+    )]
+    (0..rows)
+        .map(|row| {
+            let step = row as f32 / rows as f32;
+            (0.3 * step).mul_add(step, step) * 1.1
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn probe_reads_a_faithful_map_as_perfect() {
+    let fixture = ProbeFixture::on_circle(&irregular_angles(48));
+    let options = ProbeOptions {
+        anchors: 5.try_into().expect("nonzero"),
+        comparisons: 12.try_into().expect("nonzero"),
+        neighbourhoods: vec![
+            2.try_into().expect("nonzero"),
+            4.try_into().expect("nonzero"),
+        ],
+        ..ProbeOptions::default()
+    };
+
+    let readings = probe(
+        &fixture.dataset(),
+        &fixture.node_ids,
+        fixture.representations(),
+        &fixture.coordinates,
+        &options,
+        Xoshiro256PlusPlus::seed_from_u64(7),
+    )
+    .await
+    .expect("the corpus hosts the probe design");
+
+    assert_eq!(readings.anchors.len(), 5);
+    assert_eq!(readings.comparisons.len(), 12);
+    for grid in [
+        &readings.map_representation,
+        &readings.sampled_map_representation,
+        &readings.sampled_map_canonical,
+        &readings.sampled_representation_canonical,
+    ] {
+        assert_eq!(grid.anchors(), 5);
+        assert_eq!(grid.neighbourhoods(), 2);
+        for neighbourhood in 0..2 {
+            let overall = grid.overall(neighbourhood);
+            assert_eq!(overall.queries(), 5);
+            assert_eq!(overall.recall(), 1.0);
+            assert_eq!(overall.trustworthiness(), 1.0);
+            assert_eq!(overall.continuity(), 1.0);
+            assert_eq!(overall.intrusion_rate(), 0.0);
+            assert_eq!(overall.extrusion_rate(), 0.0);
+        }
+    }
+}
+
+/// The corpus pass's counted ranks agree with sorted full orderings.
+#[tokio::test]
+async fn corpus_readings_match_a_sorting_reference() {
+    // Embeddings on the circle, coordinates scrambled by reversing the
+    // angle order and bending it, so map and representation disagree.
+    // Rows 10 and 11 duplicate an embedding and rows 20 and 21 a
+    // coordinate, exercising the shared (distance, row) tie order.
+    let angles = irregular_angles(40);
+    let mut map_angles: Vec<f32> = angles
+        .iter()
+        .rev()
+        .map(|&angle| angle.mul_add(0.7, 0.1))
+        .collect();
+    let mut embedding_angles = angles;
+    embedding_angles[11] = embedding_angles[10];
+    map_angles[21] = map_angles[20];
+    let fixture = ProbeFixture::new(&embedding_angles, &map_angles);
+
+    let k = 3_usize;
+    let options = ProbeOptions {
+        anchors: 6.try_into().expect("nonzero"),
+        comparisons: 10.try_into().expect("nonzero"),
+        neighbourhoods: vec![k.try_into().expect("nonzero")],
+        ..ProbeOptions::default()
+    };
+
+    let representations = fixture.representations();
+    let readings = probe(
+        &fixture.dataset(),
+        &fixture.node_ids,
+        representations,
+        &fixture.coordinates,
+        &options,
+        Xoshiro256PlusPlus::seed_from_u64(11),
+    )
+    .await
+    .expect("the corpus hosts the probe design");
+
+    // Reference path: argsort the full universe per anchor and feed
+    // the ordering-based kernel entry.
+    let anchor_rows: Vec<usize> = readings.anchors.iter().map(|row| row.usize()).collect();
+    let universe: Vec<usize> = (0..fixture.node_ids.len())
+        .filter(|row| !anchor_rows.contains(row))
+        .collect();
+    let mut scratch = RankScratch::new(universe.len());
+
+    let order_by = |distances: &dyn Fn(usize) -> f32| {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the fixture universe stays far below u32"
+        )]
+        let mut order: Vec<u32> = (0..universe.len() as u32).collect();
+        order.sort_unstable_by(|&one, &other| {
+            distances(universe[one as usize])
+                .total_cmp(&distances(universe[other as usize]))
+                .then_with(|| universe[one as usize].cmp(&universe[other as usize]))
+        });
+        order
+    };
+
+    for (index, &anchor) in anchor_rows.iter().enumerate() {
+        let by_reference =
+            order_by(&|row: usize| representations[anchor].cosine_distance(&representations[row]));
+        let by_map = order_by(&|row: usize| {
+            fixture.coordinates[anchor].distance_squared(fixture.coordinates[row])
+        });
+
+        let mut expected = NeighbourhoodAggregate::new(universe.len(), k, 2 * k)
+            .expect("the validated options build the same aggregate");
+        expected.observe(&by_reference, &by_map, &mut scratch);
+
+        assert_eq!(
+            *readings.map_representation.anchor(index, 0),
+            expected,
+            "anchor {anchor} disagrees with the sorting reference",
+        );
+    }
+}
+
+#[tokio::test]
+async fn probe_rejects_impossible_designs() {
+    let fixture = ProbeFixture::on_circle(&irregular_angles(12));
+    let representations = fixture.representations();
+
+    // The corpus cannot host disjoint samples of 8 + 8.
+    let crowded = ProbeOptions {
+        anchors: 8.try_into().expect("nonzero"),
+        comparisons: 8.try_into().expect("nonzero"),
+        neighbourhoods: vec![2.try_into().expect("nonzero")],
+        ..ProbeOptions::default()
+    };
+    assert!(matches!(
+        probe(
+            &fixture.dataset(),
+            &fixture.node_ids,
+            representations,
+            &fixture.coordinates,
+            &crowded,
+            Xoshiro256PlusPlus::seed_from_u64(0),
+        )
+        .await,
+        Err(ProbeError::Design { rows: 12, .. }),
+    ));
+
+    // A neighbourhood of 3 exceeds half the 4-row comparison universe.
+    let oversized = ProbeOptions {
+        anchors: 2.try_into().expect("nonzero"),
+        comparisons: 4.try_into().expect("nonzero"),
+        neighbourhoods: vec![3.try_into().expect("nonzero")],
+        ..ProbeOptions::default()
+    };
+    assert!(matches!(
+        probe(
+            &fixture.dataset(),
+            &fixture.node_ids,
+            representations,
+            &fixture.coordinates,
+            &oversized,
+            Xoshiro256PlusPlus::seed_from_u64(0),
+        )
+        .await,
+        Err(ProbeError::Neighbourhood { k: 3, universe: 4 }),
+    ));
+
+    // An empty neighbourhood ladder reads nothing.
+    let empty = ProbeOptions {
+        anchors: 2.try_into().expect("nonzero"),
+        comparisons: 4.try_into().expect("nonzero"),
+        neighbourhoods: Vec::new(),
+        ..ProbeOptions::default()
+    };
+    assert!(matches!(
+        probe(
+            &fixture.dataset(),
+            &fixture.node_ids,
+            representations,
+            &fixture.coordinates,
+            &empty,
+            Xoshiro256PlusPlus::seed_from_u64(0),
+        )
+        .await,
+        Err(ProbeError::NoNeighbourhoods),
+    ));
 }

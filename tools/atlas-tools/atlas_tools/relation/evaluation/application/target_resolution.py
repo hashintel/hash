@@ -73,7 +73,7 @@ class VerifiedTargetResolutionArtifact:
     manifest_hash: Sha256Hex
 
 
-def _load_soft_labels(source: SoftLabelsArtifact | Path) -> SoftLabelsArtifact:
+def load_verified_soft_labels(source: SoftLabelsArtifact | Path) -> SoftLabelsArtifact:
     path = source.path if isinstance(source, SoftLabelsArtifact) else source
     loaded = load_soft_labels(path)
     if isinstance(source, SoftLabelsArtifact) and (
@@ -83,7 +83,7 @@ def _load_soft_labels(source: SoftLabelsArtifact | Path) -> SoftLabelsArtifact:
     return loaded
 
 
-def _load_deck(source: VerifiedDeck | Path) -> VerifiedDeck:
+def load_verified_deck(source: VerifiedDeck | Path) -> VerifiedDeck:
     directory = source.directory if isinstance(source, VerifiedDeck) else source
     loaded = load_deck(directory)
     if isinstance(source, VerifiedDeck) and (
@@ -106,7 +106,7 @@ def _soft_label_hashes(soft_labels: SoftLabelsArtifact) -> tuple[Sha256Hex, Sha2
     return parquet_hash, metadata_hash
 
 
-def _source_hashes(
+def review_source_hashes(
     soft_labels: SoftLabelsArtifact,
     deck: VerifiedDeck,
 ) -> dict[TargetResolutionSourceName, Sha256Hex]:
@@ -242,9 +242,9 @@ def publish_target_resolutions(
     """Validate exact ambiguous coverage and durably publish an immutable artifact."""
     paths = TargetResolutionPaths.in_directory(output_directory)
     _require_destination_absent(paths.directory)
-    labels_artifact = _load_soft_labels(soft_labels)
-    verified_deck = _load_deck(deck)
-    source_hashes = _source_hashes(labels_artifact, verified_deck)
+    labels_artifact = load_verified_soft_labels(soft_labels)
+    verified_deck = load_verified_deck(deck)
+    source_hashes = review_source_hashes(labels_artifact, verified_deck)
     rows = _validated_rows(
         tuple(resolutions),
         soft_labels=labels_artifact,
@@ -322,7 +322,7 @@ def load_target_resolutions(
     expected_source_hashes: Mapping[TargetResolutionSourceName, Sha256Hex] | None = None,
 ) -> VerifiedTargetResolutionArtifact:
     """Verify exact bytes, sources, and every-and-only ambiguous coverage."""
-    labels_artifact = _load_soft_labels(soft_labels)
+    labels_artifact = load_verified_soft_labels(soft_labels)
     paths = TargetResolutionPaths.in_directory(directory)
     try:
         rows_payload = paths.rows_path.read_bytes()
@@ -414,9 +414,9 @@ def review_ambiguous_targets(
 ) -> VerifiedTargetResolutionArtifact:
     """Run the human review and publish only after every ambiguous target is decided."""
     _require_destination_absent(output_directory)
-    labels_artifact = _load_soft_labels(soft_labels)
-    verified_deck = _load_deck(deck)
-    _source_hashes(labels_artifact, verified_deck)
+    labels_artifact = load_verified_soft_labels(soft_labels)
+    verified_deck = load_verified_deck(deck)
+    review_source_hashes(labels_artifact, verified_deck)
     rows = _review_rows(labels_artifact, verified_deck)
     decisions = run_ambiguous_target_review(rows)
     if decisions is None:

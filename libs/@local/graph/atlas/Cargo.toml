@@ -76,16 +76,25 @@ codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 proptest.workspace        = true
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
+# uuid v5: tests re-derive versioned-URL identities through the raw
+# UUIDv5 constructor to cross-check `OntologyTypeUuid::from_url`.
+uuid = { workspace = true, features = ["v5"] }
 
 [features]
 # Exposes `hash_graph_atlas::bench`, the measurement seams the
-# `[[bench]]` targets consume; not API for consumers of the crate.
-bench = []
+# `[[bench]]` and `[[example]]` targets consume; not API for consumers
+# of the crate. `tokio/net` dials the live store for `fit_live`.
+bench = ["tokio/net"]
 # Adds the Metal-backed flavor to the projector measurement seam
 # (burn's CubeCL wgpu runtime compiling to MSL). Compiles anywhere;
 # running it requires an Apple GPU, so its tests are ignored by
 # default.
 bench-gpu = ["bench", "burn/metal"]
+
+[[example]]
+name              = "fit_live"
+required-features = ["bench"]
 
 [[bench]]
 name    = "math_kernels"

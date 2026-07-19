@@ -156,10 +156,66 @@ impl NeighbourhoodAggregate {
             scratch.map_rank[map as usize] = rank as u32;
         }
 
+        self.accumulate(
+            by_map[..self.k]
+                .iter()
+                .map(|&neighbour| scratch.reference_rank[neighbour as usize]),
+            by_reference[..self.k]
+                .iter()
+                .map(|&neighbour| scratch.map_rank[neighbour as usize]),
+        );
+    }
+
+    /// Accumulates one query from each neighbourhood's opposite ranks.
+    ///
+    /// `reference_ranks_of_map_neighbours` holds the reference-space
+    /// ranks of the query's `k` nearest map points, nearest-first, and
+    /// `map_ranks_of_reference_neighbours` the mirror image; ranks are
+    /// 0-based positions in the universe. The metrics are functions of
+    /// exactly these `2k` ranks, so a caller that computes ranks by
+    /// counting - without materializing whole orderings - observes
+    /// through here and [`observe`](Self::observe) reduces to it.
+    ///
+    /// # Panics
+    ///
+    /// Panics when either slice's length differs from `k` or a rank
+    /// lies outside the universe.
+    pub(crate) fn observe_ranks(
+        &mut self,
+        reference_ranks_of_map_neighbours: &[u32],
+        map_ranks_of_reference_neighbours: &[u32],
+    ) {
+        assert_eq!(
+            reference_ranks_of_map_neighbours.len(),
+            self.k,
+            "the map neighbourhood must hold exactly k ranks",
+        );
+        assert_eq!(
+            map_ranks_of_reference_neighbours.len(),
+            self.k,
+            "the reference neighbourhood must hold exactly k ranks",
+        );
+
+        self.accumulate(
+            reference_ranks_of_map_neighbours.iter().copied(),
+            map_ranks_of_reference_neighbours.iter().copied(),
+        );
+    }
+
+    /// Folds one query's opposite-rank pairs into the totals.
+    fn accumulate(
+        &mut self,
+        reference_ranks_of_map_neighbours: impl Iterator<Item = u32>,
+        map_ranks_of_reference_neighbours: impl Iterator<Item = u32>,
+    ) {
         // Positions are 0-based; the 1-based excess (rank - k) of a
         // position p is (p - k) + 1.
-        for &neighbour in &by_map[..self.k] {
-            let reference_position = scratch.reference_rank[neighbour as usize] as usize;
+        for rank in reference_ranks_of_map_neighbours {
+            let reference_position = rank as usize;
+            assert!(
+                reference_position < self.universe,
+                "a rank must name a position inside the universe",
+            );
             if reference_position < self.k {
                 self.shared += 1;
                 continue;
@@ -170,11 +226,17 @@ impl NeighbourhoodAggregate {
             }
         }
 
-        for &neighbour in &by_reference[..self.k] {
-            let map_position = scratch.map_rank[neighbour as usize] as usize;
+        for rank in map_ranks_of_reference_neighbours {
+            let map_position = rank as usize;
+            assert!(
+                map_position < self.universe,
+                "a rank must name a position inside the universe",
+            );
+
             if map_position < self.k {
                 continue;
             }
+
             self.continuity_penalty += (map_position - self.k + 1) as u64;
             if map_position >= self.horizon {
                 self.extrusions += 1;
@@ -182,6 +244,32 @@ impl NeighbourhoodAggregate {
         }
 
         self.queries += 1;
+    }
+
+    /// Folds another aggregate's observations into this one.
+    ///
+    /// Merging aggregates observed over disjoint query sets equals one
+    /// aggregate observing their union, so per-query aggregates roll
+    /// up into overall and per-subgroup readings without revisiting
+    /// orderings.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the aggregates disagree about the universe, the
+    /// neighbourhood size, or the horizon; readings normalized against
+    /// different shapes do not share totals.
+    pub(crate) fn merge(&mut self, other: &Self) {
+        assert!(
+            self.universe == other.universe && self.k == other.k && self.horizon == other.horizon,
+            "merged aggregates must share the universe, neighbourhood size, and horizon",
+        );
+
+        self.queries += other.queries;
+        self.shared += other.shared;
+        self.intrusions += other.intrusions;
+        self.extrusions += other.extrusions;
+        self.trust_penalty += other.trust_penalty;
+        self.continuity_penalty += other.continuity_penalty;
     }
 
     /// Returns the observed query count.

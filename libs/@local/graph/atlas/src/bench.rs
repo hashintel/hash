@@ -8,4 +8,6 @@
 //! crate; the feature exists for the `[[bench]]` targets and is off by
 //! default.
 
-pub use crate::salt::{projector::bench as projector, relation::bench as relation};
+pub use crate::salt::{
+    fit::bench as fit, projector::bench as projector, relation::bench as relation,
+};

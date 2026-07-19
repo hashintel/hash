@@ -57,7 +57,7 @@ def test_export_fit_inputs_keeps_real_url_and_embedding(
     )
     monkeypatch.setattr(fit_inputs, "load_deck", lambda _path: deck)
     monkeypatch.setattr(fit_inputs, "load_embeddings", lambda _path: embeddings)
-    monkeypatch.setattr(fit_inputs, "_raw_cards", lambda _path: (card,))
+    monkeypatch.setattr(fit_inputs, "raw_concat_cards", lambda _path: (card,))
     output = tmp_path / "relation-policy-inputs.json"
 
     artifact = fit_inputs.export_fit_inputs(
@@ -108,7 +108,7 @@ def test_export_fit_inputs_rejects_noncanonical_embedding_dimension(
             rows=(embedding,),
         ),
     )
-    monkeypatch.setattr(fit_inputs, "_raw_cards", lambda _path: (card,))
+    monkeypatch.setattr(fit_inputs, "raw_concat_cards", lambda _path: (card,))
 
     with pytest.raises(ValueError, match="expected 3072"):
         fit_inputs.export_fit_inputs(

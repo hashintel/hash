@@ -1,4 +1,9 @@
-use std::collections::BTreeMap;
+#![expect(
+    clippy::cast_possible_truncation,
+    reason = "the reference partition's group sizes stay far below u32"
+)]
+
+use alloc::collections::BTreeMap;
 
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;

@@ -29,6 +29,13 @@ from atlas_tools.relation.evaluation.visualization.model import (
     GridTargetKind,
     RunActivity,
 )
+from atlas_tools.relation.evaluation.visualization.placement_confirmations import (
+    PlacementConfirmationApp,
+    PlacementConfirmationChoice,
+    PlacementConfirmationDecision,
+    PlacementConfirmationReviewRow,
+    run_placement_confirmation,
+)
 
 __all__ = [
     "AmbiguousTargetAction",
@@ -46,10 +53,15 @@ __all__ = [
     "GridStatusApp",
     "GridStatusSnapshot",
     "GridTargetKind",
+    "PlacementConfirmationApp",
+    "PlacementConfirmationChoice",
+    "PlacementConfirmationDecision",
+    "PlacementConfirmationReviewRow",
     "RunActivity",
     "SnapshotLoader",
     "build_grid_status_renderable",
     "run_ambiguous_target_review",
     "run_coincident_review",
     "run_grid_status",
+    "run_placement_confirmation",
 ]

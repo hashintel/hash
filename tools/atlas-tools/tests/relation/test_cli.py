@@ -405,6 +405,8 @@ def test_cli_exports_reviewed_verdicts(
     soft_labels.touch()
     cards = tmp_path / "cards"
     cards.mkdir()
+    confirmations = tmp_path / "confirmations"
+    confirmations.mkdir()
     output = tmp_path / "reviewed-verdicts.json"
     captured: dict[str, object] = {}
 
@@ -417,6 +419,7 @@ def test_cli_exports_reviewed_verdicts(
             proximal_count=2,
             overlay_count=3,
             excluded_count=4,
+            missing_versioned_url_count=5,
         )
 
     monkeypatch.setattr(
@@ -431,6 +434,8 @@ def test_cli_exports_reviewed_verdicts(
             str(cards),
             "--out",
             str(output),
+            "--confirmations",
+            str(confirmations),
         ]
     )
 
@@ -439,6 +444,7 @@ def test_cli_exports_reviewed_verdicts(
         "soft_labels_path": soft_labels,
         "cards_directory": cards,
         "output_path": output,
+        "confirmations_directory": confirmations,
     }
     stdout = capsys.readouterr().out
     assert f"wrote {output}" in stdout
@@ -447,3 +453,52 @@ def test_cli_exports_reviewed_verdicts(
     assert "proximal 2" in stdout
     assert "overlay 3" in stdout
     assert "excluded 4 (omitted)" in stdout
+    assert "missing versioned_url 5" in stdout
+
+
+def test_cli_confirms_placements_and_echoes_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    soft_labels = tmp_path / "soft-labels.parquet"
+    soft_labels.touch()
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    output = tmp_path / "confirmations"
+    captured: dict[str, object] = {}
+
+    def confirm(**arguments: object) -> SimpleNamespace:
+        captured.update(arguments)
+        return SimpleNamespace(
+            paths=SimpleNamespace(
+                rows_path=output / "placement-confirmations.jsonl",
+                manifest_path=output / "placement-confirmations.manifest.json",
+            ),
+        )
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.evaluation.application.api.confirm_placements",
+        confirm,
+    )
+    cli.main(
+        [
+            "confirm-placements",
+            str(soft_labels),
+            str(cards),
+            "--reviewer",
+            "Grace Confirmer",
+            "--out",
+            str(output),
+        ]
+    )
+
+    assert captured == {
+        "soft_labels": soft_labels,
+        "deck": cards,
+        "reviewer": "Grace Confirmer",
+        "output_directory": output,
+    }
+    stdout = capsys.readouterr().out
+    assert f"wrote {output / 'placement-confirmations.jsonl'}" in stdout
+    assert f"wrote {output / 'placement-confirmations.manifest.json'}" in stdout

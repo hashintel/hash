@@ -381,18 +381,51 @@ class ExportFitInputsCommand(BaseSettings):
         echo(f"relations {result.relation_count}")
 
 
+class ConfirmPlacementsCommand(BaseSettings):
+    """Confirm placement classes for unambiguous relations in a voluntary review.
+
+    Every positive-evidence soft label is offered; any subset may be confirmed,
+    excluded, or skipped. The published artifact records only explicit decisions and
+    never loosens the target-resolution artifact's ambiguous-coverage contract.
+    """
+
+    soft_labels: CliPositionalArg[FilePath]
+    cards: CliPositionalArg[DirectoryPath]
+    reviewer: Annotated[str, Field(min_length=1)]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import confirm_placements
+
+        try:
+            result = confirm_placements(
+                soft_labels=self.soft_labels,
+                deck=self.cards,
+                reviewer=self.reviewer,
+                output_directory=self.out,
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.paths.rows_path}")
+        echo(f"wrote {result.paths.manifest_path}")
+
+
 class ExportReviewedVerdictsCommand(BaseSettings):
     """Export human-confirmed relation placement verdicts for the SALT trainer.
 
-    The verdicts are the corpus's target resolutions: human placement classes for
-    relations without placement-vote evidence. ``excluded`` resolutions are omitted
-    from the document and reported separately.
+    The verdicts merge the corpus's target resolutions (human placement classes for
+    relations without placement-vote evidence) with voluntary placement
+    confirmations when supplied. ``excluded`` decisions are omitted from the
+    document and reported separately.
     """
 
     resolutions: CliPositionalArg[DirectoryPath]
     soft_labels: CliPositionalArg[FilePath]
     cards: CliPositionalArg[DirectoryPath]
     out: Path
+    confirmations: DirectoryPath | None = None
 
     model_config = SettingsConfigDict(extra="forbid")
 
@@ -405,6 +438,7 @@ class ExportReviewedVerdictsCommand(BaseSettings):
                 soft_labels_path=self.soft_labels,
                 cards_directory=self.cards,
                 output_path=self.out,
+                confirmations_directory=self.confirmations,
             )
         except (OSError, ValueError) as error:
             fail(error)
@@ -414,6 +448,7 @@ class ExportReviewedVerdictsCommand(BaseSettings):
         echo(f"proximal {result.proximal_count}")
         echo(f"overlay {result.overlay_count}")
         echo(f"excluded {result.excluded_count} (omitted)")
+        echo(f"missing versioned_url {result.missing_versioned_url_count}")
 
 
 class ReportCommand(BaseSettings):
@@ -534,6 +569,7 @@ class RelationCli(BaseModel):
     embed: CliSubCommand[EmbedCommand]
     review_coincident: CliSubCommand[ReviewCoincidentCommand]
     resolve_ambiguous: CliSubCommand[ResolveAmbiguousCommand]
+    confirm_placements: CliSubCommand[ConfirmPlacementsCommand]
     fit: CliSubCommand[FitCommand]
     export_classifier: CliSubCommand[ExportClassifierCommand]
     export_fit_inputs: CliSubCommand[ExportFitInputsCommand]

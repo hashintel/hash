@@ -5877,6 +5877,7 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tracing",
+ "tracing-subscriber",
  "type-system",
  "unicode-segmentation",
  "unidecode",

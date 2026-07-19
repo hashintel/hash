@@ -16,10 +16,11 @@
 //! produced them. [`clump`] groups near-duplicate rows over the
 //! 512-component neighbour table, so readings can collapse orderings
 //! onto clump ids and separate placement error from reshuffling among
-//! near-identical siblings. The probe orchestration - anchor sampling,
-//! exact canonical rankings through the dataset's probe stream, map
-//! queries, and the report with its configured thresholds - layers
-//! above the kernels.
+//! near-identical siblings. [`probe`] orchestrates the measurement:
+//! anchor and comparison sampling, canonical embeddings through the
+//! dataset's probe-scoped stream, rankings in all three spaces, and
+//! per-anchor reading grids. The report with its configured thresholds
+//! layers above the readings.
 //!
 //! Every metric here is a function of rankings over a shared
 //! comparison universe. Probe-scoped readings are exact over their
@@ -29,6 +30,7 @@
 
 pub(crate) mod clump;
 pub(crate) mod metric;
+pub(crate) mod probe;
 
 #[cfg(test)]
 mod tests;
