@@ -84,16 +84,19 @@ const utf8ByteLength = (value: string): number =>
  * Detached-run attachments stamp every frame with `id: <seq>` so consumers
  * can resume from a cursor; the legacy study stream sends no ids at all, in
  * which case the adapted events simply carry no `seq`.
+ *
+ * Only plain bounded decimal ids are accepted (mirroring the cursor NodeAPI
+ * accepts): `Number()` would otherwise coerce empty strings, exponent or hex
+ * notation, and signs, and ids past 15 digits would lose integer precision.
  */
 const parseEventSequence = (id: string | undefined): number | undefined => {
   if (id === undefined) {
     return undefined;
   }
-  const seq = Number(id);
-  if (!Number.isInteger(seq) || seq < 0) {
+  if (!/^\d{1,15}$/.test(id)) {
     throw new Error("Petrinaut optimizer returned an invalid event id");
   }
-  return seq;
+  return Number(id);
 };
 
 /** Validate the flat parameter values returned for one Optuna trial. */

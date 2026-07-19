@@ -4,6 +4,7 @@ import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimizat
 import { createPetrinautOptimizationRunCancelHandler } from "./create-petrinaut-optimization-run-cancel-handler";
 import { createPetrinautOptimizationRunEventsHandler } from "./create-petrinaut-optimization-run-events-handler";
 import { createPetrinautOptimizationRunHandler } from "./create-petrinaut-optimization-run-handler";
+import { createOptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
 import { createOptimizationRunOwners } from "./shared/optimization-run-owners";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
@@ -107,6 +108,9 @@ export const setupPetrinautOptimizerHandler = (
   });
 
   const runOwners = createOptimizationRunOwners();
+  // One account drives at most one optimization at a time across BOTH route
+  // families; the occupancy tracker is the shared admission authority.
+  const occupancy = createOptimizationAccountOccupancy(runOwners);
 
   app.post(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH,
@@ -114,6 +118,7 @@ export const setupPetrinautOptimizerHandler = (
     createPetrinautOptimizationRunHandler({
       fetchImpl,
       logger,
+      occupancy,
       origin,
       runOwners,
     }),
@@ -149,6 +154,11 @@ export const setupPetrinautOptimizerHandler = (
   app.post(
     PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
     optimizationRateLimiter,
-    createPetrinautOptimizationHandler({ fetchImpl, logger, origin }),
+    createPetrinautOptimizationHandler({
+      fetchImpl,
+      logger,
+      occupancy,
+      origin,
+    }),
   );
 };

@@ -41,10 +41,14 @@ const parseCursor = (value: unknown): number | undefined => {
  * Only the run's creator may attach; unknown run ids — including runs
  * another account owns — answer 404 without revealing whether they exist.
  *
- * When the run's terminal event is forwarded its ownership entry is
- * released, so a subsequent attach answers 404 even though the optimizer
- * could still replay the finished log: by then the attached browser has
- * already received every event, terminal included.
+ * Ownership is released only once the run's terminal event has been
+ * *delivered*: after the forwarding loop resolves and the response ends, or
+ * — in the failure path — when the terminal line was committed while the
+ * client was still connected. A disconnect or failure racing the terminal
+ * write keeps the entry, so one more attach can replay the terminal frame
+ * from the optimizer's retained log (and release then). After that delivered
+ * terminal, a subsequent attach answers 404 even though the optimizer could
+ * still replay the finished log: the browser already holds every event.
  */
 export const createPetrinautOptimizationRunEventsHandler = ({
   fetchImpl,
@@ -144,14 +148,15 @@ export const createPetrinautOptimizationRunEventsHandler = ({
       await forwardOptimizationEvents(
         upstream.events,
         response,
-        () => {
-          lifecycle.markTerminalEvent();
-          // The stream is finished: nothing is left to attach to or cancel.
-          runOwners.release(runId);
-        },
+        lifecycle.markTerminalEvent,
         lifecycle.signal,
       );
       response.end();
+      if (lifecycle.state.terminalEventSent) {
+        // The terminal event was delivered (completed, failed, or cancelled
+        // upstream): nothing is left to attach to or cancel.
+        runOwners.release(runId);
+      }
       requestLogger.info("Petrinaut optimization run attachment finished", {
         durationMs: Date.now() - startedAt,
         optimizationRunId: runId,
@@ -160,6 +165,18 @@ export const createPetrinautOptimizationRunEventsHandler = ({
       });
     } catch (error) {
       const durationMs = Date.now() - startedAt;
+      if (
+        lifecycle.state.terminalEventSent &&
+        !lifecycle.state.clientDisconnected &&
+        !response.destroyed
+      ) {
+        // The terminal line was committed while the client stayed connected
+        // (e.g. a timeout broke the final backpressure wait), so treat it as
+        // delivered. A disconnect racing the terminal write keeps the entry
+        // instead: one more attach replays the terminal frame from the
+        // optimizer's retained log and releases then.
+        runOwners.release(runId);
+      }
       if (lifecycle.state.clientDisconnected || response.destroyed) {
         // The run itself is unaffected: the browser can simply re-attach.
         requestLogger.info("Petrinaut optimization run attachment finished", {

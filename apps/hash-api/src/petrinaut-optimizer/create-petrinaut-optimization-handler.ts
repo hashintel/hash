@@ -13,6 +13,7 @@ import {
   validateOptimizationRequest,
 } from "./shared/validate-optimization-request";
 
+import type { OptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
 import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
@@ -24,14 +25,16 @@ const MAX_CONCURRENT_OPTIMIZATIONS = 4;
 export const createPetrinautOptimizationHandler = ({
   fetchImpl,
   logger,
+  occupancy,
   origin,
 }: {
   fetchImpl: PetrinautOptimizerFetch;
   logger: Pick<Logger, "child" | "info" | "warn">;
+  /** Cross-family single-flight state shared with the detached-run routes. */
+  occupancy: OptimizationAccountOccupancy;
   origin: URL | null;
 }): RequestHandler => {
   let activeOptimizationCount = 0;
-  const activeUserIds = new Set<string>();
 
   return async (request, response) => {
     const startedAt = Date.now();
@@ -50,7 +53,10 @@ export const createPetrinautOptimizationHandler = ({
     }
 
     const userId = request.user.accountId;
-    if (activeUserIds.has(userId)) {
+    // The busy check spans both route families: a live legacy stream, an
+    // in-flight detached-run creation, and an owned detached run all occupy
+    // the account.
+    if (occupancy.isAccountBusy(userId)) {
       requestLogger.warn("Petrinaut optimization rejected: account busy", {
         activeOptimizationCount,
         userId,
@@ -88,7 +94,7 @@ export const createPetrinautOptimizationHandler = ({
     });
 
     activeOptimizationCount += 1;
-    activeUserIds.add(userId);
+    occupancy.beginStreaming(userId);
     const lifecycle = createOptimizationRequestLifecycle(request, response);
     let optimizationRunId: string | null = null;
 
@@ -212,7 +218,7 @@ export const createPetrinautOptimizationHandler = ({
     } finally {
       lifecycle.cleanup();
       activeOptimizationCount -= 1;
-      activeUserIds.delete(userId);
+      occupancy.endStreaming(userId);
     }
   };
 };

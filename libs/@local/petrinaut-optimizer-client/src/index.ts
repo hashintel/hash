@@ -9,6 +9,12 @@ export type {
 } from "./create-optimization-run.js";
 export { decodePetrinautOptimizerStream } from "./decode-optimization-stream.js";
 export type { DecodePetrinautOptimizerStreamOptions } from "./decode-optimization-stream.js";
+export { getPetrinautOptimizationRunStatus } from "./get-optimization-run-status.js";
+export type {
+  GetPetrinautOptimizationRunStatusOptions,
+  PetrinautOptimizationRunStatus,
+  PetrinautOptimizationRunStatusPhase,
+} from "./get-optimization-run-status.js";
 export { openPetrinautOptimizationStream } from "./open-optimization-stream.js";
 export type {
   OpenPetrinautOptimizationStreamOptions,

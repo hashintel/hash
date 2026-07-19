@@ -231,9 +231,17 @@ describe("decodePetrinautOptimizerStream", () => {
     ]);
   });
 
-  it("rejects a non-numeric SSE frame id", async () => {
+  it("rejects non-decimal SSE frame ids", async () => {
     await expect(
       collect(streamChunks("id: not-a-number\nevent: done\ndata: {}\n\n")),
+    ).rejects.toThrow("invalid event id");
+    // An explicit empty id line must not silently become NaN or 0.
+    await expect(
+      collect(streamChunks("id:\nevent: done\ndata: {}\n\n")),
+    ).rejects.toThrow("invalid event id");
+    // `Number()` would coerce exponent notation; the protocol never uses it.
+    await expect(
+      collect(streamChunks("id: 1e2\nevent: done\ndata: {}\n\n")),
     ).rejects.toThrow("invalid event id");
   });
 

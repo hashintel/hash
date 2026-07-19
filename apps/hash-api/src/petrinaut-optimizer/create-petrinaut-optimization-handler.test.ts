@@ -3,9 +3,15 @@ import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 
 import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
+import { createOptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
+import { createOptimizationRunOwners } from "./shared/optimization-run-owners";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Request, Response as ExpressResponse } from "express";
+
+/** Occupancy with no detached runs, as legacy-only deployments see it. */
+const freshOccupancy = () =>
+  createOptimizationAccountOccupancy(createOptimizationRunOwners());
 
 const validOptimizationInput = {
   kind: "petrinaut-optimization",
@@ -175,6 +181,7 @@ const callHandler = async ({
     createPetrinautOptimizationHandler({
       fetchImpl,
       logger: logger ?? createRecordingLogger().logger,
+      occupancy: freshOccupancy(),
       origin: new URL("http://petrinaut-opt:4004"),
     });
 
@@ -513,6 +520,7 @@ describe("createPetrinautOptimizationHandler", () => {
           { headers: { "content-type": "text/event-stream" } },
         ),
       logger: createRecordingLogger().logger,
+      occupancy: freshOccupancy(),
       origin: new URL("http://petrinaut-opt:4004"),
     });
     let activeResponse: FakeResponse | undefined;
@@ -588,6 +596,7 @@ describe("createPetrinautOptimizationHandler", () => {
             { headers: { "content-type": "text/event-stream" } },
           ),
         logger: createRecordingLogger().logger,
+        occupancy: freshOccupancy(),
         origin: new URL("http://petrinaut-opt:4004"),
       });
 
@@ -796,6 +805,7 @@ describe("createPetrinautOptimizationHandler", () => {
           });
         }),
       logger,
+      occupancy: freshOccupancy(),
       origin: new URL("http://petrinaut-opt:4004"),
     });
     let firstRequest: EventEmitter | undefined;

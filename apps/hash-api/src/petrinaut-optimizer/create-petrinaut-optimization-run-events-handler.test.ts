@@ -8,6 +8,7 @@ import {
   unexpectedFetch,
 } from "./shared/optimization-run-test-harness";
 
+import type { FakeResponse } from "./shared/optimization-run-test-harness";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
 
 const createHandler = ({
@@ -149,7 +150,7 @@ describe("createPetrinautOptimizationRunEventsHandler", () => {
     );
     expect(upstreamRequest?.requestId).toBe("request-id-1");
 
-    // Forwarding the terminal event released the ownership entry, so a
+    // Delivering the terminal event released the ownership entry, so a
     // subsequent attach answers 404 even though the optimizer could still
     // replay the finished log — the browser already holds every event.
     expect(runOwners.get("run-1")).toBeUndefined();
@@ -234,6 +235,54 @@ describe("createPetrinautOptimizationRunEventsHandler", () => {
       body: { error: "Optimization run not found" },
       statusCode: 404,
     });
+    expect(runOwners.get("run-1")).toBeUndefined();
+  });
+
+  it("retains ownership when the client vanishes during the terminal write", async () => {
+    const runOwners = ownersWithRun();
+    const terminalLine =
+      '{"type":"complete","requestedTrials":2,"completedTrials":0,"prunedTrials":0,"failedTrials":0,"best":null,"seq":4}\n';
+    const handler = createHandler({
+      fetchImpl: async () =>
+        new Response("id: 4\nevent: done\ndata: {}\n\n", {
+          headers: { "content-type": "text/event-stream" },
+        }),
+      runOwners,
+    });
+
+    let activeResponse: FakeResponse | undefined;
+    const first = await callOptimizationRunHandler({
+      handler,
+      params: { runId: "run-1" },
+      onResponse: (response) => {
+        activeResponse = response;
+      },
+      writeReturns: (value) => {
+        if (value.includes('"type":"complete"')) {
+          // The terminal write is committed to the buffer, but the client
+          // disconnects before it ever drains.
+          setImmediate(() => {
+            activeResponse!.destroyed = true;
+            activeResponse!.emit("close");
+          });
+          return false;
+        }
+        return true;
+      },
+    });
+
+    // The client cannot have received the terminal frame, so the ownership
+    // entry survives for exactly one more replaying attachment.
+    expect(first.output).toEqual([terminalLine]);
+    expect(runOwners.get("run-1")).toMatchObject({ accountId: "user-1" });
+
+    const second = await callOptimizationRunHandler({
+      handler,
+      params: { runId: "run-1" },
+    });
+    expect(second.statusCode).toBe(200);
+    expect(second.output).toEqual([terminalLine]);
+    // Delivered this time: the entry is released.
     expect(runOwners.get("run-1")).toBeUndefined();
   });
 

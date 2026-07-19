@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
 import { createPetrinautOptimizationRunHandler } from "./create-petrinaut-optimization-run-handler";
+import { createOptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
 import { createOptimizationRunOwners } from "./shared/optimization-run-owners";
 import {
   callOptimizationRunHandler,
@@ -10,24 +12,63 @@ import {
 } from "./shared/optimization-run-test-harness";
 
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
+import type { EventEmitter } from "node:events";
 
 const createHandler = ({
   fetchImpl = unexpectedFetch,
   logger = createRecordingLogger().logger,
   origin = new URL("http://petrinaut-opt:4004"),
   runOwners = createOptimizationRunOwners(),
+  occupancy = createOptimizationAccountOccupancy(runOwners),
 }: {
   fetchImpl?: PetrinautOptimizerFetch;
   logger?: ReturnType<typeof createRecordingLogger>["logger"];
   origin?: URL | null;
   runOwners?: ReturnType<typeof createOptimizationRunOwners>;
+  occupancy?: ReturnType<typeof createOptimizationAccountOccupancy>;
 } = {}) =>
   createPetrinautOptimizationRunHandler({
     fetchImpl,
     logger,
+    occupancy,
     origin,
     runOwners,
   });
+
+/**
+ * Route upstream calls by path: status probes answer with `statusPhase`
+ * (or 404 when null), and run creations answer with sequential run ids.
+ */
+const createUpstreamFake = ({
+  statusPhase = "running",
+}: {
+  statusPhase?: string | null;
+} = {}) => {
+  const calls: { method: string; url: string }[] = [];
+  const fetchImpl: PetrinautOptimizerFetch = async (input, init) => {
+    const url = input.toString();
+    calls.push({ method: init?.method ?? "GET", url });
+    if (url.includes("/status/")) {
+      return statusPhase === null
+        ? Response.json(
+            { detail: "optimization run not found" },
+            {
+              status: 404,
+            },
+          )
+        : Response.json({ phase: statusPhase, detail: null });
+    }
+    if (init?.method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+    const runId = `run-${calls.filter((call) => call.method === "POST").length}`;
+    return Response.json(
+      { run_id: runId },
+      { status: 201, headers: { "x-optimization-run-id": runId } },
+    );
+  };
+  return { calls, fetchImpl };
+};
 
 describe("createPetrinautOptimizationRunHandler", () => {
   it("requires authentication", async () => {
@@ -122,10 +163,15 @@ describe("createPetrinautOptimizationRunHandler", () => {
     const runOwners = createOptimizationRunOwners();
     const handler = createHandler({
       fetchImpl: async (input, init) => {
+        const url = input.toString();
+        if (url.includes("/status/")) {
+          // The owned run is genuinely still optimizing.
+          return Response.json({ phase: "running", detail: null });
+        }
         upstreamRequest = {
           body: typeof init?.body === "string" ? init.body : undefined,
           requestId: new Headers(init?.headers).get("x-hash-request-id"),
-          url: input.toString(),
+          url,
         };
         const runId = `run-${nextRunId++}`;
         return Response.json(
@@ -183,7 +229,8 @@ describe("createPetrinautOptimizationRunHandler", () => {
     expect(loggedText).not.toContain("return 1;");
     expect(loggedText).not.toContain("petrinaut-optimization");
 
-    // A second create for the same account is rejected while the run lives.
+    // A second create for the same account is rejected while the run lives:
+    // the liveness probe confirms it is still running.
     const second = await callOptimizationRunHandler({
       body: validOptimizationInput,
       handler,
@@ -210,12 +257,8 @@ describe("createPetrinautOptimizationRunHandler", () => {
 
   it("admits an account again once its run's ownership is released", async () => {
     const runOwners = createOptimizationRunOwners();
-    let nextRunId = 1;
-    const handler = createHandler({
-      fetchImpl: async () =>
-        Response.json({ run_id: `run-${nextRunId++}` }, { status: 201 }),
-      runOwners,
-    });
+    const { fetchImpl } = createUpstreamFake();
+    const handler = createHandler({ fetchImpl, runOwners });
 
     const first = await callOptimizationRunHandler({
       body: validOptimizationInput,
@@ -314,6 +357,298 @@ describe("createPetrinautOptimizationRunHandler", () => {
     expect(failure?.metadata).toMatchObject({
       optimizationRunId: "run-err-9",
       outcome: "upstream-error",
+    });
+  });
+
+  describe("stale ownership resolution", () => {
+    it("releases a terminal owned run and admits the create", async () => {
+      const { entries, logger } = createRecordingLogger();
+      const runOwners = createOptimizationRunOwners();
+      // A run remembered by NodeAPI that the optimizer has since finished.
+      runOwners.register("run-stale", {
+        accountId: "user-1",
+        requestedTrials: 2,
+      });
+      const { calls, fetchImpl } = createUpstreamFake({ statusPhase: "idle" });
+      const handler = createHandler({ fetchImpl, logger, runOwners });
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler,
+      });
+
+      expect(result.statusCode).toBe(201);
+      expect(result.body).toEqual({ runId: "run-1" });
+      expect(calls[0]).toEqual({
+        method: "GET",
+        url: "http://petrinaut-opt:4004/status/run-stale",
+      });
+      expect(runOwners.get("run-stale")).toBeUndefined();
+      expect(runOwners.get("run-1")).toMatchObject({ accountId: "user-1" });
+      expect(entries).toContainEqual({
+        level: "info",
+        message: "Petrinaut optimization run ownership released: stale",
+        metadata: {
+          optimizationRunId: "run-stale",
+          reason: "terminal-phase",
+          requestId: "request-id-1",
+          userId: "user-1",
+        },
+      });
+    });
+
+    it("releases an owned run the optimizer no longer knows", async () => {
+      const runOwners = createOptimizationRunOwners();
+      runOwners.register("run-stale", {
+        accountId: "user-1",
+        requestedTrials: 2,
+      });
+      const { fetchImpl } = createUpstreamFake({ statusPhase: null });
+      const handler = createHandler({ fetchImpl, runOwners });
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler,
+      });
+
+      expect(result.statusCode).toBe(201);
+      expect(runOwners.get("run-stale")).toBeUndefined();
+    });
+
+    it("preserves the 429 while the owned run still reports running", async () => {
+      const runOwners = createOptimizationRunOwners();
+      runOwners.register("run-live", {
+        accountId: "user-1",
+        requestedTrials: 2,
+      });
+      const { calls, fetchImpl } = createUpstreamFake({
+        statusPhase: "running",
+      });
+      const handler = createHandler({ fetchImpl, runOwners });
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler,
+      });
+
+      expect(result.statusCode).toBe(429);
+      expect(result.body).toEqual({
+        error: "An optimization is already running for this account",
+      });
+      // Only the probe reached upstream; no run was created.
+      expect(calls).toEqual([
+        { method: "GET", url: "http://petrinaut-opt:4004/status/run-live" },
+      ]);
+      expect(runOwners.get("run-live")).toBeDefined();
+    });
+
+    it("fails closed when the liveness probe cannot reach the optimizer", async () => {
+      const runOwners = createOptimizationRunOwners();
+      runOwners.register("run-live", {
+        accountId: "user-1",
+        requestedTrials: 2,
+      });
+      const handler = createHandler({
+        fetchImpl: async () => {
+          throw new Error("connection refused");
+        },
+        runOwners,
+      });
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler,
+      });
+
+      expect(result.statusCode).toBe(429);
+      expect(runOwners.get("run-live")).toBeDefined();
+    });
+  });
+
+  describe("client disconnects", () => {
+    it("abandons a create whose client disconnects mid-round-trip", async () => {
+      const { entries, logger } = createRecordingLogger();
+      const runOwners = createOptimizationRunOwners();
+      let abortObserved = false;
+      const handler = createHandler({
+        fetchImpl: async (_input, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              "abort",
+              () => {
+                abortObserved = true;
+                reject(new DOMException("Aborted", "AbortError"));
+              },
+              { once: true },
+            );
+          }),
+        logger,
+        runOwners,
+      });
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler,
+        onRequest: (request) => request.emit("aborted"),
+      });
+
+      // No response is written to the vanished client…
+      expect(abortObserved).toBe(true);
+      expect(result.body).toBeUndefined();
+      expect(result.response.headersSent).toBe(false);
+      // …and the outcome is a disconnect, not an upstream error.
+      expect(entries.at(-1)).toEqual({
+        level: "info",
+        message: "Petrinaut optimization run creation finished",
+        metadata: {
+          durationMs: expect.any(Number),
+          outcome: "client-disconnected",
+          requestId: "request-id-1",
+          userId: "user-1",
+        },
+      });
+
+      // The account slot is free again immediately.
+      const { fetchImpl } = createUpstreamFake();
+      const second = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler: createHandler({ fetchImpl, runOwners }),
+      });
+      expect(second.statusCode).toBe(201);
+    });
+
+    it("cancels a run created for a client that already disconnected", async () => {
+      const { entries, logger } = createRecordingLogger();
+      const runOwners = createOptimizationRunOwners();
+      const calls: { method: string; url: string }[] = [];
+      let resolveCreate: (() => void) | undefined;
+      const handler = createHandler({
+        fetchImpl: async (input, init) => {
+          const method = init?.method ?? "GET";
+          calls.push({ method, url: input.toString() });
+          if (method === "DELETE") {
+            return new Response(null, { status: 204 });
+          }
+          // Admit the run only after the client has already vanished.
+          await new Promise<void>((resolve) => {
+            resolveCreate = resolve;
+          });
+          return Response.json(
+            { run_id: "run-orphan" },
+            { status: 201, headers: { "x-optimization-run-id": "run-orphan" } },
+          );
+        },
+        logger,
+        runOwners,
+      });
+
+      let activeRequest: EventEmitter | undefined;
+      const resultPromise = callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler,
+        onRequest: (request) => {
+          activeRequest = request;
+        },
+      });
+      // Reach the pending upstream create, disconnect, then let it resolve.
+      await new Promise(setImmediate);
+      activeRequest!.emit("aborted");
+      resolveCreate?.();
+      const result = await resultPromise;
+
+      // The orphaned run is cancelled upstream and never owned by anyone.
+      expect(calls).toEqual([
+        { method: "POST", url: "http://petrinaut-opt:4004/optimize/runs" },
+        {
+          method: "DELETE",
+          url: "http://petrinaut-opt:4004/optimize/runs/run-orphan",
+        },
+      ]);
+      expect(runOwners.hasLiveRunForAccount("user-1")).toBe(false);
+      expect(result.body).toBeUndefined();
+      expect(result.response.headersSent).toBe(false);
+      expect(entries.at(-1)).toEqual({
+        level: "info",
+        message: "Petrinaut optimization run creation finished",
+        metadata: {
+          durationMs: expect.any(Number),
+          optimizationRunId: "run-orphan",
+          outcome: "client-disconnected",
+          requestId: "request-id-1",
+          userId: "user-1",
+        },
+      });
+    });
+  });
+
+  describe("cross-family single-flight", () => {
+    it("rejects a detached create while a legacy stream is active", async () => {
+      const runOwners = createOptimizationRunOwners();
+      const occupancy = createOptimizationAccountOccupancy(runOwners);
+      const logger = createRecordingLogger().logger;
+      let releaseLegacy: (() => void) | undefined;
+      const legacyHandler = createPetrinautOptimizationHandler({
+        fetchImpl: async (_input, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            releaseLegacy = () =>
+              reject(new DOMException("Aborted", "AbortError"));
+            init?.signal?.addEventListener("abort", () => releaseLegacy?.(), {
+              once: true,
+            });
+          }),
+        logger,
+        occupancy,
+        origin: new URL("http://petrinaut-opt:4004"),
+      });
+      const runHandler = createHandler({ logger, occupancy, runOwners });
+
+      let legacyRequest: EventEmitter | undefined;
+      const legacyPromise = callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler: legacyHandler,
+        onRequest: (request) => {
+          legacyRequest = request;
+        },
+      });
+      // Let the legacy stream reach its pending upstream fetch.
+      await new Promise(setImmediate);
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler: runHandler,
+      });
+      expect(result.statusCode).toBe(429);
+      expect(result.body).toEqual({
+        error: "An optimization is already running for this account",
+      });
+
+      legacyRequest!.emit("aborted");
+      await legacyPromise;
+    });
+
+    it("rejects a legacy stream while the account owns a detached run", async () => {
+      const runOwners = createOptimizationRunOwners();
+      const occupancy = createOptimizationAccountOccupancy(runOwners);
+      runOwners.register("run-1", {
+        accountId: "user-1",
+        requestedTrials: 2,
+      });
+      const legacyHandler = createPetrinautOptimizationHandler({
+        fetchImpl: unexpectedFetch,
+        logger: createRecordingLogger().logger,
+        occupancy,
+        origin: new URL("http://petrinaut-opt:4004"),
+      });
+
+      const result = await callOptimizationRunHandler({
+        body: validOptimizationInput,
+        handler: legacyHandler,
+      });
+
+      expect(result.statusCode).toBe(429);
+      expect(result.body).toEqual({
+        error: "An optimization is already running for this account",
+      });
     });
   });
 });

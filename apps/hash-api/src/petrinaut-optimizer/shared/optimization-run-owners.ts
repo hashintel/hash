@@ -8,10 +8,13 @@
  *
  * The registry is deliberately process-local, mirroring the optimizer's own
  * in-memory run registry (both reset together on restart). Entries are
- * released when an attachment forwards the run's terminal event, when the
+ * released when an attachment delivers the run's terminal event, when the
  * owner cancels the run, when the optimizer reports the run gone, or by the
  * lazy TTL sweep — a backstop for owners that never re-attach, comfortably
- * outlasting the optimizer's own detach-grace reaping.
+ * outlasting the optimizer's own detach-grace reaping. The sweep expires on
+ * inactivity (`lastSeenAt`, refreshed by every run lookup) rather than age,
+ * so a legitimately long run whose owner keeps attaching or re-attaching is
+ * never swept mid-run.
  */
 
 export const OPTIMIZATION_RUN_OWNER_TTL_MS = 45 * 60_000;
@@ -21,6 +24,8 @@ export type OptimizationRunOwner = {
   accountId: string;
   /** Epoch milliseconds at which the run was created. */
   createdAt: number;
+  /** Epoch milliseconds at which the entry was last looked up by run id. */
+  lastSeenAt: number;
   /**
    * Trials requested by the run's manifest, kept so attachments can
    * synthesize a schema-legal `complete` summary without the manifest.
@@ -34,10 +39,14 @@ export type OptimizationRunOwners = {
     runId: string,
     owner: { accountId: string; requestedTrials: number },
   ) => void;
-  /** Return the live entry for a run id, if any. */
+  /** Return the live entry for a run id, refreshing its inactivity clock. */
   get: (runId: string) => OptimizationRunOwner | undefined;
-  /** Forget a run (terminal event observed, cancelled, or gone upstream). */
+  /** Forget a run (terminal event delivered, cancelled, or gone upstream). */
   release: (runId: string) => void;
+  /** Return an account's live run, without refreshing its inactivity clock. */
+  findLiveRunForAccount: (
+    accountId: string,
+  ) => { runId: string; owner: OptimizationRunOwner } | undefined;
   /** Return whether an account currently owns any live run. */
   hasLiveRunForAccount: (accountId: string) => boolean;
 };
@@ -48,36 +57,54 @@ export const createOptimizationRunOwners = (
 ): OptimizationRunOwners => {
   const owners = new Map<string, OptimizationRunOwner>();
 
-  /** Drop expired entries; runs this old are long gone upstream. */
+  /** Drop inactive entries; runs untouched this long are long gone upstream. */
   const sweep = () => {
     const cutoff = now() - OPTIMIZATION_RUN_OWNER_TTL_MS;
     for (const [runId, owner] of owners) {
-      if (owner.createdAt <= cutoff) {
+      if (owner.lastSeenAt <= cutoff) {
         owners.delete(runId);
       }
     }
   };
 
+  const findLiveRunForAccount: OptimizationRunOwners["findLiveRunForAccount"] =
+    (accountId) => {
+      sweep();
+      for (const [runId, owner] of owners) {
+        if (owner.accountId === accountId) {
+          return { runId, owner };
+        }
+      }
+      return undefined;
+    };
+
   return {
     register: (runId, { accountId, requestedTrials }) => {
       sweep();
-      owners.set(runId, { accountId, createdAt: now(), requestedTrials });
+      const createdAt = now();
+      owners.set(runId, {
+        accountId,
+        createdAt,
+        lastSeenAt: createdAt,
+        requestedTrials,
+      });
     },
     get: (runId) => {
       sweep();
-      return owners.get(runId);
+      const owner = owners.get(runId);
+      if (owner) {
+        // Every attach and cancel goes through here, and attach cycles are
+        // bounded by the per-attachment overall timeout, so an actively
+        // consumed run keeps its entry alive for the whole study.
+        owner.lastSeenAt = now();
+      }
+      return owner;
     },
     release: (runId) => {
       owners.delete(runId);
     },
-    hasLiveRunForAccount: (accountId) => {
-      sweep();
-      for (const owner of owners.values()) {
-        if (owner.accountId === accountId) {
-          return true;
-        }
-      }
-      return false;
-    },
+    findLiveRunForAccount,
+    hasLiveRunForAccount: (accountId) =>
+      findLiveRunForAccount(accountId) !== undefined,
   };
 };
