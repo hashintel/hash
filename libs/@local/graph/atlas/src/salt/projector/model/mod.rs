@@ -62,6 +62,94 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use crate::dataset::PROJECTOR_DIMENSIONS;
 
+/// A verified layer of the model, named as its mismatch reports it.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Layer {
+    /// The residual block stack as a whole.
+    BlockStack,
+    /// The representation input columns.
+    InputColumns,
+    /// The condition input columns.
+    ConditionColumns,
+    /// The stem linear.
+    Stem,
+    /// The stem's layer normalization.
+    StemNormalization,
+    /// The role embedding table.
+    RoleEmbedding,
+    /// A residual block's input linear.
+    InputLinear,
+    /// A residual block's condition-modulation linear.
+    ModulationLinear,
+    /// A residual block's layer normalization.
+    Normalization,
+    /// A residual block's output linear.
+    OutputLinear,
+    /// The coordinate head.
+    Head,
+}
+
+impl Layer {
+    /// Returns the layer's display name.
+    #[must_use]
+    pub(crate) const fn name(self) -> &'static str {
+        match self {
+            Self::BlockStack => "block stack",
+            Self::InputColumns => "input columns",
+            Self::ConditionColumns => "condition columns",
+            Self::Stem => "stem",
+            Self::StemNormalization => "stem normalization",
+            Self::RoleEmbedding => "role embedding",
+            Self::InputLinear => "input linear",
+            Self::ModulationLinear => "modulation linear",
+            Self::Normalization => "normalization",
+            Self::OutputLinear => "output linear",
+            Self::Head => "head",
+        }
+    }
+}
+
+/// A verified dimension of a layer, named as its mismatch reports it.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Dimension {
+    /// The block stack's block count.
+    Depth,
+    /// The representation column width.
+    RepresentationWidth,
+    /// A plain width: condition columns, the role embedding's rows.
+    Width,
+    /// The role embedding's vocabulary size.
+    RoleCount,
+    /// A linear's input width.
+    InputWidth,
+    /// A linear's output width.
+    OutputWidth,
+    /// A linear's bias length.
+    BiasLength,
+    /// A normalization's scale length.
+    ScaleLength,
+    /// A normalization's shift length.
+    ShiftLength,
+}
+
+impl Dimension {
+    /// Returns the dimension's display name.
+    #[must_use]
+    pub(crate) const fn name(self) -> &'static str {
+        match self {
+            Self::Depth => "depth",
+            Self::RepresentationWidth => "representation width",
+            Self::Width => "width",
+            Self::RoleCount => "role count",
+            Self::InputWidth => "input width",
+            Self::OutputWidth => "output width",
+            Self::BiasLength => "bias length",
+            Self::ScaleLength => "scale length",
+            Self::ShiftLength => "shift length",
+        }
+    }
+}
+
 /// A model's parameters do not describe an architecture.
 ///
 /// The named dimension is the first one that differs; an `actual` of
@@ -70,9 +158,9 @@ use crate::dataset::PROJECTOR_DIMENSIONS;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ArchitectureMismatch {
     /// The layer carrying the differing dimension.
-    pub layer: &'static str,
+    pub layer: Layer,
     /// The differing dimension.
-    pub dimension: &'static str,
+    pub dimension: Dimension,
     /// The residual block carrying the layer; [`None`] outside the
     /// block stack.
     pub block: Option<usize>,
@@ -91,6 +179,7 @@ impl fmt::Display for ArchitectureMismatch {
             expected,
             actual,
         } = *self;
+        let (layer, dimension) = (layer.name(), dimension.name());
         if let Some(block) = block {
             write!(
                 formatter,
@@ -372,7 +461,8 @@ impl<B: Backend> Projector<B> {
         record: ProjectorRecord<B>,
         device: &B::Device,
     ) -> Result<Self, ArchitectureMismatch> {
-        confirm("block stack", "depth", None)(
+        Site::model(Layer::BlockStack).confirm(
+            Dimension::Depth,
             architecture.residual_blocks.get(),
             record.blocks.len(),
         )?;
@@ -401,58 +491,108 @@ impl<B: Backend> Projector<B> {
             .checked_add(role)
             .expect("projector input dimensions should not overflow");
 
-        confirm("input columns", "representation width", None)(
+        Site::model(Layer::InputColumns).confirm(
+            Dimension::RepresentationWidth,
             representation,
             self.representation_dimensions,
         )?;
-        confirm("condition columns", "width", None)(condition, self.condition_dimensions)?;
-        check_linear("stem", None, &self.stem, input, width)?;
-        check_normalization("stem normalization", None, &self.stem_normalization, width)?;
+        Site::model(Layer::ConditionColumns).confirm(
+            Dimension::Width,
+            condition,
+            self.condition_dimensions,
+        )?;
+        check_linear(Site::model(Layer::Stem), &self.stem, input, width)?;
+        check_normalization(
+            Site::model(Layer::StemNormalization),
+            &self.stem_normalization,
+            width,
+        )?;
 
         let [roles, role_width] = self.role.weight.val().dims();
-        confirm("role embedding", "role count", None)(NodeRole::COUNT, roles)?;
-        confirm("role embedding", "width", None)(role, role_width)?;
+        let embedding = Site::model(Layer::RoleEmbedding);
+        embedding.confirm(Dimension::RoleCount, NodeRole::COUNT, roles)?;
+        embedding.confirm(Dimension::Width, role, role_width)?;
 
-        confirm("block stack", "depth", None)(
+        Site::model(Layer::BlockStack).confirm(
+            Dimension::Depth,
             architecture.residual_blocks.get(),
             self.blocks.len(),
         )?;
         for (index, block) in self.blocks.iter().enumerate() {
-            let index = Some(index);
-            check_linear("input linear", index, &block.input, width, width)?;
             check_linear(
-                "modulation linear",
-                index,
+                Site::block(Layer::InputLinear, index),
+                &block.input,
+                width,
+                width,
+            )?;
+            check_linear(
+                Site::block(Layer::ModulationLinear, index),
                 &block.film.linear,
                 condition,
                 2 * width,
             )?;
-            check_normalization("normalization", index, &block.normalization, width)?;
-            check_linear("output linear", index, &block.output, width, width)?;
+            check_normalization(
+                Site::block(Layer::Normalization, index),
+                &block.normalization,
+                width,
+            )?;
+            check_linear(
+                Site::block(Layer::OutputLinear, index),
+                &block.output,
+                width,
+                width,
+            )?;
         }
 
-        check_linear("head", None, &self.head, width, PROJECTED_DIMENSIONS)
+        check_linear(
+            Site::model(Layer::Head),
+            &self.head,
+            width,
+            PROJECTED_DIMENSIONS,
+        )
     }
 }
 
 /// Output coordinates per row.
 const PROJECTED_DIMENSIONS: usize = 2;
 
-/// Builds a dimension comparator for one layer.
-fn confirm(
-    layer: &'static str,
-    dimension: &'static str,
+/// One verified location in the model: a layer, positioned in the
+/// block stack when it lives there.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct Site {
+    layer: Layer,
     block: Option<usize>,
-) -> impl Fn(usize, usize) -> Result<(), ArchitectureMismatch> {
-    move |expected, actual| {
+}
+
+impl Site {
+    /// A layer outside the block stack.
+    const fn model(layer: Layer) -> Self {
+        Self { layer, block: None }
+    }
+
+    /// A layer inside residual block `block`.
+    const fn block(layer: Layer, block: usize) -> Self {
+        Self {
+            layer,
+            block: Some(block),
+        }
+    }
+
+    /// Confirms one of the site's dimensions against the architecture.
+    const fn confirm(
+        self,
+        dimension: Dimension,
+        expected: usize,
+        actual: usize,
+    ) -> Result<(), ArchitectureMismatch> {
         if expected == actual {
             return Ok(());
         }
 
         Err(ArchitectureMismatch {
-            layer,
+            layer: self.layer,
             dimension,
-            block,
+            block: self.block,
             expected,
             actual,
         })
@@ -461,16 +601,16 @@ fn confirm(
 
 /// Verifies a linear layer's weight shape and bias presence.
 fn check_linear<B: Backend>(
-    layer: &'static str,
-    block: Option<usize>,
+    site: Site,
     linear: &Linear<B>,
     input: usize,
     output: usize,
 ) -> Result<(), ArchitectureMismatch> {
     let [rows, columns] = linear.weight.val().dims();
-    confirm(layer, "input width", block)(input, rows)?;
-    confirm(layer, "output width", block)(output, columns)?;
-    confirm(layer, "bias length", block)(
+    site.confirm(Dimension::InputWidth, input, rows)?;
+    site.confirm(Dimension::OutputWidth, output, columns)?;
+    site.confirm(
+        Dimension::BiasLength,
         output,
         linear.bias.as_ref().map_or(0, |bias| bias.val().dims()[0]),
     )
@@ -478,13 +618,17 @@ fn check_linear<B: Backend>(
 
 /// Verifies a layer normalization's scale and shift lengths.
 fn check_normalization<B: Backend>(
-    layer: &'static str,
-    block: Option<usize>,
+    site: Site,
     normalization: &LayerNorm<B>,
     width: usize,
 ) -> Result<(), ArchitectureMismatch> {
-    confirm(layer, "scale length", block)(width, normalization.gamma.val().dims()[0])?;
-    confirm(layer, "shift length", block)(
+    site.confirm(
+        Dimension::ScaleLength,
+        width,
+        normalization.gamma.val().dims()[0],
+    )?;
+    site.confirm(
+        Dimension::ShiftLength,
         width,
         normalization
             .beta

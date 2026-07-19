@@ -1,0 +1,33 @@
+{
+  "directory": [
+    [48, 92],
+    [96, 108],
+    [112, 124],
+    [128, 140]
+  ],
+  "edgeRowIds": [100, 205, 3],
+  "golden": "g6-edges",
+  "head": {
+    "complete": false,
+    "count": 3,
+    "generation": "6666666666666666666666666666666666666666666666666666666666666666",
+    "trailer": true,
+    "variant": 0
+  },
+  "layer": "edges",
+  "prefix": {
+    "flags": 0,
+    "magic": "SALTILEE",
+    "reserved": 0,
+    "slotCount": 4,
+    "wireVersion": 1
+  },
+  "sources": [4, 9, 4],
+  "targets": [7, 2, 11],
+  "trailer": {
+    "linkIcons": [null, null, "🔗"],
+    "linkLabels": ["created by", null, "œuvre"],
+    "linkTypeIcons": [null, null, null],
+    "linkTypeLabels": ["authored", "authored", null]
+  }
+}

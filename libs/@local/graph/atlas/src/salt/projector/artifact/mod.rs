@@ -54,8 +54,6 @@ pub(crate) enum CheckpointError {
     /// The decoded scheduler position does not sit at the schedule's
     /// boundary: the record's parts describe two different runs.
     SchedulerPosition { position: usize, boundary: usize },
-    /// The decoded generator state has the wrong length.
-    GeneratorState { length: usize },
 }
 
 impl core::fmt::Display for CheckpointError {
@@ -77,10 +75,6 @@ impl core::fmt::Display for CheckpointError {
                 "the checkpoint's scheduler position {position} does not sit at its schedule's \
                  boundary {boundary}",
             ),
-            Self::GeneratorState { length } => write!(
-                formatter,
-                "the checkpoint's generator state is {length} bytes, not the generator's 32",
-            ),
         }
     }
 }
@@ -91,9 +85,7 @@ impl core::error::Error for CheckpointError {
             Self::Io(error) => Some(error),
             Self::Record(error) => Some(error),
             Self::Architecture(error) => Some(error),
-            Self::InvalidSchedule
-            | Self::SchedulerPosition { .. }
-            | Self::GeneratorState { .. } => None,
+            Self::InvalidSchedule | Self::SchedulerPosition { .. } => None,
         }
     }
 }
@@ -136,7 +128,10 @@ struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
     refresh_interval: usize,
     initial_learning_rate: f64,
     minimum_learning_rate: f64,
-    generator: Vec<u8>,
+    // The generator's own state width: `state()` returns it and
+    // `from_seed` consumes it, so a wrong length is unrepresentable
+    // rather than a runtime rejection.
+    generator: [u8; 32],
 }
 
 /// Writes the published model checkpoint.
@@ -198,7 +193,7 @@ pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
         refresh_interval: schedule.refresh_interval().get(),
         initial_learning_rate: schedule.initial_learning_rate(),
         minimum_learning_rate: schedule.minimum_learning_rate(),
-        generator: generator.state().to_vec(),
+        generator: generator.state(),
     };
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
     let bytes = recorder.record(record, ())?;
@@ -211,10 +206,10 @@ pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
 ///
 /// Every decoded value is verified before the state is handed out: the
 /// parameters against `architecture`, the schedule against its own
-/// validity domain, the scheduler position against the boundary, and
-/// the generator state against the generator's length. The state
-/// round-trip is exact: a generator captured from a live stream is
-/// never the all-zero state the generator's seeding remaps.
+/// validity domain, and the scheduler position against the boundary;
+/// the generator state's length is carried by the record type itself.
+/// The state round-trip is exact: a generator captured from a live
+/// stream is never the all-zero state the generator's seeding remaps.
 ///
 /// # Errors
 ///
@@ -244,14 +239,7 @@ pub(crate) fn open_resume<B: AutodiffBackend<FloatElem = f32>>(
         })
         .ok_or(CheckpointError::InvalidSchedule)?;
 
-    let seed: [u8; 32] =
-        record
-            .generator
-            .try_into()
-            .map_err(|bytes: Vec<u8>| CheckpointError::GeneratorState {
-                length: bytes.len(),
-            })?;
-    let generator = Xoshiro256PlusPlus::from_seed(seed);
+    let generator = Xoshiro256PlusPlus::from_seed(record.generator);
 
     let model = Projector::from_record(architecture, record.model, device)?;
     let state = BoundaryState::from_parts(model, record.optimizer, record.scheduler, schedule)

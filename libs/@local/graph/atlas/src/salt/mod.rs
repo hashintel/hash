@@ -29,7 +29,8 @@ mod embedding;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod fit;
 mod importance;
-mod knn;
+// Crate-visible for the root `bench` facade's re-exports.
+pub(crate) mod knn;
 mod ladder;
 mod landmark;
 mod lod;
@@ -42,3 +43,4 @@ pub(crate) mod relation;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod runner;
 mod semantic;
+mod wire;

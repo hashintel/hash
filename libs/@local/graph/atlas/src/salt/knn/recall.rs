@@ -11,6 +11,12 @@
 //! The sample is uniform without replacement, sized by
 //! [`acceptance_sample_size`] from a configured defect-rate and
 //! confidence budget.
+//!
+//! The exact side of the check stands alone as [`ExactReference`]:
+//! one sampled brute-force reference scores any number of backends or
+//! backend settings, so a parameter sweep pays the exact rankings
+//! once instead of once per grid point. [`spot_check`] is the
+//! one-backend composition of the two halves.
 
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, default::Default, num::NonZero};
@@ -168,6 +174,141 @@ fn exact_neighbours(
         .map(|neighbour| neighbour.row)
 }
 
+/// One sampled brute-force reference, reusable across backends.
+///
+/// The sample and its exact neighbour lists depend only on the corpus
+/// and the sampling draw, so one reference scores any number of
+/// backends or backend settings against identical queries.
+#[derive(Debug)]
+pub(crate) struct ExactReference {
+    /// Sampled rows and their exact neighbours, ascending within each
+    /// row's list.
+    queries: Vec<(NodeRowId, Vec<NodeRowId>)>,
+    /// Exact neighbours compared per row.
+    neighbours_per_row: usize,
+}
+
+impl ExactReference {
+    /// Returns the sampled query count.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn sampled_rows(&self) -> usize {
+        self.queries.len()
+    }
+
+    /// Returns the exact neighbours compared per row.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn neighbours_per_row(&self) -> usize {
+        self.neighbours_per_row
+    }
+
+    /// Samples query rows and computes their exact cosine rankings in
+    /// parallel.
+    ///
+    /// `embeddings` holds the projector representations in row order;
+    /// a mapped `f32[T, 512]` artifact yields the slice directly.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the corpus holds fewer than two rows or
+    /// the sampling budget lies outside the open unit interval.
+    pub(crate) fn new<E>(
+        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        options: SpotCheckOptions,
+        rng: impl Rng,
+    ) -> Result<Self, KnnError<E>> {
+        let rows = embeddings.len();
+        if rows < 2 {
+            return Err(KnnValidationError::InsufficientRows { rows }.into());
+        }
+
+        let neighbours_per_row = options.neighbours.get().min(rows - 1);
+        let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence)
+            .ok_or(KnnError::SampleBudget {
+                defect_rate: options.defect_rate,
+                confidence: options.confidence,
+            })?
+            .min(rows);
+
+        let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
+        let queries = sample
+            .par_iter()
+            .map(|&row| {
+                let id = NodeRowId::new(row as u64);
+                let mut exact: Vec<NodeRowId> =
+                    exact_neighbours(embeddings, id, neighbours_per_row)
+                        .into_iter()
+                        .collect();
+                exact.sort_unstable();
+                (id, exact)
+            })
+            .collect();
+
+        Ok(Self {
+            queries,
+            neighbours_per_row,
+        })
+    }
+
+    /// Scores a backend's queries against the reference rankings.
+    ///
+    /// Sampled rows are queried through
+    /// [`search_by_id`](NearestNeighboursIndex::search_by_id) and
+    /// compared in parallel. The recorded admission minimum is taken
+    /// from `minimum_recall`, so one reference judges different
+    /// criteria.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the backend fails a query.
+    pub(crate) fn score<I>(
+        &self,
+        index: &I,
+        minimum_recall: f64,
+    ) -> Result<RecallSpotCheck, KnnError<I::Error>>
+    where
+        I: NearestNeighboursIndex + Sync,
+        I::Error: Send,
+    {
+        let matched = self
+            .queries
+            .par_iter()
+            .map(|(id, exact)| {
+                // A neighbour outside the row domain can never match an exact neighbour;
+                // malformedness is the table build's concern, the spot check only scores.
+                let mut approximate: Vec<NodeRowId> = index
+                    .search_by_id(*id, self.neighbours_per_row)
+                    .map_err(KnnError::Backend)?
+                    .into_iter()
+                    .map(|neighbour| neighbour.id)
+                    .collect();
+                approximate.sort_unstable();
+                approximate.dedup();
+
+                let matches = exact
+                    .iter()
+                    .filter(|exact| approximate.binary_search(exact).is_ok())
+                    .count();
+
+                Ok::<_, KnnError<I::Error>>(matches as u64)
+            })
+            .try_reduce(|| 0, |left, right| Ok(left + right))?;
+
+        let sampled_rows = self.queries.len() as u64;
+        let neighbours_per_row = self.neighbours_per_row as u64;
+        let expected = sampled_rows * neighbours_per_row;
+
+        Ok(RecallSpotCheck {
+            sampled_rows,
+            neighbours_per_row,
+            matched,
+            expected,
+            minimum_recall,
+        })
+    }
+}
+
 /// Measures recall of `index` against exact cosine rankings.
 ///
 /// `embeddings` holds the projector representations the backend
@@ -191,54 +332,5 @@ where
     I: NearestNeighboursIndex + Sync,
     I::Error: Send,
 {
-    let rows = embeddings.len();
-    if rows < 2 {
-        return Err(KnnValidationError::InsufficientRows { rows }.into());
-    }
-
-    let neighbours_per_row = options.neighbours.get().min(rows - 1);
-    let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence)
-        .ok_or(KnnError::SampleBudget {
-            defect_rate: options.defect_rate,
-            confidence: options.confidence,
-        })?
-        .min(rows);
-
-    let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
-    let matched = sample
-        .par_iter()
-        .map(|&row| {
-            let id = NodeRowId::new(row as u64);
-
-            // A neighbour outside the row domain can never match an exact neighbour; malformedness
-            // is the table build's concern, the spot check only scores.
-            let mut approximate: Vec<NodeRowId> = index
-                .search_by_id(id, neighbours_per_row)
-                .map_err(KnnError::Backend)?
-                .into_iter()
-                .map(|neighbour| neighbour.id)
-                .collect();
-            approximate.sort_unstable();
-            approximate.dedup();
-
-            let matches = exact_neighbours(embeddings, id, neighbours_per_row)
-                .into_iter()
-                .filter(|exact| approximate.binary_search(exact).is_ok())
-                .count();
-
-            Ok::<_, KnnError<I::Error>>(matches as u64)
-        })
-        .try_reduce(|| 0, |left, right| Ok(left + right))?;
-
-    let sampled_rows = sampled_rows as u64;
-    let neighbours_per_row = neighbours_per_row as u64;
-    let expected = sampled_rows * neighbours_per_row;
-
-    Ok(RecallSpotCheck {
-        sampled_rows,
-        neighbours_per_row,
-        matched,
-        expected,
-        minimum_recall: options.minimum_recall,
-    })
+    ExactReference::new(embeddings, options, rng)?.score(index, options.minimum_recall)
 }

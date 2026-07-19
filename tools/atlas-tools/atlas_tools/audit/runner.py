@@ -183,7 +183,7 @@ def _evaluate_strata(
     return groups_report, flags
 
 
-def _sample_rows(rows: int, sample: int, seed: int) -> np.ndarray:
+def sample_rows(rows: int, sample: int, seed: int) -> np.ndarray:
     """Draw ``sample`` sorted distinct row indices, or all rows when ``sample >= rows``.
 
     Raises ``ValueError`` when ``sample`` is not positive.
@@ -197,7 +197,7 @@ def _sample_rows(rows: int, sample: int, seed: int) -> np.ndarray:
     return np.sort(rng.choice(rows, size=sample, replace=False)).astype(np.int64)
 
 
-def _validated_dims_and_ks(
+def validated_dims_and_ks(
     dims: Sequence[int],
     ks: Sequence[int],
     *,
@@ -294,11 +294,11 @@ def run_audit(
     corpus, matrix_details = load_matrix(embeddings_file, mmap=True)
     rows, full_dim = matrix_details.rows, matrix_details.dim
 
-    prefix_dims, requested_ks = _validated_dims_and_ks(dims, ks, full_dim=full_dim, rows=rows)
+    prefix_dims, requested_ks = validated_dims_and_ks(dims, ks, full_dim=full_dim, rows=rows)
     max_k = max(requested_ks)
     resolved_backend = resolve_search_backend(backend)
 
-    sampled = _sample_rows(rows, sample, seed)
+    sampled = sample_rows(rows, sample, seed)
     progress.note(
         f"corpus {rows:,} x {full_dim:,}; {len(sampled):,} sampled queries; "
         f"FAISS backend {resolved_backend}"

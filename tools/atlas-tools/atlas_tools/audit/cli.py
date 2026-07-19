@@ -21,6 +21,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from atlas_tools.audit.clump import run_clump_recall
 from atlas_tools.audit.postgres import (
     PostgresExportError,
     export_entity_embeddings,
@@ -78,6 +79,73 @@ class RunCommand(BaseModel):
         echo(f"wrote {self.out / 'report.json'}")
         echo(f"wrote {self.out / 'report.md'}")
         echo(f"wrote {self.out / 'report.meta.json'}")
+
+
+class ClumpRecallCommand(BaseModel):
+    """Re-score audit recall at near-tie clump granularity.
+
+    Clump labels are epsilon-connected components over a whole-corpus
+    prefix-space k-NN table; recall counts sorted multiset intersections of
+    clump labels, so members of one near-tie clump are interchangeable.
+    """
+
+    embeddings: FilePath = Field(description="Raw f32 matrix (with <name>.meta.json sidecar).")
+    out: Path
+    dim: PositiveInt = 512
+    ks: list[PositiveInt] = Field(default_factory=lambda: [15, 30, 50], min_length=1)
+    sample: PositiveInt = 20_000
+    seed: NonNegativeInt = 0
+    epsilon: PositiveFloat = Field(
+        default=0.002,
+        description="Doubled-cosine (1 - cos) edge threshold on the [0, 2] scale.",
+    )
+    label_k: PositiveInt = Field(
+        default=30,
+        description="Stored neighbours per row in the whole-corpus label table.",
+    )
+    strata: FilePath | None = Field(
+        default=None,
+        description="Optional parquet: int64 'row' column plus string group columns.",
+    )
+    expected_sample_rows_sha256: str | None = Field(
+        default=None,
+        description="Recorded audit sample-row hash; regeneration must reproduce it.",
+    )
+    memory_cap_gb: PositiveFloat = 8.0
+    backend: Literal["auto", "cpu", "gpu"] = "auto"
+    min_group_size: PositiveInt = 50
+    quiet: CliToggleFlag[bool] = Field(default=False, description="No progress on stderr.")
+
+    def cli_cmd(self) -> None:
+        progress = NO_PROGRESS if self.quiet else StderrProgress()
+        try:
+            report = run_clump_recall(
+                self.embeddings,
+                self.out,
+                dim=self.dim,
+                ks=self.ks,
+                epsilon=self.epsilon,
+                label_k=self.label_k,
+                sample=self.sample,
+                seed=self.seed,
+                strata_path=self.strata,
+                expected_sample_rows_sha256=self.expected_sample_rows_sha256,
+                memory_cap_bytes=int(self.memory_cap_gb * (1 << 30)),
+                backend=self.backend,
+                min_group_size=self.min_group_size,
+                progress=progress,
+            )
+        except ValueError as error:
+            fail(error)
+        echo(f"wrote {self.out / 'clump-recall.json'}")
+        echo(
+            f"clumps {report.shape.multi_groups} multi-row groups, "
+            f"{report.shape.grouped_rows} grouped rows, "
+            f"{report.shape.singleton_rows} singletons, "
+            f"mean size {report.shape.mean_multi_group_size:.2f}"
+        )
+        for k, pair in sorted(report.overall.items()):
+            echo(f"overall k={k}: plain {pair.plain:.6f}, collapsed {pair.collapsed:.6f}")
 
 
 class ExportPostgresCommand(BaseSettings):
@@ -180,6 +248,7 @@ class SynthFixtureCommand(BaseModel):
 class AuditCli(BaseSettings):
     """Prefix representation audit."""
 
+    clump_recall: CliSubCommand[ClumpRecallCommand]
     export_postgres: CliSubCommand[ExportPostgresCommand]
     run: CliSubCommand[RunCommand]
     synth_fixture: CliSubCommand[SynthFixtureCommand]

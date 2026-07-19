@@ -105,6 +105,10 @@ name              = "generation_live"
 required-features = ["bench"]
 
 [[example]]
+name              = "knn_sweep"
+required-features = ["bench"]
+
+[[example]]
 name              = "quality_live"
 required-features = ["bench"]
 

@@ -147,8 +147,12 @@ pub(crate) struct FitConfig {
 /// The name string is the derivation preimage and therefore pinned:
 /// renaming a variant never moves a stage's randomness, only editing
 /// its pinned string does.
+///
+/// Crate-visible so measurement harnesses can replay one stage's
+/// exact stream: a sweep that reproduces a live fit's draws measures
+/// the knob it varies, not a different random universe.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Stage {
+pub(crate) enum Stage {
     NormCheck,
     KnnLink,
     RecallCheck,
@@ -176,7 +180,7 @@ impl Stage {
 ///
 /// The full 32-byte digest seeds the generator, so a derived stream
 /// keeps the derivation's whole entropy.
-fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
+pub(crate) fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
     let mut hasher = Sha256::new();
     #[expect(
         clippy::little_endian_bytes,

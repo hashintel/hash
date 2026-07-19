@@ -19,7 +19,7 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{CheckpointError, ResumeRecord, open_model, open_resume, write_model};
-use crate::salt::projector::model::{Architecture, Projector, ProjectorInput};
+use crate::salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput};
 
 type TestBackend = Autodiff<NdArray>;
 
@@ -90,7 +90,7 @@ fn resume_record() -> ResumeRecord<TestBackend> {
         refresh_interval: 4,
         initial_learning_rate: 0.05,
         minimum_learning_rate: 0.001,
-        generator: Xoshiro256PlusPlus::seed_from_u64(3).state().to_vec(),
+        generator: Xoshiro256PlusPlus::seed_from_u64(3).state(),
     }
 }
 
@@ -147,8 +147,8 @@ fn open_model_rejects_a_different_depth_before_loading() {
     let CheckpointError::Architecture(mismatch) = error else {
         panic!("the rejection should name the architecture: {error}");
     };
-    assert_eq!(mismatch.layer, "block stack");
-    assert_eq!(mismatch.dimension, "depth");
+    assert_eq!(mismatch.layer, Layer::BlockStack);
+    assert_eq!(mismatch.dimension, Dimension::Depth);
 }
 
 #[test]
@@ -212,19 +212,4 @@ fn open_resume_rejects_a_scheduler_away_from_the_boundary() {
     };
     assert_eq!(position, 3);
     assert_eq!(boundary, 6);
-}
-
-#[test]
-fn open_resume_rejects_a_foreign_generator_length() {
-    let mut record = resume_record();
-    record.generator = vec![0; 16];
-    let bytes = record_bytes(record);
-
-    let Err(error) = open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device()) else {
-        panic!("a foreign generator length should be rejected");
-    };
-    let CheckpointError::GeneratorState { length } = error else {
-        panic!("the rejection should name the generator: {error}");
-    };
-    assert_eq!(length, 16);
 }
