@@ -118,6 +118,12 @@ pub(crate) struct LayoutOptions {
     pub negative_sample_rate: NonZero<u32> = const { NonZero::new(5).unwrap() },
 }
 
+const impl Default for LayoutOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
 /// The graph stores no edges to optimize toward.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct EdgelessGraphError;

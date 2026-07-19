@@ -43,6 +43,12 @@ pub(crate) struct QuotientOptions {
     pub maximum_neighbours: NonZero<usize> = const { NonZero::new(64).unwrap() },
 }
 
+const impl Default for QuotientOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
 /// The contraction inputs are inconsistent or the quotient collapses.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum QuotientError {

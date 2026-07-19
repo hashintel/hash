@@ -25,6 +25,45 @@ use crate::{
     math::Vec2,
 };
 
+/// An opened landmark file does not hold a valid skeleton.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum InvalidLandmarkFile {
+    /// The selected rows break the strictly ascending order.
+    UnorderedRows { ordinal: usize },
+    /// An assignment entry lies outside the landmark domain.
+    OrdinalOutOfDomain {
+        row: usize,
+        ordinal: u32,
+        landmarks: u64,
+    },
+    /// A coordinate is NaN or infinite.
+    NonFiniteCoordinate { ordinal: usize },
+}
+
+impl fmt::Display for InvalidLandmarkFile {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::UnorderedRows { ordinal } => write!(
+                fmt,
+                "the selected row at ordinal {ordinal} breaks the strictly ascending order",
+            ),
+            Self::OrdinalOutOfDomain {
+                row,
+                ordinal,
+                landmarks,
+            } => write!(
+                fmt,
+                "the assignment maps row {row} to ordinal {ordinal}, outside {landmarks} landmarks",
+            ),
+            Self::NonFiniteCoordinate { ordinal } => {
+                write!(fmt, "the coordinate at ordinal {ordinal} is not finite")
+            }
+        }
+    }
+}
+
+impl Error for InvalidLandmarkFile {}
+
 /// A fitted landmark skeleton, assembled for publication.
 ///
 /// The three parts share one ordinal vocabulary by construction: the
@@ -187,42 +226,3 @@ impl MappedLandmarkSkeleton {
         self.file.coordinates()
     }
 }
-
-/// An opened landmark file does not hold a valid skeleton.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum InvalidLandmarkFile {
-    /// The selected rows break the strictly ascending order.
-    UnorderedRows { ordinal: usize },
-    /// An assignment entry lies outside the landmark domain.
-    OrdinalOutOfDomain {
-        row: usize,
-        ordinal: u32,
-        landmarks: u64,
-    },
-    /// A coordinate is NaN or infinite.
-    NonFiniteCoordinate { ordinal: usize },
-}
-
-impl fmt::Display for InvalidLandmarkFile {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::UnorderedRows { ordinal } => write!(
-                fmt,
-                "the selected row at ordinal {ordinal} breaks the strictly ascending order",
-            ),
-            Self::OrdinalOutOfDomain {
-                row,
-                ordinal,
-                landmarks,
-            } => write!(
-                fmt,
-                "the assignment maps row {row} to ordinal {ordinal}, outside {landmarks} landmarks",
-            ),
-            Self::NonFiniteCoordinate { ordinal } => {
-                write!(fmt, "the coordinate at ordinal {ordinal} is not finite")
-            }
-        }
-    }
-}
-
-impl Error for InvalidLandmarkFile {}

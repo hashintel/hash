@@ -57,7 +57,7 @@ const DEFAULT_EF_CONSTRUCTION: usize = 128;
 const DEFAULT_EF_SEARCH: usize = 128;
 
 /// Pinned hannoy storage, build, and query settings.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct HannoyIndexOptions {
     /// Upper bound of the LMDB memory map, in bytes.
     ///
@@ -79,6 +79,12 @@ pub(crate) struct HannoyIndexOptions {
     /// buy recall with per-query cost, and the recall spot check is
     /// the arbiter of whether a setting suffices.
     pub ef_search: usize = DEFAULT_EF_SEARCH,
+}
+
+const impl Default for HannoyIndexOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 /// The [`HannoyIndex`] backend failed.

@@ -13,7 +13,7 @@
 //! confidence budget.
 
 use alloc::collections::BinaryHeap;
-use core::{cmp::Ordering, num::NonZero};
+use core::{cmp::Ordering, default::Default, num::NonZero};
 
 use rand::Rng;
 use rayon::prelude::*;
@@ -37,7 +37,7 @@ const DEFAULT_DEFECT_RATE: f64 = 0.01;
 const DEFAULT_CONFIDENCE: f64 = 0.999;
 
 /// Pinned sampling and admission settings for one recall spot check.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpotCheckOptions {
     /// Exact neighbours compared per sampled row; a corpus smaller
     /// than this compares every non-self row. This is the `k` of the
@@ -55,6 +55,12 @@ pub(crate) struct SpotCheckOptions {
     /// see [`acceptance_sample_size`]. Higher confidence grows the
     /// sample. Defaults to 0.999.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
+}
+
+const impl Default for SpotCheckOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 /// Aggregate exact-recall evidence for one backend and corpus.
