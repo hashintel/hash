@@ -42,6 +42,13 @@
  * dropping partial depths so the merged result covers the viewport at uniform
  * density (at the cost of some detail until the whole depth is in).
  *
+ * Once a depth qualifies, {@link getViewportNodes} renders *every* tile the cache
+ * holds at that depth, not only the viewport-covering ones. Tiles resident just
+ * past the viewport edge (pulled in by prefetch, or left over from an earlier
+ * viewport) then contribute their nodes ahead of need, so panning across a tile
+ * boundary reveals nodes that are already on screen instead of popping them in
+ * once the boundary tile becomes required.
+ *
  * ## Request state
  *
  * {@link useGetViewportNodes} wraps the fetch in {@link useAtlasQuery} — a
@@ -274,6 +281,23 @@ export class TileCache {
     return this.#entries.has(atlasTileKey(coordinate));
   }
 
+  /**
+   * Every resident tile's nodes at depth `z`, in insertion order — including
+   * tiles outside the current viewport (pulled in by prefetch, or left resident
+   * from an earlier viewport). {@link getViewportNodes} renders these alongside
+   * the viewport's own tiles so nodes just past a tile boundary are already on
+   * screen when a pan reaches them, rather than popping in.
+   */
+  nodesAtDepth(z: number): (readonly TileNode[])[] {
+    const tiles: (readonly TileNode[])[] = [];
+    for (const entry of this.#entries.values()) {
+      if (entry.coordinate.z === z) {
+        tiles.push(entry.nodes);
+      }
+    }
+    return tiles;
+  }
+
   /** Recent viewports, oldest first. */
   get history(): readonly ViewportRegion[] {
     return this.#history;
@@ -500,7 +524,9 @@ type TileLoad =
  * fetched and merged (deduplicated by node id). A depth is included only when
  * every tile needed to completely cover the viewport at that depth is present;
  * a depth held only partially is dropped, so the result never mixes a full depth
- * with a partial one — see the module's "Even density" note.
+ * with a partial one — see the module's "Even density" note. A qualifying depth
+ * also contributes any other tiles the cache already holds at that depth, so
+ * regions just past the viewport edge are drawn ahead of a pan reaching them.
  *
  * After serving the current viewport it records the movement and, while the
  * user is navigating, prefetches the tiles the next viewport is predicted to
@@ -535,16 +561,18 @@ export const getViewportNodes = async (
     ),
   );
 
-  // Collect the loaded tiles' nodes, grouped by depth, so each depth's coverage
-  // can be judged on its own below.
-  const tilesByDepth = new Map<number, (readonly TileNode[])[]>();
+  // Count the successfully-loaded required tiles per depth, so each depth's
+  // viewport coverage can be judged on its own below. The nodes themselves come
+  // from the cache at render time (see below), not from these outcomes.
+  const loadedCountByDepth = new Map<number, number>();
   let failures = 0;
   let firstError: unknown;
   for (const load of loads) {
     if ("nodes" in load) {
-      const tiles = tilesByDepth.get(load.coordinate.z) ?? [];
-      tilesByDepth.set(load.coordinate.z, tiles);
-      tiles.push(load.nodes);
+      loadedCountByDepth.set(
+        load.coordinate.z,
+        (loadedCountByDepth.get(load.coordinate.z) ?? 0) + 1,
+      );
     } else {
       failures += 1;
       firstError ??= load.error;
@@ -565,15 +593,22 @@ export const getViewportNodes = async (
   // depth with a failed tile, and one whose cover exceeds the enumeration cap
   // (so `requiredTiles` never fetched it whole) — in both cases we can't render
   // it without gaps.
+  //
+  // Once a depth qualifies, render every tile the cache holds at that depth, not
+  // just the viewport-covering ones. Tiles resident just outside the viewport
+  // (from prefetch, or an earlier viewport) then contribute their nodes too, so
+  // panning across a tile boundary slides already-rendered nodes into view
+  // instead of popping them in once the boundary tile becomes required.
   const nodes = new Map<number | string, ViewportNode>();
-  for (const [z, tiles] of tilesByDepth) {
-    if (tiles.length !== viewportTileCount(rect, z)) {
+  for (const [z, loadedCount] of loadedCountByDepth) {
+    if (loadedCount !== viewportTileCount(rect, z)) {
       continue;
     }
-    for (const tileNodes of tiles) {
+    for (const tileNodes of cache.nodesAtDepth(z)) {
       for (const node of tileNodes) {
-        // Dedupe by id. Tiles at a single depth partition space and deeper
-        // tiles never repeat ancestor nodes, so this is defensive.
+        // Dedupe by id: tiles at one depth partition space (so off-viewport
+        // tiles add distinct nodes) and deeper tiles never repeat ancestor
+        // nodes, so a collision here would be a backend inconsistency.
         nodes.set(node.id, { id: node.id, x: node.x, y: node.y });
       }
     }

@@ -174,6 +174,28 @@ describe("getViewportNodes", () => {
     expect(shownDepths.has(4)).toBe(false);
   });
 
+  it("renders cached tiles beyond the viewport at a qualifying depth", async () => {
+    const cache = new TileCache({ fetcher });
+    // Prime a depth-1 neighbour tile the viewport below does not require: the
+    // top-right quadrant { z: 1, x: 1, y: 0 } (row-major index 1).
+    await cache.load({ z: 1, x: 1, y: 0 });
+
+    // A viewport wholly inside the top-left quadrant. At depth 1 it requires
+    // only { z: 1, x: 0, y: 0 }, so that depth is complete on its own.
+    const nodes = await getViewportNodes(
+      viewportAt(8_000, 8_000, 4_000, 1),
+      cache,
+    );
+
+    const ids = new Set(nodes.map((node) => node.id));
+    // The neighbour tile's nodes (base = 1 * 1_000_000 + 1 * 10) are rendered
+    // even though the viewport never required that tile.
+    expect(ids.has(1_000_010)).toBe(true);
+    // Depth 0 root (3) + both depth-1 tiles (3 each): the covering one and the
+    // cached neighbour.
+    expect(nodes).toHaveLength(9);
+  });
+
   it("prefetches ahead of a detected pan", async () => {
     const cache = new TileCache({ fetcher });
     await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
