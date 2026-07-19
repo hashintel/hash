@@ -15,6 +15,19 @@
 //!   repulsion between linked endpoint rows. Masses aggregate before the attraction gate and before
 //!   force pruning, so an edge too weak to pull still vetoes a false-neighbour repulsion.
 //!
+//! # Input contract
+//!
+//! Instances are the caller's admission decision over the dataset's edge
+//! stream: one [`RelationInstance`] per admitted `(edge, relation)`
+//! reading, sharing the edge row's endpoints and confidence scores.
+//! Row references and score ranges are the dataset stream's contracts
+//! (`crate::dataset`), and each edge row appears at most once per
+//! relation because the stream assigns edge rows by position; the build
+//! consumes them under those contracts. Every invariant the build itself
+//! requires is carried by a validating type: [`Policies`] certifies the
+//! policy table once at construction, and the option types are valid by
+//! construction.
+//!
 //! # Weights
 //!
 //! For an admitted instance of relation `r` between rows `i` and `j`, the
@@ -48,21 +61,29 @@
 //!
 //! # Protection
 //!
-//! Protection masses are computed per channel (hard-negative and
-//! ordinary-negative) from the selected class distribution `p` and the
-//! calibrated applicability `a`, with a channel-specific floor:
-//!
-//! ```text
-//! m_X = c * max(a, floor_X) * (p_C + p_P),
-//! ```
-//!
-//! aggregated by maximum over every instance of an endpoint pair,
-//! including instances of different relations and parallel links. The
-//! index stores the masses; admission thresholds judge them at query time
-//! ([`protection::ProtectionIndex::judge`]), so recalibrating a threshold
-//! reuses the built index.
+//! Protection evidence derives from the selected class distribution `p`
+//! and the calibrated applicability `a`: per instance, the
+//! applicability-discounted evidence `c * (p_C + p_P) * a` and the
+//! undiscounted evidence `c * (p_C + p_P)`, each aggregated by maximum
+//! over every instance of an endpoint pair, including instances of
+//! different relations and parallel links. A channel's mass under an
+//! applicability floor `F` is then exactly
+//! `max(discounted, F * undiscounted)`, because the maximum distributes
+//! over the per-instance `max(a, F)` - so floors and admission
+//! thresholds are both query-time parameters
+//! ([`protection::ProtectionView::judge`]), and one built index serves
+//! every floor and threshold calibration, including the floor-ablation
+//! matrix, unchanged. The index is a symmetric sparse matrix over the
+//! node-row domain ([`protection::ProtectionIndex`]): row `i` lists
+//! every protected partner of node row `i`, the shape hard-negative
+//! mining vets one projected point's candidates against.
 
 use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
+// The policy row vocabulary is `salt::policy`'s deliverable; the
+// certified `Policies` view over it stays here with its consumer.
+#[cfg(test)]
+pub(crate) use crate::salt::policy::ClassProbabilities;
+pub(crate) use crate::salt::policy::RelationPolicy;
 
 pub(crate) mod attraction;
 mod build;
@@ -74,9 +95,10 @@ mod tests;
 
 /// Confidence scores attached to one link instance.
 ///
-/// Each score lies in `0.0..=1.0` when present; `None` is unscored, which
-/// [`effective`](Self::effective) treats as the neutral factor 1 while
-/// retaining the scored/unscored distinction.
+/// Each score lies in `0.0..=1.0`, the dataset stream's confidence
+/// contract; `None` is unscored, which [`effective`](Self::effective)
+/// treats as the neutral factor 1 while retaining the scored/unscored
+/// distinction.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct RelationConfidence {
     /// The store's confidence in the link itself.
@@ -155,8 +177,7 @@ pub(crate) struct EffectiveConfidence {
 }
 
 impl EffectiveConfidence {
-    /// Returns the combined confidence, in `0.0..=1.0` for scores within
-    /// that range.
+    /// Returns the combined confidence, in `0.0..=1.0`.
     #[inline]
     #[must_use]
     pub(crate) const fn value(self) -> f32 {
@@ -192,41 +213,55 @@ pub(crate) struct RelationInstance {
     pub confidence: RelationConfidence,
 }
 
-/// The Coincident and Proximal components of a relation class
-/// distribution.
+/// A certified relation policy table.
 ///
-/// Overlay, the third class, carries no geometric weight, so the two
-/// stored components are the distribution's entire geometric content.
-/// Each component lies in `0.0..=1.0`.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct ClassProbabilities {
-    /// The Coincident class probability.
-    pub coincident: f32,
-    /// The Proximal class probability.
-    pub proximal: f32,
-}
+/// Construction checks the table once - strictly ascending by relation
+/// row, every value in its domain - so lookups and the build consume it
+/// without further validation.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct Policies<'policy>(&'policy [RelationPolicy]);
 
-/// The resolved geometry policy of one relation type.
-///
-/// The values the indexes weight instances by: the effective attraction
-/// distribution feeds attraction weights, the selected distribution and
-/// applicability feed protection masses, and the strength multiplier
-/// rides the attraction group unchanged.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct RelationPolicy {
-    /// The relation type the policy resolves.
-    pub relation: OntologyRowId,
-    /// The effective attraction distribution `p*`, after applicability
-    /// fallback and the generation's Coincident gate.
-    pub attraction: ClassProbabilities,
-    /// The selected class distribution `p`, before applicability
-    /// blending; protection masses are computed from it.
-    pub selected: ClassProbabilities,
-    /// The calibrated applicability `a`, in `0.0..=1.0`.
-    pub applicability: f32,
-    /// The frozen strength multiplier `h`; exactly 1 while the strength
-    /// head is disabled.
-    pub strength: f32,
+impl<'policy> Policies<'policy> {
+    /// Certifies a policy table.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the policies are not strictly ascending by
+    /// relation row, or a policy stores a probability, applicability, or
+    /// strength outside its domain.
+    pub(crate) fn new(
+        policies: &'policy [RelationPolicy],
+    ) -> Result<Self, error::RelationIndexError> {
+        for (position, policy) in policies.iter().enumerate() {
+            if position
+                .checked_sub(1)
+                .is_some_and(|previous| policies[previous].relation.get() >= policy.relation.get())
+            {
+                return Err(error::RelationIndexError::PolicyOrder {
+                    position,
+                    relation: policy.relation,
+                });
+            }
+            if !policy.in_domain() {
+                return Err(error::RelationIndexError::PolicyDomain {
+                    relation: policy.relation,
+                });
+            }
+        }
+        Ok(Self(policies))
+    }
+
+    /// Looks up a relation's policy.
+    ///
+    /// Returns [`None`] when the table does not cover the relation. Time
+    /// is `O(log R)` in the table length.
+    #[must_use]
+    pub(crate) fn get(self, relation: OntologyRowId) -> Option<&'policy RelationPolicy> {
+        self.0
+            .binary_search_by_key(&relation.get(), |policy| policy.relation.get())
+            .ok()
+            .map(|position| &self.0[position])
+    }
 }
 
 /// The build's account of dropped instances and pruned force mass.
@@ -262,7 +297,7 @@ impl BuildEvidence {
     #[must_use]
     pub(crate) fn omitted_mass_fraction(&self) -> f64 {
         let total = self.retained_mass + self.pruned_mass;
-        if !(total > 0.0) {
+        if total <= 0.0 {
             return 0.0;
         }
         self.pruned_mass / total
@@ -287,35 +322,31 @@ pub(crate) struct RelationIndexes {
 impl RelationIndexes {
     /// Builds both indexes from the generation's admitted link instances.
     ///
-    /// `rows` is the node-row domain; every instance endpoint must lie in
-    /// it. `policies` resolve strictly ascending by relation row and must
-    /// cover every relation an instance references. The instance vector is
-    /// consumed: the build reorders it in place instead of copying it.
-    ///
+    /// The instances are reordered in place; both indexes are functions
+    /// of the instance set alone, identical for any input order.
     /// Instances whose endpoints are one row are dropped and counted in
-    /// the evidence; they exert no force between distinct points and
+    /// the evidence: they exert no force between distinct points and
     /// protect nothing. Degrees and protection masses cover the complete
     /// remaining instance set regardless of pruning.
     ///
-    /// Sorting is parallel; the result is identical for any input order
-    /// of the same instances. Time is `O(E log E)` in the instance count,
-    /// memory one transient pair record per instance beside the returned
-    /// indexes.
+    /// Sorting and emission are parallel at two levels: groups build
+    /// concurrently, and a group's instances emit over fixed-position
+    /// chunks, so one high-volume relation cannot serialize the pass.
+    /// The fixed boundaries keep the double-precision evidence sums a
+    /// function of the instance set alone. Time is `O(E log E)` in the
+    /// instance count; beyond the returned indexes the build allocates
+    /// one two-column endpoint scratch per relation group.
     ///
     /// # Errors
     ///
-    /// Returns an error when an option is out of range, the policies are
-    /// out of order or hold values outside their domains, an instance
-    /// references a missing policy or an out-of-bounds row, a confidence
-    /// score lies outside `0.0..=1.0`, or one `(edge, relation)` instance
-    /// occurs twice.
+    /// Returns an error when an instance references a relation the policy
+    /// table does not cover.
     pub(crate) fn build(
-        rows: usize,
-        policies: &[RelationPolicy],
-        instances: Vec<RelationInstance>,
+        policies: Policies<'_>,
+        instances: &mut [RelationInstance],
         attraction: attraction::AttractionOptions,
         protection: protection::ProtectionOptions,
     ) -> Result<Self, error::RelationIndexError> {
-        build::build(rows, policies, instances, attraction, protection)
+        build::build(policies, instances, attraction, protection)
     }
 }

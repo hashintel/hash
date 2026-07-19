@@ -2,7 +2,7 @@ use sprs::CsMatI;
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    ArrayShape, ArrayVariant, Dim, FileHeader, IndexVariant, StorageVariant,
+    ArrayShape, Dim, FileHeader, IndexVariant, StorageVariant, ValueTag,
     read::{OpenSprsError, SprsFile, SprsMatrixError},
     write::{WriteSprsError, write_matrix},
 };
@@ -14,7 +14,8 @@ fn matrix_shape(rows: u64, columns: u64) -> ArrayShape {
 
 fn fixture_header(nnz: u64) -> FileHeader {
     FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U32,
         IndexVariant::U64,
         StorageVariant::Csr,
@@ -38,7 +39,8 @@ fn regions_follow_the_layout_equations() {
     // 4 x 4, 8 entries: 40 pointer bytes and 32 index bytes each pad
     // to one page.
     let header = FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U32,
         IndexVariant::U64,
         StorageVariant::Csr,
@@ -55,7 +57,8 @@ fn the_compressed_dimension_spans_the_pointers() {
     // 2 x 1023: row-compressed needs 3 pointers, column-compressed
     // 1024 - exactly two pages of u64 pointers.
     let csr = FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U32,
         IndexVariant::U64,
         StorageVariant::Csr,
@@ -63,7 +66,8 @@ fn the_compressed_dimension_spans_the_pointers() {
         4,
     );
     let csc = FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U32,
         IndexVariant::U64,
         StorageVariant::Csc,
@@ -81,7 +85,8 @@ fn narrow_elements_shrink_the_regions() {
     // 1023 rows of u16 pointers: 2048 pointer bytes, exactly half a
     // page, still pad to one.
     let header = FileHeader::new(
-        ArrayVariant::U8,
+        ValueTag::U8,
+        1,
         IndexVariant::U16,
         IndexVariant::U16,
         StorageVariant::Csr,
@@ -97,7 +102,8 @@ fn narrow_elements_shrink_the_regions() {
 #[test]
 fn only_matrices_describe_files() {
     let rank_one = FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U32,
         IndexVariant::U64,
         StorageVariant::Csr,
@@ -108,7 +114,8 @@ fn only_matrices_describe_files() {
     assert_eq!(rank_one.expected_file_len(), None);
 
     let zero_rows = FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U32,
         IndexVariant::U64,
         StorageVariant::Csr,
@@ -122,7 +129,8 @@ fn only_matrices_describe_files() {
 #[test]
 fn overflowing_geometry_matches_no_file() {
     let header = FileHeader::new(
-        ArrayVariant::F32,
+        ValueTag::F32,
+        4,
         IndexVariant::U64,
         IndexVariant::U64,
         StorageVariant::Csr,
@@ -186,7 +194,8 @@ fn a_written_matrix_reopens_as_the_same_view() {
     let file = SprsFile::open(&path).expect("the written file reopens");
     assert_eq!(file.matrix_shape(), (3, 3));
     assert_eq!(file.nnz(), 6);
-    assert_eq!(file.value(), ArrayVariant::F32);
+    assert_eq!(file.value(), ValueTag::F32);
+    assert_eq!(file.value_width(), 4);
     assert_eq!(file.index(), IndexVariant::U32);
     assert_eq!(file.iptr(), IndexVariant::U64);
     assert_eq!(file.order(), StorageVariant::Csr);
@@ -231,6 +240,127 @@ fn a_written_matrix_reopens_as_the_same_view() {
     assert!(matches!(
         SprsFile::open(&truncated_path),
         Err(OpenSprsError::Length { .. }),
+    ));
+
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+}
+
+/// A two-component opaque value under test.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(C)]
+struct Pair {
+    low: f32,
+    high: f32,
+}
+
+impl super::SprsValue for Pair {
+    const TAG: ValueTag = ValueTag::Opaque;
+}
+
+/// A different opaque value of the same width.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
+struct Packed(u64);
+
+impl super::SprsValue for Packed {
+    const TAG: ValueTag = ValueTag::Opaque;
+}
+
+/// A narrower opaque value.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
+struct Narrow(u32);
+
+impl super::SprsValue for Narrow {
+    const TAG: ValueTag = ValueTag::Opaque;
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "whole-file mappings go through FFI Miri cannot execute"
+)]
+fn opaque_values_are_identified_by_width_alone() {
+    let dir = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-sprs-opaque-{}",
+        std::process::id()
+    ));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+
+    let matrix = CsMatI::<Pair, u32, u64>::new(
+        (2, 2),
+        vec![0, 1, 2],
+        vec![1, 0],
+        vec![
+            Pair {
+                low: 0.5,
+                high: 1.0,
+            },
+            Pair {
+                low: 1.5,
+                high: 2.0,
+            },
+        ],
+    );
+    let mut bytes = Vec::new();
+    write_matrix(&matrix, &mut bytes).expect("writing to a buffer succeeds");
+    let path = dir.join("opaque.sprs");
+    std::fs::write(&path, &bytes).expect("the file writes");
+
+    let file = SprsFile::open(&path).expect("the written file reopens");
+    assert_eq!(file.value(), ValueTag::Opaque);
+    assert_eq!(file.value_width(), 8);
+
+    // The written type reads back bit-exactly.
+    let reopened = file
+        .matrix::<Pair, u32, u64>()
+        .expect("the written opaque type views");
+    assert_eq!(reopened.data(), matrix.data());
+
+    // An equal-width opaque type is interchangeable on the wire: that
+    // is Opaque's documented contract, not an accident.
+    let packed = file
+        .matrix::<Packed, u32, u64>()
+        .expect("an equal-width opaque type views");
+    assert_eq!(packed.data().len(), 2);
+
+    // A different width is rejected, as is a pinned scalar tag of the
+    // same width.
+    assert!(matches!(
+        file.matrix::<Narrow, u32, u64>(),
+        Err(SprsMatrixError::Elements { .. }),
+    ));
+    assert!(matches!(
+        file.matrix::<f64, u32, u64>(),
+        Err(SprsMatrixError::Elements { .. }),
     ));
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);

@@ -4,20 +4,30 @@
 //! [`GeometryClass`]es, which downstream stages turn into attraction,
 //! protection, and admission decisions. The open-world [`classifier`]
 //! supplies the distribution for relation types without a
-//! higher-precedence explicit policy record; precedence resolution and
-//! the coincident gate join this module with fitting step 7.
+//! higher-precedence explicit policy record; [`precedence`] resolves
+//! the winning source per relation into the certified policy table.
 //!
 //! The classes describe geometric behavior, never semantic valence:
 //! opposition, contradiction, and citation are rendering concerns. No
 //! class imposes a repulsive force - a mistaken attraction is bounded,
 //! while a mistaken repulsion destroys local structure.
+#![expect(clippy::empty_enums, reason = "zerocopy derive")]
 
 use core::{fmt, mem};
 
+use crate::dataset::OntologyRowId;
+
 pub(crate) mod classifier;
+mod precedence;
 
 #[cfg(test)]
 mod tests;
+
+#[expect(
+    unused_imports,
+    reason = "the generation runner consumes the resolution surface"
+)]
+pub(crate) use self::precedence::{CoincidentAdmission, PolicyOverride, PolicySource, resolve};
 
 /// Geometry classes a relation type distributes over.
 ///
@@ -114,6 +124,7 @@ impl Posterior {
         {
             return None;
         }
+
         let sum = components.iter().sum::<f64>();
         if (sum - 1.0).abs() > Self::SUM_TOLERANCE {
             return None;
@@ -125,7 +136,7 @@ impl Posterior {
     /// Adopts softmax output, whose invariant holds by construction.
     #[inline]
     #[must_use]
-    pub(crate) const fn from_softmax(components: [f64; GeometryClass::COUNT]) -> Self {
+    pub(crate) const fn from_softmax_unchecked(components: [f64; GeometryClass::COUNT]) -> Self {
         Self(components)
     }
 
@@ -141,5 +152,85 @@ impl Posterior {
     #[must_use]
     pub(crate) const fn as_array(&self) -> &[f64; GeometryClass::COUNT] {
         &self.0
+    }
+}
+
+/// The Coincident and Proximal components of a relation class
+/// distribution.
+///
+/// Overlay, the third class, carries no geometric weight, so the two
+/// stored components are the distribution's entire geometric content.
+/// Each component lies in `0.0..=1.0`.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct ClassProbabilities {
+    /// The Coincident class probability.
+    pub coincident: f32,
+    /// The Proximal class probability.
+    pub proximal: f32,
+}
+
+impl ClassProbabilities {
+    /// Narrows a posterior to its geometric components.
+    ///
+    /// The narrowing to working precision is the boundary where policy
+    /// values stop being solver state and become data.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_posterior(posterior: &Posterior) -> Self {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "probabilities lie in [0, 1], far inside f32 range"
+        )]
+        Self {
+            coincident: posterior.probability(GeometryClass::Coincident) as f32,
+            proximal: posterior.probability(GeometryClass::Proximal) as f32,
+        }
+    }
+}
+
+/// The resolved geometry policy of one relation type.
+///
+/// The values the relation indexes weight instances by: the effective
+/// attraction distribution feeds attraction weights, the selected
+/// distribution and applicability feed protection masses, and the
+/// strength multiplier rides the attraction group unchanged.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct RelationPolicy {
+    /// The relation type the policy resolves.
+    pub relation: OntologyRowId,
+    /// The effective attraction distribution `p*`, after applicability
+    /// fallback and the generation's Coincident admission.
+    pub attraction: ClassProbabilities,
+    /// The selected class distribution `p`, before applicability
+    /// blending; protection masses are computed from it.
+    pub selected: ClassProbabilities,
+    /// The calibrated applicability `a`, in `0.0..=1.0`.
+    pub applicability: f32,
+    /// The frozen strength multiplier `h`; exactly 1 while the strength
+    /// head is disabled.
+    pub strength: f32,
+}
+
+impl RelationPolicy {
+    /// Returns whether every value lies in its domain.
+    #[must_use]
+    pub(crate) const fn in_domain(&self) -> bool {
+        let probabilities = [
+            self.attraction.coincident,
+            self.attraction.proximal,
+            self.selected.coincident,
+            self.selected.proximal,
+            self.applicability,
+        ];
+
+        let mut index = 0;
+        while index < probabilities.len() {
+            if !(probabilities[index] >= 0.0 && probabilities[index] <= 1.0) {
+                return false;
+            }
+            index += 1;
+        }
+
+        self.strength.is_finite() && self.strength >= 0.0
     }
 }

@@ -44,27 +44,15 @@ pub(super) fn fit_applicability(training: TrainingSet<'_>) -> Result<Applicabili
 
     let mut mean = BoxedDVecN::<CANONICAL_DIMENSIONS>::zero();
     for row in 0..training.len() {
-        mean.add_scaled(VecN::from_ref(training.embedding(row).as_array()), 1.0);
+        mean.add_widened(VecN::from_ref(training.embedding(row).as_array()));
     }
-    for value in mean.as_array_mut() {
-        *value /= count;
-    }
+    *mean /= count;
 
     let mut variances = BoxedDVecN::<CANONICAL_DIMENSIONS>::zero();
     for row in 0..training.len() {
-        for ((variance, component), mean) in variances
-            .as_array_mut()
-            .iter_mut()
-            .zip(training.embedding(row).as_array())
-            .zip(mean.as_array())
-        {
-            let centered = f64::from(*component) - *mean;
-            *variance = centered.mul_add(centered, *variance);
-        }
+        variances.add_squared_deviation(VecN::from_ref(training.embedding(row).as_array()), &mean);
     }
-    for variance in variances.as_array_mut() {
-        *variance /= count;
-    }
+    *variances /= count;
 
     let pooled_variance = variances.as_array().iter().sum::<f64>() / dimensions;
     let mut inverse_scales = variances;

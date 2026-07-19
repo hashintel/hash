@@ -6,7 +6,20 @@
 
 use proptest::prelude::*;
 
-use crate::math::scalar::{huber, narrow_f32, narrow_f32_exact, softplus};
+use crate::math::scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, softplus};
+
+#[test]
+fn unit_fraction_accepts_exactly_the_closed_interval() {
+    assert_eq!(UnitFraction::new(0.0), Some(UnitFraction::ZERO));
+    assert_eq!(UnitFraction::new(1.0), Some(UnitFraction::ONE));
+    assert_eq!(UnitFraction::new(0.25).map(UnitFraction::get), Some(0.25),);
+
+    assert_eq!(UnitFraction::new(-0.1), None);
+    assert_eq!(UnitFraction::new(1.5), None);
+    assert_eq!(UnitFraction::new(f64::NAN), None);
+    assert_eq!(UnitFraction::new(f64::INFINITY), None);
+    assert_eq!(UnitFraction::new(f64::NEG_INFINITY), None);
+}
 
 #[test]
 fn softplus_approaches_asymptotes() {

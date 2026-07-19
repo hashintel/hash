@@ -19,7 +19,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::{AllocError, Allocator, Layout},
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut, DivAssign},
     ptr::{self, NonNull},
     simd::{Simd, f32x8, f64x8, num::SimdFloat as _},
 };
@@ -289,6 +289,26 @@ impl<const N: usize> DVecN<N> {
         sum
     }
 
+    /// Adds a working-precision vector, component-wise.
+    ///
+    /// Each `f32` component of `rhs` widens to `f64` exactly, so the
+    /// update carries only the rounding of the addition itself. This is
+    /// the moment-accumulation kernel of statistics kept in double
+    /// precision over single-precision data.
+    #[inline]
+    pub fn add_widened(&mut self, rhs: &VecN<N>) {
+        let (chunks, remainder) = self.0.as_chunks_mut::<8>();
+        let (chunks_narrow, remainder_narrow) = rhs.as_array().as_chunks::<8>();
+
+        for (chunk, narrow) in chunks.iter_mut().zip(chunks_narrow) {
+            let widened: f64x8 = f32x8::from_array(*narrow).cast();
+            *chunk = (f64x8::from_array(*chunk) + widened).to_array();
+        }
+        for (component, &narrow) in remainder.iter_mut().zip(remainder_narrow) {
+            *component += f64::from(narrow);
+        }
+    }
+
     /// Adds `factor` times a working-precision vector, component-wise.
     ///
     /// Each `f32` component of `direction` widens to `f64` exactly, so the
@@ -308,6 +328,34 @@ impl<const N: usize> DVecN<N> {
         }
         for (component, &narrow) in remainder.iter_mut().zip(remainder_narrow) {
             *component = f64::from(narrow).mul_add(factor, *component);
+        }
+    }
+
+    /// Adds the squared deviation of a working-precision vector from
+    /// `mean`, component-wise.
+    ///
+    /// Each `f32` component of `value` widens to `f64` exactly, so the
+    /// update `self += (value - mean)^2` carries only the rounding of
+    /// the subtraction and the fused multiply-add. This is the
+    /// second-moment kernel of diagonal-variance fits kept in double
+    /// precision over single-precision data.
+    #[inline]
+    pub fn add_squared_deviation(&mut self, value: &VecN<N>, mean: &Self) {
+        let (chunks, remainder) = self.0.as_chunks_mut::<8>();
+        let (value_chunks, value_remainder) = value.as_array().as_chunks::<8>();
+        let (mean_chunks, mean_remainder) = mean.0.as_chunks::<8>();
+
+        for ((chunk, narrow), mean) in chunks.iter_mut().zip(value_chunks).zip(mean_chunks) {
+            let centered = f32x8::from_array(*narrow).cast::<f64>() - f64x8::from_array(*mean);
+            *chunk = mul_add_f64x8(centered, centered, f64x8::from_array(*chunk)).to_array();
+        }
+        for ((component, &narrow), &mean) in remainder
+            .iter_mut()
+            .zip(value_remainder)
+            .zip(mean_remainder)
+        {
+            let centered = f64::from(narrow) - mean;
+            *component = centered.mul_add(centered, *component);
         }
     }
 
@@ -504,11 +552,41 @@ impl<const N: usize> AlignedDVecN<N> {
     pub fn add_scaled(&mut self, direction: &VecN<N>, factor: f64) {
         DVecN::from_mut(self.as_array_mut()).add_scaled(direction, factor);
     }
+
+    /// Adds a working-precision vector; see [`DVecN::add_widened`].
+    #[inline]
+    pub fn add_widened(&mut self, rhs: &VecN<N>) {
+        DVecN::from_mut(self.as_array_mut()).add_widened(rhs);
+    }
+
+    /// Adds a working-precision vector's squared deviation from `mean`;
+    /// see [`DVecN::add_squared_deviation`].
+    #[inline]
+    pub fn add_squared_deviation(&mut self, value: &VecN<N>, mean: &Self) {
+        DVecN::from_mut(self.as_array_mut())
+            .add_squared_deviation(value, DVecN::from_ref(mean.as_array()));
+    }
 }
 
 const impl<const N: usize> PartialEq for AlignedDVecN<N> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
+    }
+}
+
+impl<const N: usize> DivAssign<f64> for AlignedDVecN<N> {
+    #[inline]
+    fn div_assign(&mut self, rhs: f64) {
+        let rhs_simd = Simd::splat(rhs);
+        let (lanes, remainder) = self.lanes_mut();
+        for lane in lanes {
+            *lane /= rhs_simd;
+        }
+
+        for value in remainder {
+            *value /= rhs;
+        }
     }
 }
 

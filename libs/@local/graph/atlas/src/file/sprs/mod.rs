@@ -1,6 +1,6 @@
 //! The sparse matrix file: one compressed-sparse-row matrix, mappable.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
+//! Layout version 1 is **mutable**: change the layout freely to fit what
 //! the pipeline needs and increment [`Version`] when you do. The pinned
 //! parse rejects bytes of other versions, which is the intended failure
 //! mode; no migration or compatibility machinery exists on purpose until
@@ -15,14 +15,15 @@
 //! | offset | size | region                                          |
 //! |--------|------|-------------------------------------------------|
 //! | 0      | 8    | magic `SALTSPRS`                                |
-//! | 8      | 4    | layout version, `u32` = 0                       |
-//! | 12     | 1    | value element type, [`ArrayVariant`]            |
+//! | 8      | 4    | layout version, `u32` = 1                       |
+//! | 12     | 1    | value type tag, [`ValueTag`]                    |
 //! | 13     | 1    | index element type, [`IndexVariant`]            |
 //! | 14     | 1    | pointer element type, [`IndexVariant`]          |
 //! | 15     | 1    | compressed dimension, [`StorageVariant`]        |
-//! | 16     | 64   | shape, [`ArrayShape`]: `[rows, columns]`        |
-//! | 80     | 8    | stored entries `nnz`, `u64`                     |
-//! | 88     | 4008 | padding; writers emit zero, readers ignore      |
+//! | 16     | 8    | value entry width in bytes, `u64`               |
+//! | 24     | 64   | shape, [`ArrayShape`]: `[rows, columns]`        |
+//! | 88     | 8    | stored entries `nnz`, `u64`                     |
+//! | 96     | 4000 | padding; writers emit zero, readers ignore      |
 //! | 4096   |      | pointers: `iptr[outer + 1]`, ascending from     |
 //! |        |      | zero to `nnz`, where `outer` is the compressed  |
 //! |        |      | dimension's extent (rows for [`Csr`], columns   |
@@ -38,9 +39,11 @@
 //! [`Csr`]: StorageVariant::Csr
 //! [`Csc`]: StorageVariant::Csc
 //!
-//! The element types describe the regions exactly; [`read::SprsFile`]'s
-//! typed accessor exists only for the described combination, so a file
-//! is never read at the wrong width. The shape is a rank-2
+//! The element types describe the regions exactly: value geometry
+//! derives from the recorded width, and [`read::SprsFile`]'s typed
+//! accessor exists only for the described combination - matching tag,
+//! matching width, matching index types - so a region is never read at
+//! the wrong width. The shape is a rank-2
 //! [`ArrayShape`]: a shape of any other rank has no region geometry and
 //! matches no real file, so a matrix with zero rows or columns is
 //! unrepresentable on purpose. All region offsets derive from the
@@ -65,7 +68,7 @@
 use core::fmt;
 
 use sprs::{CompressedStorage, SpIndex};
-use zerocopy::{FromBytes, Immutable, IntoBytes, LE, U64, Unalign};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U64, Unalign};
 
 use super::array::{ArrayShape, ArrayVariant, Dim};
 
@@ -135,7 +138,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V0 = 0,
+    V1 = 1,
 }
 
 /// The element type of an index region.
@@ -181,19 +184,84 @@ impl IndexVariant {
     }
 }
 
-/// A scalar type a value region stores.
+/// The type tag of a value region.
 ///
-/// The variant is the type's wire identity: a value region reads back
-/// as `N` exactly when the header records `N::VARIANT`.
+/// A value entry's recorded geometry is its byte width; the tag is the
+/// identity layered on top. The scalar tags pin an exact type, so an
+/// `f32` region never reads back as `u32`. [`Opaque`](Self::Opaque)
+/// records no identity beyond the width: two opaque types of one width
+/// are interchangeable on the wire, and a type carries that tag exactly
+/// when it opts into being so. The scalar discriminants mirror
+/// [`ArrayVariant`](super::array::ArrayVariant), so the two formats
+/// speak one scalar vocabulary.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    zerocopy::TryFromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(u8)]
+pub(crate) enum ValueTag {
+    Opaque = 0x00,
+    U8 = 0x01,
+    U16 = 0x02,
+    U32 = 0x03,
+    U64 = 0x04,
+    U128 = 0x05,
+    I8 = 0x06,
+    I16 = 0x07,
+    I32 = 0x08,
+    I64 = 0x09,
+    I128 = 0x0A,
+    F16 = 0x0B,
+    BF16 = 0x0C,
+    F32 = 0x0D,
+    F64 = 0x0E,
+    F128 = 0x0F,
+}
+
+impl ValueTag {
+    /// Returns the width a scalar tag pins, in bytes.
+    ///
+    /// [`Opaque`](Self::Opaque) pins no width: its types are described
+    /// by the header's recorded width alone.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn width(self) -> Option<u64> {
+        match self {
+            Self::Opaque => None,
+            Self::U8 | Self::I8 => Some(1),
+            Self::U16 | Self::I16 | Self::F16 | Self::BF16 => Some(2),
+            Self::U32 | Self::I32 | Self::F32 => Some(4),
+            Self::U64 | Self::I64 | Self::F64 => Some(8),
+            Self::U128 | Self::I128 | Self::F128 => Some(16),
+        }
+    }
+}
+
+/// A type a value region stores.
 ///
-/// # Safety
-///
-/// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry
-/// and byte reinterpretation both derive from the variant's width, so
-/// a lying implementation reads regions at the wrong boundaries.
-pub(crate) unsafe trait SprsValue: FromBytes + IntoBytes + Immutable + Copy {
-    /// The wire identity of `Self`.
-    const VARIANT: ArrayVariant;
+/// A value's recorded geometry is `size_of::<Self>()`, written into the
+/// header and re-checked against the viewing type, so a region is never
+/// sliced or reinterpreted at a width other than the type's own. The
+/// [`ValueTag`] is the identity on top of the width: scalar tags pin
+/// the exact type, while [`ValueTag::Opaque`] types are identified by
+/// width alone and accept that any equal-width opaque type reads the
+/// same region.
+// Safe on purpose: both region geometry and byte reinterpretation
+// derive from size_of::<Self>() at write and view time alike, so no
+// impl-provided width exists to lie about. The compile-time asserts
+// below keep the scalar tags' pinned widths honest.
+pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Copy {
+    /// The wire identity of `Self` beyond its width.
+    const TAG: ValueTag;
 }
 
 /// A scalar type an index region stores.
@@ -216,17 +284,17 @@ pub(crate) unsafe trait SprsIndex:
 }
 
 // One-line impls over every fixed-width scalar: enough expansions that
-// drift between hand-written copies is the likelier bug. Each impl's
-// safety obligation is discharged by the compile-time width assert.
+// drift between hand-written copies is the likelier bug. The assert
+// keeps each scalar tag's pinned width equal to the type's real width.
 macro_rules! sprs_value {
     ($($element:ty => $variant:ident,)*) => {
         $(
-            const _: () =
-                assert!(ArrayVariant::$variant.width() == size_of::<$element>() as u64);
+            const _: () = assert!(
+                ValueTag::$variant.width().unwrap() == size_of::<$element>() as u64
+            );
 
-            // SAFETY: the width equality is asserted at compile time.
-            unsafe impl SprsValue for $element {
-                const VARIANT: ArrayVariant = ArrayVariant::$variant;
+            impl SprsValue for $element {
+                const TAG: ValueTag = ValueTag::$variant;
             }
         )*
     };
@@ -268,6 +336,20 @@ sprs_index! {
     i16 => I16,
     i32 => I32,
     i64 => I64,
+}
+
+// The scalar tags mirror ArrayVariant's discriminants, so the two
+// formats speak one scalar vocabulary; the asserts hold the mirror.
+macro_rules! tag_mirrors_variant {
+    ($($variant:ident,)*) => {
+        const _: () = {
+            $(assert!(ValueTag::$variant as u8 == ArrayVariant::$variant as u8);)*
+        };
+    };
+}
+
+tag_mirrors_variant! {
+    U8, U16, U32, U64, U128, I8, I16, I32, I64, I128, F16, BF16, F32, F64, F128,
 }
 
 /// The compressed dimension of the stored matrix.
@@ -315,17 +397,18 @@ impl From<CompressedStorage> for StorageVariant {
 pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
-    value: ArrayVariant,
+    value: ValueTag,
     index: IndexVariant,
     iptr: IndexVariant,
     order: StorageVariant,
+    value_width: U64<LE>,
     shape: ArrayShape,
     nnz: U64<LE>,
     padding: [u8; Self::PADDING],
 }
 
 impl FileHeader {
-    const PADDING: usize = 4008;
+    const PADDING: usize = 4000;
     /// Size of the header, and the offset of the pointer region.
     pub(crate) const SIZE: usize = 4096;
 
@@ -333,7 +416,8 @@ impl FileHeader {
     /// columns]` with the given element types and compressed dimension.
     #[must_use]
     pub(crate) const fn new(
-        value: ArrayVariant,
+        value: ValueTag,
+        value_width: u64,
         index: IndexVariant,
         iptr: IndexVariant,
         order: StorageVariant,
@@ -342,22 +426,30 @@ impl FileHeader {
     ) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V0),
+            version: Unalign::new(Version::V1),
             value,
             index,
             iptr,
             order,
+            value_width: U64::new(value_width),
             shape,
             nnz: U64::new(nnz),
             padding: [0; Self::PADDING],
         }
     }
 
-    /// Returns the value element type.
+    /// Returns the value type tag.
     #[inline]
     #[must_use]
-    pub(crate) const fn value(&self) -> ArrayVariant {
+    pub(crate) const fn value(&self) -> ValueTag {
         self.value
+    }
+
+    /// Returns the value entry width in bytes.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn value_width(&self) -> u64 {
+        self.value_width.get()
     }
 
     /// Returns the column-index element type.
@@ -446,7 +538,7 @@ impl FileHeader {
     /// file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
-        let value_bytes = self.nnz.get().checked_mul(self.value.width())?;
+        let value_bytes = self.nnz.get().checked_mul(self.value_width.get())?;
         self.values_offset()?.checked_add(value_bytes)
     }
 }
@@ -462,6 +554,7 @@ impl fmt::Debug for FileHeader {
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
             .field("value", &self.value)
+            .field("value_width", &self.value_width)
             .field("index", &self.index)
             .field("iptr", &self.iptr)
             .field("order", &self.order)

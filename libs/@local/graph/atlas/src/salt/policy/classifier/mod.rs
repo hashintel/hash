@@ -47,7 +47,7 @@ use core::{
 use super::{GeometryClass, Posterior};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DVecN, kernel::mul_add_f64x8},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, kernel::mul_add_f64x8},
 };
 
 mod fit;
@@ -99,6 +99,7 @@ pub(crate) struct Classifier {
     coefficients: [BoxedDVecN<CANONICAL_DIMENSIONS>; GeometryClass::COUNT],
     intercepts: [f64; GeometryClass::COUNT],
     temperature: f64,
+
     applicability: Applicability,
 }
 
@@ -142,9 +143,9 @@ impl Classifier {
         embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
     ) -> Result<Prediction, PredictError> {
         let logits = core::array::from_fn(|class| {
-            embedding.dot_wide(DVecN::from_ref(self.coefficients[class].as_array()))
-                + self.intercepts[class]
+            embedding.dot_wide(&self.coefficients[class]) + self.intercepts[class]
         });
+
         let distance = standardized_distance(
             embedding,
             &self.applicability.mean,
@@ -158,6 +159,7 @@ impl Classifier {
             .applicability
             .distances
             .partition_point(|training| *training < distance);
+
         #[expect(
             clippy::cast_precision_loss,
             reason = "training corpora are bounded far below f64 integer precision"
@@ -166,8 +168,8 @@ impl Classifier {
 
         Ok(Prediction {
             logits,
-            raw: Posterior::from_softmax(softmax(logits, 1.0)),
-            calibrated: Posterior::from_softmax(softmax(logits, self.temperature)),
+            raw: Posterior::from_softmax_unchecked(softmax(logits, 1.0)),
+            calibrated: Posterior::from_softmax_unchecked(softmax(logits, self.temperature)),
             distance,
             applicability,
         })
@@ -190,6 +192,7 @@ fn standardized_distance(
     debug_assert!(embedding_rest.is_empty() && mean_rest.is_empty() && scales_rest.is_empty());
 
     let mut sums = [f64x8::splat(0.0); 2];
+
     for (index, ((components, mean), inverse_scale)) in
         embedding.iter().zip(mean).zip(inverse_scales).enumerate()
     {
@@ -212,6 +215,7 @@ fn standardized_distance(
 fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> [f64; GeometryClass::COUNT] {
     let maximum = logits.into_iter().fold(f64::NEG_INFINITY, f64::max);
     let exponentials = logits.map(|value| ((value - maximum) / temperature).exp());
+
     let denominator = exponentials.into_iter().sum::<f64>();
     exponentials.map(|value| value / denominator)
 }

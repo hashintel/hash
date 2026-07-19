@@ -458,12 +458,17 @@ fn validate_finite<E>(
     embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
     row: OntologyRowId,
 ) -> Result<(), CardEmbeddingError<E>> {
+    if embedding.is_finite() {
+        return Ok(());
+    }
+
+    // Slow/cold path: find the first non-finite component
     let Some(component) = embedding
         .as_array()
         .iter()
         .position(|component| !component.is_finite())
     else {
-        return Ok(());
+        unreachable!()
     };
 
     Err(CardEmbeddingError::NonFinite { row, component })

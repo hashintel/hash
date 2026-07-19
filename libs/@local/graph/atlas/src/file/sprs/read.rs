@@ -10,7 +10,7 @@ use zerocopy::{
     error::{ConvertError, ValidityError},
 };
 
-use super::{ArrayVariant, FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant};
+use super::{FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant, ValueTag};
 
 /// Opening a sparse matrix file failed.
 #[derive(Debug)]
@@ -77,7 +77,8 @@ impl Error for OpenSprsError {
 pub(crate) enum SprsMatrixError {
     /// The file stores different element types than the requested ones.
     Elements {
-        value: ArrayVariant,
+        value: ValueTag,
+        value_width: u64,
         index: IndexVariant,
         iptr: IndexVariant,
     },
@@ -94,10 +95,15 @@ impl fmt::Display for SprsMatrixError {
     )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Elements { value, index, iptr } => write!(
+            Self::Elements {
+                value,
+                value_width,
+                index,
+                iptr,
+            } => write!(
                 fmt,
-                "the file stores {value:?} values under {index:?} indices and {iptr:?} row \
-                 pointers",
+                "the file stores {value_width}-byte {value:?} values under {index:?} indices and \
+                 {iptr:?} row pointers",
             ),
             Self::TooLarge => fmt.write_str("the matrix does not fit the address space"),
             Self::Structure(error) => write!(
@@ -180,11 +186,18 @@ impl SprsFile {
         unsafe { &*ptr }
     }
 
-    /// Returns the value element type.
+    /// Returns the value type tag.
     #[inline]
     #[must_use]
-    pub(crate) fn value(&self) -> ArrayVariant {
+    pub(crate) fn value(&self) -> ValueTag {
         self.header().value()
+    }
+
+    /// Returns the value entry width in bytes.
+    #[inline]
+    #[must_use]
+    pub(crate) fn value_width(&self) -> u64 {
+        self.header().value_width()
     }
 
     /// Returns the column-index element type.
@@ -227,11 +240,14 @@ impl SprsFile {
     /// Views the matrix at its described element types.
     ///
     /// The view exists exactly for the element combination the header
-    /// describes ([`value`](Self::value), [`index`](Self::index),
+    /// describes ([`value`](Self::value) tag and
+    /// [`value_width`](Self::value_width) both, [`index`](Self::index),
     /// [`iptr`](Self::iptr)), so a region is never read at the wrong
-    /// width. Every call re-checks the compressed-row structure, which
-    /// costs one pass over the entries; callers hold on to the view
-    /// within a stage.
+    /// width; an [`Opaque`](ValueTag::Opaque) value carries no identity
+    /// beyond its width, which is that tag's documented contract. Every
+    /// call re-checks the compressed-row structure, which costs one
+    /// pass over the entries; callers hold on to the view within a
+    /// stage.
     ///
     /// # Errors
     ///
@@ -245,11 +261,17 @@ impl SprsFile {
         Iptr: SprsIndex,
     {
         let header = self.header();
-        if (N::VARIANT, I::VARIANT, Iptr::VARIANT)
-            != (header.value(), header.index(), header.iptr())
+        if (N::TAG, size_of::<N>() as u64, I::VARIANT, Iptr::VARIANT)
+            != (
+                header.value(),
+                header.value_width(),
+                header.index(),
+                header.iptr(),
+            )
         {
             return Err(SprsMatrixError::Elements {
                 value: header.value(),
+                value_width: header.value_width(),
                 index: header.index(),
                 iptr: header.iptr(),
             });
@@ -281,7 +303,7 @@ impl SprsFile {
         );
         let values = region(
             header.values_offset().expect("open validated the geometry"),
-            entries * N::VARIANT.width(),
+            entries * size_of::<N>() as u64,
         );
 
         let expect = "open validated the region sizes and the mapping their alignment";

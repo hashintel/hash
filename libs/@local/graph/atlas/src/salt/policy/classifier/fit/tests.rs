@@ -208,10 +208,10 @@ fn objective_is_invariant_to_a_common_intercept_shift() {
     let mut corpus = Corpus::new();
     corpus.push(&[], [0.2, 0.3, 0.500_000_000_5], 1.0, b"group");
     let training = corpus.training();
-    let members = [0];
     let objective = objective::Objective {
         training,
-        members: &members,
+        folds: &[0],
+        held_out: None,
         regularization: 1.0,
     };
 
@@ -237,10 +237,10 @@ fn objective_is_invariant_to_a_common_intercept_shift() {
 fn objective_gradient_matches_central_differences() {
     let corpus = mixed_corpus();
     let training = corpus.training();
-    let members = [0, 1];
     let objective = objective::Objective {
         training,
-        members: &members,
+        folds: &[0, 0],
+        held_out: None,
         regularization: 0.75,
     };
 
@@ -305,11 +305,11 @@ fn coefficient_norm(parameters: &Parameters) -> f64 {
 fn stronger_regularization_shrinks_the_fitted_coefficients() {
     let corpus = one_hot_corpus();
     let training = corpus.training();
-    let members = [0, 1, 2];
 
     let (weak, _) = objective::fit_model(
         training,
-        &members,
+        &[0, 0, 0],
+        None,
         FitConfig {
             regularization: 0.1,
             ..config()
@@ -318,7 +318,8 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     .expect("the weak fit converges");
     let (strong, _) = objective::fit_model(
         training,
-        &members,
+        &[0, 0, 0],
+        None,
         FitConfig {
             regularization: 10.0,
             ..config()
@@ -333,15 +334,15 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
 fn fitted_parameters_are_locally_optimal() {
     let corpus = one_hot_corpus();
     let training = corpus.training();
-    let members = [0, 1, 2];
     let objective = objective::Objective {
         training,
-        members: &members,
+        folds: &[0, 0, 0],
+        held_out: None,
         regularization: 0.5,
     };
 
     let (parameters, _) =
-        objective::fit_model(training, &members, config()).expect("the fit converges");
+        objective::fit_model(training, &[0, 0, 0], None, config()).expect("the fit converges");
     let optimum = objective.cost_value(&parameters);
 
     for index in [0, 1, CANONICAL_DIMENSIONS + 1, PARAMETER_COUNT - 1] {
@@ -361,9 +362,8 @@ fn fit_model_requires_complete_class_mass() {
     let mut corpus = Corpus::new();
     corpus.push(&[1.0], [0.0, 0.5, 0.5], 1.0, b"one");
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
-    let members = [0, 1];
 
-    let error = objective::fit_model(corpus.training(), &members, config())
+    let error = objective::fit_model(corpus.training(), &[0, 0], None, config())
         .expect_err("a class without mass cannot fit");
     assert!(matches!(
         error,
@@ -388,10 +388,13 @@ fn overconfident_logits_calibrate_above_one() {
     let temperature = calibration::fit_temperature(&rows, &logits);
 
     // softmax([6, 0, 0] / T) equals the target at exp(6 / T) = 3, an
-    // interior optimum of the [0.05, 20] bracket.
+    // interior optimum of the [0.05, 20] bracket. Near the optimum the
+    // cross-entropy is flat below f64 resolution over a relative
+    // window of roughly sqrt(2 * eps / 0.24) ~ 3e-8 in ln T, so the
+    // search cannot localize tighter than that.
     let expected = 6.0 / 3.0_f64.ln();
     assert!(temperature > 1.0);
-    assert!((temperature - expected).abs() <= 1.0e-9 * expected);
+    assert!((temperature - expected).abs() <= 1.0e-6 * expected);
     // Local optimality: the returned temperature beats its neighbors.
     let optimum = calibration::metrics(&rows, &logits, temperature).calibrated_cross_entropy;
     for neighbor in [temperature * 1.05, temperature / 1.05] {

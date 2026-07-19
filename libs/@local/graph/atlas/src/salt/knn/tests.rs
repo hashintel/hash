@@ -20,9 +20,9 @@ use super::{
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
     file::{
-        array::{ArrayShape, ArrayVariant, Dim},
+        array::{ArrayShape, Dim},
         sprs::{
-            FileHeader, IndexVariant, StorageVariant,
+            FileHeader, IndexVariant, StorageVariant, ValueTag,
             read::{OpenSprsError, SprsFile},
         },
     },
@@ -644,7 +644,8 @@ fn published_table_reopens_mapped() {
     // A tampered distance fails the table invariants at open.
     let values_offset = usize::try_from(
         FileHeader::new(
-            ArrayVariant::F32,
+            ValueTag::F32,
+            4,
             IndexVariant::U32,
             IndexVariant::U64,
             StorageVariant::Csr,

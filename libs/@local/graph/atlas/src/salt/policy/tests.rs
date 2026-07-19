@@ -3,7 +3,39 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
+use zerocopy::TryFromBytes as _;
+
 use super::{GeometryClass, Posterior};
+
+#[test]
+fn variants_enumerate_the_classes_in_class_order() {
+    // Certifies the const-transmute derivation of `VARIANTS` against
+    // the literal variants and their declared discriminants.
+    assert_eq!(GeometryClass::COUNT, 3);
+    assert_eq!(
+        GeometryClass::VARIANTS,
+        [
+            GeometryClass::Coincident,
+            GeometryClass::Proximal,
+            GeometryClass::Overlay,
+        ],
+    );
+    for (position, class) in GeometryClass::VARIANTS.into_iter().enumerate() {
+        assert_eq!(class.index(), position);
+    }
+}
+
+#[test]
+fn wire_bytes_admit_only_declared_discriminants() {
+    for class in GeometryClass::VARIANTS {
+        let parsed = GeometryClass::try_read_from_bytes(&[class as u8])
+            .expect("a declared discriminant parses");
+        assert_eq!(parsed, class);
+    }
+
+    assert!(GeometryClass::try_read_from_bytes(&[GeometryClass::COUNT as u8]).is_err());
+    assert!(GeometryClass::try_read_from_bytes(&[u8::MAX]).is_err());
+}
 
 #[test]
 fn posterior_accepts_a_distribution() {

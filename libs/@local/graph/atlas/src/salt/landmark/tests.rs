@@ -1,20 +1,28 @@
+#![expect(
+    clippy::integer_division_remainder_used,
+    reason = "test data generation folds indices into cyclic patterns by modulus"
+)]
+
 use core::num::NonZero;
 
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
+use rayon::ThreadPoolBuilder;
 
 use super::{
     assignment::{AssignmentError, LandmarkAssignment, assign_landmarks},
-    layout::{LayoutError, LayoutOptions, layout_landmarks},
+    layout::{
+        EdgelessGraphError, LayoutOptions, LearningRate, RepulsionStrength, layout_landmarks,
+    },
     quotient::{QuotientError, QuotientOptions, quotient_graph},
     select::{
-        LandmarkCandidate, LandmarkOrdinal, SelectionError, SelectionOptions, Subgroup,
-        SubgroupAxes, SubgroupDimension, SubgroupMinimum, select_landmarks,
+        LandmarkCandidate, LandmarkOrdinal, SamplingWeight, SelectionError, SelectionOptions,
+        Subgroup, SubgroupAxes, SubgroupDimension, SubgroupMinimum, select_landmarks,
     },
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
         semantic::{SemanticGraph, SemanticMatrix},
@@ -25,10 +33,19 @@ fn rng() -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(42)
 }
 
+/// Runs the task in a dedicated rayon pool of `threads` workers.
+fn in_pool<T: Send>(threads: usize, task: impl FnOnce() -> T + Send) -> T {
+    ThreadPoolBuilder::new()
+        .num_threads(threads)
+        .build()
+        .expect("the test pool builds")
+        .install(task)
+}
+
 fn candidate(row: u64) -> LandmarkCandidate {
     LandmarkCandidate {
         row: NodeRowId::new(row),
-        sampling_weight: 1.0,
+        sampling_weight: SamplingWeight::UNIFORM,
         axes: SubgroupAxes::default(),
         prior_landmark: false,
     }
@@ -120,7 +137,7 @@ fn selection_prefers_heavier_candidates() {
     // dominate a capacity-10 selection of 200 candidates.
     let mut candidates = candidates(200);
     for candidate in &mut candidates[..10] {
-        candidate.sampling_weight = 1000.0;
+        candidate.sampling_weight = SamplingWeight::new(1000.0).expect("a thousand is a weight");
     }
 
     let mut heavy_selected = 0_usize;
@@ -175,29 +192,6 @@ fn selection_rejects_malformed_inputs() {
         Err(SelectionError::UnorderedCandidates { index: 2 }),
     );
 
-    let mut weightless = candidates(4);
-    weightless[2].sampling_weight = 0.0;
-    assert_eq!(
-        select_landmarks(&weightless, &[], options(10), rng()),
-        Err(SelectionError::InvalidSamplingWeight {
-            index: 2,
-            value: 0.0,
-        }),
-    );
-
-    assert_eq!(
-        select_landmarks(
-            &candidates(4),
-            &[],
-            SelectionOptions {
-                maximum_count: NonZero::new(2).expect("two is nonzero"),
-                retained_fraction: 1.5,
-            },
-            rng()
-        ),
-        Err(SelectionError::InvalidRetainedFraction { value: 1.5 }),
-    );
-
     let subgroup = Subgroup {
         dimension: SubgroupDimension::Source,
         value: 0,
@@ -210,6 +204,23 @@ fn selection_rejects_malformed_inputs() {
         select_landmarks(&candidates(4), &[minimum, minimum], options(10), rng()),
         Err(SelectionError::DuplicateMinimum { subgroup }),
     );
+}
+
+#[test]
+fn constrained_scalars_reject_out_of_domain_values() {
+    assert_eq!(SamplingWeight::new(0.0), None);
+    assert_eq!(SamplingWeight::new(-1.0), None);
+    assert_eq!(SamplingWeight::new(f64::NAN), None);
+    assert_eq!(SamplingWeight::new(f64::INFINITY), None);
+    assert_eq!(SamplingWeight::new(1.0), Some(SamplingWeight::UNIFORM));
+
+    assert_eq!(LearningRate::new(0.0), None);
+    assert_eq!(LearningRate::new(f32::NAN), None);
+    assert!(LearningRate::new(0.5).is_some());
+
+    assert!(RepulsionStrength::new(0.0).is_some());
+    assert_eq!(RepulsionStrength::new(-1.0), None);
+    assert_eq!(RepulsionStrength::new(f32::INFINITY), None);
 }
 
 #[test]
@@ -257,6 +268,77 @@ fn selection_rejects_unsatisfiable_minimums() {
             capacity: 5,
         }),
     );
+}
+
+#[test]
+fn selection_counts_rows_toward_every_minimum_they_satisfy() {
+    // Rows 0..4 carry both marked axes, so the same three rows can
+    // satisfy both three-row minimums at once; a capacity of three
+    // suffices. Counting the overlap per minimum would demand six rows
+    // and fail with MinimumExceedsCapacity.
+    let mut candidates = candidates(50);
+    for candidate in &mut candidates[..4] {
+        candidate.axes[SubgroupDimension::Language] = 7;
+        candidate.axes[SubgroupDimension::Community] = 3;
+    }
+
+    let minimums = [
+        SubgroupMinimum {
+            subgroup: Subgroup {
+                dimension: SubgroupDimension::Language,
+                value: 7,
+            },
+            count: NonZero::new(3).expect("three is nonzero"),
+        },
+        SubgroupMinimum {
+            subgroup: Subgroup {
+                dimension: SubgroupDimension::Community,
+                value: 3,
+            },
+            count: NonZero::new(3).expect("three is nonzero"),
+        },
+    ];
+
+    let selection = select_landmarks(&candidates, &minimums, options(3), rng())
+        .expect("three rows satisfy both minimums at once");
+
+    assert_eq!(selection.len(), 3);
+    assert!(
+        selection.rows().iter().all(|row| row.get() < 4),
+        "every selected row carries both subgroups",
+    );
+}
+
+#[test]
+fn selection_is_invariant_across_thread_counts() {
+    // Ten thousand candidates span three seeded priority chunks, with
+    // weights, retention flags, and a minimum in play: the one-worker
+    // and eight-worker pools must select bit-equal rows.
+    let mut candidates = candidates(10_000);
+    for (index, candidate) in (0_u32..).zip(&mut candidates) {
+        candidate.sampling_weight =
+            SamplingWeight::new(1.0 + f64::from(index % 7)).expect("small offsets are weights");
+        candidate.prior_landmark = index % 13 == 0;
+        candidate.axes[SubgroupDimension::Language] = index % 3;
+    }
+    let minimums = [SubgroupMinimum {
+        subgroup: Subgroup {
+            dimension: SubgroupDimension::Language,
+            value: 2,
+        },
+        count: NonZero::new(40).expect("forty is nonzero"),
+    }];
+
+    let single = in_pool(1, || {
+        select_landmarks(&candidates, &minimums, options(128), rng())
+    })
+    .expect("the selection succeeds");
+    let many = in_pool(8, || {
+        select_landmarks(&candidates, &minimums, options(128), rng())
+    })
+    .expect("the selection succeeds");
+
+    assert_eq!(single, many);
 }
 
 /// A brute-force cosine backend over resident rows.
@@ -569,6 +651,38 @@ fn assignment_fixtures_validate_their_domain() {
     assignment_of(&[0, 0, 1, 1, 2, 9], 3);
 }
 
+#[test]
+fn quotient_is_invariant_across_thread_counts() {
+    // A 200-row ring with chords and cycling weights, contracted into
+    // ten landmarks: the one-worker and eight-worker contractions must
+    // emit bit-equal matrices.
+    let mut edges = Vec::new();
+    for row in 0_u32..200 {
+        let weight = [0.1, 0.35, 0.6, 0.85][(row % 4) as usize];
+        edges.push((row, (row + 1) % 200, weight));
+        if row % 5 == 0 {
+            edges.push((row, (row + 37) % 200, 0.35));
+        }
+    }
+    let graph = semantic_from_edges(200, &edges);
+    let ordinals: Vec<u32> = (0_u32..200).map(|row| row % 10).collect();
+    let assignment = assignment_of(&ordinals, 10);
+
+    let single = in_pool(1, || {
+        quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
+    })
+    .expect("the fixture quotient has edges");
+    let many = in_pool(8, || {
+        quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
+    })
+    .expect("the fixture quotient has edges");
+
+    assert_eq!(
+        single.matrix().into_raw_storage(),
+        many.matrix().into_raw_storage(),
+    );
+}
+
 fn curve() -> AffinityCurve {
     AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned")
 }
@@ -600,11 +714,9 @@ fn layout_is_deterministic_under_a_seed() {
     assert_ne!(first, third, "a different seed draws a different layout");
 }
 
-#[test]
-fn layout_separates_clusters() {
-    // Two 3-cliques with no edge between them: attraction gathers each
-    // clique, repulsion drives the cliques apart.
-    let graph = semantic_from_edges(
+/// Two 3-cliques with no edge between them.
+fn clique_pair() -> SemanticGraph {
+    semantic_from_edges(
         6,
         &[
             (0, 1, 1.0),
@@ -614,8 +726,40 @@ fn layout_separates_clusters() {
             (3, 5, 1.0),
             (4, 5, 1.0),
         ],
-    );
+    )
+}
 
+/// The clique-pair vertex groups.
+const CLIQUES: [&[usize]; 2] = [&[0, 1, 2], &[3, 4, 5]];
+
+/// Longest pairwise distance inside either clique.
+fn widest_within(coordinates: &[Vec2]) -> f32 {
+    let mut widest = 0.0_f32;
+    for clique in CLIQUES {
+        for (position, &left) in clique.iter().enumerate() {
+            for &right in &clique[position + 1..] {
+                widest = widest.max(coordinates[left].distance(coordinates[right]));
+            }
+        }
+    }
+    widest
+}
+
+/// Shortest distance between the two cliques.
+fn narrowest_across(coordinates: &[Vec2]) -> f32 {
+    let mut narrowest = f32::INFINITY;
+    for &left in CLIQUES[0] {
+        for &right in CLIQUES[1] {
+            narrowest = narrowest.min(coordinates[left].distance(coordinates[right]));
+        }
+    }
+    narrowest
+}
+
+#[test]
+fn layout_separates_clusters() {
+    // Attraction gathers each clique tighter than the gap between them.
+    let graph = clique_pair();
     let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
         .expect("the fixture graph lays out");
 
@@ -627,25 +771,60 @@ fn layout_separates_clusters() {
         );
     }
 
-    let clusters: [&[usize]; 2] = [&[0, 1, 2], &[3, 4, 5]];
-    let mut widest_within = 0.0_f32;
-    for cluster in clusters {
-        for (position, &left) in cluster.iter().enumerate() {
-            for &right in &cluster[position + 1..] {
-                widest_within = widest_within.max(coordinates[left].distance(coordinates[right]));
-            }
-        }
-    }
-    let mut narrowest_across = f32::INFINITY;
-    for &left in clusters[0] {
-        for &right in clusters[1] {
-            narrowest_across = narrowest_across.min(coordinates[left].distance(coordinates[right]));
-        }
-    }
-
+    let within = widest_within(&coordinates);
+    let across = narrowest_across(&coordinates);
     assert!(
-        widest_within < narrowest_across,
-        "cliques gather ({widest_within}) closer than the gap between them ({narrowest_across})",
+        within < across,
+        "cliques gather ({within}) closer than the gap between them ({across})",
+    );
+}
+
+#[test]
+fn repulsion_widens_the_gap_between_disconnected_components() {
+    // Same graph, same seed, one knob: with repulsion disabled the
+    // cliques only contract in place, so the gap the default schedule
+    // opens must exceed the unrepelled one.
+    let graph = clique_pair();
+    let repelled = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
+        .expect("the fixture graph lays out");
+    let unrepelled = layout_landmarks(
+        &graph.view(),
+        curve(),
+        LayoutOptions {
+            epochs: NonZero::new(200).expect("test epoch budgets are nonzero"),
+            repulsion_strength: RepulsionStrength::new(0.0).expect("zero disables repulsion"),
+            ..
+        },
+        rng(),
+    )
+    .expect("the fixture graph lays out");
+
+    let opened = narrowest_across(&repelled);
+    let contracted = narrowest_across(&unrepelled);
+    assert!(
+        opened > contracted,
+        "the repelled gap ({opened}) exceeds the unrepelled gap ({contracted})",
+    );
+}
+
+#[test]
+fn layout_drops_edges_weaker_than_the_epoch_budget() {
+    // The (2, 3) weight needs a hundred epochs between samples, beyond
+    // the fifty-epoch budget: the pair is never scheduled, receives no
+    // attraction, and keeps its initial separation while the
+    // full-weight pair gathers.
+    let graph = semantic_from_edges(4, &[(0, 1, 1.0), (2, 3, 0.01)]);
+
+    let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(50), rng())
+        .expect("the fixture graph lays out");
+    assert_eq!(coordinates.len(), 4);
+
+    let attracted = coordinates[0].distance(coordinates[1]);
+    let dropped = coordinates[2].distance(coordinates[3]);
+    assert!(attracted < 2.0, "the scheduled pair gathers ({attracted})");
+    assert!(
+        dropped > 6.0,
+        "the dropped pair keeps its initial separation ({dropped})",
     );
 }
 
@@ -678,37 +857,10 @@ fn layout_leaves_edgeless_rows_on_the_initial_circle() {
 }
 
 #[test]
-fn layout_rejects_malformed_inputs() {
+fn layout_rejects_an_edgeless_graph() {
     let edgeless = semantic_from_edges(2, &[]);
     assert_eq!(
         layout_landmarks(&edgeless.view(), curve(), LayoutOptions { .. }, rng()),
-        Err(LayoutError::NoEdges),
-    );
-
-    let graph = corpus_graph();
-    assert!(matches!(
-        layout_landmarks(
-            &graph.view(),
-            curve(),
-            LayoutOptions {
-                initial_learning_rate: f32::NAN,
-                ..
-            },
-            rng(),
-        ),
-        Err(LayoutError::InvalidLearningRate { .. }),
-    ));
-
-    assert_eq!(
-        layout_landmarks(
-            &graph.view(),
-            curve(),
-            LayoutOptions {
-                repulsion_strength: -1.0,
-                ..
-            },
-            rng(),
-        ),
-        Err(LayoutError::InvalidRepulsionStrength { value: -1.0 }),
+        Err(EdgelessGraphError),
     );
 }

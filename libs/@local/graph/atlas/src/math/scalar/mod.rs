@@ -1,12 +1,61 @@
-//! Numerically stable scalar special functions and checked float narrowing.
+//! Numerically stable scalar special functions, checked float narrowing,
+//! and validated scalar domains.
 //!
-//! These free functions formalize numeric patterns that recur across the
-//! crate: a stable softplus and the Huber penalty for layout losses, and
-//! checked `f64` to `f32` narrowing for persisted coordinates. Vector
+//! These formalize numeric patterns that recur across the crate: a stable
+//! softplus and the Huber penalty for layout losses, checked `f64` to
+//! `f32` narrowing for persisted coordinates, and [`UnitFraction`], the
+//! construction-validated `[0, 1]` scalar of configuration fields. Vector
 //! reductions such as softmax and log-sum-exp live on
 //! [`DVecN`](super::DVecN).
 #[cfg(test)]
 mod tests;
+
+/// A finite fraction in `[0, 1]`, valid by construction.
+///
+/// Configuration fields whose domain is the closed unit interval carry
+/// this type instead of a raw float, so an options value that exists is
+/// valid and the consuming stage validates nothing.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::UnitFraction;
+///
+/// let quarter = UnitFraction::new(0.25).expect("0.25 lies inside [0, 1]");
+/// assert_eq!(quarter.get(), 0.25);
+///
+/// assert_eq!(UnitFraction::new(1.5), None);
+/// assert_eq!(UnitFraction::new(f64::NAN), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct UnitFraction(f64);
+
+impl UnitFraction {
+    /// The fraction one.
+    pub const ONE: Self = Self(1.0);
+    /// The fraction zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Validates a fraction.
+    ///
+    /// Returns [`None`] unless the value is finite and lies in `[0, 1]`.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f64) -> Option<Self> {
+        if !(value >= 0.0 && value <= 1.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the fraction.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
 
 /// Computes `ln(1 + exp(value))` in a numerically stable form.
 ///

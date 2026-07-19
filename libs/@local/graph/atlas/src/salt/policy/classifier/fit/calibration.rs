@@ -12,8 +12,12 @@ use crate::salt::policy::{GeometryClass, classifier::softmax};
 
 const TEMPERATURE_MINIMUM: f64 = 0.05;
 const TEMPERATURE_MAXIMUM: f64 = 20.0;
+// The bracket spans ln(400) ~ 6 nats and contracts by 0.618 per
+// iteration, reaching f64 resolution near iteration 74; 96 bounds it
+// with margin at negligible cost.
 const TEMPERATURE_ITERATIONS: usize = 96;
-const GOLDEN_RATIO_CONJUGATE: f64 = 0.618_033_988_749_894_9;
+// 1 / phi = phi - 1; the subtraction is exact (phi lies in [1, 2]).
+const GOLDEN_RATIO_CONJUGATE: f64 = core::f64::consts::GOLDEN_RATIO - 1.0;
 /// Probability floor inside the cross-entropy logarithm.
 const PROBABILITY_FLOOR: f64 = 1.0e-12;
 
@@ -30,36 +34,44 @@ pub(super) struct ValidationMetrics {
 pub(super) fn fit_temperature(rows: &[TrainingRow], logits: &[[f64; GeometryClass::COUNT]]) -> f64 {
     let mut lower = TEMPERATURE_MINIMUM.ln();
     let mut upper = TEMPERATURE_MAXIMUM.ln();
-    let mut left = upper - GOLDEN_RATIO_CONJUGATE * (upper - lower);
-    let mut right = lower + GOLDEN_RATIO_CONJUGATE * (upper - lower);
+
+    let mut left = GOLDEN_RATIO_CONJUGATE.mul_add(lower - upper, upper);
+    let mut right = GOLDEN_RATIO_CONJUGATE.mul_add(upper - lower, lower);
+
     let mut left_value = cross_entropy(rows, logits, left.exp());
     let mut right_value = cross_entropy(rows, logits, right.exp());
 
     for _ in 0..TEMPERATURE_ITERATIONS {
+        // Equal values contract toward `ln T = 0`: the tie preference
+        // for a temperature near one applies during the search too.
         if (left_value, left.abs()) <= (right_value, right.abs()) {
             upper = right;
             right = left;
             right_value = left_value;
-            left = upper - GOLDEN_RATIO_CONJUGATE * (upper - lower);
+            left = GOLDEN_RATIO_CONJUGATE.mul_add(lower - upper, upper);
             left_value = cross_entropy(rows, logits, left.exp());
         } else {
             lower = left;
             left = right;
             left_value = right_value;
-            right = lower + GOLDEN_RATIO_CONJUGATE * (upper - lower);
+            right = GOLDEN_RATIO_CONJUGATE.mul_add(upper - lower, lower);
             right_value = cross_entropy(rows, logits, right.exp());
         }
     }
 
+    // `0.0` is `ln 1`: the identity temperature always competes, so
+    // calibration can never worsen the cross-entropy it minimizes.
     [lower, left, 0.0, right, upper]
         .into_iter()
-        .min_by(|left, right| {
-            cross_entropy(rows, logits, left.exp())
-                .total_cmp(&cross_entropy(rows, logits, right.exp()))
+        .map(|candidate| (cross_entropy(rows, logits, candidate.exp()), candidate))
+        .min_by(|(left_value, left), (right_value, right)| {
+            left_value
+                .total_cmp(right_value)
                 .then_with(|| left.abs().total_cmp(&right.abs()))
                 .then_with(|| left.total_cmp(right))
         })
         .unwrap_or_else(|| unreachable!("the candidate set is non-empty"))
+        .1
         .exp()
 }
 
@@ -85,6 +97,7 @@ fn cross_entropy(
 ) -> f64 {
     let mut loss = 0.0;
     let mut total_weight = 0.0;
+
     for (row, logits) in rows.iter().zip(logits) {
         let probabilities = softmax(*logits, temperature);
         let row_loss = row
@@ -93,7 +106,8 @@ fn cross_entropy(
             .zip(probabilities)
             .map(|(target, probability)| target * probability.max(PROBABILITY_FLOOR).ln())
             .sum::<f64>();
-        loss -= row.weight * row_loss;
+
+        loss = row.weight.mul_add(-row_loss, loss);
         total_weight += row.weight;
     }
 
@@ -104,6 +118,7 @@ fn cross_entropy(
 fn brier(rows: &[TrainingRow], logits: &[[f64; GeometryClass::COUNT]], temperature: f64) -> f64 {
     let mut loss = 0.0;
     let mut total_weight = 0.0;
+
     for (row, logits) in rows.iter().zip(logits) {
         let probabilities = softmax(*logits, temperature);
         let row_loss = probabilities
@@ -111,7 +126,7 @@ fn brier(rows: &[TrainingRow], logits: &[[f64; GeometryClass::COUNT]], temperatu
             .zip(row.target)
             .map(|(probability, target)| (probability - target).powi(2))
             .sum::<f64>();
-        loss += row.weight * row_loss;
+        loss = row.weight.mul_add(row_loss, loss);
         total_weight += row.weight;
     }
 

@@ -15,7 +15,7 @@ use core::{
 
 use proptest::prelude::*;
 
-use crate::math::{AlignedVecN, BoxedVecN, DVecN, VecN};
+use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
 
 /// Deterministic, sign-varying components crossing several 8-lane chunks.
 fn scattered<const N: usize>(offset: f32) -> [f32; N] {
@@ -32,6 +32,59 @@ fn reference_dot(left: &[f32], right: &[f64]) -> f64 {
         .zip(right)
         .map(|(&narrow, &wide)| f64::from(narrow) * wide)
         .sum()
+}
+
+#[test]
+fn is_finite_rejects_any_non_finite_component() {
+    // N = 11 crosses one full 8-lane chunk plus a remainder; the
+    // poison positions exercise the lane path (index 3) and the
+    // remainder path (index 9) separately.
+    let finite: [f32; 11] = scattered(0.25);
+    assert!(VecN::new(finite).is_finite());
+
+    for position in [3, 9] {
+        for poison in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let mut components = finite;
+            components[position] = poison;
+            assert!(
+                !VecN::new(components).is_finite(),
+                "{poison} at {position} should not be finite",
+            );
+        }
+    }
+}
+
+#[test]
+fn aligned_is_finite_matches_the_unaligned_answer() {
+    let mut boxed = BoxedVecN::<11>::zero();
+    boxed.as_array_mut().copy_from_slice(&scattered::<11>(-0.5));
+    assert!(boxed.is_finite());
+
+    for position in [2, 9] {
+        boxed.as_array_mut().copy_from_slice(&scattered::<11>(-0.5));
+        boxed.as_array_mut()[position] = f32::NAN;
+        assert!(!boxed.is_finite(), "NaN at {position} should not be finite");
+    }
+}
+
+#[test]
+fn aligned_dot_wide_matches_f64_reference() {
+    let narrow: [f32; 45] = scattered(0.25);
+    let wide: [f64; 45] = core::array::from_fn(|index| {
+        f64::from(u8::try_from(index % 100).expect("bounded by modulus")).mul_add(0.01, -0.3)
+    });
+
+    let mut boxed_narrow = BoxedVecN::<45>::zero();
+    boxed_narrow.as_array_mut().copy_from_slice(&narrow);
+    let boxed_wide = BoxedDVecN::new(DVecN::from_ref(&wide));
+
+    let expected = reference_dot(&narrow, &wide);
+    let actual = boxed_narrow.dot_wide(&boxed_wide);
+
+    assert!(
+        (actual - expected).abs() < 1e-12 * expected.abs().max(1.0),
+        "{actual} vs {expected}",
+    );
 }
 
 #[test]

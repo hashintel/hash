@@ -7,8 +7,10 @@
 use proptest::prelude::*;
 
 use super::{
-    ClassProbabilities, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
+    ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,
+    RelationPolicy,
     attraction::AttractionOptions,
+    build,
     error::RelationIndexError,
     protection::{AdmissionThresholds, NodePair, PairVerdict, ProtectionOptions},
 };
@@ -50,18 +52,27 @@ fn scored(mut base: RelationInstance, link: f32) -> RelationInstance {
 }
 
 fn build(
-    rows: usize,
     policies: &[RelationPolicy],
-    instances: Vec<RelationInstance>,
+    mut instances: Vec<RelationInstance>,
+    attraction: AttractionOptions,
+    protection: ProtectionOptions,
 ) -> RelationIndexes {
     RelationIndexes::build(
-        rows,
+        Policies::new(policies).expect("the fixture policies are certified"),
+        &mut instances,
+        attraction,
+        protection,
+    )
+    .expect("the fixture instances satisfy the input contract")
+}
+
+fn build_default(policies: &[RelationPolicy], instances: Vec<RelationInstance>) -> RelationIndexes {
+    build(
         policies,
         instances,
         AttractionOptions::default(),
         ProtectionOptions::default(),
     )
-    .expect("the fixture instances satisfy every contract")
 }
 
 fn pair(one: u64, other: u64) -> NodePair {
@@ -108,8 +119,7 @@ fn unscored_confidences_are_neutral_with_provenance() {
 fn degree_normalization_counts_the_relations_complete_instance_set() {
     // Node 0 sources three instances and node 1 receives three, so the
     // 0 -> 1 edge sees (1 + 3)(1 + 3) = 16 and nu = 0.25 exactly.
-    let indexes = build(
-        6,
+    let indexes = build_default(
         &[proximal_policy(0)],
         vec![
             instance(0, 0, 0, 1),
@@ -129,9 +139,8 @@ fn degree_normalization_counts_the_relations_complete_instance_set() {
     assert_eq!(edges[0].degree_normalization, 0.25);
     // The 0 -> 3 edge sees (1 + 3)(1 + 1) = 8.
     #[expect(
-        clippy::suboptimal_flops,
-        reason = "the reference deliberately mirrors the naive formula independently of the \
-                  implementation's reciprocal-square-root form"
+        clippy::cast_possible_truncation,
+        reason = "the reference narrows to working precision exactly like the contract"
     )]
     let expected = (1.0 / 8.0_f64.sqrt()) as f32;
     assert_eq!(edges[2].degree_normalization, expected);
@@ -142,8 +151,7 @@ fn degrees_are_per_relation() {
     // The same endpoints under a second relation contribute nothing to
     // the first relation's degrees: each relation's 0 -> 1 edge sees
     // (1 + 1)(1 + 1) = 4.
-    let indexes = build(
-        2,
+    let indexes = build_default(
         &[proximal_policy(0), proximal_policy(1)],
         vec![instance(0, 0, 0, 1), instance(1, 1, 0, 1)],
     );
@@ -168,17 +176,12 @@ fn group_weights_carry_the_policy_and_coefficient() {
         applicability: 1.0,
         strength: 2.0,
     };
-    let indexes = RelationIndexes::build(
-        2,
+    let indexes = build(
         &[policy],
         vec![instance(0, 0, 0, 1)],
-        AttractionOptions {
-            coincident_coefficient: 2.0,
-            ..AttractionOptions::default()
-        },
+        AttractionOptions::new(2.0, 0.0).expect("the fixture settings are in domain"),
         ProtectionOptions::default(),
-    )
-    .expect("the fixture satisfies every contract");
+    );
 
     let weights = indexes.attraction.groups()[0].weights();
     assert_eq!(weights.coincident, 0.5);
@@ -189,8 +192,7 @@ fn group_weights_carry_the_policy_and_coefficient() {
 
 #[test]
 fn groups_ascend_and_edges_sort_within_them() {
-    let indexes = build(
-        4,
+    let indexes = build_default(
         &[proximal_policy(0), proximal_policy(2)],
         vec![
             instance(3, 2, 1, 0),
@@ -218,8 +220,7 @@ fn groups_ascend_and_edges_sort_within_them() {
 fn one_edge_row_carries_several_relations() {
     // A multi-typed link is one instance per relation: both groups hold
     // the edge row, and the pair aggregates across relations.
-    let indexes = build(
-        2,
+    let indexes = build_default(
         &[proximal_policy(0), proximal_policy(1)],
         vec![instance(0, 0, 0, 1), instance(0, 1, 0, 1)],
     );
@@ -237,8 +238,7 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
         },
         ..proximal_policy(0)
     };
-    let indexes = RelationIndexes::build(
-        4,
+    let indexes = build(
         &[policy],
         vec![
             // Masses 1.0 * 0.5 = 0.5, 0.5 * 0.5 = 0.25, 0.25 * 0.5 = 0.125.
@@ -246,13 +246,9 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
             scored(instance(1, 0, 0, 2), 0.5),
             scored(instance(2, 0, 0, 3), 0.25),
         ],
-        AttractionOptions {
-            pruning_threshold: 0.25,
-            ..AttractionOptions::default()
-        },
+        AttractionOptions::new(0.0, 0.25).expect("the fixture settings are in domain"),
         ProtectionOptions::default(),
-    )
-    .expect("the fixture satisfies every contract");
+    );
 
     // The mass exactly at the threshold is retained.
     assert_eq!(indexes.evidence.retained_edges, 2);
@@ -267,8 +263,7 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
 fn pruned_instances_keep_their_degree_contributions() {
     // Every instance but the first prunes at zero confidence, yet the
     // retained 0 -> 1 edge still sees both endpoints at degree 3.
-    let indexes = RelationIndexes::build(
-        6,
+    let indexes = build(
         &[proximal_policy(0)],
         vec![
             scored(instance(0, 0, 0, 1), 1.0),
@@ -277,13 +272,9 @@ fn pruned_instances_keep_their_degree_contributions() {
             scored(instance(3, 0, 4, 1), 0.0),
             scored(instance(4, 0, 5, 1), 0.0),
         ],
-        AttractionOptions {
-            pruning_threshold: 0.5,
-            ..AttractionOptions::default()
-        },
+        AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
         ProtectionOptions::default(),
-    )
-    .expect("the fixture satisfies every contract");
+    );
 
     let edges = indexes.attraction.groups()[0].edges();
     assert_eq!(edges.len(), 1);
@@ -294,17 +285,12 @@ fn pruned_instances_keep_their_degree_contributions() {
 #[test]
 fn pruning_never_reaches_protection() {
     // An instance pruned from attraction still protects its pair.
-    let indexes = RelationIndexes::build(
-        2,
+    let indexes = build(
         &[proximal_policy(0)],
         vec![scored(instance(0, 0, 0, 1), 0.25)],
-        AttractionOptions {
-            pruning_threshold: 0.5,
-            ..AttractionOptions::default()
-        },
+        AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
         ProtectionOptions::default(),
-    )
-    .expect("the fixture satisfies every contract");
+    );
 
     assert_eq!(indexes.attraction.edges(), 0);
     assert!(indexes.attraction.groups().is_empty());
@@ -339,17 +325,12 @@ fn protection_channels_aggregate_independently_by_maximum() {
             ..proximal_policy(1)
         },
     ];
-    let indexes = RelationIndexes::build(
-        2,
+    let indexes = build(
         &policies,
         vec![instance(0, 0, 0, 1), instance(1, 1, 0, 1)],
         AttractionOptions::default(),
-        ProtectionOptions {
-            hard_floor: 0.5,
-            ordinary_floor: 0.0,
-        },
-    )
-    .expect("the fixture satisfies every contract");
+        ProtectionOptions::new(0.5, 0.0).expect("the fixture floors are ordered"),
+    );
 
     let protection = indexes
         .protection
@@ -361,8 +342,7 @@ fn protection_channels_aggregate_independently_by_maximum() {
 
 #[test]
 fn protection_ignores_link_direction() {
-    let indexes = build(
-        2,
+    let indexes = build_default(
         &[proximal_policy(0)],
         vec![instance(0, 0, 0, 1), instance(1, 0, 1, 0)],
     );
@@ -373,14 +353,10 @@ fn protection_ignores_link_direction() {
 
 #[test]
 fn judge_compares_masses_against_thresholds() {
-    let indexes = build(3, &[proximal_policy(0)], vec![instance(0, 0, 0, 1)]);
+    let indexes = build_default(&[proximal_policy(0)], vec![instance(0, 0, 0, 1)]);
 
     // The unscored instance's masses are 1.0 in both channels.
-    let strict = AdmissionThresholds {
-        hard: 1.0,
-        ordinary: 1.0,
-        ..AdmissionThresholds::default()
-    };
+    let strict = AdmissionThresholds::new(1.0, 1.0, true).expect("the thresholds are ordered");
     assert_eq!(
         indexes.protection.judge(pair(0, 1), strict),
         PairVerdict {
@@ -389,20 +365,13 @@ fn judge_compares_masses_against_thresholds() {
         },
     );
 
-    let unreachable = AdmissionThresholds {
-        hard: 1.5,
-        ordinary: 2.0,
-        ..AdmissionThresholds::default()
-    };
+    let unreachable = AdmissionThresholds::new(1.5, 2.0, true).expect("the thresholds are ordered");
     assert_eq!(
         indexes.protection.judge(pair(0, 1), unreachable),
         PairVerdict::UNPROTECTED,
     );
 
-    let hard_only = AdmissionThresholds {
-        protect_ordinary: false,
-        ..AdmissionThresholds::default()
-    };
+    let hard_only = AdmissionThresholds::new(0.0, 0.0, false).expect("the thresholds are ordered");
     assert_eq!(
         indexes.protection.judge(pair(0, 1), hard_only),
         PairVerdict {
@@ -422,8 +391,7 @@ fn judge_compares_masses_against_thresholds() {
 
 #[test]
 fn self_references_are_dropped_and_counted() {
-    let indexes = build(
-        2,
+    let indexes = build_default(
         &[proximal_policy(0)],
         vec![instance(0, 0, 0, 0), instance(1, 0, 0, 1)],
     );
@@ -436,7 +404,7 @@ fn self_references_are_dropped_and_counted() {
 
 #[test]
 fn empty_instances_build_empty_indexes() {
-    let indexes = build(4, &[proximal_policy(0)], Vec::new());
+    let indexes = build_default(&[proximal_policy(0)], Vec::new());
 
     assert!(indexes.attraction.groups().is_empty());
     assert!(indexes.protection.pairs().is_empty());
@@ -445,25 +413,16 @@ fn empty_instances_build_empty_indexes() {
 }
 
 #[test]
-fn misordered_policies_are_rejected() {
-    let result = RelationIndexes::build(
-        2,
-        &[proximal_policy(1), proximal_policy(0)],
-        Vec::new(),
-        AttractionOptions::default(),
-        ProtectionOptions::default(),
-    );
+fn policy_tables_certify_order_and_domains() {
     assert_eq!(
-        result.expect_err("descending policies violate the order contract"),
+        Policies::new(&[proximal_policy(1), proximal_policy(0)])
+            .expect_err("descending policies violate the order contract"),
         RelationIndexError::PolicyOrder {
             position: 1,
             relation: OntologyRowId::new(0),
         },
     );
-}
 
-#[test]
-fn policy_domains_are_rejected() {
     for policy in [
         RelationPolicy {
             applicability: f32::NAN,
@@ -481,15 +440,8 @@ fn policy_domains_are_rejected() {
             ..proximal_policy(0)
         },
     ] {
-        let result = RelationIndexes::build(
-            2,
-            &[policy],
-            Vec::new(),
-            AttractionOptions::default(),
-            ProtectionOptions::default(),
-        );
         assert_eq!(
-            result.expect_err("the policy value lies outside its domain"),
+            Policies::new(&[policy]).expect_err("the policy value lies outside its domain"),
             RelationIndexError::PolicyDomain {
                 relation: OntologyRowId::new(0),
             },
@@ -498,133 +450,80 @@ fn policy_domains_are_rejected() {
 }
 
 #[test]
-fn invalid_instances_are_rejected() {
-    let missing = RelationIndexes::build(
-        2,
-        &[proximal_policy(0)],
-        vec![instance(0, 7, 0, 1)],
+fn uncovered_relations_are_rejected() {
+    let policies = [proximal_policy(0)];
+    let result = RelationIndexes::build(
+        Policies::new(&policies).expect("the fixture policies are certified"),
+        &mut [instance(0, 7, 0, 1)],
         AttractionOptions::default(),
         ProtectionOptions::default(),
     );
     assert_eq!(
-        missing.expect_err("relation 7 has no policy"),
+        result.expect_err("relation 7 has no policy"),
         RelationIndexError::MissingPolicy {
-            edge: EdgeRowId::new(0),
             relation: OntologyRowId::new(7),
-        },
-    );
-
-    let out_of_bounds = RelationIndexes::build(
-        2,
-        &[proximal_policy(0)],
-        vec![instance(0, 0, 0, 2)],
-        AttractionOptions::default(),
-        ProtectionOptions::default(),
-    );
-    assert_eq!(
-        out_of_bounds.expect_err("node row 2 is outside the 2-row domain"),
-        RelationIndexError::EndpointOutOfBounds {
-            edge: EdgeRowId::new(0),
-            endpoint: NodeRowId::new(2),
-            rows: 2,
-        },
-    );
-
-    let confidence = RelationIndexes::build(
-        2,
-        &[proximal_policy(0)],
-        vec![scored(instance(0, 0, 0, 1), 1.5)],
-        AttractionOptions::default(),
-        ProtectionOptions::default(),
-    );
-    assert_eq!(
-        confidence.expect_err("a confidence of 1.5 lies outside 0..=1"),
-        RelationIndexError::ConfidenceDomain {
-            edge: EdgeRowId::new(0),
-            value: 1.5,
-        },
-    );
-
-    let duplicate = RelationIndexes::build(
-        2,
-        &[proximal_policy(0)],
-        vec![instance(0, 0, 0, 1), instance(0, 0, 1, 0)],
-        AttractionOptions::default(),
-        ProtectionOptions::default(),
-    );
-    assert_eq!(
-        duplicate.expect_err("edge row 0 occurs twice under relation 0"),
-        RelationIndexError::DuplicateInstance {
-            edge: EdgeRowId::new(0),
-            relation: OntologyRowId::new(0),
         },
     );
 }
 
 #[test]
-fn invalid_options_are_rejected() {
-    let coefficient = RelationIndexes::build(
-        2,
-        &[],
-        Vec::new(),
-        AttractionOptions {
-            coincident_coefficient: -1.0,
-            ..AttractionOptions::default()
-        },
-        ProtectionOptions::default(),
-    );
-    assert_eq!(
-        coefficient.expect_err("a negative coefficient lies outside its domain"),
-        RelationIndexError::CoincidentCoefficient { value: -1.0 },
-    );
+fn option_constructors_reject_out_of_domain_settings() {
+    assert!(AttractionOptions::new(-1.0, 0.0).is_none());
+    assert!(AttractionOptions::new(f32::NAN, 0.0).is_none());
+    assert!(AttractionOptions::new(0.0, f32::INFINITY).is_none());
+    assert!(AttractionOptions::new(4.0, 0.01).is_some());
 
-    let threshold = RelationIndexes::build(
-        2,
-        &[],
-        Vec::new(),
-        AttractionOptions {
-            pruning_threshold: f32::NAN,
-            ..AttractionOptions::default()
-        },
-        ProtectionOptions::default(),
-    );
-    assert!(matches!(
-        threshold.expect_err("a NaN threshold lies outside its domain"),
-        RelationIndexError::PruningThreshold { .. },
-    ));
+    assert!(ProtectionOptions::new(0.25, 0.5).is_none());
+    assert!(ProtectionOptions::new(1.5, 0.0).is_none());
+    assert!(ProtectionOptions::new(f32::NAN, 0.0).is_none());
+    assert!(ProtectionOptions::new(0.5, 0.25).is_some());
 
-    let floors = RelationIndexes::build(
-        2,
-        &[],
-        Vec::new(),
-        AttractionOptions::default(),
-        ProtectionOptions {
-            hard_floor: 0.25,
-            ordinary_floor: 0.5,
-        },
-    );
-    assert_eq!(
-        floors.expect_err("an ordinary floor above the hard floor is misordered"),
-        RelationIndexError::ProtectionFloors {
-            hard: 0.25,
-            ordinary: 0.5,
-        },
-    );
+    assert!(AdmissionThresholds::new(0.5, 0.25, true).is_none());
+    assert!(AdmissionThresholds::new(-1.0, 0.0, true).is_none());
+    assert!(AdmissionThresholds::new(0.0, f32::NAN, true).is_none());
+    assert!(AdmissionThresholds::new(0.25, 0.5, false).is_some());
+}
 
-    let thresholds = AdmissionThresholds {
-        hard: 0.5,
-        ordinary: 0.25,
-        ..AdmissionThresholds::default()
-    };
-    assert_eq!(
-        thresholds
-            .validate()
-            .expect_err("a hard threshold above the ordinary threshold is misordered"),
-        RelationIndexError::AdmissionThresholds {
-            hard: 0.5,
-            ordinary: 0.25,
-        },
-    );
+#[test]
+fn a_group_spanning_several_emission_chunks_matches_the_chain_reference() {
+    // A chain 0 -> 1 -> ... -> n under one relation forces the group
+    // through several fixed emission chunks: source runs cross chunk
+    // boundaries, and every degree must still count the whole group.
+    let nodes = 3 * build::EMISSION_CHUNK + 7;
+    let instances: Vec<RelationInstance> = (0..nodes - 1)
+        .map(|link| instance(link as u64, 0, link as u64, link as u64 + 1))
+        .collect();
+
+    let indexes = build_default(&[proximal_policy(0)], instances);
+
+    let groups = indexes.attraction.groups();
+    assert_eq!(groups.len(), 1);
+    let edges = groups[0].edges();
+    assert_eq!(edges.len(), nodes - 1);
+
+    // Chain degrees: 1 at both ends, 2 everywhere else. Edge `k`
+    // connects rows `k` and `k + 1`.
+    for (position, edge) in edges.iter().enumerate() {
+        assert_eq!(edge.source, NodeRowId::new(position as u64));
+        let left = if position == 0 { 2.0_f64 } else { 3.0 };
+        let right = if position == nodes - 2 { 2.0_f64 } else { 3.0 };
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the reference narrows to working precision exactly like the contract"
+        )]
+        let expected = ((left * right).sqrt().recip()) as f32;
+        assert_eq!(edge.degree_normalization, expected, "edge {position}");
+    }
+
+    // Every unscored instance carries mass exactly 1.0, so the chunked
+    // double-precision partial sums are exact whatever the chunking.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "the fixture size sits far below f64 integer precision"
+    )]
+    let expected_mass = (nodes - 1) as f64;
+    assert_eq!(indexes.evidence.retained_mass, expected_mass);
+    assert_eq!(indexes.evidence.retained_edges, nodes - 1);
 }
 
 /// Asserts two builds produced identical indexes, component by component.
@@ -710,8 +609,8 @@ proptest! {
         let mut reversed = instances.clone();
         reversed.reverse();
 
-        let forward = build(8, &policies, instances);
-        let backward = build(8, &policies, reversed);
+        let forward = build_default(&policies, instances);
+        let backward = build_default(&policies, reversed);
         assert_indexes_equal(&forward, &backward);
 
         prop_assert_eq!(forward.evidence.self_references, self_references);
@@ -722,8 +621,7 @@ proptest! {
             .iter()
             .map(|group| group.relation().get())
             .collect();
-        prop_assert!(relations.is_sorted());
-        prop_assert!(relations.windows(2).all(|window| window[0] != window[1]));
+        prop_assert!(relations.is_sorted_by(|one, other| one < other));
 
         for group in forward.attraction.groups() {
             prop_assert!(!group.edges().is_empty());
@@ -741,8 +639,7 @@ proptest! {
             .iter()
             .map(|entry| (entry.pair.first().get(), entry.pair.second().get()))
             .collect();
-        prop_assert!(pairs.is_sorted());
-        prop_assert!(pairs.windows(2).all(|window| window[0] != window[1]));
+        prop_assert!(pairs.is_sorted_by(|one, other| one < other));
         prop_assert!(pairs.iter().all(|&(first, second)| first < second));
     }
 }

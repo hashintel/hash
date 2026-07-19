@@ -88,7 +88,8 @@ where
     ])
     .expect("two dimensions fit the maximum shape rank");
     let header = FileHeader::new(
-        N::VARIANT,
+        N::TAG,
+        size_of::<N>() as u64,
         I::VARIANT,
         Iptr::VARIANT,
         matrix.storage().into(),

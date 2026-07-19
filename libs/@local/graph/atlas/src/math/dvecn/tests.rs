@@ -6,7 +6,7 @@
 
 use proptest::prelude::*;
 
-use crate::math::DVecN;
+use crate::math::{BoxedDVecN, DVecN};
 
 #[test]
 fn max_and_sum_match_scalar_folds_across_chunk_sizes() {
@@ -141,6 +141,83 @@ fn add_scaled_matches_scalar_reference() {
     });
 
     accumulator.add_scaled(&direction, -0.25);
+
+    assert_eq!(accumulator.as_array(), &expected);
+}
+
+#[test]
+fn add_widened_matches_scalar_reference() {
+    // Crosses one full 8-lane chunk plus a remainder.
+    let mut accumulator = DVecN::new(core::array::from_fn::<f64, 11, _>(|index| {
+        f64::from(u8::try_from(index).expect("test sizes are small")) * 0.25
+    }));
+    let rhs = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
+        f32::from(u8::try_from(index).expect("test sizes are small")) - 3.5
+    }));
+    let expected: [f64; 11] = core::array::from_fn(|index| {
+        accumulator.as_array()[index] + f64::from(rhs.as_array()[index])
+    });
+
+    accumulator.add_widened(&rhs);
+
+    assert_eq!(accumulator.as_array(), &expected);
+}
+
+#[test]
+fn div_assign_divides_every_component() {
+    // N = 11 crosses one full 8-lane group plus a remainder, so both
+    // the SIMD and scalar paths divide; the operation is a plain IEEE
+    // division either way, so the results are bit-equal.
+    let components = core::array::from_fn::<f64, 11, _>(|index| {
+        f64::from(u8::try_from(index).expect("test sizes are small")).mul_add(0.75, -4.0)
+    });
+    let mut boxed = BoxedDVecN::new(DVecN::from_ref(&components));
+    let expected = components.map(|component| component / -2.5);
+
+    *boxed /= -2.5;
+
+    assert_eq!(boxed.as_array(), &expected);
+}
+
+#[test]
+fn aligned_accumulators_delegate_to_the_widening_kernels() {
+    // Exercises the `AlignedDVecN` delegate surface over aligned boxed
+    // storage; expectations are plain scalar arithmetic.
+    let mut accumulator = BoxedDVecN::<11>::zero();
+    let value = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
+        f32::from(u8::try_from(index).expect("test sizes are small")) - 4.5
+    }));
+    let mean = BoxedDVecN::new(DVecN::from_ref(&[0.5; 11]));
+
+    accumulator.add_widened(&value);
+    accumulator.add_squared_deviation(&value, &mean);
+
+    let expected: [f64; 11] = core::array::from_fn(|index| {
+        let widened = f64::from(value.as_array()[index]);
+        let centered = widened - 0.5;
+        centered.mul_add(centered, widened)
+    });
+    assert_eq!(accumulator.as_array(), &expected);
+}
+
+#[test]
+fn add_squared_deviation_matches_scalar_reference() {
+    // Crosses one full 8-lane chunk plus a remainder.
+    let mut accumulator = DVecN::new(core::array::from_fn::<f64, 11, _>(|index| {
+        f64::from(u8::try_from(index).expect("test sizes are small")) * 0.125
+    }));
+    let value = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
+        f32::from(u8::try_from(index).expect("test sizes are small")) - 4.5
+    }));
+    let mean = DVecN::new(core::array::from_fn::<f64, 11, _>(|index| {
+        f64::from(u8::try_from(index).expect("test sizes are small")).mul_add(-0.5, 1.0)
+    }));
+    let expected: [f64; 11] = core::array::from_fn(|index| {
+        let centered = f64::from(value.as_array()[index]) - mean.as_array()[index];
+        centered.mul_add(centered, accumulator.as_array()[index])
+    });
+
+    accumulator.add_squared_deviation(&value, &mean);
 
     assert_eq!(accumulator.as_array(), &expected);
 }

@@ -14,8 +14,9 @@ use core::{
     ptr::{self, NonNull},
     simd::{f32x8, f64x8, num::SimdFloat as _},
 };
+use std::simd::Simd;
 
-use super::{dvecn::DVecN, kernel::mul_add_f64x8};
+use super::{AlignedDVecN, dvecn::DVecN, kernel::mul_add_f64x8};
 
 #[cfg(test)]
 mod tests;
@@ -228,6 +229,20 @@ impl<const N: usize> VecN<N> {
         }
 
         sum
+    }
+
+    /// Returns whether every component is finite.
+    ///
+    /// A single NaN or infinity anywhere in the vector makes it false.
+    #[inline]
+    #[must_use]
+    pub fn is_finite(&self) -> bool {
+        let (chunks, remainder) = self.0.as_chunks::<8>();
+
+        chunks
+            .iter()
+            .all(|lane| Simd::from_array(*lane).is_finite().all())
+            && remainder.iter().all(|x| x.is_finite())
     }
 }
 
@@ -455,8 +470,18 @@ impl<const N: usize> AlignedVecN<N> {
     /// [`VecN::dot_wide`].
     #[inline]
     #[must_use]
-    pub fn dot_wide(&self, coefficients: &DVecN<N>) -> f64 {
-        VecN::from_ref(self.as_array()).dot_wide(coefficients)
+    pub fn dot_wide(&self, coefficients: &AlignedDVecN<N>) -> f64 {
+        VecN::from_ref(self.as_array()).dot_wide(DVecN::from_ref(coefficients.as_array()))
+    }
+
+    /// Returns whether every component is finite; see
+    /// [`VecN::is_finite`].
+    #[inline]
+    #[must_use]
+    pub fn is_finite(&self) -> bool {
+        let (lanes, rest) = self.lanes();
+
+        lanes.iter().all(|lane| lane.is_finite().all()) && rest.iter().all(|x| x.is_finite())
     }
 }
 

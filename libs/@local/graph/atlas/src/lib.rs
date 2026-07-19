@@ -11,6 +11,7 @@
 //! - [`math`] - 2D geometry, transforms, embedding kernels, and the affinity curve, all
 //!   SIMD-native.
 //! - [`random`] - unbiased sampling and statistical acceptance bounds.
+//! - [`bitset`] - fixed-capacity dense bit sets over row domains.
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
 //! - `file` - the on-disk artifact formats: plain files in a directory, described by metadata
 //!   beside them.
@@ -55,6 +56,7 @@
 )]
 extern crate alloc;
 
+pub mod bitset;
 pub(crate) mod dataset;
 mod file;
 pub mod integrity;

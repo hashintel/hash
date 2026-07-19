@@ -94,7 +94,7 @@ pub use self::{
     dvec2::{DVec2, DVec2x4T},
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
     rotation::Rotation,
-    scalar::{huber, narrow_f32, narrow_f32_exact, softplus},
+    scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, softplus},
     similarity::Similarity,
     transform::Transform,
     translation::Translation,

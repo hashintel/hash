@@ -8,10 +8,10 @@
 //! edge factors into its class energies, so every factor of the
 //! relation-attraction objective is applied exactly once by construction.
 
-use super::{EffectiveConfidence, error::RelationIndexError};
+use super::EffectiveConfidence;
 use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 
-/// Shared attraction settings of one generation.
+/// Shared attraction settings of one generation, valid by construction.
 ///
 /// The Coincident coefficient `kappa_C` scales the Coincident energy
 /// relative to Proximal's unit scale. It stays 0 until the generation's
@@ -26,34 +26,45 @@ use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 /// attraction sampling: protection masses never pass through it.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct AttractionOptions {
-    /// The shared Coincident coefficient `kappa_C`, finite and
-    /// non-negative. Defaults to 0: the Coincident class exerts no pull
-    /// until its release gate is met.
-    pub coincident_coefficient: f32 = 0.0,
-    /// The force-pruning threshold `eta_F`, finite and non-negative.
-    /// Defaults to 0: every admitted instance is retained.
-    pub pruning_threshold: f32 = 0.0,
+    coincident_coefficient: f32 = 0.0,
+    pruning_threshold: f32 = 0.0,
 }
 
 impl AttractionOptions {
-    /// Checks both settings against their domains.
+    /// Creates settings from a Coincident coefficient and a pruning
+    /// threshold.
     ///
-    /// # Errors
-    ///
-    /// Returns an error when the Coincident coefficient or the pruning
-    /// threshold is negative or not finite.
-    pub(super) fn validate(self) -> Result<(), RelationIndexError> {
-        if !self.coincident_coefficient.is_finite() || self.coincident_coefficient < 0.0 {
-            return Err(RelationIndexError::CoincidentCoefficient {
-                value: self.coincident_coefficient,
-            });
+    /// Returns [`None`] unless both values are finite and non-negative.
+    /// The default is `kappa_C = 0` (the Coincident class exerts no pull
+    /// until its release gate is met) and `eta_F = 0` (every admitted
+    /// instance is retained).
+    #[must_use]
+    pub(crate) const fn new(coincident_coefficient: f32, pruning_threshold: f32) -> Option<Self> {
+        if !(coincident_coefficient.is_finite() && coincident_coefficient >= 0.0) {
+            return None;
         }
-        if !self.pruning_threshold.is_finite() || self.pruning_threshold < 0.0 {
-            return Err(RelationIndexError::PruningThreshold {
-                value: self.pruning_threshold,
-            });
+        if !(pruning_threshold.is_finite() && pruning_threshold >= 0.0) {
+            return None;
         }
-        Ok(())
+
+        Some(Self {
+            coincident_coefficient,
+            pruning_threshold,
+        })
+    }
+
+    /// Returns the shared Coincident coefficient `kappa_C`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn coincident_coefficient(self) -> f32 {
+        self.coincident_coefficient
+    }
+
+    /// Returns the force-pruning threshold `eta_F`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn pruning_threshold(self) -> f32 {
+        self.pruning_threshold
     }
 }
 
@@ -103,7 +114,7 @@ impl AttractionWeights {
     /// pruning predicate compares that mass against the threshold.
     #[inline]
     #[must_use]
-    pub(crate) fn scale(self) -> f32 {
+    pub(crate) const fn scale(self) -> f32 {
         self.coincident + self.proximal
     }
 }
@@ -111,12 +122,25 @@ impl AttractionWeights {
 /// One relation type's retained instances and shared weights.
 #[derive(Debug, Clone)]
 pub(crate) struct AttractionGroup {
-    pub(super) relation: OntologyRowId,
-    pub(super) weights: AttractionWeights,
-    pub(super) edges: Vec<AttractionEdge>,
+    relation: OntologyRowId,
+    weights: AttractionWeights,
+    edges: Vec<AttractionEdge>,
 }
 
 impl AttractionGroup {
+    /// Assembles a group; the builder upholds the documented edge order.
+    pub(super) const fn new(
+        relation: OntologyRowId,
+        weights: AttractionWeights,
+        edges: Vec<AttractionEdge>,
+    ) -> Self {
+        Self {
+            relation,
+            weights,
+            edges,
+        }
+    }
+
     /// Returns the relation type the group's instances share.
     #[inline]
     #[must_use]
@@ -135,8 +159,8 @@ impl AttractionGroup {
     /// edge)`.
     #[inline]
     #[must_use]
-    pub(crate) fn edges(&self) -> &[AttractionEdge] {
-        &self.edges
+    pub(crate) const fn edges(&self) -> &[AttractionEdge] {
+        self.edges.as_slice()
     }
 }
 
@@ -148,15 +172,21 @@ impl AttractionGroup {
 /// identical for any input order of the same instances.
 #[derive(Debug, Clone)]
 pub(crate) struct AttractionIndex {
-    pub(super) groups: Vec<AttractionGroup>,
+    groups: Vec<AttractionGroup>,
 }
 
 impl AttractionIndex {
+    /// Assembles the index; the builder upholds the documented group
+    /// order.
+    pub(super) const fn new(groups: Vec<AttractionGroup>) -> Self {
+        Self { groups }
+    }
+
     /// Borrows the relation groups, ascending by relation row.
     #[inline]
     #[must_use]
-    pub(crate) fn groups(&self) -> &[AttractionGroup] {
-        &self.groups
+    pub(crate) const fn groups(&self) -> &[AttractionGroup] {
+        self.groups.as_slice()
     }
 
     /// Returns the retained instance count over all groups.

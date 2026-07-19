@@ -28,18 +28,79 @@
 //! layout exactly. Rows without edges keep their initial placement: no
 //! attraction schedules them, and repulsion moves only the sampled
 //! endpoint.
+//!
+//! The optimizer is serial by design: each gradient step reads
+//! coordinates the previous step wrote, and the bit-reproducible
+//! layout is the property the serial order buys. Parallelism belongs
+//! to the stages around it, not inside the epoch loop.
 
 use core::{array, error::Error, f32::consts::TAU, fmt, num::NonZero, simd::num::SimdFloat as _};
 
 use rand::{Rng, RngExt as _};
 
 use crate::{
-    math::{AffinityCurve, Vec2, Vec2x4T},
+    math::{AffinityCurve, Rotation, Vec2, Vec2x4T},
     random::uniform_below,
     salt::semantic::SemanticGraphView,
 };
 
-/// Schedule settings for one layout.
+/// An epoch-zero learning rate: finite and strictly positive, valid by
+/// construction.
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub(crate) struct LearningRate(f32);
+
+impl LearningRate {
+    /// Validates a learning rate.
+    ///
+    /// Returns [`None`] unless the value is finite and strictly
+    /// positive.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(value: f32) -> Option<Self> {
+        if !(value.is_finite() && value > 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the rate.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn get(self) -> f32 {
+        self.0
+    }
+}
+
+/// A repulsion weight: finite and non-negative, valid by construction.
+///
+/// Zero disables repulsion.
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub(crate) struct RepulsionStrength(f32);
+
+impl RepulsionStrength {
+    /// Validates a repulsion weight.
+    ///
+    /// Returns [`None`] unless the value is finite and non-negative.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(value: f32) -> Option<Self> {
+        if !(value.is_finite() && value >= 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the weight.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn get(self) -> f32 {
+        self.0
+    }
+}
+
+/// Schedule settings for one layout, valid by construction.
 // The defaults are the UMAP reference defaults, carried as unvalidated
 // starting points; the release evaluation's layout gates
 // (trustworthiness, landmark rank correlation) revise them from
@@ -48,44 +109,26 @@ use crate::{
 pub(crate) struct LayoutOptions {
     /// Optimization epochs. Defaults to 500.
     pub epochs: NonZero<u32> = const { NonZero::new(500).unwrap() },
-    /// Learning rate at epoch zero, finite and strictly positive; it
-    /// decays linearly to zero across the epoch budget. Defaults to 1.
-    pub initial_learning_rate: f32 = 1.0,
-    /// Weight of repulsive updates, finite and non-negative. Defaults
-    /// to 1.
-    pub repulsion_strength: f32 = 1.0,
+    /// Learning rate at epoch zero; it decays linearly to zero across
+    /// the epoch budget. Defaults to 1.
+    pub initial_learning_rate: LearningRate = const { LearningRate::new(1.0).unwrap() },
+    /// Weight of repulsive updates. Defaults to 1.
+    pub repulsion_strength: RepulsionStrength = const { RepulsionStrength::new(1.0).unwrap() },
     /// Vertices repelled per sampled edge. Defaults to 5.
     pub negative_sample_rate: NonZero<u32> = const { NonZero::new(5).unwrap() },
 }
 
-/// The layout inputs are malformed.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum LayoutError {
-    /// The graph stores no edges to optimize toward.
-    NoEdges,
-    /// The initial learning rate is not finite and strictly positive.
-    InvalidLearningRate { value: f32 },
-    /// The repulsion strength is not finite and non-negative.
-    InvalidRepulsionStrength { value: f32 },
-}
+/// The graph stores no edges to optimize toward.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct EdgelessGraphError;
 
-impl fmt::Display for LayoutError {
+impl fmt::Display for EdgelessGraphError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::NoEdges => fmt.write_str("the semantic graph stores no edges to optimize toward"),
-            Self::InvalidLearningRate { value } => write!(
-                fmt,
-                "the initial learning rate {value} is not finite and strictly positive",
-            ),
-            Self::InvalidRepulsionStrength { value } => write!(
-                fmt,
-                "the repulsion strength {value} is not finite and non-negative",
-            ),
-        }
+        fmt.write_str("the semantic graph stores no edges to optimize toward")
     }
 }
 
-impl Error for LayoutError {}
+impl Error for EdgelessGraphError {}
 
 /// Lays out one point per graph row, in row order.
 ///
@@ -96,27 +139,14 @@ impl Error for LayoutError {}
 ///
 /// # Errors
 ///
-/// Returns an error when the graph stores no edges, or when the
-/// learning rate or repulsion strength is malformed.
+/// Returns an error when the graph stores no edges.
 pub(crate) fn layout_landmarks(
     graph: &SemanticGraphView<'_>,
     curve: AffinityCurve,
     options: LayoutOptions,
     mut rng: impl Rng,
-) -> Result<Box<[Vec2]>, LayoutError> {
-    if !options.initial_learning_rate.is_finite() || options.initial_learning_rate <= 0.0 {
-        return Err(LayoutError::InvalidLearningRate {
-            value: options.initial_learning_rate,
-        });
-    }
-
-    if !options.repulsion_strength.is_finite() || options.repulsion_strength < 0.0 {
-        return Err(LayoutError::InvalidRepulsionStrength {
-            value: options.repulsion_strength,
-        });
-    }
-
-    let schedule = EdgeSchedule::build(graph, options.epochs).ok_or(LayoutError::NoEdges)?;
+) -> Result<Box<[Vec2]>, EdgelessGraphError> {
+    let schedule = EdgeSchedule::build(graph, options.epochs).ok_or(EdgelessGraphError)?;
     let coordinates = initial_coordinates(graph.rows(), &mut rng);
     let vertices =
         NonZero::new(coordinates.len() as u64).expect("a semantic graph holds at least two rows");
@@ -134,13 +164,23 @@ pub(crate) fn layout_landmarks(
 }
 
 /// Radius of the initial circle: a diameter of ten matches the span the
-/// gradient clip is designed against.
+/// per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP) is designed
+/// against.
+// Pinned, not configurable: the radius and the clip fix one ratio -
+// how far a single sample can move a point relative to the layout's
+// extent - and a knob on one side silently changes it. If the frame
+// ever moves, both move together.
 const INITIAL_RADIUS: f32 = 5.0;
 /// Relative radial jitter of the initial circle, breaking the regular
 /// polygon's symmetry.
+// Pinned, not configurable: any small positive value serves; the only
+// distinguishable settings are zero (restores the symmetric saddle)
+// and large (distorts the circle for nothing).
 const RADIAL_JITTER: f32 = 0.01;
 
-/// Places every vertex on the jittered initial circle, by vertex order.
+/// Places every vertex on the jittered initial circle, by vertex order:
+/// the vertex's share of a full turn, applied to a jittered radius
+/// vector.
 #[expect(
     clippy::cast_precision_loss,
     reason = "vertex ordinals lose angular precision only beyond exact f32 integers, where \
@@ -149,9 +189,9 @@ const RADIAL_JITTER: f32 = 0.01;
 fn initial_coordinates(rows: usize, mut rng: impl Rng) -> Vec<Vec2> {
     (0..rows)
         .map(|vertex| {
-            let angle = TAU * (vertex as f32) / (rows as f32);
+            let rotation = Rotation::from_radians(TAU * (vertex as f32) / (rows as f32));
             let radius = INITIAL_RADIUS * RADIAL_JITTER.mul_add(rng.random::<f32>(), 1.0);
-            Vec2::new(radius * angle.cos(), radius * angle.sin())
+            rotation.apply(Vec2::new(radius, 0.0))
         })
         .collect()
 }
@@ -190,6 +230,7 @@ impl EdgeSchedule {
         let position = |pointer: u64| {
             usize::try_from(pointer).expect("a resident graph's entries fit the address space")
         };
+
         for (row, (&start, &end)) in indptr.iter().zip(&indptr[1..]).enumerate() {
             for entry in position(start)..position(end) {
                 let period = maximum / weights[entry];
@@ -234,7 +275,7 @@ impl<R: Rng> Optimizer<R> {
         let epochs = self.options.epochs.get();
         for epoch in 0..epochs {
             let learning_rate =
-                self.options.initial_learning_rate * (1.0 - epoch as f32 / epochs as f32);
+                self.options.initial_learning_rate.get() * (1.0 - epoch as f32 / epochs as f32);
             self.step(epoch as f32, learning_rate);
         }
 
@@ -316,7 +357,7 @@ impl<R: Rng> Optimizer<R> {
 
             let gradients =
                 self.curve
-                    .repulsion_x4(position, targets, self.options.repulsion_strength);
+                    .repulsion_x4(position, targets, self.options.repulsion_strength.get());
             let step =
                 Vec2::new(gradients.xs().reduce_sum(), gradients.ys().reduce_sum()) * learning_rate;
             self.coordinates[anchor] += step;
@@ -328,7 +369,7 @@ impl<R: Rng> Optimizer<R> {
             let gradient = self.curve.repulsion(
                 self.coordinates[anchor],
                 target,
-                self.options.repulsion_strength,
+                self.options.repulsion_strength.get(),
             );
             self.coordinates[anchor] += gradient * learning_rate;
         }

@@ -14,9 +14,13 @@
 //! fill to capacity. Later phases never evict earlier picks, so every
 //! minimum still holds in the final selection.
 //!
-//! Priorities come from the caller's seeded generator in candidate
-//! order, so a rerun over equal candidates with an equally seeded
-//! generator selects identical rows.
+//! The corpus-scale passes run in parallel and deterministically:
+//! priorities come from one generator per fixed-size candidate chunk,
+//! each seeded by the caller's generator, and every phase reduces
+//! thread-local top-`k` heaps into the unique best set under the
+//! (priority, index) total order. A rerun over equal candidates with
+//! an equally seeded generator selects identical rows at any thread
+//! count.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use alloc::collections::BinaryHeap;
@@ -29,13 +33,28 @@ use core::{
 };
 use std::collections::HashSet;
 
-use rand::{Rng, RngExt as _};
+use rand::{Rng, RngExt as _, SeedableRng};
+use rayon::prelude::*;
 use zerocopy::{LE, U32};
 
-use crate::dataset::NodeRowId;
+use crate::{bitset::BitSet, dataset::NodeRowId, math::UnitFraction};
 
 /// A landmark-stratification axis.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
 #[repr(u8)]
 pub(crate) enum SubgroupDimension {
     Density = 0,
@@ -67,7 +86,17 @@ impl SubgroupDimension {
 
 /// Categorical values on every stratification axis, indexed by
 /// [`SubgroupDimension`].
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Default,
+    zerocopy::ByteEq,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
 pub(crate) struct SubgroupAxes([u32; SubgroupDimension::COUNT]);
 
 const impl Index<SubgroupDimension> for SubgroupAxes {
@@ -106,12 +135,42 @@ pub(crate) struct SubgroupMinimum {
     pub count: NonZero<usize>,
 }
 
+/// A candidate's relative selection propensity: finite and strictly
+/// positive, valid by construction.
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub(crate) struct SamplingWeight(f64);
+
+impl SamplingWeight {
+    /// The uniform weight.
+    pub(crate) const UNIFORM: Self = Self(1.0);
+
+    /// Validates a weight.
+    ///
+    /// Returns [`None`] unless the value is finite and strictly
+    /// positive.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(value: f64) -> Option<Self> {
+        if !(value.is_finite() && value > 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the weight.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn get(self) -> f64 {
+        self.0
+    }
+}
+
 /// Selection metadata for one candidate node row.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LandmarkCandidate {
     pub row: NodeRowId,
-    /// Relative selection propensity, finite and strictly positive.
-    pub sampling_weight: f64,
+    pub sampling_weight: SamplingWeight,
     /// The candidate's value on every stratification axis.
     pub axes: SubgroupAxes,
     /// Whether the row was a landmark of the prior generation.
@@ -135,12 +194,12 @@ pub(crate) struct SelectionOptions {
     /// position fits the persisted ordinal form.
     pub maximum_count: NonZero<u32>,
     /// Fraction of the capacity reserved for prior landmarks when
-    /// enough are on offer, in `[0, 1]`. Retention stabilizes
+    /// enough are on offer. Retention stabilizes
     /// generation-to-generation orientation. Defaults to 0.25.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent); the temporal-drift
     // and landmark rank-correlation gates revise it from evidence.
-    pub retained_fraction: f64 = 0.25,
+    pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
 }
 
 /// A reference to a landmark by its position in a [`LandmarkSelection`].
@@ -238,10 +297,6 @@ impl LandmarkSelection {
 pub(crate) enum SelectionError {
     /// No candidates were offered.
     EmptyCorpus,
-    /// The retained fraction lies outside `[0, 1]`.
-    InvalidRetainedFraction { value: f64 },
-    /// A sampling weight is not finite and strictly positive.
-    InvalidSamplingWeight { index: usize, value: f64 },
     /// Candidate rows are not strictly ascending.
     UnorderedCandidates { index: usize },
     /// A subgroup carries more than one minimum.
@@ -260,14 +315,6 @@ impl fmt::Display for SelectionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::EmptyCorpus => fmt.write_str("landmark selection needs at least one candidate"),
-            Self::InvalidRetainedFraction { value } => {
-                write!(fmt, "the retained fraction {value} lies outside [0, 1]")
-            }
-            Self::InvalidSamplingWeight { index, value } => write!(
-                fmt,
-                "candidate {index} carries the sampling weight {value}, which is not finite and \
-                 strictly positive",
-            ),
             Self::UnorderedCandidates { index } => write!(
                 fmt,
                 "candidate {index} breaks the strictly ascending row order",
@@ -297,55 +344,62 @@ impl fmt::Display for SelectionError {
 
 impl Error for SelectionError {}
 
+/// Candidates per parallel work item.
+///
+/// For priorities this is also the seeding unit: one generator stream
+/// serves this many candidates, so which stream draws for which
+/// candidate is fixed by this constant alone and results are
+/// independent of thread count. The constant is pinned rather than
+/// configurable because changing it changes selections for equal
+/// seeds. 4096 candidates give each task tens of microseconds of work,
+/// large enough that per-task overhead disappears against the scans.
+const PARALLEL_CHUNK: usize = 4096;
+
 /// Selects at most the configured capacity, honoring minimums and
 /// retention.
 ///
-/// `candidates` arrive in strictly ascending row order; `rng` drives
-/// the priorities. The selection satisfies every subgroup minimum,
-/// then retains prior landmarks up to
+/// `candidates` arrive in strictly ascending row order; `rng` seeds
+/// the priority streams. The selection satisfies every subgroup
+/// minimum, then retains prior landmarks up to
 /// `ceil(capacity * retained_fraction)` when enough are on offer, then
 /// fills to capacity, all by ascending exponential-clock priority.
 ///
 /// # Errors
 ///
-/// Returns an error for an empty corpus, unordered candidate rows, a
-/// non-positive or non-finite sampling weight, a retained fraction
-/// outside `[0, 1]`, duplicate minimums, or minimums the corpus or
-/// capacity cannot satisfy.
-pub(crate) fn select_landmarks(
+/// Returns an error for an empty corpus, unordered candidate rows,
+/// duplicate minimums, or minimums the corpus or capacity cannot
+/// satisfy.
+pub(crate) fn select_landmarks<R>(
     candidates: &[LandmarkCandidate],
     minimums: &[SubgroupMinimum],
     options: SelectionOptions,
-    mut rng: impl Rng,
-) -> Result<LandmarkSelection, SelectionError> {
-    validate(candidates, minimums, options)?;
+    mut rng: R,
+) -> Result<LandmarkSelection, SelectionError>
+where
+    R: Rng + SeedableRng,
+{
+    validate(candidates, minimums)?;
 
     let capacity = (options.maximum_count.get() as usize).min(candidates.len());
-    let priorities: Vec<f64> = candidates
-        .iter()
-        .map(|candidate| {
-            // 1 - U maps the generator's [0, 1) onto (0, 1], keeping
-            // the logarithm finite.
-            -(1.0 - rng.random::<f64>()).ln() / candidate.sampling_weight
-        })
-        .collect();
+    let priorities = priorities::<R>(candidates, &mut rng);
 
-    let mut selected = vec![false; candidates.len()];
-    let mut selected_count = 0;
+    let mut selected = BitSet::new(candidates.len());
+    let mut selected_count = 0_usize;
+    let mut retained_count = 0_usize;
 
     let mut ordered_minimums = minimums.to_vec();
     ordered_minimums.sort_unstable_by_key(|minimum| minimum.subgroup);
-    for minimum in ordered_minimums {
-        // Rows selected for earlier minimums count toward this one: a
-        // row satisfies every subgroup it belongs to.
-        let already_selected = candidates
-            .iter()
-            .zip(&selected)
-            .filter(|&(candidate, &is_selected)| {
-                is_selected && candidate.belongs_to(minimum.subgroup)
-            })
-            .count();
-        let required = minimum.count.get().saturating_sub(already_selected);
+    // Rows selected for earlier minimums count toward later ones: a
+    // row satisfies every subgroup it belongs to. The counters advance
+    // at mark time instead of rescanning the corpus per minimum.
+    let mut subgroup_counts = vec![0_usize; ordered_minimums.len()];
+
+    for position in 0..ordered_minimums.len() {
+        let minimum = ordered_minimums[position];
+        let required = minimum
+            .count
+            .get()
+            .saturating_sub(subgroup_counts[position]);
         if selected_count + required > capacity {
             return Err(SelectionError::MinimumExceedsCapacity {
                 requested: selected_count + required,
@@ -360,22 +414,28 @@ pub(crate) fn select_landmarks(
             return Err(SelectionError::InsufficientSubgroup {
                 subgroup: minimum.subgroup,
                 required: minimum.count.get(),
-                available: already_selected + chosen.len(),
+                available: subgroup_counts[position] + chosen.len(),
             });
         }
 
-        mark(&mut selected, &chosen);
+        for &index in &chosen {
+            for (count, later) in subgroup_counts
+                .iter_mut()
+                .zip(&ordered_minimums)
+                .skip(position + 1)
+            {
+                if candidates[index].belongs_to(later.subgroup) {
+                    *count += 1;
+                }
+            }
+        }
+        retained_count += mark(&mut selected, candidates, &chosen);
         selected_count += required;
     }
 
     let retained_target = retained_target(capacity, options.retained_fraction);
-    let retained_selected = candidates
-        .iter()
-        .zip(&selected)
-        .filter(|&(candidate, &is_selected)| is_selected && candidate.prior_landmark)
-        .count();
     let retained_needed = retained_target
-        .saturating_sub(retained_selected)
+        .saturating_sub(retained_count)
         .min(capacity - selected_count);
     let retained = best_indices(
         candidates,
@@ -385,7 +445,7 @@ pub(crate) fn select_landmarks(
         |candidate| candidate.prior_landmark,
     );
     selected_count += retained.len();
-    mark(&mut selected, &retained);
+    retained_count += mark(&mut selected, candidates, &retained);
 
     let fill = best_indices(
         candidates,
@@ -394,18 +454,9 @@ pub(crate) fn select_landmarks(
         capacity - selected_count,
         |_| true,
     );
-    mark(&mut selected, &fill);
+    retained_count += mark(&mut selected, candidates, &fill);
 
-    let rows: Vec<NodeRowId> = candidates
-        .iter()
-        .zip(&selected)
-        .filter_map(|(candidate, &is_selected)| is_selected.then_some(candidate.row))
-        .collect();
-    let retained_count = candidates
-        .iter()
-        .zip(&selected)
-        .filter(|&(candidate, &is_selected)| is_selected && candidate.prior_landmark)
-        .count();
+    let rows: Vec<NodeRowId> = selected.iter().map(|index| candidates[index].row).collect();
 
     Ok(LandmarkSelection {
         rows: rows.into_boxed_slice(),
@@ -413,33 +464,50 @@ pub(crate) fn select_landmarks(
     })
 }
 
+/// Draws every candidate's exponential-clock priority, in parallel.
+///
+/// One generator serves each [`PARALLEL_CHUNK`] of candidates, seeded
+/// from the caller's generator in chunk order.
+fn priorities<R>(candidates: &[LandmarkCandidate], rng: &mut R) -> Vec<f64>
+where
+    R: Rng + SeedableRng,
+{
+    let seeds: Vec<u64> = core::iter::repeat_with(|| rng.random())
+        .take(candidates.len().div_ceil(PARALLEL_CHUNK))
+        .collect();
+
+    let mut priorities = vec![0.0_f64; candidates.len()];
+    priorities
+        .par_chunks_mut(PARALLEL_CHUNK)
+        .zip(candidates.par_chunks(PARALLEL_CHUNK))
+        .zip(seeds)
+        .for_each(|((priorities, candidates), seed)| {
+            let mut rng = R::seed_from_u64(seed);
+            for (priority, candidate) in priorities.iter_mut().zip(candidates) {
+                // 1 - U maps the generator's [0, 1) onto (0, 1],
+                // keeping the logarithm finite.
+                *priority = -(1.0 - rng.random::<f64>()).ln() / candidate.sampling_weight.get();
+            }
+        });
+
+    priorities
+}
+
 fn validate(
     candidates: &[LandmarkCandidate],
     minimums: &[SubgroupMinimum],
-    options: SelectionOptions,
 ) -> Result<(), SelectionError> {
     if candidates.is_empty() {
         return Err(SelectionError::EmptyCorpus);
     }
 
-    if !(options.retained_fraction.is_finite() && (0.0..=1.0).contains(&options.retained_fraction))
+    if let Some(position) = candidates
+        .par_windows(2)
+        .position_first(|pair| matches!(pair, [left, right] if left.row >= right.row))
     {
-        return Err(SelectionError::InvalidRetainedFraction {
-            value: options.retained_fraction,
+        return Err(SelectionError::UnorderedCandidates {
+            index: position + 1,
         });
-    }
-
-    for (index, candidate) in candidates.iter().enumerate() {
-        if !candidate.sampling_weight.is_finite() || candidate.sampling_weight <= 0.0 {
-            return Err(SelectionError::InvalidSamplingWeight {
-                index,
-                value: candidate.sampling_weight,
-            });
-        }
-
-        if index > 0 && candidates[index - 1].row >= candidate.row {
-            return Err(SelectionError::UnorderedCandidates { index });
-        }
     }
 
     let mut subgroups = HashSet::with_capacity(minimums.len());
@@ -463,53 +531,82 @@ fn validate(
               non-negative integer count"
 )]
 #[inline]
-fn retained_target(capacity: usize, retained_fraction: f64) -> usize {
-    (capacity as f64 * retained_fraction).ceil() as usize
+fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
+    (capacity as f64 * retained_fraction.get()).ceil() as usize
 }
 
 /// Returns the indices of the `count` smallest-priority unselected
 /// candidates satisfying `predicate`, or fewer when the pool is
 /// smaller.
+///
+/// Workers fold thread-local heaps of the `count` best candidates and
+/// the heaps merge pairwise: the result is the unique best set under
+/// the (priority, index) total order, independent of how the scan
+/// splits across threads.
 fn best_indices(
     candidates: &[LandmarkCandidate],
     priorities: &[f64],
-    selected: &[bool],
+    selected: &BitSet,
     count: usize,
-    predicate: impl Fn(LandmarkCandidate) -> bool,
+    predicate: impl Fn(LandmarkCandidate) -> bool + Sync,
 ) -> Vec<usize> {
     if count == 0 {
         return Vec::new();
     }
 
-    let mut heap = BinaryHeap::with_capacity(count);
-    for (index, candidate) in candidates.iter().copied().enumerate() {
-        if selected[index] || !predicate(candidate) {
-            continue;
-        }
-
-        let ranked = RankedCandidate {
-            priority: priorities[index],
-            index,
-        };
-        if heap.len() < count {
-            heap.push(ranked);
-            continue;
-        }
-
-        if heap.peek().is_some_and(|worst| ranked < *worst) {
-            heap.pop();
-            heap.push(ranked);
-        }
-    }
-
-    heap.into_iter().map(|ranked| ranked.index).collect()
+    candidates
+        .par_iter()
+        .enumerate()
+        .with_min_len(PARALLEL_CHUNK)
+        .fold(BinaryHeap::new, |mut heap, (index, &candidate)| {
+            if !selected.contains(index) && predicate(candidate) {
+                push_bounded(
+                    &mut heap,
+                    RankedCandidate {
+                        priority: priorities[index],
+                        index,
+                    },
+                    count,
+                );
+            }
+            heap
+        })
+        .reduce(BinaryHeap::new, |mut merged, heap| {
+            for ranked in heap {
+                push_bounded(&mut merged, ranked, count);
+            }
+            merged
+        })
+        .into_iter()
+        .map(|ranked| ranked.index)
+        .collect()
 }
 
-#[inline]
-fn mark(selected: &mut [bool], indices: &[usize]) {
-    for &index in indices {
-        selected[index] = true;
+/// Pushes into a max-heap keeping only the `bound` smallest entries.
+fn push_bounded(heap: &mut BinaryHeap<RankedCandidate>, ranked: RankedCandidate, bound: usize) {
+    if heap.len() < bound {
+        heap.push(ranked);
+        return;
     }
+
+    if heap.peek().is_some_and(|worst| ranked < *worst) {
+        heap.pop();
+        heap.push(ranked);
+    }
+}
+
+/// Inserts the chosen indices and returns how many carried the prior
+/// landmark flag.
+fn mark(selected: &mut BitSet, candidates: &[LandmarkCandidate], indices: &[usize]) -> usize {
+    let mut retained = 0;
+    for &index in indices {
+        selected.insert(index);
+        if candidates[index].prior_landmark {
+            retained += 1;
+        }
+    }
+
+    retained
 }
 
 /// A candidate ordered by ascending priority, ties by candidate index.

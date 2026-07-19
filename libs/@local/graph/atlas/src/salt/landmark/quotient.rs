@@ -15,9 +15,15 @@
 //! corpus edge feeds both directions of its landmark pair; the
 //! per-row normalization is what keeps the contraction from being a
 //! plain doubling.
+//!
+//! The contraction accumulates in parallel, one task per landmark over
+//! that landmark's corpus rows in ascending order, so the sums are
+//! bit-equal to a serial pass at any thread count.
 
 use core::{error::Error, fmt, num::NonZero};
 use std::collections::HashMap;
+
+use rayon::prelude::*;
 
 use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
 use crate::salt::semantic::{
@@ -101,34 +107,52 @@ pub(crate) fn quotient_graph(
     }
 
     let landmarks = assignment.landmarks();
-    let mut directed: Vec<HashMap<LandmarkOrdinal, f64>> = vec![HashMap::new(); landmarks];
-    for row in 0..rows {
-        let left = assignment.as_slice()[row];
-        for edge in semantic.row(row) {
-            let right = assignment.as_slice()[edge.id.usize()];
-            if left != right {
-                *directed[left.usize()].entry(right).or_default() += f64::from(edge.weight);
+    let grouped = GroupedRows::new(assignment);
+
+    let strongest_by_landmark: Vec<Vec<(LandmarkOrdinal, f32)>> = (0..landmarks)
+        .into_par_iter()
+        .map(|left| {
+            let mut inflow = HashMap::<LandmarkOrdinal, f64>::new();
+            for &row in grouped.rows_of(left) {
+                for edge in semantic.row(row) {
+                    let right = assignment.as_slice()[edge.id.usize()];
+                    if right.usize() != left {
+                        *inflow.entry(right).or_default() += f64::from(edge.weight);
+                    }
+                }
             }
-        }
-    }
+
+            let maximum = inflow.values().copied().fold(0.0_f64, f64::max);
+            if maximum == 0.0 {
+                return Vec::new();
+            }
+
+            let mut strongest: Vec<(LandmarkOrdinal, f64)> = inflow.into_iter().collect();
+            strongest.sort_unstable_by(
+                |&(left_column, left_weight), &(right_column, right_weight)| {
+                    right_weight
+                        .total_cmp(&left_weight)
+                        .then_with(|| left_column.cmp(&right_column))
+                },
+            );
+            strongest.truncate(options.maximum_neighbours.get());
+
+            strongest
+                .into_iter()
+                .map(|(column, weight)| {
+                    #[expect(
+                        clippy::cast_possible_truncation,
+                        reason = "a max-normalized finite weight lies in (0, 1], well inside f32"
+                    )]
+                    let normalized = (weight / maximum) as f32;
+                    (column, normalized)
+                })
+                .collect()
+        })
+        .collect();
 
     let mut undirected = HashMap::<(LandmarkOrdinal, LandmarkOrdinal), f32>::new();
-    for (left, row) in directed.into_iter().enumerate() {
-        let maximum = row.values().copied().fold(0.0_f64, f64::max);
-        if maximum == 0.0 {
-            continue;
-        }
-
-        let mut strongest: Vec<(LandmarkOrdinal, f64)> = row.into_iter().collect();
-        strongest.sort_unstable_by(
-            |&(left_column, left_weight), &(right_column, right_weight)| {
-                right_weight
-                    .total_cmp(&left_weight)
-                    .then_with(|| left_column.cmp(&right_column))
-            },
-        );
-        strongest.truncate(options.maximum_neighbours.get());
-
+    for (left, strongest) in strongest_by_landmark.into_iter().enumerate() {
         #[expect(
             clippy::cast_possible_truncation,
             reason = "positions in the ordinal-indexed table lie below the assignment's \
@@ -141,15 +165,11 @@ pub(crate) fn quotient_graph(
             } else {
                 (right, left)
             };
-            #[expect(
-                clippy::cast_possible_truncation,
-                reason = "a max-normalized finite weight lies in (0, 1], well inside f32"
-            )]
-            let normalized = (weight / maximum) as f32;
+
             undirected
                 .entry(pair)
-                .and_modify(|current| *current = current.max(normalized))
-                .or_insert(normalized);
+                .and_modify(|current| *current = current.max(weight))
+                .or_insert(weight);
         }
     }
 
@@ -179,4 +199,48 @@ pub(crate) fn quotient_graph(
         .expect("mirrored sorted pairs form a compressed sparse row structure");
 
     Ok(SemanticGraph::new(matrix)?)
+}
+
+/// Corpus rows grouped by their assigned landmark, ascending within
+/// each group.
+struct GroupedRows {
+    /// Group boundaries: landmark `l` owns `rows[starts[l]..starts[l + 1]]`.
+    starts: Vec<usize>,
+    rows: Vec<usize>,
+}
+
+impl GroupedRows {
+    /// Groups the assignment's rows by counting sort.
+    fn new(assignment: &LandmarkAssignment) -> Self {
+        let ordinals = assignment.as_slice();
+
+        let mut starts = vec![0_usize; assignment.landmarks() + 1];
+        for ordinal in ordinals {
+            starts[ordinal.usize() + 1] += 1;
+        }
+        let mut running = 0_usize;
+        for slot in &mut starts {
+            running += *slot;
+            *slot = running;
+        }
+
+        let mut rows = vec![0_usize; ordinals.len()];
+        let mut cursors = starts.clone();
+        for (row, ordinal) in ordinals.iter().enumerate() {
+            let cursor = &mut cursors[ordinal.usize()];
+            rows[*cursor] = row;
+            *cursor += 1;
+        }
+
+        Self { starts, rows }
+    }
+
+    /// Borrows one landmark's corpus rows, ascending.
+    fn rows_of(&self, landmark: usize) -> &[usize] {
+        assert!(
+            landmark + 1 < self.starts.len(),
+            "the landmark is in the grouped domain"
+        );
+        &self.rows[self.starts[landmark]..self.starts[landmark + 1]]
+    }
 }

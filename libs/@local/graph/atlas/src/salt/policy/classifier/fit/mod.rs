@@ -1,29 +1,24 @@
 //! Deterministic soft-target classifier fitting and grouped validation.
 //!
-//! [`fit`] trains the deployed linear model by minimizing weighted
-//! multinomial cross-entropy with L2-regularized coefficients and
-//! unregularized intercepts,
+//! [`fit`] trains the deployed linear model by minimizing weighted multinomial cross-entropy with
+//! L2-regularized coefficients and unregularized intercepts,
 //!
 //! ```text
 //! sum_i v_i * cross_entropy(q_i, softmax(W e_i + b))
 //!     + (lambda / 2) * squared_norm(W),
 //! ```
 //!
-//! through L-BFGS with an Armijo backtracking line search
-//! ([`objective`]). Whole relation groups are assigned to seeded,
-//! size-balanced folds before fitting, so near-duplicate corpus
-//! entries never straddle a train/validation split; concatenated
-//! out-of-fold logits calibrate one scalar deployment temperature
-//! ([`calibration`]), and the applicability distribution is fitted
-//! over the complete corpus ([`applicability`]). The fold models and
-//! the final model are independent and fit in parallel; each fit's
-//! arithmetic is sequential, so the result is deterministic.
+//! through L-BFGS with an Armijo backtracking line search ([`objective`]). Whole relation groups
+//! are assigned to seeded, size-balanced folds before fitting, so near-duplicate corpus entries
+//! never straddle a train/validation split; concatenated out-of-fold logits calibrate one scalar
+//! deployment temperature ([`calibration`]), and the applicability distribution is fitted over the
+//! complete corpus ([`applicability`]). The fold models and the final model are independent and fit
+//! in parallel; each fit's arithmetic is sequential, so the result is deterministic.
 //!
-//! Every fit must reach the configured gradient tolerance: a fit that
-//! exhausts its iteration bound is an error, never a best-effort
-//! model. An atlas generation requires a valid classifier artifact and
-//! fails candidacy without one, so a questionable model must not be
-//! published for the pipeline to limp on with.
+//! Every fit must reach the configured gradient tolerance: a fit that exhausts its iteration bound
+//! is an error, never a best-effort model. An atlas generation requires a valid classifier artifact
+//! and fails candidacy without one, so a questionable model must not be published for the pipeline
+//! to limp on with.
 
 use core::{error::Error, fmt};
 use std::collections::HashMap;
@@ -139,11 +134,21 @@ impl fmt::Display for FitError {
     }
 }
 
+impl From<argmin::core::Error> for FitError {
+    fn from(error: argmin::core::Error) -> Self {
+        Self::Solver(error)
+    }
+}
+
 impl Error for FitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Solver(error) => Some(error.as_ref()),
-            _ => None,
+            Self::InvalidConfig { .. }
+            | Self::InsufficientGroups { .. }
+            | Self::MissingClassMass { .. }
+            | Self::NonFinite
+            | Self::DidNotConverge { .. } => None,
         }
     }
 }
@@ -191,24 +196,38 @@ impl<'training> TrainingSet<'training> {
         if rows.is_empty() {
             return Err(TrainingSetError::Empty);
         }
+
         if embeddings.len() != rows.len() {
             return Err(TrainingSetError::RowMismatch {
                 embeddings: embeddings.len(),
                 rows: rows.len(),
             });
         }
+
+        // The scan touches every component once (a few MB of SIMD
+        // compares at annotation-corpus scale, well under a
+        // millisecond) and runs once per fit; the borrowed slice type
+        // carries no finiteness guarantee of its own.
         for (row_index, embedding) in embeddings.iter().enumerate() {
-            if let Some(component) = embedding
+            if embedding.is_finite() {
+                continue;
+            }
+
+            // Cold path: name the first offending component.
+            let Some(component) = embedding
                 .as_array()
                 .iter()
                 .position(|value| !value.is_finite())
-            {
-                return Err(TrainingSetError::NonFiniteEmbedding {
-                    row: row_index,
-                    component,
-                });
-            }
+            else {
+                unreachable!("a non-finite embedding contains a non-finite component")
+            };
+
+            return Err(TrainingSetError::NonFiniteEmbedding {
+                row: row_index,
+                component,
+            });
         }
+
         for (row_index, row) in rows.iter().enumerate() {
             for (class, value) in GeometryClass::VARIANTS.into_iter().zip(row.target) {
                 if !value.is_finite() || value.is_sign_negative() || value > 1.0 {
@@ -219,6 +238,7 @@ impl<'training> TrainingSet<'training> {
                     });
                 }
             }
+
             let sum = row.target.into_iter().sum::<f64>();
             if (sum - 1.0).abs() > 1.0e-9 {
                 return Err(TrainingSetError::UnnormalizedTarget {
@@ -226,6 +246,7 @@ impl<'training> TrainingSet<'training> {
                     sum,
                 });
             }
+
             if !row.weight.is_finite() || row.weight <= 0.0 {
                 return Err(TrainingSetError::InvalidWeight {
                     row: row_index,
@@ -239,7 +260,10 @@ impl<'training> TrainingSet<'training> {
 
     /// Returns the embedding labeled by row `row`.
     #[inline]
-    pub(super) fn embedding(self, row: usize) -> &'training AlignedVecN<CANONICAL_DIMENSIONS> {
+    pub(super) const fn embedding(
+        self,
+        row: usize,
+    ) -> &'training AlignedVecN<CANONICAL_DIMENSIONS> {
         &self.embeddings[row]
     }
 
@@ -280,6 +304,7 @@ pub(crate) struct FitConfig {
 
 impl FitConfig {
     fn validate(self) -> Result<(), FitError> {
+        // TODO: not a huge fan of this, this is stringly typed :/
         for (field, value) in [
             ("regularization", self.regularization),
             ("gradient_tolerance", self.gradient_tolerance),
@@ -288,18 +313,21 @@ impl FitConfig {
                 return Err(FitError::InvalidConfig { field, value });
             }
         }
+
         if self.maximum_iterations == 0 {
             return Err(FitError::InvalidConfig {
                 field: "maximum_iterations",
                 value: 0.0,
             });
         }
+
         if self.history_size == 0 {
             return Err(FitError::InvalidConfig {
                 field: "history_size",
                 value: 0.0,
             });
         }
+
         if self.folds < 2 {
             #[expect(
                 clippy::cast_precision_loss,
@@ -353,21 +381,19 @@ pub(crate) struct Fit {
 /// iteration bound above the gradient tolerance.
 pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, FitError> {
     config.validate()?;
+
     let folds = grouped_folds(training.rows(), config.folds, config.seed)?;
 
-    // Member set `config.folds` is the full corpus for the final model;
-    // member set `fold` excludes that fold's held-out rows.
-    let members = (0..=config.folds)
+    // Fold index `config.folds` holds nothing out: it is the final
+    // full-corpus model, fitted in parallel with the fold models.
+    let mut models: Vec<_> = (0..=config.folds)
+        .into_par_iter()
         .map(|fold| {
-            (0..training.len())
-                .filter(|&row| fold == config.folds || folds[row] != fold)
-                .collect::<Vec<_>>()
+            let held_out = (fold < config.folds).then_some(fold);
+            objective::fit_model(training, &folds, held_out, config)
         })
-        .collect::<Vec<_>>();
-    let mut models = members
-        .par_iter()
-        .map(|members| objective::fit_model(training, members, config))
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<Result<_, _>>()?;
+
     let (final_parameters, iterations) = models.pop().unwrap_or_else(|| {
         unreachable!("one model is fitted per fold plus the final full-corpus model")
     });
@@ -377,6 +403,7 @@ pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, F
         let (parameters, _) = &models[folds[row]];
         *logits = objective::logits(parameters, training.embedding(row));
     }
+
     if out_of_fold_logits
         .iter()
         .flatten()
@@ -419,12 +446,10 @@ fn split_parameters(
 ) {
     let (rows, intercepts) = parameters.as_array().as_chunks::<CANONICAL_DIMENSIONS>();
     let coefficients = core::array::from_fn(|class| BoxedDVecN::new(DVecN::from_ref(&rows[class])));
-    let intercepts = core::array::from_fn(|class| {
-        intercepts
-            .get(class)
-            .copied()
-            .unwrap_or_else(|| unreachable!("the parameter tail holds one intercept per class"))
-    });
+
+    let intercepts = *intercepts
+        .as_array()
+        .unwrap_or_else(|| unreachable!("the parameter tail holds one intercept per class"));
 
     (coefficients, intercepts)
 }
@@ -444,6 +469,7 @@ fn grouped_folds(
     for (index, row) in rows.iter().enumerate() {
         groups.entry(row.group).or_default().push(index);
     }
+
     if groups.len() < fold_count {
         return Err(FitError::InsufficientGroups {
             groups: groups.len(),
@@ -451,26 +477,33 @@ fn grouped_folds(
         });
     }
 
-    let mut ordered = groups.into_iter().collect::<Vec<_>>();
-    ordered.sort_unstable_by(|(left_group, left_rows), (right_group, right_rows)| {
-        right_rows
-            .len()
-            .cmp(&left_rows.len())
-            .then_with(|| {
-                group_priority(*left_group, seed).cmp(&group_priority(*right_group, seed))
-            })
-            .then_with(|| left_group.cmp(right_group))
-    });
+    // Priorities are precomputed: hashing inside the comparator would
+    // recompute two digests per comparison.
+    let mut ordered: Vec<_> = groups
+        .into_iter()
+        .map(|(group, group_rows)| (group_priority(group, seed), group, group_rows))
+        .collect();
+    ordered.sort_unstable_by(
+        |(left_priority, left_group, left_rows), (right_priority, right_group, right_rows)| {
+            right_rows
+                .len()
+                .cmp(&left_rows.len())
+                .then_with(|| left_priority.cmp(right_priority))
+                .then_with(|| left_group.cmp(right_group))
+        },
+    );
 
     let mut sizes = vec![0_usize; fold_count];
     let mut assignments = vec![0_usize; rows.len()];
-    for (_, group_rows) in ordered {
+    for (_, _, group_rows) in ordered {
         let fold = (0..fold_count)
             .min_by_key(|&fold| (sizes[fold], fold))
             .unwrap_or_else(|| unreachable!("the validated fold count is at least 2"));
+
         for row in &group_rows {
             assignments[*row] = fold;
         }
+
         sizes[fold] += group_rows.len();
     }
 
@@ -478,6 +511,10 @@ fn grouped_folds(
 }
 
 /// Seeded fold-assignment priority of a group.
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "the priority preimage is pinned to canonical little-endian bytes on every platform"
+)]
 fn group_priority(group: Sha256Digest, seed: u64) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(b"salt-policy-classifier-fold-v1");
