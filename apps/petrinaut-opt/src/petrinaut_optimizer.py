@@ -281,6 +281,109 @@ class PetrinautOptimizer:
         worker.start()
         return worker, study_span
 
+    @staticmethod
+    def _trial_payload(
+        _study: optuna.Study, trial: optuna.trial.FrozenTrial
+    ) -> dict[str, Any]:
+        return {
+            "step": trial.number,
+            "params": dict(trial.params),
+            "init_state": {},
+            "metric": trial.value,
+            "state": trial.state.name,
+        }
+
+    async def pump_events(
+        self,
+        app: Any,
+        run_id: str,
+        n_trials: int,
+        *,
+        on_event: Callable[[str], Any],
+        cancel_event: asyncio.Event,
+        correlation: Mapping[str, str | None] | None = None,
+    ) -> str:
+        """Run a detached study and append its frames to the supplied event log."""
+        log_context = {**(correlation or {}), "run_id": run_id}
+        if not self.lock.acquire(blocking=False):
+            on_event('event: error\ndata: {"message": "already running"}\n\n')
+            return "failed"
+
+        set_status(app, run_id, phase=Phase.running, detail="optimization running")
+        log.info(
+            "optimization study started",
+            extra={"event": "study_started", "trials": n_trials, **log_context},
+        )
+        loop = asyncio.get_running_loop()
+        events: asyncio.Queue[dict[str, Any] | object] = asyncio.Queue()
+        stop_flag = threading.Event()
+
+        def callback(study: optuna.Study, trial: optuna.trial.FrozenTrial) -> None:
+            loop.call_soon_threadsafe(events.put_nowait, self._trial_payload(study, trial))
+            if stop_flag.is_set():
+                study.stop()
+
+        worker, study_span = self._start_study_worker(
+            n_trials=n_trials, callback=callback, events=events, loop=loop
+        )
+        completed = False
+        try:
+            while True:
+                if cancel_event.is_set():
+                    stop_flag.set()
+                    log.info(
+                        "optimization run cancelled, stopping study",
+                        extra={"event": "study_cancelled", **log_context},
+                    )
+                    return "cancelled"
+                try:
+                    item = await asyncio.wait_for(
+                        events.get(), timeout=_DISCONNECT_POLL_SECONDS
+                    )
+                except asyncio.TimeoutError:
+                    continue
+                if item is _SENTINEL:
+                    set_status(app, run_id, phase=Phase.done, detail="optimization completed")
+                    completed = True
+                    log.info(
+                        "optimization study completed",
+                        extra={"event": "study_completed", "trials": n_trials, **log_context},
+                    )
+                    on_event("event: done\ndata: {}\n\n")
+                    return "completed"
+                event = cast(dict[str, Any], item)
+                if event.get("state") == "ERROR":
+                    set_status(
+                        app,
+                        run_id,
+                        phase=Phase.error,
+                        detail=cast(str, event.get("message")),
+                    )
+                    log.warning(
+                        "optimization study failed",
+                        extra={"event": "study_failed", **log_context},
+                    )
+                    on_event(f"data: {json.dumps(event)}\n\n")
+                    return "failed"
+                on_event(f"data: {json.dumps(event)}\n\n")
+        finally:
+            stop_flag.set()
+            try:
+                await asyncio.to_thread(self.pn_model.close, graceful=completed)
+                await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
+                if worker.is_alive():
+                    log.error(
+                        "Petrinaut optimizer worker did not stop after CLI shutdown",
+                        extra={"event": "worker_join_timeout", **log_context},
+                    )
+            finally:
+                self.lock.release()
+                try:
+                    study_span.set_attribute("optuna.study.best_value", self.study.best_value)
+                except ValueError:
+                    pass
+                study_span.end()
+
     async def stream_all(
         self, request: Request, run_id: str, n_trials: int
     ) -> AsyncIterator[str]:

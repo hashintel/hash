@@ -7,17 +7,18 @@ import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from src.optimization_runs import OptimizationRunRegistry, attachment_event_stream
 from src.petrinaut_client import PetrinautModel
 from src.petrinaut_optimizer import PetrinautOptimizer
 from src.telemetry import flush_telemetry, setup_telemetry
@@ -30,7 +31,7 @@ log = logging.getLogger("pn_api")
 MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
-_OPTIMIZATION_PATHS = {"/optimize/all", "/optimize/best"}
+_OPTIMIZATION_PATHS = {"/optimize/all", "/optimize/best", "/optimize/runs"}
 _SSE_RESPONSES = {
     200: {
         "description": "Server-Sent Events optimization stream",
@@ -47,6 +48,20 @@ _SSE_RESPONSES = {
         },
     },
     500: {"description": "The CLI or optimization study could not initialize"},
+}
+_CREATE_RUN_RESPONSES = {
+    201: {"description": "A detached optimization run was started"},
+    413: _SSE_RESPONSES[413],
+    429: _SSE_RESPONSES[429],
+    500: _SSE_RESPONSES[500],
+}
+_RUN_EVENTS_RESPONSES = {
+    200: {"description": "A replayable Server-Sent Events attachment"},
+    404: {"description": "No optimization run with this id is registered"},
+}
+_DELETE_RUN_RESPONSES = {
+    204: {"description": "The optimization run was cancelled"},
+    404: {"description": "No optimization run with this id is registered"},
 }
 
 
@@ -106,17 +121,21 @@ class RequestBodyLimitMiddleware:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Initialize the run-scoped status registry."""
+    """Initialize the status registry and detached-run engine."""
     app.state.statuses = StatusStore()
     app.state.optimization_admission_lock = asyncio.Lock()
     app.state.active_optimizations = 0
+    app.state.optimization_runs = OptimizationRunRegistry()
     try:
         yield
     finally:
-        # Flush buffered spans/metrics/logs on graceful shutdown so a SIGTERM
-        # (e.g. `docker stop`) does not drop whatever the batch processors have
-        # queued.
-        flush_telemetry()
+        try:
+            await app.state.optimization_runs.shutdown()
+        finally:
+            # Flush buffered spans/metrics/logs on graceful shutdown so a SIGTERM
+            # (e.g. `docker stop`) does not drop whatever the batch processors have
+            # queued.
+            flush_telemetry()
 
 
 app = FastAPI(title="Petrinaut optimization Python API", lifespan=lifespan)
@@ -166,6 +185,10 @@ async def _acquire_optimization_slot(
                 headers={"Retry-After": str(RETRY_AFTER_SECONDS)},
             )
         app.state.active_optimizations += 1
+
+
+def _request_correlation(request: Request) -> dict[str, str | None]:
+    return {"request_id": request.headers.get("x-hash-request-id")}
 
 
 async def _release_optimization_slot(app: FastAPI) -> None:
@@ -283,18 +306,13 @@ def _initialization_error(
     )
 
 
-@app.post(
-    "/optimize/all",
-    response_class=StreamingResponse,
-    responses=_SSE_RESPONSES,
-)
-async def post_optimize_all(
+async def _admit_and_initialize_run(
     request: Request,
     optimization_manifest: dict[str, Any],
-) -> StreamingResponse:
-    """Stream one SSE data frame for every completed Optuna trial."""
-    request_id = request.headers.get("x-hash-request-id")
-    await _acquire_optimization_slot(request.app, request_id=request_id)
+) -> tuple[str, PetrinautOptimizer, dict[str, str | None]]:
+    """Admit and initialize one optimizer, releasing its slot on failure."""
+    correlation = _request_correlation(request)
+    await _acquire_optimization_slot(request.app, request_id=correlation["request_id"])
     try:
         run_id = request.app.state.statuses.create().run_id
     except BaseException:
@@ -317,8 +335,24 @@ async def post_optimize_all(
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(
-            request.app, run_id, error, request_id=request_id
+            request.app, run_id, error, request_id=correlation["request_id"]
         ) from error
+    return run_id, optimizer, correlation
+
+
+@app.post(
+    "/optimize/all",
+    response_class=StreamingResponse,
+    responses=_SSE_RESPONSES,
+)
+async def post_optimize_all(
+    request: Request,
+    optimization_manifest: dict[str, Any],
+) -> StreamingResponse:
+    """Stream one SSE data frame for every completed Optuna trial."""
+    run_id, optimizer, _correlation = await _admit_and_initialize_run(
+        request, optimization_manifest
+    )
 
     cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
@@ -346,32 +380,9 @@ async def post_optimize_best(
     optimization_manifest: dict[str, Any],
 ) -> StreamingResponse:
     """Stream the best-so-far SSE data frame after every completed trial."""
-    request_id = request.headers.get("x-hash-request-id")
-    await _acquire_optimization_slot(request.app, request_id=request_id)
-    try:
-        run_id = request.app.state.statuses.create().run_id
-    except BaseException:
-        await asyncio.shield(_release_optimization_slot(request.app))
-        raise
-    optimizer: PetrinautOptimizer | None = None
-    try:
-        optimizer = await _initialize_admitted_optimizer(
-            request.app, optimization_manifest
-        )
-        set_status(
-            request.app,
-            run_id,
-            phase=Phase.running,
-            detail="Petrinaut CLI and Optimization Model initialized",
-        )
-    except Exception as error:
-        if optimizer is not None:
-            with suppress(Exception):
-                await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
-        await asyncio.shield(_release_optimization_slot(request.app))
-        raise _initialization_error(
-            request.app, run_id, error, request_id=request_id
-        ) from error
+    run_id, optimizer, _correlation = await _admit_and_initialize_run(
+        request, optimization_manifest
+    )
 
     cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
@@ -387,6 +398,90 @@ async def post_optimize_best(
         },
         background=BackgroundTask(cleanup),
     )
+
+
+@app.post("/optimize/runs", status_code=201, responses=_CREATE_RUN_RESPONSES)
+async def post_optimize_runs(
+    request: Request,
+    optimization_manifest: dict[str, Any],
+    response: Response,
+) -> dict[str, str]:
+    """Start a detached run that remains available for later SSE attachment."""
+    run_id, optimizer, correlation = await _admit_and_initialize_run(
+        request, optimization_manifest
+    )
+    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
+    request.app.state.optimization_runs.create_run(
+        request.app,
+        run_id=run_id,
+        optimizer=optimizer,
+        cleanup=cleanup,
+        correlation=correlation,
+    )
+    response.headers["X-Optimization-Run-ID"] = run_id
+    return {"run_id": run_id}
+
+
+def _cursor_from_last_event_id(request: Request) -> int:
+    raw = request.headers.get("last-event-id")
+    if raw is None:
+        return 0
+    try:
+        return max(0, int(raw.strip()))
+    except ValueError:
+        return 0
+
+
+@app.get(
+    "/optimize/runs/{run_id}/events",
+    response_class=StreamingResponse,
+    responses=_RUN_EVENTS_RESPONSES,
+)
+async def get_optimize_run_events(
+    run_id: str,
+    request: Request,
+    cursor: int | None = Query(default=None, ge=0),
+) -> StreamingResponse:
+    """Attach to a detached run and replay events after the supplied cursor."""
+    run = request.app.state.optimization_runs.get(run_id)
+    if run is None:
+        raise HTTPException(404, f"optimization run not found: {run_id}")
+    if cursor is None:
+        cursor = _cursor_from_last_event_id(request)
+    epoch = run.begin_attachment()
+    return StreamingResponse(
+        attachment_event_stream(
+            run,
+            cursor=cursor,
+            epoch=epoch,
+            request=request,
+            correlation=_request_correlation(request),
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Optimization-Run-ID": run_id,
+        },
+        background=BackgroundTask(run.end_attachment, epoch),
+    )
+
+
+@app.delete(
+    "/optimize/runs/{run_id}", status_code=204, responses=_DELETE_RUN_RESPONSES
+)
+async def delete_optimize_run(run_id: str, request: Request) -> Response:
+    """Cancel a detached run and wait for its resources to be released."""
+    run = request.app.state.optimization_runs.get(run_id)
+    if run is None:
+        raise HTTPException(404, f"optimization run not found: {run_id}")
+    if run.request_cancel("cancelled by client request"):
+        log.info(
+            "optimization run cancellation requested",
+            extra={"event": "run_cancel_requested", "run_id": run_id, **_request_correlation(request)},
+        )
+    await run.finished.wait()
+    return Response(status_code=204)
 
 
 @app.get("/status")

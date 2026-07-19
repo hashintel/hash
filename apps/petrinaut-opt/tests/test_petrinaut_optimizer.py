@@ -434,6 +434,123 @@ def test_stream_error_is_terminal_and_is_not_followed_by_done(
     assert not hasattr(failure, "detail")
 
 
+def _status_app_with_run() -> tuple[FastAPI, str]:
+    app = FastAPI()
+    app.state.statuses = StatusStore()
+    return app, app.state.statuses.create().run_id
+
+
+def test_pump_events_appends_frames_and_completes(
+    optimization_description: dict,
+) -> None:
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    app, run_id = _status_app_with_run()
+    frames: list[str] = []
+
+    async def drive() -> str:
+        return await optimizer.pump_events(
+            app,
+            run_id,
+            optimizer.n_trials,
+            on_event=frames.append,
+            cancel_event=asyncio.Event(),
+        )
+
+    state = asyncio.run(drive())
+    data = [
+        json.loads(frame.removeprefix("data: "))
+        for frame in frames
+        if frame.startswith("data: ")
+    ]
+
+    assert state == "completed"
+    assert frames[-1] == "event: done\ndata: {}\n\n"
+    assert len(data) == 3
+    assert all(
+        set(payload) == {"step", "params", "init_state", "metric", "state"}
+        for payload in data
+    )
+    assert model.close_calls == [True]
+    status = app.state.statuses.get(run_id)
+    assert status is not None
+    assert status.phase is Phase.done
+
+
+def test_pump_events_reports_a_study_failure_without_done(
+    optimization_description: dict,
+) -> None:
+    model = FailingModel(
+        optimization_description, PetrinautClientError("transport failed")
+    )
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    app, run_id = _status_app_with_run()
+    frames: list[str] = []
+
+    async def drive() -> str:
+        return await optimizer.pump_events(
+            app,
+            run_id,
+            optimizer.n_trials,
+            on_event=frames.append,
+            cancel_event=asyncio.Event(),
+        )
+
+    state = asyncio.run(drive())
+    status = app.state.statuses.get(run_id)
+
+    assert state == "failed"
+    assert json.loads(frames[-1].removeprefix("data: ")) == {
+        "state": "ERROR",
+        "message": "transport failed",
+    }
+    assert "event: done\ndata: {}\n\n" not in frames
+    assert model.close_calls == [False]
+    assert status is not None
+    assert status.phase is Phase.error
+
+
+def test_pump_events_cancellation_stops_the_study_promptly(
+    optimization_description: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    optimization_description["study"]["trials"] = 1
+    monkeypatch.setattr(petrinaut_optimizer, "_WORKER_SHUTDOWN_TIMEOUT_SECONDS", 0.01)
+    model = StubbornModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    app, run_id = _status_app_with_run()
+    frames: list[str] = []
+    cancel_event = asyncio.Event()
+
+    async def drive() -> str:
+        async def cancel_after_entry() -> None:
+            await asyncio.to_thread(model.entered.wait, 1)
+            cancel_event.set()
+
+        canceller = asyncio.create_task(cancel_after_entry())
+        started_at = time.monotonic()
+        state = await optimizer.pump_events(
+            app,
+            run_id,
+            optimizer.n_trials,
+            on_event=frames.append,
+            cancel_event=cancel_event,
+        )
+        assert time.monotonic() - started_at < 0.5
+        await canceller
+        model.release.set()
+        await asyncio.sleep(0.05)
+        return state
+
+    state = asyncio.run(drive())
+
+    assert state == "cancelled"
+    # The caller owns the terminal cancelled frame, so none is appended here.
+    assert frames == []
+    assert model.closed is True
+    assert model.close_calls == [False]
+
+
 def test_disconnect_closes_cli_before_a_bounded_worker_join(
     optimization_description: dict,
     monkeypatch: pytest.MonkeyPatch,

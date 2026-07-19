@@ -251,6 +251,164 @@
         "summary": "Post Optimize Best"
       }
     },
+    "/optimize/runs": {
+      "post": {
+        "description": "Start a detached optimization run and return its run id immediately.\n\nThe run keeps optimizing with no consumer attached; its admission slot is\nheld until the run completes, fails, is cancelled via\n``DELETE /optimize/runs/{run_id}``, or is reaped after the detach grace\nperiod without an attached consumer.",
+        "operationId": "post_optimize_runs_optimize_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Optimization Manifest",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Post Optimize Runs Optimize Runs Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The detached optimization run was admitted and started in the background; consume its Server-Sent Events via GET /optimize/runs/{run_id}/events"
+          },
+          "413": {
+            "description": "The optimization manifest exceeds 8 MiB"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "The service is already at its study limit",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying the study",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The CLI or optimization study could not initialize"
+          }
+        },
+        "summary": "Post Optimize Runs"
+      }
+    },
+    "/optimize/runs/{run_id}": {
+      "delete": {
+        "description": "Cancel a detached run; idempotent once the run is terminal.\n\nReturns after the run's CLI is closed, its terminal frame is appended,\nand its admission slot is released.",
+        "operationId": "delete_optimize_run_optimize_runs__run_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The run was cancelled (or had already reached a terminal state); when this call stopped it, the event log's terminal frame is `event: cancelled`"
+          },
+          "404": {
+            "description": "No optimization run with this id is registered"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Optimize Run"
+      }
+    },
+    "/optimize/runs/{run_id}/events": {
+      "get": {
+        "description": "Attach to a detached run's SSE log, replaying frames past the cursor.\n\n``cursor`` defaults to the ``Last-Event-ID`` header (the query parameter\nwins), then to 0 \u2014 a full replay. Disconnecting never affects the run.",
+        "operationId": "get_optimize_run_events_optimize_runs__run_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one."
+          },
+          "404": {
+            "description": "No optimization run with this id is registered"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Optimize Run Events"
+      }
+    },
     "/status": {
       "get": {
         "description": "Return a snapshot of every optimization run's status.",

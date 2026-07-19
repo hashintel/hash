@@ -42,7 +42,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 
 _DEFAULT_SERVICE_NAME = "Petrinaut Optimizer"
 _DEFAULT_PROTOCOL = "grpc"
-_SERVICE_LOGGER_NAMES = ("pn_api", "pn_optimize", "pn_telemetry")
+_SERVICE_LOGGER_NAMES = ("pn_api", "pn_optimize", "pn_runs", "pn_telemetry")
 _FASTAPI_EXCLUDED_URLS = r"status$"
 
 log = logging.getLogger("pn_telemetry")
