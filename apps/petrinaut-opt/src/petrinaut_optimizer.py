@@ -29,6 +29,7 @@ SAMPLERS = {
     "random": optuna.samplers.RandomSampler,
 }
 DEFAULT_STUDY_NAME = "opt_study"
+TRIAL_ERROR_LOG_CHARACTERS = 500
 SSE_HEARTBEAT_SECONDS = 30
 _DISCONNECT_POLL_SECONDS = 0.1
 _WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
@@ -211,21 +212,23 @@ class PetrinautOptimizer:
     def objective(self, trial: optuna.Trial) -> float:
         """Propose one flat parameter set and ask Petrinaut to evaluate it.
 
-        The per-trial logs only contain optimizer-proposed scalar values and
-        CLI error strings — never the manifest or user-authored code.
+        The per-trial logs contain optimizer-proposed scalar values and a
+        truncated CLI error summary. The manifest and user-authored code are
+        never logged, but a CLI error string may quote a user identifier or
+        expression error, so it is bounded before it reaches the log.
         """
         parameter_values = self.suggest(trial)
         try:
             value = self.pn_model.objective(parameter_values)
         except PetrinautRunError as error:
             log.warning(
-                "trial %d failed — pruned\nstderr: %s",
+                "trial %d failed — pruned",
                 trial.number,
-                str(error),
                 extra={
                     "event": "trial_pruned",
                     "run_id": self.correlation_id,
                     "trial": trial.number,
+                    "error": str(error)[:TRIAL_ERROR_LOG_CHARACTERS],
                 },
             )
             raise optuna.TrialPruned() from error

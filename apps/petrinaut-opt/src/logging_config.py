@@ -21,6 +21,7 @@ from typing import Any
 SERVICE_NAME = "petrinaut-opt"
 LOG_LEVEL_ENVIRONMENT_VARIABLE = "HASH_PETRINAUT_OPT_LOG_LEVEL"
 _HANDLER_MARKER = "_hash_petrinaut_opt_json_handler"
+_HEX_DIGITS = frozenset("0123456789abcdef")
 
 _LEVELS_BY_NAME = {
     "CRITICAL": logging.CRITICAL,
@@ -100,11 +101,13 @@ def trace_id_from_traceparent(traceparent: str | None) -> str | None:
     if len(parts) < 4:
         return None
     trace_id = parts[1].lower()
-    if len(trace_id) != 32 or set(trace_id) == {"0"}:
-        return None
-    try:
-        int(trace_id, 16)
-    except ValueError:
+    # An explicit charset test — `int(trace_id, 16)` would accept `0x` prefixes,
+    # underscores, and signs, letting a hostile header into the log field.
+    if (
+        len(trace_id) != 32
+        or not _HEX_DIGITS.issuperset(trace_id)
+        or set(trace_id) == {"0"}
+    ):
         return None
     return trace_id
 

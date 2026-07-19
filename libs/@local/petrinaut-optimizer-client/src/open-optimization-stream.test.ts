@@ -136,6 +136,23 @@ describe("openPetrinautOptimizationStream", () => {
     });
   });
 
+  it("captures the run id from a failed optimizer response", async () => {
+    const result = openPetrinautOptimizationStream({
+      endpoint: "/optimize/all",
+      fetchImpl: async () =>
+        Response.json(
+          { detail: "failed to initialise optimization" },
+          { status: 500, headers: { "x-optimization-run-id": "run-err-7" } },
+        ),
+      input,
+    });
+
+    await expect(result).rejects.toMatchObject({
+      optimizationRunId: "run-err-7",
+      status: 500,
+    });
+  });
+
   it("preserves the busy status and Retry-After of an optimizer 429", async () => {
     const result = openPetrinautOptimizationStream({
       endpoint: "/optimize/all",

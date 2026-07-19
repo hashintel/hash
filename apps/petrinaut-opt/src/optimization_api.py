@@ -270,6 +270,20 @@ async def _stream_with_cleanup(
         await asyncio.shield(cleanup())
 
 
+def _initialization_error_category(error: Exception) -> str:
+    """Classify an initialization failure without logging its raw message."""
+    message = str(error)
+    if message.startswith("Petrinaut failed to load the optimization manifest"):
+        return "manifest_rejected"
+    if message.startswith("failed to start the Petrinaut CLI"):
+        return "spawn_failed"
+    if "timed out" in message:
+        return "timeout"
+    if message.startswith("failed to bootstrap"):
+        return "bootstrap_failed"
+    return "other"
+
+
 def _initialization_error(
     app: FastAPI,
     run_id: str,
@@ -283,12 +297,16 @@ def _initialization_error(
         phase=Phase.error,
         detail="Petrinaut CLI and Optimization Model could NOT be initialized",
     )
+    # The error string can embed the CLI's first stderr line, which may quote a
+    # user identifier or expression error, so log a stable classification only.
+    # The full message still goes back to the requester in the 500 detail.
     log.error(
         "optimization initialization failed",
         extra={
             "event": "initialization_failed",
             "run_id": run_id,
-            "error": str(error)[:500],
+            "error_type": type(error).__name__,
+            "error_category": _initialization_error_category(error),
             **(correlation or {}),
         },
     )

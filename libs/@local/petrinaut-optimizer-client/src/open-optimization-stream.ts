@@ -21,6 +21,7 @@ export class PetrinautOptimizerHttpError extends Error {
     message: string,
     readonly status: number,
     readonly retryAfter: string | null,
+    readonly optimizationRunId: string | null = null,
   ) {
     super(message);
     this.name = "PetrinautOptimizerHttpError";
@@ -105,6 +106,7 @@ export const openPetrinautOptimizationStream = async ({
       await responseErrorMessage(response),
       response.status,
       response.headers.get("retry-after"),
+      response.headers.get("x-optimization-run-id"),
     );
   }
   if (!response.body) {

@@ -104,6 +104,11 @@ def test_configure_logging_reads_the_level_from_the_environment(
         ("00-tooshort-b7ad6b7169203331-01", None),
         ("00-00000000000000000000000000000000-b7ad6b7169203331-01", None),
         ("00-zzf7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01", None),
+        # `int(x, 16)` would accept these; the charset check must not.
+        ("00-0x" + "a" * 30 + "-b7ad6b7169203331-01", None),
+        ("00-" + "a_" * 15 + "aa" + "-b7ad6b7169203331-01", None),
+        ("00-+" + "a" * 31 + "-b7ad6b7169203331-01", None),
+        ("00-0x" + "0" * 30 + "-b7ad6b7169203331-01", None),
     ],
 )
 def test_trace_id_from_traceparent(

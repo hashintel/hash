@@ -165,6 +165,34 @@ def test_reports_initialization_failure_with_the_run_id(
     assert run_status.json() == statuses.json()[0]
 
 
+def test_initialization_failure_log_omits_the_raw_error_message(
+    optimization_manifest: dict,
+    monkeypatch,
+    caplog,
+) -> None:
+    """The CLI error string can embed user content, so it must not be logged."""
+    secret = "Petrinaut failed to load the optimization manifest: user_secret_xyz"
+
+    def initialize(_manifest: dict[str, Any], **_kwargs: Any) -> FakeOptimizer:
+        raise RuntimeError(secret)
+
+    monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
+
+    with caplog.at_level("ERROR", logger="pn_optimize"):
+        with TestClient(optimization_api.app) as client:
+            response = client.post("/optimize/all", json=optimization_manifest)
+
+    failures = [r for r in caplog.records if r.event == "initialization_failed"]
+    assert failures
+    record = failures[0]
+    assert record.error_type == "RuntimeError"
+    assert record.error_category == "manifest_rejected"
+    assert not hasattr(record, "error")
+    assert "user_secret_xyz" not in record.getMessage()
+    # The full message still reaches the requester in the response detail.
+    assert "user_secret_xyz" in response.json()["detail"]
+
+
 def test_initializer_runs_off_the_event_loop(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,

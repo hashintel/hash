@@ -346,6 +346,8 @@ describe("createPetrinautOptimizationHandler", () => {
     expect(result.headers).toMatchObject({
       "Content-Type": "application/x-ndjson; charset=utf-8",
       "X-Accel-Buffering": "no",
+      // The optimizer's run id reaches the browser for correlation.
+      "X-Optimization-Run-ID": "run-1",
     });
     expect(result.output).toEqual([
       '{"type":"started","requestedTrials":2}\n',
@@ -408,6 +410,31 @@ describe("createPetrinautOptimizationHandler", () => {
     expect(result.statusCode).toBe(429);
     expect(result.body).toEqual({ error: "Petrinaut optimizer is busy" });
     expect(result.headers).not.toHaveProperty("Retry-After");
+  });
+
+  it("correlates a pre-stream upstream failure with the optimizer run id", async () => {
+    const { entries, logger } = createRecordingLogger();
+    const result = await callHandler({
+      body: validOptimizationInput,
+      fetchImpl: async () =>
+        Response.json(
+          { detail: "failed to initialise optimization" },
+          { status: 500, headers: { "x-optimization-run-id": "run-init-9" } },
+        ),
+      logger,
+    });
+
+    expect(result.statusCode).toBe(502);
+    expect(result.headers).toMatchObject({
+      "X-Optimization-Run-ID": "run-init-9",
+    });
+    const failure = entries.find(
+      (entry) => entry.message === "Petrinaut optimization failed",
+    );
+    expect(failure?.metadata).toMatchObject({
+      optimizationRunId: "run-init-9",
+      outcome: "upstream-error",
+    });
   });
 
   it("cleans up backpressure listeners and survives a late close", async () => {

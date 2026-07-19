@@ -3,11 +3,13 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import signal
 import subprocess
 import sys
 import threading
 import time
+from contextlib import suppress
 from typing import Any
 
 import pytest
@@ -333,6 +335,75 @@ def test_stderr_forwarding_bounds_memory_for_newline_free_floods(
     assert len(forwarded[0].getMessage()) == (
         petrinaut_client.STDERR_LINE_LOG_CHARACTERS
     )
+
+
+def test_caps_the_number_of_forwarded_cli_stderr_lines(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setattr(petrinaut_client, "_MAX_FORWARDED_STDERR_LINES", 3)
+    lines = b"".join(f"line {index}\n".encode() for index in range(10))
+    process = FakeProcess([])
+    process.stderr = io.BytesIO(b"Petrinaut stdio ready for optimization\n" + lines)
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+
+    with caplog.at_level(logging.INFO, logger="pn_cli"):
+        model.start()
+        stderr_thread = model._stderr_thread
+        assert stderr_thread is not None
+        stderr_thread.join(timeout=1)
+        model.close()
+
+    forwarded = [record for record in caplog.records if record.name == "pn_cli"]
+    events = [record.event for record in forwarded]
+    # Three lines forwarded, then exactly one suppression notice; the rest are
+    # drained but not logged.
+    assert events == ["cli_stderr", "cli_stderr", "cli_stderr", "cli_stderr_suppressed"]
+    assert forwarded[-1].levelno == logging.WARNING
+
+
+def test_seeds_stderr_drain_with_bytes_read_past_the_handshake(
+    optimization_manifest: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A real pipe delivers the ready line and a diagnostic in one chunk."""
+    read_fd, write_fd = os.pipe()
+    reader = os.fdopen(read_fd, "rb", buffering=0)
+    os.write(
+        write_fd,
+        b"Petrinaut stdio ready for optimization\n"
+        b'{"event":"bootstrap_completed"}\n',
+    )
+
+    process = FakeProcess([])
+    process.stderr = reader
+    model = PetrinautModel(
+        optimization_manifest,
+        correlation_id="run-seed",
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+
+    try:
+        with caplog.at_level(logging.INFO, logger="pn_cli"):
+            model.start()
+            os.close(write_fd)
+            stderr_thread = model._stderr_thread
+            assert stderr_thread is not None
+            stderr_thread.join(timeout=1)
+            model.close()
+    finally:
+        with suppress(OSError):
+            os.close(write_fd)
+
+    forwarded = [record for record in caplog.records if record.name == "pn_cli"]
+    assert [record.getMessage() for record in forwarded] == [
+        '{"event":"bootstrap_completed"}'
+    ]
+    assert forwarded[0].run_id == "run-seed"
 
 
 def test_graceful_close_logs_the_eof_termination_path(

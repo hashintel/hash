@@ -26,9 +26,12 @@ PROCESS_SHUTDOWN_TIMEOUT_SECONDS = 5
 _STDERR_DRAIN_CHUNK_BYTES = 64 * 1024
 # Forwarded CLI stderr lines are bounded so a chatty or hostile CLI cannot
 # bloat service logs; the pending partial-line buffer is bounded so it also
-# cannot grow service memory.
+# cannot grow service memory, and the number of forwarded lines per run is
+# capped so a high-volume flood cannot fill the log pipeline either (the pipe
+# is still drained after the cap, so the CLI never blocks).
 STDERR_LINE_LOG_CHARACTERS = 2000
 _MAX_PENDING_STDERR_LINE_BYTES = 16 * 1024
+_MAX_FORWARDED_STDERR_LINES = 1000
 
 
 def _child_environment(correlation_id: str | None = None) -> dict[str, str]:
@@ -95,6 +98,8 @@ class PetrinautModel:
         self._stdout_buffer = bytearray()
         self._stderr_buffer = bytearray()
         self._stderr_thread: threading.Thread | None = None
+        # Touched only by the single stderr-drain thread, so it needs no lock.
+        self._forwarded_stderr_lines = 0
 
     def __enter__(self) -> PetrinautModel:
         self.start()
@@ -172,10 +177,14 @@ class PetrinautModel:
                 f"Petrinaut failed to load the optimization manifest: {details}"
             )
 
+        # The handshake read may have pulled bytes past the ready line into the
+        # buffer; hand that residue to the drain thread so an early diagnostic
+        # written right after the ready line is forwarded rather than dropped.
+        residue = bytes(self._stderr_buffer)
         self._stderr_buffer.clear()
         self._stderr_thread = threading.Thread(
             target=self._drain_stderr,
-            args=(process.stderr,),
+            args=(process.stderr, residue),
             daemon=True,
             name="petrinaut-stderr-drain",
         )
@@ -247,18 +256,24 @@ class PetrinautModel:
                 f"{description} was not valid UTF-8"
             ) from error
 
-    def _drain_stderr(self, stream: Any) -> None:
+    def _drain_stderr(self, stream: Any, initial: bytes = b"") -> None:
         """Forward CLI stderr lines into service logs with bounded memory.
 
         Draining also prevents CLI diagnostics from filling and blocking its
         stderr pipe. Each complete line is forwarded to the ``pn_cli`` logger
         with this run's correlation id; a line that grows beyond the pending
-        buffer is logged truncated and the rest of it is discarded, so a
-        newline-free stderr flood can neither buffer unboundedly nor bloat
-        the logs.
+        buffer is logged truncated and the rest of it is discarded, and only
+        the first ``_MAX_FORWARDED_STDERR_LINES`` lines per run are forwarded
+        (later lines are still read and discarded), so a newline-free or
+        high-volume stderr flood can neither buffer unboundedly nor bloat the
+        logs. ``initial`` seeds the buffer with bytes read past the bootstrap
+        handshake.
         """
-        buffer = bytearray()
+        buffer = bytearray(initial)
         discarding_oversized_line = False
+        while (newline := buffer.find(b"\n")) >= 0:
+            self._log_cli_stderr_line(bytes(buffer[:newline]))
+            del buffer[: newline + 1]
         while True:
             try:
                 chunk = stream.read(_STDERR_DRAIN_CHUNK_BYTES)
@@ -292,6 +307,20 @@ class PetrinautModel:
             truncated = True
         if not text.strip():
             return
+        if self._forwarded_stderr_lines >= _MAX_FORWARDED_STDERR_LINES:
+            if self._forwarded_stderr_lines == _MAX_FORWARDED_STDERR_LINES:
+                self._forwarded_stderr_lines += 1
+                cli_log.warning(
+                    "Petrinaut CLI stderr forwarding limit reached; "
+                    "further lines are drained but not logged",
+                    extra={
+                        "event": "cli_stderr_suppressed",
+                        "run_id": self.correlation_id,
+                        "forwarded_lines": _MAX_FORWARDED_STDERR_LINES,
+                    },
+                )
+            return
+        self._forwarded_stderr_lines += 1
         cli_log.info(
             text,
             extra={

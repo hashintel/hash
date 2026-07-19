@@ -22,6 +22,9 @@ const OVERALL_TIMEOUT_MS = 15 * 60_000;
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 const MAX_VALIDATION_ISSUES = 5;
 const MAX_VALIDATION_MESSAGE_LENGTH = 300;
+// Manifest keys (e.g. scenario parameter identifiers) are user-controlled and
+// unbounded, so cap each path segment before it reaches a response or a log.
+const MAX_VALIDATION_PATH_SEGMENT_LENGTH = 100;
 // A trial repeats optimized parameter identifiers from the accepted manifest,
 // so use the same bound rather than rejecting a valid large search space.
 const MAX_EVENT_BYTES = MAX_REQUEST_BYTES;
@@ -134,7 +137,12 @@ const summarizeValidationIssues = (
   issues: readonly { message: string; path: readonly PropertyKey[] }[],
 ) => ({
   issues: issues.slice(0, MAX_VALIDATION_ISSUES).map(({ message, path }) => ({
-    path: path.map(String).join(".") || "$",
+    path:
+      path
+        .map((segment) =>
+          String(segment).slice(0, MAX_VALIDATION_PATH_SEGMENT_LENGTH),
+        )
+        .join(".") || "$",
     message: message.slice(0, MAX_VALIDATION_MESSAGE_LENGTH),
   })),
   truncated: issues.length > MAX_VALIDATION_ISSUES,
@@ -334,6 +342,11 @@ export const createPetrinautOptimizationHandler = ({
         "Cache-Control": "no-cache, no-store",
         "Content-Type": "application/x-ndjson; charset=utf-8",
         "X-Accel-Buffering": "no",
+        // Expose the optimizer's run id so a browser can correlate this
+        // response with NodeAPI and optimizer logs when the stream fails.
+        ...(optimizationRunId === null
+          ? {}
+          : { "X-Optimization-Run-ID": optimizationRunId }),
       });
       response.flushHeaders();
       lifecycle.markResponseStarted();
@@ -352,6 +365,14 @@ export const createPetrinautOptimizationHandler = ({
       });
     } catch (error) {
       const durationMs = Date.now() - startedAt;
+      // A study that fails before its stream opens still has a run id on the
+      // optimizer's error response; keep it so the failure log correlates.
+      if (
+        optimizationRunId === null &&
+        error instanceof PetrinautOptimizerHttpError
+      ) {
+        optimizationRunId = error.optimizationRunId;
+      }
       if (lifecycle.state.clientDisconnected || response.destroyed) {
         requestLogger.info("Petrinaut optimization finished", {
           durationMs,
@@ -372,6 +393,9 @@ export const createPetrinautOptimizationHandler = ({
         userId,
       });
       if (!response.headersSent) {
+        if (optimizationRunId !== null) {
+          response.set({ "X-Optimization-Run-ID": optimizationRunId });
+        }
         if (
           error instanceof PetrinautOptimizerHttpError &&
           error.status === 429
