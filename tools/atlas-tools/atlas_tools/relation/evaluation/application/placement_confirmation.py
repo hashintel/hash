@@ -330,7 +330,12 @@ def placement_confirmation_source_hashes(
 def _review_rows(
     soft_labels: SoftLabelsArtifact,
     deck: VerifiedDeck,
+    *,
+    namespace: str | None = None,
 ) -> tuple[PlacementConfirmationReviewRow, ...]:
+    if namespace is not None and namespace not in deck.source_namespaces:
+        known = ", ".join(sorted(deck.source_namespaces))
+        raise ValueError(f"deck has no relation namespace {namespace!r}; sources are: {known}")
     positive = _positive_labels(soft_labels, deck)
     return tuple(
         PlacementConfirmationReviewRow(
@@ -342,6 +347,7 @@ def _review_rows(
             overlay_votes=label.tally.overlay,
         )
         for relation_id, label in sorted(positive.items())
+        if namespace is None or label.producer == namespace
     )
 
 
@@ -351,14 +357,22 @@ def confirm_placements(
     deck: VerifiedDeck | Path,
     reviewer: str,
     output_directory: Path,
+    namespace: str | None = None,
 ) -> VerifiedPlacementConfirmationArtifact:
-    """Run the voluntary confirmation review and publish the confirmed subset."""
+    """Run the voluntary confirmation review and publish the confirmed subset.
+
+    ``namespace`` restricts the offered queue to one relation source (it must
+    be declared by the deck); the published artifact's contract is unchanged,
+    so filtered sessions from the same corpus stay comparable.
+    """
     _require_destination_absent(output_directory)
     labels_artifact = load_verified_soft_labels(soft_labels)
     verified_deck = load_verified_deck(deck)
     review_source_hashes(labels_artifact, verified_deck)
-    rows = _review_rows(labels_artifact, verified_deck)
+    rows = _review_rows(labels_artifact, verified_deck, namespace=namespace)
     if not rows:
+        if namespace is not None:
+            raise ValueError(f"namespace {namespace!r} has no placement-evidence labels to confirm")
         raise ValueError("the corpus has no placement-evidence labels to confirm")
     decisions = run_placement_confirmation(rows)
     if decisions is None:

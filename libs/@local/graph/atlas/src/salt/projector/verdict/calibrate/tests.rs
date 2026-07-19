@@ -109,6 +109,8 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     assert_eq!(outcome.types[0].pairs, 1);
     assert_eq!(outcome.types[0].mass, 0.5);
     assert_eq!(outcome.types[0].quantiles, Some([1.0, 1.0, 1.0]));
+    // Leaving out the only type leaves nothing to measure.
+    assert_eq!(outcome.types[0].radius_without, None);
 }
 
 #[test]
@@ -145,6 +147,7 @@ fn the_radius_is_the_weighted_p75() {
     assert_eq!(outcome.radius, Some(3.0));
     assert_eq!(outcome.types[0].mass, 2.0);
     assert_eq!(outcome.types[0].quantiles, Some([1.0, 2.0, 3.0]));
+    assert_eq!(outcome.types[0].radius_without, None);
 }
 
 #[test]
@@ -179,6 +182,13 @@ fn the_cap_bounds_a_high_volume_type() {
     assert_eq!(capped.radius, Some(5.0));
     assert_eq!(capped.types[0].mass, 1.0);
     assert_eq!(capped.types[1].mass, 1.0);
+
+    // The leave-one-out spread names type 9 as the radius's owner:
+    // without type 5 the two z = 5 pairs cross 0.75 of their 1.0 mass
+    // at the second pair; without type 9 the 0.125-steps over z = 1
+    // reach 0.75 at the sixth.
+    assert_eq!(capped.types[0].radius_without, Some(5.0));
+    assert_eq!(capped.types[1].radius_without, Some(1.0));
 
     // Cap 8: type 5 weighs 4.0 against type 9's 1.0 and buys the
     // radius with volume - the behaviour the sampler factor forbids.
@@ -244,6 +254,11 @@ fn hubs_are_discounted_by_degree() {
     let total = hub.mass + peers.mass;
     assert!(1.5 >= 0.5 * total);
     assert_eq!(outcome.radius, Some(2.0));
+
+    // Without the hub only the peers' z = 1 remains; without the
+    // peers only the hub's z = 2 does.
+    assert_eq!(hub.radius_without, Some(1.0));
+    assert_eq!(peers.radius_without, Some(2.0));
 }
 
 #[test]
@@ -273,6 +288,7 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
     assert_eq!(outcome.types[0].pairs, 0);
     assert_eq!(outcome.types[0].mass, 0.0);
     assert_eq!(outcome.types[0].quantiles, None);
+    assert_eq!(outcome.types[0].radius_without, None);
 }
 
 #[test]

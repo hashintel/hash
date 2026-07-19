@@ -3,8 +3,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from pydantic import JsonValue
 
 import atlas_tools.relation.evaluation.application.placement_confirmation as confirmation_module
+from atlas_tools.common import Provenance, canonical_json_bytes, sha256_bytes, sha256_file
+from atlas_tools.relation.concat.api import concat_relations
 from atlas_tools.relation.evaluation.analysis.api import (
     PlacementTally,
     SoftLabel,
@@ -31,6 +34,7 @@ from atlas_tools.relation.evaluation.visualization.api import (
     PlacementConfirmationDecision,
     PlacementConfirmationReviewRow,
 )
+from atlas_tools.relation_cards.common.cards import CardRow, RelationSourceSpec
 from tests.relation.evaluation.grid_fixtures import write_grid_concat
 
 
@@ -198,6 +202,136 @@ def test_loader_rejects_tampering(tmp_path: Path, inputs: _Inputs) -> None:
             expected_cards_hash=inputs.deck.source_hashes["cards.jsonl"],
             expected_cards_manifest_hash=inputs.deck.source_hashes["cards.manifest.json"],
         )
+
+
+def _write_source(directory: Path, *, namespace: str, local_ids: tuple[str, ...]) -> Path:
+    directory.mkdir()
+    rows = []
+    for local_id in local_ids:
+        card_text = f"relation card for {namespace}:{local_id}"
+        rows.append(
+            CardRow.model_validate(
+                {
+                    "relation_id": f"{namespace}:{local_id}",
+                    "pid": local_id,
+                    "card_text": card_text,
+                    "card_hash": sha256_bytes(card_text.encode()),
+                    "token_count": len(card_text.split()),
+                    "truncations": [],
+                    "severely_truncated": False,
+                }
+            )
+        )
+    cards_path = directory / "cards.jsonl"
+    cards_path.write_bytes(b"".join(canonical_json_bytes(row) + b"\n" for row in rows))
+    Provenance[JsonValue, JsonValue].make(
+        producer=f"test.{namespace}-cards",
+        content_hashes={"cards.jsonl": sha256_file(cards_path)},
+        config={},
+        details={
+            "relation_source": RelationSourceSpec(
+                namespace=namespace,
+                local_id_field="pid",
+            ).model_dump(mode="json")
+        },
+    ).write(directory / "cards.manifest.json")
+    return directory
+
+
+def test_review_namespace_filter_excludes_other_sources(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    concat_relations(
+        [
+            _write_source(tmp_path / "wikidata-source", namespace="wikidata", local_ids=("P1",)),
+            _write_source(tmp_path / "acme-source", namespace="acme", local_ids=("alpha",)),
+        ],
+        out=tmp_path / "cards",
+    )
+    deck = load_deck(tmp_path / "cards")
+    labels = tuple(
+        _label(card, proximal=3) for card in sorted(deck.cards, key=lambda card: card.relation_id)
+    )
+    soft_labels = write_soft_labels(
+        tmp_path / "soft-labels.parquet",
+        labels,
+        source_hashes={"cards.jsonl": deck.source_hashes["cards.jsonl"]},
+    )
+
+    observed: list[tuple[PlacementConfirmationReviewRow, ...]] = []
+
+    def confirm(
+        rows: Iterable[PlacementConfirmationReviewRow],
+    ) -> tuple[PlacementConfirmationDecision, ...]:
+        offered = tuple(rows)
+        observed.append(offered)
+        return (
+            PlacementConfirmationDecision(
+                relation_id=offered[0].relation_id,
+                card_hash=offered[0].card_hash,
+                action="proximal",
+            ),
+        )
+
+    monkeypatch.setattr(confirmation_module, "run_placement_confirmation", confirm)
+    published = confirm_placements(
+        soft_labels=soft_labels.path,
+        deck=deck.directory,
+        reviewer="Grace Confirmer",
+        output_directory=tmp_path / "acme-only",
+        namespace="acme",
+    )
+    [offered] = observed
+    assert tuple(row.relation_id for row in offered) == ("acme:alpha",)
+    assert tuple(row.relation_id for row in published.rows) == ("acme:alpha",)
+
+
+def test_review_namespace_filter_restricts_queue_and_rejects_unknown(
+    tmp_path: Path,
+    inputs: _Inputs,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: list[tuple[PlacementConfirmationReviewRow, ...]] = []
+    first, second = inputs.positive
+
+    def confirm(
+        rows: Iterable[PlacementConfirmationReviewRow],
+    ) -> tuple[PlacementConfirmationDecision, ...]:
+        offered = tuple(rows)
+        observed.append(offered)
+        return (
+            PlacementConfirmationDecision(
+                relation_id=offered[0].relation_id,
+                card_hash=offered[0].card_hash,
+                action="proximal",
+            ),
+        )
+
+    monkeypatch.setattr(confirmation_module, "run_placement_confirmation", confirm)
+    published = confirm_placements(
+        soft_labels=inputs.soft_labels.path,
+        deck=inputs.deck.directory,
+        reviewer="Grace Confirmer",
+        output_directory=tmp_path / "filtered",
+        namespace="wikidata",
+    )
+    [offered] = observed
+    assert tuple(row.relation_id for row in offered) == tuple(
+        sorted((first.relation_id, second.relation_id))
+    )
+    assert all(row.relation_id.startswith("wikidata:") for row in offered)
+    assert len(published.rows) == 1
+
+    with pytest.raises(ValueError, match="no relation namespace 'hash'"):
+        confirm_placements(
+            soft_labels=inputs.soft_labels.path,
+            deck=inputs.deck.directory,
+            reviewer="reviewer",
+            output_directory=tmp_path / "unknown-namespace",
+            namespace="hash",
+        )
+    assert not (tmp_path / "unknown-namespace").exists()
 
 
 def test_review_publishes_confirmed_subset_and_cancel_publishes_nothing(

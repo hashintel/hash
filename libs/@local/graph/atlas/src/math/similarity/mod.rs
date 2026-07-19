@@ -25,6 +25,7 @@ use super::{
 };
 
 mod fit;
+mod residual;
 
 #[cfg(test)]
 mod tests;

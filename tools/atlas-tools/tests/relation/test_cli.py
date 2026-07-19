@@ -490,6 +490,8 @@ def test_cli_confirms_placements_and_echoes_artifact(
             "Grace Confirmer",
             "--out",
             str(output),
+            "--namespace",
+            "hash",
         ]
     )
 
@@ -498,6 +500,7 @@ def test_cli_confirms_placements_and_echoes_artifact(
         "deck": cards,
         "reviewer": "Grace Confirmer",
         "output_directory": output,
+        "namespace": "hash",
     }
     stdout = capsys.readouterr().out
     assert f"wrote {output / 'placement-confirmations.jsonl'}" in stdout

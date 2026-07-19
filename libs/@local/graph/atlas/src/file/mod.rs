@@ -83,11 +83,11 @@
 //! |---------------------------------|----------------------------------------------|--------|
 //! | embeddings, representations     | mmap + SIMD scans (`f32[N, D]`)              | array  |
 //! | canonical coordinates           | mmap, serving hot path (`f32[N, 2]`)         | array  |
-//! | morton codes                    | mmap + binary search (`u64[N]`, sorted);     | combined |
-//! |                                 | page-fault-cheap via an index prelude, then  |        |
-//! |                                 | the aligned code array                       |        |
-//! | importance ranks, bucket cascade| mmap, tile assembly (`u32`/`u64` arrays)     | array  |
-//! | quantized deltas                | mmap, wire assembly (`i16` arrays)           | array  |
+//! | morton codes                    | mmap + binary search (`u64[N]`,              | combined |
+//! |                                 | bucket-major); bucket fenceposts and an      |        |
+//! |                                 | index prelude make lookups page-fault-cheap  |        |
+//! |                                 | and segment-safe                             |        |
+//! | importance ranks, permutations  | mmap, tile assembly (`u32` arrays)           | array  |
 //! | semantic graph adjacency        | training reads, audits; a CSR matrix over    | sprs   |
 //! |                                 | the row domain, its three columns never read |        |
 //! |                                 | apart                                        |        |
@@ -171,7 +171,7 @@ pub(crate) mod attraction;
 pub(crate) mod generation;
 pub(crate) mod identity;
 pub(crate) mod landmark;
-mod morton;
+pub(crate) mod morton;
 mod quad;
 pub(crate) mod repository;
 pub(crate) mod salt;

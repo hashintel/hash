@@ -143,7 +143,6 @@ pub(crate) fn calibrate(
         let Ok(position) =
             groups.binary_search_by_key(&verdict.relation.get(), |group| group.relation().get())
         else {
-            }) else {
             types.push(TypeCalibration {
                 relation: verdict.relation,
                 pairs: 0,
@@ -186,16 +185,18 @@ pub(crate) fn calibrate(
                 * f64::from(edge.degree_normalization)
                 * class;
             mass += weight;
-            population.push((z, weight));
+            population.push((z, weight, tag));
         }
 
         let slice = &mut population[start..];
         slice.sort_unstable_by(|left, right| left.0.total_cmp(&right.0));
         let quantiles = (mass > 0.0).then(|| {
+            let entries = slice.iter().map(|&(z, weight, _)| (z, weight));
+
             [
-                weighted_quantile(slice, mass, 0.25),
-                weighted_quantile(slice, mass, 0.5),
-                weighted_quantile(slice, mass, 0.75),
+                weighted_quantile(entries.clone(), mass, 0.25),
+                weighted_quantile(entries.clone(), mass, 0.5),
+                weighted_quantile(entries, mass, 0.75),
             ]
         });
 
@@ -204,23 +205,58 @@ pub(crate) fn calibrate(
             pairs: edges.len(),
             mass,
             quantiles,
+            radius_without: None,
         });
     }
 
     let total: f64 = types.iter().map(|entry| entry.mass).sum();
     population.sort_unstable_by(|left, right| left.0.total_cmp(&right.0));
-    let radius = (total > 0.0).then(|| weighted_quantile(&population, total, 0.75));
+    let radius = (total > 0.0).then(|| {
+        weighted_quantile(
+            population.iter().map(|&(z, weight, _)| (z, weight)),
+            total,
+            0.75,
+        )
+    });
+
+    for (index, entry) in types.iter_mut().enumerate() {
+        let tag = u32::try_from(index).expect("the verdict list is far shorter than u32");
+        // Summed over the surviving entries rather than subtracted from
+        // the total, so the threshold cannot drift from the walked mass
+        // by cancellation.
+        let remaining: f64 = population
+            .iter()
+            .filter(|&&(_, _, owner)| owner != tag)
+            .map(|&(_, weight, _)| weight)
+            .sum();
+        entry.radius_without = (remaining > 0.0).then(|| {
+            weighted_quantile(
+                population
+                    .iter()
+                    .filter(|&&(_, _, owner)| owner != tag)
+                    .map(|&(z, weight, _)| (z, weight)),
+                remaining,
+                0.75,
+            )
+        });
+    }
 
     ProximalCalibration { radius, types }
 }
 
 /// Returns the smallest `z` whose cumulative weight reaches the given
-/// fraction of the total, over entries sorted ascending by `z`.
-fn weighted_quantile(sorted: &[(f32, f64)], total: f64, fraction: f64) -> f32 {
+/// fraction of the total, over entries yielded ascending by `z`.
+fn weighted_quantile(
+    sorted: impl IntoIterator<Item = (f32, f64)>,
+    total: f64,
+    fraction: f64,
+) -> f32 {
     let threshold = fraction * total;
     let mut cumulative = 0.0_f64;
-    for &(z, weight) in sorted {
+    let mut last = f32::NAN;
+    for (z, weight) in sorted {
         cumulative += weight;
+        last = z;
         if cumulative >= threshold {
             return z;
         }
@@ -228,9 +264,8 @@ fn weighted_quantile(sorted: &[(f32, f64)], total: f64, fraction: f64) -> f32 {
 
     // Reachable only through cumulative rounding shaving the last step
     // below the threshold; the answer is the distribution's maximum
-    // either way.
-    sorted
-        .last()
-        .expect("a positive total implies a non-empty population")
-        .0
+    // either way. Callers pass a non-empty population with a positive
+    // total, and every measured z is finite.
+    assert!(!last.is_nan(), "a positive total implies entries");
+    last
 }

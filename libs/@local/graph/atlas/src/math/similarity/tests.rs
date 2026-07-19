@@ -404,6 +404,167 @@ fn fit_ignores_zero_weight_pairs() {
     assert_eq!(with_outlier.to_array(), without_outlier.to_array());
 }
 
+#[test]
+fn fit_uniform_matches_fit_with_unit_weights() {
+    let target = noisy_certificate_target();
+
+    let weighted = Similarity::fit(&CERT_POINTS, &target, &[1.0; 12])
+        .expect("twelve spread pairs determine the transform");
+    let uniform = Similarity::fit_uniform(&CERT_POINTS, &target)
+        .expect("the uniform fit shares the weighted contract");
+
+    // The uniform pass accumulates the same moments without the weight
+    // multiplications, so each sum rounds differently: agreement is
+    // magnitude-scaled ulps rather than bit-exact.
+    for (actual, reference) in uniform.to_array().into_iter().zip(weighted.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn fit_uniform_par_matches_fit_uniform_on_large_input() {
+    const PAIRS: usize = 10_000;
+
+    let known = Similarity::new(0.8, Rotation::from_radians(2.1), Vec2::new(-1.0, 6.0))
+        .expect("scale 0.8 is normal and positive");
+
+    let mut value = 0.61_f32;
+    let mut pseudo = move || {
+        value = 3.9 * value * (1.0 - value);
+        value
+    };
+
+    let mut source = Vec::with_capacity(PAIRS);
+    let mut target = Vec::with_capacity(PAIRS);
+    for _ in 0..PAIRS {
+        let point = Vec2::new(
+            20.0_f32.mul_add(pseudo(), -10.0),
+            20.0_f32.mul_add(pseudo(), -10.0),
+        );
+        let noise = Vec2::new(
+            0.1_f32.mul_add(pseudo(), -0.05),
+            0.1_f32.mul_add(pseudo(), -0.05),
+        );
+        source.push(point);
+        target.push(known.apply(point) + noise);
+    }
+
+    let serial = Similarity::fit_uniform(&source, &target)
+        .expect("ten thousand spread pairs determine the transform");
+    let parallel = Similarity::fit_uniform_par(&source, &target)
+        .expect("the parallel fit shares the serial contract");
+
+    for (actual, reference) in parallel.to_array().into_iter().zip(serial.to_array()) {
+        assert_scalar_close(actual, reference);
+    }
+}
+
+#[test]
+fn rms_residual_reduces_hand_computed_distances() {
+    // Residual distances 3 and 4 under the identity: the RMS is
+    // sqrt((9 + 16) / 2) by hand.
+    let source = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
+    let target = [Vec2::new(0.0, 3.0), Vec2::new(14.0, 0.0)];
+
+    let residual = Similarity::IDENTITY
+        .rms_residual(&source, &target)
+        .expect("the pairs are finite");
+
+    assert!((residual - 12.5_f64.sqrt()).abs() < 1e-12);
+}
+
+#[test]
+fn rms_residual_vanishes_on_an_exact_image() {
+    let similarity = Similarity::new(2.0, Rotation::from_radians(0.7), Vec2::new(3.0, -1.0))
+        .expect("scale 2.0 is normal and positive");
+    let target = FIT_POINTS.map(|point| similarity.apply(point));
+
+    let residual = similarity
+        .rms_residual(&FIT_POINTS, &target)
+        .expect("the pairs are finite");
+
+    // The targets were produced by the `f32` application while the
+    // residual applies widened `f64` coefficients, so the mismatch is
+    // the `f32` rounding of the application, not zero.
+    assert!(residual < 1e-5, "exact image residual was {residual}");
+}
+
+#[test]
+fn rms_residual_is_the_fit_objective_at_the_minimizer() {
+    let target = noisy_certificate_target();
+    let fitted = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
+        .expect("twelve spread pairs determine the transform");
+
+    // The unweighted residual of a nearby similarity must not fall
+    // below the unweighted optimum's; certify against the uniform fit.
+    let uniform = Similarity::fit_uniform(&CERT_POINTS, &target)
+        .expect("twelve spread pairs determine the transform");
+    let best = uniform
+        .rms_residual(&CERT_POINTS, &target)
+        .expect("the pairs are finite");
+    let off = fitted
+        .rms_residual(&CERT_POINTS, &target)
+        .expect("the pairs are finite");
+
+    assert!(
+        best <= off + 1e-9,
+        "uniform optimum {best} must not exceed the weighted fit's residual {off}"
+    );
+}
+
+#[test]
+fn rms_residual_par_matches_rms_residual() {
+    const PAIRS: usize = 10_000;
+
+    let similarity = Similarity::new(1.5, Rotation::from_radians(-0.2), Vec2::new(2.0, 2.0))
+        .expect("scale 1.5 is normal and positive");
+
+    let mut value = 0.43_f32;
+    let mut pseudo = move || {
+        value = 3.9 * value * (1.0 - value);
+        value
+    };
+    let mut source = Vec::with_capacity(PAIRS);
+    let mut target = Vec::with_capacity(PAIRS);
+    for _ in 0..PAIRS {
+        let point = Vec2::new(
+            20.0_f32.mul_add(pseudo(), -10.0),
+            20.0_f32.mul_add(pseudo(), -10.0),
+        );
+        source.push(point);
+        target.push(Vec2::new(pseudo(), pseudo()));
+    }
+
+    let serial = similarity
+        .rms_residual(&source, &target)
+        .expect("the pairs are finite");
+    let parallel = similarity
+        .rms_residual_par(&source, &target)
+        .expect("the parallel residual shares the serial contract");
+
+    // Chunked summation rounds differently from the serial fold.
+    assert!((serial - parallel).abs() <= serial * 1e-12);
+}
+
+#[test]
+fn rms_residual_rejects_invalid_pairings() {
+    let points = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
+    let similarity = Similarity::IDENTITY;
+
+    // Mismatched lengths and empty input.
+    assert!(similarity.rms_residual(&points, &points[..1]).is_none());
+    assert!(similarity.rms_residual(&[], &[]).is_none());
+    assert!(similarity.rms_residual_par(&points, &points[..1]).is_none());
+    assert!(similarity.rms_residual_par(&[], &[]).is_none());
+
+    // A non-finite coordinate propagates into the sum and is rejected
+    // rather than returned.
+    let nan = [Vec2::new(f32::NAN, 0.0), Vec2::new(1.0, 0.0)];
+    assert!(similarity.rms_residual(&nan, &points).is_none());
+    assert!(similarity.rms_residual(&points, &nan).is_none());
+    assert!(similarity.rms_residual_par(&nan, &points).is_none());
+}
+
 /// Asserts both fit entry points reject the pairing, certifying their
 /// [`None`] agreement case by case.
 #[track_caller]
@@ -437,6 +598,8 @@ fn fit_rejects_degenerate_inputs() {
 
     // Coincident source points carry no scale.
     assert_fit_rejects(&[Vec2::new(1.0, 1.0); 3], &target, &weights);
+    assert!(Similarity::fit_uniform(&[Vec2::new(1.0, 1.0); 3], &target).is_none());
+    assert!(Similarity::fit_uniform_par(&[Vec2::new(1.0, 1.0); 3], &target).is_none());
 
     // Non-finite coordinates on either side.
     let mut nan_source = source;

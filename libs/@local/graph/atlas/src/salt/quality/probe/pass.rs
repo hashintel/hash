@@ -33,7 +33,10 @@ use core::{cmp::Ordering, num::NonZero};
 
 use rayon::prelude::*;
 
-use super::super::metric::{NeighbourhoodAggregate, RankScratch};
+use super::{
+    super::metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
+    RadiusPair, SpacePair,
+};
 use crate::{
     bitset::BitSet,
     dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
@@ -41,6 +44,9 @@ use crate::{
 };
 
 /// Runs the corpus pass: every anchor against every non-anchor row.
+///
+/// Returns each anchor's aggregate cells and its neighbourhood radii,
+/// one of each per neighbourhood size.
 pub(super) fn corpus_pass(
     representations: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     coordinates: &[Vec2],
@@ -49,7 +55,7 @@ pub(super) fn corpus_pass(
     search: usize,
     template: &[NeighbourhoodAggregate],
     neighbourhoods: &[NonZero<usize>],
-) -> Vec<Vec<NeighbourhoodAggregate>> {
+) -> (Vec<Vec<NeighbourhoodAggregate>>, Vec<Vec<RadiusPair>>) {
     anchor_rows
         .par_iter()
         .map_init(CorpusScratch::default, |scratch, &anchor| {
@@ -69,6 +75,14 @@ pub(super) fn corpus_pass(
 
 /// Runs the sampled pass: every anchor against the comparison rows in
 /// all three spaces.
+///
+/// Returns each anchor's aggregate cells per space pair and its
+/// triplet readings over the shared `pairs`, in the same pair order:
+/// map-representation, map-canonical, representation-canonical.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the pass driver binds the shared inputs once each"
+)]
 pub(super) fn sampled_pass(
     representations: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     coordinates: &[Vec2],
@@ -77,7 +91,11 @@ pub(super) fn sampled_pass(
     anchor_rows: &[usize],
     comparison_rows: &[usize],
     template: &[NeighbourhoodAggregate],
-) -> Vec<[Vec<NeighbourhoodAggregate>; 3]> {
+    pairs: &[[u32; 2]],
+) -> (
+    Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
+    Vec<[TripletAggregate; SpacePair::COUNT]>,
+) {
     anchor_rows
         .par_iter()
         .enumerate()
@@ -92,6 +110,7 @@ pub(super) fn sampled_pass(
                     comparison_rows,
                     anchor,
                     template,
+                    pairs,
                     scratch,
                 )
             },
@@ -190,7 +209,7 @@ fn corpus_anchor(
     template: &[NeighbourhoodAggregate],
     neighbourhoods: &[NonZero<usize>],
     scratch: &mut CorpusScratch,
-) -> Vec<NeighbourhoodAggregate> {
+) -> (Vec<NeighbourhoodAggregate>, Vec<RadiusPair>) {
     let anchor_point = coordinates[anchor];
     let anchor_embedding = &representations[anchor];
 
@@ -272,13 +291,20 @@ fn corpus_anchor(
     }
 
     let mut cells = template.to_vec();
+    let mut radii = Vec::with_capacity(neighbourhoods.len());
     for (aggregate, &k) in cells.iter_mut().zip(neighbourhoods) {
         aggregate.observe_ranks(
             &scratch.reference_ranks[..k.get()],
             &scratch.counts[..k.get()],
         );
+        radii.push(RadiusPair {
+            // The map scans rank by squared distance; the radius is
+            // the distance itself.
+            map: scratch.map_nearest[k.get() - 1].distance.sqrt(),
+            representation: scratch.reference_nearest[k.get() - 1].distance,
+        });
     }
-    cells
+    (cells, radii)
 }
 
 /// Reusable per-thread buffers for the sampled pass, each sized by the
@@ -332,8 +358,12 @@ fn sampled_anchor(
     comparison_rows: &[usize],
     anchor: usize,
     template: &[NeighbourhoodAggregate],
+    pairs: &[[u32; 2]],
     scratch: &mut SampledScratch,
-) -> [Vec<NeighbourhoodAggregate>; 3] {
+) -> (
+    [Vec<NeighbourhoodAggregate>; SpacePair::COUNT],
+    [TripletAggregate; SpacePair::COUNT],
+) {
     let anchor_point = coordinates[anchor];
     let anchor_embedding = &representations[anchor];
     let SampledScratch {
@@ -375,5 +405,32 @@ fn sampled_anchor(
     let map_canonical = observed(canonical_order, map_order);
     let representation_canonical = observed(canonical_order, representation_order);
 
-    [map_representation, map_canonical, representation_canonical]
+    // Triplet verdicts: whether each space orders the pair's two
+    // points the same way from this anchor, under the shared
+    // (distance, row) total order. Distinct rows leave no ties.
+    let mut triplets = [TripletAggregate::default(); SpacePair::COUNT];
+    for &[first, second] in pairs {
+        let nearer_first = |distances: &[f32]| {
+            distances[first as usize]
+                .total_cmp(&distances[second as usize])
+                .then_with(|| {
+                    comparison_rows[first as usize].cmp(&comparison_rows[second as usize])
+                })
+                .is_lt()
+        };
+        let map = nearer_first(map_distances);
+        let representation = nearer_first(representation_distances);
+        let canonical = nearer_first(canonical_distances);
+
+        triplets[SpacePair::MapRepresentation as usize].observe(map == representation);
+        triplets[SpacePair::MapCanonical as usize].observe(map == canonical);
+        triplets[SpacePair::RepresentationCanonical as usize].observe(representation == canonical);
+    }
+
+    let mut cells: [Vec<NeighbourhoodAggregate>; SpacePair::COUNT] = Default::default();
+    cells[SpacePair::MapRepresentation as usize] = map_representation;
+    cells[SpacePair::MapCanonical as usize] = map_canonical;
+    cells[SpacePair::RepresentationCanonical as usize] = representation_canonical;
+
+    (cells, triplets)
 }

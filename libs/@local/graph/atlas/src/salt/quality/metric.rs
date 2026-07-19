@@ -279,6 +279,13 @@ impl NeighbourhoodAggregate {
         self.queries
     }
 
+    /// Returns the comparison-point count every ordering permutes.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn universe(&self) -> usize {
+        self.universe
+    }
+
     /// Returns the mean fraction of shared k-neighbourhoods, in
     /// `[0, 1]`; an empty aggregate reads 1.
     #[must_use]
@@ -349,6 +356,62 @@ impl NeighbourhoodAggregate {
         // The constructor bounds k <= universe / 2, so 2m - 3k + 1 > 0.
         let worst_per_query = self.k * (2 * self.universe - 3 * self.k + 1) / 2;
         1.0 - penalty as f64 / (self.queries * worst_per_query) as f64
+    }
+}
+
+/// Accumulated order agreement over sampled triplets.
+///
+/// A triplet fixes an anchor and two comparison points and is
+/// preserved when the map orders the points' distances from the
+/// anchor as the reference space does, both spaces compared under the
+/// shared `(distance, row)` total order - a pair coincident in both
+/// spaces is therefore preserved, and one coincident in exactly one
+/// space is not. An aggregate over one anchor's pairs is that
+/// anchor's own reading.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub(crate) struct TripletAggregate {
+    triplets: u64,
+    preserved: u64,
+}
+
+impl TripletAggregate {
+    /// Accumulates one triplet's verdict.
+    #[inline]
+    pub(crate) const fn observe(&mut self, preserved: bool) {
+        self.triplets += 1;
+        self.preserved += preserved as u64;
+    }
+
+    /// Folds another aggregate's observations into this one.
+    #[inline]
+    pub(crate) const fn merge(&mut self, other: &Self) {
+        self.triplets += other.triplets;
+        self.preserved += other.preserved;
+    }
+
+    /// Returns the observed triplet count.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn triplets(&self) -> u64 {
+        self.triplets
+    }
+
+    /// Returns the preserved triplet count.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn preserved(&self) -> u64 {
+        self.preserved
+    }
+
+    /// Returns the preserved fraction, in `[0, 1]`; an empty aggregate
+    /// reads 1.
+    #[must_use]
+    pub(crate) fn agreement(&self) -> f64 {
+        if self.triplets == 0 {
+            return 1.0;
+        }
+
+        self.preserved as f64 / self.triplets as f64
     }
 }
 

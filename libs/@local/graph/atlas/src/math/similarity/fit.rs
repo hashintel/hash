@@ -135,6 +135,66 @@ impl Similarity {
             .reduce_with(FitSums::combine)?
             .solve()
     }
+
+    /// Fits the unweighted Procrustes alignment of paired points.
+    ///
+    /// Equivalent to [`fit`](Self::fit) with every weight `1.0`, without
+    /// materializing a weight slice: the uniform moments accumulate
+    /// directly, so aligning corpus-scale fields costs no allocation.
+    ///
+    /// Returns [`None`] under [`fit`](Self::fit)'s data-dependent cases
+    /// that remain reachable with uniform weights: differing slice
+    /// lengths, fewer than two pairs, a non-finite coordinate,
+    /// coincident source points, or an exactly cancelling covariance.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::{Rotation, Similarity, Vec2};
+    ///
+    /// let expected = Similarity::new(0.5, Rotation::from_cos_sin(1.0, 0.0), Vec2::new(3.0, 1.0))
+    ///     .expect("scale 0.5 is normal and positive");
+    /// let source = [
+    ///     Vec2::new(0.0, 0.0),
+    ///     Vec2::new(2.0, 0.0),
+    ///     Vec2::new(0.0, 4.0),
+    /// ];
+    /// let target = source.map(|point| expected.apply(point));
+    ///
+    /// let fitted = Similarity::fit_uniform(&source, &target).expect("the pairs are exact");
+    /// assert!((fitted.scale() - expected.scale()).abs() < 1e-5);
+    /// ```
+    #[must_use]
+    pub fn fit_uniform(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+        if source.len() != target.len() || source.len() < 2 {
+            return None;
+        }
+
+        FitSums::from_slices_uniform(source, target).solve()
+    }
+
+    /// Fits the unweighted Procrustes alignment of large inputs in
+    /// parallel.
+    ///
+    /// The contract is identical to [`fit_uniform`](Self::fit_uniform);
+    /// the chunked reduction carries [`fit_par`](Self::fit_par)'s
+    /// units-in-the-last-place caveat and the same roughly-a-hundred-
+    /// thousand-pairs break-even. Work splits into chunks of
+    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
+    #[inline]
+    #[must_use]
+    pub fn fit_uniform_par(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+        if source.len() != target.len() || source.len() < 2 {
+            return None;
+        }
+
+        source
+            .par_chunks(Self::PARALLEL_CHUNK.get())
+            .zip(target.par_chunks(Self::PARALLEL_CHUNK.get()))
+            .map(|(source, target)| FitSums::from_slices_uniform(source, target))
+            .reduce_with(FitSums::combine)?
+            .solve()
+    }
 }
 
 /// Validity and weighted raw moments of a run of point pairs, accumulated
@@ -238,6 +298,72 @@ impl FitSums {
             sums.dot = source.dot(target).mul_add(weight, sums.dot);
             sums.perp_dot = source.perp_dot(target).mul_add(weight, sums.perp_dot);
             sums.source_norm = source.norm_squared().mul_add(weight, sums.source_norm);
+        }
+
+        sums
+    }
+
+    /// Accumulates the raw moments of the paired slices under uniform
+    /// unit weights.
+    ///
+    /// The slices carry equal lengths; the `fit_uniform` entry points
+    /// check this once before accumulating. The total weight is the
+    /// exact pair count, and every weighted moment degenerates to its
+    /// plain sum, so the pass reads two slices instead of three.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "pair counts remain exactly representable in f64 far beyond any corpus"
+    )]
+    fn from_slices_uniform(source: &[Vec2], target: &[Vec2]) -> Self {
+        let (source_batches, source_rest) = source.as_chunks::<4>();
+        let (target_batches, target_rest) = target.as_chunks::<4>();
+
+        let mut valid = true;
+        let mut source_sum = DVec2x4T::ZERO;
+        let mut target_sum = DVec2x4T::ZERO;
+        let mut dot_sum = Simd::splat(0.0_f64);
+        let mut perp_sum = Simd::splat(0.0_f64);
+        let mut norm_sum = Simd::splat(0.0_f64);
+        for (source, target) in source_batches.iter().zip(target_batches) {
+            let source = Vec2x4::from(*source);
+            let target = Vec2x4::from(*target);
+
+            valid &= source.to_simd().is_finite().all() && target.to_simd().is_finite().all();
+
+            // Widening is exact and each product of two widened values
+            // fits in `f64`'s 53-bit significand, exactly as in the
+            // weighted pass; only the running additions round.
+            let source = DVec2x4T::from(Vec2x4T::from(source));
+            let target = DVec2x4T::from(Vec2x4T::from(target));
+
+            source_sum += source;
+            target_sum += target;
+            dot_sum += source.dot(target);
+            perp_sum += source.perp_dot(target);
+            norm_sum += source.length_squared();
+        }
+
+        let mut sums = Self {
+            valid,
+            weight: source.len() as f64,
+            source: source_sum.reduce(),
+            target: target_sum.reduce(),
+            dot: dot_sum.reduce_sum(),
+            perp_dot: perp_sum.reduce_sum(),
+            source_norm: norm_sum.reduce_sum(),
+        };
+
+        for (&source, &target) in source_rest.iter().zip(target_rest) {
+            sums.valid &= source.is_finite() && target.is_finite();
+
+            let source = DVec2::from(source);
+            let target = DVec2::from(target);
+
+            sums.source += source;
+            sums.target += target;
+            sums.dot += source.dot(target);
+            sums.perp_dot += source.perp_dot(target);
+            sums.source_norm += source.norm_squared();
         }
 
         sums

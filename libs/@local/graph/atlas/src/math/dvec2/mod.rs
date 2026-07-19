@@ -336,5 +336,22 @@ impl From<Vec2x4T> for DVec2x4T {
     }
 }
 
+/// Adds the batches vector by vector: the unweighted accumulation step.
+impl Add for DVec2x4T {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self {
+        Self((self.to_simd() + rhs.to_simd()).to_array())
+    }
+}
+
+impl AddAssign for DVec2x4T {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
 const _: () = assert!(size_of::<DVec2x4T>() == size_of::<Simd<f64, 8>>());
 const _: () = assert!(align_of::<DVec2x4T>() >= align_of::<Simd<f64, 8>>());

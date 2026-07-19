@@ -384,15 +384,17 @@ class ExportFitInputsCommand(BaseSettings):
 class ConfirmPlacementsCommand(BaseSettings):
     """Confirm placement classes for unambiguous relations in a voluntary review.
 
-    Every positive-evidence soft label is offered; any subset may be confirmed,
-    excluded, or skipped. The published artifact records only explicit decisions and
-    never loosens the target-resolution artifact's ambiguous-coverage contract.
+    Every positive-evidence soft label is offered, restricted to one relation
+    source when ``--namespace`` is given; any subset may be confirmed, excluded,
+    or skipped. The published artifact records only explicit decisions and never
+    loosens the target-resolution artifact's ambiguous-coverage contract.
     """
 
     soft_labels: CliPositionalArg[FilePath]
     cards: CliPositionalArg[DirectoryPath]
     reviewer: Annotated[str, Field(min_length=1)]
     out: Path
+    namespace: Annotated[str, Field(min_length=1)] | None = None
 
     model_config = SettingsConfigDict(extra="forbid")
 
@@ -405,6 +407,7 @@ class ConfirmPlacementsCommand(BaseSettings):
                 deck=self.cards,
                 reviewer=self.reviewer,
                 output_directory=self.out,
+                namespace=self.namespace,
             )
         except (OSError, RuntimeError, ValueError) as error:
             fail(error)

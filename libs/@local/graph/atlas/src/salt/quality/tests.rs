@@ -9,19 +9,24 @@
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
 
+use core::num::NonZero;
 use std::collections::HashMap;
 
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
+use smallvec::SmallVec;
 use zerocopy::{LE, U64};
 
 use super::{
     clump::Clumps,
-    metric::{NeighbourhoodAggregate, RankScratch, rank_correlation},
-    probe::{ProbeError, ProbeOptions, probe},
+    metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate, rank_correlation},
+    probe::{ProbeError, ProbeOptions, ProbeReadings, RadiusPair, ReadingGrid, probe},
+    report::{QualityThresholds, assess},
 };
 use crate::{
-    dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS, memory::MemoryDataset},
+    dataset::{
+        CANONICAL_DIMENSIONS, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, memory::MemoryDataset,
+    },
     math::{AlignedVecN, BoxedVecN, Vec2},
     salt::knn::table::Knn,
 };
@@ -460,7 +465,370 @@ async fn corpus_readings_match_a_sorting_reference() {
             expected,
             "anchor {anchor} disagrees with the sorting reference",
         );
+
+        // Radii replay: the k-th entries of the sorted distance lists.
+        let radii = readings.radii[index];
+        let sorted_by = |distances: &dyn Fn(usize) -> f32| {
+            let mut all: Vec<f32> = universe.iter().map(|&row| distances(row)).collect();
+            all.sort_unstable_by(f32::total_cmp);
+            all
+        };
+        let map_distances = sorted_by(&|row: usize| {
+            fixture.coordinates[anchor].distance_squared(fixture.coordinates[row])
+        });
+        let representation_distances =
+            sorted_by(&|row: usize| representations[anchor].cosine_distance(&representations[row]));
+        assert_eq!(radii.map, map_distances[k - 1].sqrt());
+        assert_eq!(radii.representation, representation_distances[k - 1]);
+
+        // Triplet replay over the shared pair sample: naive order
+        // agreement between the map and the representation.
+        let comparisons: Vec<usize> = readings.comparisons.iter().map(|row| row.usize()).collect();
+        let mut preserved = 0_u64;
+        for &[first, second] in &readings.triplet_pairs {
+            let (first, second) = (comparisons[first as usize], comparisons[second as usize]);
+            let nearer = |distances: &dyn Fn(usize) -> f32| {
+                distances(first)
+                    .total_cmp(&distances(second))
+                    .then_with(|| first.cmp(&second))
+                    .is_lt()
+            };
+            let map = nearer(&|row: usize| {
+                fixture.coordinates[anchor].distance_squared(fixture.coordinates[row])
+            });
+            let representation = nearer(&|row: usize| {
+                representations[anchor].cosine_distance(&representations[row])
+            });
+            preserved += u64::from(map == representation);
+        }
+        let triplets = readings.triplet_map_representation[index];
+        assert_eq!(triplets.triplets(), readings.triplet_pairs.len() as u64);
+        assert_eq!(
+            triplets.preserved(),
+            preserved,
+            "anchor {anchor} disagrees with the triplet reference",
+        );
     }
+}
+
+/// Hand-built readings: six single-query anchors at k = 1 over a
+/// universe of 8, each a plain hit (rank 0) or a horizon miss
+/// (rank 7), reused for all four grids.
+fn flag_fixture(hits: &[bool]) -> ProbeReadings {
+    let cells: Vec<Vec<NeighbourhoodAggregate>> = hits
+        .iter()
+        .map(|&hit| {
+            let mut aggregate =
+                NeighbourhoodAggregate::new(8, 1, 2).expect("1 <= 8 / 2 and 1 <= 2 <= 8");
+            let rank = if hit { [0] } else { [7] };
+            aggregate.observe_ranks(&rank, &rank);
+            vec![aggregate]
+        })
+        .collect();
+
+    ProbeReadings {
+        anchors: (0..hits.len())
+            .map(|row| NodeRowId::new(row as u64))
+            .collect(),
+        comparisons: Box::new([]),
+        neighbourhoods: Box::new([NonZero::new(1).expect("nonzero")]),
+        map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
+        sampled_map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
+        sampled_map_canonical: ReadingGrid::from_anchor_cells(cells.clone(), 1),
+        sampled_representation_canonical: ReadingGrid::from_anchor_cells(cells, 1),
+        radii: hits
+            .iter()
+            .map(|_| RadiusPair {
+                map: 1.0,
+                representation: 1.0,
+            })
+            .collect(),
+        triplet_pairs: Box::new([]),
+        triplet_map_representation: vec![TripletAggregate::default(); hits.len()].into(),
+        triplet_map_canonical: vec![TripletAggregate::default(); hits.len()].into(),
+        triplet_representation_canonical: vec![TripletAggregate::default(); hits.len()].into(),
+    }
+}
+
+fn types_of(rows: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
+    rows.iter()
+        .map(|types| types.iter().map(|&row| OntologyRowId::new(row)).collect())
+        .collect()
+}
+
+/// Hand-computed subgroup rule: degradations, the 2x factor, the
+/// anchor floor, and multi-typed anchors counting in every group.
+#[test]
+fn assess_flags_degraded_subgroups() {
+    // Anchors 0-3 hit, 4-5 miss: overall recall 2/3, degradation 1/3.
+    let readings = flag_fixture(&[true, true, true, true, false, false]);
+    // Type 100: four hits. Type 200: both misses. Type 300 spans one
+    // of each through multi-typed anchors 0 and 4.
+    let anchor_types = types_of(&[&[100, 300], &[100], &[100], &[100], &[200, 300], &[200]]);
+    let thresholds = QualityThresholds {
+        minimum_subgroup_anchors: 2,
+        ..QualityThresholds::default()
+    };
+
+    let report = assess(&readings, &anchor_types, &thresholds);
+
+    assert_eq!(report.anchors, 6);
+    assert_eq!(report.corpus_universe, 8);
+    assert_eq!(report.map_representation.len(), 1);
+    let overall = report.map_representation[0];
+    assert_eq!(overall.queries, 6);
+    assert_eq!(overall.recall, 2.0 / 3.0);
+    // The misses sit past the horizon in both directions.
+    assert_eq!(overall.intrusion_rate, 1.0 / 3.0);
+    assert_eq!(overall.extrusion_rate, 1.0 / 3.0);
+
+    // Subgroups ascend by ontology row and count multi-typed anchors
+    // in each of their groups.
+    let by_row: Vec<(u64, usize, f64)> = report
+        .subgroups
+        .iter()
+        .map(|subgroup| {
+            (
+                subgroup.ontology_row,
+                subgroup.anchors,
+                subgroup.rows[0].recall,
+            )
+        })
+        .collect();
+    assert_eq!(by_row, vec![(100, 4, 1.0), (200, 2, 0.0), (300, 2, 0.5)],);
+
+    // Only type 200 breaches: degradation 1 > 2 * (1/3). Type 300's
+    // 1/2 stays inside 2/3; type 100 has no degradation at all.
+    assert_eq!(report.flags.len(), 1);
+    let flag = report.flags[0];
+    assert_eq!(flag.ontology_row, 200);
+    assert_eq!(flag.neighbourhood, 1);
+    assert_eq!(flag.anchors, 2);
+    assert_eq!(flag.degradation, 1.0);
+    // One minus the recall quotient, not fl(1/3): the report derives
+    // degradation by subtraction.
+    assert_eq!(flag.overall_degradation, 1.0 - 2.0 / 3.0);
+    assert!(!report.passes());
+
+    // Raising the anchor floor above the subgroup's size silences the
+    // flag but keeps the subgroup's rows in the report.
+    let floored = assess(
+        &readings,
+        &anchor_types,
+        &QualityThresholds {
+            minimum_subgroup_anchors: 3,
+            ..QualityThresholds::default()
+        },
+    );
+    assert!(floored.flags.is_empty());
+    assert_eq!(floored.subgroups.len(), 3);
+    assert!(floored.passes());
+}
+
+/// Hand-computed density rows: log ratios, the median/MAD spread,
+/// and degenerate-radius exclusion.
+#[test]
+fn assess_reads_density_from_radii() {
+    let mut readings = flag_fixture(&[true, true, true]);
+    // Ratios ln 2 and ln 4; the zero map radius is degenerate.
+    readings.radii = Box::new([
+        RadiusPair {
+            map: 2.0,
+            representation: 1.0,
+        },
+        RadiusPair {
+            map: 4.0,
+            representation: 1.0,
+        },
+        RadiusPair {
+            map: 0.0,
+            representation: 1.0,
+        },
+    ]);
+
+    let report = assess(
+        &readings,
+        &types_of(&[&[], &[], &[]]),
+        &QualityThresholds::default(),
+    );
+
+    assert_eq!(report.density.len(), 1);
+    let row = report.density[0];
+    assert_eq!(row.neighbourhood, 1);
+    assert_eq!(row.anchors, 2);
+    assert_eq!(row.degenerate, 1);
+    // Mirror the derivation: ln radii differences, midpoint median,
+    // midpoint of the absolute deviations.
+    let (low, high) = (2.0_f64.ln(), 4.0_f64.ln());
+    let median = f64::midpoint(low, high);
+    assert_eq!(row.median_log_ratio, Some(median));
+    assert_eq!(
+        row.spread,
+        Some(f64::midpoint((low - median).abs(), (high - median).abs())),
+    );
+
+    // A pinned ceiling above the spread passes; below it fails.
+    let spread = row.spread.expect("two anchors contribute");
+    let lenient = assess(
+        &readings,
+        &types_of(&[&[], &[], &[]]),
+        &QualityThresholds {
+            maximum_density_spread: Some(spread),
+            ..QualityThresholds::default()
+        },
+    );
+    assert!(lenient.passes());
+    let strict = assess(
+        &readings,
+        &types_of(&[&[], &[], &[]]),
+        &QualityThresholds {
+            maximum_density_spread: Some(spread / 2.0),
+            ..QualityThresholds::default()
+        },
+    );
+    assert!(!strict.passes());
+}
+
+/// Pinned gates on absent evidence fail closed.
+#[test]
+fn assess_fails_pinned_gates_without_evidence() {
+    // Every radius degenerate: the density reading is absent.
+    let mut readings = flag_fixture(&[true, true]);
+    readings.radii = Box::new([
+        RadiusPair {
+            map: 0.0,
+            representation: 1.0,
+        },
+        RadiusPair {
+            map: 0.0,
+            representation: 1.0,
+        },
+    ]);
+    let types = types_of(&[&[], &[]]);
+
+    let report = assess(
+        &readings,
+        &types,
+        &QualityThresholds {
+            maximum_density_spread: Some(1.0),
+            ..QualityThresholds::default()
+        },
+    );
+    assert_eq!(report.density[0].anchors, 0);
+    assert_eq!(report.density[0].spread, None);
+    assert!(!report.passes());
+
+    // Disabled triplet readings fail a pinned agreement floor.
+    let report = assess(
+        &readings,
+        &types,
+        &QualityThresholds {
+            minimum_triplet_agreement: Some(0.5),
+            ..QualityThresholds::default()
+        },
+    );
+    assert_eq!(report.triplet_map_representation.triplets, 0);
+    assert!(!report.passes());
+}
+
+/// Pinned floors gate the overall corpus readings.
+#[test]
+fn assess_applies_pinned_floors() {
+    let readings = flag_fixture(&[true, true, false]);
+    let anchor_types = types_of(&[&[], &[], &[]]);
+
+    // Overall recall 2/3: a floor above it fails, one below passes,
+    // and unpinned floors gate nothing.
+    let strict = assess(
+        &readings,
+        &anchor_types,
+        &QualityThresholds {
+            minimum_recall: Some(0.9),
+            ..QualityThresholds::default()
+        },
+    );
+    assert!(!strict.passes());
+
+    let lenient = assess(
+        &readings,
+        &anchor_types,
+        &QualityThresholds {
+            minimum_recall: Some(0.5),
+            maximum_intrusion_rate: Some(0.5),
+            ..QualityThresholds::default()
+        },
+    );
+    assert!(lenient.passes());
+
+    let unpinned = assess(&readings, &anchor_types, &QualityThresholds::default());
+    assert!(unpinned.passes());
+}
+
+/// The report wires from a live probe and survives serialization.
+#[tokio::test]
+async fn assess_reads_a_probed_fixture() {
+    let fixture = ProbeFixture::on_circle(&irregular_angles(48));
+    let options = ProbeOptions {
+        anchors: 5.try_into().expect("nonzero"),
+        comparisons: 12.try_into().expect("nonzero"),
+        neighbourhoods: vec![2.try_into().expect("nonzero")],
+        ..ProbeOptions::default()
+    };
+    let readings = probe(
+        &fixture.dataset(),
+        &fixture.node_ids,
+        fixture.representations(),
+        &fixture.coordinates,
+        &options,
+        Xoshiro256PlusPlus::seed_from_u64(7),
+    )
+    .await
+    .expect("the corpus hosts the probe design");
+
+    // A perfect map passes floors pinned at their maxima, and every
+    // anchor's type survives the trip into subgroup rows.
+    let anchor_types = types_of(&[&[9], &[9], &[9], &[9], &[9]]);
+    let report = assess(
+        &readings,
+        &anchor_types,
+        &QualityThresholds {
+            minimum_recall: Some(1.0),
+            minimum_trustworthiness: Some(1.0),
+            minimum_continuity: Some(1.0),
+            maximum_intrusion_rate: Some(0.0),
+            minimum_triplet_agreement: Some(1.0),
+            minimum_subgroup_anchors: 5,
+            ..QualityThresholds::default()
+        },
+    );
+
+    assert!(report.passes());
+    assert_eq!(report.corpus_universe, 43);
+    assert_eq!(report.subgroups.len(), 1);
+    assert_eq!(report.subgroups[0].anchors, 5);
+    assert_eq!(report.subgroups[0].rows[0].recall, 1.0);
+    // Every space orders the circle identically, so all triplet pairs
+    // agree; the metric warp between chord and cosine distance keeps
+    // the density reading present and finite.
+    assert_eq!(report.triplet_map_representation.agreement, 1.0);
+    assert_eq!(report.triplet_map_canonical.agreement, 1.0);
+    assert_eq!(report.triplet_representation_canonical.agreement, 1.0);
+    assert_eq!(report.density[0].degenerate, 0);
+    assert!(
+        report.density[0]
+            .spread
+            .expect("every anchor contributes")
+            .is_finite()
+    );
+    assert_eq!(
+        report.sampled_representation_canonical[0].recall, 1.0,
+        "the representation baseline reads the zero-padded canonical space as identical",
+    );
+
+    let serialized = serde_json::to_string(&report).expect("the report serializes");
+    let roundtrip: super::report::QualityReport =
+        serde_json::from_str(&serialized).expect("the report deserializes");
+    assert_eq!(roundtrip, report);
 }
 
 #[tokio::test]

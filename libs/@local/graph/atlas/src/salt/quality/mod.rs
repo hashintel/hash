@@ -19,8 +19,9 @@
 //! near-identical siblings. [`probe`] orchestrates the measurement:
 //! anchor and comparison sampling, canonical embeddings through the
 //! dataset's probe-scoped stream, rankings in all three spaces, and
-//! per-anchor reading grids. The report with its configured thresholds
-//! layers above the readings.
+//! per-anchor reading grids. [`report`] renders the readings under
+//! configured thresholds: overall and per-subgroup metric rows, the
+//! subgroup degradation flags, and the release verdict.
 //!
 //! Every metric here is a function of rankings over a shared
 //! comparison universe. Probe-scoped readings are exact over their
@@ -31,6 +32,7 @@
 pub(crate) mod clump;
 pub(crate) mod metric;
 pub(crate) mod probe;
+pub(crate) mod report;
 
 #[cfg(test)]
 mod tests;
