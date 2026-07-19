@@ -4,16 +4,17 @@
 //! The resolved table publishes as one [`crate::file::policy`] file in
 //! the order [`resolve`](super::resolve) produces: strictly ascending by
 //! relation row. [`MappedPolicyTable`] reopens the file over a
-//! whole-file mapping and validates the table invariants once, so
-//! consumers look up certified policies without holding the table on
-//! the heap.
+//! whole-file mapping, validates the table invariants once, and hands
+//! out the rows as a borrowed [`RelationPolicy`] slice: the domain
+//! type's `repr(C)` layout is the file's pinned wire row, so reads
+//! decode nothing.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, mem::offset_of};
 use std::io;
 
-use zerocopy::{F32, U64};
+use zerocopy::{FromBytes as _, IntoBytes as _};
 
-use super::{ClassProbabilities, RelationPolicy};
+use super::RelationPolicy;
 use crate::{
     dataset::OntologyRowId,
     file::policy::{PolicyRow, read::PolicyFile, write::write_rows},
@@ -22,6 +23,30 @@ use crate::{
 
 #[cfg(test)]
 mod tests;
+
+// The cast between the file's wire row and the domain type is sound
+// exactly while their layouts agree; any drift fails compilation here.
+const _: () = {
+    assert!(size_of::<RelationPolicy>() == size_of::<PolicyRow>());
+    assert!(offset_of!(RelationPolicy, relation) == offset_of!(PolicyRow, relation));
+    assert!(
+        offset_of!(RelationPolicy, attraction.coincident)
+            == offset_of!(PolicyRow, attraction_coincident)
+    );
+    assert!(
+        offset_of!(RelationPolicy, attraction.proximal)
+            == offset_of!(PolicyRow, attraction_proximal)
+    );
+    assert!(
+        offset_of!(RelationPolicy, selected.coincident)
+            == offset_of!(PolicyRow, selected_coincident)
+    );
+    assert!(
+        offset_of!(RelationPolicy, selected.proximal) == offset_of!(PolicyRow, selected_proximal)
+    );
+    assert!(offset_of!(RelationPolicy, applicability) == offset_of!(PolicyRow, applicability));
+    assert!(offset_of!(RelationPolicy, strength) == offset_of!(PolicyRow, strength));
+};
 
 /// An opened policy file does not hold a valid table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -51,42 +76,12 @@ impl fmt::Display for InvalidPolicyFile {
 
 impl Error for InvalidPolicyFile {}
 
-/// Encodes one resolved policy in wire form.
-const fn encode(policy: &RelationPolicy) -> PolicyRow {
-    PolicyRow {
-        relation: U64::new(policy.relation.get()),
-        attraction_coincident: F32::new(policy.attraction.coincident),
-        attraction_proximal: F32::new(policy.attraction.proximal),
-        selected_coincident: F32::new(policy.selected.coincident),
-        selected_proximal: F32::new(policy.selected.proximal),
-        applicability: F32::new(policy.applicability),
-        strength: F32::new(policy.strength),
-    }
-}
-
-/// Decodes one wire row into its resolved policy.
-const fn decode(row: &PolicyRow) -> RelationPolicy {
-    RelationPolicy {
-        relation: OntologyRowId::new(row.relation.get()),
-        attraction: ClassProbabilities {
-            coincident: row.attraction_coincident.get(),
-            proximal: row.attraction_proximal.get(),
-        },
-        selected: ClassProbabilities {
-            coincident: row.selected_coincident.get(),
-            proximal: row.selected_proximal.get(),
-        },
-        applicability: row.applicability.get(),
-        strength: row.strength.get(),
-    }
-}
-
 /// Writes the resolved policies as a policy file.
 ///
 /// `policies` is [`resolve`](super::resolve)'s output: strictly
-/// ascending by relation row, every value in its domain. Returns the
-/// SHA-256 of the written bytes: the identity the repository records
-/// for the published file.
+/// ascending by relation row, every value in its domain, written as
+/// its own bytes. Returns the SHA-256 of the written bytes: the
+/// identity the repository records for the published file.
 ///
 /// # Errors
 ///
@@ -118,8 +113,9 @@ pub(crate) fn write_policies(
         writer: write,
     };
 
-    let rows: Vec<PolicyRow> = policies.iter().map(encode).collect();
-    write_rows(&rows, &mut writer)?;
+    let rows = <[PolicyRow]>::ref_from_bytes(policies.as_bytes())
+        .expect("the policy row layouts are pinned equal at compile time");
+    write_rows(rows, &mut writer)?;
 
     Ok(writer.accumulator.finalize())
 }
@@ -141,12 +137,14 @@ impl MappedPolicyTable {
     /// # Errors
     ///
     /// Returns an error when the file violates a table invariant.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: PolicyFile) -> Result<Self, InvalidPolicyFile> {
-        let rows = file.rows();
+        let table = Self { file };
+        let policies = table.policies();
 
-        if let Some(position) = rows
+        if let Some(position) = policies
             .iter()
-            .zip(rows.iter().skip(1))
+            .zip(policies.iter().skip(1))
             .position(|(left, right)| left.relation.get() >= right.relation.get())
         {
             return Err(InvalidPolicyFile::UnorderedRelations {
@@ -154,13 +152,11 @@ impl MappedPolicyTable {
             });
         }
 
-        for (index, row) in rows.iter().enumerate() {
-            if !decode(row).in_domain() {
-                return Err(InvalidPolicyFile::Domain { index });
-            }
+        if let Some(index) = policies.iter().position(|policy| !policy.in_domain()) {
+            return Err(InvalidPolicyFile::Domain { index });
         }
 
-        Ok(Self { file })
+        Ok(table)
     }
 
     /// Returns the resolved relation count.
@@ -170,19 +166,22 @@ impl MappedPolicyTable {
         self.file.rows().len()
     }
 
-    /// Returns the policies, strictly ascending by relation.
-    #[inline]
-    pub(crate) fn policies(&self) -> impl ExactSizeIterator<Item = RelationPolicy> {
-        self.file.rows().iter().map(decode)
+    /// Views the policies, strictly ascending by relation.
+    #[must_use]
+    pub(crate) fn policies(&self) -> &[RelationPolicy] {
+        <[RelationPolicy]>::ref_from_bytes(self.file.rows().as_bytes()).expect(
+            "the policy row layouts are pinned equal at compile time and the mapped region is \
+             page-aligned",
+        )
     }
 
     /// Looks up the policy resolving `relation`.
     #[must_use]
     pub(crate) fn find(&self, relation: OntologyRowId) -> Option<RelationPolicy> {
-        let rows = self.file.rows();
-        let index = rows
-            .binary_search_by_key(&relation.get(), |row| row.relation.get())
+        let policies = self.policies();
+        let index = policies
+            .binary_search_by_key(&relation.get(), |policy| policy.relation.get())
             .ok()?;
-        Some(decode(&rows[index]))
+        Some(policies[index])
     }
 }

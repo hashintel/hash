@@ -1,5 +1,5 @@
-//! Budget reporting buckets: overall, per relation type, per degree
-//! decile.
+//! Budget reporting buckets and displacement telemetry: overall, per
+//! relation type, per degree decile.
 //!
 //! The budget's training metrics answer one question per bucket: is
 //! any slice of the relation evidence overpowering the semantic layout
@@ -10,11 +10,19 @@
 //! the gradient `g` has exactly `factor * g` applied, and its bucket
 //! records that contribution against the node's baseline rather than
 //! double-counting the whole node into every type touching it.
+//!
+//! Displacement telemetry measures the relation lens's integrated
+//! effect at every refresh tick: with coordinates at both lens
+//! extremes in hand, the per-node displacement
+//! `Delta_i = ||y_i(1) - y_i(0)||` summarizes how far the lens moves
+//! each node, reported over the same axes as the budget. The
+//! displacement is evidence only: it never steers training.
 
 use alloc::collections::BTreeMap;
 
 use crate::{
     dataset::OntologyRowId,
+    math::Vec2,
     salt::{
         projector::budget::{BudgetSummary, ClippedRelation},
         relation::attraction::AttractionIndex,
@@ -153,6 +161,242 @@ impl BudgetBreakdown {
     #[inline]
     #[must_use]
     pub(crate) const fn deciles(&self) -> &[BudgetSummary; DECILES] {
+        &self.by_decile
+    }
+}
+
+/// Distinct participating rows per relation type, ascending by
+/// ontology row.
+///
+/// A row participates in a type when any attraction instance of that
+/// type touches it; several instances count once. Built once per
+/// training run and reused by every telemetry tick, so the per-tick
+/// cost is the participant lists, not the edge lists.
+#[derive(Debug)]
+pub(crate) struct TypeParticipants {
+    types: Vec<(OntologyRowId, Box<[usize]>)>,
+}
+
+impl TypeParticipants {
+    /// Collects each relation type's distinct participating rows.
+    #[must_use]
+    pub(crate) fn new(index: &AttractionIndex) -> Self {
+        let types = index
+            .groups()
+            .iter()
+            .map(|group| {
+                let mut rows: Vec<usize> = group
+                    .edges()
+                    .iter()
+                    .flat_map(|edge| [edge.source.usize(), edge.target.usize()])
+                    .collect();
+                rows.sort_unstable();
+                rows.dedup();
+                (group.relation(), rows.into_boxed_slice())
+            })
+            .collect();
+        Self { types }
+    }
+
+    /// Iterates the types and their participants, ascending by
+    /// ontology row.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (OntologyRowId, &[usize])> {
+        self.types
+            .iter()
+            .map(|(relation, rows)| (*relation, &**rows))
+    }
+}
+
+/// Streaming summary statistics for one displacement bucket.
+///
+/// The sums are accumulated in double precision; `maximum` is zero
+/// until the first record.
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+pub(crate) struct DisplacementMoments {
+    count: u64,
+    sum: f64,
+    sum_squares: f64,
+    maximum: f32,
+}
+
+impl DisplacementMoments {
+    /// Records one displacement.
+    pub(crate) fn record(&mut self, displacement: f32) {
+        self.count += 1;
+        let value = f64::from(displacement);
+        self.sum += value;
+        self.sum_squares = value.mul_add(value, self.sum_squares);
+        self.maximum = self.maximum.max(displacement);
+    }
+
+    /// Returns the recorded displacement count.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn count(&self) -> u64 {
+        self.count
+    }
+
+    /// Returns the displacement sum.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn sum(&self) -> f64 {
+        self.sum
+    }
+
+    /// Returns the sum of squared displacements.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn sum_squares(&self) -> f64 {
+        self.sum_squares
+    }
+
+    /// Returns the largest recorded displacement, zero when empty.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn maximum(&self) -> f32 {
+        self.maximum
+    }
+}
+
+/// Bucket count of [`DisplacementHistogram`]: one bucket per `f32`
+/// biased exponent.
+pub(crate) const EXPONENT_BUCKETS: usize = 256;
+
+/// A displacement histogram over the `f32` exponent grid.
+///
+/// Bucket `b` counts displacements whose biased exponent is `b`:
+/// bucket 0 holds exact zeros and subnormals, and bucket `b` for
+/// `1 <= b <= 254` holds values in `[2^(b - 127), 2^(b - 126))`. The
+/// format's own grid needs no configured edges and resolves nine
+/// decades to within a factor of two, which is the resolution the
+/// telemetry questions ask at.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct DisplacementHistogram {
+    counts: [u64; EXPONENT_BUCKETS],
+    moments: DisplacementMoments,
+}
+
+impl Default for DisplacementHistogram {
+    fn default() -> Self {
+        Self {
+            counts: [0; EXPONENT_BUCKETS],
+            moments: DisplacementMoments::default(),
+        }
+    }
+}
+
+impl DisplacementHistogram {
+    /// Records one finite, non-negative displacement.
+    pub(crate) fn record(&mut self, displacement: f32) {
+        debug_assert!(
+            displacement.is_finite() && displacement >= 0.0,
+            "displacements are norms of finite coordinates"
+        );
+        // `abs` clears the sign bit so the exponent index is total
+        // over finite inputs; a negative zero would otherwise shift
+        // its sign into the index.
+        self.counts[(displacement.abs().to_bits() >> 23) as usize] += 1;
+        self.moments.record(displacement);
+    }
+
+    /// Returns the per-exponent bucket counts.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn counts(&self) -> &[u64; EXPONENT_BUCKETS] {
+        &self.counts
+    }
+
+    /// Returns the summary statistics over every recorded value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn moments(&self) -> &DisplacementMoments {
+        &self.moments
+    }
+}
+
+/// One refresh tick's displacement field, per reporting bucket.
+///
+/// The overall and per-decile buckets carry full histograms; the
+/// per-type buckets carry summary moments only, because a corpus has
+/// thousands of relation types and the per-type question - is a type
+/// moving nodes it has little evidence for - reads from location and
+/// spread, not shape. Rows without attraction evidence land in the
+/// overall bucket only: the lens can move them indirectly, and the
+/// map-wide field is exactly what the overall histogram reports.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub(crate) struct DisplacementSummary {
+    overall: DisplacementHistogram,
+    by_type: BTreeMap<u64, DisplacementMoments>,
+    by_decile: [DisplacementHistogram; DECILES],
+}
+
+impl DisplacementSummary {
+    /// Measures the displacement field between two lens extremes.
+    ///
+    /// `low` and `high` are the corpus coordinates at the two lens
+    /// extremes, in row order.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the frames disagree in length or a participant row
+    /// lies outside them; the frames, the participants, and the
+    /// deciles all describe one corpus, so a mismatch is a wiring
+    /// defect.
+    #[must_use]
+    pub(crate) fn measure(
+        low: &[Vec2],
+        high: &[Vec2],
+        participants: &TypeParticipants,
+        deciles: &DegreeDeciles,
+    ) -> Self {
+        assert_eq!(
+            low.len(),
+            high.len(),
+            "the two extreme frames should cover the same rows"
+        );
+
+        let displacements: Vec<f32> = low
+            .iter()
+            .zip(high)
+            .map(|(&low, &high)| low.distance(high))
+            .collect();
+
+        let mut summary = Self::default();
+        for (row, &displacement) in displacements.iter().enumerate() {
+            summary.overall.record(displacement);
+            if let Some(decile) = deciles.decile(row) {
+                summary.by_decile[decile].record(displacement);
+            }
+        }
+        for (relation, rows) in participants.iter() {
+            let mut moments = DisplacementMoments::default();
+            for &row in rows {
+                moments.record(displacements[row]);
+            }
+            summary.by_type.insert(relation.get(), moments);
+        }
+        summary
+    }
+
+    /// Returns the whole-corpus histogram.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn overall(&self) -> &DisplacementHistogram {
+        &self.overall
+    }
+
+    /// Returns the per-relation-type moments, ascending by ontology
+    /// row.
+    pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &DisplacementMoments)> {
+        self.by_type
+            .iter()
+            .map(|(&relation, moments)| (OntologyRowId::new(relation), moments))
+    }
+
+    /// Returns the per-degree-decile histograms, ascending.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn deciles(&self) -> &[DisplacementHistogram; DECILES] {
         &self.by_decile
     }
 }

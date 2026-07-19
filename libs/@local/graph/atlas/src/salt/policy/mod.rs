@@ -160,7 +160,20 @@ impl Posterior {
 /// Overlay, the third class, carries no geometric weight, so the two
 /// stored components are the distribution's entire geometric content.
 /// Each component lies in `0.0..=1.0`.
-#[derive(Debug, Copy, Clone, PartialEq)]
+// Byte-level constructors are admitted: the type carries no
+// construction invariant of its own; the mapped policy table validates
+// domains once at open.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::IntoBytes,
+    zerocopy::FromBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(C)]
 pub(crate) struct ClassProbabilities {
     /// The Coincident class probability.
     pub coincident: f32,
@@ -193,7 +206,21 @@ impl ClassProbabilities {
 /// attraction distribution feeds attraction weights, the selected
 /// distribution and applicability feed protection masses, and the
 /// strength multiplier rides the attraction group unchanged.
-#[derive(Debug, Copy, Clone, PartialEq)]
+// Byte-level constructors are admitted: the type carries no
+// construction invariant of its own; the mapped policy table validates
+// domains once at open. The `repr(C)` layout is the policy file's
+// pinned wire row, checked field for field where the artifact casts.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    zerocopy::IntoBytes,
+    zerocopy::FromBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(C)]
 pub(crate) struct RelationPolicy {
     /// The relation type the policy resolves.
     pub relation: OntologyRowId,

@@ -230,7 +230,7 @@ pub(crate) struct ClumpReport {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupReport {
     /// The subgroup's type, as its ontology row.
-    pub ontology_row: u64,
+    pub ontology_row: OntologyRowId,
     /// Anchors carrying the type.
     pub anchors: usize,
     /// Corpus map-versus-representation readings, one row per
@@ -248,7 +248,7 @@ pub(crate) struct SubgroupReport {
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
-    pub ontology_row: u64,
+    pub ontology_row: OntologyRowId,
     /// The neighbourhood size the breach was read at.
     pub neighbourhood: usize,
     /// Anchors carrying the type.
@@ -414,78 +414,20 @@ pub(crate) fn assess(
 
     // Membership by ontology row; the map iterates ascending, so
     // subgroups and flags order deterministically.
-    let mut members: BTreeMap<u64, Vec<usize>> = BTreeMap::new();
+    let mut members: BTreeMap<OntologyRowId, Vec<usize>> = BTreeMap::new();
     for (anchor, types) in anchor_types.iter().enumerate() {
-        for ontology in types {
-            members.entry(ontology.get()).or_default().push(anchor);
+        for &ontology in types {
+            members.entry(ontology).or_default().push(anchor);
         }
     }
 
-    let mut subgroups = Vec::with_capacity(members.len());
-    let mut flags = Vec::new();
-    for (&ontology_row, anchors) in &members {
-        let rows: Vec<MetricRow> = rungs
-            .iter()
-            .enumerate()
-            .map(|(rung, &neighbourhood)| {
-                let (&first, rest) = anchors
-                    .split_first()
-                    .expect("every membership list holds the anchor that created it");
-                let mut merged = readings.map_representation.anchor(first, rung).clone();
-                for &anchor in rest {
-                    merged.merge(readings.map_representation.anchor(anchor, rung));
-                }
-                MetricRow::read(neighbourhood, &merged)
-            })
-            .collect();
-
-        if anchors.len() >= thresholds.minimum_subgroup_anchors {
-            for (rung, (subgroup_row, overall_row)) in
-                rows.iter().zip(&map_representation).enumerate()
-            {
-                let degradation = 1.0 - subgroup_row.recall;
-                let overall_degradation = 1.0 - overall_row.recall;
-                if degradation <= thresholds.subgroup_degradation_factor * overall_degradation {
-                    continue;
-                }
-
-                // The triage re-evaluation: the same rule at clump
-                // granularity, subgroup against overall.
-                let collapsed = readings.clumps.as_ref().map(|clumps| {
-                    let (&first, rest) = anchors
-                        .split_first()
-                        .expect("every membership list holds the anchor that created it");
-                    let mut merged = *clumps.grid.anchor(first, rung);
-                    for &anchor in rest {
-                        merged.merge(clumps.grid.anchor(anchor, rung));
-                    }
-                    let overall = &clump_overall
-                        .as_ref()
-                        .expect("clump readings produce overall clump aggregates")[rung];
-                    (1.0 - merged.recall(), 1.0 - overall.recall())
-                });
-
-                flags.push(SubgroupFlag {
-                    ontology_row,
-                    neighbourhood: subgroup_row.neighbourhood,
-                    anchors: anchors.len(),
-                    degradation,
-                    overall_degradation,
-                    clump_degradation: collapsed.map(|(subgroup, _)| subgroup),
-                    clump_overall_degradation: collapsed.map(|(_, overall)| overall),
-                    clump_resolved: collapsed.is_some_and(|(subgroup, overall)| {
-                        subgroup <= thresholds.subgroup_degradation_factor * overall
-                    }),
-                });
-            }
-        }
-
-        subgroups.push(SubgroupReport {
-            ontology_row,
-            anchors: anchors.len(),
-            rows,
-        });
-    }
+    let (subgroups, flags) = subgroup_reports(
+        readings,
+        &map_representation,
+        clump_overall.as_deref(),
+        &members,
+        thresholds,
+    );
 
     QualityReport {
         anchors: readings.anchors.len(),
@@ -529,6 +471,82 @@ pub(crate) fn assess(
         subgroup_degradation_factor: thresholds.subgroup_degradation_factor,
         minimum_subgroup_anchors: thresholds.minimum_subgroup_anchors,
     }
+}
+
+/// Merges subgroup memberships into per-type rows and degradation
+/// flags.
+///
+/// Every breach is re-evaluated at clump granularity when clump
+/// readings exist: the same factor rule over the collapsed recalls
+/// decides the flag's resolution.
+fn subgroup_reports(
+    readings: &ProbeReadings,
+    overall: &[MetricRow],
+    clump_overall: Option<&[ClumpAggregate]>,
+    members: &BTreeMap<OntologyRowId, Vec<usize>>,
+    thresholds: &QualityThresholds,
+) -> (Vec<SubgroupReport>, Vec<SubgroupFlag>) {
+    let mut subgroups = Vec::with_capacity(members.len());
+    let mut flags = Vec::new();
+    for (&ontology_row, anchors) in members {
+        let (&first, rest) = anchors
+            .split_first()
+            .expect("every membership list holds the anchor that created it");
+        let rows: Vec<MetricRow> = overall
+            .iter()
+            .enumerate()
+            .map(|(rung, overall_row)| {
+                let mut merged = readings.map_representation.anchor(first, rung).clone();
+                for &anchor in rest {
+                    merged.merge(readings.map_representation.anchor(anchor, rung));
+                }
+                MetricRow::read(overall_row.neighbourhood, &merged)
+            })
+            .collect();
+
+        if anchors.len() >= thresholds.minimum_subgroup_anchors {
+            for (rung, (subgroup_row, overall_row)) in rows.iter().zip(overall).enumerate() {
+                let degradation = 1.0 - subgroup_row.recall;
+                let overall_degradation = 1.0 - overall_row.recall;
+                if degradation <= thresholds.subgroup_degradation_factor * overall_degradation {
+                    continue;
+                }
+
+                // The triage re-evaluation: the same rule at clump
+                // granularity, subgroup against overall.
+                let collapsed = readings.clumps.as_ref().map(|clumps| {
+                    let mut merged = *clumps.grid.anchor(first, rung);
+                    for &anchor in rest {
+                        merged.merge(clumps.grid.anchor(anchor, rung));
+                    }
+                    let overall = &clump_overall
+                        .expect("clump readings produce overall clump aggregates")[rung];
+                    (1.0 - merged.recall(), 1.0 - overall.recall())
+                });
+
+                flags.push(SubgroupFlag {
+                    ontology_row,
+                    neighbourhood: subgroup_row.neighbourhood,
+                    anchors: anchors.len(),
+                    degradation,
+                    overall_degradation,
+                    clump_degradation: collapsed.map(|(subgroup, _)| subgroup),
+                    clump_overall_degradation: collapsed.map(|(_, overall)| overall),
+                    clump_resolved: collapsed.is_some_and(|(subgroup, overall)| {
+                        subgroup <= thresholds.subgroup_degradation_factor * overall
+                    }),
+                });
+            }
+        }
+
+        subgroups.push(SubgroupReport {
+            ontology_row,
+            anchors: anchors.len(),
+            rows,
+        });
+    }
+
+    (subgroups, flags)
 }
 
 /// Reads each neighbourhood size's density distortion from the radii.

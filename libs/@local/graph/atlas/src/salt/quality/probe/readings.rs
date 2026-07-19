@@ -7,7 +7,10 @@
 
 use core::{mem, num::NonZero};
 
-use super::super::metric::{NeighbourhoodAggregate, TripletAggregate};
+use super::super::{
+    clump::ClumpAggregate,
+    metric::{NeighbourhoodAggregate, TripletAggregate},
+};
 use crate::dataset::NodeRowId;
 
 /// The probe's space pairs, in one pinned reporting order.
@@ -36,17 +39,19 @@ impl SpacePair {
 /// Every cell reads one anchor at one neighbourhood size; the
 /// neighbourhood axis follows the options' reporting order. Roll-ups
 /// merge cells, so a consumer groups anchors - overall, by subgroup -
-/// without touching orderings again.
+/// without touching orderings again. The cell type is the aggregate
+/// the grid holds: rank aggregates for the space-pair grids, clump
+/// aggregates for the collapsed corpus grid.
 #[derive(Debug, Clone)]
-pub(crate) struct ReadingGrid {
-    cells: Box<[NeighbourhoodAggregate]>,
+pub(crate) struct ReadingGrid<A = NeighbourhoodAggregate> {
+    cells: Box<[A]>,
     neighbourhoods: usize,
 }
 
-impl ReadingGrid {
+impl<A> ReadingGrid<A> {
     /// Flattens per-anchor cell rows into a grid.
     pub(in crate::salt::quality) fn from_anchor_cells(
-        rows: Vec<Vec<NeighbourhoodAggregate>>,
+        rows: Vec<Vec<A>>,
         neighbourhoods: usize,
     ) -> Self {
         Self {
@@ -81,14 +86,18 @@ impl ReadingGrid {
     /// Panics when `anchor` or `neighbourhood` lies outside the grid.
     #[inline]
     #[must_use]
-    pub(crate) fn anchor(&self, anchor: usize, neighbourhood: usize) -> &NeighbourhoodAggregate {
+    pub(crate) fn anchor(&self, anchor: usize, neighbourhood: usize) -> &A {
         assert!(
             neighbourhood < self.neighbourhoods,
             "the neighbourhood index must lie inside the grid",
         );
         &self.cells[anchor * self.neighbourhoods + neighbourhood]
     }
+}
 
+// `overall` repeats per cell type: a one-method merge trait would be
+// indirection serving only these two eight-line bodies.
+impl ReadingGrid<NeighbourhoodAggregate> {
     /// Merges every anchor's reading at one neighbourhood size.
     ///
     /// # Panics
@@ -97,6 +106,22 @@ impl ReadingGrid {
     #[must_use]
     pub(crate) fn overall(&self, neighbourhood: usize) -> NeighbourhoodAggregate {
         let mut merged = self.anchor(0, neighbourhood).clone();
+        for anchor in 1..self.anchors() {
+            merged.merge(self.anchor(anchor, neighbourhood));
+        }
+        merged
+    }
+}
+
+impl ReadingGrid<ClumpAggregate> {
+    /// Merges every anchor's reading at one neighbourhood size.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `neighbourhood` lies outside the grid.
+    #[must_use]
+    pub(crate) fn overall(&self, neighbourhood: usize) -> ClumpAggregate {
+        let mut merged = *self.anchor(0, neighbourhood);
         for anchor in 1..self.anchors() {
             merged.merge(self.anchor(anchor, neighbourhood));
         }
@@ -119,6 +144,27 @@ pub(crate) struct RadiusPair {
     pub representation: f32,
 }
 
+/// Clump-granularity readings over the corpus grid.
+///
+/// The grid holds the corpus map-versus-representation reading with
+/// both neighbourhoods collapsed onto clump ids, beside the grouping's
+/// shape at the threshold it was built at - the evidence a collapsed
+/// reading is judged against.
+#[derive(Debug)]
+pub(crate) struct ClumpReadings {
+    /// The distance threshold the grouping was built at.
+    pub epsilon: f32,
+    /// The clump count, singletons included.
+    pub count: usize,
+    /// Clumps holding at least two rows.
+    pub groups: usize,
+    /// Rows inside multi-row clumps.
+    pub grouped_rows: usize,
+    /// Collapsed corpus map-versus-representation readings, on the
+    /// corpus grid's anchor and neighbourhood axes.
+    pub grid: ReadingGrid<ClumpAggregate>,
+}
+
 /// One probe's readings across the three space pairs.
 ///
 /// The corpus grid ranks every non-anchor row, so its universe is
@@ -139,6 +185,9 @@ pub(crate) struct ProbeReadings {
     /// Map versus representation over every non-anchor row: the
     /// corpus-exact placement reading.
     pub map_representation: ReadingGrid,
+    /// The corpus reading collapsed onto clump ids, present exactly
+    /// when the probe received a clump grouping.
+    pub clumps: Option<ClumpReadings>,
     /// Map versus representation over the comparison rows, for
     /// like-for-like comparison with the canonical readings.
     pub sampled_map_representation: ReadingGrid,

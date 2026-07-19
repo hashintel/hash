@@ -10,11 +10,12 @@
 //! The step splits along the module seams: [`batch`] draws the step's
 //! populations and re-indexes them into a batch-local coordinate
 //! domain, [`step`] evaluates the objective over the assembled batch,
-//! and [`metrics`] accumulates the budget outcomes into the reporting
-//! buckets (overall, per relation type, per relation-degree decile).
-//! The optimization loop, the lens schedule, and the phase boundary
-//! compose these pieces and land as siblings, re-exporting the
-//! trainer's public surface.
+//! [`metrics`] accumulates the budget outcomes and the displacement
+//! telemetry into the reporting buckets (overall, per relation type,
+//! per relation-degree decile), [`refresh`] re-measures everything
+//! defined over current coordinates at the configured cadence, and
+//! [`fit`] composes them all into the optimization loop with its lens
+//! schedule and phase boundary.
 //!
 //! Estimator conventions, shared by every family: each term's batch
 //! sum is scaled so its expectation is independent of the batch plan's
@@ -33,13 +34,28 @@
 //! - Support terms scale by their pool size over the drawn count.
 
 mod batch;
+mod fit;
 mod metrics;
+mod refresh;
 mod step;
 #[cfg(test)]
 mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
+#[expect(
+    unused_imports,
+    reason = "the trainer's surface awaits its consumer: the fit pipeline's projector stage"
+)]
+pub(crate) use self::{
+    batch::NodeColumns,
+    fit::{
+        BoundaryEvidence, Fitted, FrozenRadius, RelationLens, TickTelemetry, TrainError,
+        TrainOptions, TrainerInputs, TrainingEvidence, TrainingSchedule, fit,
+    },
+    metrics::{BudgetBreakdown, DisplacementHistogram, DisplacementMoments, DisplacementSummary},
+    step::LossBreakdown,
+};
 use crate::{
     dataset::NodeRowId,
     salt::projector::{
@@ -47,6 +63,10 @@ use crate::{
         loss::{AffinityEnergy, RelationEnergy, SupportOptions},
     },
 };
+
+/// The relation-lens rungs the trainer schedules, ascending; the
+/// first and last entries are the lens extremes.
+pub(crate) const RUNGS: [f32; 3] = [0.0, 0.5, 1.0];
 
 /// A training step failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

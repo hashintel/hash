@@ -45,8 +45,11 @@ use rand::Rng;
 use zerocopy::IntoBytes as _;
 
 use self::pass::{CorpusPass, SampledPass};
-pub(crate) use self::readings::{ProbeReadings, RadiusPair, ReadingGrid, SpacePair};
-use super::metric::{NeighbourhoodAggregate, TripletAggregate};
+pub(crate) use self::readings::{ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair};
+use super::{
+    clump::{ClumpAggregate, Clumps},
+    metric::{NeighbourhoodAggregate, TripletAggregate},
+};
 use crate::{
     bitset::BitSet,
     dataset::{CANONICAL_DIMENSIONS, Dataset, NodeRowId, PROJECTOR_DIMENSIONS},
@@ -194,12 +197,15 @@ impl<E: Error + 'static> Error for ProbeError<E> {
 ///
 /// The three slices describe the same rows in the same order; mapped
 /// `f32[N, 512]` and `f32[N, 2]` artifacts yield the representation
-/// and coordinate slices directly.
+/// and coordinate slices directly. A clump grouping over the same
+/// rows rides along through [`with_clumps`](Self::with_clumps) when
+/// the probe reads clump-granularity recall.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ProbeCorpus<'corpus, N> {
     node_ids: &'corpus [N],
     representations: &'corpus [AlignedVecN<PROJECTOR_DIMENSIONS>],
     coordinates: &'corpus [Vec2],
+    clumps: Option<&'corpus Clumps>,
 }
 
 impl<'corpus, N> ProbeCorpus<'corpus, N> {
@@ -230,7 +236,27 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
             node_ids,
             representations,
             coordinates,
+            clumps: None,
         }
+    }
+
+    /// Attaches a clump grouping, enabling the collapsed corpus
+    /// reading.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the grouping labels a different row count; both
+    /// describe one generation, so a mismatch is a wiring defect.
+    #[must_use]
+    pub(crate) fn with_clumps(mut self, clumps: &'corpus Clumps) -> Self {
+        assert_eq!(
+            clumps.rows(),
+            self.node_ids.len(),
+            "the clump grouping and the node ids should cover the same rows",
+        );
+
+        self.clumps = Some(clumps);
+        self
     }
 
     /// Returns the corpus row count.
@@ -302,15 +328,18 @@ pub(crate) async fn probe<D: Dataset>(
         anchor_mask.insert(row);
     }
 
-    let (corpus_cells, radii) = CorpusPass {
+    let anchor_readings = CorpusPass {
         representations: corpus.representations,
         coordinates: corpus.coordinates,
         anchor_mask: &anchor_mask,
         search,
         template: &corpus_template,
         neighbourhoods: &options.neighbourhoods,
+        clumps: corpus.clumps,
     }
     .run(anchor_rows);
+
+    let (corpus_cells, radii, clump_cells) = split_anchor_readings(anchor_readings);
     let (sampled_cells, triplets) = SampledPass {
         representations: corpus.representations,
         coordinates: corpus.coordinates,
@@ -348,15 +377,43 @@ pub(crate) async fn probe<D: Dataset>(
             .collect(),
         neighbourhoods: options.neighbourhoods.iter().copied().collect(),
         map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),
+        clumps: corpus.clumps.map(|clumps| ClumpReadings {
+            epsilon: clumps.epsilon(),
+            count: clumps.clumps(),
+            groups: clumps.groups(),
+            grouped_rows: clumps.grouped_rows(),
+            grid: ReadingGrid::from_anchor_cells(clump_cells, rungs),
+        }),
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
         sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
         sampled_representation_canonical: sampled_grid(SpacePair::RepresentationCanonical),
-        radii: radii.into_iter().flatten().collect(),
+        radii: radii.into_boxed_slice(),
         triplet_pairs: pairs,
         triplet_map_representation: triplet_column(SpacePair::MapRepresentation),
         triplet_map_canonical: triplet_column(SpacePair::MapCanonical),
         triplet_representation_canonical: triplet_column(SpacePair::RepresentationCanonical),
     })
+}
+
+/// Splits the corpus pass's per-anchor readings into grid inputs.
+fn split_anchor_readings(
+    readings: Vec<pass::AnchorReading>,
+) -> (
+    Vec<Vec<NeighbourhoodAggregate>>,
+    Vec<RadiusPair>,
+    Vec<Vec<ClumpAggregate>>,
+) {
+    let mut cells = Vec::with_capacity(readings.len());
+    let mut radii = Vec::new();
+    let mut clumps = Vec::with_capacity(readings.len());
+
+    for reading in readings {
+        cells.push(reading.cells);
+        radii.extend(reading.radii);
+        clumps.push(reading.clumps);
+    }
+
+    (cells, radii, clumps)
 }
 
 /// Builds one empty aggregate per neighbourhood size over `universe`.

@@ -35,7 +35,10 @@ use core::{cmp::Ordering, num::NonZero};
 use rayon::prelude::*;
 
 use super::{
-    super::metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
+    super::{
+        clump::{ClumpAggregate, Clumps},
+        metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
+    },
     RadiusPair, SpacePair,
 };
 use crate::{
@@ -43,6 +46,17 @@ use crate::{
     dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
     math::{AlignedVecN, BoxedVecN, Vec2},
 };
+
+/// One anchor's corpus-pass output across the neighbourhood sizes.
+pub(super) struct AnchorReading {
+    /// Rank aggregates, one per neighbourhood size.
+    pub cells: Vec<NeighbourhoodAggregate>,
+    /// Neighbourhood radii, one per neighbourhood size.
+    pub radii: Vec<RadiusPair>,
+    /// Clump-collapsed aggregates, one per neighbourhood size; empty
+    /// when the pass carries no clump grouping.
+    pub clumps: Vec<ClumpAggregate>,
+}
 
 /// The corpus pass's shared inputs: every anchor against every
 /// non-anchor row.
@@ -59,15 +73,15 @@ pub(super) struct CorpusPass<'pass> {
     pub template: &'pass [NeighbourhoodAggregate],
     /// The neighbourhood sizes, in the template's order.
     pub neighbourhoods: &'pass [NonZero<usize>],
+    /// Clump labels over the corpus rows, when the probe reads
+    /// clump-granularity recall beside the plain reading.
+    pub clumps: Option<&'pass Clumps>,
 }
 
 impl CorpusPass<'_> {
-    /// Ranks every anchor, returning each one's aggregate cells and
-    /// neighbourhood radii, one of each per neighbourhood size.
-    pub(super) fn run(
-        &self,
-        anchor_rows: &[usize],
-    ) -> (Vec<Vec<NeighbourhoodAggregate>>, Vec<Vec<RadiusPair>>) {
+    /// Ranks every anchor, returning each one's per-neighbourhood
+    /// readings.
+    pub(super) fn run(&self, anchor_rows: &[usize]) -> Vec<AnchorReading> {
         anchor_rows
             .par_iter()
             .map_init(CorpusScratch::default, |scratch, &anchor| {
@@ -83,11 +97,7 @@ impl CorpusPass<'_> {
     /// space's nearest [`search`](Self::search) rows during each scan;
     /// the representation matrix is scanned once and the coordinate
     /// frame twice.
-    fn anchor(
-        &self,
-        anchor: usize,
-        scratch: &mut CorpusScratch,
-    ) -> (Vec<NeighbourhoodAggregate>, Vec<RadiusPair>) {
+    fn anchor(&self, anchor: usize, scratch: &mut CorpusScratch) -> AnchorReading {
         let anchor_point = self.coordinates[anchor];
         let anchor_embedding = &self.representations[anchor];
 
@@ -177,7 +187,42 @@ impl CorpusPass<'_> {
                 representation: scratch.reference_nearest[k.get() - 1].distance,
             });
         }
-        (cells, radii)
+
+        AnchorReading {
+            cells,
+            radii,
+            clumps: self.clump_cells(scratch),
+        }
+    }
+
+    /// Reads the clump-collapsed cells from the anchor's nearest
+    /// lists, empty without a grouping.
+    ///
+    /// Both nearest lists already exist in scratch, so the collapsed
+    /// reading costs two small sorts per neighbourhood size.
+    fn clump_cells(&self, scratch: &mut CorpusScratch) -> Vec<ClumpAggregate> {
+        let Some(clumps) = self.clumps else {
+            return Vec::new();
+        };
+
+        let mut cells = Vec::with_capacity(self.neighbourhoods.len());
+        for &k in self.neighbourhoods {
+            let labels_into = |nearest: &[Ranked], labels: &mut Vec<u32>| {
+                labels.clear();
+                labels.extend(
+                    nearest[..k.get()]
+                        .iter()
+                        .map(|member| clumps.clump(member.row as usize)),
+                );
+            };
+            labels_into(&scratch.reference_nearest, &mut scratch.clump_reference);
+            labels_into(&scratch.map_nearest, &mut scratch.clump_map);
+
+            let mut aggregate = ClumpAggregate::new(k);
+            aggregate.observe(&mut scratch.clump_reference, &mut scratch.clump_map);
+            cells.push(aggregate);
+        }
+        cells
     }
 }
 
@@ -370,6 +415,8 @@ struct CorpusScratch {
     thresholds: Vec<Ranked>,
     counts: Vec<u32>,
     reference_ranks: Vec<u32>,
+    clump_reference: Vec<u32>,
+    clump_map: Vec<u32>,
 }
 
 impl CorpusScratch {

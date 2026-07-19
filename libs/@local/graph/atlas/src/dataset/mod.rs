@@ -378,6 +378,43 @@ impl OntologyRowId {
     }
 }
 
+// Ordered and serialized by row value; the little-endian bytes are a
+// storage detail, and byte equality coincides with value equality, so
+// the manual impls stay coherent with the byte-level derives.
+impl PartialOrd for OntologyRowId {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OntologyRowId {
+    #[inline]
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.get().cmp(&other.get())
+    }
+}
+
+impl serde::Serialize for OntologyRowId {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u64(self.get())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for OntologyRowId {
+    #[inline]
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        u64::deserialize(deserializer).map(Self::new)
+    }
+}
+
 /// The byte-level form of a non-draft entity identity.
 ///
 /// Drafts never enter a dataset's scope; the identity is the web and
@@ -498,16 +535,20 @@ pub(crate) trait Dataset {
     /// The source identifier of a node.
     ///
     /// Byte-level stable so identity columns persist as raw bytes; opaque
-    /// to the pipeline otherwise. `Sync` because id columns are shared
-    /// across parallel workers (the ranking tiebreak hashes them), which
-    /// every plain-bytes id satisfies.
+    /// to the pipeline otherwise. `Send + Sync + 'static` because id
+    /// columns cross onto and are shared across compute-pool workers
+    /// (the fit offloads its stage tail to rayon; the ranking tiebreak
+    /// hashes id columns in parallel), which every plain-bytes id
+    /// satisfies.
     type NodeId: Copy
+        + Send
         + Sync
         + zerocopy::IntoBytes
         + zerocopy::FromBytes
         + zerocopy::Immutable
         + zerocopy::Unaligned
-        + zerocopy::KnownLayout;
+        + zerocopy::KnownLayout
+        + 'static;
 
     /// The source identifier of an edge.
     ///

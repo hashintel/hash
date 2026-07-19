@@ -1,4 +1,12 @@
 //! The fit pipeline's failure surface.
+//!
+//! Two layers mirror the pipeline's thread boundary. [`StageError`] is
+//! the compute side: every failure a staged artifact or admission check
+//! can produce once ingest has finished streaming - carrying no dataset
+//! or provider type, it is `Send + 'static` by construction and crosses
+//! the rayon offload freely. [`FitError`] wraps it beside the failures
+//! only the async ingest can produce: the dataset's, the card stream's,
+//! and the embedding provider's.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -96,17 +104,12 @@ impl Error for PriorError {
     }
 }
 
-/// One fit failed; nothing was published.
+/// A compute-side stage failed; nothing was published.
 ///
-/// `D` is the dataset's error, `E` the embedding provider's.
+/// Every variant is dataset- and provider-free, so the whole enum is
+/// `Send + 'static` and crosses the rayon offload boundary.
 #[derive(Debug)]
-pub(crate) enum FitError<D, E> {
-    /// The dataset failed to deliver a stream item.
-    Dataset(D),
-    /// The card stream failed.
-    Cards(io::Error),
-    /// The embedding provider failed to produce the card table.
-    Embedding(CardEmbeddingError<E>),
+pub(crate) enum StageError {
     /// A staged write, scratch directory, or digest pass failed.
     Io(io::Error),
     /// The norm spot check's sampling settings are unusable.
@@ -127,6 +130,12 @@ pub(crate) enum FitError<D, E> {
     Policy(ResolveError),
     /// The staged card-embedding matrix failed to map back.
     MapCards(OpenArrayError),
+    /// The staged coordinate column failed to map back.
+    MapCoordinates(OpenArrayError),
+    /// The corpus exceeds the `u32` wire position encoding.
+    WireEncoding { rows: u64 },
+    /// The level-of-detail derivation rejected its input.
+    Lod(LodError),
     /// The landmark selection rejected its input.
     Selection(SelectionError),
     /// The landmark assignment failed.
@@ -137,12 +146,6 @@ pub(crate) enum FitError<D, E> {
     Layout(EdgelessGraphError),
     /// The staged representation matrix failed to map back.
     MapRepresentations(OpenArrayError),
-    /// The staged coordinate column failed to map back.
-    MapCoordinates(OpenArrayError),
-    /// The corpus exceeds the `u32` wire position encoding.
-    WireEncoding { rows: u64 },
-    /// The level-of-detail derivation rejected its input.
-    Lod(LodError),
     /// A staged sparse matrix file failed to map back.
     MapSparse(OpenSprsError),
     /// The staged k-NN file does not hold a valid table.
@@ -161,74 +164,129 @@ pub(crate) enum FitError<D, E> {
     Prior(PriorError),
     /// The finished staging failed to seal into a generation.
     Seal(SealError),
+    /// A stage panicked on the compute pool; the payload's message
+    /// survives, the staging directory was removed during unwinding,
+    /// and the async executor never observes the unwind.
+    Panicked { message: Option<String> },
 }
 
-impl<D, E> From<io::Error> for FitError<D, E> {
+impl From<io::Error> for StageError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
     }
 }
 
-impl<D, E> From<SpotCheckError> for FitError<D, E> {
+impl From<SpotCheckError> for StageError {
     fn from(error: SpotCheckError) -> Self {
         Self::NormCheck(error)
     }
 }
 
-impl<D, E> From<HannoyIndexError> for FitError<D, E> {
+impl From<HannoyIndexError> for StageError {
     fn from(error: HannoyIndexError) -> Self {
         Self::Index(error)
     }
 }
 
-impl<D, E> From<SelectionError> for FitError<D, E> {
+impl From<PredictError> for StageError {
+    fn from(error: PredictError) -> Self {
+        Self::Classify(error)
+    }
+}
+
+impl From<ResolveError> for StageError {
+    fn from(error: ResolveError) -> Self {
+        Self::Policy(error)
+    }
+}
+
+impl From<LodError> for StageError {
+    fn from(error: LodError) -> Self {
+        Self::Lod(error)
+    }
+}
+
+impl From<SelectionError> for StageError {
     fn from(error: SelectionError) -> Self {
         Self::Selection(error)
     }
 }
 
-impl<D, E> From<AssignmentError<HannoyIndexError>> for FitError<D, E> {
+impl From<AssignmentError<HannoyIndexError>> for StageError {
     fn from(error: AssignmentError<HannoyIndexError>) -> Self {
         Self::Assignment(error)
     }
 }
 
-impl<D, E> From<QuotientError> for FitError<D, E> {
+impl From<QuotientError> for StageError {
     fn from(error: QuotientError) -> Self {
         Self::Quotient(error)
     }
 }
 
-impl<D, E> From<EdgelessGraphError> for FitError<D, E> {
+impl From<EdgelessGraphError> for StageError {
     fn from(error: EdgelessGraphError) -> Self {
         Self::Layout(error)
     }
 }
 
-impl<D, E> From<OpenSprsError> for FitError<D, E> {
+impl From<OpenSprsError> for StageError {
     fn from(error: OpenSprsError) -> Self {
         Self::MapSparse(error)
     }
 }
 
-impl<D, E> From<OpenLandmarkError> for FitError<D, E> {
+impl From<InvalidKnnFile> for StageError {
+    fn from(error: InvalidKnnFile) -> Self {
+        Self::InvalidKnn(error)
+    }
+}
+
+impl From<InvalidSemanticFile> for StageError {
+    fn from(error: InvalidSemanticFile) -> Self {
+        Self::InvalidSemantic(error)
+    }
+}
+
+impl From<OpenLandmarkError> for StageError {
     fn from(error: OpenLandmarkError) -> Self {
         Self::MapLandmarks(error)
     }
 }
 
-impl<D, E> From<PriorError> for FitError<D, E> {
+impl From<InvalidLandmarkFile> for StageError {
+    fn from(error: InvalidLandmarkFile) -> Self {
+        Self::InvalidLandmarks(error)
+    }
+}
+
+impl From<OpenIdentityError> for StageError {
+    fn from(error: OpenIdentityError) -> Self {
+        Self::MapIdentities(error)
+    }
+}
+
+impl From<InvalidIdentityFile> for StageError {
+    fn from(error: InvalidIdentityFile) -> Self {
+        Self::InvalidIdentities(error)
+    }
+}
+
+impl From<PriorError> for StageError {
     fn from(error: PriorError) -> Self {
         Self::Prior(error)
     }
 }
 
-impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
+impl From<SealError> for StageError {
+    fn from(error: SealError) -> Self {
+        Self::Seal(error)
+    }
+}
+
+impl fmt::Display for StageError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Dataset(error) => write!(fmt, "the dataset failed to deliver: {error}"),
-            Self::Cards(error) => write!(fmt, "the card stream failed: {error}"),
-            Self::Embedding(error) => write!(fmt, "the card table failed to embed: {error}"),
             Self::Io(error) => write!(fmt, "a staged write failed: {error}"),
             Self::NormCheck(error) => {
                 write!(fmt, "the norm spot check could not run: {error}")
@@ -258,14 +316,6 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
                 fmt,
                 "the staged card-embedding matrix failed to map back: {error}"
             ),
-            Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
-            Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
-            Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
-            Self::Layout(error) => write!(fmt, "the landmark layout failed: {error}"),
-            Self::MapRepresentations(error) => write!(
-                fmt,
-                "the staged representation matrix failed to map back: {error}"
-            ),
             Self::MapCoordinates(error) => write!(
                 fmt,
                 "the staged coordinate column failed to map back: {error}"
@@ -277,6 +327,14 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
             Self::Lod(error) => {
                 write!(fmt, "the level-of-detail derivation failed: {error}")
             }
+            Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
+            Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
+            Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
+            Self::Layout(error) => write!(fmt, "the landmark layout failed: {error}"),
+            Self::MapRepresentations(error) => write!(
+                fmt,
+                "the staged representation matrix failed to map back: {error}"
+            ),
             Self::MapSparse(error) => {
                 write!(fmt, "a staged sparse matrix failed to map back: {error}")
             }
@@ -306,6 +364,97 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
                 write!(fmt, "the prior generation could not serve reuse: {error}")
             }
             Self::Seal(error) => write!(fmt, "the generation failed to publish: {error}"),
+            Self::Panicked {
+                message: Some(message),
+            } => {
+                write!(fmt, "a stage panicked on the compute pool: {message}")
+            }
+            Self::Panicked { message: None } => {
+                fmt.write_str("a stage panicked on the compute pool")
+            }
+        }
+    }
+}
+
+impl Error for StageError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::NormCheck(error) => Some(error),
+            Self::Index(error) => Some(error),
+            Self::RecallCheck(error) | Self::Knn(error) => Some(error),
+            Self::Classify(error) => Some(error),
+            Self::Policy(error) => Some(error),
+            Self::Selection(error) => Some(error),
+            Self::Assignment(error) => Some(error),
+            Self::Quotient(error) => Some(error),
+            Self::Layout(error) => Some(error),
+            Self::MapRepresentations(error)
+            | Self::MapCards(error)
+            | Self::MapCoordinates(error) => Some(error),
+            Self::Lod(error) => Some(error),
+            Self::MapSparse(error) => Some(error),
+            Self::InvalidKnn(error) => Some(error),
+            Self::InvalidSemantic(error) => Some(error),
+            Self::MapLandmarks(error) => Some(error),
+            Self::InvalidLandmarks(error) => Some(error),
+            Self::MapIdentities(error) => Some(error),
+            Self::InvalidIdentities(error) => Some(error),
+            Self::Prior(error) => Some(error),
+            Self::Seal(error) => Some(error),
+            Self::RepresentationDefects(_)
+            | Self::RecallBelowMinimum(_)
+            | Self::WireEncoding { .. }
+            | Self::Panicked { .. } => None,
+        }
+    }
+}
+
+/// One fit failed; nothing was published.
+///
+/// `D` is the dataset's error, `E` the embedding provider's; both can
+/// only arise during ingest. Every compute-side failure arrives as
+/// [`FitError::Stage`].
+#[derive(Debug)]
+pub(crate) enum FitError<D, E> {
+    /// The dataset failed to deliver a stream item.
+    Dataset(D),
+    /// The card stream failed.
+    Cards(io::Error),
+    /// The embedding provider failed to produce the card table.
+    Embedding(CardEmbeddingError<E>),
+    /// A streamed ingest write failed.
+    Io(io::Error),
+    /// A compute-side stage failed.
+    Stage(StageError),
+}
+
+impl<D, E> From<io::Error> for FitError<D, E> {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
+impl<D, E> From<StageError> for FitError<D, E> {
+    fn from(error: StageError) -> Self {
+        Self::Stage(error)
+    }
+}
+
+impl<D, E> From<PriorError> for FitError<D, E> {
+    fn from(error: PriorError) -> Self {
+        Self::Stage(StageError::Prior(error))
+    }
+}
+
+impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Dataset(error) => write!(fmt, "the dataset failed to deliver: {error}"),
+            Self::Cards(error) => write!(fmt, "the card stream failed: {error}"),
+            Self::Embedding(error) => write!(fmt, "the card table failed to embed: {error}"),
+            Self::Io(error) => write!(fmt, "a streamed ingest write failed: {error}"),
+            Self::Stage(error) => error.fmt(fmt),
         }
     }
 }
@@ -320,31 +469,7 @@ where
             Self::Dataset(error) => Some(error),
             Self::Cards(error) | Self::Io(error) => Some(error),
             Self::Embedding(error) => Some(error),
-            Self::NormCheck(error) => Some(error),
-            Self::Index(error) => Some(error),
-            Self::RecallCheck(error) | Self::Knn(error) => Some(error),
-            Self::Classify(error) => Some(error),
-            Self::Policy(error) => Some(error),
-            Self::Selection(error) => Some(error),
-            Self::Assignment(error) => Some(error),
-            Self::Quotient(error) => Some(error),
-            Self::Layout(error) => Some(error),
-            Self::MapRepresentations(error)
-            | Self::MapCards(error)
-            | Self::MapCoordinates(error) => Some(error),
-            Self::MapSparse(error) => Some(error),
-            Self::InvalidKnn(error) => Some(error),
-            Self::InvalidSemantic(error) => Some(error),
-            Self::MapLandmarks(error) => Some(error),
-            Self::InvalidLandmarks(error) => Some(error),
-            Self::MapIdentities(error) => Some(error),
-            Self::InvalidIdentities(error) => Some(error),
-            Self::Lod(error) => Some(error),
-            Self::Prior(error) => Some(error),
-            Self::Seal(error) => Some(error),
-            Self::RepresentationDefects(_)
-            | Self::RecallBelowMinimum(_)
-            | Self::WireEncoding { .. } => None,
+            Self::Stage(error) => Some(error),
         }
     }
 }

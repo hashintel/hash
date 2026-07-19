@@ -9,10 +9,11 @@ use core::num::NonZero;
 
 use crate::{
     dataset::TemporalAxes,
-    file::generation::GenerationId,
+    file::{generation::GenerationId, morton::Fenceposts},
+    math::Bounds2,
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef, NormSpotCheck,
-        RecallSpotCheck,
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef, LodEvidence,
+        NormSpotCheck, RecallSpotCheck,
     },
 };
 
@@ -27,6 +28,7 @@ pub(crate) struct SaltMetadata {
     pub snapshot: Snapshot,
     pub reproducibility: Reproducibility,
     pub placement: Placement,
+    pub ranking: RankingOrigin,
     pub evidence: Evidence,
 }
 
@@ -40,6 +42,18 @@ pub(crate) enum Placement {
     /// Every row takes its assigned landmark's layout coordinate: the
     /// 1-NN placement the landmark assignment already encodes.
     LandmarkBaseline,
+}
+
+/// Where the generation's rank inputs came from.
+///
+/// The identity keeps a tiebreak-only ordering distinguishable from a
+/// configured one wherever the ranking is consumed.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum RankingOrigin {
+    /// Constant importance and priority columns: the delivery order
+    /// reduces to the seeded identity tiebreak.
+    ConstantColumns,
 }
 
 /// The frozen view of the graph one fit ran over.
@@ -97,6 +111,94 @@ pub(crate) struct Evidence {
     pub landmarks: LandmarkEvidence,
     /// The policy stage's scale record.
     pub policy: PolicyEvidence,
+    /// The level-of-detail stage's publish measurements.
+    #[serde(with = "LodEvidenceDef")]
+    pub lod: LodEvidence,
+}
+
+/// Serializes a [`Bounds2`] as its corner coordinates, validating
+/// through [`Bounds2::new`] on deserialize.
+mod bounds2 {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::math::{Bounds2, Vec2};
+
+    /// The frame's wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Record {
+        min: [f32; 2],
+        max: [f32; 2],
+    }
+
+    pub(super) fn serialize<S>(bounds: &Bounds2, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Record {
+            min: [bounds.min().x(), bounds.min().y()],
+            max: [bounds.max().x(), bounds.max().y()],
+        }
+        .serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Bounds2, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let Record { min, max } = Record::deserialize(deserializer)?;
+        Bounds2::new(Vec2::new(min[0], min[1]), Vec2::new(max[0], max[1])).ok_or_else(|| {
+            D::Error::custom(
+                "the corners do not form a frame; both must be finite with min <= max per axis",
+            )
+        })
+    }
+}
+
+/// Serializes the bucket histogram as a plain sequence, validating the
+/// segment count on deserialize.
+mod bucket_histogram {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::file::morton::Fenceposts;
+
+    pub(super) fn serialize<S>(
+        histogram: &[u64; Fenceposts::SEGMENTS],
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        histogram.as_slice().serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<[u64; Fenceposts::SEGMENTS], D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let lengths = Vec::<u64>::deserialize(deserializer)?;
+        let count = lengths.len();
+        lengths.try_into().map_err(|_lengths| {
+            D::Error::custom(format_args!(
+                "the histogram holds {count} buckets where the schedule has {}",
+                Fenceposts::SEGMENTS,
+            ))
+        })
+    }
+}
+
+/// serde shadow of [`LodEvidence`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "LodEvidence")]
+struct LodEvidenceDef {
+    #[serde(with = "bounds2")]
+    world: Bounds2,
+    #[serde(with = "bucket_histogram")]
+    bucket_histogram: [u64; Fenceposts::SEGMENTS],
+    catch_all_population: u64,
+    co_location_excess: u64,
+    max_tile_delta: u64,
 }
 
 /// Scale record of the landmark stage.
