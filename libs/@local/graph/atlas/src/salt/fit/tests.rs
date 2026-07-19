@@ -214,6 +214,10 @@ async fn fit_publishes_a_complete_generation() {
     assert!(repository.metadata.evidence.recall.meets_minimum());
     assert_eq!(repository.metadata.evidence.landmarks.selected, LANDMARKS);
 
+    // Without a prior generation every unique card text embeds fresh.
+    assert_eq!(repository.metadata.evidence.cards.reused, 0);
+    assert_eq!(repository.metadata.evidence.cards.embedded, 3);
+
     // Every row's baseline coordinate is bit-equal to its assigned
     // landmark's layout coordinate in the published skeleton.
     let coordinates = ArrayFile::open(published.path().join("coordinates.arr"))

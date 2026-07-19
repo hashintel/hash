@@ -63,7 +63,7 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _, Writer},
     math::{AffinityCurve, AlignedVecN},
     salt::{
-        embedding::{CardEmbedder, embed_cards},
+        embedding::{CardEmbedder, CardEmbeddingStats, embed_cards},
         knn::{
             self, Embedding, NearestNeighboursIndex as _,
             artifact::MappedKnn,
@@ -105,79 +105,125 @@ pub(crate) struct FitConfig {
     /// ([`AffinityCurve::fit`]).
     pub curve: AffinityCurve,
     /// The representation-contract spot check.
-    pub norm_check: norm::SpotCheckOptions = norm::SpotCheckOptions { .. },
+    pub norm_check: norm::SpotCheckOptions = norm::SpotCheckOptions::default(),
     /// Stored neighbours per row of the k-NN table.
     pub neighbours: NonZero<usize> = knn::DEFAULT_NEIGHBOURS,
     /// The HNSW backend serving the k-NN and assignment searches.
-    pub index: HannoyIndexOptions = HannoyIndexOptions { .. },
+    pub index: HannoyIndexOptions = HannoyIndexOptions::default(),
     /// The exact-recall spot check admitting the backend.
     pub recall_check: recall::SpotCheckOptions = recall::SpotCheckOptions::default(),
     /// Membership smoothing of the semantic graph.
     pub smoothing: SmoothingOptions = SmoothingOptions::default(),
     /// Quotient-graph contraction bounds.
-    pub quotient: QuotientOptions = QuotientOptions { .. },
+    pub quotient: QuotientOptions = QuotientOptions::default(),
     /// The landmark layout schedule.
-    pub layout: LayoutOptions = LayoutOptions { .. },
+    pub layout: LayoutOptions = LayoutOptions::default(),
 }
 
-/// Stage names of the seed derivations.
-const NORM_STAGE: &str = "norm-check";
-const LINK_STAGE: &str = "knn-link";
-const RECALL_STAGE: &str = "recall-check";
-const SELECTION_STAGE: &str = "landmark-selection";
-const ASSIGNMENT_STAGE: &str = "landmark-assignment";
-const LAYOUT_STAGE: &str = "landmark-layout";
+/// The randomized stages, each naming its seed derivation.
+///
+/// The name string is the derivation preimage and therefore pinned:
+/// renaming a variant never moves a stage's randomness, only editing
+/// its pinned string does.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Stage {
+    NormCheck,
+    KnnLink,
+    RecallCheck,
+    LandmarkSelection,
+    LandmarkAssignment,
+    LandmarkLayout,
+}
 
-/// The staged file name of each artifact role.
-const REPRESENTATIONS: &str = "representations.arr";
-const CARD_EMBEDDINGS: &str = "card-embeddings.arr";
-const CARD_HASHES: &str = "card-hashes.arr";
-const KNN: &str = "knn.sprs";
-const SEMANTIC: &str = "semantic.sprs";
-const LANDMARKS: &str = "landmarks.lndm";
-const COORDINATES: &str = "coordinates.arr";
+impl Stage {
+    /// Returns the pinned derivation name.
+    const fn name(self) -> &'static str {
+        match self {
+            Self::NormCheck => "norm-check",
+            Self::KnnLink => "knn-link",
+            Self::RecallCheck => "recall-check",
+            Self::LandmarkSelection => "landmark-selection",
+            Self::LandmarkAssignment => "landmark-assignment",
+            Self::LandmarkLayout => "landmark-layout",
+        }
+    }
+}
 
-/// Derives one stage's generator from the fit seed and the stage name.
+/// The artifact roles one fit stages, each with its pinned file name.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Role {
+    Representations,
+    CardEmbeddings,
+    CardHashes,
+    Knn,
+    Semantic,
+    Landmarks,
+    Coordinates,
+}
+
+impl Role {
+    /// Returns the role's staged file name.
+    const fn file_name(self) -> FileName {
+        match self {
+            Self::Representations => FileName::pinned("representations.arr"),
+            Self::CardEmbeddings => FileName::pinned("card-embeddings.arr"),
+            Self::CardHashes => FileName::pinned("card-hashes.arr"),
+            Self::Knn => FileName::pinned("knn.sprs"),
+            Self::Semantic => FileName::pinned("semantic.sprs"),
+            Self::Landmarks => FileName::pinned("landmarks.lndm"),
+            Self::Coordinates => FileName::pinned("coordinates.arr"),
+        }
+    }
+
+    /// Binds the role's file name to its written digest.
+    const fn file(self, hash: Sha256Digest) -> RepositoryFile {
+        RepositoryFile {
+            name: self.file_name(),
+            hash,
+        }
+    }
+}
+
+// Every pinned name validates at compile time.
+const _: [FileName; 7] = [
+    Role::Representations.file_name(),
+    Role::CardEmbeddings.file_name(),
+    Role::CardHashes.file_name(),
+    Role::Knn.file_name(),
+    Role::Semantic.file_name(),
+    Role::Landmarks.file_name(),
+    Role::Coordinates.file_name(),
+];
+
+/// Derives one stage's generator from the fit seed and the stage's
+/// pinned name.
 ///
 /// The full 32-byte digest seeds the generator, so a derived stream
 /// keeps the derivation's whole entropy.
-fn stage_rng(seed: u64, stage: &str) -> Xoshiro256PlusPlus {
+fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
     let mut hasher = Sha256::new();
-
     #[expect(
         clippy::little_endian_bytes,
         reason = "the derivation preimage pins the canonical little-endian bytes"
     )]
     hasher.update(&seed.to_le_bytes());
-    hasher.update(stage.as_bytes());
+    hasher.update(stage.name().as_bytes());
 
     Xoshiro256PlusPlus::from_seed(hasher.finalize().to_bytes())
 }
 
-/// Wraps a role's pinned file name.
-fn file_name(name: &str) -> FileName {
-    FileName::new(name).expect("the pinned artifact names are plain file names")
-}
-
-/// Binds a role's file name to its written digest.
-fn repository_file(name: &str, hash: Sha256Digest) -> RepositoryFile {
-    RepositoryFile {
-        name: file_name(name),
-        hash,
-    }
-}
-
-/// Runs `write` against a buffered staged file, surfacing flush errors.
+/// Runs `write` against the role's buffered staged file, surfacing
+/// flush errors, and binds the written digest to the role.
 fn write_staged(
     staging: &StagedGeneration,
-    name: &str,
+    role: Role,
     write: impl FnOnce(&mut BufWriter<File>) -> io::Result<Sha256Digest>,
-) -> io::Result<Sha256Digest> {
-    let mut writer = BufWriter::new(staging.create(&file_name(name))?);
+) -> io::Result<RepositoryFile> {
+    let mut writer = BufWriter::new(staging.create(&role.file_name())?);
     let digest = write(&mut writer)?;
     writer.flush()?;
 
-    Ok(digest)
+    Ok(role.file(digest))
 }
 
 /// Returns the SHA-256 of the file at `path`, streaming its bytes.
@@ -225,35 +271,35 @@ where
     let scratch = root.scratch()?;
 
     // Nodes: stream every representation into the staged matrix, map it
-    // back, and certify the source contract on the mapped rows. The
-    // matrix digest streams over the finished file because the writer
-    // seals its header by seeking.
-    let nodes = {
-        let mut writer = BufWriter::new(staging.create(&file_name(REPRESENTATIONS))?);
-        let rows = prepare::write_node_representations(dataset, &mut writer)
-            .await
-            .map_err(|error| match error {
-                PrepareError::Dataset(error) => FitError::Dataset(error),
-                PrepareError::Io(error) => FitError::Io(error),
-            })?;
-        writer.flush()?;
-        rows
-    };
-    let representations_digest = digest_file(staging.path_of(&file_name(REPRESENTATIONS)))?;
+    // back, and certify the source contract on the mapped rows.
+    let (nodes, representations_file) = stage_representations(dataset, &staging).await?;
+    tracing::info!(nodes, "staged the node representations");
 
-    let representations = ArrayFile::open(staging.path_of(&file_name(REPRESENTATIONS)))
+    let representations = ArrayFile::open(staging.path_of(&Role::Representations.file_name()))
         .map_err(FitError::MapRepresentations)?;
     let rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>] = representations
         .vectors()
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
-    let norm = norm::spot_check(rows, config.norm_check, stage_rng(config.seed, NORM_STAGE))?;
+    let norm = norm::spot_check(
+        rows,
+        config.norm_check,
+        stage_rng(config.seed, Stage::NormCheck),
+    )?;
     if !norm.passes() {
         return Err(FitError::RepresentationDefects(norm));
     }
+    tracing::info!(
+        sampled = norm.sampled_rows,
+        "the representations passed the norm spot check"
+    );
 
-    // Edges: drained for the snapshot count; the relation stages consume
-    // this stream once they wire in.
+    // Edges: only the snapshot count is consumed. The relation build
+    // (`RelationIndexes::build`) wants these rows as instances, but its
+    // policy table has no producer yet.
+    // TODO: assemble `RelationInstance`s from this stream and wire the
+    //       relation stage once the classifier and policy artifacts have
+    //       writers.
     let edges = {
         let mut stream = pin!(dataset.edges());
         let mut count = 0_u64;
@@ -264,64 +310,87 @@ where
     };
 
     // Ontology: render every card and embed the unique texts.
-    let (ontology_types, card_embeddings_digest, card_hashes_digest) =
-        embed_card_table(dataset, embedder, &staging).await?;
+    let cards = embed_card_table(dataset, embedder, &staging).await?;
+    tracing::info!(
+        types = cards.types,
+        reused = cards.stats.reused,
+        embedded = cards.stats.embedded,
+        "staged the card-embedding table"
+    );
 
     // Neighbours: build the search backend, admit it by exact recall,
     // and derive the persisted table from it.
-    let (recall, knn_digest) = build_neighbour_table(&staging, &scratch, config, rows)?;
-    let knn = MappedKnn::new(SprsFile::open(staging.path_of(&file_name(KNN)))?)
+    let (recall, knn_file) = build_neighbour_table(&staging, &scratch, config, rows)?;
+    let knn = MappedKnn::new(SprsFile::open(staging.path_of(&Role::Knn.file_name()))?)
         .map_err(FitError::InvalidKnn)?;
+    tracing::info!(recall = recall.recall(), "staged the admitted k-NN table");
 
     // Semantic graph: smooth the mapped table into fuzzy memberships.
-    let semantic_digest = {
+    let semantic_file = {
         let graph = SemanticGraph::build(&knn.view(), config.smoothing);
-        write_staged(&staging, SEMANTIC, |writer| graph.write_into(writer))?
+        write_staged(&staging, Role::Semantic, |writer| graph.write_into(writer))?
     };
-    let semantic = MappedSemanticGraph::new(SprsFile::open(staging.path_of(&file_name(SEMANTIC)))?)
-        .map_err(FitError::InvalidSemantic)?;
+    let semantic = MappedSemanticGraph::new(SprsFile::open(
+        staging.path_of(&Role::Semantic.file_name()),
+    )?)
+    .map_err(FitError::InvalidSemantic)?;
+    tracing::info!("staged the semantic graph");
 
     // Landmarks: select, assign, contract, and lay out the skeleton.
-    let (landmarks_digest, landmark_evidence) =
+    let (landmarks_file, landmark_evidence) =
         build_landmark_skeleton(&staging, &scratch, config, rows, &semantic)?;
-    let skeleton =
-        MappedLandmarkSkeleton::new(LandmarkFile::open(staging.path_of(&file_name(LANDMARKS)))?)
-            .map_err(FitError::InvalidLandmarks)?;
+    let skeleton = MappedLandmarkSkeleton::new(LandmarkFile::open(
+        staging.path_of(&Role::Landmarks.file_name()),
+    )?)
+    .map_err(FitError::InvalidLandmarks)?;
+    tracing::info!(
+        selected = landmark_evidence.selected,
+        "staged the landmark skeleton"
+    );
 
     // Placement baseline: every row takes its assigned landmark's layout
     // coordinate. The coordinate digest streams over the finished file
     // for the same header-sealing reason as the representations'.
+    // TODO: the trained projector replaces this placer at the same
+    //       artifact seam; the metadata's `Placement` records which one
+    //       ran.
     {
-        let mut writer = BufWriter::new(staging.create(&file_name(COORDINATES))?);
+        let mut writer = BufWriter::new(staging.create(&Role::Coordinates.file_name())?);
         place_at_landmarks(&skeleton, &mut writer)?;
         writer.flush()?;
     }
-    let coordinates_digest = digest_file(staging.path_of(&file_name(COORDINATES)))?;
+    let coordinates_digest = digest_file(staging.path_of(&Role::Coordinates.file_name()))?;
+    tracing::info!("staged the baseline coordinates");
 
+    // TODO: attraction, protection, classifier, and policy roles join
+    //       `SaltFiles` when their stages' artifact writers land.
     let repository = SaltRepository {
         version: RepositoryVersion::V0,
         files: SaltFiles {
-            representations: repository_file(REPRESENTATIONS, representations_digest),
-            card_embeddings: repository_file(CARD_EMBEDDINGS, card_embeddings_digest),
-            card_hashes: repository_file(CARD_HASHES, card_hashes_digest),
-            knn: repository_file(KNN, knn_digest),
-            semantic: repository_file(SEMANTIC, semantic_digest),
-            landmarks: repository_file(LANDMARKS, landmarks_digest),
-            coordinates: repository_file(COORDINATES, coordinates_digest),
+            representations: representations_file,
+            card_embeddings: cards.embeddings,
+            card_hashes: cards.hashes,
+            knn: knn_file,
+            semantic: semantic_file,
+            landmarks: landmarks_file,
+            coordinates: Role::Coordinates.file(coordinates_digest),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
                 axes: dataset.axes(),
                 nodes,
                 edges,
-                ontology_types,
+                ontology_types: cards.types,
             },
+            // TODO: echo the `FitConfig` here once the option newtypes
+            //       deserialize through their validating constructors.
             reproducibility: Reproducibility {
                 seed: config.seed,
                 embedder: embedder.fingerprint(),
             },
             placement: Placement::LandmarkBaseline,
             evidence: Evidence {
+                cards: cards.stats,
                 norm,
                 recall,
                 landmarks: landmark_evidence,
@@ -332,8 +401,51 @@ where
     staging.seal(&repository).map_err(FitError::Seal)
 }
 
+/// Streams every node's representation into the staged `f32[N, 512]`
+/// matrix, returning the row count with the staged file.
+///
+/// The matrix digest streams over the finished file because the writer
+/// seals its header by seeking.
+#[expect(
+    clippy::future_not_send,
+    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
+              follows the dataset's"
+)]
+async fn stage_representations<D, E>(
+    dataset: &D,
+    staging: &StagedGeneration,
+) -> Result<(u64, RepositoryFile), FitError<D::Error, E>>
+where
+    D: Dataset,
+{
+    let mut writer = BufWriter::new(staging.create(&Role::Representations.file_name())?);
+    let nodes = prepare::write_node_representations(dataset, &mut writer)
+        .await
+        .map_err(|error| match error {
+            PrepareError::Dataset(error) => FitError::Dataset(error),
+            PrepareError::Io(error) => FitError::Io(error),
+        })?;
+    writer.flush()?;
+
+    let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
+
+    Ok((nodes, Role::Representations.file(digest)))
+}
+
+/// The staged card-embedding artifacts of one fit.
+struct CardArtifacts {
+    /// Ontology types embedded: the row count of both staged files.
+    types: u64,
+    /// The staged embedding matrix.
+    embeddings: RepositoryFile,
+    /// The staged text-hash column.
+    hashes: RepositoryFile,
+    /// How the rows were obtained; metadata evidence.
+    stats: CardEmbeddingStats,
+}
+
 /// Renders every card, embeds the unique texts, and stages the two
-/// card-embedding columns, returning the type count with the digests.
+/// card-embedding columns.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -343,7 +455,7 @@ async fn embed_card_table<D, E>(
     dataset: &D,
     embedder: &E,
     staging: &StagedGeneration,
-) -> Result<(u64, Sha256Digest, Sha256Digest), FitError<D::Error, E::Error>>
+) -> Result<CardArtifacts, FitError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
@@ -359,19 +471,27 @@ where
 
     let types = cards.len() as u64;
 
-    let (table, _stats) = embed_cards(embedder, &cards, None)
+    // TODO: pass the previous generation's mapped table as `prior` so
+    //       unchanged card texts reuse their embeddings across
+    //       generations.
+    let (table, stats) = embed_cards(embedder, &cards, None)
         .await
         .map_err(FitError::Embedding)?;
     drop(cards);
 
-    let embeddings = write_staged(staging, CARD_EMBEDDINGS, |writer| {
+    let embeddings = write_staged(staging, Role::CardEmbeddings, |writer| {
         table.write_embeddings_into(writer)
     })?;
-    let hashes = write_staged(staging, CARD_HASHES, |writer| {
+    let hashes = write_staged(staging, Role::CardHashes, |writer| {
         table.write_hashes_into(writer)
     })?;
 
-    Ok((types, embeddings, hashes))
+    Ok(CardArtifacts {
+        types,
+        embeddings,
+        hashes,
+        stats,
+    })
 }
 
 /// Builds the search backend over the mapped representations, admits it
@@ -381,19 +501,19 @@ fn build_neighbour_table<D, E>(
     scratch: &ScratchDirectory,
     config: &FitConfig,
     rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-) -> Result<(recall::RecallSpotCheck, Sha256Digest), FitError<D, E>> {
+) -> Result<(recall::RecallSpotCheck, RepositoryFile), FitError<D, E>> {
     let mut index = HannoyIndex::new(scratch.directory("knn")?, config.index)?;
     index.insert_many(rows.iter().enumerate().map(|(row, components)| Embedding {
         id: NodeRowId::new(row as u64),
         components,
     }))?;
-    index.build(stage_rng(config.seed, LINK_STAGE))?;
+    index.build(stage_rng(config.seed, Stage::KnnLink))?;
 
     let recall = recall::spot_check(
         &index,
         rows,
         config.recall_check,
-        stage_rng(config.seed, RECALL_STAGE),
+        stage_rng(config.seed, Stage::RecallCheck),
     )
     .map_err(FitError::RecallCheck)?;
     if !recall.meets_minimum() {
@@ -401,23 +521,25 @@ fn build_neighbour_table<D, E>(
     }
 
     let table = Knn::build(&index, rows.len(), config.neighbours).map_err(FitError::Knn)?;
-    let digest = write_staged(staging, KNN, |writer| table.write_into(writer))?;
+    let file = write_staged(staging, Role::Knn, |writer| table.write_into(writer))?;
 
-    Ok((recall, digest))
+    Ok((recall, file))
 }
 
 /// Selects, assigns, contracts, and lays out the landmark skeleton,
 /// staging it as one combined file.
 ///
-/// Candidates are uniform over the corpus; stratification axes and
-/// prior-generation retention enter here once their sources exist.
+/// Candidates are uniform over the corpus.
+// TODO: candidates take stratification axes and subgroup minimums once
+//       a stage computes them, and `prior_landmark` marks once fit
+//       consumes the previous generation's skeleton.
 fn build_landmark_skeleton<D, E>(
     staging: &StagedGeneration,
     scratch: &ScratchDirectory,
     config: &FitConfig,
     rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     semantic: &MappedSemanticGraph,
-) -> Result<(Sha256Digest, LandmarkEvidence), FitError<D, E>> {
+) -> Result<(RepositoryFile, LandmarkEvidence), FitError<D, E>> {
     let selection = {
         let candidates: Vec<LandmarkCandidate> = (0..rows.len())
             .map(|row| LandmarkCandidate {
@@ -431,7 +553,7 @@ fn build_landmark_skeleton<D, E>(
             &candidates,
             &[],
             config.selection,
-            stage_rng(config.seed, SELECTION_STAGE),
+            stage_rng(config.seed, Stage::LandmarkSelection),
         )?
     };
     #[expect(
@@ -448,7 +570,7 @@ fn build_landmark_skeleton<D, E>(
         let mut index = HannoyIndex::new(scratch.directory("assignment")?, config.index)?;
         assign_landmarks(
             &mut index,
-            stage_rng(config.seed, ASSIGNMENT_STAGE),
+            stage_rng(config.seed, Stage::LandmarkAssignment),
             rows,
             &selection,
         )?
@@ -459,14 +581,16 @@ fn build_landmark_skeleton<D, E>(
         &quotient.view(),
         config.curve,
         config.layout,
-        stage_rng(config.seed, LAYOUT_STAGE),
+        stage_rng(config.seed, Stage::LandmarkLayout),
     )?;
     drop(quotient);
 
     let skeleton = LandmarkSkeleton::new(selection, assignment, coordinates);
-    let digest = write_staged(staging, LANDMARKS, |writer| skeleton.write_into(writer))?;
+    let file = write_staged(staging, Role::Landmarks, |writer| {
+        skeleton.write_into(writer)
+    })?;
 
-    Ok((digest, evidence))
+    Ok((file, evidence))
 }
 
 /// Streams every row's assigned landmark coordinate into one `f32[N, 2]`

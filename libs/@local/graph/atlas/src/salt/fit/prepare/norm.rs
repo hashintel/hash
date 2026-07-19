@@ -40,7 +40,7 @@ const DEFAULT_DEFECT_RATE: f64 = 0.01;
 const DEFAULT_CONFIDENCE: f64 = 0.999;
 
 /// Pinned tolerance and sampling settings for one norm spot check.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpotCheckOptions {
     /// Admitted deviation of a row's squared norm from one, two-sided.
     /// Defaults to 1e-4.
@@ -53,6 +53,12 @@ pub(crate) struct SpotCheckOptions {
     /// see [`acceptance_sample_size`]. Higher confidence grows the
     /// sample. Defaults to 0.999.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
+}
+
+const impl Default for SpotCheckOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 /// One sampled row's violation of the representation contract.
