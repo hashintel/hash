@@ -21,8 +21,9 @@
 //!
 //! A built backend is accepted by exact comparison:
 //! [`recall::spot_check`] intersects sampled approximate queries with
-//! brute-force [`AlignedVecN`] cosine rankings and gates aggregate
-//! recall at a configured minimum ([`recall::SpotCheckOptions`]).
+//! brute-force [`AlignedVecN`] cosine rankings and judges aggregate
+//! recall against a configured minimum
+//! ([`recall::SpotCheckOptions`]).
 //!
 //! The validated table publishes as one sparse matrix file
 //! ([`crate::file::sprs`]) holding its matrix verbatim;

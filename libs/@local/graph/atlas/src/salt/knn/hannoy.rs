@@ -47,8 +47,8 @@ const INDEX: u16 = 0;
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
 // Starting points, pending full-scale evidence: the recall spot check
-// gates every generation, and ef_search is the first knob to raise on
-// a failed gate. Construction sits at the low end of the 100-500 band
+// judges every generation, and ef_search is the first knob to raise
+// on a failed check. Construction sits at the low end of the 100-500 band
 // HNSW deployments use at million-row scale; search sits at 2.5x the
 // deepest query in this crate (the 50-neighbour recall audit) and
 // above hannoy's default of 100. The first full-scale fit should

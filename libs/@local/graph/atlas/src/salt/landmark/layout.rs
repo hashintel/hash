@@ -102,7 +102,7 @@ impl RepulsionStrength {
 
 /// Schedule settings for one layout, valid by construction.
 // The defaults are the UMAP reference defaults, carried as unvalidated
-// starting points; the release evaluation's layout gates
+// starting points; the release evaluation's layout criteria
 // (trustworthiness, landmark rank correlation) revise them from
 // evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]

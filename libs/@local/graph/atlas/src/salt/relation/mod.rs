@@ -12,8 +12,8 @@
 //!   the objective exactly once, and the grouped layout is the shape minibatch sampling caps
 //!   per-relation representation over.
 //! - [`protection::ProtectionIndex`] holds the per-pair evidence masses that veto targeted
-//!   repulsion between linked endpoint rows. Masses aggregate before the attraction gate and before
-//!   force pruning, so an edge too weak to pull still vetoes a false-neighbour repulsion.
+//!   repulsion between linked endpoint rows. Masses aggregate before attraction admission and
+//!   before force pruning, so an edge too weak to pull still vetoes a false-neighbour repulsion.
 //!
 //! # Input contract
 //!
@@ -85,6 +85,7 @@ use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 pub(crate) use crate::salt::policy::ClassProbabilities;
 pub(crate) use crate::salt::policy::RelationPolicy;
 
+pub(crate) mod artifact;
 pub(crate) mod attraction;
 mod build;
 mod error;
@@ -266,8 +267,8 @@ impl<'policy> Policies<'policy> {
 
 /// The build's account of dropped instances and pruned force mass.
 ///
-/// The recorded threshold is the gate the pruned/retained split was
-/// judged against.
+/// The recorded threshold is the criterion the pruned/retained split
+/// was judged against.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct BuildEvidence {
     /// The force-pruning threshold the build applied.
@@ -307,26 +308,29 @@ impl BuildEvidence {
 /// The relation-force and no-repel structures of one generation.
 ///
 /// Both indexes derive from the same admitted instance set in one build,
-/// so the edge an attraction group weights and the pair a protection mass
-/// covers can never disagree about the underlying link.
+/// so the edge an attraction group weights and the pair a protection
+/// evidence entry covers can never disagree about the underlying link.
 #[derive(Debug, Clone)]
 pub(crate) struct RelationIndexes {
     /// Force-bearing instances grouped by relation type.
     pub attraction: attraction::AttractionIndex,
-    /// Pair-aggregated no-repel evidence masses.
+    /// The symmetric per-row no-repel evidence matrix.
     pub protection: protection::ProtectionIndex,
-    /// What the build dropped, and the gate it judged pruning against.
+    /// What the build dropped, and the threshold it judged pruning
+    /// against.
     pub evidence: BuildEvidence,
 }
 
 impl RelationIndexes {
     /// Builds both indexes from the generation's admitted link instances.
     ///
-    /// The instances are reordered in place; both indexes are functions
-    /// of the instance set alone, identical for any input order.
-    /// Instances whose endpoints are one row are dropped and counted in
-    /// the evidence: they exert no force between distinct points and
-    /// protect nothing. Degrees and protection masses cover the complete
+    /// `rows` is the node-row domain the protection matrix spans; every
+    /// instance endpoint lies in it under the dataset row contract. The
+    /// instances are reordered in place; both indexes are functions of
+    /// the instance set alone, identical for any input order. Instances
+    /// whose endpoints are one row are dropped and counted in the
+    /// evidence: they exert no force between distinct points and protect
+    /// nothing. Degrees and protection evidence cover the complete
     /// remaining instance set regardless of pruning.
     ///
     /// Sorting and emission are parallel at two levels: groups build
@@ -339,14 +343,20 @@ impl RelationIndexes {
     ///
     /// # Errors
     ///
-    /// Returns an error when an instance references a relation the policy
-    /// table does not cover.
+    /// Returns an error when an instance references a relation the
+    /// policy table does not cover, or `rows` exceeds the protection
+    /// matrix's `u32` column encoding.
+    ///
+    /// # Panics
+    ///
+    /// Panics when an instance endpoint lies outside the `rows` domain,
+    /// which the dataset row contract excludes.
     pub(crate) fn build(
+        rows: usize,
         policies: Policies<'_>,
         instances: &mut [RelationInstance],
         attraction: attraction::AttractionOptions,
-        protection: protection::ProtectionOptions,
     ) -> Result<Self, error::RelationIndexError> {
-        build::build(policies, instances, attraction, protection)
+        build::build(rows, policies, instances, attraction)
     }
 }

@@ -9,12 +9,16 @@ use proptest::prelude::*;
 use super::{
     ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,
     RelationPolicy,
+    artifact::MappedProtection,
     attraction::AttractionOptions,
     build,
     error::RelationIndexError,
-    protection::{AdmissionThresholds, NodePair, PairVerdict, ProtectionOptions},
+    protection::{ChannelConfig, NodePair, PairVerdict, ProtectionConfig},
 };
 use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
+
+/// The row domain every fixture spans.
+const ROWS: usize = 8;
 
 /// A neutral policy: full Proximal attraction, full applicability, unit
 /// strength.
@@ -52,31 +56,36 @@ fn scored(mut base: RelationInstance, link: f32) -> RelationInstance {
 }
 
 fn build(
+    rows: usize,
     policies: &[RelationPolicy],
     mut instances: Vec<RelationInstance>,
     attraction: AttractionOptions,
-    protection: ProtectionOptions,
 ) -> RelationIndexes {
     RelationIndexes::build(
+        rows,
         Policies::new(policies).expect("the fixture policies are certified"),
         &mut instances,
         attraction,
-        protection,
     )
     .expect("the fixture instances satisfy the input contract")
 }
 
 fn build_default(policies: &[RelationPolicy], instances: Vec<RelationInstance>) -> RelationIndexes {
-    build(
-        policies,
-        instances,
-        AttractionOptions::default(),
-        ProtectionOptions::default(),
-    )
+    build(ROWS, policies, instances, AttractionOptions::default())
 }
 
 fn pair(one: u64, other: u64) -> NodePair {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
+}
+
+/// A configuration with the given hard/ordinary floors and thresholds.
+fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
+    ProtectionConfig::new(
+        ChannelConfig::new(hard.0, hard.1).expect("the fixture channel is in domain"),
+        ChannelConfig::new(ordinary.0, ordinary.1).expect("the fixture channel is in domain"),
+        true,
+    )
+    .expect("the fixture channels are ordered")
 }
 
 #[test]
@@ -177,10 +186,10 @@ fn group_weights_carry_the_policy_and_coefficient() {
         strength: 2.0,
     };
     let indexes = build(
+        ROWS,
         &[policy],
         vec![instance(0, 0, 0, 1)],
         AttractionOptions::new(2.0, 0.0).expect("the fixture settings are in domain"),
-        ProtectionOptions::default(),
     );
 
     let weights = indexes.attraction.groups()[0].weights();
@@ -226,7 +235,8 @@ fn one_edge_row_carries_several_relations() {
     );
 
     assert_eq!(indexes.attraction.groups().len(), 2);
-    assert_eq!(indexes.protection.pairs().len(), 1);
+    // One pair, stored in both of its rows.
+    assert_eq!(indexes.protection.view().entries(), 2);
 }
 
 #[test]
@@ -239,6 +249,7 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
         ..proximal_policy(0)
     };
     let indexes = build(
+        ROWS,
         &[policy],
         vec![
             // Masses 1.0 * 0.5 = 0.5, 0.5 * 0.5 = 0.25, 0.25 * 0.5 = 0.125.
@@ -247,7 +258,6 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
             scored(instance(2, 0, 0, 3), 0.25),
         ],
         AttractionOptions::new(0.0, 0.25).expect("the fixture settings are in domain"),
-        ProtectionOptions::default(),
     );
 
     // The mass exactly at the threshold is retained.
@@ -264,6 +274,7 @@ fn pruned_instances_keep_their_degree_contributions() {
     // Every instance but the first prunes at zero confidence, yet the
     // retained 0 -> 1 edge still sees both endpoints at degree 3.
     let indexes = build(
+        ROWS,
         &[proximal_policy(0)],
         vec![
             scored(instance(0, 0, 0, 1), 1.0),
@@ -273,7 +284,6 @@ fn pruned_instances_keep_their_degree_contributions() {
             scored(instance(4, 0, 5, 1), 0.0),
         ],
         AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
-        ProtectionOptions::default(),
     );
 
     let edges = indexes.attraction.groups()[0].edges();
@@ -286,27 +296,29 @@ fn pruned_instances_keep_their_degree_contributions() {
 fn pruning_never_reaches_protection() {
     // An instance pruned from attraction still protects its pair.
     let indexes = build(
+        ROWS,
         &[proximal_policy(0)],
         vec![scored(instance(0, 0, 0, 1), 0.25)],
         AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
-        ProtectionOptions::default(),
     );
 
     assert_eq!(indexes.attraction.edges(), 0);
     assert!(indexes.attraction.groups().is_empty());
-    let protection = indexes
+    let evidence = indexes
         .protection
+        .view()
         .get(pair(0, 1))
         .expect("the pruned instance's pair is protected");
-    assert_eq!(protection.hard_mass, 0.25);
+    assert_eq!(evidence.discounted, 0.25);
+    assert_eq!(evidence.undiscounted, 0.25);
 }
 
 #[test]
-fn protection_channels_aggregate_independently_by_maximum() {
-    // Two parallel links: under the hard floor of 0.5, the low-
-    // applicability link wins the hard channel (max(0.25, 0.5) * 1.0 =
-    // 0.5) while the high-applicability link wins the ordinary channel
-    // (0.75 * 0.5 = 0.375 against 0.25).
+fn evidence_components_aggregate_independently_by_maximum() {
+    // Two parallel links: the high-applicability link wins the
+    // discounted component (0.75 * 0.5 = 0.375 against 0.25 * 1.0),
+    // the high-evidence link the undiscounted one (1.0 against 0.5).
+    // Under a 0.5 floor the mass is max(0.375, 0.5 * 1.0) = 0.5.
     let policies = [
         RelationPolicy {
             selected: ClassProbabilities {
@@ -325,19 +337,18 @@ fn protection_channels_aggregate_independently_by_maximum() {
             ..proximal_policy(1)
         },
     ];
-    let indexes = build(
-        &policies,
-        vec![instance(0, 0, 0, 1), instance(1, 1, 0, 1)],
-        AttractionOptions::default(),
-        ProtectionOptions::new(0.5, 0.0).expect("the fixture floors are ordered"),
-    );
+    let indexes = build_default(&policies, vec![instance(0, 0, 0, 1), instance(1, 1, 0, 1)]);
 
-    let protection = indexes
+    let evidence = indexes
         .protection
+        .view()
         .get(pair(0, 1))
         .expect("the linked pair is present");
-    assert_eq!(protection.hard_mass, 0.5);
-    assert_eq!(protection.ordinary_mass, 0.375);
+    assert_eq!(evidence.discounted, 0.375);
+    assert_eq!(evidence.undiscounted, 1.0);
+    assert_eq!(evidence.mass(0.0), 0.375);
+    assert_eq!(evidence.mass(0.5), 0.5);
+    assert_eq!(evidence.mass(1.0), 1.0);
 }
 
 #[test]
@@ -347,45 +358,94 @@ fn protection_ignores_link_direction() {
         vec![instance(0, 0, 0, 1), instance(1, 0, 1, 0)],
     );
 
-    assert_eq!(indexes.protection.pairs().len(), 1);
-    assert!(indexes.protection.get(pair(1, 0)).is_some());
+    // Two opposite-direction links, one pair, stored in both rows.
+    assert_eq!(indexes.protection.view().entries(), 2);
+    assert!(indexes.protection.view().get(pair(1, 0)).is_some());
 }
 
 #[test]
-fn judge_compares_masses_against_thresholds() {
-    let indexes = build_default(&[proximal_policy(0)], vec![instance(0, 0, 0, 1)]);
+fn every_pair_is_visible_from_both_rows() {
+    let indexes = build_default(
+        &[proximal_policy(0)],
+        vec![instance(0, 0, 0, 1), instance(1, 0, 2, 1)],
+    );
 
-    // The unscored instance's masses are 1.0 in both channels.
-    let strict = AdmissionThresholds::new(1.0, 1.0, true).expect("the thresholds are ordered");
+    let view = indexes.protection.view();
+    let partners = |row: u64| -> Vec<u64> {
+        view.row(NodeRowId::new(row))
+            .map(|entry| entry.partner.get())
+            .collect()
+    };
+    assert_eq!(partners(0), vec![1]);
+    assert_eq!(partners(1), vec![0, 2]);
+    assert_eq!(partners(2), vec![1]);
+    assert_eq!(partners(3), Vec::<u64>::new());
+}
+
+#[test]
+fn judge_compares_floored_masses_against_thresholds() {
+    let indexes = build_default(&[proximal_policy(0)], vec![instance(0, 0, 0, 1)]);
+    let view = indexes.protection.view();
+
+    // The unscored full-applicability instance's evidence is (1, 1).
     assert_eq!(
-        indexes.protection.judge(pair(0, 1), strict),
+        view.judge(pair(0, 1), config((0.0, 1.0), (0.0, 1.0))),
         PairVerdict {
             hard: true,
             ordinary: true,
         },
     );
-
-    let unreachable = AdmissionThresholds::new(1.5, 2.0, true).expect("the thresholds are ordered");
     assert_eq!(
-        indexes.protection.judge(pair(0, 1), unreachable),
+        view.judge(pair(0, 1), config((0.0, 1.5), (0.0, 2.0))),
         PairVerdict::UNPROTECTED,
     );
 
-    let hard_only = AdmissionThresholds::new(0.0, 0.0, false).expect("the thresholds are ordered");
+    let hard_only =
+        ProtectionConfig::new(ChannelConfig::default(), ChannelConfig::default(), false)
+            .expect("default channels are ordered");
     assert_eq!(
-        indexes.protection.judge(pair(0, 1), hard_only),
+        view.judge(pair(0, 1), hard_only),
         PairVerdict {
             hard: true,
             ordinary: false,
         },
     );
 
-    // A pair without link evidence is unprotected under any thresholds.
+    // A pair without link evidence is unprotected under any settings.
     assert_eq!(
-        indexes
-            .protection
-            .judge(pair(0, 2), AdmissionThresholds::default()),
+        view.judge(pair(0, 2), ProtectionConfig::default()),
         PairVerdict::UNPROTECTED,
+    );
+}
+
+#[test]
+fn floors_rescue_low_applicability_relations_at_query_time() {
+    // An unfamiliar relation: strong link evidence, applicability 0.25.
+    let policy = RelationPolicy {
+        applicability: 0.25,
+        ..proximal_policy(0)
+    };
+    let indexes = build(
+        ROWS,
+        &[policy],
+        vec![instance(0, 0, 0, 1)],
+        AttractionOptions::default(),
+    );
+    let view = indexes.protection.view();
+
+    // At floor 0 the discounted evidence 0.25 misses the 0.5 threshold;
+    // a 0.5 floor lifts the same stored pair over it. One index serves
+    // both floor cells.
+    assert_eq!(
+        view.judge(pair(0, 1), config((0.0, 0.5), (0.0, 0.5))),
+        PairVerdict::UNPROTECTED,
+    );
+    assert_eq!(
+        view.judge(pair(0, 1), config((0.5, 0.5), (0.5, 0.5))),
+        PairVerdict {
+            hard: true,
+            ordinary: true,
+        },
     );
 }
 
@@ -398,8 +458,8 @@ fn self_references_are_dropped_and_counted() {
 
     assert_eq!(indexes.evidence.self_references, 1);
     assert_eq!(indexes.attraction.edges(), 1);
-    assert_eq!(indexes.protection.pairs().len(), 1);
-    assert!(indexes.protection.get(pair(0, 0)).is_none());
+    assert_eq!(indexes.protection.view().entries(), 2);
+    assert!(indexes.protection.view().get(pair(0, 0)).is_none());
 }
 
 #[test]
@@ -407,7 +467,8 @@ fn empty_instances_build_empty_indexes() {
     let indexes = build_default(&[proximal_policy(0)], Vec::new());
 
     assert!(indexes.attraction.groups().is_empty());
-    assert!(indexes.protection.pairs().is_empty());
+    assert_eq!(indexes.protection.view().entries(), 0);
+    assert_eq!(indexes.protection.view().rows(), ROWS);
     assert_eq!(indexes.evidence.retained_edges, 0);
     assert_eq!(indexes.evidence.omitted_mass_fraction(), 0.0);
 }
@@ -453,10 +514,10 @@ fn policy_tables_certify_order_and_domains() {
 fn uncovered_relations_are_rejected() {
     let policies = [proximal_policy(0)];
     let result = RelationIndexes::build(
+        ROWS,
         Policies::new(&policies).expect("the fixture policies are certified"),
         &mut [instance(0, 7, 0, 1)],
         AttractionOptions::default(),
-        ProtectionOptions::default(),
     );
     assert_eq!(
         result.expect_err("relation 7 has no policy"),
@@ -467,21 +528,37 @@ fn uncovered_relations_are_rejected() {
 }
 
 #[test]
+fn row_domains_beyond_the_column_encoding_are_rejected() {
+    let policies = [proximal_policy(0)];
+    let result = RelationIndexes::build(
+        1 << 33,
+        Policies::new(&policies).expect("the fixture policies are certified"),
+        &mut [],
+        AttractionOptions::default(),
+    );
+    assert_eq!(
+        result.expect_err("2^33 rows exceed the u32 column encoding"),
+        RelationIndexError::TooManyRows { rows: 1 << 33 },
+    );
+}
+
+#[test]
 fn option_constructors_reject_out_of_domain_settings() {
     assert!(AttractionOptions::new(-1.0, 0.0).is_none());
     assert!(AttractionOptions::new(f32::NAN, 0.0).is_none());
     assert!(AttractionOptions::new(0.0, f32::INFINITY).is_none());
     assert!(AttractionOptions::new(4.0, 0.01).is_some());
 
-    assert!(ProtectionOptions::new(0.25, 0.5).is_none());
-    assert!(ProtectionOptions::new(1.5, 0.0).is_none());
-    assert!(ProtectionOptions::new(f32::NAN, 0.0).is_none());
-    assert!(ProtectionOptions::new(0.5, 0.25).is_some());
+    assert!(ChannelConfig::new(1.5, 0.0).is_none());
+    assert!(ChannelConfig::new(f32::NAN, 0.0).is_none());
+    assert!(ChannelConfig::new(0.0, -1.0).is_none());
+    assert!(ChannelConfig::new(0.0, f32::NAN).is_none());
+    let low = ChannelConfig::new(0.25, 0.5).expect("the channel is in domain");
+    let high = ChannelConfig::new(0.5, 0.25).expect("the channel is in domain");
 
-    assert!(AdmissionThresholds::new(0.5, 0.25, true).is_none());
-    assert!(AdmissionThresholds::new(-1.0, 0.0, true).is_none());
-    assert!(AdmissionThresholds::new(0.0, f32::NAN, true).is_none());
-    assert!(AdmissionThresholds::new(0.25, 0.5, false).is_some());
+    // Hard wants the higher floor and the lower threshold.
+    assert!(ProtectionConfig::new(low, high, true).is_none());
+    assert!(ProtectionConfig::new(high, low, true).is_some());
 }
 
 #[test]
@@ -494,7 +571,12 @@ fn a_group_spanning_several_emission_chunks_matches_the_chain_reference() {
         .map(|link| instance(link as u64, 0, link as u64, link as u64 + 1))
         .collect();
 
-    let indexes = build_default(&[proximal_policy(0)], instances);
+    let indexes = build(
+        nodes,
+        &[proximal_policy(0)],
+        instances,
+        AttractionOptions::default(),
+    );
 
     let groups = indexes.attraction.groups();
     assert_eq!(groups.len(), 1);
@@ -529,7 +611,13 @@ fn a_group_spanning_several_emission_chunks_matches_the_chain_reference() {
 /// Asserts two builds produced identical indexes, component by component.
 fn assert_indexes_equal(one: &RelationIndexes, other: &RelationIndexes) {
     assert_eq!(one.evidence, other.evidence);
-    assert_eq!(one.protection.pairs(), other.protection.pairs());
+    let (one_protection, other_protection) = (one.protection.matrix(), other.protection.matrix());
+    assert_eq!(
+        one_protection.indptr().raw_storage(),
+        other_protection.indptr().raw_storage(),
+    );
+    assert_eq!(one_protection.indices(), other_protection.indices());
+    assert_eq!(one_protection.data(), other_protection.data());
     assert_eq!(
         one.attraction.groups().len(),
         other.attraction.groups().len()
@@ -606,6 +694,7 @@ proptest! {
             .filter(|instance| instance.source == instance.target)
             .count();
 
+        let kept = instances.clone();
         let mut reversed = instances.clone();
         reversed.reverse();
 
@@ -633,13 +722,133 @@ proptest! {
             prop_assert!(keys.is_sorted());
         }
 
-        let pairs: Vec<(u64, u64)> = forward
-            .protection
-            .pairs()
-            .iter()
-            .map(|entry| (entry.pair.first().get(), entry.pair.second().get()))
-            .collect();
-        prop_assert!(pairs.is_sorted_by(|one, other| one < other));
-        prop_assert!(pairs.iter().all(|&(first, second)| first < second));
+        // The protection matrix mirrors every pair into both rows and
+        // stores each row's partners strictly ascending without self
+        // references.
+        let view = forward.protection.view();
+        let mut mirrored = 0;
+        for row in 0..ROWS as u64 {
+            let row = NodeRowId::new(row);
+            let partners: Vec<u64> = view.row(row).map(|entry| entry.partner.get()).collect();
+            prop_assert!(partners.is_sorted_by(|one, other| one < other));
+            prop_assert!(partners.iter().all(|&partner| partner != row.get()));
+            for entry in view.row(row) {
+                let evidence = view
+                    .get(NodePair::new(row, entry.partner))
+                    .expect("the mirrored direction stores the pair");
+                prop_assert_eq!(evidence, entry.evidence);
+                mirrored += 1;
+            }
+        }
+        prop_assert_eq!(mirrored, view.entries());
+
+        // The floor identity is exact: the stored two-component
+        // evidence reproduces every floored per-instance mass. The
+        // reference deliberately applies the floor inside the
+        // per-instance maximum, the form the identity factorizes.
+        for floor in [0.0_f32, 0.25, 0.5, 1.0] {
+            for row in 0..ROWS as u64 {
+                for entry in view.row(NodeRowId::new(row)) {
+                    let expected = forward_reference_mass(
+                        &kept,
+                        &policies,
+                        NodePair::new(NodeRowId::new(row), entry.partner),
+                        floor,
+                    );
+                    prop_assert_eq!(entry.evidence.mass(floor), expected);
+                }
+            }
+        }
     }
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "whole-file mappings go through FFI Miri cannot execute"
+)]
+fn a_published_index_reopens_mapped() {
+    let dir =
+        std::env::temp_dir().join(format!("hash-graph-atlas-relation-{}", std::process::id()));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+
+    let policy = RelationPolicy {
+        applicability: 0.25,
+        ..proximal_policy(0)
+    };
+    let indexes = build_default(
+        &[policy],
+        vec![
+            scored(instance(0, 0, 0, 1), 0.5),
+            instance(1, 0, 2, 1),
+            instance(2, 0, 3, 4),
+        ],
+    );
+
+    let mut bytes = Vec::new();
+    let digest = indexes
+        .protection
+        .write_into(&mut bytes)
+        .expect("writing to a buffer succeeds");
+    let path = dir.join("protection.sprs");
+    std::fs::write(&path, &bytes).expect("the file writes");
+
+    let mapped = MappedProtection::new(
+        crate::file::sprs::read::SprsFile::open(&path).expect("the written file reopens"),
+    )
+    .expect("the published index validates");
+
+    // The mapped view serves the same evidence and verdicts as the
+    // resident index it was written from.
+    let (resident, mapped) = (indexes.protection.view(), mapped.view());
+    assert_eq!(resident.rows(), mapped.rows());
+    assert_eq!(resident.entries(), mapped.entries());
+    for row in 0..ROWS as u64 {
+        let row = NodeRowId::new(row);
+        let resident_row: Vec<_> = resident.row(row).collect();
+        let mapped_row: Vec<_> = mapped.row(row).collect();
+        assert_eq!(resident_row, mapped_row);
+    }
+    let settings = config((0.5, 0.25), (0.0, 0.25));
+    for pair in [pair(0, 1), pair(1, 2), pair(3, 4), pair(0, 2)] {
+        assert_eq!(resident.judge(pair, settings), mapped.judge(pair, settings),);
+    }
+
+    // The digest is the written bytes' identity.
+    let mut hasher = crate::integrity::Sha256::new();
+    crate::integrity::Update::update(&mut hasher, &bytes);
+    assert_eq!(
+        digest,
+        hasher.finalize(),
+        "the returned digest hashes the written bytes",
+    );
+
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+}
+
+/// The floored pair mass computed instance by instance, the
+/// pre-factorization form of the protection evidence.
+fn forward_reference_mass(
+    instances: &[RelationInstance],
+    policies: &[RelationPolicy],
+    pair: NodePair,
+    floor: f32,
+) -> f32 {
+    let mut mass = 0.0_f32;
+    for instance in instances {
+        if NodePair::new(instance.source, instance.target) != pair
+            || instance.source == instance.target
+        {
+            continue;
+        }
+        let policy = policies
+            .iter()
+            .find(|policy| policy.relation == instance.relation)
+            .expect("the fixture policies cover every relation");
+        let confidence = instance.confidence.effective().value();
+        let positive = policy.selected.coincident + policy.selected.proximal;
+        mass = mass.max(confidence * positive * policy.applicability.max(floor));
+    }
+    mass
 }

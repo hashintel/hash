@@ -25,9 +25,9 @@ use crate::{
     random::{acceptance_sample_size, sample_indices_vec},
 };
 
-// The defaults are the backend admission gate, recall@50 >= 0.89: the
-// gate is aggregate recall over the sample, so a long per-row tail
-// cannot fail a backend whose aggregate holds. The acceptance bound
+// The defaults are the backend admission criterion, recall@50 >= 0.89:
+// the criterion is aggregate recall over the sample, so a long per-row
+// tail cannot fail a backend whose aggregate holds. The acceptance bound
 // sizes the sample (688 rows certify a 1% defect rate at 99.9%
 // confidence when all pass).
 const DEFAULT_NEIGHBOURS: NonZero<usize> =
@@ -36,7 +36,7 @@ const DEFAULT_MINIMUM_RECALL: f64 = 0.89;
 const DEFAULT_DEFECT_RATE: f64 = 0.01;
 const DEFAULT_CONFIDENCE: f64 = 0.999;
 
-/// Pinned sampling and gate settings for one recall spot check.
+/// Pinned sampling and admission settings for one recall spot check.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct SpotCheckOptions {
     /// Exact neighbours compared per sampled row; a corpus smaller
@@ -68,7 +68,7 @@ pub(crate) struct RecallSpotCheck {
     pub matched: u64,
     /// Exact neighbours across the whole sample.
     pub expected: u64,
-    /// The admission gate the check was configured with.
+    /// The admission minimum the check was configured with.
     pub minimum_recall: f64,
 }
 
@@ -86,7 +86,7 @@ impl RecallSpotCheck {
     }
 
     /// Returns whether the backend meets the configured admission
-    /// gate.
+    /// minimum.
     #[inline]
     #[must_use]
     pub(crate) fn meets_minimum(&self) -> bool {

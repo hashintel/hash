@@ -38,7 +38,7 @@ pub(crate) struct QuotientOptions {
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent). It bounds quotient
     // memory at roughly `M * 64` directed edges before the union; the
-    // layout quality gates (trustworthiness, landmark rank
+    // layout quality criteria (trustworthiness, landmark rank
     // correlation) revise it from evidence.
     pub maximum_neighbours: NonZero<usize> = const { NonZero::new(64).unwrap() },
 }

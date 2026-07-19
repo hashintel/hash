@@ -32,6 +32,7 @@
 //! answer how strongly an admitted force pulls, while protection
 //! answers whether repulsion is safe, so none of those factors enters
 //! the evidence.
+#![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use core::fmt;
 
@@ -350,11 +351,9 @@ impl fmt::Display for ProtectionValidationError {
 impl core::error::Error for ProtectionValidationError {}
 
 /// Checks every index invariant over a borrowed matrix.
-#[expect(
-    clippy::float_cmp,
-    reason = "the two directions of an edge are written from one aggregated value, so bit \
-              equality is the constructed contract and validated exactly"
-)]
+// The symmetry check compares the two directions bit-exactly (derived
+// PartialEq over the f32 components): both are written from one
+// aggregated value, so bit equality is the constructed contract.
 pub(super) fn validate(matrix: ProtectionMatrixView<'_>) -> Result<(), ProtectionValidationError> {
     if !matrix.is_csr() {
         return Err(ProtectionValidationError::ColumnCompressed);

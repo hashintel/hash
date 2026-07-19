@@ -520,8 +520,8 @@ fn spot_check_fails_a_degraded_backend() {
     ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
 )]
 fn spot_check_honours_configured_options() {
-    // The same degraded backend passes under a laxer gate: the gate
-    // travels with the options, and the evidence records it.
+    // The same degraded backend passes under a laxer minimum: the
+    // criterion travels with the options, and the evidence records it.
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
     let index = FarthestIndex(ExactIndex::from_rows(&rows));
@@ -536,7 +536,7 @@ fn spot_check_honours_configured_options() {
     )
     .expect("the degraded backend still answers every query");
     assert_eq!(check.minimum_recall, 0.8);
-    assert!(check.meets_minimum(), "recall 0.82 passes a 0.8 gate");
+    assert!(check.meets_minimum(), "recall 0.82 passes a 0.8 minimum");
 
     // The comparison depth is the k of the measured recall@k.
     let rows = fan_fixture(8, 0.15);
@@ -776,7 +776,7 @@ fn hannoy_honours_the_seam_contract() {
     .expect("the spot check completes");
     assert!(
         check.meets_minimum(),
-        "recall {} misses the gate",
+        "recall {} misses the admission minimum",
         check.recall(),
     );
 

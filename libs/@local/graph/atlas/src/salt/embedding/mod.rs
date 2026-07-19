@@ -53,7 +53,7 @@ mod tests;
 /// dimension, and encoding configuration. Equal fingerprints promise
 /// interchangeable vectors for equal texts.
 ///
-/// The fingerprint exists to gate cross-generation reuse: a persisted
+/// The fingerprint decides cross-generation reuse: a persisted
 /// table records the fingerprint that minted it, and rows are copied
 /// out of a prior generation only under a matching fingerprint, so a
 /// contract change invalidates every cached row at once.

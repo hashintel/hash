@@ -198,7 +198,7 @@ pub(crate) struct SelectionOptions {
     /// generation-to-generation orientation. Defaults to 0.25.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent); the temporal-drift
-    // and landmark rank-correlation gates revise it from evidence.
+    // and landmark rank-correlation criteria revise it from evidence.
     pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
 }
 

@@ -15,8 +15,9 @@ use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 ///
 /// The Coincident coefficient `kappa_C` scales the Coincident energy
 /// relative to Proximal's unit scale. It stays 0 until the generation's
-/// Coincident release gate is met; after that, tuning grids ratios in
-/// `2..=8` (the composite-objective tuning protocol), so enabling runs
+/// Coincident release criterion is met; after that, tuning grids
+/// ratios in `2..=8` (the composite-objective tuning protocol), so
+/// enabling runs
 /// start there.
 ///
 /// The pruning threshold `eta_F` drops instances whose force mass
@@ -36,8 +37,8 @@ impl AttractionOptions {
     ///
     /// Returns [`None`] unless both values are finite and non-negative.
     /// The default is `kappa_C = 0` (the Coincident class exerts no pull
-    /// until its release gate is met) and `eta_F = 0` (every admitted
-    /// instance is retained).
+    /// until its release criterion is met) and `eta_F = 0` (every
+    /// admitted instance is retained).
     #[must_use]
     pub(crate) const fn new(coincident_coefficient: f32, pruning_threshold: f32) -> Option<Self> {
         if !(coincident_coefficient.is_finite() && coincident_coefficient >= 0.0) {
