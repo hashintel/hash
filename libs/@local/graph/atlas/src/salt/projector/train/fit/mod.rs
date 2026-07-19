@@ -25,41 +25,37 @@
 //! whose attraction index carries no force at all trains vacuously:
 //! the relation term stays absent and the run records why.
 
+mod session;
 #[cfg(test)]
 mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
 use burn::{
-    lr_scheduler::{LrScheduler as _, cosine::CosineAnnealingLrSchedulerConfig},
-    module::AutodiffModule as _,
-    optim::{AdamConfig, GradientsParams, Optimizer as _},
-    tensor::backend::AutodiffBackend,
+    lr_scheduler::LrScheduler as _, optim::Optimizer as _, tensor::backend::AutodiffBackend,
 };
 use rand::Rng;
 
+pub(crate) use self::session::TrainerOptimizerRecord;
+use self::session::{Session, Training};
 use super::{
-    BatchPlan, Coefficients, ObjectiveOptions, RUNGS, StepError,
-    batch::{Batch, BatchSampler, NodeColumns, SupportAnchor},
-    metrics::{BudgetBreakdown, DegreeDeciles, DisplacementSummary, TypeParticipants},
-    refresh::{self, Refresh, RefreshError},
-    step::{Evaluation, LossBreakdown},
+    BatchPlan, Coefficients, StepError,
+    batch::{NodeColumns, SupportAnchor},
+    metrics::{BudgetBreakdown, DisplacementSummary},
+    refresh::RefreshError,
+    step::LossBreakdown,
 };
 use crate::salt::{
     knn::table::KnnView,
     projector::{
         budget::BudgetOptions,
-        loss::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy, SupportOptions},
-        miner::{HardNegativeMiner, MinedFrame, MinerOptions},
+        loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
+        miner::MinerOptions,
         model::Projector,
-        scale::LocalScales,
-        verdict::{
-            PlacementClass, ResolvedVerdict,
-            calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
-        },
+        verdict::{ResolvedVerdict, calibrate::ProximalCalibration},
     },
     relation::{
-        attraction::{AttractionGroup, AttractionIndex},
+        attraction::AttractionIndex,
         protection::{ProtectionConfig, ProtectionView},
     },
     semantic::SemanticGraphView,
@@ -84,6 +80,13 @@ pub(crate) enum TrainError {
     Refresh(RefreshError),
     /// A training step failed.
     Step(StepError),
+    /// A resumed ladder was handed a schedule differing from the one
+    /// its opening segment ran under, so the scheduler position and
+    /// the phase boundary no longer describe the same run.
+    ScheduleChanged {
+        opening: TrainingSchedule,
+        resumed: TrainingSchedule,
+    },
 }
 
 impl fmt::Display for TrainError {
@@ -108,6 +111,10 @@ impl fmt::Display for TrainError {
             ),
             Self::Refresh(error) => error.fmt(formatter),
             Self::Step(error) => error.fmt(formatter),
+            Self::ScheduleChanged { .. } => formatter.write_str(
+                "the resumed schedule differs from the one the opening segment ran under; resume \
+                 with the schedule the checkpoint was trained under",
+            ),
         }
     }
 }
@@ -120,7 +127,8 @@ impl Error for TrainError {
             Self::NoSemanticEvidence
             | Self::MissingProximalReviews
             | Self::CoincidentWithoutProximal
-            | Self::DegenerateRadius { .. } => None,
+            | Self::DegenerateRadius { .. }
+            | Self::ScheduleChanged { .. } => None,
         }
     }
 }
@@ -181,6 +189,41 @@ impl TrainingSchedule {
             initial_learning_rate,
             minimum_learning_rate,
         })
+    }
+
+    /// Returns the run length in steps.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn steps(self) -> NonZero<usize> {
+        self.steps
+    }
+
+    /// Returns the phase-boundary step index.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn boundary(self) -> usize {
+        self.boundary
+    }
+
+    /// Returns the refresh cadence in steps.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn refresh_interval(self) -> NonZero<usize> {
+        self.refresh_interval
+    }
+
+    /// Returns the cosine schedule's opening learning rate.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn initial_learning_rate(self) -> f64 {
+        self.initial_learning_rate
+    }
+
+    /// Returns the cosine schedule's floor learning rate.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn minimum_learning_rate(self) -> f64 {
+        self.minimum_learning_rate
     }
 }
 
@@ -341,12 +384,107 @@ pub(crate) struct Fitted<B: AutodiffBackend> {
     pub evidence: TrainingEvidence,
 }
 
+/// The training state at entry of the boundary step.
+///
+/// This is the fork point of a run: the opening segment produces it,
+/// the ladder consumes it, and the checkpoint artifact serializes it
+/// (with the caller's generator position) so a future ladder can
+/// resume from the same boundary. The state is opaque - it exists
+/// only as the output of [`fit_to_boundary`] or of the checkpoint
+/// artifact's validated open path - so a ladder can never start from
+/// a state no opening segment produced.
+///
+/// The boundary work itself (radius freeze, opening refresh) is not
+/// part of the state: it happens at entry of [`fit_from_boundary`],
+/// deterministically from the model, so every ladder resumed from one
+/// boundary state freezes the bit-equal radius on a deterministic
+/// backend.
+// No Debug: the optimizer adaptor does not implement it.
+pub(crate) struct BoundaryState<B: AutodiffBackend<FloatElem = f32>> {
+    training: Training<B>,
+    schedule: TrainingSchedule,
+}
+
+impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
+    /// Returns the model at the boundary.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn model(&self) -> &Projector<B> {
+        &self.training.model
+    }
+
+    /// Returns the schedule the opening segment ran under.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn schedule(&self) -> TrainingSchedule {
+        self.schedule
+    }
+
+    /// Returns the optimizer's record.
+    #[must_use]
+    pub(crate) fn optimizer_record(&self) -> session::TrainerOptimizerRecord<B> {
+        self.training.optimizer.to_record()
+    }
+
+    /// Returns the scheduler's position record.
+    #[must_use]
+    pub(crate) fn scheduler_position(&self) -> usize {
+        self.training.scheduler.to_record::<B>()
+    }
+
+    /// Rebuilds a boundary state from its serialized parts.
+    ///
+    /// The evidence starts fresh: a resumed ladder's evidence covers
+    /// the segment it runs, boundary measurement included; the opening
+    /// segment's evidence belongs to the run that produced the
+    /// checkpoint.
+    ///
+    /// Returns [`None`] when the scheduler position does not sit at
+    /// the schedule's boundary - the parts describe two different
+    /// runs.
+    #[must_use]
+    pub(crate) fn from_parts(
+        model: Projector<B>,
+        optimizer: session::TrainerOptimizerRecord<B>,
+        scheduler_position: usize,
+        schedule: TrainingSchedule,
+    ) -> Option<Self> {
+        // The scheduler advances once per step and reads its position
+        // before use, so after the opening segment's `boundary` steps
+        // it sits at `boundary - 1`; a boundary of zero leaves the
+        // pre-first-step sentinel, which is what the wrapping
+        // subtraction produces.
+        if scheduler_position != schedule.boundary.wrapping_sub(1) {
+            return None;
+        }
+
+        Some(Self {
+            training: Training {
+                model,
+                optimizer: session::optimizer().load_record(optimizer),
+                scheduler: session::scheduler(schedule).load_record::<B>(scheduler_position),
+                evidence: TrainingEvidence {
+                    boundary: None,
+                    budget: BudgetBreakdown::new(),
+                    losses: Vec::new(),
+                    telemetry: Vec::new(),
+                },
+            },
+            schedule,
+        })
+    }
+}
+
 /// Trains the projector over one generation's artifacts.
 ///
 /// The caller owns model initialization and seeds it before the call;
 /// batch draws consume `rng`. Equal models, inputs, options, and seeds
 /// draw equal batches; coordinate-level reproducibility additionally
 /// depends on the backend's own determinism.
+///
+/// The run is the composition of [`fit_to_boundary`] and
+/// [`fit_from_boundary`]; call the phases directly to checkpoint or
+/// fork at the boundary.
 ///
 /// # Errors
 ///
@@ -362,326 +500,106 @@ pub(crate) struct Fitted<B: AutodiffBackend> {
 /// anchor references a row outside it; all inputs come from one
 /// generation, so a mismatch is a wiring defect.
 pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
-    mut model: Projector<B>,
+    model: Projector<B>,
     inputs: &TrainerInputs<'_>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
 ) -> Result<Fitted<B>, TrainError> {
-    let vacuous = admit(inputs, options)?;
-
-    let rows = inputs.columns.representations.len();
-    let schedule = options.schedule;
-    let mut plan = options.plan;
-    if vacuous {
-        // No group exerts force, so relation draws would be dead
-        // weight at every rung; the ladder still runs for the lens
-        // conditioning.
-        plan.relation_types = 0;
-    }
-
-    let sampler = BatchSampler::new(
-        inputs.semantic.clone(),
-        inputs.protection.clone(),
-        inputs.protection_config,
-        inputs.attraction,
-        plan,
-    )
-    .ok_or(TrainError::NoSemanticEvidence)?;
-    let refresh = Refresh {
-        columns: inputs.columns,
-        knn: inputs.knn.clone(),
-        miner: HardNegativeMiner::new(
-            inputs.semantic.clone(),
-            inputs.protection.clone(),
-            inputs.protection_config,
-            options.miner,
-        ),
-        participants: TypeParticipants::new(inputs.attraction),
-        forward_rows: options.forward_rows,
-    };
-    let mut evaluation = Evaluation {
-        columns: inputs.columns,
-        options: ObjectiveOptions {
-            affinity: options.affinity,
-            relation: None,
-            support: options.support,
-            budget: options.budget,
-            coefficients: options.coefficients,
-        },
-        deciles: DegreeDeciles::new(inputs.attraction, rows),
-    };
-
-    let mut optimizer = AdamConfig::new().with_epsilon(1.0e-8).init();
-    let mut scheduler =
-        CosineAnnealingLrSchedulerConfig::new(schedule.initial_learning_rate, schedule.steps.get())
-            .with_min_lr(schedule.minimum_learning_rate)
-            .init()
-            .expect("a validated schedule satisfies the scheduler's domain");
-
-    let mut scales: Option<[LocalScales; RUNGS.len()]> = None;
-    let mut mined: Option<MinedFrame> = None;
-    let mut evidence = TrainingEvidence {
-        boundary: None,
-        budget: BudgetBreakdown::new(),
-        losses: Vec::with_capacity(schedule.steps.get()),
-        telemetry: Vec::new(),
-    };
-
-    for step_index in 0..schedule.steps.get() {
-        if step_index == schedule.boundary {
-            let (energy, boundary) =
-                freeze_radius(&model, inputs, options, vacuous, step_index, device)?;
-            evaluation.options.relation = energy;
-            evidence.boundary = Some(boundary);
-        }
-
-        #[expect(
-            clippy::integer_division_remainder_used,
-            reason = "the refresh cadence is a step-count modulus"
-        )]
-        if step_index == schedule.boundary || step_index % schedule.refresh_interval.get() == 0 {
-            let with_scales = evaluation.options.relation.is_some();
-            let outcome = refresh.tick(&model.valid(), &evaluation.deciles, with_scales, device)?;
-            mined = Some(outcome.mined);
-            if let Some(tables) = outcome.scales {
-                scales = Some(tables);
-            }
-            evidence.telemetry.push(TickTelemetry {
-                step: step_index,
-                displacement: outcome.displacement,
-            });
-        }
-
-        let rung_index = rung(step_index, schedule.boundary);
-        let batch = draw_batch(
-            &sampler,
-            rung_index,
-            mined.as_ref(),
-            scales.as_ref(),
-            inputs,
-            rng,
-        );
-
-        let objective = evaluation.objective(&model, &batch, &mut evidence.budget, device)?;
-        evidence.losses.push(objective.loss);
-
-        let gradients = GradientsParams::from_grads(objective.surrogate.backward(), &model);
-        model = optimizer.step(scheduler.step(), model, gradients);
-    }
-
-    Ok(Fitted { model, evidence })
+    let state = fit_to_boundary(model, inputs, options, rng, device)?;
+    fit_from_boundary(state, inputs, options, rng, device)
 }
 
-/// Selects a step's rung index: zero through the opening segment,
-/// round-robin across [`RUNGS`] once the ladder opens.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "the rung round-robin is a step-count modulus"
-)]
-const fn rung(step_index: usize, boundary: usize) -> usize {
-    if step_index < boundary {
-        0
-    } else {
-        (step_index - boundary) % RUNGS.len()
-    }
-}
-
-/// Draws and assembles one step's batch at its rung.
+/// Trains the opening segment: steps zero to the phase boundary, all
+/// at the zero rung.
+///
+/// The returned state is the run's fork point; hand it to
+/// [`fit_from_boundary`] to continue, or serialize it through the
+/// checkpoint artifact first. A boundary equal to the run length makes
+/// this the whole run.
+///
+/// # Errors
+///
+/// Returns an error when the corpus cannot train, the boundary is
+/// structurally inadmissible, or training diverges in a step or a
+/// tick.
 ///
 /// # Panics
 ///
-/// Panics when relation edges are drawn before a scale-bearing tick;
-/// the boundary always runs one, so a miss is a wiring defect.
-fn draw_batch<R: Rng + ?Sized>(
-    sampler: &BatchSampler<'_>,
-    rung_index: usize,
-    mined: Option<&MinedFrame>,
-    scales: Option<&[LocalScales; RUNGS.len()]>,
-    inputs: &TrainerInputs<'_>,
-    rng: &mut R,
-) -> Batch {
-    let populations = sampler.draw(
-        RUNGS[rung_index],
-        mined,
-        inputs.landmarks,
-        inputs.anchors,
-        rng,
-    );
-    let batch_scales = if populations.relation.is_empty() {
-        None
-    } else {
-        Some(&scales.expect("relation draws happen only after a scale-bearing tick")[rung_index])
-    };
-
-    Batch::assemble(populations, batch_scales)
-}
-
-/// Validates the corpus row domain and the boundary's structural
-/// admissibility; returns whether the run is vacuous.
-///
-/// The decision whether the boundary can freeze a radius is
-/// structural: force and review coverage are properties of the index
-/// and the verdicts, not of coordinates, so an impossible boundary
-/// fails here instead of after the opening segment.
-#[expect(
-    clippy::panic_in_result_fn,
-    reason = "a row-domain mismatch between one generation's artifacts is a wiring defect \
-              contract, not a recoverable error"
-)]
-fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, TrainError> {
-    let rows = inputs.columns.representations.len();
-    assert_eq!(
-        rows,
-        inputs.columns.roles.len(),
-        "the representation and role columns should cover the same rows"
-    );
-    assert_eq!(
-        rows,
-        inputs.semantic.rows(),
-        "the input columns and the semantic graph should cover the same rows"
-    );
-
-    for anchor in inputs.landmarks.iter().chain(inputs.anchors) {
-        assert!(
-            anchor.row.usize() < rows,
-            "support anchors should reference corpus rows"
-        );
-    }
-
-    let force = ForceClasses::measure(inputs.attraction);
-    if options.lens.asserted_radius.is_none() {
-        if force.proximal && !reviewed_proximal_force(inputs.attraction, inputs.verdicts) {
-            return Err(TrainError::MissingProximalReviews);
-        }
-        if force.coincident && !force.proximal {
-            return Err(TrainError::CoincidentWithoutProximal);
-        }
-    }
-
-    Ok(!force.proximal && !force.coincident)
-}
-
-/// Runs the phase boundary: measures the reviewed-Proximal `z`
-/// population against the boundary's own coordinates, freezes the
-/// Proximal radius, and composes the relation energy.
-///
-/// On a vacuous run - no attraction force at all - there is nothing to
-/// measure or compose, a configured assertion included; the evidence
-/// records the fact and the relation term stays absent.
-fn freeze_radius<B: AutodiffBackend<FloatElem = f32>>(
-    model: &Projector<B>,
+/// Panics when the inputs disagree about the corpus row domain or an
+/// anchor references a row outside it.
+pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
+    model: Projector<B>,
     inputs: &TrainerInputs<'_>,
     options: &TrainOptions,
-    vacuous: bool,
-    step: usize,
+    rng: &mut R,
     device: &B::Device,
-) -> Result<(Option<RelationEnergy>, BoundaryEvidence), TrainError> {
-    if vacuous {
-        return Ok((
-            None,
-            BoundaryEvidence {
-                step,
-                radius: FrozenRadius::Vacuous,
-                calibration: ProximalCalibration {
-                    radius: None,
-                    types: Vec::new(),
-                },
+) -> Result<BoundaryState<B>, TrainError> {
+    let schedule = options.schedule;
+    let mut session = Session::new(inputs, options)?;
+    let training = session.run(
+        Training {
+            model,
+            optimizer: session::optimizer(),
+            scheduler: session::scheduler(schedule),
+            evidence: TrainingEvidence {
+                boundary: None,
+                budget: BudgetBreakdown::new(),
+                losses: Vec::with_capacity(schedule.steps.get()),
+                telemetry: Vec::new(),
             },
-        ));
-    }
-
-    let frame = refresh::forward(
-        &model.valid(),
-        inputs.columns,
-        RUNGS[0],
-        options.forward_rows,
+        },
+        0..schedule.boundary,
+        rng,
         device,
     )?;
-    let scales = refresh::scales(&frame, &inputs.knn, RUNGS[0])?;
-    let calibration = calibrate(
-        inputs.verdicts,
-        inputs.attraction,
-        &frame,
-        &scales,
-        CalibrationOptions::new(options.plan.relation_cap, options.lens.epsilon)
-            .expect("a validated lens epsilon satisfies the calibration domain"),
-    );
 
-    let (frozen, radius) = match (calibration.radius, options.lens.asserted_radius) {
-        (_, Some(radius)) => (radius, FrozenRadius::Asserted { radius }),
-        (Some(radius), None) => (radius, FrozenRadius::Measured { radius }),
-        // The entry check admits this run only with reviewed coverage
-        // or an assertion; reaching here means the two mass walks
-        // disagree, and failing honestly beats composing from nothing.
-        (None, None) => return Err(TrainError::MissingProximalReviews),
-    };
-
-    let proximal = ProximalEnergy::new(frozen, options.lens.temperature)
-        .expect("a measured quantile of finite z values is finite and non-negative");
-    let energy = RelationEnergy::new(options.lens.coincident, proximal, options.lens.epsilon)
-        .ok_or_else(|| TrainError::DegenerateRadius {
-            radius: frozen,
-            coincident: options.lens.coincident.radius(),
-        })?;
-
-    Ok((
-        Some(energy),
-        BoundaryEvidence {
-            step,
-            radius,
-            calibration,
-        },
-    ))
+    Ok(BoundaryState { training, schedule })
 }
 
-/// Which relation classes carry force anywhere in the index.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct ForceClasses {
-    proximal: bool,
-    coincident: bool,
-}
-
-impl ForceClasses {
-    /// Scans the groups for class weight backed by instances.
-    fn measure(index: &AttractionIndex) -> Self {
-        let mut classes = Self {
-            proximal: false,
-            coincident: false,
-        };
-        for group in index.groups().iter().filter(|group| exerts_force(group)) {
-            let weights = group.weights();
-            classes.proximal |= weights.proximal > 0.0;
-            classes.coincident |= weights.coincident > 0.0;
-        }
-        classes
-    }
-}
-
-/// Whether any reviewed-Proximal verdict covers a group that exerts
-/// Proximal force.
+/// Trains the ladder from a boundary state: freezes the Proximal
+/// radius against the state's own coordinates, then round-robins the
+/// remaining steps across the lens rungs.
 ///
-/// This is the coordinate-free core of the boundary measurement: the
-/// calibration's pair weights are positive exactly on these groups'
-/// instances, so a positive measured mass exists if and only if this
-/// holds.
-fn reviewed_proximal_force(index: &AttractionIndex, verdicts: &[ResolvedVerdict]) -> bool {
-    verdicts
-        .iter()
-        .filter(|verdict| verdict.placement == PlacementClass::Proximal)
-        .any(|verdict| {
-            let groups = index.groups();
-            groups
-                .binary_search_by_key(&verdict.relation.get(), |group| group.relation().get())
-                .is_ok_and(|position| {
-                    let group = &groups[position];
-                    exerts_force(group) && group.weights().proximal > 0.0
-                })
-        })
-}
+/// The options must carry the schedule the opening segment ran under;
+/// everything else may differ, which is what a boundary fork varies.
+///
+/// # Errors
+///
+/// Returns an error when the schedule differs from the boundary
+/// state's, when the corpus cannot train, the boundary is structurally
+/// inadmissible, the boundary cannot freeze a Proximal radius, or
+/// training diverges in a step or a tick.
+///
+/// # Panics
+///
+/// Panics when the inputs disagree about the corpus row domain or an
+/// anchor references a row outside it.
+pub(crate) fn fit_from_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
+    state: BoundaryState<B>,
+    inputs: &TrainerInputs<'_>,
+    options: &TrainOptions,
+    rng: &mut R,
+    device: &B::Device,
+) -> Result<Fitted<B>, TrainError> {
+    if options.schedule != state.schedule {
+        return Err(TrainError::ScheduleChanged {
+            opening: state.schedule,
+            resumed: options.schedule,
+        });
+    }
 
-/// Whether a group can exert any force: instances exist and the
-/// strength multiplier passes them through.
-fn exerts_force(group: &AttractionGroup) -> bool {
-    !group.edges().is_empty() && group.weights().strength > 0.0
+    let schedule = state.schedule;
+    let mut session = Session::new(inputs, options)?;
+    let training = session.run(
+        state.training,
+        schedule.boundary..schedule.steps.get(),
+        rng,
+        device,
+    )?;
+
+    Ok(Fitted {
+        model: training.model,
+        evidence: training.evidence,
+    })
 }

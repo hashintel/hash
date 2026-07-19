@@ -1,14 +1,15 @@
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{
-    FitConfig, FitError, PolicyOptions, StageError, fit, prepare::identity::MappedIdentityTable,
+    FitConfig, FitError, PolicyOptions, StageError, SuppliedVerdicts, fit,
+    prepare::identity::MappedIdentityTable,
 };
 use crate::{
     dataset::{
@@ -46,6 +47,7 @@ use crate::{
                 fit as fit_classifier,
             },
         },
+        projector::verdict::ReviewedVerdicts,
         relation::artifact::{MappedAttraction, MappedProtection},
     },
 };
@@ -245,9 +247,17 @@ async fn fit_publishes_a_complete_generation() {
     let dataset = dataset();
     let classifier = fixture_classifier();
 
-    let published = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
-        .await
-        .expect("the fit should publish");
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
 
     // The manifest deserializes and its digests match the published
     // files byte for byte.
@@ -267,6 +277,9 @@ async fn fit_publishes_a_complete_generation() {
             entry.name,
         );
     }
+
+    // No verdicts were supplied: the manifest records the absence.
+    assert!(repository.files.reviewed_verdicts.is_none());
 
     // The snapshot records what the dataset streamed.
     assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
@@ -360,9 +373,17 @@ async fn the_policy_artifacts_publish_and_read_back() {
     let dataset = dataset();
     let classifier = fixture_classifier();
 
-    let published = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
-        .await
-        .expect("the fit should publish");
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
 
     // The published classifier reads back to the supplied model.
     let reopened = Classifier::from_artifact(
@@ -420,6 +441,7 @@ async fn the_lod_columns_publish_in_base_order() {
         &HashEmbedder,
         &config(),
         &fixture_classifier(),
+        None,
         None,
         &root,
     )
@@ -500,14 +522,75 @@ async fn the_lod_columns_publish_in_base_order() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn supplied_verdicts_publish_verbatim() {
+    let root = GenerationRoot::new(scratch("verdicts")).expect("the root should open");
+    let dataset = dataset();
+    let classifier = fixture_classifier();
+
+    // A document in the canonical exporter's shape: alphabetical keys,
+    // one reviewed-Proximal type verdict, one trailing newline.
+    let document = concat!(
+        r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","#,
+        r#""sources":{"cards.jsonl":"2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b"},"#,
+        r#""type_verdicts":[{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"}]}"#,
+        "\n",
+    );
+    let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
+        .expect("a contract-conforming document admits");
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        Some(&supplied),
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    // The manifest binds the role to the supplied file's identity.
+    let manifest =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&manifest).expect("the document should deserialize");
+    let entry = repository
+        .files
+        .reviewed_verdicts
+        .as_ref()
+        .expect("the supplied verdicts should be staged");
+    assert_eq!(entry.name.as_str(), "reviewed-verdicts.json");
+    assert_eq!(entry.hash, supplied.hash());
+
+    // The published bytes are the supplied file verbatim, and they
+    // still read back through the verdict reader the trainer uses.
+    let bytes = fs::read(published.path().join("reviewed-verdicts.json"))
+        .expect("the published file should read");
+    assert_eq!(bytes, document.as_bytes());
+    let read_back = ReviewedVerdicts::from_slice(&bytes).expect("the published bytes still parse");
+    assert_eq!(read_back.type_verdicts().len(), 1);
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_prior_generation_seeds_reuse_and_retention() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
     let dataset = dataset();
     let classifier = fixture_classifier();
 
-    let first = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
-        .await
-        .expect("the first fit should publish");
+    let first = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &classifier,
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the first fit should publish");
     let prior = root
         .open(first.id())
         .expect("the published generation should open");
@@ -517,6 +600,7 @@ async fn a_prior_generation_seeds_reuse_and_retention() {
         &HashEmbedder,
         &config(),
         &classifier,
+        None,
         Some(&prior),
         &root,
     )
@@ -577,6 +661,7 @@ async fn an_override_supersedes_the_classifier() {
         &config,
         &fixture_classifier(),
         None,
+        None,
         &root,
     )
     .await
@@ -623,6 +708,7 @@ async fn equal_seeds_publish_equal_generations() {
         &config(),
         &classifier,
         None,
+        None,
         &first_root,
     )
     .await
@@ -632,6 +718,7 @@ async fn equal_seeds_publish_equal_generations() {
         &HashEmbedder,
         &config(),
         &classifier,
+        None,
         None,
         &second_root,
     )
@@ -680,6 +767,7 @@ async fn a_defective_corpus_publishes_nothing() {
         &HashEmbedder,
         &config(),
         &fixture_classifier(),
+        None,
         None,
         &root,
     )
@@ -787,6 +875,28 @@ fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
         .collect()
 }
 
+/// Asserts the published adjacency matches a by-hand pass over the
+/// fixture edges: the parallel pair leaves node 0, the self-loop
+/// occupies both slots of node 3, and untouched nodes hold empty runs.
+fn assert_adjacency_reads_back(published: &Utf8Path) {
+    let adjacency = MappedAdjacency::new(
+        AdjacencyFile::open(published.join("adjacency.adjc")).expect("the adjacency should map"),
+    )
+    .expect("the adjacency should validate");
+    assert_eq!(adjacency.rows(), NODES as u64);
+    assert_eq!(adjacency.edges(), 4);
+
+    assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(0))), [0, 3]);
+    assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(1))), [0, 3]);
+    assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(3))), [2]);
+    assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(3))), [1, 2]);
+    assert_eq!(edge_rows(adjacency.incident(NodeRowId::new(3))), [2, 1, 2]);
+    assert!(
+        edge_rows(adjacency.incident(NodeRowId::new(7))).is_empty(),
+        "an untouched node holds empty runs",
+    );
+}
+
 /// Asserts the published attraction index against the
 /// [`relation_dataset`] readings: three retained instances under
 /// relation 2, one under relation 3 (the self-loop reading carries no
@@ -851,9 +961,17 @@ async fn the_edge_artifacts_publish_and_read_back() {
         })
         .collect();
 
-    let published = fit(&dataset, &HashEmbedder, &config, &classifier, None, &root)
-        .await
-        .expect("the fit should publish");
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &classifier,
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
 
     // The endpoint column is the edge stream's (source, target) pairs
     // in row order.
@@ -866,26 +984,7 @@ async fn the_edge_artifacts_publish_and_read_back() {
         [[0, 1], [2, 3], [3, 3], [0, 1]],
     );
 
-    // The adjacency lists match a by-hand pass over the fixture edges:
-    // the parallel pair leaves node 0, the self-loop occupies both
-    // slots of node 3, and untouched nodes hold empty runs.
-    let adjacency = MappedAdjacency::new(
-        AdjacencyFile::open(published.path().join("adjacency.adjc"))
-            .expect("the adjacency should map"),
-    )
-    .expect("the adjacency should validate");
-    assert_eq!(adjacency.rows(), NODES as u64);
-    assert_eq!(adjacency.edges(), 4);
-
-    assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(0))), [0, 3]);
-    assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(1))), [0, 3]);
-    assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(3))), [2]);
-    assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(3))), [1, 2]);
-    assert_eq!(edge_rows(adjacency.incident(NodeRowId::new(3))), [2, 1, 2]);
-    assert!(
-        edge_rows(adjacency.incident(NodeRowId::new(7))).is_empty(),
-        "an untouched node holds empty runs",
-    );
+    assert_adjacency_reads_back(published.path());
 
     // The delivery ranking runs on incident degree by default: node
     // row 3 (three incident slots) outranks every other row, so it

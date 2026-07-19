@@ -48,7 +48,7 @@
 #[cfg(test)]
 mod tests;
 
-use core::num::NonZero;
+use core::{error::Error, fmt, num::NonZero};
 
 use burn::{
     module::{Module, Param, ParamId},
@@ -57,9 +57,56 @@ use burn::{
     },
     tensor::{Int, Tensor, TensorData, activation::silu, backend::Backend},
 };
-use rand::{Rng, RngExt as _};
+use rand::{Rng, RngExt as _, SeedableRng as _};
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 use crate::dataset::PROJECTOR_DIMENSIONS;
+
+/// A model's parameters do not describe an architecture.
+///
+/// The named dimension is the first one that differs; an `actual` of
+/// zero on a bias or shift reports the parameter as absent, a shape no
+/// present parameter can have.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct ArchitectureMismatch {
+    /// The layer carrying the differing dimension.
+    pub layer: &'static str,
+    /// The differing dimension.
+    pub dimension: &'static str,
+    /// The residual block carrying the layer; [`None`] outside the
+    /// block stack.
+    pub block: Option<usize>,
+    /// The architecture's value.
+    pub expected: usize,
+    /// The model's value.
+    pub actual: usize,
+}
+
+impl fmt::Display for ArchitectureMismatch {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self {
+            layer,
+            dimension,
+            block,
+            expected,
+            actual,
+        } = *self;
+        if let Some(block) = block {
+            write!(
+                formatter,
+                "the model's {layer} {dimension} in residual block {block} is {actual}, not the \
+                 architecture's {expected}",
+            )
+        } else {
+            write!(
+                formatter,
+                "the model's {layer} {dimension} is {actual}, not the architecture's {expected}",
+            )
+        }
+    }
+}
+
+impl Error for ArchitectureMismatch {}
 
 /// The projection role of a node row.
 ///
@@ -306,6 +353,144 @@ impl<B: Backend> Projector<B> {
 
         self.head.forward(hidden)
     }
+
+    /// Builds the model a record describes, verified against the
+    /// architecture.
+    ///
+    /// A record loaded into a model adopts the record's tensor shapes,
+    /// so a record decoded against the wrong architecture would
+    /// produce a structurally wrong model without an error of its own;
+    /// this constructor is what turns that into one. The block-stack
+    /// depth is verified before the record loads - a depth mismatch
+    /// panics inside the module zip - and every parameter shape after.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first differing dimension.
+    pub(crate) fn from_record(
+        architecture: Architecture,
+        record: ProjectorRecord<B>,
+        device: &B::Device,
+    ) -> Result<Self, ArchitectureMismatch> {
+        confirm("block stack", "depth", None)(
+            architecture.residual_blocks.get(),
+            record.blocks.len(),
+        )?;
+
+        // The freshly drawn parameters are wholly replaced by the
+        // record; the throwaway stream is the price of reusing the
+        // one construction path.
+        let model = Self::new(architecture, Xoshiro256PlusPlus::seed_from_u64(0), device)
+            .load_record(record);
+        model.check_architecture(architecture)?;
+        Ok(model)
+    }
+
+    /// Verifies that every parameter has the shape the architecture
+    /// describes.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first differing dimension.
+    fn check_architecture(&self, architecture: Architecture) -> Result<(), ArchitectureMismatch> {
+        let width = architecture.width.get();
+        let condition = architecture.condition_dimensions.get();
+        let representation = architecture.representation_dimensions.get();
+        let role = architecture.role_dimensions.get();
+        let input = representation
+            .checked_add(role)
+            .expect("projector input dimensions should not overflow");
+
+        confirm("input columns", "representation width", None)(
+            representation,
+            self.representation_dimensions,
+        )?;
+        confirm("condition columns", "width", None)(condition, self.condition_dimensions)?;
+        check_linear("stem", None, &self.stem, input, width)?;
+        check_normalization("stem normalization", None, &self.stem_normalization, width)?;
+
+        let [roles, role_width] = self.role.weight.val().dims();
+        confirm("role embedding", "role count", None)(NodeRole::COUNT, roles)?;
+        confirm("role embedding", "width", None)(role, role_width)?;
+
+        confirm("block stack", "depth", None)(
+            architecture.residual_blocks.get(),
+            self.blocks.len(),
+        )?;
+        for (index, block) in self.blocks.iter().enumerate() {
+            let index = Some(index);
+            check_linear("input linear", index, &block.input, width, width)?;
+            check_linear(
+                "modulation linear",
+                index,
+                &block.film.linear,
+                condition,
+                2 * width,
+            )?;
+            check_normalization("normalization", index, &block.normalization, width)?;
+            check_linear("output linear", index, &block.output, width, width)?;
+        }
+
+        check_linear("head", None, &self.head, width, PROJECTED_DIMENSIONS)
+    }
+}
+
+/// Output coordinates per row.
+const PROJECTED_DIMENSIONS: usize = 2;
+
+/// Builds a dimension comparator for one layer.
+fn confirm(
+    layer: &'static str,
+    dimension: &'static str,
+    block: Option<usize>,
+) -> impl Fn(usize, usize) -> Result<(), ArchitectureMismatch> {
+    move |expected, actual| {
+        if expected == actual {
+            return Ok(());
+        }
+
+        Err(ArchitectureMismatch {
+            layer,
+            dimension,
+            block,
+            expected,
+            actual,
+        })
+    }
+}
+
+/// Verifies a linear layer's weight shape and bias presence.
+fn check_linear<B: Backend>(
+    layer: &'static str,
+    block: Option<usize>,
+    linear: &Linear<B>,
+    input: usize,
+    output: usize,
+) -> Result<(), ArchitectureMismatch> {
+    let [rows, columns] = linear.weight.val().dims();
+    confirm(layer, "input width", block)(input, rows)?;
+    confirm(layer, "output width", block)(output, columns)?;
+    confirm(layer, "bias length", block)(
+        output,
+        linear.bias.as_ref().map_or(0, |bias| bias.val().dims()[0]),
+    )
+}
+
+/// Verifies a layer normalization's scale and shift lengths.
+fn check_normalization<B: Backend>(
+    layer: &'static str,
+    block: Option<usize>,
+    normalization: &LayerNorm<B>,
+    width: usize,
+) -> Result<(), ArchitectureMismatch> {
+    confirm(layer, "scale length", block)(width, normalization.gamma.val().dims()[0])?;
+    confirm(layer, "shift length", block)(
+        width,
+        normalization
+            .beta
+            .as_ref()
+            .map_or(0, |beta| beta.val().dims()[0]),
+    )
 }
 
 /// Weight initialization of one linear layer.

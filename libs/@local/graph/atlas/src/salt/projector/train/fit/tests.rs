@@ -23,6 +23,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     FrozenRadius, RelationLens, TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit,
+    fit_from_boundary, fit_to_boundary,
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
@@ -31,6 +32,7 @@ use crate::{
         knn::table::{Knn, KnnMatrix},
         policy::ClassProbabilities,
         projector::{
+            artifact,
             budget::BudgetOptions,
             loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
             miner::MinerOptions,
@@ -319,15 +321,18 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
     }
 }
 
-fn model() -> Projector<TestBackend> {
-    let architecture = Architecture {
+fn architecture() -> Architecture {
+    Architecture {
         width: nonzero(8),
         residual_blocks: nonzero(1),
         representation_dimensions: nonzero(PROJECTOR_DIMENSIONS),
         role_dimensions: nonzero(4),
         condition_dimensions: nonzero(1),
-    };
-    Projector::new(architecture, rng(7), &device())
+    }
+}
+
+fn model() -> Projector<TestBackend> {
+    Projector::new(architecture(), rng(7), &device())
 }
 
 /// Forwards the trained corpus at a rung.
@@ -666,4 +671,100 @@ fn the_lens_validates_its_domain() {
     );
     assert!(RelationLens::new(coincident, 0.25, 0.5, Some(0.5)).is_some());
     assert!(RelationLens::new(coincident, 0.25, 0.5, Some(f32::NAN)).is_none());
+}
+
+#[test]
+fn a_checkpointed_resume_matches_the_straight_run() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let options = options(schedule(12, 6, 4), None);
+
+    let straight = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
+        .expect("the boundary fixture trains");
+
+    let mut stream = rng(17);
+    let state = fit_to_boundary(model(), &corpus.inputs(), &options, &mut stream, &device())
+        .expect("the opening segment trains");
+    let mut bytes = Vec::new();
+    artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
+    drop((state, stream));
+
+    let (reopened, mut stream) =
+        artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
+            .expect("the resume checkpoint opens");
+    let resumed = fit_from_boundary(reopened, &corpus.inputs(), &options, &mut stream, &device())
+        .expect("the resumed ladder trains");
+
+    assert_eq!(
+        resumed.evidence.losses.as_slice(),
+        &straight.evidence.losses[6..],
+        "the resumed ladder should replay the straight run's ladder steps exactly"
+    );
+    assert_eq!(
+        resumed.evidence.boundary, straight.evidence.boundary,
+        "the resumed boundary should freeze the bit-equal radius"
+    );
+    assert_eq!(
+        project(&resumed.model, &corpus, 0.0),
+        project(&straight.model, &corpus, 0.0),
+    );
+    assert_eq!(
+        project(&resumed.model, &corpus, 1.0),
+        project(&straight.model, &corpus, 1.0),
+        "the straight and resumed runs should train bit-equal frames"
+    );
+}
+
+#[test]
+fn forked_ladders_share_the_frozen_radius() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let opening = options(schedule(12, 6, 4), None);
+
+    let mut stream = rng(17);
+    let state = fit_to_boundary(model(), &corpus.inputs(), &opening, &mut stream, &device())
+        .expect("the opening segment trains");
+    let mut bytes = Vec::new();
+    artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
+
+    let fork = |relation: f32| {
+        let (state, mut stream) =
+            artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
+                .expect("the resume checkpoint opens");
+        let mut cell = opening;
+        cell.coefficients = Coefficients::new(1.0, 0.5, 0.5, relation, 0.0, 1.0)
+            .expect("the fork coefficients are valid");
+        fit_from_boundary(state, &corpus.inputs(), &cell, &mut stream, &device())
+            .expect("the forked ladder trains")
+    };
+
+    let one = fork(1.0);
+    let two = fork(4.0);
+
+    assert_eq!(
+        one.evidence.boundary, two.evidence.boundary,
+        "fork cells should freeze the bit-equal radius from the shared opening"
+    );
+    assert_ne!(
+        project(&one.model, &corpus, 1.0),
+        project(&two.model, &corpus, 1.0),
+        "the forked relation coefficient should change the trained ladder"
+    );
+}
+
+#[test]
+fn a_resumed_ladder_rejects_a_changed_schedule() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let opening = options(schedule(12, 6, 4), None);
+    let state = fit_to_boundary(model(), &corpus.inputs(), &opening, &mut rng(17), &device())
+        .expect("the opening segment trains");
+
+    let changed = options(schedule(16, 6, 4), None);
+    let error = fit_from_boundary(state, &corpus.inputs(), &changed, &mut rng(17), &device())
+        .expect_err("a changed schedule should be rejected");
+    assert_eq!(
+        error,
+        TrainError::ScheduleChanged {
+            opening: schedule(12, 6, 4),
+            resumed: schedule(16, 6, 4),
+        }
+    );
 }
