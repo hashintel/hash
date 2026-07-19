@@ -3,10 +3,10 @@
 //! [`BatchSampler::draw`] pulls one step's populations from the built
 //! artifacts in corpus row space, together with each family's
 //! estimator scale. [`Batch::assemble`] re-indexes the populations
-//! into a batch-local coordinate domain - the loss terms are
-//! index-space agnostic, and only the participating rows are projected
-//! per step - and [`Batch::input`] materializes the model input
-//! tensors for those rows.
+//! into the batch-local row domain the loss terms speak - corpus keys
+//! convert to `BatchRowId` positions here and nowhere else, so the
+//! two domains cannot be mixed by type - and [`Batch::input`]
+//! materializes the model input tensors for the participating rows.
 //!
 //! Draws consume the caller's random stream in a fixed family order
 //! (semantic, ordinary, hard, relation, landmark, anchor); a family
@@ -19,11 +19,11 @@ use rand::Rng;
 use super::BatchPlan;
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::AlignedVecN,
+    math::{AlignedVecN, Vec2},
     random::sample_indices_vec,
     salt::{
         projector::{
-            loss::SupportAnchor,
+            loss::{BatchAnchor, BatchPair, BatchRelationEdge, BatchRelationEdges, BatchRowId},
             miner::MinedFrame,
             model::{NodeRole, ProjectorInput},
             sample::{
@@ -33,12 +33,27 @@ use crate::{
             scale::LocalScales,
         },
         relation::{
-            attraction::{AttractionEdge, AttractionIndex},
+            attraction::AttractionIndex,
             protection::{NodePair, ProtectionConfig, ProtectionView},
         },
         semantic::SemanticGraphView,
     },
 };
+
+/// One anchored node of a support pool, in corpus row space.
+///
+/// `row` names the anchored corpus row; `target` is the prior or
+/// skeleton coordinate the node is held to, `radius` the local scale
+/// the residual is normalized by, and `weight` the anchor's mass in
+/// the sum. Assembly converts drawn anchors into the batch-local
+/// [`BatchAnchor`] the support term consumes.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct SupportAnchor {
+    pub row: NodeRowId,
+    pub target: Vec2,
+    pub radius: f32,
+    pub weight: f32,
+}
 
 /// One step's drawn populations, in corpus row space.
 ///
@@ -276,37 +291,38 @@ pub(crate) struct NodeColumns<'corpus> {
     pub roles: &'corpus [NodeRole],
 }
 
-/// One assembled minibatch, re-indexed to a batch-local row domain.
+/// One assembled minibatch, re-indexed to the batch-local row domain.
 ///
 /// `rows` lists the participating corpus rows in ascending order; a
-/// population's row `i` refers to `rows[i]`. The corpus-to-local map
-/// is monotone, so canonical pair ordering survives re-indexing.
+/// population's [`BatchRowId`] position `i` refers to `rows[i]`. The
+/// corpus-to-local map is monotone, so canonical pair ordering
+/// survives re-indexing.
 #[derive(Debug)]
-pub(crate) struct Batch<'index> {
+pub(crate) struct Batch {
     /// The participating corpus rows, ascending and distinct.
     pub rows: Box<[NodeRowId]>,
     /// Semantic positive pairs, batch-local.
-    pub semantic: Vec<NodePair>,
+    pub semantic: Vec<BatchPair>,
     /// See [`Populations::semantic_scale`].
     pub semantic_scale: f32,
     /// Ordinary negative pairs, batch-local.
-    pub ordinary: Vec<NodePair>,
+    pub ordinary: Vec<BatchPair>,
     /// See [`Populations::ordinary_scale`].
     pub ordinary_scale: f32,
     /// Hard-negative pairs with rank weights, batch-local.
-    pub hard: Vec<(NodePair, f32)>,
+    pub hard: Vec<(BatchPair, f32)>,
     /// See [`Populations::hard_scale`].
     pub hard_scale: f32,
-    /// Relation draws with batch-local edge endpoints.
-    pub relation: Vec<SampledRelationEdges<'index>>,
+    /// Relation draws with batch-local endpoints.
+    pub relation: Vec<BatchRelationEdges>,
     /// See [`Populations::relation_scale`].
     pub relation_scale: f32,
-    /// Landmark anchors, batch-local rows.
-    pub landmarks: Vec<SupportAnchor>,
+    /// Landmark anchors, batch-local.
+    pub landmarks: Vec<BatchAnchor>,
     /// See [`Populations::landmark_scale`].
     pub landmark_scale: f32,
-    /// Temporal anchors, batch-local rows.
-    pub anchors: Vec<SupportAnchor>,
+    /// Temporal anchors, batch-local.
+    pub anchors: Vec<BatchAnchor>,
     /// See [`Populations::anchor_scale`].
     pub anchor_scale: f32,
     /// The participating rows' local scales, gathered from the
@@ -316,7 +332,7 @@ pub(crate) struct Batch<'index> {
     pub eta: f32,
 }
 
-impl<'index> Batch<'index> {
+impl Batch {
     /// Re-indexes drawn populations into the batch-local row domain.
     ///
     /// `scales` is the corpus-wide local-scale table of the step's
@@ -331,7 +347,7 @@ impl<'index> Batch<'index> {
     /// tables come from one training run, so a mismatch is a wiring
     /// defect.
     #[must_use]
-    pub(crate) fn assemble(populations: Populations<'index>, scales: Option<&LocalScales>) -> Self {
+    pub(crate) fn assemble(populations: Populations<'_>, scales: Option<&LocalScales>) -> Self {
         assert!(
             populations.relation.is_empty() || scales.is_some(),
             "relation edges need the rung's local scales"
@@ -350,34 +366,34 @@ impl<'index> Batch<'index> {
             }
         }
         for anchor in populations.landmarks.iter().chain(&populations.anchors) {
-            rows.push(row_id(anchor.row));
+            rows.push(anchor.row);
         }
         rows.sort_unstable_by_key(|row| row.get());
         rows.dedup();
 
         let local = |id: NodeRowId| {
-            let index = rows
+            let position = rows
                 .binary_search_by_key(&id.get(), |row| row.get())
                 .expect("every re-indexed row was collected above");
-            row_id(index)
+            BatchRowId::new(u32::try_from(position).expect("batch positions fit the u32 encoding"))
         };
 
         let semantic = populations
             .semantic
             .iter()
-            .map(|pair| NodePair::new(local(pair.first()), local(pair.second())))
+            .map(|pair| BatchPair::new(local(pair.first()), local(pair.second())))
             .collect();
         let ordinary = populations
             .ordinary
             .iter()
-            .map(|pair| NodePair::new(local(pair.first()), local(pair.second())))
+            .map(|pair| BatchPair::new(local(pair.first()), local(pair.second())))
             .collect();
         let hard = populations
             .hard
             .iter()
             .map(|&(pair, weight)| {
                 (
-                    NodePair::new(local(pair.first()), local(pair.second())),
+                    BatchPair::new(local(pair.first()), local(pair.second())),
                     weight,
                 )
             })
@@ -385,23 +401,27 @@ impl<'index> Batch<'index> {
         let relation = populations
             .relation
             .into_iter()
-            .map(|sampled| SampledRelationEdges {
-                group: sampled.group,
+            .map(|sampled| BatchRelationEdges {
+                relation: sampled.group.relation(),
+                weights: sampled.group.weights(),
                 edges: sampled
                     .edges
                     .into_iter()
-                    .map(|edge| AttractionEdge {
+                    .map(|edge| BatchRelationEdge {
                         source: local(edge.source),
                         target: local(edge.target),
-                        ..edge
+                        confidence: edge.confidence.value(),
+                        degree_normalization: edge.degree_normalization,
                     })
                     .collect(),
             })
             .collect();
 
-        let localize = |anchor: &SupportAnchor| SupportAnchor {
-            row: local(row_id(anchor.row)).usize(),
-            ..*anchor
+        let localize = |anchor: &SupportAnchor| BatchAnchor {
+            row: local(anchor.row),
+            target: anchor.target,
+            radius: anchor.radius,
+            weight: anchor.weight,
         };
         let landmarks = populations.landmarks.iter().map(localize).collect();
         let anchors = populations.anchors.iter().map(localize).collect();
@@ -476,9 +496,4 @@ impl<'index> Batch<'index> {
             condition: Tensor::from_data(TensorData::new(vec![self.eta; rows], [rows, 1]), device),
         }
     }
-}
-
-#[inline]
-fn row_id(index: usize) -> NodeRowId {
-    NodeRowId::new(u64::try_from(index).expect("row indexes fit the row-id encoding"))
 }

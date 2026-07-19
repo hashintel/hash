@@ -349,6 +349,11 @@ impl From<SealError> for StageError {
     }
 }
 
+/// Formats one staged artifact's map-back failure.
+fn map_back(fmt: &mut fmt::Formatter<'_>, artifact: &str, error: &dyn fmt::Display) -> fmt::Result {
+    write!(fmt, "the staged {artifact} failed to map back: {error}")
+}
+
 impl fmt::Display for StageError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -373,9 +378,7 @@ impl fmt::Display for StageError {
             Self::Knn(error) => write!(fmt, "the k-NN table failed to assemble: {error}"),
             Self::Classify(error) => write!(fmt, "a relation card failed to classify: {error}"),
             Self::Policy(error) => write!(fmt, "the policy resolution failed: {error}"),
-            Self::MapPolicies(error) => {
-                write!(fmt, "the staged policy file failed to map back: {error}")
-            }
+            Self::MapPolicies(error) => map_back(fmt, "policy file", error),
             Self::InvalidPolicies(error) => {
                 write!(fmt, "the staged policy file is not a valid table: {error}")
             }
@@ -383,24 +386,16 @@ impl fmt::Display for StageError {
             Self::WriteProtection(error) => {
                 write!(fmt, "the protection index failed to write: {error}")
             }
-            Self::MapEndpoints(error) => write!(
-                fmt,
-                "the staged endpoint column failed to map back: {error}"
-            ),
-            Self::MapAdjacency(error) => {
-                write!(fmt, "the staged adjacency failed to map back: {error}")
-            }
+            Self::MapEndpoints(error) => map_back(fmt, "endpoint column", error),
+            Self::MapAdjacency(error) => map_back(fmt, "adjacency", error),
             Self::InvalidAdjacency(error) => {
-                write!(fmt, "the staged adjacency holds invalid lists: {error}")
+                write!(
+                    fmt,
+                    "the staged adjacency does not hold valid lists: {error}"
+                )
             }
-            Self::MapCards(error) => write!(
-                fmt,
-                "the staged card-embedding matrix failed to map back: {error}"
-            ),
-            Self::MapCoordinates(error) => write!(
-                fmt,
-                "the staged coordinate column failed to map back: {error}"
-            ),
+            Self::MapCards(error) => map_back(fmt, "card-embedding matrix", error),
+            Self::MapCoordinates(error) => map_back(fmt, "coordinate column", error),
             Self::WireEncoding { rows } => write!(
                 fmt,
                 "the corpus holds {rows} rows, beyond the u32 wire position encoding"
@@ -411,10 +406,7 @@ impl fmt::Display for StageError {
             Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
             Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
             Self::Layout(error) => write!(fmt, "the landmark layout failed: {error}"),
-            Self::MapRepresentations(error) => write!(
-                fmt,
-                "the staged representation matrix failed to map back: {error}"
-            ),
+            Self::MapRepresentations(error) => map_back(fmt, "representation matrix", error),
             Self::MapSparse(error) => {
                 write!(fmt, "a staged sparse matrix failed to map back: {error}")
             }
@@ -427,9 +419,7 @@ impl fmt::Display for StageError {
                     "the staged semantic file is not a valid graph: {error}"
                 )
             }
-            Self::MapLandmarks(error) => {
-                write!(fmt, "the staged landmark file failed to map back: {error}")
-            }
+            Self::MapLandmarks(error) => map_back(fmt, "landmark file", error),
             Self::InvalidLandmarks(error) => write!(
                 fmt,
                 "the staged landmark file is not a valid skeleton: {error}"

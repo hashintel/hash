@@ -12,8 +12,8 @@ use super::{
 };
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
-        card::Card, memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, EdgeRowId, Node, NodeRowId, Ontology, OntologyRowId,
+        PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
     },
     file::{
         adjacency::read::AdjacencyFile,
@@ -35,7 +35,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
     salt::{
-        adjacency::MappedAdjacency,
+        adjacency::{EdgeList, MappedAdjacency},
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::{artifact::MappedLandmarkSkeleton, select::SelectionOptions},
         policy::{
@@ -480,7 +480,7 @@ async fn the_lod_columns_publish_in_base_order() {
     }
 
     // The metadata records the histogram over every row and the
-    // constant-column ranking origin.
+    // default incident-degree ranking origin.
     let document =
         fs::read(published.path().join("metadata.json")).expect("the document should read");
     let repository: SaltRepository =
@@ -495,7 +495,7 @@ async fn the_lod_columns_publish_in_base_order() {
             .sum::<u64>(),
         NODES as u64,
     );
-    assert_eq!(repository.metadata.ranking, RankingOrigin::ConstantColumns,);
+    assert_eq!(repository.metadata.ranking, RankingOrigin::IncidentDegree);
 }
 
 #[tokio::test]
@@ -779,6 +779,56 @@ fn relation_dataset() -> MemoryDataset {
     MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
 }
 
+/// Collects a mapped adjacency list into its edge row numbers.
+fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
+    list.expect("the queried node row is in domain")
+        .iter()
+        .map(EdgeRowId::get)
+        .collect()
+}
+
+/// Asserts the published attraction index against the
+/// [`relation_dataset`] readings: three retained instances under
+/// relation 2, one under relation 3 (the self-loop reading carries no
+/// force and is dropped), with the overridden weights and confidence
+/// provenance intact.
+fn assert_attraction_reads_back(attraction: &MappedAttraction) {
+    assert_eq!(attraction.rows(), NODES as u64);
+    assert_eq!(attraction.group_count(), 2);
+    assert_eq!(attraction.edge_count(), 4);
+
+    let employment = attraction.group(0);
+    assert_eq!(employment.relation(), OntologyRowId::new(2));
+    assert_eq!(employment.len(), 3);
+    let membership = attraction.group(1);
+    assert_eq!(membership.relation(), OntologyRowId::new(3));
+    assert_eq!(membership.len(), 1);
+
+    // The group weights are the overridden distribution: the Proximal
+    // weight is p*_P = 1 * 0.5, and the Coincident weight vanishes
+    // under the default kappa_C = 0.
+    let weights = employment.weights();
+    assert_eq!(weights.proximal.to_bits(), 0.5_f32.to_bits());
+    assert_eq!(weights.coincident.to_bits(), 0.0_f32.to_bits());
+
+    // Confidence values and provenance survive the drain, the spool,
+    // and the published index: edge row 0's lone link score combines
+    // with two neutral factors.
+    let scored = employment
+        .edges()
+        .find(|edge| edge.edge.get() == 0)
+        .expect("edge row 0 is retained under relation 2");
+    assert_eq!(scored.confidence.value().to_bits(), 0.5_f32.to_bits());
+    assert!(scored.confidence.scored().link());
+    assert!(!scored.confidence.scored().source());
+    assert!(!scored.confidence.scored().target());
+
+    let neutral = membership.edge(0);
+    assert_eq!(neutral.edge.get(), 1);
+    assert_eq!(neutral.confidence.value().to_bits(), 1.0_f32.to_bits());
+    assert!(!neutral.confidence.scored().link());
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn the_edge_artifacts_publish_and_read_back() {
@@ -786,7 +836,22 @@ async fn the_edge_artifacts_publish_and_read_back() {
     let dataset = relation_dataset();
     let classifier = fixture_classifier();
 
-    let published = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
+    // Human overrides pin both relations to an exact distribution
+    // (applicability 1), so every attraction weight and force mass
+    // below is a hand-computable power of two instead of a classifier
+    // prediction.
+    let mut config = config();
+    config.policy.overrides = [2, 3]
+        .into_iter()
+        .map(|relation| PolicyOverride {
+            relation: OntologyRowId::new(relation),
+            source: PolicySource::Human,
+            distribution: Posterior::new([0.25, 0.5, 0.25])
+                .expect("the fixture distribution sums to one"),
+        })
+        .collect();
+
+    let published = fit(&dataset, &HashEmbedder, &config, &classifier, None, &root)
         .await
         .expect("the fit should publish");
 
@@ -812,12 +877,6 @@ async fn the_edge_artifacts_publish_and_read_back() {
     assert_eq!(adjacency.rows(), NODES as u64);
     assert_eq!(adjacency.edges(), 4);
 
-    let edge_rows = |list: Option<crate::salt::adjacency::EdgeList<'_>>| -> Vec<u64> {
-        list.expect("the queried node row is in domain")
-            .iter()
-            .map(|edge| edge.get())
-            .collect()
-    };
     assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(0))), [0, 3]);
     assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(1))), [0, 3]);
     assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(3))), [2]);
@@ -828,41 +887,32 @@ async fn the_edge_artifacts_publish_and_read_back() {
         "an untouched node holds empty runs",
     );
 
-    // The attraction index groups the retained instances by relation:
-    // three readings under relation 2, one under relation 3 (the
-    // self-loop reading carries no force and is dropped).
+    // The delivery ranking runs on incident degree by default: node
+    // row 3 (three incident slots) outranks every other row, so it
+    // holds base rank 0 regardless of the seed.
+    let position_of_rank = ArrayFile::open(published.path().join("position-of-rank.arr"))
+        .expect("the rank column should map");
+    let row_of_position = ArrayFile::open(published.path().join("row-of-position.arr"))
+        .expect("the gather column should map");
+    let first_position = position_of_rank
+        .u32_elements()
+        .expect("the rank column holds u32 positions")[0];
+    assert_eq!(
+        row_of_position
+            .u32_elements()
+            .expect("the gather column holds u32 rows")[first_position as usize],
+        3,
+        "the highest-degree row delivers first",
+    );
+
+    // The attraction index groups the retained instances by relation,
+    // asserted against the fixture readings by hand.
     let attraction = MappedAttraction::new(
         AttractionFile::open(published.path().join("attraction.atrc"))
             .expect("the attraction index should map"),
     )
     .expect("the attraction index should validate");
-    assert_eq!(attraction.rows(), NODES as u64);
-    assert_eq!(attraction.group_count(), 2);
-    assert_eq!(attraction.edge_count(), 4);
-
-    let employment = attraction.group(0);
-    assert_eq!(employment.relation(), OntologyRowId::new(2));
-    assert_eq!(employment.len(), 3);
-    let membership = attraction.group(1);
-    assert_eq!(membership.relation(), OntologyRowId::new(3));
-    assert_eq!(membership.len(), 1);
-
-    // Confidence values and provenance survive the drain, the spool,
-    // and the published index: edge row 0's lone link score combines
-    // with two neutral factors.
-    let scored = employment
-        .edges()
-        .find(|edge| edge.edge.get() == 0)
-        .expect("edge row 0 is retained under relation 2");
-    assert_eq!(scored.confidence.value().to_bits(), 0.5_f32.to_bits());
-    assert!(scored.confidence.scored().link());
-    assert!(!scored.confidence.scored().source());
-    assert!(!scored.confidence.scored().target());
-
-    let neutral = membership.edge(0);
-    assert_eq!(neutral.edge.get(), 1);
-    assert_eq!(neutral.confidence.value().to_bits(), 1.0_f32.to_bits());
-    assert!(!neutral.confidence.scored().link());
+    assert_attraction_reads_back(&attraction);
 
     // The protection index and the quadtree publish beside them.
     let _protection = MappedProtection::new(
@@ -873,6 +923,17 @@ async fn the_edge_artifacts_publish_and_read_back() {
     let _quad =
         QuadFile::open(published.path().join("quadtree.quad")).expect("the quadtree should map");
 
+    // The ontology identities translate type rows to source ids and
+    // back: the fixture's type ids are its row numbers.
+    let ontology_ids = MappedIdentityTable::<U64<LE>>::new(
+        IdentityFile::open(published.path().join("ontology-identities.idnt"))
+            .expect("the ontology identities should map"),
+    )
+    .expect("the ontology identities should validate");
+    assert_eq!(ontology_ids.len(), 4);
+    assert_eq!(ontology_ids.id(2), Some(U64::new(2)));
+    assert_eq!(ontology_ids.row_of(U64::new(3)), Some(3));
+
     // The metadata document accounts for every reading: four retained
     // instances, nothing pruned at the zero threshold, one
     // self-reference dropped.
@@ -882,12 +943,16 @@ async fn the_edge_artifacts_publish_and_read_back() {
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_eq!(repository.metadata.snapshot.edges, 4);
     assert_eq!(repository.metadata.evidence.policy.relations, 2);
+    assert_eq!(repository.metadata.evidence.policy.overridden, 2);
 
+    // Force masses by hand: each retained instance weighs c * s+ with
+    // s+ = 0.5, so 0.5 * 0.5 + three unscored 1.0 * 0.5 = 1.75.
     let relations = &repository.metadata.evidence.relations;
     assert_eq!(relations.retained_edges, 4);
     assert_eq!(relations.pruned_edges, 0);
     assert_eq!(relations.self_references, 1);
-    assert!(relations.retained_mass > 0.0);
+    assert_eq!(relations.retained_mass.to_bits(), 1.75_f64.to_bits());
+    assert_eq!(relations.pruned_mass.to_bits(), 0.0_f64.to_bits());
 
     let quad = &repository.metadata.evidence.quad;
     assert!(quad.nodes >= 1);

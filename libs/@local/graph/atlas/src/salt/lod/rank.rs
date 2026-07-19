@@ -77,10 +77,13 @@ impl Ranking {
     /// priority, then the seeded identity hash ascending.
     ///
     /// Scores compare under IEEE 754 `totalOrder`, so the ranking is
-    /// total and deterministic for every bit pattern; the dataset's
-    /// contract keeps scores finite, and nothing here re-checks it.
-    /// Equal seeds give equal rankings; the seed is recorded in the
-    /// generation's metadata.
+    /// total and deterministic for every bit pattern; both score
+    /// columns arrive finite - importance by the
+    /// [`ImportanceSignal`](crate::salt::importance::ImportanceSignal)
+    /// contract, priority as a constant column until it grows a
+    /// source - and nothing here re-checks them. Equal seeds give
+    /// equal rankings; the seed is recorded in the generation's
+    /// metadata.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the inputs' constructor admits only row counts that fit `u32`"

@@ -14,7 +14,7 @@ use crate::{
     morton::Depth,
     salt::{
         BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef,
-        LodEvidence, NormSpotCheck, QuadEvidence, RecallSpotCheck,
+        LodEvidence, NormSpotCheck, QuadEvidence, RankingConfig, RecallSpotCheck,
     },
 };
 
@@ -47,14 +47,27 @@ pub(crate) enum Placement {
 
 /// Where the generation's rank inputs came from.
 ///
-/// The identity keeps a tiebreak-only ordering distinguishable from a
-/// configured one wherever the ranking is consumed.
+/// The identity keeps the signals distinguishable wherever the ranking
+/// is consumed; it mirrors the configured [`RankingConfig`], recording
+/// what actually ran.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum RankingOrigin {
     /// Constant importance and priority columns: the delivery order
     /// reduces to the seeded identity tiebreak.
     ConstantColumns,
+    /// Incident-degree importance over the adjacency artifact: hub
+    /// entities deliver first, the priority column stays constant.
+    IncidentDegree,
+}
+
+impl From<RankingConfig> for RankingOrigin {
+    fn from(config: RankingConfig) -> Self {
+        match config {
+            RankingConfig::ConstantColumns => Self::ConstantColumns,
+            RankingConfig::IncidentDegree => Self::IncidentDegree,
+        }
+    }
 }
 
 /// The frozen view of the graph one fit ran over.

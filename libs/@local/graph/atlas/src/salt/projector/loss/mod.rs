@@ -14,9 +14,12 @@
 //! Every term takes a premultiplied `scale`: the term's loss
 //! coefficient times any estimator normalization (the semantic term's
 //! total-weight-over-batch-size factor, the relation term's lens
-//! factor). Terms are index-space agnostic: pairs and edges must index
-//! into the coordinate slice they are evaluated against, whether that
-//! is a corpus or a re-indexed minibatch.
+//! factor). The terms speak the batch-local row domain: pairs, edges,
+//! and anchors carry [`BatchRowId`] positions into the coordinate
+//! slice they are evaluated against, a key deliberately distinct from
+//! the corpus's `NodeRowId` - the assembly that re-indexes corpus
+//! draws into a batch owns the conversion, and the two domains cannot
+//! be mixed by type.
 //!
 //! Pairs at exactly zero distance contribute their value but no
 //! gradient: a coincident pair has no direction to move along, and
@@ -30,12 +33,119 @@ use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 
 pub(crate) use self::energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy};
 use crate::{
+    dataset::OntologyRowId,
     math::Vec2,
-    salt::{
-        projector::{sample::SampledRelationEdges, scale::LocalScales},
-        relation::protection::NodePair,
-    },
+    salt::{projector::scale::LocalScales, relation::attraction::AttractionWeights},
 };
+
+/// A batch-local row position.
+///
+/// Batch assembly re-indexes one step's drawn corpus rows into a
+/// dense local domain; this key names positions in that domain and
+/// nothing else. It is deliberately distinct from the corpus's
+/// `NodeRowId`: a corpus row and its batch-local position are
+/// different keys, and confusing them is the wiring defect this type
+/// exists to prevent. The `u32` width is a representation bound: a
+/// batch indexes one step's participating rows.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct BatchRowId(u32);
+
+impl BatchRowId {
+    /// Creates a batch-local row key from its position.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(position: u32) -> Self {
+        Self(position)
+    }
+
+    /// Returns the position's numeric value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn get(self) -> u32 {
+        self.0
+    }
+
+    /// Returns the position as a slice index.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
+/// An unordered pair of batch-local rows in canonical order.
+///
+/// The two positions are stored with [`first`](Self::first) at most
+/// [`second`](Self::second), so a pair equals itself however its rows
+/// arrive - the batch-domain twin of the corpus's `NodePair`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct BatchPair {
+    first: BatchRowId,
+    second: BatchRowId,
+}
+
+impl BatchPair {
+    /// Creates the canonical pair of two positions, in either order.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new(one: BatchRowId, other: BatchRowId) -> Self {
+        if one.get() <= other.get() {
+            Self {
+                first: one,
+                second: other,
+            }
+        } else {
+            Self {
+                first: other,
+                second: one,
+            }
+        }
+    }
+
+    /// Returns the smaller position.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn first(self) -> BatchRowId {
+        self.first
+    }
+
+    /// Returns the larger position.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn second(self) -> BatchRowId {
+        self.second
+    }
+}
+
+/// One relation type's drawn instances, re-indexed to the batch.
+///
+/// The batch-domain twin of the sampler's corpus draw, slimmed to what
+/// the relation term consumes: endpoints as batch positions,
+/// per-instance weight factors as plain values, and the group's shared
+/// factors inline rather than borrowed from the attraction index.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct BatchRelationEdges {
+    /// The relation type the instances share.
+    pub relation: OntologyRowId,
+    /// The relation's shared weight factors.
+    pub weights: AttractionWeights,
+    /// The drawn instances, in group storage order.
+    pub edges: Vec<BatchRelationEdge>,
+}
+
+/// One relation instance with batch-local endpoints.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct BatchRelationEdge {
+    /// The instance's source position.
+    pub source: BatchRowId,
+    /// The instance's target position.
+    pub target: BatchRowId,
+    /// The effective confidence `c`, in `(0, 1]`; validated where the
+    /// corpus edge was scored.
+    pub confidence: f32,
+    /// The degree normalization `nu`, in `(0, 1]`.
+    pub degree_normalization: f32,
+}
 
 /// A per-node coordinate gradient accumulator.
 ///
@@ -93,7 +203,7 @@ impl GradientField {
 /// mismatch is a wiring defect.
 pub(crate) fn attraction_term(
     coordinates: &[Vec2],
-    pairs: impl IntoIterator<Item = (NodePair, f32)>,
+    pairs: impl IntoIterator<Item = (BatchPair, f32)>,
     energy: AffinityEnergy,
     scale: f32,
     field: &mut GradientField,
@@ -117,7 +227,7 @@ pub(crate) fn attraction_term(
 /// mismatch is a wiring defect.
 pub(crate) fn repulsion_term(
     coordinates: &[Vec2],
-    pairs: impl IntoIterator<Item = (NodePair, f32)>,
+    pairs: impl IntoIterator<Item = (BatchPair, f32)>,
     energy: AffinityEnergy,
     scale: f32,
     field: &mut GradientField,
@@ -131,7 +241,7 @@ pub(crate) fn repulsion_term(
 /// squared distance.
 fn affinity_term(
     coordinates: &[Vec2],
-    pairs: impl IntoIterator<Item = (NodePair, f32)>,
+    pairs: impl IntoIterator<Item = (BatchPair, f32)>,
     scale: f32,
     field: &mut GradientField,
     evaluate: impl Fn(f32) -> (f32, f32),
@@ -180,7 +290,7 @@ fn affinity_term(
 pub(crate) fn relation_term(
     coordinates: &[Vec2],
     scales: &LocalScales,
-    batch: &[SampledRelationEdges<'_>],
+    batch: &[BatchRelationEdges],
     energy: RelationEnergy,
     scale: f32,
     field: &mut GradientField,
@@ -197,7 +307,7 @@ pub(crate) fn relation_term(
     // Accumulated in double precision, products included.
     let mut total = 0.0_f64;
     for sampled in batch {
-        let weights = sampled.group.weights();
+        let weights = sampled.weights;
         for edge in &sampled.edges {
             let (source, target) = (edge.source.usize(), edge.target.usize());
             let difference = coordinates[source] - coordinates[target];
@@ -208,8 +318,7 @@ pub(crate) fn relation_term(
                 weights.coincident,
                 weights.proximal,
             );
-            let factor =
-                scale * edge.confidence.value() * edge.degree_normalization * weights.strength;
+            let factor = scale * edge.confidence * edge.degree_normalization * weights.strength;
 
             total = f64::from(factor).mul_add(f64::from(value), total);
             if distance <= 0.0 {
@@ -231,15 +340,15 @@ pub(crate) fn relation_term(
     total
 }
 
-/// One anchored node for the support term.
+/// One anchored node for the support term, in the batch-local domain.
 ///
-/// `row` indexes the coordinate tensor the term evaluates against;
-/// `target` is the prior or skeleton coordinate the node is held to,
-/// `radius` the local scale the residual is normalized by, and `weight`
-/// the anchor's mass in the sum.
+/// `row` positions the anchor in the coordinate tensor the term
+/// evaluates against; `target` is the prior or skeleton coordinate the
+/// node is held to, `radius` the local scale the residual is
+/// normalized by, and `weight` the anchor's mass in the sum.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct SupportAnchor {
-    pub row: usize,
+pub(crate) struct BatchAnchor {
+    pub row: BatchRowId,
     pub target: Vec2,
     pub radius: f32,
     pub weight: f32,
@@ -289,7 +398,7 @@ impl<B: Backend> SupportTargets<B> {
     /// non-finite target, a non-finite or negative radius, or a
     /// non-finite or negative weight.
     #[must_use]
-    pub(crate) fn new(anchors: &[SupportAnchor], device: &B::Device) -> Option<Self> {
+    pub(crate) fn new(anchors: &[BatchAnchor], device: &B::Device) -> Option<Self> {
         if anchors.is_empty() {
             return None;
         }
@@ -307,7 +416,7 @@ impl<B: Backend> SupportTargets<B> {
         let count = anchors.len();
         let rows = anchors
             .iter()
-            .map(|anchor| i64::try_from(anchor.row).expect("anchor rows fit the index encoding"))
+            .map(|anchor| i64::from(anchor.row.get()))
             .collect::<Vec<_>>();
         let targets = anchors
             .iter()

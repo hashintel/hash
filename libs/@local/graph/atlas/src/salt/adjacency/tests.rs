@@ -97,6 +97,43 @@ fn the_build_is_independent_of_the_endpoint_values_within_a_row() {
 }
 
 #[test]
+fn contains_agrees_with_a_linear_scan() {
+    let dir = scratch("contains");
+    let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
+    let mapped = mapped(&dir, "contains.adjc", &adjacency);
+
+    // Every (node, direction, edge) answer matches the linear scan
+    // over the same run, misses between and beyond hits included.
+    for node in 0..ROWS as u64 {
+        let node = NodeRowId::new(node);
+        for list in [
+            mapped.outgoing(node).expect("the node row is in domain"),
+            mapped.incoming(node).expect("the node row is in domain"),
+        ] {
+            for edge in 0..=ENDPOINTS.len() as u64 {
+                let edge = EdgeRowId::new(edge);
+                assert_eq!(
+                    list.contains(edge),
+                    list.iter().any(|held| held.get() == edge.get()),
+                    "node {node:?}, edge {edge:?}",
+                );
+            }
+        }
+    }
+
+    // The gapped outgoing run of node 0 answers both boundaries: it
+    // holds edges 0 and 3 and misses the rows between.
+    let outgoing = mapped
+        .outgoing(NodeRowId::new(0))
+        .expect("node row 0 is in domain");
+    assert!(outgoing.contains(EdgeRowId::new(0)));
+    assert!(!outgoing.contains(EdgeRowId::new(1)));
+    assert!(!outgoing.contains(EdgeRowId::new(2)));
+    assert!(outgoing.contains(EdgeRowId::new(3)));
+    assert!(!outgoing.contains(EdgeRowId::new(4)));
+}
+
+#[test]
 fn an_edgeless_corpus_builds_empty_lists() {
     let dir = scratch("edgeless");
     let adjacency = Adjacency::build(2, &[]);

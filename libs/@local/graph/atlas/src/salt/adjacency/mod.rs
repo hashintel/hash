@@ -363,4 +363,27 @@ impl EdgeList<'_> {
     pub(crate) fn iter(self) -> impl ExactSizeIterator<Item = EdgeRowId> {
         self.values.iter().map(EdgeRowId::new)
     }
+
+    /// Returns whether the list holds `edge`, by binary search.
+    ///
+    /// Correct over [`outgoing`](MappedAdjacency::outgoing) and
+    /// [`incoming`](MappedAdjacency::incoming) lists, whose runs are
+    /// strictly ascending. An [`incident`](MappedAdjacency::incident)
+    /// list concatenates two ascending runs and is not globally
+    /// sorted; query its directions separately.
+    #[must_use]
+    pub(crate) const fn contains(&self, edge: EdgeRowId) -> bool {
+        let mut low = 0;
+        let mut high = self.len();
+        while low < high {
+            let middle = usize::midpoint(low, high);
+            if self.values.get(middle) < edge.get() {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
+        }
+
+        low < self.len() && self.values.get(low) == edge.get()
+    }
 }
