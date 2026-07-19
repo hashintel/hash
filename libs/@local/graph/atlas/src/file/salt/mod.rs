@@ -10,7 +10,7 @@
 use self::metadata::SaltMetadata;
 use super::repository::{RepositoryFile, RepositoryVersion};
 
-mod metadata;
+pub(crate) mod metadata;
 
 #[cfg(test)]
 mod tests;
@@ -34,8 +34,9 @@ pub(crate) struct SaltFiles {
     /// The landmark skeleton: selected rows, assignment, and layout
     /// coordinates in one combined file.
     pub landmarks: RepositoryFile,
-    /// The symmetric no-repel evidence matrix, a sparse matrix file.
-    pub protection: RepositoryFile,
+    /// The canonical `f32[N, 2]` coordinates, row-aligned with the node
+    /// stream; an array file.
+    pub coordinates: RepositoryFile,
 }
 
 impl SaltFiles {
@@ -44,7 +45,7 @@ impl SaltFiles {
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
     #[must_use]
-    pub(crate) fn files(&self) -> [&RepositoryFile; 7] {
+    pub(crate) const fn files(&self) -> [&RepositoryFile; 7] {
         let Self {
             representations,
             card_embeddings,
@@ -52,7 +53,7 @@ impl SaltFiles {
             knn,
             semantic,
             landmarks,
-            protection,
+            coordinates,
         } = self;
 
         [
@@ -62,7 +63,7 @@ impl SaltFiles {
             knn,
             semantic,
             landmarks,
-            protection,
+            coordinates,
         ]
     }
 }

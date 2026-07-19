@@ -392,3 +392,58 @@ def test_cli_exports_verified_fit_inputs(
     assert f"wrote {output}" in stdout
     assert f"sha256 {'ab' * 32}" in stdout
     assert "relations 17" in stdout
+
+
+def test_cli_exports_reviewed_verdicts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    resolutions = tmp_path / "resolutions"
+    resolutions.mkdir()
+    soft_labels = tmp_path / "soft-labels.parquet"
+    soft_labels.touch()
+    cards = tmp_path / "cards"
+    cards.mkdir()
+    output = tmp_path / "reviewed-verdicts.json"
+    captured: dict[str, object] = {}
+
+    def export(**arguments: object) -> SimpleNamespace:
+        captured.update(arguments)
+        return SimpleNamespace(
+            path=output,
+            content_hash="cd" * 32,
+            coincident_count=1,
+            proximal_count=2,
+            overlay_count=3,
+            excluded_count=4,
+        )
+
+    monkeypatch.setattr(
+        "atlas_tools.relation.evaluation.application.api.export_reviewed_verdicts",
+        export,
+    )
+    cli.main(
+        [
+            "export-reviewed-verdicts",
+            str(resolutions),
+            str(soft_labels),
+            str(cards),
+            "--out",
+            str(output),
+        ]
+    )
+
+    assert captured == {
+        "resolutions_directory": resolutions,
+        "soft_labels_path": soft_labels,
+        "cards_directory": cards,
+        "output_path": output,
+    }
+    stdout = capsys.readouterr().out
+    assert f"wrote {output}" in stdout
+    assert f"sha256 {'cd' * 32}" in stdout
+    assert "coincident 1" in stdout
+    assert "proximal 2" in stdout
+    assert "overlay 3" in stdout
+    assert "excluded 4 (omitted)" in stdout

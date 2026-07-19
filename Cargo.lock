@@ -1589,6 +1589,7 @@ dependencies = [
  "burn-store",
  "burn-tch",
  "burn-train",
+ "burn-vision",
  "burn-wgpu",
 ]
 
@@ -2086,6 +2087,29 @@ dependencies = [
  "tracing-appender",
  "tracing-core",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "burn-vision"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38b5a3e9096977462cd22bf713087f9777e427f7693508871f86f5b1e8347a70"
+dependencies = [
+ "aligned-vec 0.6.4",
+ "bon",
+ "burn-cubecl",
+ "burn-ir",
+ "burn-tensor",
+ "bytemuck",
+ "cubecl",
+ "derive-new",
+ "half",
+ "image",
+ "macerator",
+ "ndarray 0.17.2",
+ "num-traits",
+ "paste",
+ "serde",
 ]
 
 [[package]]
@@ -3361,6 +3385,7 @@ dependencies = [
  "cfg_aliases",
  "cubecl-common",
  "cubecl-core",
+ "cubecl-cpp",
  "cubecl-ir",
  "cubecl-runtime",
  "derive-new",
@@ -5804,6 +5829,7 @@ dependencies = [
  "tiktoken-rs",
  "tokio",
  "tokio-postgres",
+ "tracing",
  "type-system",
  "unicode-segmentation",
  "unidecode",

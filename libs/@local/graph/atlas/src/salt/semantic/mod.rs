@@ -46,7 +46,7 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 /// Smooth-kNN calibration settings.
 ///
 /// The defaults are the established UMAP fuzzy-set kernel constants.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SmoothingOptions {
     /// Absolute tolerance on the membership-sum equation at which the
     /// bisection stops early. Defaults to `1e-5`.
@@ -58,6 +58,12 @@ pub(crate) struct SmoothingOptions {
     /// Bisection iterations per row when the tolerance is not met
     /// earlier. Defaults to 64.
     pub bisection_iterations: usize = 64,
+}
+
+const impl Default for SmoothingOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 /// A matrix violated a [`SemanticGraph`] invariant.

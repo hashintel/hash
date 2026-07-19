@@ -21,7 +21,7 @@ rand           = { workspace = true, public = true }
 rand_core      = { workspace = true, public = true }
 tokio          = { workspace = true, features = ["macros", "rt-multi-thread", "sync"], public = true }
 tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
-uuid           = { workspace = true, public = true }
+uuid           = { workspace = true, public = true, features = ["std", "v7"] }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true }
@@ -38,15 +38,19 @@ argmin = { version = "0.11.0", default-features = false }
 # CPU backend every test runs on; `autodiff` is the decorator the
 # training loop wraps around whichever backend the benchmark selects
 # (a GPU feature would be added beside `ndarray`, not instead of it).
-burn                           = { version = "0.21.0", features = ["autodiff", "ndarray"] }
-camino.workspace               = true
-futures.workspace              = true
-hannoy                         = "0.1.7-nested-rtxns"
-heed                           = "0.22.1"
-memchr.workspace               = true
-memmap2                        = "0.9"
-pin-project-lite.workspace     = true
-rand_core_06                   = { version = "0.6", package = "rand_core" }
+burn                       = { version = "0.21.0", features = ["autodiff", "ndarray"] }
+camino.workspace           = true
+futures.workspace          = true
+hannoy                     = "0.1.7-nested-rtxns"
+heed                       = "0.22.1"
+memchr.workspace           = true
+memmap2                    = "0.9"
+pin-project-lite.workspace = true
+rand_core_06               = { version = "0.6", package = "rand_core" }
+# rand_xoshiro: the pipeline's stage generator. The algorithm is pinned
+# by name because a recorded fit seed re-derives the deterministic
+# stages only while the generator behind the stage seeds stays fixed.
+rand_xoshiro                   = { workspace = true }
 rayon                          = { workspace = true }
 regex                          = { workspace = true }
 serde                          = { workspace = true, features = ["derive"] }
@@ -57,6 +61,7 @@ sleef                          = "0.3"
 smallvec.workspace             = true
 sprs                           = "0.11.4"
 tiktoken-rs                    = "0.12.0"
+tracing                        = { workspace = true }
 unicode-segmentation.workspace = true
 unidecode                      = "0.3.0"
 zerocopy                       = { version = "0.8.54", features = ["derive"] }
@@ -65,12 +70,31 @@ zerocopy                       = { version = "0.8.54", features = ["derive"] }
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 proptest.workspace        = true
-rand_xoshiro              = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[features]
+# Exposes `hash_graph_atlas::bench`, the measurement seams the
+# `[[bench]]` targets consume; not API for consumers of the crate.
+bench = []
+# Adds the Metal-backed flavor to the projector measurement seam
+# (burn's CubeCL wgpu runtime compiling to MSL). Compiles anywhere;
+# running it requires an Apple GPU, so its tests are ignored by
+# default.
+bench-gpu = ["bench", "burn/metal"]
 
 [[bench]]
 name    = "math_kernels"
 harness = false
+
+[[bench]]
+name              = "projector_backend"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "relation_build"
+harness           = false
+required-features = ["bench"]
 
 [lints]
 workspace = true

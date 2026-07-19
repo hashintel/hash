@@ -36,6 +36,7 @@
 
 use core::fmt;
 
+use rayon::prelude::*;
 use sprs::{CsMatI, CsMatViewI};
 
 use crate::{
@@ -351,6 +352,9 @@ impl fmt::Display for ProtectionValidationError {
 impl core::error::Error for ProtectionValidationError {}
 
 /// Checks every index invariant over a borrowed matrix.
+///
+/// Rows check in parallel; the reported violation is the first in row
+/// order regardless of scheduling, so failures are deterministic.
 // The symmetry check compares the two directions bit-exactly (derived
 // PartialEq over the f32 components): both are written from one
 // aggregated value, so bit equality is the constructed contract.
@@ -364,31 +368,46 @@ pub(super) fn validate(matrix: ProtectionMatrixView<'_>) -> Result<(), Protectio
         return Err(ProtectionValidationError::NotSquare { rows, columns });
     }
 
-    for (row, stored) in matrix.outer_iterator().enumerate() {
-        for (column, &evidence) in stored.iter() {
-            if column == row {
-                return Err(ProtectionValidationError::SelfEdge { row });
-            }
+    (0..rows)
+        .into_par_iter()
+        .find_map_first(|row| validate_row(matrix, row).err())
+        .map_or(Ok(()), Err)
+}
 
-            let ordered = evidence.discounted >= 0.0
-                && evidence.undiscounted >= 0.0
-                && evidence.undiscounted.is_finite();
-            if !ordered {
-                return Err(ProtectionValidationError::EvidenceOutOfRange { row, column });
-            }
-            if evidence.discounted > evidence.undiscounted {
-                return Err(ProtectionValidationError::EvidenceOrdering { row, column });
-            }
+/// Checks one row's entries against the index invariants.
+fn validate_row(
+    matrix: ProtectionMatrixView<'_>,
+    row: usize,
+) -> Result<(), ProtectionValidationError> {
+    let stored = matrix
+        .outer_view(row)
+        .expect("the row index iterates the validated square dimension");
 
-            let reverse = matrix
-                .outer_view(column)
-                .and_then(|entries| entries.get(row).copied());
-            let Some(reverse) = reverse else {
-                return Err(ProtectionValidationError::AsymmetricSupport { row, column });
-            };
-            if reverse != evidence {
-                return Err(ProtectionValidationError::AsymmetricEvidence { row, column });
-            }
+    for (column, &evidence) in stored.iter() {
+        if column == row {
+            return Err(ProtectionValidationError::SelfEdge { row });
+        }
+
+        let ordered = evidence.discounted >= 0.0
+            && evidence.undiscounted >= 0.0
+            && evidence.undiscounted.is_finite();
+        if !ordered {
+            return Err(ProtectionValidationError::EvidenceOutOfRange { row, column });
+        }
+
+        if evidence.discounted > evidence.undiscounted {
+            return Err(ProtectionValidationError::EvidenceOrdering { row, column });
+        }
+
+        let reverse = matrix
+            .outer_view(column)
+            .and_then(|entries| entries.get(row).copied());
+        let Some(reverse) = reverse else {
+            return Err(ProtectionValidationError::AsymmetricSupport { row, column });
+        };
+
+        if reverse != evidence {
+            return Err(ProtectionValidationError::AsymmetricEvidence { row, column });
         }
     }
 

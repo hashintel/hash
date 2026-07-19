@@ -110,7 +110,7 @@ pub(crate) trait CardEmbedder {
 /// of distinct card texts, and rows beyond that count are duplicates
 /// resolved without provider or prior-table work. Destined for the
 /// generation metadata document.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct CardEmbeddingStats {
     /// Unique texts copied from the prior generation's table.
     pub reused: usize,

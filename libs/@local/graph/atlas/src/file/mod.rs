@@ -20,6 +20,8 @@
 //! - [`repository`] names published files and binds each to a strong hash.
 //! - [`salt`] is the SALT generation repository: the files one published generation consists of and
 //!   the metadata describing them.
+//! - [`generation`] is the directory layer around them: staging, the atomic publish, and the
+//!   current-generation pointer.
 //!
 //! Integrity is layered by cost. Array headers validate by parsing (the
 //! magic and version are pinned, so foreign bytes fail to parse), the one
@@ -156,9 +158,10 @@
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
 pub(crate) mod array;
+pub(crate) mod generation;
 pub(crate) mod landmark;
 mod morton;
 mod quad;
-mod repository;
-mod salt;
+pub(crate) mod repository;
+pub(crate) mod salt;
 pub(crate) mod sprs;

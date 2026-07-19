@@ -13,6 +13,7 @@
 //! - [`random`] - unbiased sampling and statistical acceptance bounds.
 //! - [`bitset`] - fixed-capacity dense bit sets over row domains.
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
+//! - [`morton`] - Z-order keys: interleaved axes, grid cells, and contiguous key ranges.
 //! - `file` - the on-disk artifact formats: plain files in a directory, described by metadata
 //!   beside them.
 //! - `dataset` - the [`Dataset`](dataset::Dataset) trait: the data one fit runs over, wherever it
@@ -46,7 +47,8 @@
     portable_simd,
     variant_count,
     const_closures,
-    const_array
+    const_array,
+    const_default
 )]
 #![expect(
     dead_code,
@@ -56,10 +58,13 @@
 )]
 extern crate alloc;
 
+#[cfg(feature = "bench")]
+pub mod bench;
 pub mod bitset;
 pub(crate) mod dataset;
 mod file;
 pub mod integrity;
 pub mod math;
+pub mod morton;
 pub mod random;
 mod salt;

@@ -33,7 +33,8 @@ pub(super) const EMISSION_CHUNK: usize = 1 << 14;
 /// Builds the attraction and protection indexes together.
 ///
 /// See [`RelationIndexes::build`] for the contract; this is its
-/// implementation.
+/// implementation, composed from the named stages below so each stage
+/// stays measurable on its own.
 pub(super) fn build(
     rows: usize,
     policies: Policies<'_>,
@@ -44,44 +45,13 @@ pub(super) fn build(
     if u32::try_from(rows).is_err() {
         return Err(RelationIndexError::TooManyRows { rows });
     }
-    // Self-references sort behind every proper instance, so one split
-    // drops them without moving memory. The remainder of the key is
-    // total under the edge stream's uniqueness contract, making the
-    // unstable parallel sort deterministic.
-    instances.par_sort_unstable_by_key(|instance| {
-        (
-            instance.source == instance.target,
-            instance.relation.get(),
-            instance.source.get(),
-            instance.target.get(),
-            instance.edge.get(),
-        )
-    });
 
-    let proper = instances.partition_point(|instance| instance.source != instance.target);
+    let proper = sort_by_group(instances);
     let self_references = instances.len() - proper;
     let proper = &mut instances[..proper];
 
-    // Every group's range and policy resolve before any parallel work:
-    // the emission pass is infallible, and the first uncovered relation
-    // in ascending order is the deterministic error.
-    let mut group_ranges: Vec<(Range<usize>, &RelationPolicy)> = Vec::new();
-    let mut start = 0;
-    while start < proper.len() {
-        let relation = proper[start].relation;
-        let length = proper[start..].partition_point(|instance| instance.relation == relation);
-        let Some(policy) = policies.get(relation) else {
-            return Err(RelationIndexError::MissingPolicy { relation });
-        };
-        group_ranges.push((start..start + length, policy));
-        start += length;
-    }
-
-    let grouped = &*proper;
-    let built: Vec<(AttractionGroup, GroupEvidence)> = group_ranges
-        .into_par_iter()
-        .map(|(range, policy)| build_group(&grouped[range], policy, attraction))
-        .collect();
+    let group_ranges = resolve_groups(proper, policies)?;
+    let built = build_groups(proper, group_ranges, attraction, EMISSION_CHUNK);
 
     let mut evidence = BuildEvidence {
         pruning_threshold: attraction.pruning_threshold(),
@@ -104,12 +74,7 @@ pub(super) fn build(
         }
     }
 
-    // The same instances reorder in place by endpoint pair for the
-    // protection aggregation. Instances of one pair may arrive in any
-    // order behind the pair key; the per-component maximum is
-    // order-independent, so the result is still a function of the set.
-    proper
-        .par_sort_unstable_by_key(|instance| NodePair::new(instance.source, instance.target).key());
+    sort_by_pair(proper);
     let protection = assemble_protection(rows, proper, policies);
 
     Ok(RelationIndexes {
@@ -117,6 +82,82 @@ pub(super) fn build(
         protection,
         evidence,
     })
+}
+
+/// Sorts instances by relation group and returns the proper count.
+///
+/// Self-references sort behind every proper instance, so the returned
+/// partition point drops them without moving memory. The remainder of
+/// the key is total under the edge stream's uniqueness contract, making
+/// the unstable parallel sort deterministic.
+pub(super) fn sort_by_group(instances: &mut [RelationInstance]) -> usize {
+    instances.par_sort_unstable_by_key(|instance| {
+        (
+            instance.source == instance.target,
+            instance.relation.get(),
+            instance.source.get(),
+            instance.target.get(),
+            instance.edge.get(),
+        )
+    });
+
+    instances.partition_point(|instance| instance.source != instance.target)
+}
+
+/// Resolves every group's range and policy over group-sorted instances.
+///
+/// The resolution precedes any parallel work: the emission pass is
+/// infallible, and the first uncovered relation in ascending order is
+/// the deterministic error.
+///
+/// # Errors
+///
+/// Returns an error when an instance references a relation the policy
+/// table does not cover.
+pub(super) fn resolve_groups<'policy>(
+    proper: &[RelationInstance],
+    policies: Policies<'policy>,
+) -> Result<Vec<(Range<usize>, &'policy RelationPolicy)>, RelationIndexError> {
+    let mut group_ranges: Vec<(Range<usize>, &RelationPolicy)> = Vec::new();
+    let mut start = 0;
+    while start < proper.len() {
+        let relation = proper[start].relation;
+        let length = proper[start..].partition_point(|instance| instance.relation == relation);
+        let Some(policy) = policies.get(relation) else {
+            return Err(RelationIndexError::MissingPolicy { relation });
+        };
+        group_ranges.push((start..start + length, policy));
+        start += length;
+    }
+    Ok(group_ranges)
+}
+
+/// Builds every relation's attraction group over its resolved range.
+///
+/// `chunk` is the emission granularity; the index build passes
+/// [`EMISSION_CHUNK`], and the granularity claim on that constant is
+/// verified by benchmarking other values through this parameter.
+pub(super) fn build_groups(
+    proper: &[RelationInstance],
+    group_ranges: Vec<(Range<usize>, &RelationPolicy)>,
+    attraction: AttractionOptions,
+    chunk: usize,
+) -> Vec<(AttractionGroup, GroupEvidence)> {
+    group_ranges
+        .into_par_iter()
+        .map(|(range, policy)| build_group(&proper[range], policy, attraction, chunk))
+        .collect()
+}
+
+/// Reorders proper instances in place by canonical endpoint pair.
+///
+/// Instances of one pair may arrive in any order behind the pair key;
+/// the protection aggregation's per-component maximum is
+/// order-independent, so the assembled index is still a function of
+/// the set.
+pub(super) fn sort_by_pair(proper: &mut [RelationInstance]) {
+    proper
+        .par_sort_unstable_by_key(|instance| NodePair::new(instance.source, instance.target).key());
 }
 
 /// Returns whether two instances connect the same endpoint pair.
@@ -132,14 +173,17 @@ fn same_pair(one: &RelationInstance, other: &RelationInstance) -> bool {
 /// partners ascending without a sort: a row's smaller partners arrive
 /// while the row is some pair's second endpoint (ascending by the
 /// pairs' first components), its larger partners afterwards while it
-/// is the first (ascending by second components). Assembly is
-/// sequential; the whole-slice sorts dominate the pass.
+/// is the first (ascending by second components). The scatter is
+/// sequential and costs about as much as both whole-slice sorts
+/// together at live scale (measured at 4.4M instances); the index
+/// validation behind it re-checks the constructed invariants in
+/// parallel.
 ///
 /// # Panics
 ///
 /// Panics when an instance endpoint lies outside the `rows` domain,
 /// which the dataset row contract excludes.
-fn assemble_protection(
+pub(super) fn assemble_protection(
     rows: usize,
     proper: &[RelationInstance],
     policies: Policies<'_>,
@@ -209,7 +253,7 @@ fn pair_evidence(run: &[RelationInstance], policies: Policies<'_>) -> PairEviden
 
 /// Per-group pruning tallies beside the group they describe.
 #[derive(Default)]
-struct GroupEvidence {
+pub(super) struct GroupEvidence {
     pruned: usize,
     retained_mass: f64,
     pruned_mass: f64,
@@ -222,11 +266,12 @@ struct GroupEvidence {
 /// allocation: the source column inherits the run's order, the target
 /// column sorts here, and a row's degree is the sum of its two
 /// binary-searchable run lengths. Emission then parallelizes over
-/// [`EMISSION_CHUNK`]-sized chunks reading those shared columns.
+/// `chunk`-sized chunks reading those shared columns.
 fn build_group(
     instances: &[RelationInstance],
     policy: &RelationPolicy,
     attraction: AttractionOptions,
+    chunk: usize,
 ) -> (AttractionGroup, GroupEvidence) {
     let relation = instances[0].relation;
     let weights = AttractionWeights {
@@ -245,7 +290,7 @@ fn build_group(
     let (sources, targets) = (&*sources, &*targets);
 
     let mut yielded: Vec<(Vec<AttractionEdge>, GroupEvidence)> = instances
-        .par_chunks(EMISSION_CHUNK)
+        .par_chunks(chunk)
         .map(|chunk| emit_chunk(chunk, sources, targets, scale, attraction))
         .collect();
 

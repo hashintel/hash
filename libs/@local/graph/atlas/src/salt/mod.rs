@@ -7,17 +7,21 @@
 //! built; `PLAN.md` at the crate root tracks the order.
 
 #[cfg(test)]
-pub(crate) use self::prepare::norm::RepresentationDefect;
+pub(crate) use self::fit::prepare::norm::RepresentationDefect;
 pub(crate) use self::{
-    embedding::EmbedderFingerprint, knn::recall::RecallSpotCheck, prepare::norm::NormSpotCheck,
+    embedding::{CardEmbeddingStats, EmbedderFingerprint},
+    fit::prepare::norm::NormSpotCheck,
+    knn::recall::RecallSpotCheck,
 };
 
 // The previous pipeline generation is parked uncompiled at
 // `src/salt-BAK` as reference semantics for the port.
 mod embedding;
+mod fit;
 mod knn;
 mod landmark;
 mod policy;
-mod prepare;
-mod relation;
+// Crate-visible for the root `bench` facade's re-exports.
+pub(crate) mod projector;
+pub(crate) mod relation;
 mod semantic;

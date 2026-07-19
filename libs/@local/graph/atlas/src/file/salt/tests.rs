@@ -4,13 +4,16 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 
 use super::{
     SaltFiles, SaltRepository,
-    metadata::{Evidence, LandmarkEvidence, Reproducibility, SaltMetadata, Snapshot},
+    metadata::{Evidence, LandmarkEvidence, Placement, Reproducibility, SaltMetadata, Snapshot},
 };
 use crate::{
-    dataset::{NodeRowId, postgres::TemporalAxes},
+    dataset::{NodeRowId, TemporalAxes},
     file::repository::{FileName, RepositoryFile, RepositoryVersion},
     integrity::{Sha256, Sha256Digest, Update as _},
-    salt::{EmbedderFingerprint, NormSpotCheck, RecallSpotCheck, RepresentationDefect},
+    salt::{
+        CardEmbeddingStats, EmbedderFingerprint, NormSpotCheck, RecallSpotCheck,
+        RepresentationDefect,
+    },
 };
 
 fn digest(seed: &str) -> Sha256Digest {
@@ -21,7 +24,7 @@ fn digest(seed: &str) -> Sha256Digest {
 
 fn file(name: &str) -> RepositoryFile {
     RepositoryFile {
-        name: FileName::new(name).expect("the fixture name is a plain file name"),
+        name: FileName::new(name.to_owned()).expect("the fixture name is a plain file name"),
         hash: digest(name),
     }
 }
@@ -36,7 +39,7 @@ fn repository() -> SaltRepository {
             knn: file("knn.sprs"),
             semantic: file("semantic.sprs"),
             landmarks: file("landmarks.lndm"),
-            protection: file("protection.sprs"),
+            coordinates: file("coordinates.arr"),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -53,10 +56,15 @@ fn repository() -> SaltRepository {
                 ontology_types: 49,
             },
             reproducibility: Reproducibility {
-                master_seed: 0x5A17_F17D,
+                seed: 0x5A17_F17D,
                 embedder: EmbedderFingerprint::new(digest("embedder contract")),
             },
+            placement: Placement::LandmarkBaseline,
             evidence: Evidence {
+                cards: CardEmbeddingStats {
+                    reused: 30,
+                    embedded: 19,
+                },
                 norm: NormSpotCheck {
                     rows: 1_000_000,
                     sampled_rows: 688,

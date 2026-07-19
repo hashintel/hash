@@ -381,6 +381,41 @@ class ExportFitInputsCommand(BaseSettings):
         echo(f"relations {result.relation_count}")
 
 
+class ExportReviewedVerdictsCommand(BaseSettings):
+    """Export human-confirmed relation placement verdicts for the SALT trainer.
+
+    The verdicts are the corpus's target resolutions: human placement classes for
+    relations without placement-vote evidence. ``excluded`` resolutions are omitted
+    from the document and reported separately.
+    """
+
+    resolutions: CliPositionalArg[DirectoryPath]
+    soft_labels: CliPositionalArg[FilePath]
+    cards: CliPositionalArg[DirectoryPath]
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import export_reviewed_verdicts
+
+        try:
+            result = export_reviewed_verdicts(
+                resolutions_directory=self.resolutions,
+                soft_labels_path=self.soft_labels,
+                cards_directory=self.cards,
+                output_path=self.out,
+            )
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.path}")
+        echo(f"sha256 {result.content_hash}")
+        echo(f"coincident {result.coincident_count}")
+        echo(f"proximal {result.proximal_count}")
+        echo(f"overlay {result.overlay_count}")
+        echo(f"excluded {result.excluded_count} (omitted)")
+
+
 class ReportCommand(BaseSettings):
     """Render the policy evaluation report (machine JSON plus markdown)."""
 
@@ -502,6 +537,7 @@ class RelationCli(BaseModel):
     fit: CliSubCommand[FitCommand]
     export_classifier: CliSubCommand[ExportClassifierCommand]
     export_fit_inputs: CliSubCommand[ExportFitInputsCommand]
+    export_reviewed_verdicts: CliSubCommand[ExportReviewedVerdictsCommand]
     report: CliSubCommand[ReportCommand]
     analyze: CliSubCommand[AnalyzeCommand]
     visualize: CliSubCommand[VisualizeCommand]

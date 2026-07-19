@@ -17,6 +17,8 @@
 //! [`RepositoryVersion`] when you do; published files are immutable, the
 //! conventions around them are not, until they stabilize.
 
+use alloc::borrow::Cow;
+
 use crate::integrity::Sha256Digest;
 
 #[cfg(test)]
@@ -70,10 +72,12 @@ impl core::error::Error for UnknownRepositoryVersion {}
 /// Names contain no path separators or NUL bytes and never start with a
 /// dot: files of one repository live flat in its directory, and
 /// dot-prefixed entries are transient staging state, never published
-/// files.
+/// files. Pinned names borrow ([`pinned`](Self::pinned), validated at
+/// compile time in const position); names read from disk or documents
+/// own their text.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub(crate) struct FileName(String);
+pub(crate) struct FileName(Cow<'static, str>);
 
 impl FileName {
     /// Wraps a plain, visible file name.
@@ -81,17 +85,28 @@ impl FileName {
     /// Returns [`None`] when the name is empty, contains a path
     /// separator or NUL byte, or starts with a dot.
     #[must_use]
-    pub(crate) fn new(name: impl Into<String>) -> Option<Self> {
+    pub(crate) fn new(name: impl Into<Cow<'static, str>>) -> Option<Self> {
         let name = name.into();
 
-        if name.is_empty() || name.starts_with('.') {
-            return None;
-        }
-        if name.bytes().any(|byte| byte == b'/' || byte == 0) {
-            return None;
-        }
+        Self::valid(&name).then_some(Self(name))
+    }
 
-        Some(Self(name))
+    /// Wraps a pinned file name.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the name is not a plain, visible file name; in const
+    /// position the panic is a compile error, so a pinned name that
+    /// exists is valid.
+    #[must_use]
+    pub(crate) const fn pinned(name: &'static str) -> Self {
+        assert!(
+            Self::valid(name),
+            "a pinned file name is nonempty, contains no path separator or NUL byte, and does not \
+             start with a dot",
+        );
+
+        Self(Cow::Borrowed(name))
     }
 
     /// Returns the name.
@@ -99,6 +114,23 @@ impl FileName {
     #[must_use]
     pub(crate) fn as_str(&self) -> &str {
         &self.0
+    }
+
+    const fn valid(name: &str) -> bool {
+        let bytes = name.as_bytes();
+        if bytes.is_empty() || bytes[0] == b'.' {
+            return false;
+        }
+
+        let mut index = 0;
+        while index < bytes.len() {
+            if bytes[index] == b'/' || bytes[index] == 0 {
+                return false;
+            }
+            index += 1;
+        }
+
+        true
     }
 }
 
@@ -111,7 +143,7 @@ impl core::fmt::Display for FileName {
 impl From<FileName> for String {
     #[inline]
     fn from(name: FileName) -> Self {
-        name.0
+        name.0.into_owned()
     }
 }
 

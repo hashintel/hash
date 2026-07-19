@@ -67,8 +67,10 @@ mod read;
 mod tests;
 mod write;
 
-// `read`'s types re-export here when their first non-test consumer lands.
-pub(crate) use self::write::ArrayWriter;
+pub(crate) use self::{
+    read::{ArrayFile, OpenArrayError},
+    write::ArrayWriter,
+};
 
 // not pretty, but allows us to pin a specific version, required for the derive
 #[derive(

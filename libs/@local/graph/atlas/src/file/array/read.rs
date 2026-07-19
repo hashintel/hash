@@ -10,7 +10,7 @@ use zerocopy::{
 };
 
 use super::{ArrayShape, ArrayVariant, FileHeader};
-use crate::math::AlignedVecN;
+use crate::math::{AlignedVecN, Vec2};
 
 /// Opening an array file failed.
 #[derive(Debug)]
@@ -180,6 +180,27 @@ impl ArrayFile {
 
         let components = <[f32]>::ref_from_bytes(self.data()).ok()?;
         AlignedVecN::from_slice(components)
+    }
+
+    /// Views the data as 2D points in row order.
+    ///
+    /// The view exists exactly when the file holds `f32` elements shaped
+    /// `[T, 2]`; the returned slice holds the `T` points in order. A
+    /// zero-element file is zero points, since its shape records no row
+    /// width.
+    #[must_use]
+    pub(crate) fn points(&self) -> Option<&[Vec2]> {
+        if self.header().variant() != ArrayVariant::F32 {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] => {}
+            &[_, width] if width.get() == 2 => {}
+            _ => return None,
+        }
+
+        <[Vec2]>::ref_from_bytes(self.data()).ok()
     }
 
     /// Views the data as packed `f32` elements in row-major file order.

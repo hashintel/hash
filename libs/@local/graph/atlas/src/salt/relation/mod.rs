@@ -87,6 +87,10 @@ pub(crate) use crate::salt::policy::RelationPolicy;
 
 pub(crate) mod artifact;
 pub(crate) mod attraction;
+// Fully public: the root `bench` facade re-exports it; the private
+// module chain above keeps it unreachable except through the facade.
+#[cfg(feature = "bench")]
+pub mod bench;
 mod build;
 mod error;
 pub(crate) mod protection;

@@ -8,12 +8,12 @@
 use core::num::NonZero;
 
 use crate::{
-    dataset::postgres::TemporalAxes,
-    salt::{EmbedderFingerprint, NormSpotCheck, RecallSpotCheck},
+    dataset::TemporalAxes,
+    salt::{CardEmbeddingStats, EmbedderFingerprint, NormSpotCheck, RecallSpotCheck},
 };
 
 /// Metadata describing one published SALT generation: the input snapshot,
-/// the declared inputs that reproduce it, and the evidence its files were
+/// the declared inputs it ran under, and the evidence its files were
 /// admitted under.
 ///
 /// Each section's types live with the stage that produces its values;
@@ -22,7 +22,20 @@ use crate::{
 pub(crate) struct SaltMetadata {
     pub snapshot: Snapshot,
     pub reproducibility: Reproducibility,
+    pub placement: Placement,
     pub evidence: Evidence,
+}
+
+/// How the generation's canonical coordinates were produced.
+///
+/// The identity keeps a baseline generation distinguishable from a
+/// trained one wherever the coordinates are consumed.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum Placement {
+    /// Every row takes its assigned landmark's layout coordinate: the
+    /// 1-NN placement the landmark assignment already encodes.
+    LandmarkBaseline,
 }
 
 /// The frozen view of the graph one fit ran over.
@@ -41,11 +54,15 @@ pub(crate) struct Snapshot {
     pub ontology_types: u64,
 }
 
-/// The declared inputs that reproduce a fit over its snapshot.
+/// The declared inputs one fit ran under.
+///
+/// The record identifies the run; replaying it re-derives
+/// deterministic stages bit-for-bit, and the pipeline as a whole best
+/// effort.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Reproducibility {
-    /// The master seed every stage generator derives from.
-    pub master_seed: u64,
+    /// The fit's seed; every stage generator derives from it by name.
+    pub seed: u64,
     /// The embedding contract the card embeddings were produced under.
     pub embedder: EmbedderFingerprint,
 }
@@ -56,6 +73,9 @@ pub(crate) struct Reproducibility {
 /// an aborted fit publishes nothing.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Evidence {
+    /// How the card-embedding rows were obtained: reused from the prior
+    /// generation or freshly embedded.
+    pub cards: CardEmbeddingStats,
     /// The representation-contract spot check over the written node
     /// matrix.
     pub norm: NormSpotCheck,
