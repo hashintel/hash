@@ -116,7 +116,7 @@ impl Fenceposts {
         clippy::cast_possible_truncation,
         reason = "the loop index is bounded by the 34 fenceposts"
     )]
-    pub(crate) const fn new(posts: [u64; Self::POSTS]) -> Result<Self, FencepostViolation> {
+    pub(crate) const fn new(posts: &[u64; Self::POSTS]) -> Result<Self, FencepostViolation> {
         if posts[0] != 0 {
             return Err(FencepostViolation { index: 0 });
         }
@@ -129,7 +129,7 @@ impl Fenceposts {
             index += 1;
         }
 
-        Ok(Self(posts))
+        Ok(Self(*posts))
     }
 
     /// Accumulates per-segment lengths into fenceposts.
@@ -137,7 +137,7 @@ impl Fenceposts {
     /// The result is anchored and non-decreasing by construction.
     /// Returns [`None`] when the running total overflows `u64`, in
     /// which case no real column matches the lengths.
-    pub(crate) const fn from_lengths(lengths: [u64; Self::SEGMENTS]) -> Option<Self> {
+    pub(crate) const fn from_lengths(lengths: &[u64; Self::SEGMENTS]) -> Option<Self> {
         let mut posts = [0_u64; Self::POSTS];
 
         let mut index = 0;
@@ -276,12 +276,20 @@ impl FileHeader {
     /// Creates a header for `fenceposts`-segmented codes indexed every
     /// `stride` codes.
     #[must_use]
-    pub(crate) fn new(stride: u32, fenceposts: &Fenceposts) -> Self {
+    pub(crate) const fn new(stride: u32, fenceposts: &Fenceposts) -> Self {
+        let posts = fenceposts.posts();
+        let mut wire = [U64::new(0); Fenceposts::POSTS];
+        let mut index = 0;
+        while index < Fenceposts::POSTS {
+            wire[index] = U64::new(posts[index]);
+            index += 1;
+        }
+
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
             version: Unalign::new(Version::V1),
             stride: U32::new(stride),
-            fenceposts: fenceposts.posts().map(U64::new),
+            fenceposts: wire,
             padding: [0; Self::PADDING],
         }
     }
@@ -305,8 +313,15 @@ impl FileHeader {
     /// The header parse pins magic and version only; the fencepost
     /// rules are [`Fenceposts::new`]'s to check when a file opens.
     #[must_use]
-    pub(crate) fn posts(&self) -> [u64; Fenceposts::POSTS] {
-        self.fenceposts.map(|post| post.get())
+    pub(crate) const fn posts(&self) -> [u64; Fenceposts::POSTS] {
+        let mut posts = [0_u64; Fenceposts::POSTS];
+        let mut index = 0;
+        while index < Fenceposts::POSTS {
+            posts[index] = self.fenceposts[index].get();
+            index += 1;
+        }
+
+        posts
     }
 
     /// Returns the number of index keys.

@@ -6,6 +6,7 @@ use super::{
     key,
     order::BaseOrder,
     rank::{RankInputs, Ranking},
+    stage::{Lod, LodConfig, LodError},
 };
 use crate::{
     dataset::ArchivedEntityId,
@@ -306,4 +307,349 @@ fn seeded_ranking(rows: usize, seed: u64) -> Ranking {
 
     let inputs = RankInputs::new(&importance, &priority, &ids).expect("the fixture columns agree");
     Ranking::new(inputs, seed)
+}
+
+#[test]
+fn lod_config_carries_the_key_width_bound() {
+    // The default schedule reaches the f32 resolution depth.
+    let config = LodConfig::default();
+    assert_eq!(config.span_log2, 6);
+    assert_eq!(config.max_tile_depth, 18);
+    assert_eq!(config.deepest(), Some(depth(24)));
+
+    // The inequality z_max + m <= 32 binds exactly at the key width.
+    let at_width = LodConfig {
+        span_log2: 6,
+        max_tile_depth: 26,
+    };
+    assert_eq!(at_width.deepest(), Some(depth(32)));
+
+    let beyond = LodConfig {
+        span_log2: 6,
+        max_tile_depth: 27,
+    };
+    assert_eq!(beyond.deepest(), None);
+
+    let build = Lod::build(
+        &[Vec2::new(0.0, 0.0)],
+        RankInputs::new(&[0.0], &[0.0], &identities(1)).expect("the columns agree"),
+        0,
+        beyond,
+    );
+    assert_eq!(build.unwrap_err(), LodError::Schedule { config: beyond });
+}
+
+/// The hand stage fixture: four points whose wire positions and
+/// cascade buckets are computed in the comments.
+///
+/// World frame [0, 1] x [0, 1]; span_log2 = 1, max_tile_depth = 1, so
+/// the deepest grid is 2 and the catch-all is bucket 2.
+///
+/// ```text
+/// row  world         wire           depth-1 quadrant  depth-2 cell
+/// 0    (0,    0)     (-1,    -1)    (0, 0)            (0, 0)
+/// 1    (1,    1)     ( 1,     1)    (1, 1)            (3, 3)
+/// 2    (0.25, 0.25)  (-0.5,  -0.5)  (0, 0)            (1, 1)
+/// 3    (0.375, 0.25) (-0.25, -0.5)  (0, 0)            (1, 1)
+/// ```
+///
+/// Importance ranks the rows in index order. The cascade: row 0 claims
+/// the domain, row 1 its depth-1 quadrant, row 2 the (1, 1) depth-2
+/// cell, and row 3 - co-resident with row 2 at the deepest grid -
+/// takes the catch-all. Buckets [0, 1, 2, 2]; the base order is the
+/// row order (row 2's key sorts below row 3's).
+fn hand_stage() -> (Lod, LodConfig) {
+    let coordinates = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.25, 0.25),
+        Vec2::new(0.375, 0.25),
+    ];
+    let importance = [4.0_f32, 3.0, 2.0, 1.0];
+    let priority = [0.0_f32; 4];
+    let ids = identities(4);
+    let config = LodConfig {
+        span_log2: 1,
+        max_tile_depth: 1,
+    };
+
+    let lod = Lod::build(
+        &coordinates,
+        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        7,
+        config,
+    )
+    .expect("the fixture builds");
+
+    (lod, config)
+}
+
+#[test]
+fn build_produces_the_hand_computed_columns() {
+    let (lod, _) = hand_stage();
+
+    assert_eq!(
+        lod.world,
+        Bounds2::new(Vec2::new(0.0, 0.0), Vec2::new(1.0, 1.0)).expect("a real frame"),
+    );
+
+    // Wire coordinates in base order, exact: the normalization is a
+    // single f64 rounding per component and every fixture value is a
+    // dyadic rational.
+    assert_eq!(
+        *lod.coordinates,
+        [
+            Vec2::new(-1.0, -1.0),
+            Vec2::new(1.0, 1.0),
+            Vec2::new(-0.5, -0.5),
+            Vec2::new(-0.25, -0.5),
+        ],
+    );
+
+    // Codes quantize the wire column: the base order is the row order
+    // here, and the two catch-all codes sort within their segment.
+    assert_eq!(
+        *lod.codes,
+        [
+            MortonKey::new(0, 0),
+            MortonKey::new(u32::MAX, u32::MAX),
+            MortonKey::new(0x4000_0000, 0x4000_0000),
+            MortonKey::new(0x6000_0000, 0x4000_0000),
+        ],
+    );
+
+    // Buckets [0, 1, 2, 2] as fenceposts.
+    assert_eq!(lod.fenceposts.count(), 4);
+    assert_eq!(lod.fenceposts.segment(depth(0)), 0..1);
+    assert_eq!(lod.fenceposts.segment(depth(1)), 1..2);
+    assert_eq!(lod.fenceposts.segment(depth(2)), 2..4);
+
+    // The identity base order makes every permutation the identity.
+    assert_eq!(*lod.rank_of_position, [0, 1, 2, 3]);
+    assert_eq!(*lod.position_of_rank, [0, 1, 2, 3]);
+    assert_eq!(*lod.position_of_row, [0, 1, 2, 3]);
+    assert_eq!(*lod.row_of_position, [0, 1, 2, 3]);
+}
+
+#[test]
+fn evidence_measures_the_hand_computed_columns() {
+    let (lod, config) = hand_stage();
+    let evidence = lod.evidence(config);
+
+    assert_eq!(evidence.world, lod.world);
+    assert_eq!(&evidence.bucket_histogram[..3], &[1, 1, 2]);
+    assert!(
+        evidence.bucket_histogram[3..]
+            .iter()
+            .all(|&count| count == 0)
+    );
+
+    // Rows 2 and 3 share their deepest-grid cell: two catch-all
+    // points, one distinct cell, one point of co-location excess.
+    assert_eq!(evidence.catch_all_population, 2);
+    assert_eq!(evidence.co_location_excess, 1);
+
+    // The catch-all pair shares its zoom-1 tile (bucket 2 at
+    // span_log2 = 1), the largest delta of the schedule.
+    assert_eq!(evidence.max_tile_delta, 2);
+}
+
+#[test]
+fn normalization_is_exact_far_from_the_origin() {
+    // A frame whose offset dwarfs its extent: the two-step f64 map is
+    // exact for these dyadic inputs where a composed scale-translate
+    // transform in f32 would cancel catastrophically.
+    let coordinates = [
+        Vec2::new(1_000_000.0, -1_000_000.0),
+        Vec2::new(1_000_002.0, -999_998.0),
+        Vec2::new(1_000_001.0, -999_999.5),
+    ];
+    let importance = [3.0_f32, 2.0, 1.0];
+    let priority = [0.0_f32; 3];
+    let ids = identities(3);
+
+    let lod = Lod::build(
+        &coordinates,
+        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        0,
+        LodConfig::default(),
+    )
+    .expect("the fixture builds");
+
+    // Base order: row 0 claims the domain; rows 1 and 2 claim their
+    // depth-1 quadrants, and within bucket 1 row 2's key sorts below
+    // row 1's.
+    assert_eq!(
+        *lod.coordinates,
+        [
+            Vec2::new(-1.0, -1.0),
+            Vec2::new(0.0, -0.5),
+            Vec2::new(1.0, 1.0),
+        ],
+    );
+}
+
+#[test]
+fn a_degenerate_axis_maps_to_the_wire_centre() {
+    // All points share one x: the flat axis maps to 0, the other
+    // normalizes as usual.
+    let coordinates = [Vec2::new(5.0, 0.0), Vec2::new(5.0, 2.0)];
+    let importance = [2.0_f32, 1.0];
+    let priority = [0.0_f32; 2];
+    let ids = identities(2);
+
+    let lod = Lod::build(
+        &coordinates,
+        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        0,
+        LodConfig::default(),
+    )
+    .expect("the fixture builds");
+
+    assert_eq!(
+        *lod.coordinates,
+        [Vec2::new(0.0, -1.0), Vec2::new(0.0, 1.0)],
+    );
+}
+
+#[test]
+fn build_rejects_what_no_columns_cover() {
+    let ids = identities(2);
+    let inputs = RankInputs::new(&[1.0, 2.0], &[0.0, 0.0], &ids).expect("the columns agree");
+
+    // One coordinate against two rank rows.
+    assert_eq!(
+        Lod::build(&[Vec2::new(0.0, 0.0)], inputs, 0, LodConfig::default()).unwrap_err(),
+        LodError::Columns { coordinates: 1 },
+    );
+
+    // No rows admit no frame.
+    let empty = RankInputs::new(&[], &[], &[]).expect("empty columns agree");
+    assert_eq!(
+        Lod::build(&[], empty, 0, LodConfig::default()).unwrap_err(),
+        LodError::Frame,
+    );
+
+    // A non-finite coordinate admits no frame.
+    assert_eq!(
+        Lod::build(
+            &[Vec2::new(f32::NAN, 0.0), Vec2::new(1.0, 1.0)],
+            inputs,
+            0,
+            LodConfig::default(),
+        )
+        .unwrap_err(),
+        LodError::Frame,
+    );
+}
+
+#[test]
+fn the_columns_round_trip_through_the_morton_file() {
+    use crate::file::morton::{read::MortonFile, write};
+
+    let (lod, _) = hand_stage();
+
+    let mut bytes = Vec::new();
+    write::write_regions(2, &lod.fenceposts, &lod.codes, &mut bytes)
+        .expect("writing into a vector cannot fail");
+
+    let dir =
+        std::env::temp_dir().join(format!("hash-graph-atlas-lod-stage-{}", std::process::id(),));
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+    let path = dir.join("stage-roundtrip.mrtn");
+    std::fs::write(&path, bytes).expect("the scratch file is writable");
+
+    let file = MortonFile::open(&path).expect("the written file reopens");
+    assert_eq!(file.fenceposts(), &lod.fenceposts);
+
+    // The serving query on the built columns: the catch-all pair is
+    // one run inside its quadrant.
+    let cell = lod.codes[2].cell(depth(1));
+    assert_eq!(file.run(depth(2), cell), 2..4);
+}
+
+proptest! {
+    /// Every finite point set builds, and the result upholds the
+    /// serving contract's structural laws.
+    #[test]
+    fn built_columns_uphold_the_contract_laws(
+        rows in prop::collection::vec(
+            (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0),
+            1..48,
+        ),
+        seed: u64,
+        span_log2 in 0_u8..3,
+        max_tile_depth in 0_u8..4,
+    ) {
+        let coordinates: Vec<Vec2> = rows.iter().map(|&(x, y, _)| Vec2::new(x, y)).collect();
+        let importance: Vec<f32> = rows.iter().map(|&(_, _, i)| i).collect();
+        let priority = vec![0.0_f32; rows.len()];
+        let ids = identities(rows.len() as u128);
+        let config = LodConfig { span_log2, max_tile_depth };
+
+        let inputs = RankInputs::new(&importance, &priority, &ids)
+            .expect("the fixture columns agree");
+        let lod = Lod::build(&coordinates, inputs, seed, config)
+            .expect("finite non-empty coordinates build");
+        let deepest = config.deepest().expect("the schedule fits the key width");
+
+        // Determinism: equal inputs give equal structures.
+        prop_assert_eq!(
+            &Lod::build(&coordinates, inputs, seed, config).expect("the rebuild builds"),
+            &lod,
+        );
+
+        // Every column covers every row once.
+        prop_assert_eq!(lod.fenceposts.count(), rows.len() as u64);
+        prop_assert_eq!(lod.coordinates.len(), rows.len());
+
+        // Wire coordinates stay inside the frame.
+        for wire in &lod.coordinates {
+            prop_assert!((-1.0..=1.0).contains(&wire.x()));
+            prop_assert!((-1.0..=1.0).contains(&wire.y()));
+        }
+
+        // The permutations invert each other, both ways.
+        for (position, &row) in lod.row_of_position.iter().enumerate() {
+            prop_assert_eq!(lod.position_of_row[row as usize] as usize, position);
+        }
+        for (rank, &position) in lod.position_of_rank.iter().enumerate() {
+            prop_assert_eq!(lod.rank_of_position[position as usize] as usize, rank);
+        }
+
+        // Every segment of the code column is sorted: the morton
+        // file writer's input contract.
+        for bucket in 0..=deepest.get() {
+            let segment = lod.fenceposts.segment(depth(bucket));
+            let start = usize::try_from(segment.start).expect("test rows fit usize");
+            let end = usize::try_from(segment.end).expect("test rows fit usize");
+            prop_assert!(lod.codes[start..end].is_sorted());
+        }
+
+        // The delivered prefix covers every occupied cell at every
+        // published depth: SPEC 3.8's assertion over the built
+        // columns, buckets reconstructed from the fenceposts.
+        let buckets: Vec<Depth> = (0..lod.fenceposts.count())
+            .map(|position| {
+                (0..=deepest.get())
+                    .map(depth)
+                    .find(|&bucket| lod.fenceposts.segment(bucket).contains(&position))
+                    .expect("every position falls in a segment")
+            })
+            .collect();
+        prop_assert_eq!(
+            cascade::verify_coverage(&lod.codes, &buckets, deepest),
+            Ok(()),
+        );
+
+        // Evidence is internally consistent.
+        let evidence = lod.evidence(config);
+        prop_assert_eq!(
+            evidence.bucket_histogram.iter().sum::<u64>(),
+            rows.len() as u64,
+        );
+        prop_assert!(evidence.co_location_excess <= evidence.catch_all_population);
+        prop_assert!(evidence.max_tile_delta <= rows.len() as u64);
+        prop_assert!(evidence.max_tile_delta >= 1);
+    }
 }

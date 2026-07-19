@@ -24,7 +24,7 @@ fn depth(value: u8) -> Depth {
 fn posts_of(lengths: &[u64]) -> Fenceposts {
     let mut all = [0_u64; Fenceposts::SEGMENTS];
     all[..lengths.len()].copy_from_slice(lengths);
-    Fenceposts::from_lengths(all).expect("test lengths fit u64")
+    Fenceposts::from_lengths(&all).expect("test lengths fit u64")
 }
 
 /// A per-test scratch file path under the system temp directory.
@@ -55,17 +55,17 @@ fn fenceposts_carry_the_structural_rules() {
     // offender.
     let mut raw = *posts.posts();
     raw[0] = 1;
-    assert_eq!(Fenceposts::new(raw), Err(FencepostViolation { index: 0 }));
+    assert_eq!(Fenceposts::new(&raw), Err(FencepostViolation { index: 0 }));
 
     let mut raw = *posts.posts();
     raw[2] = 1;
-    assert_eq!(Fenceposts::new(raw), Err(FencepostViolation { index: 2 }));
+    assert_eq!(Fenceposts::new(&raw), Err(FencepostViolation { index: 2 }));
 
     // Accumulation overflow matches no real column.
     let mut lengths = [0_u64; Fenceposts::SEGMENTS];
     lengths[0] = u64::MAX;
     lengths[1] = 1;
-    assert_eq!(Fenceposts::from_lengths(lengths), None);
+    assert_eq!(Fenceposts::from_lengths(&lengths), None);
 }
 
 #[test]

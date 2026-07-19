@@ -37,22 +37,25 @@
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
 
-use core::{error::Error, fmt, num::NonZero, pin::pin};
+use alloc::borrow::Cow;
+use core::{error::Error, fmt, mem, num::NonZero, pin::pin};
 
 use futures::TryStreamExt as _;
 use rand::Rng;
 use zerocopy::IntoBytes as _;
 
-use self::pass::{corpus_pass, sampled_pass};
-use super::metric::NeighbourhoodAggregate;
+use self::pass::{CorpusPass, SampledPass};
+pub(crate) use self::readings::{ProbeReadings, RadiusPair, ReadingGrid, SpacePair};
+use super::metric::{NeighbourhoodAggregate, TripletAggregate};
 use crate::{
     bitset::BitSet,
     dataset::{CANONICAL_DIMENSIONS, Dataset, NodeRowId, PROJECTOR_DIMENSIONS},
     math::{AlignedVecN, BoxedVecN, Vec2},
-    random::sample_indices_vec,
+    random::{sample_indices_vec, uniform_below},
 };
 
 mod pass;
+mod readings;
 
 // The neighbourhood sizes match the ones the specification's measured
 // baselines are recorded at, so probe readings compare against the
@@ -65,13 +68,17 @@ const DEFAULT_ANCHORS: NonZero<usize> =
     NonZero::new(256).expect("the default anchor count is nonzero");
 const DEFAULT_COMPARISONS: NonZero<usize> =
     NonZero::new(4096).expect("the default comparison count is nonzero");
-const DEFAULT_NEIGHBOURHOODS: [NonZero<usize>; 3] = [
+const DEFAULT_NEIGHBOURHOODS: &[NonZero<usize>] = &[
     NonZero::new(15).expect("the default neighbourhood sizes are nonzero"),
     NonZero::new(30).expect("the default neighbourhood sizes are nonzero"),
     NonZero::new(50).expect("the default neighbourhood sizes are nonzero"),
 ];
 const DEFAULT_HORIZON_FACTOR: NonZero<usize> =
     NonZero::new(2).expect("the default horizon factor is nonzero");
+// 64 shared pairs over 256 anchors read ~16K triplets; the binomial
+// standard error at that volume sits near a third of a point of
+// agreement, well under the differences worth acting on.
+const DEFAULT_TRIPLET_PAIRS: usize = 64;
 
 /// Pinned sampling and neighbourhood settings for one probe.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,20 +95,22 @@ pub(crate) struct ProbeOptions {
     /// non-empty. The trend across sizes is itself evidence: recall
     /// rising with `k` is the near-tie reshuffling fingerprint.
     /// Defaults to 15, 30, and 50.
-    pub neighbourhoods: Vec<NonZero<usize>>,
+    pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
     /// Horizon multiplier: a false neighbour counts as an intrusion or
     /// extrusion when its opposite-space rank reaches `factor * k`
     /// (clamped to the universe), separating genuinely foreign points
     /// from reshuffling near the neighbourhood boundary. Defaults to 2.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
+    /// Comparison-point pairs sampled for the triplet readings; every
+    /// anchor reads the one shared pair sample, so the estimate's mean
+    /// is unbiased while pair-driven variance is shared across
+    /// anchors. Zero disables the readings. Defaults to 64.
+    pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 
-impl Default for ProbeOptions {
+const impl Default for ProbeOptions {
     fn default() -> Self {
-        Self {
-            neighbourhoods: DEFAULT_NEIGHBOURHOODS.to_vec(),
-            ..
-        }
+        Self { .. }
     }
 }
 
@@ -181,115 +190,61 @@ impl<E: Error + 'static> Error for ProbeError<E> {
     }
 }
 
-/// Per-anchor aggregates for one space pair, anchor-major.
+/// One generation's row-aligned probe inputs.
 ///
-/// Every cell reads one anchor at one neighbourhood size; the
-/// neighbourhood axis follows the options' reporting order. Roll-ups
-/// merge cells, so a consumer groups anchors - overall, by subgroup -
-/// without touching orderings again.
-#[derive(Debug, Clone)]
-pub(crate) struct ReadingGrid {
-    cells: Box<[NeighbourhoodAggregate]>,
-    neighbourhoods: usize,
+/// The three slices describe the same rows in the same order; mapped
+/// `f32[N, 512]` and `f32[N, 2]` artifacts yield the representation
+/// and coordinate slices directly.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct ProbeCorpus<'corpus, N> {
+    node_ids: &'corpus [N],
+    representations: &'corpus [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    coordinates: &'corpus [Vec2],
 }
 
-impl ReadingGrid {
-    /// Flattens per-anchor cell rows into a grid.
-    fn from_anchor_cells(rows: Vec<Vec<NeighbourhoodAggregate>>, neighbourhoods: usize) -> Self {
-        Self {
-            cells: rows.into_iter().flatten().collect(),
-            neighbourhoods,
-        }
-    }
-
-    /// Returns the anchor count.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the grid is rectangular by construction, so the division is exact"
-    )]
-    #[inline]
-    #[must_use]
-    pub(crate) const fn anchors(&self) -> usize {
-        self.cells.len() / self.neighbourhoods
-    }
-
-    /// Returns the neighbourhood-size count.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn neighbourhoods(&self) -> usize {
-        self.neighbourhoods
-    }
-
-    /// Borrows one anchor's reading at one neighbourhood size.
+impl<'corpus, N> ProbeCorpus<'corpus, N> {
+    /// Binds one generation's row-aligned inputs.
     ///
     /// # Panics
     ///
-    /// Panics when `anchor` or `neighbourhood` lies outside the grid.
-    #[inline]
+    /// Panics when the slices disagree about the row count; all three
+    /// describe one generation, so a mismatch is a wiring defect.
     #[must_use]
-    pub(crate) fn anchor(&self, anchor: usize, neighbourhood: usize) -> &NeighbourhoodAggregate {
-        assert!(
-            neighbourhood < self.neighbourhoods,
-            "the neighbourhood index must lie inside the grid",
+    pub(crate) fn new(
+        node_ids: &'corpus [N],
+        representations: &'corpus [AlignedVecN<PROJECTOR_DIMENSIONS>],
+        coordinates: &'corpus [Vec2],
+    ) -> Self {
+        assert_eq!(
+            node_ids.len(),
+            representations.len(),
+            "the node ids and the representation matrix should cover the same rows",
         );
-        &self.cells[anchor * self.neighbourhoods + neighbourhood]
-    }
+        assert_eq!(
+            node_ids.len(),
+            coordinates.len(),
+            "the node ids and the coordinate frame should cover the same rows",
+        );
 
-    /// Merges every anchor's reading at one neighbourhood size.
-    ///
-    /// # Panics
-    ///
-    /// Panics when `neighbourhood` lies outside the grid.
-    #[must_use]
-    pub(crate) fn overall(&self, neighbourhood: usize) -> NeighbourhoodAggregate {
-        let mut merged = self.anchor(0, neighbourhood).clone();
-        for anchor in 1..self.anchors() {
-            merged.merge(self.anchor(anchor, neighbourhood));
+        Self {
+            node_ids,
+            representations,
+            coordinates,
         }
-        merged
     }
-}
 
-/// One probe's readings across the three space pairs.
-///
-/// The corpus grid ranks every non-anchor row, so its universe is
-/// `rows - anchors`; the sampled grids share the comparison rows as
-/// their universe. Each grid records its own universe in its
-/// aggregates, so a reading is never mistaken for a measurement at
-/// another scale.
-#[derive(Debug)]
-pub(crate) struct ProbeReadings {
-    /// Sampled anchor rows, in sampling order: the grids' anchor axis.
-    pub anchors: Box<[NodeRowId]>,
-    /// Sampled comparison rows, in sampling order: the sampled grids'
-    /// shared universe.
-    pub comparisons: Box<[NodeRowId]>,
-    /// The neighbourhood sizes every grid reads at, in options order:
-    /// the grids' neighbourhood axis.
-    pub neighbourhoods: Box<[NonZero<usize>]>,
-    /// Map versus representation over every non-anchor row: the
-    /// corpus-exact placement reading.
-    pub map_representation: ReadingGrid,
-    /// Map versus representation over the comparison rows, for
-    /// like-for-like comparison with the canonical readings.
-    pub sampled_map_representation: ReadingGrid,
-    /// Map versus canonical space over the comparison rows.
-    pub sampled_map_canonical: ReadingGrid,
-    /// Representation versus canonical space over the comparison rows:
-    /// the representation baseline the map's canonical reading is
-    /// judged against.
-    pub sampled_representation_canonical: ReadingGrid,
+    /// Returns the corpus row count.
+    const fn rows(&self) -> usize {
+        self.node_ids.len()
+    }
 }
 
 /// Reads the map's neighbourhood fidelity over sampled anchors.
 ///
-/// `node_ids`, `representations`, and `coordinates` describe the same
-/// generation in row order; mapped `f32[N, 512]` and `f32[N, 2]`
-/// artifacts yield the slices directly. Anchor and comparison rows are
-/// sampled disjointly without replacement, and the anchors' and
-/// comparison rows' canonical embeddings are fetched through the
-/// dataset's probe-scoped stream before any ranking begins.
+/// Anchor and comparison rows are sampled disjointly without
+/// replacement, and the anchors' and comparison rows' canonical
+/// embeddings are fetched through the dataset's probe-scoped stream
+/// before any ranking begins.
 ///
 /// # Errors
 ///
@@ -297,11 +252,6 @@ pub(crate) struct ProbeReadings {
 /// neighbourhood size violates an aggregate domain, the row count
 /// exceeds the crate's `u32` row encoding, or the canonical stream
 /// fails, misdelivers, or ends short.
-///
-/// # Panics
-///
-/// Panics when the input slices disagree about the row count; all
-/// three describe one generation, so a mismatch is a wiring defect.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -309,24 +259,11 @@ pub(crate) struct ProbeReadings {
 )]
 pub(crate) async fn probe<D: Dataset>(
     dataset: &D,
-    node_ids: &[D::NodeId],
-    representations: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-    coordinates: &[Vec2],
+    corpus: ProbeCorpus<'_, D::NodeId>,
     options: &ProbeOptions,
-    rng: impl Rng,
+    mut rng: impl Rng,
 ) -> Result<ProbeReadings, ProbeError<D::Error>> {
-    assert_eq!(
-        node_ids.len(),
-        representations.len(),
-        "the node ids and the representation matrix should cover the same rows",
-    );
-    assert_eq!(
-        node_ids.len(),
-        coordinates.len(),
-        "the node ids and the coordinate frame should cover the same rows",
-    );
-
-    let rows = node_ids.len();
+    let rows = corpus.rows();
     if u32::try_from(rows).is_err() {
         return Err(ProbeError::RowsExceedProbeDomain { rows });
     }
@@ -353,10 +290,11 @@ pub(crate) async fn probe<D: Dataset>(
         .max()
         .expect("the options name at least one neighbourhood size");
 
-    let sample = sample_indices_vec(rng, rows, anchors + comparisons).into_vec();
+    let sample = sample_indices_vec(&mut rng, rows, anchors + comparisons).into_vec();
     let (anchor_rows, comparison_rows) = sample.split_at(anchors);
+    let pairs = sample_pairs(&mut rng, comparisons, options.triplet_pairs);
 
-    let canonical = fetch_canonical(dataset, node_ids, &sample).await?;
+    let canonical = fetch_canonical(dataset, corpus.node_ids, &sample).await?;
     let (anchor_canonical, comparison_canonical) = canonical.split_at(anchors);
 
     let mut anchor_mask = BitSet::new(rows);
@@ -364,28 +302,40 @@ pub(crate) async fn probe<D: Dataset>(
         anchor_mask.insert(row);
     }
 
-    let corpus_cells = corpus_pass(
-        representations,
-        coordinates,
-        &anchor_mask,
-        anchor_rows,
+    let (corpus_cells, radii) = CorpusPass {
+        representations: corpus.representations,
+        coordinates: corpus.coordinates,
+        anchor_mask: &anchor_mask,
         search,
-        &corpus_template,
-        &options.neighbourhoods,
-    );
-    let sampled_cells = sampled_pass(
-        representations,
-        coordinates,
+        template: &corpus_template,
+        neighbourhoods: &options.neighbourhoods,
+    }
+    .run(anchor_rows);
+    let (sampled_cells, triplets) = SampledPass {
+        representations: corpus.representations,
+        coordinates: corpus.coordinates,
         anchor_canonical,
         comparison_canonical,
-        anchor_rows,
         comparison_rows,
-        &sampled_template,
-    );
+        template: &sampled_template,
+        pairs: &pairs,
+    }
+    .run(anchor_rows);
 
     let rungs = options.neighbourhoods.len();
-    let [map_representation, map_canonical, representation_canonical] =
-        transpose_pairs(sampled_cells);
+    let mut triplet_columns = transpose_triplets(triplets);
+
+    // The pair-indexed arrays move into named fields through the enum,
+    // so reordering the pair schema cannot silently swap readings.
+    let mut sampled_grids = transpose_pairs(sampled_cells)
+        .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, rungs)));
+    let mut sampled_grid = |pair: SpacePair| {
+        sampled_grids[pair as usize]
+            .take()
+            .expect("each pair's grid moves out exactly once")
+    };
+    let mut triplet_column =
+        |pair: SpacePair| mem::take(&mut triplet_columns[pair as usize]).into_boxed_slice();
 
     Ok(ProbeReadings {
         anchors: anchor_rows
@@ -398,12 +348,14 @@ pub(crate) async fn probe<D: Dataset>(
             .collect(),
         neighbourhoods: options.neighbourhoods.iter().copied().collect(),
         map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),
-        sampled_map_representation: ReadingGrid::from_anchor_cells(map_representation, rungs),
-        sampled_map_canonical: ReadingGrid::from_anchor_cells(map_canonical, rungs),
-        sampled_representation_canonical: ReadingGrid::from_anchor_cells(
-            representation_canonical,
-            rungs,
-        ),
+        sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
+        sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
+        sampled_representation_canonical: sampled_grid(SpacePair::RepresentationCanonical),
+        radii: radii.into_iter().flatten().collect(),
+        triplet_pairs: pairs,
+        triplet_map_representation: triplet_column(SpacePair::MapRepresentation),
+        triplet_map_canonical: triplet_column(SpacePair::MapCanonical),
+        triplet_representation_canonical: triplet_column(SpacePair::RepresentationCanonical),
     })
 }
 
@@ -424,21 +376,56 @@ fn aggregate_template<E>(
         .collect()
 }
 
-/// Splits per-anchor space-pair cell triples into per-pair cell rows.
-fn transpose_pairs(
-    cells: Vec<[Vec<NeighbourhoodAggregate>; 3]>,
-) -> [Vec<Vec<NeighbourhoodAggregate>>; 3] {
-    let mut pairs = [
-        Vec::with_capacity(cells.len()),
-        Vec::with_capacity(cells.len()),
-        Vec::with_capacity(cells.len()),
-    ];
-    for [first, second, third] in cells {
-        pairs[0].push(first);
-        pairs[1].push(second);
-        pairs[2].push(third);
-    }
+/// Samples distinct comparison-index pairs, uniform over ordered
+/// pairs.
+///
+/// A universe of one comparison point holds no pairs and yields none
+/// regardless of the requested count.
+fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u32; 2]]> {
+    let Some(second_choices) = NonZero::new(comparisons as u64 - 1) else {
+        return Box::new([]);
+    };
+    let choices = NonZero::new(comparisons as u64).expect("one more than a nonzero count");
 
+    core::iter::repeat_with(|| {
+        let first = uniform_below(&mut rng, choices) as u32;
+        let mut second = uniform_below(&mut rng, second_choices) as u32;
+        if second >= first {
+            second += 1;
+        }
+        [first, second]
+    })
+    .take(count)
+    .collect()
+}
+
+/// Splits per-anchor triplet arrays into per-pair columns, preserving
+/// the pair order.
+fn transpose_triplets(
+    triplets: Vec<[TripletAggregate; SpacePair::COUNT]>,
+) -> [Vec<TripletAggregate>; SpacePair::COUNT] {
+    let mut columns: [Vec<TripletAggregate>; SpacePair::COUNT] =
+        core::array::from_fn(|_| Vec::with_capacity(triplets.len()));
+    for anchor_triplets in triplets {
+        for (column, aggregate) in columns.iter_mut().zip(anchor_triplets) {
+            column.push(aggregate);
+        }
+    }
+    columns
+}
+
+/// Splits per-anchor space-pair cell arrays into per-pair cell rows,
+/// preserving the pair order.
+fn transpose_pairs(
+    cells: Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
+) -> [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] {
+    let mut pairs: [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] =
+        core::array::from_fn(|_| Vec::with_capacity(cells.len()));
+    for anchor_cells in cells {
+        for (pair, anchor_cell) in pairs.iter_mut().zip(anchor_cells) {
+            pair.push(anchor_cell);
+        }
+    }
     pairs
 }
 

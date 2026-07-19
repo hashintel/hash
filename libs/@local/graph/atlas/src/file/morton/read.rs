@@ -130,7 +130,7 @@ impl MortonFile {
             }
         };
 
-        let fenceposts = Fenceposts::new(header.posts()).map_err(OpenMortonError::Fenceposts)?;
+        let fenceposts = Fenceposts::new(&header.posts()).map_err(OpenMortonError::Fenceposts)?;
 
         let expected = header.expected_file_len();
         let actual = map.len() as u64;
