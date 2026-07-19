@@ -146,8 +146,58 @@ optimization test.
 
 CLI startup is limited to 25 seconds and each protocol response to 240 seconds.
 Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once
-startup completes and terminates the CLI's isolated process group on timeout,
-failure, or client disconnect.
+startup completes — forwarding each line into the service logs (see
+[Logging](#logging)) — and terminates the CLI's isolated process group on
+timeout, failure, or client disconnect.
+
+## Logging
+
+The service logs one JSON object per line to stdout:
+
+```json
+{
+  "timestamp": "2026-07-19T12:00:00.000Z",
+  "level": "INFO",
+  "logger": "pn_optimize",
+  "message": "optimization study started",
+  "service": "petrinaut-opt",
+  "event": "study_started",
+  "run_id": "6f8b…",
+  "request_id": "AbC123…",
+  "trace_id": "0af7651916cd43dd8448eb211c80319c"
+}
+```
+
+`HASH_PETRINAUT_OPT_LOG_LEVEL` sets the level (`DEBUG`, `INFO`, `WARNING`,
+`ERROR`, `CRITICAL`; default `INFO`; unknown values fall back to `INFO`).
+
+Correlation chain — one optimization is traceable end to end:
+
+1. NodeAPI mints a request id and forwards it as the `x-hash-request-id`
+   header; the service logs it as `request_id`. An inbound W3C `traceparent`
+   header is parsed (without an OTel dependency) into `trace_id` so logs join
+   with traces.
+2. The service mints a `run_id` per study (also returned as the
+   `X-Optimization-Run-ID` response header, which NodeAPI logs as
+   `optimizationRunId`).
+3. The `run_id` is passed to the spawned CLI as the
+   `PETRINAUT_CORRELATION_ID` environment variable, and the CLI echoes it as
+   `correlationId` in its stderr diagnostics.
+
+CLI stderr is not discarded: after the ready handshake, every stderr line
+(often itself a JSON diagnostic, see
+`libs/@hashintel/petrinaut-cli/OPTIMIZATION_INTEGRATION.md`) is forwarded into
+the service logs under the `pn_cli` logger with the run's correlation id.
+Lines are truncated to 2,000 characters and the pending-line buffer is
+bounded, so CLI output can neither bloat the logs nor service memory.
+
+Logged lifecycle events include: study admission, capacity rejection (429),
+initialization start/failure, study start, per-trial outcomes, study
+completion, client disconnect, worker join timeout, CLI termination path
+(graceful EOF / SIGTERM / SIGKILL escalation), and slot release. By design,
+logs never contain optimization manifests, user-authored code, or raw request
+bodies — only sizes, counts, identifiers, and optimizer-proposed scalar
+parameter values.
 
 ## Development
 

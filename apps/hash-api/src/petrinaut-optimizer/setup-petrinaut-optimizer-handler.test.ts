@@ -10,7 +10,14 @@ import {
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Express, Request, Response as ExpressResponse } from "express";
 
-const logger = { warn: () => undefined } as unknown as Pick<Logger, "warn">;
+const noopLogger = {
+  info: () => undefined,
+  warn: () => undefined,
+};
+const logger = {
+  ...noopLogger,
+  child: () => noopLogger,
+} as unknown as Pick<Logger, "child" | "info" | "warn">;
 
 type Handler = (
   request: Request,

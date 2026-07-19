@@ -39,8 +39,18 @@ export type OpenPetrinautOptimizationStreamOptions = {
   maxEventBytes?: number;
   /** Called whenever upstream bytes arrive, including heartbeats. */
   onActivity?: () => void;
+  /** Correlation id forwarded upstream as the `x-hash-request-id` header. */
+  requestId?: string;
   /** Signal used to cancel the request and its response stream. */
   signal?: AbortSignalLike;
+};
+
+/** One opened optimization stream plus its upstream correlation id. */
+export type PetrinautOptimizationStreamHandle = {
+  /** Canonical optimization events decoded from the upstream stream. */
+  events: AsyncIterable<PetrinautOptimizationEvent>;
+  /** The optimizer's `X-Optimization-Run-ID` header, when provided. */
+  optimizationRunId: string | null;
 };
 
 /** Return whether an unknown value is a non-array JSON object. */
@@ -77,15 +87,15 @@ export const openPetrinautOptimizationStream = async ({
   input,
   maxEventBytes,
   onActivity,
+  requestId,
   signal,
-}: OpenPetrinautOptimizationStreamOptions): Promise<
-  AsyncIterable<PetrinautOptimizationEvent>
-> => {
+}: OpenPetrinautOptimizationStreamOptions): Promise<PetrinautOptimizationStreamHandle> => {
   const response = await fetchImpl(endpoint, {
     method: "POST",
     headers: {
       accept: "text/event-stream",
       "content-type": "application/json",
+      ...(requestId === undefined ? {} : { "x-hash-request-id": requestId }),
     },
     body: JSON.stringify(input),
     signal: signal as AbortSignal | undefined,
@@ -101,10 +111,13 @@ export const openPetrinautOptimizationStream = async ({
     throw new Error("Petrinaut optimizer returned an empty response");
   }
 
-  return decodePetrinautOptimizerStream(response.body, {
-    direction: input.objective.direction,
-    requestedTrials: input.study.trials,
-    ...(maxEventBytes === undefined ? {} : { maxEventBytes }),
-    ...(onActivity ? { onActivity } : {}),
-  });
+  return {
+    events: decodePetrinautOptimizerStream(response.body, {
+      direction: input.objective.direction,
+      requestedTrials: input.study.trials,
+      ...(maxEventBytes === undefined ? {} : { maxEventBytes }),
+      ...(onActivity ? { onActivity } : {}),
+    }),
+    optimizationRunId: response.headers.get("x-optimization-run-id"),
+  };
 };

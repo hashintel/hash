@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 import select
@@ -14,6 +15,8 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+log = logging.getLogger("pn_client")
+cli_log = logging.getLogger("pn_cli")
 
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
 MAX_PROTOCOL_LINE_BYTES = 8 * 1024 * 1024
@@ -21,10 +24,20 @@ BOOTSTRAP_TIMEOUT_SECONDS = 25
 PROTOCOL_READ_TIMEOUT_SECONDS = 240
 PROCESS_SHUTDOWN_TIMEOUT_SECONDS = 5
 _STDERR_DRAIN_CHUNK_BYTES = 64 * 1024
+# Forwarded CLI stderr lines are bounded so a chatty or hostile CLI cannot
+# bloat service logs; the pending partial-line buffer is bounded so it also
+# cannot grow service memory.
+STDERR_LINE_LOG_CHARACTERS = 2000
+_MAX_PENDING_STDERR_LINE_BYTES = 16 * 1024
 
 
-def _child_environment() -> dict[str, str]:
-    """Avoid exposing the API process's credentials to model expressions."""
+def _child_environment(correlation_id: str | None = None) -> dict[str, str]:
+    """Avoid exposing the API process's credentials to model expressions.
+
+    The environment stays an allowlist: the correlation id is the explicit
+    value owned by this run, never read from the service's ambient
+    environment.
+    """
     environment = {
         "PATH": "/usr/local/bin:/usr/bin:/bin",
         "LANG": "C.UTF-8",
@@ -35,6 +48,8 @@ def _child_environment() -> dict[str, str]:
     node_options = os.environ.get("PETRINAUT_CLI_NODE_OPTIONS", "").strip()
     if node_options:
         environment["NODE_OPTIONS"] = node_options
+    if correlation_id:
+        environment["PETRINAUT_CORRELATION_ID"] = correlation_id
     return environment
 
 
@@ -58,6 +73,7 @@ class PetrinautModel:
         optimization_manifest: Mapping[str, Any],
         *,
         command: Sequence[str] = ("petrinaut",),
+        correlation_id: str | None = None,
         popen_factory: Callable[..., Any] = subprocess.Popen,
         bootstrap_timeout_seconds: float = BOOTSTRAP_TIMEOUT_SECONDS,
         request_timeout_seconds: float = PROTOCOL_READ_TIMEOUT_SECONDS,
@@ -69,6 +85,7 @@ class PetrinautModel:
 
         self.optimization_manifest = dict(optimization_manifest)
         self.command = tuple(command)
+        self.correlation_id = correlation_id
         self._popen_factory = popen_factory
         self._bootstrap_timeout_seconds = bootstrap_timeout_seconds
         self._request_timeout_seconds = request_timeout_seconds
@@ -119,7 +136,7 @@ class PetrinautModel:
                     stderr=subprocess.PIPE,
                     bufsize=0,
                     close_fds=True,
-                    env=_child_environment(),
+                    env=_child_environment(self.correlation_id),
                     start_new_session=True,
                     umask=0o077,
                 )
@@ -230,16 +247,59 @@ class PetrinautModel:
                 f"{description} was not valid UTF-8"
             ) from error
 
-    @staticmethod
-    def _drain_stderr(stream: Any) -> None:
-        """Prevent CLI diagnostics from filling and blocking its stderr pipe."""
+    def _drain_stderr(self, stream: Any) -> None:
+        """Forward CLI stderr lines into service logs with bounded memory.
+
+        Draining also prevents CLI diagnostics from filling and blocking its
+        stderr pipe. Each complete line is forwarded to the ``pn_cli`` logger
+        with this run's correlation id; a line that grows beyond the pending
+        buffer is logged truncated and the rest of it is discarded, so a
+        newline-free stderr flood can neither buffer unboundedly nor bloat
+        the logs.
+        """
+        buffer = bytearray()
+        discarding_oversized_line = False
         while True:
             try:
                 chunk = stream.read(_STDERR_DRAIN_CHUNK_BYTES)
             except (OSError, ValueError):
                 return
             if not chunk:
+                if buffer and not discarding_oversized_line:
+                    self._log_cli_stderr_line(bytes(buffer))
                 return
+            buffer.extend(chunk)
+            while (newline := buffer.find(b"\n")) >= 0:
+                line = bytes(buffer[:newline])
+                del buffer[: newline + 1]
+                if discarding_oversized_line:
+                    # This newline ends the already-logged oversized line.
+                    discarding_oversized_line = False
+                    continue
+                self._log_cli_stderr_line(line)
+            if discarding_oversized_line:
+                buffer.clear()
+            elif len(buffer) > _MAX_PENDING_STDERR_LINE_BYTES:
+                self._log_cli_stderr_line(bytes(buffer), truncated=True)
+                buffer.clear()
+                discarding_oversized_line = True
+
+    def _log_cli_stderr_line(self, line: bytes, *, truncated: bool = False) -> None:
+        """Log one CLI stderr line verbatim, bounded, with correlation."""
+        text = line.decode("utf-8", errors="replace").rstrip("\r")
+        if len(text) > STDERR_LINE_LOG_CHARACTERS:
+            text = text[:STDERR_LINE_LOG_CHARACTERS]
+            truncated = True
+        if not text.strip():
+            return
+        cli_log.info(
+            text,
+            extra={
+                "event": "cli_stderr",
+                "run_id": self.correlation_id,
+                "stderr_truncated": truncated,
+            },
+        )
 
     def _exchange(self, method: str, params: Mapping[str, Any] | None = None) -> Any:
         process = self._process
@@ -384,6 +444,7 @@ class PetrinautModel:
         if process is None:
             return
 
+        termination = "already-exited"
         if process.stdin is not None and not process.stdin.closed:
             try:
                 process.stdin.close()
@@ -392,18 +453,21 @@ class PetrinautModel:
         if process.poll() is None and graceful:
             try:
                 process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
+                termination = "graceful-eof"
             except subprocess.TimeoutExpired:
                 pass
         if process.poll() is None:
             self._signal_process(process, signal.SIGTERM)
+            termination = "sigterm"
             try:
                 process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
             except subprocess.TimeoutExpired:
                 self._signal_process(process, signal.SIGKILL)
+                termination = "sigkill"
                 try:
                     process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
                 except subprocess.TimeoutExpired:
-                    pass
+                    termination = "sigkill-unconfirmed"
         for stream in (process.stdout, process.stderr):
             if stream is not None and not stream.closed:
                 try:
@@ -418,3 +482,14 @@ class PetrinautModel:
             and stderr_thread is not threading.current_thread()
         ):
             stderr_thread.join(timeout=1)
+
+        log.info(
+            "Petrinaut CLI terminated",
+            extra={
+                "event": "cli_terminated",
+                "run_id": self.correlation_id,
+                "termination": termination,
+                "graceful": graceful,
+                "returncode": process.poll(),
+            },
+        )

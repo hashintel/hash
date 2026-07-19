@@ -1,8 +1,10 @@
 import { resolve } from "node:path";
+import { performance } from "node:perf_hooks";
 import { createInterface } from "node:readline";
 
 import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 
+import { createDiagnostics } from "../runtime/diagnostics";
 import { loadSdcpnModel, parseSdcpnModel } from "../runtime/load-model";
 import {
   createOptimizationProtocol,
@@ -51,6 +53,8 @@ type ServeStdioOptions = (
   input?: Readable;
   output?: Writable;
   errorOutput?: Writable;
+  /** Parent-supplied correlation id echoed in stderr diagnostics. */
+  correlationId?: string | null;
 };
 
 function writeResponse(output: Writable, value: unknown): void {
@@ -61,6 +65,10 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
   const input = options.input ?? process.stdin;
   const output = options.output ?? process.stdout;
   const errorOutput = options.errorOutput ?? process.stderr;
+  const diagnostics = createDiagnostics({
+    correlationId: options.correlationId ?? null,
+    errorOutput,
+  });
   const lines = createInterface({ input, crlfDelay: Infinity });
   const iterator = lines[Symbol.asyncIterator]();
 
@@ -121,9 +129,12 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
     ? createOptimizationProtocol({ manifest: optimizationManifest, model })
     : undefined;
 
+  // The ready line MUST stay the exact first stderr line: parents treat it
+  // as the bootstrap handshake. Structured JSON diagnostics follow it.
   errorOutput.write(
     `Petrinaut stdio ready for ${optimization ? "optimization manifest" : "model"} ${modelLabel}\n`,
   );
+  diagnostics.log("info", "bootstrap_completed");
 
   while (true) {
     const next = await iterator.next();
@@ -136,14 +147,30 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
         id: null,
         error: { message: "Request line is too large" },
       });
+      diagnostics.log("warn", "request", {
+        id: null,
+        method: null,
+        durationMs: 0,
+        outcome: "error",
+      });
       continue;
     }
-    handleProtocolLine(
+    const startedAt = performance.now();
+    const handled = handleProtocolLine(
       model,
       line,
       (value) => writeResponse(output, value),
       sdcpn,
       optimization,
     );
+    if (handled) {
+      diagnostics.log(handled.outcome === "ok" ? "info" : "warn", "request", {
+        id: handled.id,
+        method: handled.method,
+        durationMs: Math.round(performance.now() - startedAt),
+        outcome: handled.outcome,
+      });
+    }
   }
+  diagnostics.log("info", "stdin_eof");
 }

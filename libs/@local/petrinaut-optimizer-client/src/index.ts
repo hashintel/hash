@@ -6,6 +6,7 @@ export {
 } from "./open-optimization-stream.js";
 export type {
   OpenPetrinautOptimizationStreamOptions,
+  PetrinautOptimizationStreamHandle,
   PetrinautOptimizerFetch,
 } from "./open-optimization-stream.js";
 export type { components, operations, paths, webhooks } from "./openapi.gen.js";

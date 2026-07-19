@@ -220,13 +220,17 @@ export const createPetrinautOptimizationHandler = ({
   origin,
 }: {
   fetchImpl: PetrinautOptimizerFetch;
-  logger: Pick<Logger, "warn">;
+  logger: Pick<Logger, "child" | "info" | "warn">;
   origin: URL | null;
 }): RequestHandler => {
   let activeOptimizationCount = 0;
   const activeUserIds = new Set<string>();
 
   return async (request, response) => {
+    const startedAt = Date.now();
+    const requestId = response.get("x-hash-request-id") ?? "";
+    const requestLogger = logger.child({ requestId });
+
     if (!request.user) {
       response.status(401).json({ error: "Authentication required" });
       return;
@@ -240,12 +244,21 @@ export const createPetrinautOptimizationHandler = ({
 
     const userId = request.user.accountId;
     if (activeUserIds.has(userId)) {
+      requestLogger.warn("Petrinaut optimization rejected: account busy", {
+        activeOptimizationCount,
+        userId,
+      });
       response.status(429).json({
         error: "An optimization is already running for this account",
       });
       return;
     }
     if (activeOptimizationCount >= MAX_CONCURRENT_OPTIMIZATIONS) {
+      requestLogger.warn("Petrinaut optimization rejected: at capacity", {
+        activeOptimizationCount,
+        maxConcurrentOptimizations: MAX_CONCURRENT_OPTIMIZATIONS,
+        userId,
+      });
       response.status(429).json({ error: "Petrinaut optimizer is busy" });
       return;
     }
@@ -261,32 +274,59 @@ export const createPetrinautOptimizationHandler = ({
       response.status(400).json(INVALID_OPTIMIZATION_REQUEST);
       return;
     }
-    if (Buffer.byteLength(serializedBody, "utf8") > MAX_REQUEST_BYTES) {
+    const bodyBytes = Buffer.byteLength(serializedBody, "utf8");
+    if (bodyBytes > MAX_REQUEST_BYTES) {
+      requestLogger.warn("Petrinaut optimization rejected: body too large", {
+        bodyBytes,
+        userId,
+      });
       response.status(413).json({ error: "Optimization request is too large" });
       return;
     }
 
     const input = petrinautOptimizationInputSchema.safeParse(request.body);
     if (!input.success) {
+      const details = summarizeValidationIssues(input.error.issues);
+      // Log only issue counts and schema paths — never the validation
+      // messages or the manifest itself, which can embed user-authored code.
+      requestLogger.warn("Petrinaut optimization request failed validation", {
+        issueCount: input.error.issues.length,
+        issuePaths: details.issues.map((issue) => issue.path),
+        issuePathsTruncated: details.truncated,
+        userId,
+      });
       response.status(400).json({
         ...INVALID_OPTIMIZATION_REQUEST,
-        details: summarizeValidationIssues(input.error.issues),
+        details,
       });
       return;
     }
 
+    requestLogger.info("Petrinaut optimization request accepted", {
+      bodyBytes,
+      requestedTrials: input.data.study.trials,
+      userId,
+    });
+
     activeOptimizationCount += 1;
     activeUserIds.add(userId);
     const lifecycle = createOptimizationRequestLifecycle(request, response);
+    let optimizationRunId: string | null = null;
 
     try {
-      const upstreamEvents = await openPetrinautOptimizationStream({
+      const upstream = await openPetrinautOptimizationStream({
         endpoint: new URL("/optimize/all", origin),
         fetchImpl,
         input: input.data,
         maxEventBytes: MAX_EVENT_BYTES,
         onActivity: lifecycle.resetIdleTimeout,
+        ...(requestId ? { requestId } : {}),
         signal: lifecycle.signal,
+      });
+      optimizationRunId = upstream.optimizationRunId;
+      requestLogger.info("Petrinaut optimization stream opened", {
+        optimizationRunId,
+        userId,
       });
 
       response.status(200);
@@ -298,19 +338,38 @@ export const createPetrinautOptimizationHandler = ({
       response.flushHeaders();
       lifecycle.markResponseStarted();
       await forwardOptimizationEvents(
-        upstreamEvents,
+        upstream.events,
         response,
         lifecycle.markTerminalEvent,
         lifecycle.signal,
       );
       response.end();
+      requestLogger.info("Petrinaut optimization finished", {
+        durationMs: Date.now() - startedAt,
+        optimizationRunId,
+        outcome: "completed",
+        userId,
+      });
     } catch (error) {
+      const durationMs = Date.now() - startedAt;
       if (lifecycle.state.clientDisconnected || response.destroyed) {
+        requestLogger.info("Petrinaut optimization finished", {
+          durationMs,
+          optimizationRunId,
+          outcome: "client-disconnected",
+          userId,
+        });
         return;
       }
-      logger.warn("Petrinaut optimization failed", {
+      requestLogger.warn("Petrinaut optimization failed", {
+        durationMs,
         error,
+        optimizationRunId,
+        outcome: lifecycle.state.timeoutKind
+          ? `timeout:${lifecycle.state.timeoutKind}`
+          : "upstream-error",
         timeoutKind: lifecycle.state.timeoutKind,
+        userId,
       });
       if (!response.headersSent) {
         if (
@@ -343,9 +402,13 @@ export const createPetrinautOptimizationHandler = ({
             retryable: true,
           } satisfies PetrinautOptimizationEvent);
         } catch (writeError) {
-          logger.warn("Could not report Petrinaut optimization failure", {
-            error: writeError,
-          });
+          requestLogger.warn(
+            "Could not report Petrinaut optimization failure",
+            {
+              error: writeError,
+              optimizationRunId,
+            },
+          );
         }
       }
       if (!response.writableEnded) {

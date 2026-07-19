@@ -16,6 +16,7 @@ from typing import Any, Literal, TypeAlias, cast
 import optuna
 from fastapi import Request
 
+from src.logging_config import request_correlation
 from src.petrinaut_client import PetrinautModel, PetrinautRunError
 from src.utils import Phase, set_status
 
@@ -174,6 +175,9 @@ class PetrinautOptimizer:
             sampler=self.sampler,
         )
         self.pn_model = pn_model
+        # The CLI adapter carries the run's correlation id; fall back to None
+        # for adapters (and test doubles) created without one.
+        self.correlation_id = getattr(pn_model, "correlation_id", None)
         self.lock = threading.Lock()
 
     def suggest(self, trial: optuna.Trial) -> dict[str, Scalar]:
@@ -205,7 +209,11 @@ class PetrinautOptimizer:
         return values
 
     def objective(self, trial: optuna.Trial) -> float:
-        """Propose one flat parameter set and ask Petrinaut to evaluate it."""
+        """Propose one flat parameter set and ask Petrinaut to evaluate it.
+
+        The per-trial logs only contain optimizer-proposed scalar values and
+        CLI error strings — never the manifest or user-authored code.
+        """
         parameter_values = self.suggest(trial)
         try:
             value = self.pn_model.objective(parameter_values)
@@ -214,6 +222,11 @@ class PetrinautOptimizer:
                 "trial %d failed — pruned\nstderr: %s",
                 trial.number,
                 str(error),
+                extra={
+                    "event": "trial_pruned",
+                    "run_id": self.correlation_id,
+                    "trial": trial.number,
+                },
             )
             raise optuna.TrialPruned() from error
 
@@ -222,6 +235,12 @@ class PetrinautOptimizer:
             trial.number,
             value,
             parameter_values,
+            extra={
+                "event": "trial_completed",
+                "run_id": self.correlation_id,
+                "trial": trial.number,
+                "objective": value,
+            },
         )
         return value
 
@@ -230,11 +249,20 @@ class PetrinautOptimizer:
     ) -> AsyncIterator[str]:
         """Stream Yannis's per-trial SSE frames, followed by the done frame."""
         app = request.app
+        log_context = {**request_correlation(request), "run_id": run_id}
         if not self.lock.acquire(blocking=False):
+            log.warning(
+                "optimization study rejected: optimizer already running",
+                extra={"event": "study_already_running", **log_context},
+            )
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
 
         set_status(app, run_id, phase=Phase.running, detail="optimization running")
+        log.info(
+            "optimization study started",
+            extra={"event": "study_started", "trials": n_trials, **log_context},
+        )
         loop = asyncio.get_running_loop()
         events: asyncio.Queue[dict[str, Any] | object] = asyncio.Queue()
         stop_flag = threading.Event()
@@ -281,6 +309,10 @@ class PetrinautOptimizer:
                         phase=Phase.idle,
                         detail="client disconnected, stopped",
                     )
+                    log.info(
+                        "client disconnected, stopping optimization study",
+                        extra={"event": "client_disconnected", **log_context},
+                    )
                     break
                 heartbeat_wait = max(0.0, next_heartbeat - loop.time())
                 try:
@@ -301,6 +333,14 @@ class PetrinautOptimizer:
                         detail="optimization completed",
                     )
                     completed = True
+                    log.info(
+                        "optimization study completed",
+                        extra={
+                            "event": "study_completed",
+                            "trials": n_trials,
+                            **log_context,
+                        },
+                    )
                     yield "event: done\ndata: {}\n\n"
                     break
                 event = cast(dict[str, Any], item)
@@ -310,6 +350,14 @@ class PetrinautOptimizer:
                         run_id,
                         phase=Phase.error,
                         detail=cast(str, event.get("message")),
+                    )
+                    log.warning(
+                        "optimization study failed",
+                        extra={
+                            "event": "study_failed",
+                            "detail": str(event.get("message"))[:500],
+                            **log_context,
+                        },
                     )
                 yield f"data: {json.dumps(event)}\n\n"
                 if event.get("state") == "ERROR":
@@ -324,7 +372,8 @@ class PetrinautOptimizer:
                 await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
                 if worker.is_alive():
                     log.error(
-                        "Petrinaut optimizer worker did not stop after CLI shutdown"
+                        "Petrinaut optimizer worker did not stop after CLI shutdown",
+                        extra={"event": "worker_join_timeout", **log_context},
                     )
             finally:
                 self.lock.release()
@@ -334,11 +383,20 @@ class PetrinautOptimizer:
     ) -> AsyncIterator[str]:
         """Stream Yannis's best-so-far SSE frames, followed by the done frame."""
         app = request.app
+        log_context = {**request_correlation(request), "run_id": run_id}
         if not self.lock.acquire(blocking=False):
+            log.warning(
+                "optimization study rejected: optimizer already running",
+                extra={"event": "study_already_running", **log_context},
+            )
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
 
         set_status(app, run_id, phase=Phase.running, detail="optimization running")
+        log.info(
+            "optimization study started",
+            extra={"event": "study_started", "trials": n_trials, **log_context},
+        )
         loop = asyncio.get_running_loop()
         events: asyncio.Queue[dict[str, Any] | object] = asyncio.Queue()
         stop_flag = threading.Event()
@@ -390,6 +448,10 @@ class PetrinautOptimizer:
                         phase=Phase.idle,
                         detail="client disconnected, stopped",
                     )
+                    log.info(
+                        "client disconnected, stopping optimization study",
+                        extra={"event": "client_disconnected", **log_context},
+                    )
                     break
                 heartbeat_wait = max(0.0, next_heartbeat - loop.time())
                 try:
@@ -410,6 +472,14 @@ class PetrinautOptimizer:
                         detail="optimization completed",
                     )
                     completed = True
+                    log.info(
+                        "optimization study completed",
+                        extra={
+                            "event": "study_completed",
+                            "trials": n_trials,
+                            **log_context,
+                        },
+                    )
                     yield "event: done\ndata: {}\n\n"
                     break
                 event = cast(dict[str, Any], item)
@@ -419,6 +489,14 @@ class PetrinautOptimizer:
                         run_id,
                         phase=Phase.error,
                         detail=cast(str, event.get("message")),
+                    )
+                    log.warning(
+                        "optimization study failed",
+                        extra={
+                            "event": "study_failed",
+                            "detail": str(event.get("message"))[:500],
+                            **log_context,
+                        },
                     )
                 yield f"data: {json.dumps(event)}\n\n"
                 if event.get("state") == "ERROR":
@@ -433,7 +511,8 @@ class PetrinautOptimizer:
                 await asyncio.to_thread(worker.join, _WORKER_SHUTDOWN_TIMEOUT_SECONDS)
                 if worker.is_alive():
                     log.error(
-                        "Petrinaut optimizer worker did not stop after CLI shutdown"
+                        "Petrinaut optimizer worker did not stop after CLI shutdown",
+                        extra={"event": "worker_join_timeout", **log_context},
                     )
             finally:
                 self.lock.release()

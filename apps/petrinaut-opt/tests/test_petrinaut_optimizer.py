@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import threading
 import time
 from typing import Any
@@ -127,6 +128,49 @@ def test_objective_sends_only_flat_suggested_values(
     assert model.evaluations == [{"rate": 1.25, "count": 8, "enabled": True}]
 
 
+def test_trial_outcomes_are_logged_with_the_model_correlation_id(
+    optimization_description: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    model = FakeModel(optimization_description)
+    model.correlation_id = "run-c1"  # type: ignore[attr-defined]
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
+
+    with caplog.at_level(logging.INFO, logger="pn_optimize"):
+        optimizer.objective(trial)
+
+    completed = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "trial_completed"
+    )
+    assert completed.run_id == "run-c1"
+    assert completed.trial == 0
+
+
+def test_pruned_trials_are_logged_with_the_model_correlation_id(
+    optimization_description: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    model = FailingModel(optimization_description, PetrinautRunError("scenario failed"))
+    model.correlation_id = "run-c2"  # type: ignore[attr-defined]
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
+
+    with caplog.at_level(logging.WARNING, logger="pn_optimize"):
+        with pytest.raises(optuna.TrialPruned):
+            optimizer.objective(trial)
+
+    pruned = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "trial_pruned"
+    )
+    assert pruned.run_id == "run-c2"
+    assert pruned.trial == 0
+
+
 def test_objective_prunes_only_evaluation_errors(
     optimization_description: dict,
 ) -> None:
@@ -206,6 +250,72 @@ def test_rejects_invalid_cli_descriptions(
         PetrinautOptimizer(  # type: ignore[arg-type]
             FakeModel(optimization_description)
         )
+
+
+def test_stream_all_logs_the_study_lifecycle_with_correlation(
+    optimization_description: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = ConnectedRequest()
+    request.headers = {"x-hash-request-id": "request-s1"}  # type: ignore[attr-defined]
+    run_id = _run_id(request)
+
+    async def consume() -> None:
+        async for _frame in optimizer.stream_all(
+            request,
+            run_id,
+            optimizer.n_trials,  # type: ignore[arg-type]
+        ):
+            pass
+
+    with caplog.at_level(logging.INFO, logger="pn_optimize"):
+        asyncio.run(consume())
+
+    events = {
+        getattr(record, "event", None): record
+        for record in caplog.records
+        if record.name == "pn_optimize"
+    }
+    for expected in ("study_started", "study_completed"):
+        record = events[expected]
+        assert record.run_id == run_id
+        assert record.request_id == "request-s1"
+        assert record.trials == optimizer.n_trials
+
+
+def test_disconnect_is_logged_with_the_run_id(
+    optimization_description: dict,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    optimization_description["study"]["trials"] = 1
+    monkeypatch.setattr(petrinaut_optimizer, "_WORKER_SHUTDOWN_TIMEOUT_SECONDS", 0.01)
+    model = StubbornModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    request = DisconnectedAfterWorkerStarts(model)
+    run_id = _run_id(request)
+
+    async def consume() -> None:
+        async for _frame in optimizer.stream_all(
+            request,
+            run_id,
+            optimizer.n_trials,  # type: ignore[arg-type]
+        ):
+            pass
+        model.release.set()
+        await asyncio.sleep(0.05)
+
+    with caplog.at_level(logging.INFO, logger="pn_optimize"):
+        asyncio.run(consume())
+
+    disconnected = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "client_disconnected"
+    )
+    assert disconnected.run_id == run_id
 
 
 def test_stream_all_preserves_the_existing_sse_frame_shape(

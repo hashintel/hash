@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import signal
 import subprocess
 import sys
@@ -54,6 +55,9 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
 ) -> None:
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "must-not-leak")
     monkeypatch.setenv("PETRINAUT_CLI_NODE_OPTIONS", "--max-old-space-size=768")
+    # The spawn environment stays an allowlist: the correlation id must be
+    # the explicit per-run value, never read from the ambient environment.
+    monkeypatch.setenv("PETRINAUT_CORRELATION_ID", "ambient-must-not-leak")
     process = FakeProcess(
         [
             {"id": 1, "result": optimization_description},
@@ -70,6 +74,7 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     model = PetrinautModel(
         optimization_manifest,
         command=("node", "/cli.js"),
+        correlation_id="run-123",
         popen_factory=popen_factory,
     )
     model.start()
@@ -89,6 +94,7 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     assert invocation["kwargs"]["start_new_session"] is True
     assert invocation["kwargs"]["env"]["NODE_OPTIONS"] == ("--max-old-space-size=768")
     assert "AWS_SECRET_ACCESS_KEY" not in invocation["kwargs"]["env"]
+    assert invocation["kwargs"]["env"]["PETRINAUT_CORRELATION_ID"] == "run-123"
     assert lines == [
         optimization_manifest,
         {"id": 1, "method": "optimization.describe"},
@@ -208,6 +214,175 @@ def test_drains_stderr_after_the_ready_line(
 
     assert drained.wait(timeout=1)
     model.close()
+
+
+def test_spawn_environment_omits_an_unset_correlation_id(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PETRINAUT_CORRELATION_ID", "ambient-must-not-leak")
+    invocation: dict[str, Any] = {}
+    process = FakeProcess([])
+
+    def popen_factory(command: list[str], **kwargs: Any) -> FakeProcess:
+        invocation["kwargs"] = kwargs
+        return process
+
+    model = PetrinautModel(optimization_manifest, popen_factory=popen_factory)
+    model.start()
+    model.close()
+
+    assert "PETRINAUT_CORRELATION_ID" not in invocation["kwargs"]["env"]
+
+
+def test_forwards_cli_stderr_lines_into_logs_with_the_correlation_id(
+    optimization_manifest: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    diagnostics = b'{"event":"request","outcome":"ok"}\nplain diagnostic\n'
+    process = FakeProcess([])
+    process.stderr = io.BytesIO(
+        b"Petrinaut stdio ready for optimization\n" + diagnostics
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        correlation_id="run-777",
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+
+    with caplog.at_level(logging.INFO, logger="pn_cli"):
+        model.start()
+        stderr_thread = model._stderr_thread
+        assert stderr_thread is not None
+        stderr_thread.join(timeout=1)
+        model.close()
+
+    forwarded = [
+        record for record in caplog.records if record.name == "pn_cli"
+    ]
+    assert [record.getMessage() for record in forwarded] == [
+        '{"event":"request","outcome":"ok"}',
+        "plain diagnostic",
+    ]
+    assert all(record.run_id == "run-777" for record in forwarded)
+    assert all(record.event == "cli_stderr" for record in forwarded)
+    assert all(record.stderr_truncated is False for record in forwarded)
+
+
+def test_truncates_oversized_cli_stderr_lines(
+    optimization_manifest: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    oversized = b"x" * (petrinaut_client.STDERR_LINE_LOG_CHARACTERS + 500)
+    process = FakeProcess([])
+    process.stderr = io.BytesIO(
+        b"Petrinaut stdio ready for optimization\n" + oversized + b"\nshort\n"
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        correlation_id="run-778",
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+
+    with caplog.at_level(logging.INFO, logger="pn_cli"):
+        model.start()
+        stderr_thread = model._stderr_thread
+        assert stderr_thread is not None
+        stderr_thread.join(timeout=1)
+        model.close()
+
+    forwarded = [
+        record for record in caplog.records if record.name == "pn_cli"
+    ]
+    assert [len(record.getMessage()) for record in forwarded] == [
+        petrinaut_client.STDERR_LINE_LOG_CHARACTERS,
+        len("short"),
+    ]
+    assert forwarded[0].stderr_truncated is True
+    assert forwarded[1].stderr_truncated is False
+
+
+def test_stderr_forwarding_bounds_memory_for_newline_free_floods(
+    optimization_manifest: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    flood = b"y" * (petrinaut_client._MAX_PENDING_STDERR_LINE_BYTES * 3)
+    process = FakeProcess([])
+    process.stderr = io.BytesIO(
+        b"Petrinaut stdio ready for optimization\n" + flood + b"\nafter\n"
+    )
+    model = PetrinautModel(
+        optimization_manifest,
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+
+    with caplog.at_level(logging.INFO, logger="pn_cli"):
+        model.start()
+        stderr_thread = model._stderr_thread
+        assert stderr_thread is not None
+        stderr_thread.join(timeout=1)
+        model.close()
+
+    forwarded = [
+        record for record in caplog.records if record.name == "pn_cli"
+    ]
+    # The flood is logged once, truncated; its tail is discarded, and the
+    # next complete line is forwarded normally.
+    assert [record.getMessage()[:5] for record in forwarded] == ["yyyyy", "after"]
+    assert forwarded[0].stderr_truncated is True
+    assert len(forwarded[0].getMessage()) == (
+        petrinaut_client.STDERR_LINE_LOG_CHARACTERS
+    )
+
+
+def test_graceful_close_logs_the_eof_termination_path(
+    optimization_manifest: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    process = FakeProcess([])
+    model = PetrinautModel(
+        optimization_manifest,
+        correlation_id="run-779",
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    with caplog.at_level(logging.INFO, logger="pn_client"):
+        model.close()
+
+    termination = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "cli_terminated"
+    )
+    assert termination.termination == "graceful-eof"
+    assert termination.run_id == "run-779"
+    assert termination.graceful is True
+
+
+def test_prompt_close_logs_the_signalled_termination_path(
+    optimization_manifest: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    process = FakeProcess([])
+    model = PetrinautModel(
+        optimization_manifest,
+        correlation_id="run-780",
+        popen_factory=lambda *_args, **_kwargs: process,
+    )
+    model.start()
+
+    with caplog.at_level(logging.INFO, logger="pn_client"):
+        model.close(graceful=False)
+
+    termination = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "cli_terminated"
+    )
+    assert termination.termination == "sigterm"
+    assert termination.run_id == "run-780"
+    assert termination.graceful is False
 
 
 def test_close_signals_the_isolated_process_group(

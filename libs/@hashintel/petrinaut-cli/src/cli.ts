@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 
 import { serve } from "./commands/serve";
 import { serveStdio } from "./commands/stdio";
+import { correlationIdFromEnvironment } from "./runtime/diagnostics";
 
 function printUsage(): void {
   process.stderr.write(`Usage:
@@ -84,6 +85,10 @@ async function main(): Promise<void> {
     );
   }
 
+  // Read the parent-supplied correlation id once at startup; it is passed
+  // down explicitly so the serve loop never reads ambient state itself.
+  const correlationId = correlationIdFromEnvironment(process.env);
+
   if (parsed.values.socket !== undefined) {
     if (parsed.values.socket.trim() === "") {
       throw new Error("--socket requires a non-empty path");
@@ -96,13 +101,13 @@ async function main(): Promise<void> {
       socketPath: parsed.values.socket,
     });
   } else if (modelStdin) {
-    await serveStdio({ modelStdin: true });
+    await serveStdio({ modelStdin: true, correlationId });
   } else if (modelPath) {
-    await serveStdio({ modelPath });
+    await serveStdio({ modelPath, correlationId });
   } else if (optimizationStdin) {
-    await serveStdio({ optimizationStdin: true });
+    await serveStdio({ optimizationStdin: true, correlationId });
   } else if (optimizationPath) {
-    await serveStdio({ optimizationPath });
+    await serveStdio({ optimizationPath, correlationId });
   }
 }
 
