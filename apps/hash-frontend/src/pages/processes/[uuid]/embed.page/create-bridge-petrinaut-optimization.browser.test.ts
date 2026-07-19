@@ -95,6 +95,8 @@ describe("createBridgePetrinautOptimization", () => {
       ok: true,
       status: 200,
       statusText: "OK",
+      hashRequestId: "req-1",
+      optimizationRunId: "run-1",
     });
     sendFromHost({
       kind: "optimizationChunk",
@@ -145,5 +147,45 @@ describe("createBridgePetrinautOptimization", () => {
           (message as { requestId?: string }).requestId === requestId,
       ),
     ).toBe(true);
+  });
+
+  it("classifies a mid-stream host error with its correlation ids", async () => {
+    const postMessage = vi
+      .spyOn(window.parent, "postMessage")
+      .mockImplementation(() => undefined);
+    const iterator = createBridgePetrinautOptimization()
+      .optimize(input)
+      [Symbol.asyncIterator]();
+
+    const firstEvent = iterator.next();
+    await vi.waitFor(() => {
+      expect(getOptimizationRequest(postMessage.mock.calls)).toBeDefined();
+    });
+    const requestId = getOptimizationRequest(postMessage.mock.calls)?.requestId;
+
+    sendFromHost({
+      kind: "optimizationResponseStart",
+      requestId,
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      hashRequestId: "req-9",
+      optimizationRunId: "run-9",
+    });
+    sendFromHost({
+      kind: "optimizationError",
+      requestId,
+      category: "network",
+      message: "The optimization service connection was interrupted",
+    });
+
+    // The bridge reclassifies the host error and backfills the correlation ids
+    // captured from the earlier response-start message.
+    await expect(firstEvent).rejects.toMatchObject({
+      name: "PetrinautOptimizationTransportError",
+      category: "network",
+      hashRequestId: "req-9",
+      optimizationRunId: "run-9",
+    });
   });
 });

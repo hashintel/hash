@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parsePetrinautOptimizationResponse } from "./create-bridge-petrinaut-optimization";
+import {
+  parsePetrinautOptimizationResponse,
+  PetrinautOptimizationTransportError,
+} from "./create-bridge-petrinaut-optimization";
 
 const responseFromChunks = (chunks: string[], status = 200): Response => {
   const encoder = new TextEncoder();
@@ -41,28 +44,50 @@ describe("parsePetrinautOptimizationResponse", () => {
     ]);
   });
 
-  it("rejects a stream with no terminal event", async () => {
+  it("rejects a stream with no terminal event as a protocol error", async () => {
     const response = responseFromChunks([
       '{"type":"started","requestedTrials":2}\n',
     ]);
 
-    await expect(collect(response)).rejects.toThrow("without a terminal event");
+    await expect(collect(response)).rejects.toMatchObject({
+      category: "protocol",
+      message: expect.stringContaining("without a terminal event"),
+    });
   });
 
-  it("rejects data after a terminal event", async () => {
+  it("rejects data after a terminal event as a protocol error", async () => {
     const response = responseFromChunks([
       '{"type":"error","code":"failed","message":"nope","retryable":false}\n',
       '{"type":"started","requestedTrials":2}\n',
     ]);
 
-    await expect(collect(response)).rejects.toThrow("after a terminal event");
+    await expect(collect(response)).rejects.toMatchObject({
+      category: "protocol",
+      message: expect.stringContaining("after a terminal event"),
+    });
   });
 
-  it("surfaces a structured HTTP error", async () => {
+  it("surfaces a structured HTTP error with status and correlation ids", async () => {
     const response = new Response(JSON.stringify({ error: "Not configured" }), {
       status: 503,
+      headers: {
+        "x-hash-request-id": "req-1",
+        "x-optimization-run-id": "run-1",
+      },
     });
 
-    await expect(collect(response)).rejects.toThrow("Not configured");
+    const error = await collect(response).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(PetrinautOptimizationTransportError);
+    expect(error).toMatchObject({
+      category: "http",
+      httpStatus: 503,
+      hashRequestId: "req-1",
+      optimizationRunId: "run-1",
+      message: "Not configured",
+    });
   });
 });

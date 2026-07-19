@@ -77,6 +77,11 @@ Closing the drawer does not stop the optimization. Use **Cancel** to abort an
 active run. Completed, cancelled, and failed records can be removed from their
 result drawer.
 
+If a run fails, the drawer explains what happened — for example, a lost
+connection reports how many of the requested trials had completed and includes
+a diagnostic identifier for support. Trials received before the failure are
+kept, and a **Retry** action starts a fresh run with the same settings.
+
 For the initial integration, an optimization is tied to its browser connection.
 Closing or reloading the page cancels the active request rather than creating a
 persistent background job.

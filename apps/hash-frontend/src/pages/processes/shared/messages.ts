@@ -185,6 +185,13 @@ export type HostToIframeMessage =
       ok: boolean;
       status: number;
       statusText: string;
+      /**
+       * NodeAPI's `x-hash-request-id` / `X-Optimization-Run-ID` response
+       * headers, forwarded so a later transport failure remains traceable to
+       * the NodeAPI and optimizer logs. Null when the header is absent.
+       */
+      hashRequestId: string | null;
+      optimizationRunId: string | null;
     }
   | {
       /** A verbatim chunk of the optimizer's NDJSON response body. */
@@ -198,10 +205,20 @@ export type HostToIframeMessage =
       requestId: string;
     }
   | {
-      /** The optimization fetch failed before or while streaming. */
+      /**
+       * The optimization fetch failed before or while streaming. `category`
+       * classifies the failure so the UI can show an actionable message
+       * instead of a raw exception string; `message` is a safe, human-readable
+       * summary that never contains internal or user-authored content.
+       */
       kind: "optimizationError";
       requestId: string;
+      category: "network" | "http" | "protocol" | "aborted";
       message: string;
+      hashRequestId?: string | null;
+      optimizationRunId?: string | null;
+      httpStatus?: number;
+      errorName?: string;
     };
 
 /**

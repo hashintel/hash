@@ -158,6 +158,101 @@ describe("OptimizationsProvider", () => {
     });
   });
 
+  it("classifies a transport failure and preserves received trials", async () => {
+    class FakeTransportError extends Error {
+      category = "network" as const;
+      hashRequestId = "req-7";
+      optimizationRunId = "run-7";
+      httpStatus = null;
+    }
+    const capability: PetrinautOptimization = {
+      async *optimize() {
+        yield { type: "started", requestedTrials: 2 };
+        yield {
+          type: "trial",
+          trial: 0,
+          parameters: { infected_ratio: 0.01 },
+          objective: 0.4,
+          state: "complete",
+          best: {
+            trial: 0,
+            parameters: { infected_ratio: 0.01 },
+            objective: 0.4,
+          },
+        };
+        throw new FakeTransportError("connection interrupted");
+      },
+    };
+    const getValue = renderProvider(capability);
+
+    await act(async () => {
+      await getValue().createOptimization(input);
+    });
+
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("error"),
+    );
+    const optimization = getValue().optimizations[0]!;
+    // The raw exception message is replaced with an actionable, progress-aware
+    // message carrying the diagnostic id, and the received trial is kept.
+    expect(optimization.error).toBe(
+      "Connection to the optimization service was interrupted after 1 of 2 trials. Retry the optimization. (diagnostic id: run-7)",
+    );
+    expect(optimization.errorCategory).toBe("network");
+    expect(optimization.errorDiagnostics).toEqual({
+      hashRequestId: "req-7",
+      optimizationRunId: "run-7",
+      httpStatus: null,
+    });
+    expect(optimization.trials).toHaveLength(1);
+  });
+
+  it("retries a failed optimization from its original input", async () => {
+    let call = 0;
+    const capability: PetrinautOptimization = {
+      async *optimize(request) {
+        call += 1;
+        if (call === 1) {
+          throw Object.assign(new Error("interrupted"), {
+            category: "network",
+          });
+        }
+        yield {
+          type: "complete",
+          requestedTrials: request.study.trials,
+          completedTrials: 0,
+          prunedTrials: 0,
+          failedTrials: 0,
+          best: null,
+        };
+      },
+    };
+    const getValue = renderProvider(capability);
+    let failedId = "";
+
+    await act(async () => {
+      failedId = await getValue().createOptimization(input);
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("error"),
+    );
+
+    let retriedId: string | null = null;
+    await act(async () => {
+      retriedId = await getValue().retryOptimization(failedId);
+    });
+
+    expect(retriedId).not.toBeNull();
+    expect(retriedId).not.toBe(failedId);
+    await waitFor(() =>
+      expect(
+        getValue().optimizations.find((o) => o.id === retriedId)?.status,
+      ).toBe("complete"),
+    );
+    // The retry reuses the failed run's input, so the failed record remains.
+    expect(getValue().optimizations).toHaveLength(2);
+  });
+
   it("aborts and marks an active optimization as cancelled", async () => {
     const capability: PetrinautOptimization = {
       async *optimize(_request, options) {

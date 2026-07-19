@@ -283,7 +283,8 @@ export const ViewOptimizationDrawer = ({
   onClose: () => void;
   optimization: OptimizationRecord | undefined;
 }) => {
-  const { cancelOptimization, removeOptimization } = use(OptimizationsContext);
+  const { cancelOptimization, removeOptimization, retryOptimization } =
+    use(OptimizationsContext);
 
   if (!open || !optimization) {
     return null;
@@ -370,6 +371,23 @@ export const ViewOptimizationDrawer = ({
                 onClick={() => cancelOptimization(optimization.id)}
               >
                 Cancel
+              </Button>
+            ) : null}
+            {optimization.status === "error" ? (
+              <Button
+                variant="subtle"
+                tone="neutral"
+                size="sm"
+                prefix={<Icon name="rotate" size="sm" />}
+                onClick={() => {
+                  void retryOptimization(optimization.id).then((newId) => {
+                    if (newId !== null) {
+                      onClose();
+                    }
+                  });
+                }}
+              >
+                Retry
               </Button>
             ) : null}
             <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>

@@ -522,6 +522,10 @@ export const ProcessEditor = ({
          * with HASH's session, then relay the NDJSON response byte-for-byte.
          */
         void (async () => {
+          // Captured from the response headers so a transport failure that
+          // happens mid-stream stays traceable to the NodeAPI/optimizer logs.
+          let hashRequestId: string | null = null;
+          let optimizationRunId: string | null = null;
           try {
             const response = await fetch(PETRINAUT_OPTIMIZATION_API, {
               method: "POST",
@@ -531,12 +535,17 @@ export const ProcessEditor = ({
               signal: controller.signal,
             });
 
+            hashRequestId = response.headers.get("x-hash-request-id");
+            optimizationRunId = response.headers.get("x-optimization-run-id");
+
             bridge.send({
               kind: "optimizationResponseStart",
               requestId,
               ok: response.ok,
               status: response.status,
               statusText: response.statusText,
+              hashRequestId,
+              optimizationRunId,
             });
 
             if (response.body) {
@@ -556,10 +565,17 @@ export const ProcessEditor = ({
           } catch (error) {
             // An iframe-initiated abort is expected control flow.
             if (!controller.signal.aborted) {
+              // This catch only sees transport-level failures of the host's
+              // own fetch/read (a reset connection surfaces as a `TypeError`);
+              // HTTP and protocol classification happen in the iframe bridge.
               bridge.send({
                 kind: "optimizationError",
                 requestId,
-                message: error instanceof Error ? error.message : String(error),
+                category: "network",
+                message: "The optimization service connection was interrupted",
+                hashRequestId,
+                optimizationRunId,
+                errorName: error instanceof Error ? error.name : undefined,
               });
             }
           } finally {

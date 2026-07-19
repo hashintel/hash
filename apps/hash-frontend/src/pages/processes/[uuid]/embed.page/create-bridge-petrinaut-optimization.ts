@@ -11,12 +11,52 @@ import {
   nextRequestId,
 } from "../../shared/messages";
 
+/** Classification of an optimization transport failure. */
+export type OptimizationErrorCategory =
+  | "network"
+  | "http"
+  | "protocol"
+  | "aborted";
+
+/**
+ * A classified optimization transport failure carrying the correlation ids
+ * needed to trace it to the NodeAPI and optimizer logs. Consumers build a
+ * user-facing message from `category` and progress rather than surfacing the
+ * raw `message`.
+ */
+export class PetrinautOptimizationTransportError extends Error {
+  readonly category: OptimizationErrorCategory;
+  readonly hashRequestId: string | null;
+  readonly optimizationRunId: string | null;
+  readonly httpStatus: number | null;
+
+  constructor(
+    message: string,
+    options: {
+      category: OptimizationErrorCategory;
+      hashRequestId?: string | null;
+      optimizationRunId?: string | null;
+      httpStatus?: number | null;
+    },
+  ) {
+    super(message);
+    this.name = "PetrinautOptimizationTransportError";
+    this.category = options.category;
+    this.hashRequestId = options.hashRequestId ?? null;
+    this.optimizationRunId = options.optimizationRunId ?? null;
+    this.httpStatus = options.httpStatus ?? null;
+  }
+}
+
 type PendingRequest = {
   stream: ReadableStream<Uint8Array>;
   controller: ReadableStreamDefaultController<Uint8Array>;
   resolveResponse: (response: Response) => void;
   rejectResponse: (error: Error) => void;
   responded: boolean;
+  /** Correlation ids from the response-start header, for later stream errors. */
+  hashRequestId: string | null;
+  optimizationRunId: string | null;
   clearResponseStartTimeout: () => void;
   cleanup: () => void;
 };
@@ -102,15 +142,31 @@ const ensureListener = () => {
         if (pending.responded) {
           rejectPendingRequest(
             message.requestId,
-            new Error("The optimizer sent more than one response header"),
+            new PetrinautOptimizationTransportError(
+              "The optimizer sent more than one response header",
+              { category: "protocol" },
+            ),
           );
           return;
         }
         pending.responded = true;
+        pending.hashRequestId = message.hashRequestId;
+        pending.optimizationRunId = message.optimizationRunId;
         pending.clearResponseStartTimeout();
+        const headers = new Headers({
+          "content-type": "application/x-ndjson",
+        });
+        // Carry the correlation ids on the synthesized response so the HTTP
+        // error path (`readHttpError`) can attach them too.
+        if (message.hashRequestId !== null) {
+          headers.set("x-hash-request-id", message.hashRequestId);
+        }
+        if (message.optimizationRunId !== null) {
+          headers.set("x-optimization-run-id", message.optimizationRunId);
+        }
         pending.resolveResponse(
           new Response(pending.stream, {
-            headers: { "content-type": "application/x-ndjson" },
+            headers,
             status: message.status,
             statusText: message.statusText,
           }),
@@ -129,7 +185,10 @@ const ensureListener = () => {
         if (!pending.responded) {
           rejectPendingRequest(
             message.requestId,
-            new Error("The optimizer ended before sending a response"),
+            new PetrinautOptimizationTransportError(
+              "The optimizer ended before sending a response",
+              { category: "protocol" },
+            ),
           );
           return;
         }
@@ -143,7 +202,16 @@ const ensureListener = () => {
         break;
       }
       case "optimizationError":
-        rejectPendingRequest(message.requestId, new Error(message.message));
+        rejectPendingRequest(
+          message.requestId,
+          new PetrinautOptimizationTransportError(message.message, {
+            category: message.category,
+            hashRequestId: message.hashRequestId ?? pending.hashRequestId,
+            optimizationRunId:
+              message.optimizationRunId ?? pending.optimizationRunId,
+            httpStatus: message.httpStatus,
+          }),
+        );
         break;
     }
   });
@@ -178,7 +246,10 @@ const bridgeFetch = (
     postToHost({ kind: "optimizationAbort", requestId });
     rejectPendingRequest(
       requestId,
-      new Error("The optimization service did not respond in time"),
+      new PetrinautOptimizationTransportError(
+        "The optimization service did not respond in time",
+        { category: "network" },
+      ),
     );
   }, RESPONSE_START_TIMEOUT_MS);
   const clearResponseStartTimeout = () => clearTimeout(responseStartTimeout);
@@ -190,6 +261,8 @@ const bridgeFetch = (
       resolveResponse: resolve,
       rejectResponse: reject,
       responded: false,
+      hashRequestId: null,
+      optimizationRunId: null,
       clearResponseStartTimeout,
       cleanup: () => {
         clearResponseStartTimeout();
@@ -208,7 +281,15 @@ const bridgeFetch = (
   return response;
 };
 
-const readHttpError = async (response: Response): Promise<Error> => {
+const readHttpError = async (
+  response: Response,
+): Promise<PetrinautOptimizationTransportError> => {
+  const correlation = {
+    category: "http" as const,
+    hashRequestId: response.headers.get("x-hash-request-id"),
+    optimizationRunId: response.headers.get("x-optimization-run-id"),
+    httpStatus: response.status,
+  };
   const body = await response.text();
   if (body) {
     try {
@@ -220,24 +301,29 @@ const readHttpError = async (response: Response): Promise<Error> => {
             ? json.message
             : null;
       if (message) {
-        return new Error(message);
+        return new PetrinautOptimizationTransportError(message, correlation);
       }
     } catch {
       // Fall through and include the plain response body.
     }
   }
-  return new Error(
+  return new PetrinautOptimizationTransportError(
     body ||
       `Optimization request failed with status ${response.status} ${response.statusText}`,
+    correlation,
   );
 };
+
+/** A protocol violation while decoding the optimizer's NDJSON stream. */
+const protocolError = (message: string) =>
+  new PetrinautOptimizationTransportError(message, { category: "protocol" });
 
 const parseEventLine = (line: string): PetrinautOptimizationEvent => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(line);
   } catch {
-    throw new Error("The optimizer returned malformed NDJSON");
+    throw protocolError("The optimizer returned malformed NDJSON");
   }
   return petrinautOptimizationEventSchema.parse(parsed);
 };
@@ -250,7 +336,7 @@ export async function* parsePetrinautOptimizationResponse(
     throw await readHttpError(response);
   }
   if (!response.body) {
-    throw new Error("The optimizer returned an empty response body");
+    throw protocolError("The optimizer returned an empty response body");
   }
 
   const reader = response.body.getReader();
@@ -261,7 +347,7 @@ export async function* parsePetrinautOptimizationResponse(
 
   const parseAndTrack = (line: string, terminalSeen: boolean) => {
     if (terminalSeen) {
-      throw new Error("The optimizer returned data after a terminal event");
+      throw protocolError("The optimizer returned data after a terminal event");
     }
     const event = parseEventLine(line);
     return {
@@ -298,7 +384,9 @@ export async function* parsePetrinautOptimizationResponse(
       yield parsed.event;
     }
     if (!terminalEventSeen) {
-      throw new Error("The optimizer stream ended without a terminal event");
+      throw protocolError(
+        "The optimizer stream ended without a terminal event",
+      );
     }
   } finally {
     if (!reachedEnd) {
