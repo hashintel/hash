@@ -31,6 +31,7 @@ use crate::{
             quotient::QuotientOptions,
             select::SelectionOptions,
         },
+        lod::stage::LodConfig,
         policy::{CoincidentAdmission, PolicyOverride},
         semantic::SmoothingOptions,
     },
@@ -262,6 +263,14 @@ struct LayoutOptionsDef {
     negative_sample_rate: NonZero<u32>,
 }
 
+/// serde shadow of [`LodConfig`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "LodConfig")]
+struct LodConfigDef {
+    span_log2: u8,
+    max_tile_depth: u8,
+}
+
 /// serde shadow of [`CoincidentAdmission`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "CoincidentAdmission")]
@@ -308,4 +317,6 @@ pub(crate) struct FitConfigDef {
     layout: LayoutOptions,
     #[serde(with = "PolicyOptionsDef")]
     policy: PolicyOptions,
+    #[serde(with = "LodConfigDef")]
+    lod: LodConfig,
 }

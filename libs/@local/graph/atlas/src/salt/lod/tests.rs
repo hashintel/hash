@@ -1,17 +1,20 @@
 use proptest::prelude::*;
+use smallvec::{SmallVec, smallvec};
 use uuid::Uuid;
 
 use super::{
     cascade::{self, CoverageGap},
     key,
     order::BaseOrder,
+    quad::{QuadError, QuadTree},
     rank::{RankInputs, Ranking},
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::{ArchivedEntityId, OntologyRowId},
+    file::quad::Node,
     math::{Bounds2, Vec2},
-    morton::{Depth, MortonKey},
+    morton::{Depth, MortonCell, MortonKey},
 };
 
 fn identity(index: u128) -> ArchivedEntityId {
@@ -524,7 +527,7 @@ fn build_rejects_what_no_columns_cover() {
     );
 
     // No rows admit no frame.
-    let empty = RankInputs::new(&[], &[], &[]).expect("empty columns agree");
+    let empty = RankInputs::<ArchivedEntityId>::new(&[], &[], &[]).expect("empty columns agree");
     assert_eq!(
         Lod::build(&[], empty, 0, LodConfig::default()).unwrap_err(),
         LodError::Frame,
@@ -651,5 +654,329 @@ proptest! {
         prop_assert!(evidence.co_location_excess <= evidence.catch_all_population);
         prop_assert!(evidence.max_tile_delta <= rows.len() as u64);
         prop_assert!(evidence.max_tile_delta >= 1);
+    }
+}
+
+/// Direct types for the hand-stage rows: distinct enough that every
+/// union is distinguishable.
+fn hand_types() -> Vec<SmallVec<OntologyRowId, 2>> {
+    vec![
+        smallvec![OntologyRowId::new(5)],
+        smallvec![OntologyRowId::new(7)],
+        smallvec![OntologyRowId::new(2), OntologyRowId::new(5)],
+        smallvec![OntologyRowId::new(9)],
+    ]
+}
+
+#[test]
+fn quad_build_produces_the_hand_computed_tree() {
+    // The hand-stage cut at span_log2 = 1: the root's cut is bucket 1,
+    // so its run carries buckets 0..=1 (positions 0..2) and only
+    // quadrant (0, 0) - holding the two bucket-2 points - gets a
+    // child. That child's cut is the deepest grid: a leaf whose run
+    // is the catch-all pair (positions 2..4) and whose subtree also
+    // contains the origin point delivered by the root.
+    let (lod, config) = hand_stage();
+    let tree = QuadTree::build(&lod, &hand_types(), config).expect("the fixture builds");
+
+    assert_eq!(
+        tree.nodes,
+        [
+            Node::new([Some(1), None, None, None], 0, 2, 4),
+            Node::new([None; 4], 2, 2, 3),
+        ],
+    );
+
+    // Root: all four rows' types. Child: rows 0, 2, and 3 - the three
+    // points inside quadrant (0, 0) - so {5} | {2, 5} | {9}.
+    assert_eq!(tree.sets.set(0), &[2, 5, 7, 9]);
+    assert_eq!(tree.sets.set(1), &[2, 5, 9]);
+
+    assert_eq!(tree.depth, depth(1));
+    let evidence = tree.evidence();
+    assert_eq!(evidence.nodes, 2);
+    assert_eq!(evidence.leaves, 1);
+    assert_eq!(evidence.depth, depth(1));
+    assert_eq!(evidence.type_entries, 7);
+}
+
+#[test]
+fn quad_build_gathers_types_through_the_base_order() {
+    // The hand-stage points with their rows permuted: importance
+    // travels with each point, so the cascade and the tree are
+    // identical, but the base order is no longer the row order
+    // (row_of_position = [1, 0, 3, 2]) and the type column must be
+    // gathered through it.
+    let coordinates = [
+        Vec2::new(1.0, 1.0),
+        Vec2::new(0.0, 0.0),
+        Vec2::new(0.375, 0.25),
+        Vec2::new(0.25, 0.25),
+    ];
+    let importance = [3.0_f32, 4.0, 1.0, 2.0];
+    let priority = [0.0_f32; 4];
+    let ids = identities(4);
+    let config = LodConfig {
+        span_log2: 1,
+        max_tile_depth: 1,
+    };
+    let lod = Lod::build(
+        &coordinates,
+        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        7,
+        config,
+    )
+    .expect("the fixture builds");
+    assert_eq!(*lod.row_of_position, [1, 0, 3, 2]);
+
+    // Types keyed by the permuted rows: the same types per point as
+    // the hand fixture.
+    let types: Vec<SmallVec<OntologyRowId, 2>> = vec![
+        smallvec![OntologyRowId::new(7)],
+        smallvec![OntologyRowId::new(5)],
+        smallvec![OntologyRowId::new(9)],
+        smallvec![OntologyRowId::new(2), OntologyRowId::new(5)],
+    ];
+    let tree = QuadTree::build(&lod, &types, config).expect("the fixture builds");
+
+    assert_eq!(
+        tree.nodes,
+        [
+            Node::new([Some(1), None, None, None], 0, 2, 4),
+            Node::new([None; 4], 2, 2, 3),
+        ],
+    );
+    assert_eq!(tree.sets.set(0), &[2, 5, 7, 9]);
+    assert_eq!(tree.sets.set(1), &[2, 5, 9]);
+}
+
+#[test]
+fn quad_build_rejects_what_no_tree_covers() {
+    let (lod, config) = hand_stage();
+
+    // A schedule beyond the key width.
+    assert_eq!(
+        QuadTree::build(
+            &lod,
+            &hand_types(),
+            LodConfig {
+                span_log2: 32,
+                max_tile_depth: 1,
+            },
+        )
+        .unwrap_err(),
+        QuadError::Schedule {
+            config: LodConfig {
+                span_log2: 32,
+                max_tile_depth: 1,
+            },
+        },
+    );
+
+    // A type column covering a different row count.
+    assert_eq!(
+        QuadTree::build(&lod, &hand_types()[..3], config).unwrap_err(),
+        QuadError::Columns { rows: 4 },
+    );
+
+    // A configuration shallower than the cascade that built the lod:
+    // the catch-all pair sits in bucket 2, beyond this deepest grid.
+    assert_eq!(
+        QuadTree::build(
+            &lod,
+            &hand_types(),
+            LodConfig {
+                span_log2: 1,
+                max_tile_depth: 0,
+            },
+        )
+        .unwrap_err(),
+        QuadError::Bucket { bucket: 2 },
+    );
+
+    // A direct type beyond the file's u32 ordinals.
+    let mut types = hand_types();
+    types[2] = smallvec![OntologyRowId::new(u64::from(u32::MAX) + 1)];
+    assert_eq!(
+        QuadTree::build(&lod, &types, config).unwrap_err(),
+        QuadError::TypeOrdinal {
+            row: 2,
+            id: u64::from(u32::MAX) + 1,
+        },
+    );
+}
+
+#[test]
+fn quad_tree_round_trips_through_the_quad_file() {
+    use crate::file::quad::{read::QuadFile, write};
+
+    let (lod, config) = hand_stage();
+    let tree = QuadTree::build(&lod, &hand_types(), config).expect("the fixture builds");
+
+    let mut bytes = Vec::new();
+    write::write_regions(&tree.nodes, &tree.sets, &mut bytes)
+        .expect("writing into a vector cannot fail");
+
+    let dir =
+        std::env::temp_dir().join(format!("hash-graph-atlas-lod-quad-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+    let path = dir.join("quad-roundtrip.quad");
+    std::fs::write(&path, bytes).expect("the scratch file is writable");
+
+    let file = QuadFile::open(&path).expect("the written file reopens");
+    assert_eq!(file.nodes(), tree.nodes.as_slice());
+
+    // The serving query: the child tile locates, its pruned siblings
+    // do not, and its type set reads back.
+    let quadrant = MortonCell::new(depth(1), 0, 0).expect("the quadrant exists");
+    assert_eq!(file.locate(quadrant), Some(1));
+    let sibling = MortonCell::new(depth(1), 1, 0).expect("the quadrant exists");
+    assert_eq!(file.locate(sibling), None);
+    let stored: Vec<u32> = file.type_set(1).iter().map(|id| id.get()).collect();
+    assert_eq!(stored, [2, 5, 9]);
+}
+
+proptest! {
+    /// Every built lod cuts into a tree upholding the serving
+    /// contract's structural laws, against linear-scan references.
+    #[test]
+    fn quad_trees_uphold_the_contract_laws(
+        rows in prop::collection::vec(
+            (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0, 0_u64..6),
+            1..48,
+        ),
+        seed: u64,
+        span_log2 in 0_u8..3,
+        max_tile_depth in 0_u8..4,
+    ) {
+        let coordinates: Vec<Vec2> = rows.iter().map(|&(x, y, ..)| Vec2::new(x, y)).collect();
+        let importance: Vec<f32> = rows.iter().map(|&(_, _, i, _)| i).collect();
+        let priority = vec![0.0_f32; rows.len()];
+        let ids = identities(rows.len() as u128);
+        let types: Vec<SmallVec<OntologyRowId, 2>> = rows
+            .iter()
+            .map(|&(.., t)| smallvec![OntologyRowId::new(t)])
+            .collect();
+        let config = LodConfig { span_log2, max_tile_depth };
+
+        let inputs = RankInputs::new(&importance, &priority, &ids)
+            .expect("the fixture columns agree");
+        let lod = Lod::build(&coordinates, inputs, seed, config)
+            .expect("finite non-empty coordinates build");
+        let deepest = config.deepest().expect("the schedule fits the key width");
+
+        let tree = QuadTree::build(&lod, &types, config).expect("the built lod cuts");
+
+        // Determinism: equal inputs give equal trees.
+        prop_assert_eq!(
+            &QuadTree::build(&lod, &types, config).expect("the rebuild cuts"),
+            &tree,
+        );
+
+        // Reconstruct each node's cell by walking the child links from
+        // the root; the walk also proves every node is reachable
+        // exactly once (the table is a tree, not a DAG).
+        let root = MortonCell::new(depth(0), 0, 0).expect("the root cell exists");
+        let mut cells: Vec<Option<MortonCell>> = vec![None; tree.nodes.len()];
+        let mut frontier = vec![(0_u32, root)];
+        while let Some((index, cell)) = frontier.pop() {
+            prop_assert!(cells[index as usize].is_none(), "node {} reached twice", index);
+            cells[index as usize] = Some(cell);
+            let quadrants = cell.children();
+            for (quadrant, child) in tree.nodes[index as usize].children().into_iter().enumerate()
+            {
+                if let Some(child) = child {
+                    let quadrants = quadrants.expect("a node with children subdivides");
+                    frontier.push((child, quadrants[quadrant]));
+                }
+            }
+        }
+        let cells: Vec<MortonCell> = cells
+            .into_iter()
+            .collect::<Option<_>>()
+            .expect("every node is reachable from the root");
+
+        // Buckets per position, reconstructed from the fenceposts.
+        let buckets: Vec<u8> = (0..lod.codes.len())
+            .map(|position| {
+                (0..=deepest.get())
+                    .find(|&bucket| {
+                        lod.fenceposts.segment(depth(bucket)).contains(&(position as u64))
+                    })
+                    .expect("every position falls in a segment")
+            })
+            .collect();
+
+        // The runs partition the base order: every point is delivered
+        // exactly once across the incremental tile pyramid.
+        let mut delivered = vec![0_u32; lod.codes.len()];
+        for node in &tree.nodes {
+            for position in node.run() {
+                delivered[usize::try_from(position).expect("test rows fit usize")] += 1;
+            }
+        }
+        prop_assert!(delivered.iter().all(|&count| count == 1));
+
+        for (index, node) in tree.nodes.iter().enumerate() {
+            let cell = cells[index];
+            let inside: Vec<usize> = (0..lod.codes.len())
+                .filter(|&position| cell.contains(lod.codes[position]))
+                .collect();
+
+            // The subtree count is the cell's whole population.
+            prop_assert_eq!(node.points() as usize, inside.len());
+
+            // The node rule: the root always, deeper cells exactly
+            // when a point escapes the parent's cut.
+            let cut = cell.depth().get() + span_log2;
+            if index > 0 {
+                prop_assert!(
+                    inside.iter().any(|&position| buckets[position] >= cut),
+                    "node {} has no point at or beyond its own cut",
+                    index,
+                );
+            }
+
+            // The own-bucket run against a linear scan: the root's cut
+            // spans buckets 0..=span_log2, a deeper node's exactly its
+            // own bucket.
+            let expected: Vec<u64> = inside
+                .iter()
+                .filter(|&&position| {
+                    if index == 0 {
+                        buckets[position] <= span_log2
+                    } else {
+                        buckets[position] == cut
+                    }
+                })
+                .map(|&position| position as u64)
+                .collect();
+            prop_assert_eq!(
+                node.run().collect::<Vec<u64>>(),
+                expected,
+                "node {}'s run",
+                index,
+            );
+
+            // The type set against a linear scan over the cell.
+            let mut expected: Vec<u32> = inside
+                .iter()
+                .flat_map(|&position| {
+                    let row = lod.row_of_position[position];
+                    types[row as usize].iter().map(|id| {
+                        u32::try_from(id.get()).expect("test ordinals fit u32")
+                    })
+                })
+                .collect();
+            expected.sort_unstable();
+            expected.dedup();
+            prop_assert_eq!(tree.sets.set(index), expected.as_slice(), "node {}'s set", index);
+        }
+
+        // Evidence agrees with the table.
+        let evidence = tree.evidence();
+        prop_assert_eq!(evidence.nodes, tree.nodes.len() as u64);
+        prop_assert!(evidence.leaves >= 1);
+        prop_assert!(evidence.depth.get() <= max_tile_depth);
     }
 }

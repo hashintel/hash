@@ -29,6 +29,8 @@
 //! carries the probe sizes so a reading is never mistaken for a
 //! corpus-complete measurement.
 
+#[cfg(feature = "bench")]
+pub mod bench;
 pub(crate) mod clump;
 pub(crate) mod metric;
 pub(crate) mod probe;

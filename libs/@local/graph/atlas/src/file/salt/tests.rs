@@ -5,19 +5,22 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use super::{
     SaltFiles, SaltRepository,
     metadata::{
-        Evidence, LandmarkEvidence, Placement, PolicyEvidence, Reproducibility, SaltMetadata,
-        Snapshot,
+        Evidence, LandmarkEvidence, Placement, PolicyEvidence, RankingOrigin, Reproducibility,
+        SaltMetadata, Snapshot,
     },
 };
 use crate::{
     dataset::{NodeRowId, OntologyRowId, TemporalAxes},
-    file::repository::{FileName, RepositoryFile, RepositoryVersion},
+    file::{
+        morton::Fenceposts,
+        repository::{FileName, RepositoryFile, RepositoryVersion},
+    },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::AffinityCurve,
+    math::{AffinityCurve, Bounds2, Vec2},
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, NormSpotCheck, PolicyOptions,
-        PolicyOverride, PolicySource, Posterior, RecallSpotCheck, RepresentationDefect,
-        SelectionOptions,
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence, NormSpotCheck,
+        PolicyOptions, PolicyOverride, PolicySource, Posterior, RecallSpotCheck,
+        RepresentationDefect, SelectionOptions,
     },
 };
 
@@ -69,6 +72,12 @@ fn repository() -> SaltRepository {
             classifier: file("classifier.clsf"),
             policy: file("policy.plcy"),
             coordinates: file("coordinates.arr"),
+            morton: file("morton.mrtn"),
+            wire_coordinates: file("wire-coordinates.arr"),
+            rank_of_position: file("rank-of-position.arr"),
+            position_of_rank: file("position-of-rank.arr"),
+            position_of_row: file("position-of-row.arr"),
+            row_of_position: file("row-of-position.arr"),
             node_identities: file("node-identities.idnt"),
             edge_identities: file("edge-identities.idnt"),
         },
@@ -92,6 +101,7 @@ fn repository() -> SaltRepository {
                 prior: None,
             },
             placement: Placement::LandmarkBaseline,
+            ranking: RankingOrigin::ConstantColumns,
             evidence: Evidence {
                 cards: CardEmbeddingStats {
                     reused: 30,
@@ -120,6 +130,19 @@ fn repository() -> SaltRepository {
                 policy: PolicyEvidence {
                     relations: 49,
                     overridden: 1,
+                },
+                lod: LodEvidence {
+                    world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+                        .expect("the fixture corners are finite and ordered"),
+                    bucket_histogram: {
+                        let mut histogram = [0; Fenceposts::SEGMENTS];
+                        histogram[4] = 900_000;
+                        histogram[Fenceposts::SEGMENTS - 1] = 100_000;
+                        histogram
+                    },
+                    catch_all_population: 100_000,
+                    co_location_excess: 4_096,
+                    max_tile_delta: 4_096,
                 },
             },
         },

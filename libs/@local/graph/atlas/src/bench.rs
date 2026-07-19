@@ -9,5 +9,6 @@
 //! default.
 
 pub use crate::salt::{
-    fit::bench as fit, projector::bench as projector, relation::bench as relation,
+    fit::bench as fit, projector::bench as projector, quality::bench as quality,
+    relation::bench as relation,
 };

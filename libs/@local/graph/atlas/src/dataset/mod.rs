@@ -498,8 +498,11 @@ pub(crate) trait Dataset {
     /// The source identifier of a node.
     ///
     /// Byte-level stable so identity columns persist as raw bytes; opaque
-    /// to the pipeline otherwise.
+    /// to the pipeline otherwise. `Sync` because id columns are shared
+    /// across parallel workers (the ranking tiebreak hashes them), which
+    /// every plain-bytes id satisfies.
     type NodeId: Copy
+        + Sync
         + zerocopy::IntoBytes
         + zerocopy::FromBytes
         + zerocopy::Immutable

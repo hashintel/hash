@@ -159,12 +159,15 @@ impl Lod {
     /// disagree with the coordinates, and [`LodError::Frame`] when the
     /// coordinates admit no world frame (no rows, or a non-finite
     /// value).
-    pub(crate) fn build(
+    pub(crate) fn build<I>(
         coordinates: &[Vec2],
-        inputs: RankInputs<'_>,
+        inputs: RankInputs<'_, I>,
         seed: u64,
         config: LodConfig,
-    ) -> Result<Self, LodError> {
+    ) -> Result<Self, LodError>
+    where
+        I: Copy + zerocopy::IntoBytes + zerocopy::Immutable + Sync,
+    {
         let deepest = config.deepest().ok_or(LodError::Schedule { config })?;
         if inputs.len() as usize != coordinates.len() {
             return Err(LodError::Columns {

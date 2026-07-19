@@ -18,9 +18,12 @@ use smallvec::SmallVec;
 use zerocopy::{LE, U64};
 
 use super::{
-    clump::Clumps,
+    clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate, rank_correlation},
-    probe::{ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair, ReadingGrid, probe},
+    probe::{
+        ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair,
+        ReadingGrid, probe,
+    },
     report::{QualityThresholds, assess},
 };
 use crate::{
@@ -91,6 +94,42 @@ fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
     let none = Clumps::from_knn(&table.view(), f32::NAN);
     assert_eq!(none.clumps(), 6);
     assert_eq!(none.groups(), 0);
+}
+
+#[test]
+fn hand_built_labels_read_like_a_grouping() {
+    let clumps = Clumps::from_labels(vec![0, 0, 1, 2, 2, 2], 0.25);
+
+    assert_eq!(clumps.rows(), 6);
+    assert_eq!(clumps.epsilon(), 0.25);
+    assert_eq!(clumps.clumps(), 3);
+    assert_eq!(clumps.groups(), 2);
+    assert_eq!(clumps.grouped_rows(), 5);
+    assert_eq!(clumps.clump(3), 2);
+}
+
+/// Hand-computed multiset overlap: the duplicated label 1 matches
+/// twice, 0 once, and the unmatched 2 and 3 earn nothing.
+#[test]
+fn clump_aggregate_counts_multiset_overlap() {
+    let mut aggregate = ClumpAggregate::new(NonZero::new(4).expect("nonzero"));
+    aggregate.observe(&mut [0, 1, 1, 2], &mut [1, 1, 3, 0]);
+
+    assert_eq!(aggregate.queries(), 1);
+    assert_eq!(aggregate.recall(), 3.0 / 4.0);
+
+    // A second query merges into the running totals: 1 of 4 matched.
+    let mut second = ClumpAggregate::new(NonZero::new(4).expect("nonzero"));
+    second.observe(&mut [5, 5, 5, 5], &mut [5, 6, 7, 8]);
+    aggregate.merge(&second);
+    assert_eq!(aggregate.queries(), 2);
+    assert_eq!(aggregate.recall(), 4.0 / 8.0);
+
+    // An empty aggregate reads 1, like the rank kernel's recall.
+    assert_eq!(
+        ClumpAggregate::new(NonZero::new(4).expect("nonzero")).recall(),
+        1.0,
+    );
 }
 
 /// The identity comparison: both spaces order the universe alike.
@@ -512,6 +551,116 @@ async fn corpus_readings_match_a_sorting_reference() {
     }
 }
 
+/// The probe's clump collapse: singleton labels reproduce plain
+/// recall exactly, and a grouped labelling agrees with a sorting
+/// reference collapsed the same way while never reading below plain
+/// recall.
+#[tokio::test]
+async fn clump_readings_match_a_sorting_reference() {
+    // The scrambled fixture from the corpus reference test: map and
+    // representation disagree, so the collapse has work to do.
+    let angles = irregular_angles(40);
+    let mut map_angles: Vec<f32> = angles
+        .iter()
+        .rev()
+        .map(|&angle| angle.mul_add(0.7, 0.1))
+        .collect();
+    let mut embedding_angles = angles;
+    embedding_angles[11] = embedding_angles[10];
+    map_angles[21] = map_angles[20];
+    let fixture = ProbeFixture::new(&embedding_angles, &map_angles);
+
+    let k = 3_usize;
+    let options = ProbeOptions {
+        anchors: 6.try_into().expect("nonzero"),
+        comparisons: 10.try_into().expect("nonzero"),
+        neighbourhoods: vec![k.try_into().expect("nonzero")].into(),
+        ..ProbeOptions::default()
+    };
+
+    // Singleton labels: the multiset overlap is the shared-row count,
+    // so the collapsed reading equals plain recall anchor by anchor.
+    let singletons = Clumps::from_labels((0..40).collect(), 0.0);
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus().with_clumps(&singletons),
+        &options,
+        Xoshiro256PlusPlus::seed_from_u64(11),
+    )
+    .await
+    .expect("the corpus hosts the probe design");
+    let clumps = readings
+        .clumps
+        .as_ref()
+        .expect("the probe carried a grouping");
+    assert_eq!(clumps.epsilon, 0.0);
+    assert_eq!(clumps.count, 40);
+    assert_eq!(clumps.groups, 0);
+    for anchor in 0..6 {
+        assert_eq!(
+            clumps.grid.anchor(anchor, 0).recall(),
+            readings.map_representation.anchor(anchor, 0).recall(),
+        );
+    }
+
+    // Blocks of four rows form one clump each: neighbours on the
+    // circle collapse onto shared labels, and the readings replay
+    // from sorted orderings collapsed the same way.
+    let labels: Vec<u32> = (0..40_u32).map(|row| row / 4).collect();
+    let grouped = Clumps::from_labels(labels.clone(), 0.2);
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus().with_clumps(&grouped),
+        &options,
+        Xoshiro256PlusPlus::seed_from_u64(11),
+    )
+    .await
+    .expect("the corpus hosts the probe design");
+    let clumps = readings
+        .clumps
+        .as_ref()
+        .expect("the probe carried a grouping");
+    assert_eq!(clumps.groups, 10);
+    assert_eq!(clumps.grouped_rows, 40);
+
+    let representations = fixture.representations();
+    let anchor_rows: Vec<usize> = readings.anchors.iter().map(|row| row.usize()).collect();
+    let universe: Vec<usize> = (0..fixture.node_ids.len())
+        .filter(|row| !anchor_rows.contains(row))
+        .collect();
+    for (index, &anchor) in anchor_rows.iter().enumerate() {
+        let top_by = |distances: &dyn Fn(usize) -> f32| -> Vec<usize> {
+            let mut rows = universe.clone();
+            rows.sort_unstable_by(|&one, &other| {
+                distances(one)
+                    .total_cmp(&distances(other))
+                    .then_with(|| one.cmp(&other))
+            });
+            rows.truncate(k);
+            rows
+        };
+        let reference_rows =
+            top_by(&|row: usize| representations[anchor].cosine_distance(&representations[row]));
+        let map_rows = top_by(&|row: usize| {
+            fixture.coordinates[anchor].distance_squared(fixture.coordinates[row])
+        });
+
+        let mut reference_labels: Vec<u32> =
+            reference_rows.iter().map(|&row| labels[row]).collect();
+        let mut map_labels: Vec<u32> = map_rows.iter().map(|&row| labels[row]).collect();
+        let mut expected = ClumpAggregate::new(k.try_into().expect("nonzero"));
+        expected.observe(&mut reference_labels, &mut map_labels);
+
+        let cell = clumps.grid.anchor(index, 0);
+        assert_eq!(
+            *cell, expected,
+            "anchor {anchor} disagrees with the collapsed sorting reference",
+        );
+        // The law: collapsing row identity can only help recall.
+        assert!(cell.recall() >= readings.map_representation.anchor(index, 0).recall());
+    }
+}
+
 /// Hand-built readings: six single-query anchors at k = 1 over a
 /// universe of 8, each a plain hit (rank 0) or a horizon miss
 /// (rank 7), reused for all four grids.
@@ -534,6 +683,7 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings {
         comparisons: Box::new([]),
         neighbourhoods: Box::new([NonZero::new(1).expect("nonzero")]),
         map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
+        clumps: None,
         sampled_map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
         sampled_map_canonical: ReadingGrid::from_anchor_cells(cells.clone(), 1),
         sampled_representation_canonical: ReadingGrid::from_anchor_cells(cells, 1),
@@ -624,6 +774,82 @@ fn assess_flags_degraded_subgroups() {
     assert!(floored.flags.is_empty());
     assert_eq!(floored.subgroups.len(), 3);
     assert!(floored.passes());
+}
+
+/// A clump readings block over the flag fixture: one k = 1 cell per
+/// anchor, its collapsed neighbourhood matched or not.
+fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
+    let cells: Vec<Vec<ClumpAggregate>> = matches
+        .iter()
+        .map(|&matched| {
+            let mut aggregate = ClumpAggregate::new(NonZero::new(1).expect("nonzero"));
+            aggregate.observe(&mut [0], &mut [u32::from(!matched)]);
+            vec![aggregate]
+        })
+        .collect();
+
+    ClumpReadings {
+        epsilon: 0.15,
+        count: 4,
+        groups: 1,
+        grouped_rows: 3,
+        grid: ReadingGrid::from_anchor_cells(cells, 1),
+    }
+}
+
+/// The triage rule: a flag whose collapsed reading satisfies the
+/// factor is recorded as clump-resolved and stops failing the
+/// verdict; one that stays degraded keeps failing.
+#[test]
+fn clump_resolution_triages_flags() {
+    let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
+    let thresholds = QualityThresholds {
+        minimum_subgroup_anchors: 2,
+        ..QualityThresholds::default()
+    };
+
+    // Restored: the misses were clump siblings, so every collapsed
+    // neighbourhood matches and both degradations read zero.
+    let mut readings = flag_fixture(&[true, true, true, true, false, false]);
+    readings.clumps = Some(clump_readings_of(&[true; 6]));
+    let report = assess(&readings, &anchor_types, &thresholds);
+
+    assert_eq!(report.flags.len(), 1);
+    let flag = report.flags[0];
+    assert_eq!(flag.ontology_row, 200);
+    assert_eq!(flag.clump_degradation, Some(0.0));
+    assert_eq!(flag.clump_overall_degradation, Some(0.0));
+    assert!(flag.clump_resolved);
+    assert!(report.passes());
+
+    let clumps = report
+        .clumps
+        .as_ref()
+        .expect("the readings carried a grouping");
+    assert_eq!(clumps.epsilon, 0.15);
+    assert_eq!(clumps.groups, 1);
+    assert_eq!(clumps.rows.len(), 1);
+    assert_eq!(clumps.rows[0].neighbourhood, 1);
+    assert_eq!(clumps.rows[0].queries, 6);
+    assert_eq!(clumps.rows[0].recall, 1.0);
+
+    let serialized = serde_json::to_string(&report).expect("the report serializes");
+    let roundtrip: super::report::QualityReport =
+        serde_json::from_str(&serialized).expect("the report deserializes");
+    assert_eq!(roundtrip, report);
+
+    // Unresolved: the collapse restores nothing, so the flag keeps
+    // its breach - 1 against twice the overall 1 - 4/6.
+    let mut readings = flag_fixture(&[true, true, true, true, false, false]);
+    readings.clumps = Some(clump_readings_of(&[true, true, true, true, false, false]));
+    let report = assess(&readings, &anchor_types, &thresholds);
+
+    assert_eq!(report.flags.len(), 1);
+    let flag = report.flags[0];
+    assert_eq!(flag.clump_degradation, Some(1.0));
+    assert_eq!(flag.clump_overall_degradation, Some(1.0 - 4.0 / 6.0));
+    assert!(!flag.clump_resolved);
+    assert!(!report.passes());
 }
 
 /// Hand-computed density rows: log ratios, the median/MAD spread,

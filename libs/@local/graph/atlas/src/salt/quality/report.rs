@@ -32,6 +32,17 @@
 //! shared pair sample for all three space pairs. Both are rendered
 //! from the readings like every other row.
 //!
+//! When the probe carries a clump grouping, the report adds the
+//! corpus reading collapsed onto clump ids and re-evaluates every
+//! flag at that granularity. A flag whose collapsed degradation
+//! satisfies the same factor rule is recorded as clump-resolved: its
+//! entities are placed by clump, and within-clump order is not a
+//! representable quantity, so the specification's triage rule treats
+//! the group as restored rather than degraded. Clump-resolved flags
+//! keep their record in the report but no longer fail the verdict;
+//! without clump evidence every flag stays unresolved and fails, as
+//! before.
+//!
 //! Metric floors default to unpinned: the specification carries no
 //! verified map-fidelity numbers yet (engine-side measurements arrive
 //! with the first full-scale fits), and an invented floor would gate
@@ -43,6 +54,7 @@ use alloc::collections::BTreeMap;
 use smallvec::SmallVec;
 
 use super::{
+    clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
     probe::{ProbeReadings, ReadingGrid},
 };
@@ -181,6 +193,39 @@ impl TripletRow {
     }
 }
 
+/// One neighbourhood size's clump-granularity recall reading.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ClumpRow {
+    /// The neighbourhood size the row reads at.
+    pub neighbourhood: usize,
+    /// Queries the row aggregates over.
+    pub queries: usize,
+    /// Mean matched fraction of the collapsed neighbourhoods, in
+    /// `[0, 1]`; never below the plain recall at the same size.
+    pub recall: f64,
+}
+
+/// The clump-granularity evidence block.
+///
+/// The grouping's shape - counts at the threshold it was built at -
+/// travels with the collapsed readings, so the block justifies its
+/// own granularity: a threshold grouping half the corpus reads very
+/// differently from one grouping a few percent.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ClumpReport {
+    /// The distance threshold the grouping was built at.
+    pub epsilon: f32,
+    /// The clump count, singletons included.
+    pub count: usize,
+    /// Clumps holding at least two rows.
+    pub groups: usize,
+    /// Rows inside multi-row clumps.
+    pub grouped_rows: usize,
+    /// Collapsed corpus map-versus-representation readings, one row
+    /// per neighbourhood size in reporting order.
+    pub rows: Vec<ClumpRow>,
+}
+
 /// One subgroup's readings on the primary grid.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupReport {
@@ -194,6 +239,12 @@ pub(crate) struct SubgroupReport {
 }
 
 /// One breach of the subgroup degradation rule.
+///
+/// A flag carries its own triage evidence: when clump readings exist,
+/// the breach is re-evaluated at clump granularity, and a breach the
+/// collapse restores is marked resolved - the subgroup's entities are
+/// placed by clump, and within-clump order is not a representable
+/// quantity.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
@@ -206,6 +257,15 @@ pub(crate) struct SubgroupFlag {
     pub degradation: f64,
     /// The overall degradation the factor multiplied.
     pub overall_degradation: f64,
+    /// The subgroup's degradation at clump granularity, when clump
+    /// readings exist.
+    pub clump_degradation: Option<f64>,
+    /// The overall clump-granularity degradation the re-evaluation
+    /// compared against.
+    pub clump_overall_degradation: Option<f64>,
+    /// Whether the clump-granularity re-evaluation satisfies the
+    /// degradation rule; always false without clump readings.
+    pub clump_resolved: bool,
 }
 
 /// One probe's rendered evidence and verdict inputs.
@@ -224,6 +284,9 @@ pub(crate) struct QualityReport {
     /// Corpus map-versus-representation readings, per neighbourhood
     /// size: the primary, gated surface.
     pub map_representation: Vec<MetricRow>,
+    /// The corpus reading collapsed onto clump ids and the grouping's
+    /// shape, when the probe carried a clump grouping.
+    pub clumps: Option<ClumpReport>,
     /// Sampled map-versus-representation readings.
     pub sampled_map_representation: Vec<MetricRow>,
     /// Sampled map-versus-canonical readings.
@@ -263,11 +326,14 @@ pub(crate) struct QualityReport {
 }
 
 impl QualityReport {
-    /// Returns whether every pinned gate holds and no subgroup flags.
+    /// Returns whether every pinned gate holds and no unresolved
+    /// subgroup flag remains.
     ///
-    /// A flagged subgroup fails the verdict; the specification's
-    /// approved-exception path is a human decision recorded outside
-    /// the report.
+    /// A flagged subgroup fails the verdict unless its breach is
+    /// clump-resolved - the specification's triage rule records such
+    /// a group as placed by clump, not degraded. The
+    /// approved-exception path for unresolved flags stays a human
+    /// decision recorded outside the report.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
         let gates_hold = self.map_representation.iter().all(|row| {
@@ -296,7 +362,10 @@ impl QualityReport {
                 && self.triplet_map_representation.agreement >= floor
         });
 
-        gates_hold && density_holds && triplets_hold && self.flags.is_empty()
+        gates_hold
+            && density_holds
+            && triplets_hold
+            && self.flags.iter().all(|flag| flag.clump_resolved)
     }
 }
 
@@ -337,6 +406,11 @@ pub(crate) fn assess(
             .collect()
     };
     let map_representation = overall_rows(&readings.map_representation);
+    let clump_overall: Option<Vec<ClumpAggregate>> = readings.clumps.as_ref().map(|clumps| {
+        (0..rungs.len())
+            .map(|rung| clumps.grid.overall(rung))
+            .collect()
+    });
 
     // Membership by ontology row; the map iterates ascending, so
     // subgroups and flags order deterministically.
@@ -366,18 +440,43 @@ pub(crate) fn assess(
             .collect();
 
         if anchors.len() >= thresholds.minimum_subgroup_anchors {
-            for (subgroup_row, overall_row) in rows.iter().zip(&map_representation) {
+            for (rung, (subgroup_row, overall_row)) in
+                rows.iter().zip(&map_representation).enumerate()
+            {
                 let degradation = 1.0 - subgroup_row.recall;
                 let overall_degradation = 1.0 - overall_row.recall;
-                if degradation > thresholds.subgroup_degradation_factor * overall_degradation {
-                    flags.push(SubgroupFlag {
-                        ontology_row,
-                        neighbourhood: subgroup_row.neighbourhood,
-                        anchors: anchors.len(),
-                        degradation,
-                        overall_degradation,
-                    });
+                if degradation <= thresholds.subgroup_degradation_factor * overall_degradation {
+                    continue;
                 }
+
+                // The triage re-evaluation: the same rule at clump
+                // granularity, subgroup against overall.
+                let collapsed = readings.clumps.as_ref().map(|clumps| {
+                    let (&first, rest) = anchors
+                        .split_first()
+                        .expect("every membership list holds the anchor that created it");
+                    let mut merged = *clumps.grid.anchor(first, rung);
+                    for &anchor in rest {
+                        merged.merge(clumps.grid.anchor(anchor, rung));
+                    }
+                    let overall = &clump_overall
+                        .as_ref()
+                        .expect("clump readings produce overall clump aggregates")[rung];
+                    (1.0 - merged.recall(), 1.0 - overall.recall())
+                });
+
+                flags.push(SubgroupFlag {
+                    ontology_row,
+                    neighbourhood: subgroup_row.neighbourhood,
+                    anchors: anchors.len(),
+                    degradation,
+                    overall_degradation,
+                    clump_degradation: collapsed.map(|(subgroup, _)| subgroup),
+                    clump_overall_degradation: collapsed.map(|(_, overall)| overall),
+                    clump_resolved: collapsed.is_some_and(|(subgroup, overall)| {
+                        subgroup <= thresholds.subgroup_degradation_factor * overall
+                    }),
+                });
             }
         }
 
@@ -393,6 +492,23 @@ pub(crate) fn assess(
         corpus_universe: readings.map_representation.overall(0).universe(),
         comparisons: readings.comparisons.len(),
         map_representation,
+        clumps: readings.clumps.as_ref().map(|clumps| ClumpReport {
+            epsilon: clumps.epsilon,
+            count: clumps.count,
+            groups: clumps.groups,
+            grouped_rows: clumps.grouped_rows,
+            rows: clump_overall
+                .as_ref()
+                .expect("clump readings produce overall clump aggregates")
+                .iter()
+                .zip(&rungs)
+                .map(|(aggregate, &neighbourhood)| ClumpRow {
+                    neighbourhood,
+                    queries: aggregate.queries(),
+                    recall: aggregate.recall(),
+                })
+                .collect(),
+        }),
         sampled_map_representation: overall_rows(&readings.sampled_map_representation),
         sampled_map_canonical: overall_rows(&readings.sampled_map_canonical),
         sampled_representation_canonical: overall_rows(&readings.sampled_representation_canonical),

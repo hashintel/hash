@@ -26,7 +26,8 @@
 //! - [`sprs`](mod@sprs) is the sparse matrix file: one compressed-sparse-row matrix - row pointers,
 //!   column indices, values - as page-aligned regions of one file, written from and reopened as
 //!   [`sprs::CsMatBase`](::sprs::CsMatBase) views.
-//! - [`quad`] is quadtree topology: a node table referencing point-cloud files by identifier.
+//! - [`quad`] is quadtree topology: the bucket-cut tile tree - node table, own-bucket runs into the
+//!   base delivery order, and per-node direct-type sets as page-aligned regions of one file.
 //! - [`repository`] names published files and binds each to a strong hash.
 //! - [`salt`] is the SALT generation repository: the files one published generation consists of and
 //!   the metadata describing them.
@@ -108,8 +109,9 @@
 //! |                                 | apart                                        |        |
 //! | policy table (`.plcy`)          | resolved per-relation records, read whole    | zerocopy |
 //! |                                 | and searched by relation                     |        |
-//! | quadtree topology (`.quad`)     | mmap, node table referencing point clouds    | zerocopy |
-//! | point clouds                    | served directly, replaced per node           | array  |
+//! | quadtree topology (`.quad`)     | mmap, tile traversal; node table, own-bucket | combined |
+//! |                                 | runs into the base order, and per-node       |        |
+//! |                                 | direct-type sets, never read apart           |        |
 //! | node/edge identities (`.idnt`)  | mmap, serving lookups both ways: `row -> id` | combined |
 //! |                                 | by indexing the id column, `id -> row` by    |        |
 //! |                                 | binary search over sorted pairs behind an    |        |
@@ -183,7 +185,7 @@ pub(crate) mod identity;
 pub(crate) mod landmark;
 pub(crate) mod morton;
 pub(crate) mod policy;
-mod quad;
+pub(crate) mod quad;
 pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;

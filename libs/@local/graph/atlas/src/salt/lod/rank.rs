@@ -1,11 +1,9 @@
 //! The deterministic importance ranking.
 
 use rayon::prelude::*;
+use zerocopy::IntoBytes;
 
-use crate::{
-    dataset::ArchivedEntityId,
-    integrity::{Sha256, Update as _},
-};
+use crate::integrity::{Sha256, Update as _};
 
 /// The per-row inputs of the rank pass, one entry per point row.
 ///
@@ -13,15 +11,16 @@ use crate::{
 /// then a seeded hash of the entity identity, so the order is total
 /// and reproducible from the columns and the seed alone. The columns
 /// are equal-length by construction and the row count fits the `u32`
-/// row encoding.
+/// row encoding. `I` is the dataset's node id type; the ranking
+/// consumes its canonical bytes alone.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct RankInputs<'columns> {
+pub(crate) struct RankInputs<'columns, I> {
     importance: &'columns [f32],
     priority: &'columns [f32],
-    identities: &'columns [ArchivedEntityId],
+    identities: &'columns [I],
 }
 
-impl<'columns> RankInputs<'columns> {
+impl<'columns, I> RankInputs<'columns, I> {
     /// Wraps the rank columns.
     ///
     /// Returns [`None`] when the columns disagree on length or the row
@@ -30,7 +29,7 @@ impl<'columns> RankInputs<'columns> {
     pub(crate) const fn new(
         importance: &'columns [f32],
         priority: &'columns [f32],
-        identities: &'columns [ArchivedEntityId],
+        identities: &'columns [I],
     ) -> Option<Self> {
         if importance.len() != priority.len() || importance.len() != identities.len() {
             return None;
@@ -87,7 +86,10 @@ impl Ranking {
         reason = "the inputs' constructor admits only row counts that fit `u32`"
     )]
     #[must_use]
-    pub(crate) fn new(inputs: RankInputs<'_>, seed: u64) -> Self {
+    pub(crate) fn new<I>(inputs: RankInputs<'_, I>, seed: u64) -> Self
+    where
+        I: Copy + IntoBytes + zerocopy::Immutable + Sync,
+    {
         let tiebreaks: Vec<u64> = inputs
             .identities
             .par_iter()
@@ -129,10 +131,10 @@ impl Ranking {
     clippy::little_endian_bytes,
     reason = "the hash is pinned to the same canonical little-endian bytes on every platform"
 )]
-fn tiebreak(seed: u64, identity: &ArchivedEntityId) -> u64 {
+fn tiebreak<I: IntoBytes + zerocopy::Immutable>(seed: u64, identity: &I) -> u64 {
     let mut hasher = Sha256::new();
     hasher.update(&seed.to_le_bytes());
-    hasher.update(zerocopy::IntoBytes::as_bytes(identity));
+    hasher.update(identity.as_bytes());
     let digest = hasher.finalize().to_bytes();
 
     u64::from_le_bytes(digest[..8].try_into().expect("eight bytes are eight bytes"))

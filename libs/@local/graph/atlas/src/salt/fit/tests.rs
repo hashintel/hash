@@ -5,7 +5,7 @@ use camino::Utf8PathBuf;
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
-use zerocopy::{LE, U64};
+use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{FitConfig, FitError, PolicyOptions, fit, prepare::identity::MappedIdentityTable};
 use crate::{
@@ -19,8 +19,12 @@ use crate::{
         generation::GenerationRoot,
         identity::read::IdentityFile,
         landmark::read::LandmarkFile,
+        morton::read::MortonFile,
         policy::read::PolicyFile,
-        salt::{SaltRepository, metadata::Placement},
+        salt::{
+            SaltRepository,
+            metadata::{Placement, RankingOrigin},
+        },
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
@@ -395,6 +399,95 @@ async fn the_policy_artifacts_publish_and_read_back() {
         1.0_f32.to_bits(),
         "the strength head is disabled",
     );
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_lod_columns_publish_in_base_order() {
+    let root = GenerationRoot::new(scratch("lod")).expect("the root should open");
+    let dataset = dataset();
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &fixture_classifier(),
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    let column = |name: &str| -> Vec<u32> {
+        let file = ArrayFile::open(published.path().join(name)).expect("the column should map");
+        <[u32]>::ref_from_bytes(file.data())
+            .expect("the mapped column is aligned and whole")
+            .to_vec()
+    };
+    let position_of_row = column("position-of-row.arr");
+    let row_of_position = column("row-of-position.arr");
+    let rank_of_position = column("rank-of-position.arr");
+    let position_of_rank = column("position-of-rank.arr");
+
+    // The permutations are mutually inverse and total over the rows.
+    assert_eq!(position_of_row.len(), NODES);
+    assert_eq!(row_of_position.len(), NODES);
+    for row in 0..NODES {
+        assert_eq!(row_of_position[position_of_row[row] as usize] as usize, row);
+    }
+    for (position, &rank) in rank_of_position.iter().enumerate() {
+        assert_eq!(position_of_rank[rank as usize] as usize, position);
+    }
+
+    // The morton column covers every row, bucket-segmented.
+    let morton =
+        MortonFile::open(published.path().join("morton.mrtn")).expect("the codes should map");
+    assert_eq!(morton.count(), NODES as u64);
+
+    // The wire column lies inside the wire frame, and rows the baseline
+    // placed on one landmark stay coincident on the wire.
+    let wire = ArrayFile::open(published.path().join("wire-coordinates.arr"))
+        .expect("the wire column should map");
+    let wire = wire.points().expect("the wire column holds 2D points");
+    assert_eq!(wire.len(), NODES);
+    assert!(
+        wire.iter().all(|point| {
+            (-1.0..=1.0).contains(&point.x()) && (-1.0..=1.0).contains(&point.y())
+        }),
+        "wire coordinates stay inside the [-1, 1] frame",
+    );
+
+    let canonical = ArrayFile::open(published.path().join("coordinates.arr"))
+        .expect("the coordinates should map");
+    let canonical = canonical.points().expect("the coordinates are 2D points");
+    for (left, right) in (0..NODES).zip(1..NODES) {
+        if canonical[left].x().to_bits() == canonical[right].x().to_bits()
+            && canonical[left].y().to_bits() == canonical[right].y().to_bits()
+        {
+            let left = wire[position_of_row[left] as usize];
+            let right = wire[position_of_row[right] as usize];
+            assert_eq!(left.x().to_bits(), right.x().to_bits());
+            assert_eq!(left.y().to_bits(), right.y().to_bits());
+        }
+    }
+
+    // The metadata records the histogram over every row and the
+    // constant-column ranking origin.
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+    assert_eq!(
+        repository
+            .metadata
+            .evidence
+            .lod
+            .bucket_histogram
+            .iter()
+            .sum::<u64>(),
+        NODES as u64,
+    );
+    assert_eq!(repository.metadata.ranking, RankingOrigin::ConstantColumns,);
 }
 
 #[tokio::test]

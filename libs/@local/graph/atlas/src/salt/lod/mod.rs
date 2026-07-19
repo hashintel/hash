@@ -8,7 +8,8 @@
 //! cascade ([`cascade`]), and the base delivery order that sorts every
 //! served column ([`order`]). [`stage`] assembles the whole derivation
 //! (frame fit, wire normalization, keys, ranking, cascade, sort,
-//! gather) and measures the publish evidence over the result.
+//! gather) and measures the publish evidence over the result; [`quad`]
+//! cuts the finished columns into the quad file's tile topology.
 //!
 //! Everything here is a pure function of its inputs: equal inputs give
 //! byte-equal columns, so a generation's spatial index is reproducible
@@ -17,6 +18,7 @@
 pub(crate) mod cascade;
 pub(crate) mod key;
 pub(crate) mod order;
+pub(crate) mod quad;
 pub(crate) mod rank;
 pub(crate) mod stage;
 

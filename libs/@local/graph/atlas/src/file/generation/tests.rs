@@ -14,20 +14,21 @@ use super::{
 };
 use crate::{
     file::{
+        morton::Fenceposts,
         repository::{FileName, RepositoryFile, RepositoryVersion},
         salt::{
             SaltFiles, SaltRepository,
             metadata::{
-                Evidence, LandmarkEvidence, Placement, PolicyEvidence, Reproducibility,
-                SaltMetadata, Snapshot,
+                Evidence, LandmarkEvidence, Placement, PolicyEvidence, RankingOrigin,
+                Reproducibility, SaltMetadata, Snapshot,
             },
         },
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::AffinityCurve,
+    math::{AffinityCurve, Bounds2, Vec2},
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, NormSpotCheck, RecallSpotCheck,
-        SelectionOptions,
+        CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence, NormSpotCheck,
+        RecallSpotCheck, SelectionOptions,
     },
 };
 
@@ -85,6 +86,12 @@ fn repository() -> SaltRepository {
             classifier: file("classifier.clsf"),
             policy: file("policy.plcy"),
             coordinates: file("coordinates.arr"),
+            morton: file("morton.mrtn"),
+            wire_coordinates: file("wire-coordinates.arr"),
+            rank_of_position: file("rank-of-position.arr"),
+            position_of_rank: file("position-of-rank.arr"),
+            position_of_row: file("position-of-row.arr"),
+            row_of_position: file("row-of-position.arr"),
             node_identities: file("node-identities.idnt"),
             edge_identities: file("edge-identities.idnt"),
         },
@@ -101,6 +108,7 @@ fn repository() -> SaltRepository {
                 prior: None,
             },
             placement: Placement::LandmarkBaseline,
+            ranking: RankingOrigin::ConstantColumns,
             evidence: Evidence {
                 cards: CardEmbeddingStats {
                     reused: 0,
@@ -129,6 +137,18 @@ fn repository() -> SaltRepository {
                 policy: PolicyEvidence {
                     relations: 1,
                     overridden: 0,
+                },
+                lod: LodEvidence {
+                    world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
+                        .expect("the fixture corners are finite and ordered"),
+                    bucket_histogram: {
+                        let mut histogram = [0; Fenceposts::SEGMENTS];
+                        histogram[2] = 4;
+                        histogram
+                    },
+                    catch_all_population: 0,
+                    co_location_excess: 0,
+                    max_tile_delta: 2,
                 },
             },
         },

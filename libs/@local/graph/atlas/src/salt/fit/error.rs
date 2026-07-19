@@ -19,6 +19,7 @@ use crate::{
             artifact::InvalidLandmarkFile, assignment::AssignmentError, layout::EdgelessGraphError,
             quotient::QuotientError, select::SelectionError,
         },
+        lod::stage::LodError,
         policy::{ResolveError, classifier::PredictError},
         semantic::artifact::InvalidSemanticFile,
     },
@@ -136,6 +137,12 @@ pub(crate) enum FitError<D, E> {
     Layout(EdgelessGraphError),
     /// The staged representation matrix failed to map back.
     MapRepresentations(OpenArrayError),
+    /// The staged coordinate column failed to map back.
+    MapCoordinates(OpenArrayError),
+    /// The corpus exceeds the `u32` wire position encoding.
+    WireEncoding { rows: u64 },
+    /// The level-of-detail derivation rejected its input.
+    Lod(LodError),
     /// A staged sparse matrix file failed to map back.
     MapSparse(OpenSprsError),
     /// The staged k-NN file does not hold a valid table.
@@ -259,6 +266,17 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
                 fmt,
                 "the staged representation matrix failed to map back: {error}"
             ),
+            Self::MapCoordinates(error) => write!(
+                fmt,
+                "the staged coordinate column failed to map back: {error}"
+            ),
+            Self::WireEncoding { rows } => write!(
+                fmt,
+                "the corpus holds {rows} rows, beyond the u32 wire position encoding"
+            ),
+            Self::Lod(error) => {
+                write!(fmt, "the level-of-detail derivation failed: {error}")
+            }
             Self::MapSparse(error) => {
                 write!(fmt, "a staged sparse matrix failed to map back: {error}")
             }
@@ -311,7 +329,9 @@ where
             Self::Assignment(error) => Some(error),
             Self::Quotient(error) => Some(error),
             Self::Layout(error) => Some(error),
-            Self::MapRepresentations(error) | Self::MapCards(error) => Some(error),
+            Self::MapRepresentations(error)
+            | Self::MapCards(error)
+            | Self::MapCoordinates(error) => Some(error),
             Self::MapSparse(error) => Some(error),
             Self::InvalidKnn(error) => Some(error),
             Self::InvalidSemantic(error) => Some(error),
@@ -319,9 +339,12 @@ where
             Self::InvalidLandmarks(error) => Some(error),
             Self::MapIdentities(error) => Some(error),
             Self::InvalidIdentities(error) => Some(error),
+            Self::Lod(error) => Some(error),
             Self::Prior(error) => Some(error),
             Self::Seal(error) => Some(error),
-            Self::RepresentationDefects(_) | Self::RecallBelowMinimum(_) => None,
+            Self::RepresentationDefects(_)
+            | Self::RecallBelowMinimum(_)
+            | Self::WireEncoding { .. } => None,
         }
     }
 }

@@ -53,10 +53,6 @@ fn softmax_of_equal_logits_is_uniform() {
 
 #[test]
 fn softmax_matches_an_unshifted_reference() {
-    #[expect(
-        clippy::suboptimal_flops,
-        reason = "the reference deliberately skips the shared-maximum shift"
-    )]
     fn reference(logits: [f64; 3], temperature: f64) -> [f64; 3] {
         let exponentials = logits.map(|value| (value / temperature).exp());
         let denominator = exponentials.iter().sum::<f64>();

@@ -10,6 +10,7 @@ pub(crate) use self::{
     embedding::{CardEmbeddingStats, EmbedderFingerprint},
     fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
     knn::recall::RecallSpotCheck,
+    lod::stage::LodEvidence,
 };
 #[cfg(test)]
 pub(crate) use self::{

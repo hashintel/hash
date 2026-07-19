@@ -93,6 +93,10 @@ bench = ["tokio/net"]
 bench-gpu = ["bench", "burn/metal"]
 
 [[example]]
+name              = "clump_sweep"
+required-features = ["bench"]
+
+[[example]]
 name              = "fit_live"
 required-features = ["bench"]
 

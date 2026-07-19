@@ -44,6 +44,23 @@ pub(crate) struct SaltFiles {
     /// The canonical `f32[N, 2]` coordinates, row-aligned with the node
     /// stream; an array file.
     pub coordinates: RepositoryFile,
+    /// The Morton code column in base delivery order with its bucket
+    /// fenceposts and page index, one combined morton file.
+    pub morton: RepositoryFile,
+    /// The wire `f32[N, 2]` coordinates in base delivery order,
+    /// normalized into the `[-1, 1]` frame; an array file.
+    pub wire_coordinates: RepositoryFile,
+    /// Each base position's importance rank, `u32[N]`; an array file.
+    pub rank_of_position: RepositoryFile,
+    /// Each rank's base position, `u32[N]`: the traversal order of
+    /// filter registration; an array file.
+    pub position_of_rank: RepositoryFile,
+    /// Each node row's base position, `u32[N]`: the permutation the
+    /// filter contract maps entity bitmaps through; an array file.
+    pub position_of_row: RepositoryFile,
+    /// Each base position's node row, `u32[N]`: the gather order that
+    /// assembles any row-aligned column into base order; an array file.
+    pub row_of_position: RepositoryFile,
     /// The node identities: source id per node row and the sorted
     /// lookup pairs, one identity file.
     pub node_identities: RepositoryFile,
@@ -58,7 +75,7 @@ impl SaltFiles {
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
     #[must_use]
-    pub(crate) const fn files(&self) -> [&RepositoryFile; 11] {
+    pub(crate) const fn files(&self) -> [&RepositoryFile; 17] {
         let Self {
             representations,
             card_embeddings,
@@ -69,6 +86,12 @@ impl SaltFiles {
             classifier,
             policy,
             coordinates,
+            morton,
+            wire_coordinates,
+            rank_of_position,
+            position_of_rank,
+            position_of_row,
+            row_of_position,
             node_identities,
             edge_identities,
         } = self;
@@ -83,6 +106,12 @@ impl SaltFiles {
             classifier,
             policy,
             coordinates,
+            morton,
+            wire_coordinates,
+            rank_of_position,
+            position_of_rank,
+            position_of_row,
+            row_of_position,
             node_identities,
             edge_identities,
         ]
