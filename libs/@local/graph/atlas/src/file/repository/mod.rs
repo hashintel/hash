@@ -65,13 +65,83 @@ impl core::fmt::Display for UnknownRepositoryVersion {
 
 impl core::error::Error for UnknownRepositoryVersion {}
 
+/// A plain, visible file name within a repository directory.
+///
+/// Names contain no path separators or NUL bytes and never start with a
+/// dot: files of one repository live flat in its directory, and
+/// dot-prefixed entries are transient staging state, never published
+/// files.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub(crate) struct FileName(String);
+
+impl FileName {
+    /// Wraps a plain, visible file name.
+    ///
+    /// Returns [`None`] when the name is empty, contains a path
+    /// separator or NUL byte, or starts with a dot.
+    #[must_use]
+    pub(crate) fn new(name: impl Into<String>) -> Option<Self> {
+        let name = name.into();
+
+        if name.is_empty() || name.starts_with('.') {
+            return None;
+        }
+        if name.bytes().any(|byte| byte == b'/' || byte == 0) {
+            return None;
+        }
+
+        Some(Self(name))
+    }
+
+    /// Returns the name.
+    #[inline]
+    #[must_use]
+    pub(crate) fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl core::fmt::Display for FileName {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl From<FileName> for String {
+    #[inline]
+    fn from(name: FileName) -> Self {
+        name.0
+    }
+}
+
+impl TryFrom<String> for FileName {
+    type Error = InvalidFileName;
+
+    fn try_from(name: String) -> Result<Self, Self::Error> {
+        Self::new(name).ok_or(InvalidFileName)
+    }
+}
+
+/// A name that is not a plain, visible file name.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct InvalidFileName;
+
+impl core::fmt::Display for InvalidFileName {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter.write_str(
+            "a repository file name is nonempty, contains no path separator or NUL byte, and does \
+             not start with a dot",
+        )
+    }
+}
+
+impl core::error::Error for InvalidFileName {}
+
 /// One published file: its name within the repository and the SHA-256 of
 /// its bytes.
-///
-/// The name is a plain file name without path separators; files of one
-/// repository live flat in its directory.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RepositoryFile {
-    pub name: String,
+    pub name: FileName,
     pub hash: Sha256Digest,
 }

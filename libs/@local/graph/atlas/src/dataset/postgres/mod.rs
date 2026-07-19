@@ -31,7 +31,7 @@ mod card;
 /// a rerun with equal axes over unchanged history reads equal data. Axes
 /// in the past read the graph as it stood then; the store's temporal
 /// tables retain that history.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct TemporalAxes {
     /// The transaction-time point: which writes are visible.
     pub transaction_time: Timestamp<TransactionTime>,

@@ -1,4 +1,4 @@
-//! Construction of bothI am think relation indexes from one admitted instance set.
+//! Construction of both relation indexes from one admitted instance set.
 
 use core::ops::Range;
 

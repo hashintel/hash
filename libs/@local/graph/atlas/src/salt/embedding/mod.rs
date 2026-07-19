@@ -57,8 +57,11 @@ mod tests;
 /// table records the fingerprint that minted it, and rows are copied
 /// out of a prior generation only under a matching fingerprint, so a
 /// contract change invalidates every cached row at once.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[repr(transparent)]
+#[serde(transparent)]
 pub(crate) struct EmbedderFingerprint(Sha256Digest);
 
 impl EmbedderFingerprint {

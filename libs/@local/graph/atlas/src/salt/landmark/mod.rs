@@ -16,6 +16,11 @@
 //!    gradient descent of the UMAP objective over the quotient graph, on the
 //!    [`AffinityCurve`](crate::math::AffinityCurve) gradient kernels.
 //!
+//! A fitted skeleton publishes as one combined landmark file
+//! ([`artifact`]): selection, assignment, and coordinates share the
+//! ordinal vocabulary, so they live in one artifact and cannot fall
+//! out of sync.
+//!
 //! The quotient is a [`SemanticGraph`] like the corpus graph it
 //! contracts, so the layout consumes one graph type at either scale.
 //! Every stage draws its randomness from a caller-seeded generator;
@@ -23,7 +28,7 @@
 //! skeleton exactly.
 //!
 //! [`SemanticGraph`]: super::semantic::SemanticGraph
-
+pub(crate) mod artifact;
 pub(crate) mod assignment;
 pub(crate) mod layout;
 pub(crate) mod quotient;

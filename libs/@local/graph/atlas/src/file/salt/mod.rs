@@ -12,18 +12,66 @@ use super::repository::{RepositoryFile, RepositoryVersion};
 
 mod metadata;
 
+#[cfg(test)]
+mod tests;
+
 /// The files of one SALT generation, by role.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SaltFiles {
-    /// The canonical entity embeddings, an `f32` array file.
-    pub embeddings: RepositoryFile,
+    /// The `f32[N, 512]` projector representation matrix, row-aligned
+    /// with the node stream; an array file.
+    pub representations: RepositoryFile,
+    /// The `f32[T, 3072]` card embedding matrix in ontology row order;
+    /// an array file.
+    pub card_embeddings: RepositoryFile,
+    /// The card text hashes, one SHA-256 per ontology row: the reuse
+    /// key of the card embedding matrix. An array file.
+    pub card_hashes: RepositoryFile,
+    /// The k-nearest-neighbour table, a sparse matrix file.
+    pub knn: RepositoryFile,
+    /// The fuzzy semantic graph, a sparse matrix file.
+    pub semantic: RepositoryFile,
+    /// The landmark skeleton: selected rows, assignment, and layout
+    /// coordinates in one combined file.
+    pub landmarks: RepositoryFile,
+    /// The symmetric no-repel evidence matrix, a sparse matrix file.
+    pub protection: RepositoryFile,
+}
+
+impl SaltFiles {
+    /// Returns every file of the generation, in role order.
+    ///
+    /// Destructuring keeps the list total: a new role fails compilation
+    /// here until it is listed.
+    #[must_use]
+    pub(crate) fn files(&self) -> [&RepositoryFile; 7] {
+        let Self {
+            representations,
+            card_embeddings,
+            card_hashes,
+            knn,
+            semantic,
+            landmarks,
+            protection,
+        } = self;
+
+        [
+            representations,
+            card_embeddings,
+            card_hashes,
+            knn,
+            semantic,
+            landmarks,
+            protection,
+        ]
+    }
 }
 
 /// One published SALT generation.
 ///
 /// The version leads the serialized document, so readers reject a
 /// repository of another layout before interpreting anything else.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SaltRepository {
     pub version: RepositoryVersion,
     pub files: SaltFiles,

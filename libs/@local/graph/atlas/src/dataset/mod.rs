@@ -212,6 +212,8 @@ impl Deref for ArchivedOntologyTypeUuid {
     Clone,
     PartialOrd,
     Ord,
+    serde::Serialize,
+    serde::Deserialize,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,
@@ -221,6 +223,7 @@ impl Deref for ArchivedOntologyTypeUuid {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
+#[serde(into = "u64", from = "u64")]
 pub(crate) struct NodeRowId(U64<LE>);
 
 impl NodeRowId {
@@ -247,6 +250,20 @@ impl NodeRowId {
     #[must_use]
     pub(crate) const fn usize(self) -> usize {
         self.get() as usize
+    }
+}
+
+impl From<u64> for NodeRowId {
+    #[inline]
+    fn from(row: u64) -> Self {
+        Self::new(row)
+    }
+}
+
+impl From<NodeRowId> for u64 {
+    #[inline]
+    fn from(id: NodeRowId) -> Self {
+        id.get()
     }
 }
 

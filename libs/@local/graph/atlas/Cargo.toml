@@ -33,7 +33,12 @@ hash-graph-types               = { workspace = true }
 # argmin: the L-BFGS driver for the policy-classifier fit. Default
 # features stay OFF (`rand` drags rand 0.9 beside our rand 0.10); the
 # solver runs on the argmin-math impls over `math::BoxedDVecN`.
-argmin                         = { version = "0.11.0", default-features = false }
+argmin = { version = "0.11.0", default-features = false }
+# burn: the projector's training/inference framework. `ndarray` is the
+# CPU backend every test runs on; `autodiff` is the decorator the
+# training loop wraps around whichever backend the benchmark selects
+# (a GPU feature would be added beside `ndarray`, not instead of it).
+burn                           = { version = "0.21.0", features = ["autodiff", "ndarray"] }
 camino.workspace               = true
 futures.workspace              = true
 hannoy                         = "0.1.7-nested-rtxns"

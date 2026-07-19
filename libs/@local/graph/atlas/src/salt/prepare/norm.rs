@@ -56,7 +56,7 @@ pub(crate) struct SpotCheckOptions {
 }
 
 /// One sampled row's violation of the representation contract.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum RepresentationDefect {
     /// The row carries a non-finite component.
     NonFinite { row: NodeRowId, component: usize },
@@ -82,7 +82,7 @@ impl fmt::Display for RepresentationDefect {
 }
 
 /// Acceptance-sampling evidence for one matrix and contract.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct NormSpotCheck {
     /// Rows in the checked matrix.
     pub rows: usize,

@@ -11,6 +11,8 @@
 //!   by the packed elements, so a whole-file mapping yields page-aligned data.
 //! - [`morton`] is the combined-file archetype: a page index in front of the sorted code array it
 //!   indexes, both page-aligned.
+//! - [`landmark`] is the landmark skeleton file: selected rows, the corpus assignment, and the
+//!   layout coordinates - three ordinal-keyed regions of one file, page-aligned.
 //! - [`sprs`](mod@sprs) is the sparse matrix file: one compressed-sparse-row matrix - row pointers,
 //!   column indices, values - as page-aligned regions of one file, written from and reopened as
 //!   [`sprs::CsMatBase`](::sprs::CsMatBase) views.
@@ -154,6 +156,7 @@
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
 pub(crate) mod array;
+pub(crate) mod landmark;
 mod morton;
 mod quad;
 mod repository;

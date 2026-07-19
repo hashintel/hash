@@ -2,14 +2,20 @@
     clippy::integer_division_remainder_used,
     reason = "test data generation folds indices into cyclic patterns by modulus"
 )]
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "corruption fixtures pin the format's canonical little-endian bytes"
+)]
 
 use core::num::NonZero;
+use std::{fs, path::PathBuf};
 
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
 use super::{
+    artifact::{InvalidLandmarkFile, LandmarkSkeleton, MappedLandmarkSkeleton},
     assignment::{AssignmentError, LandmarkAssignment, assign_landmarks},
     layout::{
         EdgelessGraphError, LayoutOptions, LearningRate, RepulsionStrength, layout_landmarks,
@@ -22,6 +28,7 @@ use super::{
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    file::landmark::read::LandmarkFile,
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
@@ -863,4 +870,110 @@ fn layout_rejects_an_edgeless_graph() {
         layout_landmarks(&edgeless.view(), curve(), LayoutOptions { .. }, rng()),
         Err(EdgelessGraphError),
     );
+}
+
+/// A per-test scratch file path under the system temp directory.
+fn scratch(name: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-landmark-skeleton-{}",
+        std::process::id(),
+    ));
+    fs::create_dir_all(&dir).expect("the temp directory is writable");
+    dir.join(name)
+}
+
+/// A skeleton from real stage outputs over the clustered fixture,
+/// alongside the stage outputs it was assembled from.
+fn fixture_skeleton() -> (LandmarkSkeleton, LandmarkAssignment, Box<[Vec2]>) {
+    let matrix = Matrix::new(&clustered_embeddings());
+    let selection = selection_of(&[0, 2, 4]);
+    let assignment = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection)
+        .expect("the exact backend assigns every row");
+    let quotient = quotient_graph(&corpus_graph().view(), &assignment, QuotientOptions { .. })
+        .expect("the fixture quotient has edges");
+    let coordinates = layout_landmarks(&quotient.view(), curve(), layout_options(50), rng())
+        .expect("the quotient lays out");
+
+    let skeleton = LandmarkSkeleton::new(selection, assignment.clone(), coordinates.clone());
+    (skeleton, assignment, coordinates)
+}
+
+#[test]
+fn skeleton_round_trips_through_its_file() {
+    let (skeleton, assignment, coordinates) = fixture_skeleton();
+
+    let mut bytes = Vec::new();
+    let first = skeleton
+        .write_into(&mut bytes)
+        .expect("writing into a vector cannot fail");
+    let second = skeleton
+        .write_into(&mut Vec::new())
+        .expect("writing into a vector cannot fail");
+    assert_eq!(first, second, "the encoding is deterministic");
+
+    let path = scratch("roundtrip.lndm");
+    fs::write(&path, &bytes).expect("the scratch file is writable");
+    let mapped =
+        MappedLandmarkSkeleton::new(LandmarkFile::open(&path).expect("the written file reopens"))
+            .expect("the written skeleton is valid");
+
+    assert_eq!(mapped.landmarks(), 3);
+    assert_eq!(mapped.rows(), 6);
+    assert_eq!(
+        mapped.selected_rows(),
+        [NodeRowId::new(0), NodeRowId::new(2), NodeRowId::new(4)],
+    );
+    assert_eq!(mapped.assignment(), assignment.as_slice());
+    assert_eq!(mapped.coordinates(), &*coordinates);
+}
+
+#[test]
+fn mapped_skeleton_rejects_violated_invariants() {
+    let (skeleton, _, _) = fixture_skeleton();
+    let mut bytes = Vec::new();
+    skeleton
+        .write_into(&mut bytes)
+        .expect("writing into a vector cannot fail");
+
+    // The fixture's geometry: rows at 4096, assignment at 8192,
+    // coordinates at 12288 (each region padded to one 4096 unit).
+    let open = |name: &str, bytes: &[u8]| {
+        let path = scratch(name);
+        fs::write(&path, bytes).expect("the scratch file is writable");
+        MappedLandmarkSkeleton::new(LandmarkFile::open(&path).expect("the geometry is intact"))
+    };
+
+    let mut unordered = bytes.clone();
+    unordered[4096..4112].copy_from_slice(&[2_u64.to_le_bytes(), 0_u64.to_le_bytes()].concat());
+    assert_eq!(
+        open("unordered.lndm", &unordered).expect_err("descending rows are rejected"),
+        InvalidLandmarkFile::UnorderedRows { ordinal: 1 },
+    );
+
+    let mut foreign = bytes.clone();
+    foreign[8192..8196].copy_from_slice(&9_u32.to_le_bytes());
+    assert_eq!(
+        open("foreign-ordinal.lndm", &foreign).expect_err("out-of-domain ordinals are rejected"),
+        InvalidLandmarkFile::OrdinalOutOfDomain {
+            row: 0,
+            ordinal: 9,
+            landmarks: 3,
+        },
+    );
+
+    let mut nan = bytes.clone();
+    nan[12288..12292].copy_from_slice(&f32::NAN.to_le_bytes());
+    assert_eq!(
+        open("nan-coordinate.lndm", &nan).expect_err("non-finite coordinates are rejected"),
+        InvalidLandmarkFile::NonFiniteCoordinate { ordinal: 0 },
+    );
+}
+
+#[test]
+#[should_panic(expected = "one coordinate per landmark")]
+fn skeleton_assembly_rejects_disagreeing_parts() {
+    let (_, assignment, _) = fixture_skeleton();
+    let selection = selection_of(&[0, 2, 4]);
+
+    let _skeleton = LandmarkSkeleton::new(selection, assignment, Box::from([Vec2::ZERO]));
 }

@@ -58,7 +58,7 @@ pub(crate) struct SpotCheckOptions {
 }
 
 /// Aggregate exact-recall evidence for one backend and corpus.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RecallSpotCheck {
     /// Distinct rows compared.
     pub sampled_rows: u64,

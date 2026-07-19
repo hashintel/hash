@@ -6,6 +6,12 @@
 //! indexes serving reads from them. The stages land here as they are
 //! built; `PLAN.md` at the crate root tracks the order.
 
+#[cfg(test)]
+pub(crate) use self::prepare::norm::RepresentationDefect;
+pub(crate) use self::{
+    embedding::EmbedderFingerprint, knn::recall::RecallSpotCheck, prepare::norm::NormSpotCheck,
+};
+
 // The previous pipeline generation is parked uncompiled at
 // `src/salt-BAK` as reference semantics for the port.
 mod embedding;
