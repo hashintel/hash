@@ -19,7 +19,13 @@
 
 import { useQuery } from "@apollo/client";
 import { useDebouncedState } from "@mantine/hooks";
-import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  ButtonBase,
+  outlinedInputClasses,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Autocomplete, IconButton } from "@hashintel/design-system";
@@ -34,7 +40,6 @@ import { queryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.qu
 import { ArrowRightToLineIcon } from "../../../shared/icons/arrow-right-to-line-icon";
 import { SearchIcon } from "../../../shared/icons/search-icon";
 import { MenuItem } from "../../../shared/ui/menu-item";
-import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
 
 import type {
   QueryEntitiesQuery,
@@ -42,12 +47,17 @@ import type {
 } from "../../../graphql/api-types.gen";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
-import type { PropsWithChildren, RefObject } from "react";
 
 /** Cap on results pulled per keystroke. */
 const MAXIMUM_RESULTS = 25;
 /** Debounce (ms) on the typed query before hitting the search endpoint. */
 const SEARCH_DEBOUNCE_MS = 300;
+
+/** Diameter of the collapsed search button, which grows into the panel. */
+const COLLAPSED_SIZE = 30;
+/** Size of the expanded (floating) search panel. */
+const PANEL_WIDTH = 340;
+const PANEL_HEIGHT = 82;
 
 /**
  * The properties {@link generateEntityLabel} most commonly derives a label from —
@@ -86,77 +96,6 @@ export interface NetworkGraphSearchResult {
   label: string;
 }
 
-/**
- * The left-anchored slide-in panel, copied from the old graph view's
- * `ControlPanel` so the two searches look identical.
- */
-const SearchPanel = ({
-  children,
-  onClose,
-  open,
-  panelRef,
-}: PropsWithChildren<{
-  open: boolean;
-  onClose: () => void;
-  panelRef: RefObject<HTMLDivElement | null>;
-}>) => (
-  <Box
-    ref={panelRef}
-    sx={{
-      zIndex: 1,
-      position: "absolute",
-      left: 0,
-      top: 0,
-      transform: open ? "translateX(0%)" : "translateX(-100%)",
-      maxHeight: ({ spacing }) => `calc(100% - ${spacing(4)})`,
-      transition: ({ transitions }) => transitions.create(["transform"]),
-      py: 1.2,
-      background: ({ palette }) => palette.white,
-      borderWidth: 1,
-      borderColor: ({ palette }) => palette.gray[20],
-      borderStyle: "solid",
-      borderTopWidth: 0,
-      borderRightWidth: 0,
-      borderLeftWidth: 1,
-      borderBottomLeftRadius: 4,
-      boxShadow: open ? ({ boxShadows }) => boxShadows.sm : undefined,
-      minWidth: 180,
-      overflowY: "auto",
-    }}
-  >
-    <Stack
-      direction="row"
-      alignItems="center"
-      justifyContent="space-between"
-      pr={1.8}
-      pl={2}
-    >
-      <Typography
-        sx={{
-          color: ({ palette }) => palette.gray[90],
-          fontSize: 14,
-          fontWeight: 500,
-        }}
-      >
-        Search
-      </Typography>
-      <IconButton
-        onClick={() => onClose()}
-        sx={{
-          padding: 0.5,
-          svg: {
-            fontSize: 16,
-            color: ({ palette }) => palette.gray[50],
-          },
-        }}
-      >
-        <ArrowRightToLineIcon />
-      </IconButton>
-    </Stack>
-    {children}
-  </Box>
-);
-
 export const NetworkGraphSearch = ({
   onSelect,
   popperContainer,
@@ -175,17 +114,36 @@ export const NetworkGraphSearch = ({
     null,
   );
   const [query, setQuery] = useDebouncedState("", SEARCH_DEBOUNCE_MS);
+  // The expanded height is measured from the content so the box grows to exactly
+  // fit it (bottom padding included) rather than clipping at a guessed constant.
+  const [panelHeight, setPanelHeight] = useState(PANEL_HEIGHT);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // Focus the input once the panel has finished sliding in — focusing earlier
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => {
+      setPanelHeight(content.offsetHeight);
+    });
+    observer.observe(content);
+    setPanelHeight(content.offsetHeight);
+    return () => observer.disconnect();
+  }, []);
+
+  // Focus the input once the panel has finished growing — focusing earlier
   // mis-positions the dropdown mid-transition.
   useEffect(() => {
     const panel = panelRef.current;
     if (open && panel) {
-      panel.ontransitionend = () => {
-        inputRef.current?.focus();
+      panel.ontransitionend = (event) => {
+        if (event.target === panel && event.propertyName === "width") {
+          inputRef.current?.focus();
+        }
       };
     }
     return () => {
@@ -265,22 +223,90 @@ export const NetworkGraphSearch = ({
   }, [options, selected]);
 
   return (
-    <>
-      <SearchPanel
-        open={open}
-        onClose={() => setOpen(false)}
-        panelRef={panelRef}
+    // A single floating element pinned at the graph's top-left gap: it reads as
+    // the collapsed search button and grows in place into the search panel.
+    <Box
+      ref={panelRef}
+      sx={({ palette, boxShadows, transitions }) => ({
+        position: "absolute",
+        top: 8,
+        left: 8,
+        zIndex: 1,
+        overflow: "hidden",
+        background: palette.white,
+        border: `1px solid ${palette.gray[30]}`,
+        // Match the other graph controls: a rounded square, not a circle.
+        borderRadius: "4px",
+        boxShadow: open ? boxShadows.sm : "none",
+        color: palette.gray[70],
+        width: open ? PANEL_WIDTH : COLLAPSED_SIZE,
+        height: open ? panelHeight : COLLAPSED_SIZE,
+        transition: transitions.create([
+          "width",
+          "height",
+          "box-shadow",
+          "background-color",
+          "border-color",
+        ]),
+        "&:hover": open
+          ? undefined
+          : {
+              background: palette.blue[10],
+              borderColor: palette.blue[25],
+              color: palette.blue[70],
+            },
+      })}
+    >
+      {/* Expanded panel content — a fixed width so it doesn't reflow as the
+          box grows, and fades in once there's room for it. */}
+      <Box
+        ref={contentRef}
+        sx={({ transitions }) => ({
+          width: PANEL_WIDTH,
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? "auto" : "none",
+          transition: transitions.create(["opacity"]),
+        })}
       >
-        <Box sx={{ width: 460, px: 1.5, mt: 1 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ height: 34, pl: 2, pr: 1 }}
+        >
+          <Typography
+            sx={{
+              color: ({ palette }) => palette.gray[90],
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Search
+          </Typography>
+          <IconButton
+            aria-label="Close search"
+            onClick={() => setOpen(false)}
+            sx={{
+              padding: 0.5,
+              svg: {
+                fontSize: 16,
+                color: ({ palette }) => palette.gray[50],
+              },
+            }}
+          >
+            <ArrowRightToLineIcon />
+          </IconButton>
+        </Stack>
+        <Box sx={{ px: 1.5, pb: 1.5, pt: 0.5 }}>
           <Autocomplete<NetworkGraphSearchResult, false, false, false>
             autoFocus={false}
             componentsProps={{
               paper: {
+                // Match the dropdown to the input width rather than letting it
+                // grow to fit the option text.
                 sx: {
                   p: 0,
-                  maxWidth: "90vw",
-                  minWidth: "100%",
-                  width: "fit-content",
+                  width: "100%",
                 },
               },
               popper: {
@@ -348,13 +374,30 @@ export const NetworkGraphSearch = ({
             value={selected}
           />
         </Box>
-      </SearchPanel>
-      <GrayToBlueIconButton
+      </Box>
+
+      {/* Collapsed trigger — the icon the panel grows out of. */}
+      <ButtonBase
+        aria-label="Search"
+        disableRipple
         onClick={() => setOpen(true)}
-        sx={{ position: "absolute", top: 8, left: 8 }}
+        sx={({ transitions }) => ({
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: COLLAPSED_SIZE,
+          height: COLLAPSED_SIZE,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "inherit",
+          opacity: open ? 0 : 1,
+          pointerEvents: open ? "none" : "auto",
+          transition: transitions.create(["opacity"]),
+        })}
       >
-        <SearchIcon />
-      </GrayToBlueIconButton>
-    </>
+        <SearchIcon sx={{ fontSize: 14, color: "inherit" }} />
+      </ButtonBase>
+    </Box>
   );
 };
