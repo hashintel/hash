@@ -37,6 +37,14 @@ The HASH Backend API service is configured using the following environment varia
     together to enable Petrinaut optimization. The authenticated capabilities
     endpoint reports this configuration independently of service health, so a
     temporary optimizer outage does not make the feature disappear from HASH.
+  - Besides the legacy attached-study route (`POST /api/petrinaut-optimizer/optimize`,
+    which streams events for as long as the request stays open), NodeAPI
+    proxies detached, reconnectable optimization runs:
+    `POST /api/petrinaut-optimizer/optimize/runs` starts a run and returns its
+    id, `GET /api/petrinaut-optimizer/optimize/runs/:runId/events?cursor=N`
+    attaches to (and resumes) its NDJSON event stream without affecting the
+    run, and `DELETE /api/petrinaut-optimizer/optimize/runs/:runId` cancels
+    it. Runs are only visible to the account that created them.
 - `FRONTEND_URL`: The URL the frontend is hosted on.
 - Vault
   - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`

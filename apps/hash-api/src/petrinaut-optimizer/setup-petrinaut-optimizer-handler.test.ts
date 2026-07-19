@@ -4,6 +4,9 @@ import {
   getPetrinautOptimizerOrigin,
   PETRINAUT_OPTIMIZER_CAPABILITIES_PATH,
   PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
+  PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
+  PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
+  PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH,
   setupPetrinautOptimizerHandler,
 } from "./setup-petrinaut-optimizer-handler";
 
@@ -24,6 +27,30 @@ type Handler = (
   response: ExpressResponse,
 ) => Promise<void> | void;
 
+type RegisteredRoute = {
+  handlerCount: number;
+  method: "delete" | "get" | "post";
+  path: string;
+};
+
+/** Build an Express fake that records every route registration in order. */
+const createRecordingApp = () => {
+  const routes: RegisteredRoute[] = [];
+  const handlers = new Map<string, Handler>();
+  const register =
+    (method: RegisteredRoute["method"]) =>
+    (path: string, ...routeHandlers: unknown[]) => {
+      routes.push({ handlerCount: routeHandlers.length, method, path });
+      handlers.set(`${method} ${path}`, routeHandlers.at(-1) as Handler);
+    };
+  const app = {
+    delete: register("delete"),
+    get: register("get"),
+    post: register("post"),
+  } as unknown as Express;
+  return { app, handlers, routes };
+};
+
 const callGetHandler = async ({
   authenticated = true,
   origin,
@@ -31,17 +58,9 @@ const callGetHandler = async ({
   authenticated?: boolean;
   origin: URL | null;
 }) => {
-  let handler: Handler | undefined;
-  const app = {
-    get: (routePath: string, routeHandler: Handler) => {
-      if (routePath === PETRINAUT_OPTIMIZER_CAPABILITIES_PATH) {
-        handler = routeHandler;
-      }
-    },
-    post: () => undefined,
-  } as unknown as Express;
-
+  const { app, handlers } = createRecordingApp();
   setupPetrinautOptimizerHandler(app, { logger, origin });
+  const handler = handlers.get(`get ${PETRINAUT_OPTIMIZER_CAPABILITIES_PATH}`);
   if (!handler) {
     throw new Error("The capabilities route was not registered");
   }
@@ -88,21 +107,53 @@ describe("getPetrinautOptimizerOrigin", () => {
   });
 });
 
-it("mounts the optimization endpoint", () => {
-  let registeredRoute: { handlerCount: number; path: string } | undefined;
-  const app = {
-    get: () => undefined,
-    post: (path: string, ...handlers: unknown[]) => {
-      registeredRoute = { handlerCount: handlers.length, path };
-    },
-  } as unknown as Express;
+it("mounts every optimization endpoint behind the rate limiter", () => {
+  const { app, routes } = createRecordingApp();
 
   setupPetrinautOptimizerHandler(app, { logger, origin: null });
 
-  expect(registeredRoute).toEqual({
-    handlerCount: 2,
-    path: PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
-  });
+  expect(routes).toEqual([
+    {
+      handlerCount: 1,
+      method: "get",
+      path: PETRINAUT_OPTIMIZER_CAPABILITIES_PATH,
+    },
+    {
+      handlerCount: 2,
+      method: "post",
+      path: PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH,
+    },
+    {
+      handlerCount: 2,
+      method: "get",
+      path: PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
+    },
+    {
+      handlerCount: 2,
+      method: "delete",
+      path: PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
+    },
+    {
+      handlerCount: 2,
+      method: "post",
+      path: PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
+    },
+  ]);
+});
+
+it("registers the detached-run routes before the legacy optimize route", () => {
+  const { app, routes } = createRecordingApp();
+
+  setupPetrinautOptimizerHandler(app, { logger, origin: null });
+
+  const postPaths = routes
+    .filter((route) => route.method === "post")
+    .map((route) => route.path);
+  // `POST …/optimize/runs` is a path-prefix extension of `POST …/optimize`,
+  // so the more specific route must be registered first.
+  expect(
+    postPaths.indexOf(PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH),
+  ).toBeLessThan(postPaths.indexOf(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH));
 });
 
 describe(PETRINAUT_OPTIMIZER_CAPABILITIES_PATH, () => {

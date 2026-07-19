@@ -12,7 +12,7 @@ type JsonRecord = Record<string, unknown>;
 
 type StreamState = {
   requestedTrials: number;
-  direction: PetrinautOptimizationInput["objective"]["direction"];
+  direction: PetrinautOptimizationInput["objective"]["direction"] | undefined;
   completedTrials: number;
   prunedTrials: number;
   failedTrials: number;
@@ -20,12 +20,39 @@ type StreamState = {
   terminal: boolean;
 };
 
-/** Configuration needed to adapt one upstream optimization stream. */
+/**
+ * Configuration needed to adapt one upstream optimization stream.
+ *
+ * The decoder has two modes:
+ *
+ * - **Study mode** (the default, used by `POST /optimize/all`): the caller
+ *   knows the manifest, passes `direction`, and a synthetic `started` event is
+ *   emitted before any upstream bytes are read. Best-so-far aggregation runs
+ *   client-side from the trials observed on this stream.
+ * - **Attachment mode** (used by `GET /optimize/runs/{run_id}/events`): the
+ *   caller re-attaches mid-run, so a replay that starts past the cursor never
+ *   represents the whole study. Pass `emitSyntheticStarted: false` and omit
+ *   `direction`: no `started` event is emitted and best-so-far aggregation is
+ *   skipped — every trial and complete event then carries `best: null` (legal
+ *   per the canonical schema) and the consumer, which retains its own running
+ *   best across reconnections, remains the single source of truth for it.
+ */
 export type DecodePetrinautOptimizerStreamOptions = {
-  /** Whether lower or higher objective values are considered better. */
-  direction: PetrinautOptimizationInput["objective"]["direction"];
+  /**
+   * Whether lower or higher objective values are considered better.
+   *
+   * When omitted, best-so-far aggregation is skipped entirely and every
+   * emitted trial and complete event carries `best: null`.
+   */
+  direction?: PetrinautOptimizationInput["objective"]["direction"];
   /** Number of trials requested by the optimization manifest. */
   requestedTrials: number;
+  /**
+   * Whether to emit the synthetic client-side `started` event before reading
+   * upstream bytes. Defaults to `true`; attachments to an already-running
+   * detached run pass `false` because the study started long before them.
+   */
+  emitSyntheticStarted?: boolean;
   /** Optional UTF-8 byte limit applied to each complete upstream event. */
   maxEventBytes?: number;
   /** Called whenever bytes arrive, including heartbeat-only chunks. */
@@ -51,6 +78,24 @@ const parseJson = (data: string): unknown => {
 const utf8ByteLength = (value: string): number =>
   textEncoder.encode(value).byteLength;
 
+/**
+ * Parse an SSE frame's `id:` line into a canonical sequence number.
+ *
+ * Detached-run attachments stamp every frame with `id: <seq>` so consumers
+ * can resume from a cursor; the legacy study stream sends no ids at all, in
+ * which case the adapted events simply carry no `seq`.
+ */
+const parseEventSequence = (id: string | undefined): number | undefined => {
+  if (id === undefined) {
+    return undefined;
+  }
+  const seq = Number(id);
+  if (!Number.isInteger(seq) || seq < 0) {
+    throw new Error("Petrinaut optimizer returned an invalid event id");
+  }
+  return seq;
+};
+
 /** Validate the flat parameter values returned for one Optuna trial. */
 const parseParameters = (value: unknown): Record<string, number | boolean> => {
   if (!isJsonRecord(value)) {
@@ -75,7 +120,7 @@ const parseTrial = (
   value: unknown,
 ): Omit<
   Extract<PetrinautOptimizationEvent, { type: "trial" }>,
-  "type" | "best"
+  "type" | "best" | "seq"
 > => {
   if (!isJsonRecord(value)) {
     throw new Error("Petrinaut optimizer returned an invalid SSE event");
@@ -134,6 +179,8 @@ const adaptSseEvent = (
     throw new Error("Petrinaut optimizer returned an oversized event");
   }
 
+  const sequence = parseEventSequence(event.id);
+  const sequenceField = sequence === undefined ? {} : { seq: sequence };
   const value = parseJson(event.data);
   if (event.event === "error") {
     return {
@@ -145,6 +192,22 @@ const adaptSseEvent = (
             ? value.message
             : "Petrinaut optimizer reported an error",
         retryable: false,
+        ...sequenceField,
+      }),
+      state: { ...state, terminal: true },
+    };
+  }
+  if (event.event === "cancelled") {
+    // A detached run's terminal cancellation frame (client DELETE, orphan
+    // reaping, or optimizer shutdown). It is terminal and not retryable: the
+    // run is gone, so re-attaching cannot resume it.
+    return {
+      event: petrinautOptimizationEventSchema.parse({
+        type: "error",
+        code: "optimization_cancelled",
+        message: "The optimization was cancelled",
+        retryable: false,
+        ...sequenceField,
       }),
       state: { ...state, terminal: true },
     };
@@ -158,6 +221,7 @@ const adaptSseEvent = (
         prunedTrials: state.prunedTrials,
         failedTrials: state.failedTrials,
         best: state.best,
+        ...sequenceField,
       }),
       state: { ...state, terminal: true },
     };
@@ -176,6 +240,7 @@ const adaptSseEvent = (
             ? value.message
             : "Petrinaut optimizer reported an error",
         retryable: false,
+        ...sequenceField,
       }),
       state: { ...state, terminal: true },
     };
@@ -183,6 +248,7 @@ const adaptSseEvent = (
 
   const trial = parseTrial(value);
   const best =
+    state.direction !== undefined &&
     trial.state === "complete" &&
     trial.objective !== null &&
     (state.best === null ||
@@ -209,6 +275,7 @@ const adaptSseEvent = (
       type: "trial",
       ...trial,
       best,
+      ...sequenceField,
     }),
     state: nextState,
   };
@@ -219,6 +286,8 @@ const adaptSseEvent = (
  *
  * The decoder is browser-safe so NodeAPI and local browser integrations use
  * exactly the same protocol validation, aggregation, and terminal semantics.
+ * Frames stamped with an SSE `id:` line surface it as the canonical `seq`
+ * field so consumers of detached runs can resume from a cursor.
  */
 export async function* decodePetrinautOptimizerStream(
   stream: ReadableStream<Uint8Array>,
@@ -286,10 +355,13 @@ export async function* decodePetrinautOptimizerStream(
   };
 
   try {
-    yield petrinautOptimizationEventSchema.parse({
-      type: "started",
-      requestedTrials: state.requestedTrials,
-    });
+    if (options.emitSyntheticStarted ?? true) {
+      // Synthesized before any upstream bytes exist, so it never has a seq.
+      yield petrinautOptimizationEventSchema.parse({
+        type: "started",
+        requestedTrials: state.requestedTrials,
+      });
+    }
 
     let result = await reader.read();
     while (!result.done) {
