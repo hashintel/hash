@@ -4,6 +4,7 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
+import { STEP_TYPE_LABELS, STEP_TYPE_ORDER } from "../../shared/categories";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import {
   compareStatusLabels,
@@ -20,7 +21,7 @@ import { ColumnHeader } from "./shared/column-header";
 import { ProductTags } from "./shared/product-tags";
 import * as threshold from "./shared/table-styles";
 
-import type { SiteNode } from "../../shared/types";
+import type { SiteNode, StepType } from "../../shared/types";
 import type { OpportunityKind, SiteOpportunity } from "./opportunities";
 import type { SortDir, SortKey } from "./shared/row-types";
 
@@ -210,9 +211,6 @@ const OPPORTUNITY_SECTIONS: OpportunitySection[] = [
   { id: "planning_under", label: "Under plan", kinds: ["planning_under"] },
 ];
 
-const kindLabel = (kind: OpportunityKind): string =>
-  OPPORTUNITY_SECTIONS.find((section) => section.id === kind)?.label ?? kind;
-
 interface OpportunitiesTableProps {
   opportunities: SiteOpportunity[];
   /** Route site slug; scopes status keys to the global store. */
@@ -222,8 +220,8 @@ interface OpportunitiesTableProps {
   onStatus: (node: SiteNode, title: string) => void;
   sort: { key: SortKey; dir: SortDir } | null;
   onSort: (next: { key: SortKey; dir: SortDir }) => void;
-  typeHidden: Set<OpportunityKind>;
-  onTypeHiddenChange: (next: Set<OpportunityKind>) => void;
+  typeHidden: Set<StepType>;
+  onTypeHiddenChange: (next: Set<StepType>) => void;
   productHidden: Set<string>;
   onProductHiddenChange: (next: Set<string>) => void;
   statusHidden: Set<StatusActionLabel>;
@@ -389,14 +387,14 @@ export const OpportunitiesTable = ({
   );
 
   const typeFilter = useMemo(() => {
-    const values = OPPORTUNITY_SECTIONS.map((section) => section.id).filter(
-      (kind) => opportunities.some((opportunity) => opportunity.kind === kind),
+    const values = STEP_TYPE_ORDER.filter((stepType) =>
+      opportunities.some((opportunity) => opportunity.node.type === stepType),
     );
-    return buildColumnFilter<OpportunityKind>({
-      header: "Type",
+    return buildColumnFilter<StepType>({
+      header: "Step type",
       values,
-      labelOf: kindLabel,
-      counts: countBy(opportunities, (opportunity) => opportunity.kind),
+      labelOf: (stepType) => STEP_TYPE_LABELS[stepType],
+      counts: countBy(opportunities, (opportunity) => opportunity.node.type),
       hidden: typeHidden,
       onHiddenChange: onTypeHiddenChange,
       searchable: false,
@@ -447,12 +445,11 @@ export const OpportunitiesTable = ({
     const passesStatus = (opportunity: SiteOpportunity) =>
       !statusHidden.has(statusOf(opportunity));
 
-    return OPPORTUNITY_SECTIONS.filter(
-      (section) => !typeHidden.has(section.id),
-    ).map((section) => {
+    return OPPORTUNITY_SECTIONS.map((section) => {
       const items = opportunities.filter(
         (opportunity) =>
           section.kinds.includes(opportunity.kind) &&
+          !typeHidden.has(opportunity.node.type) &&
           passesProduct(opportunity) &&
           passesStatus(opportunity),
       );

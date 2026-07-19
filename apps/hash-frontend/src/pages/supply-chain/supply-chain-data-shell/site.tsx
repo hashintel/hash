@@ -1,5 +1,6 @@
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { isDwellType } from "../shared/categories";
@@ -30,6 +31,7 @@ import {
 import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
+import { createSiteSearchMatchers } from "./site/site-search";
 import { SupplierTable } from "./site/supplier-table";
 import { TabButton } from "./site/tab-button";
 import { TrendTable } from "./site/trend-table";
@@ -90,6 +92,108 @@ const controlsRow = css({
   gap: "2",
   flexShrink: 0,
 });
+const headerControls = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-end",
+  gap: "2",
+  flexShrink: 0,
+});
+const searchWrap = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  w: "[320px]",
+  maxW: "[40vw]",
+  px: "3",
+  py: "1.5",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "md",
+  bg: "bg.surface",
+  color: "fg.subtle",
+  transition: "colors",
+  _focusWithin: {
+    borderColor: "[#93c5fd]",
+    boxShadow: "[0 0 0 2px rgba(147, 197, 253, 0.25)]",
+  },
+  '&[data-active="true"]': {
+    bg: "[#eff6ff]",
+    borderColor: "[#2563eb]",
+    color: "[#2563eb]",
+  },
+});
+const searchInput = css({
+  flex: "1",
+  minW: "0",
+  bg: "[transparent]",
+  color: "fg.heading",
+  textStyle: "sm",
+  outline: "none",
+  _placeholder: { color: "fg.subtle" },
+});
+const clearSearchButton = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  w: "4",
+  h: "4",
+  flexShrink: 0,
+  color: "fg.subtle",
+  cursor: "pointer",
+  borderRadius: "sm",
+  _hover: { color: "fg.heading", bg: "bg.subtle" },
+});
+const clearSearchButtonHidden = css({
+  visibility: "hidden",
+  pointerEvents: "none",
+});
+
+const SiteSearchInput = ({
+  onChange,
+}: {
+  onChange: (query: string) => void;
+}) => {
+  const [value, setValue] = useState("");
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => onChange(value), 200);
+    return () => window.clearTimeout(timeout);
+  }, [value, onChange]);
+
+  return (
+    <div
+      className={searchWrap}
+      data-active={value ? "true" : undefined}
+      role="search"
+      style={value ? { borderColor: "#2563eb" } : undefined}
+    >
+      <Icon name="search" size="xs" />
+      <input
+        type="text"
+        value={value}
+        className={searchInput}
+        placeholder="Search..."
+        aria-label="Search site overview tables"
+        onChange={(event) => setValue(event.target.value)}
+      />
+      <button
+        type="button"
+        className={cx(clearSearchButton, !value && clearSearchButtonHidden)}
+        aria-label="Clear search"
+        disabled={!value}
+        onClick={() => {
+          setValue("");
+          onChange("");
+        }}
+      >
+        <Icon name="close" size="xs" />
+      </button>
+    </div>
+  );
+};
+
 const settingsCollapse = css({
   display: "grid",
   gridTemplateRows: "0fr",
@@ -192,6 +296,7 @@ export const SiteOverview = ({
   const siteSlug = siteId;
   const [tab, setTab] = useState<Tab>("dwell");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchParams] = useSearchParams();
   const { excludeLowSamples, setExcludeLowSamples } = useLowSampleSetting();
   const [selectedStep, setSelectedStep] = useState<{
@@ -281,7 +386,7 @@ export const SiteOverview = ({
     key: SortKey;
     dir: SortDir;
   } | null>({ key: "impact", dir: "desc" });
-  const [oppTypeHidden, setOppTypeHidden] = useState<Set<OpportunityKind>>(
+  const [oppTypeHidden, setOppTypeHidden] = useState<Set<StepType>>(
     () => new Set(),
   );
   const [oppProductHidden, setOppProductHidden] = useState<Set<string>>(
@@ -317,7 +422,7 @@ export const SiteOverview = ({
       opportunityBriefHref(siteSlug, type, node, timeRange, searchParams, kind),
     [searchParams, siteSlug, timeRange],
   );
-  const opportunities = useMemo(
+  const generatedOpportunities = useMemo(
     () =>
       buildSiteOpportunities({
         siteId: siteSlug,
@@ -335,6 +440,30 @@ export const SiteOverview = ({
       siteCurrency,
       buildBriefHref,
     ],
+  );
+  const searchMatchers = useMemo(
+    () => createSiteSearchMatchers(searchQuery),
+    [searchQuery],
+  );
+  const filteredDwellRows = useMemo(
+    () => dwellRows.filter(searchMatchers.siteNode),
+    [dwellRows, searchMatchers],
+  );
+  const filteredPlanningRows = useMemo(
+    () => planningRows.filter(searchMatchers.siteNode),
+    [planningRows, searchMatchers],
+  );
+  const filteredTrendRows = useMemo(
+    () => trendRows.filter(searchMatchers.siteNode),
+    [trendRows, searchMatchers],
+  );
+  const filteredSupplierRows = useMemo(
+    () => supplierRows.filter(searchMatchers.supplier),
+    [supplierRows, searchMatchers],
+  );
+  const opportunities = useMemo(
+    () => generatedOpportunities.filter(searchMatchers.opportunity),
+    [generatedOpportunities, searchMatchers],
   );
 
   const overPlanCount = useMemo(
@@ -379,14 +508,7 @@ export const SiteOverview = ({
   );
 
   const revealOverPlanOpportunities = useCallback(() => {
-    setOppTypeHidden((hiddenKinds) => {
-      if (!hiddenKinds.has("planning_over")) {
-        return hiddenKinds;
-      }
-      const nextHiddenKinds = new Set(hiddenKinds);
-      nextHiddenKinds.delete("planning_over");
-      return nextHiddenKinds;
-    });
+    setOppTypeHidden(new Set());
     setOppSectionRevealRequest((previousRequest) => ({
       kind: "planning_over",
       requestId: (previousRequest?.requestId ?? 0) + 1,
@@ -446,21 +568,24 @@ export const SiteOverview = ({
               )}
             </div>
           </div>
-          <div className={controlsRow}>
-            <HeaderActionButtons
-              settingsOpen={settingsOpen}
-              onSettingsToggle={() => {
-                trackSupplyChainInteraction({
-                  interaction: settingsOpen
-                    ? "settings_closed"
-                    : "settings_opened",
-                  siteId,
-                  source: "site_overview",
-                });
-                setSettingsOpen((open) => !open);
-              }}
-              docContext="site"
-            />
+          <div className={headerControls}>
+            <div className={controlsRow}>
+              <HeaderActionButtons
+                settingsOpen={settingsOpen}
+                onSettingsToggle={() => {
+                  trackSupplyChainInteraction({
+                    interaction: settingsOpen
+                      ? "settings_closed"
+                      : "settings_opened",
+                    siteId,
+                    source: "site_overview",
+                  });
+                  setSettingsOpen((open) => !open);
+                }}
+                docContext="site"
+              />
+            </div>
+            <SiteSearchInput onChange={setSearchQuery} />
           </div>
         </div>
         <div
@@ -523,7 +648,7 @@ export const SiteOverview = ({
                   setTab("dwell");
                 }}
                 label="Dwell Time / Cost"
-                count={dwellRows.length}
+                count={filteredDwellRows.length}
               />
 
               <TabButton
@@ -537,7 +662,7 @@ export const SiteOverview = ({
                   setTab("planning");
                 }}
                 label="Planning Parameters"
-                count={planningRows.length}
+                count={filteredPlanningRows.length}
               />
 
               <TabButton
@@ -551,7 +676,7 @@ export const SiteOverview = ({
                   setTab("trends");
                 }}
                 label="Trend"
-                count={trendRows.length}
+                count={filteredTrendRows.length}
               />
 
               {supplierPerformanceEnabled && (
@@ -566,7 +691,7 @@ export const SiteOverview = ({
                     setTab("suppliers");
                   }}
                   label="Supplier Performance"
-                  count={supplierRows.length}
+                  count={filteredSupplierRows.length}
                 />
               )}
             </div>
@@ -575,7 +700,7 @@ export const SiteOverview = ({
           {/* Detail tables */}
           {tab === "dwell" && (
             <DwellTable
-              rows={dwellRows}
+              rows={filteredDwellRows}
               siteId={siteSlug}
               sort={dwellSort}
               onSort={setDwellSort}
@@ -594,7 +719,7 @@ export const SiteOverview = ({
           )}
           {tab === "planning" && (
             <PlanningTable
-              rows={planningRows}
+              rows={filteredPlanningRows}
               siteId={siteSlug}
               sort={planSort}
               onSort={setPlanSort}
@@ -615,7 +740,7 @@ export const SiteOverview = ({
           )}
           {tab === "trends" && (
             <TrendTable
-              rows={trendRows}
+              rows={filteredTrendRows}
               siteId={siteSlug}
               sort={trendSort}
               onSort={setTrendSort}
@@ -632,7 +757,7 @@ export const SiteOverview = ({
           )}
           {supplierPerformanceEnabled && tab === "suppliers" && (
             <SupplierTable
-              rows={supplierRows}
+              rows={filteredSupplierRows}
               sort={supplierSort}
               onSort={setSupplierSort}
               onRowClick={(value) =>
