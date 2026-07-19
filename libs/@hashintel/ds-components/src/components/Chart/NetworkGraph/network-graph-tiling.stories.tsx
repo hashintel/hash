@@ -31,8 +31,8 @@ const ATLAS_PROXY_BASE = "/atlas-api";
 
 /** Aim for roughly this many tiles across the viewport when choosing a depth. */
 const TARGET_TILES_ACROSS = 2;
-/** Deepest tile zoom the demo requests, to keep the fetch fan-out bounded. */
-const DEMO_MAX_DEPTH = 6;
+/** Deepest tile zoom the demo requests: the deepest depth the Atlas quadtree addresses. */
+const DEMO_MAX_DEPTH = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**

@@ -42,8 +42,8 @@ const ATLAS_PROXY_BASE = "/atlas-api";
 
 /** Aim for roughly this many tiles across the viewport when choosing a depth. */
 const TARGET_TILES_ACROSS = 2;
-/** Deepest tile zoom requested, to keep the fetch fan-out bounded. */
-const MAX_DEPTH = 6;
+/** Deepest tile zoom requested: the deepest depth the Atlas quadtree addresses. */
+const MAX_DEPTH = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
@@ -52,6 +52,22 @@ const DEBOUNCE_MS = 150;
  * in.
  */
 const MAX_ZOOM = 16;
+
+/** Slack when comparing the live zoom against a limit, to absorb float drift. */
+const ZOOM_LIMIT_EPSILON = 1e-3;
+
+/**
+ * Disabled zoom button: keep the enabled resting look (white fill, gray.30
+ * border) and only fade the icon, rather than the shared component's heavier
+ * grey-fill disabled state.
+ */
+const disabledZoomButtonSx = {
+  "&.Mui-disabled": {
+    background: "white",
+    borderColor: "gray.30",
+    color: "gray.50",
+  },
+};
 
 /** The tiling endpoint returns nodes only; edges stay empty. */
 const EMPTY_EDGES: NetworkGraphEdge[] = [];
@@ -186,6 +202,8 @@ export const NetworkGraphView = () => {
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  // The graph opens fully framed out, so zoom-out starts at its limit.
+  const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
 
   // Full-screen the frame element itself (not the document) so the graph fills
   // the screen while its overlaid controls come along. The ResizeObserver below
@@ -252,6 +270,13 @@ export const NetworkGraphView = () => {
         ...cameraRef.current,
         zoom: zoom + framingBaseZoom,
       };
+      // The framed-in maximum sits at `MAX_ZOOM - framingBaseZoom` on the same
+      // normalised axis; disable whichever button is already at its limit.
+      const maxNormalisedZoom = Math.max(0, MAX_ZOOM - framingBaseZoom);
+      setZoomLimits({
+        atMin: zoom <= ZOOM_LIMIT_EPSILON,
+        atMax: zoom >= maxNormalisedZoom - ZOOM_LIMIT_EPSILON,
+      });
       schedule();
     },
     [schedule],
@@ -339,13 +364,17 @@ export const NetworkGraphView = () => {
             ) : null}
             <GrayToBlueIconButton
               aria-label="Zoom in"
+              disabled={zoomLimits.atMax}
               onClick={() => graphRef.current?.zoomIn()}
+              sx={disabledZoomButtonSx}
             >
               <PlusRegularIcon />
             </GrayToBlueIconButton>
             <GrayToBlueIconButton
               aria-label="Zoom out"
+              disabled={zoomLimits.atMin}
               onClick={() => graphRef.current?.zoomOut()}
+              sx={disabledZoomButtonSx}
             >
               <MinusRegularIcon />
             </GrayToBlueIconButton>
