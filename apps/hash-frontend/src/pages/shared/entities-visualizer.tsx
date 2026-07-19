@@ -27,6 +27,7 @@ import {
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
+import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
@@ -34,7 +35,7 @@ import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import { visualizerViewIcons } from "./visualizer-views";
+import { visualizerViewIcons, visualizerViewLabels } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
 import type {
@@ -601,10 +602,11 @@ export const EntitiesVisualizer: FunctionComponent<{
                   "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
                   "Graph",
+                  "NetworkGraph",
                 ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
                 icon: visualizerViewIcons[optionValue],
-                label: `${optionValue} view`,
+                label: visualizerViewLabels[optionValue],
                 value: optionValue,
               }))}
             />
@@ -612,7 +614,11 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
-      {showLoading ? (
+      {view === "NetworkGraph" ? (
+        <Box height={availableHeight} sx={tableContentSx}>
+          <NetworkGraphView />
+        </Box>
+      ) : showLoading ? (
         <Stack
           sx={[
             {

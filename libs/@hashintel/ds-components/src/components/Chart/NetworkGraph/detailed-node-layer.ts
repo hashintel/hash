@@ -1,13 +1,22 @@
 import { CompositeLayer } from "@deck.gl/core";
 import { IconLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 
-import { EDGE_COLOR, EDGE_HOVER_WIDTH } from "./network-graph-util";
-
-import type {
-  DetailIconAtlas,
-  NetworkGraphId,
-  NetworkGraphPoint,
+import {
+  type DetailIconAtlas,
+  EDGE_COLOR,
+  EDGE_HOVER_WIDTH,
+  FALLBACK_COLOR,
+  LABEL_BORDER_RADIUS,
+  LABEL_FONT_FAMILY,
+  LABEL_FONT_SIZE,
+  LABEL_PADDING_X,
+  LABEL_PADDING_Y,
+  type NetworkGraphId,
+  type NetworkGraphPoint,
+  RGBA_OPAQUE,
+  type RgbColor,
 } from "./network-graph-util";
+
 import type {
   Color,
   CompositeLayerProps,
@@ -15,24 +24,17 @@ import type {
   UpdateParameters,
 } from "@deck.gl/core";
 
-type RgbColor = [number, number, number];
-
-const RGBA_OPAQUE = 255;
-/** Colour used if a point's hex value cannot be resolved. */
-const FALLBACK_COLOR: RgbColor = [148, 148, 148];
 /** Diameter (px) of a node in the zoomed-in detail variation. */
 export const DETAIL_NODE_DIAMETER = 40;
 /** On-screen size (px) of the icon drawn inside a detail node. */
 const DETAIL_ICON_SIZE = 24;
-/** Font size (px) of the detail label text. */
-const DETAIL_LABEL_FONT_SIZE = 12;
-/** Font stack the label text is rasterised with. */
-const DETAIL_LABEL_FONT =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 /** Longest label (chars) before it is truncated with an ellipsis (~2.5× node width). */
 const DETAIL_LABEL_MAX_CHARS = 16;
 /** Background padding `[x, y]` of the label pill. */
-const DETAIL_LABEL_PADDING: [number, number] = [6, 2];
+const DETAIL_LABEL_PADDING: [number, number] = [
+  LABEL_PADDING_X,
+  LABEL_PADDING_Y,
+];
 /**
  * How far (px) the label pill overlaps up into the node, so the two read as one
  * shape. Kept at `radius − icon half-height` so the pill's top still clears the
@@ -43,7 +45,7 @@ const DETAIL_LABEL_OVERLAP = DETAIL_NODE_DIAMETER / 2 - DETAIL_ICON_SIZE / 2;
 const DETAIL_LABEL_OFFSET =
   DETAIL_NODE_DIAMETER / 2 - DETAIL_LABEL_OVERLAP + DETAIL_LABEL_PADDING[1];
 /** Corner radius (px) of the label pill. */
-const DETAIL_LABEL_RADIUS = 6;
+const DETAIL_LABEL_RADIUS = LABEL_BORDER_RADIUS;
 /**
  * Width (px) of the white outline tracing the whole node+label silhouette — a
  * white backdrop of the circle and pill, enlarged by this much and drawn behind
@@ -269,9 +271,9 @@ export class DetailedNodeLayer extends CompositeLayer<
           zFor(point, outline ? DETAIL_LEVEL_OUTLINE : DETAIL_LEVEL_LABEL),
         ],
         getText: (point) => truncateLabel(point.label ?? ""),
-        getSize: DETAIL_LABEL_FONT_SIZE,
+        getSize: LABEL_FONT_SIZE,
         sizeUnits: "pixels",
-        fontFamily: DETAIL_LABEL_FONT,
+        fontFamily: LABEL_FONT_FAMILY,
         fontWeight: active ? DETAIL_LABEL_FONT_WEIGHT_ACTIVE : "normal",
         characterSet: "auto",
         getTextAnchor: "middle",
@@ -325,12 +327,18 @@ export class DetailedNodeLayer extends CompositeLayer<
         },
       }),
       // The white pill backdrop behind the label, part of the white silhouette.
-      labelLayer({
-        idSuffix: "outline-pill",
-        data: labelPoints,
-        outline: true,
-        active: false,
-      }),
+      // Omitted when no node has a label: a TextLayer with empty data builds a
+      // zero-height font atlas that WebGL rejects (`texSubImage2D: no canvas`).
+      ...(labelPoints.length > 0
+        ? [
+            labelLayer({
+              idSuffix: "outline-pill",
+              data: labelPoints,
+              outline: true,
+              active: false,
+            }),
+          ]
+        : []),
       // The active label's bold-sized outline backdrop, so its white ring matches
       // the bold label text.
       ...(boldLabelNodes.length > 0
@@ -414,13 +422,18 @@ export class DetailedNodeLayer extends CompositeLayer<
           ]
         : []),
       // The label pill in front of the circle and icon: an opaque white pill with a
-      // border in the node's colour, tying label to node.
-      labelLayer({
-        idSuffix: "labels",
-        data: labelPoints,
-        outline: false,
-        active: false,
-      }),
+      // border in the node's colour, tying label to node. Omitted when no node has a
+      // label (empty TextLayer → zero-height atlas → `texSubImage2D: no canvas`).
+      ...(labelPoints.length > 0
+        ? [
+            labelLayer({
+              idSuffix: "labels",
+              data: labelPoints,
+              outline: false,
+              active: false,
+            }),
+          ]
+        : []),
       // The active node's label, redrawn bold on top of its normal-weight copy.
       ...(boldLabelNodes.length > 0
         ? [

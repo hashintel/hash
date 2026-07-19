@@ -16,14 +16,29 @@ import { CompactNodeLayer } from "./compact-node-layer";
 import { DetailedNodeLayer, DETAIL_NODE_DIAMETER } from "./detailed-node-layer";
 import { buildBundleHierarchy, bundleEdgePath } from "./edge-bundling";
 import {
+  arrowIconAtlas,
+  clampPanTarget,
+  clampPanTargetBlocking,
   DETAIL_ICON_TEXTURE,
+  drawEdgeLabel,
   EDGE_COLOR,
   EDGE_HOVER_WIDTH,
+  edgeLabelAnchor,
   EDGE_MIN_WIDTH,
   EDGE_WIDTH,
   hexToRgb,
   iconTextureUrl,
+  trimPathBothEnds,
 } from "./network-graph-util";
+import {
+  arealSpacingWorld,
+  blendSpacing,
+  countPointsInRect,
+  DENSITY_AREAL_WEIGHT,
+  DENSITY_EASE_MS,
+  densityPointRadiusPx,
+  medianNearestNeighbourWorld,
+} from "./node-density";
 import {
   deriveZoomAttributes,
   HOVERED_MAX_MULTIPLIER,
@@ -138,11 +153,13 @@ export interface NetworkGraphProps {
    */
   graphBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /**
-   * The smallest distance between any two nodes, in world coordinates. Sets the
-   * camera's maximum zoom: at max zoom the closest two nodes sit `2 · the detail
-   * hover radius + 10px` apart on screen.
+   * The camera's maximum zoom, as an absolute orthographic zoom (`2 ** zoom` =
+   * pixels per world unit). Floored at the framing-out zoom so the range is never
+   * inverted. Omit (or pass `null`) to fall back to a fixed offset above the
+   * framed-in zoom — e.g. when node spacing is unknown. Non-tiled callers derive
+   * it from node spacing via {@link maxZoomForNodeMinDistance}.
    */
-  nodeMinDistance: number;
+  maxZoom?: number | null;
   /** Extra class name applied to the chart container. */
   className?: string;
   /**
@@ -193,8 +210,23 @@ export interface NetworkGraphProps {
    * `{ edge: id }`.
    */
   onEdgeClick?: (interaction: NetworkGraphEdgeInteraction) => void;
-  /** Called when the zoom level changes (log2 scale). Not called for pure panning. */
-  onZoom?: (zoom: number) => void;
+  /**
+   * Called when the zoom level changes with the framing-normalised zoom — `0` is the
+   * fully-framed-out view and each `+1` doubles the on-screen scale, whatever the
+   * graph's world extent — plus `framingBaseZoom`, the absolute orthographic zoom of
+   * that framed-out view. Add them to recover the absolute zoom
+   * (`2 ** (zoom + framingBaseZoom)` = pixels per world unit) for screen↔world
+   * mapping. Not called for pure panning.
+   */
+  onZoom?: (zoom: number, framingBaseZoom: number) => void;
+  /**
+   * Called when the pan position changes, with the viewport centre in world
+   * coordinates (`[x, y]`). Deduped like {@link NetworkGraphProps.onZoom}: fires only
+   * when the centre actually moves, so a pure zoom that keeps the centre put won't
+   * call it — but a zoom that re-anchors the view (e.g. zooming in toward the cursor,
+   * or a zoom-out that reframes inward) will.
+   */
+  onPan?: (center: [number, number]) => void;
   /**
    * Imperative handle for driving the zoom from outside without making the view
    * state controlled. See {@link NetworkGraphHandle}.
@@ -213,13 +245,11 @@ const FOCUS_MARGIN = 0.2;
 /** Furthest zoom-out keeps the whole network in view plus this fractional margin. */
 const ZOOM_OUT_MARGIN = 0.05;
 /**
- * Fallback furthest zoom-in (levels above the framing zoom), used only when
- * `nodeMinDistance` is unavailable (an empty/single-node graph). Otherwise
- * `maxZoom` is derived from the node spacing (see the framing effect).
+ * Fallback furthest zoom-in (levels above the framing zoom), used only when the
+ * `maxZoom` prop is unspecified (e.g. an empty/single-node graph, where node
+ * spacing is unknown). Otherwise `maxZoom` comes from the caller.
  */
 const MAX_ZOOM_OFFSET = 9;
-/** Screen-space padding (px) the viewport may show beyond the network when panning. */
-const PAN_PADDING_PX = 10;
 /**
  * Screen-space margin (px) reserved when framing, so nodes near the edge aren't
  * clipped by their radius — the bounds cover node centres only, and a disc extends
@@ -242,283 +272,11 @@ const DETAIL_MAX_EDGES = 400;
 /** Extra viewport margin (px) within which nodes are still included, so one straddling the edge isn't culled. */
 const DETAIL_VIEWPORT_MARGIN_PX = 80;
 /**
- * Style of the pill drawn on a hovered edge, mirroring the detail node label but
- * outlined in black. Drawn imperatively on a 2D overlay canvas (not a deck.gl
- * layer) so it can track the edge's on-screen centre as the view pans and zooms.
- */
-const EDGE_LABEL_FONT =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-const EDGE_LABEL_FONT_SIZE = 12;
-const EDGE_LABEL_PADDING_X = 6;
-const EDGE_LABEL_PADDING_Y = 2;
-const EDGE_LABEL_RADIUS = 6;
-const EDGE_LABEL_INK = "rgb(15, 18, 25)";
-const EDGE_LABEL_BACKGROUND = "rgb(255, 255, 255)";
-const EDGE_LABEL_BORDER = "rgb(0, 0, 0)";
-const EDGE_LABEL_BORDER_WIDTH = 1;
-/**
  * On-screen size (px) of the direction arrow at the target end of a highlighted
  * edge. (The gap to the node's edge is zoom-derived — see `arrowGapPx` in {@link
  * deriveZoomAttributes}.)
  */
 const ARROW_SIZE_PX = 10;
-/** Resolution (px) the arrow triangle sprite is rasterised at. */
-const ARROW_ICON_TEXTURE = 64;
-
-/**
- * The inclusive range a pan `center` may take on one axis so the viewport shows
- * at most {@link PAN_PADDING_PX} beyond the network on either side. `scale` is the
- * world→pixel factor (`2 ** zoom`). The two per-side limits order as `[lo, hi]`
- * zoomed in but swap zoomed out — sorting covers both regimes.
- */
-const panAxisLimits = (
-  min: number,
-  max: number,
-  viewportPx: number,
-  scale: number,
-): [number, number] => {
-  const pad = PAN_PADDING_PX / scale;
-  const half = viewportPx / (2 * scale);
-  const a = min - pad + half;
-  const b = max + pad - half;
-  return [Math.min(a, b), Math.max(a, b)];
-};
-
-/**
- * Hard-clamp an orthographic pan `target` to the nearest in-range value so the
- * viewport never shows more than {@link PAN_PADDING_PX} beyond the network's
- * bounding box. Used where the target is computed afresh ({@link
- * NetworkGraphHandle.revealPoint}) and must land inside the limits regardless of
- * where the view previously sat. `viewport{Width,Height}` are in CSS pixels.
- */
-const clampPanTarget = (
-  target: number[],
-  scale: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number },
-): [number, number, number] => {
-  const [loX, hiX] = panAxisLimits(
-    bounds.minX,
-    bounds.maxX,
-    viewportWidth,
-    scale,
-  );
-  const [loY, hiY] = panAxisLimits(
-    bounds.minY,
-    bounds.maxY,
-    viewportHeight,
-    scale,
-  );
-  return [
-    Math.min(hiX, Math.max(loX, target[0] ?? 0)),
-    Math.min(hiY, Math.max(loY, target[1] ?? 0)),
-    target[2] ?? 0,
-  ];
-};
-
-/**
- * Constrain a pan *relative to where the view already is*, so the clamp only
- * resists the user's own panning and never pans the view on its own. On each axis
- * the target may move freely back toward the network but is blocked from moving
- * further out than `previous` (the committed target) already sits.
- *
- * Matters when a zoom shrinks the pan limits: a target parked at the edge would
- * fall outside the new limits and {@link clampPanTarget} would snap it inward,
- * jerking the view sideways as the user merely zoomed. Relaxing each bound to
- * include `previous` leaves the view put and only stops further outward panning.
- */
-const clampPanTargetBlocking = (
-  target: number[],
-  previous: number[],
-  scale: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number },
-): [number, number, number] => {
-  const clampAxis = (
-    center: number,
-    prev: number,
-    min: number,
-    max: number,
-    viewportPx: number,
-  ) => {
-    const [lo, hi] = panAxisLimits(min, max, viewportPx, scale);
-    // Relax whichever bound `prev` sits beyond, so the view is never pulled inward.
-    return Math.min(Math.max(hi, prev), Math.max(Math.min(lo, prev), center));
-  };
-  return [
-    clampAxis(
-      target[0] ?? 0,
-      previous[0] ?? 0,
-      bounds.minX,
-      bounds.maxX,
-      viewportWidth,
-    ),
-    clampAxis(
-      target[1] ?? 0,
-      previous[1] ?? 0,
-      bounds.minY,
-      bounds.maxY,
-      viewportHeight,
-    ),
-    target[2] ?? 0,
-  ];
-};
-
-/**
- * Clip a screen-space segment `a → b` to the rect `[0, 0] … [width, height]`
- * (Liang–Barsky), returning the visible sub-segment or `null` if it lies wholly
- * outside. Used to find the part of a hovered edge that is actually on screen.
- */
-const clipSegmentToViewport = (
-  a: [number, number],
-  b: [number, number],
-  width: number,
-  height: number,
-): [[number, number], [number, number]] | null => {
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  // Each boundary as (pk, qk): inside where `pk * t <= qk` (Liang–Barsky).
-  const tests: [number, number][] = [
-    [-dx, a[0]],
-    [dx, width - a[0]],
-    [-dy, a[1]],
-    [dy, height - a[1]],
-  ];
-  let t0 = 0;
-  let t1 = 1;
-  for (const [pk, qk] of tests) {
-    if (pk === 0) {
-      // Parallel to this boundary: reject only if it starts outside it.
-      if (qk < 0) {
-        return null;
-      }
-      continue;
-    }
-    const rk = qk / pk;
-    if (pk < 0) {
-      if (rk > t1) {
-        return null;
-      }
-      if (rk > t0) {
-        t0 = rk;
-      }
-    } else {
-      if (rk < t0) {
-        return null;
-      }
-      if (rk < t1) {
-        t1 = rk;
-      }
-    }
-  }
-  return [
-    [a[0] + t0 * dx, a[1] + t0 * dy],
-    [a[0] + t1 * dx, a[1] + t1 * dy],
-  ];
-};
-
-/**
- * The point at the middle of a polyline's on-screen length: project each vertex,
- * clip every segment to the viewport, then walk to half the total visible arc
- * length. This lands the edge label at the centre of the edge, or — when the edge
- * runs off screen — at the centre of the portion still in view. Returns `null`
- * when no part of the polyline is visible.
- */
-const edgeLabelAnchor = (
-  screenPoints: [number, number][],
-  width: number,
-  height: number,
-): [number, number] | null => {
-  const segments: [[number, number], [number, number], number][] = [];
-  let totalLength = 0;
-  for (let index = 0; index + 1 < screenPoints.length; index += 1) {
-    const start = screenPoints[index];
-    const end = screenPoints[index + 1];
-    if (!start || !end) {
-      continue;
-    }
-    const clipped = clipSegmentToViewport(start, end, width, height);
-    if (!clipped) {
-      continue;
-    }
-    const length = Math.hypot(
-      clipped[1][0] - clipped[0][0],
-      clipped[1][1] - clipped[0][1],
-    );
-    segments.push([clipped[0], clipped[1], length]);
-    totalLength += length;
-  }
-  const first = segments[0];
-  if (!first) {
-    return null;
-  }
-  if (totalLength === 0) {
-    // Every visible part is a single point (e.g. a dot-length edge): use it.
-    return first[0];
-  }
-  let remaining = totalLength / 2;
-  for (const [start, end, length] of segments) {
-    if (remaining <= length) {
-      const fraction = length === 0 ? 0 : remaining / length;
-      return [
-        start[0] + (end[0] - start[0]) * fraction,
-        start[1] + (end[1] - start[1]) * fraction,
-      ];
-    }
-    remaining -= length;
-  }
-  return first[0];
-};
-
-const roundRectPath = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-): void => {
-  const clampedRadius = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + clampedRadius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, clampedRadius);
-  ctx.arcTo(x + width, y + height, x, y + height, clampedRadius);
-  ctx.arcTo(x, y + height, x, y, clampedRadius);
-  ctx.arcTo(x, y, x + width, y, clampedRadius);
-  ctx.closePath();
-};
-
-/** Draw the edge label pill (white fill, black outline) centred at `anchor`. */
-const drawEdgeLabel = (
-  ctx: CanvasRenderingContext2D,
-  anchor: [number, number],
-  text: string,
-): void => {
-  ctx.font = `${EDGE_LABEL_FONT_SIZE}px ${EDGE_LABEL_FONT}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const textWidth = ctx.measureText(text).width;
-  const rectWidth = textWidth + EDGE_LABEL_PADDING_X * 2;
-  const rectHeight = EDGE_LABEL_FONT_SIZE + EDGE_LABEL_PADDING_Y * 2;
-  const [centerX, centerY] = anchor;
-  roundRectPath(
-    ctx,
-    centerX - rectWidth / 2,
-    centerY - rectHeight / 2,
-    rectWidth,
-    rectHeight,
-    EDGE_LABEL_RADIUS,
-  );
-  ctx.fillStyle = EDGE_LABEL_BACKGROUND;
-  ctx.fill();
-  ctx.lineWidth = EDGE_LABEL_BORDER_WIDTH;
-  ctx.strokeStyle = EDGE_LABEL_BORDER;
-  ctx.stroke();
-  ctx.fillStyle = EDGE_LABEL_INK;
-  ctx.fillText(text, centerX, centerY);
-};
 
 /** One direction arrow: where its tip sits and how it's oriented. */
 interface EdgeArrow {
@@ -532,119 +290,6 @@ interface EdgeArrow {
   /** Rotation (deg) aligning the triangle with the edge's tangent at the target. */
   angle: number;
 }
-
-type ArrowIconAtlas = {
-  url: string;
-  mapping: DetailIconAtlas["mapping"];
-};
-
-let arrowIconAtlasCache: ArrowIconAtlas | null = null;
-
-/**
- * A solid-triangle sprite (white mask, tinted via the layer's `getColor`) pointing
- * along +x, anchored at its tip so a per-arrow pixel offset places the tip exactly.
- * Rasterised once and cached; `null` outside the browser.
- */
-const arrowIconAtlas = (): ArrowIconAtlas | null => {
-  if (arrowIconAtlasCache) {
-    return arrowIconAtlasCache;
-  }
-  if (typeof document === "undefined") {
-    return null;
-  }
-  const size = ARROW_ICON_TEXTURE;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return null;
-  }
-  // Equilateral triangle pointing along +x, height `side · √3/2`, centred in the canvas.
-  const side = size * 0.8;
-  const height = (side * Math.sqrt(3)) / 2;
-  const tipX = (size + height) / 2;
-  const baseX = (size - height) / 2;
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.moveTo(tipX, size / 2);
-  ctx.lineTo(baseX, size / 2 - side / 2);
-  ctx.lineTo(baseX, size / 2 + side / 2);
-  ctx.closePath();
-  ctx.fill();
-  arrowIconAtlasCache = {
-    url: canvas.toDataURL(),
-    mapping: {
-      arrow: {
-        x: 0,
-        y: 0,
-        width: size,
-        height: size,
-        // Anchor at the tip so `getPosition` + `getPixelOffset` place the tip.
-        anchorX: tipX,
-        anchorY: size / 2,
-        mask: true,
-      },
-    },
-  };
-  return arrowIconAtlasCache;
-};
-
-/**
- * Shorten a world-space polyline by `trim` world units from its **end** (target),
- * interpolating a new endpoint. Used to open the arrow's gap between a highlighted
- * edge and the node it points at.
- */
-const trimPathEnd = (
-  path: [number, number][],
-  trim: number,
-): [number, number][] => {
-  if (path.length < 2 || trim <= 0) {
-    return path;
-  }
-  let remaining = trim;
-  for (let index = path.length - 1; index >= 1; index -= 1) {
-    const end = path[index];
-    const previous = path[index - 1];
-    if (!end || !previous) {
-      continue;
-    }
-    const dx = end[0] - previous[0];
-    const dy = end[1] - previous[1];
-    const segment = Math.hypot(dx, dy);
-    if (segment === 0) {
-      continue;
-    }
-    if (remaining < segment) {
-      const fraction = remaining / segment;
-      return [
-        ...path.slice(0, index),
-        [end[0] - dx * fraction, end[1] - dy * fraction],
-      ];
-    }
-    remaining -= segment;
-  }
-  // The trim consumed the whole path (edge shorter than the gap): draw nothing.
-  const first = path[0];
-  return first ? [first, first] : path;
-};
-
-/**
- * Shorten a polyline from both ends — `startTrim` world units off the source end
- * and `endTrim` off the target end — so a detail-view edge stops at each node's
- * edge instead of running to its centre (under the translucent node).
- */
-const trimPathBothEnds = (
-  path: [number, number][],
-  startTrim: number,
-  endTrim: number,
-): [number, number][] => {
-  let result = trimPathEnd(path, endTrim);
-  if (startTrim > 0 && result.length >= 2) {
-    result = [...trimPathEnd([...result].reverse(), startTrim)].reverse();
-  }
-  return result;
-};
 
 const containerStyles = css({
   position: "relative",
@@ -686,7 +331,7 @@ export const NetworkGraph = ({
   points,
   edges,
   graphBounds,
-  nodeMinDistance,
+  maxZoom: maxZoomProp,
   className,
   selected,
   onSelectedPositionChange,
@@ -695,6 +340,7 @@ export const NetworkGraph = ({
   onEdgeHover,
   onEdgeClick,
   onZoom,
+  onPan,
   ref,
 }: NetworkGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -704,6 +350,8 @@ export const NetworkGraph = ({
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   // Last zoom reported to `onZoom`, so we only fire on actual zoom changes.
   const lastZoomRef = useRef<number | null>(null);
+  // Last pan centre reported to `onPan`, so we only fire on actual pan changes.
+  const lastCenterRef = useRef<[number, number] | null>(null);
   // Last hovered node id reported to `onNodeHover`, so we only fire on change.
   const lastHoveredIdRef = useRef<NetworkGraphId | null>(null);
   // Id of the currently hovered edge, so we only update state when it changes.
@@ -842,6 +490,17 @@ export const NetworkGraph = ({
     },
     [resolvePoint],
   );
+
+  // Clear a hover whose node has left the graph (e.g. tiling swapped the node
+  // set), so its grow ring/label doesn't linger under a stationary pointer until
+  // the next pointer move re-picks. `selected` is derived from props and heals on
+  // its own; `hovered` is internal state, so reconcile it here.
+  useEffect(() => {
+    if (hovered && !resolvePoint(hovered.id)) {
+      lastHoveredIdRef.current = null;
+      setHovered(null);
+    }
+  }, [hovered, resolvePoint]);
 
   // {@link colorByHex} extended with any overlay points' colours.
   const colorByHexWithOverlay = useMemo(() => {
@@ -988,21 +647,21 @@ export const NetworkGraph = ({
           ),
         );
       const framingZoom = fitZoom(padding);
-      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills the viewport.
+      // Cap zoom-out so the whole network plus a `ZOOM_OUT_MARGIN` margin fills the
+      // viewport. This framing-out zoom is also the graph's zero reference: the view
+      // opens here and the zoom-dependent attributes rebase against it (see
+      // `framingBaseZoom`), so the framing-normalised zoom starts at 0 for any dataset
+      // regardless of its world extent.
       const minZoom = fitZoom(outPadding);
-      // Furthest zoom-in: the closest two nodes sit `2 · detailHoverRadius + 10px`
-      // apart on screen (their hovered detail circles clear by a 10px gap). Scale is
-      // `2 ** zoom` px/world unit, so solve `nodeMinDistance · 2 ** maxZoom = target`.
-      // Falls back to a fixed offset above framing when spacing is unknown (empty or
-      // single-node graph, where `nodeMinDistance` is 0/Infinity).
-      const detailHoverRadius = 1;
-      const targetClosestPx = detailHoverRadius;
-      // Floored at `minZoom` so a very sparse graph never yields an inverted zoom range.
+      // Furthest zoom-in comes from the caller (see the `maxZoom` prop), floored at
+      // `minZoom` so a sparse graph never yields an inverted range, and falling back
+      // to a fixed offset above the framed-in zoom when unspecified. The normalised
+      // range the view exposes is `maxZoom − minZoom`: min fits the graph's extent,
+      // max the node spacing, so it's the node-spacing↔extent ratio, independent of
+      // the absolute world size.
       const maxZoom = Math.max(
         minZoom,
-        Number.isFinite(nodeMinDistance) && nodeMinDistance > 0
-          ? Math.log2(targetClosestPx / nodeMinDistance)
-          : framingZoom + MAX_ZOOM_OFFSET,
+        maxZoomProp ?? framingZoom + MAX_ZOOM_OFFSET,
       );
       // Only auto-frame until the user takes control of the view.
       setViewState(
@@ -1013,7 +672,7 @@ export const NetworkGraph = ({
               (graphBounds.minY + graphBounds.maxY) / 2,
               0,
             ],
-            // Start fully zoomed out.
+            // Start fully zoomed out (normalised zoom 0).
             zoom: minZoom,
             minZoom,
             maxZoom,
@@ -1024,7 +683,7 @@ export const NetworkGraph = ({
     const observer = new ResizeObserver(fit);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [graphBounds, nodeMinDistance]);
+  }, [graphBounds, maxZoomProp]);
 
   // Distinct icon names used by the graph points.
   const pointIconNames = useMemo(
@@ -1113,16 +772,129 @@ export const NetworkGraph = ({
     return Array.isArray(zoom) ? zoom[0] : zoom;
   }, [viewState?.zoom]);
 
+  // Current pan centre in world coords (`[x, y]`), or null before the view is framed.
+  const currentCenter = useMemo<[number, number] | null>(() => {
+    const target = viewState?.target;
+    if (!target) {
+      return null;
+    }
+    return [target[0], target[1]];
+  }, [viewState?.target]);
+
+  // The framing-out zoom (`minZoom`) is the graph's zero reference: the zoom-dependent
+  // attributes work in framing-normalised zoom (0 = framed out), so we rebase the
+  // absolute orthographic zoom by it below. The absolute zoom stays the source of
+  // truth for deck and the geometry (pan clamps, edge trims, `onZoom`); only these
+  // presentation attributes are normalised, so they frame every dataset alike.
+  const framingBaseZoom = viewState?.minZoom ?? null;
+
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
   const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
     () =>
       deriveZoomAttributes(
-        currentZoom,
-        // Detail view shows in the top 0.5 zoom levels, just below the max zoom.
-        viewState?.maxZoom != null ? viewState.maxZoom - 0.5 : null,
+        currentZoom != null && framingBaseZoom != null
+          ? currentZoom - framingBaseZoom
+          : null,
+        // Detail view shows in the top 0.5 zoom levels, just below the max zoom —
+        // expressed here on the normalised axis (`maxZoom − framingBase − 0.5`).
+        viewState?.maxZoom != null && framingBaseZoom != null
+          ? viewState.maxZoom - framingBaseZoom - 0.5
+          : null,
       ),
-    [currentZoom, viewState?.maxZoom],
+    [currentZoom, viewState?.maxZoom, framingBaseZoom],
   );
+
+  // Density sizing measured as a world-space inter-node spacing, later multiplied by
+  // the live world→pixel scale so plain zooming stays smooth. Two measures are
+  // blended by DENSITY_AREAL_WEIGHT:
+  //  - nearest-neighbour: a property of the node set, so it only re-measures when the
+  //    set changes.
+  //  - areal: √(viewport area / visible count), so it re-measures as the viewport
+  //    pans/zooms (which nodes are visible, and over how much world, both change).
+  const nearestNeighbourSpacing = useMemo(
+    () => medianNearestNeighbourWorld(points),
+    [points],
+  );
+  const arealSpacing = useMemo(() => {
+    if (
+      currentCenter === null ||
+      currentZoom === null ||
+      containerSize === null
+    ) {
+      return null;
+    }
+    const scale = 2 ** currentZoom;
+    const halfWidth = containerSize.width / (2 * scale);
+    const halfHeight = containerSize.height / (2 * scale);
+    const worldArea =
+      (containerSize.width * containerSize.height) / (scale * scale);
+    const visible = countPointsInRect(
+      points,
+      currentCenter[0] - halfWidth,
+      currentCenter[1] - halfHeight,
+      currentCenter[0] + halfWidth,
+      currentCenter[1] + halfHeight,
+    );
+    return arealSpacingWorld(visible, worldArea);
+  }, [points, currentCenter, currentZoom, containerSize]);
+  const targetSpacing = blendSpacing(
+    nearestNeighbourSpacing,
+    arealSpacing,
+    DENSITY_AREAL_WEIGHT,
+  );
+
+  // The eased density spacing, tweened toward `targetSpacing` over DENSITY_EASE_MS
+  // so a tile-depth swap drifts the node size rather than popping it. Held in a ref
+  // for the animation frame; mirrored to state to drive re-renders.
+  const easedSpacingRef = useRef<number | null>(null);
+  const [easedSpacing, setEasedSpacing] = useState<number | null>(null);
+  const spacingRafRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (targetSpacing === null) {
+      easedSpacingRef.current = null;
+      setEasedSpacing(null);
+      return undefined;
+    }
+    const from = easedSpacingRef.current;
+    // No prior value (or no rAF): snap, so the first measurement isn't animated in.
+    if (from === null || typeof requestAnimationFrame === "undefined") {
+      easedSpacingRef.current = targetSpacing;
+      setEasedSpacing(targetSpacing);
+      return undefined;
+    }
+    if (from === targetSpacing) {
+      return undefined;
+    }
+    let start: number | null = null;
+    const step = (now: number) => {
+      start ??= now;
+      const progress = Math.min(1, (now - start) / DENSITY_EASE_MS);
+      // Ease-out cubic.
+      const amount = 1 - (1 - progress) ** 3;
+      const value = from + (targetSpacing - from) * amount;
+      easedSpacingRef.current = value;
+      setEasedSpacing(value);
+      if (progress < 1) {
+        spacingRafRef.current = requestAnimationFrame(step);
+      }
+    };
+    spacingRafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (spacingRafRef.current !== undefined) {
+        cancelAnimationFrame(spacingRafRef.current);
+      }
+    };
+  }, [targetSpacing]);
+
+  // The crowd radius tracks on-screen inter-node spacing (`getRadius · radiusScale`,
+  // with `getRadius = POINT_RADIUS`). Falls back to the zoom-derived scale until the
+  // spacing has been measured (before the first frame, or a <2-node graph).
+  const effectiveRadiusScale = useMemo(() => {
+    if (easedSpacing === null || currentZoom === null) {
+      return radiusScale;
+    }
+    return densityPointRadiusPx(easedSpacing, 2 ** currentZoom) / POINT_RADIUS;
+  }, [easedSpacing, currentZoom, radiusScale]);
 
   /**
    * The on-screen radius (px) of an emphasised node as drawn: the grown ring
@@ -1137,10 +909,10 @@ export const NetworkGraph = ({
             POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
             Math.max(
               HOVERED_MIN_RADIUS,
-              POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * radiusScale,
+              POINT_RADIUS * HOVERED_RADIUS_MULTIPLIER * effectiveRadiusScale,
             ),
           ),
-    [isDetailZoom, radiusScale],
+    [isDetailZoom, effectiveRadiusScale],
   );
 
   /** Which node rendering is showing, reported to consumers alongside position. */
@@ -1215,14 +987,31 @@ export const NetworkGraph = ({
 
   // Report zoom changes from an effect (after commit), not inline: `setViewState`
   // updaters run during render, so calling `onZoom` there would update the parent
-  // mid-render. Deduped so it fires only on an actual change.
+  // mid-render. Deduped (on the absolute zoom) so it fires only on an actual change,
+  // and reports the framing-normalised zoom plus the framing base (see `onZoom`).
   useEffect(() => {
     if (currentZoom === null || currentZoom === lastZoomRef.current) {
       return;
     }
     lastZoomRef.current = currentZoom;
-    onZoom?.(currentZoom);
-  }, [currentZoom, onZoom]);
+    const base = framingBaseZoom ?? 0;
+    onZoom?.(currentZoom - base, base);
+  }, [currentZoom, onZoom, framingBaseZoom]);
+
+  // Report pan changes from an effect (after commit) for the same reason as
+  // `onZoom` above: `setViewState` updaters run during render. Deduped on the
+  // centre so it fires only when the pan position actually moves.
+  useEffect(() => {
+    if (currentCenter === null) {
+      return;
+    }
+    const last = lastCenterRef.current;
+    if (last && last[0] === currentCenter[0] && last[1] === currentCenter[1]) {
+      return;
+    }
+    lastCenterRef.current = currentCenter;
+    onPan?.(currentCenter);
+  }, [currentCenter, onPan]);
 
   /**
    * Nudge the zoom by `delta` levels about the viewport centre, clamped to
@@ -1966,7 +1755,7 @@ export const NetworkGraph = ({
       // grow ring (which is translucent while a different node is hovered).
       selectedPointId: selectedPoint?.id ?? null,
       colorByHex: colorByHexWithOverlay,
-      radiusScale,
+      radiusScale: effectiveRadiusScale,
       pointOpacity,
       dimmed: highlight !== null,
       // In detail the grow highlights give way to the detailed layer's outline.
@@ -2084,7 +1873,7 @@ export const NetworkGraph = ({
           activeNode,
           dimmedSelectedNode: null,
           colorByHex: colorByHexWithOverlay,
-          radiusScale,
+          radiusScale: effectiveRadiusScale,
           pointOpacity,
           dimmed: false,
           showGrowHighlights: true,
@@ -2107,7 +1896,7 @@ export const NetworkGraph = ({
     activeNode,
     dimmedSelectedNode,
     colorByHexWithOverlay,
-    radiusScale,
+    effectiveRadiusScale,
     pointOpacity,
     isDetailZoom,
     detailPoints,

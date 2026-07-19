@@ -2,6 +2,7 @@ export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
+export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {
   NetworkGraph,
   type NetworkGraphEdge,
@@ -14,6 +15,15 @@ export {
   type NetworkGraphProps,
   type NetworkGraphSelection,
 } from "./components/Chart/NetworkGraph/network-graph";
+export {
+  tileZoomForViewport,
+  useGetViewportNodes,
+  type UseGetViewportNodesOptions,
+  type UseGetViewportNodesResult,
+  type Viewport,
+  type ViewportNode,
+  WORLD_SIZE,
+} from "./components/Chart/NetworkGraph/tiling/use-get-viewport-nodes";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";
