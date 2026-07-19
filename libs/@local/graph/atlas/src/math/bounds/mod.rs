@@ -80,7 +80,7 @@ impl Bounds2 {
     /// [`with_minimum_extent`](Self::with_minimum_extent) if a positive
     /// extent is required.
     #[must_use]
-    pub fn new(min: Vec2, max: Vec2) -> Option<Self> {
+    pub const fn new(min: Vec2, max: Vec2) -> Option<Self> {
         if !min.is_finite() || !max.is_finite() || min.x() > max.x() || min.y() > max.y() {
             return None;
         }

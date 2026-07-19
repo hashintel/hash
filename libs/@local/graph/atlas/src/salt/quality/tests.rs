@@ -20,7 +20,7 @@ use zerocopy::{LE, U64};
 use super::{
     clump::Clumps,
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate, rank_correlation},
-    probe::{ProbeError, ProbeOptions, ProbeReadings, RadiusPair, ReadingGrid, probe},
+    probe::{ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair, ReadingGrid, probe},
     report::{QualityThresholds, assess},
 };
 use crate::{
@@ -326,6 +326,10 @@ impl ProbeFixture {
         AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
             .expect("boxed storage is aligned")
     }
+
+    fn corpus(&self) -> ProbeCorpus<'_, U64<LE>> {
+        ProbeCorpus::new(&self.node_ids, self.representations(), &self.coordinates)
+    }
 }
 
 /// Irregularly spaced angles inside a quarter circle: no two gaps
@@ -352,15 +356,14 @@ async fn probe_reads_a_faithful_map_as_perfect() {
         neighbourhoods: vec![
             2.try_into().expect("nonzero"),
             4.try_into().expect("nonzero"),
-        ],
+        ]
+        .into(),
         ..ProbeOptions::default()
     };
 
     let readings = probe(
         &fixture.dataset(),
-        &fixture.node_ids,
-        fixture.representations(),
-        &fixture.coordinates,
+        fixture.corpus(),
         &options,
         Xoshiro256PlusPlus::seed_from_u64(7),
     )
@@ -411,16 +414,14 @@ async fn corpus_readings_match_a_sorting_reference() {
     let options = ProbeOptions {
         anchors: 6.try_into().expect("nonzero"),
         comparisons: 10.try_into().expect("nonzero"),
-        neighbourhoods: vec![k.try_into().expect("nonzero")],
+        neighbourhoods: vec![k.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
 
     let representations = fixture.representations();
     let readings = probe(
         &fixture.dataset(),
-        &fixture.node_ids,
-        representations,
-        &fixture.coordinates,
+        fixture.corpus(),
         &options,
         Xoshiro256PlusPlus::seed_from_u64(11),
     )
@@ -771,14 +772,12 @@ async fn assess_reads_a_probed_fixture() {
     let options = ProbeOptions {
         anchors: 5.try_into().expect("nonzero"),
         comparisons: 12.try_into().expect("nonzero"),
-        neighbourhoods: vec![2.try_into().expect("nonzero")],
+        neighbourhoods: vec![2.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
     let readings = probe(
         &fixture.dataset(),
-        &fixture.node_ids,
-        fixture.representations(),
-        &fixture.coordinates,
+        fixture.corpus(),
         &options,
         Xoshiro256PlusPlus::seed_from_u64(7),
     )
@@ -834,21 +833,18 @@ async fn assess_reads_a_probed_fixture() {
 #[tokio::test]
 async fn probe_rejects_impossible_designs() {
     let fixture = ProbeFixture::on_circle(&irregular_angles(12));
-    let representations = fixture.representations();
 
     // The corpus cannot host disjoint samples of 8 + 8.
     let crowded = ProbeOptions {
         anchors: 8.try_into().expect("nonzero"),
         comparisons: 8.try_into().expect("nonzero"),
-        neighbourhoods: vec![2.try_into().expect("nonzero")],
+        neighbourhoods: vec![2.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
     assert!(matches!(
         probe(
             &fixture.dataset(),
-            &fixture.node_ids,
-            representations,
-            &fixture.coordinates,
+            fixture.corpus(),
             &crowded,
             Xoshiro256PlusPlus::seed_from_u64(0),
         )
@@ -860,15 +856,13 @@ async fn probe_rejects_impossible_designs() {
     let oversized = ProbeOptions {
         anchors: 2.try_into().expect("nonzero"),
         comparisons: 4.try_into().expect("nonzero"),
-        neighbourhoods: vec![3.try_into().expect("nonzero")],
+        neighbourhoods: vec![3.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
     assert!(matches!(
         probe(
             &fixture.dataset(),
-            &fixture.node_ids,
-            representations,
-            &fixture.coordinates,
+            fixture.corpus(),
             &oversized,
             Xoshiro256PlusPlus::seed_from_u64(0),
         )
@@ -880,15 +874,13 @@ async fn probe_rejects_impossible_designs() {
     let empty = ProbeOptions {
         anchors: 2.try_into().expect("nonzero"),
         comparisons: 4.try_into().expect("nonzero"),
-        neighbourhoods: Vec::new(),
+        neighbourhoods: Vec::new().into(),
         ..ProbeOptions::default()
     };
     assert!(matches!(
         probe(
             &fixture.dataset(),
-            &fixture.node_ids,
-            representations,
-            &fixture.coordinates,
+            fixture.corpus(),
             &empty,
             Xoshiro256PlusPlus::seed_from_u64(0),
         )
