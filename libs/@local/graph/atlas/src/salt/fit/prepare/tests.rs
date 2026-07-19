@@ -12,16 +12,21 @@ use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
 use super::{
     identity::{IdentityTable, InvalidIdentityFile, MappedIdentityTable},
+    instance::{InstanceRecord, InstanceSpoolWriter},
     norm::{self, RepresentationDefect, SpotCheckError, SpotCheckOptions},
     write_node_representations,
 };
 use crate::{
-    dataset::{Node, NodeRowId, PROJECTOR_DIMENSIONS, memory::MemoryDataset},
+    dataset::{
+        EdgeRowId, Node, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, memory::MemoryDataset,
+    },
     file::{
         array::{ArrayVariant, FileHeader},
+        generation::GenerationRoot,
         identity::read::IdentityFile,
     },
     math::{AlignedVecN, BoxedVecN, VecN},
+    salt::relation::RelationConfidence,
 };
 
 /// Norm-fixture capacity in components: the largest test matrix.
@@ -87,10 +92,11 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
     let dataset = nodes_only(embeddings.clone());
 
     let mut buffer = Cursor::new(Vec::new());
-    let ids = write_node_representations(&dataset, &mut buffer)
+    let columns = write_node_representations(&dataset, &mut buffer)
         .await
         .expect("an in-memory dataset should persist");
-    assert_eq!(ids.len(), 3);
+    assert_eq!(columns.ids.len(), 3);
+    assert_eq!(columns.types.len(), 3);
 
     let bytes = buffer.get_ref();
     let header = FileHeader::try_read_from_bytes(&bytes[..FileHeader::SIZE])
@@ -121,10 +127,11 @@ async fn an_empty_dataset_seals_an_empty_matrix() {
     let dataset = nodes_only(vec![]);
 
     let mut buffer = Cursor::new(Vec::new());
-    let ids = write_node_representations(&dataset, &mut buffer)
+    let columns = write_node_representations(&dataset, &mut buffer)
         .await
         .expect("an empty dataset should persist");
-    assert_eq!(ids.len(), 0);
+    assert_eq!(columns.ids.len(), 0);
+    assert!(columns.types.is_empty());
 
     let bytes = buffer.get_ref();
     assert_eq!(bytes.len(), FileHeader::SIZE);
@@ -417,4 +424,119 @@ fn validation_rejects_tampered_tables() {
             actual: 8,
         }),
     ));
+}
+
+/// An instance spool root under the system temp directory.
+fn spool_root(name: &str) -> camino::Utf8PathBuf {
+    let dir = camino::Utf8PathBuf::from_path_buf(std::env::temp_dir())
+        .expect("the temp directory is UTF-8")
+        .join(format!(
+            "hash-graph-atlas-prepare-spool-{}-{name}",
+            std::process::id(),
+        ));
+    let _: Result<(), std::io::Error> = fs::remove_dir_all(&dir);
+    dir
+}
+
+#[test]
+fn instance_records_round_trip_their_option_confidences() {
+    // Every presence combination of the three scores survives the
+    // encode/decode pair, absent scores included.
+    let confidences = [
+        RelationConfidence {
+            link: Some(0.5),
+            source: None,
+            target: None,
+        },
+        RelationConfidence {
+            link: None,
+            source: Some(0.25),
+            target: Some(1.0),
+        },
+        RelationConfidence {
+            link: None,
+            source: None,
+            target: None,
+        },
+        RelationConfidence {
+            link: Some(1.0),
+            source: Some(0.0),
+            target: Some(0.75),
+        },
+    ];
+
+    for (index, confidence) in confidences.into_iter().enumerate() {
+        let record = InstanceRecord::new(
+            EdgeRowId::new(7 + index as u64),
+            OntologyRowId::new(3),
+            NodeRowId::new(1),
+            NodeRowId::new(2),
+            confidence,
+        );
+        let instance = record.instance();
+
+        assert_eq!(instance.edge.get(), 7 + index as u64);
+        assert_eq!(instance.relation.get(), 3);
+        assert_eq!(instance.source.get(), 1);
+        assert_eq!(instance.target.get(), 2);
+        assert_eq!(instance.confidence, confidence, "case {index}");
+    }
+}
+
+#[test]
+fn the_spool_round_trips_through_its_scratch_file() {
+    let root = GenerationRoot::new(spool_root("round-trip")).expect("the root should open");
+    let scratch = root.scratch().expect("the scratch directory should create");
+
+    let records = [
+        InstanceRecord::new(
+            EdgeRowId::new(0),
+            OntologyRowId::new(2),
+            NodeRowId::new(0),
+            NodeRowId::new(1),
+            RelationConfidence {
+                link: Some(0.5),
+                source: None,
+                target: None,
+            },
+        ),
+        InstanceRecord::new(
+            EdgeRowId::new(1),
+            OntologyRowId::new(3),
+            NodeRowId::new(2),
+            NodeRowId::new(2),
+            RelationConfidence::default(),
+        ),
+    ];
+
+    let mut writer = InstanceSpoolWriter::create(&scratch).expect("the spool should create");
+    for record in records {
+        writer
+            .push(record)
+            .expect("the spool should accept a record");
+    }
+    let spool = writer.finish().expect("the spool should seal");
+    assert_eq!(spool.count(), 2);
+
+    let mapped = spool.map().expect("the spool should map");
+    let read_back: Vec<_> = mapped
+        .records()
+        .iter()
+        .map(InstanceRecord::instance)
+        .collect();
+    let expected: Vec<_> = records.iter().map(InstanceRecord::instance).collect();
+    assert_eq!(read_back, expected);
+}
+
+#[test]
+fn an_empty_spool_maps_to_zero_readings() {
+    let root = GenerationRoot::new(spool_root("empty")).expect("the root should open");
+    let scratch = root.scratch().expect("the scratch directory should create");
+
+    let writer = InstanceSpoolWriter::create(&scratch).expect("the spool should create");
+    let spool = writer.finish().expect("the spool should seal");
+    assert_eq!(spool.count(), 0);
+
+    let mapped = spool.map().expect("the empty spool should map");
+    assert!(mapped.records().is_empty());
 }

@@ -339,16 +339,20 @@ pub(crate) async fn probe<D: Dataset>(
     .run(anchor_rows);
 
     let (corpus_cells, radii, clump_cells) = split_anchor_readings(anchor_readings);
-    let (sampled_cells, triplets) = SampledPass {
-        representations: corpus.representations,
-        coordinates: corpus.coordinates,
-        anchor_canonical,
-        comparison_canonical,
-        comparison_rows,
-        template: &sampled_template,
-        pairs: &pairs,
-    }
-    .run(anchor_rows);
+    let (sampled_cells, triplets, baseline_clump_cells) = split_sampled_readings(
+        SampledPass {
+            representations: corpus.representations,
+            coordinates: corpus.coordinates,
+            anchor_canonical,
+            comparison_canonical,
+            comparison_rows,
+            template: &sampled_template,
+            neighbourhoods: &options.neighbourhoods,
+            pairs: &pairs,
+            clumps: corpus.clumps,
+        }
+        .run(anchor_rows),
+    );
 
     let rungs = options.neighbourhoods.len();
     let mut triplet_columns = transpose_triplets(triplets);
@@ -381,7 +385,8 @@ pub(crate) async fn probe<D: Dataset>(
             count: clumps.clumps(),
             groups: clumps.groups(),
             grouped_rows: clumps.grouped_rows(),
-            grid: ReadingGrid::from_anchor_cells(clump_cells, rungs),
+            map_representation: ReadingGrid::from_anchor_cells(clump_cells, rungs),
+            representation_canonical: ReadingGrid::from_anchor_cells(baseline_clump_cells, rungs),
         }),
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
         sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
@@ -413,6 +418,27 @@ fn split_anchor_readings(
     }
 
     (cells, radii, clumps)
+}
+
+/// Splits the sampled pass's per-anchor readings into grid inputs.
+fn split_sampled_readings(
+    readings: Vec<pass::SampledReading>,
+) -> (
+    Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
+    Vec<[TripletAggregate; SpacePair::COUNT]>,
+    Vec<Vec<ClumpAggregate>>,
+) {
+    let mut cells = Vec::with_capacity(readings.len());
+    let mut triplets = Vec::with_capacity(readings.len());
+    let mut baseline_clumps = Vec::with_capacity(readings.len());
+
+    for reading in readings {
+        cells.push(reading.cells);
+        triplets.push(reading.triplets);
+        baseline_clumps.push(reading.baseline_clumps);
+    }
+
+    (cells, triplets, baseline_clumps)
 }
 
 /// Builds one empty aggregate per neighbourhood size over `universe`.
@@ -487,13 +513,40 @@ fn transpose_pairs(
 
 /// An unordered id-keyed delivery did not match its requests.
 #[derive(Debug)]
-pub(super) enum DeliveryError<E> {
+pub(crate) enum DeliveryError<E> {
     /// The stream failed.
     Dataset(E),
     /// The stream delivered an id that was never requested.
     Unrequested,
     /// The stream ended before covering every requested id.
     Missing { requested: usize, delivered: usize },
+}
+
+impl<E> fmt::Display for DeliveryError<E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Dataset(_) => fmt.write_str("the delivery stream failed"),
+            Self::Unrequested => {
+                fmt.write_str("the stream delivered an id that was never requested")
+            }
+            Self::Missing {
+                requested,
+                delivered,
+            } => write!(
+                fmt,
+                "the stream covered {delivered} of {requested} requested ids",
+            ),
+        }
+    }
+}
+
+impl<E: Error + 'static> Error for DeliveryError<E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Dataset(error) => Some(error),
+            Self::Unrequested | Self::Missing { .. } => None,
+        }
+    }
 }
 
 /// Matches an unordered delivery stream against its requests.

@@ -27,8 +27,11 @@ pub(super) enum Role {
     Landmarks,
     Classifier,
     Policy,
+    Attraction,
+    Protection,
     Coordinates,
     Morton,
+    Quad,
     WireCoordinates,
     RankOfPosition,
     PositionOfRank,
@@ -36,6 +39,8 @@ pub(super) enum Role {
     RowOfPosition,
     NodeIdentities,
     EdgeIdentities,
+    EdgeEndpoints,
+    Adjacency,
 }
 
 impl Role {
@@ -50,8 +55,11 @@ impl Role {
             Self::Landmarks => FileName::pinned("landmarks.lndm"),
             Self::Classifier => FileName::pinned("classifier.clsf"),
             Self::Policy => FileName::pinned("policy.plcy"),
+            Self::Attraction => FileName::pinned("attraction.atrc"),
+            Self::Protection => FileName::pinned("protection.sprs"),
             Self::Coordinates => FileName::pinned("coordinates.arr"),
             Self::Morton => FileName::pinned("morton.mrtn"),
+            Self::Quad => FileName::pinned("quadtree.quad"),
             Self::WireCoordinates => FileName::pinned("wire-coordinates.arr"),
             Self::RankOfPosition => FileName::pinned("rank-of-position.arr"),
             Self::PositionOfRank => FileName::pinned("position-of-rank.arr"),
@@ -59,6 +67,8 @@ impl Role {
             Self::RowOfPosition => FileName::pinned("row-of-position.arr"),
             Self::NodeIdentities => FileName::pinned("node-identities.idnt"),
             Self::EdgeIdentities => FileName::pinned("edge-identities.idnt"),
+            Self::EdgeEndpoints => FileName::pinned("edge-endpoints.arr"),
+            Self::Adjacency => FileName::pinned("adjacency.adjc"),
         }
     }
 
@@ -72,7 +82,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 17] = [
+const _: [FileName; 22] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -81,8 +91,11 @@ const _: [FileName; 17] = [
     Role::Landmarks.file_name(),
     Role::Classifier.file_name(),
     Role::Policy.file_name(),
+    Role::Attraction.file_name(),
+    Role::Protection.file_name(),
     Role::Coordinates.file_name(),
     Role::Morton.file_name(),
+    Role::Quad.file_name(),
     Role::WireCoordinates.file_name(),
     Role::RankOfPosition.file_name(),
     Role::PositionOfRank.file_name(),
@@ -90,6 +103,8 @@ const _: [FileName; 17] = [
     Role::RowOfPosition.file_name(),
     Role::NodeIdentities.file_name(),
     Role::EdgeIdentities.file_name(),
+    Role::EdgeEndpoints.file_name(),
+    Role::Adjacency.file_name(),
 ];
 
 /// Runs `write` against the role's buffered staged file, surfacing

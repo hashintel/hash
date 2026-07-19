@@ -35,6 +35,7 @@ pub(crate) mod clump;
 pub(crate) mod metric;
 pub(crate) mod probe;
 pub(crate) mod report;
+pub(crate) mod runner;
 
 #[cfg(test)]
 mod tests;

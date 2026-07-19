@@ -201,6 +201,32 @@ fn vec2_index_out_of_bounds() {
 }
 
 #[test]
+fn from_slice_reinterprets_in_place() {
+    let components = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+    let points = Vec2::from_slice(&components).expect("three whole vectors");
+
+    assert_eq!(
+        points,
+        [
+            Vec2::new(1.0, 2.0),
+            Vec2::new(3.0, 4.0),
+            Vec2::new(5.0, 6.0)
+        ],
+    );
+    // A view, not a copy: the points alias the component storage.
+    assert_eq!(points.as_ptr().cast::<f32>(), components.as_ptr());
+
+    assert_eq!(
+        Vec2::from_slice(&[]).expect("zero whole vectors"),
+        &[] as &[Vec2],
+    );
+    assert!(
+        Vec2::from_slice(&components[..5]).is_none(),
+        "a dangling component is not a vector"
+    );
+}
+
+#[test]
 fn transposed_deinterleaves_by_axis() {
     let batch = Vec2x4T::from(POINTS);
 

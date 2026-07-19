@@ -100,6 +100,10 @@ required-features = ["bench"]
 name              = "fit_live"
 required-features = ["bench"]
 
+[[example]]
+name              = "quality_live"
+required-features = ["bench"]
+
 [[bench]]
 name    = "math_kernels"
 harness = false

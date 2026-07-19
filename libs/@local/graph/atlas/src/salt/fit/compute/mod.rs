@@ -28,8 +28,9 @@ use crate::{
     salt::{
         knn::{artifact::MappedKnn, recall::RecallSpotCheck},
         landmark::artifact::MappedLandmarkSkeleton,
-        lod::stage::LodEvidence,
+        lod::{quad::QuadEvidence, stage::LodEvidence},
         policy::classifier::Classifier,
+        relation::BuildEvidence,
     },
 };
 
@@ -37,6 +38,7 @@ mod graph;
 mod landmark;
 mod lod;
 mod policy;
+mod relation;
 
 /// The owned inputs one fit hands across the thread boundary.
 pub(super) struct Inputs {
@@ -62,6 +64,10 @@ struct Computed {
     classifier: RepositoryFile,
     policy: RepositoryFile,
     policy_evidence: PolicyEvidence,
+    adjacency: RepositoryFile,
+    attraction: RepositoryFile,
+    protection: RepositoryFile,
+    relation_evidence: BuildEvidence,
     knn: RepositoryFile,
     recall: RecallSpotCheck,
     semantic: RepositoryFile,
@@ -70,6 +76,7 @@ struct Computed {
     coordinates: RepositoryFile,
     lod: lod::LodArtifacts,
     lod_evidence: LodEvidence,
+    quad_evidence: QuadEvidence,
 }
 
 /// Runs every compute stage over the staged ingest artifacts and seals
@@ -119,6 +126,21 @@ where
         "staged the classifier and the resolved policy table"
     );
 
+    // Adjacency: the serving topology, derived from the staged
+    // endpoint column alone.
+    let adjacency_file = context.stage_adjacency(rows.len())?;
+    tracing::info!("staged the incident-edge adjacency");
+
+    // Relations: assemble the spooled instances against the resolved
+    // policies and stage both relation indexes.
+    let relations = context.stage_relations(rows.len(), &ingested.instances)?;
+    tracing::info!(
+        retained = relations.evidence.retained_edges,
+        pruned = relations.evidence.pruned_edges,
+        self_references = relations.evidence.self_references,
+        "staged the attraction and protection indexes"
+    );
+
     // Neighbours: build the search backend, admit it by exact recall,
     // and derive the persisted table from it.
     let (recall, knn_file) = context.build_neighbour_table(rows)?;
@@ -156,12 +178,13 @@ where
     tracing::info!("staged the baseline coordinates");
 
     // Level of detail: rank, cascade, and gather the served columns
-    // over the staged coordinates.
-    let (lod_files, lod_evidence) = context.stage_lod::<I>()?;
+    // over the staged coordinates, cutting the quadtree over them.
+    let lod_outputs = context.stage_lod::<I>(&ingested.node_types)?;
     tracing::info!(
-        catch_all = lod_evidence.catch_all_population,
-        co_location_excess = lod_evidence.co_location_excess,
-        "staged the level-of-detail columns"
+        catch_all = lod_outputs.evidence.catch_all_population,
+        co_location_excess = lod_outputs.evidence.co_location_excess,
+        quad_nodes = lod_outputs.quad_evidence.nodes,
+        "staged the level-of-detail columns and the quadtree"
     );
 
     let repository = assemble(
@@ -171,14 +194,19 @@ where
             classifier: classifier_file,
             policy: policy_file,
             policy_evidence,
+            adjacency: adjacency_file,
+            attraction: relations.attraction,
+            protection: relations.protection,
+            relation_evidence: relations.evidence,
             knn: knn_file,
             recall,
             semantic: semantic_file,
             landmarks: landmarks_file,
             landmark_evidence,
             coordinates: coordinates_file,
-            lod: lod_files,
-            lod_evidence,
+            lod: lod_outputs.files,
+            lod_evidence: lod_outputs.evidence,
+            quad_evidence: lod_outputs.quad_evidence,
         },
     );
 
@@ -188,8 +216,6 @@ where
 
 /// Binds every staged file and evidence value into the repository the
 /// seal publishes.
-// TODO: the attraction and protection roles join `SaltFiles` when the
-//       relation stage wires in at the edge drain.
 fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V0,
@@ -202,8 +228,11 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             landmarks: computed.landmarks,
             classifier: computed.classifier,
             policy: computed.policy,
+            attraction: computed.attraction,
+            protection: computed.protection,
             coordinates: computed.coordinates,
             morton: computed.lod.morton,
+            quad: computed.lod.quad,
             wire_coordinates: computed.lod.wire_coordinates,
             rank_of_position: computed.lod.rank_of_position,
             position_of_rank: computed.lod.position_of_rank,
@@ -211,6 +240,8 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             row_of_position: computed.lod.row_of_position,
             node_identities: ingested.node_identities,
             edge_identities: ingested.edge_identities,
+            edge_endpoints: ingested.edge_endpoints,
+            adjacency: computed.adjacency,
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -235,7 +266,9 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 recall: computed.recall,
                 landmarks: computed.landmark_evidence,
                 policy: computed.policy_evidence,
+                relations: computed.relation_evidence,
                 lod: computed.lod_evidence,
+                quad: computed.quad_evidence,
             },
         },
     }

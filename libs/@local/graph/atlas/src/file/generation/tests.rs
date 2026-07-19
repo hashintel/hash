@@ -26,9 +26,10 @@ use crate::{
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, Bounds2, Vec2},
+    morton::Depth,
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence, NormSpotCheck,
-        RecallSpotCheck, SelectionOptions,
+        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
+        NormSpotCheck, QuadEvidence, RecallSpotCheck, SelectionOptions,
     },
 };
 
@@ -85,8 +86,11 @@ fn repository() -> SaltRepository {
             landmarks: file("landmarks.lndm"),
             classifier: file("classifier.clsf"),
             policy: file("policy.plcy"),
+            attraction: file("attraction.atrc"),
+            protection: file("protection.sprs"),
             coordinates: file("coordinates.arr"),
             morton: file("morton.mrtn"),
+            quad: file("quadtree.quad"),
             wire_coordinates: file("wire-coordinates.arr"),
             rank_of_position: file("rank-of-position.arr"),
             position_of_rank: file("position-of-rank.arr"),
@@ -94,6 +98,8 @@ fn repository() -> SaltRepository {
             row_of_position: file("row-of-position.arr"),
             node_identities: file("node-identities.idnt"),
             edge_identities: file("edge-identities.idnt"),
+            edge_endpoints: file("edge-endpoints.arr"),
+            adjacency: file("adjacency.adjc"),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -137,6 +143,14 @@ fn repository() -> SaltRepository {
                 policy: PolicyEvidence {
                     relations: 1,
                     overridden: 0,
+                },
+                relations: BuildEvidence {
+                    pruning_threshold: 0.0,
+                    retained_edges: 2,
+                    pruned_edges: 0,
+                    retained_mass: 1.5,
+                    pruned_mass: 0.0,
+                    self_references: 0,
                 },
                 lod: LodEvidence {
                     world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))

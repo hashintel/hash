@@ -76,6 +76,23 @@ export default [
     },
   },
   {
+    // Unit-test files are excluded from `tsconfig.json` (the dts build
+    // must not emit them), so the type-aware project service cannot see
+    // them. Same treatment as the story surface above: lint without
+    // type-aware rules.
+    files: ["src/**/*.test.ts{x,}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: false,
+      },
+    },
+    rules: {
+      ...disableTypeCheckedRules,
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
+  {
     files: ["scripts/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unnecessary-condition": "off",

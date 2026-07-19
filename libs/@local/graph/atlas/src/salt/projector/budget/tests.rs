@@ -68,7 +68,7 @@ fn clip_matches_hand_computed_dyadic_values() {
     assert_eq!(outcome.relation_norm, 63.75);
     assert_eq!(outcome.positive_factor, 0.0625);
     assert_eq!(outcome.total_factor, 1.0);
-    assert_eq!(outcome.gradient, Vec2::new(0.0, 3.984375));
+    assert_eq!(outcome.gradient, Vec2::new(0.0, 3.984_375));
 }
 
 #[test]

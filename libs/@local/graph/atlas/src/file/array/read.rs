@@ -232,6 +232,27 @@ impl ArrayFile {
         <[u32]>::ref_from_bytes(self.data()).ok()
     }
 
+    /// Views the data as `u64` pairs in row order.
+    ///
+    /// The view exists exactly when the file holds `u64` elements shaped
+    /// `[T, 2]`; the returned slice holds the `T` pairs in order. A
+    /// zero-element file is zero pairs, since its shape records no row
+    /// width.
+    #[must_use]
+    pub(crate) fn u64_pairs(&self) -> Option<&[[u64; 2]]> {
+        if self.header().variant() != ArrayVariant::U64 {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] => {}
+            &[_, width] if width.get() == 2 => {}
+            _ => return None,
+        }
+
+        <[[u64; 2]]>::ref_from_bytes(self.data()).ok()
+    }
+
     /// Views the data as SHA-256 digests in row order.
     ///
     /// The view exists exactly when the file holds `u8` elements shaped

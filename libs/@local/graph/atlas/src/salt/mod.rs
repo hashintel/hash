@@ -10,7 +10,8 @@ pub(crate) use self::{
     embedding::{CardEmbeddingStats, EmbedderFingerprint},
     fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
     knn::recall::RecallSpotCheck,
-    lod::stage::LodEvidence,
+    lod::{quad::QuadEvidence, stage::LodEvidence},
+    relation::BuildEvidence,
 };
 #[cfg(test)]
 pub(crate) use self::{
@@ -22,6 +23,7 @@ pub(crate) use self::{
 
 // The previous pipeline generation is parked uncompiled at
 // `src/salt-BAK` as reference semantics for the port.
+mod adjacency;
 mod embedding;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod fit;

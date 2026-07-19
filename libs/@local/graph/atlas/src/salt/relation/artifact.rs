@@ -118,6 +118,7 @@ impl MappedProtection {
     ///
     /// Returns an error when the file does not hold the index's matrix
     /// layout or the matrix violates a [`ProtectionIndex`] invariant.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidProtectionFile> {
         let matrix = file.matrix().map_err(InvalidProtectionFile::Matrix)?;
         validate(matrix)?;
@@ -279,6 +280,7 @@ impl MappedAttraction {
     ///
     /// Returns an error when the file violates an attraction-index
     /// invariant.
+    #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: AttractionFile) -> Result<Self, InvalidAttractionIndex> {
         let groups = file.groups();
         let edges = file.edges();

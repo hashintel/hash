@@ -43,7 +43,7 @@ use super::{
     batch::{Batch, BatchSampler, NodeColumns},
     metrics::{BudgetBreakdown, DegreeDeciles, DisplacementSummary, TypeParticipants},
     refresh::{self, Refresh, RefreshError},
-    step::{self, LossBreakdown},
+    step::{Evaluation, LossBreakdown},
 };
 use crate::salt::{
     knn::table::KnnView,
@@ -391,7 +391,6 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
         plan,
     )
     .ok_or(TrainError::NoSemanticEvidence)?;
-    let deciles = DegreeDeciles::new(inputs.attraction, rows);
     let refresh = Refresh {
         columns: inputs.columns,
         knn: inputs.knn.clone(),
@@ -404,6 +403,17 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
         participants: TypeParticipants::new(inputs.attraction),
         forward_rows: options.forward_rows,
     };
+    let mut evaluation = Evaluation {
+        columns: inputs.columns,
+        options: ObjectiveOptions {
+            affinity: options.affinity,
+            relation: None,
+            support: options.support,
+            budget: options.budget,
+            coefficients: options.coefficients,
+        },
+        deciles: DegreeDeciles::new(inputs.attraction, rows),
+    };
 
     let mut optimizer = AdamConfig::new().with_epsilon(1.0e-8).init();
     let mut scheduler =
@@ -412,13 +422,6 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
             .init()
             .expect("a validated schedule satisfies the scheduler's domain");
 
-    let mut objective_options = ObjectiveOptions {
-        affinity: options.affinity,
-        relation: None,
-        support: options.support,
-        budget: options.budget,
-        coefficients: options.coefficients,
-    };
     let mut scales: Option<[LocalScales; RUNGS.len()]> = None;
     let mut mined: Option<MinedFrame> = None;
     let mut evidence = TrainingEvidence {
@@ -432,7 +435,7 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
         if step_index == schedule.boundary {
             let (energy, boundary) =
                 freeze_radius(&model, inputs, options, vacuous, step_index, device)?;
-            objective_options.relation = energy;
+            evaluation.options.relation = energy;
             evidence.boundary = Some(boundary);
         }
 
@@ -441,8 +444,8 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
             reason = "the refresh cadence is a step-count modulus"
         )]
         if step_index == schedule.boundary || step_index % schedule.refresh_interval.get() == 0 {
-            let with_scales = objective_options.relation.is_some();
-            let outcome = refresh.tick(&model.valid(), &deciles, with_scales, device)?;
+            let with_scales = evaluation.options.relation.is_some();
+            let outcome = refresh.tick(&model.valid(), &evaluation.deciles, with_scales, device)?;
             mined = Some(outcome.mined);
             if let Some(tables) = outcome.scales {
                 scales = Some(tables);
@@ -463,15 +466,7 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
             rng,
         );
 
-        let objective = step::objective(
-            &model,
-            &batch,
-            inputs.columns,
-            &objective_options,
-            &deciles,
-            &mut evidence.budget,
-            device,
-        )?;
+        let objective = evaluation.objective(&model, &batch, &mut evidence.budget, device)?;
         evidence.losses.push(objective.loss);
 
         let gradients = GradientsParams::from_grads(objective.surrogate.backward(), &model);

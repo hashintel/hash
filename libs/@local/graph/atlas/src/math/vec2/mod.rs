@@ -83,6 +83,41 @@ impl Vec2 {
         Self([value, value])
     }
 
+    /// Wraps a borrowed slice in place as consecutive vectors.
+    ///
+    /// Vector `i` of the returned slice occupies components `2 * i`
+    /// and `2 * i + 1`, so a row-major `f32[T, 2]` matrix reads as its
+    /// `T` points without copying.
+    ///
+    /// Returns [`None`] unless the length is a whole number of
+    /// vectors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::Vec2;
+    ///
+    /// let components = [1.0, 2.0, 3.0, 4.0];
+    /// let points = Vec2::from_slice(&components).expect("two whole vectors");
+    /// assert_eq!(points, [Vec2::new(1.0, 2.0), Vec2::new(3.0, 4.0)]);
+    /// assert!(Vec2::from_slice(&components[..3]).is_none());
+    /// ```
+    #[must_use]
+    pub const fn from_slice(components: &[f32]) -> Option<&[Self]> {
+        let (chunks, remainder) = components.as_chunks::<2>();
+        if !remainder.is_empty() {
+            return None;
+        }
+
+        let chunks_ptr = &raw const *chunks;
+        let ptr = chunks_ptr as *const [Self];
+
+        // SAFETY: `Self` is a transparent wrapper around `[f32; 2]`,
+        // so the chunk slice reinterprets element-wise with identical
+        // layout and alignment.
+        Some(unsafe { &*ptr })
+    }
+
     /// Returns the `x` component.
     #[inline]
     #[must_use]

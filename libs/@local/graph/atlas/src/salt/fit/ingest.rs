@@ -12,25 +12,35 @@ use core::pin::pin;
 use std::io::{BufWriter, Write as _};
 
 use futures::TryStreamExt as _;
+use smallvec::SmallVec;
 use tracing::Instrument as _;
+use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{
     FitConfig, Stage,
     error::{FitError, PriorError, StageError},
-    prepare::{self, PrepareError, identity::IdentityTable, norm},
+    prepare::{
+        self, PrepareError,
+        identity::IdentityTable,
+        instance::{InstanceRecord, InstanceSpool, InstanceSpoolWriter},
+        norm,
+    },
     role::{Role, digest_file, write_staged},
     stage_rng,
 };
 use crate::{
-    dataset::{Dataset, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes},
+    dataset::{Dataset, EdgeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
-        array::ArrayFile,
-        generation::{Generation, StagedGeneration},
+        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+        generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::RepositoryFile,
     },
     math::AlignedVecN,
-    salt::embedding::{
-        CardEmbedder, CardEmbeddingStats, CardEmbeddingView, EmbedderFingerprint, embed_cards,
+    salt::{
+        embedding::{
+            CardEmbedder, CardEmbeddingStats, CardEmbeddingView, EmbedderFingerprint, embed_cards,
+        },
+        relation::RelationConfidence,
     },
 };
 /// Everything one fit's ingest produced: the staged stream artifacts,
@@ -43,6 +53,9 @@ pub(super) struct Ingested {
     pub fingerprint: EmbedderFingerprint,
     /// Nodes the dataset streamed.
     pub nodes: u64,
+    /// Each node row's direct types, in row order: the quadtree
+    /// build's type column.
+    pub node_types: Vec<SmallVec<OntologyRowId, 2>>,
     /// Edges the dataset streamed.
     pub edges: u64,
     /// The relation universe: distinct ontology rows the edge stream
@@ -54,6 +67,11 @@ pub(super) struct Ingested {
     pub node_identities: RepositoryFile,
     /// The staged edge identity table.
     pub edge_identities: RepositoryFile,
+    /// The staged endpoint column.
+    pub edge_endpoints: RepositoryFile,
+    /// The spooled `(edge, relation)` readings the relation stage
+    /// consumes.
+    pub instances: InstanceSpool,
     /// The staged card-embedding artifacts.
     pub cards: CardArtifacts,
     /// The passed representation-contract spot check.
@@ -76,6 +94,7 @@ pub(super) async fn run<D, E>(
     embedder: &E,
     config: &FitConfig,
     staging: &StagedGeneration,
+    scratch: &ScratchDirectory,
     prior: Option<&Generation>,
 ) -> Result<Ingested, FitError<D::Error, E::Error>>
 where
@@ -83,26 +102,29 @@ where
     E: CardEmbedder + Sync,
 {
     // Nodes: stream every representation into the staged matrix beside
-    // its identity table, map the matrix back, and certify the source
-    // contract on the mapped rows.
-    let (nodes, representations, node_identities) = stage_representations(dataset, staging)
+    // its identity table and type column, map the matrix back, and
+    // certify the source contract on the mapped rows.
+    let node_artifacts = stage_representations(dataset, staging)
         .instrument(tracing::info_span!("representations"))
         .await?;
-    tracing::info!(nodes, "staged the node representations and identities");
+    tracing::info!(
+        nodes = node_artifacts.nodes,
+        "staged the node representations and identities"
+    );
 
     let norm = certify_representations(staging, config)?;
 
-    // Edges: the identity column and the relation universe are drained;
-    // the endpoint columns, the adjacency the serving contract wants,
-    // and the relation stage rework land together.
-    // TODO: persist the endpoint columns and the incident-edge
-    //       adjacency, and assemble `RelationInstance`s from this
-    //       stream against the staged policy table (the attraction
-    //       writer already landed).
-    let (edges, relations, edge_identities) = stage_edge_identities(dataset, staging)
-        .instrument(tracing::info_span!("edge-identities"))
+    // Edges: one drain fills the identity column, the endpoint column,
+    // the relation universe, and the instance spool the relation stage
+    // consumes once the policy table resolves.
+    let edge_artifacts = stage_edges(dataset, staging, scratch)
+        .instrument(tracing::info_span!("edges"))
         .await?;
-    tracing::info!(edges, "staged the edge identities");
+    tracing::info!(
+        edges = edge_artifacts.edges,
+        instances = edge_artifacts.instances.count(),
+        "staged the edge identities, endpoints, and instance spool"
+    );
 
     // Ontology: render every card and embed the unique texts, reusing
     // the prior generation's rows where the text hash matches.
@@ -119,20 +141,35 @@ where
     Ok(Ingested {
         axes: dataset.axes(),
         fingerprint: embedder.fingerprint(),
-        nodes,
-        edges,
-        relations,
-        representations,
-        node_identities,
-        edge_identities,
+        nodes: node_artifacts.nodes,
+        node_types: node_artifacts.types,
+        edges: edge_artifacts.edges,
+        relations: edge_artifacts.relations,
+        representations: node_artifacts.representations,
+        node_identities: node_artifacts.identities,
+        edge_identities: edge_artifacts.identities,
+        edge_endpoints: edge_artifacts.endpoints,
+        instances: edge_artifacts.instances,
         cards,
         norm,
     })
 }
 
+/// The node drain's staged artifacts and resident columns.
+struct NodeArtifacts {
+    /// Nodes the stream carried.
+    nodes: u64,
+    /// Each node row's direct types, in row order.
+    types: Vec<SmallVec<OntologyRowId, 2>>,
+    /// The staged representation matrix.
+    representations: RepositoryFile,
+    /// The staged node identity table.
+    identities: RepositoryFile,
+}
+
 /// Streams every node's representation into the staged `f32[N, 512]`
-/// matrix and its ids into the staged identity file, returning the row
-/// count with both staged files.
+/// matrix and its ids into the staged identity file, keeping the type
+/// column resident for the quadtree build.
 ///
 /// The matrix digest streams over the finished file because the writer
 /// seals its header by seeking; the identity writer is forward-only
@@ -145,12 +182,12 @@ where
 async fn stage_representations<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
-) -> Result<(u64, RepositoryFile, RepositoryFile), FitError<D::Error, E>>
+) -> Result<NodeArtifacts, FitError<D::Error, E>>
 where
     D: Dataset,
 {
     let mut writer = BufWriter::new(staging.create(&Role::Representations.file_name())?);
-    let ids = prepare::write_node_representations(dataset, &mut writer)
+    let columns = prepare::write_node_representations(dataset, &mut writer)
         .instrument(tracing::info_span!("stream"))
         .await
         .map_err(|error| match error {
@@ -159,14 +196,19 @@ where
         })?;
     writer.flush()?;
 
-    let nodes = ids.len();
+    let nodes = columns.ids.len();
     let identities = write_staged(staging, Role::NodeIdentities, |writer| {
-        ids.write_into(writer)
+        columns.ids.write_into(writer)
     })?;
 
     let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
 
-    Ok((nodes, Role::Representations.file(digest), identities))
+    Ok(NodeArtifacts {
+        nodes,
+        types: columns.types,
+        representations: Role::Representations.file(digest),
+        identities,
+    })
 }
 
 /// Certifies the source contract on the freshly staged representation
@@ -200,37 +242,102 @@ fn certify_representations<D, E>(
     Ok(norm)
 }
 
-/// Streams every edge's id into the staged identity file, returning
-/// the edge count, the relation universe - the distinct ontology rows
-/// the edges carried, ascending - and the staged file.
+/// The edge drain's staged artifacts and spooled readings.
+struct EdgeArtifacts {
+    /// Edges the stream carried.
+    edges: u64,
+    /// The relation universe: distinct ontology rows the edges
+    /// carried, ascending.
+    relations: Vec<OntologyRowId>,
+    /// The staged edge identity table.
+    identities: RepositoryFile,
+    /// The staged endpoint column.
+    endpoints: RepositoryFile,
+    /// The spooled `(edge, relation)` readings.
+    instances: InstanceSpool,
+}
+
+/// Narrows a stream confidence to working precision.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "confidences lie in [0, 1] by the dataset contract; f32 is the working precision"
+)]
+fn narrow_confidence(confidence: Option<f64>) -> Option<f32> {
+    confidence.map(|value| value as f32)
+}
+
+/// Drains the edge stream once: ids into the staged identity file,
+/// endpoints into the staged `u64[E, 2]` column, the relation universe
+/// into its ascending set, and one spooled reading per
+/// `(edge, relation)` pair for the relation stage.
+///
+/// The endpoint digest streams over the finished file because the
+/// array writer seals its header by seeking; the identity writer is
+/// forward-only and digests inline.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
               follows the dataset's"
 )]
-async fn stage_edge_identities<D, E>(
+async fn stage_edges<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
-) -> Result<(u64, Vec<OntologyRowId>, RepositoryFile), FitError<D::Error, E>>
+    scratch: &ScratchDirectory,
+) -> Result<EdgeArtifacts, FitError<D::Error, E>>
 where
     D: Dataset,
 {
     let mut ids = IdentityTable::new();
     let mut relations = BTreeSet::new();
+    let mut spool = InstanceSpoolWriter::create(scratch)?;
+
+    let mut writer = BufWriter::new(staging.create(&Role::EdgeEndpoints.file_name())?);
+    let mut endpoints = ArrayWriter::new(&mut writer, ArrayVariant::U64, &[Dim::new(2)])?;
+
     let mut stream = pin!(dataset.edges());
     while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {
+        let row = EdgeRowId::new(ids.len());
         ids.push(edge.id);
-        relations.extend(edge.ontology.iter().map(|relation| relation.get()));
+        endpoints.write_row(
+            [
+                U64::<LE>::new(edge.source.get()),
+                U64::<LE>::new(edge.target.get()),
+            ]
+            .as_bytes(),
+        )?;
+
+        let confidence = RelationConfidence {
+            link: narrow_confidence(edge.confidence),
+            source: narrow_confidence(edge.source_confidence),
+            target: narrow_confidence(edge.target_confidence),
+        };
+        for &relation in &edge.ontology {
+            relations.insert(relation.get());
+            spool.push(InstanceRecord::new(
+                row,
+                relation,
+                edge.source,
+                edge.target,
+                confidence,
+            ))?;
+        }
     }
-    let file = write_staged(staging, Role::EdgeIdentities, |writer| {
+    endpoints.finish()?;
+    writer.flush()?;
+
+    let identities = write_staged(staging, Role::EdgeIdentities, |writer| {
         ids.write_into(writer)
     })?;
+    let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
+    let instances = spool.finish()?;
 
-    Ok((
-        ids.len(),
-        relations.into_iter().map(OntologyRowId::new).collect(),
-        file,
-    ))
+    Ok(EdgeArtifacts {
+        edges: ids.len(),
+        relations: relations.into_iter().map(OntologyRowId::new).collect(),
+        identities,
+        endpoints: Role::EdgeEndpoints.file(digest),
+        instances,
+    })
 }
 
 /// The staged card-embedding artifacts of one fit.

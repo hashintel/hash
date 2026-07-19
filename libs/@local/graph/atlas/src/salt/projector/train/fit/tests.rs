@@ -48,7 +48,9 @@ use crate::{
 
 type TestBackend = Autodiff<NdArray>;
 
-const ROWS: usize = 8;
+/// Rows per semantic cluster.
+const HALF: usize = 4;
+const ROWS: usize = 2 * HALF;
 const CAPACITY: usize = ROWS * PROJECTOR_DIMENSIONS;
 
 /// The reviewed relation type of the boundary fixtures.
@@ -68,7 +70,7 @@ fn device() -> NdArrayDevice {
 
 /// Whether a row belongs to the first semantic cluster.
 const fn first_cluster(row: usize) -> bool {
-    row < ROWS / 2
+    row < HALF
 }
 
 /// One training corpus's owned artifacts.
@@ -111,9 +113,9 @@ fn corpus_with(
 ) -> Corpus {
     // Within-cluster cliques: {0..4} and {4..8}, unit weight.
     let mut edges = Vec::new();
-    for base in [0, ROWS / 2] {
-        for one in 0..(ROWS / 2) {
-            for other in (one + 1)..(ROWS / 2) {
+    for base in [0, HALF] {
+        for one in 0..HALF {
+            for other in (one + 1)..HALF {
                 edges.push((base + one, base + other, 1.0));
             }
         }
@@ -157,7 +159,7 @@ fn corpus_with(
                 weight: 1.0,
             },
             SupportAnchor {
-                row: ROWS / 2,
+                row: HALF,
                 target: Vec2::new(1.0, 0.0),
                 radius: 1.0,
                 weight: 1.0,
@@ -359,16 +361,15 @@ fn training_separates_the_semantic_clusters() {
     assert!(fitted.evidence.boundary.is_none());
 
     let layout = project(&fitted.model, &corpus, 0.0);
-    let half = ROWS / 2;
     let within = mean_distance(
         &layout,
-        (0..half)
-            .flat_map(|one| ((one + 1)..half).map(move |other| (one, other)))
-            .flat_map(|(one, other)| [(one, other), (one + half, other + half)]),
+        (0..HALF)
+            .flat_map(|one| ((one + 1)..HALF).map(move |other| (one, other)))
+            .flat_map(|(one, other)| [(one, other), (one + HALF, other + HALF)]),
     );
     let between = mean_distance(
         &layout,
-        (0..half).flat_map(|one| (half..ROWS).map(move |other| (one, other))),
+        (0..HALF).flat_map(|one| (HALF..ROWS).map(move |other| (one, other))),
     );
     assert!(
         within < between,

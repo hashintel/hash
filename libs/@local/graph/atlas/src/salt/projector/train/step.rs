@@ -89,29 +89,44 @@ pub(crate) struct Objective<B: AutodiffBackend> {
     pub loss: LossBreakdown,
 }
 
-/// Projects the batch rows and evaluates the composite objective.
+/// The step objective's run-bound context: the corpus input columns,
+/// the numerical contract, and the reporting decile axis.
 ///
-/// # Errors
-///
-/// Returns an error when the forward pass produces a non-finite
-/// coordinate: training diverged.
-///
-/// # Panics
-///
-/// Panics on wiring defects: input columns disagreeing with the batch
-/// rows, relation edges without a frozen relation energy, or scale
-/// tables missing where relation edges are present.
-pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>>(
-    model: &Projector<B>,
-    batch: &Batch<'_>,
-    columns: NodeColumns<'_>,
-    options: &ObjectiveOptions,
-    deciles: &DegreeDeciles,
-    metrics: &mut BudgetBreakdown,
-    device: &B::Device,
-) -> Result<Objective<B>, StepError> {
-    let coordinates = model.forward(batch.input(columns, device));
-    evaluate(coordinates, batch, options, deciles, metrics)
+/// Bound once per training run; the loop composes the frozen relation
+/// energy into `options` at the phase boundary.
+#[derive(Debug)]
+pub(crate) struct Evaluation<'run> {
+    /// The per-row model input columns of the whole corpus.
+    pub columns: NodeColumns<'run>,
+    /// The objective's numerical contract.
+    pub options: ObjectiveOptions,
+    /// The relation-degree decile axis of the budget metrics.
+    pub deciles: DegreeDeciles,
+}
+
+impl Evaluation<'_> {
+    /// Projects the batch rows and evaluates the composite objective.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the forward pass produces a non-finite
+    /// coordinate: training diverged.
+    ///
+    /// # Panics
+    ///
+    /// Panics on wiring defects: input columns disagreeing with the
+    /// batch rows, relation edges without a frozen relation energy, or
+    /// scale tables missing where relation edges are present.
+    pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>>(
+        &self,
+        model: &Projector<B>,
+        batch: &Batch<'_>,
+        metrics: &mut BudgetBreakdown,
+        device: &B::Device,
+    ) -> Result<Objective<B>, StepError> {
+        let coordinates = model.forward(batch.input(self.columns, device));
+        evaluate(coordinates, batch, &self.options, &self.deciles, metrics)
+    }
 }
 
 /// Evaluates the composite objective against projected coordinates.
@@ -148,27 +163,30 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
         "the coordinate frame should cover exactly the batch rows"
     );
 
-    let frame = read_frame(coordinates.clone().inner(), &batch.rows)?;
+    let values = read_frame(coordinates.clone().inner(), &batch.rows)?;
+    // Zero-copy view over the readback: `Vec2` is a transparent
+    // `[f32; 2]`, so the row-major frame reinterprets in place.
+    let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
     let rows = frame.len();
     let coefficients = options.coefficients;
 
     let mut semantic_field = GradientField::new(rows);
     let semantic = attraction_term(
-        &frame,
+        frame,
         batch.semantic.iter().map(|&pair| (pair, 1.0)),
         options.affinity,
         coefficients.semantic * batch.semantic_scale,
         &mut semantic_field,
     );
     let ordinary = repulsion_term(
-        &frame,
+        frame,
         batch.ordinary.iter().map(|&pair| (pair, 1.0)),
         options.affinity,
         coefficients.ordinary * batch.ordinary_scale,
         &mut semantic_field,
     );
     let hard = repulsion_term(
-        &frame,
+        frame,
         batch.hard.iter().copied(),
         options.affinity,
         coefficients.hard * batch.hard_scale,
@@ -178,7 +196,7 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
     let (relation, combined) = if batch.relation.is_empty() {
         (0.0, flatten(semantic_field.as_slice()))
     } else {
-        relation_pass(&frame, batch, options, &semantic_field, deciles, metrics)
+        relation_pass(frame, batch, options, &semantic_field, deciles, metrics)
     };
 
     let device = coordinates.device();
@@ -337,27 +355,24 @@ fn relation_pass(
 
 /// Reads the detached coordinate frame back to the host and checks
 /// that every point is finite.
+///
+/// Returns the raw row-major components; view them through
+/// [`Vec2::from_slice`] rather than copying.
 fn read_frame<B: Backend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
     rows: &[NodeRowId],
-) -> Result<Vec<Vec2>, StepError> {
+) -> Result<Vec<f32>, StepError> {
     let values = coordinates
         .into_data()
         .to_vec::<f32>()
         .expect("the projector's coordinates are an f32 tensor");
-    let frame: Vec<Vec2> = values
-        .as_chunks::<2>()
-        .0
-        .iter()
-        .map(|&[x, y]| Vec2::new(x, y))
-        .collect();
-
+    let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
     for (index, point) in frame.iter().enumerate() {
         if !point.is_finite() {
             return Err(StepError::Diverged { row: rows[index] });
         }
     }
-    Ok(frame)
+    Ok(values)
 }
 
 /// Flattens per-node gradients into the tensor's row-major layout.

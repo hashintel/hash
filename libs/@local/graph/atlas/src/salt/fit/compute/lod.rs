@@ -1,4 +1,7 @@
-//! The level-of-detail stage: served columns in base delivery order.
+//! The level-of-detail stage: served columns in base delivery order
+//! and the quadtree cut over them.
+
+use smallvec::SmallVec;
 
 use super::{
     super::{
@@ -9,14 +12,17 @@ use super::{
     Context,
 };
 use crate::{
+    dataset::OntologyRowId,
     file::{
         array::{ArrayFile, ArrayVariant, Dim},
         identity::read::IdentityFile,
         morton::write::{PAGE_STRIDE, write_regions},
+        quad,
         repository::RepositoryFile,
     },
     integrity::{Sha256, Writer},
     salt::lod::{
+        quad::{QuadEvidence, QuadTree},
         rank::RankInputs,
         stage::{Lod, LodEvidence},
     },
@@ -25,6 +31,7 @@ use crate::{
 /// The staged level-of-detail artifacts of one fit.
 pub(super) struct LodArtifacts {
     pub morton: RepositoryFile,
+    pub quad: RepositoryFile,
     pub wire_coordinates: RepositoryFile,
     pub rank_of_position: RepositoryFile,
     pub position_of_rank: RepositoryFile,
@@ -32,15 +39,28 @@ pub(super) struct LodArtifacts {
     pub row_of_position: RepositoryFile,
 }
 
+/// Everything the level-of-detail stage produced: the staged files and
+/// both evidence sections.
+pub(super) struct LodOutputs {
+    pub files: LodArtifacts,
+    pub evidence: LodEvidence,
+    pub quad_evidence: QuadEvidence,
+}
+
 impl Context<'_> {
     /// Derives the level-of-detail structure over the staged
-    /// coordinates and stages every served column.
+    /// coordinates, stages every served column, and cuts the finished
+    /// columns into the staged quadtree.
     ///
     /// The rank inputs are constant columns - the dataset carries no
     /// importance or priority yet - so the delivery order reduces to
     /// the seeded identity tiebreak; the metadata's ranking origin
-    /// records it.
-    pub(super) fn stage_lod<I>(&self) -> Result<(LodArtifacts, LodEvidence), StageError>
+    /// records it. `types` is each node row's direct types in row
+    /// order, the quadtree's per-tile type sets.
+    pub(super) fn stage_lod<I>(
+        &self,
+        types: &[SmallVec<OntologyRowId, 2>],
+    ) -> Result<LodOutputs, StageError>
     where
         I: Copy
             + Sync
@@ -78,8 +98,26 @@ impl Context<'_> {
             Ok(writer.accumulator.finalize())
         })?;
 
+        // The quadtree cuts the finished columns while they are still
+        // resident; it runs under the configuration the cascade ran
+        // under, which the build re-checks.
+        let (quad_file, quad_evidence) = {
+            let _span = tracing::info_span!("quad").entered();
+            let tree = QuadTree::build(&lod, types, self.config.lod)?;
+            let file = write_staged(self.staging, Role::Quad, |writer| {
+                let mut writer = Writer {
+                    accumulator: Sha256::new(),
+                    writer,
+                };
+                quad::write::write_regions(&tree.nodes, &tree.sets, &mut writer)?;
+                Ok(writer.accumulator.finalize())
+            })?;
+            (file, tree.evidence())
+        };
+
         let files = LodArtifacts {
             morton,
+            quad: quad_file,
             wire_coordinates: stage_column(
                 self.staging,
                 Role::WireCoordinates,
@@ -125,6 +163,10 @@ impl Context<'_> {
             )?,
         };
 
-        Ok((files, lod.evidence(self.config.lod)))
+        Ok(LodOutputs {
+            evidence: lod.evidence(self.config.lod),
+            files,
+            quad_evidence,
+        })
     }
 }

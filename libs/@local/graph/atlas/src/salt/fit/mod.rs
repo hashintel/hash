@@ -62,6 +62,7 @@ use crate::{
         landmark::{layout::LayoutOptions, quotient::QuotientOptions, select::SelectionOptions},
         lod::stage::LodConfig,
         policy::{CoincidentAdmission, PolicyOverride, classifier::Classifier},
+        relation::attraction::AttractionOptions,
         semantic::SmoothingOptions,
     },
 };
@@ -129,6 +130,8 @@ pub(crate) struct FitConfig {
     pub layout: LayoutOptions = LayoutOptions::default(),
     /// Policy overrides and admission criteria.
     pub policy: PolicyOptions = PolicyOptions::default(),
+    /// Shared attraction weighting and force pruning.
+    pub attraction: AttractionOptions = AttractionOptions::default(),
     /// The level-of-detail schedule.
     pub lod: LodConfig = LodConfig::default(),
 }
@@ -232,7 +235,7 @@ where
     let staging = root.stage()?;
     let scratch = root.scratch()?;
 
-    let ingested = ingest::run(dataset, embedder, config, &staging, prior).await?;
+    let ingested = ingest::run(dataset, embedder, config, &staging, &scratch, prior).await?;
 
     // Everything after the last dataset touch is CPU-and-file work:
     // it crosses onto the rayon pool as one owned unit.

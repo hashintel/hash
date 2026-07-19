@@ -223,7 +223,11 @@ pub(crate) struct ClumpReport {
     pub grouped_rows: usize,
     /// Collapsed corpus map-versus-representation readings, one row
     /// per neighbourhood size in reporting order.
-    pub rows: Vec<ClumpRow>,
+    pub map_representation: Vec<ClumpRow>,
+    /// Collapsed representation-versus-canonical readings over the
+    /// comparison rows, one row per neighbourhood size in reporting
+    /// order: the representation baseline at clump granularity.
+    pub representation_canonical: Vec<ClumpRow>,
 }
 
 /// One subgroup's readings on the primary grid.
@@ -236,6 +240,40 @@ pub(crate) struct SubgroupReport {
     /// Corpus map-versus-representation readings, one row per
     /// neighbourhood size in reporting order.
     pub rows: Vec<MetricRow>,
+}
+
+/// One representation-baseline reading at one neighbourhood size.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct BaselineRow {
+    /// The neighbourhood size the row reads at.
+    pub neighbourhood: usize,
+    /// Queries the row aggregates over.
+    pub queries: usize,
+    /// Recall of exact canonical neighbourhoods in the representation,
+    /// in `[0, 1]`.
+    pub recall: f64,
+    /// The same reading collapsed onto clump ids, when clump readings
+    /// exist; never below the plain recall.
+    pub clump_recall: Option<f64>,
+}
+
+/// One subgroup's representation-baseline readings over the sampled
+/// universe.
+///
+/// The stratification separates representation loss from near-tie
+/// reshuffling per the specification's triage rule: a subgroup whose
+/// plain baseline recall trails the overall reading but whose
+/// collapsed recall restores to it is placed by clump in the
+/// representation itself, before any projection.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct BaselineSubgroupReport {
+    /// The subgroup's type, as its ontology row.
+    pub ontology_row: OntologyRowId,
+    /// Anchors carrying the type.
+    pub anchors: usize,
+    /// Representation-versus-canonical readings, one row per
+    /// neighbourhood size in reporting order.
+    pub rows: Vec<BaselineRow>,
 }
 
 /// One breach of the subgroup degradation rule.
@@ -304,6 +342,9 @@ pub(crate) struct QualityReport {
     pub triplet_representation_canonical: TripletRow,
     /// Per-subgroup primary readings, ascending by ontology row.
     pub subgroups: Vec<SubgroupReport>,
+    /// Per-subgroup representation-baseline readings, ascending by
+    /// ontology row: the audit stratification, report-only.
+    pub baseline_subgroups: Vec<BaselineSubgroupReport>,
     /// Degradation-rule breaches, in subgroup then neighbourhood
     /// order.
     pub flags: Vec<SubgroupFlag>,
@@ -408,7 +449,7 @@ pub(crate) fn assess(
     let map_representation = overall_rows(&readings.map_representation);
     let clump_overall: Option<Vec<ClumpAggregate>> = readings.clumps.as_ref().map(|clumps| {
         (0..rungs.len())
-            .map(|rung| clumps.grid.overall(rung))
+            .map(|rung| clumps.map_representation.overall(rung))
             .collect()
     });
 
@@ -428,28 +469,36 @@ pub(crate) fn assess(
         &members,
         thresholds,
     );
+    let baseline_subgroups = baseline_subgroup_reports(readings, &rungs, &members);
 
     QualityReport {
         anchors: readings.anchors.len(),
         corpus_universe: readings.map_representation.overall(0).universe(),
         comparisons: readings.comparisons.len(),
         map_representation,
-        clumps: readings.clumps.as_ref().map(|clumps| ClumpReport {
-            epsilon: clumps.epsilon,
-            count: clumps.count,
-            groups: clumps.groups,
-            grouped_rows: clumps.grouped_rows,
-            rows: clump_overall
-                .as_ref()
-                .expect("clump readings produce overall clump aggregates")
-                .iter()
-                .zip(&rungs)
-                .map(|(aggregate, &neighbourhood)| ClumpRow {
-                    neighbourhood,
-                    queries: aggregate.queries(),
-                    recall: aggregate.recall(),
-                })
-                .collect(),
+        clumps: readings.clumps.as_ref().map(|clumps| {
+            let rendered = |grid: &ReadingGrid<ClumpAggregate>| -> Vec<ClumpRow> {
+                rungs
+                    .iter()
+                    .enumerate()
+                    .map(|(rung, &neighbourhood)| {
+                        let aggregate = grid.overall(rung);
+                        ClumpRow {
+                            neighbourhood,
+                            queries: aggregate.queries(),
+                            recall: aggregate.recall(),
+                        }
+                    })
+                    .collect()
+            };
+            ClumpReport {
+                epsilon: clumps.epsilon,
+                count: clumps.count,
+                groups: clumps.groups,
+                grouped_rows: clumps.grouped_rows,
+                map_representation: rendered(&clumps.map_representation),
+                representation_canonical: rendered(&clumps.representation_canonical),
+            }
         }),
         sampled_map_representation: overall_rows(&readings.sampled_map_representation),
         sampled_map_canonical: overall_rows(&readings.sampled_map_canonical),
@@ -461,6 +510,7 @@ pub(crate) fn assess(
             &readings.triplet_representation_canonical,
         ),
         subgroups,
+        baseline_subgroups,
         flags,
         minimum_recall: thresholds.minimum_recall,
         minimum_trustworthiness: thresholds.minimum_trustworthiness,
@@ -515,9 +565,9 @@ fn subgroup_reports(
                 // The triage re-evaluation: the same rule at clump
                 // granularity, subgroup against overall.
                 let collapsed = readings.clumps.as_ref().map(|clumps| {
-                    let mut merged = *clumps.grid.anchor(first, rung);
+                    let mut merged = *clumps.map_representation.anchor(first, rung);
                     for &anchor in rest {
-                        merged.merge(clumps.grid.anchor(anchor, rung));
+                        merged.merge(clumps.map_representation.anchor(anchor, rung));
                     }
                     let overall = &clump_overall
                         .expect("clump readings produce overall clump aggregates")[rung];
@@ -547,6 +597,66 @@ fn subgroup_reports(
     }
 
     (subgroups, flags)
+}
+
+/// Merges subgroup memberships into per-type representation-baseline
+/// rows.
+///
+/// Every row merges the sampled representation-versus-canonical cells
+/// of the subgroup's anchors, plain and - when clump readings exist -
+/// collapsed, so the audit stratification and its triage evidence
+/// travel together.
+fn baseline_subgroup_reports(
+    readings: &ProbeReadings,
+    rungs: &[usize],
+    members: &BTreeMap<OntologyRowId, Vec<usize>>,
+) -> Vec<BaselineSubgroupReport> {
+    members
+        .iter()
+        .map(|(&ontology_row, anchors)| {
+            let (&first, rest) = anchors
+                .split_first()
+                .expect("every membership list holds the anchor that created it");
+            let rows = rungs
+                .iter()
+                .enumerate()
+                .map(|(rung, &neighbourhood)| {
+                    let mut merged = readings
+                        .sampled_representation_canonical
+                        .anchor(first, rung)
+                        .clone();
+                    for &anchor in rest {
+                        merged.merge(
+                            readings
+                                .sampled_representation_canonical
+                                .anchor(anchor, rung),
+                        );
+                    }
+
+                    let collapsed = readings.clumps.as_ref().map(|clumps| {
+                        let mut merged = *clumps.representation_canonical.anchor(first, rung);
+                        for &anchor in rest {
+                            merged.merge(clumps.representation_canonical.anchor(anchor, rung));
+                        }
+                        merged.recall()
+                    });
+
+                    BaselineRow {
+                        neighbourhood,
+                        queries: merged.queries(),
+                        recall: merged.recall(),
+                        clump_recall: collapsed,
+                    }
+                })
+                .collect();
+
+            BaselineSubgroupReport {
+                ontology_row,
+                anchors: anchors.len(),
+                rows,
+            }
+        })
+        .collect()
 }
 
 /// Reads each neighbourhood size's density distortion from the radii.

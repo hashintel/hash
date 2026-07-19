@@ -11,9 +11,10 @@ use crate::{
     dataset::TemporalAxes,
     file::{generation::GenerationId, morton::Fenceposts},
     math::Bounds2,
+    morton::Depth,
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef, LodEvidence,
-        NormSpotCheck, RecallSpotCheck,
+        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef,
+        LodEvidence, NormSpotCheck, QuadEvidence, RecallSpotCheck,
     },
 };
 
@@ -111,9 +112,15 @@ pub(crate) struct Evidence {
     pub landmarks: LandmarkEvidence,
     /// The policy stage's scale record.
     pub policy: PolicyEvidence,
+    /// The relation build's dropped-instance and pruned-mass account.
+    #[serde(with = "BuildEvidenceDef")]
+    pub relations: BuildEvidence,
     /// The level-of-detail stage's publish measurements.
     #[serde(with = "LodEvidenceDef")]
     pub lod: LodEvidence,
+    /// The quadtree build's publish measurements.
+    #[serde(with = "QuadEvidenceDef")]
+    pub quad: QuadEvidence,
 }
 
 /// Serializes a [`Bounds2`] as its corner coordinates, validating
@@ -199,6 +206,61 @@ struct LodEvidenceDef {
     catch_all_population: u64,
     co_location_excess: u64,
     max_tile_delta: u64,
+}
+
+/// serde shadow of [`BuildEvidence`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "BuildEvidence")]
+struct BuildEvidenceDef {
+    pruning_threshold: f32,
+    retained_edges: usize,
+    pruned_edges: usize,
+    retained_mass: f64,
+    pruned_mass: f64,
+    self_references: usize,
+}
+
+/// Serializes a [`Depth`] as its subdivision count, validating through
+/// [`Depth::new`] on deserialize.
+mod depth {
+    use serde::{Deserialize as _, de::Error as _};
+
+    use crate::morton::Depth;
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` contract passes the field by reference"
+    )]
+    pub(super) fn serialize<S>(depth: &Depth, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u8(depth.get())
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Depth, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+        Depth::new(value).ok_or_else(|| {
+            D::Error::custom(format_args!(
+                "the depth {value} exceeds the {} subdivisions a 64-bit Morton key resolves",
+                Depth::MAX.get(),
+            ))
+        })
+    }
+}
+
+/// serde shadow of [`QuadEvidence`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "QuadEvidence")]
+struct QuadEvidenceDef {
+    nodes: u64,
+    leaves: u64,
+    #[serde(with = "depth")]
+    depth: Depth,
+    type_entries: u64,
 }
 
 /// Scale record of the landmark stage.

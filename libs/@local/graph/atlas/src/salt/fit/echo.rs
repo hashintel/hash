@@ -33,6 +33,7 @@ use crate::{
         },
         lod::stage::LodConfig,
         policy::{CoincidentAdmission, PolicyOverride},
+        relation::attraction::AttractionOptions,
         semantic::SmoothingOptions,
     },
 };
@@ -200,6 +201,55 @@ mod policy_overrides {
     }
 }
 
+/// Serializes [`AttractionOptions`] as its two named settings,
+/// validating through [`AttractionOptions::new`] on deserialize.
+mod attraction_options {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::salt::relation::attraction::AttractionOptions;
+
+    /// The settings' wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Record {
+        coincident_coefficient: f32,
+        pruning_threshold: f32,
+    }
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` contract passes the field by reference"
+    )]
+    pub(super) fn serialize<S>(
+        options: &AttractionOptions,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Record {
+            coincident_coefficient: options.coincident_coefficient(),
+            pruning_threshold: options.pruning_threshold(),
+        }
+        .serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<AttractionOptions, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let Record {
+            coincident_coefficient,
+            pruning_threshold,
+        } = Record::deserialize(deserializer)?;
+        AttractionOptions::new(coincident_coefficient, pruning_threshold).ok_or_else(|| {
+            D::Error::custom(format_args!(
+                "the settings kappa_C = {coincident_coefficient}, eta_F = {pruning_threshold} are \
+                 not both finite and non-negative"
+            ))
+        })
+    }
+}
+
 /// serde shadow of [`SelectionOptions`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "SelectionOptions")]
@@ -317,6 +367,8 @@ pub(crate) struct FitConfigDef {
     layout: LayoutOptions,
     #[serde(with = "PolicyOptionsDef")]
     policy: PolicyOptions,
+    #[serde(with = "attraction_options")]
+    attraction: AttractionOptions,
     #[serde(with = "LodConfigDef")]
     lod: LodConfig,
 }

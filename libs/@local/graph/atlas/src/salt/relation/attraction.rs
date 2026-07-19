@@ -25,10 +25,16 @@ use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 /// threshold is audited by the omitted-mass fraction it produces
 /// ([`super::BuildEvidence::omitted_mass_fraction`]) and controls only
 /// attraction sampling: protection masses never pass through it.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionOptions {
     coincident_coefficient: f32 = 0.0,
     pruning_threshold: f32 = 0.0,
+}
+
+const impl Default for AttractionOptions {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 impl AttractionOptions {

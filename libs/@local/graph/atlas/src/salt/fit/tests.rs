@@ -16,21 +16,26 @@ use crate::{
         card::Card, memory::MemoryDataset,
     },
     file::{
+        adjacency::read::AdjacencyFile,
         array::ArrayFile,
+        attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
         generation::GenerationRoot,
         identity::read::IdentityFile,
         landmark::read::LandmarkFile,
         morton::read::MortonFile,
         policy::read::PolicyFile,
+        quad::read::QuadFile,
         salt::{
             SaltRepository,
             metadata::{Placement, RankingOrigin},
         },
+        sprs::read::SprsFile,
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
     salt::{
+        adjacency::MappedAdjacency,
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::{artifact::MappedLandmarkSkeleton, select::SelectionOptions},
         policy::{
@@ -41,6 +46,7 @@ use crate::{
                 fit as fit_classifier,
             },
         },
+        relation::artifact::{MappedAttraction, MappedProtection},
     },
 };
 
@@ -694,5 +700,200 @@ async fn a_defective_corpus_publishes_nothing() {
     assert!(
         entries.is_empty(),
         "a failed fit should leave nothing visible: {entries:?}"
+    );
+}
+
+/// A corpus exercising the edge artifacts: two relation types, a
+/// parallel pair, a self-loop, scored and unscored confidences.
+///
+/// Edge rows: 0 and 3 both `0 -> 1` under relation 2 (row 0 scored),
+/// 1 is `2 -> 3` under relations 2 and 3, 2 is the self-loop `3 -> 3`
+/// under relation 3.
+fn relation_dataset() -> MemoryDataset {
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xED6E);
+
+    let nodes = (0..NODES)
+        .map(|row| Node {
+            id: U64::<LE>::new(row as u64),
+            ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+            embedding: representation(&mut rng),
+            confidence: None,
+        })
+        .collect();
+
+    let unscored = |id: u64, source: u64, target: u64, ontology| Edge {
+        id: U64::<LE>::new(id),
+        source: NodeRowId::new(source),
+        target: NodeRowId::new(target),
+        ontology,
+        embedding: None,
+        confidence: None,
+        source_confidence: None,
+        target_confidence: None,
+    };
+    let edges = vec![
+        Edge {
+            confidence: Some(0.5),
+            ..unscored(200, 0, 1, smallvec![OntologyRowId::new(2)])
+        },
+        unscored(
+            201,
+            2,
+            3,
+            smallvec![OntologyRowId::new(2), OntologyRowId::new(3)],
+        ),
+        Edge {
+            confidence: Some(0.75),
+            source_confidence: Some(0.5),
+            ..unscored(202, 3, 3, smallvec![OntologyRowId::new(3)])
+        },
+        unscored(203, 0, 1, smallvec![OntologyRowId::new(2)]),
+    ];
+
+    let ontology = vec![
+        Ontology {
+            id: U64::<LE>::new(0),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(1),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(2),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(3),
+            parents: smallvec![],
+        },
+    ];
+
+    let cards = HashMap::from([
+        (0, Card::verbatim("Person entity card".to_owned())),
+        (1, Card::verbatim("Company entity card".to_owned())),
+        (2, Card::verbatim("Employment link card".to_owned())),
+        (3, Card::verbatim("Membership link card".to_owned())),
+    ]);
+
+    MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_edge_artifacts_publish_and_read_back() {
+    let root = GenerationRoot::new(scratch("edge-artifacts")).expect("the root should open");
+    let dataset = relation_dataset();
+    let classifier = fixture_classifier();
+
+    let published = fit(&dataset, &HashEmbedder, &config(), &classifier, None, &root)
+        .await
+        .expect("the fit should publish");
+
+    // The endpoint column is the edge stream's (source, target) pairs
+    // in row order.
+    let endpoints = ArrayFile::open(published.path().join("edge-endpoints.arr"))
+        .expect("the endpoint column should map");
+    assert_eq!(
+        endpoints
+            .u64_pairs()
+            .expect("the endpoint column holds u64 pairs"),
+        [[0, 1], [2, 3], [3, 3], [0, 1]],
+    );
+
+    // The adjacency lists match a by-hand pass over the fixture edges:
+    // the parallel pair leaves node 0, the self-loop occupies both
+    // slots of node 3, and untouched nodes hold empty runs.
+    let adjacency = MappedAdjacency::new(
+        AdjacencyFile::open(published.path().join("adjacency.adjc"))
+            .expect("the adjacency should map"),
+    )
+    .expect("the adjacency should validate");
+    assert_eq!(adjacency.rows(), NODES as u64);
+    assert_eq!(adjacency.edges(), 4);
+
+    let edge_rows = |list: Option<crate::salt::adjacency::EdgeList<'_>>| -> Vec<u64> {
+        list.expect("the queried node row is in domain")
+            .iter()
+            .map(|edge| edge.get())
+            .collect()
+    };
+    assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(0))), [0, 3]);
+    assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(1))), [0, 3]);
+    assert_eq!(edge_rows(adjacency.outgoing(NodeRowId::new(3))), [2]);
+    assert_eq!(edge_rows(adjacency.incoming(NodeRowId::new(3))), [1, 2]);
+    assert_eq!(edge_rows(adjacency.incident(NodeRowId::new(3))), [2, 1, 2]);
+    assert!(
+        edge_rows(adjacency.incident(NodeRowId::new(7))).is_empty(),
+        "an untouched node holds empty runs",
+    );
+
+    // The attraction index groups the retained instances by relation:
+    // three readings under relation 2, one under relation 3 (the
+    // self-loop reading carries no force and is dropped).
+    let attraction = MappedAttraction::new(
+        AttractionFile::open(published.path().join("attraction.atrc"))
+            .expect("the attraction index should map"),
+    )
+    .expect("the attraction index should validate");
+    assert_eq!(attraction.rows(), NODES as u64);
+    assert_eq!(attraction.group_count(), 2);
+    assert_eq!(attraction.edge_count(), 4);
+
+    let employment = attraction.group(0);
+    assert_eq!(employment.relation(), OntologyRowId::new(2));
+    assert_eq!(employment.len(), 3);
+    let membership = attraction.group(1);
+    assert_eq!(membership.relation(), OntologyRowId::new(3));
+    assert_eq!(membership.len(), 1);
+
+    // Confidence values and provenance survive the drain, the spool,
+    // and the published index: edge row 0's lone link score combines
+    // with two neutral factors.
+    let scored = employment
+        .edges()
+        .find(|edge| edge.edge.get() == 0)
+        .expect("edge row 0 is retained under relation 2");
+    assert_eq!(scored.confidence.value().to_bits(), 0.5_f32.to_bits());
+    assert!(scored.confidence.scored().link());
+    assert!(!scored.confidence.scored().source());
+    assert!(!scored.confidence.scored().target());
+
+    let neutral = membership.edge(0);
+    assert_eq!(neutral.edge.get(), 1);
+    assert_eq!(neutral.confidence.value().to_bits(), 1.0_f32.to_bits());
+    assert!(!neutral.confidence.scored().link());
+
+    // The protection index and the quadtree publish beside them.
+    let _protection = MappedProtection::new(
+        SprsFile::open(published.path().join("protection.sprs"))
+            .expect("the protection index should map"),
+    )
+    .expect("the protection index should validate");
+    let _quad =
+        QuadFile::open(published.path().join("quadtree.quad")).expect("the quadtree should map");
+
+    // The metadata document accounts for every reading: four retained
+    // instances, nothing pruned at the zero threshold, one
+    // self-reference dropped.
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+    assert_eq!(repository.metadata.snapshot.edges, 4);
+    assert_eq!(repository.metadata.evidence.policy.relations, 2);
+
+    let relations = &repository.metadata.evidence.relations;
+    assert_eq!(relations.retained_edges, 4);
+    assert_eq!(relations.pruned_edges, 0);
+    assert_eq!(relations.self_references, 1);
+    assert!(relations.retained_mass > 0.0);
+
+    let quad = &repository.metadata.evidence.quad;
+    assert!(quad.nodes >= 1);
+    assert!(quad.leaves <= quad.nodes);
+    assert!(
+        quad.type_entries >= 1,
+        "placed rows carry their direct types into the tile sets",
     );
 }

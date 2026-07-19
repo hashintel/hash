@@ -78,6 +78,7 @@
 //! every protected partner of node row `i`, the shape hard-negative
 //! mining vets one projected point's candidates against.
 
+pub(crate) use self::error::RelationIndexError;
 use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 // The policy row vocabulary is `salt::policy`'s deliverable; the
 // certified `Policies` view over it stays here with its consumer.

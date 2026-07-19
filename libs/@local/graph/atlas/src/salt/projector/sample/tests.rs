@@ -107,11 +107,11 @@ fn semantic_draws_are_graph_edges() {
     let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
-    let sampled = sampler.sample(64, rng(3));
+    let draws = sampler.sample(64, rng(3));
 
-    assert_eq!(sampled.len(), 64);
+    assert_eq!(draws.len(), 64);
     let edges = [pair(0, 1), pair(1, 2), pair(2, 3)];
-    for drawn in sampled {
+    for drawn in draws {
         assert!(
             edges.contains(&drawn),
             "every drawn pair should be a graph edge"
@@ -143,10 +143,10 @@ fn semantic_draws_follow_the_weights() {
     let graph = semantic_graph(4, &[(0, 1, 1.0), (2, 3, 1.0e-30)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
-    let sampled = sampler.sample(128, rng(5));
+    let draws = sampler.sample(128, rng(5));
 
     assert!(
-        sampled.iter().all(|&drawn| drawn == pair(0, 1)),
+        draws.iter().all(|&drawn| drawn == pair(0, 1)),
         "weight-proportional draws should concentrate on the heavy edge"
     );
 }
@@ -198,10 +198,10 @@ fn relation_caps_bind_per_type_under_skew() {
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
     let cap = NonZero::new(3).expect("the cap is nonzero");
-    let sampled = sampler.sample(2, cap, rng(11));
+    let draws = sampler.sample(2, cap, rng(11));
 
-    assert_eq!(sampled.len(), 2, "both types should participate");
-    for group in &sampled {
+    assert_eq!(draws.len(), 2, "both types should participate");
+    for group in &draws {
         let expected = cap.get().min(group.group.edges().len());
         assert_eq!(
             group.edges.len(),
@@ -231,9 +231,9 @@ fn relation_type_requests_beyond_the_index_return_every_group() {
     );
     let sampler = RelationEdgeSampler::new(&indexes.attraction);
 
-    let sampled = sampler.sample(64, NonZero::new(4).expect("nonzero"), rng(13));
+    let draws = sampler.sample(64, NonZero::new(4).expect("nonzero"), rng(13));
 
-    let relations: Vec<u64> = sampled
+    let relations: Vec<u64> = draws
         .iter()
         .map(|group| group.group.relation().get())
         .collect();

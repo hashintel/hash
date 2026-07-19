@@ -18,7 +18,7 @@ fn verdict(class: &str, base: &str, version: u32) -> String {
     )
 }
 
-/// Derives a type-table entry through the raw UUIDv5 constructor,
+/// Derives a type-table entry through the raw `UUIDv5` constructor,
 /// independently of the resolver's `OntologyTypeUuid::from_url` path.
 fn table_entry(base: &str, version: u32) -> ArchivedOntologyTypeUuid {
     ArchivedOntologyTypeUuid::from(Uuid::new_v5(
@@ -89,14 +89,14 @@ fn unknown_fields_and_classes_are_rejected() {
     // A field this reader does not know is a schema evolution it has
     // not been told about, at the document and the row level alike.
     let extra_document =
-        document(&verdict("overlay", LINK, 1), "").replacen("{", r#"{"extra":1,"#, 1);
+        document(&verdict("overlay", LINK, 1), "").replacen('{', r#"{"extra":1,"#, 1);
     assert!(matches!(
         ReviewedVerdicts::from_slice(extra_document.as_bytes()),
         Err(InvalidReviewedVerdicts::Json(_)),
     ));
 
     let extra_row = document(
-        &verdict("overlay", LINK, 1).replacen("{", r#"{"extra":1,"#, 1),
+        &verdict("overlay", LINK, 1).replacen('{', r#"{"extra":1,"#, 1),
         "",
     );
     assert!(matches!(

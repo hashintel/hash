@@ -522,8 +522,16 @@ fn soft_corpus() -> Corpus {
     for (row, group) in groups.into_iter().enumerate() {
         let mut leading = [0.0_f32; 6];
         leading[row] = 1.0;
-        let weight = if row % 2 == 0 { 1.0 } else { 2.0 };
-        corpus.push(&leading, targets[row % GeometryClass::COUNT], weight, group);
+
+        #[expect(
+            clippy::integer_division_remainder_used,
+            reason = "the fixture rotates classes and weights cyclically by row"
+        )]
+        let (target, weight) = (
+            targets[row % GeometryClass::COUNT],
+            if row % 2 == 0 { 1.0 } else { 2.0 },
+        );
+        corpus.push(&leading, target, weight, group);
     }
     corpus
 }

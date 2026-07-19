@@ -17,7 +17,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Architecture, Film, Initialization, NodeRole, Projector, ProjectorInput};
 
-type B = NdArray;
+type TestBackend = NdArray;
 
 fn device() -> NdArrayDevice {
     NdArrayDevice::default()
@@ -37,16 +37,16 @@ fn tiny(condition_dimensions: usize) -> Architecture {
     }
 }
 
-fn matrix(rows: usize, columns: usize, values: Vec<f32>) -> Tensor<B, 2> {
+fn matrix(rows: usize, columns: usize, values: Vec<f32>) -> Tensor<TestBackend, 2> {
     Tensor::from_data(TensorData::new(values, [rows, columns]), &device())
 }
 
-fn roles(values: Vec<i64>) -> Tensor<B, 1, Int> {
+fn roles(values: Vec<i64>) -> Tensor<TestBackend, 1, Int> {
     let rows = values.len();
     Tensor::from_data(TensorData::new(values, [rows]), &device())
 }
 
-fn to_values(tensor: Tensor<B, 2>) -> Vec<f32> {
+fn to_values(tensor: Tensor<TestBackend, 2>) -> Vec<f32> {
     tensor
         .into_data()
         .to_vec()
@@ -54,7 +54,7 @@ fn to_values(tensor: Tensor<B, 2>) -> Vec<f32> {
 }
 
 /// A representation batch with varied, hand-picked values.
-fn representation(rows: usize, columns: usize) -> Tensor<B, 2> {
+fn representation(rows: usize, columns: usize) -> Tensor<TestBackend, 2> {
     let values = (0..rows * columns)
         .map(|index| {
             #[expect(
@@ -62,7 +62,7 @@ fn representation(rows: usize, columns: usize) -> Tensor<B, 2> {
                 reason = "test indexes are tiny and exactly representable"
             )]
             let index = index as f32;
-            (index * 0.375) - 1.5
+            index.mul_add(0.375, -1.5)
         })
         .collect();
     matrix(rows, columns, values)
@@ -76,7 +76,8 @@ fn film_is_identity_at_initialization_for_every_condition() {
             rng: &mut rng,
             next_parameter_id: 1,
         };
-        let film = Film::<B>::new(4, condition_dimensions, &mut initialization, &device());
+        let film =
+            Film::<TestBackend>::new(4, condition_dimensions, &mut initialization, &device());
 
         let hidden = matrix(2, 4, vec![0.5, -1.25, 3.0, 0.0, -0.75, 2.5, -4.0, 1.0]);
         for condition_value in [0.0_f32, 1.0, -3.5] {
@@ -106,7 +107,7 @@ fn film_modulates_by_hand_computed_values() {
         rng: &mut rng,
         next_parameter_id: 1,
     };
-    let mut film = Film::<B>::new(2, 1, &mut initialization, &device());
+    let mut film = Film::<TestBackend>::new(2, 1, &mut initialization, &device());
     film.linear.weight = Param::from_tensor(matrix(1, 4, vec![0.5, -0.25, 0.75, 1.5]));
     film.linear.bias = Some(Param::from_tensor(Tensor::from_data(
         TensorData::new(vec![0.125_f32, 0.25, -0.375, 0.5], [4]),
@@ -136,8 +137,12 @@ fn residual_block_is_identity_at_initialization() {
             rng: &mut rng,
             next_parameter_id: 1,
         };
-        let block =
-            super::ResidualBlock::<B>::new(4, condition_dimensions, &mut initialization, &device());
+        let block = super::ResidualBlock::<TestBackend>::new(
+            4,
+            condition_dimensions,
+            &mut initialization,
+            &device(),
+        );
 
         let hidden = matrix(2, 4, vec![1.5, -0.25, 2.0, -3.0, 0.125, 4.5, -1.0, 0.5]);
         let condition = matrix(
@@ -159,7 +164,7 @@ fn residual_block_is_identity_at_initialization() {
 fn forward_is_condition_invariant_at_initialization() {
     for condition_dimensions in [1, 3] {
         let architecture = tiny(condition_dimensions);
-        let projector = Projector::<B>::new(
+        let projector = Projector::<TestBackend>::new(
             architecture,
             Xoshiro256PlusPlus::seed_from_u64(13),
             &device(),
@@ -201,8 +206,11 @@ fn initialization_is_deterministic_in_the_seed() {
     };
 
     let project = |seed: u64| {
-        let projector =
-            Projector::<B>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(seed), &device());
+        let projector = Projector::<TestBackend>::new(
+            tiny(1),
+            Xoshiro256PlusPlus::seed_from_u64(seed),
+            &device(),
+        );
         to_values(projector.forward(input()))
     };
 
@@ -220,7 +228,8 @@ fn initialization_is_deterministic_in_the_seed() {
 
 #[test]
 fn roles_reach_the_output() {
-    let projector = Projector::<B>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(19), &device());
+    let projector =
+        Projector::<TestBackend>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(19), &device());
 
     let project = |role: i64| {
         to_values(projector.forward(ProjectorInput {
@@ -241,7 +250,8 @@ fn roles_reach_the_output() {
 
 #[test]
 fn rows_project_independently() {
-    let projector = Projector::<B>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(23), &device());
+    let projector =
+        Projector::<TestBackend>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(23), &device());
 
     let full = representation(2, 6);
     let batch = to_values(projector.forward(ProjectorInput {
@@ -271,7 +281,8 @@ fn rows_project_independently() {
 #[test]
 #[should_panic(expected = "condition width should match the architecture")]
 fn forward_rejects_a_mismatched_condition_width() {
-    let projector = Projector::<B>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(29), &device());
+    let projector =
+        Projector::<TestBackend>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(29), &device());
     drop(projector.forward(ProjectorInput {
         representation: representation(1, 6),
         roles: roles(vec![0]),

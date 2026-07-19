@@ -9,12 +9,14 @@
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
 
-use core::num::NonZero;
+use alloc::borrow::Cow;
+use core::{future::ready, num::NonZero};
 use std::collections::HashMap;
 
-use rand::SeedableRng as _;
+use camino::Utf8PathBuf;
+use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 use zerocopy::{LE, U64};
 
 use super::{
@@ -25,13 +27,26 @@ use super::{
         ReadingGrid, probe,
     },
     report::{QualityThresholds, assess},
+    runner::{QualityRunOptions, run},
 };
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
+        card::Card, memory::MemoryDataset,
     },
-    math::{AlignedVecN, BoxedVecN, Vec2},
-    salt::knn::table::Knn,
+    file::generation::GenerationRoot,
+    integrity::{Sha256, Update as _},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2, VecN},
+    salt::{
+        embedding::{CardEmbedder, EmbedderFingerprint},
+        fit::{FitConfig, fit},
+        knn::table::Knn,
+        landmark::select::SelectionOptions,
+        policy::classifier::{
+            Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
+            fit as fit_classifier,
+        },
+    },
 };
 
 /// A six-row, two-neighbour table: a chained near-duplicate triple
@@ -613,7 +628,7 @@ async fn clump_readings_match_a_sorting_reference() {
     assert_eq!(clumps.groups, 0);
     for anchor in 0..6 {
         assert_eq!(
-            clumps.grid.anchor(anchor, 0).recall(),
+            clumps.map_representation.anchor(anchor, 0).recall(),
             readings.map_representation.anchor(anchor, 0).recall(),
         );
     }
@@ -666,7 +681,7 @@ async fn clump_readings_match_a_sorting_reference() {
         let mut expected = ClumpAggregate::new(k.try_into().expect("nonzero"));
         expected.observe(&mut reference_labels, &mut map_labels);
 
-        let cell = clumps.grid.anchor(index, 0);
+        let cell = clumps.map_representation.anchor(index, 0);
         assert_eq!(
             *cell, expected,
             "anchor {anchor} disagrees with the collapsed sorting reference",
@@ -808,7 +823,8 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
         count: 4,
         groups: 1,
         grouped_rows: 3,
-        grid: ReadingGrid::from_anchor_cells(cells, 1),
+        map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
+        representation_canonical: ReadingGrid::from_anchor_cells(cells, 1),
     }
 }
 
@@ -843,10 +859,15 @@ fn clump_resolution_triages_flags() {
         .expect("the readings carried a grouping");
     assert_eq!(clumps.epsilon, 0.15);
     assert_eq!(clumps.groups, 1);
-    assert_eq!(clumps.rows.len(), 1);
-    assert_eq!(clumps.rows[0].neighbourhood, 1);
-    assert_eq!(clumps.rows[0].queries, 6);
-    assert_eq!(clumps.rows[0].recall, 1.0);
+    assert_eq!(clumps.map_representation.len(), 1);
+    assert_eq!(clumps.map_representation[0].neighbourhood, 1);
+    assert_eq!(clumps.map_representation[0].queries, 6);
+    assert_eq!(clumps.map_representation[0].recall, 1.0);
+    // The fixture reuses the collapsed cells for the baseline grid, so
+    // its rendered rows and the subgroup stratification read the same.
+    assert_eq!(clumps.representation_canonical, clumps.map_representation);
+    assert_eq!(report.baseline_subgroups.len(), 2);
+    assert_eq!(report.baseline_subgroups[0].rows[0].clump_recall, Some(1.0),);
 
     let serialized = serde_json::to_string(&report).expect("the report serializes");
     let roundtrip: super::report::QualityReport =
@@ -1128,4 +1149,289 @@ async fn probe_rejects_impossible_designs() {
         .await,
         Err(ProbeError::NoNeighbourhoods),
     ));
+}
+
+const RUNNER_NODES: usize = 48;
+
+fn runner_scratch(name: &str) -> Utf8PathBuf {
+    let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
+        .expect("the temp directory is UTF-8")
+        .join(format!(
+            "hash-graph-atlas-quality-{}-{name}",
+            std::process::id()
+        ));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    dir
+}
+
+/// A probe-scale corpus for publishing through the real fit: unit-norm
+/// pseudo-random representations whose canonical embeddings extend
+/// them with zeros, one node type alternating between two ontology
+/// rows, and one link type.
+fn runner_dataset() -> MemoryDataset {
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xE7A);
+    let mut canonical = HashMap::new();
+
+    let nodes = (0..RUNNER_NODES)
+        .map(|row| {
+            let mut components = [0.0_f32; PROJECTOR_DIMENSIONS];
+            for component in &mut components {
+                *component = rng.random::<f32>() - 0.5;
+            }
+            let norm = components
+                .iter()
+                .map(|&component| f64::from(component) * f64::from(component))
+                .sum::<f64>()
+                .sqrt();
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "the normalization factor of a 512-component vector is far inside f32 \
+                          range"
+            )]
+            for component in &mut components {
+                *component = (f64::from(*component) / norm) as f32;
+            }
+
+            let mut extended = BoxedVecN::<CANONICAL_DIMENSIONS>::zero();
+            extended.as_array_mut()[..PROJECTOR_DIMENSIONS].copy_from_slice(&components);
+            canonical.insert(row as u64, extended);
+
+            Node {
+                id: U64::<LE>::new(row as u64),
+                ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+                embedding: BoxedVecN::new(&VecN::new(components)),
+                confidence: None,
+            }
+        })
+        .collect();
+
+    let edges = vec![Edge {
+        id: U64::<LE>::new(100),
+        source: NodeRowId::new(0),
+        target: NodeRowId::new(1),
+        ontology: smallvec![OntologyRowId::new(2)],
+        embedding: None,
+        confidence: None,
+        source_confidence: None,
+        target_confidence: None,
+    }];
+
+    let ontology = vec![
+        Ontology {
+            id: U64::<LE>::new(0),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(1),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(2),
+            parents: smallvec![],
+        },
+    ];
+
+    let cards = HashMap::from([
+        (0, Card::verbatim("Person entity card".to_owned())),
+        (1, Card::verbatim("Company entity card".to_owned())),
+        (2, Card::verbatim("Employment link card".to_owned())),
+    ]);
+
+    MemoryDataset::new(nodes, edges, ontology, canonical, cards)
+}
+
+/// A deterministic provider deriving each embedding from its text hash.
+struct HashEmbedder;
+
+impl CardEmbedder for HashEmbedder {
+    type Error = !;
+
+    fn fingerprint(&self) -> EmbedderFingerprint {
+        let mut hasher = Sha256::new();
+        hasher.update(b"quality runner test embedder");
+        EmbedderFingerprint::new(hasher.finalize())
+    }
+
+    fn embed(
+        &self,
+        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+    ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
+    {
+        ready(Ok(texts
+            .into_iter()
+            .map(|text| {
+                let mut hasher = Sha256::new();
+                hasher.update(text.as_ref().as_bytes());
+                let bytes = hasher.finalize().to_bytes();
+
+                let mut vector = BoxedVecN::zero();
+                for (component, &byte) in vector.as_array_mut().iter_mut().zip(bytes.iter().cycle())
+                {
+                    *component = f32::from(byte) / 255.0;
+                }
+                vector
+            })
+            .collect()))
+    }
+}
+
+/// A deterministic classifier fitted from a synthetic corpus: the
+/// supplied model input of the fixture fit.
+fn runner_classifier() -> Classifier {
+    const ROWS: usize = 4;
+    // Coprime to the dimension, so no two corpus rows repeat.
+    const PATTERN: [f32; 13] = [
+        -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
+    ];
+
+    let mut storage = BoxedVecN::<{ ROWS * CANONICAL_DIMENSIONS }>::zero();
+    for (component, &value) in storage
+        .as_array_mut()
+        .iter_mut()
+        .zip(PATTERN.iter().cycle())
+    {
+        *component = value;
+    }
+    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+
+    let rows: Vec<TrainingRow> = [
+        ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
+        ([0.2, 0.6, 0.2], b"group-b"),
+        ([0.1, 0.2, 0.7], b"group-c"),
+        ([0.3, 0.4, 0.3], b"group-d"),
+    ]
+    .into_iter()
+    .map(|(target, group)| {
+        let mut hasher = Sha256::new();
+        hasher.update(group);
+        TrainingRow {
+            target,
+            weight: 1.0,
+            group: hasher.finalize(),
+        }
+    })
+    .collect();
+
+    let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
+    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+        .expect("the fixture classifier fits")
+        .classifier
+}
+
+/// The runner end to end: the real fit publishes a generation, the
+/// runner reopens its artifacts, probes them against the same
+/// dataset, resolves anchor types, and reports.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn runner_reports_a_published_generation() {
+    let path = runner_scratch("runner");
+    let root = GenerationRoot::new(&path).expect("the root should open");
+    let dataset = runner_dataset();
+    let classifier = runner_classifier();
+    let config = FitConfig {
+        seed: 7,
+        selection: SelectionOptions {
+            maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
+            ..
+        },
+        curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+        neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
+        ..
+    };
+
+    let published = fit(&dataset, &HashEmbedder, &config, &classifier, None, &root)
+        .await
+        .expect("the fit should publish");
+    let generation = root
+        .open(published.id())
+        .expect("the published generation should open");
+
+    let options = QualityRunOptions {
+        probe: ProbeOptions {
+            anchors: NonZero::new(8).expect("nonzero"),
+            comparisons: NonZero::new(16).expect("nonzero"),
+            neighbourhoods: Cow::Owned(vec![
+                NonZero::new(2).expect("nonzero"),
+                NonZero::new(4).expect("nonzero"),
+            ]),
+            triplet_pairs: 8,
+            ..
+        },
+        ..
+    };
+    let report = run(
+        &dataset,
+        &generation,
+        &options,
+        Xoshiro256PlusPlus::seed_from_u64(3),
+    )
+    .await
+    .expect("the run should produce a report");
+
+    // The probe design landed as configured.
+    assert_eq!(report.anchors, 8);
+    assert_eq!(report.corpus_universe, RUNNER_NODES - 8);
+    assert_eq!(report.comparisons, 16);
+
+    // Anchor types resolved through the dataset's probe-scoped stream:
+    // every anchor carries exactly one of the two node types.
+    assert!(!report.subgroups.is_empty());
+    assert_eq!(
+        report
+            .subgroups
+            .iter()
+            .map(|subgroup| subgroup.anchors)
+            .sum::<usize>(),
+        8,
+    );
+    assert!(
+        report
+            .subgroups
+            .iter()
+            .all(|subgroup| subgroup.ontology_row.get() < 2),
+        "only the two node types carry anchors",
+    );
+
+    // Zero-extended canonical embeddings rank identically to the
+    // representation, so the baseline reads as perfect.
+    for row in &report.sampled_representation_canonical {
+        assert_eq!(row.recall, 1.0);
+    }
+    for subgroup in &report.baseline_subgroups {
+        for row in &subgroup.rows {
+            assert_eq!(row.recall, 1.0);
+        }
+    }
+
+    // Pseudo-random unit vectors sit far above the clump threshold:
+    // the grouping is all singletons, and every collapsed reading
+    // equals its plain reading bit for bit (the singleton law).
+    let clumps = report.clumps.as_ref().expect("the runner groups clumps");
+    assert_eq!(clumps.count, RUNNER_NODES);
+    assert_eq!(clumps.groups, 0);
+    for (collapsed, plain) in clumps
+        .map_representation
+        .iter()
+        .zip(&report.map_representation)
+    {
+        assert_eq!(collapsed.neighbourhood, plain.neighbourhood);
+        assert_eq!(collapsed.recall, plain.recall);
+    }
+    for (collapsed, plain) in clumps
+        .representation_canonical
+        .iter()
+        .zip(&report.sampled_representation_canonical)
+    {
+        assert_eq!(collapsed.recall, plain.recall);
+    }
+    for subgroup in &report.baseline_subgroups {
+        for row in &subgroup.rows {
+            assert_eq!(row.clump_recall, Some(row.recall));
+        }
+    }
+
+    // Subgroups below the default anchor floor never flag, and every
+    // gate defaults to unpinned.
+    assert!(report.flags.is_empty());
+    assert!(report.passes());
 }

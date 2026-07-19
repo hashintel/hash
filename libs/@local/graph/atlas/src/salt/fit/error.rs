@@ -17,8 +17,12 @@ use super::prepare::{
 };
 use crate::{
     file::{
-        array::OpenArrayError, generation::SealError, identity::read::OpenIdentityError,
-        landmark::read::OpenLandmarkError, sprs::read::OpenSprsError,
+        array::OpenArrayError,
+        generation::SealError,
+        identity::read::OpenIdentityError,
+        landmark::read::OpenLandmarkError,
+        policy::read::OpenPolicyError,
+        sprs::{read::OpenSprsError, write::WriteSprsError},
     },
     salt::{
         embedding::CardEmbeddingError,
@@ -27,8 +31,9 @@ use crate::{
             artifact::InvalidLandmarkFile, assignment::AssignmentError, layout::EdgelessGraphError,
             quotient::QuotientError, select::SelectionError,
         },
-        lod::stage::LodError,
-        policy::{ResolveError, classifier::PredictError},
+        lod::{quad::QuadError, stage::LodError},
+        policy::{ResolveError, artifact::InvalidPolicyFile, classifier::PredictError},
+        relation::RelationIndexError,
         semantic::artifact::InvalidSemanticFile,
     },
 };
@@ -128,6 +133,16 @@ pub(crate) enum StageError {
     Classify(PredictError),
     /// The policy resolution rejected its input.
     Policy(ResolveError),
+    /// The staged policy file failed to map back.
+    MapPolicies(OpenPolicyError),
+    /// The staged policy file does not hold a valid table.
+    InvalidPolicies(InvalidPolicyFile),
+    /// The relation index build rejected its input.
+    Relation(RelationIndexError),
+    /// The protection index failed to write.
+    WriteProtection(WriteSprsError),
+    /// The staged endpoint column failed to map back.
+    MapEndpoints(OpenArrayError),
     /// The staged card-embedding matrix failed to map back.
     MapCards(OpenArrayError),
     /// The staged coordinate column failed to map back.
@@ -136,6 +151,8 @@ pub(crate) enum StageError {
     WireEncoding { rows: u64 },
     /// The level-of-detail derivation rejected its input.
     Lod(LodError),
+    /// The quadtree build rejected its input.
+    Quad(QuadError),
     /// The landmark selection rejected its input.
     Selection(SelectionError),
     /// The landmark assignment failed.
@@ -197,6 +214,36 @@ impl From<PredictError> for StageError {
 impl From<ResolveError> for StageError {
     fn from(error: ResolveError) -> Self {
         Self::Policy(error)
+    }
+}
+
+impl From<OpenPolicyError> for StageError {
+    fn from(error: OpenPolicyError) -> Self {
+        Self::MapPolicies(error)
+    }
+}
+
+impl From<InvalidPolicyFile> for StageError {
+    fn from(error: InvalidPolicyFile) -> Self {
+        Self::InvalidPolicies(error)
+    }
+}
+
+impl From<RelationIndexError> for StageError {
+    fn from(error: RelationIndexError) -> Self {
+        Self::Relation(error)
+    }
+}
+
+impl From<WriteSprsError> for StageError {
+    fn from(error: WriteSprsError) -> Self {
+        Self::WriteProtection(error)
+    }
+}
+
+impl From<QuadError> for StageError {
+    fn from(error: QuadError) -> Self {
+        Self::Quad(error)
     }
 }
 
@@ -312,6 +359,22 @@ impl fmt::Display for StageError {
                 write!(fmt, "a relation card failed to classify: {error}")
             }
             Self::Policy(error) => write!(fmt, "the policy resolution failed: {error}"),
+            Self::MapPolicies(error) => {
+                write!(fmt, "the staged policy file failed to map back: {error}")
+            }
+            Self::InvalidPolicies(error) => {
+                write!(fmt, "the staged policy file is not a valid table: {error}")
+            }
+            Self::Relation(error) => {
+                write!(fmt, "the relation index build failed: {error}")
+            }
+            Self::WriteProtection(error) => {
+                write!(fmt, "the protection index failed to write: {error}")
+            }
+            Self::MapEndpoints(error) => write!(
+                fmt,
+                "the staged endpoint column failed to map back: {error}"
+            ),
             Self::MapCards(error) => write!(
                 fmt,
                 "the staged card-embedding matrix failed to map back: {error}"
@@ -327,6 +390,7 @@ impl fmt::Display for StageError {
             Self::Lod(error) => {
                 write!(fmt, "the level-of-detail derivation failed: {error}")
             }
+            Self::Quad(error) => write!(fmt, "the quadtree build failed: {error}"),
             Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
             Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
             Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
@@ -385,14 +449,20 @@ impl Error for StageError {
             Self::RecallCheck(error) | Self::Knn(error) => Some(error),
             Self::Classify(error) => Some(error),
             Self::Policy(error) => Some(error),
+            Self::MapPolicies(error) => Some(error),
+            Self::InvalidPolicies(error) => Some(error),
+            Self::Relation(error) => Some(error),
+            Self::WriteProtection(error) => Some(error),
             Self::Selection(error) => Some(error),
             Self::Assignment(error) => Some(error),
             Self::Quotient(error) => Some(error),
             Self::Layout(error) => Some(error),
             Self::MapRepresentations(error)
             | Self::MapCards(error)
-            | Self::MapCoordinates(error) => Some(error),
+            | Self::MapCoordinates(error)
+            | Self::MapEndpoints(error) => Some(error),
             Self::Lod(error) => Some(error),
+            Self::Quad(error) => Some(error),
             Self::MapSparse(error) => Some(error),
             Self::InvalidKnn(error) => Some(error),
             Self::InvalidSemantic(error) => Some(error),

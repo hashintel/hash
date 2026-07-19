@@ -180,18 +180,17 @@ pub(super) fn forward<B: Backend<FloatElem = f32>>(
             .into_data()
             .to_vec::<f32>()
             .expect("the projector's coordinates are an f32 tensor");
-
-        for (offset, &[x, y]) in values.as_chunks::<2>().0.iter().enumerate() {
-            let point = Vec2::new(x, y);
+        let points =
+            Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
+        for (offset, point) in points.iter().enumerate() {
             if !point.is_finite() {
                 return Err(RefreshError::Diverged {
                     row: row_id(start + offset),
                     eta,
                 });
             }
-            frame.push(point);
         }
-
+        frame.extend_from_slice(points);
         start = end;
     }
     Ok(frame)

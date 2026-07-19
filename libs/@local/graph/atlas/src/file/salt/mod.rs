@@ -41,12 +41,21 @@ pub(crate) struct SaltFiles {
     /// The resolved geometry policy table, one record per relation
     /// type, ascending by relation; a policy file.
     pub policy: RepositoryFile,
+    /// The attraction index: force-bearing link instances grouped by
+    /// relation type, one combined attraction file.
+    pub attraction: RepositoryFile,
+    /// The protection index: the symmetric no-repel evidence matrix, a
+    /// sparse matrix file.
+    pub protection: RepositoryFile,
     /// The canonical `f32[N, 2]` coordinates, row-aligned with the node
     /// stream; an array file.
     pub coordinates: RepositoryFile,
     /// The Morton code column in base delivery order with its bucket
     /// fenceposts and page index, one combined morton file.
     pub morton: RepositoryFile,
+    /// The quadtree topology: the tile node table and its per-node
+    /// direct-type sets, one combined quad file.
+    pub quad: RepositoryFile,
     /// The wire `f32[N, 2]` coordinates in base delivery order,
     /// normalized into the `[-1, 1]` frame; an array file.
     pub wire_coordinates: RepositoryFile,
@@ -67,6 +76,12 @@ pub(crate) struct SaltFiles {
     /// The edge identities: source id per edge row and the sorted
     /// lookup pairs, one identity file.
     pub edge_identities: RepositoryFile,
+    /// The `u64[E, 2]` endpoint column: each edge row's source and
+    /// target node rows; an array file.
+    pub edge_endpoints: RepositoryFile,
+    /// The incident-edge adjacency: per-node outgoing and incoming edge
+    /// rows over one value array, one combined adjacency file.
+    pub adjacency: RepositoryFile,
 }
 
 impl SaltFiles {
@@ -75,7 +90,7 @@ impl SaltFiles {
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
     #[must_use]
-    pub(crate) const fn files(&self) -> [&RepositoryFile; 17] {
+    pub(crate) const fn files(&self) -> [&RepositoryFile; 22] {
         let Self {
             representations,
             card_embeddings,
@@ -85,8 +100,11 @@ impl SaltFiles {
             landmarks,
             classifier,
             policy,
+            attraction,
+            protection,
             coordinates,
             morton,
+            quad,
             wire_coordinates,
             rank_of_position,
             position_of_rank,
@@ -94,6 +112,8 @@ impl SaltFiles {
             row_of_position,
             node_identities,
             edge_identities,
+            edge_endpoints,
+            adjacency,
         } = self;
 
         [
@@ -105,8 +125,11 @@ impl SaltFiles {
             landmarks,
             classifier,
             policy,
+            attraction,
+            protection,
             coordinates,
             morton,
+            quad,
             wire_coordinates,
             rank_of_position,
             position_of_rank,
@@ -114,6 +137,8 @@ impl SaltFiles {
             row_of_position,
             node_identities,
             edge_identities,
+            edge_endpoints,
+            adjacency,
         ]
     }
 }

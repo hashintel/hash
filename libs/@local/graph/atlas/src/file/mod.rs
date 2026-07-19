@@ -99,6 +99,10 @@
 //! |                                 | apart                                        |        |
 //! | attraction index                | training sampling; group records delimiting  | combined |
 //! |                                 | a flat edge array, never read apart          |        |
+//! | edge endpoints                  | mmap, edge-row lookups (`u64[E, 2]`)         | array  |
+//! | incident adjacency (`.adjc`)    | mmap, serving lookups; per-node fenceposts   | combined |
+//! |                                 | delimiting one edge-id array, both           |        |
+//! |                                 | directions per node, never read apart        |        |
 //! | landmark skeleton (`.lndm`)     | selection, assignment, and layout sharing    | combined |
 //! |                                 | one ordinal vocabulary, never read apart     |        |
 //! | analytic raster                 | mmap (`f32` grid)                            | array  |
@@ -177,6 +181,7 @@
 //   means a binary search faults the index page plus one data page instead of log2(N) scattered
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
+pub(crate) mod adjacency;
 pub(crate) mod array;
 pub(crate) mod attraction;
 pub(crate) mod classifier;

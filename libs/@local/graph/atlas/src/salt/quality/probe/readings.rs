@@ -144,12 +144,11 @@ pub(crate) struct RadiusPair {
     pub representation: f32,
 }
 
-/// Clump-granularity readings over the corpus grid.
+/// Clump-granularity readings, collapsed onto clump ids.
 ///
-/// The grid holds the corpus map-versus-representation reading with
-/// both neighbourhoods collapsed onto clump ids, beside the grouping's
-/// shape at the threshold it was built at - the evidence a collapsed
-/// reading is judged against.
+/// The grids hold readings with both neighbourhoods collapsed onto
+/// clump ids, beside the grouping's shape at the threshold it was
+/// built at - the evidence a collapsed reading is judged against.
 #[derive(Debug)]
 pub(crate) struct ClumpReadings {
     /// The distance threshold the grouping was built at.
@@ -162,7 +161,12 @@ pub(crate) struct ClumpReadings {
     pub grouped_rows: usize,
     /// Collapsed corpus map-versus-representation readings, on the
     /// corpus grid's anchor and neighbourhood axes.
-    pub grid: ReadingGrid<ClumpAggregate>,
+    pub map_representation: ReadingGrid<ClumpAggregate>,
+    /// Collapsed representation-versus-canonical readings over the
+    /// comparison rows: the representation baseline at clump
+    /// granularity, on the sampled grids' anchor and neighbourhood
+    /// axes.
+    pub representation_canonical: ReadingGrid<ClumpAggregate>,
 }
 
 /// One probe's readings across the three space pairs.

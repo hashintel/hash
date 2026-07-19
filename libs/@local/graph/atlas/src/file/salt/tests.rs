@@ -17,10 +17,11 @@ use crate::{
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, Bounds2, Vec2},
+    morton::Depth,
     salt::{
-        CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence, NormSpotCheck,
-        PolicyOptions, PolicyOverride, PolicySource, Posterior, RecallSpotCheck,
-        RepresentationDefect, SelectionOptions,
+        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
+        NormSpotCheck, PolicyOptions, PolicyOverride, PolicySource, Posterior, QuadEvidence,
+        RecallSpotCheck, RepresentationDefect, SelectionOptions,
     },
 };
 
@@ -71,8 +72,11 @@ fn repository() -> SaltRepository {
             landmarks: file("landmarks.lndm"),
             classifier: file("classifier.clsf"),
             policy: file("policy.plcy"),
+            attraction: file("attraction.atrc"),
+            protection: file("protection.sprs"),
             coordinates: file("coordinates.arr"),
             morton: file("morton.mrtn"),
+            quad: file("quadtree.quad"),
             wire_coordinates: file("wire-coordinates.arr"),
             rank_of_position: file("rank-of-position.arr"),
             position_of_rank: file("position-of-rank.arr"),
@@ -80,6 +84,8 @@ fn repository() -> SaltRepository {
             row_of_position: file("row-of-position.arr"),
             node_identities: file("node-identities.idnt"),
             edge_identities: file("edge-identities.idnt"),
+            edge_endpoints: file("edge-endpoints.arr"),
+            adjacency: file("adjacency.adjc"),
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -131,6 +137,14 @@ fn repository() -> SaltRepository {
                     relations: 49,
                     overridden: 1,
                 },
+                relations: BuildEvidence {
+                    pruning_threshold: 0.001,
+                    retained_edges: 8_700_000,
+                    pruned_edges: 100_000,
+                    retained_mass: 4_200_000.0,
+                    pruned_mass: 32.0,
+                    self_references: 1_024,
+                },
                 lod: LodEvidence {
                     world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
                         .expect("the fixture corners are finite and ordered"),
@@ -143,6 +157,12 @@ fn repository() -> SaltRepository {
                     catch_all_population: 100_000,
                     co_location_excess: 4_096,
                     max_tile_delta: 4_096,
+                },
+                quad: QuadEvidence {
+                    nodes: 21_845,
+                    leaves: 16_384,
+                    depth: Depth::new(7).expect("the fixture depth is within the key width"),
+                    type_entries: 65_536,
                 },
             },
         },

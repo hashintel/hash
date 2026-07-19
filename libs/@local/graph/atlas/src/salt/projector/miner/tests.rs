@@ -225,7 +225,7 @@ fn mined_rows_match_a_brute_force_reference() {
 
     let field = SpatialField::new(&coordinates).expect("the fixture frame is finite");
     let miner = HardNegativeMiner::new(semantic.view(), indexes.protection.view(), config, options);
-    let mined = miner.mine(&field);
+    let negatives = miner.mine(&field);
 
     let reference = reference_mine(
         &coordinates,
@@ -235,9 +235,9 @@ fn mined_rows_match_a_brute_force_reference() {
         options,
     );
 
-    assert_eq!(mined.rows(), 8);
+    assert_eq!(negatives.rows(), 8);
     for (row, expected) in reference.iter().enumerate() {
-        let actual: Vec<_> = mined
+        let actual: Vec<_> = negatives
             .row(row)
             .map(|(pair, weight)| {
                 let target = if pair.first().usize() == row {
@@ -265,15 +265,15 @@ fn mined_rows_match_a_brute_force_reference() {
     // pair and the semantic edge behave by their own evidence.
     for row in 0..8_usize {
         assert!(
-            mined
+            negatives
                 .row(row)
                 .all(|(pair, _)| { pair.first().usize() != pair.second().usize() })
         );
     }
-    assert!(mined.row(4).all(|(pair, _)| pair.second().usize() != 5));
-    assert!(mined.row(5).all(|(pair, _)| pair.first().usize() != 4));
-    assert!(mined.row(1).any(|(pair, _)| pair.second().usize() == 2));
-    assert!(mined.row(1).all(|(pair, _)| pair.first().usize() != 0));
+    assert!(negatives.row(4).all(|(pair, _)| pair.second().usize() != 5));
+    assert!(negatives.row(5).all(|(pair, _)| pair.first().usize() != 4));
+    assert!(negatives.row(1).any(|(pair, _)| pair.second().usize() == 2));
+    assert!(negatives.row(1).all(|(pair, _)| pair.first().usize() != 0));
 }
 
 #[test]
@@ -292,9 +292,9 @@ fn rank_weights_are_dyadic_at_unit_exponent() {
         hard_config(0.5),
         options,
     );
-    let mined = miner.mine(&field);
+    let negatives = miner.mine(&field);
 
-    let weights: Vec<f32> = mined.row(0).map(|(_, weight)| weight).collect();
+    let weights: Vec<f32> = negatives.row(0).map(|(_, weight)| weight).collect();
     assert_eq!(weights, [1.0, 0.75, 0.5, 0.25]);
 }
 
@@ -313,11 +313,11 @@ fn fully_explained_neighbourhoods_yield_honest_short_sets() {
         hard_config(0.5),
         options(3, 1, 1.0, 1.0),
     );
-    let mined = miner.mine(&field);
+    let negatives = miner.mine(&field);
 
-    assert_eq!(mined.row(0).len(), 0);
+    assert_eq!(negatives.row(0).len(), 0);
     // The other rows still mine their own admissible neighbours.
-    assert!(mined.row(3).len() > 0);
+    assert!(negatives.row(3).len() > 0);
 }
 
 #[test]
