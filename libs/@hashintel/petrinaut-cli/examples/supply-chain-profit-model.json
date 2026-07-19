@@ -216,14 +216,14 @@
       "id": "param_reorder_threshold",
       "name": "Reorder threshold",
       "variableName": "reorder_threshold",
-      "type": "real",
+      "type": "integer",
       "defaultValue": "160"
     },
     {
       "id": "param_batch_size",
       "name": "Batch size",
       "variableName": "batch_size",
-      "type": "real",
+      "type": "integer",
       "defaultValue": "180"
     },
     {
@@ -267,12 +267,12 @@
           "default": 100
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "reorder_threshold",
           "default": 160
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "batch_size",
           "default": 180
         },
@@ -328,12 +328,12 @@
           "default": 125
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "reorder_threshold",
           "default": 190
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "batch_size",
           "default": 220
         },
@@ -386,17 +386,17 @@
         {
           "type": "real",
           "identifier": "production_rate",
-          "default": 100
+          "default": 300
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "reorder_threshold",
           "default": 160
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "batch_size",
-          "default": 180
+          "default": 600
         },
         {
           "type": "real",
@@ -447,17 +447,17 @@
         {
           "type": "real",
           "identifier": "production_rate",
-          "default": 125
+          "default": 300
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "reorder_threshold",
-          "default": 190
+          "default": 160
         },
         {
-          "type": "real",
+          "type": "integer",
           "identifier": "batch_size",
-          "default": 220
+          "default": 600
         },
         {
           "type": "real",
