@@ -143,6 +143,7 @@ const TimelineViewPicker: React.FC = () => {
         <Select
           size="xs"
           required
+          dropdownFitContent
           value={selectedValue}
           items={options}
           onChange={(value) => setTimelineView(selectValueToView(value))}

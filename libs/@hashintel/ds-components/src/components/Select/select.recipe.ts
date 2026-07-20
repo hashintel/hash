@@ -387,6 +387,15 @@ export const selectRecipe = sva({
     },
     willClear: { true: {} },
     hasPrefix: { true: {} },
+    dropdownFitContent: {
+      true: {
+        list: {
+          width: "[max-content]",
+          maxWidth: "[480px]",
+          minWidth: "[var(--reference-width) !important]",
+        },
+      },
+    },
     connectsRight: {
       true: {
         wrapper: {

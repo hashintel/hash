@@ -46,6 +46,8 @@ type SelectBaseProps<TValue extends string> = {
   width?: FormInputWidth;
   /** Hide the dropdown arrow */
   hideArrow?: boolean;
+  /** Size the dropdown to its content instead of matching the trigger width. It stays at least as wide as the trigger. */
+  dropdownFitContent?: boolean;
   /** Optional element or button to include at the beginning of an input */
   prefix?: Prefix;
   /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
@@ -193,6 +195,7 @@ export const Select = <TValue extends string>({
   align = "left",
   width = "fullWidth",
   hideArrow,
+  dropdownFitContent,
   prefix,
   connectToLeftInput,
   connectToRightInput,
@@ -308,6 +311,7 @@ export const Select = <TValue extends string>({
     disabled: !!disabled,
     loading: !!loading,
     hideArrow: !!hideArrow,
+    dropdownFitContent: !!dropdownFitContent,
     hasPrefix: !!prefix,
     connectsLeft,
     connectsRight,
