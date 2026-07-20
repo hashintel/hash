@@ -63,19 +63,62 @@ const FULL_DETAIL_ZOOM_BAND = 3;
  */
 const DETAIL_ZOOM = MAX_ZOOM - 0.5;
 
-/** Cheerful, readable node colours, picked deterministically per id. */
-const PALETTE = [
+/**
+ * Versioned type URLs sent to the tile API as `coloredTypeIds`. The server
+ * returns a per-point type mask keyed by each id's position here, so a node's
+ * {@link ViewportNode.typeIndices} indexes straight into {@link TYPE_PALETTE}
+ * below. Bit `i` is set when the point is type `i` or one of its descendants.
+ */
+const COLORED_TYPE_IDS = [
+  "http://localhost:3000/@alice/types/entity-type/test-link/v/1",
+  "http://localhost:3000/@alice/types/entity-type/test-type/v/1",
+  "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
+  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
+  "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
+  "https://hash.ai/@h/types/entity-type/academic-paper/v/1",
+  "https://hash.ai/@h/types/entity-type/actor/v/2",
+  "https://hash.ai/@h/types/entity-type/actor/v/1",
+  "https://hash.ai/@h/types/entity-type/affiliated-with/v/1",
+  "https://hash.ai/@h/types/entity-type/aircraft/v/1",
+] as const;
+
+/**
+ * One distinct colour per {@link COLORED_TYPE_IDS} index (cycled if the type
+ * list ever outgrows it), so each queried type reads as its own hue.
+ */
+const TYPE_PALETTE = [
   "#4f83ff",
   "#12b886",
   "#f59f00",
   "#e8590c",
   "#ae3ec9",
   "#1098ad",
+  "#e64980",
+  "#7048e8",
+  "#66a80f",
+  "#f03e3e",
 ] as const;
 
-const colorForId = (id: number | string): string => {
-  const seed = typeof id === "number" ? id : id.length;
-  return PALETTE[Math.abs(seed) % PALETTE.length] ?? PALETTE[0];
+/** Node colour for a point matching none of the {@link COLORED_TYPE_IDS}. */
+const UNTYPED_COLOR = "#adb5bd";
+
+/**
+ * Colours a node by the queried types it carries: the first (lowest-index)
+ * matched type wins when a node has several, and an unmatched node reads as
+ * {@link UNTYPED_COLOR}.
+ */
+const colorForTypes = (typeIndices: readonly number[] | undefined): string => {
+  const first = typeIndices?.[0];
+  if (first === undefined) {
+    return UNTYPED_COLOR;
+  }
+  return TYPE_PALETTE[first % TYPE_PALETTE.length] ?? UNTYPED_COLOR;
+};
+
+/** Short legend label from a versioned type URL, e.g. `academic-paper v1`. */
+const shortTypeName = (url: string): string => {
+  const match = /entity-type\/([^/]+)\/v\/(\d+)/u.exec(url);
+  return match ? `${match[1]} v${match[2]}` : url;
 };
 
 interface Camera {
@@ -209,7 +252,7 @@ const toPoint = (node: ViewportNode): NetworkGraphPoint => {
     id: node.id,
     x: node.x,
     y: node.y,
-    color: colorForId(node.id),
+    color: colorForTypes(node.typeIndices),
     ...(node.label !== undefined ? { label: node.label } : {}),
     ...(icon !== undefined ? { icon } : {}),
   };
@@ -288,6 +331,30 @@ const panelHintStyles = css({
   color: "[rgba(255, 255, 255, 0.6)]",
 });
 
+const legendStyles = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  marginTop: "2",
+  paddingTop: "2",
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "[rgba(255, 255, 255, 0.15)]",
+});
+
+const legendRowStyles = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
+const legendSwatchStyles = css({
+  width: "[10px]",
+  height: "[10px]",
+  borderRadius: "[2px]",
+  flexShrink: "0",
+});
+
 type Status = "loading" | "idle" | "error";
 
 /**
@@ -311,7 +378,11 @@ const AtlasTilingStory = () => {
 
   const { data, isFetching, isError, error, tileCount } = useGetViewportNodes(
     viewport,
-    { baseUrl: ATLAS_PROXY_BASE, includeDetailedData: detailed },
+    {
+      baseUrl: ATLAS_PROXY_BASE,
+      includeDetailedData: detailed,
+      coloredTypeIds: COLORED_TYPE_IDS,
+    },
   );
 
   const points = useMemo(() => (data?.nodes ?? []).map(toPoint), [data]);
@@ -455,6 +526,20 @@ const AtlasTilingStory = () => {
           <span>{status}</span>
         </div>
         <div className={panelHintStyles}>Scroll to zoom, drag to pan.</div>
+        <div className={legendStyles}>
+          {COLORED_TYPE_IDS.map((url, index) => (
+            <div key={url} className={legendRowStyles}>
+              <span
+                className={legendSwatchStyles}
+                style={{
+                  backgroundColor:
+                    TYPE_PALETTE[index % TYPE_PALETTE.length] ?? UNTYPED_COLOR,
+                }}
+              />
+              <span>{shortTypeName(url)}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {bounds ? null : (

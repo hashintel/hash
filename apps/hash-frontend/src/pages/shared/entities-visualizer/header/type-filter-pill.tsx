@@ -6,7 +6,7 @@ import { MenuCheckboxItem, TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
-import { resolveTypeColor } from "../shared/type-colors";
+import { resolveTypeColor, typeColorRanks } from "../shared/type-colors";
 import { FilterPill } from "./filter-pill";
 import { triggerSwatchSize, TypeColorSelector } from "./type-color-selector";
 
@@ -207,15 +207,13 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
     [availableTypes],
   );
 
-  // Position of each type in the (alphabetical) available list, so the first ten
-  // types get their default colour by position regardless of any search filter.
-  const colorIndexByType = useMemo(() => {
-    const map = new Map<VersionedUrl, number>();
-    for (const [index, type] of availableTypes.entries()) {
-      map.set(type.entityTypeId, index);
-    }
-    return map;
-  }, [availableTypes]);
+  // Default colour rank by entity count: the most common types get the distinct
+  // palette colours (regardless of the list's alphabetical order or any search
+  // filter), and the long tail falls through to grey.
+  const colorIndexByType = useMemo(
+    () => typeColorRanks(availableTypes),
+    [availableTypes],
+  );
 
   const allSelected = isAllSelected({
     selectedTypeIds: typeState.selectedTypeIds,

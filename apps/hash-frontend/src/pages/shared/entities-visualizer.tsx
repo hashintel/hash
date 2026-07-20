@@ -631,7 +631,10 @@ export const EntitiesVisualizer: FunctionComponent<{
       <Box ref={contentTopRef} />
       {view === "NetworkGraph" ? (
         <Box height={availableHeight} sx={tableContentSx}>
-          <NetworkGraphView />
+          <NetworkGraphView
+            availableEntityTypes={availableEntityTypes}
+            typeColorOverrides={typeColorOverrides}
+          />
         </Box>
       ) : showLoading ? (
         <Stack

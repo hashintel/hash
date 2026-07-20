@@ -144,6 +144,13 @@ const APPROX_BYTES_PER_EDGE = 64;
 /** Baseline cost of a cached edge bucket independent of its edge count. */
 const APPROX_BYTES_PER_EDGE_BUCKET = 128;
 
+/**
+ * Stable empty default for `coloredTypeIds`. Since the option is a cache-identity
+ * input (a memo dependency), a fresh `[]` each render would recreate the cache
+ * every render; one shared frozen array keeps the identity constant.
+ */
+const EMPTY_COLORED_TYPE_IDS: readonly string[] = Object.freeze([]);
+
 /** A camera viewport: a world rectangle plus a fractional quadtree depth. */
 export interface Viewport extends Rect {
   /** Fractional quadtree depth; see the module's "Zoom" note. */
@@ -165,6 +172,12 @@ export interface ViewportNode {
    * {@link label} for detailed tiles. `undefined` otherwise.
    */
   readonly icon?: string;
+  /**
+   * Indices into the request's {@link UseGetViewportNodesOptions.coloredTypeIds}
+   * this node carries (see {@link TileNode.typeIndices}). Present only when
+   * colored types were requested; empty when the node matches none of them.
+   */
+  readonly typeIndices?: readonly number[];
 }
 
 /** One edge as returned to the renderer: its id and the node ids it connects. */
@@ -988,13 +1001,17 @@ export const getViewportNodes = async (
       for (const node of load.nodes) {
         // Dedupe by id: samples are disjoint across the descent, so a collision
         // would be a backend inconsistency. `label`/`icon` are present only on a
-        // detailed load; keep the entry bare otherwise.
+        // detailed load, `typeIndices` only when colored types were requested;
+        // keep the entry bare otherwise.
         nodes.set(node.id, {
           id: node.id,
           x: node.x,
           y: node.y,
           ...(node.label !== undefined ? { label: node.label } : {}),
           ...(node.icon !== undefined ? { icon: node.icon } : {}),
+          ...(node.typeIndices !== undefined
+            ? { typeIndices: node.typeIndices }
+            : {}),
         });
       }
       // Descend only into an incomplete tile, and only below the target depth. A
@@ -1178,6 +1195,14 @@ export interface UseGetViewportNodesOptions {
    * place) rather than recreating the cache. Defaults to `false`.
    */
   readonly includeDetailedData?: boolean;
+  /**
+   * Versioned type URLs to colour by: each visible {@link ViewportNode} carries
+   * the queried types it matches as {@link ViewportNode.typeIndices} (the tile
+   * transport's `coloredTypeIds`). This *is* a cache-identity input —
+   * changing the set refetches every tile with the new mask — so it must be
+   * referentially stable across renders, like {@link fetcher}. Defaults to none.
+   */
+  readonly coloredTypeIds?: readonly string[];
 }
 
 /** {@link useGetViewportNodes}' result: the graph plus the backing cache's fill. */
@@ -1193,13 +1218,19 @@ const viewportKey = (
   viewport: Viewport | null,
   baseUrl: string,
   includeDetailedData: boolean,
+  coloredTypeIds: readonly string[],
 ): string => {
   // The detail flag is part of the key: crossing the detail threshold must
   // refetch (upgrading resident tiles), not serve the cached compact result.
   const detail = includeDetailedData ? "|detail" : "";
+  // The colored-type set is part of the key too: changing it recreates the
+  // cache (see `useGetViewportNodes`), and the key must change alongside so the
+  // now-empty cache refetches rather than serving the previous colouring.
+  const colored =
+    coloredTypeIds.length > 0 ? `|colored:${coloredTypeIds.join(",")}` : "";
   return viewport === null
-    ? `${baseUrl}|initial${detail}`
-    : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}${detail}`;
+    ? `${baseUrl}|initial${detail}${colored}`
+    : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}${detail}${colored}`;
 };
 
 /**
@@ -1227,6 +1258,7 @@ export const useGetViewportNodes = (
     fetcher,
     edgesFetcher,
     includeDetailedData = false,
+    coloredTypeIds = EMPTY_COLORED_TYPE_IDS,
   } = options;
 
   const cache = useMemo(
@@ -1242,6 +1274,7 @@ export const useGetViewportNodes = (
               priority: controls?.priority,
               signal: controls?.signal,
               includeDetailedData: controls?.includeDetailedData,
+              coloredTypeIds,
             })),
         edgesFetcher:
           edgesFetcher ??
@@ -1254,11 +1287,11 @@ export const useGetViewportNodes = (
               includeDetailedData: controls?.includeDetailedData,
             })),
       }),
-    [baseUrl, retry, maxBytes, fetcher, edgesFetcher],
+    [baseUrl, retry, maxBytes, fetcher, edgesFetcher, coloredTypeIds],
   );
 
   const query = useAtlasQuery(
-    viewportKey(viewport, baseUrl, includeDetailedData),
+    viewportKey(viewport, baseUrl, includeDetailedData, coloredTypeIds),
     async () => {
       const graph = await getViewportNodes(viewport, cache, {
         includeDetailedData,
