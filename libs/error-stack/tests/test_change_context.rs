@@ -103,14 +103,20 @@ fn attach_result_reflect() {
         .collect::<Vec<_>>();
     match kinds[1] {
         FrameKind::Context(context) => {
-            assert_eq!(context.downcast_ref::<ContextA>().expect("context A").0, random_number);
+            assert_eq!(
+                context.downcast_ref::<ContextA>().expect("context A").0,
+                random_number
+            );
         }
-        _ => panic!("must be a context"),
-    };
+        FrameKind::Attachment(_) => panic!("must be a context"),
+    }
     match kinds[3] {
         FrameKind::Context(context) => {
-            assert_eq!(context.downcast_ref::<ContextA>().expect("context A").0, random_number);
+            assert_eq!(
+                context.downcast_ref::<ContextA>().expect("context A").0,
+                random_number
+            );
         }
-        _ => panic!("must be a context"),
-    };
+        FrameKind::Attachment(_) => panic!("must be a context"),
+    }
 }

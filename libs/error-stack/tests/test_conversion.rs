@@ -3,7 +3,7 @@
 #![allow(clippy::std_instead_of_core)]
 
 use core::fmt;
-use std::{error::Error, io};
+use std::{error::Error, fmt::Display, io};
 
 #[cfg(nightly)]
 use error_stack::IntoReport;
@@ -133,4 +133,39 @@ fn never_report() {
     }
 
     let Ok(()) = ().never_report();
+}
+
+#[test]
+fn pop_resource() {
+    #[derive(Debug)]
+    struct RecoverableError {
+        // Simulate a non-trivial resource
+        resource: Option<u32>,
+    }
+
+    impl Display for RecoverableError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "recoverable error: resource: {}",
+                self.resource
+                    .as_ref().map_or_else(|| String::from("<unavailable>"), ToString::to_string)
+            )
+        }
+    }
+
+    impl Error for RecoverableError {}
+
+    let test_number = rand::random_range(0..u32::MAX);
+    let mut report = Report::new(RecoverableError {
+        resource: Some(test_number),
+    });
+    assert_eq!(
+        report
+            .current_context_mut()
+            .resource
+            .take()
+            .expect("resource should be available"),
+        test_number
+    );
 }

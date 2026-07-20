@@ -465,8 +465,8 @@ impl<C> Report<C> {
     where
         C: Send + Sync + 'static,
     {
-        if let Some(r) = self.downcast_mut::<C>() {
-            return r;
+        if let Some(report) = self.downcast_mut::<C>() {
+            return report;
         }
         // FIXME: cannot document the report here due to compiler jank
         // Panics if there isn't an attached context which matches `T`. As it's not possible
