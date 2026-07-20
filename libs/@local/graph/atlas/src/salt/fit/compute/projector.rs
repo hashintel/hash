@@ -69,8 +69,17 @@ use crate::{
 /// The inference half of the placement backend: Metal behind the
 /// `gpu` feature, the CPU otherwise. The CPU backend stays the
 /// fixture and determinism harness, so tests run without the feature.
+///
+/// The Metal flavor names the UNFUSED `CubeBackend` directly rather
+/// than `burn::backend::Metal`: the default alias wraps the runtime
+/// in `burn-fusion`, whose stream ordering (0.21.0, ordering.rs:65)
+/// panics out of bounds under this workload's dynamic relation-batch
+/// shapes, killing the device service thread. Fusion is an optional
+/// optimization layer; the unfused backend is the same runtime
+/// without it.
 #[cfg(feature = "gpu")]
-type TrainerInner = burn::backend::Metal;
+type TrainerInner =
+    burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
 #[cfg(not(feature = "gpu"))]
 type TrainerInner = burn::backend::NdArray;
 
