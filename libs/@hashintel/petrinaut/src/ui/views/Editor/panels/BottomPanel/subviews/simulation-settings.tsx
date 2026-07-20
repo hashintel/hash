@@ -45,10 +45,6 @@ const scenarioLabelStyle = css({
   flexShrink: 0,
 });
 
-const scenarioSelectStyle = css({
-  width: "[200px]",
-});
-
 const parameterInputStyles = css({
   width: "[80px]",
 });
@@ -234,12 +230,19 @@ const SimulationSettingsContent: React.FC = () => {
           }
           items={scenarioOptions}
           size="xs"
+          width="sm"
           disabled={isSimulationActive}
-          className={scenarioSelectStyle}
           renderItem={(value) => {
             const option = scenarioOptions.find((opt) => opt.value === value);
             return (
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  minWidth: 0,
+                }}
+              >
                 {value === NO_SCENARIO && (
                   <Icon
                     name="dash"
@@ -247,7 +250,15 @@ const SimulationSettingsContent: React.FC = () => {
                     className={css({ opacity: "[0.4]" })}
                   />
                 )}
-                {option?.text}
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {option?.text}
+                </span>
               </span>
             );
           }}
