@@ -13,6 +13,13 @@ export type SimulationState =
   | "Complete"
   | "Error";
 
+/**
+ * Default RNG seed shared by interactive simulation and optimization runs, so
+ * a simulation played in the editor reproduces an optimization trial given the
+ * same model, scenario parameter values, dt, and max time.
+ */
+export const PETRINAUT_DEFAULT_SEED = 1234;
+
 export type BackpressureConfig = {
   /** Maximum frames the worker can compute ahead before waiting for ack. */
   maxFramesAhead?: number;

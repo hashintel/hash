@@ -190,6 +190,7 @@ export type {
 
 // --- Simulation ---
 export {
+  PETRINAUT_DEFAULT_SEED,
   addAllMonteCarloMetricValues,
   createMonteCarloExperiment,
   createMonteCarloMetricHistogramAccumulator,

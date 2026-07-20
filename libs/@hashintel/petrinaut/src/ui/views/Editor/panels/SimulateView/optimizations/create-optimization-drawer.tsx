@@ -12,6 +12,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  PETRINAUT_DEFAULT_SEED,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
@@ -180,7 +181,6 @@ const directionOptions = [
   { value: "minimize", label: "Minimize" },
 ];
 
-const OPTIMIZATION_SEED = 1234;
 const OPTIMIZATION_SAMPLER = "tpe" as const;
 const DEFAULT_DT = 0.1;
 const CUSTOM_OBJECTIVE_METRIC_NAME = "Custom objective";
@@ -470,7 +470,7 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: OPTIMIZATION_SEED, dt, maxTime },
+    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }

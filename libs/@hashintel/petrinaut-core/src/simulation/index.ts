@@ -17,6 +17,7 @@ export type {
   SimulationState,
   WorkerFactory,
 } from "./api";
+export { PETRINAUT_DEFAULT_SEED } from "./api";
 export {
   addAllMonteCarloMetricValues,
   createMonteCarloExperiment,
