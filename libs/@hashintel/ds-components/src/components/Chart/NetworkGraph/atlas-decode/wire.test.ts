@@ -7,7 +7,7 @@ import {
   readEnvelope,
   SaltileWireError,
   type SaltileKind,
-} from "./saltile-wire";
+} from "./wire";
 
 const kindByte: Record<SaltileKind, number> = {
   tile: 0x54,

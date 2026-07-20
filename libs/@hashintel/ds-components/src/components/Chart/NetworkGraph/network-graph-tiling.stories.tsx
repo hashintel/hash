@@ -8,12 +8,10 @@ import {
   type NetworkGraphEdge,
   type NetworkGraphPoint,
 } from "./network-graph";
-import { createSaltileTileFetcher } from "./tiling/fetch-saltile-tile";
 import {
   tileZoomForViewport,
   useGetViewportNodes,
   WORLD_SIZE,
-  type TileFetcher,
   type Viewport,
   type ViewportNode,
 } from "./tiling/use-get-viewport-nodes";
@@ -278,7 +276,7 @@ type Status = "loading" | "idle" | "error";
  * streaming new points never reframes the camera. Requires the local Atlas
  * server (proxied via `/atlas-api`).
  */
-const AtlasTilingStory = ({ fetcher }: { fetcher?: TileFetcher }) => {
+const AtlasTilingStory = () => {
   const frameRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
@@ -290,7 +288,7 @@ const AtlasTilingStory = ({ fetcher }: { fetcher?: TileFetcher }) => {
 
   const { data, isFetching, isError, error, tileCount } = useGetViewportNodes(
     viewport,
-    { baseUrl: ATLAS_PROXY_BASE, fetcher },
+    { baseUrl: ATLAS_PROXY_BASE },
   );
 
   const points = useMemo(() => (data ?? []).map(toPoint), [data]);
@@ -444,27 +442,13 @@ const AtlasTilingStory = ({ fetcher }: { fetcher?: TileFetcher }) => {
 };
 
 /**
- * Streams graph nodes from the live Atlas tile API as you navigate: panning and
- * zooming the deck.gl view recomputes the visible quadtree tiles (target depth
- * plus every ancestor), fetches the missing ones through a distance-evicting
- * cache with predictive prefetch, and re-renders. Requires the local
- * `hash-graph atlas` server (proxied at `/atlas-api`).
+ * Streams graph nodes from the live Atlas tile API over the SALTILE wire
+ * (Surface v1) as you navigate: panning and zooming the deck.gl view recomputes
+ * the visible quadtree tiles (target depth plus every ancestor), fetches the
+ * missing ones through a distance-evicting cache with predictive prefetch, and
+ * re-renders. Each fetch bootstraps a session from `/v1/atlas/current` + the
+ * manifest, POSTs tile requests in delta mode, and decodes the binary response
+ * zero-copy. Requires the local `hash-graph atlas` server speaking SALTILE
+ * (proxied at `/atlas-api`).
  */
 export const Default: Story = () => <AtlasTilingStory />;
-
-/**
- * Module-scope so the fetcher (and therefore the tile cache keyed on it) is
- * created once, not per render. Session bootstrap happens lazily on the first
- * tile load.
- */
-const saltileFetcher = createSaltileTileFetcher({ baseUrl: ATLAS_PROXY_BASE });
-
-/**
- * The same chrome over the SALTILE wire (Surface v1): session bootstrap from
- * `/v1/atlas/current` + manifest, POST tile requests in delta mode, zero-copy
- * binary decode. Requires a server speaking SALTILE behind the `/atlas-api`
- * proxy (set `ATLAS_API_URL` to point the proxy elsewhere).
- */
-export const Saltile: Story = () => (
-  <AtlasTilingStory fetcher={saltileFetcher} />
-);

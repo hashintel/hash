@@ -6,7 +6,7 @@
  * point data is never copied and never walked.
  */
 
-import { decodeCbor, type CborValue } from "./saltile-cbor";
+import { decodeCbor, type CborValue } from "./cbor";
 import {
   expectEqual,
   fail,
@@ -20,8 +20,8 @@ import {
   requireGenerationEcho,
   requireSlot,
   requireUint,
-} from "./saltile-schema";
-import { readEnvelope, SaltileMode, TileSlot } from "./saltile-wire";
+} from "./schema";
+import { readEnvelope, SaltileMode, TileSlot } from "./wire";
 
 /** The request context a tile response must echo. */
 export interface SaltileTileRequest {

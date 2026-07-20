@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { decodeCbor, SaltileCborError } from "./saltile-cbor";
+import { decodeCbor, SaltileCborError } from "./cbor";
 
 const bytes = (...values: number[]): Uint8Array => new Uint8Array(values);
 
