@@ -31,6 +31,7 @@ const RESPONSE_START_TIMEOUT_MS = 45_000;
 const postToHost = (message: IframeToHostMessage) => {
   // The sandboxed iframe has an opaque origin. This still targets only its
   // parent window; the host independently verifies `event.source`.
+  // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration
   window.parent.postMessage(message, "*");
 };
 
@@ -64,6 +65,9 @@ const ensureListener = () => {
   }
   listenerInstalled = true;
 
+  // The iframe's opaque origin cannot be compared as a string. Authenticating
+  // the exact parent Window is the applicable origin boundary here.
+  // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation
   window.addEventListener("message", (event) => {
     if (event.source !== window.parent) {
       return;

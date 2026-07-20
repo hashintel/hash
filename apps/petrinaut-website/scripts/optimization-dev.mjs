@@ -7,6 +7,9 @@ const appDirectory = fileURLToPath(new URL("..", import.meta.url));
 const repositoryRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const image = "petrinaut-opt:local";
 const container = `petrinaut-opt-website-dev-${process.pid}`;
+// This launcher binds the development container to loopback only, so local
+// plaintext HTTP is intentional and is never used by a deployed application.
+// nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
 const optimizerOrigin = "http://127.0.0.1:4004";
 
 const wait = (durationMs) =>
