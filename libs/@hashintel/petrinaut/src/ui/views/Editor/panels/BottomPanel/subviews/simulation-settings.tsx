@@ -169,7 +169,7 @@ const parameterRowStyle = css({
   maxWidth: "[480px]",
   paddingY: "2",
   borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a20",
+  borderBottomColor: "neutral.a30",
   "&:last-child": {
     borderBottomWidth: "[0]",
   },
