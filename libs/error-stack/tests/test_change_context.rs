@@ -88,3 +88,29 @@ fn attach_future() {
     test_messages(&report);
     test_kinds(&report);
 }
+
+#[test]
+fn attach_result_reflect() {
+    let random_number = rand::random_range(0..u32::MAX);
+    let error = create_error()
+        .change_context(ContextA(random_number))
+        .attach_opaque(AttachmentA)
+        .change_context_adaptive(|context_a| ContextA(context_a.current_context_mut().0))
+        .attach_opaque_with(|| AttachmentB);
+    let report = error.expect_err("Not an error");
+    let kinds = remove_builtin_frames(&report)
+        .map(|frame| frame.kind())
+        .collect::<Vec<_>>();
+    match kinds[1] {
+        FrameKind::Context(context) => {
+            assert_eq!(context.downcast_ref::<ContextA>().expect("context A").0, random_number);
+        }
+        _ => panic!("must be a context"),
+    };
+    match kinds[3] {
+        FrameKind::Context(context) => {
+            assert_eq!(context.downcast_ref::<ContextA>().expect("context A").0, random_number);
+        }
+        _ => panic!("must be a context"),
+    };
+}

@@ -57,6 +57,16 @@ pub trait ResultExt {
     where
         C: Error + Send + Sync + 'static,
         F: FnOnce() -> C;
+
+    /// Lazily changes the context of the [`Report`](error_stack::Report) inside the
+    /// [`Result`] with a mutable reference to the original error value.
+    ///
+    /// Applies [`Report::change_context`](error_stack::Report::change_context) on the [`Err`]
+    /// variant, refer to it for more information.
+    fn change_context_adaptive<C, F>(self, context: F) -> Result<Self::Ok, Report<C>>
+    where
+        C: Error + Send + Sync + 'static,
+        F: FnOnce(&mut Report<Self::Context>) -> C;
 }
 
 impl<T, E> ResultExt for Result<T, E>
@@ -132,6 +142,22 @@ where
         match self {
             Ok(value) => Ok(value),
             Err(error) => Err(error.into_report().change_context(context())),
+        }
+    }
+
+    #[track_caller]
+    fn change_context_adaptive<C, F>(self, context: F) -> Result<T, Report<C>>
+    where
+        C: Error + Send + Sync + 'static,
+        F: FnOnce(&mut Report<<E as IntoReport>::Context>) -> C,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                let mut report = error.into_report();
+                let ctx = context(&mut report);
+                Err(report.change_context(ctx))
+            }
         }
     }
 }

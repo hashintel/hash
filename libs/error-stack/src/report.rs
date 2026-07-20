@@ -457,6 +457,29 @@ impl<C> Report<C> {
         })
     }
 
+    /// Returns the current context of the `Report` as a mutable reference.
+    ///
+    /// See [`Report::current_context`] for more information.
+    #[must_use]
+    pub fn current_context_mut(&mut self) -> &mut C
+    where
+        C: Send + Sync + 'static,
+    {
+        if let Some(r) = self.downcast_mut::<C>() {
+            return r;
+        }
+        // FIXME: cannot document the report here due to compiler jank
+        // Panics if there isn't an attached context which matches `T`. As it's not possible
+        // to create a `Report` without a valid context and this method can
+        // only be called when `T` is a valid context, it's guaranteed that
+        // the context is available.
+        unreachable!(
+            "Report does not contain a context. This should not happen as a Report must \
+            always contain at least one frame.\n\n
+            Please file an issue to https://github.com/hashintel/hash/issues/new?template=bug-report-error-stack.yml"
+        )
+    }
+
     /// Converts this `Report` to an [`Error`].
     #[must_use]
     pub fn into_error(self) -> impl Error + Send + Sync + 'static
