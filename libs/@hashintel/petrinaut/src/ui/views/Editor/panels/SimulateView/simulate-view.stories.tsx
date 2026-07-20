@@ -165,9 +165,24 @@ const sampleBinding = (
   }
 };
 
+type FakeTrialState = Extract<
+  PetrinautOptimizationEvent,
+  { type: "trial" }
+>["state"];
+
+const getFakeTrialState = (trial: number, seed: number): FakeTrialState => {
+  // A deterministic weighted roll keeps stories reproducible while producing
+  // approximately 82% complete, 12% pruned, and 6% failed steps.
+  const roll = (((trial * 73 + seed) % 100) + 100) % 100;
+  return roll < 82 ? "complete" : roll < 94 ? "pruned" : "failed";
+};
+
 const fakeOptimization: PetrinautOptimization = {
   async *optimize(input, options) {
     const requestedTrials = input.study.trials;
+    let completedTrials = 0;
+    let prunedTrials = 0;
+    let failedTrials = 0;
     let best: NonNullable<
       Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"]
     > | null = null;
@@ -193,17 +208,27 @@ const fakeOptimization: PetrinautOptimization = {
               : [],
         ),
       );
-      const objective =
+      const state = getFakeTrialState(trial, input.execution.seed);
+      const candidateObjective =
         input.objective.direction === "maximize"
           ? trial + 1 / (trial + 1)
           : requestedTrials - trial + 1 / (trial + 1);
-      const isBetter =
-        best === null ||
-        (input.objective.direction === "maximize"
-          ? objective > best.objective
-          : objective < best.objective);
-      if (isBetter) {
-        best = { trial, parameters, objective };
+      const objective = state === "complete" ? candidateObjective : null;
+
+      if (state === "complete") {
+        completedTrials += 1;
+        const isBetter =
+          best === null ||
+          (input.objective.direction === "maximize"
+            ? candidateObjective > best.objective
+            : candidateObjective < best.objective);
+        if (isBetter) {
+          best = { trial, parameters, objective: candidateObjective };
+        }
+      } else if (state === "pruned") {
+        prunedTrials += 1;
+      } else {
+        failedTrials += 1;
       }
 
       yield {
@@ -211,7 +236,7 @@ const fakeOptimization: PetrinautOptimization = {
         trial,
         parameters,
         objective,
-        state: "complete",
+        state,
         best,
       };
     }
@@ -219,9 +244,9 @@ const fakeOptimization: PetrinautOptimization = {
     yield {
       type: "complete",
       requestedTrials,
-      completedTrials: requestedTrials,
-      prunedTrials: 0,
-      failedTrials: 0,
+      completedTrials,
+      prunedTrials,
+      failedTrials,
       best,
     };
   },

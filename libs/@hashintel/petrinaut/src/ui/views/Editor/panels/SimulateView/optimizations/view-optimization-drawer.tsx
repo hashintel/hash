@@ -63,6 +63,30 @@ const stepHintStyle = css({
   color: "neutral.s80",
 });
 
+const stepStateStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[18px]",
+  height: "[18px]",
+  borderRadius: "full",
+  color: "white",
+  flexShrink: "0",
+  "&[data-state='complete']": {
+    backgroundColor: "green.s90",
+  },
+  "&[data-state='pruned']": {
+    backgroundColor: "orange.s80",
+  },
+  "&[data-state='failed']": {
+    backgroundColor: "red.s90",
+  },
+  "& svg": {
+    width: "[9px]",
+    height: "[9px]",
+  },
+});
+
 const bestParametersStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -93,6 +117,30 @@ function formatStatus(status: OptimizationRecord["status"]): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+type StepState = OptimizationRecord["trials"][number]["state"];
+
+const stepStatePresentation = {
+  complete: { label: "Complete", icon: "check" },
+  pruned: { label: "Pruned", icon: "filter" },
+  failed: { label: "Failed", icon: "close" },
+} as const satisfies Record<StepState, { label: string; icon: string }>;
+
+const renderStepState = (state: StepState) => {
+  const { label, icon } = stepStatePresentation[state];
+
+  return (
+    <span
+      className={stepStateStyle}
+      data-state={state}
+      role="img"
+      aria-label={label}
+      title={label}
+    >
+      <Icon name={icon} size="xxs" />
+    </span>
+  );
+};
+
 const stepColumns = [
   {
     id: "trial",
@@ -119,18 +167,10 @@ const stepColumns = [
       trial.objective === null ? "—" : formatNumber(trial.objective),
   },
   {
-    id: "best",
-    header: "Best so far",
-    width: 120,
-    render: (trial) =>
-      trial.best === null ? "—" : formatNumber(trial.best.objective),
-  },
-  {
     id: "state",
-    header: "State",
-    width: 100,
-    render: (trial) =>
-      trial.state.charAt(0).toUpperCase() + trial.state.slice(1),
+    header: null,
+    width: 18,
+    render: (trial) => renderStepState(trial.state),
   },
 ] satisfies readonly TableColumn<OptimizationRecord["trials"][number]>[];
 

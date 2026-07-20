@@ -69,9 +69,9 @@ steps arrive and shows:
 - Completed, pruned, and failed step counts.
 - The current best metric value.
 - The best flat scenario-parameter assignment.
-- The latest received steps and their best-so-far values. For long runs, the
-  drawer displays the newest 200 steps while retaining aggregate progress and
-  the current best result.
+- The latest received steps, including their parameters, objective values, and
+  colored state indicators. For long runs, the drawer displays the newest 200
+  steps while retaining aggregate progress and the current best result.
 
 Closing the drawer does not stop the optimization. Use **Cancel** to abort an
 active run. Completed, cancelled, and failed records can be removed from their

@@ -161,7 +161,7 @@ const segmentControlStyle = css({
 const parameterListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "2",
+  gap: "2.5",
 });
 
 const errorStyle = css({
