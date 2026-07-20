@@ -1,10 +1,11 @@
-import React, { Fragment, use, useEffect, useRef, useState } from "react";
+import React, { Fragment, use, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
 import { InfoIconTooltip } from "../../info-icon-tooltip";
 
 import type { SubView } from "../types";
@@ -285,39 +286,8 @@ const useTransientTransition = (durationMs = 200) => {
 const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
-
-  const setShadowState = (el: HTMLDivElement | null) => {
-    if (!el) {
-      return;
-    }
-
-    setCanScrollUp(el.scrollTop > 0);
-    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
-  };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) {
-      return;
-    }
-
-    const updateObservedShadows = () => {
-      setShadowState(el);
-    };
-
-    updateObservedShadows();
-
-    const observer = new ResizeObserver(updateObservedShadows);
-    observer.observe(el);
-    for (const child of el.children) {
-      observer.observe(child);
-    }
-
-    return () => observer.disconnect();
-  });
+  const { scrollRef, canScrollUp, canScrollDown, onScroll } =
+    useScrollOverflow();
 
   return (
     <div className={scrollContainerStyle}>
@@ -327,13 +297,7 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
           visible: canScrollUp,
         })}
       />
-      <div
-        ref={scrollRef}
-        className={panelContentStyle}
-        onScroll={() => {
-          setShadowState(scrollRef.current);
-        }}
-      >
+      <div ref={scrollRef} className={panelContentStyle} onScroll={onScroll}>
         {children}
       </div>
       <div

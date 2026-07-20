@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useState } from "react";
 
 import {
   Button,
@@ -14,6 +14,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { Slider } from "../../../../../components/slider";
+import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
@@ -139,10 +140,9 @@ const parametersScrollWrapperStyle = css({
 });
 
 /**
- * Scroll affordances for the parameters list, following the mechanics of
- * `ScrollableContent` in the vertical sub-views container: white fades over
- * the edges that can still be scrolled towards — at the top once the list is
- * scrolled, at the bottom while more content is scrollable below.
+ * White fades over the edges the list can still be scrolled towards — at the
+ * top once scrolled, at the bottom while more content is below. Overflow state
+ * is tracked by the shared `useScrollOverflow` hook.
  */
 const parametersFadeStyle = cva({
   base: {
@@ -238,45 +238,14 @@ const emptyMessageStyle = css({
 // -- Component ----------------------------------------------------------------
 
 /**
- * Wraps the parameters list in a container with scroll affordances: a top
- * shadow once scrolled and a bottom white fade while more content is below.
+ * Wraps the parameters list in a container with white scroll fades: at the top
+ * once the list is scrolled, at the bottom while more content is below.
  */
 const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
-
-  const setFadeState = (el: HTMLDivElement | null) => {
-    if (!el) {
-      return;
-    }
-
-    setCanScrollUp(el.scrollTop > 0);
-    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
-  };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) {
-      return;
-    }
-
-    const updateObservedFades = () => {
-      setFadeState(el);
-    };
-
-    updateObservedFades();
-
-    const observer = new ResizeObserver(updateObservedFades);
-    observer.observe(el);
-    for (const child of el.children) {
-      observer.observe(child);
-    }
-
-    return () => observer.disconnect();
-  });
+  const { scrollRef, canScrollUp, canScrollDown, onScroll } =
+    useScrollOverflow();
 
   return (
     <div className={parametersScrollWrapperStyle}>
@@ -286,13 +255,7 @@ const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
           visible: canScrollUp,
         })}
       />
-      <div
-        ref={scrollRef}
-        className={parametersListStyle}
-        onScroll={() => {
-          setFadeState(scrollRef.current);
-        }}
-      >
+      <div ref={scrollRef} className={parametersListStyle} onScroll={onScroll}>
         {children}
       </div>
       <div
