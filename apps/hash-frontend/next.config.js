@@ -70,7 +70,7 @@ const apiDomain = new URL(apiUrl).hostname;
 // Origin of the `hash-graph atlas` tile server. The `/atlas-api` rewrite below
 // proxies to it so the browser (network graph view) reaches it same-origin,
 // avoiding the CORS block on a direct cross-origin tile request.
-const atlasApiOrigin = process.env.ATLAS_API_ORIGIN ?? "http://127.0.0.1:4010";
+const atlasApiOrigin = process.env.ATLAS_API_ORIGIN ?? "http://127.0.0.1:4003";
 
 /**
  * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`

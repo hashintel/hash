@@ -46,7 +46,7 @@ import {
 import { WORLD_SIZE } from "./tile-geometry";
 
 /** Default binding of the local `hash-graph atlas` dev server. */
-export const ATLAS_API_BASE_URL = "http://127.0.0.1:4010";
+export const ATLAS_API_BASE_URL = "http://127.0.0.1:4003";
 
 /** Retries (after the first attempt) for a transient HTTP failure. */
 const DEFAULT_RETRIES = 2;

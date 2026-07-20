@@ -25,7 +25,7 @@ export default {
 /**
  * Same-origin path the story fetches from. A Vite dev proxy (see
  * `vite.config.ts`) forwards it to the local `hash-graph atlas` server, so the
- * browser avoids the CORS block on a direct `127.0.0.1:4010` request.
+ * browser avoids the CORS block on a direct `127.0.0.1:4003` request.
  */
 const ATLAS_PROXY_BASE = "/atlas-api";
 
