@@ -35,6 +35,12 @@ pub(super) enum ProblemType {
     UnsupportedFeature,
     /// An edges body listing more tiles than the manifest's cap.
     TooManyTiles,
+    /// A tile body carrying more `coloredTypeIds` than the
+    /// manifest's cap.
+    TooManyTypes,
+    /// A translate body listing more entity ids than the manifest's
+    /// cap.
+    TooManyEntityIds,
     /// A required request body that did not arrive.
     MissingBody,
 }

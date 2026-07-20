@@ -443,6 +443,9 @@ impl<const N: usize> AlignedVecN<N> {
         (lanes, suffix)
     }
 
+    // The arithmetic delegates to the `VecN` kernels over the same
+    // pointer, so every load still reads an aligned address.
+
     /// Returns the dot product of the two vectors, accumulated in double
     /// precision; see [`VecN::dot`].
     #[inline]
@@ -661,7 +664,7 @@ impl<const N: usize> From<[f32; N]> for BoxedVecN<N> {
     }
 }
 
-impl<const N: usize, A: Allocator> AsRef<AlignedVecN<N>> for BoxedVecN<N, A> {
+const impl<const N: usize, A: Allocator> AsRef<AlignedVecN<N>> for BoxedVecN<N, A> {
     #[inline]
     fn as_ref(&self) -> &AlignedVecN<N> {
         self

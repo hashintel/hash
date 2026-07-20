@@ -56,7 +56,8 @@ use futures::Stream;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use smallvec::SmallVec;
 use type_system::{
-    knowledge::entity::id::EntityUuid, ontology::id::OntologyTypeUuid,
+    knowledge::entity::id::EntityUuid,
+    ontology::id::{OntologyTypeUuid, VersionedUrl},
     principal::actor_group::WebId,
 };
 use zerocopy::{LE, U64};
@@ -205,6 +206,37 @@ impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
     #[inline]
     fn from(id: uuid::Uuid) -> Self {
         Self(id.into_bytes())
+    }
+}
+
+/// The identity-derivation contract of an ontology id type.
+///
+/// Supplied inputs name types by canonical identity - reviewed
+/// verdicts carry versioned URLs - while each corpus keys its type
+/// table in its own id space. An id type derives the id naming a
+/// given identity in that space, or answers [`None`] for an identity
+/// form its provider does not mint ids from; a positional id space
+/// mints ids from no identity.
+pub(crate) trait OntologyIdentity: Sized {
+    /// Derives the id naming `url` in this id space.
+    fn from_versioned_url(url: &VersionedUrl) -> Option<Self>;
+}
+
+// The store mints an ontology id as the UUIDv5 of its versioned URL;
+// deriving here reproduces that minting rule.
+impl OntologyIdentity for ArchivedOntologyTypeUuid {
+    #[inline]
+    fn from_versioned_url(url: &VersionedUrl) -> Option<Self> {
+        Some(Self::from(OntologyTypeUuid::from_url(url).into_uuid()))
+    }
+}
+
+// Positional ids are assigned by construction order; no identity
+// names one.
+impl OntologyIdentity for U64<LE> {
+    #[inline]
+    fn from_versioned_url(_url: &VersionedUrl) -> Option<Self> {
+        None
     }
 }
 
@@ -563,9 +595,13 @@ pub(crate) trait Dataset {
 
     /// The source identifier of an ontology type.
     ///
-    /// Byte-level stable so the type table persists as raw bytes; opaque
-    /// to the pipeline otherwise.
+    /// Byte-level stable so the type table persists as raw bytes;
+    /// opaque to the pipeline otherwise, except for the declared
+    /// [`OntologyIdentity`] capability verdict resolution consumes.
     type OntologyId: Copy
+        + OntologyIdentity
+        + Eq
+        + core::hash::Hash
         + zerocopy::IntoBytes
         + zerocopy::FromBytes
         + zerocopy::Immutable

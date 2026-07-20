@@ -525,6 +525,9 @@ impl<const N: usize> AlignedDVecN<N> {
         (lanes, suffix)
     }
 
+    // The arithmetic delegates to the `DVecN` kernels over the same
+    // pointer, so every load still reads an aligned address.
+
     /// Returns the dot product of the two vectors; see [`DVecN::dot`].
     #[inline]
     #[must_use]

@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, Vec2},
+    math::{AffinityCurve, DVec2, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::scale::LocalScales,
@@ -106,6 +106,16 @@ fn coordinate_difference(
 /// Asserts a derivative against its finite difference with tolerance
 /// scaled to the finite difference's own f32 conditioning.
 #[track_caller]
+/// Narrows one accumulated field component for a finite-difference
+/// comparison.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "the finite-difference tolerance operates at working precision"
+)]
+fn component(gradient: DVec2, axis: usize) -> f32 {
+    [gradient.x(), gradient.y()][axis] as f32
+}
+
 fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
     assert!(
         (derivative - difference).abs() <= 2e-2_f32.mul_add(difference.abs(), 1e-3),
@@ -279,17 +289,12 @@ fn gradient_field_accumulates_and_resets() {
     field.accumulate(2, Vec2::new(-1.0, 4.0));
 
     assert_eq!(field.rows(), 3);
-    assert_eq!(field.as_slice()[0], Vec2::new(1.5, -1.5));
-    assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
-    assert_eq!(field.as_slice()[2], Vec2::new(-1.0, 4.0));
+    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(1.5, -1.5)));
+    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(field.as_slice()[2], DVec2::from(Vec2::new(-1.0, 4.0)));
 
     field.reset();
-    assert!(
-        field
-            .as_slice()
-            .iter()
-            .all(|&entry| entry == Vec2::splat(0.0))
-    );
+    assert!(field.as_slice().iter().all(|&entry| entry == DVec2::ZERO));
 }
 
 #[test]
@@ -304,8 +309,8 @@ fn attraction_term_matches_hand_computed_gradient() {
     let value = attraction_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
 
     assert_eq!(value, 0.0);
-    assert_eq!(field.as_slice()[0], Vec2::new(-0.5, 0.0));
-    assert_eq!(field.as_slice()[1], Vec2::new(0.5, 0.0));
+    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(-0.5, 0.0)));
+    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::new(0.5, 0.0)));
 }
 
 #[test]
@@ -318,11 +323,11 @@ fn attraction_pulls_and_repulsion_pushes() {
     attraction_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
     // The loss gradient ascends distance; the descent step moves the
     // endpoints together.
-    assert!(field.as_slice()[0].dot(toward) > 0.0);
+    assert!(field.as_slice()[0].dot(DVec2::from(toward)) > 0.0);
 
     let mut field = GradientField::new(2);
     repulsion_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
-    assert!(field.as_slice()[0].dot(toward) < 0.0);
+    assert!(field.as_slice()[0].dot(DVec2::from(toward)) < 0.0);
 }
 
 #[test]
@@ -336,8 +341,8 @@ fn coincident_pair_contributes_value_but_no_gradient() {
     // A coincident negative pair is maximally improbable placement, so
     // its value is large - but it has no direction to push along.
     assert!(value > 0.0);
-    assert_eq!(field.as_slice()[0], Vec2::splat(0.0));
-    assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
+    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::splat(0.0)));
 }
 
 /// A varied four-node frame with no coincident or symmetric pairs.
@@ -380,7 +385,7 @@ fn attraction_term_gradient_matches_finite_differences() {
                 1e-3,
             );
             assert_derivative_close(
-                field.as_slice()[row][axis],
+                component(field.as_slice()[row], axis),
                 difference,
                 &format!("attraction node {row} axis {axis}"),
             );
@@ -411,7 +416,7 @@ fn repulsion_term_gradient_matches_finite_differences() {
                 1e-3,
             );
             assert_derivative_close(
-                field.as_slice()[row][axis],
+                component(field.as_slice()[row], axis),
                 difference,
                 &format!("repulsion node {row} axis {axis}"),
             );
@@ -548,10 +553,10 @@ fn relation_term_matches_hand_computed_values() {
 
     // value = 0.5 (nu) * temperature (0.5) * softplus(0) = 0.25 ln 2.
     assert!(0.25_f32.mul_add(-core::f32::consts::LN_2, value).abs() < 1e-6);
-    assert_eq!(field.as_slice()[0], Vec2::new(-0.25, 0.0));
-    assert_eq!(field.as_slice()[2], Vec2::new(0.25, 0.0));
-    assert_eq!(field.as_slice()[1], Vec2::splat(0.0));
-    assert_eq!(field.as_slice()[3], Vec2::splat(0.0));
+    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(-0.25, 0.0)));
+    assert_eq!(field.as_slice()[2], DVec2::from(Vec2::new(0.25, 0.0)));
+    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(field.as_slice()[3], DVec2::from(Vec2::splat(0.0)));
 }
 
 #[test]
@@ -579,7 +584,7 @@ fn relation_term_gradient_matches_finite_differences() {
                 1e-3,
             );
             assert_derivative_close(
-                field.as_slice()[row][axis],
+                component(field.as_slice()[row], axis),
                 difference,
                 &format!("relation node {row} axis {axis}"),
             );
@@ -607,12 +612,7 @@ fn relation_term_skips_gradient_at_coincident_points() {
     // z = 0 still carries Proximal energy mass, but a coincident pair
     // has no direction to pull along.
     assert!(value > 0.0);
-    assert!(
-        field
-            .as_slice()
-            .iter()
-            .all(|&entry| entry == Vec2::splat(0.0))
-    );
+    assert!(field.as_slice().iter().all(|&entry| entry == DVec2::ZERO));
 }
 
 #[test]

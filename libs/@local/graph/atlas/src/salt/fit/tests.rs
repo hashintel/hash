@@ -1,32 +1,38 @@
 use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
-use burn::backend::{NdArray, ndarray::NdArrayDevice};
 use camino::{Utf8Path, Utf8PathBuf};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
+use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{
     FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions, StageError,
-    SuppliedVerdicts, error::PlacementError, fit, prepare::identity::MappedIdentityTable,
+    SuppliedVerdicts,
+    backfill::{BackfillError, backfill_postings},
+    compute::{PlacementInner, placement_device, resolve_supplied},
+    error::PlacementError,
+    fit,
+    prepare::identity::{IdentityTable, MappedIdentityTable},
 };
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, EdgeRowId, Node, NodeRowId, Ontology, OntologyRowId,
-        PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
+        ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Edge, EdgeRowId, Node, NodeRowId, Ontology,
+        OntologyRowId, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
     },
     file::{
         adjacency::read::AdjacencyFile,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
-        generation::GenerationRoot,
+        generation::{GenerationId, GenerationRoot, OpenError, document_digest},
         identity::read::IdentityFile,
         landmark::read::LandmarkFile,
         morton::read::MortonFile,
         policy::read::PolicyFile,
+        postings::read::PostingsFile,
         quad::read::QuadFile,
         salt::{
             SaltRepository,
@@ -49,12 +55,13 @@ use crate::{
                 fit as fit_classifier,
             },
         },
+        postings::mapped::MappedPostings,
         projector::{
             artifact,
             loss::CoincidentEnergy,
             model::NodeRole,
             train::{BatchPlan, NodeColumns, RelationLens, TrainError, TrainingSchedule, refresh},
-            verdict::ReviewedVerdicts,
+            verdict::{PlacementClass, ReviewedVerdicts},
         },
         relation::artifact::{MappedAttraction, MappedProtection},
     },
@@ -369,6 +376,10 @@ async fn fit_publishes_a_complete_generation() {
     assert_eq!(edge_ids.id(0), Some(U64::new(100)));
     assert_eq!(edge_ids.row_of(U64::new(101)), Some(1));
 
+    // The postings restate the fixture's memberships and parent graph
+    // in base delivery order.
+    assert_postings_read_back(published.path(), &repository);
+
     // No transient state outlives the run: the root holds exactly the
     // generation and nothing dot-prefixed.
     let entries: Vec<_> = fs::read_dir(&path)
@@ -379,6 +390,317 @@ async fn fit_publishes_a_complete_generation() {
         entries.len(),
         1,
         "the root should hold exactly the generation: {entries:?}"
+    );
+}
+
+/// Asserts the published postings against the fixture by hand: every
+/// position carries its row's direct type, only the link type names a
+/// parent, and the evidence records the representation split - at 48
+/// points the dense threshold is one member and a dense run costs two
+/// words, so both node types go dense and the empty link type stays a
+/// list.
+fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) {
+    let postings = MappedPostings::new(
+        PostingsFile::open(published.join("postings.post")).expect("the postings should map"),
+    )
+    .expect("the postings should validate");
+    assert_eq!(postings.types(), 3);
+    assert_eq!(postings.points(), NODES as u64);
+
+    let gather = ArrayFile::open(published.join("row-of-position.arr"))
+        .expect("the gather column should map");
+    for (position, &row) in gather
+        .u32_elements()
+        .expect("the gather column holds u32 rows")
+        .iter()
+        .enumerate()
+    {
+        let membership = postings
+            .membership(OntologyRowId::new(u64::from(row) & 1))
+            .expect("the fixture types lie in the type domain");
+        assert!(
+            membership.contains(u32::try_from(position).expect("the fixture corpus is tiny")),
+            "position {position} should carry row {row}'s direct type",
+        );
+    }
+    let members = |type_row: u64| {
+        postings
+            .membership(OntologyRowId::new(type_row))
+            .expect("the fixture types lie in the type domain")
+            .count()
+    };
+    assert_eq!(members(0), members(1), "rows alternate the node types");
+    assert_eq!(members(0) + members(1), NODES as u64);
+    assert_eq!(members(2), 0, "the link type marks no node");
+    assert_eq!(postings.parents(OntologyRowId::new(0)), Some(&[][..]));
+    assert_eq!(postings.parents(OntologyRowId::new(2)), Some(&[0_u32][..]));
+
+    let evidence = &repository.metadata.evidence.postings;
+    assert_eq!(evidence.types, 3);
+    assert_eq!(evidence.dense_types, 2);
+    assert_eq!(evidence.membership_entries, 4);
+    assert_eq!(evidence.parent_edges, 1);
+}
+
+/// Republishes a fit's generation as a pre-postings legacy replica in
+/// `root`: the postings entries strip from the document, the postings
+/// file stays behind, and the pointer names the replica - the state a
+/// pre-postings fit left on disk.
+fn publish_legacy_replica(source: &Utf8Path, root: &Utf8Path) -> GenerationId {
+    let document = fs::read(source.join("metadata.json")).expect("the source document should read");
+    let mut value: serde_json::Value =
+        serde_json::from_slice(&document).expect("the source document should parse");
+
+    let expect = "the source document holds the postings entries";
+    let strip = |value: &mut serde_json::Value, path: &[&str]| {
+        let mut cursor = &mut *value;
+        for step in path {
+            cursor = cursor.get_mut(step).expect(expect);
+        }
+        cursor
+            .as_object_mut()
+            .expect(expect)
+            .remove("postings")
+            .expect(expect);
+    };
+    strip(&mut value, &["files"]);
+    strip(&mut value, &["metadata", "evidence"]);
+    strip(&mut value, &["metadata", "reproducibility", "config"]);
+
+    let bytes = serde_json::to_vec_pretty(&value).expect("the stripped document should serialize");
+    let id: GenerationId = document_digest(&bytes)
+        .to_string()
+        .parse()
+        .expect("a digest is a generation id");
+
+    let directory = root.join(id.to_string());
+    fs::create_dir_all(&directory).expect("the replica directory should create");
+    for entry in value["files"]
+        .as_object()
+        .expect("the roster is an object")
+        .values()
+        .filter(|entry| !entry.is_null())
+    {
+        let name = entry["name"]
+            .as_str()
+            .expect("a roster entry names its file");
+        fs::copy(source.join(name), directory.join(name)).expect("an artifact should copy");
+    }
+    fs::write(directory.join("metadata.json"), &bytes).expect("the document should write");
+    fs::write(root.join("current"), format!("{id}\n")).expect("the pointer should write");
+
+    id
+}
+
+/// The backfill's proof of fidelity: stripping the postings from a
+/// fit's publication and backfilling the replica against the same
+/// dataset reproduces the fit's document digest for digest - the
+/// republished generation IS the one a current fit publishes.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_legacy_generation_backfills_to_the_identical_publication() {
+    let path = scratch("backfill-source");
+    let root = GenerationRoot::new(&path).expect("the root should open");
+    let dataset = dataset();
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+    let original =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+
+    let legacy_path = scratch("backfill-legacy");
+    let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
+    let legacy = publish_legacy_replica(published.path(), &legacy_path);
+
+    // The replica is genuinely legacy: the typed parser rejects it,
+    // which is the breakage the backfill exists to migrate.
+    assert!(matches!(
+        legacy_root.open(legacy),
+        Err(OpenError::Document(_))
+    ));
+
+    let outcome = backfill_postings(&legacy_root, legacy, &dataset, config().postings)
+        .await
+        .expect("the backfill should publish");
+
+    assert_eq!(
+        outcome.published,
+        published.id(),
+        "the backfill reproduces the fit's publication",
+    );
+    assert!(outcome.activated, "the replica was current");
+    assert!(
+        outcome.drift.is_clean(),
+        "the dataset matches the fitted corpus: {:?}",
+        outcome.drift,
+    );
+    assert_eq!(
+        legacy_root.current().expect("the pointer should read"),
+        Some(outcome.published),
+    );
+
+    legacy_root
+        .open(outcome.published)
+        .expect("the republished generation opens typed");
+    let backfilled = fs::read(
+        legacy_path
+            .join(outcome.published.to_string())
+            .join("metadata.json"),
+    )
+    .expect("the republished document should read");
+    assert_eq!(
+        backfilled, original,
+        "the republished document is the fit's, byte for byte",
+    );
+}
+
+/// A dataset that moved since the fit: entity 0 removed, a foreign
+/// entity added. Only ids and type lists are consumed by the
+/// backfill, so embeddings and edges regenerate freely.
+fn drifted_dataset() -> MemoryDataset {
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xD81F7);
+
+    let mut nodes: Vec<_> = (1..NODES)
+        .map(|row| Node {
+            id: U64::<LE>::new(row as u64),
+            ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+            embedding: representation(&mut rng),
+            confidence: None,
+        })
+        .collect();
+    nodes.push(Node {
+        id: U64::<LE>::new(999),
+        ontology: smallvec![OntologyRowId::new(0)],
+        embedding: representation(&mut rng),
+        confidence: None,
+    });
+
+    let ontology = vec![
+        Ontology {
+            id: U64::<LE>::new(0),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(1),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(2),
+            parents: smallvec![OntologyRowId::new(0)],
+        },
+    ];
+
+    let cards = HashMap::from([
+        (0, Card::verbatim("Person entity card".to_owned())),
+        (1, Card::verbatim("Company entity card".to_owned())),
+        (2, Card::verbatim("Employment link card".to_owned())),
+    ]);
+
+    MemoryDataset::new(nodes, vec![], ontology, HashMap::new(), cards)
+}
+
+/// Store drift publishes the intersection and reports every
+/// divergence: the foreign entity skips, the removed entity's row
+/// stays empty, and the counts say so.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_drifted_store_backfills_the_intersection() {
+    let path = scratch("backfill-drift-source");
+    let root = GenerationRoot::new(&path).expect("the root should open");
+    let published = fit(
+        &dataset(),
+        &HashEmbedder,
+        &config(),
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    let legacy_path = scratch("backfill-drift-legacy");
+    let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
+    let legacy = publish_legacy_replica(published.path(), &legacy_path);
+
+    let outcome = backfill_postings(&legacy_root, legacy, &drifted_dataset(), config().postings)
+        .await
+        .expect("the backfill should publish");
+
+    assert_ne!(
+        outcome.published,
+        published.id(),
+        "drifted postings publish a distinct generation",
+    );
+    assert_eq!(outcome.drift.unmatched_nodes, 1, "the foreign entity");
+    assert_eq!(outcome.drift.unfilled_rows, 1, "the removed entity's row");
+    assert_eq!(outcome.drift.unmatched_types, 0);
+    assert_eq!(outcome.drift.unfilled_types, 0);
+    assert_eq!(outcome.drift.dropped_type_references, 0);
+    assert_eq!(outcome.drift.dropped_parent_references, 0);
+    assert_eq!(
+        outcome.evidence.membership_entries, 4,
+        "both node types stay dense at two words each - one member fewer changes no representation",
+    );
+
+    // The republished generation opens typed, and the removed
+    // entity's membership is the one entry missing.
+    legacy_root
+        .open(outcome.published)
+        .expect("the republished generation opens typed");
+    let postings = MappedPostings::new(
+        PostingsFile::open(
+            legacy_path
+                .join(outcome.published.to_string())
+                .join("postings.post"),
+        )
+        .expect("the postings should map"),
+    )
+    .expect("the postings should validate");
+    let members = |type_row: u64| {
+        postings
+            .membership(OntologyRowId::new(type_row))
+            .expect("the fixture types lie in the type domain")
+            .count()
+    };
+    assert_eq!(members(0) + 1, members(1), "row 0 carried type 0");
+    assert_eq!(members(0) + members(1), NODES as u64 - 1);
+}
+
+/// A generation that already carries the postings role refuses the
+/// backfill instead of republishing a duplicate.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_current_generation_refuses_the_backfill() {
+    let path = scratch("backfill-refused");
+    let root = GenerationRoot::new(&path).expect("the root should open");
+    let dataset = dataset();
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    let error = backfill_postings(&root, published.id(), &dataset, config().postings)
+        .await
+        .expect_err("the generation already carries the postings role");
+    assert!(
+        matches!(error, BackfillError::AlreadyBackfilled(id) if id == published.id()),
+        "{error}",
     );
 }
 
@@ -840,12 +1162,16 @@ fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
 }
 
 /// Reproduces one corpus forward of a published generation's model.
+// The reprojection rides the placement stage's own inference backend:
+// the certificate compares the published column against the checkpoint
+// bit for bit, and a cross-backend comparison would measure kernel
+// flavor instead of publish fidelity.
 fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<Vec2> {
     let checkpoint = fs::read(published.join("projector.mpk")).expect("the checkpoint reads");
-    let model = artifact::open_model::<NdArray>(
+    let model = artifact::open_model::<PlacementInner>(
         checkpoint.as_slice(),
         options.architecture,
-        &NdArrayDevice::default(),
+        &placement_device(),
     )
     .expect("the checkpoint opens on the plain backend");
 
@@ -864,7 +1190,7 @@ fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<
         },
         eta,
         options.forward_rows,
-        &NdArrayDevice::default(),
+        &placement_device(),
     )
     .expect("the published model projects finitely")
 }
@@ -1511,4 +1837,97 @@ async fn the_edge_artifacts_publish_and_read_back() {
         quad.type_entries >= 1,
         "placed rows carry their direct types into the tile sets",
     );
+}
+
+/// Writes an ontology identity column of `I` ids into `dir`.
+fn write_ontology_identities<I>(dir: &Utf8Path, ids: impl IntoIterator<Item = I>) -> Utf8PathBuf
+where
+    I: Copy
+        + zerocopy::IntoBytes
+        + zerocopy::FromBytes
+        + zerocopy::Immutable
+        + zerocopy::Unaligned
+        + zerocopy::KnownLayout,
+{
+    fs::create_dir_all(dir).expect("the scratch directory is writable");
+    let path = dir.join("ontology-identities.idnt");
+    let mut table = IdentityTable::<I>::new();
+    for id in ids {
+        table.push(id);
+    }
+    let file = fs::File::create(path.as_std_path()).expect("the scratch file is writable");
+    table
+        .write_into(std::io::BufWriter::new(file))
+        .expect("the fixture table writes");
+    path
+}
+
+/// Derives the store identity of one versioned type URL.
+fn store_identity(url: &str) -> ArchivedOntologyTypeUuid {
+    let url: VersionedUrl = url.parse().expect("the fixture url parses");
+    ArchivedOntologyTypeUuid::from(OntologyTypeUuid::from_url(&url).into_uuid())
+}
+
+#[test]
+fn store_identity_verdicts_resolve_by_reviewed_version() {
+    // The staged column holds the generation's own type versions.
+    let path = write_ontology_identities(
+        &scratch("resolve"),
+        [
+            store_identity("https://hash.ai/@h/types/entity-type/arrives-at/v/2"),
+            store_identity("https://hash.ai/@h/types/entity-type/located-at/v/1"),
+            store_identity("https://hash.ai/@h/types/entity-type/delivers/v/3"),
+        ],
+    );
+
+    // Three verdicts: one from a foreign store, one reviewed at a
+    // version the column does not hold, one reviewed at a version it
+    // does. Only the exact reviewed version resolves - versions are
+    // immutable and distinct, so a verdict for another version of the
+    // same base URL is evidence about a different card.
+    let document = concat!(
+        r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
+        r#""type_verdicts":["#,
+        r#"{"class":"overlay","relation":"hash:http://localhost:3000/@linktest/types/entity-type/acquaintance/","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"http://localhost:3000/@linktest/types/entity-type/acquaintance/v/1"},"#,
+        r#"{"class":"coincident","relation":"hash:https://hash.ai/@h/types/entity-type/arrives-at/","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/arrives-at/v/1"},"#,
+        r#"{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/located-at/","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/located-at/v/1"}"#,
+        r#"]}"#,
+        "\n",
+    );
+    let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
+        .expect("a contract-conforming document admits");
+
+    let resolution = resolve_supplied::<ArchivedOntologyTypeUuid>(&path, &supplied)
+        .expect("a store-identity column resolves");
+
+    assert_eq!(resolution.unresolved, 2);
+    assert_eq!(resolution.resolved.len(), 1);
+    assert_eq!(resolution.resolved[0].relation, OntologyRowId::new(1));
+    assert_eq!(resolution.resolved[0].placement, PlacementClass::Proximal);
+}
+
+#[test]
+fn a_non_identity_corpus_resolves_no_verdict() {
+    // A memory-corpus column keys rows by position, not store
+    // identity: its id type offers no identity a verdict could name,
+    // so every verdict records as unresolved by construction.
+    let path = write_ontology_identities(&scratch("resolve-width"), (0..4_u64).map(U64::<LE>::new));
+
+    let document = concat!(
+        r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
+        r#""type_verdicts":[{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"}]}"#,
+        "\n",
+    );
+    let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
+        .expect("a contract-conforming document admits");
+
+    let resolution = resolve_supplied::<U64<LE>>(&path, &supplied)
+        .expect("a positional corpus resolves nothing without failing the stage");
+
+    assert!(resolution.resolved.is_empty());
+    assert_eq!(resolution.unresolved, 1);
 }

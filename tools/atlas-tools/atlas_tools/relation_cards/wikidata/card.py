@@ -500,12 +500,19 @@ def make_card_input(
 
 
 class Card(RenderedCard):
-    """A rendered card plus Wikidata join/provenance metadata."""
+    """A rendered card plus Wikidata join/provenance metadata.
+
+    ``card_input`` is the exact sanitized canonical input the rendering
+    consumed. Exports that ship structured card content re-render it and
+    compare ``card_hash``, proving the shipped fields are the input behind
+    the voted text.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     pid: Pid
     retrieved_at: str | None
+    card_input: RelationCardInput
     sanitization: ProseSanitizationSummary = Field(default_factory=ProseSanitizationSummary)
 
 
@@ -663,6 +670,7 @@ def build_card(
     return Card(
         pid=record.pid,
         retrieved_at=record.retrieved_at,
+        card_input=card_input,
         contents=rendered.contents,
         card_text=rendered.card_text,
         card_hash=rendered.card_hash,

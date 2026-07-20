@@ -7,11 +7,11 @@
 
 use core::{
     num::NonZero,
-    simd::{Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _},
+    simd::{Mask, Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _},
 };
 
 use rayon::{
-    iter::{IndexedParallelIterator as _, ParallelIterator as _},
+    iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
     slice::ParallelSlice as _,
 };
 
@@ -127,11 +127,14 @@ impl Similarity {
             return None;
         }
 
-        source
-            .par_chunks(chunk.get())
-            .zip(target.par_chunks(chunk.get()))
-            .zip(weights.par_chunks(chunk.get()))
-            .map(|((source, target), weights)| FitSums::from_slices(source, target, weights))
+        let chunk_size = chunk.get();
+        (
+            source.par_chunks(chunk_size),
+            target.par_chunks(chunk_size),
+            weights.par_chunks(chunk_size),
+        )
+            .into_par_iter()
+            .map(|(source, target, weights)| FitSums::from_slices(source, target, weights))
             .reduce_with(FitSums::combine)?
             .solve()
     }
@@ -236,13 +239,14 @@ impl FitSums {
         let (target_batches, target_rest) = target.as_chunks::<4>();
         let (weight_batches, weight_rest) = weights.as_chunks::<4>();
 
-        let mut valid = true;
+        let mut valid = Mask::<i32, 8>::splat(true);
         let mut weight_sum = Simd::splat(0.0_f64);
         let mut source_sum = DVec2x4T::ZERO;
         let mut target_sum = DVec2x4T::ZERO;
         let mut dot_sum = Simd::splat(0.0_f64);
         let mut perp_sum = Simd::splat(0.0_f64);
         let mut norm_sum = Simd::splat(0.0_f64);
+
         for ((source, target), weight) in source_batches
             .iter()
             .zip(target_batches)
@@ -252,10 +256,8 @@ impl FitSums {
             let target = Vec2x4::from(*target);
             let weight = Simd::from_array(*weight);
 
-            valid &= source.to_simd().is_finite().all()
-                && target.to_simd().is_finite().all()
-                && weight.is_finite().all()
-                && weight.simd_ge(Simd::splat(0.0)).all();
+            valid &= (source.to_simd().is_finite() & target.to_simd().is_finite())
+                & (weight.is_finite() & weight.simd_ge(Simd::splat(0.0))).resize(true);
 
             // `f32` values widen exactly, and each product of two widened
             // values fits in `f64`'s 53-bit significand, so the batch
@@ -275,7 +277,7 @@ impl FitSums {
         }
 
         let mut sums = Self {
-            valid,
+            valid: valid.all(),
             weight: weight_sum.reduce_sum(),
             source: source_sum.reduce(),
             target: target_sum.reduce(),
@@ -318,7 +320,7 @@ impl FitSums {
         let (source_batches, source_rest) = source.as_chunks::<4>();
         let (target_batches, target_rest) = target.as_chunks::<4>();
 
-        let mut valid = true;
+        let mut valid = Mask::<i32, 8>::splat(true);
         let mut source_sum = DVec2x4T::ZERO;
         let mut target_sum = DVec2x4T::ZERO;
         let mut dot_sum = Simd::splat(0.0_f64);
@@ -328,7 +330,7 @@ impl FitSums {
             let source = Vec2x4::from(*source);
             let target = Vec2x4::from(*target);
 
-            valid &= source.to_simd().is_finite().all() && target.to_simd().is_finite().all();
+            valid &= source.to_simd().is_finite() & target.to_simd().is_finite();
 
             // Widening is exact and each product of two widened values
             // fits in `f64`'s 53-bit significand, exactly as in the
@@ -344,7 +346,7 @@ impl FitSums {
         }
 
         let mut sums = Self {
-            valid,
+            valid: valid.all(),
             weight: source.len() as f64,
             source: source_sum.reduce(),
             target: target_sum.reduce(),

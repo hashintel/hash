@@ -5,11 +5,17 @@ use crate::{
         adjacency::read::OpenAdjacencyError,
         array::OpenArrayError,
         generation::{GenerationId, OpenError},
+        identity::read::OpenIdentityError,
         morton::read::OpenMortonError,
+        postings::read::OpenPostingsError,
         quad::read::OpenQuadError,
     },
     morton::Depth,
-    salt::adjacency::InvalidAdjacencyFile,
+    salt::{
+        adjacency::InvalidAdjacencyFile,
+        fit::prepare::identity::InvalidIdentityFile,
+        postings::{closure::ParentCycle, mapped::InvalidPostingsFile},
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -22,14 +28,37 @@ pub enum ArrayKind {
 }
 
 impl fmt::Display for ArrayKind {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Coordinates => write!(formatter, "coordinates"),
-            Self::Rows => write!(formatter, "rows"),
-            Self::Endpoints => write!(formatter, "endpoints"),
-            Self::Ranks => write!(formatter, "ranks"),
-            Self::Positions => write!(formatter, "positions"),
+            Self::Coordinates => write!(fmt, "coordinates"),
+            Self::Rows => write!(fmt, "rows"),
+            Self::Endpoints => write!(fmt, "endpoints"),
+            Self::Ranks => write!(fmt, "ranks"),
+            Self::Positions => write!(fmt, "positions"),
         }
+    }
+}
+
+/// The identity domain an identity artifact serves, for error
+/// reporting: three artifacts share one file format, so a failure
+/// names which table it hit.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum IdentityDomain {
+    /// The ontology identity table, joining type rows to type uuids.
+    Ontology,
+    /// The node identity table, joining node rows to entity ids.
+    Node,
+    /// The edge identity table, joining edge rows to link-entity ids.
+    Edge,
+}
+
+impl fmt::Display for IdentityDomain {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(match self {
+            Self::Ontology => "ontology",
+            Self::Node => "node",
+            Self::Edge => "edge",
+        })
     }
 }
 
@@ -48,6 +77,28 @@ pub enum OpenAtlasError {
     OpenAdjacency(OpenAdjacencyError),
     /// The adjacency file violates the incident-list contract.
     Adjacency(InvalidAdjacencyFile),
+    OpenPostings(OpenPostingsError),
+    /// The postings file violates the artifact contract.
+    Postings(InvalidPostingsFile),
+    /// The postings parent graph holds a cycle, so no closure map
+    /// exists to expand coloring requests.
+    Closure(ParentCycle),
+    /// An identity file failed to open.
+    OpenIdentity {
+        /// The identity domain the file serves.
+        domain: IdentityDomain,
+        /// The failure.
+        error: OpenIdentityError,
+    },
+    /// An identity file violates the table contract. A key width
+    /// other than the store's fails the open loudly: a generation
+    /// whose ids are not store identities does not serve.
+    Identity {
+        /// The identity domain the file serves.
+        domain: IdentityDomain,
+        /// The violation.
+        error: InvalidIdentityFile,
+    },
     /// The recorded schedule exceeds the Morton key width, so no tile
     /// grid exists to serve.
     Schedule {
@@ -96,6 +147,35 @@ pub enum OpenAtlasError {
         /// Codes in the morton column.
         codes: u64,
     },
+    /// The postings' point domain contradicts the code column.
+    Points {
+        /// Points the postings span.
+        postings: u64,
+        /// Codes in the morton column.
+        codes: u64,
+    },
+    /// The postings' type domain contradicts the ontology identities.
+    Types {
+        /// Types the postings span.
+        postings: u64,
+        /// Rows in the ontology identity table.
+        identities: u64,
+    },
+    /// The node identity table contradicts the code column.
+    Identities {
+        /// Rows in the node identity table.
+        identities: u64,
+        /// Codes in the morton column.
+        codes: u64,
+    },
+    /// The edge identity table contradicts the adjacency's edge
+    /// domain.
+    EdgeIdentities {
+        /// Rows in the edge identity table.
+        identities: u64,
+        /// Edge rows the adjacency spans.
+        edges: u64,
+    },
 }
 
 impl From<OpenError> for OpenAtlasError {
@@ -116,6 +196,24 @@ impl From<InvalidAdjacencyFile> for OpenAtlasError {
     }
 }
 
+impl From<OpenPostingsError> for OpenAtlasError {
+    fn from(error: OpenPostingsError) -> Self {
+        Self::OpenPostings(error)
+    }
+}
+
+impl From<InvalidPostingsFile> for OpenAtlasError {
+    fn from(error: InvalidPostingsFile) -> Self {
+        Self::Postings(error)
+    }
+}
+
+impl From<ParentCycle> for OpenAtlasError {
+    fn from(error: ParentCycle) -> Self {
+        Self::Closure(error)
+    }
+}
+
 impl From<OpenMortonError> for OpenAtlasError {
     fn from(error: OpenMortonError) -> Self {
         Self::OpenMorton(error)
@@ -128,47 +226,42 @@ impl From<OpenQuadError> for OpenAtlasError {
     }
 }
 
+/// Writes one wrapped-error arm: a context phrase over its source.
+fn wrapped(fmt: &mut fmt::Formatter<'_>, context: &str, error: &dyn fmt::Display) -> fmt::Result {
+    write!(fmt, "{context}: {error}")
+}
+
 impl fmt::Display for OpenAtlasError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unpublished(id) => {
-                write!(formatter, "generation {id} is not published in this root")
+                write!(fmt, "generation {id} is not published in this root")
             }
-            Self::Open(error) => {
-                write!(formatter, "the artifact failed to open: {error}")
-            }
-            Self::OpenMorton(morton) => {
-                write!(formatter, "the morton artifact failed to open: {morton}")
-            }
-            Self::OpenQuad(quad) => {
-                write!(formatter, "the quad artifact failed to open: {quad}")
-            }
+            Self::Open(error) => wrapped(fmt, "the artifact failed to open", error),
+            Self::OpenMorton(error) => wrapped(fmt, "the morton artifact failed to open", error),
+            Self::OpenQuad(error) => wrapped(fmt, "the quad artifact failed to open", error),
             Self::OpenArray { kind, error } => {
-                write!(formatter, "the {kind} artifact failed to open: {error}")
+                write!(fmt, "the {kind} artifact failed to open: {error}")
             }
-            Self::OpenAdjacency(adjacency) => {
-                write!(
-                    formatter,
-                    "the adjacency artifact failed to open: {adjacency}"
-                )
+            Self::OpenAdjacency(error) => {
+                wrapped(fmt, "the adjacency artifact failed to open", error)
             }
-            Self::Adjacency(invalid) => {
-                write!(
-                    formatter,
-                    "the adjacency artifact violates the incident-list contract: {invalid}"
-                )
-            }
+            Self::Adjacency(invalid) => wrapped(
+                fmt,
+                "the adjacency artifact violates the incident-list contract",
+                invalid,
+            ),
             Self::Schedule {
                 span_log2,
                 max_tile_depth,
             } => write!(
-                formatter,
+                fmt,
                 "the recorded schedule needs {max_tile_depth} + {span_log2} subdivisions where a \
                  64-bit Morton key resolves {}",
                 Depth::MAX.get(),
             ),
             Self::Shape { kind } => write!(
-                formatter,
+                fmt,
                 "the {kind} artifact does not hold the serving contract's shape",
             ),
             Self::Columns {
@@ -178,25 +271,63 @@ impl fmt::Display for OpenAtlasError {
                 ranks,
                 positions,
             } => write!(
-                formatter,
+                fmt,
                 "the base-order columns disagree on the point count: {codes} codes, {coordinates} \
                  coordinates, {rows} rows, {ranks} ranks, {positions} positions",
             ),
             Self::Nodes { adjacency, codes } => write!(
-                formatter,
+                fmt,
                 "the adjacency spans {adjacency} node rows where the code column holds {codes}",
             ),
             Self::Edges {
                 adjacency,
                 endpoints,
             } => write!(
-                formatter,
+                fmt,
                 "the adjacency spans {adjacency} edge rows where the endpoint column holds \
                  {endpoints}",
             ),
             Self::Subtree { quad, codes } => write!(
-                formatter,
+                fmt,
                 "the quadtree root counts {quad} points where the code column holds {codes}",
+            ),
+            Self::OpenPostings(error) => {
+                wrapped(fmt, "the postings artifact failed to open", error)
+            }
+            Self::Postings(error) => {
+                wrapped(fmt, "the postings artifact violates its contract", error)
+            }
+            Self::Closure(error) => wrapped(fmt, "no closure map exists", error),
+            Self::OpenIdentity { domain, error } => {
+                write!(
+                    fmt,
+                    "the {domain} identity artifact failed to open: {error}"
+                )
+            }
+            Self::Identity { domain, error } => write!(
+                fmt,
+                "the {domain} identity artifact violates the table contract: {error}",
+            ),
+            Self::Points { postings, codes } => write!(
+                fmt,
+                "the postings span {postings} points where the code column holds {codes}",
+            ),
+            Self::Types {
+                postings,
+                identities,
+            } => write!(
+                fmt,
+                "the postings span {postings} types where the identity table holds {identities}",
+            ),
+            Self::Identities { identities, codes } => write!(
+                fmt,
+                "the node identity table holds {identities} rows where the code column holds \
+                 {codes}",
+            ),
+            Self::EdgeIdentities { identities, edges } => write!(
+                fmt,
+                "the edge identity table holds {identities} rows where the adjacency spans \
+                 {edges} edges",
             ),
         }
     }
@@ -211,13 +342,22 @@ impl Error for OpenAtlasError {
             Self::OpenArray { kind: _, error } => Some(error),
             Self::OpenAdjacency(adjacency) => Some(adjacency),
             Self::Adjacency(invalid) => Some(invalid),
+            Self::OpenPostings(postings) => Some(postings),
+            Self::Postings(invalid) => Some(invalid),
+            Self::Closure(cycle) => Some(cycle),
+            Self::OpenIdentity { domain: _, error } => Some(error),
+            Self::Identity { domain: _, error } => Some(error),
             Self::Unpublished(_)
             | Self::Schedule { .. }
             | Self::Shape { .. }
             | Self::Columns { .. }
             | Self::Nodes { .. }
             | Self::Edges { .. }
-            | Self::Subtree { .. } => None,
+            | Self::Subtree { .. }
+            | Self::Points { .. }
+            | Self::Types { .. }
+            | Self::Identities { .. }
+            | Self::EdgeIdentities { .. } => None,
         }
     }
 }

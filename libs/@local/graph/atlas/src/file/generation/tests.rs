@@ -28,7 +28,7 @@ use crate::{
     morton::Depth,
     salt::{
         BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
-        NormSpotCheck, QuadEvidence, RecallSpotCheck, SelectionOptions,
+        NormSpotCheck, PostingsEvidence, QuadEvidence, RecallSpotCheck, SelectionOptions,
     },
 };
 
@@ -90,6 +90,7 @@ fn repository() -> SaltRepository {
             coordinates: file("coordinates.arr"),
             morton: file("morton.mrtn"),
             quad: file("quadtree.quad"),
+            postings: file("postings.post"),
             wire_coordinates: file("wire-coordinates.arr"),
             rank_of_position: file("rank-of-position.arr"),
             position_of_rank: file("position-of-rank.arr"),
@@ -180,6 +181,12 @@ fn evidence() -> Evidence {
             leaves: 1,
             depth: Depth::new(0).expect("the root depth is within the key width"),
             type_entries: 3,
+        },
+        postings: PostingsEvidence {
+            types: 3,
+            dense_types: 1,
+            membership_entries: 4,
+            parent_edges: 2,
         },
         projector: None,
     }

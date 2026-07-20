@@ -30,7 +30,7 @@ use aide::{
     openapi::{Info, OpenApi},
 };
 use axum::{Extension, Router, body::Bytes};
-use hash_graph_atlas::serve::{Atlas, ManifestLimits};
+use hash_graph_atlas::serve::{Atlas, ManifestLimits, PostgresDetails};
 
 mod current;
 mod edges;
@@ -39,6 +39,7 @@ mod problem;
 mod reference;
 mod saltile;
 mod tile;
+mod translate;
 
 /// The OpenAPI document's top-level description.
 const API_DESCRIPTION: &str = "The read API over one published atlas generation: a zoomable map \
@@ -63,20 +64,23 @@ const API_DESCRIPTION: &str = "The read API over one published atlas generation:
 - The envelope byte layout is pinned in the atlas crate's `SPEC-ADDENDUM-WIRE.md`; the TypeScript \
                                decoder lives in the frontend's `NetworkGraph/atlas` module.";
 
-/// The shared route state: the pinned generation and the caps the
-/// manifest publishes.
+/// The shared route state: the pinned generation, the caps the
+/// manifest publishes, and the store connection detail hydration
+/// reads through.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
     limits: ManifestLimits,
+    details: Arc<PostgresDetails>,
 }
 
 /// Builds the read API router over one opened generation, with the
 /// OpenAPI document generated at startup and served beside the API.
-pub(crate) fn router(atlas: Arc<Atlas>) -> Router {
+pub(crate) fn router(atlas: Arc<Atlas>, details: Arc<PostgresDetails>) -> Router {
     let state = AppState {
         atlas,
         limits: ManifestLimits::default(),
+        details,
     };
 
     // Responses are declared explicitly per operation; the
@@ -109,6 +113,10 @@ pub(crate) fn router(atlas: Arc<Atlas>) -> Router {
         .api_route(
             "/v1/atlas/edges/{generation}/{variant}",
             post_with(edges::handler, edges::document),
+        )
+        .api_route(
+            "/v1/atlas/translate/{generation}/{variant}",
+            post_with(translate::handler, translate::document),
         )
         .route(
             "/v1/atlas/openapi.json",

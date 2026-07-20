@@ -16,7 +16,7 @@ use crate::{dataset::OntologyRowId, salt::postings::mapped::MappedPostings};
 /// Type inheritance is acyclic at the source; a cycle in published
 /// bytes means the generation's ontology stream was defective.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct ParentCycle {
+pub struct ParentCycle {
     /// Types entangled in cycles: every type whose descendant set
     /// never settled.
     pub entangled: u64,

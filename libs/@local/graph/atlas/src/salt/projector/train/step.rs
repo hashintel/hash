@@ -30,7 +30,7 @@ use super::{
 };
 use crate::{
     dataset::{NodeRowId, OntologyRowId},
-    math::Vec2,
+    math::{DVec2, Vec2},
     salt::projector::{
         budget::{self, ClippedRelation},
         loss::{
@@ -307,13 +307,12 @@ fn relation_pass(
         touched.dedup();
 
         for &row in &touched {
-            let gradient = scratch.as_slice()[row];
-            scratch.accumulate(row, -gradient);
-            if gradient == Vec2::splat(0.0) {
+            let gradient = scratch.take(row);
+            if gradient == DVec2::ZERO {
                 continue;
             }
-            relation_field.accumulate(row, gradient);
-            contributions.push((row, sampled.relation, gradient));
+            relation_field.add(row, gradient);
+            contributions.push((row, sampled.relation, narrow(gradient)));
         }
     }
 
@@ -325,6 +324,8 @@ fn relation_pass(
         .zip(relation_field.as_slice())
         .enumerate()
     {
+        let semantic = narrow(semantic);
+        let relation = narrow(relation);
         let applied = if relation == Vec2::splat(0.0) {
             semantic
         } else {
@@ -391,10 +392,21 @@ fn read_frame<B: Backend<FloatElem = f32>>(
 }
 
 /// Flattens per-node gradients into the tensor's row-major layout.
-fn flatten(gradients: &[Vec2]) -> Vec<f32> {
+fn flatten(gradients: &[DVec2]) -> Vec<f32> {
     let mut flat = Vec::with_capacity(gradients.len() * 2);
     for gradient in gradients {
-        flat.extend([gradient.x(), gradient.y()]);
+        let narrowed = narrow(*gradient);
+        flat.extend([narrowed.x(), narrowed.y()]);
     }
     flat
+}
+
+/// Narrows an accumulated gradient to the working precision.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "the narrowing is the seam's contract; a non-finite result propagates to the next \
+              frame's finite check"
+)]
+const fn narrow(gradient: DVec2) -> Vec2 {
+    Vec2::new(gradient.x() as f32, gradient.y() as f32)
 }

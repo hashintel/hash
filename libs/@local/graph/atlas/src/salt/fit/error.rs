@@ -37,6 +37,7 @@ use crate::{
         },
         lod::{quad::QuadError, stage::LodError},
         policy::{ResolveError, artifact::InvalidPolicyFile, classifier::PredictError},
+        postings::build::PostingsError,
         projector::{
             artifact::CheckpointError,
             train::{TrainError, refresh::RefreshError},
@@ -261,6 +262,8 @@ pub(crate) enum StageError {
     Lod(LodError),
     /// The quadtree build rejected its input.
     Quad(QuadError),
+    /// The postings build rejected its input.
+    Postings(PostingsError),
     /// The landmark selection rejected its input.
     Selection(SelectionError),
     /// The landmark assignment failed.
@@ -354,6 +357,12 @@ impl From<WriteSprsError> for StageError {
 impl From<QuadError> for StageError {
     fn from(error: QuadError) -> Self {
         Self::Quad(error)
+    }
+}
+
+impl From<PostingsError> for StageError {
+    fn from(error: PostingsError) -> Self {
+        Self::Postings(error)
     }
 }
 
@@ -512,6 +521,7 @@ impl fmt::Display for StageError {
             ),
             Self::Lod(error) => write!(fmt, "the level-of-detail derivation failed: {error}"),
             Self::Quad(error) => write!(fmt, "the quadtree build failed: {error}"),
+            Self::Postings(error) => write!(fmt, "the postings build failed: {error}"),
             Self::Selection(error) => write!(fmt, "the landmark selection failed: {error}"),
             Self::Assignment(error) => write!(fmt, "the landmark assignment failed: {error}"),
             Self::Quotient(error) => write!(fmt, "the quotient contraction failed: {error}"),
@@ -583,6 +593,7 @@ impl Error for StageError {
             | Self::MapEndpoints(error) => Some(error),
             Self::Lod(error) => Some(error),
             Self::Quad(error) => Some(error),
+            Self::Postings(error) => Some(error),
             Self::MapSparse(error) => Some(error),
             Self::InvalidKnn(error) => Some(error),
             Self::InvalidSemantic(error) => Some(error),

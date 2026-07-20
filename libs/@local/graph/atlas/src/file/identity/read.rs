@@ -13,7 +13,7 @@ use super::FileHeader;
 
 /// Opening an identity file failed.
 #[derive(Debug)]
-pub(crate) enum OpenIdentityError {
+pub enum OpenIdentityError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.

@@ -474,7 +474,7 @@ impl StagedGeneration {
         }
 
         let document = serde_json::to_vec_pretty(repository).map_err(SealError::Document)?;
-        let id = GenerationId(digest(&document));
+        let id = GenerationId(document_digest(&document));
 
         let destination = self.root.join(id.to_string());
         if destination.exists() {
@@ -521,7 +521,9 @@ impl Drop for StagedGeneration {
     }
 }
 
-fn digest(bytes: &[u8]) -> Sha256Digest {
+/// Digests a metadata document: the bytes' SHA-256 is the identity of
+/// the generation publishing them.
+pub(crate) fn document_digest(bytes: &[u8]) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     hasher.finalize()

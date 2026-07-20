@@ -153,7 +153,7 @@ pub(crate) enum Version {
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
-pub(crate) struct FileHeader {
+pub struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     types: U64<LE>,

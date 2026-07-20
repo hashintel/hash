@@ -22,7 +22,7 @@ use std::{
 
 use burn::{backend::Autodiff, module::AutodiffModule as _};
 use camino::{Utf8Path, Utf8PathBuf};
-use zerocopy::{FromBytes as _, IntoBytes as _};
+use zerocopy::IntoBytes as _;
 
 use super::{
     super::{
@@ -35,7 +35,7 @@ use super::{
     Context,
 };
 use crate::{
-    dataset::{ArchivedOntologyTypeUuid, NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::{NodeRowId, OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         identity::read::IdentityFile,
@@ -78,23 +78,23 @@ use crate::{
 /// optimization layer; the unfused backend is the same runtime
 /// without it.
 #[cfg(feature = "gpu")]
-type TrainerInner =
+pub(in crate::salt::fit) type TrainerInner =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
 #[cfg(not(feature = "gpu"))]
-type TrainerInner = burn::backend::NdArray;
+pub(in crate::salt::fit) type TrainerInner = burn::backend::NdArray;
 
 /// The training and inference backend of the placement stage.
 type TrainerBackend = Autodiff<TrainerInner>;
 
 /// Returns the placement backend's device.
 #[cfg(feature = "gpu")]
-fn device() -> burn::backend::wgpu::WgpuDevice {
+pub(in crate::salt::fit) fn device() -> burn::backend::wgpu::WgpuDevice {
     burn::backend::wgpu::WgpuDevice::default()
 }
 
 /// Returns the placement backend's device.
 #[cfg(not(feature = "gpu"))]
-fn device() -> burn::backend::ndarray::NdArrayDevice {
+pub(in crate::salt::fit) fn device() -> burn::backend::ndarray::NdArrayDevice {
     burn::backend::ndarray::NdArrayDevice::default()
 }
 
@@ -110,8 +110,17 @@ pub(super) struct PlacementInputs<'fit> {
     pub semantic: &'fit MappedSemanticGraph,
     /// The relation indexes, in the owned form the trainer consumes.
     pub indexes: &'fit RelationIndexes,
-    /// The supplied reviewed verdicts, when the fit carries one.
-    pub verdicts: Option<&'fit SuppliedVerdicts>,
+    /// The supplied verdicts, resolved into the corpus row domain.
+    pub resolution: &'fit VerdictResolution,
+}
+
+/// The supplied verdicts resolved into the corpus row domain.
+#[derive(Debug, Default)]
+pub(in crate::salt::fit) struct VerdictResolution {
+    /// Verdicts naming a type table row, ascending by row.
+    pub resolved: Vec<ResolvedVerdict>,
+    /// Verdicts naming no row of this corpus.
+    pub unresolved: usize,
 }
 
 /// What the placement stage hands the assembly.
@@ -129,21 +138,10 @@ pub(super) struct PlacementArtifacts {
 
 impl Context<'_> {
     /// Stages the canonical coordinates under the configured placement.
-    ///
-    /// `I` is the dataset's id type: verdict resolution reads the
-    /// staged ontology identity column under it.
-    pub(super) fn stage_placement<I>(
+    pub(super) fn stage_placement(
         &self,
         inputs: &PlacementInputs<'_>,
-    ) -> Result<PlacementArtifacts, StageError>
-    where
-        I: Copy
-            + zerocopy::IntoBytes
-            + zerocopy::FromBytes
-            + zerocopy::Immutable
-            + zerocopy::Unaligned
-            + zerocopy::KnownLayout,
-    {
+    ) -> Result<PlacementArtifacts, StageError> {
         let PlacementOptions::Projector(options) = &self.config.placement else {
             let coordinates = self.stage_baseline_coordinates(inputs.skeleton)?;
             tracing::info!("staged the baseline coordinates");
@@ -156,24 +154,16 @@ impl Context<'_> {
         };
 
         let _span = tracing::info_span!("projector").entered();
-        self.stage_projector::<I>(options, inputs)
+        self.stage_projector(options, inputs)
     }
 
     /// Trains the projector, stages its checkpoint, and publishes the
     /// canonical rung's aligned field.
-    fn stage_projector<I>(
+    fn stage_projector(
         &self,
         options: &ProjectorOptions,
         inputs: &PlacementInputs<'_>,
-    ) -> Result<PlacementArtifacts, StageError>
-    where
-        I: Copy
-            + zerocopy::IntoBytes
-            + zerocopy::FromBytes
-            + zerocopy::Immutable
-            + zerocopy::Unaligned
-            + zerocopy::KnownLayout,
-    {
+    ) -> Result<PlacementArtifacts, StageError> {
         let configured = options.architecture.representation_dimensions.get();
         if configured != PROJECTOR_DIMENSIONS {
             return Err(placement(PlacementError::RepresentationWidth {
@@ -192,7 +182,6 @@ impl Context<'_> {
         // entities, and no other role projects yet.
         let roles = vec![NodeRole::KnowledgeEntity; inputs.rows.len()];
         let landmarks = landmark_anchors(inputs.skeleton, options);
-        let (resolved, unresolved) = self.resolve_verdicts::<I>(inputs.verdicts)?;
 
         let columns = NodeColumns {
             representations: inputs.rows,
@@ -234,7 +223,7 @@ impl Context<'_> {
             // TODO: prior-generation temporal anchors enter here once a
             //       retained-anchor stage translates them.
             anchors: &[],
-            verdicts: &resolved,
+            verdicts: &inputs.resolution.resolved,
         };
         let train_options = TrainOptions {
             schedule: options.schedule,
@@ -290,7 +279,7 @@ impl Context<'_> {
                     .boundary
                     .as_ref()
                     .map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
-                unresolved_verdicts: unresolved,
+                unresolved_verdicts: inputs.resolution.unresolved,
                 ladder,
             }),
         })
@@ -451,17 +440,16 @@ impl Context<'_> {
     }
 
     /// Resolves the supplied verdicts against the staged ontology
-    /// identity column.
-    ///
-    /// Resolution binds store identities: when the dataset's id type is
-    /// not identity-shaped, no verdict can name a row of this corpus
-    /// and every one records as unresolved.
-    fn resolve_verdicts<I>(
+    /// identity column, typed by the dataset's own ontology id.
+    pub(super) fn resolve_verdicts<O>(
         &self,
         verdicts: Option<&SuppliedVerdicts>,
-    ) -> Result<(Vec<ResolvedVerdict>, usize), StageError>
+    ) -> Result<VerdictResolution, StageError>
     where
-        I: Copy
+        O: OntologyIdentity
+            + Eq
+            + core::hash::Hash
+            + Copy
             + zerocopy::IntoBytes
             + zerocopy::FromBytes
             + zerocopy::Immutable
@@ -469,28 +457,52 @@ impl Context<'_> {
             + zerocopy::KnownLayout,
     {
         let Some(supplied) = verdicts else {
-            return Ok((Vec::new(), 0));
+            return Ok(VerdictResolution::default());
         };
 
-        if size_of::<I>() != size_of::<ArchivedOntologyTypeUuid>() {
-            return Ok((Vec::new(), supplied.document().type_verdicts().len()));
-        }
-
-        let table = MappedIdentityTable::<I>::new(IdentityFile::open(
-            self.staging.path_of(&Role::OntologyIdentities.file_name()),
-        )?)?;
-        let ids = <[ArchivedOntologyTypeUuid]>::ref_from_bytes(table.ids().as_bytes())
-            .expect("both id types are unaligned and equally wide");
-        let resolution = supplied.document().resolve(ids);
-        let unresolved = resolution.unresolved().len();
-        tracing::info!(
-            resolved = resolution.resolved().len(),
-            unresolved,
-            "resolved the supplied verdicts"
-        );
-
-        Ok((resolution.resolved().to_vec(), unresolved))
+        resolve_supplied::<O>(
+            &self.staging.path_of(&Role::OntologyIdentities.file_name()),
+            supplied,
+        )
     }
+}
+
+/// Resolves supplied verdicts against the ontology identity column at
+/// `path`, read under the dataset's ontology id type `O`.
+///
+/// Each verdict's reviewed versioned URL derives the id naming it in
+/// the corpus's own id space ([`OntologyIdentity`]); verdicts whose
+/// identity derives no id there record as unresolved. A column file
+/// keyed by any other id type fails the open.
+pub(in crate::salt::fit) fn resolve_supplied<O>(
+    path: &Utf8Path,
+    supplied: &SuppliedVerdicts,
+) -> Result<VerdictResolution, StageError>
+where
+    O: OntologyIdentity
+        + Eq
+        + core::hash::Hash
+        + Copy
+        + zerocopy::IntoBytes
+        + zerocopy::FromBytes
+        + zerocopy::Immutable
+        + zerocopy::Unaligned
+        + zerocopy::KnownLayout,
+{
+    let table = MappedIdentityTable::<O>::new(IdentityFile::open(path.as_std_path())?)?;
+
+    let resolution = supplied.document().resolve(table.ids());
+    let unresolved = resolution.unresolved().len();
+    tracing::info!(
+        resolved = resolution.resolved().len(),
+        unresolved,
+        "resolved the supplied verdicts"
+    );
+
+    Ok(VerdictResolution {
+        resolved: resolution.resolved().to_vec(),
+        unresolved,
+    })
 }
 
 /// Wraps a placement failure for the stage surface.

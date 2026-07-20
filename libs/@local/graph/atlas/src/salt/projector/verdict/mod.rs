@@ -18,9 +18,10 @@
 //! answers to it.
 //! because snapshots legitimately move past reviewed versions.
 //!
-//! Resolution derives the store identity of a versioned URL (a UUID
-//! computed by [`OntologyTypeUuid::from_url`]) and matches it against
-//! the corpus type table, whose position IS the ontology row. The
+//! Resolution derives the id naming each reviewed versioned URL in
+//! the corpus's own id space ([`OntologyIdentity`]) and matches it
+//! against the corpus type table, whose position IS the ontology row.
+//! The
 //! primary consumer is the training loop's phase boundary, which
 //! calibrates the Proximal radius from the reviewed-Proximal types'
 //! attraction pairs.
@@ -37,13 +38,13 @@ pub(crate) mod calibrate;
 mod tests;
 
 use alloc::collections::BTreeMap;
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, hash::Hash};
 use std::collections::HashMap;
 
-use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+use type_system::ontology::id::VersionedUrl;
 
 use crate::{
-    dataset::{ArchivedOntologyTypeUuid, OntologyRowId},
+    dataset::{OntologyIdentity, OntologyRowId},
     integrity::Sha256Digest,
 };
 
@@ -292,24 +293,27 @@ impl ReviewedVerdicts {
 
     /// Resolves every type verdict against a corpus type table.
     ///
-    /// `ontology` is the type table in ontology row order, as the
-    /// dataset's ontology stream yields it. Each verdict's versioned
-    /// URL derives its store identity, and a matching table position
-    /// resolves the verdict to that row. Verdicts whose reviewed
-    /// version is not in the table land in
+    /// `ontology` is the type table in ontology row order, keyed by
+    /// the corpus's own id type. Each verdict's versioned URL derives
+    /// the id naming it in that id space, and a matching table
+    /// position resolves the verdict to that row. Verdicts naming no
+    /// id - an unreviewed version, a foreign identity form, or a
+    /// positional id space - land in
     /// [`unresolved`](ResolvedVerdicts::unresolved).
     #[must_use]
-    pub(crate) fn resolve(&self, ontology: &[ArchivedOntologyTypeUuid]) -> ResolvedVerdicts<'_> {
+    pub(crate) fn resolve<O>(&self, ontology: &[O]) -> ResolvedVerdicts<'_>
+    where
+        O: OntologyIdentity + Eq + Hash,
+    {
         // Validation rejected duplicate versioned URLs, so every
         // verdict owns its map entry.
-        let targets: HashMap<ArchivedOntologyTypeUuid, usize> = self
+        let targets: HashMap<O, usize> = self
             .type_verdicts
             .iter()
             .enumerate()
             .filter_map(|(index, verdict)| {
                 let url = verdict.versioned_url.as_ref()?;
-                let id = OntologyTypeUuid::from_url(url);
-                Some((ArchivedOntologyTypeUuid::from(id.into_uuid()), index))
+                Some((O::from_versioned_url(url)?, index))
             })
             .collect();
 

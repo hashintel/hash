@@ -14,7 +14,7 @@ use crate::{
     morton::Depth,
     salt::{
         BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef,
-        LodEvidence, NormSpotCheck, QuadEvidence, RankingConfig, RecallSpotCheck,
+        LodEvidence, NormSpotCheck, PostingsEvidence, QuadEvidence, RankingConfig, RecallSpotCheck,
         ladder::RungMeasurement, projector::train::FrozenRadius,
     },
 };
@@ -139,6 +139,9 @@ pub(crate) struct Evidence {
     /// The quadtree build's publish measurements.
     #[serde(with = "QuadEvidenceDef")]
     pub quad: QuadEvidence,
+    /// The postings build's publish measurements.
+    #[serde(with = "PostingsEvidenceDef")]
+    pub postings: PostingsEvidence,
     /// The projector training and ladder measurements; present exactly
     /// when the placement is [`Placement::Projector`].
     pub projector: Option<ProjectorEvidence>,
@@ -431,6 +434,18 @@ struct QuadEvidenceDef {
     #[serde(with = "depth")]
     depth: Depth,
     type_entries: u64,
+}
+
+/// serde shadow of [`PostingsEvidence`].
+// pub(crate): the backfill splices this shadow's serialization into a
+// legacy document, so both writers speak one field layout.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "PostingsEvidence")]
+pub(crate) struct PostingsEvidenceDef {
+    types: u64,
+    dense_types: u64,
+    membership_entries: u64,
+    parent_edges: u64,
 }
 
 /// Scale record of the landmark stage.

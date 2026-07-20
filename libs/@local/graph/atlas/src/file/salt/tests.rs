@@ -21,8 +21,8 @@ use crate::{
     morton::Depth,
     salt::{
         BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
-        NormSpotCheck, PolicyOptions, PolicyOverride, PolicySource, Posterior, QuadEvidence,
-        RecallSpotCheck, RepresentationDefect, SelectionOptions,
+        NormSpotCheck, PolicyOptions, PolicyOverride, PolicySource, Posterior, PostingsEvidence,
+        QuadEvidence, RecallSpotCheck, RepresentationDefect, SelectionOptions,
         fit::{PlacementOptions, ProjectorOptions},
         ladder::{Conditions, LadderOptions},
         projector::train::TrainingSchedule,
@@ -98,6 +98,7 @@ fn files() -> SaltFiles {
         coordinates: file("coordinates.arr"),
         morton: file("morton.mrtn"),
         quad: file("quadtree.quad"),
+        postings: file("postings.post"),
         wire_coordinates: file("wire-coordinates.arr"),
         rank_of_position: file("rank-of-position.arr"),
         position_of_rank: file("position-of-rank.arr"),
@@ -143,6 +144,22 @@ fn repository() -> SaltRepository {
     }
 }
 
+fn lod_evidence() -> LodEvidence {
+    LodEvidence {
+        world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
+            .expect("the fixture corners are finite and ordered"),
+        bucket_histogram: {
+            let mut histogram = [0; Fenceposts::SEGMENTS];
+            histogram[4] = 900_000;
+            histogram[Fenceposts::SEGMENTS - 1] = 100_000;
+            histogram
+        },
+        catch_all_population: 100_000,
+        co_location_excess: 4_096,
+        max_tile_delta: 4_096,
+    }
+}
+
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -184,24 +201,18 @@ fn evidence() -> Evidence {
             pruned_mass: 32.0,
             self_references: 1_024,
         },
-        lod: LodEvidence {
-            world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
-                .expect("the fixture corners are finite and ordered"),
-            bucket_histogram: {
-                let mut histogram = [0; Fenceposts::SEGMENTS];
-                histogram[4] = 900_000;
-                histogram[Fenceposts::SEGMENTS - 1] = 100_000;
-                histogram
-            },
-            catch_all_population: 100_000,
-            co_location_excess: 4_096,
-            max_tile_delta: 4_096,
-        },
+        lod: lod_evidence(),
         quad: QuadEvidence {
             nodes: 21_845,
             leaves: 16_000,
             depth: Depth::new(7).expect("the fixture depth is within the key width"),
             type_entries: 65_000,
+        },
+        postings: PostingsEvidence {
+            types: 49,
+            dense_types: 3,
+            membership_entries: 1_100_000,
+            parent_edges: 48,
         },
         projector: Some(ProjectorEvidence {
             steps: 12,

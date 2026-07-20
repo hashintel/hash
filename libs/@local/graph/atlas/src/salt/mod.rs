@@ -26,6 +26,7 @@ pub(crate) use self::{
     importance::RankingConfig,
     knn::recall::RecallSpotCheck,
     lod::{quad::QuadEvidence, stage::LodEvidence},
+    postings::build::PostingsEvidence,
     relation::BuildEvidence,
 };
 
@@ -44,7 +45,8 @@ mod landmark;
 // Crate-visible for the serving surface's schedule reads.
 pub(crate) mod lod;
 mod policy;
-mod postings;
+// Crate-visible for the serving surface's TYPE_MASK reads.
+pub(crate) mod postings;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod projector;
 pub(crate) mod quality;

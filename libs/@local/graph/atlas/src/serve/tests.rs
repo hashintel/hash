@@ -22,7 +22,8 @@ use zerocopy::{LE, U64};
 
 use super::{
     Atlas, EdgesCaps, EdgesError, EdgesRequest, Filter, GenerationId, GenerationRoot,
-    ManifestLimits, Mode, TileCoordinate, TileError, TileQuery, TileRequest, error::OpenAtlasError,
+    ManifestLimits, Mode, TileCaps, TileCoordinate, TileError, TileQuery, TileRequest,
+    error::OpenAtlasError,
 };
 use crate::{
     dataset::{
@@ -264,8 +265,10 @@ fn fixture_config() -> FitConfig {
     }
 }
 
-/// Publishes one fixture generation and opens its serving surface.
-async fn publish(name: &str) -> (Generation, Atlas) {
+/// Fits and publishes one fixture generation, as the pipeline
+/// writes it: identity artifacts carry the memory dataset's 8-byte
+/// positional ids, which the serving open rejects loudly.
+async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
     let root = GenerationRoot::new(scratch(name)).expect("the root should open");
     let published = fit(
         &fixture_dataset(),
@@ -282,7 +285,103 @@ async fn publish(name: &str) -> (Generation, Atlas) {
     let generation = root
         .open(published.id())
         .expect("the published generation should open");
-    let atlas = Atlas::open(&root, published.id()).expect("the atlas should open");
+
+    (root, generation)
+}
+
+/// The versioned type URL behind fixture ontology row `row`; the
+/// rewritten ontology identities key each row by the uuid its URL
+/// derives, exactly as the store's identities would.
+fn fixture_type_url(row: u64) -> String {
+    format!("https://example.com/types/fixture-{row}/v/1")
+}
+
+/// The edge-domain seed offset: link entities own ids disjoint from
+/// node ids, as the store's would be.
+const EDGE_SEED: u8 = 64;
+
+/// Rewrites a published fixture generation's identity artifacts with
+/// store-width ids, deterministic by row: ontology row `r` keys the
+/// uuid derived from [`fixture_type_url`] of `r`, node row `r` keys
+/// [`entity_id_of`] of `r`, and edge row `r` keys [`entity_id_of`]
+/// of `EDGE_SEED + r`.
+///
+/// The memory dataset speaks 8-byte positional ids, which the
+/// serving open rejects by ruling; the rewrite is the test-lane
+/// bridge until a fixture dataset carries store-width ids natively.
+/// Open trusts the metadata document's hash, not per-file digests
+/// (those are verified by tooling), so the rewritten artifacts
+/// serve.
+fn store_identities(generation: &Generation) {
+    use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+
+    use crate::{
+        dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+        file::identity::read::IdentityFile,
+        salt::fit::prepare::identity::IdentityTable,
+    };
+
+    let files = &generation.repository().files;
+    let rows_of = |name: &crate::file::repository::FileName| {
+        IdentityFile::open(generation.path_of(name))
+            .expect("the published identity artifact opens")
+            .rows()
+    };
+
+    let ontology_rows = rows_of(&files.ontology_identities.name);
+    let mut ontology = IdentityTable::<ArchivedOntologyTypeUuid>::new();
+    for row in 0..ontology_rows {
+        let url: VersionedUrl = fixture_type_url(row)
+            .parse()
+            .expect("the fixture URL parses");
+        ontology.push(ArchivedOntologyTypeUuid::from(
+            OntologyTypeUuid::from_url(&url).into_uuid(),
+        ));
+    }
+
+    let entity_table = |rows: u64, seed: u8| {
+        let mut table = IdentityTable::<ArchivedEntityId>::new();
+        for row in 0..rows {
+            let row = u8::try_from(row).expect("fixture row counts fit u8");
+            table.push(entity_id_of(seed + row));
+        }
+        table
+    };
+    let nodes = entity_table(rows_of(&files.node_identities.name), 0);
+    let edges = entity_table(rows_of(&files.edge_identities.name), EDGE_SEED);
+
+    rewrite_identities(
+        generation.path_of(&files.ontology_identities.name),
+        &ontology,
+    );
+    rewrite_identities(generation.path_of(&files.node_identities.name), &nodes);
+    rewrite_identities(generation.path_of(&files.edge_identities.name), &edges);
+}
+
+/// Overwrites one identity artifact with a hand-built table.
+fn rewrite_identities<I>(
+    path: camino::Utf8PathBuf,
+    table: &crate::salt::fit::prepare::identity::IdentityTable<I>,
+) where
+    I: Copy
+        + zerocopy::IntoBytes
+        + zerocopy::FromBytes
+        + zerocopy::Immutable
+        + zerocopy::Unaligned
+        + zerocopy::KnownLayout,
+{
+    let mut file = std::fs::File::create(path).expect("the identity artifact rewrites");
+    let _digest = table
+        .write_into(&mut file)
+        .expect("the identities should write");
+}
+
+/// Publishes one fixture generation with store-width identities and
+/// opens its serving surface.
+async fn publish(name: &str) -> (Generation, Atlas) {
+    let (root, generation) = fit_fixture(name).await;
+    store_identities(&generation);
+    let atlas = Atlas::open(&root, generation.id()).expect("the atlas should open");
 
     (generation, atlas)
 }
@@ -385,7 +484,7 @@ async fn serves_tiles_from_a_published_generation() {
     // The root delta delivers buckets 0..=m: the head of the base
     // order, sized by the fencepost lengths.
     let bytes = atlas
-        .tile(&request(0, 0, 0, Mode::Delta))
+        .tile(&request(0, 0, 0, Mode::Delta), TileCaps::default())
         .expect("the root tile should serve");
     assert_eq!(&bytes[..8], b"SALTILET");
 
@@ -420,7 +519,7 @@ async fn serves_tiles_from_a_published_generation() {
 
     // The root's total delivery equals its delta delivery.
     let total = atlas
-        .tile(&request(0, 0, 0, Mode::Total))
+        .tile(&request(0, 0, 0, Mode::Total), TileCaps::default())
         .expect("the root total should serve");
     assert_eq!(
         section(&total, POSITIONS).expect("POSITIONS is present"),
@@ -442,10 +541,13 @@ async fn serves_tiles_from_a_published_generation() {
     for &(node, cell) in &nodes[1..] {
         let coordinate = coordinate_of(cell);
         let bytes = atlas
-            .tile(&TileRequest {
-                coordinate,
-                query: TileQuery::default(),
-            })
+            .tile(
+                &TileRequest {
+                    coordinate,
+                    query: TileQuery::default(),
+                },
+                TileCaps::default(),
+            )
             .expect("every node tile should serve");
         let tile_rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
 
@@ -510,10 +612,13 @@ async fn serves_empty_and_deepest_cells() {
     .encode();
     assert_eq!(
         atlas
-            .tile(&TileRequest {
-                coordinate,
-                query: TileQuery::default(),
-            })
+            .tile(
+                &TileRequest {
+                    coordinate,
+                    query: TileQuery::default(),
+                },
+                TileCaps::default(),
+            )
             .expect("the empty tile should serve"),
         expected,
     );
@@ -523,13 +628,16 @@ async fn serves_empty_and_deepest_cells() {
     let deep_cell = MortonKey::from_bits(morton.codes()[0].get())
         .cell(Depth::new(FIXTURE_LOD.max_tile_depth).expect("the deepest tile depth is valid"));
     let bytes = atlas
-        .tile(&TileRequest {
-            coordinate: coordinate_of(deep_cell),
-            query: TileQuery {
-                mode: Mode::Total,
-                ..TileQuery::default()
+        .tile(
+            &TileRequest {
+                coordinate: coordinate_of(deep_cell),
+                query: TileQuery {
+                    mode: Mode::Total,
+                    ..TileQuery::default()
+                },
             },
-        })
+            TileCaps::default(),
+        )
         .expect("the deepest total tile should serve");
     let tile_rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
     assert_eq!(tile_rows.len() as u64, population(&morton, deep_cell));
@@ -541,19 +649,25 @@ async fn rejects_and_reports_the_contract() {
     let (_generation, atlas) = publish("rejects").await;
 
     assert_eq!(
-        atlas.tile(&request(4, 0, 0, Mode::Delta)),
+        atlas.tile(&request(4, 0, 0, Mode::Delta), TileCaps::default()),
         Err(TileError::Depth { z: 4, maximum: 3 }),
     );
     assert_eq!(
-        atlas.tile(&request(2, 4, 0, Mode::Delta)),
+        atlas.tile(&request(2, 4, 0, Mode::Delta), TileCaps::default()),
         Err(TileError::Grid { z: 2, x: 4, y: 0 }),
     );
 
     let mut colored = request(0, 0, 0, Mode::Delta);
-    colored.query.colored_type_ids = vec!["https://example.com/types/thing/v/1".to_owned()];
+    colored.query.colored_type_ids = vec![
+        "https://example.com/types/thing/v/1".to_owned();
+        TileCaps::default().colored_type_ids as usize + 1
+    ];
     assert_eq!(
-        atlas.tile(&colored),
-        Err(TileError::Unsupported("coloredTypeIds")),
+        atlas.tile(&colored, TileCaps::default()),
+        Err(TileError::Types {
+            count: TileCaps::default().colored_type_ids as usize + 1,
+            maximum: TileCaps::default().colored_type_ids,
+        }),
     );
 
     let mut filtered = request(0, 0, 0, Mode::Delta);
@@ -561,12 +675,15 @@ async fn rejects_and_reports_the_contract() {
         serde_json::from_value::<Filter>(serde_json::json!({ "any": [] }))
             .expect("a filter document deserializes opaquely"),
     );
-    assert_eq!(atlas.tile(&filtered), Err(TileError::Unsupported("filter")));
+    assert_eq!(
+        atlas.tile(&filtered, TileCaps::default()),
+        Err(TileError::Unsupported("filter"))
+    );
 
     let mut detailed = request(0, 0, 0, Mode::Delta);
     detailed.query.include_detailed_data = true;
     assert_eq!(
-        atlas.tile(&detailed),
+        atlas.tile(&detailed, TileCaps::default()),
         Err(TileError::Unsupported("includeDetailedData")),
     );
 
@@ -579,7 +696,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "limits": { "coloredTypeIds": 0, "edgesTiles": 256, "locateNeighbours": 0 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateNeighbours": 0, "translateEntityIds": 4096 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );
@@ -1016,4 +1133,447 @@ fn edges_request_parses_the_body_contract() {
     assert!(request.tiles.is_empty());
     assert!(request.filter.is_some());
     assert!(request.include_detailed_data);
+}
+
+/// A colored request mixing resolvable and unresolvable ids over the
+/// published fixture: `TYPE_MASK` rides the request at full shape,
+/// unresolvable ids read 0 in every mask, and a fixture type URL
+/// resolves to real bits.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
+    let (_generation, atlas) = publish("colored-masks-e2e").await;
+
+    let mut colored = request(0, 0, 0, Mode::Delta);
+    colored.query.colored_type_ids = vec![
+        fixture_type_url(0),
+        "not a versioned type url".to_owned(),
+        "https://example.com/types/unknown/v/2".to_owned(),
+    ];
+    let bytes = atlas
+        .tile(&colored, TileCaps::default())
+        .expect("a colored request serves");
+
+    let rows = section(&bytes, ROW_IDS).expect("ROW_IDS is present");
+    let mask = section(&bytes, TYPE_MASK).expect("TYPE_MASK rides colored requests");
+    // Three requested ids: stride ceil(3/8) = 1 byte per point, so
+    // four row-id bytes stand behind every mask byte.
+    assert_eq!(mask.len() * 4, rows.len());
+    assert!(
+        mask.iter().all(|&byte| byte & !0b1 == 0),
+        "unresolvable ids read 0 in every mask",
+    );
+    assert!(
+        mask.iter().any(|&byte| byte & 0b1 != 0),
+        "the fixture type URL resolves to real membership bits",
+    );
+}
+
+/// A generation whose identity artifacts carry the memory dataset's
+/// 8-byte positional ids does not serve: the open fails loudly on
+/// the key width, by ruling.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn foreign_key_widths_fail_the_open() {
+    use super::error::{IdentityDomain, OpenAtlasError};
+    use crate::salt::fit::prepare::identity::InvalidIdentityFile;
+
+    let (root, generation) = fit_fixture("foreign-width-fails").await;
+    let error =
+        Atlas::open(&root, generation.id()).expect_err("a foreign key width must fail the open");
+    assert!(
+        matches!(
+            error,
+            OpenAtlasError::Identity {
+                domain: IdentityDomain::Ontology,
+                error: InvalidIdentityFile::KeyWidth { .. },
+            },
+        ),
+        "the open names the first identity table it rejects: {error}",
+    );
+}
+
+/// Resolution and descendant expansion against hand-built artifacts:
+/// eight points, four types (`1 <- 0`, `2 <- 0`, `3 <- {1, 2}`), the
+/// postings fixture's dense/list split.
+#[test]
+fn colored_masks_resolve_and_expand_descendants() {
+    use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+
+    use super::color;
+    use crate::{
+        dataset::ArchivedOntologyTypeUuid,
+        file::{identity::read::IdentityFile, postings::read::PostingsFile},
+        salt::{
+            fit::prepare::identity::{IdentityTable, MappedIdentityTable},
+            postings::{
+                build::{Postings, PostingsConfig},
+                closure::ClosureMap,
+                mapped::MappedPostings,
+            },
+        },
+    };
+
+    let dir = scratch("colored-masks");
+    std::fs::create_dir_all(&dir).expect("the scratch directory creates");
+
+    // Row-order direct types and the gather permutation, copied from
+    // the postings fixture; member positions per type, hand-derived:
+    // type 0 [1, 2, 3, 6], type 1 [5, 7], type 2 [0, 1, 7], type 3 [].
+    let types: Vec<smallvec::SmallVec<OntologyRowId, 2>> =
+        [&[0_u64][..], &[0, 2], &[1], &[2], &[0], &[1, 2], &[], &[0]]
+            .iter()
+            .map(|list| list.iter().copied().map(OntologyRowId::new).collect())
+            .collect();
+    let parents: Vec<smallvec::SmallVec<OntologyRowId, 2>> = [&[][..], &[0_u64], &[0], &[1, 2]]
+        .iter()
+        .map(|list| list.iter().copied().map(OntologyRowId::new).collect())
+        .collect();
+    let row_of_position: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
+
+    let postings = Postings::build(
+        &types,
+        &row_of_position,
+        &parents,
+        PostingsConfig {
+            dense_threshold_log2: 2,
+        },
+    )
+    .expect("the fixture stays in domain");
+    let postings_path = dir.join("fixture.post");
+    let mut file = std::fs::File::create(&postings_path).expect("the postings file creates");
+    postings
+        .write_into(&mut file)
+        .expect("the postings should write");
+    drop(file);
+    let postings =
+        MappedPostings::new(PostingsFile::open(&postings_path).expect("the postings file opens"))
+            .expect("the postings validate");
+    let closure = ClosureMap::new(&postings).expect("the parent graph is acyclic");
+
+    // One versioned URL per type row; the table keys each row by the
+    // uuid its URL derives, exactly as the store's identities would.
+    let urls: Vec<String> = (0..4)
+        .map(|row| format!("https://example.com/types/fixture-{row}/v/1"))
+        .collect();
+    let mut table = IdentityTable::<ArchivedOntologyTypeUuid>::new();
+    for url in &urls {
+        let parsed: VersionedUrl = url.parse().expect("the fixture URL parses");
+        table.push(ArchivedOntologyTypeUuid::from(
+            OntologyTypeUuid::from_url(&parsed).into_uuid(),
+        ));
+    }
+    let identity_path = dir.join("fixture.idnt");
+    let mut file = std::fs::File::create(&identity_path).expect("the identity file creates");
+    let _digest = table
+        .write_into(&mut file)
+        .expect("the identities should write");
+    drop(file);
+    let table = MappedIdentityTable::<ArchivedOntologyTypeUuid>::new(
+        IdentityFile::open(&identity_path).expect("the identity file opens"),
+    )
+    .expect("the identity table validates");
+
+    let members = |ids: &[String]| -> Vec<Vec<u32>> {
+        let set = color::resolve_masks(&postings, &closure, &table, ids);
+        set.memberships(&postings)
+            .iter()
+            .map(|membership| membership.positions_in(0..8).collect())
+            .collect()
+    };
+
+    // Type 0's descendants are every type: the union covers every
+    // typed position. Type 1 folds type 3's empty membership in.
+    // Type 3 has no proper descendant and serves its stored (empty)
+    // membership. An unparsable id and an unknown URL read empty.
+    assert_eq!(members(&[urls[0].clone()]), vec![vec![0, 1, 2, 3, 5, 6, 7]],);
+    assert_eq!(
+        members(&[
+            urls[1].clone(),
+            urls[2].clone(),
+            urls[3].clone(),
+            "not a versioned type url".to_owned(),
+            "https://example.com/types/unknown/v/1".to_owned(),
+        ]),
+        vec![vec![5, 7], vec![0, 1, 7], vec![], vec![], vec![]],
+    );
+}
+
+/// The detailed-tile path: assembly, entity gathering, and encoding
+/// with a hydrated trailer, spliced where the transport awaits the
+/// store.
+///
+/// The gathered entities carry the fixture's rewritten store-width
+/// ids; hydration itself is the transport's store round trip, so the
+/// test supplies all-`null` details directly. The encoded bytes must
+/// equal the wire document built directly with the trailer.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+#[expect(
+    clippy::single_range_in_vec_init,
+    reason = "an array of one range is what a root delta delivery IS"
+)]
+async fn detailed_tiles_encode_the_hydrated_trailer() {
+    use super::detail::NodeDetails;
+    use crate::{
+        math::{Bounds2, Vec2},
+        salt::wire::tile::{GlobalHead, TileTrailer},
+    };
+
+    let (generation, atlas) = publish("detailed-trailer").await;
+    let Artifacts {
+        quad,
+        morton,
+        coordinates,
+        rows,
+    } = open_artifacts(&generation);
+    let points = coordinates.points().expect("wire coordinates are points");
+    let row_ids = rows.u32_elements().expect("the row column is u32");
+
+    // The convenience path serves storeless deployments: it still
+    // rejects the trailer by name.
+    let mut detailed = request(0, 0, 0, Mode::Delta);
+    detailed.query.include_detailed_data = true;
+    assert_eq!(
+        atlas.tile(&detailed, TileCaps::default()),
+        Err(TileError::Unsupported("includeDetailedData")),
+    );
+
+    // The transport path assembles, gathers, hydrates, encodes.
+    let document = atlas
+        .assemble_tile(&detailed, TileCaps::default())
+        .expect("assembly ignores the trailer flag");
+    let entities = atlas.delivered_entities(&document);
+
+    let delivered: u64 = morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+        .iter()
+        .sum();
+    let delivered = usize::try_from(delivered).expect("fixture counts fit usize");
+    assert_eq!(entities.count(), delivered);
+
+    // Hydration is the transport's store round trip; the encode path
+    // under test takes its details directly, all-null here, and the
+    // encoded envelope equals the directly built wire document.
+    let details = NodeDetails::empty(entities.count());
+    let bytes = atlas.encode_tile(&document, Some(&details));
+
+    let nothing: Vec<Option<&str>> = vec![None; delivered];
+    let end = u32::try_from(delivered).expect("fixture counts fit u32");
+    let expected = TileResponse {
+        head: TileHead {
+            generation: atlas.generation().digest(),
+            variant: 0,
+            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+            mode: Mode::Delta,
+            visible: morton.count(),
+            first_bucket: 0,
+            runs: &morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+                .iter()
+                .map(|&length| u32::try_from(length).expect("fixture counts fit u32"))
+                .collect::<Vec<_>>(),
+            global: Some(GlobalHead {
+                visible: delivered as u64,
+                // The fixture's random points span both axes, so the
+                // frame extent anchors at the full wire square.
+                bounds: Some(
+                    Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
+                        .expect("the wire square is a valid extent"),
+                ),
+                min_resolution: morton
+                    .fenceposts()
+                    .lengths()
+                    .iter()
+                    .rposition(|&length| length > 0)
+                    .map_or(0, |bucket| bucket as u64),
+            }),
+            children: (0..4).fold(0_u8, |bits, quadrant| {
+                bits | (u8::from(quad.nodes()[0].child(quadrant).is_some()) << quadrant)
+            }),
+        },
+        ranges: &[0..end],
+        positions: points,
+        rows: row_ids,
+        masks: None,
+        trailer: Some(TileTrailer {
+            labels: &nothing,
+            icons: &nothing,
+        }),
+    }
+    .encode();
+    assert_eq!(bytes, expected, "the trailer path is byte-exact");
+}
+
+/// One synthetic entity identity per seed byte, plus its upstream
+/// string form.
+fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
+    crate::dataset::ArchivedEntityId {
+        web_id: uuid::Uuid::from_bytes([seed; 16]).into(),
+        entity_uuid: uuid::Uuid::from_bytes([seed ^ 0xFF; 16]).into(),
+    }
+}
+
+/// The `webId~entityUuid` string form of [`entity_id_of`]'s identity.
+fn entity_string_of(seed: u8) -> String {
+    format!(
+        "{}~{}",
+        uuid::Uuid::from_bytes([seed; 16]),
+        uuid::Uuid::from_bytes([seed ^ 0xFF; 16]),
+    )
+}
+
+/// Writes and reopens one hand-built entity identity table.
+fn entity_identity_table(
+    path: &camino::Utf8PathBuf,
+    ids: &[crate::dataset::ArchivedEntityId],
+) -> crate::salt::fit::prepare::identity::MappedIdentityTable<crate::dataset::ArchivedEntityId> {
+    use crate::{
+        dataset::ArchivedEntityId, file::identity::read::IdentityFile,
+        salt::fit::prepare::identity::IdentityTable,
+    };
+
+    let mut table = IdentityTable::<ArchivedEntityId>::new();
+    for &id in ids {
+        table.push(id);
+    }
+    let mut file = std::fs::File::create(path).expect("the identity file creates");
+    let _digest = table
+        .write_into(&mut file)
+        .expect("the identities should write");
+    drop(file);
+    crate::salt::fit::prepare::identity::MappedIdentityTable::new(
+        IdentityFile::open(path).expect("the identity file opens"),
+    )
+    .expect("the identity table validates")
+}
+
+/// Translate resolution against hand-built identity tables: nodes
+/// answer row and wire position, edges answer row, and every
+/// non-resolving shape - draft-suffixed, unparsable, unknown - reads
+/// as an absent key.
+#[test]
+fn translate_resolves_nodes_and_edges_by_identity() {
+    use super::translate::{
+        TranslateCaps, TranslateRequest, TranslatedEdge, TranslatedNode, translate,
+    };
+    use crate::math::Vec2;
+
+    let dir = scratch("translate-identity");
+    std::fs::create_dir_all(&dir).expect("the scratch directory creates");
+
+    // Three nodes, two edges. Node row 1 sits at base position 2.
+    let nodes = entity_identity_table(
+        &dir.join("nodes.idnt"),
+        &[entity_id_of(1), entity_id_of(2), entity_id_of(3)],
+    );
+    let edges = entity_identity_table(
+        &dir.join("edges.idnt"),
+        &[entity_id_of(10), entity_id_of(11)],
+    );
+    let positions = [
+        Vec2::new(0.0, 0.5),
+        Vec2::new(-0.25, 1.0),
+        Vec2::new(0.75, -0.5),
+    ];
+    let position_of_row = [1_u32, 2, 0];
+
+    let request = TranslateRequest {
+        entity_ids: vec![
+            entity_string_of(2),                           // node row 1
+            entity_string_of(10),                          // edge row 0
+            entity_string_of(2),                           // duplicate: collapses
+            format!("{}~draft-tail", entity_string_of(3)), // draft-suffixed: absent
+            "not an entity id".to_owned(),                 // unparsable: absent
+            entity_string_of(0xAB),                        // unknown: absent
+        ],
+    };
+    let response = translate(
+        &request,
+        TranslateCaps::default(),
+        &nodes,
+        &edges,
+        &positions,
+        &position_of_row,
+    )
+    .expect("the request is under the cap");
+
+    assert_eq!(
+        response.nodes.into_iter().collect::<Vec<_>>(),
+        vec![(
+            entity_string_of(2),
+            TranslatedNode {
+                id: 1,
+                x: 0.75,
+                y: -0.5,
+            },
+        )],
+    );
+    assert_eq!(
+        response.edges.into_iter().collect::<Vec<_>>(),
+        vec![(entity_string_of(10), TranslatedEdge { id: 0 })],
+    );
+}
+
+/// The cap rejects by count before any id is looked up.
+#[test]
+fn translate_rejects_over_cap() {
+    use super::translate::{TranslateCaps, TranslateError, TranslateRequest, translate};
+
+    let dir = scratch("translate-cap");
+    std::fs::create_dir_all(&dir).expect("the scratch directory creates");
+    let nodes = entity_identity_table(&dir.join("nodes.idnt"), &[entity_id_of(1)]);
+    let edges = entity_identity_table(&dir.join("edges.idnt"), &[entity_id_of(10)]);
+
+    let over = TranslateRequest {
+        entity_ids: vec![String::new(); TranslateCaps::default().entity_ids as usize + 1],
+    };
+    assert_eq!(
+        translate(&over, TranslateCaps::default(), &nodes, &edges, &[], &[]),
+        Err(TranslateError::Ids {
+            count: TranslateCaps::default().entity_ids as usize + 1,
+            maximum: TranslateCaps::default().entity_ids,
+        }),
+    );
+}
+
+/// Translate over the published fixture: the rewritten store-width
+/// identities resolve end to end - node row and wire position agree
+/// with the serving columns, an edge id answers its row, and an
+/// unknown id reads absent.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn translate_resolves_store_identities_end_to_end() {
+    use super::translate::{TranslateCaps, TranslateRequest, TranslatedEdge, TranslatedNode};
+
+    let (_generation, atlas) = publish("translate-e2e").await;
+
+    let response = atlas
+        .translate(
+            &TranslateRequest {
+                entity_ids: vec![
+                    entity_string_of(0),
+                    entity_string_of(EDGE_SEED),
+                    format!("{}~{}", uuid::Uuid::nil(), uuid::Uuid::nil()),
+                ],
+            },
+            TranslateCaps::default(),
+        )
+        .expect("the request is under the cap");
+
+    let position = atlas.positions_of_row()[0] as usize;
+    let point = atlas.positions()[position];
+    assert_eq!(
+        response.nodes.into_iter().collect::<Vec<_>>(),
+        vec![(
+            entity_string_of(0),
+            TranslatedNode {
+                id: 0,
+                x: point.x(),
+                y: point.y(),
+            },
+        )],
+    );
+    assert_eq!(
+        response.edges.into_iter().collect::<Vec<_>>(),
+        vec![(entity_string_of(EDGE_SEED), TranslatedEdge { id: 0 })],
+    );
 }

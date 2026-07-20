@@ -6,7 +6,7 @@ use crate::{dataset::OntologyRowId, file::postings::read::PostingsFile};
 
 /// An opened postings file does not hold a valid postings artifact.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum InvalidPostingsFile {
+pub enum InvalidPostingsFile {
     /// A flags bit at or beyond the type count is set.
     FlagsTail,
     /// The membership fenceposts break anchoring, ordering, or

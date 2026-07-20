@@ -16,7 +16,10 @@ use core::{future::ready, num::NonZero};
 use camino::Utf8PathBuf;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
 
-use super::{FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts, fit};
+use super::{
+    FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts, backfill::backfill_postings,
+    fit,
+};
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
@@ -29,6 +32,7 @@ use crate::{
             Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
             fit as fit_classifier,
         },
+        postings::build::PostingsConfig,
         projector::train::TrainingSchedule,
     },
 };
@@ -293,5 +297,83 @@ impl CardEmbedder for StubEmbedder {
                 vector
             })
             .collect()))
+    }
+}
+
+/// The report of one postings backfill over the live store.
+#[derive(Debug, Clone)]
+pub struct BackfillSummary {
+    /// The source generation, republished untouched beside the result.
+    pub source: String,
+    /// The republished generation carrying the postings role.
+    pub published: String,
+    /// Whether the root's pointer moved to the republished generation,
+    /// which it does exactly when the source generation was current.
+    pub activated: bool,
+    /// Store entities the generation holds no row for: added since the
+    /// fit, skipped.
+    pub unmatched_nodes: u64,
+    /// Generation rows the store no longer names: removed since the
+    /// fit, published with empty membership.
+    pub unfilled_rows: u64,
+    /// Store types outside the generation's ontology table.
+    pub unmatched_types: u64,
+    /// Generation types the store no longer names.
+    pub unfilled_types: u64,
+    /// Node type references dropped in re-keying.
+    pub dropped_type_references: u64,
+    /// Parent references dropped in re-keying.
+    pub dropped_parent_references: u64,
+}
+
+/// Backfills the postings role into the published generation
+/// `generation` - or the root's current one - over the store's
+/// current snapshot.
+///
+/// The result publishes beside the untouched source, and the pointer
+/// moves exactly when the source was current. Every count in the
+/// summary is zero when the store still names exactly the fitted
+/// corpus; non-zero counts report the intersection the postings
+/// describe.
+///
+/// # Panics
+///
+/// Panics when any step fails: opening the root, resolving or parsing
+/// the generation id, opening the snapshot transaction, or the
+/// backfill itself.
+pub async fn backfill(
+    client: &mut Client,
+    root: &str,
+    generation: Option<&str>,
+) -> BackfillSummary {
+    let root =
+        GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");
+    let id = generation.map_or_else(
+        || {
+            root.current()
+                .expect("the current pointer should read")
+                .expect("a backfill without an explicit generation requires a current one")
+        },
+        |value| value.parse().expect("the generation id should parse"),
+    );
+
+    let dataset = PostgresDataset::new(client, TemporalAxes::now())
+        .await
+        .expect("the store should open a snapshot transaction");
+
+    let outcome = backfill_postings(&root, id, &dataset, PostingsConfig::default())
+        .await
+        .expect("the backfill should publish");
+
+    BackfillSummary {
+        source: id.to_string(),
+        published: outcome.published.to_string(),
+        activated: outcome.activated,
+        unmatched_nodes: outcome.drift.unmatched_nodes,
+        unfilled_rows: outcome.drift.unfilled_rows,
+        unmatched_types: outcome.drift.unmatched_types,
+        unfilled_types: outcome.drift.unfilled_types,
+        dropped_type_references: outcome.drift.dropped_type_references,
+        dropped_parent_references: outcome.drift.dropped_parent_references,
     }
 }

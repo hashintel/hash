@@ -30,6 +30,7 @@ use crate::{
             rank::RankInputs,
             stage::{Lod, LodEvidence},
         },
+        postings::build::{Postings, PostingsEvidence},
     },
 };
 
@@ -37,6 +38,7 @@ use crate::{
 pub(super) struct LodArtifacts {
     pub morton: RepositoryFile,
     pub quad: RepositoryFile,
+    pub postings: RepositoryFile,
     pub wire_coordinates: RepositoryFile,
     pub rank_of_position: RepositoryFile,
     pub position_of_rank: RepositoryFile,
@@ -50,6 +52,7 @@ pub(super) struct LodOutputs {
     pub files: LodArtifacts,
     pub evidence: LodEvidence,
     pub quad_evidence: QuadEvidence,
+    pub postings_evidence: PostingsEvidence,
 }
 
 impl Context<'_> {
@@ -62,10 +65,13 @@ impl Context<'_> {
     /// the override lane for a product notion that does not exist yet.
     /// The metadata's ranking origin records the signal that ran.
     /// `types` is each node row's direct types in row order, the
-    /// quadtree's per-tile type sets.
+    /// quadtree's per-tile type sets and the postings' membership
+    /// source; `parents` is each ontology row's direct parents in row
+    /// order, the postings' type graph.
     pub(super) fn stage_lod<I>(
         &self,
         types: &[SmallVec<OntologyRowId, 2>],
+        parents: &[SmallVec<OntologyRowId, 2>],
     ) -> Result<LodOutputs, StageError>
     where
         I: Copy
@@ -114,26 +120,14 @@ impl Context<'_> {
             Ok(writer.accumulator.finalize())
         })?;
 
-        // The quadtree cuts the finished columns while they are still
-        // resident; it runs under the configuration the cascade ran
-        // under, which the build re-checks.
-        let (quad_file, quad_evidence) = {
-            let _span = tracing::info_span!("quad").entered();
-            let tree = QuadTree::build(&lod, types, self.config.lod)?;
-            let file = write_staged(self.staging, Role::Quad, |writer| {
-                let mut writer = Writer {
-                    accumulator: Sha256::new(),
-                    writer,
-                };
-                quad::write::write_regions(&tree.nodes, &tree.sets, &mut writer)?;
-                Ok(writer.accumulator.finalize())
-            })?;
-            (file, tree.evidence())
-        };
+        let (quad_file, quad_evidence) = self.stage_quad(&lod, types)?;
+        let (postings_file, postings_evidence) =
+            self.stage_postings(types, parents, &lod.row_of_position)?;
 
         let files = LodArtifacts {
             morton,
             quad: quad_file,
+            postings: postings_file,
             wire_coordinates: stage_column(
                 self.staging,
                 Role::WireCoordinates,
@@ -183,6 +177,53 @@ impl Context<'_> {
             evidence: lod.evidence(self.config.lod),
             files,
             quad_evidence,
+            postings_evidence,
         })
+    }
+
+    /// Cuts the quadtree over the finished columns while they are
+    /// still resident and stages it.
+    ///
+    /// The cut runs under the configuration the cascade ran under,
+    /// which the build re-checks.
+    fn stage_quad(
+        &self,
+        lod: &Lod,
+        types: &[SmallVec<OntologyRowId, 2>],
+    ) -> Result<(RepositoryFile, QuadEvidence), StageError> {
+        let _span = tracing::info_span!("quad").entered();
+
+        let tree = QuadTree::build(lod, types, self.config.lod)?;
+        let file = write_staged(self.staging, Role::Quad, |writer| {
+            let mut writer = Writer {
+                accumulator: Sha256::new(),
+                writer,
+            };
+            quad::write::write_regions(&tree.nodes, &tree.sets, &mut writer)?;
+            Ok(writer.accumulator.finalize())
+        })?;
+
+        Ok((file, tree.evidence()))
+    }
+
+    /// Builds the postings over the finished lod permutation and
+    /// stages them beside the quadtree.
+    ///
+    /// Membership gathers through the same permutation the served
+    /// columns did; the parent regions restate the ontology stream.
+    fn stage_postings(
+        &self,
+        types: &[SmallVec<OntologyRowId, 2>],
+        parents: &[SmallVec<OntologyRowId, 2>],
+        row_of_position: &[u32],
+    ) -> Result<(RepositoryFile, PostingsEvidence), StageError> {
+        let _span = tracing::info_span!("postings").entered();
+
+        let postings = Postings::build(types, row_of_position, parents, self.config.postings)?;
+        let file = write_staged(self.staging, Role::Postings, |writer| {
+            postings.write_into(writer)
+        })?;
+
+        Ok((file, postings.evidence()))
     }
 }

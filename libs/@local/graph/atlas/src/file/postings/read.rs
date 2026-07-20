@@ -13,7 +13,7 @@ use super::FileHeader;
 
 /// Opening a postings file failed.
 #[derive(Debug)]
-pub(crate) enum OpenPostingsError {
+pub enum OpenPostingsError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.

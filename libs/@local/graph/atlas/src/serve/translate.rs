@@ -1,0 +1,219 @@
+//! Translate: upstream entity ids to atlas identity, the correlation
+//! seam between entities the client fetched through the graph API
+//! and dots already on screen.
+//!
+//! The response is two maps keyed by the REQUESTED id string echoed
+//! verbatim - byte-for-byte, no normalization - so client-side map
+//! lookups are literal and kind is carried by which map answers. A
+//! node answers its row id plus the wire-frame position (the same
+//! `f32` domain as the `POSITIONS` column, so a translated entity
+//! lands pixel-identical to its tile-delivered dot); an edge answers
+//! its row id alone - edges carry no position by nature.
+//!
+//! An id that resolves to nothing is an ABSENT key, never an error
+//! and never a null entry: nonexistent ids, draft-suffixed ids (the
+//! corpus indexes live entities), and - once the auth bitmaps land -
+//! entities the principal cannot see are indistinguishable by
+//! doctrine (missing = denied). Served wholly from the published
+//! identity artifacts and the fitted coordinate column; the store is
+//! never consulted.
+
+use alloc::collections::BTreeMap;
+use core::{error::Error, fmt};
+
+use super::Atlas;
+use crate::{
+    dataset::ArchivedEntityId, math::Vec2, salt::fit::prepare::identity::MappedIdentityTable,
+};
+
+/// Most entity ids one translate request may carry: the documented
+/// default of the manifest's `translateEntityIds` cap.
+pub(super) const TRANSLATE_ENTITY_IDS_CAP: u32 = 4096;
+
+/// The upstream entity-id delimiter: `webId~entityUuid[~draftId]`.
+const ENTITY_ID_DELIMITER: char = '~';
+
+/// The translate endpoint's request cap: transport configuration
+/// with a documented default, never a wire constant.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct TranslateCaps {
+    /// Most entity ids one request may carry; the manifest publishes
+    /// this value as `limits.translateEntityIds`.
+    pub entity_ids: u32,
+}
+
+const impl Default for TranslateCaps {
+    fn default() -> Self {
+        Self {
+            entity_ids: TRANSLATE_ENTITY_IDS_CAP,
+        }
+    }
+}
+
+/// A translate request was rejected.
+///
+/// Every variant is a named, data-carrying rejection for the
+/// transport layer to map onto its error vocabulary.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum TranslateError {
+    /// The request lists more entity ids than the cap admits.
+    Ids {
+        /// The listed id count.
+        count: usize,
+        /// The cap the manifest publishes as
+        /// `limits.translateEntityIds`.
+        maximum: u32,
+    },
+}
+
+impl fmt::Display for TranslateError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ids { count, maximum } => {
+                write!(
+                    formatter,
+                    "the request lists {count} entity ids where the cap admits {maximum}"
+                )
+            }
+        }
+    }
+}
+
+impl Error for TranslateError {}
+
+/// One translate read: the ratified POST body.
+#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslateRequest {
+    /// The upstream entity ids to translate, in the
+    /// `webId~entityUuid` form. Duplicates are legal and collapse.
+    pub entity_ids: Vec<String>,
+}
+
+/// A node's atlas identity: the row id every binary response speaks,
+/// plus the fitted wire-frame position.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
+pub struct TranslatedNode {
+    /// The node row id, the `ROW_IDS` domain.
+    pub id: u32,
+    /// The wire-frame x coordinate, the `POSITIONS` domain.
+    pub x: f32,
+    /// The wire-frame y coordinate, the `POSITIONS` domain.
+    pub y: f32,
+}
+
+/// An edge's atlas identity: the row id every binary response speaks.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
+pub struct TranslatedEdge {
+    /// The edge row id, the `EDGE_ROW_IDS` domain.
+    pub id: u32,
+}
+
+/// The translate response: two maps keyed by the requested id string
+/// echoed verbatim, so kind is carried by which map answers and
+/// correlation survives partial results.
+///
+/// The maps iterate in key order, so identical requests yield
+/// identical response bytes.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
+pub struct TranslateResponse {
+    /// Resolved nodes by requested id.
+    pub nodes: BTreeMap<String, TranslatedNode>,
+    /// Resolved edges by requested id.
+    pub edges: BTreeMap<String, TranslatedEdge>,
+}
+
+impl Atlas {
+    /// Answers one translate request: upstream entity ids to atlas
+    /// row ids, plus wire-frame positions for nodes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TranslateError::Ids`] when the request lists more
+    /// entity ids than `caps.entity_ids`.
+    pub fn translate(
+        &self,
+        request: &TranslateRequest,
+        caps: TranslateCaps,
+    ) -> Result<TranslateResponse, TranslateError> {
+        translate(
+            request,
+            caps,
+            &self.node_ids,
+            &self.edge_ids,
+            self.positions(),
+            self.positions_of_row(),
+        )
+    }
+}
+
+/// Resolves a request's ids against one generation's identity tables
+/// and fitted coordinates.
+pub(super) fn translate(
+    request: &TranslateRequest,
+    caps: TranslateCaps,
+    node_ids: &MappedIdentityTable<ArchivedEntityId>,
+    edge_ids: &MappedIdentityTable<ArchivedEntityId>,
+    positions: &[Vec2],
+    position_of_row: &[u32],
+) -> Result<TranslateResponse, TranslateError> {
+    if request.entity_ids.len() > caps.entity_ids as usize {
+        return Err(TranslateError::Ids {
+            count: request.entity_ids.len(),
+            maximum: caps.entity_ids,
+        });
+    }
+
+    let mut nodes = BTreeMap::new();
+    let mut edges = BTreeMap::new();
+    for id_string in &request.entity_ids {
+        let Some(key) = parse(id_string) else {
+            continue;
+        };
+
+        if let Some(row) = node_ids.row_of(key) {
+            let row = u32::try_from(row).expect("node rows share the u32 row-id domain");
+            let position = position_of_row[row as usize] as usize;
+            let point = positions[position];
+            nodes.insert(
+                id_string.clone(),
+                TranslatedNode {
+                    id: row,
+                    x: point.x(),
+                    y: point.y(),
+                },
+            );
+        } else if let Some(row) = edge_ids.row_of(key) {
+            edges.insert(
+                id_string.clone(),
+                TranslatedEdge {
+                    id: u32::try_from(row).expect("edge rows share the u32 row-id domain"),
+                },
+            );
+        } else {
+            // Known to neither domain: an absent key by contract.
+        }
+    }
+
+    Ok(TranslateResponse { nodes, edges })
+}
+
+/// Parses one upstream entity id into the identity tables' key form.
+///
+/// A draft-suffixed id (`webId~entityUuid~draftId`) reads unresolved
+/// by contract - the corpus indexes live entities - as does anything
+/// that is not two `~`-delimited uuids.
+fn parse(id: &str) -> Option<ArchivedEntityId> {
+    let (web_id, entity_uuid) = id.split_once(ENTITY_ID_DELIMITER)?;
+    if entity_uuid.contains(ENTITY_ID_DELIMITER) {
+        return None;
+    }
+
+    let web_id: uuid::Uuid = web_id.parse().ok()?;
+    let entity_uuid: uuid::Uuid = entity_uuid.parse().ok()?;
+
+    Some(ArchivedEntityId {
+        web_id: web_id.into(),
+        entity_uuid: entity_uuid.into(),
+    })
+}

@@ -5,7 +5,7 @@ use std::{fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
 
-use super::{GenerationId, GenerationRoot, METADATA_FILE, digest};
+use super::{GenerationId, GenerationRoot, METADATA_FILE, document_digest};
 use crate::{
     file::{repository::FileName, salt::SaltRepository},
     integrity::Sha256Digest,
@@ -101,7 +101,7 @@ impl GenerationRoot {
             Err(error) => return Err(OpenError::Io(error)),
         };
 
-        let actual = digest(&document);
+        let actual = document_digest(&document);
         if actual != id.digest() {
             return Err(OpenError::Identity { id, actual });
         }

@@ -119,6 +119,10 @@ name              = "atlas"
 required-features = ["cli"]
 
 [[example]]
+name              = "backfill_postings"
+required-features = ["bench"]
+
+[[example]]
 name              = "clump_sweep"
 required-features = ["bench"]
 

@@ -8,9 +8,13 @@
 //! and every failure is a [`StageError`].
 
 use self::projector::PlacementInputs;
+#[cfg(test)]
+pub(super) use self::projector::{
+    TrainerInner as PlacementInner, device as placement_device, resolve_supplied,
+};
 use super::{FitConfig, SuppliedVerdicts, error::StageError, ingest::Ingested, role::Role};
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
+    dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         array::ArrayFile,
         generation::{Generation, PublishedGeneration, ScratchDirectory, StagedGeneration},
@@ -31,6 +35,7 @@ use crate::{
         landmark::artifact::MappedLandmarkSkeleton,
         lod::{quad::QuadEvidence, stage::LodEvidence},
         policy::classifier::Classifier,
+        postings::build::PostingsEvidence,
         relation::BuildEvidence,
     },
 };
@@ -89,6 +94,7 @@ struct Computed {
     lod: lod::LodArtifacts,
     lod_evidence: LodEvidence,
     quad_evidence: QuadEvidence,
+    postings_evidence: PostingsEvidence,
 }
 
 /// Runs every compute stage over the staged ingest artifacts and seals
@@ -101,7 +107,7 @@ struct Computed {
     reason = "the context holds plain borrows and no Drop of its own; the borrow of the staging \
               directory ends before the seal consumes it"
 )]
-pub(super) fn run<I>(
+pub(super) fn run<I, O>(
     staging: StagedGeneration,
     scratch: &ScratchDirectory,
     inputs: &Inputs,
@@ -110,6 +116,15 @@ pub(super) fn run<I>(
 where
     I: Copy
         + Sync
+        + zerocopy::IntoBytes
+        + zerocopy::FromBytes
+        + zerocopy::Immutable
+        + zerocopy::Unaligned
+        + zerocopy::KnownLayout,
+    O: OntologyIdentity
+        + Eq
+        + core::hash::Hash
+        + Copy
         + zerocopy::IntoBytes
         + zerocopy::FromBytes
         + zerocopy::Immutable
@@ -184,23 +199,27 @@ where
     // Placement: the configured placer stages the canonical
     // coordinates - the landmark baseline directly, or the trained
     // projector through its checkpoint and condition ladder.
-    let placement = context.stage_placement::<I>(&PlacementInputs {
+    // Supplied verdicts resolve into the corpus row domain under the
+    // dataset's own ontology id type before placement consumes them.
+    let resolution = context.resolve_verdicts::<O>(inputs.verdicts.as_ref())?;
+    let placement = context.stage_placement(&PlacementInputs {
         rows,
         skeleton: &skeleton,
         knn: &knn,
         semantic: &semantic,
         indexes: &relations.indexes,
-        verdicts: inputs.verdicts.as_ref(),
+        resolution: &resolution,
     })?;
 
     // Level of detail: rank, cascade, and gather the served columns
     // over the staged coordinates, cutting the quadtree over them.
-    let lod_outputs = context.stage_lod::<I>(&ingested.node_types)?;
+    let lod_outputs = context.stage_lod::<I>(&ingested.node_types, &ingested.type_parents)?;
     tracing::info!(
         catch_all = lod_outputs.evidence.catch_all_population,
         co_location_excess = lod_outputs.evidence.co_location_excess,
         quad_nodes = lod_outputs.quad_evidence.nodes,
-        "staged the level-of-detail columns and the quadtree"
+        dense_types = lod_outputs.postings_evidence.dense_types,
+        "staged the level-of-detail columns, the quadtree, and the postings"
     );
 
     let repository = assemble(
@@ -226,6 +245,7 @@ where
             lod: lod_outputs.files,
             lod_evidence: lod_outputs.evidence,
             quad_evidence: lod_outputs.quad_evidence,
+            postings_evidence: lod_outputs.postings_evidence,
         },
     );
 
@@ -252,6 +272,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             coordinates: computed.coordinates,
             morton: computed.lod.morton,
             quad: computed.lod.quad,
+            postings: computed.lod.postings,
             wire_coordinates: computed.lod.wire_coordinates,
             rank_of_position: computed.lod.rank_of_position,
             position_of_rank: computed.lod.position_of_rank,
@@ -288,6 +309,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 relations: computed.relation_evidence,
                 lod: computed.lod_evidence,
                 quad: computed.quad_evidence,
+                postings: computed.postings_evidence,
                 projector: computed.projector_evidence,
             },
         },

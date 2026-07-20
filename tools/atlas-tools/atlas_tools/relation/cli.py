@@ -415,6 +415,54 @@ class ConfirmPlacementsCommand(BaseSettings):
         echo(f"wrote {result.paths.manifest_path}")
 
 
+class ExportAnnotationCorpusCommand(BaseSettings):
+    """Export the annotation corpus (votes + axes + card content) for the SALT trainer.
+
+    Cards re-derive their structured content from the hash link-type records and the
+    Wikidata records intermediate; every rendering is hash-verified against the deck.
+    Votes are the completed production grid's (imported pilot votes plus fresh votes).
+    """
+
+    run: CliPositionalArg[DirectoryPath]
+    cards: CliPositionalArg[DirectoryPath]
+    config: CliPositionalArg[FilePath]
+    hash_cards: DirectoryPath
+    wikidata_records: DirectoryPath
+    wikidata_cards: DirectoryPath
+    closure: DirectoryPath
+    out: Path
+
+    model_config = SettingsConfigDict(extra="forbid")
+
+    def cli_cmd(self) -> None:
+        from atlas_tools.relation.evaluation.application.api import export_annotation_corpus
+
+        try:
+            result = export_annotation_corpus(
+                run_directory=self.run,
+                cards_directory=self.cards,
+                config_path=self.config,
+                hash_cards_directory=self.hash_cards,
+                wikidata_records_directory=self.wikidata_records,
+                wikidata_cards_directory=self.wikidata_cards,
+                family_closure_directory=self.closure,
+                output_path=self.out,
+            )
+        except (OSError, ValueError) as error:
+            fail(error)
+        echo(f"wrote {result.path}")
+        echo(f"sha256 {result.content_hash}")
+        echo(
+            f"cards {result.card_count} "
+            f"(hash {result.hash_card_count}, wikidata {result.wikidata_card_count})"
+        )
+        echo(f"votes {result.vote_count}")
+        for verdict, count in result.verdict_counts.items():
+            echo(f"  {verdict} {count}")
+        echo(f"shot-excluded {result.shot_excluded_count}")
+        echo(f"holdouts {result.holdout_count}")
+
+
 class ExportReviewedVerdictsCommand(BaseSettings):
     """Export human-confirmed relation placement verdicts for the SALT trainer.
 
@@ -574,6 +622,7 @@ class RelationCli(BaseModel):
     resolve_ambiguous: CliSubCommand[ResolveAmbiguousCommand]
     confirm_placements: CliSubCommand[ConfirmPlacementsCommand]
     fit: CliSubCommand[FitCommand]
+    export_annotation_corpus: CliSubCommand[ExportAnnotationCorpusCommand]
     export_classifier: CliSubCommand[ExportClassifierCommand]
     export_fit_inputs: CliSubCommand[ExportFitInputsCommand]
     export_reviewed_verdicts: CliSubCommand[ExportReviewedVerdictsCommand]

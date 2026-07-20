@@ -56,6 +56,10 @@ pub(crate) struct SaltFiles {
     /// The quadtree topology: the tile node table and its per-node
     /// direct-type sets, one combined quad file.
     pub quad: RepositoryFile,
+    /// The type postings: per-type membership over the base delivery
+    /// order and the type graph's direct parent edges, one combined
+    /// postings file.
+    pub postings: RepositoryFile,
     /// The wire `f32[N, 2]` coordinates in base delivery order,
     /// normalized into the `[-1, 1]` frame; an array file.
     pub wire_coordinates: RepositoryFile,
@@ -117,6 +121,7 @@ impl SaltFiles {
             coordinates,
             morton,
             quad,
+            postings,
             wire_coordinates,
             rank_of_position,
             position_of_rank,
@@ -145,6 +150,7 @@ impl SaltFiles {
             coordinates,
             morton,
             quad,
+            postings,
             wire_coordinates,
             rank_of_position,
             position_of_rank,

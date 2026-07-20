@@ -33,6 +33,7 @@ pub(super) enum Role {
     Coordinates,
     Morton,
     Quad,
+    Postings,
     WireCoordinates,
     RankOfPosition,
     PositionOfRank,
@@ -64,6 +65,7 @@ impl Role {
             Self::Coordinates => FileName::pinned("coordinates.arr"),
             Self::Morton => FileName::pinned("morton.mrtn"),
             Self::Quad => FileName::pinned("quadtree.quad"),
+            Self::Postings => FileName::pinned("postings.post"),
             Self::WireCoordinates => FileName::pinned("wire-coordinates.arr"),
             Self::RankOfPosition => FileName::pinned("rank-of-position.arr"),
             Self::PositionOfRank => FileName::pinned("position-of-rank.arr"),
@@ -88,7 +90,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 25] = [
+const _: [FileName; 26] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -103,6 +105,7 @@ const _: [FileName; 25] = [
     Role::Coordinates.file_name(),
     Role::Morton.file_name(),
     Role::Quad.file_name(),
+    Role::Postings.file_name(),
     Role::WireCoordinates.file_name(),
     Role::RankOfPosition.file_name(),
     Role::PositionOfRank.file_name(),

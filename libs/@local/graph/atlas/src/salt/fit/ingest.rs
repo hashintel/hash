@@ -1,7 +1,8 @@
 //! The ingest side of one fit: everything that reads the dataset.
 //!
-//! [`run`] drains the three dataset streams - nodes, edges, ontology -
-//! into their staged artifacts and certifies the representation
+//! [`run`] drains the dataset streams - nodes, edges, ontology, cards -
+//! into their staged artifacts and resident columns and certifies the
+//! representation
 //! contract, so everything the compute side needs afterwards lives in
 //! staged files and the returned [`Ingested`] value. The dataset and
 //! the embedding provider are never touched again after this module
@@ -61,6 +62,9 @@ pub(super) struct Ingested {
     /// The relation universe: distinct ontology rows the edge stream
     /// carried, ascending.
     pub relations: Vec<OntologyRowId>,
+    /// Each ontology row's direct parents, in row order: the postings
+    /// build's parent column.
+    pub type_parents: Vec<SmallVec<OntologyRowId, 2>>,
     /// The staged representation matrix.
     pub representations: RepositoryFile,
     /// The staged node identity table.
@@ -81,9 +85,10 @@ pub(super) struct Ingested {
 /// Drains the dataset into the staged stream artifacts.
 ///
 /// The stages run in the dataset's documented ingest order - nodes,
-/// edges, ontology - and the representation contract is certified
-/// before the card stream touches the embedding provider, so a
-/// defective corpus never spends provider budget.
+/// edges, ontology, then the card render over the same type table -
+/// and the representation contract is certified before the card
+/// stream touches the embedding provider, so a defective corpus never
+/// spends provider budget.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -126,7 +131,17 @@ where
         "staged the edge identities, endpoints, and instance spool"
     );
 
-    // Ontology: render every card and embed the unique texts, reusing
+    // Ontology: the parent column stays resident for the postings
+    // build; the card stream below covers the same rows.
+    let type_parents = collect_type_parents(dataset)
+        .instrument(tracing::info_span!("ontology"))
+        .await?;
+    tracing::info!(
+        types = type_parents.len(),
+        "collected the type parent column"
+    );
+
+    // Cards: render every card and embed the unique texts, reusing
     // the prior generation's rows where the text hash matches.
     let cards = embed_card_table(dataset, embedder, staging, prior)
         .instrument(tracing::info_span!("cards"))
@@ -145,6 +160,7 @@ where
         node_types: node_artifacts.types,
         edges: edge_artifacts.edges,
         relations: edge_artifacts.relations,
+        type_parents,
         representations: node_artifacts.representations,
         node_identities: node_artifacts.identities,
         edge_identities: edge_artifacts.identities,
@@ -339,6 +355,31 @@ where
         endpoints: Role::EdgeEndpoints.file(digest),
         instances,
     })
+}
+
+/// Drains the ontology stream into the resident parent column.
+///
+/// The column is type-scale and crosses to the compute side by value:
+/// the postings build restates it as the published type graph's
+/// parent regions.
+#[expect(
+    clippy::future_not_send,
+    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
+              follows the dataset's"
+)]
+async fn collect_type_parents<D, E>(
+    dataset: &D,
+) -> Result<Vec<SmallVec<OntologyRowId, 2>>, FitError<D::Error, E>>
+where
+    D: Dataset,
+{
+    let mut parents = Vec::new();
+    let mut stream = pin!(dataset.ontology());
+    while let Some(entry) = stream.try_next().await.map_err(FitError::Dataset)? {
+        parents.push(entry.parents);
+    }
+
+    Ok(parents)
 }
 
 /// The staged card-embedding artifacts of one fit.

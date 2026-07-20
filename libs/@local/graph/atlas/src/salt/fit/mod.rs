@@ -66,6 +66,7 @@ use crate::{
         landmark::{layout::LayoutOptions, quotient::QuotientOptions, select::SelectionOptions},
         lod::stage::LodConfig,
         policy::{CoincidentAdmission, PolicyOverride, classifier::Classifier},
+        postings::build::PostingsConfig,
         projector::{
             budget::BudgetOptions,
             loss::{CoincidentEnergy, SupportOptions},
@@ -79,6 +80,7 @@ use crate::{
 };
 
 #[cfg(feature = "bench")]
+mod backfill;
 pub mod bench;
 mod compute;
 mod echo;
@@ -344,6 +346,8 @@ pub(crate) struct FitConfig {
     pub ranking: RankingConfig = RankingConfig::default(),
     /// The level-of-detail schedule.
     pub lod: LodConfig = LodConfig::default(),
+    /// The postings representation split.
+    pub postings: PostingsConfig = PostingsConfig::default(),
 }
 
 /// The randomized stages, each naming its seed derivation.
@@ -492,8 +496,10 @@ where
         verdicts: verdicts.cloned(),
         prior: prior.cloned(),
     };
-    let published =
-        offload(move || compute::run::<D::NodeId>(staging, &scratch, &inputs, ingested)).await?;
+    let published = offload(move || {
+        compute::run::<D::NodeId, D::OntologyId>(staging, &scratch, &inputs, ingested)
+    })
+    .await?;
 
     Ok(published)
 }

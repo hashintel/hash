@@ -34,7 +34,7 @@ use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 pub(crate) use self::energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy};
 use crate::{
     dataset::OntologyRowId,
-    math::Vec2,
+    math::{DVec2, Vec2},
     salt::{projector::scale::LocalScales, relation::attraction::AttractionWeights},
 };
 
@@ -151,33 +151,48 @@ pub(crate) struct BatchRelationEdge {
 ///
 /// One field accumulates every term on one side of the budget seam;
 /// the budget then clips the relation field against the semantic field
-/// node by node. Reset and reuse the field across steps rather than
-/// reallocating.
+/// node by node. Contributions arrive in the working precision and
+/// accumulate in double precision; consumers narrow once at the
+/// working-precision seam. Reset and reuse the field across steps
+/// rather than reallocating.
 #[derive(Debug)]
-pub(crate) struct GradientField(Box<[Vec2]>);
+pub(crate) struct GradientField(Box<[DVec2]>);
 
 impl GradientField {
     /// Creates a zeroed field over `rows` nodes.
     #[must_use]
     pub(crate) fn new(rows: usize) -> Self {
-        Self(vec![Vec2::splat(0.0); rows].into_boxed_slice())
+        Self(vec![DVec2::ZERO; rows].into_boxed_slice())
     }
 
     /// Zeroes every entry, keeping the allocation.
     pub(crate) fn reset(&mut self) {
-        self.0.fill(Vec2::splat(0.0));
+        self.0.fill(DVec2::ZERO);
     }
 
     /// Adds a gradient contribution to one node.
     #[inline]
     pub(crate) fn accumulate(&mut self, row: usize, gradient: Vec2) {
+        self.0[row] += DVec2::from(gradient);
+    }
+
+    /// Adds a double-precision contribution moved from another field.
+    #[inline]
+    pub(crate) fn add(&mut self, row: usize, gradient: DVec2) {
         self.0[row] += gradient;
+    }
+
+    /// Reads one node's accumulated gradient, zeroing the entry.
+    #[inline]
+    #[must_use]
+    pub(crate) fn take(&mut self, row: usize) -> DVec2 {
+        core::mem::replace(&mut self.0[row], DVec2::ZERO)
     }
 
     /// Borrows the accumulated per-node gradients.
     #[inline]
     #[must_use]
-    pub(crate) fn as_slice(&self) -> &[Vec2] {
+    pub(crate) fn as_slice(&self) -> &[DVec2] {
         &self.0
     }
 

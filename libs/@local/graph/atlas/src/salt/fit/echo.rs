@@ -34,6 +34,7 @@ use crate::{
         },
         lod::stage::LodConfig,
         policy::{CoincidentAdmission, PolicyOverride},
+        postings::build::PostingsConfig,
         relation::attraction::AttractionOptions,
         semantic::SmoothingOptions,
     },
@@ -668,6 +669,15 @@ struct LodConfigDef {
     max_tile_depth: u8,
 }
 
+/// serde shadow of [`PostingsConfig`].
+// pub(crate): the backfill splices this shadow's serialization into a
+// legacy document, so both writers speak one field layout.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "PostingsConfig")]
+pub(crate) struct PostingsConfigDef {
+    dense_threshold_log2: u8,
+}
+
 /// serde shadow of [`RankingConfig`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "RankingConfig")]
@@ -731,4 +741,6 @@ pub(crate) struct FitConfigDef {
     ranking: RankingConfig,
     #[serde(with = "LodConfigDef")]
     lod: LodConfig,
+    #[serde(with = "PostingsConfigDef")]
+    postings: PostingsConfig,
 }

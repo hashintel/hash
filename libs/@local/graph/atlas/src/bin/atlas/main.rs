@@ -31,7 +31,7 @@ use hash_graph_atlas::{
         fit::connect,
         runner::{LiveOptions, run_live},
     },
-    serve::{Atlas, GenerationRoot},
+    serve::{Atlas, GenerationRoot, PostgresDetails},
 };
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 
@@ -144,6 +144,79 @@ struct ServeArgs {
     /// The port to listen on.
     #[arg(long, env = "ATLAS_PORT", default_value_t = 4003)]
     port: u16,
+
+    #[command(flatten)]
+    store: StoreArgs,
+}
+
+/// The store connection settings, mirroring the graph binary's
+/// `DatabaseConnectionInfo` - same environment variables, same
+/// defaults - so one deployment configuration drives both until this
+/// binary folds into `hash-graph`. The flags carry a `pg-` prefix
+/// only because `--host`/`--port` name the listener here.
+#[derive(Debug, Args)]
+struct StoreArgs {
+    /// Database username.
+    #[arg(
+        long = "pg-user",
+        env = "HASH_GRAPH_PG_USER",
+        default_value = "postgres"
+    )]
+    user: String,
+
+    /// Database password for authentication.
+    #[arg(
+        long = "pg-password",
+        env = "HASH_GRAPH_PG_PASSWORD",
+        default_value = "postgres"
+    )]
+    password: String,
+
+    /// The host to connect to.
+    //
+    // The explicit ids keep the flattened fields distinct from the
+    // listener's `host`/`port` (clap ids default to the field name
+    // and collide across flattened structs).
+    #[arg(
+        id = "pg-host",
+        long = "pg-host",
+        env = "HASH_GRAPH_PG_HOST",
+        default_value = "localhost"
+    )]
+    host: String,
+
+    /// The port to connect to.
+    #[arg(
+        id = "pg-port",
+        long = "pg-port",
+        env = "HASH_GRAPH_PG_PORT",
+        default_value_t = 5432
+    )]
+    port: u16,
+
+    /// The database name to use.
+    #[arg(
+        long = "pg-database",
+        env = "HASH_GRAPH_PG_DATABASE",
+        default_value = "graph"
+    )]
+    database: String,
+}
+
+impl StoreArgs {
+    /// Renders the keyword connection string the store dialer
+    /// parses, quoting each value against spaces and quotes.
+    fn dsn(&self) -> String {
+        let quote = |value: &str| format!("'{}'", value.replace('\\', "\\\\").replace('\'', "\\'"));
+        format!(
+            "host={} port={} user={} password={} dbname={}",
+            quote(&self.host),
+            self.port,
+            quote(&self.user),
+            quote(&self.password),
+            quote(&self.database),
+        )
+    }
 }
 
 fn default_root() -> String {
@@ -237,7 +310,17 @@ async fn serve(args: ServeArgs) {
         "serving the active generation"
     );
 
-    let router = routes::router(atlas).route(
+    // The store rides every serve, exactly as it does in the graph
+    // binary this one folds into: detail trailers hydrate live.
+    let client = connect(&args.store.dsn()).await;
+    tracing::info!(
+        host = args.store.host,
+        database = args.store.database,
+        "detail trailers hydrate from the store"
+    );
+    let details = Arc::new(PostgresDetails::new(client));
+
+    let router = routes::router(atlas, details).route(
         "/status",
         axum::routing::get(async || axum::http::StatusCode::OK),
     );

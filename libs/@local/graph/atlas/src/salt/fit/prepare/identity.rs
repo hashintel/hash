@@ -139,7 +139,7 @@ struct Pair<I> {
 /// A structurally valid identity file whose contents violate the
 /// table's domain invariants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum InvalidIdentityFile {
+pub enum InvalidIdentityFile {
     /// The file's id width is not the id type's.
     KeyWidth { expected: u32, actual: u32 },
     /// A pair's id is not strictly above its predecessor's.
