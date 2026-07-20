@@ -7010,6 +7010,8 @@ __metadata:
     monaco-editor: "npm:0.55.1"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    postcss: "npm:8.5.16"
+    postcss-selector-parser: "npm:7.1.1"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     react-markdown: "npm:10.1.0"
@@ -35728,7 +35730,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.3.11, postcss@npm:^8.4.14, postcss@npm:^8.4.33, postcss@npm:^8.5.15, postcss@npm:^8.5.16, postcss@npm:^8.5.3, postcss@npm:^8.5.6":
+"postcss@npm:8.5.16, postcss@npm:^8.3.11, postcss@npm:^8.4.14, postcss@npm:^8.4.33, postcss@npm:^8.5.15, postcss@npm:^8.5.16, postcss@npm:^8.5.3, postcss@npm:^8.5.6":
   version: 8.5.16
   resolution: "postcss@npm:8.5.16"
   dependencies:
