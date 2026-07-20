@@ -24,12 +24,12 @@ const rowStyle = css({
   borderRadius: "lg",
   backgroundColor: "neutral.s00",
   boxShadow:
-    "[-2px 0 6px rgba(128, 0, 255, 0), 0 -2px 6px rgba(255, 210, 0, 0), 2px 0 6px rgba(0, 220, 255, 0), 0 2px 6px rgba(255, 0, 128, 0)]",
+    "[-2px 0 6px rgba(0, 220, 255, 0), 2px 0 6px rgba(255, 0, 128, 0)]",
   transition: "[border-color 160ms ease, box-shadow 200ms ease]",
   "&[data-optimizing='true']": {
-    borderColor: "neutral.s50",
+    borderColor: "neutral.s80",
     boxShadow:
-      "[-2px 0 6px rgba(128, 0, 255, 0.06), 0 -2px 6px rgba(255, 210, 0, 0.05), 2px 0 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)]",
+      "[-2px 0 6px rgba(0, 220, 255, 0.03), 2px 0 6px rgba(255, 0, 128, 0.045)]",
     animationName: "[optimizationGlow]",
     animationDuration: "[2s]",
     animationTimingFunction: "linear",

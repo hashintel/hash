@@ -31,14 +31,15 @@ model fields or nested paths to the optimizer.
 4. Give the optimization a name and choose its number of optimization steps
    (between 1 and 1,000), time step (default `0.1`), and maximum simulation
    time.
-5. In **Scenario parameters**, leave a parameter **Fixed** or enable
+5. In **Parameters**, leave a parameter at its current **Value** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.
 6. Choose exactly one objective and whether to **Maximize** or **Minimize** it:
-   - Choose **Saved metric** to use an existing model metric.
-   - Choose **Custom metric** to enter a name, optional description, and metric
-     code for this optimization. The editor checks the code in the same way as
-     a saved metric, but does not add it to the model.
+   - Choose a metric under **Model metrics** to use an existing model metric.
+   - Choose **Custom code** to enter metric code for this optimization. The
+     editor checks it in the same way as a saved metric, but does not add it to
+     the model. Experiment-only built-in metrics are not available as
+     optimization objectives.
 7. Click **Run**.
 
 The metric is evaluated on the final frame of each optimization step's

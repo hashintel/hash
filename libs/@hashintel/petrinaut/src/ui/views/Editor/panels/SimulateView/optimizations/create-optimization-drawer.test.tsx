@@ -19,6 +19,10 @@ import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { sirSdcpnContextValue } from "../experiments/experiments-story-fixtures";
 import {
+  CUSTOM_METRIC_VALUE,
+  MODEL_METRIC_VALUE_PREFIX,
+} from "../metrics/metric-picker-options";
+import {
   buildPetrinautOptimizationInput,
   CreateOptimizationDrawer,
   validateOptimizationParameterDraft,
@@ -90,30 +94,39 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     required,
     value,
   }: {
-    items: readonly { value: string; text: string }[];
+    items: readonly (
+      | { value: string; text: string }
+      | { items: readonly { value: string; text: string }[] }
+    )[];
     onChange: (value: string | null) => void;
     placeholder?: string;
     required?: boolean;
     value: string | null;
-  }) => (
-    <select
-      aria-label={placeholder}
-      required={required}
-      value={value ?? ""}
-      onChange={(event) => onChange(event.target.value || null)}
-    >
-      {placeholder ? (
-        <option value="" disabled={required} hidden={required}>
-          {placeholder}
-        </option>
-      ) : null}
-      {items.map((item) => (
-        <option key={item.value} value={item.value}>
-          {item.text}
-        </option>
-      ))}
-    </select>
-  );
+  }) => {
+    const options = items.flatMap((item) =>
+      "items" in item ? item.items : [item],
+    );
+
+    return (
+      <select
+        aria-label={placeholder}
+        required={required}
+        value={value ?? ""}
+        onChange={(event) => onChange(event.target.value || null)}
+      >
+        {placeholder ? (
+          <option value="" disabled={required} hidden={required}>
+            {placeholder}
+          </option>
+        ) : null}
+        {options.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.text}
+          </option>
+        ))}
+      </select>
+    );
+  };
 
   const Toggle = ({
     "aria-label": ariaLabel,
@@ -328,7 +341,11 @@ describe("CreateOptimizationDrawer", () => {
     });
     fireEvent.change(
       screen.getByRole("combobox", { name: "Select a metric" }),
-      { target: { value: "metric__infected_fraction" } },
+      {
+        target: {
+          value: `${MODEL_METRIC_VALUE_PREFIX}metric__infected_fraction`,
+        },
+      },
     );
     fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
 
@@ -357,11 +374,8 @@ describe("CreateOptimizationDrawer", () => {
     ).toBeNull();
   });
 
-  it("offers saved and custom objective metric sources", () => {
+  it("offers model metrics and custom code without built-in metrics", () => {
     openConfiguration();
-
-    expect(screen.getByRole("button", { name: "Saved metric" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Custom metric" })).toBeTruthy();
 
     const metricSelect = screen.getByRole("combobox", {
       name: "Select a metric",
@@ -369,22 +383,33 @@ describe("CreateOptimizationDrawer", () => {
     expect(
       screen.getByRole("option", { name: "Infected Fraction" }),
     ).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Custom code" })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: "Place tokens" })).toBeNull();
+    expect(
+      screen.queryByRole("option", { name: "Transition firing" }),
+    ).toBeNull();
 
     fireEvent.change(metricSelect, {
-      target: { value: "metric__infected_fraction" },
+      target: {
+        value: `${MODEL_METRIC_VALUE_PREFIX}metric__infected_fraction`,
+      },
     });
-    expect(metricSelect.value).toBe("metric__infected_fraction");
+    expect(metricSelect.value).toBe(
+      `${MODEL_METRIC_VALUE_PREFIX}metric__infected_fraction`,
+    );
   });
 
-  it("uses the normal custom metric fields without experiment shortcuts", () => {
+  it("shows only the code editor for a custom objective", () => {
     openConfiguration();
 
-    fireEvent.click(screen.getByRole("button", { name: "Custom metric" }));
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      { target: { value: CUSTOM_METRIC_VALUE } },
+    );
 
-    expect(screen.getByText("Metric name")).toBeTruthy();
-    expect(screen.getByText("Description")).toBeTruthy();
-    expect(screen.getByText("Code")).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Metric code" })).toBeTruthy();
+    expect(screen.queryByLabelText("Metric name")).toBeNull();
+    expect(screen.queryByLabelText("Description")).toBeNull();
     expect(screen.queryByText(/place token count/i)).toBeNull();
     expect(screen.queryByText(/transition firing count/i)).toBeNull();
   });
@@ -394,7 +419,11 @@ describe("CreateOptimizationDrawer", () => {
 
     fireEvent.change(
       screen.getByRole("combobox", { name: "Select a metric" }),
-      { target: { value: "metric__infected_fraction" } },
+      {
+        target: {
+          value: `${MODEL_METRIC_VALUE_PREFIX}metric__infected_fraction`,
+        },
+      },
     );
     fireEvent.click(
       screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
@@ -418,7 +447,9 @@ describe("CreateOptimizationDrawer", () => {
 
     fireEvent.change(
       screen.getByRole("combobox", { name: "Select a metric" }),
-      { target: { value: savedMetric!.id } },
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
     );
     fireEvent.click(
       screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
@@ -452,13 +483,10 @@ describe("CreateOptimizationDrawer", () => {
     ];
     openConfiguration({ createOptimization, languageClient });
 
-    fireEvent.click(screen.getByRole("button", { name: "Custom metric" }));
-    fireEvent.change(screen.getByLabelText("Metric name"), {
-      target: { value: "Final infections" },
-    });
-    fireEvent.change(screen.getByLabelText("Description"), {
-      target: { value: "A transient optimization objective" },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      { target: { value: CUSTOM_METRIC_VALUE } },
+    );
     fireEvent.change(screen.getByRole("textbox", { name: "Metric code" }), {
       target: { value: "return state.places.Infected.count;" },
     });
@@ -475,8 +503,8 @@ describe("CreateOptimizationDrawer", () => {
     expect(typeof submittedMetric.id).toBe("string");
     expect(submittedMetric).toEqual({
       id: submittedMetric.id,
-      name: "Final infections",
-      description: "A transient optimization objective",
+      name: "Custom objective",
+      description: undefined,
       code: "return state.places.Infected.count;",
     });
     expect(submittedInput.objective.metricId).toBe(submittedMetric.id);

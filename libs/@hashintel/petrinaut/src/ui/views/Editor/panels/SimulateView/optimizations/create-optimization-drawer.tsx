@@ -24,15 +24,21 @@ import { OptimizationsContext } from "../../../../../../react/optimizations/cont
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Section, SectionList } from "../../../../../components/section";
 import { SegmentGroup } from "../../../../../components/segment-group";
+import { CodeEditor } from "../../../../../monaco/code-editor";
+import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import {
-  MetricFormBody,
   type MetricFormInstance,
   useMetricForm,
   useMetricLspSession,
 } from "../metrics/metric-form";
-import { EMPTY_METRIC_FORM_STATE } from "../metrics/metric-form-defaults";
 import { validateMetricCompiles } from "../metrics/metric-lsp";
 import { buildMetricFromFormState } from "../metrics/metric-mapping";
+import {
+  createMetricKindGroups,
+  CUSTOM_METRIC_VALUE,
+  getMetricKindIcon,
+  MODEL_METRIC_VALUE_PREFIX,
+} from "../metrics/metric-picker-options";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
@@ -146,6 +152,12 @@ const fullWidthGridItemStyle = css({
   gridColumn: "[1 / -1]",
 });
 
+const segmentControlStyle = css({
+  "& [data-part='item']": {
+    height: "6",
+  },
+});
+
 const parameterListStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -168,14 +180,15 @@ const directionOptions = [
   { value: "minimize", label: "Minimize" },
 ];
 
-const metricSourceOptions = [
-  { value: "saved", label: "Saved metric" },
-  { value: "custom", label: "Custom metric" },
-];
-
 const OPTIMIZATION_SEED = 1234;
 const OPTIMIZATION_SAMPLER = "tpe" as const;
 const DEFAULT_DT = 0.1;
+const CUSTOM_OBJECTIVE_METRIC_NAME = "Custom objective";
+const CUSTOM_OBJECTIVE_METRIC_FORM_STATE = {
+  name: CUSTOM_OBJECTIVE_METRIC_NAME,
+  description: "",
+  code: "",
+};
 
 const ScenarioSelectLabel = ({
   scenario,
@@ -203,10 +216,12 @@ const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
   const metricSessionId = useMetricLspSession(values.code);
 
   return (
-    <MetricFormBody
-      form={form}
-      idPrefix="optimization-objective-"
-      metricSessionId={metricSessionId}
+    <CodeEditor
+      language="typescript"
+      path={getMetricDocumentUri(metricSessionId)}
+      value={values.code}
+      onChange={(code) => form.setFieldValue("code", code ?? "")}
+      height="240px"
     />
   );
 };
@@ -503,10 +518,29 @@ export const CreateOptimizationDrawer = ({
     value: scenario.id,
     text: scenario.name,
   }));
-  const metricOptions = metrics.map((metric) => ({
-    value: metric.id,
-    text: metric.name,
-  }));
+  const metricKindGroups = createMetricKindGroups(petriNetDefinition, {
+    includeBuiltIn: false,
+  });
+  const metricPickerValue =
+    metricSource === "custom"
+      ? CUSTOM_METRIC_VALUE
+      : savedMetricId
+        ? `${MODEL_METRIC_VALUE_PREFIX}${savedMetricId}`
+        : "";
+  const renderMetricOption = (value: string) => {
+    const icon = getMetricKindIcon(value);
+    const text =
+      metricKindGroups
+        .flatMap(({ items }) => items)
+        .find((item) => item.value === value)?.text ?? value;
+
+    return (
+      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {icon ? <Icon name={icon} size="xs" /> : null}
+        {text}
+      </span>
+    );
+  };
   const renderScenarioLabel = (scenarioId: string, selected = false) => {
     const scenario = scenarios.find(({ id }) => id === scenarioId);
     return scenario ? (
@@ -613,7 +647,7 @@ export const CreateOptimizationDrawer = ({
   };
 
   const customMetricForm = useMetricForm(
-    EMPTY_METRIC_FORM_STATE,
+    CUSTOM_OBJECTIVE_METRIC_FORM_STATE,
     async (value, context) => {
       const parsedMetric = metricSchema.safeParse(
         buildMetricFromFormState(value, customMetricId),
@@ -657,9 +691,7 @@ export const CreateOptimizationDrawer = ({
   const customMetricFormError = customMetricErrors.find(
     (formError) => typeof formError === "string",
   ) as string | undefined;
-  const customMetricReady =
-    customMetricValues.name.trim() !== "" &&
-    customMetricValues.code.trim() !== "";
+  const customMetricReady = customMetricValues.code.trim() !== "";
   const objectiveMetricReady =
     metricSource === "saved"
       ? selectedSavedMetric !== undefined
@@ -700,6 +732,28 @@ export const CreateOptimizationDrawer = ({
     setSelectedScenarioId(scenario?.id ?? null);
     resetConfigurationState(scenario);
     customMetricForm.reset();
+  };
+
+  const handleMetricChange = (value: string | null) => {
+    setError(null);
+
+    if (value === CUSTOM_METRIC_VALUE) {
+      setMetricSource("custom");
+      setSavedMetricId(null);
+      return;
+    }
+
+    if (value?.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
+      const metricId = value.slice(MODEL_METRIC_VALUE_PREFIX.length);
+      if (metrics.some((metric) => metric.id === metricId)) {
+        setMetricSource("saved");
+        setSavedMetricId(metricId);
+        return;
+      }
+    }
+
+    setMetricSource("saved");
+    setSavedMetricId(null);
   };
 
   const handleSubmit = () => {
@@ -835,48 +889,39 @@ export const CreateOptimizationDrawer = ({
 
               <Section title="Objective" collapsible defaultOpen>
                 <span className={hintStyle}>
-                  Choose a saved metric or define a custom metric for this run.
-                  Its value at the final simulation frame is the optimization
-                  objective.
+                  Choose a saved metric or write custom code for this run.
+                  <br />
+                  Its final simulation value will be maximized or minimized.
                 </span>
                 <div className={gridStyle}>
                   <div className={fieldStyle}>
-                    <span className={labelStyle}>Metric source</span>
-                    <SegmentGroup
+                    <span className={labelStyle}>Metric</span>
+                    <Select
+                      required
                       size="sm"
-                      value={metricSource}
-                      options={metricSourceOptions}
-                      onChange={(value) => {
-                        setMetricSource(value as MetricSource);
-                        setError(null);
-                      }}
+                      placeholder="Select a metric"
+                      value={metricPickerValue}
+                      items={metricKindGroups}
+                      renderItem={renderMetricOption}
+                      renderSelectedItem={renderMetricOption}
+                      onChange={handleMetricChange}
                     />
                   </div>
                   <div className={fieldStyle}>
                     <span className={labelStyle}>Direction</span>
-                    <SegmentGroup
-                      size="sm"
-                      value={direction ?? ""}
-                      options={directionOptions}
-                      onChange={(value) => setDirection(value as Direction)}
-                    />
+                    <div className={segmentControlStyle}>
+                      <SegmentGroup
+                        size="sm"
+                        value={direction ?? ""}
+                        options={directionOptions}
+                        onChange={(value) => setDirection(value as Direction)}
+                      />
+                    </div>
                   </div>
                 </div>
-                {metricSource === "saved" ? (
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Metric</span>
-                    <Select
-                      placeholder="Select a metric"
-                      value={savedMetricId}
-                      onChange={(value) => setSavedMetricId(value ?? null)}
-                      items={metricOptions}
-                      emptyState="This model has no saved metrics. Define a custom metric instead."
-                      size="sm"
-                    />
-                  </div>
-                ) : (
+                {metricSource === "custom" ? (
                   <InlineObjectiveMetricForm form={customMetricForm} />
-                )}
+                ) : null}
               </Section>
             </>
           ) : null}

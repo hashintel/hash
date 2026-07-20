@@ -56,19 +56,19 @@ export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
           optimizationGlow: {
             "0%, 100%": {
               boxShadow:
-                "-2px 0 6px rgba(128, 0, 255, 0.06), 0 -2px 6px rgba(255, 210, 0, 0.05), 2px 0 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)",
+                "-2px 0 6px rgba(0, 220, 255, 0.03), 2px 0 6px rgba(255, 0, 128, 0.045)",
             },
             "25%": {
               boxShadow:
-                "-2px 0 6px rgba(255, 0, 128, 0.045), 0 -2px 6px rgba(128, 0, 255, 0.06), 2px 0 6px rgba(255, 210, 0, 0.05), 0 2px 6px rgba(0, 220, 255, 0.03)",
+                "0 -2px 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)",
             },
             "50%": {
               boxShadow:
-                "-2px 0 6px rgba(0, 220, 255, 0.03), 0 -2px 6px rgba(255, 0, 128, 0.045), 2px 0 6px rgba(128, 0, 255, 0.06), 0 2px 6px rgba(255, 210, 0, 0.05)",
+                "2px 0 6px rgba(0, 220, 255, 0.03), -2px 0 6px rgba(255, 0, 128, 0.045)",
             },
             "75%": {
               boxShadow:
-                "-2px 0 6px rgba(255, 210, 0, 0.05), 0 -2px 6px rgba(0, 220, 255, 0.03), 2px 0 6px rgba(255, 0, 128, 0.045), 0 2px 6px rgba(128, 0, 255, 0.06)",
+                "0 2px 6px rgba(0, 220, 255, 0.03), 0 -2px 6px rgba(255, 0, 128, 0.045)",
             },
           },
           expand: {
