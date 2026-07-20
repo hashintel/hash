@@ -66,7 +66,9 @@ describe("OptimizationParameterRow", () => {
     expect(screen.getByText("Minimum")).toBeTruthy();
     expect(screen.getByText("Maximum")).toBeTruthy();
     expect(screen.getByText("Scale")).toBeTruthy();
-    expect(screen.queryByText("Fixed value")).toBeNull();
+    expect(
+      screen.getByText("Fixed value").closest("[aria-hidden='true']"),
+    ).toBeTruthy();
   });
 
   it("uses integer step and scale controls, and boolean categorical controls", () => {

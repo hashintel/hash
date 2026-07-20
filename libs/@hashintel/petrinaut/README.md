@@ -4,12 +4,14 @@ A component for editing [**Petri nets**](https://en.wikipedia.org/wiki/Petri_net
 
 Currently **under development** and not ready for usage.
 
-## Development Mode
+## Storybook
 
-For development and testing, you can use the included dev mode:
+Run Petrinaut's component stories from the repository root:
 
 ```bash
-yarn dev
+yarn workspace @hashintel/petrinaut dev
 ```
 
-This will start a development server with a fully functional Petrinaut editor that uses local storage to persist created nets.
+The **Simulate / SimulateView / Run Supply Chain optimization** story opens
+the optimization UI with an internal fake optimizer, so it does not require
+the Python service or Docker.

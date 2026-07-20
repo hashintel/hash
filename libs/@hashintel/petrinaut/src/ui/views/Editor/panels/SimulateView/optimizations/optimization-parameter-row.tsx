@@ -17,20 +17,12 @@ export type OptimizationParameterDraft = {
 const rowStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
-  padding: "3",
+  padding: "2",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
+  borderRadius: "lg",
   backgroundColor: "neutral.s00",
-});
-
-const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "3",
 });
 
 const identityStyle = css({
@@ -38,6 +30,11 @@ const identityStyle = css({
   alignItems: "baseline",
   gap: "2",
   minWidth: "[0]",
+  paddingLeft: "1",
+});
+
+const fixedIdentityStyle = css({
+  flex: "[1 1 12rem]",
 });
 
 const nameStyle = css({
@@ -64,10 +61,53 @@ const modeStyle = css({
   color: "neutral.s100",
 });
 
+const fixedRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "2",
+});
+
+const fixedFieldStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[auto minmax(8rem, 1fr)]",
+  alignItems: "center",
+  gap: "2",
+  flex: "[0 1 22rem]",
+  minWidth: "[12rem]",
+  opacity: "1",
+  transition: "[opacity 120ms ease-in-out]",
+  "&[data-visible='false']": {
+    opacity: "0",
+    pointerEvents: "none",
+  },
+});
+
 const fieldsStyle = css({
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))",
   gap: "2",
+});
+
+const expansionStyle = css({
+  display: "grid",
+  gridTemplateRows: "[0fr]",
+  opacity: "0",
+  transition:
+    "[grid-template-rows 180ms ease-in-out, opacity 120ms ease-in-out]",
+  "&[data-expanded='true']": {
+    gridTemplateRows: "[1fr]",
+    opacity: "1",
+  },
+});
+
+const expansionClipStyle = css({
+  minHeight: "0",
+  overflow: "hidden",
+});
+
+const expansionBodyStyle = css({
+  paddingTop: "1",
 });
 
 const fieldStyle = css({
@@ -76,10 +116,17 @@ const fieldStyle = css({
   gap: "1",
 });
 
+const scaleControlStyle = css({
+  "& [data-part='item']": {
+    height: "6",
+  },
+});
+
 const fieldLabelStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s80",
+  paddingLeft: "1",
 });
 
 const booleanHintStyle = css({
@@ -129,39 +176,46 @@ export const OptimizationParameterRow = ({
     onChange({ ...draft, ...update });
   const numericMinimum =
     parameter.type === "ratio" ? 0 : Number.MIN_SAFE_INTEGER;
+  const optimizing = draft.mode === "optimize";
+  const identity = (
+    <div className={`${identityStyle} ${fixedIdentityStyle}`}>
+      <span className={nameStyle}>{parameter.identifier}</span>
+      <span className={typeStyle}>{typeLabel(parameter.type)}</span>
+    </div>
+  );
+  const modeControl = (
+    <div className={modeStyle}>
+      Optimize
+      <Toggle
+        aria-label={`Optimize ${parameter.identifier}`}
+        size="sm"
+        value={optimizing}
+        onChange={(enabled) => patch({ mode: enabled ? "optimize" : "fixed" })}
+      />
+    </div>
+  );
 
   return (
     <div className={rowStyle}>
-      <div className={headerStyle}>
-        <div className={identityStyle}>
-          <span className={nameStyle}>{parameter.identifier}</span>
-          <span className={typeStyle}>{typeLabel(parameter.type)}</span>
-        </div>
-        <div className={modeStyle}>
-          Optimize
-          <Toggle
-            aria-label={`Optimize ${parameter.identifier}`}
-            size="sm"
-            value={draft.mode === "optimize"}
-            onChange={(enabled) =>
-              patch({ mode: enabled ? "optimize" : "fixed" })
-            }
-          />
-        </div>
-      </div>
-
-      {draft.mode === "fixed" ? (
-        <div className={fieldStyle}>
+      <div className={fixedRowStyle}>
+        {identity}
+        <div
+          className={fixedFieldStyle}
+          data-visible={!optimizing}
+          aria-hidden={optimizing}
+        >
           <span className={fieldLabelStyle}>Fixed value</span>
           {parameter.type === "boolean" ? (
             <Toggle
               aria-label={`${parameter.identifier} fixed value`}
+              disabled={optimizing}
               size="sm"
               value={draft.fixedValue === true}
               onChange={(fixedValue) => patch({ fixedValue })}
             />
           ) : (
             <NumberInput
+              disabled={optimizing}
               size="sm"
               min={numericMinimum}
               max={parameter.type === "ratio" ? 1 : undefined}
@@ -173,68 +227,88 @@ export const OptimizationParameterRow = ({
             />
           )}
         </div>
-      ) : parameter.type === "boolean" ? (
-        <span className={booleanHintStyle}>
-          The optimizer will try both false and true.
-        </span>
-      ) : (
-        <div className={fieldsStyle}>
-          <div className={fieldStyle}>
-            <span className={fieldLabelStyle}>Minimum</span>
-            <NumberInput
-              size="sm"
-              min={numericMinimum}
-              max={parameter.type === "ratio" ? 1 : undefined}
-              step={parameter.type === "integer" ? 1 : "any"}
-              value={draft.minimum}
-              onChange={(minimum) => patch({ minimum })}
-            />
-          </div>
-          <div className={fieldStyle}>
-            <span className={fieldLabelStyle}>Maximum</span>
-            <NumberInput
-              size="sm"
-              min={numericMinimum}
-              max={parameter.type === "ratio" ? 1 : undefined}
-              step={parameter.type === "integer" ? 1 : "any"}
-              value={draft.maximum}
-              onChange={(maximum) => patch({ maximum })}
-            />
-          </div>
-          {parameter.type === "integer" ? (
-            <div className={fieldStyle}>
-              <span className={fieldLabelStyle}>Step</span>
-              <NumberInput
-                size="sm"
-                min={1}
-                step={1}
-                value={draft.step}
-                onChange={(step) => patch({ step })}
-              />
-            </div>
-          ) : null}
-          <div className={fieldStyle}>
-            <span className={fieldLabelStyle}>Scale</span>
-            <SegmentGroup
-              size="sm"
-              value={draft.scale}
-              options={[
-                { value: "linear", label: "Linear" },
-                { value: "log", label: "Log" },
-              ]}
-              onChange={(scale) => {
-                const nextScale = scale as "linear" | "log";
-                patch({
-                  scale: nextScale,
-                  ...(parameter.type === "integer" && nextScale === "log"
-                    ? { step: 1 }
-                    : {}),
-                });
-              }}
-            />
+        {modeControl}
+      </div>
+
+      <div
+        className={expansionStyle}
+        data-expanded={optimizing}
+        aria-hidden={!optimizing}
+      >
+        <div className={expansionClipStyle}>
+          <div className={expansionBodyStyle}>
+            {parameter.type === "boolean" ? (
+              <span className={booleanHintStyle}>
+                The optimizer will try both false and true.
+              </span>
+            ) : (
+              <div className={fieldsStyle}>
+                <div className={fieldStyle}>
+                  <span className={fieldLabelStyle}>Minimum</span>
+                  <NumberInput
+                    disabled={!optimizing}
+                    size="sm"
+                    min={numericMinimum}
+                    max={parameter.type === "ratio" ? 1 : undefined}
+                    step={parameter.type === "integer" ? 1 : "any"}
+                    value={draft.minimum}
+                    onChange={(minimum) => patch({ minimum })}
+                  />
+                </div>
+                <div className={fieldStyle}>
+                  <span className={fieldLabelStyle}>Maximum</span>
+                  <NumberInput
+                    disabled={!optimizing}
+                    size="sm"
+                    min={numericMinimum}
+                    max={parameter.type === "ratio" ? 1 : undefined}
+                    step={parameter.type === "integer" ? 1 : "any"}
+                    value={draft.maximum}
+                    onChange={(maximum) => patch({ maximum })}
+                  />
+                </div>
+                {parameter.type === "integer" ? (
+                  <div className={fieldStyle}>
+                    <span className={fieldLabelStyle}>Step</span>
+                    <NumberInput
+                      disabled={!optimizing}
+                      size="sm"
+                      min={1}
+                      step={1}
+                      value={draft.step}
+                      onChange={(step) => patch({ step })}
+                    />
+                  </div>
+                ) : null}
+                <div className={fieldStyle}>
+                  <span className={fieldLabelStyle}>Scale</span>
+                  <div className={scaleControlStyle}>
+                    <SegmentGroup
+                      disabled={!optimizing}
+                      size="sm"
+                      value={draft.scale}
+                      options={[
+                        { value: "linear", label: "Linear" },
+                        { value: "log", label: "Log" },
+                      ]}
+                      onChange={(scale) => {
+                        const nextScale = scale as "linear" | "log";
+                        patch({
+                          scale: nextScale,
+                          ...(parameter.type === "integer" &&
+                          nextScale === "log"
+                            ? { step: 1 }
+                            : {}),
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

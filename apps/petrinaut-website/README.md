@@ -32,16 +32,19 @@ Stopping the command also stops and removes its optimizer container.
 
 The development server proxies `/api/petrinaut-opt/*` to the optimizer on
 `127.0.0.1:4004`, avoiding development-only CORS changes to the Python service.
-Regular `yarn dev` continues to use the fake optimization provider.
+Regular `yarn dev` does not enable optimization; use the dedicated command to
+connect the website to the real optimizer service. Storybook provides a fake
+optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                   | Required         | Used by          | Notes                                                     |
-| ---------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
-| `OPENAI_API_KEY`       | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
-| `PETRINAUT_AI_MODEL`   | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
-| `PETRINAUT_OPT_ORIGIN` | no               | `vite.config.ts` | Overrides the local optimizer proxy target.               |
-| `SENTRY_DSN`           | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
+| Name                          | Required         | Used by          | Notes                                                     |
+| ----------------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
+| `OPENAI_API_KEY`              | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
+| `PETRINAUT_AI_MODEL`          | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
+| `PETRINAUT_OPT_ORIGIN`        | no               | `vite.config.ts` | Overrides the local optimizer proxy target.               |
+| `VITE_PETRINAUT_OPT_PROVIDER` | no               | website          | Set to `service` to enable the optimization route.        |
+| `SENTRY_DSN`                  | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the chat function. In production, set these in the Vercel project settings.
 

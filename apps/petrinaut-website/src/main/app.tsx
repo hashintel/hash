@@ -9,7 +9,10 @@ export const DemoApp = () => {
     return <BrunchDemoApp />;
   }
 
-  if (isOptimizationDemoRoute()) {
+  if (
+    isOptimizationDemoRoute() &&
+    import.meta.env.VITE_PETRINAUT_OPT_PROVIDER === "service"
+  ) {
     return <OptimizationDemoApp />;
   }
 

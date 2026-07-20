@@ -87,19 +87,26 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     items,
     onChange,
     placeholder,
+    required,
     value,
   }: {
     items: readonly { value: string; text: string }[];
     onChange: (value: string | null) => void;
     placeholder?: string;
+    required?: boolean;
     value: string | null;
   }) => (
     <select
       aria-label={placeholder}
+      required={required}
       value={value ?? ""}
       onChange={(event) => onChange(event.target.value || null)}
     >
-      {placeholder ? <option value="">{placeholder}</option> : null}
+      {placeholder ? (
+        <option value="" disabled={required} hidden={required}>
+          {placeholder}
+        </option>
+      ) : null}
       {items.map((item) => (
         <option key={item.value} value={item.value}>
           {item.text}

@@ -52,6 +52,7 @@ const fieldStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[6px]",
+  minWidth: "0",
 });
 
 const labelStyle = css({
@@ -72,10 +73,77 @@ const emptyStyle = css({
   color: "neutral.s80",
 });
 
+const scenarioMenuLabelStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  gap: "2",
+  minWidth: "0",
+  "& > :first-child": {
+    flexShrink: "0",
+    whiteSpace: "nowrap",
+  },
+});
+
+const scenarioSelectedLabelStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1 1 0]",
+  alignItems: "stretch",
+  width: "full",
+  maxWidth: "full",
+  minWidth: "0",
+  overflow: "hidden",
+  paddingY: "0.5",
+  paddingRight: "1",
+  lineHeight: "[1.25]",
+  "& > :first-child": {
+    maxWidth: "full",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+});
+
+const scenarioSelectStyle = css({
+  width: "full",
+  maxWidth: "full",
+  minWidth: "0",
+  "& > div": {
+    width: "full",
+    maxWidth: "full",
+    minWidth: "0",
+  },
+  "& [data-part='trigger']": {
+    width: "full",
+    maxWidth: "full",
+    minWidth: "0",
+  },
+});
+
+const scenarioDescriptionStyle = css({
+  maxWidth: "full",
+  minWidth: "0",
+  overflow: "hidden",
+  color: "neutral.s80",
+  fontSize: "xs",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
 const gridStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "3",
+});
+
+const optimizationGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "3",
+});
+
+const fullWidthGridItemStyle = css({
+  gridColumn: "[1 / -1]",
 });
 
 const parameterListStyle = css({
@@ -108,6 +176,27 @@ const metricSourceOptions = [
 const OPTIMIZATION_SEED = 1234;
 const OPTIMIZATION_SAMPLER = "tpe" as const;
 const DEFAULT_DT = 0.1;
+
+const ScenarioSelectLabel = ({
+  scenario,
+  selected = false,
+}: {
+  scenario: Scenario;
+  selected?: boolean;
+}) => {
+  const description = scenario.description?.trim();
+
+  return (
+    <span
+      className={selected ? scenarioSelectedLabelStyle : scenarioMenuLabelStyle}
+    >
+      <span>{scenario.name}</span>
+      {description ? (
+        <span className={scenarioDescriptionStyle}>{description}</span>
+      ) : null}
+    </span>
+  );
+};
 
 const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
   const values = useStore(form.store, (state) => state.values);
@@ -418,6 +507,14 @@ export const CreateOptimizationDrawer = ({
     value: metric.id,
     text: metric.name,
   }));
+  const renderScenarioLabel = (scenarioId: string, selected = false) => {
+    const scenario = scenarios.find(({ id }) => id === scenarioId);
+    return scenario ? (
+      <ScenarioSelectLabel scenario={scenario} selected={selected} />
+    ) : (
+      scenarioId
+    );
+  };
 
   const resetConfigurationState = (scenario?: Scenario) => {
     setName("Optimization");
@@ -595,7 +692,7 @@ export const CreateOptimizationDrawer = ({
     onClose();
   };
 
-  const handleScenarioChange = (scenarioId: string | null | undefined) => {
+  const handleScenarioChange = (scenarioId: string) => {
     if (scenarioId === selectedScenarioId) {
       return;
     }
@@ -635,28 +732,28 @@ export const CreateOptimizationDrawer = ({
           <Section title="Scenario" collapsible defaultOpen>
             <div className={fieldStyle}>
               <Select
+                required
+                className={scenarioSelectStyle}
                 placeholder="Select a scenario"
-                value={selectedScenarioId}
+                value={selectedScenarioId ?? ""}
                 onChange={handleScenarioChange}
                 items={scenarioOptions}
+                renderItem={renderScenarioLabel}
+                renderSelectedItem={(scenarioId) =>
+                  renderScenarioLabel(scenarioId, true)
+                }
                 emptyState="Create a scenario before starting an optimization."
-                size="md"
+                size="sm"
                 disabled={submissionInProgress}
               />
             </div>
             {selectedScenario ? (
-              selectedScenario.scenarioParameters.length > 0 ? (
-                <span className={hintStyle}>
-                  {selectedScenario.scenarioParameters.length} parameter
-                  {selectedScenario.scenarioParameters.length === 1 ? "" : "s"}
-                  {" available. Changing your selection resets the form."}
-                </span>
-              ) : (
+              selectedScenario.scenarioParameters.length === 0 ? (
                 <span className={emptyStyle}>
                   No configurable parameters. Add at least one before creating
                   an optimization.
                 </span>
-              )
+              ) : null
             ) : scenarios.length === 0 ? (
               <span className={emptyStyle}>
                 Create a scenario with configurable parameters before starting
@@ -668,8 +765,8 @@ export const CreateOptimizationDrawer = ({
           {selectedScenario ? (
             <>
               <Section title="Optimization" collapsible defaultOpen>
-                <div className={gridStyle}>
-                  <div className={fieldStyle}>
+                <div className={optimizationGridStyle}>
+                  <div className={`${fieldStyle} ${fullWidthGridItemStyle}`}>
                     <span className={labelStyle}>Name</span>
                     <TextInput size="sm" value={name} onChange={setName} />
                   </div>
@@ -684,8 +781,6 @@ export const CreateOptimizationDrawer = ({
                       onChange={setOptimizationSteps}
                     />
                   </div>
-                </div>
-                <div className={gridStyle}>
                   <div className={fieldStyle}>
                     <span className={labelStyle}>Time step</span>
                     <NumberInput
