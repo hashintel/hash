@@ -240,7 +240,7 @@ export const NetworkGraphView = () => {
   });
 
   const points = useMemo(() => {
-    const tilePoints = (data ?? []).map(toPoint);
+    const tilePoints = (data?.nodes ?? []).map(toPoint);
     return searchedPoint ? [...tilePoints, searchedPoint] : tilePoints;
   }, [data, searchedPoint]);
 

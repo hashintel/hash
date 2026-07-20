@@ -43,6 +43,7 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table-data";
 import type { EntitiesFilterState } from "./entities-visualizer/shared/filter-state";
+import type { TypeColorOverrides } from "./entities-visualizer/shared/type-colors";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type { VisualizerView } from "./visualizer-views";
 import type {
@@ -217,6 +218,17 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
     [setCursor],
   );
+
+  const [typeColorOverrides, setTypeColorOverrides] =
+    useState<TypeColorOverrides>(() => new Map());
+
+  const setTypeColor = useCallback((typeId: VersionedUrl, color: string) => {
+    setTypeColorOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(typeId, color);
+      return next;
+    });
+  }, []);
 
   const [view, _setView] = useState<VisualizerView>("Table");
 
@@ -588,6 +600,9 @@ export const EntitiesVisualizer: FunctionComponent<{
               internalWebs={internalWebs}
               isTypePinned={isTypePinned}
               setFilterState={(updater) => setFilterState(updater)}
+              showTypeColors={view === "NetworkGraph"}
+              typeColorOverrides={typeColorOverrides}
+              setTypeColor={setTypeColor}
             />
           )
         }

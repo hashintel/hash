@@ -14,7 +14,9 @@ import type {
   FilterMetadataForProperty,
   PropertyFilter,
 } from "../shared/property-filters/property-filter";
+import type { TypeColorOverrides } from "../shared/type-colors";
 import type { AvailableType } from "../shared/use-available-types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 type FilterRibbonProps = {
@@ -27,6 +29,10 @@ type FilterRibbonProps = {
   setFilterState: (
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
+  /** Show a per-type colour selector in the type filter (network graph view). */
+  showTypeColors: boolean;
+  typeColorOverrides: TypeColorOverrides;
+  setTypeColor: (entityTypeId: VersionedUrl, color: string) => void;
 };
 
 let propertyFilterIdCounter = 0;
@@ -43,6 +49,9 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   internalWebs,
   isTypePinned,
   setFilterState,
+  showTypeColors,
+  typeColorOverrides,
+  setTypeColor,
 }) => {
   const [draftPropertyFilter, setDraftPropertyFilter] =
     useState<PropertyFilter | null>(null);
@@ -111,6 +120,9 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           setTypeState={(updater) =>
             setFilterState((prev) => ({ ...prev, type: updater(prev.type) }))
           }
+          showColors={showTypeColors}
+          typeColorOverrides={typeColorOverrides}
+          setTypeColor={setTypeColor}
         />
       )}
       {filterState.includeArchived && (
