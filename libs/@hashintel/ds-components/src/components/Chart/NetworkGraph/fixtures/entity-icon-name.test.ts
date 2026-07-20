@@ -19,12 +19,20 @@ describe("iconNameFromEntityIcon", () => {
     expect(iconNameFromEntityIcon("/icons/types/truck-ramp-box.svg")).toBe(
       "truck",
     );
-    expect(iconNameFromEntityIcon("/icons/types/user-tie.svg")).toBe(
-      "userPlus",
-    );
     // `arrows-rotate` is registered under the ds name `refresh`.
     expect(iconNameFromEntityIcon("/icons/types/arrows-rotate.svg")).toBe(
       "refresh",
+    );
+  });
+
+  it("maps link and the plain-user family onto the dedicated ds icons", () => {
+    expect(iconNameFromEntityIcon("/icons/types/link.svg")).toBe("link");
+    expect(iconNameFromEntityIcon("/icons/types/user.svg")).toBe("avatar");
+    expect(iconNameFromEntityIcon("/icons/types/person.svg")).toBe("avatar");
+    expect(iconNameFromEntityIcon("/icons/types/user-tie.svg")).toBe("avatar");
+    // `user-plus` keeps its own dedicated glyph.
+    expect(iconNameFromEntityIcon("/icons/types/user-plus.svg")).toBe(
+      "userPlus",
     );
   });
 
