@@ -313,6 +313,18 @@ const expectEdges = (
     asUintArray(field(sidecar, "edgeRowIds"), "edgeRowIds"),
   );
 
+  // WIRE section 6a: edges deliver in ascending edge row id order.
+  // Goldens conform to ratified CONTRACTS, not merely structure
+  // (ruled 2026-07-20, WIRE decision log) - a golden violating a
+  // pinned ordering is a bug in the golden.
+  for (let index = 1; index < edges.count; index += 1) {
+    if (edges.rowIds[index]! <= edges.rowIds[index - 1]!) {
+      expect.fail(
+        `rowIds[${index}] = ${edges.rowIds[index]} does not ascend past rowIds[${index - 1}] = ${edges.rowIds[index - 1]} (WIRE 6a)`,
+      );
+    }
+  }
+
   const trailer = field(sidecar, "trailer");
   if (trailer === null) {
     expect(edges.detail).toBeNull();

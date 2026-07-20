@@ -131,11 +131,9 @@ fn foreign_bytes_fail_to_parse() {
         let tampered_path = dir.join(format!("{name}.adjc"));
         fs::write(&tampered_path, &tampered).expect("the tampered file should write");
 
-        assert!(
-            matches!(
-                AdjacencyFile::open(&tampered_path),
-                Err(OpenAdjacencyError::Header(_)),
-            ),
+        assert_matches!(
+            AdjacencyFile::open(&tampered_path),
+            Err(OpenAdjacencyError::Header(_)),
             "a corrupted {name} should fail the header parse",
         );
     }

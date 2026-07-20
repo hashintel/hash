@@ -14,6 +14,7 @@ fn header_bytes_lead_with_magic_and_version() {
     let header = FileHeader::new(3, 17, 100);
     let bytes = header.as_bytes();
 
+    assert!(bytes.len() >= 40, "the header covers the asserted bytes");
     assert_eq!(&bytes[0..8], b"SALTATRC");
     assert_eq!(&bytes[8..12], &0_u32.to_le_bytes());
     assert_eq!(&bytes[16..24], &3_u64.to_le_bytes());
@@ -90,6 +91,11 @@ fn fixture_bytes() -> Vec<u8> {
 }
 
 #[test]
+#[expect(
+    clippy::float_cmp,
+    reason = "round-tripped wire values are bit-exact: the file stores the written f32 bits \
+              verbatim, so exact equality is the contract"
+)]
 fn written_records_reopen_verbatim() {
     let path = scratch("roundtrip.atrc");
     fs::write(&path, fixture_bytes()).expect("the scratch file is writable");

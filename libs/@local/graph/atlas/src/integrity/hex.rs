@@ -1,5 +1,6 @@
 //! Canonical lowercase hexadecimal text encoding for fixed-width values.
 
+use alloc::borrow::Cow;
 use core::{array, error::Error, fmt, str::FromStr};
 
 /// A string that is not canonical lowercase hexadecimal of the expected
@@ -173,6 +174,19 @@ impl<'de, const N: usize> serde::Deserialize<'de> for HexBytes<N> {
         }
 
         deserializer.deserialize_str(HexVisitor)
+    }
+}
+
+impl<const N: usize> schemars::JsonSchema for HexBytes<N> {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("HexBytes")
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "type": "string",
+            "pattern": format!("^[0-9a-f]{{{}}}$", N * 2)
+        })
     }
 }
 

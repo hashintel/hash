@@ -186,7 +186,7 @@ impl EdgeWidth {
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
-pub(crate) struct FileHeader {
+pub struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     width: Unalign<EdgeWidth>,

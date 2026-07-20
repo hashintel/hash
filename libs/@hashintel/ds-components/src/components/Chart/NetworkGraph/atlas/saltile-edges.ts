@@ -50,7 +50,14 @@ export interface DecodedSaltileEdges {
   readonly sources: Uint32Array;
   /** Target node row ids, edge order. */
   readonly targets: Uint32Array;
-  /** Edge row ids, edge order. */
+  /**
+   * Edge row ids, edge order. Servers deliver ASCENDING row ids
+   * (WIRE section 6a): merge-joins against held row ids may zip
+   * linearly, and identical queries answer byte-identically. The
+   * decoder does not re-walk the column to enforce this (structure-
+   * only validation, ruled); the live smoke pins it against the
+   * real server.
+   */
   readonly rowIds: Uint32Array;
   readonly detail: SaltileEdgesDetail | null;
 }

@@ -69,7 +69,7 @@ impl Kind {
 ///
 /// Requests carry the mode as the JSON strings `"delta"` and
 /// `"total"`; delta is the default when a request names none.
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
     /// The client-accumulated default: own-cut points only.

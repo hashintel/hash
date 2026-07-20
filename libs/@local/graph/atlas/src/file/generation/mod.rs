@@ -194,9 +194,19 @@ impl Error for ActivateError {
 /// it holds. It is also the serialized form, so a metadata document
 /// naming a prior generation names a checkable directory.
 #[derive(
-    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+    schemars::JsonSchema,
 )]
 #[serde(transparent)]
+#[schemars(transparent)]
 pub struct GenerationId(Sha256Digest);
 
 impl GenerationId {

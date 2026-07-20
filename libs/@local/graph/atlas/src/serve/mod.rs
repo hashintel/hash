@@ -192,12 +192,12 @@ impl Error for EdgesError {}
 /// The predicate's schema belongs to the client codebase; the server
 /// treats it as a value to canonicalize and hash, never as a typed
 /// structure. Version 0 rejects requests that carry one.
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 pub struct Filter(serde_json::Value);
 
 /// The query context of one tile request: the ratified POST body,
 /// every field optional.
-#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TileQuery {
     /// The delivery mode; delta when the request names none.
@@ -226,7 +226,7 @@ pub struct TileRequest {
 }
 
 /// One edges read: the ratified POST body.
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EdgesRequest {
     /// The tiles whose delivered rows bound the edge set.
@@ -279,7 +279,7 @@ struct DeliveredEdge {
 /// carries its documented serving default, while type coloring and
 /// locate stay zero until their passes land, so no request carrying
 /// them is admitted.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestLimits {
     /// Most `coloredTypeIds` entries one request may carry.
@@ -303,7 +303,7 @@ const impl Default for ManifestLimits {
 /// The immutable per-generation manifest: the Surface v1 bootstrap
 /// document, derived from configuration alone so it can be shared
 /// across principals.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     /// The generation identity, echoing the route.
@@ -324,7 +324,7 @@ pub struct Manifest {
 }
 
 /// The manifest's `bucketSchedule` block.
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BucketSchedule {
     /// Cells per tile axis of the delivery cut: `2^span_log2`.
@@ -404,18 +404,18 @@ impl Atlas {
         })?;
 
         let files = &generation.repository().files;
-        let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
 
+        let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
         let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
         let coordinates = open_array(&generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
         let rows = open_array(&generation, &files.row_of_position, ArrayKind::Rows)?;
-        let adjacency = MappedAdjacency::new(AdjacencyFile::open(
-            generation.path_of(&files.adjacency.name),
-        )?)?;
         let endpoints = open_array(&generation, &files.edge_endpoints, ArrayKind::Endpoints)?;
         let rank_of_position = open_array(&generation, &files.rank_of_position, ArrayKind::Ranks)?;
         let position_of_row =
             open_array(&generation, &files.position_of_row, ArrayKind::Positions)?;
+        let adjacency = MappedAdjacency::new(AdjacencyFile::open(
+            generation.path_of(&files.adjacency.name),
+        )?)?;
 
         let lod = generation.repository().metadata.reproducibility.config.lod;
         if lod.deepest().is_none() {
@@ -425,27 +425,61 @@ impl Atlas {
             });
         }
 
-        let points = coordinates.points().ok_or(error::OpenAtlasError::Shape {
-            kind: ArrayKind::Coordinates,
-        })?;
-        let row_ids = rows.u32_elements().ok_or(error::OpenAtlasError::Shape {
-            kind: ArrayKind::Rows,
-        })?;
-        let endpoint_pairs = endpoints.u64_pairs().ok_or(error::OpenAtlasError::Shape {
-            kind: ArrayKind::Endpoints,
-        })?;
-        let ranks = rank_of_position
+        let world = generation.repository().metadata.evidence.lod.world;
+        let bounds = (morton.count() > 0).then(|| frame_extent(world));
+
+        let this = Self {
+            generation,
+            lod,
+            quad,
+            morton,
+            coordinates,
+            rows,
+            adjacency,
+            endpoints,
+            rank_of_position,
+            position_of_row,
+            bounds,
+        };
+
+        this.validate()?;
+
+        Ok(this)
+    }
+
+    fn validate(&self) -> Result<(), error::OpenAtlasError> {
+        let points = self
+            .coordinates
+            .points()
+            .ok_or(error::OpenAtlasError::Shape {
+                kind: ArrayKind::Coordinates,
+            })?;
+        let row_ids = self
+            .rows
+            .u32_elements()
+            .ok_or(error::OpenAtlasError::Shape {
+                kind: ArrayKind::Rows,
+            })?;
+        let endpoint_pairs = self
+            .endpoints
+            .u64_pairs()
+            .ok_or(error::OpenAtlasError::Shape {
+                kind: ArrayKind::Endpoints,
+            })?;
+        let ranks = self
+            .rank_of_position
             .u32_elements()
             .ok_or(error::OpenAtlasError::Shape {
                 kind: ArrayKind::Ranks,
             })?;
-        let positions = position_of_row
-            .u32_elements()
-            .ok_or(error::OpenAtlasError::Shape {
-                kind: ArrayKind::Positions,
-            })?;
+        let positions =
+            self.position_of_row
+                .u32_elements()
+                .ok_or(error::OpenAtlasError::Shape {
+                    kind: ArrayKind::Positions,
+                })?;
 
-        let codes = morton.count();
+        let codes = self.morton.count();
         if points.len() as u64 != codes
             || row_ids.len() as u64 != codes
             || ranks.len() as u64 != codes
@@ -459,20 +493,22 @@ impl Atlas {
                 positions: positions.len() as u64,
             });
         }
-        if adjacency.rows() != codes {
+
+        if self.adjacency.rows() != codes {
             return Err(error::OpenAtlasError::Nodes {
-                adjacency: adjacency.rows(),
+                adjacency: self.adjacency.rows(),
                 codes,
             });
         }
-        if endpoint_pairs.len() as u64 != adjacency.edges() {
+
+        if endpoint_pairs.len() as u64 != self.adjacency.edges() {
             return Err(error::OpenAtlasError::Edges {
-                adjacency: adjacency.edges(),
+                adjacency: self.adjacency.edges(),
                 endpoints: endpoint_pairs.len() as u64,
             });
         }
 
-        if let Some(root_node) = quad.nodes().first()
+        if let Some(root_node) = self.quad.nodes().first()
             && u64::from(root_node.points()) != codes
         {
             return Err(error::OpenAtlasError::Subtree {
@@ -481,22 +517,7 @@ impl Atlas {
             });
         }
 
-        let world = generation.repository().metadata.evidence.lod.world;
-        let bounds = (codes > 0).then(|| frame_extent(world));
-
-        Ok(Self {
-            generation,
-            lod,
-            quad,
-            morton,
-            coordinates,
-            rows,
-            adjacency,
-            endpoints,
-            rank_of_position,
-            position_of_row,
-            bounds,
-        })
+        Ok(())
     }
 
     /// Returns the generation identity: the `HEAD` echo, the route

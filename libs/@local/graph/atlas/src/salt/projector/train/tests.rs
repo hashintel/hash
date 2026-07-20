@@ -9,18 +9,20 @@
               contract"
 )]
 
+use alloc::collections::BTreeMap;
 use core::num::NonZero;
 
 use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
-    tensor::{Tensor, TensorData},
+    module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
+    tensor::{Tensor, TensorData, backend::AutodiffBackend},
 };
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     BatchPlan, Coefficients, ObjectiveOptions, StepError,
-    batch::{Batch, BatchSampler, Populations, SupportAnchor},
+    batch::{Batch, BatchSampler, NodeColumns, Populations, ROW_ALIGNMENT, SupportAnchor},
     metrics::{
         BudgetBreakdown, DegreeDeciles, DisplacementHistogram, DisplacementSummary,
         TypeParticipants,
@@ -28,8 +30,8 @@ use super::{
     step::evaluate,
 };
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, Vec2},
+    dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -39,6 +41,7 @@ use crate::{
                 RelationEnergy, SupportOptions,
             },
             miner::{HardNegativeMiner, MinerOptions, SpatialField},
+            model::{Architecture, NodeRole, Projector},
             sample::SampledRelationEdges,
             scale::LocalScales,
         },
@@ -890,4 +893,358 @@ fn displacement_summary_reports_every_axis() {
         [(11, 2, 1.0, 1.0)],
         "the type bucket covers its participants' displacements"
     );
+}
+
+/// Corpus rows of the padding fixtures.
+///
+/// Exactly 32 rows participate in the gradient certificate's batch:
+/// at 32 every tensor of both the padded and the unpadded graph
+/// reaches the CPU backend's SIMD dispatch threshold, so both graphs
+/// compute with the same element-wise kernels. Below it the dispatch
+/// is mixed and the comparison measures the backend's reciprocal
+/// estimate (the SIMD reciprocal is a hardware approximation that the
+/// autodiff division backward consumes), not the padding.
+const PADDING_ROWS: usize = 32;
+const PADDING_CAPACITY: usize = PADDING_ROWS * PROJECTOR_DIMENSIONS;
+
+/// Builds the padding fixtures' input columns: distinct dyadic
+/// representations and cycled roles over [`PADDING_ROWS`] corpus rows.
+fn padding_columns() -> (BoxedVecN<PADDING_CAPACITY>, Vec<NodeRole>) {
+    let mut storage = BoxedVecN::zero();
+    let array = storage.as_array_mut();
+    for row in 0..PADDING_ROWS {
+        let value = f32::from(u8::try_from(row).expect("fixture rows fit u8")).mul_add(0.25, 0.25);
+        let base = row * PROJECTOR_DIMENSIONS;
+        array[base] = value;
+        array[base + 1] = -0.5 * value;
+        array[base + 8 + row] = 0.125;
+    }
+    let roles = [
+        NodeRole::KnowledgeEntity,
+        NodeRole::OntologyType,
+        NodeRole::Other,
+    ]
+    .into_iter()
+    .cycle()
+    .take(PADDING_ROWS)
+    .collect();
+    (storage, roles)
+}
+
+/// Borrows the padding fixtures' columns.
+fn padding_column_view<'corpus>(
+    storage: &'corpus BoxedVecN<PADDING_CAPACITY>,
+    roles: &'corpus [NodeRole],
+) -> NodeColumns<'corpus> {
+    NodeColumns {
+        representations: AlignedVecN::from_slice(&storage.as_array()[..PADDING_CAPACITY])
+            .expect("boxed storage is aligned"),
+        roles,
+    }
+}
+
+/// Nudges every parameter off its initialization.
+///
+/// The identity-contract layers initialize to zero and would block
+/// gradient flow into the deep block parameters, leaving the padding
+/// certificate comparing zeros with zeros; a deterministic ramp makes
+/// every parameter's gradient generically nonzero.
+struct Perturb;
+
+impl ModuleMapper<TestBackend> for Perturb {
+    fn map_float<const D: usize>(
+        &mut self,
+        param: Param<Tensor<TestBackend, D>>,
+    ) -> Param<Tensor<TestBackend, D>> {
+        let (id, tensor, mapper) = param.consume();
+        let elements = tensor.shape().num_elements();
+        let ramp = (0..elements)
+            .map(|index| {
+                #[expect(
+                    clippy::cast_precision_loss,
+                    reason = "test parameter counts are tiny and exactly representable"
+                )]
+                let index = index as f32;
+                index.mul_add(0.03125, 0.0625)
+            })
+            .collect::<Vec<_>>();
+        let shape = tensor.shape();
+        let device = tensor.device();
+        let ramp = Tensor::from_data(TensorData::new(ramp, shape), &device);
+        // The sum is an interior autodiff node; re-rooting it as a
+        // required-gradient leaf is what lets gradients accumulate at
+        // the perturbed parameter.
+        Param::from_mapped_value(id, (tensor + ramp).detach().require_grad(), mapper)
+    }
+}
+
+/// Collects every parameter gradient a backward pass produced.
+struct GradientCollector<'graph> {
+    gradients: &'graph <TestBackend as AutodiffBackend>::Gradients,
+    collected: BTreeMap<ParamId, Vec<f32>>,
+}
+
+impl ModuleVisitor<TestBackend> for GradientCollector<'_> {
+    fn visit_float<const D: usize>(&mut self, param: &Param<Tensor<TestBackend, D>>) {
+        if let Some(gradient) = param.val().grad(self.gradients) {
+            self.collected.insert(
+                param.id,
+                gradient
+                    .into_data()
+                    .to_vec()
+                    .expect("gradients should convert to f32 values"),
+            );
+        }
+    }
+}
+
+fn parameter_gradients(
+    model: &Projector<TestBackend>,
+    gradients: &<TestBackend as AutodiffBackend>::Gradients,
+) -> BTreeMap<ParamId, Vec<f32>> {
+    let mut collector = GradientCollector {
+        gradients,
+        collected: BTreeMap::new(),
+    };
+    model.visit(&mut collector);
+    collector.collected
+}
+
+#[test]
+fn input_pads_the_gathered_rows_to_the_alignment() {
+    // Rows {0, 1, 2, 5} participate: four rows pad to the alignment,
+    // and the padded tail replicates corpus row 5 - representation,
+    // role, and rung alike. Alignment one is the unpadded frame.
+    let mut populations = empty_populations(0.5);
+    populations.semantic = vec![pair(0, 2)];
+    populations.semantic_scale = 2.0;
+    populations.ordinary = vec![pair(1, 5)];
+    populations.ordinary_scale = 1.0;
+    let batch = Batch::assemble(populations, None);
+    assert_eq!(batch.rows.len(), 4);
+
+    let (storage, roles) = padding_columns();
+    let columns = padding_column_view(&storage, &roles);
+    let device = NdArrayDevice::default();
+
+    let plain = batch.input_aligned::<TestBackend>(
+        columns,
+        &device,
+        NonZero::new(1).expect("one is non-zero"),
+    );
+    assert_eq!(plain.representation.dims(), [4, PROJECTOR_DIMENSIONS]);
+    assert_eq!(plain.roles.dims(), [4]);
+    assert_eq!(plain.condition.dims(), [4, 1]);
+
+    let input = batch.input::<TestBackend>(columns, &device);
+    let padded = 4_usize.next_multiple_of(ROW_ALIGNMENT.get());
+    assert_eq!(input.representation.dims(), [padded, PROJECTOR_DIMENSIONS]);
+    assert_eq!(input.roles.dims(), [padded]);
+    assert_eq!(input.condition.dims(), [padded, 1]);
+
+    let representation = input
+        .representation
+        .into_data()
+        .to_vec::<f32>()
+        .expect("the representation is an f32 tensor");
+    let last = representation[3 * PROJECTOR_DIMENSIONS..4 * PROJECTOR_DIMENSIONS].to_vec();
+    for row in 4..padded {
+        assert_eq!(
+            representation[row * PROJECTOR_DIMENSIONS..(row + 1) * PROJECTOR_DIMENSIONS],
+            last[..],
+            "padded row {row} should replicate the last participating row"
+        );
+    }
+    let role_values = input
+        .roles
+        .into_data()
+        .to_vec::<i64>()
+        .expect("the roles are an integer tensor");
+    assert!(role_values[4..].iter().all(|&role| role == role_values[3]));
+    let condition = input
+        .condition
+        .into_data()
+        .to_vec::<f32>()
+        .expect("the condition is an f32 tensor");
+    assert!(condition.iter().all(|&eta| eta == 0.5));
+}
+
+#[test]
+fn a_padded_frame_adds_zero_force() {
+    // The two-row semantic batch against a four-row frame whose tail
+    // twins the last row: the loss matches the exact-cover frame and
+    // the padded rows receive exactly zero coordinate gradient.
+    let mut populations = empty_populations(0.0);
+    populations.semantic = vec![pair(0, 1)];
+    populations.semantic_scale = 2.0;
+    let batch = Batch::assemble(populations, None);
+
+    let deciles = unused_deciles();
+    let options = options(None, loose_budget());
+
+    let mut metrics = BudgetBreakdown::new();
+    let exact = evaluate(
+        leaf(&[0.0, 0.0, 1.0, 0.0], 2),
+        &batch,
+        &options,
+        &deciles,
+        &mut metrics,
+    )
+    .expect("the fixture is finite");
+
+    let mut metrics = BudgetBreakdown::new();
+    let padded_leaf = leaf(&[0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0], 4);
+    let padded = evaluate(
+        padded_leaf.clone(),
+        &batch,
+        &options,
+        &deciles,
+        &mut metrics,
+    )
+    .expect("the fixture is finite");
+
+    assert_eq!(padded.loss, exact.loss);
+    let gradient = padded_leaf
+        .grad(&padded.surrogate.backward())
+        .expect("the surrogate reaches the coordinate leaf")
+        .into_data()
+        .to_vec::<f32>()
+        .expect("coordinate gradients are f32");
+    assert_eq!(gradient, [-0.5, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]);
+}
+
+#[test]
+#[should_panic(expected = "cover the batch rows")]
+fn evaluate_rejects_a_frame_smaller_than_the_batch() {
+    let mut populations = empty_populations(0.0);
+    populations.semantic = vec![pair(0, 1)];
+    populations.semantic_scale = 2.0;
+    let batch = Batch::assemble(populations, None);
+
+    let deciles = unused_deciles();
+    let options = options(None, loose_budget());
+    let mut metrics = BudgetBreakdown::new();
+    let _objective = evaluate(
+        leaf(&[0.0, 0.0], 1),
+        &batch,
+        &options,
+        &deciles,
+        &mut metrics,
+    );
+}
+
+#[test]
+fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
+    // Semantic, ordinary, relation, and landmark families all
+    // participate, so every loss path crosses the padded frame. The
+    // padded and unpadded materializations of the same batch project
+    // bit-equal coordinates for the participating rows, evaluate to
+    // bit-equal loss values, and deposit bit-equal parameter
+    // gradients: the padded rows carry exactly zero force, appended
+    // after every real contribution in the backward reductions.
+    //
+    // The batch covers all [`PADDING_ROWS`] corpus rows so both
+    // graphs' tensors clear the CPU backend's SIMD dispatch threshold
+    // (see the constant's documentation) - the certificate compares
+    // the padding, not the backend's kernel election.
+    let device = NdArrayDevice::default();
+    let indexes = relation_indexes(
+        PADDING_ROWS,
+        &[proximal_policy(7)],
+        vec![instance(0, 7, 0, 1)],
+    );
+    let scales = LocalScales::new(vec![0.5; PADDING_ROWS].into_boxed_slice())
+        .expect("the fixture scales are finite");
+    let group = &indexes.attraction.groups()[0];
+
+    let mut populations = empty_populations(1.0);
+    let semantic_pairs = u64::try_from(PADDING_ROWS).expect("fixture rows fit u64") >> 1_u32;
+    populations.semantic = (0..semantic_pairs)
+        .map(|index| pair(2 * index, 2 * index + 1))
+        .collect();
+    populations.semantic_scale = 2.0;
+    populations.ordinary = vec![pair(0, 2), pair(1, 3)];
+    populations.ordinary_scale = 1.0;
+    populations.relation = vec![SampledRelationEdges {
+        group,
+        edges: group.edges().to_vec(),
+    }];
+    populations.relation_scale = 2.0;
+    populations.landmarks = vec![SupportAnchor {
+        row: NodeRowId::new(4),
+        target: Vec2::new(1.0, 0.0),
+        radius: 1.0,
+        weight: 1.0,
+    }];
+    populations.landmark_scale = 1.0;
+    let batch = Batch::assemble(populations, Some(&scales));
+    assert_eq!(batch.rows.len(), PADDING_ROWS);
+
+    let (storage, roles) = padding_columns();
+    let columns = padding_column_view(&storage, &roles);
+    let architecture = Architecture {
+        width: NonZero::new(8).expect("the width is non-zero"),
+        residual_blocks: NonZero::new(1).expect("the block count is non-zero"),
+        representation_dimensions: NonZero::new(PROJECTOR_DIMENSIONS)
+            .expect("the representation width is non-zero"),
+        role_dimensions: NonZero::new(4).expect("the role width is non-zero"),
+        condition_dimensions: NonZero::new(1).expect("the condition width is non-zero"),
+    };
+    let model = Projector::<TestBackend>::new(architecture, rng(7), &device).map(&mut Perturb);
+
+    let deciles = DegreeDeciles::new(&indexes.attraction, PADDING_ROWS);
+    let options = options(Some(relation_energy()), loose_budget());
+
+    let padded = model.forward(batch.input(columns, &device));
+    let plain = model.forward(batch.input_aligned(
+        columns,
+        &device,
+        NonZero::new(1).expect("one is non-zero"),
+    ));
+    assert_eq!(
+        padded.dims()[0],
+        PADDING_ROWS.next_multiple_of(ROW_ALIGNMENT.get())
+    );
+    assert_eq!(plain.dims()[0], PADDING_ROWS);
+
+    let padded_values = padded
+        .clone()
+        .inner()
+        .into_data()
+        .to_vec::<f32>()
+        .expect("coordinates are f32");
+    let plain_values = plain
+        .clone()
+        .inner()
+        .into_data()
+        .to_vec::<f32>()
+        .expect("coordinates are f32");
+    assert_eq!(
+        padded_values[..plain_values.len()],
+        plain_values[..],
+        "participating rows should project bit-equal coordinates"
+    );
+
+    let mut padded_metrics = BudgetBreakdown::new();
+    let padded_objective = evaluate(padded, &batch, &options, &deciles, &mut padded_metrics)
+        .expect("the fixture is finite");
+    let mut plain_metrics = BudgetBreakdown::new();
+    let plain_objective = evaluate(plain, &batch, &options, &deciles, &mut plain_metrics)
+        .expect("the fixture is finite");
+
+    // Non-vacuous: every family contributes a nonzero loss.
+    assert_ne!(padded_objective.loss.semantic, 0.0);
+    assert_ne!(padded_objective.loss.ordinary, 0.0);
+    assert_ne!(padded_objective.loss.relation, 0.0);
+    assert_ne!(padded_objective.loss.landmark, 0.0);
+    assert_eq!(padded_objective.loss, plain_objective.loss);
+    assert_eq!(
+        padded_metrics.overall().nodes(),
+        plain_metrics.overall().nodes()
+    );
+
+    let padded_gradients = parameter_gradients(&model, &padded_objective.surrogate.backward());
+    let plain_gradients = parameter_gradients(&model, &plain_objective.surrogate.backward());
+    assert!(!padded_gradients.is_empty());
+    assert_eq!(padded_gradients, plain_gradients);
 }
