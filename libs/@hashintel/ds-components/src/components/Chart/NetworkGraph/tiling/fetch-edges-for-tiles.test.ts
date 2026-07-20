@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildResponse,
+  cborArray,
   cborBool,
   cborBstr,
   cborMap,
+  cborNull,
+  cborTstr,
   cborUint,
   u32le,
 } from "../atlas-decode/fixtures";
@@ -46,6 +49,40 @@ const edgesBytes = (
     u32le(targets),
     u32le(ids),
   ]);
+
+/** An edges response carrying the per-edge detail trailer (four link columns). */
+const detailedEdgesBytes = (
+  generationByte: number,
+  sources: number[],
+  targets: number[],
+  ids: number[],
+): ArrayBuffer => {
+  const nulls = sources.map(() => cborNull());
+  return buildResponse(
+    "edges",
+    [
+      cborMap([
+        [0, cborBstr(Array.from({ length: 32 }, () => generationByte))],
+        [1, cborUint(0)],
+        [2, cborUint(sources.length)],
+        [3, cborBool(true)],
+        [4, cborBool(true)], // trailer declared
+      ]),
+      u32le(sources),
+      u32le(targets),
+      u32le(ids),
+    ],
+    cborMap([
+      [
+        0,
+        cborArray(sources.map((_unused, index) => cborTstr(`link ${index}`))),
+      ],
+      [1, cborArray(nulls)],
+      [2, cborArray(nulls)],
+      [3, cborArray(nulls)],
+    ]),
+  );
+};
 
 const json = (body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -125,6 +162,31 @@ describe("fetchEdgesForTiles", () => {
       entry.path.includes("/atlas/edges/"),
     );
     expect(edgesRequest?.body).toEqual({ tiles });
+  });
+
+  it("sends includeDetailedData and accepts a response with the detail trailer", async () => {
+    const generation = genHex(0x77);
+    const captured = stubTransport({
+      "/v1/atlas/current": () => json({ generation }),
+      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+        json(manifestBody(generation)),
+      [`/v1/atlas/edges/${generation}/plain`]: () =>
+        saltile(detailedEdgesBytes(0x77, [7], [11], [100])),
+    });
+
+    const { edges } = await fetchEdgesForTiles([{ z: 0, x: 0, y: 0 }], {
+      baseUrl: BASE,
+      includeDetailedData: true,
+    });
+
+    expect(edges).toEqual([{ id: 100, source: 7, target: 11 }]);
+    const edgesRequest = captured.find((entry) =>
+      entry.path.includes("/atlas/edges/"),
+    );
+    expect(edgesRequest?.body).toEqual({
+      tiles: [{ z: 0, x: 0, y: 0 }],
+      includeDetailedData: true,
+    });
   });
 
   it("reports cap truncation through complete", async () => {

@@ -14,8 +14,10 @@
  * are node row ids — the same ids {@link fetchTile} attaches to nodes — so an
  * edge references the nodes by their delivered id.
  *
- * Version 0 of the API rejects `filter` and `includeDetailedData`, so this
- * transport requests neither; the body is just the tile list.
+ * `includeDetailedData` (per-edge link labels and icons) rides the trailer when
+ * requested, mirroring the tile transport; callers leave it off until the edges
+ * route serves it (version 0 rejects it with an `unsupported-feature` problem).
+ * `filter` remains unsupported and is never sent.
  *
  * Transient failures retry with backoff (see {@link withAtlasRetry}); a `404`
  * (the pinned generation rotated) refreshes the session once and retries, as in
@@ -67,16 +69,26 @@ export interface FetchEdgesForTilesOptions {
   readonly retry?: number;
   /** Network priority hint; see {@link FetchTileOptions.priority}. */
   readonly priority?: RequestPriority;
+  /**
+   * Requests the per-edge detail trailer (link labels and icons). Defaults to
+   * `false`; the version-0 edges route rejects it, so callers keep it off until
+   * the server serves it. See {@link FetchTileOptions.includeDetailedData}.
+   */
+  readonly includeDetailedData?: boolean;
 }
 
 /** The edges route for a session; the variant name addresses it, as for tiles. */
 const edgesUrl = (session: SaltileSession, baseUrl: string): string =>
   `${baseUrl}/v1/atlas/edges/${session.generation}/${session.variant}`;
 
-/** The JSON body: just the tile list (version 0 forbids other fields). */
-const edgesBody = (tiles: readonly AtlasTileCoordinate[]): string =>
+/** The JSON body: the tile list, plus the detail flag only when requested. */
+const edgesBody = (
+  tiles: readonly AtlasTileCoordinate[],
+  includeDetailedData: boolean,
+): string =>
   JSON.stringify({
     tiles: tiles.map(({ z, x, y }) => ({ z, x, y })),
+    ...(includeDetailedData ? { includeDetailedData: true } : {}),
   });
 
 const fetchAndDecodeEdges = async (
@@ -86,6 +98,7 @@ const fetchAndDecodeEdges = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
+  includeDetailedData: boolean,
 ): Promise<FetchedEdges> => {
   const response = await requestAtlas(
     edgesUrl(session, baseUrl),
@@ -93,7 +106,7 @@ const fetchAndDecodeEdges = async (
     signal,
     retries,
     priority,
-    edgesBody(tiles),
+    edgesBody(tiles, includeDetailedData),
   );
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -109,8 +122,7 @@ const fetchAndDecodeEdges = async (
     decoded = decodeSaltileEdges(buffer, {
       generation: session.generationBytes,
       variant: session.variantIndex,
-      // Detail is a version-0 unsupported feature; the request never asks for it.
-      includeDetailedData: false,
+      includeDetailedData,
     });
   } catch (cause) {
     throw new FetchTileError("failed to decode edges", { cause });
@@ -154,7 +166,13 @@ export const fetchEdgesForTiles = async (
   tiles: readonly AtlasTileCoordinate[],
   options: FetchEdgesForTilesOptions = {},
 ): Promise<FetchedEdges> => {
-  const { baseUrl = ATLAS_API_BASE_URL, signal, retry, priority } = options;
+  const {
+    baseUrl = ATLAS_API_BASE_URL,
+    signal,
+    retry,
+    priority,
+    includeDetailedData = false,
+  } = options;
 
   if (tiles.length === 0) {
     return { edges: [], complete: true };
@@ -176,6 +194,7 @@ export const fetchEdgesForTiles = async (
       signal,
       retry,
       priority,
+      includeDetailedData,
     );
   } catch (error) {
     // A 404 means the pinned generation is no longer active; re-bootstrap once.
@@ -193,6 +212,7 @@ export const fetchEdgesForTiles = async (
         signal,
         retry,
         priority,
+        includeDetailedData,
       );
     }
     throw error;

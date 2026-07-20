@@ -6,6 +6,8 @@ import {
   cborBool,
   cborBstr,
   cborMap,
+  cborNull,
+  cborTstr,
   cborUint,
   f32le,
   u32le,
@@ -137,6 +139,43 @@ const tileBytes = (
     null,
   ]);
 
+/**
+ * A 3-point delta tile carrying the detail trailer (per-point labels + icons),
+ * as the server ships when `includeDetailedData` is set. The last label is null
+ * (that point has no label).
+ */
+const detailedTileBytes = (
+  generationByte: number,
+  z: number,
+  x: number,
+  y: number,
+): ArrayBuffer =>
+  buildResponse(
+    "tile",
+    [
+      cborMap([
+        [0, cborBstr(Array.from({ length: 32 }, () => generationByte))],
+        [1, cborUint(0)],
+        [2, cborArray([cborUint(z), cborUint(x), cborUint(y)])],
+        [3, cborUint(0)],
+        [4, cborUint(3)],
+        [5, cborUint(40)],
+        [6, cborUint(z + 6)],
+        [7, cborArray([cborUint(3)])],
+        [9, cborUint(5)],
+        [10, cborBool(true)], // trailer declared
+      ]),
+      f32le(wirePositions),
+      u32le(rowIds),
+      null,
+      null,
+    ],
+    cborMap([
+      [0, cborArray([cborTstr("Alpha"), cborTstr("Beta"), cborNull()])],
+      [1, cborArray([cborNull(), cborNull(), cborNull()])],
+    ]),
+  );
+
 const json = (body: unknown): Response =>
   new Response(JSON.stringify(body), {
     status: 200,
@@ -251,6 +290,42 @@ describe("fetchTile", () => {
       path.endsWith("/atlas/current"),
     ).length;
     expect(bootstraps).toBe(2);
+  });
+
+  it("requests the detail trailer and attaches per-point labels", async () => {
+    const generation = genHex(0x66);
+    const bodies: (string | undefined)[] = [];
+    vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+      const path = new URL(url, BASE).pathname;
+      if (path.includes("/atlas/tile/")) {
+        bodies.push(typeof init?.body === "string" ? init.body : undefined);
+        return Promise.resolve(saltile(detailedTileBytes(0x66, 3, 5, 1)));
+      }
+      if (path.endsWith("/atlas/current")) {
+        return Promise.resolve(json({ generation }));
+      }
+      if (path.endsWith("/manifest")) {
+        return Promise.resolve(json(manifestBody(generation)));
+      }
+      return Promise.resolve(notFound());
+    }) as typeof fetch);
+
+    const { nodes } = await fetchTile(3, 13, {
+      baseUrl: BASE,
+      includeDetailedData: true,
+    });
+
+    // The trailer's label column rides delivered order; a null entry leaves the
+    // node without a label.
+    expect(nodes.map((node) => node.label)).toEqual([
+      "Alpha",
+      "Beta",
+      undefined,
+    ]);
+    // The request body opts into the detail trailer.
+    expect(bodies).toEqual([
+      expect.stringContaining('"includeDetailedData":true'),
+    ]);
   });
 
   it("rejects out-of-range zooms and tile indexes without a request", async () => {

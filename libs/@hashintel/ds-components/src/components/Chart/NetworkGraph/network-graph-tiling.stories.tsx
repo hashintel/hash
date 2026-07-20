@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LoadingSpinner } from "../../Loading/loading-spinner";
+import { iconNameFromEntityIcon } from "./fixtures/entity-icon-name";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
@@ -52,6 +53,15 @@ const MAX_ZOOM = Math.log2(100);
  * the lower zooms (which keep today's density). See {@link deriveViewport}.
  */
 const FULL_DETAIL_ZOOM_BAND = 3;
+
+/**
+ * Absolute camera zoom at/above which the graph switches to its detailed view
+ * (icons + label pills) and the story requests detailed tile data so those nodes
+ * are labelled. `NetworkGraph` flips to detailed at `maxZoom − 0.5` (its detail
+ * band is the top 0.5 zoom levels), so matching that here makes the labelled data
+ * arrive exactly as the detailed rendering takes over.
+ */
+const DETAIL_ZOOM = MAX_ZOOM - 0.5;
 
 /** Cheerful, readable node colours, picked deterministically per id. */
 const PALETTE = [
@@ -190,12 +200,20 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
-const toPoint = (node: ViewportNode): NetworkGraphPoint => ({
-  id: node.id,
-  x: node.x,
-  y: node.y,
-  color: colorForId(node.id),
-});
+const toPoint = (node: ViewportNode): NetworkGraphPoint => {
+  // `label`/`icon` arrive only once the tile was fetched with detailed data
+  // (the detailed view). The graph draws the label in a pill beneath the node
+  // and the icon inside it; the server's icon value resolves to a ds icon name.
+  const icon = iconNameFromEntityIcon(node.icon);
+  return {
+    id: node.id,
+    x: node.x,
+    y: node.y,
+    color: colorForId(node.id),
+    ...(node.label !== undefined ? { label: node.label } : {}),
+    ...(icon !== undefined ? { icon } : {}),
+  };
+};
 
 const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
   id: edge.id,
@@ -288,11 +306,12 @@ const AtlasTilingStory = () => {
   const timerRef = useRef<number | undefined>(undefined);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
+  const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
 
   const { data, isFetching, isError, error, tileCount } = useGetViewportNodes(
     viewport,
-    { baseUrl: ATLAS_PROXY_BASE },
+    { baseUrl: ATLAS_PROXY_BASE, includeDetailedData: detailed },
   );
 
   const points = useMemo(() => (data?.nodes ?? []).map(toPoint), [data]);
@@ -318,9 +337,13 @@ const AtlasTilingStory = () => {
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      setViewport(
-        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
-      );
+      const camera = cameraRef.current;
+      setViewport(deriveViewport(camera, sizeRef.current, boundsRef.current));
+      // Cross into detailed data on the same threshold the graph uses to switch
+      // to its detailed rendering, so nodes are labelled as the view takes over.
+      // Both tiles at the target depth and their in-view ancestors refetch
+      // detailed (the whole descent), so every visible node shows full details.
+      setDetailed(camera.zoom !== null && camera.zoom >= DETAIL_ZOOM);
     }, DEBOUNCE_MS);
   }, []);
 
@@ -402,6 +425,10 @@ const AtlasTilingStory = () => {
         <div className={panelRowStyles}>
           <span>tile depth</span>
           <span>{depth}</span>
+        </div>
+        <div className={panelRowStyles}>
+          <span>detailed data</span>
+          <span>{detailed ? "on" : "off"}</span>
         </div>
         <div className={panelRowStyles}>
           <span>viewport x</span>

@@ -20,6 +20,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import {
+  iconNameFromEntityIcon,
   NetworkGraph,
   useGetViewportNodes,
   WORLD_SIZE,
@@ -27,6 +28,7 @@ import {
   type NetworkGraphHandle,
   type NetworkGraphPoint,
   type Viewport,
+  type ViewportEdge,
   type ViewportNode,
 } from "@hashintel/ds-components";
 
@@ -60,6 +62,14 @@ const MAX_ZOOM = Math.log2(100);
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
 
+/**
+ * Absolute camera zoom at/above which the graph switches to its detailed view
+ * (icons + label pills), so the view requests detailed tile data to label those
+ * nodes. `NetworkGraph` flips to detailed at `maxZoom − 0.5`; matching that here
+ * lands the labelled data as the detailed rendering takes over.
+ */
+const DETAIL_ZOOM = MAX_ZOOM - 0.5;
+
 const zoomButtonSx = {
   background: "rgba(107, 114, 128, 0.16)",
   backdropFilter: "blur(8px)",
@@ -70,9 +80,6 @@ const zoomButtonSx = {
     color: "gray.40",
   },
 };
-
-/** The tiling endpoint returns nodes only; edges stay empty. */
-const EMPTY_EDGES: NetworkGraphEdge[] = [];
 
 /** Cheerful, readable node colours, picked deterministically per id. */
 const PALETTE = [
@@ -176,11 +183,25 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
-const toPoint = (node: ViewportNode): NetworkGraphPoint => ({
-  id: node.id,
-  x: node.x,
-  y: node.y,
-  color: colorForId(node.id),
+const toPoint = (node: ViewportNode): NetworkGraphPoint => {
+  // `label`/`icon` arrive only for tiles fetched with detailed data (the
+  // detailed view). The graph draws the label in a pill beneath the node and the
+  // icon inside it; the entity's icon value resolves to a ds icon name.
+  const icon = iconNameFromEntityIcon(node.icon);
+  return {
+    id: node.id,
+    x: node.x,
+    y: node.y,
+    color: colorForId(node.id),
+    ...(node.label !== undefined ? { label: node.label } : {}),
+    ...(icon !== undefined ? { icon } : {}),
+  };
+};
+
+const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
+  id: edge.id,
+  fromId: edge.source,
+  toId: edge.target,
 });
 
 /**
@@ -202,6 +223,7 @@ export const NetworkGraphView = () => {
   const timerRef = useRef<number | undefined>(undefined);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
+  const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [searchedPoint, setSearchedPoint] = useState<NetworkGraphPoint | null>(
     null,
@@ -237,12 +259,15 @@ export const NetworkGraphView = () => {
 
   const { data, isError, error } = useGetViewportNodes(viewport, {
     baseUrl: ATLAS_PROXY_BASE,
+    includeDetailedData: detailed,
   });
 
   const points = useMemo(() => {
     const tilePoints = (data?.nodes ?? []).map(toPoint);
     return searchedPoint ? [...tilePoints, searchedPoint] : tilePoints;
   }, [data, searchedPoint]);
+
+  const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data]);
 
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
@@ -263,9 +288,13 @@ export const NetworkGraphView = () => {
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      setViewport(
-        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
-      );
+      const camera = cameraRef.current;
+      setViewport(deriveViewport(camera, sizeRef.current, boundsRef.current));
+      // Cross into detailed data on the same threshold the graph uses to switch
+      // to its detailed rendering, so nodes are labelled (and icon-ed) as the
+      // detailed view takes over. The whole descent — target tiles and their
+      // in-view ancestors — refetches detailed so every visible node is labelled.
+      setDetailed(camera.zoom !== null && camera.zoom >= DETAIL_ZOOM);
     }, DEBOUNCE_MS);
   }, []);
 
@@ -363,7 +392,7 @@ export const NetworkGraphView = () => {
           <NetworkGraph
             ref={graphRef}
             points={points}
-            edges={EMPTY_EDGES}
+            edges={edges}
             graphBounds={bounds}
             maxZoom={MAX_ZOOM}
             selected={searchedPoint ? { node: searchedPoint.id } : null}

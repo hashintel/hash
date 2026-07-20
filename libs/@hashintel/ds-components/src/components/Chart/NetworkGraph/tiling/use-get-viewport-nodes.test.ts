@@ -12,7 +12,7 @@ import {
 
 import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
 import type { TileEdge } from "./fetch-edges-for-tiles";
-import type { FetchedTile } from "./fetch-tile";
+import type { FetchedTile, TileNode } from "./fetch-tile";
 
 /**
  * A fetcher returning three unique nodes per tile, tracking calls per tile.
@@ -58,6 +58,30 @@ const stubEdges = (
   const fetcher: EdgesFetcher = (tiles) => {
     calls.push([...tiles]);
     return Promise.resolve({ edges, complete: true });
+  };
+  return Object.assign(fetcher, { calls });
+};
+
+/**
+ * A single-tile fetcher (root reports complete, so the descent stops there)
+ * that attaches a `label` to each node only when detailed data is requested,
+ * recording the detail flag of every call. Lets tests observe the flag being
+ * threaded through and labels reaching the returned nodes.
+ */
+const labellingFetcher = (): TileFetcher & {
+  readonly calls: { readonly key: string; readonly detailed: boolean }[];
+} => {
+  const calls: { key: string; detailed: boolean }[] = [];
+  const fetcher: TileFetcher = (zoom, tileIndex, controls) => {
+    const detailed = controls?.includeDetailedData ?? false;
+    calls.push({ key: `${zoom}/${tileIndex}`, detailed });
+    const base = zoom * 1_000_000 + tileIndex * 10;
+    const node = (id: number): TileNode =>
+      detailed ? { id, x: 1, y: 1, label: `n${id}` } : { id, x: 1, y: 1 };
+    return Promise.resolve({
+      nodes: [node(base), node(base + 1), node(base + 2)],
+      complete: true,
+    });
   };
   return Object.assign(fetcher, { calls });
 };
@@ -389,6 +413,63 @@ describe("getViewportNodes edges", () => {
   });
 });
 
+describe("getViewportNodes detailed data", () => {
+  it("omits node labels without detailed data", async () => {
+    const fetcher = labellingFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+
+    const { nodes } = await getViewportNodes(null, cache);
+
+    expect(nodes.every((node) => node.label === undefined)).toBe(true);
+    expect(fetcher.calls.every((call) => !call.detailed)).toBe(true);
+  });
+
+  it("carries node labels when detailed data is requested", async () => {
+    const fetcher = labellingFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+
+    const { nodes } = await getViewportNodes(null, cache, {
+      includeDetailedData: true,
+    });
+
+    expect(nodes.map((node) => node.label)).toEqual(["n0", "n1", "n2"]);
+    expect(fetcher.calls.every((call) => call.detailed)).toBe(true);
+  });
+
+  it("refetches a resident compact tile with detail on entering the detailed view", async () => {
+    const fetcher = labellingFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+
+    const compact = await getViewportNodes(null, cache);
+    expect(compact.nodes.every((node) => node.label === undefined)).toBe(true);
+    const compactCalls = fetcher.calls.length;
+
+    const detailed = await getViewportNodes(null, cache, {
+      includeDetailedData: true,
+    });
+    expect(detailed.nodes.every((node) => node.label !== undefined)).toBe(true);
+    // The compact-only resident tile could not serve the detailed load, so it
+    // was refetched detailed (upgraded in place).
+    expect(fetcher.calls.length).toBe(compactCalls + 1);
+    expect(fetcher.calls.at(-1)?.detailed).toBe(true);
+  });
+
+  it("serves a compact load from a resident detailed tile without downgrading it", async () => {
+    const fetcher = labellingFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+
+    await getViewportNodes(null, cache, { includeDetailedData: true });
+    const detailedCalls = fetcher.calls.length;
+
+    const { nodes } = await getViewportNodes(null, cache);
+
+    // A detailed tile is a superset of the compact one, so the compact load hits
+    // the resident entry — no refetch — and its labels survive.
+    expect(fetcher.calls.length).toBe(detailedCalls);
+    expect(nodes.every((node) => node.label !== undefined)).toBe(true);
+  });
+});
+
 describe("TileCache", () => {
   it("rejects a non-positive byte budget", () => {
     expect(() => new TileCache({ maxBytes: 0 })).toThrow(ViewportTilesError);
@@ -419,6 +500,7 @@ describe("TileCache", () => {
     cache.setActiveViewport(
       viewportAt(0, 0, 500, 5),
       5,
+      false,
       new Set(["5/0/0"]), // atlasTileKey of { z: 5, x: 0, y: 0 }
     );
 
@@ -451,7 +533,7 @@ describe("TileCache", () => {
       maxBytes: bytesPerTile * 2 + bytesPerSingleEdgeBucket,
     });
 
-    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5);
+    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5, false);
     await cache.load(tileA);
     await cache.load(tileB);
     await cache.loadEdges([tileA, tileB]);
@@ -459,7 +541,7 @@ describe("TileCache", () => {
 
     // Move far away (clearing pins), then load a tile near the new viewport: the
     // furthest resident tile (A or B) is evicted, cascading to the pair bucket.
-    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5);
+    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5, false);
     await cache.load({ z: 5, x: 29, y: 29 });
 
     expect(cache.edgeBucketCount).toBe(0);

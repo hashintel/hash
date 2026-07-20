@@ -155,6 +155,16 @@ export interface ViewportNode {
   readonly id: number | string;
   readonly x: number;
   readonly y: number;
+  /**
+   * Human-readable label, carried only for tiles fetched with detailed data
+   * (the detailed view; see {@link getViewportNodes}). `undefined` otherwise.
+   */
+  readonly label?: string;
+  /**
+   * The entity's icon (emoji or `/path`/`https` URL), carried alongside
+   * {@link label} for detailed tiles. `undefined` otherwise.
+   */
+  readonly icon?: string;
 }
 
 /** One edge as returned to the renderer: its id and the node ids it connects. */
@@ -179,6 +189,12 @@ export interface TileFetchControls {
   readonly priority?: "high" | "low";
   /** Aborts a superseded prefetch (required loads are never given a signal). */
   readonly signal?: AbortSignal;
+  /**
+   * Requests the tile's detail trailer so delivered nodes carry a `label`; see
+   * {@link FetchTileOptions.includeDetailedData}. The cache sets this per load
+   * from the viewport's detail mode.
+   */
+  readonly includeDetailedData?: boolean;
 }
 
 /** Fetches one tile — its nodes plus completeness — addressed as `fetchTile` does. */
@@ -240,10 +256,23 @@ interface CacheEntry {
   readonly nodes: readonly TileNode[];
   /** Whether the tile delivered its whole subtree; drives the descent's pruning. */
   readonly complete: boolean;
+  /**
+   * Whether this entry was fetched with detailed data, so its nodes carry
+   * labels. A detailed entry serves compact loads too (labels are ignored), but
+   * a compact entry can't serve a detailed load — see {@link TileCache.load}.
+   */
+  readonly detailed: boolean;
   readonly bytes: number;
   readonly origin: TileOrigin;
   /** A prefetch-origin tile that a later required load has since claimed. */
   used: boolean;
+}
+
+/** An in-flight tile fetch plus the detail level it will deliver. */
+interface InflightFetch {
+  /** Whether the pending fetch requested detailed data (labels). */
+  readonly detailed: boolean;
+  readonly promise: Promise<readonly TileNode[]>;
 }
 
 /** Prefetch effectiveness counters accumulated over a {@link TileCache}'s life. */
@@ -320,7 +349,7 @@ export class TileCache {
   readonly #edgeEntries = new Map<string, EdgeCacheEntry>();
   /** Node tile key → the edge bucket keys touching it, for cascade eviction. */
   readonly #edgeKeysByTile = new Map<string, Set<string>>();
-  readonly #inflight = new Map<string, Promise<readonly TileNode[]>>();
+  readonly #inflight = new Map<string, InflightFetch>();
   readonly #prefetchControllers = new Map<string, AbortController>();
   readonly #history: ViewportRegion[] = [];
   readonly #pinned = new Set<string>();
@@ -332,6 +361,8 @@ export class TileCache {
 
   #bytes = 0;
   #viewport: ViewportRegion | null = null;
+  /** Detail mode of the active viewport; prefetches inherit it. */
+  #detailed = false;
   #prefetchIssued = 0;
   #prefetchCancelled = 0;
   #prefetchUsed = 0;
@@ -421,9 +452,11 @@ export class TileCache {
   setActiveViewport(
     rect: Rect,
     depth: number,
+    detailed: boolean,
     requiredKeys?: ReadonlySet<string>,
   ): void {
     this.#viewport = { rect, depth };
+    this.#detailed = detailed;
     this.#pinned.clear();
     if (requiredKeys) {
       for (const key of requiredKeys) {
@@ -450,11 +483,20 @@ export class TileCache {
   /**
    * Returns the tile's nodes, fetching and caching on a miss. Concurrent
    * requests for the same tile share one in-flight fetch.
+   *
+   * `detailed` requests the labelled variant. Since a detailed tile is a
+   * superset of the compact one (same geometry plus labels), a resident or
+   * in-flight detailed fetch satisfies a compact load, but a compact one does
+   * *not* satisfy a detailed load — entering the detailed view refetches the
+   * resident compact tiles, upgrading each entry in place (see {@link #store}).
    */
-  async load(coordinate: AtlasTileCoordinate): Promise<readonly TileNode[]> {
+  async load(
+    coordinate: AtlasTileCoordinate,
+    detailed = false,
+  ): Promise<readonly TileNode[]> {
     const key = atlasTileKey(coordinate);
     const cached = this.#entries.get(key);
-    if (cached) {
+    if (cached && (!detailed || cached.detailed)) {
       // A required load landing on a prefetched tile is the prefetch paying off.
       if (cached.origin === "prefetch" && !cached.used) {
         cached.used = true;
@@ -463,21 +505,22 @@ export class TileCache {
       return cached.nodes;
     }
     const inFlight = this.#inflight.get(key);
-    if (inFlight) {
+    if (inFlight && (!detailed || inFlight.detailed)) {
       // A required load riding an in-flight prefetch claims it: a later batch
       // must not abort a fetch this viewport now depends on, and the prefetch
       // counts as a hit once it lands (marked when it settles, since the tile
       // stores only after this shared promise has already returned).
       this.#prefetchControllers.delete(key);
-      void inFlight.then(
+      void inFlight.promise.then(
         () => this.#markUsed(key),
         () => {},
       );
-      return inFlight;
+      return inFlight.promise;
     }
-    // A required tile that was neither resident nor prefetched in time.
+    // A cold miss, or a detail upgrade over a compact-only resident/in-flight
+    // tile: fetch the (detailed) variant, which replaces the entry on store.
     this.#requiredColdMiss += 1;
-    return this.#fetch(key, coordinate, "required");
+    return this.#fetch(key, coordinate, "required", detailed);
   }
 
   /**
@@ -490,9 +533,14 @@ export class TileCache {
    * first): their delivered nodes map each edge endpoint back to the tile that
    * carries it, which is how an edge is routed to its bucket. Pass them in
    * priority order — the transport trims the list to the served `edgesTiles` cap.
+   *
+   * `includeDetailedData` is threaded to the transport but left `false` by the
+   * descent: the version-0 edges route rejects it, and the buckets carry no
+   * detail, so flipping it on later also needs the signature to fold in the flag.
    */
   async loadEdges(
     tiles: readonly AtlasTileCoordinate[],
+    includeDetailedData = false,
   ): Promise<ViewportEdge[]> {
     if (tiles.length === 0) {
       return [];
@@ -522,7 +570,10 @@ export class TileCache {
       }
     }
 
-    const fetched = await this.#edgeFetcher(tiles, { priority: "high" });
+    const fetched = await this.#edgeFetcher(tiles, {
+      priority: "high",
+      includeDetailedData,
+    });
 
     // Bucket the flat edge list by its endpoints' tiles.
     const buckets = new Map<
@@ -598,7 +649,11 @@ export class TileCache {
     }
   }
 
-  /** Starts one low-priority, cancellable prefetch; a no-op if already held. */
+  /**
+   * Starts one low-priority, cancellable prefetch; a no-op if already held.
+   * Prefetches inherit the active viewport's detail mode so a tile pulled ahead
+   * of need is usable without a re-fetch when that viewport reaches it.
+   */
   #prefetchOne(coordinate: AtlasTileCoordinate): void {
     const key = atlasTileKey(coordinate);
     if (this.#entries.has(key) || this.#inflight.has(key)) {
@@ -609,25 +664,31 @@ export class TileCache {
     this.#prefetchControllers.set(key, controller);
     // Speculative: swallow failures (including cancellation) so a bad prediction
     // never surfaces.
-    void this.#fetch(key, coordinate, "prefetch", controller.signal).catch(
-      () => undefined,
-    );
+    void this.#fetch(
+      key,
+      coordinate,
+      "prefetch",
+      this.#detailed,
+      controller.signal,
+    ).catch(() => undefined);
   }
 
   #fetch(
     key: string,
     coordinate: AtlasTileCoordinate,
     origin: TileOrigin,
+    detailed: boolean,
     signal?: AbortSignal,
   ): Promise<readonly TileNode[]> {
     const pending = this.#fetcher(coordinate.z, tileIndexOf(coordinate), {
       priority: origin === "prefetch" ? "low" : "high",
       signal,
+      includeDetailedData: detailed,
     })
       .then((fetched) => {
         this.#inflight.delete(key);
         this.#prefetchControllers.delete(key);
-        this.#store(key, coordinate, fetched, origin);
+        this.#store(key, coordinate, fetched, origin, detailed);
         return fetched.nodes;
       })
       .catch((error: unknown) => {
@@ -635,13 +696,15 @@ export class TileCache {
         this.#prefetchControllers.delete(key);
         throw error;
       });
-    this.#inflight.set(key, pending);
+    this.#inflight.set(key, { detailed, promise: pending });
     return pending;
   }
 
   /** Resolves once all in-flight fetches (including prefetches) settle. */
   async settled(): Promise<void> {
-    await Promise.allSettled([...this.#inflight.values()]);
+    await Promise.allSettled(
+      [...this.#inflight.values()].map((fetch) => fetch.promise),
+    );
   }
 
   #store(
@@ -649,8 +712,15 @@ export class TileCache {
     coordinate: AtlasTileCoordinate,
     fetched: FetchedTile,
     origin: TileOrigin,
+    detailed: boolean,
   ): void {
     const existing = this.#entries.get(key);
+    // Never downgrade: a detailed entry serves compact loads too, so a compact
+    // fetch that lands after a detail upgrade (or a stray concurrent one) must
+    // not replace the richer entry and drop its labels.
+    if (existing && existing.detailed && !detailed) {
+      return;
+    }
     if (existing) {
       this.#bytes -= existing.bytes;
     }
@@ -659,6 +729,7 @@ export class TileCache {
       coordinate,
       nodes: fetched.nodes,
       complete: fetched.complete,
+      detailed,
       bytes,
       origin,
       used: false,
@@ -821,6 +892,18 @@ type TileLoad =
     }
   | { readonly coordinate: AtlasTileCoordinate; readonly error: unknown };
 
+/** Options for {@link getViewportNodes}. */
+export interface GetViewportNodesOptions {
+  /**
+   * Fetches every tile of the descent with detailed data, so the returned nodes
+   * carry a `label`. The detailed view turns this on once the camera crosses its
+   * detail-zoom threshold — refetching the whole descent (target tiles *and*
+   * their ancestors, which render alongside) so every visible node is labelled.
+   * Defaults to `false` (the geometry-only compact view).
+   */
+  readonly includeDetailedData?: boolean;
+}
+
 /**
  * Returns the nodes visible in `viewport` and the edges among them, fetching any
  * missing tiles through `cache` by a completeness-pruned descent (see the
@@ -834,6 +917,11 @@ type TileLoad =
  * tiles that hold its individual nodes, while sparse regions terminate early.
  * Ancestors and descendants both render; their samples are disjoint, so nodes
  * refine in progressively as deeper tiles land rather than leaving grid gaps.
+ *
+ * With {@link GetViewportNodesOptions.includeDetailedData} the whole descent is
+ * fetched detailed, so every returned node — ancestors included — carries its
+ * `label`. Crossing into (or out of) that mode refetches the resident compact
+ * tiles, upgrading each in place (see {@link TileCache.load}).
  *
  * Once the nodes are in, it fetches the edges among the delivered tiles (see the
  * module's "Edges" note); edges are supplementary, so a failure there leaves the
@@ -850,12 +938,14 @@ type TileLoad =
 export const getViewportNodes = async (
   viewport: Viewport | null,
   cache: TileCache,
+  options: GetViewportNodesOptions = {},
 ): Promise<ViewportGraph> => {
+  const { includeDetailedData = false } = options;
   const { rect, depth: targetDepth } = resolveViewport(viewport);
 
   // Reset the eviction anchor and pins to this viewport; the descent pins each
   // tile it touches below, so a concurrent store/evict can't drop one mid-call.
-  cache.setActiveViewport(rect, targetDepth);
+  cache.setActiveViewport(rect, targetDepth, includeDetailedData);
 
   const nodes = new Map<number | string, ViewportNode>();
   const requiredKeys = new Set<string>();
@@ -879,7 +969,7 @@ export const getViewportNodes = async (
     // failure never rejects the batch and does not stop the other branches.
     const loads = await Promise.all(
       frontier.map((coordinate) =>
-        cache.load(coordinate).then(
+        cache.load(coordinate, includeDetailedData).then(
           (tileNodes): TileLoad => ({ coordinate, nodes: tileNodes }),
           (error: unknown): TileLoad => ({ coordinate, error }),
         ),
@@ -897,8 +987,15 @@ export const getViewportNodes = async (
       loadedTiles.push(load.coordinate);
       for (const node of load.nodes) {
         // Dedupe by id: samples are disjoint across the descent, so a collision
-        // would be a backend inconsistency.
-        nodes.set(node.id, { id: node.id, x: node.x, y: node.y });
+        // would be a backend inconsistency. `label`/`icon` are present only on a
+        // detailed load; keep the entry bare otherwise.
+        nodes.set(node.id, {
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          ...(node.label !== undefined ? { label: node.label } : {}),
+          ...(node.icon !== undefined ? { icon: node.icon } : {}),
+        });
       }
       // Descend only into an incomplete tile, and only below the target depth. A
       // missing flag (shouldn't happen after a success) is treated as a leaf.
@@ -937,6 +1034,8 @@ export const getViewportNodes = async (
         tileDistance(a, rect, targetDepth) - tileDistance(b, rect, targetDepth),
     );
     try {
+      // Edges stay compact even in the detailed view: the version-0 edges route
+      // rejects detailed data (see {@link TileCache.loadEdges}).
       edges = await cache.loadEdges(loadedTiles);
     } catch {
       edges = [];
@@ -1072,6 +1171,13 @@ export interface UseGetViewportNodesOptions {
    * for the same reason as {@link fetcher}.
    */
   readonly edgesFetcher?: EdgesFetcher;
+  /**
+   * Fetches the visible tiles with detailed data so their nodes carry a `label`
+   * (the detailed view). Unlike {@link fetcher}, this is *not* a cache-identity
+   * input — toggling it refetches the viewport (upgrading resident tiles in
+   * place) rather than recreating the cache. Defaults to `false`.
+   */
+  readonly includeDetailedData?: boolean;
 }
 
 /** {@link useGetViewportNodes}' result: the graph plus the backing cache's fill. */
@@ -1083,10 +1189,18 @@ export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph
 }
 
 /** Stable identity for a viewport, so a fetch reruns only on a real change. */
-const viewportKey = (viewport: Viewport | null, baseUrl: string): string =>
-  viewport === null
-    ? `${baseUrl}|initial`
-    : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}`;
+const viewportKey = (
+  viewport: Viewport | null,
+  baseUrl: string,
+  includeDetailedData: boolean,
+): string => {
+  // The detail flag is part of the key: crossing the detail threshold must
+  // refetch (upgrading resident tiles), not serve the cached compact result.
+  const detail = includeDetailedData ? "|detail" : "";
+  return viewport === null
+    ? `${baseUrl}|initial${detail}`
+    : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}${detail}`;
+};
 
 /**
  * Returns the nodes visible in `viewport` as a hook, with TanStack-Query-style
@@ -1112,6 +1226,7 @@ export const useGetViewportNodes = (
     maxBytes,
     fetcher,
     edgesFetcher,
+    includeDetailedData = false,
   } = options;
 
   const cache = useMemo(
@@ -1126,6 +1241,7 @@ export const useGetViewportNodes = (
               retry,
               priority: controls?.priority,
               signal: controls?.signal,
+              includeDetailedData: controls?.includeDetailedData,
             })),
         edgesFetcher:
           edgesFetcher ??
@@ -1135,15 +1251,21 @@ export const useGetViewportNodes = (
               retry,
               priority: controls?.priority,
               signal: controls?.signal,
+              includeDetailedData: controls?.includeDetailedData,
             })),
       }),
     [baseUrl, retry, maxBytes, fetcher, edgesFetcher],
   );
 
-  const query = useAtlasQuery(viewportKey(viewport, baseUrl), async () => {
-    const graph = await getViewportNodes(viewport, cache);
-    return { graph, tileCount: cache.tileCount };
-  });
+  const query = useAtlasQuery(
+    viewportKey(viewport, baseUrl, includeDetailedData),
+    async () => {
+      const graph = await getViewportNodes(viewport, cache, {
+        includeDetailedData,
+      });
+      return { graph, tileCount: cache.tileCount };
+    },
+  );
 
   return {
     data: query.data?.graph,

@@ -60,6 +60,18 @@ export interface TileNode {
   readonly id: number;
   readonly x: number;
   readonly y: number;
+  /**
+   * Human-readable label from the tile's detail trailer. Present only when the
+   * tile was fetched with {@link FetchTileOptions.includeDetailedData}; the base
+   * geometry-only response leaves it `undefined`.
+   */
+  readonly label?: string;
+  /**
+   * The entity's icon from the detail trailer — an emoji, or a `/path`/`https`
+   * URL (never a design-system icon name); see the server's `detail.rs`.
+   * Present only alongside {@link label} (detailed data); `undefined` otherwise.
+   */
+  readonly icon?: string;
 }
 
 /** A decoded tile: its delivered nodes plus the level-of-detail descent signal. */
@@ -88,6 +100,13 @@ export interface FetchTileOptions {
    * priority; a lower scheduling priority on HTTP/1.1).
    */
   readonly priority?: RequestPriority;
+  /**
+   * Requests the detail trailer — per-point labels (and icons) the server
+   * hydrates live from the store — so decoded {@link TileNode}s carry a
+   * `label`. Defaults to `false` (the geometry-only response). The detailed
+   * view (see the tiling story) turns this on for the tiles it draws.
+   */
+  readonly includeDetailedData?: boolean;
 }
 
 interface FetchTileErrorOptions extends ErrorOptions {
@@ -392,6 +411,7 @@ const fetchAndDecodeTile = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
+  includeDetailedData: boolean,
 ): Promise<FetchedTile> => {
   const { z, x, y } = coordinate;
   if (z > session.maxZoom) {
@@ -401,14 +421,15 @@ const fetchAndDecodeTile = async (
   }
 
   const tileUrl = `${baseUrl}/v1/atlas/tile/${session.generation}/${session.variant}/${z}/${x}/${y}`;
-  // An empty query: delta mode, no colored types, no detailed data.
+  // Delta mode, no colored types; ask for the detail trailer (per-point labels
+  // and icons) only when the caller wants it, otherwise the empty query.
   const tileResponse = await requestAtlas(
     tileUrl,
     SALTILE_MEDIA_TYPE,
     signal,
     retries,
     priority,
-    "{}",
+    includeDetailedData ? '{"includeDetailedData":true}' : "{}",
   );
 
   const contentType = tileResponse.headers.get("content-type") ?? "";
@@ -426,7 +447,7 @@ const fetchAndDecodeTile = async (
     mode: SaltileMode.Delta,
     spanLog2: session.spanLog2,
     coloredTypeIdCount: 0,
-    includeDetailedData: false,
+    includeDetailedData,
   };
 
   let tile;
@@ -443,6 +464,10 @@ const fetchAndDecodeTile = async (
   // power-of-two scale; the tile grids already align.
   const scale = WORLD_SIZE / 2;
   const { delivered, positions, rowIds } = tile;
+  // The detail trailer's columns are delivered-order-aligned; absent (null) on
+  // the geometry-only response, so a node simply carries no label/icon there.
+  const labels = tile.detail?.labels;
+  const icons = tile.detail?.icons;
   const nodes: TileNode[] = new Array<TileNode>(delivered);
   for (let index = 0; index < delivered; index += 1) {
     const id = rowIds[index];
@@ -455,7 +480,17 @@ const fetchAndDecodeTile = async (
         `tile ${atlasTileKey(coordinate)} record ${index} is truncated`,
       );
     }
-    nodes[index] = { id, x: (wireX + 1) * scale, y: (wireY + 1) * scale };
+    const worldX = (wireX + 1) * scale;
+    const worldY = (wireY + 1) * scale;
+    const label = labels?.[index] ?? undefined;
+    const icon = icons?.[index] ?? undefined;
+    nodes[index] = {
+      id,
+      x: worldX,
+      y: worldY,
+      ...(label !== undefined ? { label } : {}),
+      ...(icon !== undefined ? { icon } : {}),
+    };
   }
 
   // `children` is the occupancy bitmask of the four Morton children below this
@@ -484,7 +519,13 @@ export const fetchTile = async (
   tileIndex: number,
   options: FetchTileOptions = {},
 ): Promise<FetchedTile> => {
-  const { baseUrl = ATLAS_API_BASE_URL, signal, retry, priority } = options;
+  const {
+    baseUrl = ATLAS_API_BASE_URL,
+    signal,
+    retry,
+    priority,
+    includeDetailedData = false,
+  } = options;
 
   if (!Number.isInteger(zoom) || zoom < 0 || zoom > ATLAS_TILE_MAX_ZOOM) {
     throw new FetchTileError(
@@ -517,6 +558,7 @@ export const fetchTile = async (
       signal,
       retry,
       priority,
+      includeDetailedData,
     );
   } catch (error) {
     // A 404 on a well-formed request means the generation we pinned is no
@@ -531,6 +573,7 @@ export const fetchTile = async (
         signal,
         retry,
         priority,
+        includeDetailedData,
       );
     }
     throw error;
