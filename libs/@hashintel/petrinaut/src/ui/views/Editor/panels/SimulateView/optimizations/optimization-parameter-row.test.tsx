@@ -53,7 +53,7 @@ describe("OptimizationParameterRow", () => {
 
     const optimize = screen.getByRole("checkbox", { name: "Optimize rate" });
     expect((optimize as HTMLInputElement).checked).toBe(false);
-    expect(screen.getByText("Fixed value")).toBeTruthy();
+    expect(screen.getByText("Value")).toBeTruthy();
 
     view.rerender(
       <OptimizationParameterRow
@@ -67,7 +67,7 @@ describe("OptimizationParameterRow", () => {
     expect(screen.getByText("Maximum")).toBeTruthy();
     expect(screen.getByText("Scale")).toBeTruthy();
     expect(
-      screen.getByText("Fixed value").closest("[aria-hidden='true']"),
+      screen.getByText("Value").closest("[aria-hidden='true']"),
     ).toBeTruthy();
   });
 

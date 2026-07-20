@@ -273,7 +273,7 @@ const openConfiguration = (props: TestProviderProps = {}) => {
     { target: { value: "scenario__seasonal_flu" } },
   );
 
-  expect(screen.getByText("Scenario parameters")).toBeTruthy();
+  expect(screen.getByText("Parameters")).toBeTruthy();
 };
 
 describe("CreateOptimizationDrawer", () => {
@@ -281,7 +281,7 @@ describe("CreateOptimizationDrawer", () => {
     render(<TestProviders />);
 
     expect(screen.getByText("Select a scenario")).toBeTruthy();
-    expect(screen.queryByText("Scenario parameters")).toBeNull();
+    expect(screen.queryByText("Parameters")).toBeNull();
     expect(
       (screen.getByRole("button", { name: /Run/ }) as HTMLButtonElement)
         .disabled,
@@ -292,7 +292,7 @@ describe("CreateOptimizationDrawer", () => {
       { target: { value: "scenario__seasonal_flu" } },
     );
 
-    expect(screen.getByText("Scenario parameters")).toBeTruthy();
+    expect(screen.getByText("Parameters")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
   });
 

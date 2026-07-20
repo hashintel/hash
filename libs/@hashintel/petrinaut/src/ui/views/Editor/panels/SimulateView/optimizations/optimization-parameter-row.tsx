@@ -29,7 +29,7 @@ const rowStyle = css({
   "&[data-optimizing='true']": {
     borderColor: "neutral.s50",
     boxShadow:
-      "[-2px 0 6px rgba(128, 0, 255, 0.06), 0 -2px 6px rgba(255, 210, 0, 0.05), 2px 0 6px rgba(0, 220, 255, 0.06), 0 2px 6px rgba(255, 0, 128, 0.045)]",
+      "[-2px 0 6px rgba(128, 0, 255, 0.06), 0 -2px 6px rgba(255, 210, 0, 0.05), 2px 0 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)]",
     animationName: "[optimizationGlow]",
     animationDuration: "[2s]",
     animationTimingFunction: "linear",
@@ -70,26 +70,28 @@ const typeStyle = css({
 const modeStyle = css({
   display: "flex",
   alignItems: "center",
+  flexShrink: "0",
   gap: "2",
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s100",
+  whiteSpace: "nowrap",
 });
 
 const fixedRowStyle = css({
   display: "flex",
   alignItems: "center",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
   gap: "2",
 });
 
 const fixedFieldStyle = css({
   display: "grid",
-  gridTemplateColumns: "[auto minmax(8rem, 1fr)]",
+  gridTemplateColumns: "[auto minmax(5rem, 1fr)]",
   alignItems: "center",
   gap: "2",
-  flex: "[0 1 22rem]",
-  minWidth: "[12rem]",
+  flex: "[0 1 13rem]",
+  minWidth: "[9rem]",
   opacity: "1",
   transition: "[opacity 120ms ease-in-out]",
   "&[data-visible='false']": {
@@ -219,7 +221,7 @@ export const OptimizationParameterRow = ({
           data-visible={!optimizing}
           aria-hidden={optimizing}
         >
-          <span className={fieldLabelStyle}>Fixed value</span>
+          <span className={fieldLabelStyle}>Value</span>
           {parameter.type === "boolean" ? (
             <Toggle
               aria-label={`${parameter.identifier} fixed value`}

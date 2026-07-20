@@ -718,14 +718,14 @@ export const CreateOptimizationDrawer = ({
 
   return (
     <Drawer
-      size="lg"
+      size="md"
       shouldCloseOn={submissionInProgress ? "none" : undefined}
       showBackdrop={false}
       onClose={handleClose}
     >
       <Drawer.Header
         title="Create an optimization"
-        description="Choose a scenario, a flat search space, and one final-frame metric objective"
+        description="Choose a scenario, a search space, and a metric objective"
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
@@ -805,14 +805,16 @@ export const CreateOptimizationDrawer = ({
               </Section>
 
               <Section
-                title="Scenario parameters"
+                title="Parameters"
                 tooltip="Only scenario parameters can be optimized. The optimizer receives a flat list of identifiers."
                 collapsible
                 defaultOpen
               >
                 <span className={hintStyle}>
-                  Parameters are fixed by default. Enable Optimize and define a
-                  domain for every value the optimizer may vary.
+                  Parameters are fixed by default.
+                  <br />
+                  Enable Optimize and define a domain for every value the
+                  optimizer may vary.
                 </span>
                 <div className={parameterListStyle}>
                   {selectedScenario.scenarioParameters.map((parameter) => (
