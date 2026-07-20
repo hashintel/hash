@@ -14,14 +14,15 @@ interface ScrollOverflow {
 /**
  * Tracks whether a scrollable element can scroll further up or down, so a
  * caller can render fade/shadow affordances at the overflowing edges. Re-checks
- * on scroll and whenever the element or its children resize.
+ * on scroll, when the element or its children resize, and when rows are
+ * added/removed.
  */
 export const useScrollOverflow = (): ScrollOverflow => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
 
-  const update = () => {
+  const onScroll = () => {
     const el = scrollRef.current;
     if (!el) {
       return;
@@ -36,19 +37,38 @@ export const useScrollOverflow = (): ScrollOverflow => {
       return;
     }
 
-    update();
+    const measure = () => {
+      setCanScrollUp(el.scrollTop > 0);
+      setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+    };
 
-    // Observe the element and its children so the state stays correct as the
-    // viewport or the content height changes. Re-subscribes each render so
-    // dynamically added/removed children stay observed.
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    for (const child of el.children) {
-      observer.observe(child);
-    }
+    measure();
 
-    return () => observer.disconnect();
-  });
+    // Observe the container and its children so the state tracks viewport and
+    // content-height changes. `observe` is idempotent, so re-observing on
+    // child-list changes keeps newly added rows tracked without tearing the
+    // observers down. Set up once on mount rather than every render.
+    const resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(el);
 
-  return { scrollRef, canScrollUp, canScrollDown, onScroll: update };
+    const observeChildren = () => {
+      for (const child of el.children) {
+        resizeObserver.observe(child);
+      }
+    };
+    observeChildren();
+
+    const mutationObserver = new MutationObserver(() => {
+      observeChildren();
+      measure();
+    });
+    mutationObserver.observe(el, { childList: true });
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, []);
+
+  return { scrollRef, canScrollUp, canScrollDown, onScroll };
 };
