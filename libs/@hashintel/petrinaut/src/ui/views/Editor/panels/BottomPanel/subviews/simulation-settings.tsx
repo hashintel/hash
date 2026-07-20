@@ -69,7 +69,7 @@ const containerStyle = css({
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "2",
   minHeight: "[0]",
 });
 
@@ -79,7 +79,6 @@ const sectionTitleStyle = css({
   textTransform: "uppercase",
   color: "neutral.a100",
   letterSpacing: "[0.5px]",
-  marginBottom: "1",
 });
 
 const settingsRowStyle = css({
