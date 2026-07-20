@@ -2,10 +2,12 @@
  * Viewport-driven tiling for the Atlas network graph.
  *
  * {@link getViewportNodes} turns a camera viewport into the set of nodes that
- * should be on screen. It fetches the quadtree tiles the viewport covers (plus
- * their ancestors — see below), serving them from a {@link TileCache} and only
- * hitting the network for tiles it has never seen. The spatial geometry lives in
- * `./tile-geometry` and the speculative prefetch in `./tile-prefetch`.
+ * should be on screen — and the edges among them. It fetches the quadtree tiles
+ * the viewport covers (plus their ancestors — see below), serving them from a
+ * {@link TileCache} and only hitting the network for tiles it has never seen,
+ * then fetches the edges among those tiles' nodes (see the "Edges" note). The
+ * spatial geometry lives in `./tile-geometry`, the edge transport in
+ * `./fetch-edges-for-tiles`, and the speculative prefetch in `./tile-prefetch`.
  *
  * ## Coordinate model
  *
@@ -44,6 +46,23 @@
  * ancestor's world rectangle contains the viewport, so its spatial distance is
  * zero), and every descended tile is pinned for the duration of the call.
  *
+ * ## Edges
+ *
+ * After the node descent, {@link getViewportNodes} fetches the edges among the
+ * tiles it delivered nodes for. The edges API takes one tile list and returns
+ * every edge whose both endpoints fall in those tiles' delivered rows, so one
+ * request yields the intra-tile edges *and* the inter-tile edges crossing
+ * between any two tiles.
+ *
+ * The {@link TileCache} caches that result decomposed into buckets keyed by a
+ * single node tile (its intra-tile edges) or an unordered pair of node tiles
+ * (the edges crossing between them). The edge an endpoint pair produces is
+ * placed by mapping each endpoint's node id back to the tile that delivered it.
+ * Buckets share the node cache's byte budget and distance eviction; a pair
+ * bucket is additionally evicted when either endpoint tile leaves the node
+ * cache, since edges touching an evicted tile can no longer be drawn. An
+ * unchanged tile set serves its edges entirely from the resident buckets.
+ *
  * ## Request state
  *
  * {@link useGetViewportNodes} wraps the fetch in {@link useAtlasQuery} — a
@@ -59,6 +78,11 @@ import {
   atlasTileKey,
   type AtlasTileCoordinate,
 } from "./atlas-tile-coordinate";
+import {
+  fetchEdgesForTiles,
+  type FetchedEdges,
+  type TileEdge,
+} from "./fetch-edges-for-tiles";
 import {
   ATLAS_API_BASE_URL,
   fetchTile,
@@ -95,8 +119,14 @@ const INITIAL_TILE_ZOOM = 1;
  */
 const MAX_DESCENT_FRONTIER = 1024;
 
-/** Default cache budget (~256 fully-delivered tiles). Tunable per instance. */
-const DEFAULT_MAX_BYTES = 64 * 1024 * 1024;
+/**
+ * Default cache budget. The ~256 fully-delivered node tiles this once targeted
+ * (64 MiB) was a node-only figure; edge buckets now share the same pool
+ * (see the "Edges" note), so 128 MiB restores that node residency with edges
+ * co-resident — which also keeps more cross-tile edge buckets alive against
+ * cascade eviction. Tunable per instance for dense graphs; see {@link maxBytes}.
+ */
+const DEFAULT_MAX_BYTES = 128 * 1024 * 1024;
 
 /**
  * Rough heap cost of one cached node. Only used to compare tiles against the
@@ -107,6 +137,12 @@ const APPROX_BYTES_PER_NODE = 64;
 
 /** Baseline cost of a cached tile independent of its node count. */
 const APPROX_BYTES_PER_TILE = 256;
+
+/** Rough heap cost of one cached edge; see {@link APPROX_BYTES_PER_NODE}. */
+const APPROX_BYTES_PER_EDGE = 64;
+
+/** Baseline cost of a cached edge bucket independent of its edge count. */
+const APPROX_BYTES_PER_EDGE_BUCKET = 128;
 
 /** A camera viewport: a world rectangle plus a fractional quadtree depth. */
 export interface Viewport extends Rect {
@@ -119,6 +155,19 @@ export interface ViewportNode {
   readonly id: number | string;
   readonly x: number;
   readonly y: number;
+}
+
+/** One edge as returned to the renderer: its id and the node ids it connects. */
+export interface ViewportEdge {
+  readonly id: number;
+  readonly source: number;
+  readonly target: number;
+}
+
+/** The renderable graph for a viewport: its nodes and the edges among them. */
+export interface ViewportGraph {
+  readonly nodes: ViewportNode[];
+  readonly edges: ViewportEdge[];
 }
 
 /** Per-request controls the cache threads to a {@link TileFetcher}. */
@@ -139,12 +188,23 @@ export type TileFetcher = (
   controls?: TileFetchControls,
 ) => Promise<FetchedTile>;
 
+/**
+ * Fetches all edges among a set of tiles — intra-tile and inter-tile together —
+ * in one call, as {@link fetchEdgesForTiles} does.
+ */
+export type EdgesFetcher = (
+  tiles: readonly AtlasTileCoordinate[],
+  controls?: TileFetchControls,
+) => Promise<FetchedEdges>;
+
 /** Construction options for {@link TileCache}. */
 export interface TileCacheOptions {
   /** Soft memory budget in bytes before eviction runs. */
   readonly maxBytes?: number;
   /** Tile fetcher; defaults to {@link fetchTile}. Injectable for tests. */
   readonly fetcher?: TileFetcher;
+  /** Edges fetcher; defaults to {@link fetchEdgesForTiles}. Injectable for tests. */
+  readonly edgesFetcher?: EdgesFetcher;
 }
 
 /** Every tile fetch for a viewport failed. */
@@ -209,6 +269,38 @@ export interface PrefetchStats {
 const estimateBytes = (nodes: readonly TileNode[]): number =>
   APPROX_BYTES_PER_TILE + nodes.length * APPROX_BYTES_PER_NODE;
 
+const estimateEdgeBytes = (edges: readonly TileEdge[]): number =>
+  APPROX_BYTES_PER_EDGE_BUCKET + edges.length * APPROX_BYTES_PER_EDGE;
+
+/**
+ * A cached set of edges keyed by one node tile (its intra-tile edges) or an
+ * unordered pair of node tiles (the edges crossing between them).
+ */
+interface EdgeCacheEntry {
+  /** The one or two node tiles this bucket's edges connect. */
+  readonly tiles: readonly AtlasTileCoordinate[];
+  readonly edges: readonly TileEdge[];
+  readonly bytes: number;
+}
+
+/**
+ * Cache key for an edge bucket: a single node tile's key for its intra-tile
+ * edges, or the two tiles' keys joined (order-normalized) for the edges crossing
+ * between them. The single-tile form deliberately equals {@link atlasTileKey},
+ * so pinning a node tile also pins its intra-tile edges.
+ */
+const edgeBucketKey = (
+  a: AtlasTileCoordinate,
+  b: AtlasTileCoordinate,
+): string => {
+  const keyA = atlasTileKey(a);
+  const keyB = atlasTileKey(b);
+  if (keyA === keyB) {
+    return keyA;
+  }
+  return keyA < keyB ? `${keyA}~${keyB}` : `${keyB}~${keyA}`;
+};
+
 /**
  * A distance-evicting, in-flight-deduplicating store of decoded tiles plus the
  * recent-viewport history that drives prefetching. Satisfies the
@@ -223,11 +315,20 @@ export class TileCache {
   readonly maxBytes: number;
 
   readonly #fetcher: TileFetcher;
+  readonly #edgeFetcher: EdgesFetcher;
   readonly #entries = new Map<string, CacheEntry>();
+  readonly #edgeEntries = new Map<string, EdgeCacheEntry>();
+  /** Node tile key → the edge bucket keys touching it, for cascade eviction. */
+  readonly #edgeKeysByTile = new Map<string, Set<string>>();
   readonly #inflight = new Map<string, Promise<readonly TileNode[]>>();
   readonly #prefetchControllers = new Map<string, AbortController>();
   readonly #history: ViewportRegion[] = [];
   readonly #pinned = new Set<string>();
+
+  /** Tile-set signature the resident edge buckets were last assembled for. */
+  #edgeSignature: string | null = null;
+  /** Non-empty edge bucket keys backing {@link #edgeSignature}. */
+  #edgeBucketKeys: ReadonlySet<string> = new Set<string>();
 
   #bytes = 0;
   #viewport: ViewportRegion | null = null;
@@ -245,11 +346,17 @@ export class TileCache {
       );
     }
     this.#fetcher = options.fetcher ?? fetchTile;
+    this.#edgeFetcher = options.edgesFetcher ?? fetchEdgesForTiles;
   }
 
   /** Number of tiles currently resident. */
   get tileCount(): number {
     return this.#entries.size;
+  }
+
+  /** Number of edge buckets currently resident. */
+  get edgeBucketCount(): number {
+    return this.#edgeEntries.size;
   }
 
   /** Estimated bytes currently resident. */
@@ -374,6 +481,103 @@ export class TileCache {
   }
 
   /**
+   * Returns the edges among `tiles` — the edges within each tile and the edges
+   * crossing between any two of them — fetching and bucketing on a miss.
+   *
+   * The edges are cached decomposed into per-tile and per-tile-pair buckets (see
+   * {@link edgeBucketKey}) so a repeated tile set serves entirely from the
+   * resident buckets. `tiles` must be resident node tiles (the caller loads them
+   * first): their delivered nodes map each edge endpoint back to the tile that
+   * carries it, which is how an edge is routed to its bucket. Pass them in
+   * priority order — the transport trims the list to the served `edgesTiles` cap.
+   */
+  async loadEdges(
+    tiles: readonly AtlasTileCoordinate[],
+  ): Promise<ViewportEdge[]> {
+    if (tiles.length === 0) {
+      return [];
+    }
+    const signature = tiles.map(atlasTileKey).sort().join(",");
+
+    // Fast path: the same tile set as last time, with every backing bucket still
+    // resident (none cascade- or distance-evicted since it was assembled).
+    if (
+      signature === this.#edgeSignature &&
+      [...this.#edgeBucketKeys].every((key) => this.#edgeEntries.has(key))
+    ) {
+      this.pin(this.#edgeBucketKeys);
+      return this.#assembleEdges(this.#edgeBucketKeys);
+    }
+
+    // Map each delivered node id to the tile that carries it, so an edge's
+    // endpoints resolve to the bucket (single tile, or tile pair) it belongs to.
+    const nodeToTile = new Map<number | string, AtlasTileCoordinate>();
+    for (const tile of tiles) {
+      const entry = this.#entries.get(atlasTileKey(tile));
+      if (!entry) {
+        continue;
+      }
+      for (const node of entry.nodes) {
+        nodeToTile.set(node.id, tile);
+      }
+    }
+
+    const fetched = await this.#edgeFetcher(tiles, { priority: "high" });
+
+    // Bucket the flat edge list by its endpoints' tiles.
+    const buckets = new Map<
+      string,
+      { readonly tiles: AtlasTileCoordinate[]; readonly edges: TileEdge[] }
+    >();
+    for (const edge of fetched.edges) {
+      const sourceTile = nodeToTile.get(edge.source);
+      const targetTile = nodeToTile.get(edge.target);
+      // Defensive: the server only ships edges within the delivered union, so an
+      // endpoint should always resolve; drop any that somehow does not.
+      if (sourceTile === undefined || targetTile === undefined) {
+        continue;
+      }
+      const key = edgeBucketKey(sourceTile, targetTile);
+      let bucket = buckets.get(key);
+      if (!bucket) {
+        bucket = {
+          tiles:
+            atlasTileKey(sourceTile) === atlasTileKey(targetTile)
+              ? [sourceTile]
+              : [sourceTile, targetTile],
+          edges: [],
+        };
+        buckets.set(key, bucket);
+      }
+      bucket.edges.push(edge);
+    }
+
+    for (const [key, bucket] of buckets) {
+      this.#storeEdgeBucket(key, bucket.tiles, bucket.edges);
+    }
+    const bucketKeys = new Set(buckets.keys());
+    this.#edgeSignature = signature;
+    this.#edgeBucketKeys = bucketKeys;
+    // Pin before eviction so the just-stored buckets survive a tight budget.
+    this.pin(bucketKeys);
+    this.#evict();
+
+    return this.#assembleEdges(bucketKeys);
+  }
+
+  /** Concatenates the edges of the named buckets; buckets are disjoint (no dedup). */
+  #assembleEdges(keys: ReadonlySet<string>): ViewportEdge[] {
+    const edges: ViewportEdge[] = [];
+    for (const key of keys) {
+      const entry = this.#edgeEntries.get(key);
+      if (entry) {
+        edges.push(...entry.edges);
+      }
+    }
+    return edges;
+  }
+
+  /**
    * Issues the batch of speculative prefetches for the current viewport, and
    * cancels any still-in-flight prefetch this batch no longer wants — superseded
    * speculation whose bytes are better spent on the current viewport (and, on a
@@ -463,6 +667,30 @@ export class TileCache {
     this.#evict();
   }
 
+  /** Stores one edge bucket, updating byte use and the cascade reverse index. */
+  #storeEdgeBucket(
+    key: string,
+    tiles: readonly AtlasTileCoordinate[],
+    edges: readonly TileEdge[],
+  ): void {
+    const existing = this.#edgeEntries.get(key);
+    if (existing) {
+      this.#bytes -= existing.bytes;
+    }
+    const bytes = estimateEdgeBytes(edges);
+    this.#edgeEntries.set(key, { tiles, edges, bytes });
+    this.#bytes += bytes;
+    for (const tile of tiles) {
+      const tileKey = atlasTileKey(tile);
+      let set = this.#edgeKeysByTile.get(tileKey);
+      if (!set) {
+        set = new Set<string>();
+        this.#edgeKeysByTile.set(tileKey, set);
+      }
+      set.add(key);
+    }
+  }
+
   /**
    * Marks a resident prefetch tile as a hit. Used when a required load rode an
    * in-flight prefetch (see {@link load}): the tile stores after that load has
@@ -481,28 +709,88 @@ export class TileCache {
       return;
     }
     const viewport = this.#viewport;
-    const candidates = [...this.#entries.values()].filter(
-      (entry) => !this.#pinned.has(atlasTileKey(entry.coordinate)),
-    );
-    // Furthest first. With no active viewport yet, fall back to insertion order
-    // (Map iteration order), which `[...values()]` preserves, so the oldest
-    // tiles leave first.
-    if (viewport) {
-      candidates.sort(
-        (a, b) =>
-          tileDistance(b.coordinate, viewport.rect, viewport.depth) -
-          tileDistance(a.coordinate, viewport.rect, viewport.depth),
-      );
+    const distanceOf = (coordinate: AtlasTileCoordinate): number =>
+      viewport ? tileDistance(coordinate, viewport.rect, viewport.depth) : 0;
+
+    // Node tiles and edge buckets share the budget. Each candidate carries the
+    // distance of its nearest tile — a pair bucket stays while either endpoint is
+    // near — so the furthest data leaves first.
+    interface Candidate {
+      readonly kind: "node" | "edge";
+      readonly key: string;
+      readonly distance: number;
     }
-    for (const entry of candidates) {
+    const candidates: Candidate[] = [];
+    for (const [key, entry] of this.#entries) {
+      if (!this.#pinned.has(key)) {
+        candidates.push({
+          kind: "node",
+          key,
+          distance: distanceOf(entry.coordinate),
+        });
+      }
+    }
+    for (const [key, entry] of this.#edgeEntries) {
+      if (!this.#pinned.has(key)) {
+        const distance = Math.min(...entry.tiles.map(distanceOf));
+        candidates.push({ kind: "edge", key, distance });
+      }
+    }
+
+    // Furthest first. With no active viewport every distance is 0, so the sort
+    // leaves insertion order (nodes before edges) untouched — oldest first.
+    if (viewport) {
+      candidates.sort((a, b) => b.distance - a.distance);
+    }
+    for (const candidate of candidates) {
       if (this.#bytes <= this.maxBytes) {
         break;
       }
-      if (entry.origin === "prefetch" && !entry.used) {
-        this.#prefetchWasted += 1;
+      if (candidate.kind === "node") {
+        this.#evictNode(candidate.key);
+      } else {
+        this.#evictEdge(candidate.key);
       }
-      this.#entries.delete(atlasTileKey(entry.coordinate));
-      this.#bytes -= entry.bytes;
+    }
+  }
+
+  /** Evicts one node tile, cascading to the edge buckets that touch it. */
+  #evictNode(key: string): void {
+    const entry = this.#entries.get(key);
+    if (!entry) {
+      return;
+    }
+    if (entry.origin === "prefetch" && !entry.used) {
+      this.#prefetchWasted += 1;
+    }
+    this.#entries.delete(key);
+    this.#bytes -= entry.bytes;
+    // A bucket touching this tile is unrenderable once its nodes are gone.
+    const dependent = this.#edgeKeysByTile.get(key);
+    if (dependent) {
+      for (const edgeKey of [...dependent]) {
+        this.#evictEdge(edgeKey);
+      }
+    }
+  }
+
+  /** Evicts one edge bucket and detaches it from the cascade reverse index. */
+  #evictEdge(key: string): void {
+    const entry = this.#edgeEntries.get(key);
+    if (!entry) {
+      return;
+    }
+    this.#edgeEntries.delete(key);
+    this.#bytes -= entry.bytes;
+    for (const tile of entry.tiles) {
+      const tileKey = atlasTileKey(tile);
+      const set = this.#edgeKeysByTile.get(tileKey);
+      if (set) {
+        set.delete(key);
+        if (set.size === 0) {
+          this.#edgeKeysByTile.delete(tileKey);
+        }
+      }
     }
   }
 }
@@ -534,9 +822,9 @@ type TileLoad =
   | { readonly coordinate: AtlasTileCoordinate; readonly error: unknown };
 
 /**
- * Returns the nodes visible in `viewport`, fetching any missing tiles through
- * `cache` by a completeness-pruned descent (see the module's "Descent" note) and
- * returning the merged, id-deduplicated result.
+ * Returns the nodes visible in `viewport` and the edges among them, fetching any
+ * missing tiles through `cache` by a completeness-pruned descent (see the
+ * module's "Descent" note) and returning the merged, id-deduplicated result.
  *
  * A `null` viewport (a freshly mounted graph) resolves to the initial overview
  * depth. Otherwise the viewport's rectangle and zoom set the descent's target
@@ -546,6 +834,10 @@ type TileLoad =
  * tiles that hold its individual nodes, while sparse regions terminate early.
  * Ancestors and descendants both render; their samples are disjoint, so nodes
  * refine in progressively as deeper tiles land rather than leaving grid gaps.
+ *
+ * Once the nodes are in, it fetches the edges among the delivered tiles (see the
+ * module's "Edges" note); edges are supplementary, so a failure there leaves the
+ * nodes intact and returns them with no edges.
  *
  * After serving the current viewport it records the movement and, while the
  * user is navigating, prefetches the tiles the next viewport is predicted to
@@ -558,7 +850,7 @@ type TileLoad =
 export const getViewportNodes = async (
   viewport: Viewport | null,
   cache: TileCache,
-): Promise<ViewportNode[]> => {
+): Promise<ViewportGraph> => {
   const { rect, depth: targetDepth } = resolveViewport(viewport);
 
   // Reset the eviction anchor and pins to this viewport; the descent pins each
@@ -567,6 +859,7 @@ export const getViewportNodes = async (
 
   const nodes = new Map<number | string, ViewportNode>();
   const requiredKeys = new Set<string>();
+  const loadedTiles: AtlasTileCoordinate[] = [];
   let attempted = 0;
   let failures = 0;
   let firstError: unknown;
@@ -601,6 +894,7 @@ export const getViewportNodes = async (
         firstError ??= load.error;
         continue;
       }
+      loadedTiles.push(load.coordinate);
       for (const node of load.nodes) {
         // Dedupe by id: samples are disjoint across the descent, so a collision
         // would be a backend inconsistency.
@@ -633,7 +927,23 @@ export const getViewportNodes = async (
   cache.recordHistory(rect, targetDepth);
   schedulePrefetch(cache, requiredKeys);
 
-  return [...nodes.values()];
+  // Edges among the delivered tiles, ordered nearest-first so the transport's
+  // tile cap keeps the most relevant tiles. Supplementary: a failure (or the
+  // fetch being unsupported) leaves the nodes rendering without edges.
+  let edges: ViewportEdge[] = [];
+  if (loadedTiles.length > 0) {
+    loadedTiles.sort(
+      (a, b) =>
+        tileDistance(a, rect, targetDepth) - tileDistance(b, rect, targetDepth),
+    );
+    try {
+      edges = await cache.loadEdges(loadedTiles);
+    } catch {
+      edges = [];
+    }
+  }
+
+  return { nodes: [...nodes.values()], edges };
 };
 
 /** TanStack-Query-like snapshot of one async resource. */
@@ -749,19 +1059,23 @@ export interface UseGetViewportNodesOptions {
   /** Soft cache budget in bytes before eviction runs; see {@link TileCache}. */
   readonly maxBytes?: number;
   /**
-   * Tile transport override; defaults to the legacy-wire {@link fetchTile}
-   * (which consumes `baseUrl`/`retry`). Passing one selects the wire the
-   * cache loads through - the SALTILE fetcher plugs in here. Must be
-   * referentially stable across renders: a new function identity
-   * recreates the cache and drops every resident tile.
+   * Tile transport override; defaults to {@link fetchTile}, the SALTILE-wire
+   * fetcher (which consumes `baseUrl`/`retry`). Passing one selects the
+   * transport the cache loads through. Must be referentially stable across
+   * renders: a new function identity recreates the cache and drops every
+   * resident tile.
    */
   readonly fetcher?: TileFetcher;
+  /**
+   * Edges transport override; defaults to {@link fetchEdgesForTiles} (which
+   * consumes `baseUrl`/`retry`). Must be referentially stable across renders,
+   * for the same reason as {@link fetcher}.
+   */
+  readonly edgesFetcher?: EdgesFetcher;
 }
 
-/** {@link useGetViewportNodes}' result: nodes plus the backing cache's fill. */
-export interface UseGetViewportNodesResult extends AtlasQueryState<
-  ViewportNode[]
-> {
+/** {@link useGetViewportNodes}' result: the graph plus the backing cache's fill. */
+export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph> {
   /** Tiles resident in the cache after the latest load. */
   readonly tileCount: number;
   /** Prefetch effectiveness accumulated over the session. */
@@ -781,17 +1095,24 @@ const viewportKey = (viewport: Viewport | null, baseUrl: string): string =>
  * renders — so tiles, in-flight deduplication, distance eviction, and prefetch
  * prediction all persist as the viewport pans and zooms.
  *
- * `data` holds the merged nodes for the current viewport (the previous
- * viewport's nodes stay visible until the new ones resolve, so navigating never
- * blanks the graph). `error` is set only when {@link getViewportNodes} rejects —
- * a malformed viewport, or every required tile failing; a partial failure still
- * resolves with whatever loaded. Requires no provider.
+ * `data` holds the merged nodes and their edges for the current viewport (the
+ * previous viewport's graph stays visible until the new one resolves, so
+ * navigating never blanks the graph). `error` is set only when
+ * {@link getViewportNodes} rejects — a malformed viewport, or every required
+ * tile failing; a partial failure (including a failed edge fetch) still resolves
+ * with whatever loaded. Requires no provider.
  */
 export const useGetViewportNodes = (
   viewport: Viewport | null,
   options: UseGetViewportNodesOptions = {},
 ): UseGetViewportNodesResult => {
-  const { baseUrl = ATLAS_API_BASE_URL, retry, maxBytes, fetcher } = options;
+  const {
+    baseUrl = ATLAS_API_BASE_URL,
+    retry,
+    maxBytes,
+    fetcher,
+    edgesFetcher,
+  } = options;
 
   const cache = useMemo(
     () =>
@@ -806,17 +1127,26 @@ export const useGetViewportNodes = (
               priority: controls?.priority,
               signal: controls?.signal,
             })),
+        edgesFetcher:
+          edgesFetcher ??
+          ((tiles, controls) =>
+            fetchEdgesForTiles(tiles, {
+              baseUrl,
+              retry,
+              priority: controls?.priority,
+              signal: controls?.signal,
+            })),
       }),
-    [baseUrl, retry, maxBytes, fetcher],
+    [baseUrl, retry, maxBytes, fetcher, edgesFetcher],
   );
 
   const query = useAtlasQuery(viewportKey(viewport, baseUrl), async () => {
-    const nodes = await getViewportNodes(viewport, cache);
-    return { nodes, tileCount: cache.tileCount };
+    const graph = await getViewportNodes(viewport, cache);
+    return { graph, tileCount: cache.tileCount };
   });
 
   return {
-    data: query.data?.nodes,
+    data: query.data?.graph,
     error: query.error,
     isLoading: query.isLoading,
     isFetching: query.isFetching,

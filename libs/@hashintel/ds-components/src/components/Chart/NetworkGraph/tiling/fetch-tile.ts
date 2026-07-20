@@ -1,42 +1,52 @@
 /**
- * Fetches one Atlas quadtree tile and decodes it into renderable node records.
+ * Fetches one Atlas quadtree tile over the SALTILE wire (Surface v1) and
+ * decodes it into renderable node records.
  *
  * The flow mirrors the serving contract:
  *
- *  1. Read the active generation's manifest (`generation`, canonical variant,
- *     store-snapshot identity) and `current` metadata (`manifest_hash`,
- *     `release_report_hash`). Together these bind a tile to one immutable
- *     generation. This metadata is memoized per origin (see
- *     {@link clearAtlasMetadataCache}) so a viewport's worth of tile fetches
- *     shares a single metadata round-trip.
- *  2. Turn `(zoom, tileIndex)` into the Morton quadrant `(z, x, y)` and fetch
- *     the binary tile for that quadrant of the canonical variant.
- *  3. Decode and identity-check the payload with {@link decodeAtlasTile}, then
- *     pair each `rowId` with its interleaved `x, y` position.
+ *  1. Bootstrap a session: read `GET /v1/atlas/current` for the active
+ *     generation, then its immutable manifest (canonical variant, bucket
+ *     schedule, max zoom). The session binds every tile to one generation and
+ *     is memoized per origin (see {@link clearAtlasSessionCache}) so a
+ *     viewport's worth of tile fetches shares a single bootstrap.
+ *  2. Turn `(zoom, tileIndex)` into the Morton quadrant `(z, x, y)` and POST
+ *     the tile request for that quadrant of the canonical variant, in delta
+ *     mode with no colored types or detailed data.
+ *  3. Decode and identity-check the payload with {@link decodeSaltileTile},
+ *     then pair each `rowId` with its position.
  *
- * Positions arrive as global 16-bit world coordinates (`[0, 65536)` per axis),
- * not relative to the zoom level, so they are returned unchanged.
+ * SALTILE positions arrive in the wire frame, `[-1, 1]` per axis; this layer's
+ * world is `[0, WORLD_SIZE)` with the same power-of-two tile grid, so tile
+ * cells align exactly and only positions need mapping:
+ * `world = (wire + 1) * WORLD_SIZE / 2`. Both factors are powers of two, so
+ * the map is an exact, reversible display transform.
  *
  * HTTP requests are retried with exponential backoff on transient failures —
  * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}).
- * Terminal failures (`4xx`, a decode mismatch) are not retried; a `404`, meaning
- * the cached generation rotated, has its own one-shot metadata refresh in
- * {@link fetchTile}.
+ * Terminal failures (`4xx`, a decode mismatch) are not retried; a `404`,
+ * meaning the cached generation rotated, has its own one-shot session refresh
+ * in {@link fetchTile}.
  */
 
+import {
+  generationBytes,
+  parseCurrent,
+  parseManifest,
+} from "../atlas-decode/manifest";
+import {
+  decodeSaltileTile,
+  type SaltileTileRequest,
+} from "../atlas-decode/tile";
+import { SALTILE_MEDIA_TYPE, SaltileMode } from "../atlas-decode/wire";
 import {
   ATLAS_TILE_MAX_ZOOM,
   atlasTileKey,
   type AtlasTileCoordinate,
 } from "./atlas-tile-coordinate";
-import {
-  ATLAS_TILE_MEDIA_TYPE,
-  decodeAtlasTile,
-  type AtlasTileExpectation,
-} from "./decode-atlas-tile";
+import { WORLD_SIZE } from "./tile-geometry";
 
 /** Default binding of the local `hash-graph atlas` dev server. */
-export const ATLAS_API_BASE_URL = "http://127.0.0.1:4010";
+export const ATLAS_API_BASE_URL = "http://127.0.0.1:4003";
 
 /** Retries (after the first attempt) for a transient HTTP failure. */
 const DEFAULT_RETRIES = 2;
@@ -96,45 +106,6 @@ export class FetchTileError extends Error {
     this.status = options?.status;
   }
 }
-
-const asObject = (value: unknown, label: string): Record<string, unknown> => {
-  if (typeof value !== "object" || value === null) {
-    throw new FetchTileError(`${label} is not a JSON object`);
-  }
-  return value as Record<string, unknown>;
-};
-
-// Field readers take the key as a variable so the required bracket access to a
-// `Record` index signature stays clear of the `dot-notation` lint rule.
-const objectField = (
-  record: Record<string, unknown>,
-  key: string,
-  label: string,
-): Record<string, unknown> => asObject(record[key], label);
-
-const stringField = (
-  record: Record<string, unknown>,
-  key: string,
-  label: string,
-): string => {
-  const value = record[key];
-  if (typeof value !== "string") {
-    throw new FetchTileError(`${label} is missing or not a string`);
-  }
-  return value;
-};
-
-const numberField = (
-  record: Record<string, unknown>,
-  key: string,
-  label: string,
-): number => {
-  const value = record[key];
-  if (typeof value !== "number") {
-    throw new FetchTileError(`${label} is missing or not a number`);
-  }
-  return value;
-};
 
 const abortError = (signal: AbortSignal | undefined): FetchTileError =>
   new FetchTileError("Atlas request aborted", { cause: signal?.reason });
@@ -224,35 +195,48 @@ export const withAtlasRetry = async <T>(
 };
 
 /**
- * Best-effort human-readable detail from a failed response, preferring the
- * `{ "error": ... }` envelope but tolerating the framework's plain-text 400s.
+ * Best-effort human-readable detail from a failed response, preferring an
+ * RFC 9457 `problem+json` document's `detail`, then the `{ "error": ... }`
+ * envelope, tolerating a plain-text body.
  */
 const readErrorDetail = async (response: Response): Promise<string> => {
   const text = await response.text().catch(() => "");
   try {
     const body: unknown = JSON.parse(text);
-    if (typeof body === "object" && body !== null && "error" in body) {
-      const { error } = body as { error: unknown };
-      if (typeof error === "string") {
-        return error;
+    if (typeof body === "object" && body !== null) {
+      if ("detail" in body && typeof body.detail === "string") {
+        return body.detail;
+      }
+      if ("error" in body && typeof body.error === "string") {
+        return body.error;
       }
     }
   } catch {
-    // Not the JSON error envelope; fall back to the raw body below.
+    // Not a JSON body; fall back to the raw text below.
   }
   return text || response.statusText || "no error detail";
 };
 
-/** A single GET that resolves only on a 2xx response and otherwise throws. */
+/** A single request that resolves only on a 2xx response and otherwise throws. */
 const requestAtlasOnce = async (
   url: string,
   accept: string,
   signal: AbortSignal | undefined,
   priority: RequestPriority | undefined,
+  body: string | undefined,
 ): Promise<Response> => {
   let response: Response;
   try {
-    response = await fetch(url, { headers: { accept }, signal, priority });
+    response =
+      body === undefined
+        ? await fetch(url, { headers: { accept }, signal, priority })
+        : await fetch(url, {
+            method: "POST",
+            headers: { accept, "content-type": "application/json" },
+            body,
+            signal,
+            priority,
+          });
   } catch (cause) {
     throw new FetchTileError(`Atlas request to ${url} failed`, { cause });
   }
@@ -265,15 +249,20 @@ const requestAtlasOnce = async (
   return response;
 };
 
-/** GETs `url`, retrying transient failures, resolving only on a 2xx response. */
-const requestAtlas = (
+/**
+ * Requests `url`, retrying transient failures, resolving only on a 2xx
+ * response. A `body` sends it as a JSON `POST`; otherwise it is a `GET`. Shared
+ * with the edges transport (`fetch-edges-for-tiles.ts`).
+ */
+export const requestAtlas = (
   url: string,
   accept: string,
   signal: AbortSignal | undefined,
   retries?: number,
   priority?: RequestPriority,
+  body?: string,
 ): Promise<Response> =>
-  withAtlasRetry(() => requestAtlasOnce(url, accept, signal, priority), {
+  withAtlasRetry(() => requestAtlasOnce(url, accept, signal, priority, body), {
     signal,
     retries,
   });
@@ -292,124 +281,112 @@ const fetchAtlasJson = async (
   }
 };
 
-/** Immutable identities that bind every tile of one active generation. */
-interface AtlasMetadata {
+/**
+ * Immutable identities and schedule that bind every tile of one generation.
+ *
+ * Shared with the edges transport (`fetch-edges-for-tiles.ts`) via
+ * {@link getSaltileSession}, so a viewport's tile and edge fetches bind to the
+ * same generation and share one bootstrap.
+ */
+export interface SaltileSession {
+  /** Active generation, 64 hex characters; addresses the tile route. */
   readonly generation: string;
-  readonly manifestHash: string;
-  readonly releaseReportHash: string;
-  readonly storeSnapshotIdentity: string;
-  readonly variant: number;
+  /** The same generation as 32 raw bytes; checked against the HEAD echo. */
+  readonly generationBytes: Uint8Array;
+  /** Canonical variant name; addresses the tile route. */
+  readonly variant: string;
+  /** Canonical variant's index in the manifest set; checked against the HEAD echo. */
+  readonly variantIndex: number;
+  /** `log2` of the bucket-schedule span (the manifest's `m`). */
+  readonly spanLog2: number;
+  /** Deepest requestable zoom the manifest allows. */
+  readonly maxZoom: number;
+  /** Cap on the tile list of one edges request (manifest `limits.edgesTiles`). */
+  readonly edgesTiles: number;
 }
 
-const fetchAtlasMetadata = async (baseUrl: string): Promise<AtlasMetadata> => {
-  // The manifest names the active generation, its canonical variant, and the
-  // store-snapshot identity; `current` carries the two hashes the manifest body
-  // omits. The requests are deliberately not tied to any caller's AbortSignal:
-  // the result is shared across every tile fetch, so one caller aborting must
-  // not poison the memoized value for the others.
-  const [manifest, current] = await Promise.all([
-    fetchAtlasJson(`${baseUrl}/v1/atlas/current/manifest`, undefined),
-    fetchAtlasJson(`${baseUrl}/v1/atlas/current`, undefined),
-  ]);
-
-  const manifestRecord = asObject(manifest, "Atlas manifest");
-  const generation = stringField(
-    manifestRecord,
-    "generation_id",
-    "manifest.generation_id",
+const fetchSaltileSession = async (
+  baseUrl: string,
+): Promise<SaltileSession> => {
+  // `current` names the active generation; its manifest carries the canonical
+  // variant set, bucket schedule, and max zoom. The reads are deliberately not
+  // tied to any caller's AbortSignal: the result is shared across every tile
+  // fetch, so one caller aborting must not poison the memoized value.
+  const current = parseCurrent(
+    await fetchAtlasJson(`${baseUrl}/v1/atlas/current`, undefined),
   );
-  const inputSnapshot = objectField(
-    manifestRecord,
-    "input_snapshot",
-    "manifest.input_snapshot",
-  );
-  const storeSnapshotIdentity = stringField(
-    inputSnapshot,
-    "store_snapshot_identity",
-    "manifest.input_snapshot.store_snapshot_identity",
-  );
-  const variants = objectField(manifestRecord, "variants", "manifest.variants");
-  const variant = numberField(
-    variants,
-    "canonical_variant",
-    "manifest.variants.canonical_variant",
+  const manifest = parseManifest(
+    await fetchAtlasJson(
+      `${baseUrl}/v1/atlas/generation/${current.generation}/manifest`,
+      undefined,
+    ),
+    current.generation,
   );
 
-  const currentRecord = asObject(current, "Atlas current-generation metadata");
-  const manifestHash = stringField(
-    currentRecord,
-    "manifest_hash",
-    "current.manifest_hash",
-  );
-  const releaseReportHash = stringField(
-    currentRecord,
-    "release_report_hash",
-    "current.release_report_hash",
-  );
-  const currentGeneration = stringField(
-    currentRecord,
-    "generation",
-    "current.generation",
-  );
-
-  // The tile is bound to a single generation; if the active generation rotated
-  // between the two metadata reads the hashes would not match the tile header.
-  if (currentGeneration !== generation) {
-    throw new FetchTileError(
-      `active generation changed while reading metadata: manifest ${generation} vs current ${currentGeneration}`,
-    );
+  // The manifest's first variant is canonical; `parseManifest` guarantees the
+  // set is non-empty, so it is index 0.
+  const [variant] = manifest.variants;
+  if (variant === undefined) {
+    throw new FetchTileError("manifest carries no variants");
   }
 
   return {
-    generation,
-    manifestHash,
-    releaseReportHash,
-    storeSnapshotIdentity,
+    generation: current.generation,
+    generationBytes: generationBytes(current.generation),
     variant,
+    variantIndex: 0,
+    spanLog2: Math.log2(manifest.bucketSchedule.span),
+    maxZoom: manifest.bucketSchedule.maxZoom,
+    edgesTiles: manifest.limits.edgesTiles,
   };
 };
 
 /**
- * Memoized metadata promise per origin. The active generation rarely changes,
+ * Memoized session promise per origin. The active generation rarely changes,
  * so this is held for the lifetime of the session and only dropped on an
- * explicit {@link clearAtlasMetadataCache} or a `404` that signals the cached
- * generation is no longer active (see {@link fetchTile}). Caching the
- * promise (not the resolved value) also collapses the concurrent first-callers
- * of a fresh viewport into a single round-trip.
+ * explicit {@link clearAtlasSessionCache} or a `404` that signals the cached
+ * generation is no longer active (see {@link fetchTile}). Caching the promise
+ * (not the resolved value) also collapses the concurrent first-callers of a
+ * fresh viewport into a single bootstrap.
  */
-const metadataCache = new Map<string, Promise<AtlasMetadata>>();
+const sessionCache = new Map<string, Promise<SaltileSession>>();
 
-const getAtlasMetadata = (baseUrl: string): Promise<AtlasMetadata> => {
-  const cached = metadataCache.get(baseUrl);
+/**
+ * The memoized SALTILE session for `baseUrl`, bootstrapping it on first use.
+ * Shared by the tile and edges transports so both bind to one generation; a
+ * `404` on either route re-bootstraps through {@link clearAtlasSessionCache}.
+ */
+export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
+  const cached = sessionCache.get(baseUrl);
   if (cached) {
     return cached;
   }
-  const pending = fetchAtlasMetadata(baseUrl).catch((error: unknown) => {
+  const pending = fetchSaltileSession(baseUrl).catch((error: unknown) => {
     // Never cache a rejection: the next caller should get a fresh attempt.
-    if (metadataCache.get(baseUrl) === pending) {
-      metadataCache.delete(baseUrl);
+    if (sessionCache.get(baseUrl) === pending) {
+      sessionCache.delete(baseUrl);
     }
     throw error;
   });
-  metadataCache.set(baseUrl, pending);
+  sessionCache.set(baseUrl, pending);
   return pending;
 };
 
 /**
- * Drops the memoized active-generation metadata, forcing the next
- * {@link fetchTile} call to re-read it. Pass a `baseUrl` to clear one
- * origin, or omit it to clear all.
+ * Drops the memoized active-generation session, forcing the next
+ * {@link fetchTile} call to re-bootstrap. Pass a `baseUrl` to clear one origin,
+ * or omit it to clear all.
  */
-export const clearAtlasMetadataCache = (baseUrl?: string): void => {
+export const clearAtlasSessionCache = (baseUrl?: string): void => {
   if (baseUrl === undefined) {
-    metadataCache.clear();
+    sessionCache.clear();
   } else {
-    metadataCache.delete(baseUrl);
+    sessionCache.delete(baseUrl);
   }
 };
 
 const fetchAndDecodeTile = async (
-  metadata: AtlasMetadata,
+  session: SaltileSession,
   coordinate: AtlasTileCoordinate,
   baseUrl: string,
   signal: AbortSignal | undefined,
@@ -417,28 +394,44 @@ const fetchAndDecodeTile = async (
   priority: RequestPriority | undefined,
 ): Promise<FetchedTile> => {
   const { z, x, y } = coordinate;
-  const expectation: AtlasTileExpectation = {
-    coordinate,
-    generation: metadata.generation,
-    manifestHash: metadata.manifestHash,
-    releaseReportHash: metadata.releaseReportHash,
-    storeSnapshotIdentity: metadata.storeSnapshotIdentity,
-    variant: metadata.variant,
-  };
+  if (z > session.maxZoom) {
+    throw new FetchTileError(
+      `zoom ${z} is beyond the manifest maxZoom ${session.maxZoom}`,
+    );
+  }
 
-  const tileUrl = `${baseUrl}/v1/atlas/tile/${metadata.generation}/${metadata.variant}/${z}/${x}/${y}`;
+  const tileUrl = `${baseUrl}/v1/atlas/tile/${session.generation}/${session.variant}/${z}/${x}/${y}`;
+  // An empty query: delta mode, no colored types, no detailed data.
   const tileResponse = await requestAtlas(
     tileUrl,
-    ATLAS_TILE_MEDIA_TYPE,
+    SALTILE_MEDIA_TYPE,
     signal,
     retries,
     priority,
+    "{}",
   );
+
+  const contentType = tileResponse.headers.get("content-type") ?? "";
+  if (!contentType.startsWith(SALTILE_MEDIA_TYPE)) {
+    throw new FetchTileError(
+      `tile ${atlasTileKey(coordinate)} arrived as ${contentType}; expected ${SALTILE_MEDIA_TYPE}`,
+    );
+  }
   const buffer = await tileResponse.arrayBuffer();
+
+  const request: SaltileTileRequest = {
+    generation: session.generationBytes,
+    variant: session.variantIndex,
+    coordinate,
+    mode: SaltileMode.Delta,
+    spanLog2: session.spanLog2,
+    coloredTypeIdCount: 0,
+    includeDetailedData: false,
+  };
 
   let tile;
   try {
-    tile = decodeAtlasTile(buffer, expectation);
+    tile = decodeSaltileTile(buffer, request);
   } catch (cause) {
     throw new FetchTileError(
       `failed to decode tile ${atlasTileKey(coordinate)}`,
@@ -446,23 +439,28 @@ const fetchAndDecodeTile = async (
     );
   }
 
-  const { complete, deliveredCount, positions, rowIds } = tile;
-  const nodes: TileNode[] = new Array<TileNode>(deliveredCount);
-  for (let index = 0; index < deliveredCount; index += 1) {
+  // Wire frame [-1, 1] onto the layer's world [0, WORLD_SIZE): an exact
+  // power-of-two scale; the tile grids already align.
+  const scale = WORLD_SIZE / 2;
+  const { delivered, positions, rowIds } = tile;
+  const nodes: TileNode[] = new Array<TileNode>(delivered);
+  for (let index = 0; index < delivered; index += 1) {
     const id = rowIds[index];
-    const nodeX = positions[index * 2];
-    const nodeY = positions[index * 2 + 1];
-    // Unreachable: `decodeAtlasTile` guarantees these array lengths. The guard
+    const wireX = positions[index * 2];
+    const wireY = positions[index * 2 + 1];
+    // Unreachable: `decodeSaltileTile` guarantees these array lengths. The guard
     // satisfies the strict typed-array index type without a non-null assertion.
-    if (id === undefined || nodeX === undefined || nodeY === undefined) {
+    if (id === undefined || wireX === undefined || wireY === undefined) {
       throw new FetchTileError(
         `tile ${atlasTileKey(coordinate)} record ${index} is truncated`,
       );
     }
-    nodes[index] = { id, x: nodeX, y: nodeY };
+    nodes[index] = { id, x: (wireX + 1) * scale, y: (wireY + 1) * scale };
   }
 
-  return { nodes, complete };
+  // `children` is the occupancy bitmask of the four Morton children below this
+  // cut; 0 means nothing deeper exists, i.e. the subtree is fully delivered.
+  return { nodes, complete: tile.children === 0 };
 };
 
 /**
@@ -473,13 +471,13 @@ const fetchAndDecodeTile = async (
  * grid flattened row-major into a single line, so it must be an integer in
  * `[0, 4 ** zoom)`.
  *
- * @returns The tile's delivered points (each a durable id and global 16-bit
- *   world coordinates) plus its `complete` flag. The points may be a truncated,
+ * @returns The tile's delivered points (each a durable id and global world
+ *   coordinates) plus its `complete` flag. The points may be a truncated,
  *   spatially fair prefix when the server's budget caps delivery; `complete` is
  *   then `false`, signalling that deeper tiles hold the rest.
- * @throws {@link FetchTileError} when the arguments are out of range, a
- *   request fails or is rejected, or the tile payload fails to decode or does
- *   not belong to the requested route and active generation.
+ * @throws {@link FetchTileError} when the arguments are out of range, a request
+ *   fails or is rejected, or the tile payload fails to decode or does not
+ *   belong to the requested route and active generation.
  */
 export const fetchTile = async (
   zoom: number,
@@ -510,10 +508,10 @@ export const fetchTile = async (
     y: Math.floor(tileIndex / gridSize),
   };
 
-  const metadata = await getAtlasMetadata(baseUrl);
+  const session = await getSaltileSession(baseUrl);
   try {
     return await fetchAndDecodeTile(
-      metadata,
+      session,
       coordinate,
       baseUrl,
       signal,
@@ -521,11 +519,11 @@ export const fetchTile = async (
       priority,
     );
   } catch (error) {
-    // A 404 on a well-formed request means the generation we cached is no
-    // longer active. Refresh the metadata once and retry before giving up.
+    // A 404 on a well-formed request means the generation we pinned is no
+    // longer active. Re-bootstrap the session once and retry before giving up.
     if (error instanceof FetchTileError && error.status === 404) {
-      clearAtlasMetadataCache(baseUrl);
-      const refreshed = await getAtlasMetadata(baseUrl);
+      clearAtlasSessionCache(baseUrl);
+      const refreshed = await getSaltileSession(baseUrl);
       return await fetchAndDecodeTile(
         refreshed,
         coordinate,

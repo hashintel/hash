@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { decodeSaltileTile, type SaltileTileRequest } from "./saltile-tile";
+import { decodeSaltileTile, type SaltileTileRequest } from "./tile";
 import {
   DIRECTORY_ENTRY_BYTES,
   PAYLOAD_ALIGNMENT,
   PREFIX_BYTES,
   SaltileMode,
   SaltileWireError,
-} from "./saltile-wire";
+} from "./wire";
 
 /* Minimal reference encoder for hand-built fixtures. CBOR integers and
  * floats are big-endian per RFC 8949; envelope integers and column

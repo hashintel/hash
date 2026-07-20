@@ -7,17 +7,19 @@
  * world into a `2 ** z` by `2 ** z` grid whose cells each span
  * {@link ATLAS_TILE_AXIS_SIZE} `>> z` world units.
  *
- * {@link decodeAtlasTile} depends on this module to validate the requested
- * route and to bound the delivered point records, so the bounds here must match
- * the server's quantization exactly.
+ * The tiling and viewport math depend on this module to address tiles and to
+ * bound tile rectangles ({@link atlasTileBounds}), so the grid here must match
+ * the server's tiling exactly.
  */
 
 /** Deepest quadtree zoom the tile grid addresses (the wire allows `0..=16`). */
 export const ATLAS_TILE_MAX_ZOOM = 16;
 
 /**
- * Width and height of the quantized world axis the grid tiles over: the tile
- * wire stores positions as `Uint16`, so each axis spans `[0, 65536)`.
+ * Width and height of the world axis the grid tiles over. The renderer's world
+ * frame spans `[0, 65536)` per axis; the SALTILE wire frame `[-1, 1]` maps onto
+ * it (see `fetch-tile.ts`), and depth `{@link ATLAS_TILE_MAX_ZOOM}` resolves to
+ * one world unit per cell.
  */
 export const ATLAS_TILE_AXIS_SIZE = 65_536;
 

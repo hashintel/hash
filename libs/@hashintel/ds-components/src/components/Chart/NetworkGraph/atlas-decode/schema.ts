@@ -5,9 +5,9 @@
  * containers), request-echo assertions, and slot-extent checks.
  */
 
-import { SaltileWireError, type SaltileSlot } from "./saltile-wire";
+import { SaltileWireError, type SaltileSlot } from "./wire";
 
-import type { CborValue } from "./saltile-cbor";
+import type { CborValue } from "./cbor";
 
 /** Length of a generation identity in bytes (sha256). */
 export const GENERATION_BYTES = 32;

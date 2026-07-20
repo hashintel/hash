@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { decodeSaltileEdges, type SaltileEdgesRequest } from "./saltile-edges";
+import { decodeSaltileEdges, type SaltileEdgesRequest } from "./edges";
 import {
   DIRECTORY_ENTRY_BYTES,
   PAYLOAD_ALIGNMENT,
   PREFIX_BYTES,
   SaltileWireError,
-} from "./saltile-wire";
+} from "./wire";
 
 /* Reference encoder helpers; CBOR is big-endian, envelope and columns
  * little-endian, as in the other suites. */

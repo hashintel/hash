@@ -12,7 +12,7 @@ import {
   PAYLOAD_ALIGNMENT,
   PREFIX_BYTES,
   type SaltileKind,
-} from "./saltile-wire";
+} from "./wire";
 
 export const cborUint = (value: number, major = 0): number[] => {
   const base = major * 32;
