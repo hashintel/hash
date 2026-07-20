@@ -9,7 +9,7 @@ import type { SDCPN } from "../types/sdcpn";
  * are uncolored — the model is about token counts and firing rates rather than
  * per-token attributes.
  *
- * Six operational decision parameters (production rate, reorder threshold,
+ * Six operational decision parameters (production rate, replenishment aggressiveness,
  * batch size, selling price, expedited-shipping fraction, and marketing spend)
  * plus a market `demand_multiplier` feed a single `Profit` metric that nets
  * revenue against fulfilment, holding, backlog, stockout, and policy costs.
@@ -100,7 +100,7 @@ export const supplyChainProfit: {
 // baseline of 80, with the batch size relative to 180, and with the expedited-
 // shipping fraction. Each firing adds a batch of 10 raw tokens (output weight).
 export default Lambda((input, parameters) => {
-  const reorderGap = Math.max(0, parameters.reorder_threshold - 80);
+  const reorderGap = Math.max(0, parameters.replenishment_aggressiveness - 80);
   const batchEffect = Math.max(10, parameters.batch_size) / 180;
   const expediteBoost = 1 + Math.max(0, Math.min(1, parameters.expedite_fraction)) * 0.6;
   return Math.max(0, 0.015 * reorderGap * batchEffect * expediteBoost);
@@ -247,9 +247,9 @@ export default TransitionKernel(() => ({}));`,
         defaultValue: "100",
       },
       {
-        id: "param_reorder_threshold",
-        name: "Reorder threshold",
-        variableName: "reorder_threshold",
+        id: "param_replenishment_aggressiveness",
+        name: "Replenishment aggressiveness",
+        variableName: "replenishment_aggressiveness",
         type: "integer",
         defaultValue: "160",
       },
@@ -302,9 +302,9 @@ return total === 0 ? 1 : sold / total;`,
       },
       {
         id: "metric_profit",
-        name: "Profit",
+        name: "Adjusted profit",
         description:
-          "Profit objective based on sold orders, lost sales, inventory/backlog holding costs, and policy costs from selling price, production rate, marketing spend, and expedited shipping fraction.",
+          "Adjusted profit objective based on sold orders, lost sales, inventory/backlog holding costs, and policy costs from selling price, production rate, marketing spend, and expedited shipping fraction.",
         code: `const soldOrders = state.places.SoldOrders.count;
 const lostSales = state.places.LostSales.count;
 const rawInventory = state.places.RawInventory.count;
@@ -344,56 +344,26 @@ return revenue - variableCost - productionCapacityCost - marketingCost - expedit
     ],
     scenarios: [
       {
-        id: "scenario_baseline_supply_chain_with_stock",
-        name: "Baseline with enough stock",
-        description:
-          "Normal demand with all six operational decision parameters exposed for optimization. Defaults are deliberately near, but not at, the profit optimum.",
-        scenarioParameters: [
-          { type: "real", identifier: "production_rate", default: 100 },
-          { type: "integer", identifier: "reorder_threshold", default: 160 },
-          { type: "integer", identifier: "batch_size", default: 180 },
-          { type: "real", identifier: "selling_price", default: 34 },
-          { type: "ratio", identifier: "expedite_fraction", default: 0.25 },
-          { type: "real", identifier: "marketing_spend", default: 20 },
-          { type: "real", identifier: "demand_multiplier", default: 1 },
-        ],
-        parameterOverrides: {
-          param_production_rate: "scenario.production_rate",
-          param_reorder_threshold: "scenario.reorder_threshold",
-          param_batch_size: "scenario.batch_size",
-          param_selling_price: "scenario.selling_price",
-          param_expedite_fraction: "scenario.expedite_fraction",
-          param_marketing_spend: "scenario.marketing_spend",
-          param_demand_multiplier: "scenario.demand_multiplier",
-        },
-        initialState: {
-          type: "per_place",
-          content: {
-            place_raw_inventory: "200",
-            place_finished_goods: "100",
-            place_customer_demand: "0",
-            place_sold_orders: "0",
-            place_lost_sales: "0",
-          },
-        },
-      },
-      {
-        id: "scenario_demand_surge_supply_chain_with_stock",
-        name: "Demand surge with enough stock",
-        description:
-          "Higher market demand. The same six decision parameters remain tunable, but the demand multiplier shifts the true optimum upward for production, inventory policy, price, expedite use, and marketing.",
+        id: "scenario_supply_chain_with_stock",
+        name: "Rich stock",
+        description: "Rich raw material and finished good stock in place.",
         scenarioParameters: [
           { type: "real", identifier: "production_rate", default: 125 },
-          { type: "integer", identifier: "reorder_threshold", default: 190 },
+          {
+            type: "integer",
+            identifier: "replenishment_aggressiveness",
+            default: 190,
+          },
           { type: "integer", identifier: "batch_size", default: 220 },
           { type: "real", identifier: "selling_price", default: 37 },
           { type: "ratio", identifier: "expedite_fraction", default: 0.33 },
           { type: "real", identifier: "marketing_spend", default: 32 },
-          { type: "real", identifier: "demand_multiplier", default: 1.35 },
+          { type: "real", identifier: "demand_multiplier", default: 1 },
         ],
         parameterOverrides: {
           param_production_rate: "scenario.production_rate",
-          param_reorder_threshold: "scenario.reorder_threshold",
+          param_replenishment_aggressiveness:
+            "scenario.replenishment_aggressiveness",
           param_batch_size: "scenario.batch_size",
           param_selling_price: "scenario.selling_price",
           param_expedite_fraction: "scenario.expedite_fraction",
@@ -412,56 +382,26 @@ return revenue - variableCost - productionCapacityCost - marketingCost - expedit
         },
       },
       {
-        id: "scenario_baseline_supply_chain_without_stock",
-        name: "Baseline without stock",
-        description:
-          "Normal demand with all six operational decision parameters exposed for optimization. No raw materials or finished goods are in stock.",
+        id: "scenario_supply_chain_without_stock",
+        name: "Empty stock",
+        description: "No raw material and finished good stock in place.",
         scenarioParameters: [
           { type: "real", identifier: "production_rate", default: 300 },
-          { type: "integer", identifier: "reorder_threshold", default: 160 },
-          { type: "integer", identifier: "batch_size", default: 600 },
-          { type: "real", identifier: "selling_price", default: 34 },
-          { type: "ratio", identifier: "expedite_fraction", default: 0.25 },
-          { type: "real", identifier: "marketing_spend", default: 20 },
-          { type: "real", identifier: "demand_multiplier", default: 1 },
-        ],
-        parameterOverrides: {
-          param_production_rate: "scenario.production_rate",
-          param_reorder_threshold: "scenario.reorder_threshold",
-          param_batch_size: "scenario.batch_size",
-          param_selling_price: "scenario.selling_price",
-          param_expedite_fraction: "scenario.expedite_fraction",
-          param_marketing_spend: "scenario.marketing_spend",
-          param_demand_multiplier: "scenario.demand_multiplier",
-        },
-        initialState: {
-          type: "per_place",
-          content: {
-            place_raw_inventory: "0",
-            place_finished_goods: "0",
-            place_customer_demand: "0",
-            place_sold_orders: "0",
-            place_lost_sales: "0",
+          {
+            type: "integer",
+            identifier: "replenishment_aggressiveness",
+            default: 160,
           },
-        },
-      },
-      {
-        id: "scenario_demand_surge_supply_chain_without_stock",
-        name: "Demand surge without stock",
-        description:
-          "Higher market demand. The same six decision parameters remain tunable, but the demand multiplier shifts the true optimum upward for production, inventory policy, price, expedite use, and marketing. No raw materials or finished goods are in stock.",
-        scenarioParameters: [
-          { type: "real", identifier: "production_rate", default: 300 },
-          { type: "integer", identifier: "reorder_threshold", default: 160 },
           { type: "integer", identifier: "batch_size", default: 600 },
           { type: "real", identifier: "selling_price", default: 37 },
           { type: "ratio", identifier: "expedite_fraction", default: 0.33 },
           { type: "real", identifier: "marketing_spend", default: 32 },
-          { type: "real", identifier: "demand_multiplier", default: 1.35 },
+          { type: "real", identifier: "demand_multiplier", default: 1 },
         ],
         parameterOverrides: {
           param_production_rate: "scenario.production_rate",
-          param_reorder_threshold: "scenario.reorder_threshold",
+          param_replenishment_aggressiveness:
+            "scenario.replenishment_aggressiveness",
           param_batch_size: "scenario.batch_size",
           param_selling_price: "scenario.selling_price",
           param_expedite_fraction: "scenario.expedite_fraction",
