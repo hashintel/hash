@@ -56,11 +56,11 @@ fn hexadecimal_form_round_trips_through_json() {
 fn parser_rejects_noncanonical_hexadecimal() {
     let uppercase = ABC_SHA256.to_ascii_uppercase();
 
-    assert!(matches!(
+    assert_matches!(
         ContentHash::from_str("00"),
         Err(ContentHashParseError::Length { actual: 2 })
     ));
-    assert!(matches!(
+    assert_matches!(
         ContentHash::from_str(&uppercase),
         Err(ContentHashParseError::Character {
             index: 0,

@@ -37,7 +37,7 @@ fn architecture_validation_rejects_unbounded_resource_shapes() {
     .validate()
     .expect_err("width above the M0 envelope must fail before allocation");
 
-    assert!(matches!(
+    assert_matches!(
         error,
         ProjectorError::DimensionLimit {
             field: "hidden width",
@@ -245,7 +245,7 @@ fn local_scale_is_the_median_persisted_neighbor_radius() {
 
 #[test]
 fn objective_rejects_non_finite_values() {
-    assert!(matches!(
+    assert_matches!(
         SemanticAffinity::new(1.0, f64::NAN, 1.0e-8, 1.0, 1.0),
         Err(ObjectiveError::InvalidAffinity { .. })
     ));
@@ -463,7 +463,7 @@ fn checkpoint_rejects_architecture_mismatch_before_record_loading() {
     let error = load_projector_checkpoint::<TestBackend>(&path, expected, &device)
         .expect_err("mismatched architecture must fail closed");
 
-    assert!(matches!(
+    assert_matches!(
         error,
         ProjectorCheckpointError::ArchitectureMismatch {
             expected: observed_expected,
@@ -624,7 +624,7 @@ fn hard_miner_rejects_unbounded_counts_before_allocation() {
         rank_exponent: 1.0,
     };
 
-    assert!(matches!(
+    assert_matches!(
         config.validate(),
         Err(HardNegativeError::InvalidCount {
             field: "neighbors",

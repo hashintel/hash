@@ -4,10 +4,7 @@ use core::{error::Error, fmt};
 use std::{fs::File, io, path::Path};
 
 use memmap2::Mmap;
-use zerocopy::{
-    FromBytes as _, TryFromBytes as _,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::{FromBytes as _, TryFromBytes as _, error::ConvertError};
 
 use super::{ArrayShape, ArrayVariant, FileHeader};
 use crate::{
@@ -17,13 +14,13 @@ use crate::{
 
 /// Opening an array file failed.
 #[derive(Debug)]
-pub(crate) enum OpenArrayError {
+pub enum OpenArrayError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    Header,
     /// The file length contradicts the header's shape.
     Length {
         /// The length the header describes; [`None`] when the shape's
@@ -42,10 +39,11 @@ impl fmt::Display for OpenArrayError {
                 "the file holds {actual} bytes, fewer than the {}-byte header",
                 FileHeader::SIZE,
             ),
-            Self::Header(error) => {
+            Self::Header => {
                 write!(
                     fmt,
-                    "the leading bytes are not an array-file header: {error}"
+                    "the leading bytes are not an array-file header: The conversion failed \
+                     because the source bytes are not a valid value of the destination type."
                 )
             }
             Self::Length {
@@ -70,8 +68,7 @@ impl Error for OpenArrayError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
-            Self::Header(error) => Some(error),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Header | Self::Undersized { .. } | Self::Length { .. } => None,
         }
     }
 }
@@ -111,8 +108,8 @@ impl ArrayFile {
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenArrayError::Header(error.map_src(|_| ())));
+            Err(ConvertError::Validity(_)) => {
+                return Err(OpenArrayError::Header);
             }
             Err(ConvertError::Size(_)) => {
                 unreachable!("the slice is exactly one header long")

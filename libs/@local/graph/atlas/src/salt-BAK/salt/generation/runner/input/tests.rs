@@ -63,7 +63,7 @@ fn canonical_suffix_is_validated_and_bound_without_entering_the_projector_prefix
     );
 
     second[0][CANONICAL_DIMENSIONS - 1] = f32::NAN;
-    assert!(matches!(
+    assert_matches!(
         derive_representations(&second),
         Err(RepresentationError::NonFinite { index })
             if index == CANONICAL_DIMENSIONS - 1
@@ -77,7 +77,7 @@ fn initial_strength_control_rejects_heads_and_free_multipliers() {
         classifier: classifier.clone(),
         strength_head: Some(Utf8PathBuf::from("strength.salt")),
     };
-    assert!(matches!(
+    assert_matches!(
         validate_strength_control(&with_head, &[]),
         Err(CanonicalGenerationError::StrengthHeadUnsupported)
     ));
@@ -91,7 +91,7 @@ fn initial_strength_control_rejects_heads_and_free_multipliers() {
         policy: resolve(PolicyEvidence::default(), CoincidentGate::default()),
         strength: RelationStrength::new(1.5).expect("fixture strength should validate"),
     };
-    assert!(matches!(
+    assert_matches!(
         validate_strength_control(&no_head, &[policy]),
         Err(CanonicalGenerationError::NonUnitStrengthWithoutHead {
             strength,
@@ -127,7 +127,7 @@ fn anchors_are_fully_validated_and_canonicalized_before_sampling() {
     );
 
     anchors[0].weight = f64::NAN;
-    assert!(matches!(
+    assert_matches!(
         validate_and_sort_anchors(&mut anchors, 2),
         Err(CanonicalGenerationError::AnchorScalar {
             field: "weight",
@@ -140,7 +140,7 @@ fn anchors_are_fully_validated_and_canonicalized_before_sampling() {
 fn manifest_contract_rejects_caller_authored_artifact_claims() {
     let manifest = fixture_manifest();
 
-    assert!(matches!(
+    assert_matches!(
         GenerationManifestContract::new(manifest),
         Err(CanonicalGenerationError::ManifestContractArtifacts { actual }) if actual > 0
     ));
@@ -152,7 +152,7 @@ fn manifest_contract_requires_the_single_canonical_variant() {
     manifest.artifacts.clear();
     manifest.variants.entries[0].id = crate::salt::revision::VariantId::new(1);
 
-    assert!(matches!(
+    assert_matches!(
         GenerationManifestContract::new(manifest),
         Err(CanonicalGenerationError::ManifestContractCanonical)
     ));

@@ -2,7 +2,7 @@
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
-
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use proptest::prelude::*;
@@ -263,47 +263,38 @@ fn empty_column_reopens() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.mrtn");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         MortonFile::open(&undersized),
         Err(OpenMortonError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.mrtn");
     let mut bytes = fixture_bytes(2);
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        MortonFile::open(&foreign),
-        Err(OpenMortonError::Header(_)),
-    ));
+    assert_matches!(MortonFile::open(&foreign), Err(OpenMortonError::Header(_)),);
 
     let retired = scratch("retired-version.mrtn");
     let mut bytes = fixture_bytes(2);
     bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&retired, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        MortonFile::open(&retired),
-        Err(OpenMortonError::Header(_)),
-    ));
+    assert_matches!(MortonFile::open(&retired), Err(OpenMortonError::Header(_)),);
 
     // Decreasing fenceposts parse as a header but fail validation.
     let malformed = scratch("malformed-posts.mrtn");
     let mut bytes = fixture_bytes(2);
     bytes[24..32].copy_from_slice(&u64::MAX.to_le_bytes());
     fs::write(&malformed, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         MortonFile::open(&malformed),
         Err(OpenMortonError::Fenceposts(FencepostViolation { index: 2 })),
-    ));
+    );
 
     let torn = scratch("torn.mrtn");
     let mut bytes = fixture_bytes(2);
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        MortonFile::open(&torn),
-        Err(OpenMortonError::Length { .. }),
-    ));
+    assert_matches!(MortonFile::open(&torn), Err(OpenMortonError::Length { .. }),);
 }
 
 proptest! {

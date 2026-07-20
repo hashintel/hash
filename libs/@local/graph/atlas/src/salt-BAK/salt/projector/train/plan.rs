@@ -595,7 +595,7 @@ mod tests {
             seed: 29,
         };
 
-        assert!(matches!(
+        assert_matches!(
             config.clone().validate(),
             Err(ProjectorFitError::PlanCapacity {
                 field: "aggregate-edge-count",

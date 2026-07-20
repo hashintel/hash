@@ -355,7 +355,7 @@ fn lookup_requests_reject_invalid_coordinates_radii_and_limits() {
         LookupRequest::new(0.0, 0.0, Some(0.0), limit),
         Err(LookupError::Radius { radius: 0.0 })
     );
-    assert!(matches!(
+    assert_matches!(
         LookupRequest::new(0.0, 0.0, Some(f32::NAN), limit),
         Err(LookupError::Radius { radius }) if radius.is_nan()
     ));

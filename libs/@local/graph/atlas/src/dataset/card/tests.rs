@@ -3,8 +3,8 @@
 //! The expected strings are the format's contract: rendered text is
 //! asserted byte-for-byte, so any layout change is a deliberate format
 //! revision that shows up here.
-
 use alloc::borrow::Cow;
+use core::assert_matches;
 
 use super::{
     CardContext, CardsConfig, Cl100kTokenizer, UnicodeSegmenter, build_card,
@@ -247,19 +247,19 @@ fn identifier_linter_rejects_embedded_source_keys() {
     url_contents.prelude.description = Some(Cow::Borrowed(
         "see https://example.com/types/entity-type/part-of/v/1",
     ));
-    assert!(matches!(
+    assert_matches!(
         render(url_contents, cards_config(BIG, BIG)),
         Err(CardError::Lint(IdentifierLeakError::Url))
-    ));
+    );
 
     let mut uuid_contents = minimal_contents("related to");
     uuid_contents.prelude.description = Some(Cow::Borrowed(
         "database key 123e4567-e89b-12d3-a456-426614174000",
     ));
-    assert!(matches!(
+    assert_matches!(
         render(uuid_contents, cards_config(BIG, BIG)),
         Err(CardError::Lint(IdentifierLeakError::Uuid))
-    ));
+    );
 }
 
 #[test]
@@ -278,10 +278,10 @@ fn identifier_linter_rejects_adapter_supplied_source_identifier() {
     let error = lint_card_text("Relation: source property P361\n", &["P361"])
         .expect_err("the resolved source identifier should be rejected");
 
-    assert!(matches!(
+    assert_matches!(
         &error,
         IdentifierLeakError::SourceIdentifier { identifier } if identifier == "P361"
-    ));
+    );
     assert!(error.to_string().contains("P361"));
 }
 
@@ -381,12 +381,12 @@ fn cl100k_tokenizer_matches_known_tokens_and_rejects_protocol_tokens() {
             .expect("ordinary text should tokenize"),
         2
     );
-    assert!(matches!(
+    assert_matches!(
         Cl100kTokenizer.count_tokens("<|endoftext|>"),
         Err(ReservedTokenError {
             token: "<|endoftext|>"
         })
-    ));
+    );
 }
 
 struct Payload {

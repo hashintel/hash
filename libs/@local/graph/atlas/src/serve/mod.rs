@@ -1,11 +1,14 @@
 //! The serving read surface: opened generations answering atlas reads.
 //!
 //! [`Atlas::open`] maps one published generation's serving artifacts -
-//! quadtree topology, Morton code column, wire coordinates, and the
-//! base-order row column - and validates each format plus their
-//! cross-artifact agreement once, so every read after that is mmap
-//! gathers and wire encoding. [`Atlas::tile`] answers one tile request
-//! with `SALTILET` envelope bytes ready to send under
+//! quadtree topology, Morton code column, wire coordinates, the
+//! base-order row column, the incident-edge adjacency with its
+//! endpoint column, and the rank and position permutations - and
+//! validates each format plus their cross-artifact agreement once, so
+//! every read after that is mmap gathers and wire encoding.
+//! [`Atlas::tile`] answers one tile request with `SALTILET` envelope
+//! bytes and [`Atlas::edges`] one edges request with `SALTILEE`
+//! bytes, both ready to send under
 //! `application/vnd.hash.saltile-v1`; the manifest document of the
 //! Surface v1 bootstrap is [`Atlas::manifest`].
 //!
@@ -25,12 +28,12 @@
 
 use core::{error::Error, fmt, ops::Range};
 
-pub use crate::{
-    file::generation::{CurrentError, GenerationId, GenerationRoot},
-    salt::wire::{Mode, tile::TileCoordinate},
-};
+use self::error::ArrayKind;
 use crate::{
+    bitset::BitSet,
+    dataset::NodeRowId,
     file::{
+        adjacency::read::AdjacencyFile,
         array::ArrayFile,
         generation::{Generation, OpenError},
         morton::read::MortonFile,
@@ -39,13 +42,21 @@ use crate::{
     math::{Bounds2, Vec2},
     morton::{Depth, MortonCell},
     salt::{
+        adjacency::MappedAdjacency,
         lod::stage::LodConfig,
         wire::{
             WIRE_VERSION,
+            edges::EdgesResponse,
             tile::{GlobalHead, TileHead, TileResponse},
         },
     },
 };
+pub use crate::{
+    file::generation::{CurrentError, GenerationId, GenerationRoot},
+    salt::wire::{Mode, tile::TileCoordinate},
+};
+
+mod error;
 
 #[cfg(test)]
 mod tests;
@@ -57,102 +68,13 @@ mod tests;
 /// generation metadata.
 pub const VARIANTS: [&str; 1] = ["plain"];
 
-/// Opening a generation's serving surface failed.
-#[derive(Debug)]
-pub enum OpenAtlasError {
-    /// The generation is not published in this root.
-    Unpublished(GenerationId),
-    /// An artifact failed to read, parse, or validate under its
-    /// format.
-    Artifact {
-        /// The artifact's repository role.
-        role: &'static str,
-        /// The format's own rejection.
-        source: Box<dyn Error + Send + Sync>,
-    },
-    /// The recorded schedule exceeds the Morton key width, so no tile
-    /// grid exists to serve.
-    Schedule {
-        /// The recorded cells-per-tile-axis exponent.
-        span_log2: u8,
-        /// The recorded deepest tile zoom.
-        max_tile_depth: u8,
-    },
-    /// An artifact's element type or shape is not the serving
-    /// contract's.
-    Shape {
-        /// The artifact's repository role.
-        role: &'static str,
-    },
-    /// The base-order columns disagree on the point count.
-    Columns {
-        /// Codes in the morton column.
-        codes: u64,
-        /// Points in the wire-coordinate column.
-        coordinates: u64,
-        /// Entries in the row column.
-        rows: u64,
-    },
-    /// The quadtree root's subtree count contradicts the code column.
-    Subtree {
-        /// The root node's subtree point count.
-        quad: u64,
-        /// Codes in the morton column.
-        codes: u64,
-    },
-}
+/// Most tiles one edges request may list: the documented default of
+/// the manifest's `edgesTiles` cap.
+const EDGES_TILES_CAP: u32 = 256;
 
-impl fmt::Display for OpenAtlasError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Unpublished(id) => {
-                write!(formatter, "generation {id} is not published in this root")
-            }
-            Self::Artifact { role, source } => {
-                write!(formatter, "the {role} artifact failed to open: {source}")
-            }
-            Self::Schedule {
-                span_log2,
-                max_tile_depth,
-            } => write!(
-                formatter,
-                "the recorded schedule needs {max_tile_depth} + {span_log2} subdivisions where a \
-                 64-bit Morton key resolves {}",
-                Depth::MAX.get(),
-            ),
-            Self::Shape { role } => write!(
-                formatter,
-                "the {role} artifact does not hold the serving contract's shape",
-            ),
-            Self::Columns {
-                codes,
-                coordinates,
-                rows,
-            } => write!(
-                formatter,
-                "the base-order columns disagree on the point count: {codes} codes, {coordinates} \
-                 coordinates, {rows} rows",
-            ),
-            Self::Subtree { quad, codes } => write!(
-                formatter,
-                "the quadtree root counts {quad} points where the code column holds {codes}",
-            ),
-        }
-    }
-}
-
-impl Error for OpenAtlasError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Artifact { source, .. } => Some(source.as_ref()),
-            Self::Unpublished(_)
-            | Self::Schedule { .. }
-            | Self::Shape { .. }
-            | Self::Columns { .. }
-            | Self::Subtree { .. } => None,
-        }
-    }
-}
+/// Most edges one response delivers before the rank-ordered cap
+/// truncates: the documented default, roughly 200 KiB of columns.
+const EDGES_CAP: u32 = 0x4000;
 
 /// A tile request was rejected.
 ///
@@ -204,6 +126,67 @@ impl fmt::Display for TileError {
 
 impl Error for TileError {}
 
+/// An edges request was rejected.
+///
+/// Every variant is a named, data-carrying rejection for the
+/// transport layer to map onto its error vocabulary.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EdgesError {
+    /// The request lists more tiles than the cap admits.
+    Tiles {
+        /// The listed tile count.
+        count: usize,
+        /// The cap the manifest publishes as `limits.edgesTiles`.
+        maximum: u32,
+    },
+    /// A listed zoom exceeds the generation's deepest served tile.
+    Depth {
+        /// The requested zoom.
+        z: u8,
+        /// The generation's deepest served zoom.
+        maximum: u8,
+    },
+    /// A listed coordinate lies outside its zoom's `2^z` grid.
+    Grid {
+        /// The requested zoom.
+        z: u8,
+        /// The requested x index.
+        x: u32,
+        /// The requested y index.
+        y: u32,
+    },
+    /// The request names a feature this build does not serve; the
+    /// carried name is the request field.
+    Unsupported(&'static str),
+}
+
+impl fmt::Display for EdgesError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Tiles { count, maximum } => {
+                write!(
+                    formatter,
+                    "the request lists {count} tiles where the cap admits {maximum}"
+                )
+            }
+            Self::Depth { z, maximum } => {
+                write!(
+                    formatter,
+                    "zoom {z} exceeds the deepest served tile {maximum}"
+                )
+            }
+            Self::Grid { z, x, y } => {
+                write!(formatter, "({x}, {y}) lies outside the 2^{z} tile grid")
+            }
+            Self::Unsupported(feature) => {
+                write!(formatter, "this build does not serve {feature} requests")
+            }
+        }
+    }
+}
+
+impl Error for EdgesError {}
+
 /// An opaque visibility filter: the upstream-owned predicate document.
 ///
 /// The predicate's schema belongs to the client codebase; the server
@@ -242,13 +225,60 @@ pub struct TileRequest {
     pub query: TileQuery,
 }
 
+/// One edges read: the ratified POST body.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EdgesRequest {
+    /// The tiles whose delivered rows bound the edge set.
+    pub tiles: Vec<TileCoordinate>,
+    /// The visibility filter; absent means the trivial bitmap.
+    #[serde(default)]
+    pub filter: Option<Filter>,
+    /// Whether the detail trailer rides the response.
+    #[serde(default)]
+    pub include_detailed_data: bool,
+}
+
+/// The edges endpoint's request and response caps: transport
+/// configuration with documented defaults, never wire constants.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EdgesCaps {
+    /// Most tiles one request may list; the manifest publishes this
+    /// value as `limits.edgesTiles`.
+    pub tiles: u32,
+    /// Most edges one response delivers; beyond it the rank-ordered
+    /// cap truncates and `HEAD` reports `complete: false`.
+    pub edges: u32,
+}
+
+const impl Default for EdgesCaps {
+    fn default() -> Self {
+        Self {
+            tiles: EDGES_TILES_CAP,
+            edges: EDGES_CAP,
+        }
+    }
+}
+
+/// One qualifying edge during assembly: the wire columns' row ids.
+#[derive(Debug, Copy, Clone)]
+struct DeliveredEdge {
+    /// The edge row id.
+    row: u32,
+    /// The source node row id.
+    source: u32,
+    /// The target node row id.
+    target: u32,
+}
+
 /// The per-request caps of the manifest's `limits` block: transport
 /// configuration published as data, so clients validate before
 /// sending instead of learning caps from rejections.
 ///
-/// The version-0 defaults are the honest zeros: type coloring, the
-/// edges endpoint, and locate are all deferred, so no request
-/// carrying them is admitted.
+/// The defaults publish the served surface honestly: the edges cap
+/// carries its documented serving default, while type coloring and
+/// locate stay zero until their passes land, so no request carrying
+/// them is admitted.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestLimits {
@@ -264,7 +294,7 @@ const impl Default for ManifestLimits {
     fn default() -> Self {
         Self {
             colored_type_ids: 0,
-            edges_tiles: 0,
+            edges_tiles: EDGES_TILES_CAP,
             locate_neighbours: 0,
         }
     }
@@ -338,6 +368,10 @@ pub struct Atlas {
     morton: MortonFile,
     coordinates: ArrayFile,
     rows: ArrayFile,
+    adjacency: MappedAdjacency,
+    endpoints: ArrayFile,
+    rank_of_position: ArrayFile,
+    position_of_row: ArrayFile,
     /// The tight wire-frame extent of the full point set, absent iff
     /// the generation holds no points. Derived from the world frame:
     /// normalization anchors each non-degenerate axis's extremes onto
@@ -361,70 +395,87 @@ impl Atlas {
     /// [`OpenAtlasError::Columns`] or [`OpenAtlasError::Subtree`] when
     /// the artifacts disagree on the point count.
     #[tracing::instrument(skip_all)]
-    pub fn open(root: &GenerationRoot, id: GenerationId) -> Result<Self, OpenAtlasError> {
+    pub fn open(root: &GenerationRoot, id: GenerationId) -> Result<Self, error::OpenAtlasError> {
         let generation = root.open(id).map_err(|error| match error {
-            OpenError::Unpublished(id) => OpenAtlasError::Unpublished(id),
+            OpenError::Unpublished(id) => error::OpenAtlasError::Unpublished(id),
             error @ (OpenError::Identity { .. } | OpenError::Document(_) | OpenError::Io(_)) => {
-                OpenAtlasError::Artifact {
-                    role: "metadata",
-                    source: Box::new(error),
-                }
+                error::OpenAtlasError::Open(error)
             }
         })?;
 
         let files = &generation.repository().files;
-        let quad = QuadFile::open(generation.path_of(&files.quad.name)).map_err(|error| {
-            OpenAtlasError::Artifact {
-                role: "quad",
-                source: Box::new(error),
-            }
-        })?;
-        let morton = MortonFile::open(generation.path_of(&files.morton.name)).map_err(|error| {
-            OpenAtlasError::Artifact {
-                role: "morton",
-                source: Box::new(error),
-            }
-        })?;
-        let coordinates = ArrayFile::open(generation.path_of(&files.wire_coordinates.name))
-            .map_err(|error| OpenAtlasError::Artifact {
-                role: "wire_coordinates",
-                source: Box::new(error),
-            })?;
-        let rows =
-            ArrayFile::open(generation.path_of(&files.row_of_position.name)).map_err(|error| {
-                OpenAtlasError::Artifact {
-                    role: "row_of_position",
-                    source: Box::new(error),
-                }
-            })?;
+        let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
+
+        let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
+        let coordinates = open_array(&generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
+        let rows = open_array(&generation, &files.row_of_position, ArrayKind::Rows)?;
+        let adjacency = MappedAdjacency::new(AdjacencyFile::open(
+            generation.path_of(&files.adjacency.name),
+        )?)?;
+        let endpoints = open_array(&generation, &files.edge_endpoints, ArrayKind::Endpoints)?;
+        let rank_of_position = open_array(&generation, &files.rank_of_position, ArrayKind::Ranks)?;
+        let position_of_row =
+            open_array(&generation, &files.position_of_row, ArrayKind::Positions)?;
 
         let lod = generation.repository().metadata.reproducibility.config.lod;
         if lod.deepest().is_none() {
-            return Err(OpenAtlasError::Schedule {
+            return Err(error::OpenAtlasError::Schedule {
                 span_log2: lod.span_log2,
                 max_tile_depth: lod.max_tile_depth,
             });
         }
 
-        let points = coordinates.points().ok_or(OpenAtlasError::Shape {
-            role: "wire_coordinates",
+        let points = coordinates.points().ok_or(error::OpenAtlasError::Shape {
+            kind: ArrayKind::Coordinates,
         })?;
-        let row_ids = rows.u32_elements().ok_or(OpenAtlasError::Shape {
-            role: "row_of_position",
+        let row_ids = rows.u32_elements().ok_or(error::OpenAtlasError::Shape {
+            kind: ArrayKind::Rows,
         })?;
+        let endpoint_pairs = endpoints.u64_pairs().ok_or(error::OpenAtlasError::Shape {
+            kind: ArrayKind::Endpoints,
+        })?;
+        let ranks = rank_of_position
+            .u32_elements()
+            .ok_or(error::OpenAtlasError::Shape {
+                kind: ArrayKind::Ranks,
+            })?;
+        let positions = position_of_row
+            .u32_elements()
+            .ok_or(error::OpenAtlasError::Shape {
+                kind: ArrayKind::Positions,
+            })?;
 
         let codes = morton.count();
-        if points.len() as u64 != codes || row_ids.len() as u64 != codes {
-            return Err(OpenAtlasError::Columns {
+        if points.len() as u64 != codes
+            || row_ids.len() as u64 != codes
+            || ranks.len() as u64 != codes
+            || positions.len() as u64 != codes
+        {
+            return Err(error::OpenAtlasError::Columns {
                 codes,
                 coordinates: points.len() as u64,
                 rows: row_ids.len() as u64,
+                ranks: ranks.len() as u64,
+                positions: positions.len() as u64,
             });
         }
+        if adjacency.rows() != codes {
+            return Err(error::OpenAtlasError::Nodes {
+                adjacency: adjacency.rows(),
+                codes,
+            });
+        }
+        if endpoint_pairs.len() as u64 != adjacency.edges() {
+            return Err(error::OpenAtlasError::Edges {
+                adjacency: adjacency.edges(),
+                endpoints: endpoint_pairs.len() as u64,
+            });
+        }
+
         if let Some(root_node) = quad.nodes().first()
             && u64::from(root_node.points()) != codes
         {
-            return Err(OpenAtlasError::Subtree {
+            return Err(error::OpenAtlasError::Subtree {
                 quad: u64::from(root_node.points()),
                 codes,
             });
@@ -440,6 +491,10 @@ impl Atlas {
             morton,
             coordinates,
             rows,
+            adjacency,
+            endpoints,
+            rank_of_position,
+            position_of_row,
             bounds,
         })
     }
@@ -518,6 +573,7 @@ impl Atlas {
                 maximum,
             });
         }
+
         let cell = cell_of(coordinate).ok_or(TileError::Grid {
             z: coordinate.z,
             x: coordinate.x,
@@ -571,6 +627,176 @@ impl Atlas {
         Ok(response.encode())
     }
 
+    /// Answers one edges request: `SALTILEE` envelope bytes carrying
+    /// the edges whose endpoints both lie in the listed tiles'
+    /// delivered rows, ready to send under
+    /// `application/vnd.hash.saltile-v1`.
+    ///
+    /// Delivery order is ascending edge row id, independent of the
+    /// tiles listed and of truncation, so identical requests yield
+    /// identical bytes. Beyond `caps.edges` the rank-ordered cap
+    /// keeps the edges whose worse endpoint ranks best - an edge is
+    /// only as prominent as its less-prominent endpoint - with ties
+    /// broken by edge row id, and `HEAD` reports `complete: false`.
+    ///
+    /// Version 0 serves the full unfiltered edge set; requests naming
+    /// a visibility filter or the detail trailer are rejected by name
+    /// rather than answered with bytes that silently ignore them.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EdgesError::Tiles`] when the request lists more
+    /// tiles than `caps.tiles`, [`EdgesError::Depth`] when a listed
+    /// zoom exceeds the generation's deepest served tile,
+    /// [`EdgesError::Grid`] when a listed coordinate lies outside its
+    /// zoom's grid, and [`EdgesError::Unsupported`] when the request
+    /// names a version-0 deferral.
+    pub fn edges(&self, request: &EdgesRequest, caps: EdgesCaps) -> Result<Vec<u8>, EdgesError> {
+        if request.filter.is_some() {
+            return Err(EdgesError::Unsupported("filter"));
+        }
+        if request.include_detailed_data {
+            return Err(EdgesError::Unsupported("includeDetailedData"));
+        }
+        if request.tiles.len() > caps.tiles as usize {
+            return Err(EdgesError::Tiles {
+                count: request.tiles.len(),
+                maximum: caps.tiles,
+            });
+        }
+
+        let delivered = self.delivered_rows(&request.tiles)?;
+        let mut edges = self.qualifying_edges(&delivered);
+        let complete = edges.len() <= caps.edges as usize;
+        if !complete {
+            self.truncate_by_rank(&mut edges, caps.edges as usize);
+        }
+        edges.sort_unstable_by_key(|edge| edge.row);
+
+        let mut sources = Vec::with_capacity(edges.len());
+        let mut targets = Vec::with_capacity(edges.len());
+        let mut edge_rows = Vec::with_capacity(edges.len());
+        for edge in &edges {
+            sources.push(edge.source);
+            targets.push(edge.target);
+            edge_rows.push(edge.row);
+        }
+
+        Ok(EdgesResponse {
+            generation: self.generation.id().digest(),
+            variant: 0,
+            complete,
+            sources: &sources,
+            targets: &targets,
+            edge_rows: &edge_rows,
+            trailer: None,
+        }
+        .encode())
+    }
+
+    /// Collects the union of the listed tiles' delivered rows as a
+    /// row-indexed set.
+    ///
+    /// A tile's delivered set is mode-independent - its cumulative
+    /// delta set equals its total set - so the union is one run scan
+    /// per bucket of each tile's cumulative schedule, deduplicated by
+    /// the set itself.
+    fn delivered_rows(&self, tiles: &[TileCoordinate]) -> Result<BitSet, EdgesError> {
+        let row_ids = self.row_ids();
+        let mut delivered = BitSet::new(row_ids.len());
+        let maximum = self.lod.max_tile_depth;
+        for &coordinate in tiles {
+            if coordinate.z > maximum {
+                return Err(EdgesError::Depth {
+                    z: coordinate.z,
+                    maximum,
+                });
+            }
+            let cell = cell_of(coordinate).ok_or(EdgesError::Grid {
+                z: coordinate.z,
+                x: coordinate.x,
+                y: coordinate.y,
+            })?;
+
+            let cut = depth_of(coordinate.z + self.lod.span_log2);
+            for bucket in 0..=cut.get() {
+                let run = self.morton.run(depth_of(bucket), cell);
+                let start = usize::try_from(run.start).expect("base positions fit usize");
+                let end = usize::try_from(run.end).expect("base positions fit usize");
+                for &row in &row_ids[start..end] {
+                    delivered.insert(row as usize);
+                }
+            }
+        }
+
+        Ok(delivered)
+    }
+
+    /// Collects every edge whose endpoints both lie in `delivered`,
+    /// in no particular order.
+    ///
+    /// The walk visits each delivered row's outgoing run, so every
+    /// qualifying edge appears exactly once: an edge occupies exactly
+    /// one outgoing slot, and a self-loop's one endpoint is both its
+    /// source and its target.
+    fn qualifying_edges(&self, delivered: &BitSet) -> Vec<DeliveredEdge> {
+        let endpoints = self.endpoint_pairs();
+        let mut edges = Vec::new();
+        for row in delivered.iter() {
+            let outgoing = self
+                .adjacency
+                .outgoing(NodeRowId::new(row as u64))
+                .expect("delivered rows lie inside the adjacency's node domain");
+            for edge in outgoing.iter() {
+                let index = usize::try_from(edge.get()).expect("edge rows fit usize");
+                let [source, target] = endpoints[index];
+                let target_index = usize::try_from(target).expect("node rows fit usize");
+                if delivered.contains(target_index) {
+                    edges.push(DeliveredEdge {
+                        row: narrow(edge.get()),
+                        source: narrow(source),
+                        target: narrow(target),
+                    });
+                }
+            }
+        }
+
+        edges
+    }
+
+    /// Keeps the `cap` edges the rank-ordered cap selects: ascending
+    /// by worse-endpoint rank, ties by edge row id.
+    fn truncate_by_rank(&self, edges: &mut Vec<DeliveredEdge>, cap: usize) {
+        if cap == 0 {
+            edges.clear();
+            return;
+        }
+
+        let mut ranked: Vec<(u32, DeliveredEdge)> = edges
+            .drain(..)
+            .map(|edge| (self.worse_rank(edge), edge))
+            .collect();
+        // Partitioning at `cap - 1` places the cap smallest keys - a
+        // total order, since edge rows are distinct - in the head.
+        ranked.select_nth_unstable_by_key(cap - 1, |&(rank, edge)| (rank, edge.row));
+        ranked.truncate(cap);
+        edges.extend(ranked.into_iter().map(|(_, edge)| edge));
+    }
+
+    /// Returns an edge's truncation rank: its worse endpoint's
+    /// importance rank, where larger values are less prominent.
+    fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
+        self.rank_of_row(edge.source)
+            .max(self.rank_of_row(edge.target))
+    }
+
+    /// Returns a node row's importance rank through the position
+    /// permutation.
+    fn rank_of_row(&self, row: u32) -> u32 {
+        let position = self.positions_of_row()[row as usize];
+        self.ranks()[position as usize]
+    }
+
     /// Views the wire-coordinate column in base order.
     fn positions(&self) -> &[Vec2] {
         self.coordinates
@@ -583,6 +809,27 @@ impl Atlas {
         self.rows
             .u32_elements()
             .expect("open validated the row-column shape")
+    }
+
+    /// Views the endpoint column: edge row to `[source, target]`.
+    fn endpoint_pairs(&self) -> &[[u64; 2]] {
+        self.endpoints
+            .u64_pairs()
+            .expect("open validated the endpoint-column shape")
+    }
+
+    /// Views the rank column in base order.
+    fn ranks(&self) -> &[u32] {
+        self.rank_of_position
+            .u32_elements()
+            .expect("open validated the rank-column shape")
+    }
+
+    /// Views the position permutation in row order.
+    fn positions_of_row(&self) -> &[u32] {
+        self.position_of_row
+            .u32_elements()
+            .expect("open validated the position-column shape")
     }
 
     /// Returns the quad node owning `cell`, [`None`] when the schedule
@@ -645,6 +892,17 @@ impl Atlas {
             .rposition(|&length| length > 0)
             .map_or(0, |bucket| bucket as u64)
     }
+}
+
+/// Opens one array artifact, binding its open error to the role it
+/// serves.
+fn open_array(
+    generation: &Generation,
+    file: &crate::file::repository::RepositoryFile,
+    kind: ArrayKind,
+) -> Result<ArrayFile, error::OpenAtlasError> {
+    ArrayFile::open(generation.path_of(&file.name))
+        .map_err(|error| error::OpenAtlasError::OpenArray { kind, error })
 }
 
 /// Returns the Morton cell a tile coordinate addresses, [`None`]

@@ -65,7 +65,7 @@ fn representation_audit_rejects_vacuous_corpora() {
         temporal_cohort: 0,
         prior_landmark: false,
     }];
-    assert!(matches!(
+    assert_matches!(
         audit_representations(
             &vec![1.0; crate::salt::CANONICAL_DIMENSIONS],
             &identities,

@@ -26,7 +26,7 @@ fn checkpoint_rejects_payload_tensor_shapes_hidden_by_compatible_envelope() {
     let error = load_projector_checkpoint::<NdArray>(&path, expected, &device)
         .expect_err("payload tensor dimensions must be inspected after record loading");
 
-    assert!(matches!(
+    assert_matches!(
         error,
         ProjectorCheckpointError::Architecture(ProjectorError::LoadedMatrixShape { .. })
     ));
@@ -51,7 +51,7 @@ fn checkpoint_turns_payload_block_count_mismatch_into_typed_error() {
     let error = load_projector_checkpoint::<NdArray>(&path, expected, &device)
         .expect_err("payload block-count mismatch must not unwind across the loader");
 
-    assert!(matches!(
+    assert_matches!(
         error,
         ProjectorCheckpointError::RecordStructure
             | ProjectorCheckpointError::Architecture(ProjectorError::LoadedBlockCount { .. })

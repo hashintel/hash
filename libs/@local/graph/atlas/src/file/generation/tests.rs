@@ -2,8 +2,7 @@
     clippy::significant_drop_tightening,
     reason = "fixture stagings deliberately live to the end of their tests"
 )]
-
-use core::num::NonZero;
+use core::{assert_matches, num::NonZero};
 use std::{fs, io::Write as _};
 
 use camino::Utf8PathBuf;
@@ -236,10 +235,7 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
 
     // A manifest-listed file is absent.
     let staging = root.stage().expect("the staging should create");
-    assert!(matches!(
-        staging.seal(&repository),
-        Err(SealError::Missing { .. })
-    ));
+    assert_matches!(staging.seal(&repository), Err(SealError::Missing { .. }));
 
     // A staged file is unlisted.
     let staging = root.stage().expect("the staging should create");
@@ -249,26 +245,20 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
             .create(&name("stray.arr"))
             .expect("the stray file should create"),
     );
-    assert!(matches!(
-        staging.seal(&repository),
-        Err(SealError::Unlisted { .. })
-    ));
+    assert_matches!(staging.seal(&repository), Err(SealError::Unlisted { .. }));
 
     // A manifest that claims the document's name is rejected before any
     // filesystem comparison.
     let mut reserved = repository.clone();
     reserved.files.knn.name = name(METADATA_FILE);
     let staging = root.stage().expect("the staging should create");
-    assert!(matches!(staging.seal(&reserved), Err(SealError::Reserved)));
+    assert_matches!(staging.seal(&reserved), Err(SealError::Reserved));
 
     // One name for two roles is rejected.
     let mut duplicated = repository;
     duplicated.files.knn.name = name("semantic.sprs");
     let staging = root.stage().expect("the staging should create");
-    assert!(matches!(
-        staging.seal(&duplicated),
-        Err(SealError::Duplicate { .. })
-    ));
+    assert_matches!(staging.seal(&duplicated), Err(SealError::Duplicate { .. }));
 
     // No failure published anything: the root holds no generation.
     let entries: Vec<_> = fs::read_dir(&root.path)
@@ -292,10 +282,10 @@ fn an_identical_document_publishes_once() {
 
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
-    assert!(matches!(
+    assert_matches!(
         staging.seal(&repository),
         Err(SealError::AlreadyPublished(id)) if id == published.id()
-    ));
+    );
 }
 
 #[test]
@@ -310,10 +300,10 @@ fn activation_flips_the_pointer_and_supports_rollback() {
     // Activating an unpublished generation is rejected and leaves the
     // pointer untouched.
     let unpublished = GenerationId(digest("unpublished"));
-    assert!(matches!(
+    assert_matches!(
         root.activate(unpublished),
         Err(ActivateError::Unpublished(id)) if id == unpublished
-    ));
+    );
     assert!(
         root.current()
             .expect("an absent pointer should read")
@@ -359,7 +349,7 @@ fn a_corrupt_pointer_is_rejected() {
     let root = GenerationRoot::new(scratch("corrupt")).expect("the root should open");
     fs::write(root.path.join("current"), "not a digest").expect("the pointer should write");
 
-    assert!(matches!(root.current(), Err(CurrentError::Corrupt(_))));
+    assert_matches!(root.current(), Err(CurrentError::Corrupt(_)));
 }
 
 #[test]
@@ -398,10 +388,10 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 
     // An unpublished generation.
     let unpublished = GenerationId(digest("unpublished"));
-    assert!(matches!(
+    assert_matches!(
         root.open(unpublished),
         Err(OpenError::Unpublished(id)) if id == unpublished
-    ));
+    );
 
     // A tampered document still parses but no longer hashes to the
     // directory-naming id.
@@ -415,10 +405,10 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
     document.push(b'\n');
     fs::write(&document_path, &document).expect("the document should write");
 
-    assert!(matches!(
+    assert_matches!(
         root.open(published.id()),
         Err(OpenError::Identity { id, .. }) if id == published.id()
-    ));
+    );
 
     // A hand-built directory whose document hashes to its name but is
     // no repository fails to parse; the seal path cannot produce this.
@@ -428,7 +418,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
     fs::create_dir_all(&path).expect("the foreign directory should create");
     fs::write(path.join(METADATA_FILE), foreign).expect("the foreign document should write");
 
-    assert!(matches!(root.open(id), Err(OpenError::Document(_))));
+    assert_matches!(root.open(id), Err(OpenError::Document(_)));
 }
 
 #[test]

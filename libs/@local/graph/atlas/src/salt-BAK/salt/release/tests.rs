@@ -126,7 +126,7 @@ fn measured_relation_evidence_cannot_override_manifest_truth() {
         })
         .collect();
 
-    assert!(matches!(
+    assert_matches!(
         GateEvidenceSet::new(
             head,
             &manifest,
@@ -183,7 +183,7 @@ fn external_approval_for_another_head_is_rejected() {
         })
         .collect();
 
-    assert!(matches!(
+    assert_matches!(
         GateEvidenceSet::new(
             head,
             &manifest,
@@ -236,7 +236,7 @@ fn external_quality_grant_must_name_the_measured_report() {
         })
         .collect();
 
-    assert!(matches!(
+    assert_matches!(
         GateEvidenceSet::new(
             head,
             &manifest,
@@ -318,7 +318,7 @@ fn policy_and_authorization_grants_reject_subject_hashes_in_place_of_reports() {
             })
             .collect();
 
-        assert!(matches!(
+        assert_matches!(
             GateEvidenceSet::new(
                 head,
                 &manifest,
@@ -373,7 +373,7 @@ fn externally_signed_grant_from_an_unpinned_restart_key_is_rejected() {
         })
         .collect();
 
-    assert!(matches!(
+    assert_matches!(
         GateEvidenceSet::new(
             head,
             &manifest,
@@ -405,7 +405,7 @@ fn external_authority_pins_cannot_reuse_the_release_key() {
     .map(|gate| (gate, release.clone()))
     .collect();
 
-    assert!(matches!(
+    assert_matches!(
         ExternalGateVerifierSet::new(&release, entries),
         Err(GateEvidenceError::Failed {
             gate: GateId::Representation,
@@ -448,7 +448,7 @@ fn external_authority_pins_must_use_pairwise_distinct_keys() {
         })
         .collect();
 
-    assert!(matches!(
+    assert_matches!(
         ExternalGateVerifierSet::new(&release, entries),
         Err(GateEvidenceError::Failed {
             gate: GateId::SemanticFidelity,
@@ -489,7 +489,7 @@ fn external_authority_pins_must_use_pairwise_distinct_names() {
         })
         .collect();
 
-    assert!(matches!(
+    assert_matches!(
         ExternalGateVerifierSet::new(&release, entries),
         Err(GateEvidenceError::Failed {
             gate: GateId::SemanticFidelity,
@@ -519,7 +519,7 @@ fn external_issuer_cannot_substitute_an_untrusted_key() {
     )
     .expect("external gate should validate");
 
-    assert!(matches!(
+    assert_matches!(
         authority.issue(head, &manifest),
         Err(GateEvidenceError::Failed {
             gate: GateId::RelationPolicy,

@@ -163,7 +163,7 @@ fn one_link_entity_cannot_expand_to_multiple_endpoint_pairs() {
     let mut links = HashSet::new();
 
     require_unique_link(&mut links, link).expect("first endpoint pair should be accepted");
-    assert!(matches!(
+    assert_matches!(
         require_unique_link(&mut links, link),
         Err(PostgresExtractionError::AmbiguousLinkEndpoints)
     ));
@@ -178,7 +178,7 @@ fn extraction_type_budget_is_shared_across_phases() {
     budget
         .consume_types("link types", 1, 1)
         .expect("link phase should consume the remaining reference");
-    assert!(matches!(
+    assert_matches!(
         budget.consume_types("ontology types", 1, 1),
         Err(PostgresExtractionError::Capacity {
             maximum: MAXIMUM_TOTAL_TYPE_REFERENCES,

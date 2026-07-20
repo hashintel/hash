@@ -122,7 +122,7 @@ fn linter_rejects_universal_and_adapter_supplied_identifiers() {
         description: Some("source property P361"),
         ..minimal_input()
     };
-    assert!(matches!(
+    assert_matches!(
         build_card(
             input,
             CardBudgets::default(),
@@ -149,7 +149,7 @@ fn cl100k_counter_matches_known_tokens_and_rejects_protocol_tokens() {
             .expect("ordinary text should tokenize"),
         2
     );
-    assert!(matches!(
+    assert_matches!(
         Cl100kTokenCounter.count("<|endoftext|>"),
         Err(TokenCountError::ReservedToken {
             token: "<|endoftext|>"
@@ -159,14 +159,14 @@ fn cl100k_counter_matches_known_tokens_and_rejects_protocol_tokens() {
 
 #[test]
 fn budgets_reject_inverted_or_empty_ranges() {
-    assert!(matches!(
+    assert_matches!(
         CardBudgets::new(0, 7_500),
         Err(CardError::InvalidBudgets {
             target: 0,
             hard: 7_500
         })
     ));
-    assert!(matches!(
+    assert_matches!(
         CardBudgets::new(7_501, 7_500),
         Err(CardError::InvalidBudgets {
             target: 7_501,

@@ -12,14 +12,14 @@ fn complete_report_satisfies_the_two_sided_envelope() {
 fn total_persistence_is_bounded_on_both_sides() {
     let mut below = report();
     below.candidate_normalized_total = 0.49;
-    assert!(matches!(
+    assert_matches!(
         below.validate(),
         Err(PersistenceComparisonError::Envelope)
     ));
 
     let mut above = report();
     above.candidate_normalized_total = 1.51;
-    assert!(matches!(
+    assert_matches!(
         above.validate(),
         Err(PersistenceComparisonError::Envelope)
     ));
@@ -30,7 +30,7 @@ fn measurements_reject_negative_zero_as_noncanonical() {
     let mut negative_zero = report();
     negative_zero.candidate_normalized_total = -0.0;
 
-    assert!(matches!(
+    assert_matches!(
         negative_zero.validate(),
         Err(PersistenceComparisonError::Measurement)
     ));
@@ -40,14 +40,14 @@ fn measurements_reject_negative_zero_as_noncanonical() {
 fn every_fixed_threshold_leaf_count_is_two_sided() {
     let mut below = report();
     below.candidate_leaf_counts[1] = 2;
-    assert!(matches!(
+    assert_matches!(
         below.validate(),
         Err(PersistenceComparisonError::Envelope)
     ));
 
     let mut above = report();
     above.candidate_leaf_counts[0] = 16;
-    assert!(matches!(
+    assert_matches!(
         above.validate(),
         Err(PersistenceComparisonError::Envelope)
     ));
@@ -57,21 +57,21 @@ fn every_fixed_threshold_leaf_count_is_two_sided() {
 fn unsupported_structure_noise_and_planted_failures_are_independent_rejections() {
     let mut low_persistence = report();
     low_persistence.candidate_low_persistence_mass = 0.21;
-    assert!(matches!(
+    assert_matches!(
         low_persistence.validate(),
         Err(PersistenceComparisonError::LowPersistence)
     ));
 
     let mut noise = report();
     noise.candidate_noise_persistence = 0.31;
-    assert!(matches!(
+    assert_matches!(
         noise.validate(),
         Err(PersistenceComparisonError::Noise)
     ));
 
     let mut planted = report();
     planted.planted_shape_failures = 1;
-    assert!(matches!(
+    assert_matches!(
         planted.validate(),
         Err(PersistenceComparisonError::PlantedShapes)
     ));

@@ -2,7 +2,7 @@
     clippy::little_endian_bytes,
     reason = "the tamper patches pin the format's canonical little-endian bytes"
 )]
-
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use super::{InvalidPolicyFile, MappedPolicyTable, write_policies};
@@ -89,18 +89,18 @@ fn rejects_unordered_and_duplicate_relations() {
     let offset = 4096 + 32;
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 8].copy_from_slice(&11_u64.to_le_bytes());
-    assert!(matches!(
+    assert_matches!(
         reopen("unordered.plcy", &bytes),
         Err(InvalidPolicyFile::UnorderedRelations { index: 2 }),
-    ));
+    );
 
     // Row 1's relation duplicated onto row 0's.
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 8].copy_from_slice(&2_u64.to_le_bytes());
-    assert!(matches!(
+    assert_matches!(
         reopen("duplicate.plcy", &bytes),
         Err(InvalidPolicyFile::UnorderedRelations { index: 1 }),
-    ));
+    );
 }
 
 #[test]
@@ -109,28 +109,28 @@ fn rejects_out_of_domain_values() {
     let offset = 4096 + 32 + 8;
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 4].copy_from_slice(&1.5_f32.to_le_bytes());
-    assert!(matches!(
+    assert_matches!(
         reopen("probability.plcy", &bytes),
         Err(InvalidPolicyFile::Domain { index: 1 }),
-    ));
+    );
 
     // Row 2's strength made negative.
     let offset = 4096 + 2 * 32 + 28;
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 4].copy_from_slice(&(-1.0_f32).to_le_bytes());
-    assert!(matches!(
+    assert_matches!(
         reopen("strength.plcy", &bytes),
         Err(InvalidPolicyFile::Domain { index: 2 }),
-    ));
+    );
 
     // Row 0's applicability made NaN.
     let offset = 4096 + 24;
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 4].copy_from_slice(&f32::NAN.to_le_bytes());
-    assert!(matches!(
+    assert_matches!(
         reopen("applicability.plcy", &bytes),
         Err(InvalidPolicyFile::Domain { index: 0 }),
-    ));
+    );
 }
 
 #[test]

@@ -80,7 +80,7 @@ fn durable_directory_rejects_a_file_component() {
     let error = super::run::ensure_durable_directory(&file.join("child"))
         .expect_err("a file component must fail closed");
 
-    assert!(matches!(
+    assert_matches!(
         error.kind(),
         std::io::ErrorKind::AlreadyExists | std::io::ErrorKind::NotADirectory
     ));
@@ -198,7 +198,7 @@ fn external_authority_rejects_runner_derived_gates() {
         signer().verifier(),
     );
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(crate::salt::release::GateEvidenceError::Failed {
             gate: crate::salt::release::GateId::AnnRecall,
@@ -216,7 +216,7 @@ fn release_authority_requires_an_independent_authorization_suite() {
         authority.gate() != crate::salt::release::GateId::AuthorizationNoninterference
     });
 
-    assert!(matches!(
+    assert_matches!(
         CanonicalReleaseAuthority::new(&release_signer, authorities),
         Err(crate::salt::release::GateEvidenceError::Missing {
             gate: crate::salt::release::GateId::AuthorizationNoninterference,

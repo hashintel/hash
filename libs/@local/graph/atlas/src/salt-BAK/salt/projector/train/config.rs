@@ -307,7 +307,7 @@ mod tests {
             },
         );
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(ProjectorTrainingError::UnrepresentableCoefficient {
                 name: "support-epsilon",
@@ -326,7 +326,7 @@ mod tests {
             seed: 17,
         };
 
-        assert!(matches!(
+        assert_matches!(
             config.validate(),
             Err(ProjectorTrainingError::OptimizerSteps {
                 steps,

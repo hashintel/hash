@@ -204,7 +204,7 @@ fn quality_measurement_must_name_the_exact_projected_field() {
     let semantic =
         KnnTable::new(2, 1, vec![1, 0], vec![0.1; 2]).expect("semantic graph should validate");
 
-    assert!(matches!(
+    assert_matches!(
         projected.evaluate(
             ConditionDomain::new(0.0, 1.0, ContentHash::digest(b"condition-domain"))
                 .expect("condition domain should validate"),

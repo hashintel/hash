@@ -14,7 +14,7 @@ use crate::morton::{Depth, MortonCell, MortonKey};
 
 /// Opening a morton file failed.
 #[derive(Debug)]
-pub(crate) enum OpenMortonError {
+pub enum OpenMortonError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.

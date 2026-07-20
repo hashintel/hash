@@ -113,7 +113,7 @@ fn activation_requires_the_exact_published_candidate_marker() {
     let release = gated_release("missing");
     let store = activation_store(root);
 
-    assert!(matches!(
+    assert_matches!(
         store.compare_exchange(None, release),
         Err(ActivationError::MissingCandidate { generation })
             if generation == release.head().generation
@@ -128,7 +128,7 @@ fn withdrawn_candidate_cannot_be_activated_but_keeps_diagnostics() {
 
     withdraw_candidate_marker(root, release).expect("inactive candidate should be withdrawn");
 
-    assert!(matches!(
+    assert_matches!(
         activation_store(root).compare_exchange(None, release),
         Err(ActivationError::MissingCandidate { generation })
             if generation == release.head().generation
@@ -154,7 +154,7 @@ fn activation_revalidates_the_durable_release_report() {
     )
     .expect("release report should be removable in the fixture");
 
-    assert!(matches!(
+    assert_matches!(
         activation_store(root).compare_exchange(None, release),
         Err(ActivationError::CandidateMismatch { generation })
             if generation == release.head().generation
@@ -173,7 +173,7 @@ fn activation_rejects_a_candidate_with_a_missing_artifact() {
     )
     .expect("semantic artifact should be removable in the fixture");
 
-    assert!(matches!(
+    assert_matches!(
         activation_store(root).compare_exchange(None, release),
         Err(ActivationError::Manifest(_))
     ));
@@ -195,7 +195,7 @@ fn restart_loading_fails_closed_after_active_artifact_corruption() {
     )
     .expect("base artifact should be removable in the fixture");
 
-    assert!(matches!(
+    assert_matches!(
         activation_store(root).current(),
         Err(ActivationError::Manifest(_))
     ));

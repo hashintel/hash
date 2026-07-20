@@ -3,6 +3,7 @@
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
 
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use proptest::prelude::*;
@@ -224,28 +225,22 @@ fn empty_tree_reopens() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.quad");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         QuadFile::open(&undersized),
         Err(OpenQuadError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.quad");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        QuadFile::open(&foreign),
-        Err(OpenQuadError::Header(_)),
-    ));
+    assert_matches!(QuadFile::open(&foreign), Err(OpenQuadError::Header));
 
     let retired = scratch("retired-version.quad");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&retired, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        QuadFile::open(&retired),
-        Err(OpenQuadError::Header(_)),
-    ));
+    assert_matches!(QuadFile::open(&retired), Err(OpenQuadError::Header));
 
     // A node count colliding with the sentinel is rejected before the
     // length equation could demand a table that size.
@@ -255,19 +250,13 @@ fn open_rejects_foreign_and_torn_bytes() {
         FileHeader::new(u64::from(u32::MAX), 0).as_bytes(),
     )
     .expect("the scratch file is writable");
-    assert!(matches!(
-        QuadFile::open(&saturated),
-        Err(OpenQuadError::Nodes { .. }),
-    ));
+    assert_matches!(QuadFile::open(&saturated), Err(OpenQuadError::Nodes { .. }));
 
     let torn = scratch("torn.quad");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        QuadFile::open(&torn),
-        Err(OpenQuadError::Length { .. }),
-    ));
+    assert_matches!(QuadFile::open(&torn), Err(OpenQuadError::Length { .. }));
 }
 
 #[test]
@@ -278,20 +267,20 @@ fn open_rejects_malformed_posts_and_children() {
     let mut bytes = fixture_bytes();
     bytes[8200..8208].copy_from_slice(&7_u64.to_le_bytes());
     fs::write(&decreasing, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         QuadFile::open(&decreasing),
         Err(OpenQuadError::Posts { index: 2 }),
-    ));
+    );
 
     // The closing post must equal the header's entry count.
     let unclosed = scratch("unclosed-posts.quad");
     let mut bytes = fixture_bytes();
     bytes[8224..8232].copy_from_slice(&11_u64.to_le_bytes());
     fs::write(&unclosed, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         QuadFile::open(&unclosed),
         Err(OpenQuadError::Posts { index: 4 }),
-    ));
+    );
 
     // Node 0's first child redirected at itself fails the
     // point-deeper rule; redirected beyond the table it escapes.
@@ -299,19 +288,19 @@ fn open_rejects_malformed_posts_and_children() {
     let mut bytes = fixture_bytes();
     bytes[4096..4100].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&shallow, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         QuadFile::open(&shallow),
         Err(OpenQuadError::Child { node: 0, child: 0 }),
-    ));
+    );
 
     let escaped = scratch("escaped-child.quad");
     let mut bytes = fixture_bytes();
     bytes[4096..4100].copy_from_slice(&4_u32.to_le_bytes());
     fs::write(&escaped, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         QuadFile::open(&escaped),
         Err(OpenQuadError::Child { node: 0, child: 4 }),
-    ));
+    );
 }
 
 /// Reference locate: the same prefix-digit walk over the in-memory

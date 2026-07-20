@@ -1,3 +1,4 @@
+use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
@@ -56,10 +57,10 @@ fn construction_exposes_the_validated_document() {
 fn a_contract_violation_is_rejected_at_supply() {
     let foreign_schema = DOCUMENT.replace("atlas-reviewed-verdicts/1", "atlas-reviewed-verdicts/2");
 
-    assert!(matches!(
+    assert_matches!(
         SuppliedVerdicts::from_bytes(foreign_schema.into_bytes()),
         Err(InvalidReviewedVerdicts::Schema { found }) if &*found == "atlas-reviewed-verdicts/2",
-    ));
+    );
 }
 
 #[test]
@@ -71,14 +72,14 @@ fn open_reads_the_file_and_reports_both_failure_shapes() {
     let supplied = SuppliedVerdicts::open(&path).expect("the written document admits");
     assert_eq!(supplied.bytes(), DOCUMENT.as_bytes());
 
-    assert!(matches!(
+    assert_matches!(
         SuppliedVerdicts::open(dir.join("absent.json")),
         Err(SupplyError::Io(_)),
-    ));
+    );
 
     fs::write(&path, "not json").expect("the fixture file should overwrite");
-    assert!(matches!(
+    assert_matches!(
         SuppliedVerdicts::open(&path),
         Err(SupplyError::Invalid(InvalidReviewedVerdicts::Json(_))),
-    ));
+    );
 }

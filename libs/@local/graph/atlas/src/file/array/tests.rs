@@ -1,4 +1,7 @@
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::{
+    assert_matches,
+    sync::atomic::{AtomicU64, Ordering},
+};
 use std::{io::Cursor, path::PathBuf};
 
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
@@ -211,38 +214,32 @@ fn open_rejects_what_the_header_contradicts() {
     let mut unfinished = vec![0_u8; FileHeader::SIZE];
     unfinished.extend_from_slice([1.0_f32; 8].as_bytes());
     let file = TempFile::create(&unfinished);
-    assert!(matches!(
-        ArrayFile::open(&file.path),
-        Err(OpenArrayError::Header(_))
-    ));
+    assert_matches!(ArrayFile::open(&file.path), Err(OpenArrayError::Header));
 
     // A file shorter than one header is a length problem, not a parse
     // problem.
     let file = TempFile::create(&[0xAB; 16]);
-    assert!(matches!(
+    assert_matches!(
         ArrayFile::open(&file.path),
         Err(OpenArrayError::Undersized { actual: 16 })
-    ));
+    );
 
     // A truncated data region violates the length rule.
     let mut truncated = Vec::new();
     truncated.extend_from_slice(FileHeader::new(ArrayVariant::F32, shape(&[2, 4])).as_bytes());
     truncated.extend_from_slice([1.0_f32; 4].as_bytes());
     let file = TempFile::create(&truncated);
-    assert!(matches!(
+    assert_matches!(
         ArrayFile::open(&file.path),
         Err(OpenArrayError::Length {
             expected: Some(expected),
             actual,
         }) if expected == 4096 + 32 && actual == 4096 + 16
-    ));
+    );
 
     // A missing file surfaces the io error.
     let missing = std::env::temp_dir().join("atlas-array-missing");
-    assert!(matches!(
-        ArrayFile::open(&missing),
-        Err(OpenArrayError::Io(_))
-    ));
+    assert_matches!(ArrayFile::open(&missing), Err(OpenArrayError::Io(_)));
 }
 
 #[test]

@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn impossible_allocation_fails_without_panicking() {
-        assert!(matches!(
+        assert_matches!(
             empty::<u64>("impossible", usize::MAX),
             Err(AnalyticError::Allocation {
                 buffer: "impossible",

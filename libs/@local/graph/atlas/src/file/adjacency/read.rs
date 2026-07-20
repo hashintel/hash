@@ -13,7 +13,7 @@ use super::{EdgeWidth, FileHeader};
 
 /// Opening an adjacency file failed.
 #[derive(Debug)]
-pub(crate) enum OpenAdjacencyError {
+pub enum OpenAdjacencyError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.

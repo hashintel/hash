@@ -136,7 +136,7 @@ impl Adjacency {
 
 /// An opened adjacency file does not hold a valid adjacency.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum InvalidAdjacencyFile {
+pub enum InvalidAdjacencyFile {
     /// The fencepost column does not start at slot zero.
     Start,
     /// A fencepost precedes the one before it.

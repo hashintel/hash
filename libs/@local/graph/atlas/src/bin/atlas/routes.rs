@@ -1,14 +1,14 @@
 //! The atlas read API: Surface v1 routes over one opened generation.
 //!
-//! Three routes serve the demo bootstrap: the mutable `current`
-//! pointer, the immutable per-generation manifest, and the tile
-//! endpoint answering `SALTILET` bytes. The generation is pinned at
-//! startup; rotation reload is the serving track's step 11, not this
-//! shell.
+//! Four routes serve the demo bootstrap: the mutable `current`
+//! pointer, the immutable per-generation manifest, the tile endpoint
+//! answering `SALTILET` bytes, and the edges endpoint answering
+//! `SALTILEE` bytes. The generation is pinned at startup; rotation
+//! reload is the serving track's step 11, not this shell.
 //!
-//! Tile assembly is synchronous and CPU-bound, so handlers schedule it
-//! on a rayon worker behind `catch_unwind` and never inline on the
-//! async runtime. Errors are RFC 9457 problem documents; binary
+//! Response assembly is synchronous and CPU-bound, so handlers
+//! schedule it on a rayon worker behind `catch_unwind` and never
+//! inline on the async runtime. Errors are RFC 9457 problem documents; binary
 //! responses ship `Cache-Control: private, no-store` because the
 //! client's application-layer cache is the cache.
 
@@ -22,8 +22,8 @@ use axum::{
     routing::{get, post},
 };
 use hash_graph_atlas::serve::{
-    Atlas, GenerationId, ManifestLimits, TileCoordinate, TileError, TileQuery, TileRequest,
-    VARIANTS,
+    Atlas, EdgesCaps, EdgesError, EdgesRequest, GenerationId, ManifestLimits, TileCoordinate,
+    TileError, TileQuery, TileRequest, VARIANTS,
 };
 
 /// The tile response media type: the `SALTILE` family, version 1.
@@ -51,6 +51,7 @@ pub(crate) fn router(atlas: Arc<Atlas>) -> Router {
             "/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}",
             post(tile),
         )
+        .route("/v1/atlas/edges/{generation}/{variant}", post(edges))
         .with_state(state)
 }
 
@@ -92,6 +93,67 @@ fn reject_generation(state: &AppState, generation: &str) -> Option<Response> {
     ))
 }
 
+/// Rejects a route naming a variant this generation does not serve,
+/// [`None`] when it serves.
+fn reject_variant(variant: &str) -> Option<Response> {
+    if VARIANTS.contains(&variant) {
+        return None;
+    }
+
+    Some(problem(
+        StatusCode::NOT_FOUND,
+        "unknown-variant",
+        &format!("variant {variant} is not served; the manifest lists {VARIANTS:?}"),
+    ))
+}
+
+/// Runs CPU-bound response assembly on a rayon worker behind
+/// `catch_unwind`, mapping a vanished worker or a panic - a producer
+/// bug surfacing as 500, never an unwind across the runtime - to its
+/// problem document.
+async fn assemble<T: Send + 'static>(
+    work: impl FnOnce() -> T + Send + 'static,
+) -> Result<T, Box<Response>> {
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    rayon::spawn(move || {
+        let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(work));
+        let _: Result<(), _> = sender.send(result);
+    });
+
+    match receiver.await {
+        Ok(Ok(value)) => Ok(value),
+        Ok(Err(panic)) => {
+            let detail = panic
+                .downcast_ref::<&str>()
+                .map(|&message| message.to_owned())
+                .or_else(|| panic.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "the response assembly panicked".to_owned());
+            Err(Box::new(problem(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal",
+                &detail,
+            )))
+        }
+        Err(_closed) => Err(Box::new(problem(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "internal",
+            "the assembly worker vanished",
+        ))),
+    }
+}
+
+/// Wraps envelope bytes in the binary response headers.
+fn saltile(bytes: Vec<u8>) -> Response {
+    (
+        [
+            (header::CONTENT_TYPE, SALTILE),
+            (header::CACHE_CONTROL, "private, no-store"),
+        ],
+        bytes,
+    )
+        .into_response()
+}
+
 /// `GET /v1/atlas/current`: the one mutable read.
 async fn current(State(state): State<AppState>) -> Response {
     (
@@ -129,12 +191,8 @@ async fn tile(
     if let Some(rejection) = reject_generation(&state, &generation) {
         return rejection;
     }
-    if !VARIANTS.contains(&variant.as_str()) {
-        return problem(
-            StatusCode::NOT_FOUND,
-            "unknown-variant",
-            &format!("variant {variant} is not served; the manifest lists {VARIANTS:?}"),
-        );
+    if let Some(rejection) = reject_variant(&variant) {
+        return rejection;
     }
 
     let request = TileRequest {
@@ -142,54 +200,71 @@ async fn tile(
         query: query.map_or_else(TileQuery::default, |Json(query)| query),
     };
 
-    // CPU-bound assembly rides a rayon worker, never a runtime thread;
-    // a panic is a producer bug surfacing as 500, not an unwind across
-    // the runtime.
     let atlas = Arc::clone(&state.atlas);
-    let (sender, receiver) = tokio::sync::oneshot::channel();
-    rayon::spawn(move || {
-        let result =
-            std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| atlas.tile(&request)));
-        let _: Result<(), _> = sender.send(result);
-    });
-
-    let result = match receiver.await {
+    let result = match assemble(move || atlas.tile(&request)).await {
         Ok(result) => result,
-        Err(_closed) => {
-            return problem(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "internal",
-                "the tile worker vanished",
-            );
-        }
+        Err(rejection) => return *rejection,
     };
 
     match result {
-        Ok(Ok(bytes)) => (
-            [
-                (header::CONTENT_TYPE, SALTILE),
-                (header::CACHE_CONTROL, "private, no-store"),
-            ],
-            bytes,
-        )
-            .into_response(),
-        Ok(Err(error @ (TileError::Depth { .. } | TileError::Grid { .. }))) => problem(
+        Ok(bytes) => saltile(bytes),
+        Err(error @ (TileError::Depth { .. } | TileError::Grid { .. })) => problem(
             StatusCode::BAD_REQUEST,
             "invalid-coordinate",
             &error.to_string(),
         ),
-        Ok(Err(error @ TileError::Unsupported(_))) => problem(
+        Err(error @ TileError::Unsupported(_)) => problem(
             StatusCode::NOT_IMPLEMENTED,
             "unsupported-feature",
             &error.to_string(),
         ),
-        Err(panic) => {
-            let detail = panic
-                .downcast_ref::<&str>()
-                .map(|&message| message.to_owned())
-                .or_else(|| panic.downcast_ref::<String>().cloned())
-                .unwrap_or_else(|| "the tile assembly panicked".to_owned());
-            problem(StatusCode::INTERNAL_SERVER_ERROR, "internal", &detail)
-        }
+    }
+}
+
+/// `POST /v1/atlas/edges/{generation}/{variant}`: the edges among the
+/// listed tiles' delivered rows, as `SALTILEE` bytes. The tiles list
+/// is the request's subject, so the body is required.
+async fn edges(
+    State(state): State<AppState>,
+    Path((generation, variant)): Path<(String, String)>,
+    body: Option<Json<EdgesRequest>>,
+) -> Response {
+    if let Some(rejection) = reject_generation(&state, &generation) {
+        return rejection;
+    }
+    if let Some(rejection) = reject_variant(&variant) {
+        return rejection;
+    }
+    let Some(Json(request)) = body else {
+        return problem(
+            StatusCode::BAD_REQUEST,
+            "missing-body",
+            "an edges request lists its tiles in a JSON body",
+        );
+    };
+
+    let atlas = Arc::clone(&state.atlas);
+    let result = match assemble(move || atlas.edges(&request, EdgesCaps::default())).await {
+        Ok(result) => result,
+        Err(rejection) => return *rejection,
+    };
+
+    match result {
+        Ok(bytes) => saltile(bytes),
+        Err(error @ EdgesError::Tiles { .. }) => problem(
+            StatusCode::BAD_REQUEST,
+            "too-many-tiles",
+            &error.to_string(),
+        ),
+        Err(error @ (EdgesError::Depth { .. } | EdgesError::Grid { .. })) => problem(
+            StatusCode::BAD_REQUEST,
+            "invalid-coordinate",
+            &error.to_string(),
+        ),
+        Err(error @ EdgesError::Unsupported(_)) => problem(
+            StatusCode::NOT_IMPLEMENTED,
+            "unsupported-feature",
+            &error.to_string(),
+        ),
     }
 }

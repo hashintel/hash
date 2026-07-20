@@ -2,7 +2,7 @@
     clippy::big_endian_bytes,
     reason = "big-endian id fixtures sort byte-wise like their numeric values"
 )]
-
+use core::assert_matches;
 use std::{collections::HashMap, fs, io::Cursor, path::PathBuf};
 
 use rand::SeedableRng as _;
@@ -219,10 +219,10 @@ fn spot_check_honours_a_configured_tolerance() {
     )
     .expect("a non-empty matrix under a sound budget checks");
     assert!(!tight.passes());
-    assert!(matches!(
+    assert_matches!(
         tight.defects.as_slice(),
         [RepresentationDefect::Norm { .. }],
-    ));
+    );
 }
 
 #[test]
@@ -380,42 +380,42 @@ fn validation_rejects_tampered_tables() {
     // ascending order.
     let mut unsorted = fixture_table_bytes();
     unsorted.copy_within(PAIRS_OFFSET..PAIRS_OFFSET + 16, PAIRS_OFFSET + 16);
-    assert!(matches!(
+    assert_matches!(
         mapped_fixture("unsorted.idnt", &unsorted),
         Err(InvalidIdentityFile::UnsortedPairs { position: 1 }),
-    ));
+    );
 
     // A pair pointing past the domain names no row.
     let mut out_of_domain = fixture_table_bytes();
     out_of_domain[PAIRS_OFFSET + 8] = 9;
-    assert!(matches!(
+    assert_matches!(
         mapped_fixture("out-of-domain.idnt", &out_of_domain),
         Err(InvalidIdentityFile::RowOutOfDomain {
             position: 0,
             row: 9,
         }),
-    ));
+    );
 
     // A tampered id column disagrees with the pair that references it.
     let mut disagreeing = fixture_table_bytes();
     disagreeing[IDS_OFFSET] = 31;
-    assert!(matches!(
+    assert_matches!(
         mapped_fixture("disagreeing.idnt", &disagreeing),
         Err(InvalidIdentityFile::ColumnDisagreement { row: 0 }),
-    ));
+    );
 
     // A tampered index key disagrees with the first pair of its stride.
     let mut index_tampered = fixture_table_bytes();
     index_tampered[INDEX_OFFSET] = 11;
-    assert!(matches!(
+    assert_matches!(
         mapped_fixture("index-tampered.idnt", &index_tampered),
         Err(InvalidIdentityFile::IndexDisagreement { key: 0 }),
-    ));
+    );
 
     // The id type's width is part of the contract.
     let path = scratch("narrow.idnt");
     fs::write(&path, fixture_table_bytes()).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         MappedIdentityTable::<[u8; 4]>::new(
             IdentityFile::open(&path).expect("the fixture file reopens"),
         ),
@@ -423,7 +423,7 @@ fn validation_rejects_tampered_tables() {
             expected: 4,
             actual: 8,
         }),
-    ));
+    );
 }
 
 /// An instance spool root under the system temp directory.

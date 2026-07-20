@@ -103,11 +103,11 @@ fn disabled_reader_rejects_mutation_and_advanced_bases() {
         rows: &rows,
     };
 
-    assert!(matches!(
+    assert_matches!(
         DisabledMergedReader::new(initial, IncrementalMode::Enabled),
         Err(DisabledReadError::IncrementalModeEnabled)
     ));
-    assert!(matches!(
+    assert_matches!(
         DisabledMergedReader::new(advanced, IncrementalMode::Disabled),
         Err(DisabledReadError::NonInitialBase { revision })
             if revision == BaseRevision::new(1)

@@ -96,7 +96,7 @@ fn rejects_wrong_class_order_and_non_positive_scales() {
     bytes[CLASS_ORDER_OFFSET..CLASS_ORDER_OFFSET + 3].copy_from_slice(&[1, 0, 2]);
     rehash(&mut bytes);
     let (_file, artifact) = map_fixture(&bytes).expect("generic artifact should remain valid");
-    assert!(matches!(
+    assert_matches!(
         ClassifierView::new(artifact.view()),
         Err(ClassifierError::ClassOrder)
     ));
@@ -105,7 +105,7 @@ fn rejects_wrong_class_order_and_non_positive_scales() {
     put_f64(&mut bytes, INVERSE_SCALES_OFFSET + 19 * 8, -1.0);
     rehash(&mut bytes);
     let (_file, artifact) = map_fixture(&bytes).expect("generic artifact should remain valid");
-    assert!(matches!(
+    assert_matches!(
         ClassifierView::new(artifact.view()),
         Err(ClassifierError::NonPositive {
             section: APPLICABILITY_INVERSE_SCALES,
@@ -120,7 +120,7 @@ fn rejects_unsorted_applicability_evidence_and_non_finite_parameters() {
     put_f64(&mut bytes, TRAINING_DISTANCES_OFFSET + 8, 0.2);
     rehash(&mut bytes);
     let (_file, artifact) = map_fixture(&bytes).expect("generic artifact should remain valid");
-    assert!(matches!(
+    assert_matches!(
         ClassifierView::new(artifact.view()),
         Err(ClassifierError::Unsorted { index: 2, .. })
     ));
@@ -129,7 +129,7 @@ fn rejects_unsorted_applicability_evidence_and_non_finite_parameters() {
     put_f64(&mut bytes, COEFFICIENTS_OFFSET + 71 * 8, f64::NAN);
     rehash(&mut bytes);
     let (_file, artifact) = map_fixture(&bytes).expect("generic artifact should remain valid");
-    assert!(matches!(
+    assert_matches!(
         ClassifierView::new(artifact.view()),
         Err(ClassifierError::NonFinite {
             section: COEFFICIENTS,
@@ -150,7 +150,7 @@ fn fails_closed_when_finite_values_overflow_inference() {
     values[0] = f32::MAX;
     let embedding = CanonicalEmbedding::new(&values).expect("embedding should validate");
 
-    assert!(matches!(
+    assert_matches!(
         classifier.predict(embedding),
         Err(ClassifierError::NonFiniteOutput)
     ));

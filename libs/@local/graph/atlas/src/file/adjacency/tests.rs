@@ -2,7 +2,7 @@
     clippy::little_endian_bytes,
     reason = "the tampered header fields are pinned to the format's canonical little-endian bytes"
 )]
-
+use core::assert_matches;
 use std::{fs, io::Write as _};
 
 use camino::Utf8PathBuf;
@@ -150,32 +150,32 @@ fn a_torn_file_is_rejected() {
 
     let undersized = dir.join("undersized.adjc");
     fs::write(&undersized, &valid[..100]).expect("the undersized file should write");
-    assert!(matches!(
+    assert_matches!(
         AdjacencyFile::open(&undersized),
         Err(OpenAdjacencyError::Undersized { actual: 100 }),
-    ));
+    );
 
     let truncated = dir.join("truncated.adjc");
     fs::write(&truncated, &valid[..valid.len() - 4]).expect("the truncated file should write");
-    assert!(matches!(
+    assert_matches!(
         AdjacencyFile::open(&truncated),
         Err(OpenAdjacencyError::Length {
             expected: Some(_),
             ..
         }),
-    ));
+    );
 
     let oversized = dir.join("oversized.adjc");
     let mut bytes = valid;
     bytes.extend_from_slice(&[0; 4]);
     fs::write(&oversized, &bytes).expect("the oversized file should write");
-    assert!(matches!(
+    assert_matches!(
         AdjacencyFile::open(&oversized),
         Err(OpenAdjacencyError::Length {
             expected: Some(_),
             ..
         }),
-    ));
+    );
 }
 
 #[test]
@@ -190,8 +190,8 @@ fn an_overflowing_header_is_rejected() {
     bytes[16..24].copy_from_slice(&u64::MAX.to_le_bytes());
     fs::write(&path, &bytes).expect("the tampered file should write");
 
-    assert!(matches!(
+    assert_matches!(
         AdjacencyFile::open(&path),
         Err(OpenAdjacencyError::Length { expected: None, .. }),
-    ));
+    );
 }

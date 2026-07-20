@@ -3,6 +3,7 @@
     reason = "exactness assertions on echoed inputs and constructed zeros are bit-precise \
               contracts"
 )]
+use core::assert_matches;
 
 use super::{
     CanonicalError, Conditions, ConditionsError, Field, LadderError, MeasurementOptions,
@@ -74,10 +75,10 @@ fn conditions_reject_each_violated_invariant() {
         Conditions::new(vec![-0.0, 1.0]),
         Err(ConditionsError::BaselineNotZero { value: -0.0 })
     );
-    assert!(matches!(
+    assert_matches!(
         Conditions::new(vec![0.0, f32::NAN]),
         Err(ConditionsError::NonFinite { index: 1, .. })
-    ));
+    );
     assert_eq!(
         Conditions::new(vec![0.0, f32::INFINITY]),
         Err(ConditionsError::NonFinite {
@@ -150,10 +151,10 @@ fn measure_rejects_invalid_input() {
             relation_loss: f64::NAN,
         },
     ];
-    assert!(matches!(
+    assert_matches!(
         measure_ladder(&conditions, &non_finite_loss, MeasurementOptions { .. }),
         Err(LadderError::NonFiniteLoss { index: 1, .. })
-    ));
+    );
 
     assert_eq!(
         measure_ladder(

@@ -110,11 +110,11 @@ mod tests {
 
     #[test]
     fn receipt_tokens_are_bounded_and_redacted() {
-        assert!(matches!(
+        assert_matches!(
             StoreExtractionReceipt::new(Vec::<u8>::new()),
             Err(SnapshotError::ExtractionReceipt)
         ));
-        assert!(matches!(
+        assert_matches!(
             StoreExtractionReceipt::new(vec![0; MAXIMUM_RECEIPT_BYTES + 1]),
             Err(SnapshotError::ExtractionReceipt)
         ));

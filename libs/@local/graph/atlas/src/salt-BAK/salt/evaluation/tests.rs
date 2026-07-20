@@ -66,7 +66,7 @@ fn failed_evidence_cannot_cross_the_materialization_boundary() {
 
 #[test]
 fn condition_order_and_domain_are_strict() {
-    assert!(matches!(
+    assert_matches!(
         ConditionLadder::new(domain(), [(0.0, evidence("a")), (0.0, evidence("b"))]),
         Err(EvaluationError::UnorderedCondition { index: 1, .. })
     ));

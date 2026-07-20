@@ -53,7 +53,7 @@ fn execution_contract_rejects_a_property_not_bound_by_its_hash() {
     let mut manifest = manifest();
     manifest.reproducibility.execution_contract.rayon_threads += 1;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "reproducibility.execution_contract.contract_hash",
@@ -67,7 +67,7 @@ fn unpinned_companion_cannot_form_a_manifest_identity() {
     let mut manifest = manifest();
     manifest.serving.canvas_companion_version = " \tTbD ".to_owned();
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::MissingText {
             field: "serving.canvas_companion_version"
@@ -79,7 +79,7 @@ fn unpinned_companion_cannot_form_a_manifest_identity() {
 fn external_reports_cannot_alias_the_subjects_they_evaluate() {
     let mut relation = manifest();
     relation.relations.security_approval_report_hash = relation.relations.security_allow_list_hash;
-    assert!(matches!(
+    assert_matches!(
         relation.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "relations.external_report_hashes",
@@ -90,7 +90,7 @@ fn external_reports_cannot_alias_the_subjects_they_evaluate() {
     let mut companion = manifest();
     companion.serving.companion_compatibility_report_hash =
         companion.serving.canvas_companion_sha256;
-    assert!(matches!(
+    assert_matches!(
         companion.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "serving.companion_compatibility_report_hash",
@@ -104,7 +104,7 @@ fn manifest_rejects_an_ann_backend_below_the_exact_recall_gate() {
     let mut manifest = manifest();
     manifest.semantic_graph.recall_at_50 = 0.949;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "semantic_graph.recall_at_50",
@@ -117,7 +117,7 @@ fn manifest_rejects_an_ann_backend_below_the_exact_recall_gate() {
 fn manifest_rejects_unbound_input_and_projector_transform_contracts() {
     let mut invalid_input = manifest();
     invalid_input.input_snapshot.frozen_input_hash = ContentHash::from_bytes([0; 32]);
-    assert!(matches!(
+    assert_matches!(
         invalid_input.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "input_snapshot.frozen_input_hash",
@@ -127,7 +127,7 @@ fn manifest_rejects_unbound_input_and_projector_transform_contracts() {
 
     let mut invalid_transform = manifest();
     invalid_transform.embedding.transform_hash = ContentHash::digest(b"different-transform");
-    assert!(matches!(
+    assert_matches!(
         invalid_transform.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "embedding.transform_hash",
@@ -141,7 +141,7 @@ fn manifest_rejects_quality_measurements_below_release_policy() {
     let mut manifest = manifest();
     manifest.variants.entries[0].semantic_fidelity = 0.90;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "variants.entries.semantic_fidelity",
@@ -156,7 +156,7 @@ fn manifest_rejects_clamp_metadata_not_derived_from_row_count() {
     manifest.variants.entries[0].clamp_count = 1;
     manifest.variants.entries[0].clamp_rate = 0.0;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "variants.entries.clamp_rate",
@@ -170,7 +170,7 @@ fn disabled_typed_deconflict_cannot_smuggle_repulsive_geometry() {
     let mut manifest = manifest();
     manifest.relations.typed_deconflict.geometry_coefficient = 0.25;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "relations.typed_deconflict.geometry_coefficient",
@@ -184,7 +184,7 @@ fn initial_manifest_rejects_an_enabled_strength_head() {
     let mut manifest = manifest();
     manifest.relations.strength_head.enabled = true;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "relations.strength_head.enabled",
@@ -202,7 +202,7 @@ fn initial_generation_has_exactly_one_canonical_variant() {
         .entries
         .push(manifest.variants.entries[0].clone());
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::VariantCount { .. })
     ));
@@ -213,7 +213,7 @@ fn canonical_condition_rejects_negative_zero() {
     let mut manifest = manifest();
     manifest.variants.entries[0].global_relation_condition = -0.0;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "variants.entries.global_relation_condition",
@@ -229,7 +229,7 @@ fn zero_condition_requires_the_unaligned_identity_transform() {
     canonical.global_relation_condition = 0.0;
     canonical.procrustes_transform[3] = 1.0;
 
-    assert!(matches!(
+    assert_matches!(
         manifest.validate(),
         Err(ManifestError::InvalidInvariant {
             field: "variants.entries.procrustes_transform.baseline",
@@ -257,7 +257,7 @@ fn immutable_manifest_publication_is_idempotent_but_not_replaceable() {
     assert!(!published.reused_existing);
     assert!(repeated.reused_existing);
     assert_eq!(published.content_hash, repeated.content_hash);
-    assert!(matches!(
+    assert_matches!(
         publish_manifest(&path, &different),
         Err(ManifestPublishError::ExistingManifestMismatch { .. })
     ));
@@ -297,7 +297,7 @@ fn manifest_publication_rejects_a_role_incompatible_mmap_schema() {
     );
     manifest.semantic_graph.graph_hash = semantic.content_hash;
 
-    assert!(matches!(
+    assert_matches!(
         publish_manifest(&root.join("manifest.json"), &manifest),
         Err(ManifestPublishError::Artifact(
             ArtifactVerificationError::Schema {
@@ -357,7 +357,7 @@ fn manifest_publication_rejects_coordinates_that_only_copy_the_embedded_field_ha
         published,
     );
 
-    assert!(matches!(
+    assert_matches!(
         publish_manifest(&root.join("manifest.json"), &manifest),
         Err(ManifestPublishError::Artifact(
             ArtifactVerificationError::Schema {
@@ -401,7 +401,7 @@ fn manifest_publication_rejects_protection_state_hidden_behind_a_stale_snapshot_
     manifest.artifacts[artifact_index] =
         ArtifactManifest::mmap(ArtifactRole::RelationIndexes, relative_path, published);
 
-    assert!(matches!(
+    assert_matches!(
         publish_manifest(&root.join("manifest.json"), &manifest),
         Err(ManifestPublishError::Artifact(
             ArtifactVerificationError::Schema {
@@ -1069,7 +1069,7 @@ fn publish_test_artifacts(directory: &Utf8Path, manifest: &mut GenerationManifes
                 published.byte_length,
             );
         } else {
-            debug_assert!(matches!(
+            debug_assert_matches!(
                 artifact.role,
                 ArtifactRole::RepresentationReport
                     | ArtifactRole::SemanticFidelityReport

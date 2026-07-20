@@ -3,6 +3,8 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
+use core::assert_matches;
+
 use super::{
     FitConfig, FitError, TrainingRow, TrainingSet, TrainingSetError, applicability, calibration,
     fit, grouped_folds,
@@ -194,13 +196,13 @@ fn grouped_folds_keep_groups_whole_and_sizes_balanced() {
 fn grouped_folds_reject_too_few_groups() {
     let corpus = mixed_corpus();
     let error = grouped_folds(&corpus.rows, 3, 0).expect_err("two groups cannot fill three folds");
-    assert!(matches!(
+    assert_matches!(
         error,
         FitError::InsufficientGroups {
             groups: 2,
             folds: 3
         },
-    ));
+    );
 }
 
 #[test]
@@ -365,12 +367,12 @@ fn fit_model_requires_complete_class_mass() {
 
     let error = objective::fit_model(corpus.training(), &[0, 0], None, config())
         .expect_err("a class without mass cannot fit");
-    assert!(matches!(
+    assert_matches!(
         error,
         FitError::MissingClassMass {
             class: GeometryClass::Coincident,
         },
-    ));
+    );
 }
 
 #[test]
@@ -598,7 +600,7 @@ fn an_exhausted_iteration_bound_is_an_error() {
     )
     .expect_err("one iteration cannot converge");
 
-    assert!(matches!(error, FitError::DidNotConverge { .. }));
+    assert_matches!(error, FitError::DidNotConverge { .. });
 }
 
 #[test]

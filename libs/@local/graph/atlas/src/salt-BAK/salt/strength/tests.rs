@@ -31,11 +31,11 @@ fn posterior_strength_shrinks_toward_unit_with_low_applicability() {
 
 #[test]
 fn strength_rejects_invalid_materialized_values_and_posteriors() {
-    assert!(matches!(
+    assert_matches!(
         RelationStrength::new(f64::NAN),
         Err(StrengthError::NonFinite { .. })
     ));
-    assert!(matches!(
+    assert_matches!(
         RelationStrength::new(2.0_f64.next_up()),
         Err(StrengthError::OutOfRange { .. })
     ));
@@ -45,7 +45,7 @@ fn strength_rejects_invalid_materialized_values_and_posteriors() {
         standard: probability(0.2),
         strong: probability(0.2),
     };
-    assert!(matches!(
+    assert_matches!(
         RelationStrength::from_posterior(posterior, probability(1.0)),
         Err(StrengthError::PosteriorSum { .. })
     ));

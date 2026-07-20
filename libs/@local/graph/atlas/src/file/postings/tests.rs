@@ -2,7 +2,7 @@
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
-
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
@@ -157,37 +157,37 @@ fn empty_domain_reopens() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.post");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         PostingsFile::open(&undersized),
         Err(OpenPostingsError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.post");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         PostingsFile::open(&foreign),
         Err(OpenPostingsError::Header(_)),
-    ));
+    );
 
     let future = scratch("future-version.post");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         PostingsFile::open(&future),
         Err(OpenPostingsError::Header(_)),
-    ));
+    );
 
     let torn = scratch("torn.post");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         PostingsFile::open(&torn),
         Err(OpenPostingsError::Length { .. }),
-    ));
+    );
 }
 
 #[test]

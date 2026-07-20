@@ -580,7 +580,7 @@ mod tests {
         let context =
             ProjectorTypeContext::new(&values, 1, 1).expect("finite type context should validate");
 
-        assert!(matches!(
+        assert_matches!(
             validate_type_context_dropout(
                 Some(context),
                 Some(TypeContextDropout {

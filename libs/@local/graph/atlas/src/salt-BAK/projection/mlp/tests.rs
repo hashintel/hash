@@ -206,7 +206,7 @@ fn rejects_invalid_configurations_and_shapes() {
             .map(|_| ())
     };
 
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -217,7 +217,7 @@ fn rejects_invalid_configurations_and_shapes() {
         ),
         Err(ProjectorError::InvalidBatchSize(0))
     ));
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -228,7 +228,7 @@ fn rejects_invalid_configurations_and_shapes() {
         ),
         Err(ProjectorError::InvalidEpochs(0))
     ));
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -239,7 +239,7 @@ fn rejects_invalid_configurations_and_shapes() {
         ),
         Err(ProjectorError::InvalidPatience(0))
     ));
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -250,7 +250,7 @@ fn rejects_invalid_configurations_and_shapes() {
         ),
         Err(ProjectorError::InvalidWorkers(0))
     ));
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -261,7 +261,7 @@ fn rejects_invalid_configurations_and_shapes() {
         ),
         Err(ProjectorError::InvalidLearningRate { .. })
     ));
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -272,7 +272,7 @@ fn rejects_invalid_configurations_and_shapes() {
         ),
         Err(ProjectorError::InvalidLearningRate { .. })
     ));
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -285,7 +285,7 @@ fn rejects_invalid_configurations_and_shapes() {
     ));
     // A fraction that rounds down to zero validation rows is rejected even
     // though it is within (0, 1).
-    assert!(matches!(
+    assert_matches!(
         fit(
             xs.clone(),
             ys.clone(),
@@ -298,19 +298,19 @@ fn rejects_invalid_configurations_and_shapes() {
     ));
 
     let empty = FloatBytes::from_vec(Vec::new(), NonZero::new(OUTPUT_DIM).unwrap()).unwrap();
-    assert!(matches!(
+    assert_matches!(
         fit(xs.clone(), empty, quick_config()),
         Err(ProjectorError::EmptyTrainingData)
     ));
 
     let three_wide = FloatBytes::from_vec(vec![0.0; 64 * 3], NonZero::new(3).unwrap()).unwrap();
-    assert!(matches!(
+    assert_matches!(
         fit(xs.clone(), three_wide, quick_config()),
         Err(ProjectorError::OutputDimension { actual: 3 })
     ));
 
     let short = FloatBytes::from_vec(vec![0.0; 32 * 2], NonZero::new(2).unwrap()).unwrap();
-    assert!(matches!(
+    assert_matches!(
         fit(xs.clone(), short, quick_config()),
         Err(ProjectorError::RowCount {
             features: 64,
@@ -321,7 +321,7 @@ fn rejects_invalid_configurations_and_shapes() {
     let mut bad_values = vec![0.5; 64 * 2];
     bad_values[3] = f32::NAN;
     let non_finite = FloatBytes::from_vec(bad_values, NonZero::new(2).unwrap()).unwrap();
-    assert!(matches!(
+    assert_matches!(
         fit(xs.clone(), non_finite, quick_config()),
         Err(ProjectorError::NonFiniteCoordinate {
             row: 1,
@@ -331,7 +331,7 @@ fn rejects_invalid_configurations_and_shapes() {
     ));
 
     let narrow = FloatBytes::from_vec(vec![0.0; 64 * 3], NonZero::new(3).unwrap()).unwrap();
-    assert!(matches!(
+    assert_matches!(
         fit(narrow, ys, quick_config()),
         Err(ProjectorError::InputDimension {
             expected: INPUT_DIM,

@@ -7,7 +7,7 @@
     reason = "corruption fixtures pin the format's canonical little-endian bytes"
 )]
 
-use core::num::NonZero;
+use core::{assert_matches, num::NonZero};
 use std::{fs, path::PathBuf};
 
 use rand::SeedableRng as _;
@@ -514,10 +514,10 @@ fn assignment_rejects_landmarks_outside_the_corpus() {
 
     let result = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection);
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(AssignmentError::UnknownRow { row: 99, rows: 6 }),
-    ));
+    );
 }
 
 /// An assignment straight from ordinals, for quotient fixtures.

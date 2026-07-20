@@ -148,7 +148,7 @@ async fn rejects_wrong_width_and_non_finite_provider_rows() {
     )
     .await
     .expect_err("short embedding must fail");
-    assert!(matches!(
+    assert_matches!(
         error.current_context(),
         CardEmbeddingError::InvalidDimensions {
             card_index: 0,
@@ -167,7 +167,7 @@ async fn rejects_wrong_width_and_non_finite_provider_rows() {
     )
     .await
     .expect_err("non-finite embedding must fail");
-    assert!(matches!(
+    assert_matches!(
         error.current_context(),
         CardEmbeddingError::NonFinite {
             card_index: 0,

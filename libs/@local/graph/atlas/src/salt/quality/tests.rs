@@ -10,7 +10,7 @@
 )]
 
 use alloc::borrow::Cow;
-use core::{future::ready, num::NonZero};
+use core::{assert_matches, future::ready, num::NonZero};
 use std::collections::HashMap;
 
 use camino::Utf8PathBuf;
@@ -1103,7 +1103,7 @@ async fn probe_rejects_impossible_designs() {
         neighbourhoods: vec![2.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
-    assert!(matches!(
+    assert_matches!(
         probe(
             &fixture.dataset(),
             fixture.corpus(),
@@ -1112,7 +1112,7 @@ async fn probe_rejects_impossible_designs() {
         )
         .await,
         Err(ProbeError::Design { rows: 12, .. }),
-    ));
+    );
 
     // A neighbourhood of 3 exceeds half the 4-row comparison universe.
     let oversized = ProbeOptions {
@@ -1121,7 +1121,7 @@ async fn probe_rejects_impossible_designs() {
         neighbourhoods: vec![3.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
-    assert!(matches!(
+    assert_matches!(
         probe(
             &fixture.dataset(),
             fixture.corpus(),
@@ -1130,7 +1130,7 @@ async fn probe_rejects_impossible_designs() {
         )
         .await,
         Err(ProbeError::Neighbourhood { k: 3, universe: 4 }),
-    ));
+    );
 
     // An empty neighbourhood ladder reads nothing.
     let empty = ProbeOptions {
@@ -1139,7 +1139,7 @@ async fn probe_rejects_impossible_designs() {
         neighbourhoods: Vec::new().into(),
         ..ProbeOptions::default()
     };
-    assert!(matches!(
+    assert_matches!(
         probe(
             &fixture.dataset(),
             fixture.corpus(),
@@ -1148,7 +1148,7 @@ async fn probe_rejects_impossible_designs() {
         )
         .await,
         Err(ProbeError::NoNeighbourhoods),
-    ));
+    );
 }
 
 const RUNNER_NODES: usize = 48;

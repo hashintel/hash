@@ -3,8 +3,7 @@
     reason = "bit-exact assertions are contracts; fixtures use exactly representable values or \
               compare cross-path results of the same kernel"
 )]
-
-use core::num::NonZero;
+use core::{assert_matches, num::NonZero};
 
 use rand::{Rng, RngExt as _, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -360,19 +359,19 @@ fn build_rejects_unsatisfiable_shapes() {
     let rows = plane_fixture();
     let index = ExactIndex::from_rows(&rows);
 
-    assert!(matches!(
+    assert_matches!(
         Knn::build(&index, 1, two_neighbours()),
         Err(KnnError::Invalid(KnnValidationError::InsufficientRows {
             rows: 1
         })),
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         Knn::build(&index, 4, NonZero::new(4).expect("four is nonzero")),
         Err(KnnError::Invalid(KnnValidationError::NeighbourBounds {
             neighbours: 4,
             rows: 4,
         })),
-    ));
+    );
 }
 
 #[test]
@@ -384,26 +383,26 @@ fn build_rejects_malformed_backend_responses() {
     let rows = plane_fixture();
 
     let short = ShortIndex(ExactIndex::from_rows(&rows));
-    assert!(matches!(
+    assert_matches!(
         Knn::build(&short, rows.len(), two_neighbours()),
         Err(KnnError::SearchCount {
             expected: 2,
             actual: 1,
             ..
         }),
-    ));
+    );
 
     let doubled = DoubledIndex(ExactIndex::from_rows(&rows));
-    assert!(matches!(
+    assert_matches!(
         Knn::build(&doubled, rows.len(), two_neighbours()),
         Err(KnnError::DuplicateNeighbour { .. }),
-    ));
+    );
 
     let escaping = EscapingIndex(ExactIndex::from_rows(&rows));
-    assert!(matches!(
+    assert_matches!(
         Knn::build(&escaping, rows.len(), two_neighbours()),
         Err(KnnError::NeighbourOutOfBounds { rows: 4, .. }),
-    ));
+    );
 }
 
 #[test]
@@ -433,14 +432,14 @@ fn validation_rejects_each_broken_invariant() {
         vec![1, 2, 0],
         vec![f32::NAN, 1.0, 1.0],
     );
-    assert!(matches!(
+    assert_matches!(
         Knn::new(matrix).expect_err("non-finite distance"),
         KnnValidationError::NonFiniteDistance {
             row: 0,
             neighbour: 1,
             ..
         },
-    ));
+    );
 
     // Ragged rows.
     let matrix = KnnMatrix::new(
@@ -595,13 +594,13 @@ fn spot_check_rejects_a_meaningless_sampling_budget() {
         recall::SpotCheckOptions { margin: 0.0, .. },
         Xoshiro256PlusPlus::seed_from_u64(42),
     );
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(KnnError::SampleBudget {
             margin: 0.0,
             confidence: 0.99,
         }),
-    ));
+    );
 }
 
 /// A pilot whose spread already resolves the margin decides the check
@@ -719,18 +718,15 @@ fn published_table_reopens_mapped() {
     foreign[0] ^= 0x01;
     let foreign_path = dir.join("foreign.sprs");
     std::fs::write(&foreign_path, &foreign).expect("the foreign file writes");
-    assert!(matches!(
-        SprsFile::open(&foreign_path),
-        Err(OpenSprsError::Header(_)),
-    ));
+    assert_matches!(SprsFile::open(&foreign_path), Err(OpenSprsError::Header(_)),);
 
     // A truncated file contradicts the length equation.
     let truncated_path = dir.join("truncated.sprs");
     std::fs::write(&truncated_path, &bytes[..bytes.len() - 4]).expect("the short file writes");
-    assert!(matches!(
+    assert_matches!(
         SprsFile::open(&truncated_path),
         Err(OpenSprsError::Length { .. }),
-    ));
+    );
 
     // A tampered distance fails the table invariants at open.
     let values_offset = usize::try_from(
@@ -756,12 +752,12 @@ fn published_table_reopens_mapped() {
     tampered[values_offset..values_offset + 4].copy_from_slice(&3.0_f32.to_le_bytes());
     let tampered_path = dir.join("tampered.sprs");
     std::fs::write(&tampered_path, &tampered).expect("the tampered file writes");
-    assert!(matches!(
+    assert_matches!(
         MappedKnn::new(SprsFile::open(&tampered_path).expect("the tampered file parses")),
         Err(InvalidKnnFile::Invalid(
             KnnValidationError::DistanceOutOfRange { row: 0, .. },
         )),
-    ));
+    );
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }

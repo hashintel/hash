@@ -1,3 +1,5 @@
+use core::assert_matches;
+
 use sprs::CsMatI;
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
@@ -159,20 +161,20 @@ fn matrices_without_an_on_disk_form_are_rejected() {
     let matrix = fixture();
     let view = matrix.view();
     let sliced = view.slice_outer(1..3);
-    assert!(matches!(
+    assert_matches!(
         write_matrix(&sliced, Vec::new()),
         Err(WriteSprsError::Sliced),
-    ));
+    );
 
     // A zero dimension terminates the shape.
     let empty = CsMatI::<f32, u32, u64>::new((2, 0), vec![0, 0, 0], vec![], vec![]);
-    assert!(matches!(
+    assert_matches!(
         write_matrix(&empty, Vec::new()),
         Err(WriteSprsError::ZeroDimension {
             rows: 2,
             columns: 0,
         }),
-    ));
+    );
 }
 
 #[test]
@@ -212,10 +214,10 @@ fn a_written_matrix_reopens_as_the_same_view() {
     assert_eq!(reopened.data(), matrix.data());
 
     // Requesting different element types is rejected, not misread.
-    assert!(matches!(
+    assert_matches!(
         file.matrix::<f64, u32, u64>(),
         Err(SprsMatrixError::Elements { .. }),
-    ));
+    );
 
     // Unsorted indices within a row violate the structure at view time.
     let indices_offset = usize::try_from(
@@ -229,18 +231,18 @@ fn a_written_matrix_reopens_as_the_same_view() {
     let tampered_path = dir.join("tampered.sprs");
     std::fs::write(&tampered_path, &tampered).expect("the tampered file writes");
     let tampered_file = SprsFile::open(&tampered_path).expect("the tampered file parses");
-    assert!(matches!(
+    assert_matches!(
         tampered_file.matrix::<f32, u32, u64>(),
         Err(SprsMatrixError::Structure(_)),
-    ));
+    );
 
     // A truncated file contradicts the length equation.
     let truncated_path = dir.join("truncated.sprs");
     std::fs::write(&truncated_path, &bytes[..bytes.len() - 4]).expect("the short file writes");
-    assert!(matches!(
+    assert_matches!(
         SprsFile::open(&truncated_path),
         Err(OpenSprsError::Length { .. }),
-    ));
+    );
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
@@ -354,14 +356,14 @@ fn opaque_values_are_identified_by_width_alone() {
 
     // A different width is rejected, as is a pinned scalar tag of the
     // same width.
-    assert!(matches!(
+    assert_matches!(
         file.matrix::<Narrow, u32, u64>(),
         Err(SprsMatrixError::Elements { .. }),
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         file.matrix::<f64, u32, u64>(),
         Err(SprsMatrixError::Elements { .. }),
-    ));
+    );
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }

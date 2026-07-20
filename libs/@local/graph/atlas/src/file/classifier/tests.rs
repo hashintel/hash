@@ -6,7 +6,7 @@
     clippy::float_cmp,
     reason = "the format persists parameters verbatim; round trips are bit-exact contracts"
 )]
-
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use zerocopy::IntoBytes as _;
@@ -124,37 +124,37 @@ fn written_regions_reopen_verbatim() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.clsf");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         ClassifierFile::open(&undersized),
         Err(OpenClassifierError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.clsf");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         ClassifierFile::open(&foreign),
         Err(OpenClassifierError::Header(_)),
-    ));
+    );
 
     let future = scratch("future-version.clsf");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         ClassifierFile::open(&future),
         Err(OpenClassifierError::Header(_)),
-    ));
+    );
 
     let torn = scratch("torn.clsf");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         ClassifierFile::open(&torn),
         Err(OpenClassifierError::Length { .. }),
-    ));
+    );
 }
 
 #[test]

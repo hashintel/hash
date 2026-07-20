@@ -158,7 +158,7 @@ fn immutable_publication_rejects_different_existing_content() {
     )
     .expect("first artifact should publish");
 
-    assert!(matches!(
+    assert_matches!(
         publish_artifact(
             &path,
             FORMAT,
@@ -174,7 +174,7 @@ fn rejects_payload_corruption_before_exposing_sections() {
     let mut bytes = fixture();
     bytes[FIRST_OFFSET] ^= 1;
 
-    assert!(matches!(
+    assert_matches!(
         map_artifact(&bytes),
         Err(ArtifactMapError::Format(ArtifactFormatError::Header(
             HeaderError::PayloadHash { .. }
@@ -187,7 +187,7 @@ fn rejects_unknown_scalar_and_nonzero_padding() {
     let mut bytes = fixture();
     bytes[64 + 2] = 99;
     rehash(&mut bytes);
-    assert!(matches!(
+    assert_matches!(
         map_artifact(&bytes),
         Err(ArtifactMapError::Format(ArtifactFormatError::Section {
             index: 0,
@@ -198,7 +198,7 @@ fn rejects_unknown_scalar_and_nonzero_padding() {
     let mut bytes = fixture();
     bytes[FIRST_OFFSET + 40] = 1;
     rehash(&mut bytes);
-    assert!(matches!(
+    assert_matches!(
         map_artifact(&bytes),
         Err(ArtifactMapError::Format(ArtifactFormatError::Section {
             index: 1,
@@ -215,7 +215,7 @@ fn rejects_incompatible_formats_and_typed_access() {
         version: FormatVersion::new(FORMAT.version.as_u16() + 1),
     };
 
-    assert!(matches!(
+    assert_matches!(
         MappedArtifact::map_immutable(file.reopen().expect("should reopen fixture"), wrong,),
         Err(ArtifactMapError::Format(ArtifactFormatError::Header(
             HeaderError::Format { .. }

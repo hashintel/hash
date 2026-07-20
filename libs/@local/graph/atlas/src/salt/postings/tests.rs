@@ -1,3 +1,4 @@
+use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
@@ -95,23 +96,23 @@ fn the_build_matches_the_hand_computed_runs() {
 
     // Type 0 went dense: bits {1, 2, 3, 6} in one word.
     let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
-    assert!(matches!(type0, Membership::Dense(&[0b0100_1110])));
+    assert_matches!(type0, Membership::Dense(&[0b0100_1110]));
     assert_eq!(type0.count(), 4);
     assert_eq!(collect(&type0, 0..8), [1, 2, 3, 6]);
 
     // Type 1 stayed a list.
     let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
-    assert!(matches!(type1, Membership::List(&[5, 7])));
+    assert_matches!(type1, Membership::List(&[5, 7]));
     assert_eq!(type1.count(), 2);
 
     // Type 2 went dense: bits {0, 1, 7}.
     let type2 = mapped.membership(id(2)).expect("type 2 is in domain");
-    assert!(matches!(type2, Membership::Dense(&[0b1000_0011])));
+    assert_matches!(type2, Membership::Dense(&[0b1000_0011]));
     assert_eq!(collect(&type2, 0..8), [0, 1, 7]);
 
     // Type 3 is the empty list.
     let type3 = mapped.membership(id(3)).expect("type 3 is in domain");
-    assert!(matches!(type3, Membership::List(&[])));
+    assert_matches!(type3, Membership::List(&[]));
     assert_eq!(type3.count(), 0);
 
     // Beyond the type domain there is no membership.
@@ -240,7 +241,7 @@ fn empty_domains_roundtrip() {
     let hollow = mapped(&dir, "hollow.post", &postings);
     assert_eq!(hollow.points(), 2);
     let membership = hollow.membership(id(0)).expect("type 0 is in domain");
-    assert!(matches!(membership, Membership::List(&[])));
+    assert_matches!(membership, Membership::List(&[]));
 }
 
 /// Writes raw regions and returns the error their opening surfaces.

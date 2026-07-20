@@ -278,7 +278,7 @@ fn rejects_sparse_policies_and_out_of_range_endpoints() {
         true,
     )
     .unwrap();
-    assert!(matches!(
+    assert_matches!(
         build_relation_indexes(2, &[sparse], &[], AttractionConfig::default(), protection,),
         Err(RelationIndexError::PolicyOrder { position: 0, .. })
     ));
@@ -294,7 +294,7 @@ fn rejects_sparse_policies_and_out_of_range_endpoints() {
         right: row(2),
         confidence: RelationConfidence::default(),
     };
-    assert!(matches!(
+    assert_matches!(
         build_relation_indexes(
             2,
             &[policy],
@@ -310,7 +310,7 @@ fn rejects_sparse_policies_and_out_of_range_endpoints() {
         right: row(1),
         ..invalid
     };
-    assert!(matches!(
+    assert_matches!(
         build_relation_indexes(
             2,
             &[policy],

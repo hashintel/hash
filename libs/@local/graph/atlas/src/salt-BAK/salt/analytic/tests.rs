@@ -51,7 +51,7 @@ fn raster_rejects_an_overflowing_finite_extent() {
     )
     .expect_err("an unrepresentable normalization extent must be rejected");
 
-    assert!(matches!(
+    assert_matches!(
         error,
         AnalyticError::NonFiniteExtent { axis: 0, .. }
     ));
@@ -68,7 +68,7 @@ fn raster_rejects_a_grid_above_the_bounded_working_set() {
     )
     .expect_err("an oversized raster must fail before allocation");
 
-    assert!(matches!(
+    assert_matches!(
         error,
         AnalyticError::GridTooLarge {
             size: 2_049,

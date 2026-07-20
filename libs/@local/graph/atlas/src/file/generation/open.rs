@@ -13,7 +13,7 @@ use crate::{
 
 /// A published generation could not be opened.
 #[derive(Debug)]
-pub(crate) enum OpenError {
+pub enum OpenError {
     /// The generation is not published in this root.
     Unpublished(GenerationId),
     /// The document's bytes do not hash to the generation id.

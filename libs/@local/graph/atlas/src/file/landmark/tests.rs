@@ -3,6 +3,7 @@
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
 
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use zerocopy::{IntoBytes as _, LE, U32, U64};
@@ -128,37 +129,37 @@ fn empty_skeleton_reopens() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.lndm");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         LandmarkFile::open(&undersized),
         Err(OpenLandmarkError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.lndm");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         LandmarkFile::open(&foreign),
         Err(OpenLandmarkError::Header(_)),
-    ));
+    );
 
     let future = scratch("future-version.lndm");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         LandmarkFile::open(&future),
         Err(OpenLandmarkError::Header(_)),
-    ));
+    );
 
     let torn = scratch("torn.lndm");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         LandmarkFile::open(&torn),
         Err(OpenLandmarkError::Length { .. }),
-    ));
+    );
 }
 
 #[test]

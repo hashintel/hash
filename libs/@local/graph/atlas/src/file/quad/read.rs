@@ -4,23 +4,20 @@ use core::{error::Error, fmt};
 use std::{fs::File, io, path::Path};
 
 use memmap2::Mmap;
-use zerocopy::{
-    FromBytes as _, LE, TryFromBytes as _, U32, U64,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::{FromBytes as _, LE, TryFromBytes as _, U32, U64, error::ConvertError};
 
 use super::{FileHeader, Node};
 use crate::morton::MortonCell;
 
 /// Opening a quad file failed.
 #[derive(Debug)]
-pub(crate) enum OpenQuadError {
+pub enum OpenQuadError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    Header,
     /// The node count leaves no room for the absent-child sentinel.
     Nodes { nodes: u64 },
     /// The file length contradicts the header's geometry.
@@ -48,8 +45,12 @@ impl fmt::Display for OpenQuadError {
                 "the file holds {actual} bytes, fewer than the {}-byte header",
                 FileHeader::SIZE,
             ),
-            Self::Header(error) => {
-                write!(fmt, "the leading bytes are not a quad-file header: {error}")
+            Self::Header => {
+                write!(
+                    fmt,
+                    "the leading bytes are not a quad-file header: The conversion failed because \
+                     the source bytes are not a valid value of the destination type."
+                )
             }
             Self::Nodes { nodes } => write!(
                 fmt,
@@ -85,8 +86,8 @@ impl Error for OpenQuadError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
-            Self::Header(error) => Some(error),
-            Self::Undersized { .. }
+            Self::Header
+            | Self::Undersized { .. }
             | Self::Nodes { .. }
             | Self::Length { .. }
             | Self::Posts { .. }
@@ -140,8 +141,8 @@ impl QuadFile {
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenQuadError::Header(error.map_src(|_| ())));
+            Err(ConvertError::Validity(_)) => {
+                return Err(OpenQuadError::Header);
             }
             Err(ConvertError::Size(_)) => {
                 unreachable!("the slice is exactly one header long")

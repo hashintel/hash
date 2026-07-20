@@ -193,7 +193,7 @@ async fn fit(args: FitArgs) {
         verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),
         baseline = options.baseline,
-        asserted_proximal_radius = options.asserted_proximal_radius.unwrap_or(f32::NAN),
+        asserted_proximal_radius = ?options.asserted_proximal_radius,
         vacuous_placement = options.vacuous_placement,
         "starting the production run"
     );

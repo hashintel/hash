@@ -39,7 +39,7 @@ fn zero_prefix_uses_the_persisted_epsilon() {
 #[test]
 fn rejects_wrong_width_and_non_finite_components() {
     let short = [0.0_f32; CANONICAL_DIMENSIONS - 1];
-    assert!(matches!(
+    assert_matches!(
         CanonicalEmbedding::new(&short),
         Err(RepresentationError::Dimensions {
             expected: CANONICAL_DIMENSIONS,
@@ -49,7 +49,7 @@ fn rejects_wrong_width_and_non_finite_components() {
 
     let mut canonical = [0.0_f32; CANONICAL_DIMENSIONS];
     canonical[2_417] = f32::INFINITY;
-    assert!(matches!(
+    assert_matches!(
         CanonicalEmbedding::new(&canonical),
         Err(RepresentationError::NonFinite { index: 2_417 })
     ));

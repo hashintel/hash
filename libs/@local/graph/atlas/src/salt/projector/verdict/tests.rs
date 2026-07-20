@@ -1,3 +1,5 @@
+use core::assert_matches;
+
 use uuid::Uuid;
 
 use super::{InvalidReviewedVerdicts, PlacementClass, ReviewedVerdicts};
@@ -78,10 +80,10 @@ fn a_foreign_schema_is_rejected() {
     let json = document(&verdict("overlay", LINK, 1), "")
         .replace("atlas-reviewed-verdicts/1", "atlas-reviewed-verdicts/2");
 
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(json.as_bytes()),
         Err(InvalidReviewedVerdicts::Schema { found }) if &*found == "atlas-reviewed-verdicts/2",
-    ));
+    );
 }
 
 #[test]
@@ -90,26 +92,26 @@ fn unknown_fields_and_classes_are_rejected() {
     // not been told about, at the document and the row level alike.
     let extra_document =
         document(&verdict("overlay", LINK, 1), "").replacen('{', r#"{"extra":1,"#, 1);
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(extra_document.as_bytes()),
         Err(InvalidReviewedVerdicts::Json(_)),
-    ));
+    );
 
     let extra_row = document(
         &verdict("overlay", LINK, 1).replacen('{', r#"{"extra":1,"#, 1),
         "",
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(extra_row.as_bytes()),
         Err(InvalidReviewedVerdicts::Json(_)),
-    ));
+    );
 
     // `excluded` reviews are omitted by the exporter, never a class.
     let excluded = document(&verdict("excluded", LINK, 1), "");
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(excluded.as_bytes()),
         Err(InvalidReviewedVerdicts::Json(_)),
-    ));
+    );
 }
 
 #[test]
@@ -118,16 +120,16 @@ fn malformed_versioned_urls_and_digests_are_rejected() {
         &verdict("overlay", LINK, 1).replace(&format!("{LINK}v/1"), LINK),
         "",
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(unversioned.as_bytes()),
         Err(InvalidReviewedVerdicts::Json(_)),
-    ));
+    );
 
     let uppercase_digest = document(&verdict("overlay", LINK, 1), "").replace("2a9934", "2A9934");
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(uppercase_digest.as_bytes()),
         Err(InvalidReviewedVerdicts::Json(_)),
-    ));
+    );
 }
 
 #[test]
@@ -142,19 +144,19 @@ fn unordered_and_duplicate_type_verdicts_are_rejected() {
         .join(","),
         "",
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(unordered.as_bytes()),
         Err(InvalidReviewedVerdicts::UnorderedTypeVerdicts { index: 1 }),
-    ));
+    );
 
     let duplicated = document(
         &[verdict("overlay", LINK, 1), verdict("proximal", LINK, 1)].join(","),
         "",
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(duplicated.as_bytes()),
         Err(InvalidReviewedVerdicts::UnorderedTypeVerdicts { index: 1 }),
-    ));
+    );
 }
 
 #[test]
@@ -171,10 +173,10 @@ fn a_repeated_versioned_url_is_rejected() {
         "",
     );
 
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(json.as_bytes()),
         Err(InvalidReviewedVerdicts::DuplicateVersion { index: 1 }),
-    ));
+    );
 }
 
 #[test]
@@ -183,37 +185,37 @@ fn empty_identity_fields_are_rejected() {
         &verdict("overlay", LINK, 1).replace("Bilal Mahmoud", ""),
         "",
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(empty_reviewer.as_bytes()),
         Err(InvalidReviewedVerdicts::EmptyTypeVerdictField {
             index: 0,
             field: "reviewer"
         }),
-    ));
+    );
 
     let empty_relation = document(
         &verdict("overlay", LINK, 1).replace(&format!("hash:{LINK}"), ""),
         "",
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(empty_relation.as_bytes()),
         Err(InvalidReviewedVerdicts::EmptyTypeVerdictField {
             index: 0,
             field: "relation"
         }),
-    ));
+    );
 
     let empty_kind = document(
         "",
         r#"{"class":"proximal","kind":"","left":"a","right":"b"}"#,
     );
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(empty_kind.as_bytes()),
         Err(InvalidReviewedVerdicts::EmptyPairVerdictField {
             index: 0,
             field: "kind"
         }),
-    ));
+    );
 }
 
 #[test]
@@ -226,10 +228,10 @@ fn unordered_pair_verdicts_are_rejected() {
         ),
     );
 
-    assert!(matches!(
+    assert_matches!(
         ReviewedVerdicts::from_slice(json.as_bytes()),
         Err(InvalidReviewedVerdicts::UnorderedPairVerdicts { index: 1 }),
-    ));
+    );
 }
 
 #[test]

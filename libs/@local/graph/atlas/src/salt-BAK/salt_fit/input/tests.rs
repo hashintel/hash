@@ -34,7 +34,7 @@ fn deferred_bundle_omits_external_attestation_inputs() {
         .expect("deferred default should omit external attestation inputs");
 
     bundle.relation_policy_report = Some(bundle.classifier.clone());
-    assert!(matches!(
+    assert_matches!(
         reject_attestation_inputs(&bundle),
         Err(FitInputError::Invalid(_))
     ));
@@ -52,7 +52,7 @@ fn external_reports_reject_unbound_extra_subjects() {
         }
     }"#;
 
-    assert!(matches!(
+    assert_matches!(
         validate_report(
             "fixture report",
             report,
@@ -75,7 +75,7 @@ fn external_reports_cannot_be_relabelled_as_another_suite() {
         }
     }"#;
 
-    assert!(matches!(
+    assert_matches!(
         validate_report(
             "fixture report",
             report,
@@ -140,7 +140,7 @@ fn relation_policy_corpus_must_cover_every_extracted_url() {
         ArtifactOrdinal::try_from(0_u32).expect("zero ordinal should validate"),
     )]);
 
-    assert!(matches!(
+    assert_matches!(
         relation_policy_inputs(&document, &ordinals),
         Err(FitInputError::Invalid(message)) if message.contains("omits extracted type")
     ));

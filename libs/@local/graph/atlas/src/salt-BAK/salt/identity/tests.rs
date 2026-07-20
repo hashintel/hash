@@ -113,11 +113,11 @@ fn artifact_map_rejects_unknown_and_duplicate_rows() {
     let row_zero = GenerationRowId::try_from(0_u32).expect("should be a valid row");
     let unknown = GenerationRowId::try_from(2_u32).expect("should be a packed row");
 
-    assert!(matches!(
+    assert_matches!(
         ArtifactIdentityMap::new(&directory, vec![unknown]),
         Err(IdentityError::UnknownGenerationRow { row, rows: 2 }) if row == unknown
     ));
-    assert!(matches!(
+    assert_matches!(
         ArtifactIdentityMap::new(&directory, vec![row_zero, row_zero]),
         Err(IdentityError::DuplicateArtifactRow {
             row,

@@ -459,7 +459,7 @@ fn publish_active_with_assurance(
     let release =
         publish_gated_candidate(root, &evidence).expect("fixture candidate should publish");
     let active = ActiveRelease::from(release);
-    assert!(matches!(
+    assert_matches!(
         test_store(root)
             .compare_exchange(expected, release)
             .expect("fixture release should activate"),

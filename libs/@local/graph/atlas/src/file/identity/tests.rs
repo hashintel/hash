@@ -6,7 +6,7 @@
     clippy::big_endian_bytes,
     reason = "big-endian id fixtures sort byte-wise like their numeric values"
 )]
-
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use zerocopy::IntoBytes as _;
@@ -172,37 +172,37 @@ fn index_keys_delimit_strides_across_pages() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.idnt");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         IdentityFile::open(&undersized),
         Err(OpenIdentityError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.idnt");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         IdentityFile::open(&foreign),
         Err(OpenIdentityError::Header(_)),
-    ));
+    );
 
     let future = scratch("future-version.idnt");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         IdentityFile::open(&future),
         Err(OpenIdentityError::Header(_)),
-    ));
+    );
 
     let torn = scratch("torn.idnt");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         IdentityFile::open(&torn),
         Err(OpenIdentityError::Length { .. }),
-    ));
+    );
 
     // A zero width or stride in an otherwise intact header matches no
     // real file length.
@@ -210,19 +210,19 @@ fn open_rejects_foreign_and_torn_bytes() {
     let mut bytes = fixture_bytes();
     bytes[12..16].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&zero_width, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         IdentityFile::open(&zero_width),
         Err(OpenIdentityError::Length { expected: None, .. }),
-    ));
+    );
 
     let zero_stride = scratch("zero-stride.idnt");
     let mut bytes = fixture_bytes();
     bytes[24..28].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&zero_stride, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         IdentityFile::open(&zero_stride),
         Err(OpenIdentityError::Length { expected: None, .. }),
-    ));
+    );
 }
 
 #[test]

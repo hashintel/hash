@@ -79,22 +79,22 @@ fn missing_evidence_falls_back_to_overlay() {
 
 #[test]
 fn posterior_validation_rejects_invalid_probabilities_and_mass() {
-    assert!(matches!(
+    assert_matches!(
         PlacementPosterior::new(f64::NAN, 0.0, 1.0),
         Err(PosteriorError::Probability {
             class: PlacementClass::Coincident,
             error: ProbabilityError::NonFinite,
         })
     ));
-    assert!(matches!(
+    assert_matches!(
         PlacementPosterior::new(0.6, 0.3, 0.2),
         Err(PosteriorError::NotNormalized)
     ));
-    assert!(matches!(
+    assert_matches!(
         Probability::new(1.01),
         Err(ProbabilityError::OutsideUnitInterval)
     ));
-    assert!(matches!(
+    assert_matches!(
         Probability::new(-0.0),
         Err(ProbabilityError::OutsideUnitInterval)
     ));

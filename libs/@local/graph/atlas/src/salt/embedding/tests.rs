@@ -3,8 +3,7 @@
     reason = "fixture vectors use exactly representable components, so placement and round-trips \
               must reproduce them bit-identically"
 )]
-
-use core::future::ready;
+use core::{assert_matches, future::ready};
 use std::sync::Mutex;
 
 use zerocopy::TryFromBytes as _;
@@ -276,13 +275,13 @@ async fn ignores_a_prior_table_from_another_contract() {
 async fn rejects_a_provider_row_count_mismatch() {
     let result = embed_cards(&ShortEmbedder, &cards(&["alpha", "beta"]), None).await;
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(CardEmbeddingError::RowCount {
             expected: 2,
             actual: 1,
         })
-    ));
+    );
 }
 
 #[tokio::test]
@@ -293,11 +292,11 @@ async fn rejects_a_provider_row_count_mismatch() {
 async fn rejects_non_finite_components() {
     let result = embed_cards(&NanEmbedder, &cards(&["alpha"]), None).await;
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(CardEmbeddingError::NonFinite { row, component: 7 })
             if row == OntologyRowId::new(0)
-    ));
+    );
 }
 
 #[tokio::test]

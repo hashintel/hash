@@ -77,7 +77,7 @@ fn worker_loader_rejects_reused_gate_key() {
         .expected_public_key
         .clone();
 
-    assert!(matches!(
+    assert_matches!(
         load_worker_configuration(
             &source,
             &serde_json::to_vec(&document).expect("configuration should serialize")
@@ -92,7 +92,7 @@ fn worker_loader_rejects_reused_gate_key() {
 #[test]
 fn request_loader_rejects_nil_identity_and_empty_scope() {
     let default = FitRequestV1::default();
-    assert!(matches!(
+    assert_matches!(
         load_request(&serde_json::to_vec(&default).expect("request should serialize")),
         Err(FitConfigurationError::Invalid {
             field: "requestId",
@@ -103,7 +103,7 @@ fn request_loader_rejects_nil_identity_and_empty_scope() {
     let mut request = default;
     request.request_id = Uuid::from_u128(1);
     request.web_ids.clear();
-    assert!(matches!(
+    assert_matches!(
         load_request(&serde_json::to_vec(&request).expect("request should serialize")),
         Err(FitConfigurationError::Invalid {
             field: "webIds",
@@ -123,7 +123,7 @@ fn request_loader_rejects_noncanonical_scope_and_process_cap_overrides() {
         ..FitRequestV1::default()
     };
     request.web_ids = vec![Uuid::from_u128(2), Uuid::from_u128(2)];
-    assert!(matches!(
+    assert_matches!(
         load_request(&serde_json::to_vec(&request).expect("request should serialize")),
         Err(FitConfigurationError::Invalid {
             field: "webIds",
@@ -132,7 +132,7 @@ fn request_loader_rejects_noncanonical_scope_and_process_cap_overrides() {
     ));
 
     request.web_ids = vec![Uuid::nil()];
-    assert!(matches!(
+    assert_matches!(
         load_request(&serde_json::to_vec(&request).expect("request should serialize")),
         Err(FitConfigurationError::Invalid {
             field: "webIds",
@@ -142,7 +142,7 @@ fn request_loader_rejects_noncanonical_scope_and_process_cap_overrides() {
 
     request.web_ids = vec![Uuid::from_u128(2)];
     request.limits.maximum_entities = MAXIMUM_FIT_ENTITIES + 1;
-    assert!(matches!(
+    assert_matches!(
         load_request(&serde_json::to_vec(&request).expect("request should serialize")),
         Err(FitConfigurationError::Invalid {
             field: "limits.maximumEntities",
@@ -160,7 +160,7 @@ fn worker_loader_rejects_unbounded_thread_pools_before_loading_secrets() {
         ..FitWorkerConfigurationV1::default()
     };
 
-    assert!(matches!(
+    assert_matches!(
         load_worker_configuration(
             Utf8Path::new("worker.json"),
             &serde_json::to_vec(&document).expect("configuration should serialize")
@@ -179,7 +179,7 @@ fn manifest_contract_rejects_placeholder_hashes_and_invalid_probabilities() {
     ))
     .expect("checked-in bundle should deserialize");
     bundle.manifest.embedding.producer_contract_hash = "0".repeat(64);
-    assert!(matches!(
+    assert_matches!(
         validate_manifest_contract(&bundle.manifest),
         Err(FitConfigurationError::Invalid {
             field: "manifest.embedding.producerContractHash",
@@ -196,7 +196,7 @@ fn manifest_contract_rejects_placeholder_hashes_and_invalid_probabilities() {
     validate_manifest_contract(&bundle.manifest).expect("complete manifest should validate");
 
     bundle.manifest.relations.class_prior = Some([0.2, 0.3, 0.6]);
-    assert!(matches!(
+    assert_matches!(
         validate_manifest_contract(&bundle.manifest),
         Err(FitConfigurationError::Invalid {
             field: "manifest.relations.classPrior",
@@ -211,7 +211,7 @@ fn content_addresses_cannot_escape_the_input_root() {
         path: Utf8PathBuf::from("../outside.json"),
         sha256: "0".repeat(64),
     };
-    assert!(matches!(
+    assert_matches!(
         read_content_addressed(Utf8Path::new("inputs"), "fixture", &reference),
         Err(FitConfigurationError::PathEscape {
             field: "fixture",
@@ -240,7 +240,7 @@ fn path_only_content_addresses_are_streamed_and_verified() {
         canonical_path
     );
     reference.sha256 = "01".repeat(32);
-    assert!(matches!(
+    assert_matches!(
         content_addressed_path(root, "classifier", &reference),
         Err(FitConfigurationError::ContentHash {
             field: "classifier",
@@ -266,7 +266,7 @@ fn content_addresses_cannot_escape_through_symlinks() {
         sha256: encode_hex(&Sha256::digest(b"outside")),
     };
 
-    assert!(matches!(
+    assert_matches!(
         read_content_addressed(&inputs, "fixture", &reference),
         Err(FitConfigurationError::PathEscape {
             field: "fixture",

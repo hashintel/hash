@@ -27,14 +27,14 @@ fn revision_zero_and_successors_are_explicit() {
             .get(),
         1
     );
-    assert!(matches!(
+    assert_matches!(
         BaseRevision::new(u64::MAX).next(),
         Err(RevisionOverflow {
             kind: RevisionKind::Base,
             current: u64::MAX,
         })
     ));
-    assert!(matches!(
+    assert_matches!(
         DeltaRevision::new(u64::MAX).next(),
         Err(RevisionOverflow {
             kind: RevisionKind::Delta,

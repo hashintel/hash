@@ -4,6 +4,7 @@
               both are contracts, not coincidences"
 )]
 
+use core::assert_matches;
 use std::collections::HashMap;
 
 use rand::{RngExt as _, SeedableRng as _};
@@ -392,7 +393,7 @@ fn validation_rejects_invariant_violations() {
         },
     );
 
-    assert!(matches!(
+    assert_matches!(
         SemanticGraph::new(symmetric_pair(f32::NAN, 0.5))
             .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::NonFiniteWeight {
@@ -400,7 +401,7 @@ fn validation_rejects_invariant_violations() {
             column: 1,
             ..
         },
-    ));
+    );
 
     let self_edge = SemanticMatrix::try_new((2, 2), vec![0, 1, 1], vec![0], vec![0.5])
         .map_err(|(_, _, _, error)| error)

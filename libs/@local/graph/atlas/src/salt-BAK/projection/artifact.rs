@@ -744,42 +744,42 @@ mod tests {
             }
         };
 
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.format_revision = ARTIFACT_FORMAT_REVISION + 1),
             ArtifactError::UnsupportedRevision { .. }
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.feature_dimensions += 1),
             ArtifactError::FeatureDimensions { .. }
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.hidden_dimensions = 7),
             ArtifactError::ModelArchitecture {
                 field: "hidden_dimensions"
             }
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.activation = "relu".to_owned()),
             ArtifactError::ModelArchitecture {
                 field: "activation"
             }
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.encoders.clear()),
             ArtifactError::NoEncoders
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.hub_count = 17),
             ArtifactError::HubCount {
                 expected: 17,
                 actual: 3
             }
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.encoders[0].scale = [0.0, 1.0]),
             ArtifactError::InvalidEncoderMetadata { .. }
         ));
-        assert!(matches!(
+        assert_matches!(
             corrupt(&|metadata| metadata.encoders[0].model_file = "missing.mpk".to_owned()),
             ArtifactError::Record(_)
         ));

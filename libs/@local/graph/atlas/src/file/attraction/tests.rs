@@ -1,6 +1,7 @@
 //! Certificates for the attraction file's geometry: header equations,
 //! byte-level round trips, and rejection of foreign or torn bytes.
 
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use zerocopy::{F32, IntoBytes as _, U32, U64};
@@ -144,35 +145,35 @@ fn writer_rejects_a_broken_edge_count_promise() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.atrc");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         AttractionFile::open(&undersized),
         Err(OpenAttractionError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.atrc");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         AttractionFile::open(&foreign),
         Err(OpenAttractionError::Header(_)),
-    ));
+    );
 
     let future = scratch("future-version.atrc");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         AttractionFile::open(&future),
         Err(OpenAttractionError::Header(_)),
-    ));
+    );
 
     let torn = scratch("torn.atrc");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         AttractionFile::open(&torn),
         Err(OpenAttractionError::Length { .. }),
-    ));
+    );
 }

@@ -6,7 +6,7 @@
     clippy::float_cmp,
     reason = "the format persists values verbatim; round trips are bit-exact contracts"
 )]
-
+use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use zerocopy::{F32, IntoBytes as _, U64};
@@ -110,35 +110,26 @@ fn empty_table_reopens() {
 fn open_rejects_foreign_and_torn_bytes() {
     let undersized = scratch("undersized.plcy");
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
-    assert!(matches!(
+    assert_matches!(
         PolicyFile::open(&undersized),
         Err(OpenPolicyError::Undersized { actual: 16 }),
-    ));
+    );
 
     let foreign = scratch("foreign.plcy");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        PolicyFile::open(&foreign),
-        Err(OpenPolicyError::Header(_)),
-    ));
+    assert_matches!(PolicyFile::open(&foreign), Err(OpenPolicyError::Header(_)),);
 
     let future = scratch("future-version.plcy");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        PolicyFile::open(&future),
-        Err(OpenPolicyError::Header(_)),
-    ));
+    assert_matches!(PolicyFile::open(&future), Err(OpenPolicyError::Header(_)),);
 
     let torn = scratch("torn.plcy");
     let mut bytes = fixture_bytes();
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
-    assert!(matches!(
-        PolicyFile::open(&torn),
-        Err(OpenPolicyError::Length { .. }),
-    ));
+    assert_matches!(PolicyFile::open(&torn), Err(OpenPolicyError::Length { .. }),);
 }

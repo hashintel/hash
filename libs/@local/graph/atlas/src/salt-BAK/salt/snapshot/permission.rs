@@ -486,7 +486,7 @@ mod tests {
         let before = AuthorizationRevision::new(ContentHash::digest(b"before"));
         let after = AuthorizationRevision::new(ContentHash::digest(b"after"));
 
-        assert!(matches!(
+        assert_matches!(
             ensure_unchanged(before, after)
                 .expect_err("revision drift must reject the snapshot")
                 .current_context(),
@@ -522,7 +522,7 @@ mod tests {
         let wrong_edition = EntityEditionId::new(Uuid::from_u128(4));
         let permitted = HashMap::from([(selected.entity_id, vec![wrong_edition])]);
 
-        assert!(matches!(
+        assert_matches!(
             ensure_corpus_visible(&[selected], &permitted)
                 .expect_err("a different visible edition must not authorize the corpus row")
                 .current_context(),

@@ -3,8 +3,7 @@
     reason = "fixture vectors use exactly representable components, so ordering and conversion \
               must reproduce them bit-identically"
 )]
-
-use core::{future::ready, num::NonZero};
+use core::{assert_matches, future::ready, num::NonZero};
 use std::sync::Mutex;
 
 use error_stack::Report;
@@ -227,13 +226,13 @@ async fn rejects_a_text_above_the_token_ceiling() {
 
     let result = provider.embed(["alpha", "beta cat"]).await;
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ExternalEmbeddingError::OversizedText {
             index: 1,
             tokens: 2
         })
-    ));
+    );
 }
 
 #[tokio::test]
@@ -247,10 +246,10 @@ async fn rejects_reserved_tokens_before_any_request() {
 
     let result = provider.embed(["<|endoftext|>"]).await;
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ExternalEmbeddingError::ReservedToken { index: 0, .. })
-    ));
+    );
     assert!(provider.generator.requests().is_empty());
 }
 
@@ -265,13 +264,13 @@ async fn rejects_vectors_of_the_wrong_width() {
 
     let result = provider.embed(["alpha"]).await;
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ExternalEmbeddingError::Dimensions {
             index: 0,
             actual: 512,
         })
-    ));
+    );
 }
 
 #[tokio::test]
@@ -285,9 +284,9 @@ async fn surfaces_provider_failures() {
 
     let result = provider.embed(["alpha"]).await;
 
-    assert!(matches!(
+    assert_matches!(
         result,
         Err(ExternalEmbeddingError::Provider(report))
             if matches!(report.current_context(), EmbeddingError::RateLimited)
-    ));
+    );
 }

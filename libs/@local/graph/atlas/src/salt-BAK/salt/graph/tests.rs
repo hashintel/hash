@@ -98,7 +98,7 @@ fn projector_embeddings_enforce_the_normalized_prefix_bound() {
     ProjectorEmbeddings::new(&unit).expect("unit rows should validate");
 
     let oversized = vec![f32::MAX; PROJECTOR_DIMENSIONS];
-    assert!(matches!(
+    assert_matches!(
         ProjectorEmbeddings::new(&oversized),
         Err(SemanticGraphError::EmbeddingNorm { row: 0, .. })
     ));
@@ -162,7 +162,7 @@ fn exact_audit_accepts_exact_search_and_rejects_farthest_search() {
     )
     .expect("farthest index still returns structurally valid rows");
     assert!(farthest.recall < MINIMUM_RECALL);
-    assert!(matches!(
+    assert_matches!(
         farthest.require_minimum(),
         Err(SemanticGraphError::RecallBelowThreshold { .. })
     ));
@@ -199,11 +199,11 @@ fn usearch_backend_passes_exact_recall_and_rebuilds_identically() {
 
 #[test]
 fn persisted_table_rejects_self_neighbors_and_unstable_ordering() {
-    assert!(matches!(
+    assert_matches!(
         KnnTable::new(3, 1, vec![0, 0, 0], vec![0.0; 3]),
         Err(SemanticGraphError::SelfNeighbor { row: 0 })
     ));
-    assert!(matches!(
+    assert_matches!(
         KnnTable::new(
             3,
             2,
@@ -223,7 +223,7 @@ fn audit_rejects_repeated_sample_rows() {
         reverse: false,
     };
 
-    assert!(matches!(
+    assert_matches!(
         audit_recall(embeddings, &index, &[1, 1]),
         Err(SemanticGraphError::DuplicateAuditRow { row: 1 })
     ));
