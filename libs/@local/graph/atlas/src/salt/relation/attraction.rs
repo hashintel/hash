@@ -189,6 +189,16 @@ impl AttractionIndex {
         Self { groups }
     }
 
+    /// Returns the index carrying no force at all.
+    ///
+    /// The trainer's vacuous run consumes it: a placement configured
+    /// to withhold the relation evidence trains against every other
+    /// term while the published relation artifacts stay real.
+    #[must_use]
+    pub(crate) const fn vacuous() -> Self {
+        Self { groups: Vec::new() }
+    }
+
     /// Borrows the relation groups, ascending by relation row.
     #[inline]
     #[must_use]

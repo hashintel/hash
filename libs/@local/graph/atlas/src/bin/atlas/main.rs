@@ -108,6 +108,23 @@ struct FitArgs {
     #[arg(long)]
     baseline: bool,
 
+    /// Assert the Proximal radius instead of measuring it at the
+    /// phase boundary. Finite, above the Coincident radius (0.05
+    /// ratified); contradicts --baseline.
+    #[arg(long, conflicts_with = "baseline")]
+    assert_proximal_radius: Option<f32>,
+
+    /// Train the full placement with the relation evidence withheld:
+    /// no reviewed verdicts or radius needed, every other objective
+    /// term trains. The unblocking flag for corpora without
+    /// reviewed-Proximal coverage.
+    #[arg(
+        long,
+        conflicts_with = "baseline",
+        conflicts_with = "assert_proximal_radius"
+    )]
+    vacuous_placement: bool,
+
     /// Where the admission report JSON lands.
     #[arg(long, default_value = "admission-report.json")]
     report: String,
@@ -158,6 +175,8 @@ async fn fit(args: FitArgs) {
         seed: args.seed,
         landmarks: args.landmarks,
         fresh: args.fresh,
+        asserted_proximal_radius: args.assert_proximal_radius,
+        vacuous_placement: args.vacuous_placement,
         anchors: args.anchors,
         comparisons: args.comparisons,
         verdicts: args.verdicts,
@@ -174,6 +193,8 @@ async fn fit(args: FitArgs) {
         verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),
         baseline = options.baseline,
+        asserted_proximal_radius = options.asserted_proximal_radius.unwrap_or(f32::NAN),
+        vacuous_placement = options.vacuous_placement,
         "starting the production run"
     );
 

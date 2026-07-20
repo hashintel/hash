@@ -207,6 +207,13 @@ pub(crate) struct ProjectorOptions {
     pub forward_rows: NonZero<usize>,
     /// The condition ladder and its canonical rung.
     pub ladder: LadderOptions,
+    /// Withhold the relation evidence from the trainer: the run is
+    /// vacuous by construction - no radius to freeze, no reviewed
+    /// verdicts demanded - while every other objective term trains
+    /// and the published relation artifacts stay real. For corpora
+    /// without reviewed-Proximal coverage that still want the full
+    /// trained placement.
+    pub vacuous: bool,
 }
 
 impl ProjectorOptions {
@@ -270,6 +277,7 @@ impl ProjectorOptions {
             landmark_support: LandmarkSupport { .. },
             forward_rows: NonZero::new(1 << 16).expect("the ratified slice is nonzero"),
             ladder: LadderOptions { .. },
+            vacuous: false,
         }
     }
 }

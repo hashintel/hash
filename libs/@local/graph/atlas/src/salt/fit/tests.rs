@@ -53,7 +53,7 @@ use crate::{
             artifact,
             loss::CoincidentEnergy,
             model::NodeRole,
-            train::{BatchPlan, NodeColumns, RelationLens, TrainingSchedule, refresh},
+            train::{BatchPlan, NodeColumns, RelationLens, TrainError, TrainingSchedule, refresh},
             verdict::ReviewedVerdicts,
         },
         relation::artifact::{MappedAttraction, MappedProtection},
@@ -1071,6 +1071,119 @@ async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
                 && persisted.y().to_bits() == aligned.y().to_bits()
         }),
         "the published column should be the aligned canonical projection",
+    );
+}
+
+/// A corpus whose relations carry Proximal force refuses to train
+/// without reviewed coverage or an assertion - and the vacuous
+/// placement is exactly what unblocks it: the same configuration
+/// trains and publishes with the relation evidence withheld.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_vacuous_placement_trains_without_reviews() {
+    let dataset = dataset();
+    // The Proximal override gives the link type full force, and
+    // nothing supplies reviewed pairs or a radius.
+    let policy = PolicyOptions {
+        overrides: vec![PolicyOverride {
+            relation: OntologyRowId::new(2),
+            source: PolicySource::Human,
+            distribution: Posterior::new([0.0, 1.0, 0.0])
+                .expect("the asserted distribution sums to one"),
+        }],
+        ..
+    };
+
+    let refused = GenerationRoot::new(scratch("vacuous-refused")).expect("the root should open");
+    let refused_config = FitConfig {
+        placement: PlacementOptions::Projector(projector_options(None)),
+        policy: policy.clone(),
+        ..config()
+    };
+    let result = fit(
+        &dataset,
+        &HashEmbedder,
+        &refused_config,
+        &fixture_classifier(),
+        None,
+        None,
+        &refused,
+    )
+    .await;
+    assert!(
+        matches!(
+            result,
+            Err(FitError::Stage(StageError::Placement(
+                PlacementError::Train(TrainError::MissingProximalReviews)
+            ))),
+        ),
+        "proximal force without reviews or an assertion should refuse",
+    );
+
+    let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
+    let mut options = projector_options(None);
+    options.vacuous = true;
+    let vacuous_config = FitConfig {
+        placement: PlacementOptions::Projector(options),
+        policy,
+        ..config()
+    };
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &vacuous_config,
+        &fixture_classifier(),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the vacuous placement should publish");
+
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+
+    // The placement trained, no radius froze, and the untrained lens
+    // publishes the baseline rung directly - no ladder to measure.
+    assert_eq!(repository.metadata.placement, Placement::Projector);
+    let evidence = repository
+        .metadata
+        .evidence
+        .projector
+        .as_ref()
+        .expect("a trained placement records projector evidence");
+    assert_eq!(
+        evidence.boundary,
+        Some(FrozenRadiusEvidence::Vacuous),
+        "the evidence records the vacuous run in place of a radius",
+    );
+    assert!(
+        evidence.ladder.is_none(),
+        "an untrained lens has no ladder to measure",
+    );
+
+    // The relation artifacts publish real force regardless: only the
+    // trainer's view was vacuous.
+    let attraction = MappedAttraction::new(
+        AttractionFile::open(published.path().join("attraction.atrc"))
+            .expect("the attraction artifact should open"),
+    )
+    .expect("the attraction artifact should validate");
+    assert!(
+        attraction.group_count() > 0,
+        "the published attraction index still carries the corpus's force",
+    );
+
+    let coordinates = ArrayFile::open(published.path().join("coordinates.arr"))
+        .expect("the coordinate column should open");
+    assert_eq!(
+        coordinates
+            .points()
+            .expect("the column holds 2D points")
+            .len(),
+        NODES,
     );
 }
 

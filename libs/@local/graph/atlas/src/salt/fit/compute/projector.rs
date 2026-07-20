@@ -203,11 +203,22 @@ impl Context<'_> {
             inputs.rows.len(),
             landmarks.len(),
         );
+        // A vacuous placement withholds the relation evidence: the
+        // trainer sees no force at all, so no radius freezes and no
+        // reviewed verdicts are demanded, while the published relation
+        // artifacts stay real for serving.
+        let vacuous = AttractionIndex::vacuous();
+        let attraction = if options.vacuous {
+            tracing::info!("the placement is vacuous: the relation term stays absent");
+            &vacuous
+        } else {
+            &inputs.indexes.attraction
+        };
         let trainer_inputs = TrainerInputs {
             semantic: inputs.semantic.view(),
             protection: inputs.indexes.protection.view(),
             protection_config: options.protection,
-            attraction: &inputs.indexes.attraction,
+            attraction,
             knn: inputs.knn.view(),
             columns,
             landmarks: &landmarks,

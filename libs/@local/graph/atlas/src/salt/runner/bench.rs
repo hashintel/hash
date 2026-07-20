@@ -26,7 +26,7 @@ use crate::{
             bench::{StubEmbedder, stub_classifier},
         },
         landmark::select::SelectionOptions,
-        projector::train::TrainingSchedule,
+        projector::train::{RelationLens, TrainingSchedule},
     },
 };
 
@@ -44,6 +44,15 @@ pub struct LiveOptions {
     /// Run without a prior even when the root holds an active
     /// generation.
     pub fresh: bool = false,
+    /// Assert the Proximal radius instead of measuring it: the
+    /// trainer freezes this value where a calibration pass would
+    /// have measured one. Finite, above the Coincident radius.
+    pub asserted_proximal_radius: Option<f32> = None,
+    /// Withhold the relation evidence from the trained placement:
+    /// every other objective term trains and no reviewed verdicts
+    /// are demanded. For corpora without reviewed-Proximal coverage
+    /// that still want the full trained placement.
+    pub vacuous_placement: bool = false,
     /// Sampled anchor rows of the admission probe.
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Sampled comparison rows of the admission probe.
@@ -149,6 +158,34 @@ pub async fn run_live(client: &mut Client, root: &str, options: LiveOptions) -> 
             runner_options.fit.placement = PlacementOptions::Projector(projector);
         }
         (false, None) => {}
+    }
+    if let Some(radius) = options.asserted_proximal_radius {
+        let mut projector = match runner_options.fit.placement {
+            PlacementOptions::Projector(projector) => projector,
+            PlacementOptions::LandmarkBaseline => panic!(
+                "an asserted Proximal radius contradicts the landmark baseline: no training run \
+                 consumes it"
+            ),
+        };
+        projector.lens = RelationLens::new(
+            projector.lens.coincident(),
+            projector.lens.temperature(),
+            projector.lens.epsilon(),
+            Some(radius),
+        )
+        .expect("the asserted Proximal radius should be finite and above the Coincident radius");
+        runner_options.fit.placement = PlacementOptions::Projector(projector);
+    }
+    if options.vacuous_placement {
+        let mut projector = match runner_options.fit.placement {
+            PlacementOptions::Projector(projector) => projector,
+            PlacementOptions::LandmarkBaseline => panic!(
+                "a vacuous placement contradicts the landmark baseline: it configures the \
+                 training run the baseline skips"
+            ),
+        };
+        projector.vacuous = true;
+        runner_options.fit.placement = PlacementOptions::Projector(projector);
     }
 
     let verdicts = options

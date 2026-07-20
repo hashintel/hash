@@ -27,6 +27,7 @@ hash-temporal-client      = { workspace = true }
 type-system               = { workspace = true }
 
 # Third party dependencies
+aide           = { version = "0.16.0-alpha.4", features = ["axum"] }
 axum           = { workspace = true }
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true }

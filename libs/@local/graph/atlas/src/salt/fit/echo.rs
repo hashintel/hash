@@ -295,6 +295,7 @@ mod placement {
         landmark_weight: f32,
         forward_rows: NonZero<usize>,
         ladder: LadderRecord,
+        vacuous: bool,
     }
 
     /// The model shape's wire form.
@@ -447,6 +448,7 @@ mod placement {
                     monotonicity_tolerance: options.ladder.measurement.monotonicity_tolerance,
                     canonical: options.ladder.canonical,
                 },
+                vacuous: options.vacuous,
             })),
         };
         record.serialize(serializer)
@@ -553,6 +555,7 @@ mod placement {
                     },
                     canonical: record.ladder.canonical,
                 },
+                vacuous: record.vacuous,
             })
         }
     }
