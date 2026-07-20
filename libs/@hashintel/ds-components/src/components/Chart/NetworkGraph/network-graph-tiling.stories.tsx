@@ -45,6 +45,15 @@ const DEBOUNCE_MS = 150;
  */
 const MAX_ZOOM = Math.log2(100);
 
+/**
+ * Top slice of the camera zoom range (in zoom levels) over which the displayed
+ * tile depth climbs from the {@link TARGET_TILES_ACROSS} baseline density to
+ * individual world cells (depth {@link DEMO_MAX_DEPTH}) at the zoom-in limit, so
+ * the densest clusters resolve to their real nodes at max zoom without densifying
+ * the lower zooms (which keep today's density). See {@link deriveViewport}.
+ */
+const FULL_DETAIL_ZOOM_BAND = 3;
+
 /** The tiling endpoint returns nodes only; edges stay empty. */
 const EMPTY_EDGES: NetworkGraphEdge[] = [];
 
@@ -109,8 +118,10 @@ const GRAPH_WORLD: Bounds = {
  * framed smaller than the viewport (contained and centred, with empty margin
  * around it) only the graph region is tiled — tiling the margin would pull in
  * empty tiles (and, past the graphWorld edge, whole-world/capped tiles), which is
- * what skews the density. Depth is chosen so the visible graph spans
- * ~TARGET_TILES_ACROSS tiles.
+ * what skews the density. Below the top {@link FULL_DETAIL_ZOOM_BAND} zoom levels
+ * the depth spans ~{@link TARGET_TILES_ACROSS} tiles (today's density); across
+ * that band it climbs to individual cells (depth {@link DEMO_MAX_DEPTH}) so the
+ * densest clusters resolve at the zoom-in limit.
  *
  * Returns `null` before the camera reports in (so the first fetch is the
  * overview) or when the camera sits entirely off the graph.
@@ -138,10 +149,25 @@ const deriveViewport = (
     return null; // camera is entirely off the graph
   }
 
-  // Depth where the *visible graph* width spans ~TARGET_TILES_ACROSS tiles,
+  // Baseline density: ~TARGET_TILES_ACROSS tiles across the visible graph,
   // measured against the graphWorld (its width equals the tileWorld's).
   const graphWorldWidth = GRAPH_WORLD.maxX - GRAPH_WORLD.minX;
-  const depth = Math.log2((TARGET_TILES_ACROSS * graphWorldWidth) / (x2 - x1));
+  const baseDepth = Math.log2(
+    (TARGET_TILES_ACROSS * graphWorldWidth) / (x2 - x1),
+  );
+  // `fullDetailDepth` is the depth whose tiles are one max-zoom cell on screen —
+  // exactly DEMO_MAX_DEPTH when camera.zoom === MAX_ZOOM, for any viewport size.
+  // Over the top FULL_DETAIL_ZOOM_BAND zoom levels, blend the target from the
+  // baseline toward it: density matches today below the band and climbs to
+  // per-cell detail at the zoom-in limit (the descent then fetches the real
+  // depth-DEMO_MAX_DEPTH nodes only where dense clusters actually have them).
+  const fullDetailDepth = camera.zoom + (DEMO_MAX_DEPTH - MAX_ZOOM);
+  const bandStart = MAX_ZOOM - FULL_DETAIL_ZOOM_BAND;
+  const detailFraction = Math.max(
+    0,
+    Math.min(1, (camera.zoom - bandStart) / FULL_DETAIL_ZOOM_BAND),
+  );
+  const depth = baseDepth + detailFraction * (fullDetailDepth - baseDepth);
   return { x1, x2, y1, y2, zoom: Math.min(depth, DEMO_MAX_DEPTH) };
 };
 

@@ -9,23 +9,33 @@ import {
   type Viewport,
 } from "./use-get-viewport-nodes";
 
-import type { TileNode } from "./fetch-tile";
+import type { FetchedTile } from "./fetch-tile";
 
-/** A fetcher returning three unique nodes per tile, tracking calls per tile. */
-const countingFetcher = (): TileFetcher & {
+/**
+ * A fetcher returning three unique nodes per tile, tracking calls per tile.
+ * `complete` decides which tiles report their subtree as fully delivered — the
+ * descent stops at a complete tile — and defaults to always-incomplete, so the
+ * descent walks to the viewport's target depth (the pre-LOD behaviour).
+ */
+const countingFetcher = (
+  complete: (zoom: number, tileIndex: number) => boolean = () => false,
+): TileFetcher & {
   readonly calls: Map<string, number>;
   total: () => number;
 } => {
   const calls = new Map<string, number>();
-  const fetcher = (zoom: number, tileIndex: number): Promise<TileNode[]> => {
+  const fetcher = (zoom: number, tileIndex: number): Promise<FetchedTile> => {
     const key = `${zoom}/${tileIndex}`;
     calls.set(key, (calls.get(key) ?? 0) + 1);
     const base = zoom * 1_000_000 + tileIndex * 10;
-    return Promise.resolve([
-      { id: base, x: 1, y: 1 },
-      { id: base + 1, x: 2, y: 2 },
-      { id: base + 2, x: 3, y: 3 },
-    ]);
+    return Promise.resolve({
+      nodes: [
+        { id: base, x: 1, y: 1 },
+        { id: base + 1, x: 2, y: 2 },
+        { id: base + 2, x: 3, y: 3 },
+      ],
+      complete: complete(zoom, tileIndex),
+    });
   };
   return Object.assign(fetcher, {
     calls,
@@ -87,7 +97,7 @@ describe("getViewportNodes", () => {
     expect(fetcher.total()).toBe(afterFirst);
   });
 
-  it("fetches every ancestor depth for a deep viewport", async () => {
+  it("descends every ancestor depth for a deep viewport while tiles stay incomplete", async () => {
     const cache = new TileCache({ fetcher });
     await getViewportNodes(viewportAt(10_000, 10_000, 1_000, 3), cache);
 
@@ -100,12 +110,40 @@ describe("getViewportNodes", () => {
   it("deduplicates nodes shared across tiles", async () => {
     // A fetcher that returns the same id from every tile collapses to one node.
     const constant: TileFetcher = () =>
-      Promise.resolve([{ id: 42, x: 5, y: 5 }]);
+      Promise.resolve({ nodes: [{ id: 42, x: 5, y: 5 }], complete: false });
     const nodes = await getViewportNodes(
       null,
       new TileCache({ fetcher: constant }),
     );
     expect(nodes).toEqual([{ id: 42, x: 5, y: 5 }]);
+  });
+
+  it("stops the descent at a tile that reports its subtree complete", async () => {
+    // The root delivers its whole subtree (complete), so its children are never
+    // requested even though the null viewport's target depth is 1.
+    const rootComplete = countingFetcher((zoom) => zoom === 0);
+    const cache = new TileCache({ fetcher: rootComplete });
+    const nodes = await getViewportNodes(null, cache);
+
+    expect(rootComplete.total()).toBe(1);
+    expect(rootComplete.calls.has("0/0")).toBe(true);
+    expect(nodes).toHaveLength(3);
+  });
+
+  it("descends into an incomplete branch all the way to the deepest tile depth", async () => {
+    // A tight viewport at the maximum zoom whose tiles never report complete: the
+    // descent must reach depth 16 (the finest quadtree level) to surface the
+    // nodes the server bucketed into the deepest tiles.
+    const cache = new TileCache({ fetcher });
+    await getViewportNodes(viewportAt(30_000, 30_000, 2, 16), cache);
+
+    const reachedDeepest = [...fetcher.calls.keys()].some((key) =>
+      key.startsWith("16/"),
+    );
+    expect(reachedDeepest).toBe(true);
+    // Data-bounded, not viewport-area-bounded: a tiny rect touches only a handful
+    // of tiles per depth, so the whole descent stays small.
+    expect(fetcher.total()).toBeLessThan(100);
   });
 
   it("throws when the viewport is malformed", async () => {
@@ -125,75 +163,42 @@ describe("getViewportNodes", () => {
   });
 
   it("returns the tiles that loaded when only some fail", async () => {
-    const partial: TileFetcher = (zoom, tileIndex) =>
-      zoom === 0
-        ? Promise.reject(new Error("no root"))
-        : fetcher(zoom, tileIndex);
+    // The root loads (incomplete, so the descent reaches depth 1); one of its
+    // four depth-1 children fails. The rest still render — a failed branch drops
+    // out without taking its siblings down.
+    const base = countingFetcher();
+    const partial: TileFetcher = (zoom, tileIndex, controls) =>
+      zoom === 1 && tileIndex === 0
+        ? Promise.reject(new Error("gap"))
+        : base(zoom, tileIndex, controls);
     const nodes = await getViewportNodes(
       null,
       new TileCache({ fetcher: partial }),
     );
-    // Root (3 nodes) dropped; the four depth-1 tiles remain.
+    // Root (3 nodes) plus three of the four depth-1 tiles (3 each).
     expect(nodes).toHaveLength(12);
+    expect(nodes.some((node) => node.id === 0)).toBe(true); // the root
   });
 
-  it("drops a depth entirely when only some of its tiles load", async () => {
-    // The depth-2 block spanning this viewport is 2×2; fail one of its four
-    // tiles ({ z: 2, x: 1, y: 1 }, row-major index 5). Depths 0 and 1 load in
-    // full (3 nodes each); depth 2 is partial and so must be dropped wholesale
-    // rather than rendering three of four tiles as uneven density.
-    const partial: TileFetcher = (zoom, tileIndex) =>
-      zoom === 2 && tileIndex === 5
-        ? Promise.reject(new Error("gap"))
-        : fetcher(zoom, tileIndex);
-    const nodes = await getViewportNodes(
-      viewportAt(20_000, 20_000, 10_000, 2),
-      new TileCache({ fetcher: partial }),
-    );
-    expect(nodes).toHaveLength(6);
-  });
-
-  it("drops a depth whose cover exceeds the fetch cap, keeping coarser depths", async () => {
-    // This viewport is wide enough that depth 4 needs a 10×10 tile cover, but
-    // the per-depth enumeration cap fetches only a centred 8×8 block. All those
-    // load successfully, yet rendering them would show as a dense square in a
-    // sparse field — so depth 4 must be dropped, while depths 0–3 (whose covers
-    // fit within the cap) are shown. Node ids encode their tile's zoom.
+  it("renders only the descent's covering tiles, not unrelated cached ones", async () => {
     const cache = new TileCache({ fetcher });
-    const nodes = await getViewportNodes(
-      viewportAt(20_000, 20_000, 20_000, 4),
-      cache,
-    );
-
-    const shownDepths = new Set(
-      nodes.map((node) =>
-        typeof node.id === "number" ? Math.floor(node.id / 1_000_000) : -1,
-      ),
-    );
-    expect(shownDepths.has(3)).toBe(true);
-    expect(shownDepths.has(4)).toBe(false);
-  });
-
-  it("renders cached tiles beyond the viewport at a qualifying depth", async () => {
-    const cache = new TileCache({ fetcher });
-    // Prime a depth-1 neighbour tile the viewport below does not require: the
-    // top-right quadrant { z: 1, x: 1, y: 0 } (row-major index 1).
+    // Prime a depth-1 neighbour the viewport below never covers: the top-right
+    // quadrant { z: 1, x: 1, y: 0 } (row-major index 1).
     await cache.load({ z: 1, x: 1, y: 0 });
 
-    // A viewport wholly inside the top-left quadrant. At depth 1 it requires
-    // only { z: 1, x: 0, y: 0 }, so that depth is complete on its own.
+    // A viewport wholly inside the top-left quadrant. Its descent covers the root
+    // and only { z: 1, x: 0, y: 0 }.
     const nodes = await getViewportNodes(
       viewportAt(8_000, 8_000, 4_000, 1),
       cache,
     );
 
     const ids = new Set(nodes.map((node) => node.id));
-    // The neighbour tile's nodes (base = 1 * 1_000_000 + 1 * 10) are rendered
-    // even though the viewport never required that tile.
-    expect(ids.has(1_000_010)).toBe(true);
-    // Depth 0 root (3) + both depth-1 tiles (3 each): the covering one and the
-    // cached neighbour.
-    expect(nodes).toHaveLength(9);
+    // The primed neighbour (base = 1 * 1_000_000 + 1 * 10) is outside the
+    // viewport, so the descent never visits it and it is not rendered.
+    expect(ids.has(1_000_010)).toBe(false);
+    // Root (3) plus the single covering depth-1 tile (3).
+    expect(nodes).toHaveLength(6);
   });
 
   it("prefetches ahead of a detected pan", async () => {
@@ -255,7 +260,10 @@ describe("getViewportNodes", () => {
     const priorities: (string | undefined)[] = [];
     const priorityFetcher: TileFetcher = (zoom, tileIndex, controls) => {
       priorities.push(controls?.priority);
-      return Promise.resolve([{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }]);
+      return Promise.resolve({
+        nodes: [{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }],
+        complete: false,
+      });
     };
     const cache = new TileCache({ fetcher: priorityFetcher });
     await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
@@ -271,7 +279,7 @@ describe("getViewportNodes", () => {
     // (high) resolve at once — so a later jump can supersede the pending ring.
     const pendingFetcher: TileFetcher = (zoom, tileIndex, controls) => {
       if (controls?.priority === "low") {
-        return new Promise<TileNode[]>((_resolve, reject) => {
+        return new Promise<FetchedTile>((_resolve, reject) => {
           controls.signal?.addEventListener(
             "abort",
             () => reject(new Error("aborted")),
@@ -279,7 +287,10 @@ describe("getViewportNodes", () => {
           );
         });
       }
-      return Promise.resolve([{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }]);
+      return Promise.resolve({
+        nodes: [{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }],
+        complete: false,
+      });
     };
     const cache = new TileCache({ fetcher: pendingFetcher });
     await getViewportNodes(viewportAt(10_000, 10_000, 1_024, 5), cache);
@@ -297,8 +308,11 @@ describe("TileCache", () => {
 
   it("shares one in-flight fetch between concurrent loads", async () => {
     const fetcher = vi.fn(
-      (zoom: number, tileIndex: number): Promise<TileNode[]> =>
-        Promise.resolve([{ id: zoom * 100 + tileIndex, x: 0, y: 0 }]),
+      (zoom: number, tileIndex: number): Promise<FetchedTile> =>
+        Promise.resolve({
+          nodes: [{ id: zoom * 100 + tileIndex, x: 0, y: 0 }],
+          complete: false,
+        }),
     );
     const cache = new TileCache({ fetcher });
 

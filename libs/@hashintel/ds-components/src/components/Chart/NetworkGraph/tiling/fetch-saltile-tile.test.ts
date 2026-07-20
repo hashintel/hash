@@ -109,7 +109,7 @@ describe("createSaltileTileFetcher", () => {
     });
 
     // Row-major tileIndex: y * 2^z + x = 1 * 8 + 5.
-    const nodes = await fetcher(3, 13);
+    const { nodes } = await fetcher(3, 13);
 
     const scale = WORLD_SIZE / 2;
     expect(nodes).toEqual([
@@ -171,7 +171,7 @@ describe("createSaltileTileFetcher", () => {
     // triggers exactly one re-bootstrap and the retry succeeds.
     const pinPromise = fetcher(2, 13); // y = 3, x = 1
     active = newGeneration;
-    const nodes = await pinPromise;
+    const { nodes } = await pinPromise;
 
     expect(nodes).toHaveLength(3);
     const bootstraps = paths.filter((path) =>
