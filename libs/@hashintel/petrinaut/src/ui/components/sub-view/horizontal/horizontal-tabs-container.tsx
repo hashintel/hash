@@ -8,6 +8,7 @@ const tabsContainerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
+  minWidth: "[0]",
 });
 
 const tabButtonStyle = cva({
@@ -21,6 +22,10 @@ const tabButtonStyle = cva({
     cursor: "pointer",
     transition: "[all 0.3s ease]",
     background: "[transparent]",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    minWidth: "[0]",
   },
   variants: {
     active: {

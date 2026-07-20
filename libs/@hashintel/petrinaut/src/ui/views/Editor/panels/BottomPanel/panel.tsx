@@ -70,6 +70,7 @@ const headerRightStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
+  flexShrink: 0,
 });
 
 const getBottomPanelSubViews = ({

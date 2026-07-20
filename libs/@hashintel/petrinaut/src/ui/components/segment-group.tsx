@@ -28,6 +28,10 @@ const rootStyle = cva({
         "--root-border-radius": token("radii.lg"),
         "--root-padding": "1px",
       },
+      xs: {
+        "--root-border-radius": token("radii.md"),
+        "--root-padding": "1px",
+      },
     },
     orientation: {
       horizontal: {
@@ -83,6 +87,13 @@ const itemStyle = cva({
         gap: "1",
         height: "5",
         paddingX: "2",
+        fontSize: "xs",
+        borderRadius: "sm",
+      },
+      xs: {
+        gap: "1",
+        height: "4.5",
+        paddingX: "1.5",
         fontSize: "xs",
         borderRadius: "sm",
       },
@@ -170,7 +181,7 @@ interface SegmentGroupProps {
   options: SegmentOption[];
   onChange: (value: string) => void;
   /** Size variant. Defaults to "md". */
-  size?: "md" | "sm";
+  size?: "md" | "sm" | "xs";
   /** Orientation. Defaults to "horizontal". */
   orientation?: "horizontal" | "vertical";
   disabled?: boolean;

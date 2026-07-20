@@ -33,10 +33,6 @@ const metricPickerLabelStyle = css({
   flexShrink: 0,
 });
 
-const metricPickerWrapperStyle = css({
-  width: "[200px]",
-});
-
 // Sentinel values for the native views in the picker. Metric ids are UUIDs
 // (or `metric__*` in examples) so these cannot collide.
 const PER_PLACE_VALUE = "__per_place__";
@@ -78,7 +74,7 @@ const TimelineChartTypeSelector: React.FC = () => {
       value={chartType}
       options={CHART_TYPE_OPTIONS}
       onChange={(value) => setChartType(value as TimelineChartType)}
-      size="sm"
+      size="xs"
     />
   );
 };
@@ -122,19 +118,18 @@ const TimelineViewPicker: React.FC = () => {
   return (
     <>
       <span className={metricPickerLabelStyle}>Metric</span>
-      <div className={metricPickerWrapperStyle}>
-        <Select
-          size="xs"
-          required
-          value={selectedValue}
-          items={options}
-          onChange={(value) => setTimelineView(selectValueToView(value))}
-        />
-      </div>
+      <Select
+        size="xs"
+        width="sm"
+        required
+        value={selectedValue}
+        items={options}
+        onChange={(value) => setTimelineView(selectValueToView(value))}
+      />
       <div style={{ display: "flex" }}>
         {selectedMetric && (
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
@@ -143,7 +138,7 @@ const TimelineViewPicker: React.FC = () => {
           />
         )}
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
@@ -151,7 +146,7 @@ const TimelineViewPicker: React.FC = () => {
           onClick={() => setIsCreateOpen(true)}
         />
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"
