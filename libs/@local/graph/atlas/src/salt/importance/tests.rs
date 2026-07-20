@@ -4,7 +4,7 @@ use camino::Utf8PathBuf;
 
 use super::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig};
 use crate::{
-    file::adjacency::read::AdjacencyFile,
+    file::sprs::read::SprsFile,
     salt::adjacency::{Adjacency, MappedAdjacency},
 };
 
@@ -24,7 +24,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 /// self-loop at 3, and node 4 untouched.
 fn mapped_fixture(name: &str) -> MappedAdjacency {
     let endpoints: [[u64; 2]; 4] = [[0, 1], [2, 3], [3, 3], [0, 1]];
-    let path = scratch(name).join("fixture.adjc");
+    let path = scratch(name).join("fixture.sprs");
 
     let adjacency = Adjacency::build(5, &endpoints);
     let mut file = fs::File::create(&path).expect("the fixture file should create");
@@ -33,7 +33,7 @@ fn mapped_fixture(name: &str) -> MappedAdjacency {
         .expect("the adjacency should write");
     drop(file);
 
-    MappedAdjacency::new(AdjacencyFile::open(&path).expect("the fixture file should open"))
+    MappedAdjacency::new(SprsFile::open(&path).expect("the fixture file should open"))
         .expect("the fixture adjacency should validate")
 }
 

@@ -11,10 +11,10 @@ use zerocopy::{FromBytes as _, LE, U64};
 use super::{
     FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions, StageError,
     SuppliedVerdicts,
-    backfill::{BackfillError, backfill_postings},
     compute::{PlacementInner, placement_device, resolve_supplied},
     error::PlacementError,
     fit,
+    migrate::{MigrateError, migrate_adjacency},
     prepare::identity::{IdentityTable, MappedIdentityTable},
 };
 use crate::{
@@ -23,17 +23,17 @@ use crate::{
         OntologyRowId, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
     },
     file::{
-        adjacency::read::AdjacencyFile,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
-        generation::{GenerationId, GenerationRoot, OpenError, document_digest},
+        generation::{GenerationId, GenerationRoot, document_digest},
         identity::read::IdentityFile,
         landmark::read::LandmarkFile,
         morton::read::MortonFile,
         policy::read::PolicyFile,
         postings::read::PostingsFile,
         quad::read::QuadFile,
+        repository::{FileName, RepositoryFile},
         salt::{
             SaltRepository,
             metadata::{FrozenRadiusEvidence, Placement, RankingOrigin},
@@ -43,7 +43,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Similarity, Vec2, VecN},
     salt::{
-        adjacency::{EdgeList, MappedAdjacency},
+        adjacency::{Adjacency, EdgeList, MappedAdjacency, legacy::write_legacy},
         embedding::{CardEmbedder, EmbedderFingerprint},
         ladder::CanonicalError,
         landmark::{artifact::MappedLandmarkSkeleton, select::SelectionOptions},
@@ -442,32 +442,26 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
     assert_eq!(evidence.parent_edges, 1);
 }
 
-/// Republishes a fit's generation as a pre-postings legacy replica in
-/// `root`: the postings entries strip from the document, the postings
-/// file stays behind, and the pointer names the replica - the state a
-/// pre-postings fit left on disk.
-fn publish_legacy_replica(source: &Utf8Path, root: &Utf8Path) -> GenerationId {
+/// Republishes a fit's generation as a retired-adjacency replica in
+/// `root`: the adjacency re-encodes in the retired `.adjc` format,
+/// the document's entry follows, and the pointer names the replica -
+/// the state a pre-collapse fit left on disk.
+fn publish_retired_adjacency_replica(source: &Utf8Path, root: &Utf8Path) -> GenerationId {
     let document = fs::read(source.join("metadata.json")).expect("the source document should read");
     let mut value: serde_json::Value =
         serde_json::from_slice(&document).expect("the source document should parse");
 
-    let expect = "the source document holds the postings entries";
-    let strip = |value: &mut serde_json::Value, path: &[&str]| {
-        let mut cursor = &mut *value;
-        for step in path {
-            cursor = cursor.get_mut(step).expect(expect);
-        }
-        cursor
-            .as_object_mut()
-            .expect(expect)
-            .remove("postings")
-            .expect(expect);
+    // The fixture corpus's adjacency, re-encoded at the retired
+    // format's wide width; the digest keys the document's entry.
+    let adjacency = Adjacency::build(NODES, &[[0, 1], [2, 3]]);
+    let retired = write_legacy(&adjacency, 8);
+    let entry = RepositoryFile {
+        name: FileName::new("adjacency.adjc".to_owned()).expect("the retired name is valid"),
+        hash: document_digest(&retired),
     };
-    strip(&mut value, &["files"]);
-    strip(&mut value, &["metadata", "evidence"]);
-    strip(&mut value, &["metadata", "reproducibility", "config"]);
+    value["files"]["adjacency"] = serde_json::to_value(entry).expect("an entry serializes");
 
-    let bytes = serde_json::to_vec_pretty(&value).expect("the stripped document should serialize");
+    let bytes = serde_json::to_vec_pretty(&value).expect("the replica document should serialize");
     let id: GenerationId = document_digest(&bytes)
         .to_string()
         .parse()
@@ -484,26 +478,29 @@ fn publish_legacy_replica(source: &Utf8Path, root: &Utf8Path) -> GenerationId {
         let name = entry["name"]
             .as_str()
             .expect("a roster entry names its file");
+        if name == "adjacency.adjc" {
+            continue;
+        }
         fs::copy(source.join(name), directory.join(name)).expect("an artifact should copy");
     }
+    fs::write(directory.join("adjacency.adjc"), &retired).expect("the retired file should write");
     fs::write(directory.join("metadata.json"), &bytes).expect("the document should write");
     fs::write(root.join("current"), format!("{id}\n")).expect("the pointer should write");
 
     id
 }
 
-/// The backfill's proof of fidelity: stripping the postings from a
-/// fit's publication and backfilling the replica against the same
-/// dataset reproduces the fit's document digest for digest - the
-/// republished generation IS the one a current fit publishes.
+/// The migration's proof of fidelity: re-encoding a fit's adjacency
+/// in the retired format and migrating the replica reproduces the
+/// fit's publication digest for digest - the conversion and the fit
+/// write the same lists through the same path.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_legacy_generation_backfills_to_the_identical_publication() {
-    let path = scratch("backfill-source");
+async fn a_retired_adjacency_migrates_to_the_identical_publication() {
+    let path = scratch("migrate-source");
     let root = GenerationRoot::new(&path).expect("the root should open");
-    let dataset = dataset();
     let published = fit(
-        &dataset,
+        &dataset(),
         &HashEmbedder,
         &config(),
         &fixture_classifier(),
@@ -516,104 +513,48 @@ async fn a_legacy_generation_backfills_to_the_identical_publication() {
     let original =
         fs::read(published.path().join("metadata.json")).expect("the document should read");
 
-    let legacy_path = scratch("backfill-legacy");
+    let legacy_path = scratch("migrate-legacy");
     let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
-    let legacy = publish_legacy_replica(published.path(), &legacy_path);
+    let legacy = publish_retired_adjacency_replica(published.path(), &legacy_path);
 
-    // The replica is genuinely legacy: the typed parser rejects it,
-    // which is the breakage the backfill exists to migrate.
-    assert!(matches!(
-        legacy_root.open(legacy),
-        Err(OpenError::Document(_))
-    ));
+    // The replica parses typed - only its adjacency format is retired
+    // - but the serving reader rejects the retired bytes, which is the
+    // breakage the migration exists to close.
+    drop(
+        SprsFile::open(legacy_path.join(legacy.to_string()).join("adjacency.adjc"))
+            .expect_err("the retired bytes are not a sparse matrix file"),
+    );
 
-    let outcome = backfill_postings(&legacy_root, legacy, &dataset, config().postings)
-        .await
-        .expect("the backfill should publish");
+    let outcome = migrate_adjacency(&legacy_root, legacy).expect("the migration should publish");
 
     assert_eq!(
         outcome.published,
         published.id(),
-        "the backfill reproduces the fit's publication",
+        "the migration reproduces the fit's publication",
     );
     assert!(outcome.activated, "the replica was current");
-    assert!(
-        outcome.drift.is_clean(),
-        "the dataset matches the fitted corpus: {:?}",
-        outcome.drift,
-    );
     assert_eq!(
         legacy_root.current().expect("the pointer should read"),
         Some(outcome.published),
     );
-
-    legacy_root
-        .open(outcome.published)
-        .expect("the republished generation opens typed");
-    let backfilled = fs::read(
+    let migrated = fs::read(
         legacy_path
             .join(outcome.published.to_string())
             .join("metadata.json"),
     )
-    .expect("the republished document should read");
+    .expect("the migrated document should read");
     assert_eq!(
-        backfilled, original,
-        "the republished document is the fit's, byte for byte",
+        migrated, original,
+        "the migrated document is the fit's, byte for byte",
     );
 }
 
-/// A dataset that moved since the fit: entity 0 removed, a foreign
-/// entity added. Only ids and type lists are consumed by the
-/// backfill, so embeddings and edges regenerate freely.
-fn drifted_dataset() -> MemoryDataset {
-    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xD81F7);
-
-    let mut nodes: Vec<_> = (1..NODES)
-        .map(|row| Node {
-            id: U64::<LE>::new(row as u64),
-            ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
-            embedding: representation(&mut rng),
-            confidence: None,
-        })
-        .collect();
-    nodes.push(Node {
-        id: U64::<LE>::new(999),
-        ontology: smallvec![OntologyRowId::new(0)],
-        embedding: representation(&mut rng),
-        confidence: None,
-    });
-
-    let ontology = vec![
-        Ontology {
-            id: U64::<LE>::new(0),
-            parents: smallvec![],
-        },
-        Ontology {
-            id: U64::<LE>::new(1),
-            parents: smallvec![],
-        },
-        Ontology {
-            id: U64::<LE>::new(2),
-            parents: smallvec![OntologyRowId::new(0)],
-        },
-    ];
-
-    let cards = HashMap::from([
-        (0, Card::verbatim("Person entity card".to_owned())),
-        (1, Card::verbatim("Company entity card".to_owned())),
-        (2, Card::verbatim("Employment link card".to_owned())),
-    ]);
-
-    MemoryDataset::new(nodes, vec![], ontology, HashMap::new(), cards)
-}
-
-/// Store drift publishes the intersection and reports every
-/// divergence: the foreign entity skips, the removed entity's row
-/// stays empty, and the counts say so.
+/// A generation already carrying the current adjacency format refuses
+/// the migration instead of republishing a duplicate.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_drifted_store_backfills_the_intersection() {
-    let path = scratch("backfill-drift-source");
+async fn a_current_generation_refuses_the_migration() {
+    let path = scratch("migrate-refused");
     let root = GenerationRoot::new(&path).expect("the root should open");
     let published = fit(
         &dataset(),
@@ -627,64 +568,24 @@ async fn a_drifted_store_backfills_the_intersection() {
     .await
     .expect("the fit should publish");
 
-    let legacy_path = scratch("backfill-drift-legacy");
-    let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
-    let legacy = publish_legacy_replica(published.path(), &legacy_path);
-
-    let outcome = backfill_postings(&legacy_root, legacy, &drifted_dataset(), config().postings)
-        .await
-        .expect("the backfill should publish");
-
-    assert_ne!(
-        outcome.published,
-        published.id(),
-        "drifted postings publish a distinct generation",
+    let error = migrate_adjacency(&root, published.id())
+        .expect_err("the generation already carries the current format");
+    assert!(
+        matches!(error, MigrateError::AlreadyCurrent(id) if id == published.id()),
+        "{error}",
     );
-    assert_eq!(outcome.drift.unmatched_nodes, 1, "the foreign entity");
-    assert_eq!(outcome.drift.unfilled_rows, 1, "the removed entity's row");
-    assert_eq!(outcome.drift.unmatched_types, 0);
-    assert_eq!(outcome.drift.unfilled_types, 0);
-    assert_eq!(outcome.drift.dropped_type_references, 0);
-    assert_eq!(outcome.drift.dropped_parent_references, 0);
-    assert_eq!(
-        outcome.evidence.membership_entries, 4,
-        "both node types stay dense at two words each - one member fewer changes no representation",
-    );
-
-    // The republished generation opens typed, and the removed
-    // entity's membership is the one entry missing.
-    legacy_root
-        .open(outcome.published)
-        .expect("the republished generation opens typed");
-    let postings = MappedPostings::new(
-        PostingsFile::open(
-            legacy_path
-                .join(outcome.published.to_string())
-                .join("postings.post"),
-        )
-        .expect("the postings should map"),
-    )
-    .expect("the postings should validate");
-    let members = |type_row: u64| {
-        postings
-            .membership(OntologyRowId::new(type_row))
-            .expect("the fixture types lie in the type domain")
-            .count()
-    };
-    assert_eq!(members(0) + 1, members(1), "row 0 carried type 0");
-    assert_eq!(members(0) + members(1), NODES as u64 - 1);
 }
 
-/// A generation that already carries the postings role refuses the
-/// backfill instead of republishing a duplicate.
+/// Retired bytes that no longer hash to the document's recorded
+/// digest are rejected before parsing, so a corrupt artifact never
+/// republishes.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_current_generation_refuses_the_backfill() {
-    let path = scratch("backfill-refused");
+async fn a_tampered_retired_adjacency_is_rejected() {
+    let path = scratch("migrate-tampered");
     let root = GenerationRoot::new(&path).expect("the root should open");
-    let dataset = dataset();
     let published = fit(
-        &dataset,
+        &dataset(),
         &HashEmbedder,
         &config(),
         &fixture_classifier(),
@@ -695,13 +596,19 @@ async fn a_current_generation_refuses_the_backfill() {
     .await
     .expect("the fit should publish");
 
-    let error = backfill_postings(&root, published.id(), &dataset, config().postings)
-        .await
-        .expect_err("the generation already carries the postings role");
-    assert!(
-        matches!(error, BackfillError::AlreadyBackfilled(id) if id == published.id()),
-        "{error}",
-    );
+    let legacy_path = scratch("migrate-tampered-legacy");
+    let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
+    let legacy = publish_retired_adjacency_replica(published.path(), &legacy_path);
+
+    let retired = legacy_path.join(legacy.to_string()).join("adjacency.adjc");
+    let mut bytes = fs::read(&retired).expect("the retired file should read");
+    let last = bytes.len() - 1;
+    bytes[last] ^= 0xFF;
+    fs::write(&retired, &bytes).expect("the tampered file should write");
+
+    let error = migrate_adjacency(&legacy_root, legacy)
+        .expect_err("the tampered bytes fail the digest check");
+    assert!(matches!(error, MigrateError::Artifact { .. }), "{error}");
 }
 
 #[tokio::test]
@@ -1657,7 +1564,7 @@ fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
 /// occupies both slots of node 3, and untouched nodes hold empty runs.
 fn assert_adjacency_reads_back(published: &Utf8Path) {
     let adjacency = MappedAdjacency::new(
-        AdjacencyFile::open(published.join("adjacency.adjc")).expect("the adjacency should map"),
+        SprsFile::open(published.join("adjacency.sprs")).expect("the adjacency should map"),
     )
     .expect("the adjacency should validate");
     assert_eq!(adjacency.rows(), NODES as u64);

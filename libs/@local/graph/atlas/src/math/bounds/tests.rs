@@ -197,6 +197,47 @@ fn fit_rejects_degenerate_extents_until_widened() {
     assert!(collinear.with_minimum_extent(1.0).fit(target).is_some());
 }
 
+#[test]
+fn normalize_into_maps_corners_and_midpoints_exactly() {
+    let layout = Bounds2::from_points(POINTS).expect("points are finite and non-empty");
+    let viewport =
+        Bounds2::new(Vec2::ZERO, Vec2::splat(10.0)).expect("corners are finite and ordered");
+
+    // The scale factor 10/3 is not exactly representable, but the mapping
+    // never materializes it: the unit coordinate is computed first, so
+    // corners (unit 0 and 1) and the centre (unit 0.5) land exactly.
+    let mapped = layout.normalize_into(viewport, &[layout.min(), layout.max(), layout.centre()]);
+    assert_eq!(mapped, [Vec2::ZERO, Vec2::splat(10.0), Vec2::splat(5.0)]);
+}
+
+#[test]
+fn normalize_into_collapses_a_zero_extent_axis_to_the_target_centre() {
+    let collinear = Bounds2::from_points([Vec2::new(3.0, 0.0), Vec2::new(3.0, 4.0)])
+        .expect("points are finite and non-empty");
+    let frame =
+        Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
+
+    // The x axis has zero extent and collapses to the frame's centre; the
+    // y axis maps affinely as usual.
+    let mapped = collinear.normalize_into(frame, &[Vec2::new(3.0, 1.0)]);
+    assert_eq!(mapped, [Vec2::new(0.0, -0.5)]);
+}
+
+#[test]
+fn normalize_into_stays_exact_far_from_the_origin() {
+    // A box sitting at 2^14 with unit extent: the world minimum dwarfs
+    // the extent, the regime where composing scale and translation in
+    // `f32` cancels catastrophically. The per-axis `f64` map keeps the
+    // quarter point exact.
+    let world = Bounds2::new(Vec2::splat(16_384.0), Vec2::splat(16_385.0))
+        .expect("corners are finite and ordered");
+    let frame =
+        Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
+
+    let mapped = world.normalize_into(frame, &[Vec2::splat(16_384.25)]);
+    assert_eq!(mapped, [Vec2::splat(-0.5)]);
+}
+
 /// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
 /// range; the bounding-box laws are about corner algebra, not overflow.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
@@ -259,6 +300,24 @@ proptest! {
             Bounds2::from_slice(&points),
             Bounds2::from_points(points.iter().copied()),
         );
+    }
+
+    /// The batched lanes and the scalar tail of `normalize_into` round
+    /// identically: mapping a slice equals mapping every point alone
+    /// (a single-point slice takes the scalar path), so the output is
+    /// independent of how points fall into batches.
+    #[test]
+    fn normalize_into_agrees_between_batched_and_scalar_paths(
+        points in points_strategy(),
+        world in bounds_strategy(),
+        frame in bounds_strategy(),
+    ) {
+        let together = world.normalize_into(frame, &points);
+
+        for (point, expected) in points.iter().zip(&together) {
+            let alone = world.normalize_into(frame, core::slice::from_ref(point));
+            prop_assert_eq!(alone[0], *expected);
+        }
     }
 
     /// The fitted transform maps source corners onto target corners, up

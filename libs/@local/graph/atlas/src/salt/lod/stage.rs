@@ -176,7 +176,7 @@ impl Lod {
         }
 
         let world = Bounds2::from_slice_par(coordinates).ok_or(LodError::Frame)?;
-        let wire = normalize(coordinates, world);
+        let wire = world.normalize_into(WIRE_FRAME, coordinates);
 
         let keys = key::keys(&wire, WIRE_FRAME);
         let ranking = Ranking::new(inputs, seed);
@@ -280,48 +280,6 @@ impl Lod {
         &self.codes[usize::try_from(segment.start).expect("resident columns fit the address space")
             ..usize::try_from(segment.end).expect("resident columns fit the address space")]
     }
-}
-
-/// Normalizes the coordinates from the world frame onto `[-1, 1]`.
-///
-/// Each axis maps affinely in `f64` - subtract the minimum, divide by
-/// the extent, scale onto the frame - and rounds once to `f32`, so the
-/// result is within one `f32` ULP of exact for every input magnitude.
-/// A composed single-transform application would instead cancel
-/// catastrophically when the world frame sits far from the origin
-/// relative to its extent. A zero-extent axis (every point identical
-/// on it) maps to the frame's centre.
-fn normalize(coordinates: &[Vec2], world: Bounds2) -> Vec<Vec2> {
-    let min = world.min();
-    let max = world.max();
-    let extent_x = f64::from(max.x()) - f64::from(min.x());
-    let extent_y = f64::from(max.y()) - f64::from(min.y());
-
-    coordinates
-        .par_iter()
-        .map(|point| {
-            Vec2::new(
-                normalize_axis(point.x(), min.x(), extent_x),
-                normalize_axis(point.y(), min.y(), extent_y),
-            )
-        })
-        .collect()
-}
-
-/// Maps one coordinate onto its wire axis.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "the single f64-to-f32 rounding is the wire contract's error bound"
-)]
-fn normalize_axis(value: f32, min: f32, extent: f64) -> f32 {
-    if extent == 0.0 {
-        return 0.0;
-    }
-
-    let unit = (f64::from(value) - f64::from(min)) / extent;
-    // f64 fused multiply-add is correctly rounded by IEEE 754, so it
-    // is both more accurate and byte-reproducible across targets.
-    unit.mul_add(2.0, -1.0) as f32
 }
 
 /// The publish evidence of one lod build: measurements the manifest

@@ -96,9 +96,9 @@ class WireContent(_WireModel):
     """The structured fields the canonical Rust card template consumes.
 
     ``slug`` is resolved export-side (v0.1 ruling; Rust never ports
-    slugify). ``retrieved_at`` and ``source_record_hash`` are the
-    immutability pin for unversioned sources; both are null for hash cards,
-    whose pin is the versioned URL itself.
+    slugify). ``description`` is null when the source records none or the
+    sanitizer legally dropped every sentence — null is the one spelling
+    of absence on this wire; empty strings reject.
     """
 
     language: NonEmptyStr
@@ -113,8 +113,6 @@ class WireContent(_WireModel):
     constraints: WireConstraints
     examples: tuple[WireExample, ...]
     slug: NonEmptyStr
-    retrieved_at: str | None
-    source_record_hash: Sha256Hex | None
 
 
 class WireAxes(_WireModel):
@@ -131,7 +129,14 @@ class WireAxes(_WireModel):
 
 
 class WireFlags(_WireModel):
-    """Corpus flags; handling is explicit assembly-side policy, never omission."""
+    """Corpus flags; handling is explicit assembly-side policy, never omission.
+
+    ``holdout`` carries the four-way human verdict vocabulary (``unclear``
+    is representable; live values are geometry classes).
+    ``prescreen_stratum`` is a recorded fact, not an evidence flag; the
+    Python-side ``unstratified`` sentinel crosses the wire as null (the
+    one spelling of absence — final-inventory ruling).
+    """
 
     shot_excluded: bool
     holdout: Verdict | None
@@ -141,8 +146,12 @@ class WireFlags(_WireModel):
 class WireVote(_WireModel):
     """One verbatim vote with its SPEC 3.3.4a provenance.
 
-    ``quantization`` is honestly null: no provider route in the current
-    corpus ever reported it. ``card_hash`` is the exact voted rendering.
+    Field names are the journal projections, adopted by the slice-1
+    reader at the handshake. ``quantization`` is honestly null: no
+    provider route in the current corpus ever reported it.
+    ``temperature`` is null when the route pinned no decode temperature
+    (7,884 of the live corpus's votes). ``card_hash`` is the exact voted
+    rendering.
     """
 
     verdict: WireVerdict
@@ -161,10 +170,19 @@ class WireVote(_WireModel):
 
 
 class AnnotationCard(_WireModel):
-    """One corpus card: identity, content, axes, flags, and verbatim votes."""
+    """One corpus card: identity, pins, content, axes, flags, and votes.
+
+    ``retrieved_at`` and ``source_record_hash`` are the card-level
+    immutability pin for unversioned sources: identity facts, not
+    template inputs. Required non-null for wikidata cards, required null
+    for hash cards (whose pin is the versioned URL itself) — the slice-1
+    reader enforces both directions.
+    """
 
     identity: NonEmptyStr
     source: CardSource
+    retrieved_at: str | None
+    source_record_hash: Sha256Hex | None
     content: WireContent
     axes: WireAxes
     flags: WireFlags
@@ -259,8 +277,6 @@ def _wire_content(resolved: ResolvedCardContent) -> WireContent:
             for example in card_input.examples
         ),
         slug=resolved.slug,
-        retrieved_at=resolved.retrieved_at,
-        source_record_hash=resolved.source_record_hash,
     )
 
 
@@ -349,6 +365,29 @@ def _card_votes(
     return tuple(sorted(wire_votes, key=canonical_json_bytes))
 
 
+def _prescreen_stratum(record: CorpusRecord) -> str | None:
+    """Translate the Python-side ``unstratified`` sentinel to a wire null."""
+    if record.prescreen_stratum == "unstratified":
+        return None
+    return record.prescreen_stratum
+
+
+def _checked_pins(record: CorpusRecord, resolved: ResolvedCardContent) -> None:
+    has_pins = resolved.retrieved_at is not None and resolved.source_record_hash is not None
+    if resolved.source == "wikidata" and not has_pins:
+        raise ValueError(
+            f"wikidata card {record.relation_id} lacks its immutability pin "
+            f"(retrieved_at + record content hash)"
+        )
+    if resolved.source == "hash" and (
+        resolved.retrieved_at is not None or resolved.source_record_hash is not None
+    ):
+        raise ValueError(
+            f"hash card {record.relation_id} carries a foreign immutability pin; "
+            f"its pin is the versioned URL"
+        )
+
+
 def _checked_card(
     record: CorpusRecord,
     *,
@@ -367,12 +406,15 @@ def _checked_card(
                 f"{record.relation_id}: {name} card hash {card_hash} differs from "
                 f"the verified deck card {deck_card.card_hash}"
             )
+    _checked_pins(record, resolved)
     content = _wire_content(resolved)
     for text in _content_strings(content):
         lint_card_text(text)
     return AnnotationCard(
         identity=resolved.identity,
         source=resolved.source,
+        retrieved_at=resolved.retrieved_at,
+        source_record_hash=resolved.source_record_hash,
         content=content,
         axes=WireAxes(
             family=family.family_id,
@@ -383,7 +425,7 @@ def _checked_card(
         flags=WireFlags(
             shot_excluded=record.is_shot_excluded,
             holdout=record.holdout_verdict,
-            prescreen_stratum=record.prescreen_stratum,
+            prescreen_stratum=_prescreen_stratum(record),
         ),
         votes=_card_votes(record, votes),
     )

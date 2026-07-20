@@ -2,13 +2,13 @@ use core::{error::Error, fmt};
 
 use crate::{
     file::{
-        adjacency::read::OpenAdjacencyError,
         array::OpenArrayError,
         generation::{GenerationId, OpenError},
         identity::read::OpenIdentityError,
         morton::read::OpenMortonError,
         postings::read::OpenPostingsError,
         quad::read::OpenQuadError,
+        sprs::read::OpenSprsError,
     },
     morton::Depth,
     salt::{
@@ -74,7 +74,7 @@ pub enum OpenAtlasError {
         kind: ArrayKind,
         error: OpenArrayError,
     },
-    OpenAdjacency(OpenAdjacencyError),
+    OpenAdjacency(OpenSprsError),
     /// The adjacency file violates the incident-list contract.
     Adjacency(InvalidAdjacencyFile),
     OpenPostings(OpenPostingsError),
@@ -184,8 +184,8 @@ impl From<OpenError> for OpenAtlasError {
     }
 }
 
-impl From<OpenAdjacencyError> for OpenAtlasError {
-    fn from(error: OpenAdjacencyError) -> Self {
+impl From<OpenSprsError> for OpenAtlasError {
+    fn from(error: OpenSprsError) -> Self {
         Self::OpenAdjacency(error)
     }
 }

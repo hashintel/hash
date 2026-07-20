@@ -3,8 +3,16 @@
 
 use core::{error::Error, fmt};
 
-use super::{Atlas, Filter, TileCoordinate, cell_of, depth_of, narrow};
-use crate::{bitset::BitSet, dataset::NodeRowId, salt::wire::edges::EdgesResponse};
+use super::{
+    Atlas, Filter, TileCoordinate, cell_of, depth_of,
+    detail::{DeliveredEntities, LinkDetails},
+    narrow,
+};
+use crate::{
+    bitset::BitSet,
+    dataset::NodeRowId,
+    salt::wire::edges::{EdgesResponse, EdgesTrailer},
+};
 
 /// Most tiles one edges request may list: the documented default of
 /// the manifest's `edgesTiles` cap.
@@ -121,11 +129,51 @@ struct DeliveredEdge {
     target: u32,
 }
 
+/// One assembled edges response: everything [`Atlas::encode_edges`]
+/// needs.
+///
+/// The document owns its columns, so it crosses thread boundaries
+/// between assembly, hydration, and encoding - the envelope was
+/// designed for hydration-last, and the split mirrors it: assembly
+/// and encoding are CPU-bound, hydration awaits the store between
+/// them.
+#[derive(Debug)]
+pub struct EdgesDocument {
+    complete: bool,
+    sources: Vec<u32>,
+    targets: Vec<u32>,
+    edge_rows: Vec<u32>,
+}
+
 impl Atlas {
     /// Answers one edges request: `SALTILEE` envelope bytes carrying
     /// the edges whose endpoints both lie in the listed tiles'
     /// delivered rows, ready to send under
     /// `application/vnd.hash.saltile-v1`.
+    ///
+    /// A request that sets `includeDetailedData` is rejected by
+    /// name: this path serves deployments without a store
+    /// connection. A transport with one assembles, hydrates, and
+    /// encodes through [`Atlas::assemble_edges`],
+    /// [`Atlas::delivered_edge_entities`], and
+    /// [`Atlas::encode_edges`].
+    ///
+    /// # Errors
+    ///
+    /// As [`Atlas::assemble_edges`], plus
+    /// [`EdgesError::Unsupported`] when the request sets
+    /// `includeDetailedData`.
+    pub fn edges(&self, request: &EdgesRequest, caps: EdgesCaps) -> Result<Vec<u8>, EdgesError> {
+        if request.include_detailed_data {
+            return Err(EdgesError::Unsupported("includeDetailedData"));
+        }
+
+        let document = self.assemble_edges(request, caps)?;
+        Ok(self.encode_edges(&document, None))
+    }
+
+    /// Assembles one edges request into its owned document: every
+    /// rejection happens here, so encoding cannot fail.
     ///
     /// Delivery order is ascending edge row id, independent of the
     /// tiles listed and of truncation, so identical requests yield
@@ -134,9 +182,9 @@ impl Atlas {
     /// only as prominent as its less-prominent endpoint - with ties
     /// broken by edge row id, and `HEAD` reports `complete: false`.
     ///
-    /// Version 0 serves the full unfiltered edge set; requests naming
-    /// a visibility filter or the detail trailer are rejected by name
-    /// rather than answered with bytes that silently ignore them.
+    /// Version 0 serves the full unfiltered edge set; a request
+    /// naming a visibility filter is rejected by name rather than
+    /// answered with bytes that silently ignore it.
     ///
     /// # Errors
     ///
@@ -146,12 +194,13 @@ impl Atlas {
     /// [`EdgesError::Grid`] when a listed coordinate lies outside its
     /// zoom's grid, and [`EdgesError::Unsupported`] when the request
     /// names a version-0 deferral.
-    pub fn edges(&self, request: &EdgesRequest, caps: EdgesCaps) -> Result<Vec<u8>, EdgesError> {
+    pub fn assemble_edges(
+        &self,
+        request: &EdgesRequest,
+        caps: EdgesCaps,
+    ) -> Result<EdgesDocument, EdgesError> {
         if request.filter.is_some() {
             return Err(EdgesError::Unsupported("filter"));
-        }
-        if request.include_detailed_data {
-            return Err(EdgesError::Unsupported("includeDetailedData"));
         }
         if request.tiles.len() > caps.tiles as usize {
             return Err(EdgesError::Tiles {
@@ -177,16 +226,75 @@ impl Atlas {
             edge_rows.push(edge.row);
         }
 
-        Ok(EdgesResponse {
+        Ok(EdgesDocument {
+            complete,
+            sources,
+            targets,
+            edge_rows,
+        })
+    }
+
+    /// Gathers the link-entity identities behind the document's
+    /// delivered edges, in delivered order: the hydration request's
+    /// subject.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the identity table contradicts the adjacency's
+    /// edge domain, which open's cross-artifact validation rules
+    /// out.
+    #[must_use]
+    pub fn delivered_edge_entities(&self, document: &EdgesDocument) -> DeliveredEntities {
+        let ids = document
+            .edge_rows
+            .iter()
+            .map(|&row| {
+                self.edge_ids
+                    .id(u64::from(row))
+                    .expect("open validated the identity rows against the adjacency's edges")
+            })
+            .collect();
+
+        DeliveredEntities::new(ids)
+    }
+
+    /// Encodes an assembled document: `SALTILEE` envelope bytes,
+    /// ready to send under `application/vnd.hash.saltile-v1`, with
+    /// the detail trailer riding iff `details` is supplied.
+    ///
+    /// # Panics
+    ///
+    /// Panics when supplied details do not cover the document's
+    /// delivered edges - a transport bug, never request data.
+    #[must_use]
+    pub fn encode_edges(&self, document: &EdgesDocument, details: Option<&LinkDetails>) -> Vec<u8> {
+        let columns = details.map(|details| {
+            (
+                borrow(details.labels()),
+                borrow(details.icons()),
+                borrow(details.type_labels()),
+                borrow(details.type_icons()),
+            )
+        });
+        let trailer = columns
+            .as_ref()
+            .map(|(labels, icons, type_labels, type_icons)| EdgesTrailer {
+                link_labels: labels,
+                link_icons: icons,
+                link_type_labels: type_labels,
+                link_type_icons: type_icons,
+            });
+
+        EdgesResponse {
             generation: self.generation.id().digest(),
             variant: 0,
-            complete,
-            sources: &sources,
-            targets: &targets,
-            edge_rows: &edge_rows,
-            trailer: None,
+            complete: document.complete,
+            sources: &document.sources,
+            targets: &document.targets,
+            edge_rows: &document.edge_rows,
+            trailer,
         }
-        .encode())
+        .encode()
     }
 
     /// Collects the union of the listed tiles' delivered rows as a
@@ -291,4 +399,9 @@ impl Atlas {
         let position = self.positions_of_row()[row as usize];
         self.ranks()[position as usize]
     }
+}
+
+/// Borrows one owned detail column as the encoder's `&str` view.
+fn borrow(entries: &[Option<String>]) -> Vec<Option<&str>> {
+    entries.iter().map(Option::as_deref).collect()
 }

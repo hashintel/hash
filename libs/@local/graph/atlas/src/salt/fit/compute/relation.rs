@@ -46,9 +46,12 @@ impl Context<'_> {
             .expect("the endpoint column was sealed as u64 pairs");
 
         let adjacency = Adjacency::build(rows, pairs);
-        Ok(write_staged(self.staging, Role::Adjacency, |writer| {
-            adjacency.write_into(writer)
-        })?)
+        let mut writer = BufWriter::new(self.staging.create(&Role::Adjacency.file_name())?);
+        let digest = adjacency
+            .write_into(&mut writer)
+            .map_err(StageError::WriteAdjacency)?;
+        writer.flush()?;
+        Ok(Role::Adjacency.file(digest))
     }
 
     /// Assembles the spooled relation instances against the staged

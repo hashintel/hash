@@ -670,11 +670,9 @@ struct LodConfigDef {
 }
 
 /// serde shadow of [`PostingsConfig`].
-// pub(crate): the backfill splices this shadow's serialization into a
-// legacy document, so both writers speak one field layout.
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "PostingsConfig")]
-pub(crate) struct PostingsConfigDef {
+struct PostingsConfigDef {
     dense_threshold_log2: u8,
 }
 

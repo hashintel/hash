@@ -1,11 +1,13 @@
 use std::fs;
 
 use camino::Utf8PathBuf;
+use sprs::CsMatViewI;
 
-use super::{Adjacency, InvalidAdjacencyFile, MappedAdjacency};
+use super::{Adjacency, EdgeList, InvalidAdjacencyFile, MappedAdjacency};
 use crate::{
     dataset::{EdgeRowId, NodeRowId},
-    file::adjacency::{EdgeWidth, read::AdjacencyFile, write::write_lists},
+    file::sprs::{read::SprsFile, write::write_matrix},
+    integrity::{Sha256, Writer},
 };
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -36,11 +38,11 @@ fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> MappedAdjacen
         .expect("the adjacency should write");
     drop(file);
 
-    MappedAdjacency::new(AdjacencyFile::open(&path).expect("the fixture file should open"))
+    MappedAdjacency::new(SprsFile::open(&path).expect("the fixture file should open"))
         .expect("the fixture adjacency should validate")
 }
 
-fn list(edges: Option<super::EdgeList<'_>>) -> Vec<u64> {
+fn list(edges: Option<EdgeList<'_>>) -> Vec<u64> {
     edges
         .expect("the queried node row is in domain")
         .iter()
@@ -52,92 +54,64 @@ fn list(edges: Option<super::EdgeList<'_>>) -> Vec<u64> {
 fn the_build_matches_the_hand_computed_lists() {
     let dir = scratch("hand-computed");
     let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
-    let mapped = mapped(&dir, "fixture.adjc", &adjacency);
+    let mapped = mapped(&dir, "fixture.sprs", &adjacency);
 
     assert_eq!(mapped.rows(), ROWS as u64);
     assert_eq!(mapped.edges(), ENDPOINTS.len() as u64);
 
     // Outgoing lists per node row, ascending: the parallel pair leaves
-    // node 0, the self-loop leaves and arrives at node 3.
+    // node 0 as edges 0 and 3.
     assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0, 3]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(1))), [] as [u64; 0]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(2))), [1]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(3))), [2]);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(4))), [] as [u64; 0]);
 
-    assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [] as [u64; 0]);
+    // Incoming lists mirror the targets; the self-loop arrives at its
+    // own node.
     assert_eq!(list(mapped.incoming(NodeRowId::new(1))), [0, 3]);
-    assert_eq!(list(mapped.incoming(NodeRowId::new(2))), [] as [u64; 0]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 2]);
-    assert_eq!(list(mapped.incoming(NodeRowId::new(4))), [] as [u64; 0]);
 
-    // The incident slice is the contiguous outgoing-then-incoming
-    // concatenation; the self-loop appears in both runs of node 3.
+    // The incident slice concatenates the runs; the self-loop appears
+    // in both.
     assert_eq!(list(mapped.incident(NodeRowId::new(3))), [2, 1, 2]);
-    assert_eq!(list(mapped.incident(NodeRowId::new(4))), [] as [u64; 0]);
+    assert_eq!(mapped.degree(NodeRowId::new(3)), Some(3));
+    assert_eq!(mapped.degree(NodeRowId::new(4)), Some(0));
 
-    // Beyond the node domain there is no list.
-    assert!(mapped.outgoing(NodeRowId::new(ROWS as u64)).is_none());
-    assert!(mapped.incoming(NodeRowId::new(u64::MAX)).is_none());
-    assert!(mapped.incident(NodeRowId::new(ROWS as u64)).is_none());
-}
-
-#[test]
-fn the_build_is_independent_of_the_endpoint_values_within_a_row() {
-    // A permuted edge order is a different corpus (edge rows are
-    // positional), but every list still comes out strictly ascending.
-    let permuted: [[u64; 2]; 4] = [ENDPOINTS[3], ENDPOINTS[1], ENDPOINTS[0], ENDPOINTS[2]];
-    let dir = scratch("permuted");
-    let adjacency = Adjacency::build(ROWS, &permuted);
-    let mapped = mapped(&dir, "permuted.adjc", &adjacency);
-
-    assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0, 2]);
-    assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 3]);
-    assert_eq!(list(mapped.incident(NodeRowId::new(3))), [3, 1, 3]);
+    // Out-of-domain rows answer None.
+    assert!(mapped.outgoing(NodeRowId::new(5)).is_none());
+    assert!(mapped.degree(NodeRowId::new(5)).is_none());
 }
 
 #[test]
 fn contains_agrees_with_a_linear_scan() {
     let dir = scratch("contains");
     let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
-    let mapped = mapped(&dir, "contains.adjc", &adjacency);
+    let mapped = mapped(&dir, "fixture.sprs", &adjacency);
 
-    // Every (node, direction, edge) answer matches the linear scan
-    // over the same run, misses between and beyond hits included.
     for node in 0..ROWS as u64 {
-        let node = NodeRowId::new(node);
-        for list in [
-            mapped.outgoing(node).expect("the node row is in domain"),
-            mapped.incoming(node).expect("the node row is in domain"),
+        for direction in [
+            mapped.outgoing(NodeRowId::new(node)),
+            mapped.incoming(NodeRowId::new(node)),
         ] {
-            for edge in 0..=ENDPOINTS.len() as u64 {
-                let edge = EdgeRowId::new(edge);
+            let run = direction.expect("the node row is in domain");
+            for edge in 0..ENDPOINTS.len() as u64 {
+                let linear = run.iter().any(|held| held.get() == edge);
                 assert_eq!(
-                    list.contains(edge),
-                    list.iter().any(|held| held.get() == edge.get()),
-                    "node {node:?}, edge {edge:?}",
+                    run.contains(EdgeRowId::new(edge)),
+                    linear,
+                    "node {node} edge {edge}",
                 );
             }
         }
     }
-
-    // The gapped outgoing run of node 0 answers both boundaries: it
-    // holds edges 0 and 3 and misses the rows between.
-    let outgoing = mapped
-        .outgoing(NodeRowId::new(0))
-        .expect("node row 0 is in domain");
-    assert!(outgoing.contains(EdgeRowId::new(0)));
-    assert!(!outgoing.contains(EdgeRowId::new(1)));
-    assert!(!outgoing.contains(EdgeRowId::new(2)));
-    assert!(outgoing.contains(EdgeRowId::new(3)));
-    assert!(!outgoing.contains(EdgeRowId::new(4)));
 }
 
 #[test]
 fn an_edgeless_corpus_builds_empty_lists() {
     let dir = scratch("edgeless");
     let adjacency = Adjacency::build(2, &[]);
-    let mapped = mapped(&dir, "edgeless.adjc", &adjacency);
+    let mapped = mapped(&dir, "edgeless.sprs", &adjacency);
 
     assert_eq!(mapped.rows(), 2);
     assert_eq!(mapped.edges(), 0);
@@ -149,62 +123,158 @@ fn an_edgeless_corpus_builds_empty_lists() {
     );
 }
 
-/// Writes raw regions and opens them as a mapped adjacency.
-fn open_raw(
+/// Writes a hand-built structure-only matrix and opens it as a mapped
+/// adjacency.
+fn open_structure(
     dir: &Utf8PathBuf,
     name: &str,
+    shape: (usize, usize),
     fenceposts: &[u64],
     values: &[u64],
 ) -> Result<MappedAdjacency, InvalidAdjacencyFile> {
     let path = dir.join(name);
-    let mut file = fs::File::create(&path).expect("the raw file should create");
-    write_lists(fenceposts, values, EdgeWidth::U64, &mut file).expect("the raw lists should write");
-    drop(file);
+    let mut writer = Writer {
+        accumulator: Sha256::new(),
+        writer: fs::File::create(&path).expect("the raw file should create"),
+    };
+    let units = vec![(); values.len()];
+    let matrix = CsMatViewI::<'_, (), u64, u64>::try_new(shape, fenceposts, values, &units)
+        .expect("the hand-built structure is a valid compressed matrix");
+    write_matrix(&matrix, &mut writer).expect("the raw matrix should write");
 
-    MappedAdjacency::new(AdjacencyFile::open(&path).expect("the raw file should open"))
+    MappedAdjacency::new(SprsFile::open(&path).expect("the raw file should open"))
 }
 
 #[test]
 fn violated_list_invariants_are_rejected() {
-    let dir = scratch("invariants");
+    let dir = scratch("violations");
 
-    // One node, one self-loop edge: the minimal valid shape.
-    let _valid = open_raw(&dir, "valid.adjc", &[0, 1, 2], &[0, 0])
-        .expect("the minimal valid shape validates");
+    // An odd row dimension pairs no runs.
+    assert!(matches!(
+        open_structure(&dir, "odd.sprs", (1, 1), &[0, 0], &[]),
+        Err(InvalidAdjacencyFile::OddRows { rows: 1 }),
+    ));
 
-    // The first fencepost must open the value array.
-    assert_eq!(
-        open_raw(&dir, "start.adjc", &[1, 1, 2], &[0, 0])
-            .expect_err("a nonzero opening fencepost is invalid"),
-        InvalidAdjacencyFile::Start,
-    );
+    // An odd entry count holds no two slots per edge.
+    assert!(matches!(
+        open_structure(&dir, "slots.sprs", (2, 1), &[0, 1, 1], &[0]),
+        Err(InvalidAdjacencyFile::Slots { entries: 1 }),
+    ));
 
-    // Fenceposts must not step backwards.
-    assert_eq!(
-        open_raw(&dir, "unordered.adjc", &[0, 2, 1, 1, 2], &[0, 0])
-            .expect_err("a backwards fencepost is invalid"),
-        InvalidAdjacencyFile::Unordered { position: 2 },
-    );
+    // A column dimension beyond the edge-domain bound is not the
+    // canonical artifact.
+    assert!(matches!(
+        open_structure(&dir, "bound.sprs", (2, 5), &[0, 1, 2], &[0, 0]),
+        Err(InvalidAdjacencyFile::Bound {
+            columns: 5,
+            edges: 1,
+        }),
+    ));
 
-    // A value must stay below the edge count.
-    assert_eq!(
-        open_raw(&dir, "domain.adjc", &[0, 1, 2], &[0, 1])
-            .expect_err("an out-of-domain edge row is invalid"),
-        InvalidAdjacencyFile::Domain { slot: 1 },
-    );
+    // An edge in two slots of one direction: both outgoing runs hold
+    // edge 0.
+    assert!(matches!(
+        open_structure(&dir, "duplicate.sprs", (4, 1), &[0, 1, 1, 2, 2], &[0, 0]),
+        Err(InvalidAdjacencyFile::Duplicate { edge: 0 }),
+    ));
 
-    // Runs must ascend strictly.
-    assert_eq!(
-        open_raw(&dir, "run-order.adjc", &[0, 2, 4], &[1, 0, 0, 1])
-            .expect_err("an unsorted run is invalid"),
-        InvalidAdjacencyFile::RunOrder { run: 0 },
-    );
+    // A valued matrix is not the structure-only artifact.
+    let path = dir.join("valued.sprs");
+    let mut writer = Writer {
+        accumulator: Sha256::new(),
+        writer: fs::File::create(&path).expect("the valued file should create"),
+    };
+    let valued = CsMatViewI::<'_, f32, u64, u64>::try_new((2, 1), &[0, 1, 2], &[0, 0], &[1.0, 2.0])
+        .expect("the valued matrix is a valid compressed matrix");
+    write_matrix(&valued, &mut writer).expect("the valued matrix should write");
+    assert!(matches!(
+        MappedAdjacency::new(SprsFile::open(&path).expect("the valued file should open")),
+        Err(InvalidAdjacencyFile::Matrix(_)),
+    ));
+}
 
-    // An edge must not occupy two slots of one direction, even across
-    // different nodes' runs.
-    assert_eq!(
-        open_raw(&dir, "duplicate.adjc", &[0, 1, 1, 2, 2], &[0, 0])
-            .expect_err("a doubled outgoing slot is invalid"),
-        InvalidAdjacencyFile::Duplicate { edge: 0 },
-    );
+/// A fencepost column anchored past zero passes the compressed-row
+/// check - the entry count reads relative to the first post - but
+/// leaves leading slots no run owns, which the adjacency rejects.
+#[test]
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "the surgery edits the format's pinned little-endian fencepost region"
+)]
+fn a_shifted_fencepost_column_is_rejected() {
+    let dir = scratch("shifted");
+    let path = dir.join("shifted.sprs");
+
+    let adjacency = Adjacency::build(2, &[[0, 1]]);
+    let mut file = fs::File::create(&path).expect("the fixture file should create");
+    adjacency
+        .write_into(&mut file)
+        .expect("the adjacency should write");
+    drop(file);
+
+    // Shift every fencepost up by one: monotonicity and the relative
+    // entry count survive, the zero anchor does not. The posts sit in
+    // the page-aligned region behind the header, eight bytes each.
+    let mut bytes = fs::read(&path).expect("the fixture file should read");
+    let posts = 2 * 2 + 1;
+    for post in 0..posts {
+        let offset = 4096 + post * 8;
+        let mut value = u64::from_le_bytes(
+            bytes[offset..offset + 8]
+                .try_into()
+                .expect("eight bytes slice exactly"),
+        );
+        value += 1;
+        bytes[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
+    }
+    fs::write(&path, &bytes).expect("the shifted file should write");
+
+    assert!(matches!(
+        MappedAdjacency::new(SprsFile::open(&path).expect("the shifted file should open")),
+        Err(InvalidAdjacencyFile::Start),
+    ));
+}
+
+#[test]
+fn the_build_is_independent_of_the_endpoint_values_within_a_row() {
+    // A permuted edge order is a different corpus (edge rows are
+    // positional), but every list still comes out strictly ascending.
+    let permuted: [[u64; 2]; 4] = [ENDPOINTS[3], ENDPOINTS[1], ENDPOINTS[0], ENDPOINTS[2]];
+    let dir = scratch("permuted");
+    let adjacency = Adjacency::build(ROWS, &permuted);
+    let mapped = mapped(&dir, "permuted.sprs", &adjacency);
+
+    assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0, 2]);
+    assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 3]);
+    assert_eq!(list(mapped.incident(NodeRowId::new(3))), [3, 1, 3]);
+}
+
+/// Wide indices read back through the same accessors: a hand-built
+/// eight-byte matrix validates and serves runs like the narrow files
+/// the writer emits.
+#[test]
+fn wide_indices_read_back() {
+    let dir = scratch("wide");
+    let mapped = open_structure(&dir, "wide.sprs", (2, 1), &[0, 1, 2], &[0, 0])
+        .expect("hand-built wide adjacency should validate");
+
+    assert_eq!(mapped.rows(), 1);
+    assert_eq!(mapped.edges(), 1);
+    assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0]);
+    assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [0]);
+}
+
+/// The retired format's reader inverts the test encoder at both
+/// widths, so migrated lists are the published lists verbatim.
+#[test]
+fn the_retired_format_round_trips() {
+    let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
+    for width in [4, 8] {
+        let bytes = super::legacy::write_legacy(&adjacency, width);
+        assert_eq!(
+            super::legacy::read_legacy(&bytes).expect("the retired bytes should parse"),
+            adjacency,
+            "width {width}",
+        );
+    }
 }

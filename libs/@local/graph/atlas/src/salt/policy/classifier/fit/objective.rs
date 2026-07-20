@@ -60,29 +60,6 @@ pub(super) struct Objective<'fit> {
     pub regularization: f64,
 }
 
-/// The shared softmax quantities of one row evaluation.
-struct RowSoftmax {
-    logits: [f64; GeometryClass::COUNT],
-    exponentials: [f64; GeometryClass::COUNT],
-    denominator: f64,
-    maximum: f64,
-}
-
-impl RowSoftmax {
-    fn new(parameters: &Parameters, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> Self {
-        let logits = logits(parameters, embedding);
-        let maximum = logits.into_iter().fold(f64::NEG_INFINITY, f64::max);
-        let exponentials = logits.map(|logit| (logit - maximum).exp());
-
-        Self {
-            logits,
-            exponentials,
-            denominator: exponentials.into_iter().sum(),
-            maximum,
-        }
-    }
-}
-
 // The cost and gradient run the same per-row prelude twice per
 // accepted step because argmin's traits evaluate them separately. The
 // line search only evaluates the cost, so a fused evaluation would
@@ -121,13 +98,13 @@ impl Objective<'_> {
         let mut objective = 0.0;
         for row_index in self.members() {
             let row = self.training.rows()[row_index];
-            let softmax = RowSoftmax::new(parameters, self.training.embedding(row_index));
-            let log_normalizer = softmax.maximum + softmax.denominator.ln();
+            let logits = logits(parameters, self.training.embedding(row_index));
+            let log_normalizer = DVecN::new(logits).log_sum_exp();
 
             let target_logit = row
                 .target
                 .into_iter()
-                .zip(softmax.logits)
+                .zip(logits)
                 .map(|(target, logit)| target * logit)
                 .sum::<f64>();
 
@@ -156,20 +133,19 @@ impl Objective<'_> {
         for row_index in self.members() {
             let row = self.training.rows()[row_index];
             let embedding = self.training.embedding(row_index);
-            let softmax = RowSoftmax::new(parameters, embedding);
+            let probabilities = DVecN::new(logits(parameters, embedding)).softmax();
             let target_mass = row.target.into_iter().sum::<f64>();
 
             let (rows, intercepts) = gradient
                 .as_array_mut()
                 .as_chunks_mut::<CANONICAL_DIMENSIONS>();
-            for (((row_gradient, intercept), exponential), target) in rows
+            for (((row_gradient, intercept), probability), target) in rows
                 .iter_mut()
                 .zip(intercepts.iter_mut())
-                .zip(softmax.exponentials)
+                .zip(*probabilities.as_array())
                 .zip(row.target)
             {
-                let residual =
-                    row.weight * target_mass.mul_add(exponential / softmax.denominator, -target);
+                let residual = row.weight * target_mass.mul_add(probability, -target);
                 DVecN::from_mut(row_gradient)
                     .add_scaled(VecN::from_ref(embedding.as_array()), residual);
                 *intercept += residual;

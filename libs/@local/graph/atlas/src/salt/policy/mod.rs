@@ -17,6 +17,14 @@ use core::{fmt, mem};
 
 use crate::dataset::OntologyRowId;
 
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "the reader awaits its consumer, the annotation assembly stage"
+    )
+)]
+pub(crate) mod annotation;
 pub(crate) mod artifact;
 pub(crate) mod classifier;
 mod precedence;

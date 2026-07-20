@@ -437,11 +437,9 @@ struct QuadEvidenceDef {
 }
 
 /// serde shadow of [`PostingsEvidence`].
-// pub(crate): the backfill splices this shadow's serialization into a
-// legacy document, so both writers speak one field layout.
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "PostingsEvidence")]
-pub(crate) struct PostingsEvidenceDef {
+struct PostingsEvidenceDef {
     types: u64,
     dense_types: u64,
     membership_entries: u64,

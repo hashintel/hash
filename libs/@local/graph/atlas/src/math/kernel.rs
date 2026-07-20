@@ -48,6 +48,26 @@ pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8
     lhs * rhs + accumulator
 }
 
+/// Fused multiply-add, correctly rounded on every target.
+///
+/// The fusion is semantic: targets without native FMA take a software
+/// path with the same single rounding, so every lane matches scalar
+/// [`f64::mul_add`] bit for bit on every platform. This is the variant
+/// for consumers whose contract includes byte-reproducibility across
+/// targets; [`mul_add_f64x4`] trades that guarantee for speed where
+/// FMA hardware is absent.
+#[expect(
+    clippy::inline_always,
+    reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
+              transparent so only the fused operation remains"
+)]
+#[inline(always)]
+pub(crate) fn fused_mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
+    use std::simd::StdFloat as _;
+
+    lhs.mul_add(rhs, accumulator)
+}
+
 /// Fused multiply-add when the target provides native FMA instructions.
 #[inline(always)]
 #[cfg(any(target_arch = "aarch64", target_feature = "fma"))]

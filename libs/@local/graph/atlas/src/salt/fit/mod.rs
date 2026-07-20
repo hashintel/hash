@@ -80,12 +80,12 @@ use crate::{
 };
 
 #[cfg(feature = "bench")]
-mod backfill;
 pub mod bench;
 mod compute;
 mod echo;
 mod error;
 mod ingest;
+mod migrate;
 pub(crate) mod prepare;
 mod role;
 pub(crate) mod verdicts;

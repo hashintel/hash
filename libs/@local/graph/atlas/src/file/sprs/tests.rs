@@ -401,3 +401,69 @@ fn a_column_compressed_matrix_round_trips() {
 
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn a_structure_only_matrix_reopens_with_conjured_units() {
+    let dir =
+        std::env::temp_dir().join(format!("hash-graph-atlas-sprs-unit-{}", std::process::id()));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+
+    let matrix = CsMatI::<(), u32, u64>::new((2, 3), vec![0, 2, 3], vec![0, 2, 1], vec![(); 3]);
+    let mut bytes = Vec::new();
+    write_matrix(&matrix, &mut bytes).expect("writing to a buffer succeeds");
+    let path = dir.join("structure.sprs");
+    std::fs::write(&path, &bytes).expect("the file writes");
+
+    let file = SprsFile::open(&path).expect("the written file reopens");
+    assert_eq!(file.value(), ValueTag::Unit);
+    assert_eq!(file.value_width(), 0);
+    assert_eq!(file.nnz(), 3);
+
+    // No value bytes exist on disk: the file ends where the value
+    // region would begin.
+    let values_offset = FileHeader::new(
+        ValueTag::Unit,
+        0,
+        IndexVariant::U32,
+        IndexVariant::U64,
+        StorageVariant::Csr,
+        matrix_shape(2, 3),
+        3,
+    )
+    .values_offset()
+    .expect("the fixture geometry fits u64");
+    assert_eq!(bytes.len() as u64, values_offset);
+
+    let reopened = file
+        .matrix::<(), u32, u64>()
+        .expect("the described element types view");
+    assert_eq!(
+        reopened.indptr().raw_storage(),
+        matrix.indptr().raw_storage(),
+    );
+    assert_eq!(reopened.indices(), matrix.indices());
+    assert_eq!(
+        reopened.data().len(),
+        3,
+        "the units conjure at the entry count"
+    );
+
+    // Requesting a valued view of a structure-only file is rejected.
+    assert_matches!(
+        file.matrix::<f32, u32, u64>(),
+        Err(SprsMatrixError::Elements { .. }),
+    );
+
+    // The raw region accessors serve the validated regions without the
+    // structural pass; a wrong element type is still rejected.
+    assert_eq!(
+        file.indptr::<u64>().expect("the pointer region reads"),
+        matrix.indptr().raw_storage(),
+    );
+    assert_eq!(
+        file.indices::<u32>().expect("the index region reads"),
+        matrix.indices(),
+    );
+    assert_matches!(file.indices::<u64>(), Err(SprsMatrixError::Elements { .. }),);
+}

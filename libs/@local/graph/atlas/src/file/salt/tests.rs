@@ -108,7 +108,7 @@ fn files() -> SaltFiles {
         edge_identities: file("edge-identities.idnt"),
         ontology_identities: file("ontology-identities.idnt"),
         edge_endpoints: file("edge-endpoints.arr"),
-        adjacency: file("adjacency.adjc"),
+        adjacency: file("adjacency.sprs"),
         projector: Some(file("projector.mpk")),
         reviewed_verdicts: Some(file("reviewed-verdicts.json")),
     }

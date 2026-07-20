@@ -47,7 +47,7 @@ use core::{
 use super::{GeometryClass, Posterior};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, kernel::mul_add_f64x8},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DVecN, kernel::mul_add_f64x8},
 };
 
 pub(crate) mod artifact;
@@ -211,12 +211,11 @@ fn standardized_distance(
 
 /// Temperature-scaled softmax over class logits.
 ///
-/// The shared maximum is subtracted before scaling, so finite logits
-/// and a positive temperature always produce a valid distribution.
+/// The logits divide by the temperature and pass through the
+/// max-shifted [`DVecN::softmax`], so finite logits and a positive
+/// temperature always produce a valid distribution.
 fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> [f64; GeometryClass::COUNT] {
-    let maximum = logits.into_iter().fold(f64::NEG_INFINITY, f64::max);
-    let exponentials = logits.map(|value| ((value - maximum) / temperature).exp());
-
-    let denominator = exponentials.into_iter().sum::<f64>();
-    exponentials.map(|value| value / denominator)
+    *DVecN::new(logits.map(|value| value / temperature))
+        .softmax()
+        .as_array()
 }
