@@ -10,7 +10,7 @@ use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
-    StageError, SuppliedVerdicts,
+    StageError, SuppliedAnnotations, SuppliedVerdicts,
     compute::{PlacementInner, placement_device, resolve_supplied},
     error::PlacementError,
     fit,
@@ -36,7 +36,7 @@ use crate::{
         region::ByteStable,
         salt::{
             SaltRepository,
-            metadata::{FrozenRadiusEvidence, Placement, RankingOrigin},
+            metadata::{ClassifierEvidence, FrozenRadiusEvidence, Placement, RankingOrigin},
         },
         sprs::read::SprsFile,
     },
@@ -48,7 +48,7 @@ use crate::{
         ladder::CanonicalError,
         landmark::{artifact::LandmarkSkeletonArchive, select::SelectionOptions},
         policy::{
-            PolicyOverride, PolicySource, Posterior,
+            GeometryClass, PolicyOverride, PolicySource, Posterior,
             artifact::PolicyTableArchive,
             classifier::{
                 Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
@@ -198,6 +198,27 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
+/// A config echo published before the classifier supply settings
+/// existed omits them; it deserializes to the compiled defaults, so
+/// generations from before the fields stay openable.
+#[test]
+fn a_config_echo_without_classifier_supply_settings_still_parses() {
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
+
+    let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+    let policy = document
+        .get_mut("policy")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the echo carries a policy object");
+    assert!(policy.remove("assembly").is_some());
+    assert!(policy.remove("classifier_fit").is_some());
+
+    let echoed: Echo =
+        serde_json::from_value(document).expect("the pre-supply echo still deserializes");
+    assert_eq!(echoed.0, config());
+}
+
 fn config() -> FitConfig {
     FitConfig {
         seed: 7,
@@ -273,6 +294,22 @@ fn fixture_input() -> ClassifierInput {
     supplied(fixture_classifier())
 }
 
+/// Asserts every file the manifest lists matches its recorded digest
+/// byte for byte.
+fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
+    for entry in repository.files.files() {
+        let bytes = fs::read(path.join(entry.name.as_str())).expect("a published file should read");
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        assert_eq!(
+            hasher.finalize(),
+            entry.hash,
+            "{} should match its recorded digest",
+            entry.name,
+        );
+    }
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fit_publishes_a_complete_generation() {
@@ -299,21 +336,23 @@ async fn fit_publishes_a_complete_generation() {
         fs::read(published.path().join("metadata.json")).expect("the document should read");
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
-    for entry in repository.files.files() {
-        let bytes = fs::read(published.path().join(entry.name.as_str()))
-            .expect("a published file should read");
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        assert_eq!(
-            hasher.finalize(),
-            entry.hash,
-            "{} should match its recorded digest",
-            entry.name,
-        );
-    }
+    assert_digests_match(published.path(), &repository);
 
     // No verdicts were supplied: the manifest records the absence.
     assert!(repository.files.reviewed_verdicts.is_none());
+    // The classifier was supplied: the manifest records the source
+    // digest and stages no annotation artifacts.
+    assert!(repository.files.annotation_corpus.is_none());
+    assert!(repository.files.annotation_embeddings.is_none());
+    assert!(repository.files.annotation_hashes.is_none());
+    let mut hasher = Sha256::new();
+    hasher.update(b"fixture classifier artifact");
+    assert_eq!(
+        repository.metadata.evidence.classifier,
+        Some(ClassifierEvidence::Supplied {
+            source: hasher.finalize(),
+        }),
+    );
     // The baseline placement trains no model: the manifest records
     // the checkpoint's absence beside the placement identity.
     assert!(repository.files.projector.is_none());
@@ -662,6 +701,237 @@ async fn supplied_verdicts_publish_verbatim() {
     assert_eq!(bytes, document.as_bytes());
     let read_back = ReviewedVerdicts::from_slice(&bytes).expect("the published bytes still parse");
     assert_eq!(read_back.type_verdicts().len(), 1);
+}
+
+/// Composes one vote with conforming provenance.
+fn annotation_vote(verdict: &str) -> serde_json::Value {
+    serde_json::json!({
+        "card_hash": "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b",
+        "effort": "high",
+        "framing": "S1xF1",
+        "model_pinned": "gpt-5.2",
+        "model_returned": "gpt-5.2-2026-05-01",
+        "prompt_pack_hash": "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b",
+        "provider": "amazon-bedrock",
+        "quantization": null,
+        "repeat_index": 0,
+        "rubric_version": "v2",
+        "seed": 7,
+        "temperature": 0.2,
+        "verdict": verdict,
+    })
+}
+
+/// Composes one hash-identity annotation card; a distinct `slug` and
+/// `family` per card keeps every card its own fold group.
+fn annotation_card(
+    slug: &str,
+    family: &str,
+    holdout: Option<&str>,
+    votes: &[serde_json::Value],
+) -> serde_json::Value {
+    serde_json::json!({
+        "axes": {
+            "base_url": format!("https://hash.ai/@h/types/entity-type/{slug}/"),
+            "family": family,
+            "inverse_of": [],
+            "publisher": "hash.ai/@h",
+        },
+        "content": {
+            "aliases": [],
+            "ancestors": [],
+            "constraints": {
+                "direction": "source -> target",
+                "distinct_values": null,
+                "single_value": null,
+                "symmetric": null,
+                "transitive": null,
+            },
+            "description": format!("The subject stands in the {slug} relation to the object."),
+            "endpoint_constraints": [],
+            "examples": [],
+            "inverse": null,
+            "language": "en",
+            "slug": slug,
+            "source_types": [{"description": null, "label": "Thing"}],
+            "target_types": [{"description": null, "label": "Thing"}],
+            "title": slug,
+        },
+        "flags": {"holdout": holdout, "prescreen_stratum": null, "shot_excluded": false},
+        "identity": format!("https://hash.ai/@h/types/entity-type/{slug}/v/1"),
+        "retrieved_at": null,
+        "source": "hash",
+        "source_record_hash": null,
+        "votes": votes,
+    })
+}
+
+/// Composes the six-card fixture corpus: four trained cards in four
+/// fold groups, one geometry-verdict holdout, one unclear-verdict
+/// holdout; cards ascend by identity.
+fn annotation_document() -> String {
+    serde_json::json!({
+        "cards": [
+            annotation_card(
+                "alpha",
+                "f-1",
+                None,
+                &[annotation_vote("overlay"), annotation_vote("overlay")],
+            ),
+            annotation_card(
+                "beta",
+                "f-2",
+                None,
+                &[annotation_vote("coincident"), annotation_vote("proximal")],
+            ),
+            annotation_card(
+                "delta",
+                "f-3",
+                None,
+                &[annotation_vote("proximal"), annotation_vote("proximal")],
+            ),
+            annotation_card(
+                "gamma",
+                "f-4",
+                None,
+                &[annotation_vote("overlay"), annotation_vote("coincident")],
+            ),
+            annotation_card(
+                "rho",
+                "f-5",
+                Some("proximal"),
+                &[annotation_vote("proximal"), annotation_vote("proximal")],
+            ),
+            annotation_card(
+                "sigma",
+                "f-6",
+                Some("unclear"),
+                &[annotation_vote("unclear")],
+            ),
+        ],
+        "schema": "atlas-annotation-corpus/1",
+        "sources": {"cards.jsonl": "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b"},
+    })
+    .to_string()
+}
+
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn an_annotation_corpus_fits_and_stages_the_classifier() {
+    let root = GenerationRoot::new(scratch("annotations")).expect("the root should open");
+    let dataset = dataset();
+
+    let document = annotation_document();
+    let supplied = SuppliedAnnotations::from_bytes(document.as_bytes())
+        .expect("a contract-conforming corpus admits");
+
+    let mut config = config();
+    config.policy.classifier_fit = ClassifierFitConfig { folds: 2, .. };
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        &ClassifierInput::Annotations(supplied.clone()),
+        None,
+        None,
+        &root,
+    )
+    .await
+    .expect("the fit should publish");
+
+    // The manifest binds the corpus role to the supplied file's
+    // identity, and every staged file matches its recorded digest.
+    let manifest =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&manifest).expect("the document should deserialize");
+    assert_digests_match(published.path(), &repository);
+    let corpus_entry = repository
+        .files
+        .annotation_corpus
+        .as_ref()
+        .expect("the supplied corpus should be staged");
+    assert_eq!(corpus_entry.name.as_str(), "annotation-corpus.json");
+    assert_eq!(corpus_entry.hash, supplied.hash());
+
+    // The published corpus bytes are the supplied file verbatim.
+    let bytes = fs::read(published.path().join("annotation-corpus.json"))
+        .expect("the published corpus should read");
+    assert_eq!(bytes, document.as_bytes());
+
+    // The annotation embedding table carries the trained rows first
+    // and the holdout rows after them, at the canonical width.
+    assert!(repository.files.annotation_embeddings.is_some());
+    assert!(repository.files.annotation_hashes.is_some());
+    let embeddings = ArrayFile::open(published.path().join("annotation-embeddings.arr"))
+        .expect("the annotation matrix should map");
+    let rows: &[AlignedVecN<CANONICAL_DIMENSIONS>] = embeddings
+        .vectors()
+        .expect("the annotation matrix holds canonical-width rows");
+    assert_eq!(rows.len(), 6);
+
+    // The staged classifier is the fitted model, reading back valid.
+    let reopened = Classifier::from_artifact(
+        &ClassifierFile::open(published.path().join("classifier.clsf"))
+            .expect("the classifier should map"),
+    )
+    .expect("the fitted classifier validates");
+
+    // The evidence records the assembly policy, the fit summary, and
+    // the holdout evaluation; the unclear verdict asserts no geometry
+    // class and stays out of the agreement denominator.
+    let Some(ClassifierEvidence::Fitted {
+        corpus,
+        assembly,
+        fit: summary,
+        holdout,
+    }) = repository.metadata.evidence.classifier
+    else {
+        panic!("the manifest should record an in-run classifier fit");
+    };
+    assert_eq!(corpus, supplied.hash());
+    assert_eq!(assembly.supplied, 6);
+    assert_eq!(assembly.trained, 4);
+    assert_eq!(assembly.holdouts_excluded, 2);
+    assert_eq!(assembly.zero_weight_dropped, 0);
+    assert_eq!(assembly.fold_groups, 4);
+    assert_eq!(summary.folds, 2);
+    assert!(summary.iterations > 0);
+    assert!(summary.raw_cross_entropy.is_finite());
+
+    assert_eq!(holdout.cards.len(), 2);
+    assert_eq!(holdout.evaluated, 1);
+    let rho = &holdout.cards[0];
+    assert_eq!(rho.identity, "https://hash.ai/@h/types/entity-type/rho/v/1",);
+    assert_eq!(rho.agree, Some(rho.predicted == GeometryClass::Proximal));
+    assert_eq!(holdout.agreements, usize::from(rho.agree == Some(true)));
+    let sigma = &holdout.cards[1];
+    assert_eq!(
+        sigma.identity,
+        "https://hash.ai/@h/types/entity-type/sigma/v/1",
+    );
+    assert_eq!(sigma.agree, None);
+
+    // The recorded prediction is the staged model's own argmax over
+    // the holdout card's staged embedding.
+    let prediction = reopened
+        .predict(&rows[4])
+        .expect("the holdout embedding classifies");
+    let expected = [
+        GeometryClass::Coincident,
+        GeometryClass::Proximal,
+        GeometryClass::Overlay,
+    ]
+    .into_iter()
+    .max_by(|left, right| {
+        prediction
+            .calibrated
+            .probability(*left)
+            .total_cmp(&prediction.calibrated.probability(*right))
+    })
+    .expect("the class set is nonempty");
+    assert_eq!(rho.predicted, expected);
 }
 
 #[tokio::test]

@@ -11,20 +11,16 @@ authors.workspace = true
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
-# argmin-math: its traits are implemented on public math types, making it
-# public API. Default features stay OFF (`vec` unconditionally drags
-# `rand 0.9` beside our `rand 0.10`); `primitives` supplies the scalar
-# impls argmin's float plumbing needs.
-argmin-math = { version = "0.5.1", default-features = false, features = ["primitives"], public = true }
-# camino: `Utf8PathBuf` rides the serving surface (`GenerationRoot::new`
-# takes the root directory), so the path types are public API.
+argmin-math    = { workspace = true, features = ["primitives"], public = true }
 camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
 rand           = { workspace = true, public = true }
 rand_core      = { workspace = true, public = true }
+sprs           = { workspace = true, public = true }
 tokio          = { workspace = true, features = ["macros", "rt-multi-thread", "sync"], public = true }
 tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
 uuid           = { workspace = true, public = true, features = ["std", "v7"] }
+zerocopy       = { workspace = true, features = ["derive"], public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true }
@@ -33,70 +29,43 @@ hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 
 # Private third-party dependencies
-# aide: OpenAPI documentation over the operator binary's axum routes;
-# the `cli` feature only, like axum itself.
-aide = { version = "0.16.0-alpha.4", optional = true, features = ["axum", "axum-json", "macros", "scalar"] }
-# argmin: the L-BFGS driver for the policy-classifier fit. Default
-# features stay OFF (`rand` drags rand 0.9 beside our rand 0.10); the
-# solver runs on the argmin-math impls over `math::BoxedDVecN`.
-argmin = { version = "0.11.0", default-features = false }
-# axum + clap + tracing-subscriber: the `atlas` operator binary only
-# (the `cli` feature); the library proper never touches them.
-axum = { workspace = true, optional = true }
-clap = { workspace = true, optional = true, features = ["derive", "env"] }
-# burn: the projector's training/inference framework. `ndarray` is the
-# CPU backend every test runs on; `autodiff` is the decorator the
-# training loop wraps around whichever backend the benchmark selects
-# (a GPU feature would be added beside `ndarray`, not instead of it).
-burn              = { version = "0.21.0", features = ["autodiff", "ndarray"] }
-futures.workspace = true
-hannoy            = "0.1.7-nested-rtxns"
-heed              = "0.22.1"
-# kiddo: the hard-negative miner's exact 2D index. Ratified by
-# measurement (`benches/miner_index.rs`): skew-immune where the
-# uniform grid degrades with cluster occupancy and usearch's graph
-# build buys nothing at 2D. Drags num-traits, ordered-float, and cmov.
-# The `rkyv_08` feature serializes the serving locate index into its
-# disk cache; kiddo's `ImmutableKdTree` implements rkyv 0.8's
-# `Archive` directly under it.
-kiddo            = { version = "5.3.2", features = ["rkyv_08"] }
-memchr.workspace = true
-memmap2          = "0.9"
-# rkyv: the locate index cache codec, pinned to the same 0.8 line
-# kiddo's `rkyv_08` feature binds.
-pin-project-lite.workspace = true
-rand_core_06               = { version = "0.6", package = "rand_core" }
-rkyv                       = "0.8.9"
-# rand_xoshiro: the pipeline's stage generator. The algorithm is pinned
-# by name because a recorded fit seed re-derives the deterministic
-# stages only while the generator behind the stage seeds stays fixed.
-rand_xoshiro                   = { workspace = true }
-rayon                          = { workspace = true }
-regex                          = { workspace = true }
-schemars                       = "1.2.1"
-serde                          = { workspace = true, features = ["derive"] }
-serde_json                     = { workspace = true, features = ["float_roundtrip"] }
-sha2                           = { workspace = true }
-simple-mermaid                 = { workspace = true }
-sleef                          = "0.3"
-smallvec.workspace             = true
-sprs                           = { version = "0.11.4", public = true }
-tiktoken-rs                    = "0.12.0"
-tracing                        = { workspace = true }
-tracing-subscriber             = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
-unicode-segmentation.workspace = true
-unidecode                      = "0.3.0"
-zerocopy                       = { version = "0.8.54", features = ["derive"], public = true }
+aide                 = { workspace = true, optional = true, features = ["axum", "axum-json", "macros", "scalar"] }
+argmin               = { workspace = true }
+axum                 = { workspace = true, optional = true }
+burn                 = { workspace = true, features = ["autodiff", "ndarray"] }
+clap                 = { workspace = true, optional = true, features = ["derive", "env"] }
+futures              = { workspace = true }
+hannoy               = { workspace = true }
+heed                 = { workspace = true }
+kiddo                = { workspace = true, features = ["rkyv_08"] }
+memchr               = { workspace = true }
+memmap2              = { workspace = true }
+pin-project-lite     = { workspace = true }
+rand_core_06         = { workspace = true }
+rand_xoshiro         = { workspace = true }
+rayon                = { workspace = true }
+regex                = { workspace = true }
+rkyv                 = { workspace = true }
+schemars             = { workspace = true }
+serde                = { workspace = true, features = ["derive"] }
+serde_json           = { workspace = true, features = ["float_roundtrip"] }
+sha2                 = { workspace = true }
+simple-mermaid       = { workspace = true }
+sleef                = { workspace = true }
+smallvec             = { workspace = true }
+tiktoken-rs          = { workspace = true }
+tracing              = { workspace = true }
+tracing-subscriber   = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
+unicode-segmentation = { workspace = true }
+unidecode            = { workspace = true }
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
-proptest.workspace        = true
+proptest                  = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
-# uuid v5: tests re-derive versioned-URL identities through the raw
-# UUIDv5 constructor to cross-check `OntologyTypeUuid::from_url`.
-uuid = { workspace = true, features = ["v5"] }
+uuid                      = { workspace = true, features = ["v5"] }
 
 [features]
 # Exposes `hash_graph_atlas::bench`, the measurement seams the

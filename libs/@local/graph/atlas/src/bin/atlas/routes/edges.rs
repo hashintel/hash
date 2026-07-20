@@ -23,6 +23,12 @@ const DESCRIPTION: &str =
     "Assembles the edges among the nodes delivered for the listed tiles: an edge ships iff BOTH \
      of its endpoints are delivered (the union of the tiles' delivered sets).
 
+The union spans ALL listed tiles, so list the whole viewport in one request: an edge between two \
+     different listed tiles ships. A tile's delivered set is its ZOOM-GATED delivery - the dots \
+     the tile endpoint ships for that z/x/y - not spatial containment; an edge does not ship \
+     while either endpoint is outside every listed tile or sits below the listed zoom's \
+     level-of-detail cut, and it appears once the viewport or zoom reaches that endpoint.
+
 The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list. The response is \
      a `SALTILEE` envelope whose three columns (sources, targets, edge row ids) ride ascending by \
      edge row id, independent of the tile list - identical requests yield identical bytes.

@@ -9,7 +9,7 @@
 //! store, at the snapshot the generation records, and returns the
 //! serialized report.
 
-use core::num::NonZero;
+use core::{fmt, num::NonZero};
 use std::path::Path;
 
 use camino::Utf8PathBuf;
@@ -23,8 +23,11 @@ use super::{
 };
 use crate::{
     dataset::postgres::PostgresDataset,
-    file::{generation::GenerationRoot, sprs::read::SprsFile},
-    salt::knn::artifact::KnnArchive,
+    file::{
+        generation::GenerationRoot,
+        sprs::read::{OpenSprsError, SprsFile},
+    },
+    salt::knn::artifact::{InvalidKnnFile, KnnArchive},
 };
 
 /// One published table's grouping shape across candidate thresholds.
@@ -51,18 +54,52 @@ pub struct SweepReading {
     pub grouped_rows: usize,
 }
 
+/// A sweep input's refusal: the path does not hold a readable k-NN
+/// table.
+///
+/// Splices into the chain transparently: the display text and the
+/// sources are the wrapped crate-internal fault's, unchanged.
+#[derive(Debug)]
+pub struct SweepError(SweepFault);
+
+/// The two ways the table fails to open.
+#[derive(Debug)]
+enum SweepFault {
+    /// The sparse file could not be opened.
+    Open(OpenSprsError),
+    /// The file does not hold a valid k-NN table.
+    Archive(InvalidKnnFile),
+}
+
+impl fmt::Display for SweepError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            SweepFault::Open(error) => fmt::Display::fmt(error, fmt),
+            SweepFault::Archive(error) => fmt::Display::fmt(error, fmt),
+        }
+    }
+}
+
+impl core::error::Error for SweepError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match &self.0 {
+            SweepFault::Open(error) => error.source(),
+            SweepFault::Archive(error) => error.source(),
+        }
+    }
+}
+
 /// Reads the grouping shape of the k-NN table at `path` for every
 /// candidate threshold.
 ///
 /// # Errors
 ///
-/// Returns an error when the file cannot be opened or does not hold a
-/// valid k-NN table.
-pub fn sweep(
-    path: impl AsRef<Path>,
-    epsilons: &[f32],
-) -> Result<Sweep, Box<dyn core::error::Error + Send + Sync>> {
-    let table = KnnArchive::new(SprsFile::open(path)?)?;
+/// Returns a [`SweepError`] when the file cannot be opened or does
+/// not hold a valid k-NN table.
+pub fn sweep(path: impl AsRef<Path>, epsilons: &[f32]) -> Result<Sweep, SweepError> {
+    let table =
+        KnnArchive::new(SprsFile::open(path).map_err(|error| SweepError(SweepFault::Open(error)))?)
+            .map_err(|error| SweepError(SweepFault::Archive(error)))?;
     let view = table.view();
 
     Ok(Sweep {

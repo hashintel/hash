@@ -164,6 +164,42 @@ fn lod_evidence() -> LodEvidence {
     }
 }
 
+fn classifier_evidence() -> ClassifierEvidence {
+    ClassifierEvidence::Fitted {
+        corpus: digest("annotation-corpus.json"),
+        assembly: AssemblyEvidence {
+            supplied: 1_684,
+            shot_excluded: 14,
+            holdouts_excluded: 6,
+            zero_weight_dropped: 3,
+            trained: 1_661,
+            unique_texts: 1_667,
+            severely_truncated: 0,
+            fold_groups: 1_088,
+            near_duplicate_pairs: 12,
+            near_duplicate_epsilon: 2.0e-3,
+        },
+        fit: ClassifierFitSummary {
+            folds: 5,
+            iterations: 137,
+            raw_cross_entropy: 0.61,
+            calibrated_cross_entropy: 0.58,
+            raw_brier: 0.41,
+            calibrated_brier: 0.39,
+        },
+        holdout: HoldoutEvidence {
+            evaluated: 5,
+            agreements: 4,
+            cards: vec![HoldoutRecord {
+                identity: "https://hash.ai/@h/types/entity-type/delivers/v/1".to_owned(),
+                human: HoldoutClass::Proximal,
+                predicted: GeometryClass::Proximal,
+                agree: Some(true),
+            }],
+        },
+    }
+}
+
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -197,39 +233,7 @@ fn evidence() -> Evidence {
             relations: 49,
             overridden: 1,
         },
-        classifier: Some(ClassifierEvidence::Fitted {
-            corpus: digest("annotation-corpus.json"),
-            assembly: AssemblyEvidence {
-                supplied: 1_684,
-                shot_excluded: 14,
-                holdouts_excluded: 6,
-                zero_weight_dropped: 3,
-                trained: 1_661,
-                unique_texts: 1_667,
-                severely_truncated: 0,
-                fold_groups: 1_088,
-                near_duplicate_pairs: 12,
-                near_duplicate_epsilon: 2.0e-3,
-            },
-            fit: ClassifierFitSummary {
-                folds: 5,
-                iterations: 137,
-                raw_cross_entropy: 0.61,
-                calibrated_cross_entropy: 0.58,
-                raw_brier: 0.41,
-                calibrated_brier: 0.39,
-            },
-            holdout: HoldoutEvidence {
-                evaluated: 5,
-                agreements: 4,
-                cards: vec![HoldoutRecord {
-                    identity: "https://hash.ai/@h/types/entity-type/delivers/v/1".to_owned(),
-                    human: HoldoutClass::Proximal,
-                    predicted: GeometryClass::Proximal,
-                    agree: Some(true),
-                }],
-            },
-        }),
+        classifier: Some(classifier_evidence()),
         relations: BuildEvidence {
             pruning_threshold: 0.001,
             retained_edges: 8_700_000,

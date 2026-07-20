@@ -39,12 +39,11 @@ use crate::{
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::{FitConfig, PlacementOptions, fit},
+        fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
         knn::table::Knn,
         landmark::select::SelectionOptions,
         policy::classifier::{
-            Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
-            fit as fit_classifier,
+            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
         },
     },
 };

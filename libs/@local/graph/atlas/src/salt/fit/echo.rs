@@ -707,9 +707,12 @@ struct PolicyOptionsDef {
     overrides: Vec<PolicyOverride>,
     #[serde(with = "CoincidentAdmissionDef")]
     admission: CoincidentAdmission,
-    #[serde(with = "assembly_config")]
+    // Documents published before these settings existed omit them;
+    // no classifier fit consumed them there, so the compiled defaults
+    // are a faithful echo of those runs.
+    #[serde(with = "assembly_config", default)]
     assembly: AssemblyConfig,
-    #[serde(with = "classifier_fit_config")]
+    #[serde(with = "classifier_fit_config", default)]
     classifier_fit: ClassifierFitConfig,
 }
 
@@ -775,10 +778,6 @@ mod classifier_fit_config {
         seed: u64,
     }
 
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` contract passes the field by reference"
-    )]
     pub(super) fn serialize<S>(config: &FitConfig, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

@@ -61,6 +61,11 @@ pub(crate) use self::precedence::{
 )]
 #[repr(u8)]
 #[serde(rename_all = "lowercase")]
+#[expect(
+    clippy::unsafe_derive_deserialize,
+    reason = "the enum is fieldless: every derived value is one of the three declared variants, \
+              the same domain the unsafe discriminant construction is checked against"
+)]
 pub(crate) enum GeometryClass {
     /// The endpoints share a referent; distance above a small
     /// normalized radius is penalized.

@@ -37,8 +37,8 @@ use crate::{
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
     morton::{Depth, MortonCell, MortonKey},
     salt::{
-        CardEmbedder, Classifier, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions,
-        TrainingRow, TrainingSet,
+        CardEmbedder, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions, TrainingRow,
+        TrainingSet,
         fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
         fit_classifier,
         lod::stage::LodConfig,

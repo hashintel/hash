@@ -54,6 +54,9 @@ enum Command {
 
 /// Store, root, and run settings of one fit.
 #[derive(Debug, Args)]
+#[command(group = clap::ArgGroup::new("classifier_input")
+    .required(true)
+    .args(["annotations", "classifier"]))]
 struct FitArgs {
     /// The store connection string.
     #[arg(
@@ -95,6 +98,18 @@ struct FitArgs {
     /// force needs one to train.
     #[arg(long, env = "ATLAS_VERDICTS")]
     verdicts: Option<String>,
+
+    /// Path of an annotation-corpus document: the classifier's
+    /// training supply. The run assembles it, fits the relation
+    /// classifier, and stages the corpus, the embedding table, and
+    /// the model beside the generation.
+    #[arg(long, env = "ATLAS_ANNOTATIONS")]
+    annotations: Option<String>,
+
+    /// Path of a fitted classifier artifact (.clsf) to supply in
+    /// place of fitting one.
+    #[arg(long, env = "ATLAS_CLASSIFIER")]
+    classifier: Option<String>,
 
     /// Override the trained placement's step count, keeping the
     /// ratified options and the midpoint boundary.
@@ -372,6 +387,8 @@ async fn fit(args: FitArgs) -> Result<(), ToolError> {
         anchors: args.anchors,
         comparisons: args.comparisons,
         verdicts: args.verdicts,
+        annotations: args.annotations,
+        classifier: args.classifier,
         projector_steps: args.projector_steps,
         baseline: args.baseline,
     };
@@ -383,6 +400,8 @@ async fn fit(args: FitArgs) -> Result<(), ToolError> {
         anchors = options.anchors.get(),
         comparisons = options.comparisons.get(),
         verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
+        annotations = options.annotations.as_deref().unwrap_or("<none>"),
+        classifier = options.classifier.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),
         baseline = options.baseline,
         asserted_proximal_radius = ?options.asserted_proximal_radius,

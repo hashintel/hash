@@ -19,11 +19,10 @@ use crate::{
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::{FitConfig, PlacementOptions},
+        fit::{ClassifierInput, FitConfig, PlacementOptions},
         landmark::select::SelectionOptions,
         policy::classifier::{
-            Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
-            fit as fit_classifier,
+            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
         },
         quality::{probe::ProbeOptions, report::QualityThresholds, runner::QualityRunOptions},
     },

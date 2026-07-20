@@ -24,17 +24,22 @@ use camino::Utf8PathBuf;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
 
 use crate::{
-    dataset::{TemporalAxes, postgres::PostgresDataset},
+    dataset::{
+        TemporalAxes,
+        postgres::{PostgresDataset, PostgresDatasetError},
+    },
     file::generation::GenerationRoot,
     math::AffinityCurve,
     salt::{
         fit::{
-            ClassifierInput, FitConfig, PlacementOptions, ProjectorOptions, SuppliedAnnotations,
-            SuppliedVerdicts, stub::StubEmbedder,
+            ClassifierInput, ClassifierSupplyError, FitConfig, PlacementOptions, ProjectorOptions,
+            SuppliedAnnotations, SuppliedVerdicts,
+            annotations::SupplyError as AnnotationSupplyError, stub::StubEmbedder,
+            verdicts::SupplyError as VerdictSupplyError,
         },
         landmark::select::SelectionOptions,
         projector::train::{RelationLens, TrainingSchedule},
-        runner::{Admission, PriorMode, RunnerOptions, run},
+        runner::{Admission, PriorMode, RunnerError, RunnerOptions, run},
     },
 };
 
@@ -186,22 +191,111 @@ pub struct Summary {
     pub report: String,
 }
 
+/// The snapshot step's fault: the store dataset could not open a
+/// transaction over the current snapshot.
+#[derive(Debug)]
+pub struct SnapshotError(PostgresDatasetError);
+
+impl fmt::Display for SnapshotError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl CoreError for SnapshotError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        self.0.source()
+    }
+}
+
+/// The verdicts step's fault: the reviewed-verdicts document was
+/// refused.
+#[derive(Debug)]
+pub struct VerdictsError(VerdictSupplyError);
+
+impl fmt::Display for VerdictsError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl CoreError for VerdictsError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        self.0.source()
+    }
+}
+
+/// The annotations step's fault: the annotation-corpus document
+/// was refused.
+#[derive(Debug)]
+pub struct AnnotationsError(AnnotationSupplyError);
+
+impl fmt::Display for AnnotationsError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl CoreError for AnnotationsError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        self.0.source()
+    }
+}
+
+/// The classifier step's fault: the fitted-classifier artifact
+/// was refused.
+#[derive(Debug)]
+pub struct ClassifierError(ClassifierSupplyError);
+
+impl fmt::Display for ClassifierError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl CoreError for ClassifierError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        self.0.source()
+    }
+}
+
+/// The run step's fault: the generation runner could not reach a
+/// verdict.
+#[derive(Debug)]
+pub struct PipelineError(RunnerError<PostgresDatasetError, !>);
+
+impl fmt::Display for PipelineError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl CoreError for PipelineError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        self.0.source()
+    }
+}
+
 /// One production run's failure, by step.
 ///
-/// Every variant names the step that failed; the source beneath
-/// carries the specific fault.
+/// Every variant names the step that failed and holds that step's
+/// concrete fault - nothing erases to `dyn`. The wrapper types
+/// splice into the chain transparently (their display text and
+/// sources are the wrapped fault's, unchanged), so the operator
+/// surface stays concrete while the pipeline's error taxonomy
+/// stays crate-private.
 #[derive(Debug)]
 pub enum RunError {
     /// The generation root could not open.
     Root(io::Error),
     /// The store could not open a snapshot transaction.
-    Snapshot(Box<dyn CoreError + Send + Sync>),
+    Snapshot(SnapshotError),
     /// The supplied verdicts document was refused.
-    Verdicts(Box<dyn CoreError + Send + Sync>),
+    Verdicts(VerdictsError),
     /// The supplied annotation-corpus document was refused.
-    Annotations(Box<dyn CoreError + Send + Sync>),
+    Annotations(AnnotationsError),
     /// The supplied classifier artifact was refused.
-    Classifier(Box<dyn CoreError + Send + Sync>),
+    Classifier(ClassifierError),
     /// The classifier input is missing or doubled: exactly one of the
     /// annotation-corpus and classifier-artifact paths must be
     /// supplied.
@@ -210,7 +304,7 @@ pub enum RunError {
     /// finite and strictly above the Coincident radius.
     ProximalRadius(f32),
     /// The run could not reach a verdict.
-    Run(Box<dyn CoreError + Send + Sync>),
+    Run(PipelineError),
 }
 
 impl fmt::Display for RunError {
@@ -241,13 +335,30 @@ impl CoreError for RunError {
     fn source(&self) -> Option<&(dyn CoreError + 'static)> {
         match self {
             Self::Root(error) => Some(error),
-            Self::Snapshot(error)
-            | Self::Verdicts(error)
-            | Self::Annotations(error)
-            | Self::Classifier(error)
-            | Self::Run(error) => Some(&**error),
+            Self::Snapshot(error) => Some(error),
+            Self::Verdicts(error) => Some(error),
+            Self::Annotations(error) => Some(error),
+            Self::Classifier(error) => Some(error),
+            Self::Run(error) => Some(error),
             Self::ProximalRadius(_) | Self::ClassifierInput => None,
         }
+    }
+}
+
+/// Resolves the run's classifier input from the exactly-one path
+/// pair.
+fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
+    match (
+        options.annotations.as_deref(),
+        options.classifier.as_deref(),
+    ) {
+        (Some(annotations), None) => Ok(ClassifierInput::Annotations(
+            SuppliedAnnotations::open(annotations)
+                .map_err(|error| RunError::Annotations(AnnotationsError(error)))?,
+        )),
+        (None, Some(classifier)) => ClassifierInput::open_artifact(classifier)
+            .map_err(|error| RunError::Classifier(ClassifierError(error))),
+        (None, None) | (Some(_), Some(_)) => Err(RunError::ClassifierInput),
     }
 }
 
@@ -256,10 +367,10 @@ impl CoreError for RunError {
 ///
 /// # Errors
 ///
-/// Returns an [`Error`] naming the step that failed: opening the
+/// Returns a [`RunError`] naming the step that failed: opening the
 /// root, opening the snapshot transaction, admitting the supplied
-/// verdicts document, validating the asserted Proximal radius, or
-/// the run itself.
+/// verdicts, annotation-corpus, or classifier documents, validating
+/// the asserted Proximal radius, or the run itself.
 ///
 /// # Panics
 ///
@@ -271,7 +382,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
     let root = GenerationRoot::new(Utf8PathBuf::from(root)).map_err(RunError::Root)?;
     let dataset = PostgresDataset::new(client, TemporalAxes::now())
         .await
-        .map_err(|error| RunError::Snapshot(Box::new(error)))?;
+        .map_err(|error| RunError::Snapshot(SnapshotError(error)))?;
 
     let mut runner_options = RunnerOptions {
         fit: FitConfig {
@@ -339,20 +450,9 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         .as_deref()
         .map(SuppliedVerdicts::open)
         .transpose()
-        .map_err(|error| RunError::Verdicts(Box::new(error)))?;
+        .map_err(|error| RunError::Verdicts(VerdictsError(error)))?;
 
-    let classifier = match (
-        options.annotations.as_deref(),
-        options.classifier.as_deref(),
-    ) {
-        (Some(annotations), None) => ClassifierInput::Annotations(
-            SuppliedAnnotations::open(annotations)
-                .map_err(|error| RunError::Annotations(Box::new(error)))?,
-        ),
-        (None, Some(classifier)) => ClassifierInput::open_artifact(classifier)
-            .map_err(|error| RunError::Classifier(Box::new(error)))?,
-        (None, None) | (Some(_), Some(_)) => return Err(RunError::ClassifierInput),
-    };
+    let classifier = classifier_input(&options)?;
 
     let outcome = run(
         &dataset,
@@ -363,7 +463,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         &runner_options,
     )
     .await
-    .map_err(|error| RunError::Run(Box::new(error)))?;
+    .map_err(|error| RunError::Run(PipelineError(error)))?;
 
     let metadata = &outcome.generation.repository().metadata;
     Ok(Summary {

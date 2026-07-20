@@ -15,8 +15,7 @@ pub(crate) use self::{
     policy::{
         PolicyOverride, PolicySource, Posterior,
         classifier::{
-            Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
-            fit as fit_classifier,
+            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
         },
     },
 };
