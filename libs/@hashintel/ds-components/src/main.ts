@@ -16,11 +16,15 @@ export {
   type NetworkGraphSelection,
 } from "./components/Chart/NetworkGraph/network-graph";
 export {
+  type EdgesFetcher,
+  type TileFetcher,
   tileZoomForViewport,
   useGetViewportNodes,
   type UseGetViewportNodesOptions,
   type UseGetViewportNodesResult,
   type Viewport,
+  type ViewportEdge,
+  type ViewportGraph,
   type ViewportNode,
   WORLD_SIZE,
 } from "./components/Chart/NetworkGraph/tiling/use-get-viewport-nodes";

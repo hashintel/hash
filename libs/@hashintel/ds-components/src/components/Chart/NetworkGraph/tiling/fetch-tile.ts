@@ -251,9 +251,10 @@ const requestAtlasOnce = async (
 
 /**
  * Requests `url`, retrying transient failures, resolving only on a 2xx
- * response. A `body` sends it as a JSON `POST`; otherwise it is a `GET`.
+ * response. A `body` sends it as a JSON `POST`; otherwise it is a `GET`. Shared
+ * with the edges transport (`fetch-edges-for-tiles.ts`).
  */
-const requestAtlas = (
+export const requestAtlas = (
   url: string,
   accept: string,
   signal: AbortSignal | undefined,
@@ -280,8 +281,14 @@ const fetchAtlasJson = async (
   }
 };
 
-/** Immutable identities and schedule that bind every tile of one generation. */
-interface SaltileSession {
+/**
+ * Immutable identities and schedule that bind every tile of one generation.
+ *
+ * Shared with the edges transport (`fetch-edges-for-tiles.ts`) via
+ * {@link getSaltileSession}, so a viewport's tile and edge fetches bind to the
+ * same generation and share one bootstrap.
+ */
+export interface SaltileSession {
   /** Active generation, 64 hex characters; addresses the tile route. */
   readonly generation: string;
   /** The same generation as 32 raw bytes; checked against the HEAD echo. */
@@ -294,6 +301,8 @@ interface SaltileSession {
   readonly spanLog2: number;
   /** Deepest requestable zoom the manifest allows. */
   readonly maxZoom: number;
+  /** Cap on the tile list of one edges request (manifest `limits.edgesTiles`). */
+  readonly edgesTiles: number;
 }
 
 const fetchSaltileSession = async (
@@ -328,6 +337,7 @@ const fetchSaltileSession = async (
     variantIndex: 0,
     spanLog2: Math.log2(manifest.bucketSchedule.span),
     maxZoom: manifest.bucketSchedule.maxZoom,
+    edgesTiles: manifest.limits.edgesTiles,
   };
 };
 
@@ -341,7 +351,12 @@ const fetchSaltileSession = async (
  */
 const sessionCache = new Map<string, Promise<SaltileSession>>();
 
-const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
+/**
+ * The memoized SALTILE session for `baseUrl`, bootstrapping it on first use.
+ * Shared by the tile and edges transports so both bind to one generation; a
+ * `404` on either route re-bootstraps through {@link clearAtlasSessionCache}.
+ */
+export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
   const cached = sessionCache.get(baseUrl);
   if (cached) {
     return cached;
