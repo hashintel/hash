@@ -214,7 +214,7 @@
     },
     {
       "id": "param_replenishment_aggressiveness",
-      "name": "Reorder threshold",
+      "name": "Replenishment aggressiveness",
       "variableName": "replenishment_aggressiveness",
       "type": "integer",
       "defaultValue": "160"
