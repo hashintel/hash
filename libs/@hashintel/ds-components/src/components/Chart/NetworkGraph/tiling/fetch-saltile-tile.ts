@@ -30,7 +30,7 @@ import {
   type RequestControls,
 } from "../atlas/saltile-client";
 import { ATLAS_TILE_MAX_ZOOM } from "./atlas-tile-coordinate";
-import { FetchTileError, type TileNode } from "./fetch-tile";
+import { FetchTileError, type FetchedTile, type TileNode } from "./fetch-tile";
 import { WORLD_SIZE } from "./tile-geometry";
 
 /** Construction options for {@link createSaltileTileFetcher}. */
@@ -67,7 +67,7 @@ export const createSaltileTileFetcher = (
   zoom: number,
   tileIndex: number,
   controls?: FetcherControls,
-) => Promise<readonly TileNode[]>) => {
+) => Promise<FetchedTile>) => {
   const fetchImpl: FetchLike =
     options.fetchImpl ?? ((input, init) => fetch(input, init));
   const client = new AtlasClient(options.baseUrl, fetchImpl);
@@ -83,7 +83,7 @@ export const createSaltileTileFetcher = (
     x: number,
     y: number,
     controls: RequestControls,
-  ): Promise<readonly TileNode[]> => {
+  ): Promise<FetchedTile> => {
     const pinned = await getSession();
     if (zoom > pinned.manifest.bucketSchedule.maxZoom) {
       throw new FetchTileError(
@@ -104,7 +104,9 @@ export const createSaltileTileFetcher = (
         y: (tile.positions[index * 2 + 1]! + 1) * scale,
       };
     }
-    return nodes;
+    // `children` is the occupancy bitmask of the four Morton children below this
+    // cut; 0 means nothing deeper exists, i.e. the subtree is fully delivered.
+    return { nodes, complete: tile.children === 0 };
   };
 
   return async (zoom, tileIndex, controls = {}) => {

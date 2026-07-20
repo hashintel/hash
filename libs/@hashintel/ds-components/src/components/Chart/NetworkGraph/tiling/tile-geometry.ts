@@ -163,6 +163,44 @@ export const requiredTiles = (
 export const tileIndexOf = (coordinate: AtlasTileCoordinate): number =>
   coordinate.y * 2 ** coordinate.z + coordinate.x;
 
+/**
+ * The four depth-`z+1` quadrants a tile subdivides into (row-major: NW, NE, SW,
+ * SE). Used by the completeness-pruned descent to step one level finer into a
+ * tile whose subtree is not yet fully delivered.
+ */
+export const childCoordinates = (
+  coordinate: AtlasTileCoordinate,
+): AtlasTileCoordinate[] => {
+  const z = coordinate.z + 1;
+  const x = coordinate.x * 2;
+  const y = coordinate.y * 2;
+  return [
+    { z, x, y },
+    { z, x: x + 1, y },
+    { z, x, y: y + 1 },
+    { z, x: x + 1, y: y + 1 },
+  ];
+};
+
+/**
+ * Whether a tile's world rectangle overlaps `rect`. Tile bounds are half-open
+ * (`[minimum, maximum)`), matching {@link coverRangeForDepth}'s `floor` cover, so
+ * a tile counts when its minimum is at or before `rect`'s far edge and its
+ * maximum is strictly past `rect`'s near edge.
+ */
+export const tileIntersectsRect = (
+  coordinate: AtlasTileCoordinate,
+  rect: Rect,
+): boolean => {
+  const bounds = atlasTileBounds(coordinate);
+  return (
+    bounds.minimumX <= rect.x2 &&
+    bounds.maximumX > rect.x1 &&
+    bounds.minimumY <= rect.y2 &&
+    bounds.maximumY > rect.y1
+  );
+};
+
 /** Gap between two closed intervals; `0` when they overlap or touch. */
 const intervalGap = (
   aMin: number,

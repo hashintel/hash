@@ -22,32 +22,27 @@
  * detailed level) and clamp to `[0, ATLAS_TILE_MAX_ZOOM]`. The viewport
  * rectangle then selects which tiles at that depth are on screen.
  *
- * ## Ancestors
+ * ## Descent
  *
- * A tile only carries the nodes assigned to it at its own depth; it does not
- * repeat nodes from shallower tiles. So the full node set for a region at depth
- * `z` is the union of that region's tiles at depths `0..z`. Every fetch here
- * therefore walks the whole depth stack, and the cache's eviction distance
- * keeps a viewport's ancestor stack resident (their world rectangles contain
- * the viewport, so their spatial distance is zero).
+ * Tiles are a level-of-detail pyramid: a tile carries a spatially fair sample of
+ * its subtree's points (distinct from the samples its ancestors carry) plus a
+ * `complete` flag, set once it has delivered *every* point beneath it. So the
+ * node set for a region is the union of a "cut" through the quadtree — shallow
+ * where the server already delivered a subtree whole, deep where dense clusters
+ * still have undelivered points.
  *
- * ## Even density
+ * {@link getViewportNodes} finds that cut by a completeness-pruned descent: it
+ * fetches the tiles covering the viewport depth by depth, steps into a tile's
+ * children only when the tile came back incomplete, and stops at the viewport's
+ * target depth. Sparse regions terminate early (few fetches); dense clusters walk
+ * to the finest depth, so the individual nodes the quadtree bucketed deep are
+ * fetched exactly where they exist. Ancestors are rendered alongside their
+ * descendants — their samples are disjoint, so the union refines in progressively
+ * as deeper tiles land rather than leaving grid-shaped gaps.
  *
- * The tiles at one depth partition the viewport, so rendering only some of them
- * — the rest still loading, failed, or beyond the enumeration cap — shows as
- * uneven node density that traces the tile grid: covered tiles look dense, the
- * gaps between them sparse. {@link getViewportNodes} therefore contributes a
- * depth's nodes only when it holds *every* tile needed to completely cover the
- * viewport at that depth (an uncapped count; see {@link viewportTileCount}),
- * dropping partial depths so the merged result covers the viewport at uniform
- * density (at the cost of some detail until the whole depth is in).
- *
- * Once a depth qualifies, {@link getViewportNodes} renders *every* tile the cache
- * holds at that depth, not only the viewport-covering ones. Tiles resident just
- * past the viewport edge (pulled in by prefetch, or left over from an earlier
- * viewport) then contribute their nodes ahead of need, so panning across a tile
- * boundary reveals nodes that are already on screen instead of popping them in
- * once the boundary tile becomes required.
+ * The cache's eviction distance keeps a viewport's whole descent resident (an
+ * ancestor's world rectangle contains the viewport, so its spatial distance is
+ * zero), and every descended tile is pinned for the duration of the call.
  *
  * ## Request state
  *
@@ -64,14 +59,19 @@ import {
   atlasTileKey,
   type AtlasTileCoordinate,
 } from "./atlas-tile-coordinate";
-import { ATLAS_API_BASE_URL, fetchTile, type TileNode } from "./fetch-tile";
 import {
+  ATLAS_API_BASE_URL,
+  fetchTile,
+  type FetchedTile,
+  type TileNode,
+} from "./fetch-tile";
+import {
+  childCoordinates,
   clampRectToWorld,
-  requiredTiles,
   tileDistance,
   tileIndexOf,
+  tileIntersectsRect,
   tileZoomForViewport,
-  viewportTileCount,
   WORLD_SIZE,
   type Rect,
   type ViewportRegion,
@@ -86,6 +86,14 @@ export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
  * quadrant tiles plus their shared depth-0 root — the initial overview.
  */
 const INITIAL_TILE_ZOOM = 1;
+
+/**
+ * Safety bound on the tiles fetched at one descent depth. Curve-driven viewports
+ * keep a depth's viewport cover far below this (a few hundred at the deepest
+ * zoom); it only guards a malformed viewport — e.g. the whole world at a deep
+ * target depth — from enumerating an entire grid level.
+ */
+const MAX_DESCENT_FRONTIER = 1024;
 
 /** Default cache budget (~256 fully-delivered tiles). Tunable per instance. */
 const DEFAULT_MAX_BYTES = 64 * 1024 * 1024;
@@ -124,12 +132,12 @@ export interface TileFetchControls {
   readonly signal?: AbortSignal;
 }
 
-/** Fetches the nodes of one tile, addressed as `fetchTile` does. */
+/** Fetches one tile — its nodes plus completeness — addressed as `fetchTile` does. */
 export type TileFetcher = (
   zoom: number,
   tileIndex: number,
   controls?: TileFetchControls,
-) => Promise<readonly TileNode[]>;
+) => Promise<FetchedTile>;
 
 /** Construction options for {@link TileCache}. */
 export interface TileCacheOptions {
@@ -170,6 +178,8 @@ type TileOrigin = "required" | "prefetch";
 interface CacheEntry {
   readonly coordinate: AtlasTileCoordinate;
   readonly nodes: readonly TileNode[];
+  /** Whether the tile delivered its whole subtree; drives the descent's pruning. */
+  readonly complete: boolean;
   readonly bytes: number;
   readonly origin: TileOrigin;
   /** A prefetch-origin tile that a later required load has since claimed. */
@@ -282,20 +292,12 @@ export class TileCache {
   }
 
   /**
-   * Every resident tile's nodes at depth `z`, in insertion order — including
-   * tiles outside the current viewport (pulled in by prefetch, or left resident
-   * from an earlier viewport). {@link getViewportNodes} renders these alongside
-   * the viewport's own tiles so nodes just past a tile boundary are already on
-   * screen when a pan reaches them, rather than popping in.
+   * The stored completeness flag for a resident tile, or `undefined` if the tile
+   * is not resident. The descent reads this right after a load to decide whether
+   * to step into the tile's children (only incomplete tiles are descended).
    */
-  nodesAtDepth(z: number): (readonly TileNode[])[] {
-    const tiles: (readonly TileNode[])[] = [];
-    for (const entry of this.#entries.values()) {
-      if (entry.coordinate.z === z) {
-        tiles.push(entry.nodes);
-      }
-    }
-    return tiles;
+  completeOf(coordinate: AtlasTileCoordinate): boolean | undefined {
+    return this.#entries.get(atlasTileKey(coordinate))?.complete;
   }
 
   /** Recent viewports, oldest first. */
@@ -304,17 +306,28 @@ export class TileCache {
   }
 
   /**
-   * Records the viewport a fetch is servicing so eviction distances are
-   * measured against it and its required tiles are pinned (never evicted).
+   * Records the viewport a fetch is servicing so eviction distances are measured
+   * against it, clearing the previous pins. Any `requiredKeys` are pinned
+   * immediately; a descent that discovers its tiles progressively pins them with
+   * {@link pin} as it goes.
    */
   setActiveViewport(
     rect: Rect,
     depth: number,
-    requiredKeys: ReadonlySet<string>,
+    requiredKeys?: ReadonlySet<string>,
   ): void {
     this.#viewport = { rect, depth };
     this.#pinned.clear();
-    for (const key of requiredKeys) {
+    if (requiredKeys) {
+      for (const key of requiredKeys) {
+        this.#pinned.add(key);
+      }
+    }
+  }
+
+  /** Pins tiles against eviction without clearing existing pins. */
+  pin(keys: Iterable<string>): void {
+    for (const key of keys) {
       this.#pinned.add(key);
     }
   }
@@ -407,11 +420,11 @@ export class TileCache {
       priority: origin === "prefetch" ? "low" : "high",
       signal,
     })
-      .then((nodes) => {
+      .then((fetched) => {
         this.#inflight.delete(key);
         this.#prefetchControllers.delete(key);
-        this.#store(key, coordinate, nodes, origin);
-        return nodes;
+        this.#store(key, coordinate, fetched, origin);
+        return fetched.nodes;
       })
       .catch((error: unknown) => {
         this.#inflight.delete(key);
@@ -430,15 +443,22 @@ export class TileCache {
   #store(
     key: string,
     coordinate: AtlasTileCoordinate,
-    nodes: readonly TileNode[],
+    fetched: FetchedTile,
     origin: TileOrigin,
   ): void {
     const existing = this.#entries.get(key);
     if (existing) {
       this.#bytes -= existing.bytes;
     }
-    const bytes = estimateBytes(nodes);
-    this.#entries.set(key, { coordinate, nodes, bytes, origin, used: false });
+    const bytes = estimateBytes(fetched.nodes);
+    this.#entries.set(key, {
+      coordinate,
+      nodes: fetched.nodes,
+      complete: fetched.complete,
+      bytes,
+      origin,
+      used: false,
+    });
     this.#bytes += bytes;
     this.#evict();
   }
@@ -515,107 +535,102 @@ type TileLoad =
 
 /**
  * Returns the nodes visible in `viewport`, fetching any missing tiles through
- * `cache` and returning the rest from it.
+ * `cache` by a completeness-pruned descent (see the module's "Descent" note) and
+ * returning the merged, id-deduplicated result.
  *
- * A `null` viewport (a freshly mounted graph) returns the initial overview: the
- * four depth-1 quadrant tiles and their depth-0 root ancestor. Otherwise the
- * viewport's rectangle and zoom select a target depth, and the union of that
- * depth's tiles and all shallower ancestor tiles covering the rectangle is
- * fetched and merged (deduplicated by node id). A depth is included only when
- * every tile needed to completely cover the viewport at that depth is present;
- * a depth held only partially is dropped, so the result never mixes a full depth
- * with a partial one — see the module's "Even density" note. A qualifying depth
- * also contributes any other tiles the cache already holds at that depth, so
- * regions just past the viewport edge are drawn ahead of a pan reaching them.
+ * A `null` viewport (a freshly mounted graph) resolves to the initial overview
+ * depth. Otherwise the viewport's rectangle and zoom set the descent's target
+ * depth: the descent fetches the tiles covering the rectangle depth by depth,
+ * steps into a tile's children only when that tile came back incomplete, and
+ * stops at the target depth — so a dense cluster is followed down to the finest
+ * tiles that hold its individual nodes, while sparse regions terminate early.
+ * Ancestors and descendants both render; their samples are disjoint, so nodes
+ * refine in progressively as deeper tiles land rather than leaving grid gaps.
  *
  * After serving the current viewport it records the movement and, while the
  * user is navigating, prefetches the tiles the next viewport is predicted to
  * need (see {@link schedulePrefetch}).
  *
  * @throws {@link ViewportTilesError} when the viewport is malformed, or when
- *   every required tile fetch fails (partial failures return what loaded).
+ *   every tile fetch attempted for the viewport fails (a partial failure returns
+ *   what loaded).
  */
 export const getViewportNodes = async (
   viewport: Viewport | null,
   cache: TileCache,
 ): Promise<ViewportNode[]> => {
-  const { rect, depth } = resolveViewport(viewport);
+  const { rect, depth: targetDepth } = resolveViewport(viewport);
 
-  const coordinates = requiredTiles(rect, depth);
-  const requiredKeys = new Set(coordinates.map(atlasTileKey));
+  // Reset the eviction anchor and pins to this viewport; the descent pins each
+  // tile it touches below, so a concurrent store/evict can't drop one mid-call.
+  cache.setActiveViewport(rect, targetDepth);
 
-  // Pin the required tiles before loading so a concurrent store/evict cannot
-  // drop a tile this call is about to return.
-  cache.setActiveViewport(rect, depth, requiredKeys);
-
-  // Load every required tile, catching each rejection into an outcome tagged
-  // with its coordinate — a bare rejection loses which depth failed, and the
-  // depth-completeness check below needs it. `Promise.all` thus never rejects
-  // here; total failure is detected from `failures` instead.
-  const loads = await Promise.all(
-    coordinates.map((coordinate) =>
-      cache.load(coordinate).then(
-        (tileNodes): TileLoad => ({ coordinate, nodes: tileNodes }),
-        (error: unknown): TileLoad => ({ coordinate, error }),
-      ),
-    ),
-  );
-
-  // Count the successfully-loaded required tiles per depth, so each depth's
-  // viewport coverage can be judged on its own below. The nodes themselves come
-  // from the cache at render time (see below), not from these outcomes.
-  const loadedCountByDepth = new Map<number, number>();
+  const nodes = new Map<number | string, ViewportNode>();
+  const requiredKeys = new Set<string>();
+  let attempted = 0;
   let failures = 0;
   let firstError: unknown;
-  for (const load of loads) {
-    if ("nodes" in load) {
-      loadedCountByDepth.set(
-        load.coordinate.z,
-        (loadedCountByDepth.get(load.coordinate.z) ?? 0) + 1,
-      );
-    } else {
-      failures += 1;
-      firstError ??= load.error;
+
+  // Descend depth by depth from the root. `frontier` is the tiles to fetch at the
+  // current depth: the rect-covering children of the previous depth's *incomplete*
+  // tiles. A complete tile has delivered its whole subtree, so it is a leaf and
+  // its children are never requested.
+  let frontier: AtlasTileCoordinate[] = [{ z: 0, x: 0, y: 0 }];
+  for (let z = 0; z <= targetDepth && frontier.length > 0; z += 1) {
+    for (const coordinate of frontier) {
+      requiredKeys.add(atlasTileKey(coordinate));
     }
+    cache.pin(requiredKeys);
+
+    // Catch each rejection into an outcome tagged with its coordinate, so a
+    // failure never rejects the batch and does not stop the other branches.
+    const loads = await Promise.all(
+      frontier.map((coordinate) =>
+        cache.load(coordinate).then(
+          (tileNodes): TileLoad => ({ coordinate, nodes: tileNodes }),
+          (error: unknown): TileLoad => ({ coordinate, error }),
+        ),
+      ),
+    );
+
+    const next: AtlasTileCoordinate[] = [];
+    for (const load of loads) {
+      attempted += 1;
+      if (!("nodes" in load)) {
+        failures += 1;
+        firstError ??= load.error;
+        continue;
+      }
+      for (const node of load.nodes) {
+        // Dedupe by id: samples are disjoint across the descent, so a collision
+        // would be a backend inconsistency.
+        nodes.set(node.id, { id: node.id, x: node.x, y: node.y });
+      }
+      // Descend only into an incomplete tile, and only below the target depth. A
+      // missing flag (shouldn't happen after a success) is treated as a leaf.
+      if (z < targetDepth && cache.completeOf(load.coordinate) === false) {
+        for (const child of childCoordinates(load.coordinate)) {
+          if (tileIntersectsRect(child, rect)) {
+            next.push(child);
+          }
+        }
+      }
+    }
+    frontier =
+      next.length > MAX_DESCENT_FRONTIER
+        ? next.slice(0, MAX_DESCENT_FRONTIER)
+        : next;
   }
 
-  if (failures === coordinates.length && coordinates.length > 0) {
+  if (attempted > 0 && failures === attempted) {
     throw new ViewportTilesError(
       `all ${failures} tile fetch(es) failed for the viewport`,
       firstError === undefined ? undefined : { cause: firstError },
     );
   }
 
-  // A depth's tiles partition the viewport, so showing only some of them renders
-  // as uneven density that traces the tile grid. Include a depth only when we
-  // hold every tile needed to completely cover the viewport at that depth:
-  // compare the count we loaded against the uncapped cover count. This drops a
-  // depth with a failed tile, and one whose cover exceeds the enumeration cap
-  // (so `requiredTiles` never fetched it whole) — in both cases we can't render
-  // it without gaps.
-  //
-  // Once a depth qualifies, render every tile the cache holds at that depth, not
-  // just the viewport-covering ones. Tiles resident just outside the viewport
-  // (from prefetch, or an earlier viewport) then contribute their nodes too, so
-  // panning across a tile boundary slides already-rendered nodes into view
-  // instead of popping them in once the boundary tile becomes required.
-  const nodes = new Map<number | string, ViewportNode>();
-  for (const [z, loadedCount] of loadedCountByDepth) {
-    if (loadedCount !== viewportTileCount(rect, z)) {
-      continue;
-    }
-    for (const tileNodes of cache.nodesAtDepth(z)) {
-      for (const node of tileNodes) {
-        // Dedupe by id: tiles at one depth partition space (so off-viewport
-        // tiles add distinct nodes) and deeper tiles never repeat ancestor
-        // nodes, so a collision here would be a backend inconsistency.
-        nodes.set(node.id, { id: node.id, x: node.x, y: node.y });
-      }
-    }
-  }
-
   // Record movement, then prefetch for where the viewport is heading.
-  cache.recordHistory(rect, depth);
+  cache.recordHistory(rect, targetDepth);
   schedulePrefetch(cache, requiredKeys);
 
   return [...nodes.values()];

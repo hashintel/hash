@@ -52,6 +52,18 @@ export interface TileNode {
   readonly y: number;
 }
 
+/** A decoded tile: its delivered nodes plus the level-of-detail descent signal. */
+export interface FetchedTile {
+  /** Delivered point representatives; may be a spatially fair prefix of the subtree. */
+  readonly nodes: TileNode[];
+  /**
+   * Whether every point in this tile's subtree was delivered here. When `false`,
+   * the undelivered points live in deeper tiles, so a viewport wanting full
+   * detail descends into this tile's children rather than stopping at it.
+   */
+  readonly complete: boolean;
+}
+
 /** Optional per-call overrides for {@link fetchTile}. */
 export interface FetchTileOptions {
   /** Atlas API origin. Defaults to {@link ATLAS_API_BASE_URL}. */
@@ -403,7 +415,7 @@ const fetchAndDecodeTile = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
-): Promise<TileNode[]> => {
+): Promise<FetchedTile> => {
   const { z, x, y } = coordinate;
   const expectation: AtlasTileExpectation = {
     coordinate,
@@ -434,7 +446,7 @@ const fetchAndDecodeTile = async (
     );
   }
 
-  const { deliveredCount, positions, rowIds } = tile;
+  const { complete, deliveredCount, positions, rowIds } = tile;
   const nodes: TileNode[] = new Array<TileNode>(deliveredCount);
   for (let index = 0; index < deliveredCount; index += 1) {
     const id = rowIds[index];
@@ -450,7 +462,7 @@ const fetchAndDecodeTile = async (
     nodes[index] = { id, x: nodeX, y: nodeY };
   }
 
-  return nodes;
+  return { nodes, complete };
 };
 
 /**
@@ -461,9 +473,10 @@ const fetchAndDecodeTile = async (
  * grid flattened row-major into a single line, so it must be an integer in
  * `[0, 4 ** zoom)`.
  *
- * @returns The delivered points, each as a durable id and its global 16-bit
- *   world coordinates. May be empty (or a truncated, spatially fair prefix) when
- *   the server's point budget caps delivery for the quadrant.
+ * @returns The tile's delivered points (each a durable id and global 16-bit
+ *   world coordinates) plus its `complete` flag. The points may be a truncated,
+ *   spatially fair prefix when the server's budget caps delivery; `complete` is
+ *   then `false`, signalling that deeper tiles hold the rest.
  * @throws {@link FetchTileError} when the arguments are out of range, a
  *   request fails or is rejected, or the tile payload fails to decode or does
  *   not belong to the requested route and active generation.
@@ -472,7 +485,7 @@ export const fetchTile = async (
   zoom: number,
   tileIndex: number,
   options: FetchTileOptions = {},
-): Promise<TileNode[]> => {
+): Promise<FetchedTile> => {
   const { baseUrl = ATLAS_API_BASE_URL, signal, retry, priority } = options;
 
   if (!Number.isInteger(zoom) || zoom < 0 || zoom > ATLAS_TILE_MAX_ZOOM) {
