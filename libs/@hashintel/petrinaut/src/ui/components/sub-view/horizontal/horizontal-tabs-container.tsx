@@ -57,7 +57,8 @@ const tabButtonLabelStyle = css({
   whiteSpace: "nowrap",
   overflow: "hidden",
   paddingRight: "[10px]",
-  maskImage: "[linear-gradient(to right, black calc(100% - 10px), transparent)]",
+  maskImage:
+    "[linear-gradient(to right, black calc(100% - 10px), transparent)]",
 });
 
 const contentStyle = cva({
