@@ -60,6 +60,26 @@ export interface TileNode {
   readonly id: number;
   readonly x: number;
   readonly y: number;
+  /**
+   * Human-readable label from the tile's detail trailer. Present only when the
+   * tile was fetched with {@link FetchTileOptions.includeDetailedData}; the base
+   * geometry-only response leaves it `undefined`.
+   */
+  readonly label?: string;
+  /**
+   * The entity's icon from the detail trailer — an emoji, or a `/path`/`https`
+   * URL (never a design-system icon name); see the server's `detail.rs`.
+   * Present only alongside {@link label} (detailed data); `undefined` otherwise.
+   */
+  readonly icon?: string;
+  /**
+   * Indices into the request's {@link FetchTileOptions.coloredTypeIds} the point
+   * carries — index `i` is present when the point is the request's type `i` or
+   * one of its descendants. Ascending, and empty when the point matches none of
+   * the queried types. Present only when `coloredTypeIds` was sent (the
+   * `TYPE_MASK` column rides exactly those requests); `undefined` otherwise.
+   */
+  readonly typeIndices?: readonly number[];
 }
 
 /** A decoded tile: its delivered nodes plus the level-of-detail descent signal. */
@@ -88,6 +108,22 @@ export interface FetchTileOptions {
    * priority; a lower scheduling priority on HTTP/1.1).
    */
   readonly priority?: RequestPriority;
+  /**
+   * Requests the detail trailer — per-point labels (and icons) the server
+   * hydrates live from the store — so decoded {@link TileNode}s carry a
+   * `label`. Defaults to `false` (the geometry-only response). The detailed
+   * view (see the tiling story) turns this on for the tiles it draws.
+   */
+  readonly includeDetailedData?: boolean;
+  /**
+   * Versioned type URLs conditioning the response's `TYPE_MASK` column, in the
+   * order their bit index is assigned. When non-empty each decoded
+   * {@link TileNode} carries {@link TileNode.typeIndices}, the queried types the
+   * point (or one of its descendants) matches. Capped by the manifest's
+   * `limits.coloredTypeIds`. Defaults to none (no `TYPE_MASK`, no
+   * `typeIndices`).
+   */
+  readonly coloredTypeIds?: readonly string[];
 }
 
 interface FetchTileErrorOptions extends ErrorOptions {
@@ -385,6 +421,40 @@ export const clearAtlasSessionCache = (baseUrl?: string): void => {
   }
 };
 
+/**
+ * Reads the LSB-first type bitmask for the point at `index` into the ascending
+ * list of matched {@link FetchTileOptions.coloredTypeIds} indices. `stride` is
+ * the per-point byte count (`ceil(count / 8)`); bit `k` of byte `b` names the
+ * queried type at index `b * 8 + k`. `count` caps the scan so padding bits in
+ * the final byte are never read as types.
+ */
+const typeIndicesAt = (
+  typeMask: Uint8Array,
+  index: number,
+  stride: number,
+  count: number,
+): number[] => {
+  const indices: number[] = [];
+  const base = index * stride;
+  for (let byte = 0; byte < stride; byte += 1) {
+    // Arithmetic bit-walk (the codebase bans bitwise operators): the low bit is
+    // the parity, and dividing by two shifts the next bit down, so bits are read
+    // LSB-first — the order the wire assigns type indices within a byte.
+    let bits = typeMask[base + byte] ?? 0;
+    for (let bit = 0; bit < 8; bit += 1) {
+      const type = byte * 8 + bit;
+      if (type >= count) {
+        break;
+      }
+      if (bits % 2 === 1) {
+        indices.push(type);
+      }
+      bits = Math.floor(bits / 2);
+    }
+  }
+  return indices;
+};
+
 const fetchAndDecodeTile = async (
   session: SaltileSession,
   coordinate: AtlasTileCoordinate,
@@ -392,6 +462,8 @@ const fetchAndDecodeTile = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
+  includeDetailedData: boolean,
+  coloredTypeIds: readonly string[],
 ): Promise<FetchedTile> => {
   const { z, x, y } = coordinate;
   if (z > session.maxZoom) {
@@ -401,14 +473,20 @@ const fetchAndDecodeTile = async (
   }
 
   const tileUrl = `${baseUrl}/v1/atlas/tile/${session.generation}/${session.variant}/${z}/${x}/${y}`;
-  // An empty query: delta mode, no colored types, no detailed data.
+  // Delta mode. `coloredTypeIds` conditions the TYPE_MASK column, and the detail
+  // trailer (per-point labels and icons) rides only when the caller asks; an
+  // empty query serializes to `{}`, the all-defaults body.
+  const body = JSON.stringify({
+    ...(coloredTypeIds.length > 0 ? { coloredTypeIds } : {}),
+    ...(includeDetailedData ? { includeDetailedData: true } : {}),
+  });
   const tileResponse = await requestAtlas(
     tileUrl,
     SALTILE_MEDIA_TYPE,
     signal,
     retries,
     priority,
-    "{}",
+    body,
   );
 
   const contentType = tileResponse.headers.get("content-type") ?? "";
@@ -425,8 +503,8 @@ const fetchAndDecodeTile = async (
     coordinate,
     mode: SaltileMode.Delta,
     spanLog2: session.spanLog2,
-    coloredTypeIdCount: 0,
-    includeDetailedData: false,
+    coloredTypeIdCount: coloredTypeIds.length,
+    includeDetailedData,
   };
 
   let tile;
@@ -442,7 +520,14 @@ const fetchAndDecodeTile = async (
   // Wire frame [-1, 1] onto the layer's world [0, WORLD_SIZE): an exact
   // power-of-two scale; the tile grids already align.
   const scale = WORLD_SIZE / 2;
-  const { delivered, positions, rowIds } = tile;
+  const { delivered, positions, rowIds, typeMask } = tile;
+  // The detail trailer's columns are delivered-order-aligned; absent (null) on
+  // the geometry-only response, so a node simply carries no label/icon there.
+  const labels = tile.detail?.labels;
+  const icons = tile.detail?.icons;
+  // The type mask is present exactly when colored types were requested; its
+  // stride is the per-point byte count carrying one bit per queried type.
+  const maskStride = Math.ceil(coloredTypeIds.length / 8);
   const nodes: TileNode[] = new Array<TileNode>(delivered);
   for (let index = 0; index < delivered; index += 1) {
     const id = rowIds[index];
@@ -455,7 +540,21 @@ const fetchAndDecodeTile = async (
         `tile ${atlasTileKey(coordinate)} record ${index} is truncated`,
       );
     }
-    nodes[index] = { id, x: (wireX + 1) * scale, y: (wireY + 1) * scale };
+    const worldX = (wireX + 1) * scale;
+    const worldY = (wireY + 1) * scale;
+    const label = labels?.[index] ?? undefined;
+    const icon = icons?.[index] ?? undefined;
+    const typeIndices = typeMask
+      ? typeIndicesAt(typeMask, index, maskStride, coloredTypeIds.length)
+      : undefined;
+    nodes[index] = {
+      id,
+      x: worldX,
+      y: worldY,
+      ...(label !== undefined ? { label } : {}),
+      ...(icon !== undefined ? { icon } : {}),
+      ...(typeIndices !== undefined ? { typeIndices } : {}),
+    };
   }
 
   // `children` is the occupancy bitmask of the four Morton children below this
@@ -484,7 +583,14 @@ export const fetchTile = async (
   tileIndex: number,
   options: FetchTileOptions = {},
 ): Promise<FetchedTile> => {
-  const { baseUrl = ATLAS_API_BASE_URL, signal, retry, priority } = options;
+  const {
+    baseUrl = ATLAS_API_BASE_URL,
+    signal,
+    retry,
+    priority,
+    includeDetailedData = false,
+    coloredTypeIds = [],
+  } = options;
 
   if (!Number.isInteger(zoom) || zoom < 0 || zoom > ATLAS_TILE_MAX_ZOOM) {
     throw new FetchTileError(
@@ -517,6 +623,8 @@ export const fetchTile = async (
       signal,
       retry,
       priority,
+      includeDetailedData,
+      coloredTypeIds,
     );
   } catch (error) {
     // A 404 on a well-formed request means the generation we pinned is no
@@ -531,6 +639,8 @@ export const fetchTile = async (
         signal,
         retry,
         priority,
+        includeDetailedData,
+        coloredTypeIds,
       );
     }
     throw error;

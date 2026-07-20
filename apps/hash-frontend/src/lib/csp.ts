@@ -57,6 +57,10 @@ export const buildCspHeader = (nonce: string): string => {
 
     "connect-src": [
       "'self'",
+      // deck.gl's IconLayer (NetworkGraph icon/arrow atlases) fetches its
+      // `canvas.toDataURL()` atlas, and fetching a data: URL is governed by
+      // connect-src.
+      "data:",
       // API server (GraphQL, OAuth callbacks, file uploads, auth via Ory Kratos)
       apiOrigin,
       // Sentry error reporting and session replay

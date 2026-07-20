@@ -2,6 +2,7 @@ export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
+export { iconNameFromEntityIcon } from "./components/Chart/NetworkGraph/fixtures/entity-icon-name";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {
   NetworkGraph,
@@ -61,6 +62,7 @@ export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
 export { Tooltip } from "./components/Tooltip/tooltip";
+export { brandmarkScale } from "./util/color-scales";
 export {
   PortalContainerContext,
   usePortalContainerRef,

@@ -20,6 +20,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import {
+  iconNameFromEntityIcon,
   NetworkGraph,
   useGetViewportNodes,
   WORLD_SIZE,
@@ -27,6 +28,7 @@ import {
   type NetworkGraphHandle,
   type NetworkGraphPoint,
   type Viewport,
+  type ViewportEdge,
   type ViewportNode,
 } from "@hashintel/ds-components";
 
@@ -34,8 +36,16 @@ import { MinusRegularIcon } from "../../../shared/icons/minus-regular";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
 import { NetworkGraphSearch } from "./network-graph-search";
+import {
+  resolveTypeColor,
+  typeColorRanks,
+  unassignedTypeColor,
+} from "./shared/type-colors";
 
 import type { NetworkGraphSearchResult } from "./network-graph-search";
+import type { TypeColorOverrides } from "./shared/type-colors";
+import type { AvailableType } from "./shared/use-available-types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Same-origin path the view fetches tiles from. The `/atlas-api` rewrite in
@@ -60,6 +70,14 @@ const MAX_ZOOM = Math.log2(100);
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
 
+/**
+ * Absolute camera zoom at/above which the graph switches to its detailed view
+ * (icons + label pills), so the view requests detailed tile data to label those
+ * nodes. `NetworkGraph` flips to detailed at `maxZoom − 0.5`; matching that here
+ * lands the labelled data as the detailed rendering takes over.
+ */
+const DETAIL_ZOOM = MAX_ZOOM - 0.5;
+
 const zoomButtonSx = {
   background: "rgba(107, 114, 128, 0.16)",
   backdropFilter: "blur(8px)",
@@ -69,24 +87,6 @@ const zoomButtonSx = {
     borderColor: "gray.30",
     color: "gray.40",
   },
-};
-
-/** The tiling endpoint returns nodes only; edges stay empty. */
-const EMPTY_EDGES: NetworkGraphEdge[] = [];
-
-/** Cheerful, readable node colours, picked deterministically per id. */
-const PALETTE = [
-  "#4f83ff",
-  "#12b886",
-  "#f59f00",
-  "#e8590c",
-  "#ae3ec9",
-  "#1098ad",
-] as const;
-
-const colorForId = (id: number | string): string => {
-  const seed = typeof id === "number" ? id : id.length;
-  return PALETTE[Math.abs(seed) % PALETTE.length] ?? PALETTE[0];
 };
 
 interface Camera {
@@ -176,11 +176,26 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
-const toPoint = (node: ViewportNode): NetworkGraphPoint => ({
-  id: node.id,
-  x: node.x,
-  y: node.y,
-  color: colorForId(node.id),
+const toPoint = (node: ViewportNode, color: string): NetworkGraphPoint => {
+  // `label`/`icon` arrive only for tiles fetched with detailed data (the
+  // detailed view). The graph draws the label in a pill beneath the node and the
+  // icon inside it; the entity's icon value resolves to a ds icon name. `color`
+  // comes from the type filter's per-type palette, keyed by the node's type.
+  const icon = iconNameFromEntityIcon(node.icon);
+  return {
+    id: node.id,
+    x: node.x,
+    y: node.y,
+    color,
+    ...(node.label !== undefined ? { label: node.label } : {}),
+    ...(icon !== undefined ? { icon } : {}),
+  };
+};
+
+const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
+  id: edge.id,
+  fromId: edge.source,
+  toId: edge.target,
 });
 
 /**
@@ -190,9 +205,76 @@ const toPoint = (node: ViewportNode): NetworkGraphPoint => ({
  * plus loading/error state. `graphBounds` and `maxZoom` are frozen so streaming
  * new points never reframes the camera. Requires the `hash-graph atlas` server
  * (proxied via `/atlas-api`).
+ *
+ * Nodes are coloured by entity type using the same palette as the type filter
+ * dropdown: the types that resolve to a distinct colour there (by default the
+ * most common types by entity count, plus any the user has overridden) are sent
+ * to the tile API as `coloredTypeIds`, and each node's returned type membership
+ * selects its colour. Types without a colour of their own render grey.
  */
-export const NetworkGraphView = () => {
+export const NetworkGraphView = ({
+  availableEntityTypes,
+  typeColorOverrides,
+}: {
+  /** Types shown in the filter dropdown; position drives the default palette. */
+  availableEntityTypes: AvailableType[];
+  /** The user's per-type colour choices from the filter dropdown. */
+  typeColorOverrides: TypeColorOverrides;
+}) => {
   const theme = useTheme();
+
+  // The types with a distinct colour in the filter dropdown — the only types
+  // worth sending to the tile API (the rest render grey). The default colour set
+  // is the most common types by entity count (see `typeColorRanks`), plus any
+  // the user has overridden; each carries the colour the dropdown resolves.
+  const coloredTypes = useMemo(() => {
+    const ranks = typeColorRanks(availableEntityTypes);
+    const result: { entityTypeId: VersionedUrl; color: string }[] = [];
+    for (const type of availableEntityTypes) {
+      const color = resolveTypeColor({
+        entityTypeId: type.entityTypeId,
+        index: ranks.get(type.entityTypeId) ?? Infinity,
+        overrides: typeColorOverrides,
+      });
+      if (color !== unassignedTypeColor) {
+        result.push({ entityTypeId: type.entityTypeId, color });
+      }
+    }
+    return result;
+  }, [availableEntityTypes, typeColorOverrides]);
+
+  // The type-id set sent for the tile masks. Kept referentially stable across
+  // colour-only override changes (same ids, different colours) via its
+  // signature, so recolouring a type doesn't recreate the tile cache and refetch
+  // every tile — the colours are applied at render, not baked into the tiles.
+  const coloredTypeIdsSignature = coloredTypes
+    .map(({ entityTypeId }) => entityTypeId)
+    .join(",");
+  const coloredTypeIds = useMemo(
+    () => coloredTypes.map(({ entityTypeId }) => entityTypeId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by content signature
+    [coloredTypeIdsSignature],
+  );
+
+  // Colour per queried type, aligned to `coloredTypeIds` indices — the value a
+  // node's `typeIndices` bit resolves to. Recomputes freely as colours change.
+  const coloredTypeColors = useMemo(
+    () => coloredTypes.map(({ color }) => color),
+    [coloredTypes],
+  );
+
+  // A node carries the queried types it matches (ascending); colour it by the
+  // first, falling back to grey when it matches none of the coloured types.
+  const colorForTypeIndices = useCallback(
+    (typeIndices: readonly number[] | undefined): string => {
+      const first = typeIndices?.[0];
+      if (first === undefined) {
+        return unassignedTypeColor;
+      }
+      return coloredTypeColors[first] ?? unassignedTypeColor;
+    },
+    [coloredTypeColors],
+  );
 
   const frameRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<NetworkGraphHandle>(null);
@@ -202,6 +284,7 @@ export const NetworkGraphView = () => {
   const timerRef = useRef<number | undefined>(undefined);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
+  const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [searchedPoint, setSearchedPoint] = useState<NetworkGraphPoint | null>(
     null,
@@ -237,12 +320,18 @@ export const NetworkGraphView = () => {
 
   const { data, isError, error } = useGetViewportNodes(viewport, {
     baseUrl: ATLAS_PROXY_BASE,
+    includeDetailedData: detailed,
+    coloredTypeIds,
   });
 
   const points = useMemo(() => {
-    const tilePoints = (data ?? []).map(toPoint);
+    const tilePoints = (data?.nodes ?? []).map((node) =>
+      toPoint(node, colorForTypeIndices(node.typeIndices)),
+    );
     return searchedPoint ? [...tilePoints, searchedPoint] : tilePoints;
-  }, [data, searchedPoint]);
+  }, [data, searchedPoint, colorForTypeIndices]);
+
+  const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data]);
 
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
@@ -263,9 +352,13 @@ export const NetworkGraphView = () => {
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      setViewport(
-        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
-      );
+      const camera = cameraRef.current;
+      setViewport(deriveViewport(camera, sizeRef.current, boundsRef.current));
+      // Cross into detailed data on the same threshold the graph uses to switch
+      // to its detailed rendering, so nodes are labelled (and icon-ed) as the
+      // detailed view takes over. The whole descent — target tiles and their
+      // in-view ancestors — refetches detailed so every visible node is labelled.
+      setDetailed(camera.zoom !== null && camera.zoom >= DETAIL_ZOOM);
     }, DEBOUNCE_MS);
   }, []);
 
@@ -304,11 +397,12 @@ export const NetworkGraphView = () => {
     const region = boundsRef.current ?? GRAPH_WORLD;
     const x = region.minX + Math.random() * (region.maxX - region.minX);
     const y = region.minY + Math.random() * (region.maxY - region.minY);
+    // A searched pin has no tile type mask, so it takes the neutral colour.
     setSearchedPoint({
       id: result.entityId,
       x,
       y,
-      color: colorForId(result.entityId),
+      color: unassignedTypeColor,
       label: result.label,
     });
     graphRef.current?.revealPoint([x, y]);
@@ -363,7 +457,7 @@ export const NetworkGraphView = () => {
           <NetworkGraph
             ref={graphRef}
             points={points}
-            edges={EMPTY_EDGES}
+            edges={edges}
             graphBounds={bounds}
             maxZoom={MAX_ZOOM}
             selected={searchedPoint ? { node: searchedPoint.id } : null}
