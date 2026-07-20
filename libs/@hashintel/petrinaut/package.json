@@ -39,10 +39,17 @@
     },
     "./styles.css": "./dist/main.css",
     "./dist/main.css": "./dist/main.css",
+    "./panda-preset": {
+      "types": "./dist/panda-preset.d.d.ts",
+      "default": "./dist/panda-preset.js"
+    },
+    "./panda.buildinfo.json": "./dist/panda.buildinfo.json",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "yarn build:lib && yarn build:buildinfo",
+    "build:buildinfo": "panda ship --config panda.ship.config.ts --outfile dist/panda.buildinfo.json",
+    "build:lib": "vite build",
     "dev": "storybook dev",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",

@@ -1,3 +1,13 @@
+/**
+ * Petrinaut's stylesheet. Within this embed document its Panda-generated
+ * atomic utilities are intentionally shadowed by `ds-components-styles.gen.css`
+ * (imported in `_app.page.tsx`), which compiles Petrinaut's shipped Panda
+ * build info through the app's single Panda pipeline at a strictly higher
+ * polyfilled layer specificity — see `panda.config.ts` and FE-1228. This
+ * import still supplies everything Panda generation does not: vendor CSS
+ * (xyflow, uplot, Monaco, fonts) and the `.petrinaut-root`-scoped preflight,
+ * token variables and global styles.
+ */
 import "@hashintel/petrinaut/dist/main.css";
 import { Box } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
