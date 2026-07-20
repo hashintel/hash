@@ -29,7 +29,7 @@ const rootStyle = css({
   flexDirection: "column",
   height: "full",
   minHeight: "[0]",
-  gap: "3",
+  gap: "5",
   paddingTop: "2",
   paddingX: "4",
 });
@@ -69,7 +69,7 @@ const containerStyle = css({
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "2",
+  gap: "1",
   minHeight: "[0]",
 });
 
@@ -178,6 +178,14 @@ const parameterRowStyle = css({
 const parameterNameStyle = css({
   fontSize: "[13px]",
   color: "neutral.fg.heading",
+});
+
+// Row label for parameters without a display name (scenario parameters are
+// identified by their variable name alone).
+const parameterVarNameOnlyStyle = css({
+  fontSize: "[12px]",
+  color: "neutral.fg.heading",
+  fontFamily: "mono",
 });
 
 const parameterVarNameStyle = css({
@@ -312,14 +320,14 @@ const SimulationSettingsContent: React.FC = () => {
   // When no scenario, show net-level parameters.
   const displayParams: Array<{
     key: string;
-    name: string;
+    /** Human-readable name — scenario parameters only have an identifier. */
+    name?: string;
     variableName: string;
     type: "real" | "integer" | "boolean" | "ratio";
     defaultValue: string;
   }> = selectedScenario
     ? selectedScenario.scenarioParameters.map((sp) => ({
         key: `sp-${sp.identifier}`,
-        name: sp.identifier,
         variableName: sp.identifier,
         type: sp.type,
         defaultValue: String(sp.default),
@@ -431,10 +439,18 @@ const SimulationSettingsContent: React.FC = () => {
               {displayParams.map((param) => (
                 <div key={param.key} className={parameterRowStyle}>
                   <div>
-                    <div className={parameterNameStyle}>{param.name}</div>
-                    <div className={parameterVarNameStyle}>
-                      {param.variableName}
-                    </div>
+                    {param.name === undefined ? (
+                      <div className={parameterVarNameOnlyStyle}>
+                        {param.variableName}
+                      </div>
+                    ) : (
+                      <>
+                        <div className={parameterNameStyle}>{param.name}</div>
+                        <div className={parameterVarNameStyle}>
+                          {param.variableName}
+                        </div>
+                      </>
+                    )}
                   </div>
                   {param.type === "boolean" ? (
                     <Toggle
