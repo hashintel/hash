@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -7,7 +7,7 @@ import {
   Select,
   Toggle,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
@@ -21,12 +21,17 @@ import type { SubView } from "../../../../../components/sub-view/types";
 
 // -- Styles -------------------------------------------------------------------
 
+// The subview opts out of the tab content's uniform 16px padding (noPadding)
+// and owns its insets instead: a tighter top, no bottom padding at all so the
+// parameters list can scroll through the panel's full height.
 const rootStyle = css({
   display: "flex",
   flexDirection: "column",
   height: "full",
   minHeight: "[0]",
   gap: "3",
+  paddingTop: "2",
+  paddingX: "4",
 });
 
 const scenarioRowStyle = css({
@@ -102,11 +107,58 @@ const smallLabelStyle = css({
   fontWeight: "normal",
 });
 
+const parametersScrollWrapperStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
+});
+
+/**
+ * Scroll affordances for the parameters list, following the pattern of
+ * `ScrollableContent` in the vertical sub-views container: a dark shadow at
+ * the top once the list is scrolled, and a white fade at the bottom while
+ * more content is scrollable below.
+ */
+const parametersFadeStyle = cva({
+  base: {
+    position: "absolute",
+    left: "[0]",
+    right: "[0]",
+    pointerEvents: "none",
+    zIndex: "[1]",
+    opacity: "[0]",
+    transition: "[opacity 150ms ease]",
+  },
+  variants: {
+    position: {
+      top: {
+        top: "[0]",
+        height: "[7px]",
+        background: "[linear-gradient(to bottom, #D0D0D0, #FFFFFF10)]",
+      },
+      bottom: {
+        bottom: "[0]",
+        height: "[16px]",
+        background:
+          "[linear-gradient(to top, var(--colors-neutral-s00), transparent)]",
+      },
+    },
+    visible: { true: {} },
+  },
+  compoundVariants: [
+    { position: "top", visible: true, css: { opacity: "[0.2]" } },
+    { position: "bottom", visible: true, css: { opacity: "[1]" } },
+  ],
+});
+
 const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
   overflowY: "auto",
+  flex: "[1]",
   minHeight: "[0]",
 });
 
@@ -152,6 +204,74 @@ const emptyMessageStyle = css({
 });
 
 // -- Component ----------------------------------------------------------------
+
+/**
+ * Wraps the parameters list in a container with scroll affordances: a top
+ * shadow once scrolled and a bottom white fade while more content is below.
+ */
+const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  const setFadeState = (el: HTMLDivElement | null) => {
+    if (!el) {
+      return;
+    }
+
+    setCanScrollUp(el.scrollTop > 0);
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+
+    const updateObservedFades = () => {
+      setFadeState(el);
+    };
+
+    updateObservedFades();
+
+    const observer = new ResizeObserver(updateObservedFades);
+    observer.observe(el);
+    for (const child of el.children) {
+      observer.observe(child);
+    }
+
+    return () => observer.disconnect();
+  });
+
+  return (
+    <div className={parametersScrollWrapperStyle}>
+      <div
+        className={parametersFadeStyle({
+          position: "top",
+          visible: canScrollUp,
+        })}
+      />
+      <div
+        ref={scrollRef}
+        className={parametersListStyle}
+        onScroll={() => {
+          setFadeState(scrollRef.current);
+        }}
+      >
+        {children}
+      </div>
+      <div
+        className={parametersFadeStyle({
+          position: "bottom",
+          visible: canScrollDown,
+        })}
+      />
+    </div>
+  );
+};
 
 const NO_SCENARIO = "__none__";
 
@@ -309,7 +429,7 @@ const SimulationSettingsContent: React.FC = () => {
             {selectedScenario ? "Scenario Parameters" : "Parameters"}
           </div>
           {displayParams.length > 0 ? (
-            <div className={parametersListStyle}>
+            <ParametersScrollArea>
               {displayParams.map((param) => (
                 <div key={param.key} className={parameterRowStyle}>
                   <div>
@@ -412,7 +532,7 @@ const SimulationSettingsContent: React.FC = () => {
                   )}
                 </div>
               ))}
-            </div>
+            </ParametersScrollArea>
           ) : (
             <div className={emptyMessageStyle}>
               {selectedScenario
@@ -479,4 +599,5 @@ export const simulationSettingsSubView: SubView = {
   tooltip:
     "Configure simulation parameters including time step and ODE solver method.",
   component: SimulationSettingsContent,
+  noPadding: true,
 };
