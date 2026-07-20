@@ -297,7 +297,6 @@ const SimulationSettingsContent: React.FC = () => {
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
-  const [odeSolver, setOdeSolver] = useState("euler" as const);
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
@@ -384,7 +383,7 @@ const SimulationSettingsContent: React.FC = () => {
         <div style={{ display: "flex" }}>
           {selectedScenario && (
             <Button
-              size="sm"
+              size="xs"
               variant="ghost"
               aria-label="Edit scenario"
               tooltip="Edit Scenario"
@@ -393,7 +392,7 @@ const SimulationSettingsContent: React.FC = () => {
             />
           )}
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             aria-label="Create scenario"
             tooltip="Create Scenario"
@@ -401,7 +400,7 @@ const SimulationSettingsContent: React.FC = () => {
             onClick={() => setIsCreateScenarioOpen(true)}
           />
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             aria-label="Manage scenarios"
             tooltip="Manage Scenarios"
@@ -432,9 +431,14 @@ const SimulationSettingsContent: React.FC = () => {
                 <div key={param.key} className={parameterRowStyle}>
                   <div>
                     <div className={parameterNameStyle}>{param.name}</div>
-                    <div className={parameterVarNameStyle}>
-                      {param.variableName}
-                    </div>
+                    {/* Scenario parameters are identified by their variable
+                        name alone — only show the subtitle when it adds
+                        information over the display name. */}
+                    {param.variableName !== param.name && (
+                      <div className={parameterVarNameStyle}>
+                        {param.variableName}
+                      </div>
+                    )}
                   </div>
                   {param.type === "boolean" ? (
                     <Toggle
@@ -566,21 +570,6 @@ const SimulationSettingsContent: React.FC = () => {
                 disabled={isSimulationActive}
               />
             </div>
-            {/* ODE Solver Method Select */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="ode-solver-select" className={labelStyle}>
-                ODE Solver
-              </label>
-              <Select
-                required
-                width="xs"
-                value={odeSolver}
-                onChange={setOdeSolver}
-                items={[{ value: "euler", text: "Euler" }]}
-                size="xs"
-                disabled={isSimulationActive}
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -594,8 +583,7 @@ const SimulationSettingsContent: React.FC = () => {
 export const simulationSettingsSubView: SubView = {
   id: "simulation-settings",
   title: "Simulation Settings",
-  tooltip:
-    "Configure simulation parameters including time step and ODE solver method.",
+  tooltip: "Configure simulation parameters and the computation time step.",
   component: SimulationSettingsContent,
   noPadding: true,
 };
