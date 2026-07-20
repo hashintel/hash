@@ -115,16 +115,17 @@ const parametersScrollWrapperStyle = css({
 });
 
 /**
- * Scroll affordances for the parameters list, following the pattern of
- * `ScrollableContent` in the vertical sub-views container: a dark shadow at
- * the top once the list is scrolled, and a white fade at the bottom while
- * more content is scrollable below.
+ * Scroll affordances for the parameters list, following the mechanics of
+ * `ScrollableContent` in the vertical sub-views container: white fades over
+ * the edges that can still be scrolled towards — at the top once the list is
+ * scrolled, at the bottom while more content is scrollable below.
  */
 const parametersFadeStyle = cva({
   base: {
     position: "absolute",
     left: "[0]",
     right: "[0]",
+    height: "[16px]",
     pointerEvents: "none",
     zIndex: "[1]",
     opacity: "[0]",
@@ -134,22 +135,17 @@ const parametersFadeStyle = cva({
     position: {
       top: {
         top: "[0]",
-        height: "[7px]",
-        background: "[linear-gradient(to bottom, #D0D0D0, #FFFFFF10)]",
+        background:
+          "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
       },
       bottom: {
         bottom: "[0]",
-        height: "[16px]",
         background:
           "[linear-gradient(to top, var(--colors-neutral-s00), transparent)]",
       },
     },
-    visible: { true: {} },
+    visible: { true: { opacity: "[1]" } },
   },
-  compoundVariants: [
-    { position: "top", visible: true, css: { opacity: "[0.2]" } },
-    { position: "bottom", visible: true, css: { opacity: "[1]" } },
-  ],
 });
 
 const parametersListStyle = css({
@@ -159,6 +155,9 @@ const parametersListStyle = css({
   overflowY: "auto",
   flex: "[1]",
   minHeight: "[0]",
+  // End padding: scrolls with the content, giving the last row breathing
+  // room without reserving fixed space below the list.
+  paddingBottom: "3",
 });
 
 const parameterRowStyle = css({
