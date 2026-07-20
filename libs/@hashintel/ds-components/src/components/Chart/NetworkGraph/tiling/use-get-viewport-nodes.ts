@@ -119,8 +119,14 @@ const INITIAL_TILE_ZOOM = 1;
  */
 const MAX_DESCENT_FRONTIER = 1024;
 
-/** Default cache budget (~256 fully-delivered tiles). Tunable per instance. */
-const DEFAULT_MAX_BYTES = 64 * 1024 * 1024;
+/**
+ * Default cache budget. The ~256 fully-delivered node tiles this once targeted
+ * (64 MiB) was a node-only figure; edge buckets now share the same pool
+ * (see the "Edges" note), so 128 MiB restores that node residency with edges
+ * co-resident — which also keeps more cross-tile edge buckets alive against
+ * cascade eviction. Tunable per instance for dense graphs; see {@link maxBytes}.
+ */
+const DEFAULT_MAX_BYTES = 128 * 1024 * 1024;
 
 /**
  * Rough heap cost of one cached node. Only used to compare tiles against the
