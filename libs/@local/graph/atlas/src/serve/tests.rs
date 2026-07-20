@@ -21,9 +21,8 @@ use smallvec::smallvec;
 use zerocopy::{LE, U64};
 
 use super::{
-    Atlas, EdgesCaps, EdgesError, EdgesRequest, Filter, GenerationId, GenerationRoot,
-    ManifestLimits, Mode, TileCaps, TileCoordinate, TileError, TileQuery, TileRequest,
-    error::OpenAtlasError,
+    Atlas, EdgesCaps, EdgesError, EdgesRequest, Filter, GenerationId, GenerationRoot, Mode,
+    ServeCaps, TileCaps, TileCoordinate, TileError, TileQuery, TileRequest, error::OpenAtlasError,
 };
 use crate::{
     dataset::{
@@ -687,7 +686,7 @@ async fn rejects_and_reports_the_contract() {
         Err(TileError::Unsupported("includeDetailedData")),
     );
 
-    let manifest = serde_json::to_value(atlas.manifest(ManifestLimits::default()))
+    let manifest = serde_json::to_value(atlas.manifest(ServeCaps::default().limits()))
         .expect("the manifest serializes");
     assert_eq!(
         manifest,
@@ -696,7 +695,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateNeighbours": 0, "translateEntityIds": 4096 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateNeighbours": 0, "translateEntityIds": 1024 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );
@@ -1185,6 +1184,321 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
 }
 
+/// Source resolution answers the delivery contract, not just a
+/// formula: the resolved (zoom, cell) tile delivers the row under
+/// the cumulative schedule, and at zoom > 0 the parent tile's
+/// schedule does not - so `zoom` really is the FIRST visible zoom.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_sources_resolve_to_their_first_visible_tile() {
+    let (_generation, atlas) = publish("locate-resolve").await;
+
+    let row_of = |bytes: &[u8]| {
+        let rows = section(bytes, ROW_IDS).expect("ROW_IDS is present");
+        rows.as_chunks::<4>()
+            .0
+            .iter()
+            .map(|&chunk| u32::from_le_bytes(chunk))
+            .collect::<Vec<u32>>()
+    };
+
+    let mut resolved = 0;
+    for row in 0..4_u8 {
+        let Some(source) = atlas.resolve_source(&entity_string_of(row)) else {
+            panic!("fixture node ids resolve");
+        };
+        assert_eq!(source.row, u32::from(row));
+        assert_eq!(
+            source.position,
+            atlas.positions_of_row()[source.row as usize],
+        );
+
+        // The resolved tile delivers the row.
+        let request = TileRequest {
+            coordinate: source.cell,
+            query: TileQuery {
+                mode: Mode::Total,
+                ..TileQuery::default()
+            },
+        };
+        let bytes = atlas
+            .tile(&request, TileCaps::default())
+            .expect("the resolved tile serves");
+        assert!(
+            row_of(&bytes).contains(&source.row),
+            "the resolved tile delivers its source",
+        );
+
+        // The parent's cumulative schedule does not: zoom is FIRST.
+        if source.zoom > 0 {
+            let parent = TileRequest {
+                coordinate: TileCoordinate {
+                    z: source.zoom - 1,
+                    // The parent tile halves each grid index: one
+                    // right-shift, the quadtree's own arithmetic.
+                    x: source.cell.x >> 1_u32,
+                    y: source.cell.y >> 1_u32,
+                },
+                query: TileQuery {
+                    mode: Mode::Total,
+                    ..TileQuery::default()
+                },
+            };
+            let bytes = atlas
+                .tile(&parent, TileCaps::default())
+                .expect("the parent tile serves");
+            assert!(
+                !row_of(&bytes).contains(&source.row),
+                "the parent zoom does not deliver the source yet",
+            );
+            resolved += 1;
+        }
+    }
+    // The fixture spreads buckets, so at least one probed row sits
+    // below the root cut and exercises the parent assertion.
+    assert!(resolved > 0, "at least one source resolves below zoom 0");
+
+    // Non-node shapes read absent: an edge id, an unknown id, junk.
+    assert_eq!(atlas.resolve_source(&entity_string_of(EDGE_SEED)), None);
+    assert_eq!(
+        atlas.resolve_source(&format!("{}~{}", uuid::Uuid::nil(), uuid::Uuid::nil())),
+        None,
+    );
+    assert_eq!(atlas.resolve_source("not an id"), None);
+}
+
+/// The locate delivered set answers the wire pin - source first,
+/// then neighbours ascending (distance, base position) - proven
+/// against a brute-force scan of the positions column, the
+/// independent derivation the kd-tree must agree with.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_subgraph_delivers_source_first_then_nearest() {
+    use super::locate::LocateCaps;
+
+    let (_generation, atlas) = publish("locate-neighbours").await;
+    let source = atlas
+        .resolve_source(&entity_string_of(0))
+        .expect("fixture node ids resolve");
+
+    // Brute force: every other position, ascending by (squared
+    // distance, position) - f32 arithmetic matching the index's own
+    // metric, ordered by the wire pin.
+    let positions = atlas.positions();
+    let origin = positions[source.position as usize];
+    let mut expected: Vec<(f32, u32)> = (0..positions.len())
+        .map(narrow_usize)
+        .filter(|&position| position != source.position)
+        .map(|position| {
+            let point = positions[position as usize];
+            let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
+            // Unfused, mirroring the index's SquaredEuclidean: a
+            // fused mul_add rounds differently and reorders
+            // near-ties.
+            (dx * dx + dy * dy, position)
+        })
+        .collect();
+    expected.sort_unstable_by(|(left_distance, left), (right_distance, right)| {
+        left_distance
+            .total_cmp(right_distance)
+            .then(left.cmp(right))
+    });
+
+    for budget in [0_u32, 1, 3] {
+        let subgraph = atlas.locate_subgraph(source, budget, LocateCaps::default());
+        let mut delivered = vec![source.position];
+        delivered.extend(
+            expected
+                .iter()
+                .take(budget as usize)
+                .map(|&(_, position)| position),
+        );
+        assert_eq!(subgraph.positions, delivered, "budget {budget}");
+        let rows: Vec<u32> = delivered
+            .iter()
+            .map(|&position| atlas.row_ids()[position as usize])
+            .collect();
+        assert_eq!(subgraph.rows, rows, "budget {budget}");
+    }
+
+    // A budget over the cap clamps to it: the 48-point fixture
+    // outnumbers the default 32-neighbour cap, so the delivered set
+    // is the source plus exactly the cap.
+    let subgraph = atlas.locate_subgraph(source, u32::MAX, LocateCaps::default());
+    assert_eq!(
+        subgraph.positions.len(),
+        1 + LocateCaps::default().neighbours as usize,
+    );
+    assert_eq!(
+        subgraph.positions[1..],
+        expected[..LocateCaps::default().neighbours as usize]
+            .iter()
+            .map(|&(_, position)| position)
+            .collect::<Vec<u32>>(),
+    );
+}
+
+/// The locate edge set is the both-endpoints rule over the delivered
+/// rows, ascending edge row - proven against a brute-force endpoint
+/// scan - and the cap truncates by worse-endpoint rank with
+/// source-incident edges protected to the end.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
+    use super::locate::LocateCaps;
+
+    let (_generation, atlas) = publish("locate-edges").await;
+
+    // A source with some but not all edges incident makes the
+    // protection distinction real; pick it from the artifacts.
+    let pairs = atlas.endpoint_pairs();
+    let source_row = (0..atlas.row_ids().len())
+        .map(narrow_usize)
+        .find(|&row| {
+            let incident = pairs
+                .iter()
+                .filter(|&&[source, target]| source == u64::from(row) || target == u64::from(row))
+                .count();
+            incident > 0 && incident < pairs.len()
+        })
+        .expect("the fixture holds a partially incident row");
+    let source = atlas
+        .resolve_source(&entity_string_of(
+            u8::try_from(source_row).expect("fixture rows are small"),
+        ))
+        .expect("fixture node ids resolve");
+
+    // Deliver everything: a raised neighbour cap covers the whole
+    // 48-point fixture, so the subgraph is the full edge set.
+    let everything = LocateCaps {
+        neighbours: u32::MAX,
+        ..LocateCaps::default()
+    };
+    let all = atlas.locate_subgraph(source, u32::MAX, everything);
+
+    // Brute force: every edge row whose endpoints are both delivered
+    // (here: all of them), ascending edge row.
+    let expected_full: Vec<(u32, u32, u32)> = (0..pairs.len())
+        .map(|edge| {
+            let [edge_source, edge_target] = pairs[edge];
+            (
+                narrow_usize(edge),
+                u32::try_from(edge_source).expect("node rows fit u32"),
+                u32::try_from(edge_target).expect("node rows fit u32"),
+            )
+        })
+        .collect();
+    let delivered: Vec<(u32, u32, u32)> = all
+        .edges
+        .iter()
+        .map(|edge| (edge.row, edge.source, edge.target))
+        .collect();
+    assert_eq!(delivered, expected_full, "uncapped = the full edge set");
+    assert!(all.complete);
+
+    // The independent rank derivation the truncation must follow.
+    let rank_of_row = |row: u32| atlas.ranks()[atlas.positions_of_row()[row as usize] as usize];
+    let ranked_key = |&(row, edge_source, edge_target): &(u32, u32, u32)| {
+        let context = edge_source != source.row && edge_target != source.row;
+        (
+            context,
+            rank_of_row(edge_source).max(rank_of_row(edge_target)),
+            row,
+        )
+    };
+
+    for cap in 0..=expected_full.len() {
+        let caps = LocateCaps {
+            edges: u32::try_from(cap).expect("fixture edge counts are small"),
+            ..everything
+        };
+        let subgraph = atlas.locate_subgraph(source, u32::MAX, caps);
+        assert_eq!(subgraph.complete, expected_full.len() <= cap, "cap {cap}");
+
+        let mut expected = expected_full.clone();
+        expected.sort_unstable_by_key(ranked_key);
+        expected.truncate(cap);
+        expected.sort_unstable_by_key(|&(row, ..)| row);
+        let survivors: Vec<(u32, u32, u32)> = subgraph
+            .edges
+            .iter()
+            .map(|edge| (edge.row, edge.source, edge.target))
+            .collect();
+        assert_eq!(survivors, expected, "cap {cap}");
+
+        // The protection property, stated directly: source-incident
+        // edges survive any cap that admits them at all.
+        let incident: Vec<u32> = expected_full
+            .iter()
+            .filter(|&&(_, edge_source, edge_target)| {
+                edge_source == source.row || edge_target == source.row
+            })
+            .map(|&(row, ..)| row)
+            .collect();
+        if cap >= incident.len() {
+            for row in &incident {
+                assert!(
+                    survivors.iter().any(|&(survivor, ..)| survivor == *row),
+                    "cap {cap} keeps source-incident edge {row}",
+                );
+            }
+        }
+
+        // Determinism pair: byte-identical assembly on repeat.
+        assert_eq!(
+            subgraph,
+            atlas.locate_subgraph(source, u32::MAX, caps),
+            "cap {cap}",
+        );
+    }
+}
+
+/// The locate index cache round-trips: the first open writes it, a
+/// second open loads it and answers identically, and a corrupt
+/// cache rebuilds instead of failing the open.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_index_cache_round_trips() {
+    use super::OpenOptions;
+
+    let (root, generation) = fit_fixture("locate-cache").await;
+    store_identities(&generation);
+    let cache = scratch("locate-cache-dir").join("kdtree-cache");
+    let options = OpenOptions {
+        locate_cache: Some(cache.clone()),
+    };
+
+    let fresh = Atlas::open_with(&root, generation.id(), &options)
+        .expect("the first open builds and caches");
+    let path = cache.join(format!("locate-{}.kdtree", generation.id()));
+    assert!(path.exists(), "the first open leaves the cache behind");
+
+    let cached = Atlas::open_with(&root, generation.id(), &options)
+        .expect("the second open loads the cache");
+    let count = core::num::NonZero::new(4_usize).expect("4 is nonzero");
+    for origin in [[0.0_f32, 0.0], [-0.5, 0.25], [1.0, -1.0]] {
+        assert_eq!(
+            fresh.locate.nearest(origin, count),
+            cached.locate.nearest(origin, count),
+            "the cached index answers exactly as the built one",
+        );
+    }
+
+    // A corrupt cache is a miss, never a failure - and it heals.
+    std::fs::write(&path, b"SALTKDX1 garbage after the magic").expect("the cache is writable");
+    let healed = Atlas::open_with(&root, generation.id(), &options)
+        .expect("a corrupt cache rebuilds instead of failing");
+    assert_eq!(
+        healed.locate.nearest([0.0, 0.0], count),
+        fresh.locate.nearest([0.0, 0.0], count),
+    );
+    let rewritten = std::fs::read(&path).expect("the cache file exists");
+    assert_ne!(
+        &*rewritten, b"SALTKDX1 garbage after the magic",
+        "the rebuild rewrites the cache",
+    );
+}
+
 #[test]
 fn edges_request_parses_the_body_contract() {
     let request: EdgesRequest =
@@ -1485,6 +1799,11 @@ fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
 }
 
 /// The `webId~entityUuid` string form of [`entity_id_of`]'s identity.
+/// Narrows a fixture-sized index into the wire's `u32` row domain.
+fn narrow_usize(value: usize) -> u32 {
+    u32::try_from(value).expect("fixture indexes fit u32")
+}
+
 fn entity_string_of(seed: u8) -> String {
     format!(
         "{}~{}",

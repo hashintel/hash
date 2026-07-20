@@ -5,6 +5,7 @@ use std::io;
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
 use super::FileHeader;
+use crate::file::region::write_padding;
 
 /// Streams the flags, fenceposts, parent edges, and membership entries
 /// as a postings file.
@@ -69,21 +70,6 @@ pub(crate) fn write_regions(
 
     let header = FileHeader::new(types, points, entries.len() as u64, parent_ids.len() as u64);
 
-    // A resident postings' geometry fits u64; the checked equations
-    // exist for parsing foreign headers.
-    let membership_posts_offset = header
-        .membership_posts_offset()
-        .expect("a resident postings' geometry fits u64");
-    let parent_posts_offset = header
-        .parent_posts_offset()
-        .expect("a resident postings' geometry fits u64");
-    let parent_ids_offset = header
-        .parent_ids_offset()
-        .expect("a resident postings' geometry fits u64");
-    let entries_offset = header
-        .entries_offset()
-        .expect("a resident postings' geometry fits u64");
-
     let flag_bytes = flags.len() as u64 * size_of::<u64>() as u64;
     let posts_bytes = membership_posts.len() as u64 * size_of::<U64<LE>>() as u64;
     let parent_id_bytes = parent_ids.len() as u64 * size_of::<u32>() as u64;
@@ -91,30 +77,18 @@ pub(crate) fn write_regions(
     write.write_all(header.as_bytes())?;
 
     write_words(&mut write, flags)?;
-    write_padding(
-        &mut write,
-        membership_posts_offset - FileHeader::SIZE as u64 - flag_bytes,
-    )?;
+    write_padding(&mut write, flag_bytes)?;
 
     write_words(&mut write, membership_posts)?;
-    write_padding(
-        &mut write,
-        parent_posts_offset - membership_posts_offset - posts_bytes,
-    )?;
+    write_padding(&mut write, posts_bytes)?;
 
     write_words(&mut write, parent_posts)?;
-    write_padding(
-        &mut write,
-        parent_ids_offset - parent_posts_offset - posts_bytes,
-    )?;
+    write_padding(&mut write, posts_bytes)?;
 
     for &id in parent_ids {
         write.write_all(U32::<LE>::new(id).as_bytes())?;
     }
-    write_padding(
-        &mut write,
-        entries_offset - parent_ids_offset - parent_id_bytes,
-    )?;
+    write_padding(&mut write, parent_id_bytes)?;
 
     for &entry in entries {
         write.write_all(U32::<LE>::new(entry).as_bytes())?;
@@ -130,10 +104,4 @@ fn write_words(mut write: impl io::Write, words: &[u64]) -> io::Result<()> {
     }
 
     Ok(())
-}
-
-/// Writes the zero padding between two page-aligned regions.
-fn write_padding(mut write: impl io::Write, len: u64) -> io::Result<()> {
-    let zeros = [0_u8; FileHeader::SIZE];
-    write.write_all(&zeros[..usize::try_from(len).expect("padding stays below 4096")])
 }

@@ -153,8 +153,7 @@ where
         "staged the classifier and the resolved policy table"
     );
 
-    // Adjacency: the serving topology, derived from the staged
-    // endpoint column alone.
+    // Adjacency: the serving topology, derived from the staged endpoint column alone.
     let adjacency_file = context.stage_adjacency(rows.len())?;
     tracing::info!("staged the incident-edge adjacency");
 
@@ -188,9 +187,11 @@ where
         .transpose()?;
     let (landmarks_file, landmark_evidence) =
         context.build_landmark_skeleton(rows, &semantic, prior_marks.as_ref())?;
+
     let skeleton = MappedLandmarkSkeleton::new(LandmarkFile::open(
         staging.path_of(&Role::Landmarks.file_name()),
     )?)?;
+
     tracing::info!(
         selected = landmark_evidence.selected,
         "staged the landmark skeleton"

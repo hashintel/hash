@@ -5,7 +5,7 @@ use std::io;
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
 use super::FileHeader;
-use crate::math::Vec2;
+use crate::{file::region::write_region, math::Vec2};
 
 /// Streams the three skeleton regions as a landmark file.
 ///
@@ -38,27 +38,9 @@ pub(crate) fn write_regions(
     assert_eq!(coordinates.len(), rows.len(), "one coordinate per landmark");
     let header = FileHeader::new(rows.len() as u64, assignment.len() as u64);
 
-    // A resident skeleton's geometry fits u64; the checked equations
-    // exist for parsing foreign headers.
-    let assignment_offset = header
-        .assignment_offset()
-        .expect("a resident skeleton's geometry fits u64");
-    let coordinates_offset = header
-        .coordinates_offset()
-        .expect("a resident skeleton's geometry fits u64");
-
-    let rows_padding = assignment_offset - FileHeader::SIZE as u64 - rows.as_bytes().len() as u64;
-    let assignment_padding =
-        coordinates_offset - assignment_offset - assignment.as_bytes().len() as u64;
-    let zeros = [0_u8; FileHeader::SIZE];
-
     write.write_all(header.as_bytes())?;
-    write.write_all(rows.as_bytes())?;
-    write.write_all(&zeros[..usize::try_from(rows_padding).expect("padding stays below 4096")])?;
-    write.write_all(assignment.as_bytes())?;
-    write.write_all(
-        &zeros[..usize::try_from(assignment_padding).expect("padding stays below 4096")],
-    )?;
+    write_region(&mut write, rows.as_bytes())?;
+    write_region(&mut write, assignment.as_bytes())?;
     write.write_all(coordinates.as_bytes())?;
 
     Ok(())

@@ -59,8 +59,11 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-/// Size of one page-aligned region unit, and of the header.
-const PAGE: u64 = FileHeader::SIZE as u64;
+use crate::file::region::{PAGE, padded_size};
+
+// The shared page is the header's size; the offset chain and the
+// write path both count regions from one header page.
+const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
 // not pretty, but allows us to pin a specific version, required for the derive
 #[derive(
@@ -182,9 +185,7 @@ impl FileHeader {
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn assignment_offset(&self) -> Option<u64> {
-        let row_bytes = self.landmarks().checked_mul(size_of::<u64>() as u64)?;
-        let padded = row_bytes.checked_next_multiple_of(PAGE)?;
-        PAGE.checked_add(padded)
+        PAGE.checked_add(padded_size(self.landmarks(), size_of::<u64>() as u64)?)
     }
 
     /// Returns the offset of the coordinates region.
@@ -193,9 +194,8 @@ impl FileHeader {
     /// no real file matches the header.
     #[must_use]
     pub(crate) fn coordinates_offset(&self) -> Option<u64> {
-        let assignment_bytes = self.rows().checked_mul(size_of::<u32>() as u64)?;
-        let padded = assignment_bytes.checked_next_multiple_of(PAGE)?;
-        self.assignment_offset()?.checked_add(padded)
+        let assignment = padded_size(self.rows(), size_of::<u32>() as u64)?;
+        self.assignment_offset()?.checked_add(assignment)
     }
 
     /// Returns the exact file length the header describes.

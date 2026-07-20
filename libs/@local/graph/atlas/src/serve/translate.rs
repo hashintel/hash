@@ -26,27 +26,26 @@ use crate::{
     dataset::ArchivedEntityId, math::Vec2, salt::fit::prepare::identity::MappedIdentityTable,
 };
 
-/// Most entity ids one translate request may carry: the documented
-/// default of the manifest's `translateEntityIds` cap.
-pub(super) const TRANSLATE_ENTITY_IDS_CAP: u32 = 4096;
-
 /// The upstream entity-id delimiter: `webId~entityUuid[~draftId]`.
 const ENTITY_ID_DELIMITER: char = '~';
 
-/// The translate endpoint's request cap: transport configuration
-/// with a documented default, never a wire constant.
+/// The translate endpoint's request cap.
+///
+/// Transport configuration with a documented default, never a wire
+/// constant: the transport constructs one value and the manifest
+/// publishes the same value, so enforcement and advertisement
+/// cannot disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TranslateCaps {
     /// Most entity ids one request may carry; the manifest publishes
-    /// this value as `limits.translateEntityIds`.
+    /// this value as `limits.translateEntityIds`. Defaults to 1024
+    /// (amended down from 4096, 2026-07-20).
     pub entity_ids: u32,
 }
 
 const impl Default for TranslateCaps {
     fn default() -> Self {
-        Self {
-            entity_ids: TRANSLATE_ENTITY_IDS_CAP,
-        }
+        Self { entity_ids: 1024 }
     }
 }
 
@@ -203,7 +202,7 @@ pub(super) fn translate(
 /// A draft-suffixed id (`webId~entityUuid~draftId`) reads unresolved
 /// by contract - the corpus indexes live entities - as does anything
 /// that is not two `~`-delimited uuids.
-fn parse(id: &str) -> Option<ArchivedEntityId> {
+pub(super) fn parse(id: &str) -> Option<ArchivedEntityId> {
     let (web_id, entity_uuid) = id.split_once(ENTITY_ID_DELIMITER)?;
     if entity_uuid.contains(ENTITY_ID_DELIMITER) {
         return None;

@@ -1,13 +1,13 @@
 //! Opened array files.
 
 use core::{error::Error, fmt};
-use std::{fs::File, io, path::Path};
+use std::{io, path::Path};
 
-use memmap2::Mmap;
 use zerocopy::{FromBytes as _, TryFromBytes as _, error::ConvertError};
 
 use super::{ArrayShape, ArrayVariant, FileHeader};
 use crate::{
+    file::region::PageMap,
     integrity::Sha256Digest,
     math::{AlignedVecN, Vec2},
 };
@@ -82,7 +82,7 @@ impl Error for OpenArrayError {
 /// views over it never fail for alignment.
 #[derive(Debug)]
 pub(crate) struct ArrayFile {
-    map: Mmap,
+    map: PageMap,
 }
 
 impl ArrayFile {
@@ -95,16 +95,10 @@ impl ArrayFile {
     /// a header this module speaks, and [`OpenArrayError::Length`] when
     /// the file length contradicts the header's shape.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenArrayError> {
-        let file = File::open(path).map_err(OpenArrayError::Io)?;
-        // SAFETY: published artifact files are immutable (the `crate::file`
-        // publish contract: temporary path, rename into place, never
-        // rewritten), so the mapped bytes cannot change beneath the borrow.
-        let map = unsafe { Mmap::map(&file) }.map_err(OpenArrayError::Io)?;
+        let map = PageMap::open(path).map_err(OpenArrayError::Io)?;
 
-        let Some(bytes) = map.get(..FileHeader::SIZE) else {
-            return Err(OpenArrayError::Undersized {
-                actual: map.len() as u64,
-            });
+        let Some(bytes) = map.header_page() else {
+            return Err(OpenArrayError::Undersized { actual: map.len() });
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
@@ -117,7 +111,7 @@ impl ArrayFile {
         };
 
         let expected = header.expected_file_len();
-        let actual = map.len() as u64;
+        let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenArrayError::Length { expected, actual });
         }
@@ -129,7 +123,7 @@ impl ArrayFile {
     #[inline]
     #[must_use]
     pub(crate) fn header(&self) -> &FileHeader {
-        let ptr = self.map.as_ptr().cast::<FileHeader>();
+        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and we have validated
         // in the constructor that the map is large enough to contain the header and that its bytes
@@ -157,7 +151,7 @@ impl ArrayFile {
     #[inline]
     #[must_use]
     pub(crate) fn data(&self) -> &[u8] {
-        &self.map[FileHeader::SIZE..]
+        &self.map.bytes()[FileHeader::SIZE..]
     }
 
     /// Views the data as `N`-component SIMD-aligned vectors.

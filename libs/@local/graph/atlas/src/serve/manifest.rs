@@ -1,20 +1,16 @@
 //! The manifest document: the immutable Surface v1 bootstrap, derived
 //! from the generation's configuration alone.
 
-use super::{
-    Atlas, GenerationId, VARIANTS, edges::EDGES_TILES_CAP, tile::COLORED_TYPE_IDS_CAP,
-    translate::TRANSLATE_ENTITY_IDS_CAP,
-};
+use super::{Atlas, GenerationId, ServeCaps, VARIANTS};
 use crate::salt::wire::WIRE_VERSION;
 
 /// The per-request caps of the manifest's `limits` block: transport
 /// configuration published as data, so clients validate before
 /// sending instead of learning caps from rejections.
 ///
-/// The defaults publish the served surface honestly: the coloring
-/// and edges caps carry their documented serving defaults, while
-/// locate stays zero until its pass lands, so no request carrying it
-/// is admitted.
+/// Never built freehand outside tests: [`ServeCaps::limits`]
+/// derives it from the caps the handlers actually enforce, so the
+/// published limits cannot disagree with enforcement.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestLimits {
@@ -28,13 +24,20 @@ pub struct ManifestLimits {
     pub translate_entity_ids: u32,
 }
 
-const impl Default for ManifestLimits {
-    fn default() -> Self {
-        Self {
-            colored_type_ids: COLORED_TYPE_IDS_CAP,
-            edges_tiles: EDGES_TILES_CAP,
+impl ServeCaps {
+    /// Derives the manifest's `limits` block from the caps the
+    /// handlers enforce: one source, so the published limits cannot
+    /// disagree with enforcement.
+    ///
+    /// `locateNeighbours` stays zero until the locate pass lands, so
+    /// no request carrying it is admitted.
+    #[must_use]
+    pub const fn limits(&self) -> ManifestLimits {
+        ManifestLimits {
+            colored_type_ids: self.tile.colored_type_ids,
+            edges_tiles: self.edges.tiles,
             locate_neighbours: 0,
-            translate_entity_ids: TRANSLATE_ENTITY_IDS_CAP,
+            translate_entity_ids: self.translate.entity_ids,
         }
     }
 }

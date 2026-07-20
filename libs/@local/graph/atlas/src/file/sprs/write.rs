@@ -7,6 +7,7 @@ use sprs::CsMatBase;
 use zerocopy::IntoBytes as _;
 
 use super::{ArrayShape, Dim, FileHeader, SprsIndex, SprsValue};
+use crate::file::region::write_region;
 
 /// Writing a matrix as a sparse matrix file failed.
 #[derive(Debug)]
@@ -97,30 +98,10 @@ where
         matrix.nnz() as u64,
     );
 
-    let indices = matrix.indices().as_bytes();
-    let values = matrix.data().as_bytes();
-
-    // A resident matrix's geometry fits u64; the checked equations
-    // exist for parsing foreign headers.
-    let indices_offset = header
-        .indices_offset()
-        .expect("a resident matrix's geometry fits u64");
-    let values_offset = header
-        .values_offset()
-        .expect("a resident matrix's geometry fits u64");
-
-    let indptr_padding = indices_offset - FileHeader::SIZE as u64 - indptr.as_bytes().len() as u64;
-    let indices_padding = values_offset - indices_offset - indices.len() as u64;
-    let zeros = [0_u8; FileHeader::SIZE];
-
     write.write_all(header.as_bytes())?;
-    write.write_all(indptr.as_bytes())?;
-    write
-        .write_all(&zeros[..usize::try_from(indptr_padding).expect("padding stays below 4096")])?;
-    write.write_all(indices)?;
-    write
-        .write_all(&zeros[..usize::try_from(indices_padding).expect("padding stays below 4096")])?;
-    write.write_all(values)?;
+    write_region(&mut write, indptr.as_bytes())?;
+    write_region(&mut write, matrix.indices().as_bytes())?;
+    write.write_all(matrix.data().as_bytes())?;
 
     Ok(())
 }

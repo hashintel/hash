@@ -1,15 +1,15 @@
 //! Opened identity files.
 
 use core::{error::Error, fmt};
-use std::{fs::File, io, path::Path};
+use std::{io, path::Path};
 
-use memmap2::Mmap;
 use zerocopy::{
     TryFromBytes as _,
     error::{ConvertError, ValidityError},
 };
 
 use super::FileHeader;
+use crate::file::region::PageMap;
 
 /// Opening an identity file failed.
 #[derive(Debug)]
@@ -82,7 +82,7 @@ impl Error for OpenIdentityError {
 /// `salt::fit::prepare::identity`'s contract.
 #[derive(Debug)]
 pub(crate) struct IdentityFile {
-    map: Mmap,
+    map: PageMap,
 }
 
 impl IdentityFile {
@@ -97,16 +97,10 @@ impl IdentityFile {
     /// the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenIdentityError> {
-        let file = File::open(path).map_err(OpenIdentityError::Io)?;
-        // SAFETY: published artifact files are immutable (the `crate::file`
-        // publish contract: temporary path, rename into place, never
-        // rewritten), so the mapped bytes cannot change beneath the borrow.
-        let map = unsafe { Mmap::map(&file) }.map_err(OpenIdentityError::Io)?;
+        let map = PageMap::open(path).map_err(OpenIdentityError::Io)?;
 
-        let Some(bytes) = map.get(..FileHeader::SIZE) else {
-            return Err(OpenIdentityError::Undersized {
-                actual: map.len() as u64,
-            });
+        let Some(bytes) = map.header_page() else {
+            return Err(OpenIdentityError::Undersized { actual: map.len() });
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
@@ -119,7 +113,7 @@ impl IdentityFile {
         };
 
         let expected = header.expected_file_len();
-        let actual = map.len() as u64;
+        let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenIdentityError::Length { expected, actual });
         }
@@ -131,7 +125,7 @@ impl IdentityFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.as_ptr().cast::<FileHeader>();
+        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
         // validated that the map is large enough to contain the header and that its bytes parse
@@ -160,19 +154,13 @@ impl IdentityFile {
         self.header().stride()
     }
 
-    /// Carves one region out of the mapping.
-    fn region(&self, offset: u64, len: u64) -> &[u8] {
-        // The offsets and products repeat checked computations open
-        // already accepted, so none of them can overflow here.
-        let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
-        let len = usize::try_from(len).expect("a mapped region fits the address space");
-        &self.map[offset..offset + len]
-    }
-
     /// Views the id column: `N` ids of `K` bytes, in row order.
     #[must_use]
     pub(crate) fn ids(&self) -> &[u8] {
-        self.region(
+        // The offsets and products in the region reads repeat checked
+        // computations open already accepted, so none of them can
+        // overflow here.
+        self.map.region(
             FileHeader::SIZE as u64,
             self.rows() * u64::from(self.key_width()),
         )
@@ -185,7 +173,7 @@ impl IdentityFile {
             .header()
             .index_keys()
             .expect("open validated the stride");
-        self.region(
+        self.map.region(
             self.header()
                 .index_offset()
                 .expect("open validated the geometry"),
@@ -197,7 +185,7 @@ impl IdentityFile {
     /// by id bytes.
     #[must_use]
     pub(crate) fn pairs(&self) -> &[u8] {
-        self.region(
+        self.map.region(
             self.header()
                 .pairs_offset()
                 .expect("open validated the geometry"),

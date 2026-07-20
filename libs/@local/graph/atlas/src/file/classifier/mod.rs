@@ -63,8 +63,11 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-/// Size of one page-aligned region unit, and of the header.
-const PAGE: u64 = FileHeader::SIZE as u64;
+use crate::file::region::{PAGE, padded_size};
+
+// The shared page is the header's size; the offset chain and the
+// write path both count regions from one header page.
+const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
 /// Geometry classes per model: pinned by the layout version.
 pub(crate) const CLASSES: usize = 3;
@@ -227,9 +230,7 @@ impl FileHeader {
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn mean_offset(&self) -> Option<u64> {
-        let coefficient_bytes = self.vector_bytes()?.checked_mul(CLASSES as u64)?;
-        let padded = coefficient_bytes.checked_next_multiple_of(PAGE)?;
-        PAGE.checked_add(padded)
+        PAGE.checked_add(padded_size(CLASSES as u64, self.vector_bytes()?)?)
     }
 
     /// Returns the offset of the inverse-scales region.
@@ -238,8 +239,8 @@ impl FileHeader {
     /// no real file matches the header.
     #[must_use]
     pub(crate) fn inverse_scales_offset(&self) -> Option<u64> {
-        let padded = self.vector_bytes()?.checked_next_multiple_of(PAGE)?;
-        self.mean_offset()?.checked_add(padded)
+        self.mean_offset()?
+            .checked_add(padded_size(1, self.vector_bytes()?)?)
     }
 
     /// Returns the offset of the distances region.
@@ -248,8 +249,8 @@ impl FileHeader {
     /// no real file matches the header.
     #[must_use]
     pub(crate) fn distances_offset(&self) -> Option<u64> {
-        let padded = self.vector_bytes()?.checked_next_multiple_of(PAGE)?;
-        self.inverse_scales_offset()?.checked_add(padded)
+        self.inverse_scales_offset()?
+            .checked_add(padded_size(1, self.vector_bytes()?)?)
     }
 
     /// Returns the exact file length the header describes.

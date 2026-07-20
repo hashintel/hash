@@ -21,7 +21,7 @@ use crate::dataset::OntologyRowId;
     not(test),
     expect(
         dead_code,
-        reason = "the reader awaits its consumer, the annotation assembly stage"
+        reason = "the assembly stage awaits its consumer, the fit pipeline"
     )
 )]
 pub(crate) mod annotation;

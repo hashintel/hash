@@ -198,6 +198,7 @@ pub(crate) mod morton;
 pub(crate) mod policy;
 pub(crate) mod postings;
 pub(crate) mod quad;
+pub(crate) mod region;
 pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;

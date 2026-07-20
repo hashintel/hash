@@ -17,24 +17,25 @@ use crate::{
     salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
 };
 
-/// Most `coloredTypeIds` one tile request may carry: the documented
-/// default of the manifest's `coloredTypeIds` cap. At this ceiling
-/// the `TYPE_MASK` stride is four bytes per point.
-pub(super) const COLORED_TYPE_IDS_CAP: u32 = 32;
-
-/// The tile endpoint's request caps: transport configuration with
-/// documented defaults, never wire constants.
+/// The tile endpoint's request caps.
+///
+/// Transport configuration with documented defaults, never wire
+/// constants: the transport constructs one value and the manifest
+/// publishes the same value, so enforcement and advertisement
+/// cannot disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TileCaps {
     /// Most `coloredTypeIds` entries one request may carry; the
     /// manifest publishes this value as `limits.coloredTypeIds`.
+    /// Defaults to 32 - at that ceiling the `TYPE_MASK` stride is
+    /// four bytes per point.
     pub colored_type_ids: u32,
 }
 
 const impl Default for TileCaps {
     fn default() -> Self {
         Self {
-            colored_type_ids: COLORED_TYPE_IDS_CAP,
+            colored_type_ids: 32,
         }
     }
 }

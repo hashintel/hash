@@ -4,8 +4,11 @@ use std::io;
 
 use zerocopy::{IntoBytes as _, LE, U64};
 
-use super::{Fenceposts, FileHeader, PAGE};
-use crate::morton::MortonKey;
+use super::{Fenceposts, FileHeader};
+use crate::{
+    file::region::{PAGE, write_padding},
+    morton::MortonKey,
+};
 
 /// The index stride filling one 4096-byte page of codes, so one index
 /// key resolves to one faulted page.
@@ -62,25 +65,16 @@ pub(crate) fn write_regions(
     }
 
     let header = FileHeader::new(stride, fenceposts);
-
-    // A resident column's geometry fits u64; the checked equations
-    // exist for parsing foreign headers.
-    let codes_offset = header
-        .codes_offset()
-        .expect("a resident column's geometry fits u64");
     let index_bytes = header
         .index_keys()
         .expect("the stride is nonzero by construction")
         * size_of::<u64>() as u64;
 
-    let index_padding = codes_offset - FileHeader::SIZE as u64 - index_bytes;
-    let zeros = [0_u8; FileHeader::SIZE];
-
     write.write_all(header.as_bytes())?;
     for key in codes.iter().step_by(stride as usize) {
         write.write_all(U64::<LE>::new(key.to_bits()).as_bytes())?;
     }
-    write.write_all(&zeros[..usize::try_from(index_padding).expect("padding stays below 4096")])?;
+    write_padding(&mut write, index_bytes)?;
     for key in codes {
         write.write_all(U64::<LE>::new(key.to_bits()).as_bytes())?;
     }

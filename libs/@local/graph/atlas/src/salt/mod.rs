@@ -41,7 +41,7 @@ mod importance;
 pub(crate) mod knn;
 // Crate-visible for the metadata document's ladder evidence.
 pub(crate) mod ladder;
-mod landmark;
+pub(crate) mod landmark;
 // Crate-visible for the serving surface's schedule reads.
 pub(crate) mod lod;
 mod policy;

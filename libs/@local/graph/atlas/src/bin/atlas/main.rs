@@ -15,23 +15,21 @@
 //! routes, unauthenticated, with the generation pinned at startup.
 #![expect(
     clippy::print_stdout,
+    clippy::print_stderr,
     clippy::use_debug,
-    reason = "the tool reports on stdout; `Duration` formats through `Debug`"
+    reason = "the tool reports on stdout and fails on stderr; `Duration` formats through `Debug`"
 )]
 
 extern crate alloc;
 
 use alloc::sync::Arc;
-use core::num::NonZero;
-use std::time::Instant;
+use core::{error::Error, fmt, num::NonZero};
+use std::{process::ExitCode, time::Instant};
 
 use clap::{Args, Parser, Subcommand};
 use hash_graph_atlas::{
-    bench::{
-        fit::connect,
-        runner::{LiveOptions, run_live},
-    },
-    serve::{Atlas, GenerationRoot, PostgresDetails},
+    run,
+    serve::{Atlas, GenerationRoot, OpenOptions, PostgresDetails, ServeCaps},
 };
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 
@@ -147,6 +145,58 @@ struct ServeArgs {
 
     #[command(flatten)]
     store: StoreArgs,
+
+    #[command(flatten)]
+    caps: CapsArgs,
+
+    /// The locate index cache directory; absent builds the index on
+    /// every open.
+    #[arg(long, env = "ATLAS_CACHE_DIR")]
+    cache_dir: Option<String>,
+}
+
+/// The per-request serving caps: absent flags read the documented
+/// defaults off [`ServeCaps`], so the default values live in exactly
+/// one place. The manifest publishes whatever this resolves to - the
+/// handlers enforce the same value by construction.
+#[derive(Debug, Args)]
+struct CapsArgs {
+    /// Most `coloredTypeIds` one tile request may carry.
+    #[arg(long, env = "ATLAS_CAP_COLORED_TYPE_IDS")]
+    colored_type_ids: Option<u32>,
+
+    /// Most tiles one edges request may list.
+    #[arg(long, env = "ATLAS_CAP_EDGES_TILES")]
+    edges_tiles: Option<u32>,
+
+    /// Most edges one response delivers before rank truncation.
+    #[arg(long, env = "ATLAS_CAP_EDGES")]
+    edges: Option<u32>,
+
+    /// Most entity ids one translate request may carry.
+    #[arg(long, env = "ATLAS_CAP_TRANSLATE_ENTITY_IDS")]
+    translate_entity_ids: Option<u32>,
+}
+
+impl CapsArgs {
+    /// Resolves the configured caps over the documented defaults.
+    fn resolve(&self) -> ServeCaps {
+        let mut caps = ServeCaps::default();
+        if let Some(value) = self.colored_type_ids {
+            caps.tile.colored_type_ids = value;
+        }
+        if let Some(value) = self.edges_tiles {
+            caps.edges.tiles = value;
+        }
+        if let Some(value) = self.edges {
+            caps.edges.edges = value;
+        }
+        if let Some(value) = self.translate_entity_ids {
+            caps.translate.entity_ids = value;
+        }
+
+        caps
+    }
 }
 
 /// The store connection settings, mirroring the graph binary's
@@ -227,8 +277,48 @@ fn default_root() -> String {
         .to_owned()
 }
 
+/// A failed step of the tool and the error beneath it.
+type ToolError = Box<dyn Error + Send + Sync>;
+
+/// One failed step, heading the printed error chain.
+#[derive(Debug)]
+struct Failure {
+    step: &'static str,
+    source: ToolError,
+}
+
+impl fmt::Display for Failure {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(self.step)
+    }
+}
+
+impl Error for Failure {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(self.source.as_ref())
+    }
+}
+
+/// Wraps a step's error with the step's name.
+fn failure(step: &'static str, source: impl Error + Send + Sync + 'static) -> ToolError {
+    Box::new(Failure {
+        step,
+        source: Box::new(source),
+    })
+}
+
+/// Prints the error and its chain of causes on stderr.
+fn explain(error: &dyn Error) {
+    eprintln!("error: {error}");
+    let mut source = error.source();
+    while let Some(cause) = source {
+        eprintln!("  caused by: {cause}");
+        source = cause.source();
+    }
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
@@ -236,15 +326,22 @@ async fn main() {
         .with_span_events(FmtSpan::CLOSE)
         .init();
 
-    match Cli::parse().command {
+    let outcome = match Cli::parse().command {
         Command::Fit(args) => fit(args).await,
         Command::Serve(args) => serve(args).await,
+    };
+    match outcome {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            explain(error.as_ref());
+            ExitCode::FAILURE
+        }
     }
 }
 
 /// Runs one production generation run and prints its summary.
-async fn fit(args: FitArgs) {
-    let options = LiveOptions {
+async fn fit(args: FitArgs) -> Result<(), ToolError> {
+    let options = run::Options {
         seed: args.seed,
         landmarks: args.landmarks,
         fresh: args.fresh,
@@ -271,12 +368,13 @@ async fn fit(args: FitArgs) {
         "starting the production run"
     );
 
-    let mut client = connect(&args.dsn).await;
+    let mut client = run::connect(&args.dsn).await?;
     let started = Instant::now();
-    let summary = run_live(&mut client, &args.root, options).await;
+    let summary = run::live(&mut client, &args.root, options).await?;
     let elapsed = started.elapsed();
 
-    std::fs::write(&args.report, &summary.report).expect("the report should write");
+    std::fs::write(&args.report, &summary.report)
+        .map_err(|error| failure("the admission report could not be written", error))?;
 
     println!();
     println!("generation  {}", summary.generation);
@@ -291,18 +389,27 @@ async fn fit(args: FitArgs) {
     println!("activated   {}", summary.activated);
     println!("report      {}", args.report);
     println!("wall        {elapsed:.1?}");
+
+    Ok(())
 }
 
 /// Hosts the atlas read API until interrupted.
-async fn serve(args: ServeArgs) {
-    let root = GenerationRoot::new(args.root.as_str()).expect("the generation root should open");
+async fn serve(args: ServeArgs) -> Result<(), ToolError> {
+    let root = GenerationRoot::new(args.root.as_str())
+        .map_err(|error| failure("the generation root could not open", error))?;
     let generation = root
         .current()
-        .expect("the current-generation pointer should read")
-        .expect("the root holds no activated generation; run `atlas fit` first");
+        .map_err(|error| failure("the current-generation pointer could not be read", error))?
+        .ok_or_else(|| {
+            ToolError::from("the root holds no activated generation; run `atlas fit` first")
+        })?;
 
+    let options = OpenOptions {
+        locate_cache: args.cache_dir.map(Into::into),
+    };
     let atlas = Arc::new(
-        Atlas::open(&root, generation).expect("the active generation's artifacts should open"),
+        Atlas::open_with(&root, generation, &options)
+            .map_err(|error| failure("the active generation's artifacts could not open", error))?,
     );
     tracing::info!(
         root = args.root,
@@ -312,7 +419,7 @@ async fn serve(args: ServeArgs) {
 
     // The store rides every serve, exactly as it does in the graph
     // binary this one folds into: detail trailers hydrate live.
-    let client = connect(&args.store.dsn()).await;
+    let client = run::connect(&args.store.dsn()).await?;
     tracing::info!(
         host = args.store.host,
         database = args.store.database,
@@ -320,16 +427,16 @@ async fn serve(args: ServeArgs) {
     );
     let details = Arc::new(PostgresDetails::new(client));
 
-    let router = routes::router(atlas, details).route(
+    let router = routes::router(atlas, args.caps.resolve(), details).route(
         "/status",
         axum::routing::get(async || axum::http::StatusCode::OK),
     );
 
     let listener = tokio::net::TcpListener::bind((args.host.as_str(), args.port))
         .await
-        .expect("the listener should bind");
+        .map_err(|error| failure("the listener could not bind", error))?;
     tracing::info!(
-        address = %listener.local_addr().expect("the listener has an address"),
+        address = %listener.local_addr().expect("a bound listener has an address"),
         "listening; ctrl-c stops the server"
     );
 
@@ -338,5 +445,7 @@ async fn serve(args: ServeArgs) {
             let _: std::io::Result<()> = tokio::signal::ctrl_c().await;
         })
         .await
-        .expect("the server should run until shutdown");
+        .map_err(|error| failure("the server failed", error))?;
+
+    Ok(())
 }

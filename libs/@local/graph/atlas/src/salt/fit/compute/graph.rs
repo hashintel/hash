@@ -1,5 +1,4 @@
 //! The neighbour and semantic graph stages.
-
 use super::{
     super::{
         Stage,
@@ -38,6 +37,7 @@ impl Context<'_> {
                 id: NodeRowId::new(row as u64),
                 components,
             }))?;
+
             index.build(stage_rng(self.config.seed, Stage::KnnLink))?;
         }
 
@@ -59,6 +59,7 @@ impl Context<'_> {
             let _span = tracing::info_span!("knn-table").entered();
             let table =
                 Knn::build(&index, rows.len(), self.config.neighbours).map_err(StageError::Knn)?;
+
             write_staged(self.staging, Role::Knn, |writer| table.write_into(writer))?
         };
 

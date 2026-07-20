@@ -1,16 +1,18 @@
 //! Opened morton files.
 
 use core::{error::Error, fmt, ops::Range};
-use std::{fs::File, io, path::Path};
+use std::{io, path::Path};
 
-use memmap2::Mmap;
 use zerocopy::{
     FromBytes as _, LE, TryFromBytes as _, U64,
     error::{ConvertError, ValidityError},
 };
 
 use super::{FencepostViolation, Fenceposts, FileHeader};
-use crate::morton::{Depth, MortonCell, MortonKey};
+use crate::{
+    file::region::PageMap,
+    morton::{Depth, MortonCell, MortonKey},
+};
 
 /// Opening a morton file failed.
 #[derive(Debug)]
@@ -93,7 +95,7 @@ impl Error for OpenMortonError {
 /// `log2(N)` scattered ones.
 #[derive(Debug)]
 pub(crate) struct MortonFile {
-    map: Mmap,
+    map: PageMap,
     fenceposts: Fenceposts,
 }
 
@@ -110,16 +112,10 @@ impl MortonFile {
     /// the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenMortonError> {
-        let file = File::open(path).map_err(OpenMortonError::Io)?;
-        // SAFETY: published artifact files are immutable (the `crate::file`
-        // publish contract: temporary path, rename into place, never
-        // rewritten), so the mapped bytes cannot change beneath the borrow.
-        let map = unsafe { Mmap::map(&file) }.map_err(OpenMortonError::Io)?;
+        let map = PageMap::open(path).map_err(OpenMortonError::Io)?;
 
-        let Some(bytes) = map.get(..FileHeader::SIZE) else {
-            return Err(OpenMortonError::Undersized {
-                actual: map.len() as u64,
-            });
+        let Some(bytes) = map.header_page() else {
+            return Err(OpenMortonError::Undersized { actual: map.len() });
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
@@ -139,7 +135,7 @@ impl MortonFile {
         let fenceposts = Fenceposts::new(&header.posts()).map_err(OpenMortonError::Fenceposts)?;
 
         let expected = header.expected_file_len();
-        let actual = map.len() as u64;
+        let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenMortonError::Length { expected, actual });
         }
@@ -151,7 +147,7 @@ impl MortonFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.as_ptr().cast::<FileHeader>();
+        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
         // validated that the map is large enough to contain the header and that its bytes parse
@@ -200,15 +196,6 @@ impl MortonFile {
         Depth::new(segment as u8 - 1).expect("every segment index names a valid depth")
     }
 
-    /// Carves one region out of the mapping.
-    fn region(&self, offset: u64, len: u64) -> &[u8] {
-        // The offsets and products repeat checked computations open
-        // already accepted, so none of them can overflow here.
-        let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
-        let len = usize::try_from(len).expect("a mapped region fits the address space");
-        &self.map[offset..offset + len]
-    }
-
     /// Views the index keys: one key per stride of codes.
     #[must_use]
     fn index_keys(&self) -> &[U64<LE>] {
@@ -216,14 +203,19 @@ impl MortonFile {
             .header()
             .index_keys()
             .expect("open validated the stride");
-        let bytes = self.region(FileHeader::SIZE as u64, keys * size_of::<u64>() as u64);
+        // The offsets and products in the region reads repeat checked
+        // computations open already accepted, so none of them can
+        // overflow here.
+        let bytes = self
+            .map
+            .region(FileHeader::SIZE as u64, keys * size_of::<u64>() as u64);
         <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
     /// Views the code column in base delivery order.
     #[must_use]
     pub(crate) fn codes(&self) -> &[U64<LE>] {
-        let bytes = self.region(
+        let bytes = self.map.region(
             self.header()
                 .codes_offset()
                 .expect("open validated the geometry"),

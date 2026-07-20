@@ -20,6 +20,8 @@
 //!   lives, plus the relation-card format.
 //! - `salt` - the pipeline: graph construction, landmark layout, projector training, evaluation,
 //!   and materialization.
+//! - `run` - the operator seam: one production run over a live store, the `atlas` binary's fallible
+//!   surface (`cli`/`bench` features).
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! The previous pipeline generation is parked at `src/salt-BAK`,
@@ -69,5 +71,7 @@ pub mod integrity;
 pub mod math;
 pub mod morton;
 pub mod random;
+#[cfg(any(feature = "cli", feature = "bench"))]
+pub mod run;
 mod salt;
 pub mod serve;

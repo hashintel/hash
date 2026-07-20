@@ -67,8 +67,11 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-/// Size of one page-aligned region unit, and of the header.
-const PAGE: u64 = FileHeader::SIZE as u64;
+use crate::file::region::{PAGE, padded_size};
+
+// The shared page is the header's size; the offset chain and the
+// write path both count regions from one header page.
+const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
 // not pretty, but allows us to pin a specific version, required for the derive
 #[derive(
@@ -222,9 +225,7 @@ impl FileHeader {
             return None;
         }
 
-        let id_bytes = self.rows().checked_mul(u64::from(self.key_width()))?;
-        let padded = id_bytes.checked_next_multiple_of(PAGE)?;
-        PAGE.checked_add(padded)
+        PAGE.checked_add(padded_size(self.rows(), u64::from(self.key_width()))?)
     }
 
     /// Returns the offset of the pairs region.
@@ -233,11 +234,8 @@ impl FileHeader {
     /// stride is zero, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn pairs_offset(&self) -> Option<u64> {
-        let index_bytes = self
-            .index_keys()?
-            .checked_mul(u64::from(self.key_width()))?;
-        let padded = index_bytes.checked_next_multiple_of(PAGE)?;
-        self.index_offset()?.checked_add(padded)
+        let index = padded_size(self.index_keys()?, u64::from(self.key_width()))?;
+        self.index_offset()?.checked_add(index)
     }
 
     /// Returns the exact file length the header describes.

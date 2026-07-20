@@ -34,6 +34,7 @@
 pub use self::{
     detail::{DeliveredEntities, DetailError, LinkDetails, NodeDetails, PostgresDetails},
     edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
+    locate::{LocateCaps, OpenOptions},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     tile::{TileCaps, TileDocument, TileError, TileQuery, TileRequest},
     translate::{
@@ -64,6 +65,7 @@ mod color;
 mod detail;
 mod edges;
 mod error;
+mod locate;
 mod manifest;
 mod open;
 mod tile;
@@ -78,6 +80,27 @@ mod tests;
 /// ladder's conditions, at which point it moves from this constant to
 /// generation metadata.
 pub const VARIANTS: [&str; 1] = ["plain"];
+
+/// Every per-request serving cap in one configurable value.
+///
+/// The transport constructs one - flags and environment over the
+/// defaults - the handlers enforce it, and the manifest publishes it
+/// through [`ServeCaps::limits`]: one source, so advertisement and
+/// enforcement cannot disagree. Defaults are documented on the
+/// per-endpoint caps types; none of them is a wire constant.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct ServeCaps {
+    /// The tile endpoint's caps.
+    pub tile: TileCaps,
+    /// The edges endpoint's caps.
+    pub edges: EdgesCaps,
+    /// The locate endpoint's caps. Enforced once the locate route
+    /// lands; until then [`ServeCaps::limits`] publishes
+    /// `locateNeighbours` as zero, so no request is admitted.
+    pub locate: LocateCaps,
+    /// The translate endpoint's caps.
+    pub translate: TranslateCaps,
+}
 
 /// An opaque visibility filter: the upstream-owned predicate document.
 ///
@@ -142,6 +165,9 @@ pub struct Atlas {
     /// The edge identity table, joining edge rows to link-entity
     /// identities.
     edge_ids: MappedIdentityTable<ArchivedEntityId>,
+    /// The exact spatial index behind locate's neighbour selection,
+    /// built or cache-loaded at open.
+    locate: locate::LocateIndex,
     /// The tight wire-frame extent of the full point set, absent iff
     /// the generation holds no points. Derived from the world frame:
     /// normalization anchors each non-degenerate axis's extremes onto

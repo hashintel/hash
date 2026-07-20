@@ -5,6 +5,7 @@ use std::io;
 use zerocopy::IntoBytes as _;
 
 use super::{EdgeRecord, FileHeader, GroupRecord};
+use crate::file::region::write_padding;
 
 /// Streams the group and edge regions as an attraction file.
 ///
@@ -38,14 +39,7 @@ pub(crate) fn write_records(
 ) -> io::Result<()> {
     let header = FileHeader::new(groups.len() as u64, edge_count, rows);
 
-    // A resident index's geometry fits u64; the checked equations exist
-    // for parsing foreign headers.
-    let edges_offset = header
-        .edges_offset()
-        .expect("a resident index's geometry fits u64");
     let group_bytes = header.groups() * size_of::<GroupRecord>() as u64;
-    let group_padding = edges_offset - FileHeader::SIZE as u64 - group_bytes;
-    let zeros = [0_u8; FileHeader::SIZE];
 
     write.write_all(header.as_bytes())?;
     let mut written = 0_u64;
@@ -58,7 +52,7 @@ pub(crate) fn write_records(
         header.groups(),
         "the group stream's length promise holds"
     );
-    write.write_all(&zeros[..usize::try_from(group_padding).expect("padding stays below 4096")])?;
+    write_padding(&mut write, group_bytes)?;
 
     let mut written = 0_u64;
     for edge in edges {

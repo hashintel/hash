@@ -88,6 +88,8 @@ mod ingest;
 mod migrate;
 pub(crate) mod prepare;
 mod role;
+#[cfg(any(feature = "bench", feature = "cli"))]
+pub(crate) mod stub;
 pub(crate) mod verdicts;
 
 #[cfg(test)]

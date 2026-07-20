@@ -65,8 +65,11 @@ pub(crate) mod write;
 #[cfg(test)]
 mod tests;
 
-/// Size of one page-aligned region unit, and of the header.
-const PAGE: u64 = FileHeader::SIZE as u64;
+use crate::file::region::{PAGE, padded_size};
+
+// The shared page is the header's size; the offset chain and the
+// write path both count regions from one header page.
+const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
 /// A fencepost breaks the two structural rules: posts anchor at zero
 /// and never decrease.
@@ -342,9 +345,7 @@ impl FileHeader {
     /// `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn codes_offset(&self) -> Option<u64> {
-        let index_bytes = self.index_keys()?.checked_mul(size_of::<u64>() as u64)?;
-        let padded = index_bytes.checked_next_multiple_of(PAGE)?;
-        PAGE.checked_add(padded)
+        PAGE.checked_add(padded_size(self.index_keys()?, size_of::<u64>() as u64)?)
     }
 
     /// Returns the exact file length the header describes.

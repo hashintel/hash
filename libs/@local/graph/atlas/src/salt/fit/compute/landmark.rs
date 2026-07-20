@@ -1,5 +1,4 @@
 //! The landmark skeleton and baseline placement stages.
-
 use std::io::{self, BufWriter, Write as _};
 
 use zerocopy::IntoBytes as _;
@@ -80,10 +79,12 @@ impl Context<'_> {
             let id = prior_ids
                 .id(row.get())
                 .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.get() })?;
+
             if let Some(current_row) = current.row_of(id) {
                 marks.insert(usize::try_from(current_row).expect("rows fit the address space"));
             }
         }
+
         tracing::info!(
             prior_landmarks = marks.count(),
             "translated the prior landmarks onto the current corpus"
@@ -117,6 +118,7 @@ impl Context<'_> {
                     prior_landmark: prior_marks.is_some_and(|marks| marks.contains(row)),
                 })
                 .collect();
+
             select_landmarks(
                 &candidates,
                 &[],

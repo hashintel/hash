@@ -1,15 +1,15 @@
 //! Opened policy files.
 
 use core::{error::Error, fmt};
-use std::{fs::File, io, path::Path};
+use std::{io, path::Path};
 
-use memmap2::Mmap;
 use zerocopy::{
     FromBytes as _, TryFromBytes as _,
     error::{ConvertError, ValidityError},
 };
 
 use super::{FileHeader, PolicyRow};
+use crate::file::region::PageMap;
 
 /// Opening a policy file failed.
 #[derive(Debug)]
@@ -80,7 +80,7 @@ impl Error for OpenPolicyError {
 /// `salt::policy`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct PolicyFile {
-    map: Mmap,
+    map: PageMap,
 }
 
 impl PolicyFile {
@@ -95,16 +95,10 @@ impl PolicyFile {
     /// header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPolicyError> {
-        let file = File::open(path).map_err(OpenPolicyError::Io)?;
-        // SAFETY: published artifact files are immutable (the `crate::file`
-        // publish contract: temporary path, rename into place, never
-        // rewritten), so the mapped bytes cannot change beneath the borrow.
-        let map = unsafe { Mmap::map(&file) }.map_err(OpenPolicyError::Io)?;
+        let map = PageMap::open(path).map_err(OpenPolicyError::Io)?;
 
-        let Some(bytes) = map.get(..FileHeader::SIZE) else {
-            return Err(OpenPolicyError::Undersized {
-                actual: map.len() as u64,
-            });
+        let Some(bytes) = map.header_page() else {
+            return Err(OpenPolicyError::Undersized { actual: map.len() });
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
@@ -117,7 +111,7 @@ impl PolicyFile {
         };
 
         let expected = header.expected_file_len();
-        let actual = map.len() as u64;
+        let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenPolicyError::Length { expected, actual });
         }
@@ -128,7 +122,7 @@ impl PolicyFile {
     /// Views the policy rows.
     #[must_use]
     pub(crate) fn rows(&self) -> &[PolicyRow] {
-        <[PolicyRow]>::ref_from_bytes(&self.map[FileHeader::SIZE..])
+        <[PolicyRow]>::ref_from_bytes(&self.map.bytes()[FileHeader::SIZE..])
             .expect("open validated the region size against the header's count")
     }
 }

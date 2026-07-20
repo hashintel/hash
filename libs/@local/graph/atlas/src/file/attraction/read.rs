@@ -1,15 +1,15 @@
 //! Opened attraction files.
 
 use core::{error::Error, fmt};
-use std::{fs::File, io, path::Path};
+use std::{io, path::Path};
 
-use memmap2::Mmap;
 use zerocopy::{
     FromBytes as _, TryFromBytes as _,
     error::{ConvertError, ValidityError},
 };
 
 use super::{EdgeRecord, FileHeader, GroupRecord};
+use crate::file::region::PageMap;
 
 /// Opening an attraction file failed.
 #[derive(Debug)]
@@ -81,7 +81,7 @@ impl Error for OpenAttractionError {
 /// `salt::relation`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct AttractionFile {
-    map: Mmap,
+    map: PageMap,
 }
 
 impl AttractionFile {
@@ -95,16 +95,10 @@ impl AttractionFile {
     /// [`OpenAttractionError::Length`] when the file length contradicts
     /// the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenAttractionError> {
-        let file = File::open(path).map_err(OpenAttractionError::Io)?;
-        // SAFETY: published artifact files are immutable (the `crate::file`
-        // publish contract: temporary path, rename into place, never
-        // rewritten), so the mapped bytes cannot change beneath the borrow.
-        let map = unsafe { Mmap::map(&file) }.map_err(OpenAttractionError::Io)?;
+        let map = PageMap::open(path).map_err(OpenAttractionError::Io)?;
 
-        let Some(bytes) = map.get(..FileHeader::SIZE) else {
-            return Err(OpenAttractionError::Undersized {
-                actual: map.len() as u64,
-            });
+        let Some(bytes) = map.header_page() else {
+            return Err(OpenAttractionError::Undersized { actual: map.len() });
         };
 
         let header = match FileHeader::try_read_from_bytes(bytes) {
@@ -118,7 +112,7 @@ impl AttractionFile {
         };
 
         let expected = header.expected_file_len();
-        let actual = map.len() as u64;
+        let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenAttractionError::Length { expected, actual });
         }
@@ -130,7 +124,7 @@ impl AttractionFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.as_ptr().cast::<FileHeader>();
+        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
         // validated that the map is large enough to contain the header and that its bytes parse
@@ -145,20 +139,13 @@ impl AttractionFile {
         self.header().rows()
     }
 
-    /// Carves one region out of the mapping.
-    fn region(&self, offset: u64, len: u64) -> &[u8] {
-        // The offsets and products repeat checked computations open
-        // already accepted, so none of them can overflow here.
-        let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
-        let len = usize::try_from(len).expect("a mapped region fits the address space");
-
-        &self.map[offset..offset + len]
-    }
-
     /// Views the relation groups, in file order.
     #[must_use]
     pub(crate) fn groups(&self) -> &[GroupRecord] {
-        let bytes = self.region(
+        // The offsets and products in the region reads repeat checked
+        // computations open already accepted, so none of them can
+        // overflow here.
+        let bytes = self.map.region(
             FileHeader::SIZE as u64,
             self.header().groups() * size_of::<GroupRecord>() as u64,
         );
@@ -169,7 +156,7 @@ impl AttractionFile {
     /// Views the edge records, in group-major order.
     #[must_use]
     pub(crate) fn edges(&self) -> &[EdgeRecord] {
-        let bytes = self.region(
+        let bytes = self.map.region(
             self.header()
                 .edges_offset()
                 .expect("open validated the geometry"),

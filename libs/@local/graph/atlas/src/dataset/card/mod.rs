@@ -27,10 +27,17 @@
 //! [`Display`]: core::fmt::Display
 
 pub(crate) use self::{
+    constraints::{Constraints, Direction, EndpointConstraint},
+    contents::CardContents,
     context::CardContext,
-    format::{Card, CardsConfig, build_card},
+    epilogue::Epilogue,
+    example::Example,
+    format::{Card, CardError, CardsConfig, build_card},
+    group::GroupItem,
+    phrase::Phrase,
+    prelude::Prelude,
     segment::{TextSegmenter, UnicodeSegmenter},
-    token::{Cl100kTokenizer, Tokenizer},
+    token::{Cl100kTokenizer, ReservedTokenError, Tokenizer},
 };
 
 pub(crate) mod hash;

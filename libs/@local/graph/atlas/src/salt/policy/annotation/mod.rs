@@ -52,6 +52,8 @@ use type_system::ontology::id::VersionedUrl;
 
 use crate::{integrity::Sha256Digest, salt::policy::GeometryClass};
 
+pub(crate) mod assembly;
+
 #[cfg(test)]
 mod tests;
 

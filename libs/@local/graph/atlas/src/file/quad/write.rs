@@ -5,6 +5,7 @@ use std::io;
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
 use super::{FileHeader, Node, TypeSets};
+use crate::file::region::{write_padding, write_region};
 
 /// Streams the node table, the type-set fenceposts, and the type ids
 /// as a quad file.
@@ -60,29 +61,14 @@ pub(crate) fn write_regions(
     }
 
     let header = FileHeader::new(nodes.len() as u64, sets.ids().len() as u64);
-
-    // A resident table's geometry fits u64; the checked equations exist
-    // for parsing foreign headers.
-    let posts_offset = header
-        .posts_offset()
-        .expect("a resident table's geometry fits u64");
-    let ids_offset = header
-        .ids_offset()
-        .expect("a resident table's geometry fits u64");
-
-    let table_bytes = nodes.len() as u64 * size_of::<Node>() as u64;
     let posts_bytes = (nodes.len() as u64 + 1) * size_of::<u64>() as u64;
-    let table_padding = posts_offset - FileHeader::SIZE as u64 - table_bytes;
-    let posts_padding = ids_offset - posts_offset - posts_bytes;
-    let zeros = [0_u8; FileHeader::SIZE];
 
     write.write_all(header.as_bytes())?;
-    write.write_all(nodes.as_bytes())?;
-    write.write_all(&zeros[..usize::try_from(table_padding).expect("padding stays below 4096")])?;
+    write_region(&mut write, nodes.as_bytes())?;
     for &post in sets.posts() {
         write.write_all(U64::<LE>::new(post).as_bytes())?;
     }
-    write.write_all(&zeros[..usize::try_from(posts_padding).expect("padding stays below 4096")])?;
+    write_padding(&mut write, posts_bytes)?;
     for &id in sets.ids() {
         write.write_all(U32::<LE>::new(id).as_bytes())?;
     }

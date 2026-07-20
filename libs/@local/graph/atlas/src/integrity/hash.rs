@@ -61,6 +61,12 @@ impl Sha256Digest {
     pub const fn to_bytes(self) -> [u8; DIGEST_BYTES] {
         self.0.into_inner()
     }
+
+    pub fn of(value: impl AsRef<[u8]>) -> Self {
+        let mut hasher = Sha256::new();
+        hasher.update(value.as_ref());
+        hasher.finalize()
+    }
 }
 
 impl fmt::Display for Sha256Digest {

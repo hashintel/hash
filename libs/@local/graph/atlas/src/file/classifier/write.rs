@@ -5,6 +5,7 @@ use std::io;
 use zerocopy::IntoBytes as _;
 
 use super::{CLASSES, FileHeader};
+use crate::file::region::{write_padding, write_region};
 
 /// Streams the model regions as a classifier file.
 ///
@@ -56,35 +57,15 @@ pub(crate) fn write_regions(
         intercepts,
     );
 
-    // A resident model's geometry fits u64; the checked equations exist
-    // for parsing foreign headers.
-    let mean_offset = header
-        .mean_offset()
-        .expect("a resident model's geometry fits u64");
-    let inverse_scales_offset = header
-        .inverse_scales_offset()
-        .expect("a resident model's geometry fits u64");
-    let distances_offset = header
-        .distances_offset()
-        .expect("a resident model's geometry fits u64");
-
     let vector_bytes = size_of_val(mean) as u64;
-    let coefficients_padding =
-        mean_offset - FileHeader::SIZE as u64 - CLASSES as u64 * vector_bytes;
-    let mean_padding = inverse_scales_offset - mean_offset - vector_bytes;
-    let inverse_scales_padding = distances_offset - inverse_scales_offset - vector_bytes;
-    let zeros = [0_u8; FileHeader::SIZE];
-    let padding = |bytes: u64| &zeros[..usize::try_from(bytes).expect("padding stays below 4096")];
 
     write.write_all(header.as_bytes())?;
     for row in coefficients {
         write.write_all(row.as_bytes())?;
     }
-    write.write_all(padding(coefficients_padding))?;
-    write.write_all(mean.as_bytes())?;
-    write.write_all(padding(mean_padding))?;
-    write.write_all(inverse_scales.as_bytes())?;
-    write.write_all(padding(inverse_scales_padding))?;
+    write_padding(&mut write, CLASSES as u64 * vector_bytes)?;
+    write_region(&mut write, mean.as_bytes())?;
+    write_region(&mut write, inverse_scales.as_bytes())?;
     write.write_all(distances.as_bytes())?;
 
     Ok(())

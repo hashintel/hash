@@ -14,14 +14,6 @@ use crate::{
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
 };
 
-/// Most tiles one edges request may list: the documented default of
-/// the manifest's `edgesTiles` cap.
-pub(super) const EDGES_TILES_CAP: u32 = 256;
-
-/// Most edges one response delivers before the rank-ordered cap
-/// truncates: the documented default, roughly 200 KiB of columns.
-const EDGES_CAP: u32 = 0x4000;
-
 /// An edges request was rejected.
 ///
 /// Every variant is a named, data-carrying rejection for the
@@ -97,36 +89,41 @@ pub struct EdgesRequest {
     pub include_detailed_data: bool,
 }
 
-/// The edges endpoint's request and response caps: transport
-/// configuration with documented defaults, never wire constants.
+/// The edges endpoint's request and response caps.
+///
+/// Transport configuration with documented defaults, never wire
+/// constants: the transport constructs one value and the manifest
+/// publishes the same value, so enforcement and advertisement
+/// cannot disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EdgesCaps {
     /// Most tiles one request may list; the manifest publishes this
-    /// value as `limits.edgesTiles`.
+    /// value as `limits.edgesTiles`. Defaults to 256.
     pub tiles: u32,
     /// Most edges one response delivers; beyond it the rank-ordered
-    /// cap truncates and `HEAD` reports `complete: false`.
+    /// cap truncates and `HEAD` reports `complete: false`. Defaults
+    /// to `0x4000` - roughly 200 KiB of columns.
     pub edges: u32,
 }
 
 const impl Default for EdgesCaps {
     fn default() -> Self {
         Self {
-            tiles: EDGES_TILES_CAP,
-            edges: EDGES_CAP,
+            tiles: 256,
+            edges: 0x4000,
         }
     }
 }
 
 /// One qualifying edge during assembly: the wire columns' row ids.
-#[derive(Debug, Copy, Clone)]
-struct DeliveredEdge {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(super) struct DeliveredEdge {
     /// The edge row id.
-    row: u32,
+    pub(super) row: u32,
     /// The source node row id.
-    source: u32,
+    pub(super) source: u32,
     /// The target node row id.
-    target: u32,
+    pub(super) target: u32,
 }
 
 /// One assembled edges response: everything [`Atlas::encode_edges`]
@@ -342,7 +339,7 @@ impl Atlas {
     /// qualifying edge appears exactly once: an edge occupies exactly
     /// one outgoing slot, and a self-loop's one endpoint is both its
     /// source and its target.
-    fn qualifying_edges(&self, delivered: &BitSet) -> Vec<DeliveredEdge> {
+    pub(super) fn qualifying_edges(&self, delivered: &BitSet) -> Vec<DeliveredEdge> {
         let endpoints = self.endpoint_pairs();
         let mut edges = Vec::new();
         for row in delivered.iter() {
@@ -388,7 +385,7 @@ impl Atlas {
 
     /// Returns an edge's truncation rank: its worse endpoint's
     /// importance rank, where larger values are less prominent.
-    fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
+    pub(super) fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
         self.rank_of_row(edge.source)
             .max(self.rank_of_row(edge.target))
     }

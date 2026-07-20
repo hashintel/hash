@@ -37,7 +37,7 @@ use zerocopy::IntoBytes as _;
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, OntologyRowId, card::Card},
     file::array::{ArrayShape, ArrayVariant, Dim, FileHeader},
-    integrity::{Sha256, Sha256Digest, Update as _, Writer},
+    integrity::{Sha256, Sha256Digest, Writer},
     math::{AlignedVecN, BoxedVecN, VecN},
 };
 
@@ -189,7 +189,7 @@ impl<'table> CardEmbeddingView<'table> {
         &self,
         row: OntologyRowId,
     ) -> Option<&'table VecN<CANONICAL_DIMENSIONS>> {
-        let index = usize::try_from(row.get()).ok()?;
+        let index = row.usize();
         self.rows.get(index).map(VecN::from_ref)
     }
 }
@@ -368,7 +368,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
 
     for (row, card) in cards.iter().enumerate() {
         let row = OntologyRowId::new(row as u64);
-        let hash = text_hash(card.card_text());
+        let hash = Sha256Digest::of(card.card_text());
         row_hashes.push(hash);
 
         let entry = unique.entry(hash).or_insert_with(|| {
@@ -447,13 +447,6 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
         CardEmbeddingTable::new(fingerprint, row_hashes, components),
         stats,
     ))
-}
-
-/// Hashes one card's rendered text.
-fn text_hash(text: &str) -> Sha256Digest {
-    let mut hasher = Sha256::new();
-    hasher.update(text.as_bytes());
-    hasher.finalize()
 }
 
 /// Rejects embeddings carrying non-finite components.

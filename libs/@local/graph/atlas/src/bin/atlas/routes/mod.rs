@@ -30,7 +30,7 @@ use aide::{
     openapi::{Info, OpenApi},
 };
 use axum::{Extension, Router, body::Bytes};
-use hash_graph_atlas::serve::{Atlas, ManifestLimits, PostgresDetails};
+use hash_graph_atlas::serve::{Atlas, PostgresDetails, ServeCaps};
 
 mod current;
 mod edges;
@@ -65,21 +65,21 @@ const API_DESCRIPTION: &str = "The read API over one published atlas generation:
                                decoder lives in the frontend's `NetworkGraph/atlas` module.";
 
 /// The shared route state: the pinned generation, the caps the
-/// manifest publishes, and the store connection detail hydration
-/// reads through.
+/// handlers enforce and the manifest publishes, and the store
+/// connection detail hydration reads through.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
-    limits: ManifestLimits,
+    caps: ServeCaps,
     details: Arc<PostgresDetails>,
 }
 
 /// Builds the read API router over one opened generation, with the
 /// OpenAPI document generated at startup and served beside the API.
-pub(crate) fn router(atlas: Arc<Atlas>, details: Arc<PostgresDetails>) -> Router {
+pub(crate) fn router(atlas: Arc<Atlas>, caps: ServeCaps, details: Arc<PostgresDetails>) -> Router {
     let state = AppState {
         atlas,
-        limits: ManifestLimits::default(),
+        caps,
         details,
     };
 

@@ -9,9 +9,7 @@ use axum::{
     extract::{Path, State},
     http::{StatusCode, header},
 };
-use hash_graph_atlas::serve::{
-    GenerationId, TranslateCaps, TranslateError, TranslateRequest, TranslateResponse,
-};
+use hash_graph_atlas::serve::{GenerationId, TranslateError, TranslateRequest, TranslateResponse};
 
 use super::{
     AppState,
@@ -70,7 +68,8 @@ pub(super) async fn handler(
     };
 
     let atlas = Arc::clone(&state.atlas);
-    match spawn(move || atlas.translate(&request, TranslateCaps::default())).await? {
+    let caps = state.caps.translate;
+    match spawn(move || atlas.translate(&request, caps)).await? {
         Ok(response) => Ok((
             [(header::CACHE_CONTROL, "private, no-store")],
             Json(response),

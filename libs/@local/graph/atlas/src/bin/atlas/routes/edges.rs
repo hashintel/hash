@@ -9,7 +9,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use hash_graph_atlas::serve::{EdgesCaps, EdgesError, EdgesRequest, GenerationId};
+use hash_graph_atlas::serve::{EdgesError, EdgesRequest, GenerationId};
 use tracing::Instrument as _;
 
 use super::{
@@ -78,13 +78,12 @@ pub(super) async fn handler(
     // awaits the store between them - the trailer is the envelope's
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
+    let caps = state.caps.edges;
     let assembled = spawn(move || {
-        atlas
-            .assemble_edges(&request, EdgesCaps::default())
-            .map(|document| {
-                let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
-                (document, entities)
-            })
+        atlas.assemble_edges(&request, caps).map(|document| {
+            let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
+            (document, entities)
+        })
     })
     .await?;
 

@@ -46,7 +46,7 @@ pub(super) async fn handler(
             header::CACHE_CONTROL,
             "private, max-age=31536000, immutable",
         )],
-        Json(state.atlas.manifest(state.limits)),
+        Json(state.atlas.manifest(state.caps.limits())),
     ))
 }
 

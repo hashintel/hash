@@ -79,8 +79,11 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-/// Size of one page-aligned region unit, and of the header.
-const PAGE: u64 = FileHeader::SIZE as u64;
+use crate::file::region::{PAGE, padded_size};
+
+// The shared page is the header's size; the offset chain and the
+// write path both count regions from one header page.
+const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
 // not pretty, but allows us to pin a specific version, required for the derive
 #[derive(
@@ -238,9 +241,7 @@ impl FileHeader {
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn membership_posts_offset(&self) -> Option<u64> {
-        let flag_bytes = self.flags_words().checked_mul(size_of::<u64>() as u64)?;
-        let padded = flag_bytes.checked_next_multiple_of(PAGE)?;
-        PAGE.checked_add(padded)
+        PAGE.checked_add(padded_size(self.flags_words(), size_of::<u64>() as u64)?)
     }
 
     /// Returns the offset of the parent fencepost region.
@@ -249,8 +250,8 @@ impl FileHeader {
     /// no real file matches the header.
     #[must_use]
     pub(crate) fn parent_posts_offset(&self) -> Option<u64> {
-        let posts = self.posts_bytes()?.checked_next_multiple_of(PAGE)?;
-        self.membership_posts_offset()?.checked_add(posts)
+        self.membership_posts_offset()?
+            .checked_add(self.padded_posts_bytes()?)
     }
 
     /// Returns the offset of the parent id region.
@@ -259,8 +260,8 @@ impl FileHeader {
     /// no real file matches the header.
     #[must_use]
     pub(crate) fn parent_ids_offset(&self) -> Option<u64> {
-        let posts = self.posts_bytes()?.checked_next_multiple_of(PAGE)?;
-        self.parent_posts_offset()?.checked_add(posts)
+        self.parent_posts_offset()?
+            .checked_add(self.padded_posts_bytes()?)
     }
 
     /// Returns the offset of the membership entries region.
@@ -269,12 +270,8 @@ impl FileHeader {
     /// no real file matches the header.
     #[must_use]
     pub(crate) fn entries_offset(&self) -> Option<u64> {
-        let ids = self
-            .parent_edges
-            .get()
-            .checked_mul(size_of::<u32>() as u64)?;
-        let padded = ids.checked_next_multiple_of(PAGE)?;
-        self.parent_ids_offset()?.checked_add(padded)
+        let ids = padded_size(self.parent_edges.get(), size_of::<u32>() as u64)?;
+        self.parent_ids_offset()?.checked_add(ids)
     }
 
     /// Returns the exact file length the header describes.
@@ -288,10 +285,9 @@ impl FileHeader {
         self.entries_offset()?.checked_add(entries)
     }
 
-    /// Returns the byte size of one fencepost region.
-    fn posts_bytes(&self) -> Option<u64> {
-        self.fencepost_count()?
-            .checked_mul(size_of::<U64<LE>>() as u64)
+    /// Returns the padded byte size of one fencepost region.
+    fn padded_posts_bytes(&self) -> Option<u64> {
+        padded_size(self.fencepost_count()?, size_of::<U64<LE>>() as u64)
     }
 }
 

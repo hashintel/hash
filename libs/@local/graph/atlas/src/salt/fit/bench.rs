@@ -11,29 +11,21 @@
 //! Failures panic with the failing step's error: a measurement run has
 //! no recovery path, and the error is the diagnosis.
 
-use core::{future::ready, num::NonZero};
+use core::num::NonZero;
 
 use camino::Utf8PathBuf;
-use tokio_postgres::{Client, Config, NoTls, config::Host};
+use tokio_postgres::Client;
 
 use super::{
     FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts, fit,
     migrate::migrate_adjacency as migrate_adjacency_inner,
+    stub::{StubEmbedder, stub_classifier},
 };
 use crate::{
-    dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
+    dataset::{TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
-    integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN},
-    salt::{
-        embedding::{CardEmbedder, EmbedderFingerprint},
-        landmark::select::SelectionOptions,
-        policy::classifier::{
-            Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
-            fit as fit_classifier,
-        },
-        projector::train::TrainingSchedule,
-    },
+    math::AffinityCurve,
+    salt::{landmark::select::SelectionOptions, projector::train::TrainingSchedule},
 };
 
 /// The refresh cadence of a step-count-overridden projector run.
@@ -92,37 +84,12 @@ pub struct FitSummary {
 ///
 /// # Panics
 ///
-/// Panics when the connection string does not parse, names no TCP
-/// host, or the store refuses the connection or handshake.
+/// Panics when the store cannot be dialed; the
+/// [`crate::run::ConnectError`] is the diagnosis.
 pub async fn connect(dsn: &str) -> Client {
-    let config: Config = dsn.parse().expect("the connection string should parse");
-    let host = config
-        .get_hosts()
-        .iter()
-        .find_map(|host| match host {
-            Host::Tcp(name) => Some(name.clone()),
-            #[cfg(unix)]
-            Host::Unix(_) => None,
-        })
-        .expect("the connection string should name a TCP host");
-    // 5432 is the protocol's registered port, the same default the
-    // connection-string parser applies.
-    let port = config.get_ports().first().copied().unwrap_or(5432);
-
-    let stream = tokio::net::TcpStream::connect((host.as_str(), port))
+    crate::run::connect(dsn)
         .await
-        .expect("the store should accept the connection");
-    let (client, connection) = config
-        .connect_raw(stream, NoTls)
-        .await
-        .expect("the store handshake should succeed");
-    tokio::spawn(async move {
-        if let Err(error) = connection.await {
-            tracing::error!(%error, "the store connection failed");
-        }
-    });
-
-    client
+        .expect("the store should connect")
 }
 
 /// Runs one fit over the store's current snapshot into the generation
@@ -207,95 +174,6 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         embedded: metadata.evidence.cards.embedded,
         selected: metadata.evidence.landmarks.selected,
         retained: metadata.evidence.landmarks.retained,
-    }
-}
-
-/// A deterministic classifier fitted from a synthetic corpus.
-///
-/// The stub stands in for the supplied model input while the training
-/// ingestion seam is unbuilt, keeping the measured pipeline's policy
-/// stage real: classification, resolution, and both artifacts run
-/// against it.
-#[must_use]
-pub(crate) fn stub_classifier() -> Classifier {
-    const ROWS: usize = 4;
-    // Coprime to the dimension, so no two corpus rows repeat.
-    const PATTERN: [f32; 13] = [
-        -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
-    ];
-
-    let mut storage = BoxedVecN::<{ ROWS * CANONICAL_DIMENSIONS }>::zero();
-    for (component, &value) in storage
-        .as_array_mut()
-        .iter_mut()
-        .zip(PATTERN.iter().cycle())
-    {
-        *component = value;
-    }
-    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
-
-    let rows: Vec<TrainingRow> = [
-        ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
-        ([0.2, 0.6, 0.2], b"group-b"),
-        ([0.1, 0.2, 0.7], b"group-c"),
-        ([0.3, 0.4, 0.3], b"group-d"),
-    ]
-    .into_iter()
-    .map(|(target, group)| {
-        let mut hasher = Sha256::new();
-        hasher.update(group);
-        TrainingRow {
-            target,
-            weight: 1.0,
-            group: hasher.finalize(),
-        }
-    })
-    .collect();
-
-    let training = TrainingSet::new(embeddings, &rows).expect("the stub corpus validates");
-    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
-        .expect("the stub classifier fits")
-        .classifier
-}
-
-/// A deterministic provider deriving each embedding from its text
-/// hash.
-///
-/// The stub keeps provider latency out of the measured pipeline while
-/// the card table stays content-addressed, so `reuse_current` runs
-/// exercise the real prior-table path.
-#[derive(Debug, Copy, Clone)]
-pub struct StubEmbedder;
-
-impl CardEmbedder for StubEmbedder {
-    type Error = !;
-
-    fn fingerprint(&self) -> EmbedderFingerprint {
-        let mut hasher = Sha256::new();
-        hasher.update(b"live-fit stub embedder");
-        EmbedderFingerprint::new(hasher.finalize())
-    }
-
-    fn embed(
-        &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
-    ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
-    {
-        ready(Ok(texts
-            .into_iter()
-            .map(|text| {
-                let mut hasher = Sha256::new();
-                hasher.update(text.as_ref().as_bytes());
-                let bytes = hasher.finalize().to_bytes();
-
-                let mut vector = BoxedVecN::zero();
-                for (component, &byte) in vector.as_array_mut().iter_mut().zip(bytes.iter().cycle())
-                {
-                    *component = f32::from(byte) / 255.0;
-                }
-                vector
-            })
-            .collect()))
     }
 }
 

@@ -9,9 +9,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use hash_graph_atlas::serve::{
-    GenerationId, TileCaps, TileCoordinate, TileError, TileQuery, TileRequest,
-};
+use hash_graph_atlas::serve::{GenerationId, TileCoordinate, TileError, TileQuery, TileRequest};
 use tracing::Instrument as _;
 
 use super::{
@@ -89,13 +87,12 @@ pub(super) async fn handler(
     // awaits the store between them - the trailer is the envelope's
     // last section by design, so geometry never waits on Postgres.
     let atlas = Arc::clone(&state.atlas);
+    let caps = state.caps.tile;
     let assembled = spawn(move || {
-        atlas
-            .assemble_tile(&request, TileCaps::default())
-            .map(|document| {
-                let entities = detailed.then(|| atlas.delivered_entities(&document));
-                (document, entities)
-            })
+        atlas.assemble_tile(&request, caps).map(|document| {
+            let entities = detailed.then(|| atlas.delivered_entities(&document));
+            (document, entities)
+        })
     })
     .await?;
 

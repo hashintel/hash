@@ -1,9 +1,8 @@
 //! Opened sparse matrix files.
 
 use core::{error::Error, fmt};
-use std::{fs::File, io, path::Path};
+use std::{io, path::Path};
 
-use memmap2::Mmap;
 use sprs::{CsMatViewI, errors::StructureError};
 use zerocopy::{
     FromBytes as _, TryFromBytes as _,
@@ -11,6 +10,7 @@ use zerocopy::{
 };
 
 use super::{FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant, ValueTag};
+use crate::file::region::PageMap;
 
 /// Opening a sparse matrix file failed.
 // pub: rides `OpenAtlasError`'s public adjacency variant.
@@ -133,7 +133,7 @@ impl Error for SprsMatrixError {
 /// 4096-byte aligned: aligned for every scalar and SIMD width.
 #[derive(Debug)]
 pub(crate) struct SprsFile {
-    map: Mmap,
+    map: PageMap,
 }
 
 impl SprsFile {
@@ -146,16 +146,10 @@ impl SprsFile {
     /// a header this module speaks, and [`OpenSprsError::Length`] when
     /// the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenSprsError> {
-        let file = File::open(path).map_err(OpenSprsError::Io)?;
-        // SAFETY: published artifact files are immutable (the `crate::file`
-        // publish contract: temporary path, rename into place, never
-        // rewritten), so the mapped bytes cannot change beneath the borrow.
-        let map = unsafe { Mmap::map(&file) }.map_err(OpenSprsError::Io)?;
+        let map = PageMap::open(path).map_err(OpenSprsError::Io)?;
 
-        let Some(bytes) = map.get(..FileHeader::SIZE) else {
-            return Err(OpenSprsError::Undersized {
-                actual: map.len() as u64,
-            });
+        let Some(bytes) = map.header_page() else {
+            return Err(OpenSprsError::Undersized { actual: map.len() });
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
@@ -168,7 +162,7 @@ impl SprsFile {
         };
 
         let expected = header.expected_file_len();
-        let actual = map.len() as u64;
+        let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenSprsError::Length { expected, actual });
         }
@@ -180,7 +174,7 @@ impl SprsFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.as_ptr().cast::<FileHeader>();
+        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
         // validated that the map is large enough to contain the header and that its bytes parse
@@ -292,11 +286,7 @@ impl SprsFile {
 
         // The offsets and products below repeat checked computations
         // open already accepted, so none of them can overflow here.
-        let region = |offset: u64, len: u64| {
-            let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
-            let len = usize::try_from(len).expect("a mapped region fits the address space");
-            &self.map[offset..offset + len]
-        };
+        let region = |offset: u64, len: u64| self.map.region(offset, len);
         let entries = header.nnz();
         let outer = header.outer_count().expect("open validated the geometry");
         let indptr = region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
@@ -350,7 +340,9 @@ impl SprsFile {
         }
 
         let outer = header.outer_count().expect("open validated the geometry");
-        let bytes = self.region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
+        let bytes = self
+            .map
+            .region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
         Ok(<[Iptr]>::ref_from_bytes(bytes)
             .expect("open validated the region sizes and the mapping their alignment"))
     }
@@ -376,7 +368,7 @@ impl SprsFile {
             return Err(self.elements());
         }
 
-        let bytes = self.region(
+        let bytes = self.map.region(
             header
                 .indices_offset()
                 .expect("open validated the geometry"),
@@ -384,16 +376,6 @@ impl SprsFile {
         );
         Ok(<[I]>::ref_from_bytes(bytes)
             .expect("open validated the region sizes and the mapping their alignment"))
-    }
-
-    /// Slices `len` bytes of the mapping at `offset`.
-    ///
-    /// Offsets and lengths repeat checked computations open already
-    /// accepted, so the slice cannot escape the mapping.
-    fn region(&self, offset: u64, len: u64) -> &[u8] {
-        let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
-        let len = usize::try_from(len).expect("a mapped region fits the address space");
-        &self.map[offset..offset + len]
     }
 
     /// Builds the element-mismatch error over the described types.

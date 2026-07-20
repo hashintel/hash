@@ -4,7 +4,8 @@ use std::io;
 
 use zerocopy::{IntoBytes as _, LE, U64};
 
-use super::{FileHeader, PAGE};
+use super::FileHeader;
+use crate::file::region::{PAGE, write_padding, write_region};
 
 /// Returns the index stride for `key_width`-byte ids: the pairs one
 /// 4096-byte page holds, so one index key resolves to one faulted page.
@@ -74,22 +75,10 @@ pub(crate) fn write_regions(
     let stride = stride_for(key_width);
     let header = FileHeader::new(key_width, order.len() as u64, stride);
 
-    // A resident table's geometry fits u64; the checked equations exist
-    // for parsing foreign headers.
-    let index_offset = header
-        .index_offset()
-        .expect("a resident table's geometry fits u64");
-    let pairs_offset = header
-        .pairs_offset()
-        .expect("a resident table's geometry fits u64");
     let index_bytes = header
         .index_keys()
         .expect("the stride is nonzero by construction")
         * u64::from(key_width);
-
-    let ids_padding = index_offset - FileHeader::SIZE as u64 - ids.len() as u64;
-    let index_padding = pairs_offset - index_offset - index_bytes;
-    let zeros = [0_u8; FileHeader::SIZE];
 
     let id_of = |row: u64| -> &[u8] {
         let start = usize::try_from(row).expect("a resident row fits the address space") * width;
@@ -97,12 +86,11 @@ pub(crate) fn write_regions(
     };
 
     write.write_all(header.as_bytes())?;
-    write.write_all(ids)?;
-    write.write_all(&zeros[..usize::try_from(ids_padding).expect("padding stays below 4096")])?;
+    write_region(&mut write, ids)?;
     for &row in order.iter().step_by(stride as usize) {
         write.write_all(id_of(row))?;
     }
-    write.write_all(&zeros[..usize::try_from(index_padding).expect("padding stays below 4096")])?;
+    write_padding(&mut write, index_bytes)?;
     for &row in order {
         write.write_all(id_of(row))?;
         write.write_all(U64::<LE>::new(row).as_bytes())?;

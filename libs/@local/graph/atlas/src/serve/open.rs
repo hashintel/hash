@@ -3,8 +3,9 @@
 //! so every read after it trusts its views.
 
 use super::{
-    Atlas,
+    Atlas, OpenOptions,
     error::{ArrayKind, IdentityDomain, OpenAtlasError},
+    locate::LocateIndex,
 };
 use crate::{
     file::{
@@ -41,6 +42,20 @@ impl Atlas {
     /// the artifacts disagree on the point count.
     #[tracing::instrument(skip_all)]
     pub fn open(root: &GenerationRoot, id: GenerationId) -> Result<Self, OpenAtlasError> {
+        Self::open_with(root, id, &OpenOptions::default())
+    }
+
+    /// Opens a published generation for serving under explicit
+    /// options; [`Atlas::open`] is this with the defaults.
+    ///
+    /// # Errors
+    ///
+    /// As [`Atlas::open`].
+    pub fn open_with(
+        root: &GenerationRoot,
+        id: GenerationId,
+        options: &OpenOptions,
+    ) -> Result<Self, OpenAtlasError> {
         let generation = root.open(id).map_err(|error| match error {
             OpenError::Unpublished(id) => OpenAtlasError::Unpublished(id),
             error @ (OpenError::Identity { .. } | OpenError::Document(_) | OpenError::Io(_)) => {
@@ -87,6 +102,13 @@ impl Atlas {
         let world = generation.repository().metadata.evidence.lod.world;
         let bounds = (morton.count() > 0).then(|| frame_extent(world));
 
+        let locate = {
+            let points = coordinates.points().ok_or(OpenAtlasError::Shape {
+                kind: ArrayKind::Coordinates,
+            })?;
+            LocateIndex::load_or_build(options.locate_cache.as_deref(), id, points)
+        };
+
         let this = Self {
             generation,
             lod,
@@ -103,6 +125,7 @@ impl Atlas {
             ontology_ids,
             node_ids,
             edge_ids,
+            locate,
             bounds,
         };
 

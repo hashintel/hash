@@ -56,11 +56,17 @@ heed              = "0.22.1"
 # measurement (`benches/miner_index.rs`): skew-immune where the
 # uniform grid degrades with cluster occupancy and usearch's graph
 # build buys nothing at 2D. Drags num-traits, ordered-float, and cmov.
-kiddo                      = "5.3.2"
-memchr.workspace           = true
-memmap2                    = "0.9"
+# The `rkyv_08` feature serializes the serving locate index into its
+# disk cache; kiddo's `ImmutableKdTree` implements rkyv 0.8's
+# `Archive` directly under it.
+kiddo            = { version = "5.3.2", features = ["rkyv_08"] }
+memchr.workspace = true
+memmap2          = "0.9"
+# rkyv: the locate index cache codec, pinned to the same 0.8 line
+# kiddo's `rkyv_08` feature binds.
 pin-project-lite.workspace = true
 rand_core_06               = { version = "0.6", package = "rand_core" }
+rkyv                       = "0.8.9"
 # rand_xoshiro: the pipeline's stage generator. The algorithm is pinned
 # by name because a recorded fit seed re-derives the deterministic
 # stages only while the generator behind the stage seeds stays fixed.
@@ -110,9 +116,8 @@ gpu = ["burn/metal"]
 # Builds the `atlas` operator binary: `fit` runs the production
 # generation runner against a live store, `serve` hosts the atlas
 # read API. A testing tool, not API for consumers of the crate; it
-# rides the `bench` seams until the serving module's public surface
-# lands.
-cli = ["bench", "dep:aide", "dep:axum", "dep:clap", "dep:tracing-subscriber", "tokio/signal"]
+# consumes the `run` operator seam. `tokio/net` dials the store.
+cli = ["dep:aide", "dep:axum", "dep:clap", "dep:tracing-subscriber", "tokio/net", "tokio/signal"]
 
 [[bin]]
 name              = "atlas"
