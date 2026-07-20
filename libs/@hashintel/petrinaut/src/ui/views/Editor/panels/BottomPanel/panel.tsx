@@ -58,6 +58,12 @@ const panelContainerStyle = css({
   flexDirection: "column",
 });
 
+/**
+ * The header is a size container (its width is imposed by the panel, so
+ * inline-size containment is safe): descendants use
+ * `@container bottom-panel-header (…)` to adapt to the panel width rather
+ * than the viewport.
+ */
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
@@ -65,6 +71,8 @@ const headerStyle = css({
   gap: "[8px]",
   padding: "[6px]",
   flexShrink: 0,
+  containerType: "inline-size",
+  containerName: "bottom-panel-header",
 });
 
 /**

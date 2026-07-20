@@ -31,6 +31,10 @@ const metricPickerLabelStyle = css({
   color: "neutral.a100",
   letterSpacing: "[0.5px]",
   flexShrink: 0,
+  // On narrow panels, drop the label before the tabs start truncating.
+  "@container bottom-panel-header (max-width: 860px)": {
+    display: "none",
+  },
 });
 
 /**
