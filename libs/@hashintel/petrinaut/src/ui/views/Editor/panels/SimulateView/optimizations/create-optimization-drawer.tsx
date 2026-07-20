@@ -772,7 +772,7 @@ export const CreateOptimizationDrawer = ({
 
   return (
     <Drawer
-      size="md"
+      size="lg"
       shouldCloseOn={submissionInProgress ? "none" : undefined}
       showBackdrop={false}
       onClose={handleClose}

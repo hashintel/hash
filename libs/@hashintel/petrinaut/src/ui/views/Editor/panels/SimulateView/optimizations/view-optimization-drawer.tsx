@@ -89,20 +89,42 @@ const stepStateStyle = css({
 
 const bestParametersStyle = css({
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(14rem, 1fr))",
   gap: "2",
 });
 
 const bestParameterStyle = css({
   display: "flex",
+  alignItems: "center",
   justifyContent: "space-between",
-  gap: "3",
-  padding: "2",
+  gap: "2",
+  minWidth: "[0]",
+  paddingX: "2.5",
+  paddingY: "1.5",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s05",
+});
+
+const bestParameterNameStyle = css({
   fontSize: "sm",
+  fontWeight: "semibold",
+  fontFamily: "mono",
+  color: "neutral.s120",
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const bestParameterValueStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
 });
 
 function formatNumber(value: number): string {
@@ -292,8 +314,12 @@ export const ViewOptimizationDrawer = ({
                 {Object.entries(optimization.best.parameters).map(
                   ([identifier, value]) => (
                     <div key={identifier} className={bestParameterStyle}>
-                      <strong>{identifier}</strong>
-                      <span>{formatScalar(value)}</span>
+                      <span className={bestParameterNameStyle}>
+                        {identifier}
+                      </span>
+                      <span className={bestParameterValueStyle}>
+                        {formatScalar(value)}
+                      </span>
                     </div>
                   ),
                 )}

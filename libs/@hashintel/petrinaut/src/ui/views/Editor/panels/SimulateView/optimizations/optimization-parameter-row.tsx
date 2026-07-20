@@ -20,7 +20,7 @@ const rowStyle = css({
   padding: "2",
   borderWidth: "[1px]",
   borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
+  borderColor: "neutral.a30",
   borderRadius: "lg",
   backgroundColor: "neutral.s00",
   boxShadow:
@@ -55,11 +55,15 @@ const fixedIdentityStyle = css({
 const nameStyle = css({
   fontSize: "sm",
   fontWeight: "semibold",
-  color: "neutral.s120",
+  color: "neutral.s110",
   fontFamily: "mono",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  transition: "[color 160ms ease]",
+  "&[data-optimizing='true']": {
+    color: "purple.s115",
+  },
 });
 
 const typeStyle = css({
@@ -196,7 +200,9 @@ export const OptimizationParameterRow = ({
   const optimizing = draft.mode === "optimize";
   const identity = (
     <div className={`${identityStyle} ${fixedIdentityStyle}`}>
-      <span className={nameStyle}>{parameter.identifier}</span>
+      <span className={nameStyle} data-optimizing={optimizing}>
+        {parameter.identifier}
+      </span>
       <span className={typeStyle}>{typeLabel(parameter.type)}</span>
     </div>
   );
