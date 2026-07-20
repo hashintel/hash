@@ -198,7 +198,7 @@ const parameterRowStyle = css({
   justifyContent: "space-between",
   gap: "4",
   paddingY: "2",
-  paddingX: "0.5",
+  paddingX: "1",
   borderBottomWidth: "thin",
   borderBottomColor: "neutral.a25",
   "&:last-child": {
