@@ -25,7 +25,7 @@ use burn::tensor::{
 
 use super::{
     ObjectiveOptions, StepError,
-    batch::{Batch, NodeColumns},
+    batch::{Batch, NodeColumns, ROW_ALIGNMENT},
     metrics::{BudgetBreakdown, DegreeDeciles},
 };
 use crate::{
@@ -131,10 +131,13 @@ impl Evaluation<'_> {
 
 /// Evaluates the composite objective against projected coordinates.
 ///
-/// `coordinates` are the batch rows' projections, shape `[rows, 2]`,
-/// in the batch's local row order. Split from [`objective`] so the
-/// coordinate producer stays exchangeable: the training loop forwards
-/// the model, tests drive hand-built frames.
+/// `coordinates` are the batch rows' projections in the batch's local
+/// row order, optionally followed by alignment padding: trailing rows
+/// beyond the batch's are the materialized input's padding twins (see
+/// [`ROW_ALIGNMENT`]), which no population references, so they carry
+/// exactly zero force. Split from [`objective`] so the coordinate
+/// producer stays exchangeable: the training loop forwards the model,
+/// tests drive hand-built frames.
 ///
 /// # Errors
 ///
@@ -157,16 +160,20 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
     deciles: &DegreeDeciles,
     metrics: &mut BudgetBreakdown,
 ) -> Result<Objective<B>, StepError> {
-    assert_eq!(
-        coordinates.dims()[0],
-        batch.rows.len(),
-        "the coordinate frame should cover exactly the batch rows"
+    let frame_rows = coordinates.dims()[0];
+    assert!(
+        (batch.rows.len()..=batch.rows.len().next_multiple_of(ROW_ALIGNMENT.get()))
+            .contains(&frame_rows),
+        "the coordinate frame should cover the batch rows, at most alignment-padded"
     );
 
     let values = read_frame(coordinates.clone().inner(), &batch.rows)?;
     // Zero-copy view over the readback: `Vec2` is a transparent
-    // `[f32; 2]`, so the row-major frame reinterprets in place.
+    // `[f32; 2]`, so the row-major frame reinterprets in place. The
+    // hand-gradient paths speak the true batch domain: alignment
+    // padding stays behind the slice.
     let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
+    let frame = &frame[..batch.rows.len()];
     let rows = frame.len();
     let coefficients = options.coefficients;
 
@@ -193,7 +200,7 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
         &mut semantic_field,
     );
 
-    let (relation, combined) = if batch.relation.is_empty() {
+    let (relation, mut combined) = if batch.relation.is_empty() {
         (0.0, flatten(semantic_field.as_slice()))
     } else {
         relation_pass(frame, batch, options, &semantic_field, deciles, metrics)
@@ -217,7 +224,10 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
         )
     });
 
-    let gradient = Tensor::from_data(TensorData::new(combined, [rows, 2]), &device);
+    // The surrogate's field matches the coordinate tensor's padded
+    // shape; the padding rows carry exactly zero force.
+    combined.resize(frame_rows * 2, 0.0);
+    let gradient = Tensor::from_data(TensorData::new(combined, [frame_rows, 2]), &device);
     let mut surrogate = budget::surrogate(coordinates, gradient);
 
     let mut landmark = 0.0;
@@ -356,6 +366,9 @@ fn relation_pass(
 /// Reads the detached coordinate frame back to the host and checks
 /// that every point is finite.
 ///
+/// Padding rows replicate the last participating row, so a non-finite
+/// padded point reports that row.
+///
 /// Returns the raw row-major components; view them through
 /// [`Vec2::from_slice`] rather than copying.
 fn read_frame<B: Backend<FloatElem = f32>>(
@@ -369,7 +382,9 @@ fn read_frame<B: Backend<FloatElem = f32>>(
     let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
     for (index, point) in frame.iter().enumerate() {
         if !point.is_finite() {
-            return Err(StepError::Diverged { row: rows[index] });
+            return Err(StepError::Diverged {
+                row: rows[index.min(rows.len() - 1)],
+            });
         }
     }
     Ok(values)

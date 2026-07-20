@@ -71,7 +71,7 @@ const PAGE: u64 = FileHeader::SIZE as u64;
 /// A fencepost breaks the two structural rules: posts anchor at zero
 /// and never decrease.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct FencepostViolation {
+pub struct FencepostViolation {
     /// The offending fencepost: index 0 is not zero, or the post at
     /// this index is smaller than its predecessor.
     pub index: u8,
@@ -260,7 +260,7 @@ pub(crate) enum Version {
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
-pub(crate) struct FileHeader {
+pub struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     stride: U32<LE>,

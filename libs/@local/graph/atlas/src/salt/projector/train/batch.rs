@@ -6,12 +6,16 @@
 //! into the batch-local row domain the loss terms speak - corpus keys
 //! convert to `BatchRowId` positions here and nowhere else, so the
 //! two domains cannot be mixed by type - and [`Batch::input`]
-//! materializes the model input tensors for the participating rows.
+//! materializes the model input tensors for the participating rows,
+//! padded to [`ROW_ALIGNMENT`] so the tensor shapes stay inside every
+//! GPU kernel's launch constraints.
 //!
 //! Draws consume the caller's random stream in a fixed family order
 //! (semantic, ordinary, hard, relation, landmark, anchor); a family
 //! whose draw is skipped consumes nothing. Equal artifacts, plans,
 //! stream types, and seeds therefore reproduce a batch exactly.
+
+use core::num::NonZero;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 use rand::Rng;
@@ -39,6 +43,23 @@ use crate::{
         semantic::SemanticGraphView,
     },
 };
+
+/// The materialized model input's row alignment.
+///
+/// The batch's gathered-row count is dynamic - draws and
+/// deduplication vary per step - and it becomes the reduction
+/// dimension of the backward matmuls. GPU matmul kernels elected by
+/// shape-bucketed autotune may constrain that dimension to a
+/// plane-size multiple and abort on shapes that violate it, so every
+/// materialized frame pads its row count to this alignment: a
+/// generous power of two covers every plausible plane size and
+/// collapses the per-step shape variety the election is sensitive to.
+///
+/// Padded rows replicate the last participating row and no population
+/// references them, so they receive exactly zero force and contribute
+/// exactly zero parameter gradient.
+pub(crate) const ROW_ALIGNMENT: NonZero<usize> =
+    NonZero::new(256).expect("the row alignment is non-zero");
 
 /// One anchored node of a support pool, in corpus row space.
 ///
@@ -454,7 +475,8 @@ impl Batch {
         }
     }
 
-    /// Materializes the batch's model input on `device`.
+    /// Materializes the batch's model input on `device`, with the
+    /// row dimension padded to [`ROW_ALIGNMENT`].
     ///
     /// The condition vector is the relation lens: every row carries
     /// the batch's rung as its single column. A future type-context
@@ -473,6 +495,32 @@ impl Batch {
         columns: NodeColumns<'_>,
         device: &B::Device,
     ) -> ProjectorInput<B> {
+        self.input_aligned(columns, device, ROW_ALIGNMENT)
+    }
+
+    /// Materializes the batch's model input at an explicit row
+    /// alignment.
+    ///
+    /// The row count pads up to the next `alignment` multiple; padded
+    /// rows replicate the last participating row, carry the batch's
+    /// rung, and are referenced by no population, so they project dead
+    /// coordinates that receive exactly zero force. Production goes
+    /// through [`Batch::input`]; certificates pass `1` to obtain the
+    /// unpadded frame.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the representation and role columns disagree in
+    /// length or a batch row lies outside them; the columns and the
+    /// draws come from one generation, so a mismatch is a wiring
+    /// defect.
+    #[must_use]
+    pub(crate) fn input_aligned<B: Backend>(
+        &self,
+        columns: NodeColumns<'_>,
+        device: &B::Device,
+        alignment: NonZero<usize>,
+    ) -> ProjectorInput<B> {
         assert_eq!(
             columns.representations.len(),
             columns.roles.len(),
@@ -480,20 +528,32 @@ impl Batch {
         );
 
         let rows = self.rows.len();
-        let mut representation = Vec::with_capacity(rows * PROJECTOR_DIMENSIONS);
-        let mut role_values = Vec::with_capacity(rows);
+        let padded = rows.next_multiple_of(alignment.get());
+        let mut representation = Vec::with_capacity(padded * PROJECTOR_DIMENSIONS);
+        let mut role_values = Vec::with_capacity(padded);
         for row in &self.rows {
             representation.extend_from_slice(columns.representations[row.usize()].as_array());
             role_values.push(i64::from(columns.roles[row.usize()].index()));
         }
+        if let Some(last) = self.rows.last() {
+            let pattern = columns.representations[last.usize()].as_array();
+            let role = i64::from(columns.roles[last.usize()].index());
+            for _ in rows..padded {
+                representation.extend_from_slice(pattern);
+                role_values.push(role);
+            }
+        }
 
         ProjectorInput {
             representation: Tensor::from_data(
-                TensorData::new(representation, [rows, PROJECTOR_DIMENSIONS]),
+                TensorData::new(representation, [padded, PROJECTOR_DIMENSIONS]),
                 device,
             ),
-            roles: Tensor::<B, 1, Int>::from_data(TensorData::new(role_values, [rows]), device),
-            condition: Tensor::from_data(TensorData::new(vec![self.eta; rows], [rows, 1]), device),
+            roles: Tensor::<B, 1, Int>::from_data(TensorData::new(role_values, [padded]), device),
+            condition: Tensor::from_data(
+                TensorData::new(vec![self.eta; padded], [padded, 1]),
+                device,
+            ),
         }
     }
 }

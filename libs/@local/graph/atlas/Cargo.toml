@@ -33,6 +33,9 @@ hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 
 # Private third-party dependencies
+# aide: OpenAPI documentation over the operator binary's axum routes;
+# the `cli` feature only, like axum itself.
+aide = { version = "0.16.0-alpha.4", optional = true, features = ["axum", "axum-json", "macros", "scalar"] }
 # argmin: the L-BFGS driver for the policy-classifier fit. Default
 # features stay OFF (`rand` drags rand 0.9 beside our rand 0.10); the
 # solver runs on the argmin-math impls over `math::BoxedDVecN`.
@@ -64,6 +67,7 @@ rand_core_06               = { version = "0.6", package = "rand_core" }
 rand_xoshiro                   = { workspace = true }
 rayon                          = { workspace = true }
 regex                          = { workspace = true }
+schemars                       = "1.2.1"
 serde                          = { workspace = true, features = ["derive"] }
 serde_json                     = { workspace = true, features = ["float_roundtrip"] }
 sha2                           = { workspace = true }
@@ -76,7 +80,7 @@ tracing                        = { workspace = true }
 tracing-subscriber             = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation.workspace = true
 unidecode                      = "0.3.0"
-zerocopy                       = { version = "0.8.54", features = ["derive"] }
+zerocopy                       = { version = "0.8.54", features = ["derive"], public = true }
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
@@ -108,7 +112,7 @@ gpu = ["burn/metal"]
 # read API. A testing tool, not API for consumers of the crate; it
 # rides the `bench` seams until the serving module's public surface
 # lands.
-cli = ["bench", "dep:axum", "dep:clap", "dep:tracing-subscriber", "tokio/signal"]
+cli = ["bench", "dep:aide", "dep:axum", "dep:clap", "dep:tracing-subscriber", "tokio/signal"]
 
 [[bin]]
 name              = "atlas"

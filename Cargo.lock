@@ -87,6 +87,7 @@ version = "0.16.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "390515b47251185fa076ac92a7a582d9d383b03e13cef0c801e7670cf928229b"
 dependencies = [
+ "aide-macros",
  "axum",
  "bytes",
  "cfg-if",
@@ -100,6 +101,18 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "aide-macros"
+version = "0.16.0-alpha.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44db8ab6bd2a6748ce7c948a4813456bd95ec3bfdbe1635d52f4a0276d0fa4f0"
+dependencies = [
+ "darling 0.23.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
 ]
 
 [[package]]
@@ -5863,6 +5876,7 @@ dependencies = [
 name = "hash-graph-atlas"
 version = "0.0.0"
 dependencies = [
+ "aide",
  "argmin",
  "argmin-math",
  "axum",
@@ -5890,6 +5904,7 @@ dependencies = [
  "rand_xoshiro 0.8.1",
  "rayon",
  "regex",
+ "schemars 1.2.1",
  "serde",
  "serde_json",
  "sha2 0.11.0",

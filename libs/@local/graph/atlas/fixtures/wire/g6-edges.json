@@ -5,7 +5,7 @@
     [112, 124],
     [128, 140]
   ],
-  "edgeRowIds": [100, 205, 3],
+  "edgeRowIds": [3, 100, 205],
   "golden": "g6-edges",
   "head": {
     "complete": false,
@@ -22,12 +22,12 @@
     "slotCount": 4,
     "wireVersion": 1
   },
-  "sources": [4, 9, 4],
-  "targets": [7, 2, 11],
+  "sources": [4, 4, 9],
+  "targets": [11, 7, 2],
   "trailer": {
-    "linkIcons": [null, null, "🔗"],
-    "linkLabels": ["created by", null, "œuvre"],
+    "linkIcons": ["🔗", null, null],
+    "linkLabels": ["œuvre", "created by", null],
     "linkTypeIcons": [null, null, null],
-    "linkTypeLabels": ["authored", "authored", null]
+    "linkTypeLabels": [null, "authored", "authored"]
   }
 }

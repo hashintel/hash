@@ -594,19 +594,22 @@ fn g5_trailer_tile() -> Golden {
 
 /// G6: an edges response - three columns, `complete = false` (the
 /// cap flag is the point), the four-array detail trailer with nulls.
+/// Edge rows ascend per the 6a delivery-order pin - goldens conform
+/// to ratified contracts, not just structure (re-blessed 2026-07-20;
+/// the original predated the pin).
 fn g6_edges() -> Golden {
-    let link_labels = [Some("created by"), None, Some("\u{153}uvre")];
-    let link_icons = [None, None, Some("\u{1f517}")];
-    let link_type_labels = [Some("authored"), Some("authored"), None];
+    let link_labels = [Some("\u{153}uvre"), Some("created by"), None];
+    let link_icons = [Some("\u{1f517}"), None, None];
+    let link_type_labels = [None, Some("authored"), Some("authored")];
     let link_type_icons = [None, None, None];
 
     let response = EdgesResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x66; 32]),
         variant: 0,
         complete: false,
-        sources: &[4, 9, 4],
-        targets: &[7, 2, 11],
-        edge_rows: &[100, 205, 3],
+        sources: &[4, 4, 9],
+        targets: &[11, 7, 2],
+        edge_rows: &[3, 100, 205],
         trailer: Some(EdgesTrailer {
             link_labels: &link_labels,
             link_icons: &link_icons,
