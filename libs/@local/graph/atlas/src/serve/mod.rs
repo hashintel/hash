@@ -32,8 +32,8 @@
 //! [`open`](self) pass that validates everything the others rely on.
 
 pub use self::{
-    detail::{DeliveredEntities, DetailError, NodeDetails, PostgresDetails},
-    edges::{EdgesCaps, EdgesError, EdgesRequest},
+    detail::{DeliveredEntities, DetailError, LinkDetails, NodeDetails, PostgresDetails},
+    edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     tile::{TileCaps, TileDocument, TileError, TileQuery, TileRequest},
     translate::{

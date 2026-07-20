@@ -100,7 +100,7 @@ fn repository() -> SaltRepository {
             edge_identities: file("edge-identities.idnt"),
             ontology_identities: file("ontology-identities.idnt"),
             edge_endpoints: file("edge-endpoints.arr"),
-            adjacency: file("adjacency.adjc"),
+            adjacency: file("adjacency.sprs"),
             projector: None,
             reviewed_verdicts: Some(file("reviewed-verdicts.json")),
         },

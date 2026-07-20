@@ -14,12 +14,12 @@ use super::{
 use crate::{
     dataset::OntologyRowId,
     file::{
-        adjacency::read::AdjacencyFile,
         array::{ArrayFile, ArrayVariant, Dim},
         identity::read::IdentityFile,
         morton::write::{PAGE_STRIDE, write_regions},
         quad,
         repository::RepositoryFile,
+        sprs::read::SprsFile,
     },
     integrity::{Sha256, Writer},
     salt::{
@@ -97,9 +97,10 @@ impl Context<'_> {
         let importance = match self.config.ranking {
             RankingConfig::ConstantColumns => ConstantImportance.derive(points.len()),
             RankingConfig::IncidentDegree => {
-                let adjacency = MappedAdjacency::new(AdjacencyFile::open(
-                    self.staging.path_of(&Role::Adjacency.file_name()),
-                )?)?;
+                let adjacency = MappedAdjacency::new(
+                    SprsFile::open(self.staging.path_of(&Role::Adjacency.file_name()))
+                        .map_err(StageError::MapAdjacency)?,
+                )?;
                 DegreeImportance::new(&adjacency).derive(points.len())
             }
         };

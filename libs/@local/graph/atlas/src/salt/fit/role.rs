@@ -75,7 +75,7 @@ impl Role {
             Self::EdgeIdentities => FileName::pinned("edge-identities.idnt"),
             Self::OntologyIdentities => FileName::pinned("ontology-identities.idnt"),
             Self::EdgeEndpoints => FileName::pinned("edge-endpoints.arr"),
-            Self::Adjacency => FileName::pinned("adjacency.adjc"),
+            Self::Adjacency => FileName::pinned("adjacency.sprs"),
             Self::ReviewedVerdicts => FileName::pinned("reviewed-verdicts.json"),
         }
     }

@@ -13,8 +13,9 @@ use zerocopy::{
 use super::{FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant, ValueTag};
 
 /// Opening a sparse matrix file failed.
+// pub: rides `OpenAtlasError`'s public adjacency variant.
 #[derive(Debug)]
-pub(crate) enum OpenSprsError {
+pub enum OpenSprsError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.
@@ -73,8 +74,9 @@ impl Error for OpenSprsError {
 }
 
 /// Viewing an opened file's matrix failed.
+// pub: rides `InvalidAdjacencyFile`'s public matrix variant.
 #[derive(Debug)]
-pub(crate) enum SprsMatrixError {
+pub enum SprsMatrixError {
     /// The file stores different element types than the requested ones.
     Elements {
         value: ValueTag,
@@ -244,9 +246,12 @@ impl SprsFile {
     /// [`value_width`](Self::value_width) both, [`index`](Self::index),
     /// [`iptr`](Self::iptr)), so a region is never read at the wrong
     /// width; an [`Opaque`](ValueTag::Opaque) value carries no identity
-    /// beyond its width, which is that tag's documented contract. Every
-    /// call re-checks the compressed-row structure, which costs one
-    /// pass over the entries; callers hold on to the view within a
+    /// beyond its width, which is that tag's documented contract. A
+    /// [`Unit`](ValueTag::Unit) matrix stores no value bytes; its `()`
+    /// entries materialize at the recorded entry count, so the
+    /// structure-only view drives sparse algorithms like any other.
+    /// Every call re-checks the compressed-row structure, which costs
+    /// one pass over the entries; callers hold on to the view within a
     /// stage.
     ///
     /// # Errors
@@ -309,7 +314,11 @@ impl SprsFile {
         let expect = "open validated the region sizes and the mapping their alignment";
         let indptr = <[Iptr]>::ref_from_bytes(indptr).expect(expect);
         let indices = <[I]>::ref_from_bytes(indices).expect(expect);
-        let values = <[N]>::ref_from_bytes(values).expect(expect);
+        let values = N::view_region(
+            values,
+            usize::try_from(entries)
+                .expect("the index region maps, so the entry count fits the address space"),
+        );
         match header.order() {
             StorageVariant::Csr => CsMatViewI::try_new((rows, columns), indptr, indices, values),
             StorageVariant::Csc => {
@@ -317,5 +326,84 @@ impl SprsFile {
             }
         }
         .map_err(|(_, _, _, error)| SprsMatrixError::Structure(error))
+    }
+
+    /// Views the pointer region at its described element type without
+    /// re-checking the compressed structure.
+    ///
+    /// The element check is [`matrix`](Self::matrix)'s; the structural
+    /// contract stays that accessor's to validate, so callers hold a
+    /// successful [`matrix`](Self::matrix) call over this file before
+    /// reading regions directly.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the file stores a different pointer
+    /// element type than the requested one.
+    pub(crate) fn indptr<Iptr>(&self) -> Result<&[Iptr], SprsMatrixError>
+    where
+        Iptr: SprsIndex,
+    {
+        let header = self.header();
+        if Iptr::VARIANT != header.iptr() {
+            return Err(self.elements());
+        }
+
+        let outer = header.outer_count().expect("open validated the geometry");
+        let bytes = self.region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
+        Ok(<[Iptr]>::ref_from_bytes(bytes)
+            .expect("open validated the region sizes and the mapping their alignment"))
+    }
+
+    /// Views the index region at its described element type without
+    /// re-checking the compressed structure.
+    ///
+    /// The element check is [`matrix`](Self::matrix)'s; the structural
+    /// contract stays that accessor's to validate, so callers hold a
+    /// successful [`matrix`](Self::matrix) call over this file before
+    /// reading regions directly.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the file stores a different index element
+    /// type than the requested one.
+    pub(crate) fn indices<I>(&self) -> Result<&[I], SprsMatrixError>
+    where
+        I: SprsIndex,
+    {
+        let header = self.header();
+        if I::VARIANT != header.index() {
+            return Err(self.elements());
+        }
+
+        let bytes = self.region(
+            header
+                .indices_offset()
+                .expect("open validated the geometry"),
+            header.nnz() * I::VARIANT.width(),
+        );
+        Ok(<[I]>::ref_from_bytes(bytes)
+            .expect("open validated the region sizes and the mapping their alignment"))
+    }
+
+    /// Slices `len` bytes of the mapping at `offset`.
+    ///
+    /// Offsets and lengths repeat checked computations open already
+    /// accepted, so the slice cannot escape the mapping.
+    fn region(&self, offset: u64, len: u64) -> &[u8] {
+        let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
+        let len = usize::try_from(len).expect("a mapped region fits the address space");
+        &self.map[offset..offset + len]
+    }
+
+    /// Builds the element-mismatch error over the described types.
+    fn elements(&self) -> SprsMatrixError {
+        let header = self.header();
+        SprsMatrixError::Elements {
+            value: header.value(),
+            value_width: header.value_width(),
+            index: header.index(),
+            iptr: header.iptr(),
+        }
     }
 }

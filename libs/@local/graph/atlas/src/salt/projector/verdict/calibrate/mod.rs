@@ -127,7 +127,6 @@ pub(crate) fn calibrate(
         "local scales and coordinates should cover the same rows"
     );
 
-    let rho = scales.as_slice();
     let groups = index.groups();
 
     // Entries carry the owning type's ordinal in `types` so the
@@ -174,10 +173,7 @@ pub(crate) fn calibrate(
         for edge in edges {
             let (source, target) = (edge.source.usize(), edge.target.usize());
             let distance = coordinates[source].distance(coordinates[target]);
-            // The relation loss's normalization convention; its twin
-            // lives in `loss::relation_term`.
-            let normalization =
-                ((rho[source] + options.epsilon) * (rho[target] + options.epsilon)).sqrt();
+            let normalization = scales.normalization(source, target, options.epsilon);
             let z = distance / normalization;
 
             let weight = sampling

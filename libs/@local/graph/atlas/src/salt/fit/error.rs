@@ -18,7 +18,6 @@ use super::prepare::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
-        adjacency::read::OpenAdjacencyError,
         array::OpenArrayError,
         generation::SealError,
         identity::read::OpenIdentityError,
@@ -246,10 +245,12 @@ pub(crate) enum StageError {
     Relation(RelationIndexError),
     /// The protection index failed to write.
     WriteProtection(WriteSprsError),
+    /// The adjacency failed to write.
+    WriteAdjacency(WriteSprsError),
     /// The staged endpoint column failed to map back.
     MapEndpoints(OpenArrayError),
     /// The staged adjacency file failed to map back.
-    MapAdjacency(OpenAdjacencyError),
+    MapAdjacency(OpenSprsError),
     /// The staged adjacency file does not hold valid lists.
     InvalidAdjacency(InvalidAdjacencyFile),
     /// The staged card-embedding matrix failed to map back.
@@ -363,12 +364,6 @@ impl From<QuadError> for StageError {
 impl From<PostingsError> for StageError {
     fn from(error: PostingsError) -> Self {
         Self::Postings(error)
-    }
-}
-
-impl From<OpenAdjacencyError> for StageError {
-    fn from(error: OpenAdjacencyError) -> Self {
-        Self::MapAdjacency(error)
     }
 }
 
@@ -505,6 +500,9 @@ impl fmt::Display for StageError {
             Self::WriteProtection(error) => {
                 write!(fmt, "the protection index failed to write: {error}")
             }
+            Self::WriteAdjacency(error) => {
+                write!(fmt, "the adjacency failed to write: {error}")
+            }
             Self::MapEndpoints(error) => map_back(fmt, "endpoint column", error),
             Self::MapAdjacency(error) => map_back(fmt, "adjacency", error),
             Self::InvalidAdjacency(error) => {
@@ -580,8 +578,8 @@ impl Error for StageError {
             Self::MapPolicies(error) => Some(error),
             Self::InvalidPolicies(error) => Some(error),
             Self::Relation(error) => Some(error),
-            Self::WriteProtection(error) => Some(error),
-            Self::MapAdjacency(error) => Some(error),
+            Self::WriteProtection(error) | Self::WriteAdjacency(error) => Some(error),
+            Self::MapAdjacency(error) | Self::MapSparse(error) => Some(error),
             Self::InvalidAdjacency(error) => Some(error),
             Self::Selection(error) => Some(error),
             Self::Assignment(error) => Some(error),
@@ -594,7 +592,6 @@ impl Error for StageError {
             Self::Lod(error) => Some(error),
             Self::Quad(error) => Some(error),
             Self::Postings(error) => Some(error),
-            Self::MapSparse(error) => Some(error),
             Self::InvalidKnn(error) => Some(error),
             Self::InvalidSemantic(error) => Some(error),
             Self::MapLandmarks(error) => Some(error),

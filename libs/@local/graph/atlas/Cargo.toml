@@ -74,7 +74,7 @@ sha2                           = { workspace = true }
 simple-mermaid                 = { workspace = true }
 sleef                          = "0.3"
 smallvec.workspace             = true
-sprs                           = "0.11.4"
+sprs                           = { version = "0.11.4", public = true }
 tiktoken-rs                    = "0.12.0"
 tracing                        = { workspace = true }
 tracing-subscriber             = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
@@ -119,7 +119,7 @@ name              = "atlas"
 required-features = ["cli"]
 
 [[example]]
-name              = "backfill_postings"
+name              = "migrate_adjacency"
 required-features = ["bench"]
 
 [[example]]

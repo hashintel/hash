@@ -54,7 +54,7 @@ use crate::{
             artifact,
             loss::{AffinityEnergy, ProximalEnergy, RelationEnergy},
             model::{NodeRole, Projector},
-            scale::{LOCAL_SCALE_NEIGHBOURS, LocalScales},
+            scale::{LOCAL_SCALE_NEIGHBOURS, LocalScales, insert_nearest, sorted_median},
             train::{
                 self, Coefficients, FrozenRadius, NodeColumns, SupportAnchor, TrainOptions,
                 TrainerInputs, refresh,
@@ -560,9 +560,10 @@ fn landmark_anchors(
 /// Computes one landmark's median layout distance to its nearest
 /// skeleton neighbours.
 ///
-/// The neighbour count and even-count midpoint mirror the corpus
-/// local-scale kernel; the skeleton is capacity-bounded, so the
-/// nearest set comes from a plain pass over the layout.
+/// The neighbour count and median convention are the corpus
+/// local-scale kernel's ([`insert_nearest`] and [`sorted_median`]);
+/// the skeleton is capacity-bounded, so the nearest set comes from a
+/// plain pass over the layout.
 fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
     let mut nearest = [f32::INFINITY; LOCAL_SCALE_NEIGHBOURS];
     let mut count = 0_usize;
@@ -570,29 +571,13 @@ fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
         if other == ordinal {
             continue;
         }
-        let distance = coordinates[ordinal].distance(coordinate);
-        let mut slot = LOCAL_SCALE_NEIGHBOURS;
-        while slot > 0 && distance < nearest[slot - 1] {
-            slot -= 1;
-        }
-        if slot < LOCAL_SCALE_NEIGHBOURS {
-            nearest[slot..].rotate_right(1);
-            nearest[slot] = distance;
+        if insert_nearest(&mut nearest, coordinates[ordinal].distance(coordinate)) {
             count += 1;
         }
     }
 
     let count = count.min(LOCAL_SCALE_NEIGHBOURS);
-    if count == 0 {
-        return 0.0;
-    }
-
-    let middle = count >> 1;
-    if count & 1 == 0 {
-        nearest[middle - 1].midpoint(nearest[middle])
-    } else {
-        nearest[middle]
-    }
+    sorted_median(&nearest[..count])
 }
 
 /// Sums the semantic graph's positive edge weight in double precision.
@@ -682,7 +667,6 @@ fn relation_loss(
     energy: RelationEnergy,
 ) -> f64 {
     let epsilon = energy.epsilon();
-    let rho = scales.as_slice();
 
     let mut total = 0.0_f64;
     for group in index.groups() {
@@ -692,7 +676,7 @@ fn relation_loss(
             let target = row_index(edge.target);
             let difference = frame[source] - frame[target];
             let distance = difference.length();
-            let normalization = ((rho[source] + epsilon) * (rho[target] + epsilon)).sqrt();
+            let normalization = scales.normalization(source, target, epsilon);
             let (value, _) = energy.mixture(
                 distance / normalization,
                 weights.coincident,

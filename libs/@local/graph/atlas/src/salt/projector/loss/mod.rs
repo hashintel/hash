@@ -317,7 +317,6 @@ pub(crate) fn relation_term(
     );
 
     let epsilon = energy.epsilon();
-    let rho = scales.as_slice();
 
     // Accumulated in double precision, products included.
     let mut total = 0.0_f64;
@@ -327,7 +326,7 @@ pub(crate) fn relation_term(
             let (source, target) = (edge.source.usize(), edge.target.usize());
             let difference = coordinates[source] - coordinates[target];
             let distance = difference.length();
-            let normalization = ((rho[source] + epsilon) * (rho[target] + epsilon)).sqrt();
+            let normalization = scales.normalization(source, target, epsilon);
             let (value, derivative) = energy.mixture(
                 distance / normalization,
                 weights.coincident,

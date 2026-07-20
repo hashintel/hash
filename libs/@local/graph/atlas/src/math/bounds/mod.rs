@@ -5,12 +5,16 @@ use core::{
     simd::{Simd, num::SimdFloat as _},
 };
 
-use rayon::{iter::ParallelIterator as _, slice::ParallelSlice as _};
+use rayon::{
+    iter::{IndexedParallelIterator as _, ParallelIterator as _},
+    slice::{ParallelSlice as _, ParallelSliceMut as _},
+};
 
 use super::{
+    kernel::fused_mul_add_f64x4,
     transform::Transform,
     translation::Translation,
-    vec2::{Vec2, Vec2x4},
+    vec2::{Vec2, Vec2x4, Vec2x4T},
 };
 
 #[cfg(test)]
@@ -309,6 +313,126 @@ impl Bounds2 {
                 .then(Transform::from_scale(scale))
                 .then(Translation::from(target.min)),
         )
+    }
+
+    /// Maps points from this box onto `target`, exactly per axis.
+    ///
+    /// Each axis maps affinely in `f64` - subtract this box's minimum,
+    /// divide by its extent, scale onto the target axis - and rounds
+    /// once to `f32`, so every output component is within one `f32`
+    /// ULP of the exact mapping for every input magnitude, including
+    /// boxes sitting far from the origin relative to their extent.
+    /// This box's corners land on the target's corners; points outside
+    /// this box extrapolate along the same map. A zero-extent axis
+    /// (every point identical on it) maps to the centre of the
+    /// target's axis.
+    ///
+    /// Points are mapped in parallel, four at a time per axis: each
+    /// batch converts to [`Vec2x4T`] at the loop boundary and widens
+    /// its lane groups to `f64`, so the batched and scalar paths round
+    /// identically and the output is independent of the split.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::{Bounds2, Vec2};
+    ///
+    /// let layout = Bounds2::new(Vec2::new(-2.0, 0.0), Vec2::new(6.0, 4.0))
+    ///     .expect("corners are finite and ordered");
+    /// let frame =
+    ///     Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
+    ///
+    /// let mapped = layout.normalize_into(frame, &[Vec2::new(-2.0, 0.0), Vec2::new(2.0, 2.0)]);
+    /// assert_eq!(mapped, [Vec2::new(-1.0, -1.0), Vec2::new(0.0, 0.0)]);
+    /// ```
+    #[must_use]
+    pub fn normalize_into(self, target: Self, points: &[Vec2]) -> Vec<Vec2> {
+        let x = AxisMap::new(self.min.x(), self.max.x(), target.min.x(), target.max.x());
+        let y = AxisMap::new(self.min.y(), self.max.y(), target.min.y(), target.max.y());
+
+        let mut mapped = vec![Vec2::ZERO; points.len()];
+        mapped
+            .par_chunks_mut(Self::PARALLEL_CHUNK.get())
+            .zip(points.par_chunks(Self::PARALLEL_CHUNK.get()))
+            .for_each(|(mapped, points)| {
+                let (mapped_batches, mapped_remainder) = mapped.as_chunks_mut::<4>();
+                let (batches, remainder) = points.as_chunks::<4>();
+
+                for (mapped, &batch) in mapped_batches.iter_mut().zip(batches) {
+                    let batch = Vec2x4T::from(batch);
+                    let lanes = Vec2x4T::from_lanes(x.apply_x4(batch.xs()), y.apply_x4(batch.ys()));
+
+                    *mapped = Vec2x4::from(lanes).into();
+                }
+                for (mapped, point) in mapped_remainder.iter_mut().zip(remainder) {
+                    *mapped = Vec2::new(x.apply(point.x()), y.apply(point.y()));
+                }
+            });
+
+        mapped
+    }
+}
+
+/// One axis's affine map of [`Bounds2::normalize_into`], with every
+/// coefficient widened to `f64`.
+#[derive(Copy, Clone)]
+struct AxisMap {
+    minimum: f64,
+    extent: f64,
+    target_minimum: f64,
+    target_extent: f64,
+    target_centre: f64,
+}
+
+impl AxisMap {
+    fn new(minimum: f32, maximum: f32, target_minimum: f32, target_maximum: f32) -> Self {
+        let minimum = f64::from(minimum);
+        let target_minimum = f64::from(target_minimum);
+        let target_maximum = f64::from(target_maximum);
+
+        Self {
+            minimum,
+            extent: f64::from(maximum) - minimum,
+            target_minimum,
+            target_extent: target_maximum - target_minimum,
+            target_centre: f64::midpoint(target_minimum, target_maximum),
+        }
+    }
+
+    /// Maps one coordinate onto its target axis.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the single f64-to-f32 rounding is the mapping's error bound"
+    )]
+    fn apply(self, value: f32) -> f32 {
+        if self.extent == 0.0 {
+            return self.target_centre as f32;
+        }
+
+        let unit = (f64::from(value) - self.minimum) / self.extent;
+        // f64 fused multiply-add is correctly rounded by IEEE 754, so it
+        // is both more accurate and byte-reproducible across targets.
+        unit.mul_add(self.target_extent, self.target_minimum) as f32
+    }
+
+    /// Maps four coordinates onto their target axis, rounding each lane
+    /// exactly as [`apply`](Self::apply) rounds one value.
+    fn apply_x4(self, values: Simd<f32, 4>) -> Simd<f32, 4> {
+        if self.extent == 0.0 {
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "the single f64-to-f32 rounding is the mapping's error bound"
+            )]
+            return Simd::splat(self.target_centre as f32);
+        }
+
+        let unit = (values.cast::<f64>() - Simd::splat(self.minimum)) / Simd::splat(self.extent);
+        fused_mul_add_f64x4(
+            unit,
+            Simd::splat(self.target_extent),
+            Simd::splat(self.target_minimum),
+        )
+        .cast::<f32>()
     }
 }
 

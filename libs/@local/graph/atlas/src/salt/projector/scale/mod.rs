@@ -118,11 +118,71 @@ impl LocalScales {
         &self.0
     }
 
+    /// Returns the local normalization of a node pair's 2D distance.
+    ///
+    /// The value is `sqrt((scale(source) + epsilon) * (scale(target) +
+    /// epsilon))`: the geometric mean of the pair's epsilon-shifted
+    /// local scales. Dividing a pair's distance by it yields the
+    /// locally normalized distance `z`, comparable between dense and
+    /// sparse map regions; `epsilon` keeps the result positive where a
+    /// scale is zero.
+    ///
+    /// # Panics
+    ///
+    /// Panics when either row is outside the node-row domain.
+    #[inline]
+    #[must_use]
+    pub(crate) fn normalization(&self, source: usize, target: usize, epsilon: f32) -> f32 {
+        ((self.0[source] + epsilon) * (self.0[target] + epsilon)).sqrt()
+    }
+
     /// Returns the node-row count.
     #[inline]
     #[must_use]
     pub(crate) fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+/// Inserts a key into an ascending bounded nearest-key array.
+///
+/// The array holds the smallest keys seen so far in ascending order,
+/// pre-filled with a maximal sentinel. A key smaller than the current
+/// worst entry displaces it and slots into order, keeping ties in
+/// arrival order; the return value tells whether the key was inserted.
+/// Comparison is [`PartialOrd`]: a key incomparable to every entry
+/// (such as NaN) is never inserted.
+pub(crate) fn insert_nearest<K: PartialOrd + Copy, const N: usize>(
+    nearest: &mut [K; N],
+    key: K,
+) -> bool {
+    let mut slot = N;
+    while slot > 0 && key < nearest[slot - 1] {
+        slot -= 1;
+    }
+    if slot == N {
+        return false;
+    }
+
+    nearest[slot..].rotate_right(1);
+    nearest[slot] = key;
+    true
+}
+
+/// Returns the median of ascending distances.
+///
+/// An even count takes the midpoint of the middle pair; an empty
+/// slice yields zero.
+pub(crate) const fn sorted_median(distances: &[f32]) -> f32 {
+    if distances.is_empty() {
+        return 0.0;
+    }
+
+    let middle = distances.len() >> 1;
+    if distances.len() & 1 == 0 {
+        distances[middle - 1].midpoint(distances[middle])
+    } else {
+        distances[middle]
     }
 }
 
@@ -135,20 +195,12 @@ impl LocalScales {
 /// divergence is deliberately not promised - corpus-level detection is
 /// complete regardless, because the diverged row itself always flags.
 fn row_scale(coordinates: &[Vec2], knn: &KnnView<'_>, row: usize) -> f32 {
-    // The nearest entries by (stored distance, row id), insertion-sorted;
-    // stored distances are finite by the table's validation, so plain
+    // The nearest entries by (stored distance, row id); stored
+    // distances are finite by the table's validation, so plain
     // lexicographic comparison is total.
     let mut nearest = [(f32::INFINITY, u64::MAX); LOCAL_SCALE_NEIGHBOURS];
     for neighbour in knn.row(row) {
-        let key = (neighbour.distance, neighbour.id.get());
-        let mut slot = LOCAL_SCALE_NEIGHBOURS;
-        while slot > 0 && key < nearest[slot - 1] {
-            slot -= 1;
-        }
-        if slot < LOCAL_SCALE_NEIGHBOURS {
-            nearest[slot..].rotate_right(1);
-            nearest[slot] = key;
-        }
+        insert_nearest(&mut nearest, (neighbour.distance, neighbour.id.get()));
     }
 
     let count = knn.neighbours().min(LOCAL_SCALE_NEIGHBOURS);
@@ -161,10 +213,5 @@ fn row_scale(coordinates: &[Vec2], knn: &KnnView<'_>, row: usize) -> f32 {
     }
     distances[..count].sort_unstable_by(f32::total_cmp);
 
-    let middle = count >> 1;
-    if count & 1 == 0 {
-        distances[middle - 1].midpoint(distances[middle])
-    } else {
-        distances[middle]
-    }
+    sorted_median(&distances[..count])
 }

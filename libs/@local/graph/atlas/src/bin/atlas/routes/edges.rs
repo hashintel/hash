@@ -10,6 +10,7 @@ use axum::{
     http::StatusCode,
 };
 use hash_graph_atlas::serve::{EdgesCaps, EdgesError, EdgesRequest, GenerationId};
+use tracing::Instrument as _;
 
 use super::{
     AppState,
@@ -29,7 +30,11 @@ The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list
 When the edge cap truncates the set, the rank-ordered truncation keeps the edges whose worse \
      endpoint ranks best, and the HEAD's `complete` key reads `false`.
 
-Version 0 rejects `filter` and `includeDetailedData` with an `unsupported-feature` problem.";
+`includeDetailedData` rides the trailer with four per-edge detail arrays - the link entity's label \
+     and icon plus its entity-type's title and icon - hydrated LIVE from the store at request \
+     time.
+
+Version 0 rejects `filter` with an `unsupported-feature` problem.";
 
 /// The generation/variant pair addressing one fitted layout.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
@@ -67,25 +72,68 @@ pub(super) async fn handler(
         ));
     };
 
+    let detailed = request.include_detailed_data;
+
+    // Assembly and encoding are CPU-bound and ride rayon; hydration
+    // awaits the store between them - the trailer is the envelope's
+    // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
-    match spawn(move || atlas.edges(&request, EdgesCaps::default())).await? {
-        Ok(bytes) => Ok(Saltile::new(bytes)),
-        Err(error @ EdgesError::Tiles { .. }) => Err(Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::TooManyTiles,
-            error.to_string(),
-        )),
-        Err(error @ (EdgesError::Depth { .. } | EdgesError::Grid { .. })) => Err(Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::InvalidCoordinate,
-            error.to_string(),
-        )),
-        Err(error @ EdgesError::Unsupported(_)) => Err(Problem::new(
-            StatusCode::NOT_IMPLEMENTED,
-            ProblemType::UnsupportedFeature,
-            error.to_string(),
-        )),
-    }
+    let assembled = spawn(move || {
+        atlas
+            .assemble_edges(&request, EdgesCaps::default())
+            .map(|document| {
+                let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
+                (document, entities)
+            })
+    })
+    .await?;
+
+    let (document, entities) = match assembled {
+        Ok(assembled) => assembled,
+        Err(error @ EdgesError::Tiles { .. }) => {
+            return Err(Problem::new(
+                StatusCode::BAD_REQUEST,
+                ProblemType::TooManyTiles,
+                error.to_string(),
+            ));
+        }
+        Err(error @ (EdgesError::Depth { .. } | EdgesError::Grid { .. })) => {
+            return Err(Problem::new(
+                StatusCode::BAD_REQUEST,
+                ProblemType::InvalidCoordinate,
+                error.to_string(),
+            ));
+        }
+        Err(error @ EdgesError::Unsupported(_)) => {
+            return Err(Problem::new(
+                StatusCode::NOT_IMPLEMENTED,
+                ProblemType::UnsupportedFeature,
+                error.to_string(),
+            ));
+        }
+    };
+
+    let details = match entities {
+        Some(entities) => Some(
+            state
+                .details
+                .link_details(&entities)
+                .in_current_span()
+                .await
+                .map_err(|error| {
+                    Problem::new(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        ProblemType::InternalError,
+                        error.to_string(),
+                    )
+                })?,
+        ),
+        None => None,
+    };
+
+    let atlas = Arc::clone(&state.atlas);
+    let bytes = spawn(move || atlas.encode_edges(&document, details.as_ref())).await?;
+    Ok(Saltile::new(bytes))
 }
 
 /// Documents the operation.
@@ -121,7 +169,7 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .response_with::<501, Problem<'static>, _>(|response| {
             response.description(
                 "`unsupported-feature`: the request names a surface the contract pins but version \
-                 0 does not serve",
+                 0 does not serve (`filter`)",
             )
         })
         .default_response_with::<Problem<'static>, _>(|response| {

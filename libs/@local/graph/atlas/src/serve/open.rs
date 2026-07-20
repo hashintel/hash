@@ -8,7 +8,6 @@ use super::{
 };
 use crate::{
     file::{
-        adjacency::read::AdjacencyFile,
         array::ArrayFile,
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
         identity::read::IdentityFile,
@@ -16,6 +15,7 @@ use crate::{
         postings::read::PostingsFile,
         quad::read::QuadFile,
         repository::RepositoryFile,
+        sprs::read::SprsFile,
     },
     math::{Bounds2, Vec2},
     salt::{
@@ -58,9 +58,8 @@ impl Atlas {
         let rank_of_position = open_array(&generation, &files.rank_of_position, ArrayKind::Ranks)?;
         let position_of_row =
             open_array(&generation, &files.position_of_row, ArrayKind::Positions)?;
-        let adjacency = MappedAdjacency::new(AdjacencyFile::open(
-            generation.path_of(&files.adjacency.name),
-        )?)?;
+        let adjacency =
+            MappedAdjacency::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
         let postings = MappedPostings::new(PostingsFile::open(
             generation.path_of(&files.postings.name),
         )?)?;

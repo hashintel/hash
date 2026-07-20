@@ -162,7 +162,7 @@ pub(crate) enum Version {
     zerocopy::KnownLayout,
 )]
 #[repr(u8)]
-pub(crate) enum IndexVariant {
+pub enum IndexVariant {
     U16 = 0x00,
     U32 = 0x01,
     U64 = 0x02,
@@ -208,7 +208,7 @@ impl IndexVariant {
     zerocopy::KnownLayout,
 )]
 #[repr(u8)]
-pub(crate) enum ValueTag {
+pub enum ValueTag {
     Opaque = 0x00,
     U8 = 0x01,
     U16 = 0x02,
@@ -225,6 +225,10 @@ pub(crate) enum ValueTag {
     F32 = 0x0D,
     F64 = 0x0E,
     F128 = 0x0F,
+    /// The zero-width unit: the value region is empty and every entry
+    /// is `()`. The tag of structure-only matrices, whose payload is
+    /// the compressed pattern alone.
+    Unit = 0x10,
 }
 
 impl ValueTag {
@@ -237,6 +241,7 @@ impl ValueTag {
     pub(crate) const fn width(self) -> Option<u64> {
         match self {
             Self::Opaque => None,
+            Self::Unit => Some(0),
             Self::U8 | Self::I8 => Some(1),
             Self::U16 | Self::I16 | Self::F16 | Self::BF16 => Some(2),
             Self::U32 | Self::I32 | Self::F32 => Some(4),
@@ -262,6 +267,19 @@ impl ValueTag {
 pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Copy {
     /// The wire identity of `Self` beyond its width.
     const TAG: ValueTag;
+
+    /// Views a value region as its elements.
+    ///
+    /// `bytes` holds exactly `entries * size_of::<Self>()` bytes on a
+    /// 4096-byte boundary - the format's region guarantee. The unit
+    /// type overrides the byte-reinterpreting default: no value bytes
+    /// exist for it, so its elements materialize at the entry count
+    /// alone.
+    fn view_region(bytes: &[u8], entries: usize) -> &[Self] {
+        let _: usize = entries;
+        <[Self]>::ref_from_bytes(bytes)
+            .expect("the region length and alignment are the format's guarantee")
+    }
 }
 
 /// A scalar type an index region stores.
@@ -312,6 +330,21 @@ macro_rules! sprs_index {
             }
         )*
     };
+}
+
+const _: () = assert!(ValueTag::Unit.width().unwrap() == size_of::<()>() as u64);
+
+impl SprsValue for () {
+    const TAG: ValueTag = ValueTag::Unit;
+
+    fn view_region(_bytes: &[u8], entries: usize) -> &[Self] {
+        // SAFETY: `()` is zero-sized, so the slice covers no bytes:
+        // `NonNull::dangling` is non-null and aligned, zero bytes are
+        // valid for reads at any address, and no element count of a
+        // zero-sized type overflows `isize` in bytes. Every value of
+        // the unit type is trivially initialized and valid.
+        unsafe { core::slice::from_raw_parts(core::ptr::NonNull::dangling().as_ptr(), entries) }
+    }
 }
 
 sprs_value! {
@@ -394,7 +427,7 @@ impl From<CompressedStorage> for StorageVariant {
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
-pub(crate) struct FileHeader {
+pub struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     value: ValueTag,

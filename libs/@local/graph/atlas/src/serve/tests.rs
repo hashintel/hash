@@ -1113,6 +1113,78 @@ async fn edges_reject_and_report_the_contract() {
     );
 }
 
+/// The edges convenience path rejects the trailer by name; the
+/// transport path assembles, gathers the link identities, and
+/// encodes byte-exactly against the directly built wire document
+/// with the four-array trailer. Hydration is the transport's store
+/// round trip, so the test supplies all-`null` details directly
+/// (G6 pins the non-null trailer bytes).
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn detailed_edges_encode_the_hydrated_trailer() {
+    use super::detail::LinkDetails;
+    use crate::salt::wire::edges::EdgesTrailer;
+
+    let (generation, atlas) = publish("detailed-edges").await;
+    let artifacts = open_artifacts(&generation);
+    let row_ids = artifacts
+        .rows
+        .u32_elements()
+        .expect("the row column is u32");
+    let edge_artifacts = open_edge_artifacts(&generation);
+    let endpoints = edge_artifacts
+        .endpoints
+        .u64_pairs()
+        .expect("the endpoint column is u64 pairs");
+
+    let root = TileCoordinate { z: 0, x: 0, y: 0 };
+    let mut request = edges_request(vec![root]);
+    request.include_detailed_data = true;
+
+    // The convenience path serves storeless deployments: it still
+    // rejects the trailer by name.
+    assert_eq!(
+        atlas.edges(&request, EdgesCaps::default()),
+        Err(EdgesError::Unsupported("includeDetailedData")),
+    );
+
+    // The transport path assembles, gathers, hydrates, encodes.
+    let document = atlas
+        .assemble_edges(&request, EdgesCaps::default())
+        .expect("assembly ignores the trailer flag");
+
+    let head: u64 = artifacts.morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+        .iter()
+        .sum();
+    let head = usize::try_from(head).expect("fixture counts fit usize");
+    let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
+    let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
+
+    let entities = atlas.delivered_edge_entities(&document);
+    assert_eq!(entities.count(), edge_rows.len());
+
+    let details = LinkDetails::empty(entities.count());
+    let bytes = atlas.encode_edges(&document, Some(&details));
+
+    let nothing: Vec<Option<&str>> = vec![None; edge_rows.len()];
+    let expected = EdgesResponse {
+        generation: generation.id().digest(),
+        variant: 0,
+        complete: true,
+        sources: &sources,
+        targets: &targets,
+        edge_rows: &edge_rows,
+        trailer: Some(EdgesTrailer {
+            link_labels: &nothing,
+            link_icons: &nothing,
+            link_type_labels: &nothing,
+            link_type_icons: &nothing,
+        }),
+    }
+    .encode();
+    assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
+}
+
 #[test]
 fn edges_request_parses_the_body_contract() {
     let request: EdgesRequest =
