@@ -303,7 +303,7 @@ pub(crate) struct FitConfig {
 }
 
 impl FitConfig {
-    fn validate(self) -> Result<(), FitError> {
+    pub(crate) fn validate(self) -> Result<(), FitError> {
         // TODO: not a huge fan of this, this is stringly typed :/
         for (field, value) in [
             ("regularization", self.regularization),

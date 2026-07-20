@@ -14,7 +14,7 @@ use super::{
     SemanticGraph, SemanticMatrix, SemanticValidationError, SmoothingOptions, bandwidth::RowSolver,
 };
 use crate::{
-    file::sprs::read::SprsFile,
+    file::{WriteInto as _, sprs::read::SprsFile},
     salt::knn::table::{Knn, KnnMatrix},
 };
 
@@ -333,7 +333,7 @@ fn published_graph_reopens_mapped() {
     let path = dir.join("semantic.sprs");
     std::fs::write(&path, &bytes).expect("the graph file writes");
 
-    let mapped = super::artifact::MappedSemanticGraph::new(
+    let mapped = super::artifact::SemanticGraphArchive::new(
         SprsFile::open(&path).expect("the published file reopens"),
     )
     .expect("the published file opens as a semantic graph");

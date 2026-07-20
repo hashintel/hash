@@ -24,10 +24,6 @@
 //!   surface (`cli`/`bench` features).
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
-//! The previous pipeline generation is parked at `src/salt-BAK`,
-//! uncompiled: reference semantics for the port, deleted when `salt`
-//! covers it.
-//!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(

@@ -68,6 +68,30 @@ impl<const N: usize> VecN<N> {
         unsafe { &mut *ptr }
     }
 
+    /// Wraps a borrowed slice of arrays in place, without copying.
+    #[inline]
+    #[must_use]
+    pub const fn wrap_slice(values: &[[f32; N]]) -> &[Self] {
+        let data = values.as_ptr().cast::<Self>();
+        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so
+        // the element layouts are identical and the slice reinterprets
+        // in place with its length preserved.
+        unsafe { core::slice::from_raw_parts(data, values.len()) }
+    }
+
+    /// Wraps a mutably borrowed slice of arrays in place, without
+    /// copying.
+    #[inline]
+    #[must_use]
+    pub const fn wrap_slice_mut(values: &mut [[f32; N]]) -> &mut [Self] {
+        let data = values.as_mut_ptr().cast::<Self>();
+        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so
+        // the element layouts are identical and the slice reinterprets
+        // in place with its length preserved; the mutable borrow is
+        // carried through to the wrapper unchanged.
+        unsafe { core::slice::from_raw_parts_mut(data, values.len()) }
+    }
+
     /// Returns the components as an array reference.
     #[inline]
     #[must_use]
@@ -363,10 +387,10 @@ impl<const N: usize> AlignedVecN<N> {
     /// length is a whole number of vectors. `N` must be nonzero.
     #[must_use]
     pub fn from_slice(components: &[f32]) -> Option<&[Self]> {
-        // The zero-dimension guard must precede `as_chunks`, whose own
-        // non-zero check panics.
-        if N == 0
-            || !components.as_ptr().is_aligned_to(align_of::<f32x8>())
+        const { assert!(N != 0) };
+
+        // The zero-dimension guard must precede `as_chunks`, whose own non-zero check panics.
+        if !components.as_ptr().is_aligned_to(align_of::<f32x8>())
             || !(N * size_of::<f32>()).is_multiple_of(align_of::<f32x8>())
         {
             return None;
@@ -385,6 +409,38 @@ impl<const N: usize> AlignedVecN<N> {
         // place every element a multiple of `align_of::<f32x8>()` bytes
         // past an aligned base, which is the alignment invariant.
         Some(unsafe { &*ptr })
+    }
+
+    /// Wraps a mutably borrowed slice in place as consecutive aligned
+    /// vectors.
+    ///
+    /// The layout and the conditions are [`from_slice`](Self::from_slice)'s;
+    /// the exclusive borrow carries through to the vectors.
+    #[must_use]
+    pub fn from_slice_mut(components: &mut [f32]) -> Option<&mut [Self]> {
+        const { assert!(N != 0) };
+
+        // The zero-dimension guard must precede `as_chunks_mut`, whose
+        // own non-zero check panics.
+        if !components.as_ptr().is_aligned_to(align_of::<f32x8>())
+            || !(N * size_of::<f32>()).is_multiple_of(align_of::<f32x8>())
+        {
+            return None;
+        }
+
+        let (chunks, remainder) = components.as_chunks_mut::<N>();
+        if !remainder.is_empty() {
+            return None;
+        }
+
+        let chunks_ptr = &raw mut *chunks;
+        let ptr = chunks_ptr as *mut [Self];
+
+        // SAFETY: `Self` is a transparent wrapper around `[f32; N]`, so the chunk slice
+        // reinterprets element-wise, the checks above place every element a multiple of
+        // `align_of::<f32x8>()` bytes past an aligned base, which is the alignment
+        // invariant, and the exclusive borrow is carried through unchanged.
+        Some(unsafe { &mut *ptr })
     }
 
     /// Returns the components as an array reference.

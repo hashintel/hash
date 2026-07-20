@@ -5,9 +5,9 @@ use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use super::{
     SaltFiles, SaltRepository,
     metadata::{
-        Evidence, FrozenRadiusEvidence, LadderEvidence, LandmarkEvidence, Placement,
-        PolicyEvidence, ProjectorEvidence, RankingOrigin, Reproducibility, RungEvidence,
-        SaltMetadata, Snapshot,
+        ClassifierEvidence, ClassifierFitSummary, Evidence, FrozenRadiusEvidence, HoldoutEvidence,
+        HoldoutRecord, LadderEvidence, LandmarkEvidence, Placement, PolicyEvidence,
+        ProjectorEvidence, RankingOrigin, Reproducibility, RungEvidence, SaltMetadata, Snapshot,
     },
 };
 use crate::{
@@ -20,9 +20,10 @@ use crate::{
     math::{AffinityCurve, Bounds2, Rotation, Similarity, Vec2},
     morton::Depth,
     salt::{
-        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
-        NormSpotCheck, PolicyOptions, PolicyOverride, PolicySource, Posterior, PostingsEvidence,
-        QuadEvidence, RecallSpotCheck, RepresentationDefect, SelectionOptions,
+        AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
+        GeometryClass, HoldoutClass, LodEvidence, NormSpotCheck, PolicyOptions, PolicyOverride,
+        PolicySource, Posterior, PostingsEvidence, QuadEvidence, RecallSpotCheck,
+        RepresentationDefect, SelectionOptions,
         fit::{PlacementOptions, ProjectorOptions},
         ladder::{Conditions, LadderOptions},
         projector::train::TrainingSchedule,
@@ -111,6 +112,9 @@ fn files() -> SaltFiles {
         adjacency: file("adjacency.sprs"),
         projector: Some(file("projector.mpk")),
         reviewed_verdicts: Some(file("reviewed-verdicts.json")),
+        annotation_corpus: Some(file("annotation-corpus.json")),
+        annotation_embeddings: Some(file("annotation-embeddings.arr")),
+        annotation_hashes: Some(file("annotation-hashes.arr")),
     }
 }
 
@@ -193,6 +197,39 @@ fn evidence() -> Evidence {
             relations: 49,
             overridden: 1,
         },
+        classifier: Some(ClassifierEvidence::Fitted {
+            corpus: digest("annotation-corpus.json"),
+            assembly: AssemblyEvidence {
+                supplied: 1_684,
+                shot_excluded: 14,
+                holdouts_excluded: 6,
+                zero_weight_dropped: 3,
+                trained: 1_661,
+                unique_texts: 1_667,
+                severely_truncated: 0,
+                fold_groups: 1_088,
+                near_duplicate_pairs: 12,
+                near_duplicate_epsilon: 2.0e-3,
+            },
+            fit: ClassifierFitSummary {
+                folds: 5,
+                iterations: 137,
+                raw_cross_entropy: 0.61,
+                calibrated_cross_entropy: 0.58,
+                raw_brier: 0.41,
+                calibrated_brier: 0.39,
+            },
+            holdout: HoldoutEvidence {
+                evaluated: 5,
+                agreements: 4,
+                cards: vec![HoldoutRecord {
+                    identity: "https://hash.ai/@h/types/entity-type/delivers/v/1".to_owned(),
+                    human: HoldoutClass::Proximal,
+                    predicted: GeometryClass::Proximal,
+                    agree: Some(true),
+                }],
+            },
+        }),
         relations: BuildEvidence {
             pruning_threshold: 0.001,
             retained_edges: 8_700_000,

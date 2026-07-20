@@ -30,7 +30,8 @@ use crate::{
         PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
     },
     file::{
-        array::ArrayFile, generation::Generation, morton::read::MortonFile, quad::read::QuadFile,
+        WriteInto as _, array::ArrayFile, generation::Generation, morton::read::MortonFile,
+        quad::read::QuadFile, region::ByteStable,
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
@@ -38,7 +39,7 @@ use crate::{
     salt::{
         CardEmbedder, Classifier, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions,
         TrainingRow, TrainingSet,
-        fit::{FitConfig, PlacementOptions, fit},
+        fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
         fit_classifier,
         lod::stage::LodConfig,
         wire::{
@@ -204,9 +205,9 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus: the
-/// supplied model input of the fixture fit.
-fn fixture_classifier() -> Classifier {
+/// A deterministic classifier input fitted from a synthetic corpus:
+/// the supplied model input of the fixture fit.
+fn fixture_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
     const PATTERN: [f32; 13] = [
@@ -242,9 +243,16 @@ fn fixture_classifier() -> Classifier {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
         .expect("the fixture classifier fits")
-        .classifier
+        .classifier;
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"serve fixture classifier");
+    ClassifierInput::Supplied {
+        classifier,
+        source: hasher.finalize(),
+    }
 }
 
 fn fixture_config() -> FitConfig {
@@ -362,12 +370,7 @@ fn rewrite_identities<I>(
     path: camino::Utf8PathBuf,
     table: &crate::salt::fit::prepare::identity::IdentityTable<I>,
 ) where
-    I: Copy
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout,
+    I: ByteStable,
 {
     let mut file = std::fs::File::create(path).expect("the identity artifact rewrites");
     let _digest = table
@@ -695,7 +698,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateNeighbours": 0, "translateEntityIds": 1024 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateNeighbours": 32, "locateEdges": 512, "translateEntityIds": 1024 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );
@@ -1282,27 +1285,37 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
         .expect("fixture node ids resolve");
 
     // Brute force: every other position, ascending by (squared
-    // distance, position) - f32 arithmetic matching the index's own
-    // metric, ordered by the wire pin.
+    // distance, node row id) - f32 arithmetic matching the index's
+    // own metric, ordered by the wire pin.
     let positions = atlas.positions();
     let origin = positions[source.position as usize];
-    let mut expected: Vec<(f32, u32)> = (0..positions.len())
+    let mut expected: Vec<(f32, u32, u32)> = (0..positions.len())
         .map(narrow_usize)
         .filter(|&position| position != source.position)
         .map(|position| {
             let point = positions[position as usize];
             let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
-            // Unfused, mirroring the index's SquaredEuclidean: a
-            // fused mul_add rounds differently and reorders
-            // near-ties.
-            (dx * dx + dy * dy, position)
+            // The derivation must mirror the index's SquaredEuclidean
+            // bit for bit: a fused mul_add rounds differently and
+            // reorders near-ties.
+            #[expect(
+                clippy::suboptimal_flops,
+                reason = "unfused arithmetic mirrors the index metric exactly"
+            )]
+            (
+                dx * dx + dy * dy,
+                atlas.row_ids()[position as usize],
+                position,
+            )
         })
         .collect();
-    expected.sort_unstable_by(|(left_distance, left), (right_distance, right)| {
-        left_distance
-            .total_cmp(right_distance)
-            .then(left.cmp(right))
-    });
+    expected.sort_unstable_by(
+        |(left_distance, left_row, _), (right_distance, right_row, _)| {
+            left_distance
+                .total_cmp(right_distance)
+                .then(left_row.cmp(right_row))
+        },
+    );
 
     for budget in [0_u32, 1, 3] {
         let subgraph = atlas.locate_subgraph(source, budget, LocateCaps::default());
@@ -1311,13 +1324,16 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
             expected
                 .iter()
                 .take(budget as usize)
-                .map(|&(_, position)| position),
+                .map(|&(_, _, position)| position),
         );
         assert_eq!(subgraph.positions, delivered, "budget {budget}");
-        let rows: Vec<u32> = delivered
-            .iter()
-            .map(|&position| atlas.row_ids()[position as usize])
-            .collect();
+        let mut rows = vec![source.row];
+        rows.extend(
+            expected
+                .iter()
+                .take(budget as usize)
+                .map(|&(_, row, _)| row),
+        );
         assert_eq!(subgraph.rows, rows, "budget {budget}");
     }
 
@@ -1333,7 +1349,7 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
         subgraph.positions[1..],
         expected[..LocateCaps::default().neighbours as usize]
             .iter()
-            .map(|&(_, position)| position)
+            .map(|&(_, _, position)| position)
             .collect::<Vec<u32>>(),
     );
 }
@@ -1476,10 +1492,21 @@ async fn locate_index_cache_round_trips() {
     let cached = Atlas::open_with(&root, generation.id(), &options)
         .expect("the second open loads the cache");
     let count = core::num::NonZero::new(4_usize).expect("4 is nonzero");
+    // Candidate sets are unordered; a canonical sort makes the
+    // comparison exact.
+    let probe = |atlas: &Atlas, origin: [f32; 2]| {
+        let mut candidates = atlas.locate.candidates(origin, count);
+        candidates.sort_unstable_by(|(left_distance, left), (right_distance, right)| {
+            left_distance
+                .total_cmp(right_distance)
+                .then(left.cmp(right))
+        });
+        candidates
+    };
     for origin in [[0.0_f32, 0.0], [-0.5, 0.25], [1.0, -1.0]] {
         assert_eq!(
-            fresh.locate.nearest(origin, count),
-            cached.locate.nearest(origin, count),
+            probe(&fresh, origin),
+            probe(&cached, origin),
             "the cached index answers exactly as the built one",
         );
     }
@@ -1488,10 +1515,7 @@ async fn locate_index_cache_round_trips() {
     std::fs::write(&path, b"SALTKDX1 garbage after the magic").expect("the cache is writable");
     let healed = Atlas::open_with(&root, generation.id(), &options)
         .expect("a corrupt cache rebuilds instead of failing");
-    assert_eq!(
-        healed.locate.nearest([0.0, 0.0], count),
-        fresh.locate.nearest([0.0, 0.0], count),
-    );
+    assert_eq!(probe(&healed, [0.0, 0.0]), probe(&fresh, [0.0, 0.0]));
     let rewritten = std::fs::read(&path).expect("the cache file exists");
     assert_ne!(
         &*rewritten, b"SALTKDX1 garbage after the magic",
@@ -1591,11 +1615,11 @@ fn colored_masks_resolve_and_expand_descendants() {
         dataset::ArchivedOntologyTypeUuid,
         file::{identity::read::IdentityFile, postings::read::PostingsFile},
         salt::{
-            fit::prepare::identity::{IdentityTable, MappedIdentityTable},
+            fit::prepare::identity::{IdentityTable, IdentityTableArchive},
             postings::{
                 build::{Postings, PostingsConfig},
                 closure::ClosureMap,
-                mapped::MappedPostings,
+                mapped::PostingsArchive,
             },
         },
     };
@@ -1633,7 +1657,7 @@ fn colored_masks_resolve_and_expand_descendants() {
         .expect("the postings should write");
     drop(file);
     let postings =
-        MappedPostings::new(PostingsFile::open(&postings_path).expect("the postings file opens"))
+        PostingsArchive::new(PostingsFile::open(&postings_path).expect("the postings file opens"))
             .expect("the postings validate");
     let closure = ClosureMap::new(&postings).expect("the parent graph is acyclic");
 
@@ -1655,7 +1679,7 @@ fn colored_masks_resolve_and_expand_descendants() {
         .write_into(&mut file)
         .expect("the identities should write");
     drop(file);
-    let table = MappedIdentityTable::<ArchivedOntologyTypeUuid>::new(
+    let table = IdentityTableArchive::<ArchivedOntologyTypeUuid>::new(
         IdentityFile::open(&identity_path).expect("the identity file opens"),
     )
     .expect("the identity table validates");
@@ -1816,7 +1840,7 @@ fn entity_string_of(seed: u8) -> String {
 fn entity_identity_table(
     path: &camino::Utf8PathBuf,
     ids: &[crate::dataset::ArchivedEntityId],
-) -> crate::salt::fit::prepare::identity::MappedIdentityTable<crate::dataset::ArchivedEntityId> {
+) -> crate::salt::fit::prepare::identity::IdentityTableArchive<crate::dataset::ArchivedEntityId> {
     use crate::{
         dataset::ArchivedEntityId, file::identity::read::IdentityFile,
         salt::fit::prepare::identity::IdentityTable,
@@ -1831,7 +1855,7 @@ fn entity_identity_table(
         .write_into(&mut file)
         .expect("the identities should write");
     drop(file);
-    crate::salt::fit::prepare::identity::MappedIdentityTable::new(
+    crate::salt::fit::prepare::identity::IdentityTableArchive::new(
         IdentityFile::open(path).expect("the identity file opens"),
     )
     .expect("the identity table validates")
@@ -1966,5 +1990,374 @@ async fn translate_resolves_store_identities_end_to_end() {
     assert_eq!(
         response.edges.into_iter().collect::<Vec<_>>(),
         vec![(entity_string_of(EDGE_SEED), TranslatedEdge { id: 0 })],
+    );
+}
+
+/// Shorthand for a null-valued property entry.
+fn property(name: &str) -> (String, super::detail::SimpleValue) {
+    (name.to_owned(), super::detail::SimpleValue::Null)
+}
+
+#[test]
+fn simple_properties_parse_every_simple_shape() {
+    use super::detail::SimpleValue;
+
+    // The store renders 2.5 and 1.0 with their points, so both read
+    // as doubles; a number beyond i64 falls back to f64 (the wire's
+    // integer is i64 - the Q5 shapes carry no wider integral form).
+    let mut entries = super::detail::simple_properties(
+        r#"{
+            "https://x.test/f/": 2.5,
+            "https://x.test/g/": 1.0,
+            "https://x.test/i/": 7,
+            "https://x.test/j/": -3,
+            "https://x.test/n/": null,
+            "https://x.test/t/": "text",
+            "https://x.test/u/": 18446744073709551615,
+            "https://x.test/y/": true
+        }"#,
+    );
+    entries.sort_by(|left, right| left.0.cmp(&right.0));
+
+    let expected = [
+        ("https://x.test/f/", SimpleValue::Float(2.5)),
+        ("https://x.test/g/", SimpleValue::Float(1.0)),
+        ("https://x.test/i/", SimpleValue::Integer(7)),
+        ("https://x.test/j/", SimpleValue::Integer(-3)),
+        ("https://x.test/n/", SimpleValue::Null),
+        ("https://x.test/t/", SimpleValue::Text("text".to_owned())),
+        // u64::MAX itself is not an f64; the fallback lands on the
+        // nearest double.
+        (
+            "https://x.test/u/",
+            SimpleValue::Float(1.844_674_407_370_955_2e19),
+        ),
+        ("https://x.test/y/", SimpleValue::Boolean(true)),
+    ];
+    assert_eq!(
+        entries,
+        expected
+            .into_iter()
+            .map(|(name, value)| (name.to_owned(), value))
+            .collect::<Vec<_>>(),
+    );
+}
+
+#[test]
+#[should_panic(expected = "the store renders a JSON object")]
+fn simple_properties_reject_non_objects() {
+    let _entries = super::detail::simple_properties("[1, 2]");
+}
+
+#[test]
+fn select_properties_drop_reverse_lexicographically() {
+    let entries = vec![
+        property("b/"),
+        property("d/"),
+        property("a/"),
+        property("c/"),
+    ];
+
+    // Under the cap: nothing drops, output ascends by name.
+    assert_eq!(
+        super::detail::select_properties(entries.clone(), None, 4),
+        vec![
+            property("a/"),
+            property("b/"),
+            property("c/"),
+            property("d/")
+        ],
+    );
+
+    // Over the cap: d/ drops first, then c/ - the largest names go.
+    assert_eq!(
+        super::detail::select_properties(entries, None, 2),
+        vec![property("a/"), property("b/")],
+    );
+}
+
+#[test]
+fn select_properties_protect_the_label_to_the_end() {
+    let entries = vec![property("a/"), property("b/"), property("z/")];
+
+    // z/ is reverse-lexicographically first to drop, but it is the
+    // label property: it survives every cap that admits at least
+    // one property, and the survivors still emit ascending.
+    assert_eq!(
+        super::detail::select_properties(entries.clone(), Some("z/"), 2),
+        vec![property("a/"), property("z/")],
+    );
+    assert_eq!(
+        super::detail::select_properties(entries.clone(), Some("z/"), 1),
+        vec![property("z/")],
+    );
+
+    // A cap of zero admits nothing - even the label drops.
+    assert_eq!(
+        super::detail::select_properties(entries, Some("z/"), 0),
+        vec![],
+    );
+}
+
+/// One locate request built directly; the JSON-facing defaults ride
+/// the serde attributes and are asserted where they matter.
+fn locate_request(entity_id: String) -> super::LocateRequest {
+    super::LocateRequest {
+        entity_id,
+        colored_type_ids: Vec::new(),
+        filter: None,
+        neighbours: None,
+        include_detailed_data: false,
+    }
+}
+
+/// The locate convenience path rejects the trailer by name (which
+/// locate DEFAULTS to - it is the detail view); the transport path
+/// assembles and encodes byte-exactly against the wire document
+/// derived from the groundwork layers' own outputs.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_end_to_end_encodes_the_pinned_envelope() {
+    use crate::salt::{postings::mapped::Membership, wire::locate::LocateResponse};
+
+    let (generation, atlas) = publish("locate-endpoint").await;
+    let caps = ServeCaps::default();
+
+    // A bare JSON body reads neighbours = None and
+    // includeDetailedData = true.
+    let bare: super::LocateRequest =
+        serde_json::from_value(serde_json::json!({ "entityId": entity_string_of(0) }))
+            .expect("a bare locate body deserializes");
+    assert_eq!(bare.neighbours, None);
+    assert!(bare.include_detailed_data);
+    assert_eq!(
+        atlas.locate(&bare, caps),
+        Err(super::LocateError::Unsupported("includeDetailedData")),
+    );
+
+    let mut request = locate_request(entity_string_of(0));
+    request.neighbours = Some(3);
+    let bytes = atlas
+        .locate(&request, caps)
+        .expect("the request is well-formed");
+    assert_eq!(bytes[0..8], *b"SALTILEL");
+
+    // The groundwork layers derive the expectation independently;
+    // their own tests pin their behaviour.
+    let source = atlas
+        .resolve_source(&entity_string_of(0))
+        .expect("row 0 is a node");
+    let subgraph = atlas.locate_subgraph(source, 3, caps.locate);
+    let sources: Vec<u32> = subgraph.edges.iter().map(|edge| edge.source).collect();
+    let targets: Vec<u32> = subgraph.edges.iter().map(|edge| edge.target).collect();
+    let edge_rows: Vec<u32> = subgraph.edges.iter().map(|edge| edge.row).collect();
+    let response = |masks: Option<&[Membership<'_>]>| {
+        LocateResponse {
+            generation: generation.id().digest(),
+            variant: 0,
+            cell: source.cell,
+            complete: subgraph.complete,
+            delivered: &subgraph.positions,
+            positions: atlas.positions(),
+            rows: atlas.row_ids(),
+            masks,
+            sources: &sources,
+            targets: &targets,
+            edge_rows: &edge_rows,
+            trailer: None,
+        }
+        .encode()
+    };
+    assert_eq!(bytes, response(None), "the envelope matches the derivation");
+
+    // An id resolving to no type is legal and reads zero bits; the
+    // TYPE_MASK slot rides exactly the requests that color.
+    request.colored_type_ids = vec!["https://unknown.test/t/v/1".to_owned()];
+    let colored = atlas
+        .locate(&request, caps)
+        .expect("unresolvable colored ids are legal");
+    assert_eq!(colored, response(Some(&[Membership::List(&[])])));
+}
+
+/// Every locate rejection carries its name, the unknown-entity
+/// doctrine treats unparsable, unknown, and wrong-domain ids
+/// identically, and an over-cap neighbour budget clamps instead of
+/// rejecting.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_rejections_and_the_neighbour_clamp() {
+    let (_generation, atlas) = publish("locate-rejects").await;
+    let caps = ServeCaps::default();
+
+    // Unparsable, unknown, and an EDGE id (wrong identity domain)
+    // are one rejection: an id that cannot name a visible node.
+    for id in [
+        "not an entity id".to_owned(),
+        entity_string_of(50),
+        entity_string_of(EDGE_SEED),
+    ] {
+        assert_eq!(
+            atlas
+                .assemble_locate(&locate_request(id.clone()), caps)
+                .expect_err("the id names no visible node"),
+            super::LocateError::UnknownEntity,
+            "{id}",
+        );
+    }
+
+    // The coloredTypeIds cap is the tile endpoint's own.
+    let mut colored = locate_request(entity_string_of(0));
+    colored.colored_type_ids = vec![String::new(); caps.tile.colored_type_ids as usize + 1];
+    assert_eq!(
+        atlas
+            .assemble_locate(&colored, caps)
+            .expect_err("the list is over the cap"),
+        super::LocateError::Types {
+            count: caps.tile.colored_type_ids as usize + 1,
+            maximum: caps.tile.colored_type_ids,
+        },
+    );
+
+    // Version 0 rejects filter by name.
+    let filtered: super::LocateRequest = serde_json::from_value(serde_json::json!({
+        "entityId": entity_string_of(0),
+        "filter": {},
+        "includeDetailedData": false,
+    }))
+    .expect("a filter body deserializes");
+    assert_eq!(
+        atlas
+            .assemble_locate(&filtered, caps)
+            .expect_err("filter is a version-0 deferral"),
+        super::LocateError::Unsupported("filter"),
+    );
+
+    // A budget is not a list: over the cap it clamps, visible only
+    // in the delivered count (the source plus the cap).
+    let mut greedy = locate_request(entity_string_of(0));
+    greedy.neighbours = Some(u32::MAX);
+    let document = atlas
+        .assemble_locate(&greedy, caps)
+        .expect("the budget clamps");
+    assert_eq!(
+        atlas.locate_node_entities(&document).count(),
+        caps.locate.neighbours as usize + 1,
+    );
+}
+
+/// The transport path gathers both identity domains and encodes the
+/// hydrated trailer byte-exactly, interned name table included.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn detailed_locate_encodes_the_hydrated_trailer() {
+    use super::detail::{LinkDetails, LocateNodeDetails};
+    use crate::salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue};
+
+    let (generation, atlas) = publish("detailed-locate").await;
+    let caps = ServeCaps::default();
+
+    let mut request = locate_request(entity_string_of(0));
+    request.neighbours = Some(4);
+    request.include_detailed_data = true;
+
+    let document = atlas
+        .assemble_locate(&request, caps)
+        .expect("assembly ignores the trailer flag");
+    let nodes = atlas.locate_node_entities(&document);
+    let links = atlas.locate_link_entities(&document);
+    assert_eq!(nodes.count(), 5, "the source and four neighbours");
+
+    // Hydration is the transport's store round trip; all-null
+    // details stand in for it (the property laws are pinned by the
+    // intern and wire tests).
+    let node_details = LocateNodeDetails::empty(nodes.count());
+    let link_details = LinkDetails::empty(links.count());
+    let bytes = atlas.encode_locate(&document, Some((&node_details, &link_details)));
+
+    let source = atlas
+        .resolve_source(&entity_string_of(0))
+        .expect("row 0 is a node");
+    let subgraph = atlas.locate_subgraph(source, 4, caps.locate);
+    let sources: Vec<u32> = subgraph.edges.iter().map(|edge| edge.source).collect();
+    let targets: Vec<u32> = subgraph.edges.iter().map(|edge| edge.target).collect();
+    let edge_rows: Vec<u32> = subgraph.edges.iter().map(|edge| edge.row).collect();
+    assert_eq!(links.count(), edge_rows.len());
+
+    let no_nodes: Vec<Option<&str>> = vec![None; nodes.count()];
+    let no_edges: Vec<Option<&str>> = vec![None; edge_rows.len()];
+    let no_maps: Vec<Option<&[(u32, PropertyValue<'_>)]>> = vec![None; nodes.count()];
+    let expected = LocateResponse {
+        generation: generation.id().digest(),
+        variant: 0,
+        cell: source.cell,
+        complete: subgraph.complete,
+        delivered: &subgraph.positions,
+        positions: atlas.positions(),
+        rows: atlas.row_ids(),
+        masks: None,
+        sources: &sources,
+        targets: &targets,
+        edge_rows: &edge_rows,
+        trailer: Some(LocateTrailer {
+            labels: &no_nodes,
+            icons: &no_nodes,
+            property_names: &[],
+            properties: &no_maps,
+            link_labels: &no_edges,
+            link_icons: &no_edges,
+            link_type_labels: &no_edges,
+            link_type_icons: &no_edges,
+        }),
+    }
+    .encode();
+    assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
+}
+
+/// The intern table is the sorted, deduplicated union of surviving
+/// names; each node's map keys by index and keeps its ascending
+/// order. `None` marks an unresolved entity, an empty list a
+/// resolved one without simple properties.
+#[test]
+fn intern_properties_builds_the_table_and_index_maps() {
+    use super::{detail::SimpleValue, locate::intern_properties};
+    use crate::salt::wire::locate::PropertyValue;
+
+    let owned = |name: &str, value: SimpleValue| (format!("https://x.test/{name}/"), value);
+    let entries = vec![
+        Some(vec![
+            owned("b", SimpleValue::Text("t".to_owned())),
+            owned("d", SimpleValue::Integer(7)),
+        ]),
+        None,
+        Some(vec![
+            owned("a", SimpleValue::Null),
+            owned("b", SimpleValue::Boolean(true)),
+        ]),
+        Some(vec![]),
+    ];
+
+    let (names, maps) = intern_properties(&entries);
+    assert_eq!(
+        names,
+        [
+            "https://x.test/a/",
+            "https://x.test/b/",
+            "https://x.test/d/"
+        ],
+    );
+    assert_eq!(
+        maps,
+        vec![
+            Some(vec![
+                (1, PropertyValue::Text("t")),
+                (2, PropertyValue::Integer(7)),
+            ]),
+            None,
+            Some(vec![
+                (0, PropertyValue::Null),
+                (1, PropertyValue::Boolean(true)),
+            ]),
+            Some(vec![]),
+        ],
     );
 }

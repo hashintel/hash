@@ -7,9 +7,10 @@ use std::{io::Cursor, path::PathBuf};
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader,
+    ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader, SizedArrayWriter,
     read::{ArrayFile, OpenArrayError},
 };
+use crate::integrity::{Sha256, Update as _};
 
 /// A uniquely named file in the system temporary directory, removed on
 /// drop.
@@ -260,4 +261,105 @@ fn vectors_exists_exactly_for_f32_matrices() {
     let file = TempFile::create(&bytes);
     let opened = ArrayFile::open(&file.path).expect("a rank-1 array should open");
     assert!(opened.vectors::<8>().is_none());
+}
+
+/// The two writers share one format: the same rows through the sized
+/// writer produce the streaming writer's bytes exactly, and the
+/// returned digest is the digest of those bytes.
+#[test]
+fn the_sized_writer_matches_the_streaming_writer_byte_for_byte() {
+    let rows: [[f32; 8]; 3] = [[0.5; 8], [-2.0; 8], [1024.0; 8]];
+
+    let mut streamed = Cursor::new(Vec::new());
+    let mut writer = ArrayWriter::new(&mut streamed, ArrayVariant::F32, &[Dim::new(8)])
+        .expect("writing to a cursor should succeed");
+    for row in &rows {
+        writer
+            .write_row(row.as_bytes())
+            .expect("writing to a cursor should succeed");
+    }
+    writer.finish().expect("sealing a cursor should succeed");
+
+    let mut sized = Vec::new();
+    let mut writer =
+        SizedArrayWriter::new(&mut sized, ArrayVariant::F32, &[Dim::new(3), Dim::new(8)])
+            .expect("writing to a vector should succeed");
+    for row in &rows {
+        writer
+            .write_row(row.as_bytes())
+            .expect("writing to a vector should succeed");
+    }
+    let digest = writer.finish().expect("sealing a vector should succeed");
+
+    assert_eq!(&sized, streamed.get_ref());
+
+    let mut hasher = Sha256::new();
+    hasher.update(&sized);
+    assert_eq!(digest, hasher.finalize());
+}
+
+/// Whole-row chunks and single rows are one stream: `write_rows`
+/// appends the same bytes `write_row` would, row by row.
+#[test]
+fn the_sized_writer_accepts_whole_row_chunks() {
+    let rows: [[f32; 2]; 4] = [[0.0, 1.0], [2.0, 3.0], [4.0, 5.0], [6.0, 7.0]];
+
+    let mut chunked = Vec::new();
+    let mut writer =
+        SizedArrayWriter::new(&mut chunked, ArrayVariant::F32, &[Dim::new(4), Dim::new(2)])
+            .expect("writing to a vector should succeed");
+    writer
+        .write_rows(4, rows.as_bytes())
+        .expect("writing to a vector should succeed");
+    let bulk = writer.finish().expect("sealing a vector should succeed");
+
+    let mut single = Vec::new();
+    let mut writer =
+        SizedArrayWriter::new(&mut single, ArrayVariant::F32, &[Dim::new(4), Dim::new(2)])
+            .expect("writing to a vector should succeed");
+    for row in &rows {
+        writer
+            .write_row(row.as_bytes())
+            .expect("writing to a vector should succeed");
+    }
+    let rowed = writer.finish().expect("sealing a vector should succeed");
+
+    assert_eq!(chunked, single);
+    assert_eq!(bulk, rowed);
+}
+
+/// A short stream never seals: the header promised rows the stream
+/// did not deliver, so the digest refuses to endorse the file.
+#[test]
+#[should_panic(expected = "the stream must deliver exactly the shape's promised rows")]
+fn the_sized_writer_rejects_a_short_stream() {
+    let mut bytes = Vec::new();
+    let writer = SizedArrayWriter::new(&mut bytes, ArrayVariant::F32, &[Dim::new(2), Dim::new(2)])
+        .expect("writing to a vector should succeed");
+    let _digest = writer.finish();
+}
+
+/// A stream past the promise panics at the write, not at the seal.
+#[test]
+#[should_panic(expected = "the stream must stay within the shape's promised row count")]
+fn the_sized_writer_rejects_an_overlong_stream() {
+    let mut bytes = Vec::new();
+    let mut writer =
+        SizedArrayWriter::new(&mut bytes, ArrayVariant::F32, &[Dim::new(1), Dim::new(2)])
+            .expect("writing to a vector should succeed");
+    let row: [f32; 2] = [0.0, 1.0];
+    writer
+        .write_row(row.as_bytes())
+        .expect("writing to a vector should succeed");
+    drop(writer.write_row(row.as_bytes()));
+}
+
+/// Zero promised rows seal as the zero-element array immediately.
+#[test]
+fn the_sized_writer_seals_zero_rows() {
+    let mut bytes = Vec::new();
+    let writer = SizedArrayWriter::new(&mut bytes, ArrayVariant::F32, &[Dim::ZERO, Dim::new(512)])
+        .expect("writing to a vector should succeed");
+    let _digest = writer.finish().expect("sealing a vector should succeed");
+    assert_eq!(bytes.len(), FileHeader::SIZE);
 }

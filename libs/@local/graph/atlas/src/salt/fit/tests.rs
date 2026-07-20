@@ -9,13 +9,12 @@ use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{
-    FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions, StageError,
-    SuppliedVerdicts,
+    ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
+    StageError, SuppliedVerdicts,
     compute::{PlacementInner, placement_device, resolve_supplied},
     error::PlacementError,
     fit,
-    migrate::{MigrateError, migrate_adjacency},
-    prepare::identity::{IdentityTable, MappedIdentityTable},
+    prepare::identity::{IdentityTable, IdentityTableArchive},
 };
 use crate::{
     dataset::{
@@ -23,17 +22,18 @@ use crate::{
         OntologyRowId, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
     },
     file::{
+        WriteInto as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
-        generation::{GenerationId, GenerationRoot, document_digest},
+        generation::GenerationRoot,
         identity::read::IdentityFile,
         landmark::read::LandmarkFile,
         morton::read::MortonFile,
         policy::read::PolicyFile,
         postings::read::PostingsFile,
         quad::read::QuadFile,
-        repository::{FileName, RepositoryFile},
+        region::ByteStable,
         salt::{
             SaltRepository,
             metadata::{FrozenRadiusEvidence, Placement, RankingOrigin},
@@ -43,19 +43,19 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Similarity, Vec2, VecN},
     salt::{
-        adjacency::{Adjacency, EdgeList, MappedAdjacency, legacy::write_legacy},
+        adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
         ladder::CanonicalError,
-        landmark::{artifact::MappedLandmarkSkeleton, select::SelectionOptions},
+        landmark::{artifact::LandmarkSkeletonArchive, select::SelectionOptions},
         policy::{
             PolicyOverride, PolicySource, Posterior,
-            artifact::MappedPolicyTable,
+            artifact::PolicyTableArchive,
             classifier::{
                 Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
                 fit as fit_classifier,
             },
         },
-        postings::mapped::MappedPostings,
+        postings::mapped::PostingsArchive,
         projector::{
             artifact,
             loss::CoincidentEnergy,
@@ -63,7 +63,7 @@ use crate::{
             train::{BatchPlan, NodeColumns, RelationLens, TrainError, TrainingSchedule, refresh},
             verdict::{PlacementClass, ReviewedVerdicts},
         },
-        relation::artifact::{MappedAttraction, MappedProtection},
+        relation::artifact::{AttractionArchive, ProtectionArchive},
     },
 };
 
@@ -258,13 +258,28 @@ fn fixture_classifier() -> Classifier {
         .classifier
 }
 
+/// Wraps a fitted model as the fit's supplied classifier input.
+fn supplied(classifier: Classifier) -> ClassifierInput {
+    let mut hasher = Sha256::new();
+    hasher.update(b"fixture classifier artifact");
+    ClassifierInput::Supplied {
+        classifier,
+        source: hasher.finalize(),
+    }
+}
+
+/// The fixture classifier as the fit's supplied input.
+fn fixture_input() -> ClassifierInput {
+    supplied(fixture_classifier())
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fit_publishes_a_complete_generation() {
     let path = scratch("complete");
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
-    let classifier = fixture_classifier();
+    let classifier = fixture_input();
 
     let published = fit(
         &dataset,
@@ -336,7 +351,7 @@ async fn fit_publishes_a_complete_generation() {
     let placed = coordinates.points().expect("the coordinates are 2D points");
     assert_eq!(placed.len(), NODES);
 
-    let skeleton = MappedLandmarkSkeleton::new(
+    let skeleton = LandmarkSkeletonArchive::new(
         LandmarkFile::open(published.path().join("landmarks.lndm"))
             .expect("the skeleton should map"),
     )
@@ -355,7 +370,7 @@ async fn fit_publishes_a_complete_generation() {
 
     // The identity artifacts translate rows to source ids and back:
     // node ids are the fixture's row numbers, edge ids its 100 and 101.
-    let nodes = MappedIdentityTable::<U64<LE>>::new(
+    let nodes = IdentityTableArchive::<U64<LE>>::new(
         IdentityFile::open(published.path().join("node-identities.idnt"))
             .expect("the node identities should map"),
     )
@@ -367,7 +382,7 @@ async fn fit_publishes_a_complete_generation() {
     }
     assert!(nodes.row_of(U64::new(NODES as u64 + 7)).is_none());
 
-    let edge_ids = MappedIdentityTable::<U64<LE>>::new(
+    let edge_ids = IdentityTableArchive::<U64<LE>>::new(
         IdentityFile::open(published.path().join("edge-identities.idnt"))
             .expect("the edge identities should map"),
     )
@@ -400,7 +415,7 @@ async fn fit_publishes_a_complete_generation() {
 /// words, so both node types go dense and the empty link type stays a
 /// list.
 fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) {
-    let postings = MappedPostings::new(
+    let postings = PostingsArchive::new(
         PostingsFile::open(published.join("postings.post")).expect("the postings should map"),
     )
     .expect("the postings should validate");
@@ -442,175 +457,6 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
     assert_eq!(evidence.parent_edges, 1);
 }
 
-/// Republishes a fit's generation as a retired-adjacency replica in
-/// `root`: the adjacency re-encodes in the retired `.adjc` format,
-/// the document's entry follows, and the pointer names the replica -
-/// the state a pre-collapse fit left on disk.
-fn publish_retired_adjacency_replica(source: &Utf8Path, root: &Utf8Path) -> GenerationId {
-    let document = fs::read(source.join("metadata.json")).expect("the source document should read");
-    let mut value: serde_json::Value =
-        serde_json::from_slice(&document).expect("the source document should parse");
-
-    // The fixture corpus's adjacency, re-encoded at the retired
-    // format's wide width; the digest keys the document's entry.
-    let adjacency = Adjacency::build(NODES, &[[0, 1], [2, 3]]);
-    let retired = write_legacy(&adjacency, 8);
-    let entry = RepositoryFile {
-        name: FileName::new("adjacency.adjc".to_owned()).expect("the retired name is valid"),
-        hash: document_digest(&retired),
-    };
-    value["files"]["adjacency"] = serde_json::to_value(entry).expect("an entry serializes");
-
-    let bytes = serde_json::to_vec_pretty(&value).expect("the replica document should serialize");
-    let id: GenerationId = document_digest(&bytes)
-        .to_string()
-        .parse()
-        .expect("a digest is a generation id");
-
-    let directory = root.join(id.to_string());
-    fs::create_dir_all(&directory).expect("the replica directory should create");
-    for entry in value["files"]
-        .as_object()
-        .expect("the roster is an object")
-        .values()
-        .filter(|entry| !entry.is_null())
-    {
-        let name = entry["name"]
-            .as_str()
-            .expect("a roster entry names its file");
-        if name == "adjacency.adjc" {
-            continue;
-        }
-        fs::copy(source.join(name), directory.join(name)).expect("an artifact should copy");
-    }
-    fs::write(directory.join("adjacency.adjc"), &retired).expect("the retired file should write");
-    fs::write(directory.join("metadata.json"), &bytes).expect("the document should write");
-    fs::write(root.join("current"), format!("{id}\n")).expect("the pointer should write");
-
-    id
-}
-
-/// The migration's proof of fidelity: re-encoding a fit's adjacency
-/// in the retired format and migrating the replica reproduces the
-/// fit's publication digest for digest - the conversion and the fit
-/// write the same lists through the same path.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_retired_adjacency_migrates_to_the_identical_publication() {
-    let path = scratch("migrate-source");
-    let root = GenerationRoot::new(&path).expect("the root should open");
-    let published = fit(
-        &dataset(),
-        &HashEmbedder,
-        &config(),
-        &fixture_classifier(),
-        None,
-        None,
-        &root,
-    )
-    .await
-    .expect("the fit should publish");
-    let original =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
-
-    let legacy_path = scratch("migrate-legacy");
-    let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
-    let legacy = publish_retired_adjacency_replica(published.path(), &legacy_path);
-
-    // The replica parses typed - only its adjacency format is retired
-    // - but the serving reader rejects the retired bytes, which is the
-    // breakage the migration exists to close.
-    drop(
-        SprsFile::open(legacy_path.join(legacy.to_string()).join("adjacency.adjc"))
-            .expect_err("the retired bytes are not a sparse matrix file"),
-    );
-
-    let outcome = migrate_adjacency(&legacy_root, legacy).expect("the migration should publish");
-
-    assert_eq!(
-        outcome.published,
-        published.id(),
-        "the migration reproduces the fit's publication",
-    );
-    assert!(outcome.activated, "the replica was current");
-    assert_eq!(
-        legacy_root.current().expect("the pointer should read"),
-        Some(outcome.published),
-    );
-    let migrated = fs::read(
-        legacy_path
-            .join(outcome.published.to_string())
-            .join("metadata.json"),
-    )
-    .expect("the migrated document should read");
-    assert_eq!(
-        migrated, original,
-        "the migrated document is the fit's, byte for byte",
-    );
-}
-
-/// A generation already carrying the current adjacency format refuses
-/// the migration instead of republishing a duplicate.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_current_generation_refuses_the_migration() {
-    let path = scratch("migrate-refused");
-    let root = GenerationRoot::new(&path).expect("the root should open");
-    let published = fit(
-        &dataset(),
-        &HashEmbedder,
-        &config(),
-        &fixture_classifier(),
-        None,
-        None,
-        &root,
-    )
-    .await
-    .expect("the fit should publish");
-
-    let error = migrate_adjacency(&root, published.id())
-        .expect_err("the generation already carries the current format");
-    assert!(
-        matches!(error, MigrateError::AlreadyCurrent(id) if id == published.id()),
-        "{error}",
-    );
-}
-
-/// Retired bytes that no longer hash to the document's recorded
-/// digest are rejected before parsing, so a corrupt artifact never
-/// republishes.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_tampered_retired_adjacency_is_rejected() {
-    let path = scratch("migrate-tampered");
-    let root = GenerationRoot::new(&path).expect("the root should open");
-    let published = fit(
-        &dataset(),
-        &HashEmbedder,
-        &config(),
-        &fixture_classifier(),
-        None,
-        None,
-        &root,
-    )
-    .await
-    .expect("the fit should publish");
-
-    let legacy_path = scratch("migrate-tampered-legacy");
-    let legacy_root = GenerationRoot::new(&legacy_path).expect("the root should open");
-    let legacy = publish_retired_adjacency_replica(published.path(), &legacy_path);
-
-    let retired = legacy_path.join(legacy.to_string()).join("adjacency.adjc");
-    let mut bytes = fs::read(&retired).expect("the retired file should read");
-    let last = bytes.len() - 1;
-    bytes[last] ^= 0xFF;
-    fs::write(&retired, &bytes).expect("the tampered file should write");
-
-    let error = migrate_adjacency(&legacy_root, legacy)
-        .expect_err("the tampered bytes fail the digest check");
-    assert!(matches!(error, MigrateError::Artifact { .. }), "{error}");
-}
-
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn the_policy_artifacts_publish_and_read_back() {
@@ -622,7 +468,7 @@ async fn the_policy_artifacts_publish_and_read_back() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
+        &supplied(classifier.clone()),
         None,
         None,
         &root,
@@ -639,7 +485,7 @@ async fn the_policy_artifacts_publish_and_read_back() {
     assert_eq!(reopened, classifier);
 
     // The policy table holds one policy: the fixture's link type.
-    let policies = MappedPolicyTable::new(
+    let policies = PolicyTableArchive::new(
         PolicyFile::open(published.path().join("policy.plcy")).expect("the table should map"),
     )
     .expect("the table should validate");
@@ -685,7 +531,7 @@ async fn the_lod_columns_publish_in_base_order() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -770,7 +616,7 @@ async fn the_lod_columns_publish_in_base_order() {
 async fn supplied_verdicts_publish_verbatim() {
     let root = GenerationRoot::new(scratch("verdicts")).expect("the root should open");
     let dataset = dataset();
-    let classifier = fixture_classifier();
+    let classifier = fixture_input();
 
     // A document in the canonical exporter's shape: alphabetical keys,
     // one reviewed-Proximal type verdict, one trailing newline.
@@ -823,7 +669,7 @@ async fn supplied_verdicts_publish_verbatim() {
 async fn a_prior_generation_seeds_reuse_and_retention() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
     let dataset = dataset();
-    let classifier = fixture_classifier();
+    let classifier = fixture_input();
 
     let first = fit(
         &dataset,
@@ -904,7 +750,7 @@ async fn an_override_supersedes_the_classifier() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -912,7 +758,7 @@ async fn an_override_supersedes_the_classifier() {
     .await
     .expect("the fit should publish");
 
-    let policies = MappedPolicyTable::new(
+    let policies = PolicyTableArchive::new(
         PolicyFile::open(published.path().join("policy.plcy")).expect("the table should map"),
     )
     .expect("the table should validate");
@@ -945,7 +791,7 @@ async fn equal_seeds_publish_equal_generations() {
     let first_root = GenerationRoot::new(scratch("repeat-a")).expect("the root should open");
     let second_root = GenerationRoot::new(scratch("repeat-b")).expect("the root should open");
     let dataset = dataset();
-    let classifier = fixture_classifier();
+    let classifier = fixture_input();
 
     let first = fit(
         &dataset,
@@ -1011,7 +857,7 @@ async fn a_defective_corpus_publishes_nothing() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -1154,7 +1000,7 @@ async fn a_forceless_projector_publishes_the_baseline_rung() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -1235,7 +1081,7 @@ async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -1337,7 +1183,7 @@ async fn a_vacuous_placement_trains_without_reviews() {
         &dataset,
         &HashEmbedder,
         &refused_config,
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &refused,
@@ -1365,7 +1211,7 @@ async fn a_vacuous_placement_trains_without_reviews() {
         &dataset,
         &HashEmbedder,
         &vacuous_config,
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -1399,7 +1245,7 @@ async fn a_vacuous_placement_trains_without_reviews() {
 
     // The relation artifacts publish real force regardless: only the
     // trainer's view was vacuous.
-    let attraction = MappedAttraction::new(
+    let attraction = AttractionArchive::new(
         AttractionFile::open(published.path().join("attraction.atrc"))
             .expect("the attraction artifact should open"),
     )
@@ -1449,7 +1295,7 @@ async fn a_canonical_condition_outside_the_schedule_publishes_nothing() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_classifier(),
+        &fixture_input(),
         None,
         None,
         &root,
@@ -1563,7 +1409,7 @@ fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
 /// fixture edges: the parallel pair leaves node 0, the self-loop
 /// occupies both slots of node 3, and untouched nodes hold empty runs.
 fn assert_adjacency_reads_back(published: &Utf8Path) {
-    let adjacency = MappedAdjacency::new(
+    let adjacency = AdjacencyArchive::new(
         SprsFile::open(published.join("adjacency.sprs")).expect("the adjacency should map"),
     )
     .expect("the adjacency should validate");
@@ -1586,7 +1432,7 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
 /// relation 2, one under relation 3 (the self-loop reading carries no
 /// force and is dropped), with the overridden weights and confidence
 /// provenance intact.
-fn assert_attraction_reads_back(attraction: &MappedAttraction) {
+fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert_eq!(attraction.rows(), NODES as u64);
     assert_eq!(attraction.group_count(), 2);
     assert_eq!(attraction.edge_count(), 4);
@@ -1628,7 +1474,7 @@ fn assert_attraction_reads_back(attraction: &MappedAttraction) {
 async fn the_edge_artifacts_publish_and_read_back() {
     let root = GenerationRoot::new(scratch("edge-artifacts")).expect("the root should open");
     let dataset = relation_dataset();
-    let classifier = fixture_classifier();
+    let classifier = fixture_input();
 
     // Human overrides pin both relations to an exact distribution
     // (applicability 1), so every attraction weight and force mass
@@ -1690,7 +1536,7 @@ async fn the_edge_artifacts_publish_and_read_back() {
 
     // The attraction index groups the retained instances by relation,
     // asserted against the fixture readings by hand.
-    let attraction = MappedAttraction::new(
+    let attraction = AttractionArchive::new(
         AttractionFile::open(published.path().join("attraction.atrc"))
             .expect("the attraction index should map"),
     )
@@ -1698,7 +1544,7 @@ async fn the_edge_artifacts_publish_and_read_back() {
     assert_attraction_reads_back(&attraction);
 
     // The protection index and the quadtree publish beside them.
-    let _protection = MappedProtection::new(
+    let _protection = ProtectionArchive::new(
         SprsFile::open(published.path().join("protection.sprs"))
             .expect("the protection index should map"),
     )
@@ -1708,7 +1554,7 @@ async fn the_edge_artifacts_publish_and_read_back() {
 
     // The ontology identities translate type rows to source ids and
     // back: the fixture's type ids are its row numbers.
-    let ontology_ids = MappedIdentityTable::<U64<LE>>::new(
+    let ontology_ids = IdentityTableArchive::<U64<LE>>::new(
         IdentityFile::open(published.path().join("ontology-identities.idnt"))
             .expect("the ontology identities should map"),
     )
@@ -1749,12 +1595,7 @@ async fn the_edge_artifacts_publish_and_read_back() {
 /// Writes an ontology identity column of `I` ids into `dir`.
 fn write_ontology_identities<I>(dir: &Utf8Path, ids: impl IntoIterator<Item = I>) -> Utf8PathBuf
 where
-    I: Copy
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout,
+    I: ByteStable,
 {
     fs::create_dir_all(dir).expect("the scratch directory is writable");
     let path = dir.join("ontology-identities.idnt");

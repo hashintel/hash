@@ -103,6 +103,9 @@ fn repository() -> SaltRepository {
             adjacency: file("adjacency.sprs"),
             projector: None,
             reviewed_verdicts: Some(file("reviewed-verdicts.json")),
+            annotation_corpus: None,
+            annotation_embeddings: None,
+            annotation_hashes: None,
         },
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -156,6 +159,7 @@ fn evidence() -> Evidence {
             relations: 1,
             overridden: 0,
         },
+        classifier: None,
         relations: BuildEvidence {
             pruning_threshold: 0.0,
             retained_edges: 2,

@@ -41,22 +41,27 @@
 //! owns them, removing them the same way. A generation therefore exists
 //! exactly when every stage and every check of one run passed.
 
-use core::num::NonZero;
-use std::io::Write as _;
+use core::{error::Error, fmt, num::NonZero};
+use std::io::{self, Write as _};
 
+use camino::Utf8Path;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use self::prepare::norm;
 pub(crate) use self::{
+    annotations::SuppliedAnnotations,
     echo::FitConfigDef,
     error::{FitError, StageError},
     verdicts::SuppliedVerdicts,
 };
 use crate::{
     dataset::Dataset,
-    file::generation::{Generation, GenerationRoot, PublishedGeneration},
-    integrity::{Sha256, Update as _},
+    file::{
+        classifier::read::{ClassifierFile, OpenClassifierError},
+        generation::{Generation, GenerationRoot, PublishedGeneration},
+    },
+    integrity::{Sha256, Sha256Digest, Update as _},
     math::AffinityCurve,
     salt::{
         embedding::CardEmbedder,
@@ -65,7 +70,13 @@ use crate::{
         ladder::LadderOptions,
         landmark::{layout::LayoutOptions, quotient::QuotientOptions, select::SelectionOptions},
         lod::stage::LodConfig,
-        policy::{CoincidentAdmission, PolicyOverride, classifier::Classifier},
+        policy::{
+            CoincidentAdmission, PolicyOverride,
+            annotation::assembly::{AssemblyConfig, assemble},
+            classifier::{
+                Classifier, FitConfig as ClassifierFitConfig, artifact::InvalidClassifierFile,
+            },
+        },
         postings::build::PostingsConfig,
         projector::{
             budget::BudgetOptions,
@@ -79,13 +90,13 @@ use crate::{
     },
 };
 
+pub(crate) mod annotations;
 #[cfg(feature = "bench")]
 pub mod bench;
 mod compute;
 mod echo;
 mod error;
 mod ingest;
-mod migrate;
 pub(crate) mod prepare;
 mod role;
 #[cfg(any(feature = "bench", feature = "cli"))]
@@ -108,6 +119,10 @@ pub(crate) struct PolicyOptions {
     pub overrides: Vec<PolicyOverride> = Vec::new(),
     /// The generation's Coincident admission criteria.
     pub admission: CoincidentAdmission = CoincidentAdmission::default(),
+    /// Training-set assembly over a supplied annotation corpus.
+    pub assembly: AssemblyConfig = AssemblyConfig { .. },
+    /// The classifier fit over the assembled training set.
+    pub classifier_fit: ClassifierFitConfig = ClassifierFitConfig { .. },
 }
 
 const impl Default for PolicyOptions {
@@ -406,6 +421,81 @@ pub(crate) fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::from_seed(hasher.finalize().to_bytes())
 }
 
+/// The supplied classifier artifact could not be admitted.
+#[derive(Debug)]
+pub(crate) enum ClassifierSupplyError {
+    /// The file could not be read.
+    Io(io::Error),
+    /// The file is not a classifier artifact.
+    Open(OpenClassifierError),
+    /// The artifact violates the classifier's domain invariants.
+    Invalid(InvalidClassifierFile),
+}
+
+impl fmt::Display for ClassifierSupplyError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(_) => fmt.write_str("the supplied classifier file could not be read"),
+            Self::Open(_) => fmt.write_str("the supplied file is not a classifier artifact"),
+            Self::Invalid(_) => {
+                fmt.write_str("the supplied artifact violates the classifier's domain invariants")
+            }
+        }
+    }
+}
+
+impl Error for ClassifierSupplyError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
+/// The relation-policy classifier input of one fit.
+///
+/// The fit consumes a fitted model either way: a supplied artifact
+/// passes through, and a supplied annotation corpus is assembled and
+/// fitted inside the run, with the corpus document, the embedding
+/// table, and the holdout evaluation staged and recorded beside the
+/// model.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum ClassifierInput {
+    /// A fitted model supplied as an artifact.
+    Supplied {
+        /// The deployable model.
+        classifier: Classifier,
+        /// The SHA-256 of the artifact file's bytes: the supplied
+        /// file's identity, as the generation manifest records it.
+        source: Sha256Digest,
+    },
+    /// A validated annotation corpus to fit the model from.
+    Annotations(SuppliedAnnotations),
+}
+
+impl ClassifierInput {
+    /// Reads, validates, and adopts a fitted classifier artifact.
+    ///
+    /// The recorded source identity is the SHA-256 of the file's
+    /// bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ClassifierSupplyError`] when the file cannot be
+    /// read or does not hold a valid classifier.
+    pub(crate) fn open_artifact(path: impl AsRef<Utf8Path>) -> Result<Self, ClassifierSupplyError> {
+        let path = path.as_ref();
+        let source = role::digest_file(path).map_err(ClassifierSupplyError::Io)?;
+        let file = ClassifierFile::open(path).map_err(ClassifierSupplyError::Open)?;
+        let classifier =
+            Classifier::from_artifact(&file).map_err(ClassifierSupplyError::Invalid)?;
+
+        Ok(Self::Supplied { classifier, source })
+    }
+}
+
 /// Runs one fit over the dataset and publishes the generation.
 ///
 /// The stages run in the dataset's documented ingest order - nodes,
@@ -414,10 +504,13 @@ pub(crate) fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
 /// metadata document. Activation stays with the caller: publishing a
 /// generation and serving it are separate decisions.
 ///
-/// The `classifier` is a supplied input: a freshly fitted model or a
-/// prior generation's artifact read back
-/// ([`Classifier::from_artifact`]). It classifies every relation
-/// type's card, and the resolved policy table publishes beside it.
+/// The `classifier` input resolves to a fitted model either way
+/// ([`ClassifierInput`]): a supplied artifact passes through, and a
+/// supplied annotation corpus stages verbatim, assembles into the
+/// classifier's training set, and fits inside the run, with the
+/// embedding table and the holdout evaluation staged and recorded
+/// beside the model. The model classifies every relation type's card,
+/// and the resolved policy table publishes beside it.
 ///
 /// The `verdicts` are a supplied input in the policy-override
 /// category: a validated reviewed-verdicts document
@@ -456,7 +549,7 @@ pub(crate) async fn fit<D, E>(
     dataset: &D,
     embedder: &E,
     config: &FitConfig,
-    classifier: &Classifier,
+    classifier: &ClassifierInput,
     verdicts: Option<&SuppliedVerdicts>,
     prior: Option<&Generation>,
     root: &GenerationRoot,
@@ -487,13 +580,43 @@ where
         None => None,
     };
 
+    // The classifier supply resolves before ingest: a supplied model
+    // passes through, and a supplied corpus stages verbatim and
+    // assembles into the training set the compute-side fit consumes.
+    let classifier = match classifier {
+        ClassifierInput::Supplied { classifier, source } => compute::ClassifierPlan::Supplied {
+            classifier: classifier.clone(),
+            source: *source,
+        },
+        ClassifierInput::Annotations(supplied) => {
+            let file = role::write_staged(&staging, role::Role::AnnotationCorpus, |writer| {
+                writer.write_all(supplied.bytes())?;
+                Ok(supplied.hash())
+            })?;
+            let corpus = assemble(supplied.document(), embedder, config.policy.assembly)
+                .await
+                .map_err(FitError::Assembly)?;
+            tracing::info!(
+                supplied = corpus.evidence().supplied,
+                trained = corpus.evidence().trained,
+                holdouts = corpus.holdouts().len(),
+                "staged and assembled the supplied annotation corpus"
+            );
+            compute::ClassifierPlan::Fit {
+                corpus,
+                source: supplied.hash(),
+                staged: file,
+            }
+        }
+    };
+
     let ingested = ingest::run(dataset, embedder, config, &staging, &scratch, prior).await?;
 
     // Everything after the last dataset touch is CPU-and-file work:
     // it crosses onto the rayon pool as one owned unit.
     let inputs = compute::Inputs {
         config: config.clone(),
-        classifier: classifier.clone(),
+        classifier,
         reviewed_verdicts,
         verdicts: verdicts.cloned(),
         prior: prior.cloned(),

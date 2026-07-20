@@ -63,7 +63,7 @@ use type_system::{
 use zerocopy::{LE, U64};
 
 use self::card::Card;
-use crate::math::BoxedVecN;
+use crate::{file::region::ByteStable, math::BoxedVecN};
 
 pub(crate) mod card;
 pub(crate) mod memory;
@@ -572,41 +572,20 @@ pub(crate) trait Dataset {
     /// (the fit offloads its stage tail to rayon; the ranking tiebreak
     /// hashes id columns in parallel), which every plain-bytes id
     /// satisfies.
-    type NodeId: Copy
-        + Send
-        + Sync
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout
-        + 'static;
+    type NodeId: ByteStable + Send + 'static;
 
     /// The source identifier of an edge.
     ///
     /// Byte-level stable so identity columns persist as raw bytes; opaque
     /// to the pipeline otherwise.
-    type EdgeId: Copy
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout;
+    type EdgeId: ByteStable;
 
     /// The source identifier of an ontology type.
     ///
     /// Byte-level stable so the type table persists as raw bytes;
     /// opaque to the pipeline otherwise, except for the declared
     /// [`OntologyIdentity`] capability verdict resolution consumes.
-    type OntologyId: Copy
-        + OntologyIdentity
-        + Eq
-        + core::hash::Hash
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout;
+    type OntologyId: ByteStable + OntologyIdentity + Eq + core::hash::Hash;
 
     /// The failure produced when the underlying source cannot deliver.
     type Error: core::error::Error + Send + Sync + 'static;

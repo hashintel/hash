@@ -19,8 +19,9 @@
 //!
 //! - shot-excluded cards are excluded: their verdicts were disclosed in judging prompts, so
 //!   training on them would leak the prompt material into the model;
-//! - holdout cards are excluded: they answer to their human verdict and are reserved for evaluation
-//!   against it;
+//! - holdout cards are excluded from training: they answer to their human verdict. They are still
+//!   rendered and embedded, and [`AssembledCorpus::holdouts`] carries them beside their verdicts as
+//!   the fitted model's evaluation set;
 //! - cards whose votes assert no geometry class (all unclear or abstain) drop with zero weight:
 //!   uncertainty discounts a card without distorting its target;
 //! - `prescreen_stratum` is a stratification fact and has no effect here.
@@ -64,7 +65,7 @@
 
 use std::collections::HashMap;
 
-use super::{AnnotationCorpus, Card, CardIdentity, Content, Direction, VoteCounts};
+use super::{AnnotationCorpus, Card, CardIdentity, Content, Direction, HoldoutClass, VoteCounts};
 use crate::{
     dataset::{OntologyRowId, card},
     disjoint::DisjointSet,
@@ -165,7 +166,7 @@ impl<E: core::error::Error + 'static> core::error::Error for AssemblyError<E> {
 /// Destined for the generation metadata beside the fit evidence, so a
 /// published classifier names the corpus policy outcomes it was
 /// trained under.
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AssemblyEvidence {
     /// Cards the corpus supplied.
     pub supplied: usize,
@@ -190,18 +191,33 @@ pub(crate) struct AssemblyEvidence {
     pub near_duplicate_epsilon: f64,
 }
 
+/// One human-verdict holdout card, rendered and embedded beside the
+/// training rows.
+#[derive(Debug)]
+pub(crate) struct HoldoutCard {
+    /// The card's identity.
+    pub identity: CardIdentity,
+    /// The held-out human verdict.
+    pub verdict: HoldoutClass,
+    /// The card's row in the embedding table.
+    pub row: usize,
+}
+
 /// One assembled training set and its provenance.
 ///
 /// Row `i` of the embedding table, the training rows, and the
-/// identities all describe the same card. The table is the artifact
-/// shape the fit stages and maps; the mapped embedding matrix and
-/// [`rows`](Self::rows) together satisfy the classifier's training-set
-/// contract.
+/// identities all describe the same card; holdout cards occupy the
+/// table rows after the trained rows, addressed through
+/// [`holdouts`](Self::holdouts). The table is the artifact shape the
+/// fit stages and maps; the mapped embedding matrix's leading trained
+/// rows and [`rows`](Self::rows) together satisfy the classifier's
+/// training-set contract.
 #[derive(Debug)]
 pub(crate) struct AssembledCorpus {
     table: CardEmbeddingTable,
     rows: Vec<TrainingRow>,
     identities: Vec<CardIdentity>,
+    holdouts: Vec<HoldoutCard>,
     evidence: AssemblyEvidence,
 }
 
@@ -222,6 +238,12 @@ impl AssembledCorpus {
     #[inline]
     pub(crate) const fn identities(&self) -> &[CardIdentity] {
         &self.identities
+    }
+
+    /// Returns the holdout evaluation set.
+    #[inline]
+    pub(crate) const fn holdouts(&self) -> &[HoldoutCard] {
+        &self.holdouts
     }
 
     /// Returns the policy and derivation counts.
@@ -264,14 +286,16 @@ where
     };
 
     let mut trained = Vec::new();
+    let mut held_out = Vec::new();
     for (index, corpus_card) in corpus.cards().iter().enumerate() {
         if corpus_card.flags.shot_excluded {
             evidence.shot_excluded += 1;
             continue;
         }
 
-        if corpus_card.flags.holdout.is_some() {
+        if let Some(verdict) = corpus_card.flags.holdout {
             evidence.holdouts_excluded += 1;
+            held_out.push((index, corpus_card, verdict));
             continue;
         }
 
@@ -289,7 +313,7 @@ where
     }
     evidence.trained = trained.len();
 
-    let rendered = trained
+    let mut rendered = trained
         .iter()
         .map(|&(index, corpus_card, _)| render_card(index, corpus_card))
         .collect::<Result<Vec<_>, _>>()?;
@@ -297,6 +321,13 @@ where
         .iter()
         .filter(|finished| finished.severely_truncated())
         .count();
+
+    // Holdout rows render and embed after every trained row, so the
+    // trained rows keep their positions and the group derivation's
+    // trained-row scan bound holds.
+    for &(index, corpus_card, _) in &held_out {
+        rendered.push(render_card(index, corpus_card)?);
+    }
 
     let (table, stats) = embed_cards(embedder, &rendered, None)
         .await
@@ -316,6 +347,16 @@ where
         })
         .collect();
 
+    let holdouts = held_out
+        .into_iter()
+        .enumerate()
+        .map(|(offset, (_, corpus_card, verdict))| HoldoutCard {
+            identity: corpus_card.identity.clone(),
+            verdict,
+            row: trained.len() + offset,
+        })
+        .collect();
+
     Ok(AssembledCorpus {
         table,
         rows,
@@ -323,6 +364,7 @@ where
             .into_iter()
             .map(|(_, corpus_card, _)| corpus_card.identity.clone())
             .collect(),
+        holdouts,
         evidence,
     })
 }

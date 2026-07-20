@@ -29,8 +29,8 @@ use crate::{
     math::AffinityCurve,
     salt::{
         fit::{
-            FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts,
-            stub::{StubEmbedder, stub_classifier},
+            ClassifierInput, FitConfig, PlacementOptions, ProjectorOptions, SuppliedAnnotations,
+            SuppliedVerdicts, stub::StubEmbedder,
         },
         landmark::select::SelectionOptions,
         projector::train::{RelationLens, TrainingSchedule},
@@ -144,6 +144,16 @@ pub struct Options {
     /// carry Proximal force needs one (or an asserted radius) to
     /// train.
     pub verdicts: Option<String> = None,
+    /// Path of an annotation-corpus document: the classifier's
+    /// training supply. The run assembles it, fits the relation
+    /// classifier, and stages the corpus, the embedding table, and
+    /// the model. Exactly one of `annotations` and `classifier` must
+    /// be supplied.
+    pub annotations: Option<String> = None,
+    /// Path of a fitted classifier artifact (`.clsf`) to supply in
+    /// place of fitting one. Exactly one of `annotations` and
+    /// `classifier` must be supplied.
+    pub classifier: Option<String> = None,
     /// Override the trained placement's step count, keeping the
     /// ratified options and the midpoint boundary. Absent, the
     /// configuration default trains.
@@ -181,13 +191,21 @@ pub struct Summary {
 /// Every variant names the step that failed; the source beneath
 /// carries the specific fault.
 #[derive(Debug)]
-pub enum Error {
+pub enum RunError {
     /// The generation root could not open.
     Root(io::Error),
     /// The store could not open a snapshot transaction.
     Snapshot(Box<dyn CoreError + Send + Sync>),
     /// The supplied verdicts document was refused.
     Verdicts(Box<dyn CoreError + Send + Sync>),
+    /// The supplied annotation-corpus document was refused.
+    Annotations(Box<dyn CoreError + Send + Sync>),
+    /// The supplied classifier artifact was refused.
+    Classifier(Box<dyn CoreError + Send + Sync>),
+    /// The classifier input is missing or doubled: exactly one of the
+    /// annotation-corpus and classifier-artifact paths must be
+    /// supplied.
+    ClassifierInput,
     /// The asserted Proximal radius was refused: the value must be
     /// finite and strictly above the Coincident radius.
     ProximalRadius(f32),
@@ -195,12 +213,20 @@ pub enum Error {
     Run(Box<dyn CoreError + Send + Sync>),
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for RunError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Root(_) => fmt.write_str("the generation root could not open"),
             Self::Snapshot(_) => fmt.write_str("the store could not open a snapshot transaction"),
             Self::Verdicts(_) => fmt.write_str("the supplied verdicts document was refused"),
+            Self::Annotations(_) => {
+                fmt.write_str("the supplied annotation-corpus document was refused")
+            }
+            Self::Classifier(_) => fmt.write_str("the supplied classifier artifact was refused"),
+            Self::ClassifierInput => fmt.write_str(
+                "exactly one of the annotation-corpus and classifier-artifact paths must be \
+                 supplied",
+            ),
             Self::ProximalRadius(radius) => write!(
                 fmt,
                 "the asserted Proximal radius {radius} is not finite and strictly above the \
@@ -211,12 +237,16 @@ impl fmt::Display for Error {
     }
 }
 
-impl CoreError for Error {
+impl CoreError for RunError {
     fn source(&self) -> Option<&(dyn CoreError + 'static)> {
         match self {
             Self::Root(error) => Some(error),
-            Self::Snapshot(error) | Self::Verdicts(error) | Self::Run(error) => Some(&**error),
-            Self::ProximalRadius(_) => None,
+            Self::Snapshot(error)
+            | Self::Verdicts(error)
+            | Self::Annotations(error)
+            | Self::Classifier(error)
+            | Self::Run(error) => Some(&**error),
+            Self::ProximalRadius(_) | Self::ClassifierInput => None,
         }
     }
 }
@@ -237,11 +267,11 @@ impl CoreError for Error {
 /// or a vacuous placement combined with the landmark baseline. The
 /// binary's flag parser refuses both combinations before this seam
 /// sees them.
-pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<Summary, Error> {
-    let root = GenerationRoot::new(Utf8PathBuf::from(root)).map_err(Error::Root)?;
+pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<Summary, RunError> {
+    let root = GenerationRoot::new(Utf8PathBuf::from(root)).map_err(RunError::Root)?;
     let dataset = PostgresDataset::new(client, TemporalAxes::now())
         .await
-        .map_err(|error| Error::Snapshot(Box::new(error)))?;
+        .map_err(|error| RunError::Snapshot(Box::new(error)))?;
 
     let mut runner_options = RunnerOptions {
         fit: FitConfig {
@@ -289,7 +319,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
             projector.lens.epsilon(),
             Some(radius),
         )
-        .ok_or(Error::ProximalRadius(radius))?;
+        .ok_or(RunError::ProximalRadius(radius))?;
         runner_options.fit.placement = PlacementOptions::Projector(projector);
     }
     if options.vacuous_placement {
@@ -309,9 +339,21 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         .as_deref()
         .map(SuppliedVerdicts::open)
         .transpose()
-        .map_err(|error| Error::Verdicts(Box::new(error)))?;
+        .map_err(|error| RunError::Verdicts(Box::new(error)))?;
 
-    let classifier = stub_classifier();
+    let classifier = match (
+        options.annotations.as_deref(),
+        options.classifier.as_deref(),
+    ) {
+        (Some(annotations), None) => ClassifierInput::Annotations(
+            SuppliedAnnotations::open(annotations)
+                .map_err(|error| RunError::Annotations(Box::new(error)))?,
+        ),
+        (None, Some(classifier)) => ClassifierInput::open_artifact(classifier)
+            .map_err(|error| RunError::Classifier(Box::new(error)))?,
+        (None, None) | (Some(_), Some(_)) => return Err(RunError::ClassifierInput),
+    };
+
     let outcome = run(
         &dataset,
         &StubEmbedder,
@@ -321,7 +363,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         &runner_options,
     )
     .await
-    .map_err(|error| Error::Run(Box::new(error)))?;
+    .map_err(|error| RunError::Run(Box::new(error)))?;
 
     let metadata = &outcome.generation.repository().metadata;
     Ok(Summary {

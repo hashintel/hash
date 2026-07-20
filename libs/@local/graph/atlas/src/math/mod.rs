@@ -77,6 +77,7 @@ mod bounds;
 mod dvec2;
 mod dvecn;
 pub(crate) mod kernel;
+mod matrixn;
 mod rotation;
 mod scalar;
 mod similarity;
@@ -93,6 +94,7 @@ pub use self::{
     bounds::Bounds2,
     dvec2::{DVec2, DVec2x4T},
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
+    matrixn::MatrixN,
     rotation::Rotation,
     scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus},
     similarity::Similarity,

@@ -8,7 +8,10 @@ use std::{fs, path::PathBuf};
 use super::InvalidClassifierFile;
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    file::classifier::{FileHeader, read::ClassifierFile, write::write_regions},
+    file::{
+        WriteInto as _,
+        classifier::{FileHeader, read::ClassifierFile, write::write_regions},
+    },
     math::{BoxedDVecN, BoxedVecN},
     salt::policy::{
         GeometryClass,

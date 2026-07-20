@@ -8,11 +8,14 @@ use smallvec::{SmallVec, smallvec};
 use super::{
     build::{Postings, PostingsConfig, PostingsError},
     closure::ClosureMap,
-    mapped::{InvalidPostingsFile, MappedPostings, Membership},
+    mapped::{InvalidPostingsFile, Membership, PostingsArchive},
 };
 use crate::{
     dataset::OntologyRowId,
-    file::postings::{read::PostingsFile, write::write_regions},
+    file::{
+        WriteInto as _,
+        postings::{read::PostingsFile, write::write_regions},
+    },
 };
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -63,7 +66,7 @@ const FIXTURE_CONFIG: PostingsConfig = PostingsConfig {
     dense_threshold_log2: 2,
 };
 
-fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> MappedPostings {
+fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive {
     let path = dir.join(name);
     let mut file = fs::File::create(&path).expect("the fixture file should create");
     postings
@@ -71,7 +74,7 @@ fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> MappedPostings 
         .expect("the postings should write");
     drop(file);
 
-    MappedPostings::new(PostingsFile::open(&path).expect("the fixture file should open"))
+    PostingsArchive::new(PostingsFile::open(&path).expect("the fixture file should open"))
         .expect("the fixture postings should validate")
 }
 
@@ -268,7 +271,7 @@ fn open_invalid(
     .expect("the regions should write");
     drop(file);
 
-    MappedPostings::new(PostingsFile::open(path).expect("the fixture file should open"))
+    PostingsArchive::new(PostingsFile::open(path).expect("the fixture file should open"))
         .expect_err("the contract violation must surface")
 }
 
@@ -466,7 +469,7 @@ proptest! {
         let mut file = fs::File::create(&path).expect("the fixture file should create");
         postings.write_into(&mut file).expect("the postings should write");
         drop(file);
-        let mapped = MappedPostings::new(
+        let mapped = PostingsArchive::new(
             PostingsFile::open(&path).expect("the fixture file should open"),
         )
         .expect("built postings always validate");

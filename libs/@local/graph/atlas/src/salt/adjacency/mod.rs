@@ -10,7 +10,7 @@
 //! publishes as one structure-only [`crate::file::sprs`] matrix:
 //! `2N` compressed rows over the fencepost column, edge row ids as the
 //! indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so
-//! no value bytes exist on disk. [`MappedAdjacency`] reopens the file
+//! no value bytes exist on disk. [`AdjacencyArchive`] reopens the file
 //! over a whole-file mapping and validates the list invariants once,
 //! so lookups read from the page cache without holding the lists on
 //! the heap.
@@ -37,15 +37,17 @@ use sprs::CsMatViewI;
 use crate::{
     bitset::BitSet,
     dataset::{EdgeRowId, NodeRowId},
-    file::sprs::{
-        IndexVariant, SprsIndex,
-        read::{SprsFile, SprsMatrixError},
-        write::{WriteSprsError, write_matrix},
+    file::{
+        WriteInto,
+        sprs::{
+            IndexVariant, SprsIndex,
+            read::{SprsFile, SprsMatrixError},
+            write::{WriteSprsError, write_matrix},
+        },
     },
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-pub(crate) mod legacy;
 #[cfg(test)]
 mod tests;
 
@@ -112,6 +114,10 @@ impl Adjacency {
 
         Self { fenceposts, values }
     }
+}
+
+impl WriteInto for Adjacency {
+    type Error = WriteSprsError;
 
     /// Writes the adjacency as a structure-only sparse matrix file, at
     /// the narrowest index width covering the edge count.
@@ -129,7 +135,7 @@ impl Adjacency {
         clippy::integer_division_remainder_used,
         reason = "the value array holds exactly two slots per edge by construction"
     )]
-    pub(crate) fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
+    fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -250,14 +256,14 @@ enum Width {
 /// consumers re-validate nothing. The regions stay in the page cache
 /// under memory pressure and off the heap.
 #[derive(Debug)]
-pub(crate) struct MappedAdjacency {
+pub(crate) struct AdjacencyArchive {
     file: SprsFile,
     width: Width,
     nodes: u64,
     edges: u64,
 }
 
-impl MappedAdjacency {
+impl AdjacencyArchive {
     /// Opens the adjacency over its mapped sparse matrix file.
     ///
     /// # Errors
@@ -541,9 +547,9 @@ impl EdgeList<'_> {
 
     /// Returns whether the list holds `edge`, by binary search.
     ///
-    /// Correct over [`outgoing`](MappedAdjacency::outgoing) and
-    /// [`incoming`](MappedAdjacency::incoming) lists, whose runs are
-    /// strictly ascending. An [`incident`](MappedAdjacency::incident)
+    /// Correct over [`outgoing`](AdjacencyArchive::outgoing) and
+    /// [`incoming`](AdjacencyArchive::incoming) lists, whose runs are
+    /// strictly ascending. An [`incident`](AdjacencyArchive::incident)
     /// list concatenates two ascending runs and is not globally
     /// sorted; query its directions separately.
     #[must_use]

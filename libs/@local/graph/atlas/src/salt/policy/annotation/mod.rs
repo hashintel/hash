@@ -394,7 +394,7 @@ pub(crate) struct Axes {
 }
 
 /// A held-out human verdict's class.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum HoldoutClass {
     /// The endpoints share a referent.

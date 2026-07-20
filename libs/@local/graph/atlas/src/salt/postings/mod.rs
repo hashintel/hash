@@ -29,7 +29,7 @@
 //! It derives from the same row-order type column the quadtree consumes
 //! ([`crate::salt::lod::quad::QuadTree::build`]'s `types` parameter),
 //! gathered through the lod's permutation, and publishes as one
-//! [`crate::file::postings`] file; [`MappedPostings`] reopens the file
+//! [`crate::file::postings`] file; [`PostingsArchive`] reopens the file
 //! over a whole-file mapping and validates the artifact contract once,
 //! so lookups read from the page cache without holding anything on the
 //! heap.

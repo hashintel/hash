@@ -32,8 +32,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     salt::{
         embedding::CardEmbedder,
-        fit::{FitConfig, FitError, SuppliedVerdicts, fit},
-        policy::classifier::Classifier,
+        fit::{ClassifierInput, FitConfig, FitError, SuppliedVerdicts, fit},
         quality::{
             report::QualityReport,
             runner::{QualityRunError, QualityRunOptions, run as probe},
@@ -164,11 +163,11 @@ impl<D: Error + 'static, E: Error + 'static> Error for RunnerError<D, E> {
 ///
 /// The dataset serves both halves of the run - the fit's ingest
 /// streams and the admission probe's sampled lookups - so the probed
-/// corpus is the fitted corpus by construction. The classifier is a
-/// supplied input, fitted elsewhere ([`Classifier::from_artifact`]
-/// for a prior generation's model), and the reviewed verdicts are a
-/// supplied input the fit stages for the trainer, absent when no
-/// review file accompanies the run.
+/// corpus is the fitted corpus by construction. The classifier input
+/// is a supplied fitted artifact or an annotation corpus the fit
+/// assembles and fits inside the run ([`ClassifierInput`]), and the
+/// reviewed verdicts are a supplied input the fit stages for the
+/// trainer, absent when no review file accompanies the run.
 ///
 /// A report that refuses admission returns [`Admission::Candidate`]
 /// with the generation published and unactivated; only failures that
@@ -190,7 +189,7 @@ impl<D: Error + 'static, E: Error + 'static> Error for RunnerError<D, E> {
 pub(crate) async fn run<D, E>(
     dataset: &D,
     embedder: &E,
-    classifier: &Classifier,
+    classifier: &ClassifierInput,
     verdicts: Option<&SuppliedVerdicts>,
     root: &GenerationRoot,
     options: &RunnerOptions,

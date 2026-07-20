@@ -27,7 +27,7 @@
 //!
 //! The validated table publishes as one sparse matrix file
 //! ([`crate::file::sprs`]) holding its matrix verbatim;
-//! [`artifact::MappedKnn`] reopens it over a whole-file mapping, so
+//! [`artifact::KnnArchive`] reopens it over a whole-file mapping, so
 //! stages after the build read the table from the page cache without
 //! holding it on the heap.
 //!

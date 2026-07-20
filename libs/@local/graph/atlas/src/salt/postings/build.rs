@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 
 use crate::{
     dataset::OntologyRowId,
-    file::postings::write::write_regions,
+    file::{WriteInto, postings::write::write_regions},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -205,6 +205,10 @@ impl Postings {
             parent_edges: self.parent_ids.len() as u64,
         }
     }
+}
+
+impl WriteInto for Postings {
+    type Error = io::Error;
 
     /// Writes the postings as a postings file.
     ///
@@ -214,7 +218,7 @@ impl Postings {
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,

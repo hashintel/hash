@@ -2,7 +2,7 @@
 //!
 //! [`IdentityTable`] collects one domain's source ids in row order
 //! during the dataset drain and writes them as one identity file;
-//! [`MappedIdentityTable`] reopens a written file as the typed lookup
+//! [`IdentityTableArchive`] reopens a written file as the typed lookup
 //! surface: `row -> id` by indexing, `id -> row` by binary search over
 //! the file's sorted pairs behind its index prelude, faulting two
 //! pages on a cold lookup.
@@ -23,10 +23,14 @@
 use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
 
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U64, Unaligned};
+use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use crate::{
-    file::identity::{read::IdentityFile, write::write_regions},
+    file::{
+        WriteInto,
+        identity::{read::IdentityFile, write::write_regions},
+        region::ByteStable,
+    },
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -41,7 +45,7 @@ pub(crate) struct IdentityTable<I> {
 
 impl<I> IdentityTable<I>
 where
-    I: Copy + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayout,
+    I: ByteStable,
 {
     /// Creates an empty table.
     #[must_use]
@@ -61,6 +65,13 @@ where
     pub(crate) const fn len(&self) -> u64 {
         self.ids.len() as u64
     }
+}
+
+impl<I> WriteInto for IdentityTable<I>
+where
+    I: ByteStable,
+{
+    type Error = io::Error;
 
     /// Writes the table as one identity file, returning the digest of
     /// the written bytes.
@@ -86,7 +97,7 @@ where
         reason = "a resident table's rows fit the address space, and an id width is a type's \
                   size, far below u32"
     )]
-    pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         const {
             assert!(size_of::<I>() > 0, "a zero-sized id identifies nothing");
         }
@@ -190,14 +201,14 @@ impl Error for InvalidIdentityFile {}
 /// column and [`row_of`](Self::row_of) binary-searches the sorted
 /// pairs behind the file's index prelude.
 #[derive(Debug)]
-pub(crate) struct MappedIdentityTable<I> {
+pub(crate) struct IdentityTableArchive<I> {
     file: IdentityFile,
     id: PhantomData<I>,
 }
 
-impl<I> MappedIdentityTable<I>
+impl<I> IdentityTableArchive<I>
 where
-    I: Copy + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayout,
+    I: ByteStable,
 {
     /// Validates a mapped identity file as a lookup table over `I`.
     ///

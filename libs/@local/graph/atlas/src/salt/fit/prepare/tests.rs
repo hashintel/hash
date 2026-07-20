@@ -11,7 +11,7 @@ use smallvec::smallvec;
 use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
 use super::{
-    identity::{IdentityTable, InvalidIdentityFile, MappedIdentityTable},
+    identity::{IdentityTable, IdentityTableArchive, InvalidIdentityFile},
     instance::{InstanceRecord, InstanceSpoolWriter},
     norm::{self, RepresentationDefect, SpotCheckError, SpotCheckOptions},
     write_node_representations,
@@ -21,6 +21,7 @@ use crate::{
         EdgeRowId, Node, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, memory::MemoryDataset,
     },
     file::{
+        WriteInto as _,
         array::{ArrayVariant, FileHeader},
         generation::GenerationRoot,
         identity::read::IdentityFile,
@@ -301,10 +302,10 @@ fn fixture_table_bytes() -> Vec<u8> {
 fn mapped_fixture(
     name: &str,
     bytes: &[u8],
-) -> Result<MappedIdentityTable<U64<LE>>, InvalidIdentityFile> {
+) -> Result<IdentityTableArchive<U64<LE>>, InvalidIdentityFile> {
     let path = scratch(name);
     fs::write(&path, bytes).expect("the scratch file is writable");
-    MappedIdentityTable::new(IdentityFile::open(&path).expect("the fixture file reopens"))
+    IdentityTableArchive::new(IdentityFile::open(&path).expect("the fixture file reopens"))
 }
 
 #[test]
@@ -345,7 +346,7 @@ fn identity_lookup_crosses_stride_boundaries() {
 
     let path = scratch("strided.idnt");
     fs::write(&path, bytes).expect("the scratch file is writable");
-    let mapped = MappedIdentityTable::<[u8; 8]>::new(
+    let mapped = IdentityTableArchive::<[u8; 8]>::new(
         IdentityFile::open(&path).expect("the fixture file reopens"),
     )
     .expect("the table validates");
@@ -416,7 +417,7 @@ fn validation_rejects_tampered_tables() {
     let path = scratch("narrow.idnt");
     fs::write(&path, fixture_table_bytes()).expect("the scratch file is writable");
     assert_matches!(
-        MappedIdentityTable::<[u8; 4]>::new(
+        IdentityTableArchive::<[u8; 4]>::new(
             IdentityFile::open(&path).expect("the fixture file reopens"),
         ),
         Err(InvalidIdentityFile::KeyWidth {

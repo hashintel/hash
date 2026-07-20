@@ -1,13 +1,11 @@
 //! The relation stage: adjacency, instance assembly, and the relation
 //! indexes.
 
-use std::io::{BufWriter, Write as _};
-
 use super::{
     super::{
         error::StageError,
         prepare::instance::{InstanceRecord, InstanceSpool},
-        role::{Role, write_staged},
+        role::{Role, stage, write_staged},
     },
     Context,
 };
@@ -15,21 +13,19 @@ use crate::{
     file::{array::ArrayFile, policy::read::PolicyFile, repository::RepositoryFile},
     salt::{
         adjacency::Adjacency,
-        policy::artifact::MappedPolicyTable,
+        policy::artifact::PolicyTableArchive,
         relation::{Policies, RelationIndexes, RelationInstance},
     },
 };
 
-/// The staged relation artifacts of one fit.
-///
-/// The built indexes ride along beside their staged files: the
-/// projector stage consumes them in their owned form, so handing them
-/// on saves a decode round-trip through the artifacts just written.
-/// They are edge-scale - bounded by the retained instance count, not
-/// the corpus - and drop at the placement stage's exit.
+/// The staged relation artifacts of one fit: both index files beside
+/// the owned indexes the placement stage consumes.
 pub(super) struct RelationArtifacts {
     pub attraction: RepositoryFile,
     pub protection: RepositoryFile,
+    // Owned rather than mapped back: edge-scale, bounded by the
+    // retained instance count, and the placement stage wants the
+    // decoded form anyway.
     pub indexes: RelationIndexes,
 }
 
@@ -46,12 +42,9 @@ impl Context<'_> {
             .expect("the endpoint column was sealed as u64 pairs");
 
         let adjacency = Adjacency::build(rows, pairs);
-        let mut writer = BufWriter::new(self.staging.create(&Role::Adjacency.file_name())?);
-        let digest = adjacency
-            .write_into(&mut writer)
-            .map_err(StageError::WriteAdjacency)?;
-        writer.flush()?;
-        Ok(Role::Adjacency.file(digest))
+        let file = stage(self.staging, Role::Adjacency, &adjacency)?;
+        tracing::info!("staged the incident-edge adjacency");
+        Ok(file)
     }
 
     /// Assembles the spooled relation instances against the staged
@@ -68,7 +61,7 @@ impl Context<'_> {
     ) -> Result<RelationArtifacts, StageError> {
         let _span = tracing::info_span!("relations").entered();
 
-        let table = MappedPolicyTable::new(PolicyFile::open(
+        let table = PolicyTableArchive::new(PolicyFile::open(
             self.staging.path_of(&Role::Policy.file_name()),
         )?)?;
         let policies =
@@ -89,12 +82,14 @@ impl Context<'_> {
         let attraction = write_staged(self.staging, Role::Attraction, |writer| {
             indexes.attraction.write_into(rows as u64, writer)
         })?;
-        let protection = {
-            let mut writer = BufWriter::new(self.staging.create(&Role::Protection.file_name())?);
-            let digest = indexes.protection.write_into(&mut writer)?;
-            writer.flush()?;
-            Role::Protection.file(digest)
-        };
+        let protection = stage(self.staging, Role::Protection, &indexes.protection)?;
+
+        tracing::info!(
+            retained = indexes.evidence.retained_edges,
+            pruned = indexes.evidence.pruned_edges,
+            self_references = indexes.evidence.self_references,
+            "staged the attraction and protection indexes"
+        );
 
         Ok(RelationArtifacts {
             attraction,

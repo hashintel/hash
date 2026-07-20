@@ -97,12 +97,24 @@ pub(crate) struct SaltFiles {
     /// verbatim: the trainer's human-review input. `None` records that
     /// the fit ran without one.
     pub reviewed_verdicts: Option<RepositoryFile>,
+    /// The annotation-corpus document the classifier was fitted from,
+    /// staged verbatim. `None` records that the classifier was
+    /// supplied instead of fitted.
+    pub annotation_corpus: Option<RepositoryFile>,
+    /// The `f32[R, 3072]` annotation card embedding matrix, row-aligned
+    /// with the assembled corpus; an array file. Present exactly when
+    /// the corpus is.
+    pub annotation_embeddings: Option<RepositoryFile>,
+    /// The annotation card text hashes, one SHA-256 per assembled row:
+    /// the reuse key of the annotation embedding matrix. An array
+    /// file, present exactly when the corpus is.
+    pub annotation_hashes: Option<RepositoryFile>,
 }
 
 impl SaltFiles {
     /// Returns every file of the generation, in role order; the
-    /// projector and supplied-verdicts roles appear exactly when they
-    /// were staged.
+    /// projector, supplied-verdicts, and annotation roles appear
+    /// exactly when they were staged.
     ///
     /// Destructuring keeps the list total: a new role fails compilation
     /// here until it is listed.
@@ -134,6 +146,9 @@ impl SaltFiles {
             adjacency,
             projector,
             reviewed_verdicts,
+            annotation_corpus,
+            annotation_embeddings,
+            annotation_hashes,
         } = self;
 
         [
@@ -165,6 +180,9 @@ impl SaltFiles {
         .into_iter()
         .chain(projector.as_ref())
         .chain(reviewed_verdicts.as_ref())
+        .chain(annotation_corpus.as_ref())
+        .chain(annotation_embeddings.as_ref())
+        .chain(annotation_hashes.as_ref())
     }
 }
 

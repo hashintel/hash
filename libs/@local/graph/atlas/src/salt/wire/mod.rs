@@ -25,6 +25,7 @@
 pub(crate) mod cbor;
 pub(crate) mod edges;
 pub(crate) mod envelope;
+pub(crate) mod locate;
 pub(crate) mod tile;
 
 #[cfg(test)]
@@ -44,14 +45,15 @@ pub(crate) const WIRE_VERSION: u16 = 1;
 /// A response kind: the eighth magic byte, an ASCII initial.
 ///
 /// The seven-byte family prefix `SALTILE` is constant; the kind byte
-/// selects the `HEAD` schema and slot table the decoder applies. The
-/// locate kind (`SALTILEL`) joins with the locate endpoint.
+/// selects the `HEAD` schema and slot table the decoder applies.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Kind {
     /// A tile response, magic `SALTILET`.
     Tile,
     /// An edges response, magic `SALTILEE`.
     Edges,
+    /// A locate response, magic `SALTILEL`.
+    Locate,
 }
 
 impl Kind {
@@ -61,6 +63,7 @@ impl Kind {
         match self {
             Self::Tile => *b"SALTILET",
             Self::Edges => *b"SALTILEE",
+            Self::Locate => *b"SALTILEL",
         }
     }
 }

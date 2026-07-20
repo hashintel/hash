@@ -41,6 +41,10 @@ pub(super) enum ProblemType {
     /// A translate body listing more entity ids than the manifest's
     /// cap.
     TooManyEntityIds,
+    /// A locate source id that does not name a visible node -
+    /// nonexistent, denied, and unparsable answer identically
+    /// (missing = denied).
+    UnknownEntity,
     /// A required request body that did not arrive.
     MissingBody,
 }

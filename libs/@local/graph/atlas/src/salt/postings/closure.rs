@@ -9,7 +9,7 @@
 //! megabytes while `T` stays in the low thousands (`PLAN.md` "Serving
 //! contract requirements").
 
-use crate::{dataset::OntologyRowId, salt::postings::mapped::MappedPostings};
+use crate::{dataset::OntologyRowId, salt::postings::mapped::PostingsArchive};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///
@@ -63,7 +63,7 @@ impl ClosureMap {
     /// Returns [`ParentCycle`] when the parent graph holds a cycle, in
     /// which case the generation's ontology stream was defective.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn new(postings: &MappedPostings) -> Result<Self, ParentCycle> {
+    pub(crate) fn new(postings: &PostingsArchive) -> Result<Self, ParentCycle> {
         let types = usize::try_from(postings.types()).expect("resident type domains fit usize");
         let stride = types.div_ceil(u64::BITS as usize);
         let mut bits = vec![0_u64; types * stride].into_boxed_slice();
@@ -163,7 +163,7 @@ impl ClosureMap {
 }
 
 /// Borrows `type_row`'s validated parent list.
-fn parents(postings: &MappedPostings, type_row: usize) -> &[u32] {
+fn parents(postings: &PostingsArchive, type_row: usize) -> &[u32] {
     postings
         .parents(OntologyRowId::new(type_row as u64))
         .expect("the loop iterates the postings' own domain")

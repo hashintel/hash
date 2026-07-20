@@ -5,7 +5,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use super::{InvalidPolicyFile, MappedPolicyTable, write_policies};
+use super::{InvalidPolicyFile, PolicyTableArchive, write_policies};
 use crate::{
     dataset::OntologyRowId,
     file::policy::read::PolicyFile,
@@ -49,11 +49,11 @@ fn fixture_bytes() -> Vec<u8> {
 }
 
 /// Opens tampered fixture bytes as a mapped table.
-fn reopen(name: &str, bytes: &[u8]) -> Result<MappedPolicyTable, InvalidPolicyFile> {
+fn reopen(name: &str, bytes: &[u8]) -> Result<PolicyTableArchive, InvalidPolicyFile> {
     let path = scratch(name);
     fs::write(&path, bytes).expect("the scratch file is writable");
     let file = PolicyFile::open(&path).expect("the tampered geometry still parses");
-    MappedPolicyTable::new(file)
+    PolicyTableArchive::new(file)
 }
 
 #[test]

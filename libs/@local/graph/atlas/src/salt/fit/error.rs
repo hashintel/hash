@@ -35,7 +35,12 @@ use crate::{
             quotient::QuotientError, select::SelectionError,
         },
         lod::{quad::QuadError, stage::LodError},
-        policy::{ResolveError, artifact::InvalidPolicyFile, classifier::PredictError},
+        policy::{
+            ResolveError,
+            annotation::assembly::AssemblyError,
+            artifact::InvalidPolicyFile,
+            classifier::{FitError as ClassifierFitError, PredictError, TrainingSetError},
+        },
         postings::build::PostingsError,
         projector::{
             artifact::CheckpointError,
@@ -227,12 +232,15 @@ pub(crate) enum StageError {
     RepresentationDefects(NormSpotCheck),
     /// The search backend failed.
     Index(HannoyIndexError),
-    /// The recall spot check failed to run.
-    RecallCheck(KnnError<HannoyIndexError>),
     /// The search backend fell below the configured recall minimum.
     RecallBelowMinimum(recall::RecallSpotCheck),
-    /// The k-NN table failed to assemble.
+    /// The k-NN table failed to assemble or admit.
     Knn(KnnError<HannoyIndexError>),
+    /// The assembled corpus violates the classifier's training-set
+    /// contract.
+    ClassifierTraining(TrainingSetError),
+    /// The relation classifier failed to fit.
+    ClassifierFit(ClassifierFitError),
     /// A relation card's classification overflowed.
     Classify(PredictError),
     /// The policy resolution rejected its input.
@@ -243,10 +251,8 @@ pub(crate) enum StageError {
     InvalidPolicies(InvalidPolicyFile),
     /// The relation index build rejected its input.
     Relation(RelationIndexError),
-    /// The protection index failed to write.
-    WriteProtection(WriteSprsError),
-    /// The adjacency failed to write.
-    WriteAdjacency(WriteSprsError),
+    /// A sparse artifact failed to write.
+    WriteSparse(WriteSprsError),
     /// The staged endpoint column failed to map back.
     MapEndpoints(OpenArrayError),
     /// The staged adjacency file failed to map back.
@@ -351,7 +357,13 @@ impl From<RelationIndexError> for StageError {
 
 impl From<WriteSprsError> for StageError {
     fn from(error: WriteSprsError) -> Self {
-        Self::WriteProtection(error)
+        Self::WriteSparse(error)
+    }
+}
+
+impl From<KnnError<HannoyIndexError>> for StageError {
+    fn from(error: KnnError<HannoyIndexError>) -> Self {
+        Self::Knn(error)
     }
 }
 
@@ -451,6 +463,36 @@ impl From<PlacementError> for StageError {
     }
 }
 
+impl From<TrainError> for StageError {
+    fn from(error: TrainError) -> Self {
+        Self::Placement(error.into())
+    }
+}
+
+impl From<CheckpointError> for StageError {
+    fn from(error: CheckpointError) -> Self {
+        Self::Placement(error.into())
+    }
+}
+
+impl From<RefreshError> for StageError {
+    fn from(error: RefreshError) -> Self {
+        Self::Placement(error.into())
+    }
+}
+
+impl From<LadderError> for StageError {
+    fn from(error: LadderError) -> Self {
+        Self::Placement(error.into())
+    }
+}
+
+impl From<CanonicalError> for StageError {
+    fn from(error: CanonicalError) -> Self {
+        Self::Placement(error.into())
+    }
+}
+
 impl From<PriorError> for StageError {
     fn from(error: PriorError) -> Self {
         Self::Prior(error)
@@ -480,16 +522,22 @@ impl fmt::Display for StageError {
                 check.sampled_rows,
             ),
             Self::Index(error) => write!(fmt, "the search backend failed: {error}"),
-            Self::RecallCheck(error) => {
-                write!(fmt, "the recall spot check could not run: {error}")
-            }
             Self::RecallBelowMinimum(check) => write!(
                 fmt,
                 "the search backend's recall {:.4} falls below the {:.4} minimum",
                 check.recall(),
                 check.minimum_recall,
             ),
-            Self::Knn(error) => write!(fmt, "the k-NN table failed to assemble: {error}"),
+            Self::Knn(error) => {
+                write!(fmt, "the k-NN table failed to assemble or admit: {error}")
+            }
+            Self::ClassifierTraining(error) => write!(
+                fmt,
+                "the assembled corpus violates the training-set contract: {error}"
+            ),
+            Self::ClassifierFit(error) => {
+                write!(fmt, "the relation classifier failed to fit: {error}")
+            }
             Self::Classify(error) => write!(fmt, "a relation card failed to classify: {error}"),
             Self::Policy(error) => write!(fmt, "the policy resolution failed: {error}"),
             Self::MapPolicies(error) => map_back(fmt, "policy file", error),
@@ -497,11 +545,8 @@ impl fmt::Display for StageError {
                 write!(fmt, "the staged policy file is not a valid table: {error}")
             }
             Self::Relation(error) => write!(fmt, "the relation index build failed: {error}"),
-            Self::WriteProtection(error) => {
-                write!(fmt, "the protection index failed to write: {error}")
-            }
-            Self::WriteAdjacency(error) => {
-                write!(fmt, "the adjacency failed to write: {error}")
+            Self::WriteSparse(error) => {
+                write!(fmt, "a sparse artifact failed to write: {error}")
             }
             Self::MapEndpoints(error) => map_back(fmt, "endpoint column", error),
             Self::MapAdjacency(error) => map_back(fmt, "adjacency", error),
@@ -572,13 +617,15 @@ impl Error for StageError {
             Self::Io(error) => Some(error),
             Self::NormCheck(error) => Some(error),
             Self::Index(error) => Some(error),
-            Self::RecallCheck(error) | Self::Knn(error) => Some(error),
+            Self::Knn(error) => Some(error),
+            Self::ClassifierTraining(error) => Some(error),
+            Self::ClassifierFit(error) => Some(error),
             Self::Classify(error) => Some(error),
             Self::Policy(error) => Some(error),
             Self::MapPolicies(error) => Some(error),
             Self::InvalidPolicies(error) => Some(error),
             Self::Relation(error) => Some(error),
-            Self::WriteProtection(error) | Self::WriteAdjacency(error) => Some(error),
+            Self::WriteSparse(error) => Some(error),
             Self::MapAdjacency(error) | Self::MapSparse(error) => Some(error),
             Self::InvalidAdjacency(error) => Some(error),
             Self::Selection(error) => Some(error),
@@ -622,6 +669,9 @@ pub(crate) enum FitError<D, E> {
     Cards(io::Error),
     /// The embedding provider failed to produce the card table.
     Embedding(CardEmbeddingError<E>),
+    /// The supplied annotation corpus failed to assemble into the
+    /// classifier's training set.
+    Assembly(AssemblyError<E>),
     /// A streamed ingest write failed.
     Io(io::Error),
     /// A compute-side stage failed.
@@ -652,6 +702,9 @@ impl<D: fmt::Display, E: fmt::Display> fmt::Display for FitError<D, E> {
             Self::Dataset(error) => write!(fmt, "the dataset failed to deliver: {error}"),
             Self::Cards(error) => write!(fmt, "the card stream failed: {error}"),
             Self::Embedding(error) => write!(fmt, "the card table failed to embed: {error}"),
+            Self::Assembly(error) => {
+                write!(fmt, "the annotation corpus failed to assemble: {error}")
+            }
             Self::Io(error) => write!(fmt, "a streamed ingest write failed: {error}"),
             Self::Stage(error) => error.fmt(fmt),
         }
@@ -668,6 +721,7 @@ where
             Self::Dataset(error) => Some(error),
             Self::Cards(error) | Self::Io(error) => Some(error),
             Self::Embedding(error) => Some(error),
+            Self::Assembly(error) => Some(error),
             Self::Stage(error) => Some(error),
         }
     }

@@ -34,6 +34,7 @@ use hash_graph_atlas::serve::{Atlas, PostgresDetails, ServeCaps};
 
 mod current;
 mod edges;
+mod locate;
 mod manifest;
 mod problem;
 mod reference;
@@ -113,6 +114,10 @@ pub(crate) fn router(atlas: Arc<Atlas>, caps: ServeCaps, details: Arc<PostgresDe
         .api_route(
             "/v1/atlas/edges/{generation}/{variant}",
             post_with(edges::handler, edges::document),
+        )
+        .api_route(
+            "/v1/atlas/locate/{generation}/{variant}",
+            post_with(locate::handler, locate::document),
         )
         .api_route(
             "/v1/atlas/translate/{generation}/{variant}",

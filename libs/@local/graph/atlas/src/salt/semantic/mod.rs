@@ -20,7 +20,7 @@
 //! The graph is the training-side attraction structure and is consumed
 //! from its published artifact by training and release evaluation
 //! alike, so backend variation in the k-NN build cannot confound model
-//! comparisons ([`artifact::MappedSemanticGraph`] reopens the published
+//! comparisons ([`artifact::SemanticGraphArchive`] reopens the published
 //! file).
 
 use core::{error::Error, fmt};

@@ -176,6 +176,19 @@ struct CapsArgs {
     /// Most entity ids one translate request may carry.
     #[arg(long, env = "ATLAS_CAP_TRANSLATE_ENTITY_IDS")]
     translate_entity_ids: Option<u32>,
+
+    /// Largest neighbour budget one locate request may name.
+    #[arg(long, env = "ATLAS_CAP_LOCATE_NEIGHBOURS")]
+    locate_neighbours: Option<u32>,
+
+    /// Most subgraph edges one locate response delivers before the
+    /// protected rank truncation.
+    #[arg(long, env = "ATLAS_CAP_LOCATE_EDGES")]
+    locate_edges: Option<u32>,
+
+    /// Most properties one located entity ships in its trailer map.
+    #[arg(long, env = "ATLAS_CAP_LOCATE_PROPERTIES")]
+    locate_properties: Option<u32>,
 }
 
 impl CapsArgs {
@@ -193,6 +206,15 @@ impl CapsArgs {
         }
         if let Some(value) = self.translate_entity_ids {
             caps.translate.entity_ids = value;
+        }
+        if let Some(value) = self.locate_neighbours {
+            caps.locate.neighbours = value;
+        }
+        if let Some(value) = self.locate_edges {
+            caps.locate.edges = value;
+        }
+        if let Some(value) = self.locate_properties {
+            caps.locate.properties = value;
         }
 
         caps

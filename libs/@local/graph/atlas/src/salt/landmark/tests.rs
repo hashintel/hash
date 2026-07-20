@@ -15,7 +15,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
 use super::{
-    artifact::{InvalidLandmarkFile, LandmarkSkeleton, MappedLandmarkSkeleton},
+    artifact::{InvalidLandmarkFile, LandmarkSkeleton, LandmarkSkeletonArchive},
     assignment::{AssignmentError, LandmarkAssignment, assign_landmarks},
     layout::{
         EdgelessGraphError, LayoutOptions, LearningRate, RepulsionStrength, layout_landmarks,
@@ -28,7 +28,7 @@ use super::{
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    file::landmark::read::LandmarkFile,
+    file::{WriteInto as _, landmark::read::LandmarkFile},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
@@ -914,7 +914,7 @@ fn skeleton_round_trips_through_its_file() {
     let path = scratch("roundtrip.lndm");
     fs::write(&path, &bytes).expect("the scratch file is writable");
     let mapped =
-        MappedLandmarkSkeleton::new(LandmarkFile::open(&path).expect("the written file reopens"))
+        LandmarkSkeletonArchive::new(LandmarkFile::open(&path).expect("the written file reopens"))
             .expect("the written skeleton is valid");
 
     assert_eq!(mapped.landmarks(), 3);
@@ -940,7 +940,7 @@ fn mapped_skeleton_rejects_violated_invariants() {
     let open = |name: &str, bytes: &[u8]| {
         let path = scratch(name);
         fs::write(&path, bytes).expect("the scratch file is writable");
-        MappedLandmarkSkeleton::new(LandmarkFile::open(&path).expect("the geometry is intact"))
+        LandmarkSkeletonArchive::new(LandmarkFile::open(&path).expect("the geometry is intact"))
     };
 
     let mut unordered = bytes.clone();

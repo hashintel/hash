@@ -14,7 +14,7 @@
 //! configuration: equal generations derive equal columns, so the
 //! ranking stays reproducible from the manifest alone.
 
-use crate::{dataset::NodeRowId, salt::adjacency::MappedAdjacency};
+use crate::{dataset::NodeRowId, salt::adjacency::AdjacencyArchive};
 
 #[cfg(test)]
 mod tests;
@@ -87,14 +87,14 @@ impl ImportanceSignal for ConstantImportance {
 /// percent of each other.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct DegreeImportance<'map> {
-    adjacency: &'map MappedAdjacency,
+    adjacency: &'map AdjacencyArchive,
 }
 
 impl<'map> DegreeImportance<'map> {
     /// Wraps the adjacency the degrees read from.
     #[inline]
     #[must_use]
-    pub(crate) const fn new(adjacency: &'map MappedAdjacency) -> Self {
+    pub(crate) const fn new(adjacency: &'map AdjacencyArchive) -> Self {
         Self { adjacency }
     }
 }

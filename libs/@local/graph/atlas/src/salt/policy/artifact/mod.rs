@@ -3,7 +3,7 @@
 //!
 //! The resolved table publishes as one [`crate::file::policy`] file in
 //! the order [`resolve`](super::resolve) produces: strictly ascending by
-//! relation row. [`MappedPolicyTable`] reopens the file over a
+//! relation row. [`PolicyTableArchive`] reopens the file over a
 //! whole-file mapping, validates the table invariants once, and hands
 //! out the rows as a borrowed [`RelationPolicy`] slice: the domain
 //! type's `repr(C)` layout is the file's pinned wire row, so reads
@@ -127,11 +127,11 @@ pub(crate) fn write_policies(
 /// valid policies and consumers re-validate nothing. The rows stay in
 /// the page cache under memory pressure and off the heap.
 #[derive(Debug)]
-pub(crate) struct MappedPolicyTable {
+pub(crate) struct PolicyTableArchive {
     file: PolicyFile,
 }
 
-impl MappedPolicyTable {
+impl PolicyTableArchive {
     /// Opens the table over its mapped file.
     ///
     /// # Errors

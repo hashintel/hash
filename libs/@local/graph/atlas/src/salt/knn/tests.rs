@@ -10,7 +10,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex, Neighbour,
-    artifact::{InvalidKnnFile, MappedKnn},
+    artifact::{InvalidKnnFile, KnnArchive},
     error::KnnError,
     hannoy::{HannoyIndex, HannoyIndexOptions},
     recall,
@@ -19,6 +19,7 @@ use super::{
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
     file::{
+        WriteInto as _,
         array::{ArrayShape, Dim},
         sprs::{
             FileHeader, IndexVariant, StorageVariant, ValueTag,
@@ -693,7 +694,7 @@ fn published_table_reopens_mapped() {
     let path = dir.join("table.sprs");
     std::fs::write(&path, &bytes).expect("the table file writes");
 
-    let mapped = MappedKnn::new(SprsFile::open(&path).expect("the published file reopens"))
+    let mapped = KnnArchive::new(SprsFile::open(&path).expect("the published file reopens"))
         .expect("the published file opens as a table");
 
     // The mapped view is the owned table, entry for entry.
@@ -753,7 +754,7 @@ fn published_table_reopens_mapped() {
     let tampered_path = dir.join("tampered.sprs");
     std::fs::write(&tampered_path, &tampered).expect("the tampered file writes");
     assert_matches!(
-        MappedKnn::new(SprsFile::open(&tampered_path).expect("the tampered file parses")),
+        KnnArchive::new(SprsFile::open(&tampered_path).expect("the tampered file parses")),
         Err(InvalidKnnFile::Invalid(
             KnnValidationError::DistanceOutOfRange { row: 0, .. },
         )),

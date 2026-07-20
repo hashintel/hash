@@ -81,11 +81,11 @@ impl core::error::Error for InvalidPostingsFile {}
 /// nothing. The regions stay in the page cache under memory pressure
 /// and off the heap.
 #[derive(Debug)]
-pub(crate) struct MappedPostings {
+pub(crate) struct PostingsArchive {
     file: PostingsFile,
 }
 
-impl MappedPostings {
+impl PostingsArchive {
     /// Opens the postings over their mapped file.
     ///
     /// # Errors

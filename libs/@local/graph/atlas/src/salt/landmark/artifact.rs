@@ -4,7 +4,7 @@
 //! A fitted skeleton - selection, assignment, and layout coordinates -
 //! publishes as one [`crate::file::landmark`] file, so the three parts
 //! that share the ordinal vocabulary cannot fall out of sync.
-//! [`MappedLandmarkSkeleton`] reopens the file over a whole-file
+//! [`LandmarkSkeletonArchive`] reopens the file over a whole-file
 //! mapping and validates the skeleton invariants once, so training and
 //! serving read landmark data from the page cache without holding it
 //! on the heap.
@@ -20,7 +20,10 @@ use super::{
 };
 use crate::{
     dataset::NodeRowId,
-    file::landmark::{read::LandmarkFile, write::write_regions},
+    file::{
+        WriteInto,
+        landmark::{read::LandmarkFile, write::write_regions},
+    },
     integrity::{Sha256, Sha256Digest, Writer},
     math::Vec2,
 };
@@ -114,6 +117,10 @@ impl LandmarkSkeleton {
             coordinates,
         }
     }
+}
+
+impl WriteInto for LandmarkSkeleton {
+    type Error = io::Error;
 
     /// Writes the skeleton as a landmark file.
     ///
@@ -123,7 +130,7 @@ impl LandmarkSkeleton {
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -147,11 +154,11 @@ impl LandmarkSkeleton {
 /// valid views and consumers re-validate nothing. The regions stay in
 /// the page cache under memory pressure and off the heap.
 #[derive(Debug)]
-pub(crate) struct MappedLandmarkSkeleton {
+pub(crate) struct LandmarkSkeletonArchive {
     file: LandmarkFile,
 }
 
-impl MappedLandmarkSkeleton {
+impl LandmarkSkeletonArchive {
     /// Opens the skeleton over its mapped file.
     ///
     /// # Errors

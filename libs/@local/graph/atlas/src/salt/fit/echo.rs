@@ -33,7 +33,10 @@ use crate::{
             select::SelectionOptions,
         },
         lod::stage::LodConfig,
-        policy::{CoincidentAdmission, PolicyOverride},
+        policy::{
+            CoincidentAdmission, PolicyOverride, annotation::assembly::AssemblyConfig,
+            classifier::FitConfig as ClassifierFitConfig,
+        },
         postings::build::PostingsConfig,
         relation::attraction::AttractionOptions,
         semantic::SmoothingOptions,
@@ -704,6 +707,110 @@ struct PolicyOptionsDef {
     overrides: Vec<PolicyOverride>,
     #[serde(with = "CoincidentAdmissionDef")]
     admission: CoincidentAdmission,
+    #[serde(with = "assembly_config")]
+    assembly: AssemblyConfig,
+    #[serde(with = "classifier_fit_config")]
+    classifier_fit: ClassifierFitConfig,
+}
+
+/// serde shadow of [`AssemblyConfig`]; deserialization revalidates the
+/// threshold's domain.
+mod assembly_config {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::salt::policy::annotation::assembly::AssemblyConfig;
+
+    /// The assembly settings' wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Record {
+        near_duplicate_epsilon: f64,
+    }
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` contract passes the field by reference"
+    )]
+    pub(super) fn serialize<S>(config: &AssemblyConfig, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Record {
+            near_duplicate_epsilon: config.near_duplicate_epsilon,
+        }
+        .serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<AssemblyConfig, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let record = Record::deserialize(deserializer)?;
+        if !record.near_duplicate_epsilon.is_finite() || record.near_duplicate_epsilon <= 0.0 {
+            return Err(D::Error::custom(
+                "the near-duplicate threshold must be positive and finite",
+            ));
+        }
+
+        Ok(AssemblyConfig {
+            near_duplicate_epsilon: record.near_duplicate_epsilon,
+        })
+    }
+}
+
+/// serde shadow of the classifier's fit configuration; deserialization
+/// revalidates through the configuration's own domain check.
+mod classifier_fit_config {
+    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+
+    use crate::salt::policy::classifier::FitConfig;
+
+    /// The fit settings' wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct Record {
+        regularization: f64,
+        maximum_iterations: u64,
+        gradient_tolerance: f64,
+        history_size: usize,
+        folds: usize,
+        seed: u64,
+    }
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` contract passes the field by reference"
+    )]
+    pub(super) fn serialize<S>(config: &FitConfig, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Record {
+            regularization: config.regularization,
+            maximum_iterations: config.maximum_iterations,
+            gradient_tolerance: config.gradient_tolerance,
+            history_size: config.history_size,
+            folds: config.folds,
+            seed: config.seed,
+        }
+        .serialize(serializer)
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<FitConfig, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let record = Record::deserialize(deserializer)?;
+        let config = FitConfig {
+            regularization: record.regularization,
+            maximum_iterations: record.maximum_iterations,
+            gradient_tolerance: record.gradient_tolerance,
+            history_size: record.history_size,
+            folds: record.folds,
+            seed: record.seed,
+        };
+        config.validate().map_err(D::Error::custom)?;
+
+        Ok(config)
+    }
 }
 
 /// serde shadow of [`FitConfig`]: the metadata document's echo of every

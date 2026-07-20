@@ -23,7 +23,7 @@ use core::{error::Error, fmt};
 
 use super::Atlas;
 use crate::{
-    dataset::ArchivedEntityId, math::Vec2, salt::fit::prepare::identity::MappedIdentityTable,
+    dataset::ArchivedEntityId, math::Vec2, salt::fit::prepare::identity::IdentityTableArchive,
 };
 
 /// The upstream entity-id delimiter: `webId~entityUuid[~draftId]`.
@@ -151,8 +151,8 @@ impl Atlas {
 pub(super) fn translate(
     request: &TranslateRequest,
     caps: TranslateCaps,
-    node_ids: &MappedIdentityTable<ArchivedEntityId>,
-    edge_ids: &MappedIdentityTable<ArchivedEntityId>,
+    node_ids: &IdentityTableArchive<ArchivedEntityId>,
+    edge_ids: &IdentityTableArchive<ArchivedEntityId>,
     positions: &[Vec2],
     position_of_row: &[u32],
 ) -> Result<TranslateResponse, TranslateError> {

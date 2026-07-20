@@ -10,12 +10,14 @@ use core::num::NonZero;
 use crate::{
     dataset::TemporalAxes,
     file::{generation::GenerationId, morton::Fenceposts},
+    integrity::Sha256Digest,
     math::{Bounds2, Similarity},
     morton::Depth,
     salt::{
-        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, FitConfigDef,
-        LodEvidence, NormSpotCheck, PostingsEvidence, QuadEvidence, RankingConfig, RecallSpotCheck,
-        ladder::RungMeasurement, projector::train::FrozenRadius,
+        AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
+        FitConfigDef, GeometryClass, HoldoutClass, LodEvidence, NormSpotCheck, PostingsEvidence,
+        QuadEvidence, RankingConfig, RecallSpotCheck, ladder::RungMeasurement,
+        projector::train::FrozenRadius,
     },
 };
 
@@ -130,6 +132,11 @@ pub(crate) struct Evidence {
     pub landmarks: LandmarkEvidence,
     /// The policy stage's scale record.
     pub policy: PolicyEvidence,
+    /// How the relation-policy classifier was obtained, with the fit
+    /// and holdout measurements when this run fitted it. `None`
+    /// records a generation published before the classifier input was
+    /// recorded.
+    pub classifier: Option<ClassifierEvidence>,
     /// The relation build's dropped-instance and pruned-mass account.
     #[serde(with = "BuildEvidenceDef")]
     pub relations: BuildEvidence,
@@ -466,4 +473,75 @@ pub(crate) struct PolicyEvidence {
     /// Resolved relations whose policy came from an override record
     /// instead of the classifier.
     pub overridden: u64,
+}
+
+/// How the generation's relation-policy classifier was obtained.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "provenance")]
+pub(crate) enum ClassifierEvidence {
+    /// The classifier was supplied as a fitted artifact.
+    Supplied {
+        /// The SHA-256 of the supplied artifact's bytes.
+        source: Sha256Digest,
+    },
+    /// The classifier was fitted in this run from a supplied
+    /// annotation corpus.
+    Fitted {
+        /// The SHA-256 of the corpus document's bytes, as staged.
+        corpus: Sha256Digest,
+        /// The training-set assembly's policy and derivation counts.
+        assembly: AssemblyEvidence,
+        /// The grouped out-of-fold fit measurements.
+        fit: ClassifierFitSummary,
+        /// The held-out human-verdict evaluation.
+        holdout: HoldoutEvidence,
+    },
+}
+
+/// The classifier fit's grouped out-of-fold measurements.
+///
+/// Weighted means over the training rows. The per-row evidence is
+/// reproducible from the staged corpus under the echoed
+/// configuration, so the manifest carries the means alone.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ClassifierFitSummary {
+    /// Grouped cross-validation folds the evidence ran over.
+    pub folds: usize,
+    /// Iterations of the final full-corpus fit.
+    pub iterations: u64,
+    /// Weighted-mean cross-entropy of the uncalibrated posteriors.
+    pub raw_cross_entropy: f64,
+    /// Weighted-mean cross-entropy at the deployment temperature.
+    pub calibrated_cross_entropy: f64,
+    /// Weighted-mean Brier score of the uncalibrated posteriors.
+    pub raw_brier: f64,
+    /// Weighted-mean Brier score at the deployment temperature.
+    pub calibrated_brier: f64,
+}
+
+/// The fitted classifier's agreement with the held-out human verdicts.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct HoldoutEvidence {
+    /// Holdout cards whose human verdict asserts a geometry class.
+    pub evaluated: usize,
+    /// Evaluated cards whose predicted class matches the human
+    /// verdict.
+    pub agreements: usize,
+    /// Every holdout card's outcome, in corpus order.
+    pub cards: Vec<HoldoutRecord>,
+}
+
+/// One holdout card's evaluation outcome.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct HoldoutRecord {
+    /// The card's canonical identity URL.
+    pub identity: String,
+    /// The held-out human verdict.
+    pub human: HoldoutClass,
+    /// The classifier's highest-posterior class. Calibration never
+    /// reorders classes, so the prediction is temperature-free.
+    pub predicted: GeometryClass,
+    /// Whether the prediction matches the human verdict; `None` when
+    /// the human verdict asserts no geometry class.
+    pub agree: Option<bool>,
 }

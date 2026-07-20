@@ -14,11 +14,11 @@
 //! request-block proposal was superseded by this shape the same
 //! day). The coverage spread is Hannah's, folded 2026-07-19.
 //!
-//! The corpus follows the addendum's enumeration. G7 (locate) is
-//! deliberately missing: the locate `HEAD` schema lands with the locate
-//! endpoint (Track 2 step 6), and pinning bytes before the schema
-//! exists would pin an invention. The end-to-end golden over a real
-//! published generation is likewise separate: it waits on the
+//! The corpus follows the addendum's enumeration; G7 (locate)
+//! joined once the locate schema was ratified and its endpoint
+//! landed (2026-07-20) - pinning bytes before the schema exists
+//! would have pinned an invention. The end-to-end golden over a real
+//! published generation is separate: it waits on the
 //! fit-pipeline postings wiring and pins a whole artifact tree, not
 //! an envelope. Every golden here uses `spanLog2 = 2`, so the cut
 //! rule reads `bucket = z + 2` and the root spans buckets `0..=2`.
@@ -46,6 +46,7 @@ use super::{
     Kind, Mode,
     edges::{EdgesResponse, EdgesTrailer},
     envelope::EnvelopeWriter,
+    locate::{LocateResponse, LocateTrailer, PropertyValue},
     tests::{directory, section},
     tile::{GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
@@ -143,6 +144,7 @@ fn corpus() -> Vec<Golden> {
         g4_empty_root(),
         g5_trailer_tile(),
         g6_edges(),
+        g7_locate(),
         g8_appended_slot(),
         g9_padding_low(),
         g10_padding_high(),
@@ -647,6 +649,182 @@ fn g6_edges() -> Golden {
         bytes,
         sidecar,
     }
+}
+
+/// G7: a locate response - the source first over an arbitrary
+/// delivered list (nothing contiguous), `TYPE_MASK` probed per point,
+/// `complete = false` (the locate edge cap flag is the point), and
+/// the full detail trailer: labels and icons with nulls and
+/// non-ASCII, the interned property-name table shared across nodes,
+/// per-node maps covering every simple value shape (text, positive
+/// and NEGATIVE integers, doubles, booleans, explicit null), a `null`
+/// unresolved entry, an empty resolved map, and the four link arrays.
+fn g7_locate() -> Golden {
+    let positions: Vec<Vec2> = (0_u16..8)
+        .map(|index| {
+            Vec2::new(
+                f32::from(index).mul_add(0.25, -0.875),
+                f32::from(index).mul_add(-0.125, 0.5),
+            )
+        })
+        .collect();
+    let rows: Vec<u32> = (0..8).map(|index| 10 * index + 1).collect();
+    // Source at base position 6, neighbours at 1, 4, 2: delivered
+    // rows 61, 11, 41, 21.
+    let delivered = [6_u32, 1, 4, 2];
+
+    // type 0: list members at 1 and 6; type 1: dense bit at 4 over
+    // N = 8 (one word). Delivered order 6, 1, 4, 2:
+    // t0 | t0 | t1 | none.
+    let t0 = [1_u32, 6];
+    let t1_dense = [1_u32 << 4];
+    let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
+
+    let names = [
+        "https://x.test/age/",
+        "https://x.test/name/",
+        "https://x.test/ok/",
+        "https://x.test/score/",
+    ];
+    let source_map = [
+        (0, PropertyValue::Integer(-3)),
+        (1, PropertyValue::Text("Ada")),
+        (2, PropertyValue::Boolean(true)),
+        (3, PropertyValue::Float(0.5)),
+    ];
+    let last_map = [
+        (0, PropertyValue::Integer(977)),
+        (1, PropertyValue::Null),
+        (3, PropertyValue::Float(-2.5)),
+    ];
+    let properties: [Option<&[(u32, PropertyValue<'_>)]>; 4] =
+        [Some(&source_map), None, Some(&[]), Some(&last_map)];
+
+    let labels = [Some("Caf\u{e9}"), None, Some("\u{1d50a}"), Some("e\u{301}")];
+    let icons = [Some("\u{1f980}"), None, None, Some("\u{2192}")];
+    let link_labels = [Some("\u{153}uvre"), None, Some("cites")];
+    let link_icons = [None, Some("\u{1f517}"), None];
+    let link_type_labels = [Some("authored"), Some("authored"), None];
+    let link_type_icons = [None, None, Some("\u{6c34}")];
+
+    let response = LocateResponse {
+        generation: Sha256Digest::from_bytes_unchecked([0x77; 32]),
+        variant: 0,
+        cell: TileCoordinate { z: 3, x: 5, y: 2 },
+        complete: false,
+        delivered: &delivered,
+        positions: &positions,
+        rows: &rows,
+        masks: Some(&masks),
+        sources: &[61, 41, 21],
+        targets: &[11, 61, 41],
+        edge_rows: &[9, 57, 300],
+        trailer: Some(LocateTrailer {
+            labels: &labels,
+            icons: &icons,
+            property_names: &names,
+            properties: &properties,
+            link_labels: &link_labels,
+            link_icons: &link_icons,
+            link_type_labels: &link_type_labels,
+            link_type_icons: &link_type_icons,
+        }),
+    };
+    let bytes = response.encode();
+
+    let expected_mask = [0b01_u8, 0b01, 0b10, 0b00];
+    assert_eq!(
+        section(&bytes, 3).expect("TYPE_MASK is present"),
+        expected_mask,
+        "the hand-derived G7 masks must match the encoder",
+    );
+
+    // Property values ride the sidecar as plain JSON: every pinned
+    // double is exactly representable, and none renders integral, so
+    // the number forms stay unambiguous (serde_json round-trips f64).
+    let properties_sidecar = json!([
+        {
+            "https://x.test/age/": -3,
+            "https://x.test/name/": "Ada",
+            "https://x.test/ok/": true,
+            "https://x.test/score/": 0.5,
+        },
+        Value::Null,
+        {},
+        {
+            "https://x.test/age/": 977,
+            "https://x.test/name/": Value::Null,
+            "https://x.test/score/": -2.5,
+        },
+    ]);
+
+    let sidecar = locate_sidecar(
+        "g7-locate",
+        &response,
+        &bytes,
+        &expected_mask,
+        &properties_sidecar,
+    );
+    Golden {
+        name: "g7-locate",
+        bytes,
+        sidecar,
+    }
+}
+
+/// Renders a locate golden's sidecar: prefix, directory, decoded
+/// `HEAD`, gathered columns, and the detail trailer. `properties`
+/// arrives pre-rendered because its JSON forms are pinned alongside
+/// the wire values in the golden itself.
+fn locate_sidecar(
+    name: &str,
+    response: &LocateResponse<'_>,
+    bytes: &[u8],
+    type_mask: &[u8],
+    properties: &Value,
+) -> Value {
+    let mut positions_bits = Vec::new();
+    let mut row_ids = Vec::new();
+    for &position in response.delivered {
+        let point = response.positions[position as usize];
+        positions_bits.push(point.x().to_bits());
+        positions_bits.push(point.y().to_bits());
+        row_ids.push(response.rows[position as usize]);
+    }
+
+    let trailer = response.trailer.as_ref().expect("G7 pins the trailer");
+    json!({
+        "golden": name,
+        "layer": "locate",
+        "prefix": prefix_sidecar(bytes),
+        "directory": directory_sidecar(bytes),
+        "head": {
+            "generation": response.generation.to_string(),
+            "variant": response.variant,
+            "count": response.delivered.len(),
+            "zoom": response.cell.z,
+            "cell": [response.cell.z, response.cell.x, response.cell.y],
+            "edges": response.sources.len(),
+            "complete": response.complete,
+            "trailer": true,
+        },
+        "positions": positions_bits,
+        "rowIds": row_ids,
+        "typeMask": type_mask,
+        "sources": response.sources,
+        "targets": response.targets,
+        "edgeRowIds": response.edge_rows,
+        "trailer": {
+            "labels": details_sidecar(trailer.labels),
+            "icons": details_sidecar(trailer.icons),
+            "propertyNames": trailer.property_names,
+            "properties": properties,
+            "linkLabels": details_sidecar(trailer.link_labels),
+            "linkIcons": details_sidecar(trailer.link_icons),
+            "linkTypeLabels": details_sidecar(trailer.link_type_labels),
+            "linkTypeIcons": details_sidecar(trailer.link_type_icons),
+        },
+    })
 }
 
 /// G8: the evolution scenario proven in advance - a slot count one

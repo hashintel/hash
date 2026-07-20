@@ -445,8 +445,8 @@ fn from_slice_rejects_what_would_break_the_invariant() {
     let matrix = BoxedVecN::<32>::zero();
     let components = matrix.as_array().as_slice();
 
-    // A zero dimension has no rows to hand out.
-    assert!(AlignedVecN::<0>::from_slice(components).is_none());
+    // A zero dimension fails compilation outright; only the runtime
+    // conditions remain to certify.
 
     // A partial trailing row cannot be a vector.
     assert!(AlignedVecN::<12>::from_slice(components).is_none());

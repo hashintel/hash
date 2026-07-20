@@ -1,5 +1,5 @@
-//! Locate groundwork: the spatial neighbour index and source
-//! resolution.
+//! The locate endpoint: the spatial neighbour index, source
+//! resolution, and the request/assembly/encode surface.
 //!
 //! The index is kiddo's exact two-dimensional kd-tree over the wire
 //! positions column, built eagerly at open so no first request pays
@@ -12,12 +12,18 @@
 use camino::{Utf8Path, Utf8PathBuf};
 use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 
-use super::{Atlas, TileCoordinate, depth_of, edges::DeliveredEdge, narrow};
+use super::{
+    Atlas, Filter, TileCoordinate, depth_of,
+    detail::{DeliveredEntities, LinkDetails, LocateNodeDetails, SimpleValue},
+    edges::{DeliveredEdge, borrow},
+    narrow,
+};
 use crate::{
     bitset::BitSet,
     file::generation::GenerationId,
     math::Vec2,
     morton::{Depth, MortonKey},
+    salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
 
 /// The cache file magic: pins the codec (rkyv 0.8) and the tree's
@@ -108,19 +114,20 @@ impl LocateIndex {
         }
     }
 
-    /// Answers the `count` nearest base positions around `origin`,
-    /// ascending by (squared distance, base position) - exact under
-    /// that order, boundary ties included.
+    /// Collects every base position that can be among the `count`
+    /// nearest around `origin`: all points at or under the k-nearest
+    /// boundary distance, unordered, boundary ties included.
     ///
     /// The k-nearest query alone would leave boundary ties to the
     /// tree's internal order: co-located points are real (fit
     /// collision clusters), and which of them crosses a cut must
-    /// follow the wire's own tie-break, not the index's. The query
+    /// follow the wire's own tie-break - (distance, node row id), a
+    /// domain this index does not speak - not the index's. The query
     /// therefore only fixes the boundary DISTANCE - the multiset of
     /// returned distances is tie-independent - and a second, radius
-    /// query collects every candidate at or under it for the exact
-    /// (distance, position) selection.
-    pub(super) fn nearest(
+    /// query hands the caller every candidate for the exact
+    /// selection.
+    pub(super) fn candidates(
         &self,
         origin: [f32; 2],
         count: core::num::NonZero<usize>,
@@ -135,20 +142,11 @@ impl LocateIndex {
             return Vec::new();
         };
 
-        let mut nearest: Vec<(f32, u32)> = self
-            .tree
+        self.tree
             .within_unsorted::<SquaredEuclidean>(&origin, boundary)
             .into_iter()
             .map(|neighbour| (neighbour.distance, neighbour.item))
-            .collect();
-        nearest.sort_unstable_by(|(left_distance, left), (right_distance, right)| {
-            left_distance
-                .total_cmp(right_distance)
-                .then(left.cmp(right))
-        });
-        nearest.truncate(count.get());
-
-        nearest
+            .collect()
     }
 }
 
@@ -166,6 +164,12 @@ pub struct LocateCaps {
     /// every delivered edge also costs live link hydration, so the
     /// cap bounds the store round trip, not just wire bytes).
     pub edges: u32,
+    /// Most properties one delivered entity ships; an over-cap
+    /// entity drops properties reverse-lexicographically by base URL
+    /// with its label property protected to the very end, so the
+    /// label survives every cap that admits at least one property.
+    /// The documented default is 20 (Q5, ratified 2026-07-19).
+    pub properties: u32,
 }
 
 impl Default for LocateCaps {
@@ -173,6 +177,7 @@ impl Default for LocateCaps {
         Self {
             neighbours: 32,
             edges: 512,
+            properties: 20,
         }
     }
 }
@@ -264,32 +269,42 @@ impl Atlas {
 
         // The source is its own nearest point at distance zero, so
         // the query asks for one extra and drops it wherever it
-        // surfaces. Boundary ties follow the same (distance,
-        // position) order as the delivered set itself - the index
-        // guarantees exactness, so a co-located cluster crosses the
-        // budget cut by position, never by tree shape.
-        let count = core::num::NonZero::new(budget + 1).expect("budget + 1 is nonzero");
-        let mut delivered: Vec<u32> = vec![source.position];
-        delivered.extend(
-            self.locate
-                .nearest(
-                    {
-                        let origin = self.positions()[source.position as usize];
-                        [origin.x(), origin.y()]
-                    },
-                    count,
-                )
-                .into_iter()
-                .map(|(_, position)| position)
-                .filter(|&position| position != source.position)
-                .take(budget),
-        );
-
+        // surfaces. The boundary distance covers every point the
+        // budget can admit (the budget-th non-source distance never
+        // exceeds the (budget + 1)-th overall); the exact selection
+        // then follows the wire's own (distance, node row id) order,
+        // so a co-located cluster crosses the budget cut by row,
+        // never by tree shape.
         let row_ids = self.row_ids();
-        let rows: Vec<u32> = delivered
-            .iter()
-            .map(|&position| row_ids[position as usize])
+        let count = core::num::NonZero::new(budget + 1).expect("budget + 1 is nonzero");
+        let mut candidates: Vec<(f32, u32, u32)> = self
+            .locate
+            .candidates(
+                {
+                    let origin = self.positions()[source.position as usize];
+                    [origin.x(), origin.y()]
+                },
+                count,
+            )
+            .into_iter()
+            .filter(|&(_, position)| position != source.position)
+            .map(|(distance, position)| (distance, row_ids[position as usize], position))
             .collect();
+        candidates.sort_unstable_by(
+            |(left_distance, left_row, _), (right_distance, right_row, _)| {
+                left_distance
+                    .total_cmp(right_distance)
+                    .then(left_row.cmp(right_row))
+            },
+        );
+        candidates.truncate(budget);
+
+        let mut delivered: Vec<u32> = vec![source.position];
+        let mut rows: Vec<u32> = vec![source.row];
+        for &(_, row, position) in &candidates {
+            delivered.push(position);
+            rows.push(row);
+        }
 
         let mut in_set = BitSet::new(row_ids.len());
         for &row in &rows {
@@ -356,4 +371,394 @@ pub(super) struct LocateSubgraph {
     /// Whether every qualifying edge is delivered; `false` iff the
     /// cap truncated.
     pub complete: bool,
+}
+
+/// One locate request: the source entity and the delivery knobs.
+///
+/// `neighbours` is a budget, not a list: a value over the cap CLAMPS
+/// to it (the clamp is visible in `HEAD.count`), where the list-caps
+/// reject - a budget has no elements to refuse.
+#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LocateRequest {
+    /// The source entity id, in the node identity domain.
+    pub entity_id: String,
+    /// The type ids whose membership masks ride `TYPE_MASK`; absent
+    /// or empty omits the slot.
+    #[serde(default)]
+    pub colored_type_ids: Vec<String>,
+    /// The visibility filter; absent means the trivial bitmap.
+    #[serde(default)]
+    pub filter: Option<Filter>,
+    /// The neighbour budget; absent means the cap itself.
+    #[serde(default)]
+    pub neighbours: Option<u32>,
+    /// Whether the detail trailer rides the response. Locate IS the
+    /// detail view, so unlike every other endpoint it defaults TRUE.
+    #[serde(default = "detailed_by_default")]
+    pub include_detailed_data: bool,
+}
+
+/// Locate's `includeDetailedData` default: true.
+const fn detailed_by_default() -> bool {
+    true
+}
+
+/// A locate request the atlas rejects, by name.
+///
+/// Every variant is a named, data-carrying rejection for the
+/// transport layer to map onto its error vocabulary.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LocateError {
+    /// The source id does not name a visible node - nonexistent,
+    /// denied, and unparsable are IDENTICAL by doctrine (missing =
+    /// denied; an id that cannot name an entity is an entity that
+    /// does not exist).
+    UnknownEntity,
+    /// The request carries more `coloredTypeIds` than the cap admits.
+    Types {
+        /// The carried id count.
+        count: usize,
+        /// The cap the manifest publishes as `limits.coloredTypeIds`.
+        maximum: u32,
+    },
+    /// The request names a feature this build does not serve; the
+    /// carried name is the request field.
+    Unsupported(&'static str),
+}
+
+impl core::fmt::Display for LocateError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UnknownEntity => {
+                formatter.write_str("the entity id does not name a visible node")
+            }
+            Self::Types { count, maximum } => {
+                write!(
+                    formatter,
+                    "the request carries {count} coloredTypeIds where the cap admits {maximum}"
+                )
+            }
+            Self::Unsupported(feature) => {
+                write!(formatter, "this build does not serve {feature} requests")
+            }
+        }
+    }
+}
+
+impl core::error::Error for LocateError {}
+
+/// One assembled locate response: everything [`Atlas::encode_locate`]
+/// needs.
+///
+/// The document owns its columns, so it crosses thread boundaries
+/// between assembly, hydration, and encoding - the envelope was
+/// designed for hydration-last, and the split mirrors it: assembly
+/// and encoding are CPU-bound, hydration awaits the store between
+/// them.
+#[derive(Debug)]
+pub struct LocateDocument {
+    source: SourcePoint,
+    delivered: Vec<u32>,
+    rows: Vec<u32>,
+    sources: Vec<u32>,
+    targets: Vec<u32>,
+    edge_rows: Vec<u32>,
+    complete: bool,
+    mask_set: Option<super::color::MaskSet>,
+}
+
+impl Atlas {
+    /// Answers one locate request: `SALTILEL` envelope bytes
+    /// spotlighting the source and its nearest neighbours, ready to
+    /// send under `application/vnd.hash.saltile-v1`.
+    ///
+    /// A request that sets `includeDetailedData` - which locate
+    /// DEFAULTS to - is rejected by name: this path serves
+    /// deployments without a store connection. A transport with one
+    /// assembles, hydrates, and encodes through
+    /// [`Atlas::assemble_locate`], [`Atlas::locate_node_entities`],
+    /// [`Atlas::locate_link_entities`], and [`Atlas::encode_locate`].
+    ///
+    /// # Errors
+    ///
+    /// As [`Atlas::assemble_locate`], plus
+    /// [`LocateError::Unsupported`] when the request sets (or
+    /// defaults) `includeDetailedData`.
+    pub fn locate(
+        &self,
+        request: &LocateRequest,
+        caps: super::ServeCaps,
+    ) -> Result<Vec<u8>, LocateError> {
+        if request.include_detailed_data {
+            return Err(LocateError::Unsupported("includeDetailedData"));
+        }
+
+        let document = self.assemble_locate(request, caps)?;
+        Ok(self.encode_locate(&document, None))
+    }
+
+    /// Assembles one locate request into its owned document: every
+    /// rejection happens here, so encoding cannot fail.
+    ///
+    /// The neighbour budget is `request.neighbours` clamped to
+    /// `caps.locate.neighbours` (absent means the cap itself); the
+    /// clamp is visible in `HEAD.count`. The `coloredTypeIds` cap is
+    /// the tile endpoint's own - one manifest key,
+    /// `limits.coloredTypeIds`, governs the field wherever it
+    /// appears.
+    ///
+    /// Version 0 serves the full unfiltered set; a request naming a
+    /// visibility filter is rejected by name rather than answered
+    /// with bytes that silently ignore it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LocateError::UnknownEntity`] when the source id does
+    /// not resolve to a visible node, [`LocateError::Types`] when the
+    /// request carries more `coloredTypeIds` than
+    /// `caps.tile.colored_type_ids`, and [`LocateError::Unsupported`]
+    /// when the request names a version-0 deferral.
+    pub fn assemble_locate(
+        &self,
+        request: &LocateRequest,
+        caps: super::ServeCaps,
+    ) -> Result<LocateDocument, LocateError> {
+        if request.filter.is_some() {
+            return Err(LocateError::Unsupported("filter"));
+        }
+        if request.colored_type_ids.len() > caps.tile.colored_type_ids as usize {
+            return Err(LocateError::Types {
+                count: request.colored_type_ids.len(),
+                maximum: caps.tile.colored_type_ids,
+            });
+        }
+
+        let source = self
+            .resolve_source(&request.entity_id)
+            .ok_or(LocateError::UnknownEntity)?;
+        let budget = request.neighbours.unwrap_or(caps.locate.neighbours);
+        let LocateSubgraph {
+            rows,
+            positions,
+            edges,
+            complete,
+        } = self.locate_subgraph(source, budget, caps.locate);
+
+        let mut sources = Vec::with_capacity(edges.len());
+        let mut targets = Vec::with_capacity(edges.len());
+        let mut edge_rows = Vec::with_capacity(edges.len());
+        for edge in &edges {
+            sources.push(edge.source);
+            targets.push(edge.target);
+            edge_rows.push(edge.row);
+        }
+
+        let mask_set = (!request.colored_type_ids.is_empty())
+            .then(|| self.resolve_masks(&request.colored_type_ids));
+
+        Ok(LocateDocument {
+            source,
+            delivered: positions,
+            rows,
+            sources,
+            targets,
+            edge_rows,
+            complete,
+            mask_set,
+        })
+    }
+
+    /// Gathers the entity identities behind the document's delivered
+    /// nodes, in delivered order: the node hydration request's
+    /// subject.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the identity table contradicts the row column,
+    /// which open's cross-artifact validation rules out.
+    #[must_use]
+    pub fn locate_node_entities(&self, document: &LocateDocument) -> DeliveredEntities {
+        let ids = document
+            .rows
+            .iter()
+            .map(|&row| {
+                self.node_ids
+                    .id(u64::from(row))
+                    .expect("open validated the identity rows against the code column")
+            })
+            .collect();
+
+        DeliveredEntities::new(ids)
+    }
+
+    /// Gathers the link-entity identities behind the document's
+    /// delivered edges, in edge order: the link hydration request's
+    /// subject.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the identity table contradicts the adjacency's
+    /// edge domain, which open's cross-artifact validation rules
+    /// out.
+    #[must_use]
+    pub fn locate_link_entities(&self, document: &LocateDocument) -> DeliveredEntities {
+        let ids = document
+            .edge_rows
+            .iter()
+            .map(|&row| {
+                self.edge_ids
+                    .id(u64::from(row))
+                    .expect("open validated the identity rows against the adjacency's edges")
+            })
+            .collect();
+
+        DeliveredEntities::new(ids)
+    }
+
+    /// Encodes an assembled document: `SALTILEL` envelope bytes,
+    /// ready to send under `application/vnd.hash.saltile-v1`, with
+    /// the detail trailer riding iff `details` is supplied.
+    ///
+    /// The trailer interns property names at encode time: the table
+    /// is the bytewise-sorted union of every delivered node's
+    /// surviving names, and each node's map keys by index into it -
+    /// the per-entity ascending-name order the hydration layer
+    /// produces IS ascending index order, so the wire laws hold by
+    /// construction.
+    ///
+    /// # Panics
+    ///
+    /// Panics when supplied details do not cover the document's
+    /// delivered nodes and edges - a transport bug, never request
+    /// data.
+    #[must_use]
+    pub fn encode_locate(
+        &self,
+        document: &LocateDocument,
+        details: Option<(&LocateNodeDetails, &LinkDetails)>,
+    ) -> Vec<u8> {
+        let masks = document
+            .mask_set
+            .as_ref()
+            .map(|set| set.memberships(&self.postings));
+
+        let hydrated = details.map(|(nodes, links)| {
+            let (names, properties) = intern_properties(nodes.properties());
+            HydratedColumns {
+                labels: borrow(nodes.labels()),
+                icons: borrow(nodes.icons()),
+                names,
+                properties,
+                link_labels: borrow(links.labels()),
+                link_icons: borrow(links.icons()),
+                link_type_labels: borrow(links.type_labels()),
+                link_type_icons: borrow(links.type_icons()),
+            }
+        });
+        let property_maps: Option<Vec<PropertyMapView<'_>>> = hydrated
+            .as_ref()
+            .map(|columns| columns.properties.iter().map(Option::as_deref).collect());
+        let trailer = hydrated
+            .as_ref()
+            .zip(property_maps.as_ref())
+            .map(|(columns, properties)| LocateTrailer {
+                labels: &columns.labels,
+                icons: &columns.icons,
+                property_names: &columns.names,
+                properties,
+                link_labels: &columns.link_labels,
+                link_icons: &columns.link_icons,
+                link_type_labels: &columns.link_type_labels,
+                link_type_icons: &columns.link_type_icons,
+            });
+
+        LocateResponse {
+            generation: self.generation.id().digest(),
+            variant: 0,
+            cell: document.source.cell,
+            complete: document.complete,
+            delivered: &document.delivered,
+            positions: self.positions(),
+            rows: self.row_ids(),
+            masks: masks.as_deref(),
+            sources: &document.sources,
+            targets: &document.targets,
+            edge_rows: &document.edge_rows,
+            trailer,
+        }
+        .encode()
+    }
+}
+
+/// One node's wire property map: uint indexes into the intern table
+/// paired with borrowed values, ascending by index. `None` marks an
+/// entity the store no longer serves.
+type PropertyMap<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
+
+/// The encoder's borrowed view of one [`PropertyMap`].
+type PropertyMapView<'doc> = Option<&'doc [(u32, PropertyValue<'doc>)]>;
+
+/// The trailer's owned hydration columns, borrowed from the detail
+/// structs for the encoder's lifetime.
+#[derive(Debug)]
+struct HydratedColumns<'doc> {
+    labels: Vec<Option<&'doc str>>,
+    icons: Vec<Option<&'doc str>>,
+    names: Vec<&'doc str>,
+    properties: Vec<PropertyMap<'doc>>,
+    link_labels: Vec<Option<&'doc str>>,
+    link_icons: Vec<Option<&'doc str>>,
+    link_type_labels: Vec<Option<&'doc str>>,
+    link_type_icons: Vec<Option<&'doc str>>,
+}
+
+/// Builds the property-name intern table and the per-node uint-index
+/// maps: the table is the bytewise-sorted, deduplicated union of
+/// every surviving name; each node's entries keep the hydration
+/// layer's ascending-name order, which maps to ascending indexes.
+pub(super) fn intern_properties(
+    entries: &[Option<Vec<(String, SimpleValue)>>],
+) -> (Vec<&str>, Vec<PropertyMap<'_>>) {
+    let mut names: Vec<&str> = entries
+        .iter()
+        .flatten()
+        .flatten()
+        .map(|(name, _)| name.as_str())
+        .collect();
+    names.sort_unstable();
+    names.dedup();
+
+    let maps = entries
+        .iter()
+        .map(|entry| {
+            entry.as_ref().map(|survivors| {
+                survivors
+                    .iter()
+                    .map(|(name, value)| {
+                        let index = names
+                            .binary_search(&name.as_str())
+                            .expect("every surviving name is interned");
+                        let index =
+                            u32::try_from(index).expect("the table is far below u32::MAX names");
+
+                        (index, wire_value(value))
+                    })
+                    .collect()
+            })
+        })
+        .collect();
+
+    (names, maps)
+}
+
+/// Views one hydrated value in the wire's borrowed form.
+const fn wire_value(value: &SimpleValue) -> PropertyValue<'_> {
+    match value {
+        SimpleValue::Text(text) => PropertyValue::Text(text.as_str()),
+        SimpleValue::Integer(value) => PropertyValue::Integer(*value),
+        SimpleValue::Float(value) => PropertyValue::Float(*value),
+        SimpleValue::Boolean(flag) => PropertyValue::Boolean(*flag),
+        SimpleValue::Null => PropertyValue::Null,
+    }
 }

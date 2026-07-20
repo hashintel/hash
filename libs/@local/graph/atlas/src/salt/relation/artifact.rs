@@ -3,13 +3,13 @@
 //! A [`ProtectionIndex`] publishes as one [`crate::file::sprs`] file
 //! holding its [`ProtectionMatrix`](super::protection::ProtectionMatrix)
 //! verbatim; the evidence pair travels as an opaque 8-byte value.
-//! [`MappedProtection`] reopens the file over a whole-file mapping and
+//! [`ProtectionArchive`] reopens the file over a whole-file mapping and
 //! validates the index invariants once, so hard-negative mining reads
 //! the evidence from the page cache without holding it on the heap.
 //!
 //! An [`AttractionIndex`] publishes as one [`crate::file::attraction`]
 //! file: group records over a flat edge array, the same factorization
-//! the resident index stores. [`MappedAttraction`] reopens it the same
+//! the resident index stores. [`AttractionArchive`] reopens it the same
 //! way and validates the index invariants once, so relation-edge
 //! sampling reads groups and edges from the page cache.
 
@@ -26,6 +26,7 @@ use super::{
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId},
     file::{
+        WriteInto,
         attraction::{EdgeRecord, GroupRecord, read::AttractionFile, write::write_records},
         sprs::{
             read::{SprsFile, SprsMatrixError},
@@ -35,7 +36,9 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-impl ProtectionIndex {
+impl WriteInto for ProtectionIndex {
+    type Error = WriteSprsError;
+
     /// Writes the index as a sparse matrix file.
     ///
     /// Returns the SHA-256 of the written bytes: the identity the
@@ -46,7 +49,7 @@ impl ProtectionIndex {
     /// Returns an error when the underlying writer fails, or the index
     /// spans zero rows, which the format cannot represent: a
     /// generation without node rows publishes no artifacts.
-    pub(crate) fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
+    fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -107,11 +110,11 @@ impl Error for InvalidProtectionFile {
 /// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
 /// contract), so stages call it once and hold the view.
 #[derive(Debug)]
-pub(crate) struct MappedProtection {
+pub(crate) struct ProtectionArchive {
     file: SprsFile,
 }
 
-impl MappedProtection {
+impl ProtectionArchive {
     /// Opens the index over its mapped file.
     ///
     /// # Errors
@@ -269,11 +272,11 @@ impl Error for InvalidAttractionIndex {}
 /// regions stay in the page cache under memory pressure and off the
 /// heap.
 #[derive(Debug)]
-pub(crate) struct MappedAttraction {
+pub(crate) struct AttractionArchive {
     file: AttractionFile,
 }
 
-impl MappedAttraction {
+impl AttractionArchive {
     /// Opens the index over its mapped file.
     ///
     /// # Errors
@@ -384,7 +387,7 @@ impl MappedAttraction {
     ///
     /// Panics when `index` is not below [`group_count`](Self::group_count).
     #[must_use]
-    pub(crate) fn group(&self, index: usize) -> MappedAttractionGroup<'_> {
+    pub(crate) fn group(&self, index: usize) -> AttractionGroupView<'_> {
         let groups = self.file.groups();
         let record = &groups[index];
 
@@ -400,7 +403,7 @@ impl MappedAttraction {
             },
         );
 
-        MappedAttractionGroup {
+        AttractionGroupView {
             record,
             records: &self.file.edges()[start..end],
         }
@@ -409,12 +412,12 @@ impl MappedAttraction {
 
 /// One relation group borrowed from a mapped attraction index.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct MappedAttractionGroup<'map> {
+pub(crate) struct AttractionGroupView<'map> {
     record: &'map GroupRecord,
     records: &'map [EdgeRecord],
 }
 
-impl MappedAttractionGroup<'_> {
+impl AttractionGroupView<'_> {
     /// Returns the relation type the group's instances share.
     #[inline]
     #[must_use]

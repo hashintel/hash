@@ -3,7 +3,7 @@
 //!
 //! A [`SemanticGraph`] publishes as one [`crate::file::sprs`] file
 //! holding its [`SemanticMatrix`](super::SemanticMatrix) verbatim.
-//! [`MappedSemanticGraph`] reopens the file over a whole-file mapping
+//! [`SemanticGraphArchive`] reopens the file over a whole-file mapping
 //! and validates the graph invariants once, so training and release
 //! evaluation read the same weights from the page cache without
 //! holding them on the heap.
@@ -13,14 +13,19 @@ use std::io;
 
 use super::{SemanticGraph, SemanticGraphView, SemanticValidationError, validate};
 use crate::{
-    file::sprs::{
-        read::{SprsFile, SprsMatrixError},
-        write::{WriteSprsError, write_matrix},
+    file::{
+        WriteInto,
+        sprs::{
+            read::{SprsFile, SprsMatrixError},
+            write::{WriteSprsError, write_matrix},
+        },
     },
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-impl SemanticGraph {
+impl WriteInto for SemanticGraph {
+    type Error = io::Error;
+
     /// Writes the graph as a sparse matrix file.
     ///
     /// Returns the SHA-256 of the written bytes: the identity the
@@ -29,7 +34,7 @@ impl SemanticGraph {
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -94,11 +99,11 @@ impl Error for InvalidSemanticFile {
 /// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
 /// contract), so stages call it once and hold the view.
 #[derive(Debug)]
-pub(crate) struct MappedSemanticGraph {
+pub(crate) struct SemanticGraphArchive {
     file: SprsFile,
 }
 
-impl MappedSemanticGraph {
+impl SemanticGraphArchive {
     /// Opens the graph over its mapped file.
     ///
     /// # Errors

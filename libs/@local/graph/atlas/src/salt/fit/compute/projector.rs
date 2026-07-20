@@ -28,8 +28,8 @@ use super::{
     super::{
         PlacementOptions, ProjectorOptions, Stage, SuppliedVerdicts,
         error::{PlacementError, StageError},
-        prepare::identity::MappedIdentityTable,
-        role::{Role, digest_file},
+        prepare::identity::IdentityTableArchive,
+        role::Role,
         stage_rng,
     },
     Context,
@@ -37,19 +37,20 @@ use super::{
 use crate::{
     dataset::{NodeRowId, OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
-        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
         identity::read::IdentityFile,
+        region::ByteStable,
         repository::RepositoryFile,
         salt::metadata::{
             FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
         },
     },
-    integrity::{Sha256, Writer},
+    integrity::{Sha256, Sha256Digest, Writer},
     math::{AlignedVecN, Vec2},
     salt::{
-        knn::artifact::MappedKnn,
+        knn::artifact::KnnArchive,
         ladder::{Field, measure_ladder, select_canonical},
-        landmark::artifact::MappedLandmarkSkeleton,
+        landmark::artifact::LandmarkSkeletonArchive,
         projector::{
             artifact,
             loss::{AffinityEnergy, ProximalEnergy, RelationEnergy},
@@ -62,7 +63,7 @@ use crate::{
             verdict::ResolvedVerdict,
         },
         relation::{RelationIndexes, attraction::AttractionIndex},
-        semantic::{SemanticGraphView, artifact::MappedSemanticGraph},
+        semantic::{SemanticGraphView, artifact::SemanticGraphArchive},
     },
 };
 
@@ -103,11 +104,11 @@ pub(super) struct PlacementInputs<'fit> {
     /// The mapped representation matrix, one aligned row per node.
     pub rows: &'fit [AlignedVecN<PROJECTOR_DIMENSIONS>],
     /// The staged landmark skeleton.
-    pub skeleton: &'fit MappedLandmarkSkeleton,
+    pub skeleton: &'fit LandmarkSkeletonArchive,
     /// The admitted neighbour table.
-    pub knn: &'fit MappedKnn,
+    pub knn: &'fit KnnArchive,
     /// The staged semantic graph.
-    pub semantic: &'fit MappedSemanticGraph,
+    pub semantic: &'fit SemanticGraphArchive,
     /// The relation indexes, in the owned form the trainer consumes.
     pub indexes: &'fit RelationIndexes,
     /// The supplied verdicts, resolved into the corpus row domain.
@@ -166,13 +167,11 @@ impl Context<'_> {
     ) -> Result<PlacementArtifacts, StageError> {
         let configured = options.architecture.representation_dimensions.get();
         if configured != PROJECTOR_DIMENSIONS {
-            return Err(placement(PlacementError::RepresentationWidth {
-                configured,
-            }));
+            return Err(PlacementError::RepresentationWidth { configured }.into());
         }
         let affinity =
             AffinityEnergy::new(self.config.curve, options.affinity_offset).ok_or_else(|| {
-                placement(PlacementError::ObjectiveCurve {
+                StageError::from(PlacementError::ObjectiveCurve {
                     exponent: self.config.curve.b(),
                     offset: options.affinity_offset,
                 })
@@ -253,19 +252,17 @@ impl Context<'_> {
             .as_ref()
             .and_then(|boundary| compose_energy(options, boundary.radius));
 
-        let ladder = if let Some(energy) = energy {
+        let (ladder, digest) = if let Some(energy) = energy {
             let _span = tracing::info_span!("ladder").entered();
-            Some(self.measure_conditions(options, &model, columns, inputs, energy)?)
+            let (evidence, digest) =
+                self.measure_conditions(options, &model, columns, inputs, energy)?;
+            (Some(evidence), digest)
         } else {
-            let frame = refresh::forward(&model, columns, 0.0, options.forward_rows, &device)
-                .map_err(placement)?;
-            self.stage_coordinate_column(frame.iter().copied())?;
-            None
+            let frame = refresh::forward(&model, columns, 0.0, options.forward_rows, &device)?;
+            let digest = self.stage_coordinate_column(frame.len() as u64, frame.iter().copied())?;
+            (None, digest)
         };
-        let coordinates = {
-            let digest = digest_file(self.staging.path_of(&Role::Coordinates.file_name()))?;
-            Role::Coordinates.file(digest)
-        };
+        let coordinates = Role::Coordinates.file(digest);
         tracing::info!("staged the canonical coordinates");
 
         Ok(PlacementArtifacts {
@@ -305,8 +302,7 @@ impl Context<'_> {
             train_options,
             &mut stage_rng(self.config.seed, Stage::ProjectorDraws),
             &device,
-        )
-        .map_err(placement)?;
+        )?;
         tracing::info!(
             steps = options.schedule.steps().get(),
             "trained the projector"
@@ -325,7 +321,7 @@ impl Context<'_> {
             accumulator: Sha256::new(),
             writer: BufWriter::new(self.staging.create(&Role::Projector.file_name())?),
         };
-        artifact::write_model(model, &mut writer).map_err(placement)?;
+        artifact::write_model(model, &mut writer)?;
         writer.writer.flush()?;
         tracing::info!("staged the projector checkpoint");
 
@@ -346,16 +342,15 @@ impl Context<'_> {
         columns: NodeColumns<'_>,
         inputs: &PlacementInputs<'_>,
         energy: RelationEnergy,
-    ) -> Result<LadderEvidence, StageError> {
+    ) -> Result<(LadderEvidence, Sha256Digest), StageError> {
         let device = device();
         let ladder = self.scratch.directory("ladder")?;
         let conditions = options.ladder.conditions.values();
 
         let mut losses = Vec::with_capacity(conditions.len());
         for (index, &eta) in conditions.iter().enumerate() {
-            let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)
-                .map_err(placement)?;
-            let scales = refresh::scales(&frame, &inputs.knn.view(), eta).map_err(placement)?;
+            let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)?;
+            let scales = refresh::scales(&frame, &inputs.knn.view(), eta)?;
             losses.push(relation_loss(
                 &frame,
                 &scales,
@@ -388,10 +383,8 @@ impl Context<'_> {
             &options.ladder.conditions,
             &fields,
             options.ladder.measurement,
-        )
-        .map_err(placement)?;
-        let selection =
-            select_canonical(&measurements, options.ladder.canonical).map_err(placement)?;
+        )?;
+        let selection = select_canonical(&measurements, options.ladder.canonical)?;
         let alignment = selection.measurement.alignment;
         tracing::info!(
             canonical = selection.measurement.condition,
@@ -400,7 +393,10 @@ impl Context<'_> {
         );
 
         let canonical = fields[selection.index].coordinates;
-        self.stage_coordinate_column(canonical.iter().map(|&point| alignment.apply(point)))?;
+        let digest = self.stage_coordinate_column(
+            canonical.len() as u64,
+            canonical.iter().map(|&point| alignment.apply(point)),
+        )?;
 
         // Re-measured over the persisted bytes: the narrowing to `f32`
         // and the alignment application are inside the measurement.
@@ -411,32 +407,38 @@ impl Context<'_> {
                 .points()
                 .expect("the coordinate column was sealed as f32 pairs");
             let scales =
-                refresh::scales(frame, &inputs.knn.view(), selection.measurement.condition)
-                    .map_err(placement)?;
+                refresh::scales(frame, &inputs.knn.view(), selection.measurement.condition)?;
             relation_loss(frame, &scales, &inputs.indexes.attraction, energy)
         };
 
-        Ok(LadderEvidence {
-            rungs: measurements.iter().map(RungEvidence::from).collect(),
-            canonical: selection.measurement.condition,
-            canonical_index: selection.index,
-            persisted_relation_loss,
-        })
+        Ok((
+            LadderEvidence {
+                rungs: measurements.iter().map(RungEvidence::from).collect(),
+                canonical: selection.measurement.condition,
+                canonical_index: selection.index,
+                persisted_relation_loss,
+            },
+            digest,
+        ))
     }
 
-    /// Streams one coordinate frame into the staged canonical column.
+    /// Streams one coordinate frame of `rows` points into the staged
+    /// canonical column, returning the sealed file's digest.
     fn stage_coordinate_column(
         &self,
+        rows: u64,
         points: impl Iterator<Item = Vec2>,
-    ) -> Result<(), StageError> {
+    ) -> Result<Sha256Digest, StageError> {
         let mut writer = BufWriter::new(self.staging.create(&Role::Coordinates.file_name())?);
-        let mut array = ArrayWriter::new(&mut writer, ArrayVariant::F32, &[Dim::new(2)])?;
+        let mut array = SizedArrayWriter::new(
+            &mut writer,
+            ArrayVariant::F32,
+            &[Dim::new(rows), Dim::new(2)],
+        )?;
         for point in points {
             array.write_row(point.as_bytes())?;
         }
-        array.finish()?;
-        writer.flush()?;
-        Ok(())
+        Ok(array.finish()?)
     }
 
     /// Resolves the supplied verdicts against the staged ontology
@@ -446,15 +448,7 @@ impl Context<'_> {
         verdicts: Option<&SuppliedVerdicts>,
     ) -> Result<VerdictResolution, StageError>
     where
-        O: OntologyIdentity
-            + Eq
-            + core::hash::Hash
-            + Copy
-            + zerocopy::IntoBytes
-            + zerocopy::FromBytes
-            + zerocopy::Immutable
-            + zerocopy::Unaligned
-            + zerocopy::KnownLayout,
+        O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
     {
         let Some(supplied) = verdicts else {
             return Ok(VerdictResolution::default());
@@ -479,17 +473,9 @@ pub(in crate::salt::fit) fn resolve_supplied<O>(
     supplied: &SuppliedVerdicts,
 ) -> Result<VerdictResolution, StageError>
 where
-    O: OntologyIdentity
-        + Eq
-        + core::hash::Hash
-        + Copy
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout,
+    O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
 {
-    let table = MappedIdentityTable::<O>::new(IdentityFile::open(path.as_std_path())?)?;
+    let table = IdentityTableArchive::<O>::new(IdentityFile::open(path.as_std_path())?)?;
 
     let resolution = supplied.document().resolve(table.ids());
     let unresolved = resolution.unresolved().len();
@@ -503,11 +489,6 @@ where
         resolved: resolution.resolved().to_vec(),
         unresolved,
     })
-}
-
-/// Wraps a placement failure for the stage surface.
-fn placement(error: impl Into<PlacementError>) -> StageError {
-    StageError::Placement(error.into())
 }
 
 /// Composes the relation energy the ladder measures with, from the
@@ -538,7 +519,7 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
 /// skeleton has no ruler and anchors at radius zero; the support
 /// term's epsilon guards the division.
 fn landmark_anchors(
-    skeleton: &MappedLandmarkSkeleton,
+    skeleton: &LandmarkSkeletonArchive,
     options: &ProjectorOptions,
 ) -> Vec<SupportAnchor> {
     let coordinates = skeleton.coordinates();

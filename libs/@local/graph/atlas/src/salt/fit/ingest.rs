@@ -32,6 +32,7 @@ use super::{
 use crate::{
     dataset::{Dataset, EdgeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
+        WriteInto as _,
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::RepositoryFile,

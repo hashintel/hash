@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use serde_json::{Value, json};
 
-use super::{AssemblyConfig, AssemblyError, assemble};
+use super::{AssemblyConfig, AssemblyError, HoldoutClass, assemble};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::array::ArrayFile,
@@ -75,6 +75,7 @@ impl ProgrammedEmbedder {
             "beta" => 1.05,
             "gamma" => 1.15,
             "Employed By" => 2.0,
+            "holdout" => 2.5,
             _ => panic!("no programmed embedding for the card titled {title}"),
         }
     }
@@ -404,7 +405,7 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     assert_eq!(evidence.holdouts_excluded, 1);
     assert_eq!(evidence.zero_weight_dropped, 1);
     assert_eq!(evidence.trained, 6);
-    assert_eq!(evidence.unique_texts, 6);
+    assert_eq!(evidence.unique_texts, 7);
     assert_eq!(evidence.severely_truncated, 0);
     assert_eq!(evidence.fold_groups, 4);
     assert_eq!(evidence.near_duplicate_pairs, 1);
@@ -434,6 +435,20 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     assert_eq!(rows[4].group, group_digest(&[GAMMA]));
     assert_eq!(rows[5].group, group_digest(&[EMPLOYED_BY]));
 
+    // The holdout card embeds after every trained row and carries its
+    // human verdict; the training rows stay untouched by it.
+    let holdouts = assembled.holdouts();
+    assert_eq!(holdouts.len(), 1);
+    assert_eq!(holdouts[0].identity.canonical_url(), HOLDOUT);
+    assert_eq!(holdouts[0].verdict, HoldoutClass::Proximal);
+    assert_eq!(holdouts[0].row, 6);
+    let table = assembled.table();
+    assert_eq!(table.rows().len(), 7);
+    assert_eq!(
+        table.rows()[6].as_array()[0],
+        ProgrammedEmbedder::angle("holdout").cos(),
+    );
+
     let identities: Vec<String> = assembled
         .identities()
         .iter()
@@ -460,11 +475,13 @@ async fn the_staged_table_and_rows_satisfy_the_training_contract() {
     let file = TempFile::create(&bytes);
 
     let matrix = ArrayFile::open(&file.path).expect("the staged matrix maps");
-    let embeddings = matrix
+    let embeddings: &[_] = matrix
         .vectors()
         .expect("the staged matrix holds canonical-width rows");
 
-    TrainingSet::new(embeddings, assembled.rows())
+    // The trained rows lead the table; the holdout rows after them are
+    // evaluation material, not training supply.
+    TrainingSet::new(&embeddings[..assembled.rows().len()], assembled.rows())
         .expect("the assembled corpus satisfies the training-set contract");
 }
 

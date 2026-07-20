@@ -188,6 +188,10 @@
 //   means a binary search faults the index page plus one data page instead of log2(N) scattered
 //   pages, and the index can never be stale because it cannot exist apart from its array.
 
+use std::io;
+
+use crate::integrity::Sha256Digest;
+
 pub(crate) mod array;
 pub(crate) mod attraction;
 pub(crate) mod classifier;
@@ -202,3 +206,27 @@ pub(crate) mod region;
 pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;
+
+/// A value that writes itself as one artifact stream and names the
+/// written bytes.
+///
+/// The digest is the SHA-256 of exactly the bytes written, in one
+/// pass - the identity the repository records for the published
+/// file. The bound is [`io::Write`] alone: an implementation that
+/// would seal its output by seeking back cannot produce an honest
+/// streaming digest, so a value whose serialization only knows its
+/// geometry at the end pre-computes it instead (an array-shaped
+/// artifact knows its own row count and writes header-first through
+/// [`array::SizedArrayWriter`]).
+pub(crate) trait WriteInto {
+    /// The failure the artifact's serialization can produce.
+    type Error;
+
+    /// Writes the artifact and returns the written bytes' digest.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the underlying writer fails or the value
+    /// has no on-disk form.
+    fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, Self::Error>;
+}

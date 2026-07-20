@@ -51,6 +51,8 @@ pub(crate) use self::precedence::{
     PartialEq,
     Eq,
     Hash,
+    serde::Serialize,
+    serde::Deserialize,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::Unaligned,
@@ -58,6 +60,7 @@ pub(crate) use self::precedence::{
     zerocopy::TryFromBytes,
 )]
 #[repr(u8)]
+#[serde(rename_all = "lowercase")]
 pub(crate) enum GeometryClass {
     /// The endpoints share a referent; distance above a small
     /// normalized radius is penalized.

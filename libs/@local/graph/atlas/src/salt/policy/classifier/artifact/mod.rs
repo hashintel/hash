@@ -14,7 +14,10 @@ use std::io;
 use super::{Applicability, Classifier};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    file::classifier::{CLASSES, read::ClassifierFile, write::write_regions},
+    file::{
+        WriteInto,
+        classifier::{CLASSES, read::ClassifierFile, write::write_regions},
+    },
     integrity::{Sha256, Sha256Digest, Writer},
     math::BoxedDVecN,
     salt::policy::GeometryClass,
@@ -98,7 +101,9 @@ impl fmt::Display for InvalidClassifierFile {
 
 impl Error for InvalidClassifierFile {}
 
-impl Classifier {
+impl WriteInto for Classifier {
+    type Error = io::Error;
+
     /// Writes the model as a classifier file.
     ///
     /// Returns the SHA-256 of the written bytes: the identity the
@@ -107,7 +112,7 @@ impl Classifier {
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -127,7 +132,9 @@ impl Classifier {
 
         Ok(writer.accumulator.finalize())
     }
+}
 
+impl Classifier {
     /// Reads a model out of its opened file, validating the domain
     /// invariants once.
     ///

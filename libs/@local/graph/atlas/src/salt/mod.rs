@@ -26,12 +26,14 @@ pub(crate) use self::{
     importance::RankingConfig,
     knn::recall::RecallSpotCheck,
     lod::{quad::QuadEvidence, stage::LodEvidence},
+    policy::{
+        GeometryClass,
+        annotation::{HoldoutClass, assembly::AssemblyEvidence},
+    },
     postings::build::PostingsEvidence,
     relation::BuildEvidence,
 };
 
-// The previous pipeline generation is parked uncompiled at
-// `src/salt-BAK` as reference semantics for the port.
 pub(crate) mod adjacency;
 mod embedding;
 // Crate-visible for the root `bench` facade's re-exports.

@@ -7,9 +7,11 @@ use std::{
 
 use camino::Utf8Path;
 
+use super::error::StageError;
 use crate::{
     file::{
-        array::{ArrayVariant, ArrayWriter, Dim},
+        WriteInto,
+        array::{ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
         generation::StagedGeneration,
         repository::{FileName, RepositoryFile},
     },
@@ -45,6 +47,9 @@ pub(super) enum Role {
     EdgeEndpoints,
     Adjacency,
     ReviewedVerdicts,
+    AnnotationCorpus,
+    AnnotationEmbeddings,
+    AnnotationHashes,
 }
 
 impl Role {
@@ -77,6 +82,9 @@ impl Role {
             Self::EdgeEndpoints => FileName::pinned("edge-endpoints.arr"),
             Self::Adjacency => FileName::pinned("adjacency.sprs"),
             Self::ReviewedVerdicts => FileName::pinned("reviewed-verdicts.json"),
+            Self::AnnotationCorpus => FileName::pinned("annotation-corpus.json"),
+            Self::AnnotationEmbeddings => FileName::pinned("annotation-embeddings.arr"),
+            Self::AnnotationHashes => FileName::pinned("annotation-hashes.arr"),
         }
     }
 
@@ -90,7 +98,7 @@ impl Role {
 }
 
 // Every pinned name validates at compile time.
-const _: [FileName; 26] = [
+const _: [FileName; 29] = [
     Role::Representations.file_name(),
     Role::CardEmbeddings.file_name(),
     Role::CardHashes.file_name(),
@@ -117,7 +125,40 @@ const _: [FileName; 26] = [
     Role::EdgeEndpoints.file_name(),
     Role::Adjacency.file_name(),
     Role::ReviewedVerdicts.file_name(),
+    Role::AnnotationCorpus.file_name(),
+    Role::AnnotationEmbeddings.file_name(),
+    Role::AnnotationHashes.file_name(),
 ];
+
+/// One staged artifact, carried from its stage to the assembly.
+///
+/// `file` is the repository binding the seal publishes, `artifact` the
+/// staged value mapped back for the stages that consume it, and
+/// `evidence` the stage's measurement for the generation metadata.
+pub(super) struct Staged<A, E = ()> {
+    pub file: RepositoryFile,
+    pub artifact: A,
+    pub evidence: E,
+}
+
+/// Stages one artifact under its role: the artifact writes itself
+/// into the role's buffered staged file through its own single
+/// digest pass, and the digest binds to the role.
+pub(super) fn stage<A>(
+    staging: &StagedGeneration,
+    role: Role,
+    artifact: &A,
+) -> Result<RepositoryFile, StageError>
+where
+    A: WriteInto,
+    StageError: From<A::Error>,
+{
+    let mut writer = BufWriter::new(staging.create(&role.file_name())?);
+    let digest = artifact.write_into(&mut writer)?;
+    writer.flush()?;
+
+    Ok(role.file(digest))
+}
 
 /// Runs `write` against the role's buffered staged file, surfacing
 /// flush errors, and binds the written digest to the role.
@@ -169,5 +210,28 @@ pub(super) fn stage_column(
     }
 
     let digest = digest_file(staging.path_of(&role.file_name()))?;
+    Ok(role.file(digest))
+}
+
+/// Stages one array column whose row count is known up front and
+/// binds the digest accumulated over the single write pass to the
+/// role.
+///
+/// `dims` is the full shape, the leading dimension the row count;
+/// `rows` must deliver exactly that many rows.
+pub(super) fn stage_sized_column(
+    staging: &StagedGeneration,
+    role: Role,
+    variant: ArrayVariant,
+    dims: &[Dim],
+    rows: impl Iterator<Item: AsRef<[u8]>>,
+) -> io::Result<RepositoryFile> {
+    let mut writer = BufWriter::new(staging.create(&role.file_name())?);
+    let mut array = SizedArrayWriter::new(&mut writer, variant, dims)?;
+    for row in rows {
+        array.write_row(row.as_ref())?;
+    }
+    let digest = array.finish()?;
+
     Ok(role.file(digest))
 }

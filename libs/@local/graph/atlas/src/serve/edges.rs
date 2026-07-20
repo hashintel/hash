@@ -119,11 +119,11 @@ const impl Default for EdgesCaps {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct DeliveredEdge {
     /// The edge row id.
-    pub(super) row: u32,
+    pub row: u32,
     /// The source node row id.
-    pub(super) source: u32,
+    pub source: u32,
     /// The target node row id.
-    pub(super) target: u32,
+    pub target: u32,
 }
 
 /// One assembled edges response: everything [`Atlas::encode_edges`]
@@ -399,6 +399,6 @@ impl Atlas {
 }
 
 /// Borrows one owned detail column as the encoder's `&str` view.
-fn borrow(entries: &[Option<String>]) -> Vec<Option<&str>> {
+pub(super) fn borrow(entries: &[Option<String>]) -> Vec<Option<&str>> {
     entries.iter().map(Option::as_deref).collect()
 }

@@ -15,14 +15,15 @@ use crate::{
         morton::read::MortonFile,
         postings::read::PostingsFile,
         quad::read::QuadFile,
+        region::ByteStable,
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
     math::{Bounds2, Vec2},
     salt::{
-        adjacency::MappedAdjacency,
-        fit::prepare::identity::MappedIdentityTable,
-        postings::{closure::ClosureMap, mapped::MappedPostings},
+        adjacency::AdjacencyArchive,
+        fit::prepare::identity::IdentityTableArchive,
+        postings::{closure::ClosureMap, mapped::PostingsArchive},
     },
 };
 
@@ -74,8 +75,8 @@ impl Atlas {
         let position_of_row =
             open_array(&generation, &files.position_of_row, ArrayKind::Positions)?;
         let adjacency =
-            MappedAdjacency::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
-        let postings = MappedPostings::new(PostingsFile::open(
+            AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
+        let postings = PostingsArchive::new(PostingsFile::open(
             generation.path_of(&files.postings.name),
         )?)?;
         let closure = ClosureMap::new(&postings)?;
@@ -234,18 +235,14 @@ fn open_identities<I>(
     generation: &Generation,
     file: &RepositoryFile,
     domain: IdentityDomain,
-) -> Result<MappedIdentityTable<I>, OpenAtlasError>
+) -> Result<IdentityTableArchive<I>, OpenAtlasError>
 where
-    I: Copy
-        + zerocopy::IntoBytes
-        + zerocopy::FromBytes
-        + zerocopy::Immutable
-        + zerocopy::Unaligned
-        + zerocopy::KnownLayout,
+    I: ByteStable,
 {
     let identities = IdentityFile::open(generation.path_of(&file.name))
         .map_err(|error| OpenAtlasError::OpenIdentity { domain, error })?;
-    MappedIdentityTable::new(identities).map_err(|error| OpenAtlasError::Identity { domain, error })
+    IdentityTableArchive::new(identities)
+        .map_err(|error| OpenAtlasError::Identity { domain, error })
 }
 
 /// Opens one array artifact, binding its open error to the role it

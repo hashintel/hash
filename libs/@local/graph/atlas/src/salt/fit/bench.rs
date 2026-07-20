@@ -17,15 +17,21 @@ use camino::Utf8PathBuf;
 use tokio_postgres::Client;
 
 use super::{
-    FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts, fit,
-    migrate::migrate_adjacency as migrate_adjacency_inner,
-    stub::{StubEmbedder, stub_classifier},
+    ClassifierInput, FitConfig, PlacementOptions, ProjectorOptions, SuppliedVerdicts, fit,
+    stub::StubEmbedder,
 };
 use crate::{
-    dataset::{TemporalAxes, postgres::PostgresDataset},
+    dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
-    math::AffinityCurve,
-    salt::{landmark::select::SelectionOptions, projector::train::TrainingSchedule},
+    integrity::{Sha256, Update as _},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN},
+    salt::{
+        landmark::select::SelectionOptions,
+        policy::classifier::{
+            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
+        },
+        projector::train::TrainingSchedule,
+    },
 };
 
 /// The refresh cadence of a step-count-overridden projector run.
@@ -92,6 +98,60 @@ pub async fn connect(dsn: &str) -> Client {
         .expect("the store should connect")
 }
 
+/// A deterministic classifier input fitted from a synthetic corpus.
+///
+/// The fixture keeps the harness's policy stage real - classification,
+/// resolution, and both artifacts run against it - while the bench
+/// measures the pipeline rather than the classifier supply.
+#[must_use]
+fn fixture_classifier() -> ClassifierInput {
+    const ROWS: usize = 4;
+    // Coprime to the dimension, so no two corpus rows repeat.
+    const PATTERN: [f32; 13] = [
+        -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
+    ];
+
+    let mut storage = BoxedVecN::<{ ROWS * CANONICAL_DIMENSIONS }>::zero();
+    for (component, &value) in storage
+        .as_array_mut()
+        .iter_mut()
+        .zip(PATTERN.iter().cycle())
+    {
+        *component = value;
+    }
+    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+
+    let rows: Vec<TrainingRow> = [
+        ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
+        ([0.2, 0.6, 0.2], b"group-b"),
+        ([0.1, 0.2, 0.7], b"group-c"),
+        ([0.3, 0.4, 0.3], b"group-d"),
+    ]
+    .into_iter()
+    .map(|(target, group)| {
+        let mut hasher = Sha256::new();
+        hasher.update(group);
+        TrainingRow {
+            target,
+            weight: 1.0,
+            group: hasher.finalize(),
+        }
+    })
+    .collect();
+
+    let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
+    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+        .expect("the fixture classifier fits")
+        .classifier;
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"bench fixture classifier");
+    ClassifierInput::Supplied {
+        classifier,
+        source: hasher.finalize(),
+    }
+}
+
 /// Runs one fit over the store's current snapshot into the generation
 /// root at `root` and activates the published generation, so a later
 /// `reuse_current` run finds it as the prior.
@@ -144,7 +204,7 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         .as_deref()
         .map(|path| SuppliedVerdicts::open(path).expect("the supplied verdicts file should admit"));
 
-    let classifier = stub_classifier();
+    let classifier = fixture_classifier();
     let published = fit(
         &dataset,
         &StubEmbedder,
@@ -174,52 +234,5 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
         embedded: metadata.evidence.cards.embedded,
         selected: metadata.evidence.landmarks.selected,
         retained: metadata.evidence.landmarks.retained,
-    }
-}
-
-/// The report of one adjacency-format migration.
-#[derive(Debug, Clone)]
-pub struct MigrateSummary {
-    /// The source generation, left untouched beside the result.
-    pub source: String,
-    /// The republished generation carrying the current adjacency
-    /// format.
-    pub published: String,
-    /// Whether the root's pointer moved to the republished generation,
-    /// which it does exactly when the source generation was current.
-    pub activated: bool,
-}
-
-/// Migrates the published generation `generation` - or the root's
-/// current one - to the current adjacency format.
-///
-/// The result publishes beside the untouched source, and the pointer
-/// moves exactly when the source was current. The conversion is
-/// store-free: the retired file's bytes hold the full lists, verified
-/// against the document's recorded digest.
-///
-/// # Panics
-///
-/// Panics when any step fails: opening the root, resolving or parsing
-/// the generation id, or the migration itself.
-#[must_use]
-pub fn migrate_adjacency(root: &str, generation: Option<&str>) -> MigrateSummary {
-    let root =
-        GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");
-    let id = generation.map_or_else(
-        || {
-            root.current()
-                .expect("the current pointer should read")
-                .expect("a migration without an explicit generation requires a current one")
-        },
-        |value| value.parse().expect("the generation id should parse"),
-    );
-
-    let outcome = migrate_adjacency_inner(&root, id).expect("the migration should publish");
-
-    MigrateSummary {
-        source: id.to_string(),
-        published: outcome.published.to_string(),
-        activated: outcome.activated,
     }
 }

@@ -2,7 +2,7 @@
 //! mapped reader.
 //!
 //! A [`Knn`] table publishes as one [`crate::file::sprs`] file holding
-//! its [`KnnMatrix`](super::table::KnnMatrix) verbatim. [`MappedKnn`]
+//! its [`KnnMatrix`](super::table::KnnMatrix) verbatim. [`KnnArchive`]
 //! reopens the file over a whole-file mapping and validates the table
 //! invariants once, so later pipeline stages read the table without
 //! holding it on the heap.
@@ -12,14 +12,19 @@ use std::io;
 
 use super::table::{Knn, KnnValidationError, KnnView, validate};
 use crate::{
-    file::sprs::{
-        read::{SprsFile, SprsMatrixError},
-        write::{WriteSprsError, write_matrix},
+    file::{
+        WriteInto,
+        sprs::{
+            read::{SprsFile, SprsMatrixError},
+            write::{WriteSprsError, write_matrix},
+        },
     },
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-impl Knn {
+impl WriteInto for Knn {
+    type Error = io::Error;
+
     /// Writes the table as a sparse matrix file.
     ///
     /// Returns the SHA-256 of the written bytes: the identity the
@@ -28,7 +33,7 @@ impl Knn {
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -54,11 +59,11 @@ impl Knn {
 /// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
 /// contract), so stages call it once and hold the view.
 #[derive(Debug)]
-pub(crate) struct MappedKnn {
+pub(crate) struct KnnArchive {
     file: SprsFile,
 }
 
-impl MappedKnn {
+impl KnnArchive {
     /// Opens the table over its mapped file.
     ///
     /// # Errors

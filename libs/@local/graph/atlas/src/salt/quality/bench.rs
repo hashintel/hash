@@ -24,7 +24,7 @@ use super::{
 use crate::{
     dataset::postgres::PostgresDataset,
     file::{generation::GenerationRoot, sprs::read::SprsFile},
-    salt::knn::artifact::MappedKnn,
+    salt::knn::artifact::KnnArchive,
 };
 
 /// One published table's grouping shape across candidate thresholds.
@@ -62,7 +62,7 @@ pub fn sweep(
     path: impl AsRef<Path>,
     epsilons: &[f32],
 ) -> Result<Sweep, Box<dyn core::error::Error + Send + Sync>> {
-    let table = MappedKnn::new(SprsFile::open(path)?)?;
+    let table = KnnArchive::new(SprsFile::open(path)?)?;
     let view = table.view();
 
     Ok(Sweep {

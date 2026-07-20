@@ -20,6 +20,25 @@
 use std::{fs::File, io, path::Path};
 
 use memmap2::Mmap;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
+
+/// A byte-level stable element of a persisted region: one whose value
+/// is exactly its bytes, at any alignment.
+///
+/// Identity columns and other opaque records persist as raw bytes and
+/// read back as typed slices straight from a mapping; this alias
+/// names the capability stack that contract needs in one place. The
+/// blanket implementation makes the alias free to adopt: any type
+/// with the constituent traits already is one.
+pub(crate) trait ByteStable:
+    Copy + Sync + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayout
+{
+}
+
+impl<T: Copy + Sync + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayout> ByteStable
+    for T
+{
+}
 
 /// One page: the size of every format's header and the boundary every
 /// data region starts on.

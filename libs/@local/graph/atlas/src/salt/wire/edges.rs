@@ -152,7 +152,7 @@ impl EdgesTrailer<'_> {
 }
 
 /// Encodes one u32 column little-endian.
-fn column(values: &[u32]) -> Vec<u8> {
+pub(super) fn column(values: &[u32]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(values.len() * 4);
     for &value in values {
         bytes.extend_from_slice(&value.to_le_bytes());

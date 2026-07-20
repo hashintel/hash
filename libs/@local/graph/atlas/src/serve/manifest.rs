@@ -18,8 +18,12 @@ pub struct ManifestLimits {
     pub colored_type_ids: u32,
     /// Most tiles one edges request may list.
     pub edges_tiles: u32,
-    /// Largest neighbour budget one locate request may name.
+    /// Largest neighbour budget one locate request may name; larger
+    /// budgets clamp.
     pub locate_neighbours: u32,
+    /// Most subgraph edges one locate response delivers before the
+    /// protected rank truncation.
+    pub locate_edges: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
 }
@@ -28,15 +32,13 @@ impl ServeCaps {
     /// Derives the manifest's `limits` block from the caps the
     /// handlers enforce: one source, so the published limits cannot
     /// disagree with enforcement.
-    ///
-    /// `locateNeighbours` stays zero until the locate pass lands, so
-    /// no request carrying it is admitted.
     #[must_use]
     pub const fn limits(&self) -> ManifestLimits {
         ManifestLimits {
             colored_type_ids: self.tile.colored_type_ids,
             edges_tiles: self.edges.tiles,
-            locate_neighbours: 0,
+            locate_neighbours: self.locate.neighbours,
+            locate_edges: self.locate.edges,
             translate_entity_ids: self.translate.entity_ids,
         }
     }

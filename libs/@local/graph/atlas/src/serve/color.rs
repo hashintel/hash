@@ -19,8 +19,8 @@ use super::Atlas;
 use crate::{
     dataset::{ArchivedOntologyTypeUuid, OntologyRowId},
     salt::{
-        fit::prepare::identity::MappedIdentityTable,
-        postings::{closure::ClosureMap, mapped::MappedPostings},
+        fit::prepare::identity::IdentityTableArchive,
+        postings::{closure::ClosureMap, mapped::PostingsArchive},
     },
 };
 
@@ -54,7 +54,7 @@ impl MaskSet {
     /// request order.
     pub(super) fn memberships<'doc>(
         &'doc self,
-        postings: &'doc MappedPostings,
+        postings: &'doc PostingsArchive,
     ) -> Vec<crate::salt::postings::mapped::Membership<'doc>> {
         use crate::salt::postings::mapped::Membership;
 
@@ -82,9 +82,9 @@ impl Atlas {
 /// Resolves a request's ids against one generation's postings,
 /// closure map, and ontology identities, in request order.
 pub(super) fn resolve_masks(
-    postings: &MappedPostings,
+    postings: &PostingsArchive,
     closure: &ClosureMap,
-    table: &MappedIdentityTable<ArchivedOntologyTypeUuid>,
+    table: &IdentityTableArchive<ArchivedOntologyTypeUuid>,
     ids: &[String],
 ) -> MaskSet {
     MaskSet {
@@ -98,9 +98,9 @@ pub(super) fn resolve_masks(
 /// Resolves one requested id: URL to uuid to ontology row to the
 /// closure row's membership union.
 fn resolve_mask(
-    postings: &MappedPostings,
+    postings: &PostingsArchive,
     closure: &ClosureMap,
-    table: &MappedIdentityTable<ArchivedOntologyTypeUuid>,
+    table: &IdentityTableArchive<ArchivedOntologyTypeUuid>,
     id: &str,
 ) -> MaskSource {
     let Ok(url) = id.parse::<VersionedUrl>() else {
@@ -129,7 +129,7 @@ fn resolve_mask(
 
 /// Materializes the dense union of every set type's membership:
 /// `ceil(N/32)` words, LSB-first over base positions.
-fn union_membership(postings: &MappedPostings, descendants: &[u64]) -> Vec<u32> {
+fn union_membership(postings: &PostingsArchive, descendants: &[u64]) -> Vec<u32> {
     use crate::salt::postings::mapped::Membership;
 
     let points = usize::try_from(postings.points()).expect("point domains fit usize");

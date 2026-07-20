@@ -9,13 +9,16 @@ use proptest::prelude::*;
 use super::{
     ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,
     RelationPolicy,
-    artifact::{InvalidAttractionIndex, MappedAttraction, MappedProtection},
+    artifact::{AttractionArchive, InvalidAttractionIndex, ProtectionArchive},
     attraction::AttractionOptions,
     build,
     error::RelationIndexError,
     protection::{ChannelConfig, NodePair, PairVerdict, ProtectionConfig},
 };
-use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
+use crate::{
+    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    file::WriteInto as _,
+};
 
 /// The row domain every fixture spans.
 const ROWS: usize = 8;
@@ -794,7 +797,7 @@ fn a_published_index_reopens_mapped() {
     let path = dir.join("protection.sprs");
     std::fs::write(&path, &bytes).expect("the file writes");
 
-    let mapped = MappedProtection::new(
+    let mapped = ProtectionArchive::new(
         crate::file::sprs::read::SprsFile::open(&path).expect("the written file reopens"),
     )
     .expect("the published index validates");
@@ -871,7 +874,7 @@ fn a_published_attraction_index_reopens_mapped() {
     let path = dir.join("attraction.atrc");
     std::fs::write(&path, &bytes).expect("the file writes");
 
-    let mapped = MappedAttraction::new(
+    let mapped = AttractionArchive::new(
         crate::file::attraction::read::AttractionFile::open(&path)
             .expect("the written file reopens"),
     )
@@ -938,7 +941,7 @@ fn a_corrupted_attraction_file_names_its_broken_invariant() {
     let open = |name: &str, bytes: &[u8]| {
         let path = dir.join(name);
         std::fs::write(&path, bytes).expect("the file writes");
-        MappedAttraction::new(
+        AttractionArchive::new(
             crate::file::attraction::read::AttractionFile::open(&path)
                 .expect("the corrupted geometry still parses"),
         )

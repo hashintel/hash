@@ -3,10 +3,13 @@ use std::fs;
 use camino::Utf8PathBuf;
 use sprs::CsMatViewI;
 
-use super::{Adjacency, EdgeList, InvalidAdjacencyFile, MappedAdjacency};
+use super::{Adjacency, AdjacencyArchive, EdgeList, InvalidAdjacencyFile};
 use crate::{
     dataset::{EdgeRowId, NodeRowId},
-    file::sprs::{read::SprsFile, write::write_matrix},
+    file::{
+        WriteInto as _,
+        sprs::{read::SprsFile, write::write_matrix},
+    },
     integrity::{Sha256, Writer},
 };
 
@@ -30,7 +33,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 const ENDPOINTS: [[u64; 2]; 4] = [[0, 1], [2, 3], [3, 3], [0, 1]];
 const ROWS: usize = 5;
 
-fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> MappedAdjacency {
+fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> AdjacencyArchive {
     let path = dir.join(name);
     let mut file = fs::File::create(&path).expect("the fixture file should create");
     adjacency
@@ -38,7 +41,7 @@ fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> MappedAdjacen
         .expect("the adjacency should write");
     drop(file);
 
-    MappedAdjacency::new(SprsFile::open(&path).expect("the fixture file should open"))
+    AdjacencyArchive::new(SprsFile::open(&path).expect("the fixture file should open"))
         .expect("the fixture adjacency should validate")
 }
 
@@ -131,7 +134,7 @@ fn open_structure(
     shape: (usize, usize),
     fenceposts: &[u64],
     values: &[u64],
-) -> Result<MappedAdjacency, InvalidAdjacencyFile> {
+) -> Result<AdjacencyArchive, InvalidAdjacencyFile> {
     let path = dir.join(name);
     let mut writer = Writer {
         accumulator: Sha256::new(),
@@ -142,7 +145,7 @@ fn open_structure(
         .expect("the hand-built structure is a valid compressed matrix");
     write_matrix(&matrix, &mut writer).expect("the raw matrix should write");
 
-    MappedAdjacency::new(SprsFile::open(&path).expect("the raw file should open"))
+    AdjacencyArchive::new(SprsFile::open(&path).expect("the raw file should open"))
 }
 
 #[test]
@@ -188,7 +191,7 @@ fn violated_list_invariants_are_rejected() {
         .expect("the valued matrix is a valid compressed matrix");
     write_matrix(&valued, &mut writer).expect("the valued matrix should write");
     assert!(matches!(
-        MappedAdjacency::new(SprsFile::open(&path).expect("the valued file should open")),
+        AdjacencyArchive::new(SprsFile::open(&path).expect("the valued file should open")),
         Err(InvalidAdjacencyFile::Matrix(_)),
     ));
 }
@@ -230,7 +233,7 @@ fn a_shifted_fencepost_column_is_rejected() {
     fs::write(&path, &bytes).expect("the shifted file should write");
 
     assert!(matches!(
-        MappedAdjacency::new(SprsFile::open(&path).expect("the shifted file should open")),
+        AdjacencyArchive::new(SprsFile::open(&path).expect("the shifted file should open")),
         Err(InvalidAdjacencyFile::Start),
     ));
 }
@@ -262,19 +265,4 @@ fn wide_indices_read_back() {
     assert_eq!(mapped.edges(), 1);
     assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [0]);
-}
-
-/// The retired format's reader inverts the test encoder at both
-/// widths, so migrated lists are the published lists verbatim.
-#[test]
-fn the_retired_format_round_trips() {
-    let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
-    for width in [4, 8] {
-        let bytes = super::legacy::write_legacy(&adjacency, width);
-        assert_eq!(
-            super::legacy::read_legacy(&bytes).expect("the retired bytes should parse"),
-            adjacency,
-            "width {width}",
-        );
-    }
 }

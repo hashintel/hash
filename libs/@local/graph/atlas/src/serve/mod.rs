@@ -32,9 +32,12 @@
 //! [`open`](self) pass that validates everything the others rely on.
 
 pub use self::{
-    detail::{DeliveredEntities, DetailError, LinkDetails, NodeDetails, PostgresDetails},
+    detail::{
+        DeliveredEntities, DetailError, LinkDetails, LocateNodeDetails, NodeDetails,
+        PostgresDetails, SimpleValue,
+    },
     edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
-    locate::{LocateCaps, OpenOptions},
+    locate::{LocateCaps, LocateDocument, LocateError, LocateRequest, OpenOptions},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     tile::{TileCaps, TileDocument, TileError, TileQuery, TileRequest},
     translate::{
@@ -50,10 +53,10 @@ use crate::{
     math::{Bounds2, Vec2},
     morton::{Depth, MortonCell},
     salt::{
-        adjacency::MappedAdjacency,
-        fit::prepare::identity::MappedIdentityTable,
+        adjacency::AdjacencyArchive,
+        fit::prepare::identity::IdentityTableArchive,
         lod::stage::LodConfig,
-        postings::{closure::ClosureMap, mapped::MappedPostings},
+        postings::{closure::ClosureMap, mapped::PostingsArchive},
     },
 };
 pub use crate::{
@@ -94,9 +97,7 @@ pub struct ServeCaps {
     pub tile: TileCaps,
     /// The edges endpoint's caps.
     pub edges: EdgesCaps,
-    /// The locate endpoint's caps. Enforced once the locate route
-    /// lands; until then [`ServeCaps::limits`] publishes
-    /// `locateNeighbours` as zero, so no request is admitted.
+    /// The locate endpoint's caps.
     pub locate: LocateCaps,
     /// The translate endpoint's caps.
     pub translate: TranslateCaps,
@@ -148,23 +149,23 @@ pub struct Atlas {
     morton: MortonFile,
     coordinates: ArrayFile,
     rows: ArrayFile,
-    adjacency: MappedAdjacency,
+    adjacency: AdjacencyArchive,
     endpoints: ArrayFile,
     rank_of_position: ArrayFile,
     position_of_row: ArrayFile,
-    postings: MappedPostings,
+    postings: PostingsArchive,
     closure: ClosureMap,
     /// The ontology identity table, joining type uuids to ontology
     /// rows. Present by construction: a generation whose ids are not
     /// store identities fails the open, as do the node and edge
     /// tables below.
-    ontology_ids: MappedIdentityTable<ArchivedOntologyTypeUuid>,
+    ontology_ids: IdentityTableArchive<ArchivedOntologyTypeUuid>,
     /// The node identity table, joining node rows to entity
     /// identities.
-    node_ids: MappedIdentityTable<ArchivedEntityId>,
+    node_ids: IdentityTableArchive<ArchivedEntityId>,
     /// The edge identity table, joining edge rows to link-entity
     /// identities.
-    edge_ids: MappedIdentityTable<ArchivedEntityId>,
+    edge_ids: IdentityTableArchive<ArchivedEntityId>,
     /// The exact spatial index behind locate's neighbour selection,
     /// built or cache-loaded at open.
     locate: locate::LocateIndex,

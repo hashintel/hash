@@ -22,6 +22,7 @@ use super::{
     cbor::CborWriter,
     edges::{EdgesResponse, EdgesTrailer},
     envelope::EnvelopeWriter,
+    locate::{LocateResponse, LocateTrailer, PropertyValue},
     tile::{GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
@@ -116,6 +117,41 @@ mod cbor {
         assert_eq!(
             encoded(|cbor| cbor.f32(-0.5)),
             [0xFA, 0xBF, 0x00, 0x00, 0x00]
+        );
+    }
+
+    #[test]
+    fn signed_integers_take_both_majors() {
+        // Non-negative values ride major type 0, negatives major
+        // type 1 with argument -1 - n; -1, -10, -100, -1000 are RFC
+        // 8949 appendix A rows, the extremes derived by hand.
+        assert_eq!(encoded(|cbor| cbor.int(5)), [0x05]);
+        assert_eq!(encoded(|cbor| cbor.int(0)), [0x00]);
+        assert_eq!(encoded(|cbor| cbor.int(-1)), [0x20]);
+        assert_eq!(encoded(|cbor| cbor.int(-10)), [0x29]);
+        assert_eq!(encoded(|cbor| cbor.int(-100)), [0x38, 0x63]);
+        assert_eq!(encoded(|cbor| cbor.int(-1000)), [0x39, 0x03, 0xE7]);
+        assert_eq!(
+            encoded(|cbor| cbor.int(i64::MAX)),
+            [0x1B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+        );
+        assert_eq!(
+            encoded(|cbor| cbor.int(i64::MIN)),
+            [0x3B, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+        );
+    }
+
+    #[test]
+    fn doubles_are_fixed_width() {
+        // RFC 8949 appendix A: 1.1 = 0xFB_3FF199999999999A; 0.5
+        // derived by hand from the IEEE 754 double layout.
+        assert_eq!(
+            encoded(|cbor| cbor.f64(1.1)),
+            [0xFB, 0x3F, 0xF1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9A]
+        );
+        assert_eq!(
+            encoded(|cbor| cbor.f64(0.5)),
+            [0xFB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         );
     }
 
@@ -685,6 +721,263 @@ mod edges {
             link_icons: &[None, None, None],
             link_type_labels: &[None],
             link_type_icons: &[None, None, None],
+        });
+        let _bytes = response.encode();
+    }
+}
+
+mod locate {
+    use super::{
+        LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest, TileCoordinate,
+        Vec2, section,
+    };
+
+    /// The four-point base-order coordinate column behind the tests.
+    fn points() -> [Vec2; 4] {
+        [
+            Vec2::new(0.0, 0.5),
+            Vec2::new(1.0, 1.5),
+            Vec2::new(2.0, 2.5),
+            Vec2::new(3.0, 3.5),
+        ]
+    }
+
+    /// A three-node, two-edge response without a trailer: delivered
+    /// base positions 2, 0, 3 (source first) over a four-point base
+    /// column.
+    fn minimal(positions: &[Vec2]) -> LocateResponse<'_> {
+        LocateResponse {
+            generation: Sha256Digest::from_bytes_unchecked([0xAB; 32]),
+            variant: 0,
+            cell: TileCoordinate { z: 2, x: 1, y: 3 },
+            complete: true,
+            delivered: &[2, 0, 3],
+            positions,
+            rows: &[10, 11, 12, 13],
+            masks: None,
+            sources: &[10, 12],
+            targets: &[12, 13],
+            edge_rows: &[5, 8],
+            trailer: None,
+        }
+    }
+
+    #[test]
+    fn the_head_encodes_by_hand() {
+        let positions = points();
+        let bytes = minimal(&positions).encode();
+        assert_eq!(bytes[0..8], *b"SALTILEL");
+
+        // map(8): 0 bstr(32) | 1 uint 0 | 2 uint 3 | 3 uint 2 |
+        // 4 [2, 1, 3] | 5 uint 2 | 6 true | 7 false.
+        let mut expected = vec![0xA8, 0x00, 0x58, 0x20];
+        expected.extend_from_slice(&[0xAB; 32]);
+        expected.extend_from_slice(&[
+            0x01, 0x00, 0x02, 0x03, 0x03, 0x02, 0x04, 0x83, 0x02, 0x01, 0x03, 0x05, 0x02, 0x06,
+            0xF5, 0x07, 0xF4,
+        ]);
+        assert_eq!(section(&bytes, 0).expect("HEAD is present"), expected);
+    }
+
+    #[test]
+    fn columns_gather_in_delivered_order() {
+        let positions = points();
+        let bytes = minimal(&positions).encode();
+
+        // POSITIONS: base positions 2, 0, 3 as xy pairs.
+        let mut expected = Vec::new();
+        for point in [positions[2], positions[0], positions[3]] {
+            expected.extend_from_slice(&point.x().to_le_bytes());
+            expected.extend_from_slice(&point.y().to_le_bytes());
+        }
+        assert_eq!(section(&bytes, 1).expect("POSITIONS is present"), expected);
+
+        // ROW_IDS: the row column read at 2, 0, 3.
+        let mut expected = Vec::new();
+        for row in [12_u32, 10, 13] {
+            expected.extend_from_slice(&row.to_le_bytes());
+        }
+        assert_eq!(section(&bytes, 2).expect("ROW_IDS is present"), expected);
+
+        // No coloredTypeIds: TYPE_MASK is absent, not empty.
+        assert!(section(&bytes, 3).is_none());
+
+        // Edge columns, edge order.
+        for (slot, column) in [(4_usize, [10_u32, 12]), (5, [12, 13]), (6, [5, 8])] {
+            let mut expected = Vec::new();
+            for value in column {
+                expected.extend_from_slice(&value.to_le_bytes());
+            }
+            assert_eq!(
+                section(&bytes, slot).expect("edge columns are present"),
+                expected,
+                "slot {slot}",
+            );
+        }
+    }
+
+    #[test]
+    fn masks_probe_the_delivered_list() {
+        let positions = points();
+        // type 0: list members at base positions 0 and 2; type 1:
+        // dense bit at 3 over N = 4 (one word).
+        let list = [0_u32, 2];
+        let dense = [1_u32 << 3];
+        let masks = [Membership::List(&list), Membership::Dense(&dense)];
+
+        let mut response = minimal(&positions);
+        response.masks = Some(&masks);
+        let bytes = response.encode();
+
+        // Stride ceil(2/8) = 1. Delivered order 2, 0, 3:
+        // type 0 | type 0 | type 1.
+        assert_eq!(
+            section(&bytes, 3).expect("TYPE_MASK is present"),
+            [0b01, 0b01, 0b10]
+        );
+    }
+
+    #[test]
+    fn the_trailer_interns_property_names() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer = Some(LocateTrailer {
+            labels: &[Some("n"), None, None],
+            icons: &[None, None, None],
+            property_names: &["a", "b"],
+            properties: &[
+                Some(&[
+                    (0, PropertyValue::Text("x")),
+                    (1, PropertyValue::Integer(-2)),
+                ]),
+                Some(&[(0, PropertyValue::Boolean(true)), (1, PropertyValue::Null)]),
+                Some(&[(1, PropertyValue::Float(0.5))]),
+            ],
+            link_labels: &[Some("l"), None],
+            link_icons: &[None, None],
+            link_type_labels: &[None, Some("t")],
+            link_type_icons: &[None, None],
+        });
+        let bytes = response.encode();
+
+        let head = section(&bytes, 0).expect("HEAD is present");
+        assert_eq!(head[head.len() - 2..], [0x07, 0xF5]);
+
+        let last = super::directory(&bytes, 6).1 as usize;
+        let tail = &bytes[last.next_multiple_of(8)..];
+        // map(8): 0 ["n", null, null] | 1 [null x3] | 2 ["a", "b"] |
+        // 3 [{0: "x", 1: -2}, {0: true, 1: null}, {1: 0.5f64}] |
+        // 4 ["l", null] | 5 [null x2] | 6 [null, "t"] | 7 [null x2].
+        assert_eq!(
+            tail,
+            [
+                0xA8, 0x00, 0x83, 0x61, 0x6E, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x82,
+                0x61, 0x61, 0x61, 0x62, 0x03, 0x83, 0xA2, 0x00, 0x61, 0x78, 0x01, 0x21, 0xA2, 0x00,
+                0xF5, 0x01, 0xF6, 0xA1, 0x01, 0xFB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x04, 0x82, 0x61, 0x6C, 0xF6, 0x05, 0x82, 0xF6, 0xF6, 0x06, 0x82, 0xF6, 0x61, 0x74,
+                0x07, 0x82, 0xF6, 0xF6,
+            ]
+        );
+    }
+
+    #[test]
+    fn a_source_only_response_is_present_empty_on_edges() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.delivered = &[1];
+        response.sources = &[];
+        response.targets = &[];
+        response.edge_rows = &[];
+        let bytes = response.encode();
+
+        for slot in [4_usize, 5, 6] {
+            let (start, end) = super::directory(&bytes, slot);
+            assert_eq!(start, end, "slot {slot}");
+            assert_ne!(start, 0, "slot {slot}");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "must cover the same edges")]
+    fn ragged_edge_columns_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.targets = &[12];
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "properties must cover exactly the delivered nodes")]
+    fn short_trailers_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer = Some(LocateTrailer {
+            labels: &[None, None, None],
+            icons: &[None, None, None],
+            property_names: &[],
+            properties: &[None],
+            link_labels: &[None, None],
+            link_icons: &[None, None],
+            link_type_labels: &[None, None],
+            link_type_icons: &[None, None],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "bytewise-sorted and deduplicated")]
+    fn unsorted_intern_tables_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer = Some(LocateTrailer {
+            labels: &[None, None, None],
+            icons: &[None, None, None],
+            property_names: &["b", "a"],
+            properties: &[None, None, None],
+            link_labels: &[None, None],
+            link_icons: &[None, None],
+            link_type_labels: &[None, None],
+            link_type_icons: &[None, None],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "index into the intern table")]
+    fn out_of_table_property_keys_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer = Some(LocateTrailer {
+            labels: &[None, None, None],
+            icons: &[None, None, None],
+            property_names: &["a"],
+            properties: &[Some(&[(1, PropertyValue::Null)]), None, None],
+            link_labels: &[None, None],
+            link_icons: &[None, None],
+            link_type_labels: &[None, None],
+            link_type_icons: &[None, None],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "property map keys must ascend")]
+    fn descending_property_keys_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer = Some(LocateTrailer {
+            labels: &[None, None, None],
+            icons: &[None, None, None],
+            property_names: &["a", "b"],
+            properties: &[
+                Some(&[(1, PropertyValue::Null), (0, PropertyValue::Null)]),
+                None,
+                None,
+            ],
+            link_labels: &[None, None],
+            link_icons: &[None, None],
+            link_type_labels: &[None, None],
+            link_type_icons: &[None, None],
         });
         let _bytes = response.encode();
     }

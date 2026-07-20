@@ -32,8 +32,8 @@ use crate::{
         sprs::read::{OpenSprsError, SprsFile},
     },
     salt::{
-        fit::prepare::identity::{InvalidIdentityFile, MappedIdentityTable},
-        knn::artifact::{InvalidKnnFile, MappedKnn},
+        fit::prepare::identity::{IdentityTableArchive, InvalidIdentityFile},
+        knn::artifact::{InvalidKnnFile, KnnArchive},
     },
 };
 
@@ -173,7 +173,7 @@ pub(crate) async fn run<D: Dataset>(
 
     let knn = {
         let _span = tracing::info_span!("knn").entered();
-        MappedKnn::new(
+        KnnArchive::new(
             SprsFile::open(generation.path_of(&files.knn.name))
                 .map_err(QualityRunError::OpenKnn)?,
         )
@@ -189,7 +189,7 @@ pub(crate) async fn run<D: Dataset>(
     let coordinates = coordinates_file
         .points()
         .ok_or(QualityRunError::InvalidCoordinates)?;
-    let identities = MappedIdentityTable::<D::NodeId>::new(
+    let identities = IdentityTableArchive::<D::NodeId>::new(
         IdentityFile::open(generation.path_of(&files.node_identities.name))
             .map_err(QualityRunError::OpenIdentities)?,
     )

@@ -69,7 +69,7 @@ mod write;
 
 pub(crate) use self::{
     read::{ArrayFile, OpenArrayError},
-    write::ArrayWriter,
+    write::{ArrayWriter, SizedArrayWriter},
 };
 
 // not pretty, but allows us to pin a specific version, required for the derive

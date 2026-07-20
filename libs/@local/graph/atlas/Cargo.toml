@@ -124,10 +124,6 @@ name              = "atlas"
 required-features = ["cli"]
 
 [[example]]
-name              = "migrate_adjacency"
-required-features = ["bench"]
-
-[[example]]
 name              = "clump_sweep"
 required-features = ["bench"]
 

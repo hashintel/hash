@@ -1277,7 +1277,7 @@ impl CardEmbedder for HashEmbedder {
 
 /// A deterministic classifier fitted from a synthetic corpus: the
 /// supplied model input of the fixture fit.
-fn runner_classifier() -> Classifier {
+fn runner_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
     const PATTERN: [f32; 13] = [
@@ -1313,9 +1313,16 @@ fn runner_classifier() -> Classifier {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
         .expect("the fixture classifier fits")
-        .classifier
+        .classifier;
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"fixture classifier artifact");
+    ClassifierInput::Supplied {
+        classifier,
+        source: hasher.finalize(),
+    }
 }
 
 /// The runner fixture's probe design: a handful of anchors and

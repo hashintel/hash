@@ -27,18 +27,15 @@
 //! fingerprint differs is ignored wholesale.
 
 use core::{error::Error, fmt};
-use std::{
-    collections::HashMap,
-    io::{self, Write as _},
-};
+use std::{collections::HashMap, io};
 
 use zerocopy::IntoBytes as _;
 
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, OntologyRowId, card::Card},
-    file::array::{ArrayShape, ArrayVariant, Dim, FileHeader},
-    integrity::{Sha256, Sha256Digest, Writer},
-    math::{AlignedVecN, BoxedVecN, VecN},
+    file::array::{ArrayVariant, Dim, SizedArrayWriter},
+    integrity::Sha256Digest,
+    math::{AlignedVecN, BoxedVecN, MatrixN, VecN},
 };
 
 pub(crate) mod external;
@@ -128,7 +125,7 @@ pub(crate) struct CardEmbeddingStats {
 pub(crate) struct CardEmbeddingView<'table> {
     fingerprint: EmbedderFingerprint,
     hashes: &'table [Sha256Digest],
-    rows: &'table [[f32; CANONICAL_DIMENSIONS]],
+    rows: &'table [VecN<CANONICAL_DIMENSIONS>],
 }
 
 impl<'table> CardEmbeddingView<'table> {
@@ -151,7 +148,7 @@ impl<'table> CardEmbeddingView<'table> {
         Some(Self {
             fingerprint,
             hashes,
-            rows,
+            rows: VecN::wrap_slice(rows),
         })
     }
 
@@ -185,12 +182,11 @@ impl<'table> CardEmbeddingView<'table> {
 
     /// Returns the embedding at `row`, or `None` past the last row.
     #[must_use]
-    pub(crate) fn embedding(
+    pub(crate) const fn embedding(
         &self,
         row: OntologyRowId,
     ) -> Option<&'table VecN<CANONICAL_DIMENSIONS>> {
-        let index = row.usize();
-        self.rows.get(index).map(VecN::from_ref)
+        self.rows.get(row.usize())
     }
 }
 
@@ -203,9 +199,8 @@ impl<'table> CardEmbeddingView<'table> {
 pub(crate) struct CardEmbeddingTable {
     fingerprint: EmbedderFingerprint,
     hashes: Vec<Sha256Digest>,
-    /// Row-major embedding matrix: `hashes.len()` rows of
-    /// [`CANONICAL_DIMENSIONS`] components.
-    components: Vec<f32>,
+    /// The embedding matrix, one row per hash.
+    components: MatrixN<CANONICAL_DIMENSIONS>,
 }
 
 impl CardEmbeddingTable {
@@ -213,18 +208,17 @@ impl CardEmbeddingTable {
     ///
     /// # Panics
     ///
-    /// Panics when `components` does not hold exactly
-    /// [`CANONICAL_DIMENSIONS`] components per hash.
+    /// Panics when the matrix's row count differs from the hash count.
     #[must_use]
     pub(crate) fn new(
         fingerprint: EmbedderFingerprint,
         hashes: Vec<Sha256Digest>,
-        components: Vec<f32>,
+        components: MatrixN<CANONICAL_DIMENSIONS>,
     ) -> Self {
         assert_eq!(
             components.len(),
-            hashes.len() * CANONICAL_DIMENSIONS,
-            "the components must form one full row per hash",
+            hashes.len(),
+            "the matrix must hold one row per hash",
         );
 
         Self {
@@ -234,10 +228,20 @@ impl CardEmbeddingTable {
         }
     }
 
+    /// Views the embedding matrix as its SIMD-aligned rows.
+    #[inline]
+    #[must_use]
+    pub(crate) fn rows(&self) -> &[AlignedVecN<CANONICAL_DIMENSIONS>] {
+        self.components.rows()
+    }
+
     /// Borrows the table as a view.
     #[must_use]
-    pub(crate) const fn view(&self) -> CardEmbeddingView<'_> {
-        let (rows, remainder) = self.components.as_chunks::<CANONICAL_DIMENSIONS>();
+    pub(crate) fn view(&self) -> CardEmbeddingView<'_> {
+        let (rows, remainder) = self
+            .components
+            .as_components()
+            .as_chunks::<CANONICAL_DIMENSIONS>();
         debug_assert!(
             remainder.is_empty(),
             "the table's columns are row-aligned by construction"
@@ -246,7 +250,7 @@ impl CardEmbeddingTable {
         CardEmbeddingView {
             fingerprint: self.fingerprint,
             hashes: &self.hashes,
-            rows,
+            rows: VecN::wrap_slice(rows),
         }
     }
 
@@ -259,16 +263,19 @@ impl CardEmbeddingTable {
     ///
     /// Returns an error when the underlying writer fails.
     pub(crate) fn write_embeddings_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
-        let header = FileHeader::new(ArrayVariant::F32, embedding_shape(self.hashes.len() as u64));
-
-        let mut writer = Writer {
-            accumulator: Sha256::new(),
-            writer: write,
-        };
-        writer.write_all(header.as_bytes())?;
-        writer.write_all(self.components.as_bytes())?;
-
-        Ok(writer.accumulator.finalize())
+        let mut writer = SizedArrayWriter::new(
+            write,
+            ArrayVariant::F32,
+            &[
+                Dim::new(self.hashes.len() as u64),
+                Dim::new(CANONICAL_DIMENSIONS as u64),
+            ],
+        )?;
+        writer.write_rows(
+            self.hashes.len() as u64,
+            self.components.as_components().as_bytes(),
+        )?;
+        writer.finish()
     }
 
     /// Writes the `u8[T, 32]` card-hash column as an array file.
@@ -280,16 +287,13 @@ impl CardEmbeddingTable {
     ///
     /// Returns an error when the underlying writer fails.
     pub(crate) fn write_hashes_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
-        let header = FileHeader::new(ArrayVariant::U8, hash_shape(self.hashes.len() as u64));
-
-        let mut writer = Writer {
-            accumulator: Sha256::new(),
-            writer: write,
-        };
-        writer.write_all(header.as_bytes())?;
-        writer.write_all(self.hashes.as_bytes())?;
-
-        Ok(writer.accumulator.finalize())
+        let mut writer = SizedArrayWriter::new(
+            write,
+            ArrayVariant::U8,
+            &[Dim::new(self.hashes.len() as u64), Dim::new(32)],
+        )?;
+        writer.write_rows(self.hashes.len() as u64, self.hashes.as_bytes())?;
+        writer.finish()
     }
 }
 
@@ -383,14 +387,14 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
         entry.rows.push(row);
     }
 
-    let mut components = vec![0.0_f32; cards.len() * CANONICAL_DIMENSIONS];
-    let (rows, _) = components.as_chunks_mut::<CANONICAL_DIMENSIONS>();
+    let mut components = MatrixN::zeroed(cards.len());
+    let rows = components.rows_mut();
 
     let mut stats = CardEmbeddingStats::default();
     let mut misses = Vec::new();
 
     let reusable = prior.filter(|view| view.fingerprint() == fingerprint);
-    let reusable_rows: HashMap<Sha256Digest, &[f32; CANONICAL_DIMENSIONS]> =
+    let reusable_rows: HashMap<Sha256Digest, &VecN<CANONICAL_DIMENSIONS>> =
         reusable.map_or_else(HashMap::new, |view| {
             view.hashes
                 .iter()
@@ -408,7 +412,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
         stats.reused += 1;
         let card = &unique[&hash];
         for &position in &card.rows {
-            rows[position.usize()] = *source;
+            *rows[position.usize()].as_array_mut() = *source.as_array();
         }
     }
 
@@ -439,7 +443,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
 
         stats.embedded += 1;
         for &position in &card.rows {
-            rows[position.usize()] = *embedding.as_array();
+            *rows[position.usize()].as_array_mut() = *embedding.as_array();
         }
     }
 
@@ -468,16 +472,4 @@ fn validate_finite<E>(
     };
 
     Err(CardEmbeddingError::NonFinite { row, component })
-}
-
-/// Returns the `[T, 3072]` shape of the embedding matrix.
-const fn embedding_shape(rows: u64) -> ArrayShape {
-    ArrayShape::new(&[Dim::new(rows), Dim::new(CANONICAL_DIMENSIONS as u64)])
-        .expect("two dimensions should fit the maximum shape rank")
-}
-
-/// Returns the `[T, 32]` shape of the card-hash column.
-const fn hash_shape(rows: u64) -> ArrayShape {
-    ArrayShape::new(&[Dim::new(rows), Dim::new(32)])
-        .expect("two dimensions should fit the maximum shape rank")
 }

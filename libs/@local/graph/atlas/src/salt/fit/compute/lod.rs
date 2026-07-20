@@ -6,8 +6,8 @@ use smallvec::SmallVec;
 use super::{
     super::{
         error::StageError,
-        prepare::identity::MappedIdentityTable,
-        role::{Role, stage_column, write_staged},
+        prepare::identity::IdentityTableArchive,
+        role::{Role, stage, stage_sized_column, write_staged},
     },
     Context,
 };
@@ -23,7 +23,7 @@ use crate::{
     },
     integrity::{Sha256, Writer},
     salt::{
-        adjacency::MappedAdjacency,
+        adjacency::AdjacencyArchive,
         importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
         lod::{
             quad::{QuadEvidence, QuadTree},
@@ -61,9 +61,8 @@ impl Context<'_> {
     /// columns into the staged quadtree.
     ///
     /// The importance column comes from the configured signal over the
-    /// staged artifacts; the priority column stays constant - it is
-    /// the override lane for a product notion that does not exist yet.
-    /// The metadata's ranking origin records the signal that ran.
+    /// staged artifacts, and the metadata's ranking origin records the
+    /// signal that ran.
     /// `types` is each node row's direct types in row order, the
     /// quadtree's per-tile type sets and the postings' membership
     /// source; `parents` is each ontology row's direct parents in row
@@ -90,20 +89,22 @@ impl Context<'_> {
             .points()
             .expect("the coordinate column was sealed as f32 pairs");
 
-        let ids = MappedIdentityTable::<I>::new(IdentityFile::open(
+        let ids = IdentityTableArchive::<I>::new(IdentityFile::open(
             self.staging.path_of(&Role::NodeIdentities.file_name()),
         )?)?;
 
         let importance = match self.config.ranking {
             RankingConfig::ConstantColumns => ConstantImportance.derive(points.len()),
             RankingConfig::IncidentDegree => {
-                let adjacency = MappedAdjacency::new(
+                let adjacency = AdjacencyArchive::new(
                     SprsFile::open(self.staging.path_of(&Role::Adjacency.file_name()))
                         .map_err(StageError::MapAdjacency)?,
                 )?;
                 DegreeImportance::new(&adjacency).derive(points.len())
             }
         };
+        // The constant priority column is the override lane; no
+        // product signal feeds it yet.
         let priority = vec![0.0_f32; points.len()];
         let inputs = RankInputs::new(&importance, &priority, ids.ids())
             .ok_or_else(|| StageError::WireEncoding { rows: ids.len() })?;
@@ -129,54 +130,63 @@ impl Context<'_> {
             morton,
             quad: quad_file,
             postings: postings_file,
-            wire_coordinates: stage_column(
+            wire_coordinates: stage_sized_column(
                 self.staging,
                 Role::WireCoordinates,
                 ArrayVariant::F32,
-                &[Dim::new(2)],
+                &[Dim::new(lod.coordinates.len() as u64), Dim::new(2)],
                 lod.coordinates.iter().map(zerocopy::IntoBytes::as_bytes),
             )?,
-            rank_of_position: stage_column(
+            rank_of_position: stage_sized_column(
                 self.staging,
                 Role::RankOfPosition,
                 ArrayVariant::U32,
-                &[],
+                &[Dim::new(lod.rank_of_position.len() as u64)],
                 lod.rank_of_position
                     .iter()
                     .map(zerocopy::IntoBytes::as_bytes),
             )?,
-            position_of_rank: stage_column(
+            position_of_rank: stage_sized_column(
                 self.staging,
                 Role::PositionOfRank,
                 ArrayVariant::U32,
-                &[],
+                &[Dim::new(lod.position_of_rank.len() as u64)],
                 lod.position_of_rank
                     .iter()
                     .map(zerocopy::IntoBytes::as_bytes),
             )?,
-            position_of_row: stage_column(
+            position_of_row: stage_sized_column(
                 self.staging,
                 Role::PositionOfRow,
                 ArrayVariant::U32,
-                &[],
+                &[Dim::new(lod.position_of_row.len() as u64)],
                 lod.position_of_row
                     .iter()
                     .map(zerocopy::IntoBytes::as_bytes),
             )?,
-            row_of_position: stage_column(
+            row_of_position: stage_sized_column(
                 self.staging,
                 Role::RowOfPosition,
                 ArrayVariant::U32,
-                &[],
+                &[Dim::new(lod.row_of_position.len() as u64)],
                 lod.row_of_position
                     .iter()
                     .map(zerocopy::IntoBytes::as_bytes),
             )?,
         };
 
+        let evidence = lod.evidence(self.config.lod);
+        tracing::info!(
+            catch_all = evidence.catch_all_population,
+            co_location_excess = evidence.co_location_excess,
+            quad_nodes = quad_evidence.nodes,
+            dense_types = postings_evidence.dense_types,
+            "staged the level-of-detail columns, the quadtree, and the postings"
+        );
+
         Ok(LodOutputs {
-            evidence: lod.evidence(self.config.lod),
             files,
+            evidence,
             quad_evidence,
             postings_evidence,
         })
@@ -221,9 +231,7 @@ impl Context<'_> {
         let _span = tracing::info_span!("postings").entered();
 
         let postings = Postings::build(types, row_of_position, parents, self.config.postings)?;
-        let file = write_staged(self.staging, Role::Postings, |writer| {
-            postings.write_into(writer)
-        })?;
+        let file = stage(self.staging, Role::Postings, &postings)?;
 
         Ok((file, postings.evidence()))
     }
