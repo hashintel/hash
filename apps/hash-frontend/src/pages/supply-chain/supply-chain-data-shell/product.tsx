@@ -41,10 +41,13 @@ import { cutoffForRange, timeRangeLongLabel } from "../shared/time-range";
 import { useTimeRange } from "../shared/time-range-context";
 import { useSearchParams } from "../shared/use-search-params";
 import { CategoryView } from "./product/category-view";
+import { CustomerOrdersPanel } from "./product/customer-orders";
 import { E2EWhatIf } from "./product/e2e-what-if";
+import { computeOrderArrivalMarkers } from "./product/order-arrival-markers";
 import { ProcessGraph } from "./product/process-graph";
 import { ProductionScheduleView } from "./product/production-schedule";
 import { recomputeBatchTimelines } from "./product/recompute-batch-timelines";
+import { filterOrderLines } from "./product/recompute-order-timelines";
 import { PipelineHeader } from "./product/shared/pipeline-header";
 import { PipelineWaterfall } from "./product/shared/pipeline-waterfall";
 import { loadSiteProductionTimeline } from "./product/site-production-timeline-loader";
@@ -551,6 +554,29 @@ export const Overview = ({
     };
   }, [graph, timeRange, excludeOutliers, procurementBasis]);
 
+  const markerOrderLines = useMemo(
+    () => filterOrderLines(graph.order_timelines?.lines ?? [], timeRange),
+    [graph.order_timelines?.lines, timeRange],
+  );
+
+  const orderArrivalMarkers = useMemo(
+    () =>
+      computeOrderArrivalMarkers(
+        markerOrderLines,
+        graph.batch_timelines?.batches ?? [],
+        filteredGraph.pipeline_summary,
+        excludeOutliers,
+        activeSegments,
+      ),
+    [
+      markerOrderLines,
+      graph.batch_timelines?.batches,
+      filteredGraph.pipeline_summary,
+      excludeOutliers,
+      activeSegments,
+    ],
+  );
+
   const summaryStats = useMemo(() => {
     const bt = filteredGraph.batch_timelines;
     const totalSeg = bt?.segments?.total_days;
@@ -890,6 +916,7 @@ export const Overview = ({
               onSegmentToggle={handleSegmentToggle}
               activeRoute={resolvedRoute}
               onActiveRouteChange={setActiveRoute}
+              orderArrivalMarkers={orderArrivalMarkers[resolvedRoute]}
             />
           ) : (
             <div className={collapsedPad}>
@@ -911,12 +938,26 @@ export const Overview = ({
                   activeSegments={activeSegments}
                   onSegmentToggle={handleSegmentToggle}
                   activeRoute={resolvedRoute}
+                  orderArrivalMarkers={orderArrivalMarkers[resolvedRoute]}
                 />
               </div>
             </div>
           );
         })()}
       </div>
+
+      {graph.order_timelines && graph.order_timelines.lines.length > 0 && (
+        <div className={cx(pipelineWrap, pipelineAutoH)}>
+          <div className={collapsedPad}>
+            <CustomerOrdersPanel
+              orderTimelines={graph.order_timelines}
+              batchTimelines={graph.batch_timelines}
+              timeRange={timeRange}
+              excludeOutliers={excludeOutliers}
+            />
+          </div>
+        </div>
+      )}
 
       {selectedStepId && (
         <StepDetailPanel

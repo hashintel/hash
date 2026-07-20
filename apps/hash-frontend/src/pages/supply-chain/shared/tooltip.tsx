@@ -28,7 +28,9 @@ const pillStyles = css({
   px: "2",
   py: "1.5",
   boxShadow: "lg",
-  whiteSpace: "nowrap",
+  maxW: "[min(420px,calc(100vw-16px))]",
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
 });
 
 const TOOLTIP_VIEWPORT_PADDING_PX = 8;

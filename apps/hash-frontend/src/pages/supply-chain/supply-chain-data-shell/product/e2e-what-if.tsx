@@ -16,7 +16,7 @@ import {
 } from "./whatif";
 
 import type { TimeRange } from "../../shared/time-range";
-import type { GraphData } from "../../shared/types";
+import type { GraphData, PipelineOrderMarkers } from "../../shared/types";
 
 interface E2EWhatIfProps {
   graph: GraphData;
@@ -32,6 +32,7 @@ interface E2EWhatIfProps {
    * doesn't reset the selection). */
   activeRoute: string;
   onActiveRouteChange: (route: string) => void;
+  orderArrivalMarkers?: PipelineOrderMarkers;
 }
 
 const MAX_VISIBLE_LEVERS = 5;
@@ -118,6 +119,7 @@ export const E2EWhatIf = ({
   onSegmentToggle,
   activeRoute,
   onActiveRouteChange,
+  orderArrivalMarkers,
 }: E2EWhatIfProps) => {
   const { waccRate, storageCost } = useCostParams();
 
@@ -212,6 +214,7 @@ export const E2EWhatIf = ({
             activeRoute={activeRoute}
             activeSegments={activeSegments}
             onSegmentToggle={onSegmentToggle}
+            orderArrivalMarkers={orderArrivalMarkers}
           />
 
           <div className={callout}>

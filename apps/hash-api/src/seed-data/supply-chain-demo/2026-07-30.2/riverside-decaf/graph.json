@@ -16584,5 +16584,1379 @@
       "total": 100
     }
   },
-  "schema_version": "1.3"
+  "schema_version": "1.3",
+  "order_timelines": {
+    "lines": [
+      {
+        "sales_order": "DEMO-03-0001",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2024-09-09",
+        "delivery_created": "2025-01-03",
+        "dispatch_date": "2025-01-06",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-007069"
+        ],
+        "batch_available": "2024-12-16",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 116,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 119
+      },
+      {
+        "sales_order": "DEMO-03-0001",
+        "so_item": "20",
+        "customer": "Bluebird Markets",
+        "country": "FR",
+        "order_created": "2024-12-22",
+        "delivery_created": "2025-01-02",
+        "dispatch_date": "2025-01-06",
+        "n_deliveries": 1,
+        "order_qty": 400,
+        "delivered_qty": 400,
+        "batches": [
+          "BATCH-007069"
+        ],
+        "batch_available": "2024-12-16",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 11,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 15
+      },
+      {
+        "sales_order": "DEMO-03-0003",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2024-09-03",
+        "delivery_created": "2025-01-11",
+        "dispatch_date": "2025-01-16",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-872783"
+        ],
+        "batch_available": "2024-12-28",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 130,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 135
+      },
+      {
+        "sales_order": "DEMO-03-0005",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-01-08",
+        "delivery_created": "2025-01-20",
+        "dispatch_date": "2025-01-27",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-775611"
+        ],
+        "batch_available": "2025-01-12",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 12,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 19
+      },
+      {
+        "sales_order": "DEMO-03-0007",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2024-10-23",
+        "delivery_created": "2025-01-29",
+        "dispatch_date": "2025-02-07",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-447665"
+        ],
+        "batch_available": "2025-01-23",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 98,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 107
+      },
+      {
+        "sales_order": "DEMO-03-0009",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2024-09-14",
+        "delivery_created": "2025-02-07",
+        "dispatch_date": "2025-02-18",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-863299"
+        ],
+        "batch_available": "2025-02-08",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 146,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 157
+      },
+      {
+        "sales_order": "DEMO-03-0011",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-02-09",
+        "delivery_created": "2025-02-25",
+        "dispatch_date": "2025-03-01",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-242499"
+        ],
+        "batch_available": "2025-02-12",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 16,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 20
+      },
+      {
+        "sales_order": "DEMO-03-0011",
+        "so_item": "20",
+        "customer": "Sunrise Hotels",
+        "country": "ES",
+        "order_created": "2024-09-29",
+        "delivery_created": "2025-02-24",
+        "dispatch_date": "2025-03-01",
+        "n_deliveries": 1,
+        "order_qty": 300,
+        "delivered_qty": 300,
+        "batches": [
+          "BATCH-242499"
+        ],
+        "batch_available": "2025-02-12",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 148,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 153
+      },
+      {
+        "sales_order": "DEMO-03-0013",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2024-11-07",
+        "delivery_created": "2025-03-06",
+        "dispatch_date": "2025-03-12",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-221460"
+        ],
+        "batch_available": "2025-02-20",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 119,
+        "seg_delivery_to_dispatch": 6,
+        "total_days": 125
+      },
+      {
+        "sales_order": "DEMO-03-0015",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2024-10-25",
+        "delivery_created": "2025-03-15",
+        "dispatch_date": "2025-03-23",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-208118"
+        ],
+        "batch_available": "2025-03-03",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 141,
+        "seg_delivery_to_dispatch": 8,
+        "total_days": 149
+      },
+      {
+        "sales_order": "DEMO-03-0017",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-03-07",
+        "delivery_created": "2025-03-24",
+        "dispatch_date": "2025-04-03",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-207730"
+        ],
+        "batch_available": "2025-03-06",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 17,
+        "seg_delivery_to_dispatch": 10,
+        "total_days": 27
+      },
+      {
+        "sales_order": "DEMO-03-0019",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2024-12-24",
+        "delivery_created": "2025-04-11",
+        "dispatch_date": "2025-04-14",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-559161"
+        ],
+        "batch_available": "2025-04-03",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 108,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 111
+      },
+      {
+        "sales_order": "DEMO-03-0021",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2024-11-18",
+        "delivery_created": "2025-04-20",
+        "dispatch_date": "2025-04-25",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-876661"
+        ],
+        "batch_available": "2025-03-26",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 153,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 158
+      },
+      {
+        "sales_order": "DEMO-03-0021",
+        "so_item": "20",
+        "customer": "Atlas Grocers",
+        "country": "US",
+        "order_created": "2025-01-04",
+        "delivery_created": "2025-04-19",
+        "dispatch_date": "2025-04-25",
+        "n_deliveries": 1,
+        "order_qty": 800,
+        "delivered_qty": 800,
+        "batches": [
+          "BATCH-876661"
+        ],
+        "batch_available": "2025-03-26",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 105,
+        "seg_delivery_to_dispatch": 6,
+        "total_days": 111
+      },
+      {
+        "sales_order": "DEMO-03-0023",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-04-13",
+        "delivery_created": "2025-04-29",
+        "dispatch_date": "2025-05-06",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-198568"
+        ],
+        "batch_available": "2025-04-14",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 16,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 23
+      },
+      {
+        "sales_order": "DEMO-03-0025",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-01-20",
+        "delivery_created": "2025-05-07",
+        "dispatch_date": "2025-05-16",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-947566"
+        ],
+        "batch_available": "2025-04-22",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 107,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 116
+      },
+      {
+        "sales_order": "DEMO-03-0027",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-01-14",
+        "delivery_created": "2025-05-16",
+        "dispatch_date": "2025-05-27",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-557064"
+        ],
+        "batch_available": "2025-05-18",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 122,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 133
+      },
+      {
+        "sales_order": "DEMO-03-0029",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-05-17",
+        "delivery_created": "2025-06-03",
+        "dispatch_date": "2025-06-07",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-891817"
+        ],
+        "batch_available": "2025-05-20",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 17,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 21
+      },
+      {
+        "sales_order": "DEMO-03-0031",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-03-18",
+        "delivery_created": "2025-06-12",
+        "dispatch_date": "2025-06-18",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-412722"
+        ],
+        "batch_available": "2025-06-02",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 86,
+        "seg_delivery_to_dispatch": 6,
+        "total_days": 92
+      },
+      {
+        "sales_order": "DEMO-03-0031",
+        "so_item": "20",
+        "customer": "Bluebird Markets",
+        "country": "FR",
+        "order_created": "2025-06-05",
+        "delivery_created": "2025-06-11",
+        "dispatch_date": "2025-06-18",
+        "n_deliveries": 1,
+        "order_qty": 700,
+        "delivered_qty": 700,
+        "batches": [
+          "BATCH-412722"
+        ],
+        "batch_available": "2025-06-02",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 6,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 13
+      },
+      {
+        "sales_order": "DEMO-03-0033",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-02-17",
+        "delivery_created": "2025-06-21",
+        "dispatch_date": "2025-06-29",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-851698"
+        ],
+        "batch_available": "2025-06-12",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 124,
+        "seg_delivery_to_dispatch": 8,
+        "total_days": 132
+      },
+      {
+        "sales_order": "DEMO-03-0035",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-06-22",
+        "delivery_created": "2025-06-30",
+        "dispatch_date": "2025-07-10",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-546123"
+        ],
+        "batch_available": "2025-06-27",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 8,
+        "seg_delivery_to_dispatch": 10,
+        "total_days": 18
+      },
+      {
+        "sales_order": "DEMO-03-0037",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-04-05",
+        "delivery_created": "2025-07-18",
+        "dispatch_date": "2025-07-21",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-386297"
+        ],
+        "batch_available": "2025-07-08",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 104,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 107
+      },
+      {
+        "sales_order": "DEMO-03-0039",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-03-08",
+        "delivery_created": "2025-07-27",
+        "dispatch_date": "2025-08-01",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-627234"
+        ],
+        "batch_available": "2025-07-14",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 141,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 146
+      },
+      {
+        "sales_order": "DEMO-03-0041",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-07-31",
+        "delivery_created": "2025-08-05",
+        "dispatch_date": "2025-08-12",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-404324"
+        ],
+        "batch_available": "2025-08-09",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 5,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 12
+      },
+      {
+        "sales_order": "DEMO-03-0041",
+        "so_item": "20",
+        "customer": "Sunrise Hotels",
+        "country": "ES",
+        "order_created": "2025-04-06",
+        "delivery_created": "2025-08-04",
+        "dispatch_date": "2025-08-12",
+        "n_deliveries": 1,
+        "order_qty": 600,
+        "delivered_qty": 600,
+        "batches": [
+          "BATCH-404324"
+        ],
+        "batch_available": "2025-08-09",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 120,
+        "seg_delivery_to_dispatch": 8,
+        "total_days": 128
+      },
+      {
+        "sales_order": "DEMO-03-0043",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-04-24",
+        "delivery_created": "2025-08-14",
+        "dispatch_date": "2025-08-23",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-243511"
+        ],
+        "batch_available": "2025-08-04",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 112,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 121
+      },
+      {
+        "sales_order": "DEMO-03-0045",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-03-27",
+        "delivery_created": "2025-08-23",
+        "dispatch_date": "2025-09-03",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-043032"
+        ],
+        "batch_available": "2025-08-17",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 149,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 160
+      },
+      {
+        "sales_order": "DEMO-03-0047",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-08-29",
+        "delivery_created": "2025-09-09",
+        "dispatch_date": "2025-09-13",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-302264"
+        ],
+        "batch_available": "2025-09-05",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 11,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 15
+      },
+      {
+        "sales_order": "DEMO-03-0049",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-05-25",
+        "delivery_created": "2025-09-18",
+        "dispatch_date": "2025-09-24",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-804779"
+        ],
+        "batch_available": "2025-08-24",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 116,
+        "seg_delivery_to_dispatch": 6,
+        "total_days": 122
+      },
+      {
+        "sales_order": "DEMO-03-0051",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-04-08",
+        "delivery_created": "2025-09-27",
+        "dispatch_date": "2025-10-05",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-482639"
+        ],
+        "batch_available": "2025-09-05",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 172,
+        "seg_delivery_to_dispatch": 8,
+        "total_days": 180
+      },
+      {
+        "sales_order": "DEMO-03-0051",
+        "so_item": "20",
+        "customer": "Atlas Grocers",
+        "country": "US",
+        "order_created": "2025-06-03",
+        "delivery_created": "2025-09-26",
+        "dispatch_date": "2025-10-05",
+        "n_deliveries": 1,
+        "order_qty": 500,
+        "delivered_qty": 500,
+        "batches": [
+          "BATCH-482639"
+        ],
+        "batch_available": "2025-09-05",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 115,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 124
+      },
+      {
+        "sales_order": "DEMO-03-0053",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-09-29",
+        "delivery_created": "2025-10-06",
+        "dispatch_date": "2025-10-16",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-231165"
+        ],
+        "batch_available": "2025-10-04",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 7,
+        "seg_delivery_to_dispatch": 10,
+        "total_days": 17
+      },
+      {
+        "sales_order": "DEMO-03-0055",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-08-02",
+        "delivery_created": "2025-10-24",
+        "dispatch_date": "2025-10-27",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-750018"
+        ],
+        "batch_available": "2025-10-19",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 83,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 86
+      },
+      {
+        "sales_order": "DEMO-03-0057",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-06-22",
+        "delivery_created": "2025-11-02",
+        "dispatch_date": "2025-11-07",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-155177"
+        ],
+        "batch_available": "2025-10-29",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 133,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 138
+      },
+      {
+        "sales_order": "DEMO-03-0059",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-11-04",
+        "delivery_created": "2025-11-11",
+        "dispatch_date": "2025-11-18",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-753433"
+        ],
+        "batch_available": "2025-11-11",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 7,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 14
+      },
+      {
+        "sales_order": "DEMO-03-0061",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-06-11",
+        "delivery_created": "2025-11-20",
+        "dispatch_date": "2025-11-29",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-521582"
+        ],
+        "batch_available": "2025-09-08",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 162,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 171
+      },
+      {
+        "sales_order": "DEMO-03-0061",
+        "so_item": "20",
+        "customer": "Bluebird Markets",
+        "country": "FR",
+        "order_created": "2025-10-20",
+        "delivery_created": "2025-11-19",
+        "dispatch_date": "2025-11-29",
+        "n_deliveries": 1,
+        "order_qty": 400,
+        "delivered_qty": 400,
+        "batches": [
+          "BATCH-521582"
+        ],
+        "batch_available": "2025-09-08",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 30,
+        "seg_delivery_to_dispatch": 10,
+        "total_days": 40
+      },
+      {
+        "sales_order": "DEMO-03-0063",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-05-18",
+        "delivery_created": "2025-11-29",
+        "dispatch_date": "2025-12-10",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-276962"
+        ],
+        "batch_available": "2025-10-08",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 195,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 206
+      },
+      {
+        "sales_order": "DEMO-03-0065",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-10-28",
+        "delivery_created": "2025-12-17",
+        "dispatch_date": "2025-12-21",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-679445"
+        ],
+        "batch_available": "2025-10-09",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 50,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 54
+      },
+      {
+        "sales_order": "DEMO-03-0067",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-07-25",
+        "delivery_created": "2025-12-26",
+        "dispatch_date": "2026-01-01",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-320907"
+        ],
+        "batch_available": "2025-10-03",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 154,
+        "seg_delivery_to_dispatch": 6,
+        "total_days": 160
+      },
+      {
+        "sales_order": "DEMO-03-0069",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-06-17",
+        "delivery_created": "2026-01-03",
+        "dispatch_date": "2026-01-11",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-119167"
+        ],
+        "batch_available": "2025-11-08",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 200,
+        "seg_delivery_to_dispatch": 8,
+        "total_days": 208
+      },
+      {
+        "sales_order": "DEMO-03-0071",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-12-09",
+        "delivery_created": "2026-01-12",
+        "dispatch_date": "2026-01-22",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-315004"
+        ],
+        "batch_available": "2025-11-26",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 34,
+        "seg_delivery_to_dispatch": 10,
+        "total_days": 44
+      },
+      {
+        "sales_order": "DEMO-03-0071",
+        "so_item": "20",
+        "customer": "Sunrise Hotels",
+        "country": "ES",
+        "order_created": "2025-08-06",
+        "delivery_created": "2026-01-11",
+        "dispatch_date": "2026-01-22",
+        "n_deliveries": 1,
+        "order_qty": 300,
+        "delivered_qty": 300,
+        "batches": [
+          "BATCH-315004"
+        ],
+        "batch_available": "2025-11-26",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 158,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 169
+      },
+      {
+        "sales_order": "DEMO-03-0073",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-08-15",
+        "delivery_created": "2026-01-30",
+        "dispatch_date": "2026-02-02",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-006984"
+        ],
+        "batch_available": "2025-11-09",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 168,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 171
+      },
+      {
+        "sales_order": "DEMO-03-0075",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-07-14",
+        "delivery_created": "2026-02-08",
+        "dispatch_date": "2026-02-13",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-885445"
+        ],
+        "batch_available": "2025-11-16",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 209,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 214
+      },
+      {
+        "sales_order": "DEMO-03-0077",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-12-24",
+        "delivery_created": "2026-02-17",
+        "dispatch_date": "2026-02-24",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-990714"
+        ],
+        "batch_available": "2025-11-30",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 55,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 62
+      },
+      {
+        "sales_order": "DEMO-03-0079",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-09-22",
+        "delivery_created": "2026-02-26",
+        "dispatch_date": "2026-03-07",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-080863"
+        ],
+        "batch_available": "2025-12-25",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 157,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 166
+      },
+      {
+        "sales_order": "DEMO-03-0081",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-09-19",
+        "delivery_created": "2026-03-07",
+        "dispatch_date": "2026-03-18",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-997425"
+        ],
+        "batch_available": "2026-01-24",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 169,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 180
+      },
+      {
+        "sales_order": "DEMO-03-0081",
+        "so_item": "20",
+        "customer": "Atlas Grocers",
+        "country": "US",
+        "order_created": "2025-11-04",
+        "delivery_created": "2026-03-15",
+        "dispatch_date": "2026-03-18",
+        "n_deliveries": 1,
+        "order_qty": 800,
+        "delivered_qty": 800,
+        "batches": [
+          "BATCH-997425"
+        ],
+        "batch_available": "2026-01-24",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 131,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 134
+      },
+      {
+        "sales_order": "DEMO-03-0083",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2026-01-29",
+        "delivery_created": "2026-03-25",
+        "dispatch_date": "2026-03-29",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-029240"
+        ],
+        "batch_available": "2026-01-07",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 55,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 59
+      },
+      {
+        "sales_order": "DEMO-03-0085",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-11-10",
+        "delivery_created": "2026-04-03",
+        "dispatch_date": "2026-04-09",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-563928"
+        ],
+        "batch_available": "2026-01-23",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 144,
+        "seg_delivery_to_dispatch": 6,
+        "total_days": 150
+      },
+      {
+        "sales_order": "DEMO-03-0087",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-10-09",
+        "delivery_created": "2026-04-12",
+        "dispatch_date": "2026-04-20",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-786903"
+        ],
+        "batch_available": "2026-03-12",
+        "fulfilment": "awaited_production",
+        "mto_pegged": true,
+        "seg_order_to_delivery": 185,
+        "seg_delivery_to_dispatch": 8,
+        "total_days": 193
+      },
+      {
+        "sales_order": "DEMO-03-0089",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2026-03-06",
+        "delivery_created": "2026-04-21",
+        "dispatch_date": "2026-05-01",
+        "n_deliveries": 1,
+        "order_qty": 550,
+        "delivered_qty": 550,
+        "batches": [
+          "BATCH-341567"
+        ],
+        "batch_available": "2026-02-13",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 46,
+        "seg_delivery_to_dispatch": 10,
+        "total_days": 56
+      },
+      {
+        "sales_order": "DEMO-03-0091",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-12-28",
+        "delivery_created": "2026-05-08",
+        "dispatch_date": "2026-05-11",
+        "n_deliveries": 1,
+        "order_qty": 650,
+        "delivered_qty": 650,
+        "batches": [
+          "BATCH-322485"
+        ],
+        "batch_available": "2026-03-25",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 131,
+        "seg_delivery_to_dispatch": 3,
+        "total_days": 134
+      },
+      {
+        "sales_order": "DEMO-03-0091",
+        "so_item": "20",
+        "customer": "Bluebird Markets",
+        "country": "FR",
+        "order_created": "2026-04-15",
+        "delivery_created": "2026-05-07",
+        "dispatch_date": "2026-05-11",
+        "n_deliveries": 1,
+        "order_qty": 700,
+        "delivered_qty": 700,
+        "batches": [
+          "BATCH-322485"
+        ],
+        "batch_available": "2026-03-25",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 22,
+        "seg_delivery_to_dispatch": 4,
+        "total_days": 26
+      },
+      {
+        "sales_order": "DEMO-03-0093",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-11-11",
+        "delivery_created": "2026-05-17",
+        "dispatch_date": "2026-05-22",
+        "n_deliveries": 1,
+        "order_qty": 750,
+        "delivered_qty": 750,
+        "batches": [
+          "BATCH-219665"
+        ],
+        "batch_available": "2026-03-30",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 187,
+        "seg_delivery_to_dispatch": 5,
+        "total_days": 192
+      },
+      {
+        "sales_order": "DEMO-03-0095",
+        "so_item": "10",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2026-04-08",
+        "delivery_created": "2026-05-26",
+        "dispatch_date": "2026-06-02",
+        "n_deliveries": 1,
+        "order_qty": 250,
+        "delivered_qty": 250,
+        "batches": [
+          "BATCH-311884"
+        ],
+        "batch_available": "2026-03-19",
+        "fulfilment": "from_stock",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 48,
+        "seg_delivery_to_dispatch": 7,
+        "total_days": 55
+      },
+      {
+        "sales_order": "DEMO-03-0097",
+        "so_item": "10",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2026-01-12",
+        "delivery_created": "2026-06-04",
+        "dispatch_date": "2026-06-13",
+        "n_deliveries": 1,
+        "order_qty": 350,
+        "delivered_qty": 350,
+        "batches": [
+          "BATCH-718060"
+        ],
+        "batch_available": "2026-04-12",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 143,
+        "seg_delivery_to_dispatch": 9,
+        "total_days": 152
+      },
+      {
+        "sales_order": "DEMO-03-0099",
+        "so_item": "10",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-11-17",
+        "delivery_created": "2026-06-13",
+        "dispatch_date": "2026-06-24",
+        "n_deliveries": 1,
+        "order_qty": 450,
+        "delivered_qty": 450,
+        "batches": [
+          "BATCH-136204"
+        ],
+        "batch_available": "2026-04-15",
+        "fulfilment": "awaited_production",
+        "mto_pegged": false,
+        "seg_order_to_delivery": 208,
+        "seg_delivery_to_dispatch": 11,
+        "total_days": 219
+      }
+    ],
+    "open_lines": 8,
+    "open_order_created_dates": [
+      "2026-06-14",
+      "2026-06-05",
+      "2026-05-27",
+      "2026-05-18",
+      "2026-05-09",
+      "2026-04-30",
+      "2026-04-21",
+      "2026-04-12"
+    ],
+    "observed_as_of": "2026-07-16",
+    "detail_columns": [
+      {
+        "key": "sales_order",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Sales Order"
+      },
+      {
+        "key": "so_item",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Item"
+      },
+      {
+        "key": "customer",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Customer"
+      },
+      {
+        "key": "country",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Country"
+      },
+      {
+        "key": "order_created",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Order Created"
+      },
+      {
+        "key": "delivery_created",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Delivery Created"
+      },
+      {
+        "key": "dispatch_date",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Goods Issue (last)"
+      },
+      {
+        "key": "n_deliveries",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Deliveries"
+      },
+      {
+        "key": "order_qty",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Order Qty"
+      },
+      {
+        "key": "delivered_qty",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Delivered Qty"
+      },
+      {
+        "key": "batch_available",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Batch Available"
+      },
+      {
+        "key": "fulfilment",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Fulfilment Source"
+      },
+      {
+        "key": "mto_pegged",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "MTO Pegged"
+      },
+      {
+        "key": "seg_order_to_delivery",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Order \u2192 Delivery Created (days)"
+      },
+      {
+        "key": "seg_delivery_to_dispatch",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Delivery Created \u2192 Goods Issue (days)"
+      },
+      {
+        "key": "total_days",
+        "source_field": null,
+        "source_table": "Synthetic demo",
+        "label": "Total (Order \u2192 Goods Issue, days)"
+      }
+    ]
+  }
 }

@@ -64,10 +64,20 @@ function segStats(
       : upper;
   const p25 = values[Math.floor(values.length * 0.25)];
   const p75 = values[Math.floor(values.length * 0.75)];
-  if (p25 === undefined || p75 === undefined) {
+  const p95 =
+    values[Math.min(Math.floor(values.length * 0.95), values.length - 1)];
+  if (p25 === undefined || p75 === undefined || p95 === undefined) {
     throw new Error("Segment statistics percentile value missing");
   }
-  return { label: "", mean, median, p25, p75, n: values.length };
+  return {
+    label: "",
+    mean,
+    median,
+    p25,
+    p75,
+    p95,
+    n: values.length,
+  };
 }
 
 /** Pipeline stages in display order: segment key, label, and step type. */

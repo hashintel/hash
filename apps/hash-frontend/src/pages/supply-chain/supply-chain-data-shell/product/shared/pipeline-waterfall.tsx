@@ -3,7 +3,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { formatNumber } from "../../../shared/cost";
 import { Tooltip } from "../../../shared/tooltip";
 
-import type { PipelineSummary, PipelineStage } from "../../../shared/types";
+import type {
+  PipelineOrderMarker,
+  PipelineOrderMarkers,
+  PipelineSummary,
+  PipelineStage,
+} from "../../../shared/types";
 import type { SegmentId } from "../whatif";
 
 const wrap = css({
@@ -81,6 +86,13 @@ const barRowBase = css({
   alignItems: "stretch",
   minW: "0",
 });
+const barTrack = css({
+  position: "relative",
+  display: "flex",
+  gap: "1",
+  flex: "1",
+  minW: "0",
+});
 const barTall = css({ h: "10" });
 const barShort = css({ h: "7" });
 const labelBoxBase = css({
@@ -137,6 +149,29 @@ const segValue = css({
   color: "[white]",
   whiteSpace: "nowrap",
 });
+const orderMarker = css({
+  position: "absolute",
+  top: "[50%]",
+  w: "3",
+  h: "3",
+  bg: "fg.max",
+  borderWidth: "2px",
+  borderStyle: "solid",
+  borderColor: "bgSolid.min",
+  boxShadow: "sm",
+  zIndex: "[10]",
+  cursor: "help",
+  transform: "translate(-50%, -50%) rotate(45deg)",
+});
+const orderLegendSwatch = css({
+  w: "2.5",
+  h: "2.5",
+  bg: "fg.max",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bgSolid.min",
+  transform: "rotate(45deg)",
+});
 
 interface PipelineWaterfallProps {
   summaries: Record<string, PipelineSummary>;
@@ -152,6 +187,10 @@ interface PipelineWaterfallProps {
   simulatedStagesMedian?: PipelineStage[];
   /** When true, render at the larger size suited to the expanded panel. */
   expanded?: boolean;
+  /** Render P75 and P95 rows when stages carry percentile values. */
+  showPercentileRows?: boolean;
+  /** Customer-order creation positions to overlay on mean/median rows. */
+  orderArrivalMarkers?: PipelineOrderMarkers;
   /**
    * Which pipeline segments are currently included. Omitted = all four
    * active (non-interactive behaviour).
@@ -169,6 +208,8 @@ const SEGMENT_COLORS: Record<string, string> = {
   production: "#9797fe",
   qa_hold: "#c3a8e6",
   transit: "#ff9c5e",
+  order_wait: "#5eb98a",
+  fulfilment: "#e6b34a",
 };
 
 const PipelineBar = ({
@@ -178,13 +219,15 @@ const PipelineBar = ({
   metric,
   tall = false,
   dashed = false,
+  marker,
 }: {
   label: string;
   stages: PipelineStage[];
   total: number;
-  metric: "mean" | "median";
+  metric: "mean" | "median" | "p75" | "p95";
   tall?: boolean;
   dashed?: boolean;
+  marker?: PipelineOrderMarker;
 }) => {
   if (total <= 0) {
     return null;
@@ -205,44 +248,72 @@ const PipelineBar = ({
           </span>
         </span>
       </div>
-      {stages.map((stage) => {
-        const value = stage[metric];
-        if (value <= 0) {
-          return null;
-        }
-        const pct = (value / total) * 100;
-        const color = SEGMENT_COLORS[stage.type] ?? "#94a3b8";
-        const tooltipContent = (
-          <>
-            {stage.label}: {formatNumber(value, { maximumFractionDigits: 0 })}d{" "}
-            {metric}
-            {stage.n != null ? ` (n=${formatNumber(stage.n)})` : ""}
-          </>
-        );
-
-        return (
+      <div className={barTrack}>
+        {stages.map((stage) => {
+          const value = stage[metric] ?? 0;
+          if (value <= 0) {
+            return null;
+          }
+          const pct = (value / total) * 100;
+          const color = SEGMENT_COLORS[stage.type] ?? "#94a3b8";
+          const tooltipContent = (
+            <>
+              {stage.label}: {formatNumber(value, { maximumFractionDigits: 0 })}
+              d {metric}
+              {stage.n != null ? ` (n=${formatNumber(stage.n)})` : ""}
+            </>
+          );
+          return (
+            <Tooltip
+              key={stage.id}
+              content={tooltipContent}
+              delayMs={0}
+              wrapperClassName={cx(
+                segWrapBase,
+                dashed ? segWrapDashed : undefined,
+              )}
+              wrapperStyle={{
+                flex: `${pct} 1 0%`,
+                minWidth: "16px",
+                backgroundColor: color,
+              }}
+            >
+              {pct > 4 && (
+                <span className={segValue}>
+                  {formatNumber(value, { maximumFractionDigits: 0 })}d
+                </span>
+              )}
+            </Tooltip>
+          );
+        })}
+        {marker && (
           <Tooltip
-            key={stage.id}
-            content={tooltipContent}
+            content={
+              <>
+                {metric === "mean" ? "Mean" : "Median"} order:{" "}
+                {formatNumber(marker.daysBeforeGoodsIssue, {
+                  maximumFractionDigits: 0,
+                })}
+                d before goods issue · n={formatNumber(marker.n)}{" "}
+                {marker.routeLabel} order lines
+                {marker.totalOrderLines !== marker.n
+                  ? ` · ${formatNumber(marker.totalOrderLines)} across all routes`
+                  : ""}
+                {marker.beforeVisibleCount > 0
+                  ? ` · ${formatNumber(marker.beforeVisibleCount)} before visible trace`
+                  : ""}
+              </>
+            }
             delayMs={0}
-            wrapperClassName={cx(
-              segWrapBase,
-              dashed ? segWrapDashed : undefined,
-            )}
+            wrapperClassName={orderMarker}
             wrapperStyle={{
-              flex: `${pct} 1 0%`,
-              minWidth: "16px",
-              backgroundColor: color,
+              left: `${Math.min(Math.max(marker.positionPct, 1), 99)}%`,
             }}
           >
-            {pct > 4 && (
-              <span className={segValue}>
-                {formatNumber(value, { maximumFractionDigits: 0 })}d
-              </span>
-            )}
+            <span aria-label="Customer order created" />
           </Tooltip>
-        );
-      })}
+        )}
+      </div>
     </div>
   );
 };
@@ -252,6 +323,8 @@ export const PipelineWaterfall = ({
   simulatedStagesMean,
   simulatedStagesMedian,
   expanded = false,
+  showPercentileRows = false,
+  orderArrivalMarkers,
   activeSegments,
   onSegmentToggle,
 }: PipelineWaterfallProps) => {
@@ -265,7 +338,10 @@ export const PipelineWaterfall = ({
     !activeSegments || activeSegments.has(type as SegmentId);
   const stages = allStages.filter((step) => isSegmentActive(step.type));
   const totalMean = stages.reduce((acc, step) => acc + step.mean, 0);
-  const totalMedian = stages.reduce((acc, step) => acc + step.median, 0); // Filter simulated stages the same way so the dashed overlay matches
+  const totalMedian = stages.reduce((acc, step) => acc + step.median, 0);
+  const totalP75 = stages.reduce((acc, step) => acc + (step.p75 ?? 0), 0);
+  const totalP95 = stages.reduce((acc, step) => acc + (step.p95 ?? 0), 0);
+  // Filter simulated stages the same way so the dashed overlay matches
   // the visible baseline composition exactly.
   const simStagesMean = simulatedStagesMean?.filter((step) =>
     isSegmentActive(step.type),
@@ -294,6 +370,7 @@ export const PipelineWaterfall = ({
             total={totalMean}
             metric="mean"
             tall={expanded}
+            marker={orderArrivalMarkers?.mean}
           />
 
           <PipelineBar
@@ -302,7 +379,27 @@ export const PipelineWaterfall = ({
             total={totalMedian}
             metric="median"
             tall={expanded}
+            marker={orderArrivalMarkers?.median}
           />
+
+          {showPercentileRows && totalP75 > 0 && (
+            <PipelineBar
+              label="P75"
+              stages={stages}
+              total={totalP75}
+              metric="p75"
+              tall={expanded}
+            />
+          )}
+          {showPercentileRows && totalP95 > 0 && (
+            <PipelineBar
+              label="P95"
+              stages={stages}
+              total={totalP95}
+              metric="p95"
+              tall={expanded}
+            />
+          )}
 
           {simStagesMean && simMeanTotal > 0 && (
             <PipelineBar
@@ -379,6 +476,13 @@ export const PipelineWaterfall = ({
             <span className={simLabel}>Simulated</span>
           </div>
         )}
+        {orderArrivalMarkers &&
+          (orderArrivalMarkers.mean || orderArrivalMarkers.median) && (
+            <div className={legendStatic}>
+              <div className={orderLegendSwatch} />
+              <span className={legendLabelActive}>Customer order created</span>
+            </div>
+          )}
       </div>
     </div>
   );
