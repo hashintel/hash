@@ -151,7 +151,6 @@ const parametersFadeStyle = cva({
 const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1.5",
   overflowY: "auto",
   flex: "[1]",
   minHeight: "[0]",
@@ -160,16 +159,20 @@ const parametersListStyle = css({
   paddingBottom: "3",
 });
 
+// Plain rows separated by hairline dividers, matching the sidebar's
+// parameter list, rather than card-like boxes.
 const parameterRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "4",
   maxWidth: "[480px]",
-  paddingY: "1.5",
-  paddingX: "2.5",
-  backgroundColor: "neutral.bg.min.active",
-  borderRadius: "sm",
+  paddingY: "2",
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.a20",
+  "&:last-child": {
+    borderBottomWidth: "[0]",
+  },
 });
 
 const parameterNameStyle = css({
@@ -422,23 +425,16 @@ const SimulationSettingsContent: React.FC = () => {
       <div className={containerStyle}>
         {/* Parameters Section */}
         <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>
-            {selectedScenario ? "Scenario Parameters" : "Parameters"}
-          </div>
+          <div className={sectionTitleStyle}>Parameters</div>
           {displayParams.length > 0 ? (
             <ParametersScrollArea>
               {displayParams.map((param) => (
                 <div key={param.key} className={parameterRowStyle}>
                   <div>
                     <div className={parameterNameStyle}>{param.name}</div>
-                    {/* Scenario parameters are identified by their variable
-                        name alone — only show the subtitle when it adds
-                        information over the display name. */}
-                    {param.variableName !== param.name && (
-                      <div className={parameterVarNameStyle}>
-                        {param.variableName}
-                      </div>
-                    )}
+                    <div className={parameterVarNameStyle}>
+                      {param.variableName}
+                    </div>
                   </div>
                   {param.type === "boolean" ? (
                     <Toggle
