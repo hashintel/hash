@@ -62,15 +62,22 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  gap: "[8px]",
   padding: "[6px]",
   flexShrink: 0,
 });
 
+/**
+ * High flex-shrink so the header actions give up slack before the tabs do:
+ * in practice only the Timeline metric picker can shrink (down to its
+ * min-width) — every other control bottoms out at its content size — after
+ * which remaining deficit compresses the tabs.
+ */
 const headerRightStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
-  flexShrink: 0,
+  flexShrink: "[10]",
 });
 
 const getBottomPanelSubViews = ({

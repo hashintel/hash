@@ -33,6 +33,23 @@ const metricPickerLabelStyle = css({
   flexShrink: 0,
 });
 
+/**
+ * Sized wrapper for the metric Select: 240px when there is room, shrinking
+ * down to a floor when the panel gets narrow. The inner select box insists on
+ * min-content width by default, which would make long metric names overflow
+ * the wrapper — override it so the trigger truncates instead.
+ */
+const metricPickerWrapperStyle = css({
+  // flex-basis rather than width: a specified width would also become the
+  // wrapper's min-content contribution, preventing the header from ever
+  // shrinking it toward its min-width.
+  flexBasis: "[240px]",
+  minWidth: "[140px]",
+  "& > div > div": {
+    minWidth: "[0]",
+  },
+});
+
 // Sentinel values for the native views in the picker. Metric ids are UUIDs
 // (or `metric__*` in examples) so these cannot collide.
 const PER_PLACE_VALUE = "__per_place__";
@@ -118,14 +135,15 @@ const TimelineViewPicker: React.FC = () => {
   return (
     <>
       <span className={metricPickerLabelStyle}>Metric</span>
-      <Select
-        size="xs"
-        width="sm"
-        required
-        value={selectedValue}
-        items={options}
-        onChange={(value) => setTimelineView(selectValueToView(value))}
-      />
+      <div className={metricPickerWrapperStyle}>
+        <Select
+          size="xs"
+          required
+          value={selectedValue}
+          items={options}
+          onChange={(value) => setTimelineView(selectValueToView(value))}
+        />
+      </div>
       <div style={{ display: "flex" }}>
         {selectedMetric && (
           <Button
