@@ -68,7 +68,6 @@ const scrollContainerStyle = css({
   minHeight: "[0]",
   display: "flex",
   flexDirection: "column",
-  paddingBottom: "3",
 });
 
 const panelContentStyle = css({
@@ -77,10 +76,13 @@ const panelContentStyle = css({
   minHeight: "[0]",
   display: "flex",
   flexDirection: "column",
-  // No vertical padding on the scroll container — it would create a gap above
+  // No top padding on the scroll container — it would create a gap above
   // sticky section headers (which would pin below the gap). The first sticky
-  // header owns its own top spacing.
+  // header owns its own top spacing. Bottom padding is fine: it scrolls with
+  // the content, so short views keep a clean inset while overflowing views
+  // scroll through the section's full height.
   px: "4",
+  pb: "3",
 });
 
 const SHADOW_HEIGHT = 7;
