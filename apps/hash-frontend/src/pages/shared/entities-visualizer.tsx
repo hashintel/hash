@@ -366,7 +366,10 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [entitiesData]);
 
   useEffect(() => {
-    if (availableTypesLoading) {
+    // An errored summary yields EMPTY available types — that is ignorance, not
+    // knowledge that the selected types are gone. Pruning against it would wipe
+    // the selection whose explicit type clause keeps the page working.
+    if (availableTypesLoading || typeUniverseError) {
       return;
     }
 
@@ -433,6 +436,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     isTypePinned,
     propertyFilterData,
     setFilterState,
+    typeUniverseError,
   ]);
 
   const isDisplayingFilesOnly = useMemo(
@@ -571,6 +575,14 @@ export const EntitiesVisualizer: FunctionComponent<{
     setSelectedTableRows([]);
   }, [entitiesData]);
 
+  // The universe only feeds the default view — with a pinned type or an
+  // explicit selection the main query runs on its own type clause, so a failed
+  // summary must not blank results that still load.
+  const typeUniverseBlocksResults =
+    !!typeUniverseError &&
+    !isTypePinned &&
+    filterState.type.selectedTypeIds === null;
+
   const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
 
   const { totalResultCount } = visualizerData;
@@ -618,7 +630,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
-      {typeUniverseError ? (
+      {typeUniverseBlocksResults ? (
         <Stack
           gap={2}
           sx={[
