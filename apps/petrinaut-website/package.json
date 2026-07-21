@@ -7,11 +7,13 @@
     "brunch:fixture": "node --experimental-strip-types scripts/brunch-sse-fixture.ts",
     "build": "vite build",
     "dev": "vite",
+    "dev:optimization": "node scripts/optimization-dev.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
@@ -19,6 +21,7 @@
     "@hashintel/ds-helpers": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
+    "@local/petrinaut-optimizer-client": "workspace:*",
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.11.1",
     "@sentry/react": "10.64.0",
@@ -40,6 +43,7 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.34.5",
-    "vite": "8.1.0"
+    "vite": "8.1.0",
+    "vitest": "4.1.8"
   }
 }

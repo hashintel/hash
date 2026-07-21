@@ -19,7 +19,7 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario. |
 | **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start.                                                                                     |
 | **Runs**                | `1000`                            | Positive integer; how many independent simulations to run.                                                                                                                                                         |
-| **Time step (dt)**      | `1`                               | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
+| **Time step (dt)**      | `0.1`                             | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
 | **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
 
 The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
@@ -72,3 +72,7 @@ Experiments and the bottom-bar **Play** controls are independent systems:
 You can press Play in Edit mode while experiments are running in the background, and switching to Simulate mode does not stop them.
 
 Changing the net while an experiment is running does **not** retroactively affect that experiment -- it captured its model snapshot when you pressed Run.
+
+Experiments and [optimizations](optimization.md) are separate workflows.
+Experiments aggregate many runs of one fixed configuration; optimizations vary
+selected scenario parameters to improve one objective metric.

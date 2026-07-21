@@ -17,11 +17,13 @@ import {
   type HostNetMode,
   nextRequestId,
   type PetrinautAiMessage,
+  type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
 import { createBridgeAiChatTransport } from "./create-bridge-ai-transport";
+import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 import { VersionPicker } from "./version-picker";
 
 /**
@@ -78,6 +80,8 @@ const computeIsDirty = (
 export const EmbedContent = () => {
   const [state, setState] = useState<EditorState | null>(null);
   const [revisions, setRevisions] = useState<RevisionSummary[]>([]);
+  const [hostCapabilities, setHostCapabilities] =
+    useState<PetrinautHostCapabilities | null>(null);
   const [pendingSaveRequestId, setPendingSaveRequestId] = useState<
     string | null
   >(null);
@@ -151,6 +155,7 @@ export const EmbedContent = () => {
     onSetReadonly: (readonly) => {
       setState((prev) => (prev ? { ...prev, readonly } : prev));
     },
+    onSetCapabilities: setHostCapabilities,
     onRevisionsList: (incoming) => {
       setRevisions(incoming);
     },
@@ -365,23 +370,27 @@ export const EmbedContent = () => {
 
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
-      <Petrinaut
-        aiAssistant={{
-          transport: aiChatTransport,
-          messages: state.aiMessages,
-          onMessages: handleAiMessages,
-          onClearMessages: handleClearAiMessages,
-        }}
-        handle={state.handle}
-        createNewNet={noNetSwitchingError}
-        existingNets={[]}
-        hideNetManagementControls="except-title"
-        loadPetriNet={noNetSwitchingError}
-        readonly={state.readonly}
-        setTitle={handleSetTitle}
-        slots={slots}
-        title={state.title}
-      />
+      <HASHPetrinautOptimizationProvider
+        enabled={hostCapabilities?.optimization === true}
+      >
+        <Petrinaut
+          aiAssistant={{
+            transport: aiChatTransport,
+            messages: state.aiMessages,
+            onMessages: handleAiMessages,
+            onClearMessages: handleClearAiMessages,
+          }}
+          handle={state.handle}
+          createNewNet={noNetSwitchingError}
+          existingNets={[]}
+          hideNetManagementControls="except-title"
+          loadPetriNet={noNetSwitchingError}
+          readonly={state.readonly}
+          setTitle={handleSetTitle}
+          slots={slots}
+          title={state.title}
+        />
+      </HASHPetrinautOptimizationProvider>
     </Box>
   );
 };

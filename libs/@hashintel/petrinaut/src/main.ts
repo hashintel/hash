@@ -1,5 +1,7 @@
 export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
+export type { PetrinautOptimization } from "./react/optimization-context";
+export { PetrinautOptimizationContext } from "./react/optimization-context";
 
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type { ViewportAction } from "./ui/types/viewport-action";
