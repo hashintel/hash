@@ -2,8 +2,10 @@
  * Reader for the SALTILE deterministic CBOR subset (normative profile:
  * `SPEC-ADDENDUM-WIRE.md` section 4). The profile restricts RFC 8949
  * deterministic encoding further: definite lengths only, unsigned
- * integer map keys in strictly ascending order, no tags, floats always
- * IEEE 754 single precision.
+ * integer map keys in strictly ascending order, no tags, and floats
+ * IEEE 754 single precision (geometry and HEAD scalars) or double
+ * precision (locate trailer property values, WIRE 6b) — half precision
+ * is rejected.
  *
  * Byte strings decode to views over the input buffer, never copies.
  * Text strings decode through one fatal TextDecoder pass, so invalid
@@ -209,10 +211,17 @@ class Reader {
             this.#offset += 4;
             return value;
           }
-          case 25:
           case 27: {
+            if (this.#offset + 8 > this.#bytes.length) {
+              return this.#fail("payload ends inside a float", this.#offset);
+            }
+            const value = this.#view.getFloat64(this.#offset, false);
+            this.#offset += 8;
+            return value;
+          }
+          case 25: {
             return this.#fail(
-              "floats must be IEEE 754 single precision",
+              "half-precision floats are outside the profile",
               headOffset,
             );
           }

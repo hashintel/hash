@@ -57,11 +57,22 @@ export const EdgesSlot = {
   RowIds: 3,
 } as const;
 
+/** Locate slot table (v1). */
+export const LocateSlot = {
+  Head: 0,
+  Positions: 1,
+  RowIds: 2,
+  TypeMask: 3,
+  EdgeSources: 4,
+  EdgeTargets: 5,
+  EdgeRowIds: 6,
+} as const;
+
 /** Minimum slotCount per kind: the v1 table sizes. */
 const minimumSlots: Readonly<Record<SaltileKind, number>> = {
   tile: 5,
   edges: 4,
-  locate: 1,
+  locate: 7,
 };
 
 /** Tile delivery mode carried by the HEAD. */

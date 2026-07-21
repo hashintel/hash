@@ -3,6 +3,13 @@ export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
 export { iconNameFromEntityIcon } from "./components/Chart/NetworkGraph/fixtures/entity-icon-name";
+export {
+  type LocatedEntityDetail,
+  LocatedEntityPopover,
+  type LocatedEntityPopoverAnchor,
+  type LocatedEntityPopoverProps,
+  type LocatedEntityProperty,
+} from "./components/Chart/NetworkGraph/located-entity-popover";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {
   NetworkGraph,
@@ -16,6 +23,14 @@ export {
   type NetworkGraphProps,
   type NetworkGraphSelection,
 } from "./components/Chart/NetworkGraph/network-graph";
+export {
+  fetchLocate,
+  type FetchLocateOptions,
+  type LocatedEntity,
+  type LocateEdge,
+  type LocateNode,
+  type SaltilePropertyValue,
+} from "./components/Chart/NetworkGraph/tiling/fetch-locate";
 export {
   type EdgesFetcher,
   type TileFetcher,
