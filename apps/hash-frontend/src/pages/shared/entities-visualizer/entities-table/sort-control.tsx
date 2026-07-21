@@ -22,7 +22,9 @@ type SortControlProps = {
 };
 
 /**
- * @todo FE-1213 re-enable property sorting once properties are indexed
+ * Property columns are deliberately omitted: sorting by a property compiles
+ * to an unindexed ORDER BY on the JSONB properties column in the graph.
+ * Property sorting can be re-enabled once properties are indexed.
  */
 const sortOptions: {
   columnKey: SortableEntitiesTableColumnKey;
