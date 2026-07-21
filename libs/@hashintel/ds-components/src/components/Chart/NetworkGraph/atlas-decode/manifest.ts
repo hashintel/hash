@@ -22,7 +22,6 @@ export interface AtlasCurrent {
 export interface AtlasLimits {
   readonly coloredTypeIds: number;
   readonly edgesTiles: number;
-  readonly locateNeighbours: number;
 }
 
 /** Immutable per-generation manifest. */
@@ -132,12 +131,7 @@ export const parseManifest = (
   }
   const coloredTypeIds = field(limits, "coloredTypeIds");
   const edgesTiles = field(limits, "edgesTiles");
-  const locateNeighbours = field(limits, "locateNeighbours");
-  if (
-    !isUintValue(coloredTypeIds) ||
-    !isUintValue(edgesTiles) ||
-    !isUintValue(locateNeighbours)
-  ) {
+  if (!isUintValue(coloredTypeIds) || !isUintValue(edgesTiles)) {
     return contractFail("manifest limits are malformed");
   }
   const createdAt = field(manifest, "createdAt");
@@ -149,7 +143,7 @@ export const parseManifest = (
     wireVersion,
     variants,
     bucketSchedule: { span, cut, maxZoom },
-    limits: { coloredTypeIds, edgesTiles, locateNeighbours },
+    limits: { coloredTypeIds, edgesTiles },
     createdAt,
   };
 };

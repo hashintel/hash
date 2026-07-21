@@ -1,28 +1,23 @@
 //! Wall-time and hardware-counter benchmarks for the math kernels.
 //!
-//! Every benchmark pairs a SIMD kernel with the scalar formulation it
-//! replaces, so the vectorization claims in the module docs stay tied to
-//! measured numbers rather than emitted-assembly inspection alone.
+//! Every benchmark pairs a SIMD kernel with the scalar formulation it replaces, so the
+//! vectorization claims in the module docs stay tied to measured numbers rather than
+//! emitted-assembly inspection alone.
 //!
-//! The hardware event defaults to retired instructions and is selected
-//! with `MATH_BENCH_EVENT`: `instructions`, `cycles`,
-//! `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls`
-//! (cycles the scheduler issued nothing because execution was
-//! waiting, the direct view of dependency-chain latency), or
-//! `simd-instructions` (retired vector ALU operations, loop
-//! scaffolding filtered out); `wall-time` selects criterion's default
-//! wall-clock measurement instead, which needs no elevated
-//! privileges. Each event saves its own criterion baseline, so
-//! run-over-run change reports compare like with like. Instruction counts are stable across runs
-//! but blind to instruction-level parallelism; confirm a winner in `cycles` before
-//! acting on close calls, and weigh instruction counts higher for kernels
-//! that run fused inside larger loops, where issue slots are the shared
+//! The hardware event defaults to retired instructions and is selected with `MATH_BENCH_EVENT`:
+//! `instructions`, `cycles`, `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls` (cycles
+//! the scheduler issued nothing because execution was waiting, the direct view of dependency-chain
+//! latency), or `simd-instructions` (retired vector ALU operations, loop scaffolding filtered out);
+//! `wall-time` selects criterion's default wall-clock measurement instead, which needs no elevated
+//! privileges. Each event saves its own criterion baseline, so run-over-run change reports compare
+//! like with like. Instruction counts are stable across runs but blind to instruction-level
+//! parallelism; confirm a winner in `cycles` before acting on close calls, and weigh instruction
+//! counts higher for kernels that run fused inside larger loops, where issue slots are the shared
 //! resource.
 //!
-//! Counters attribute to the calling thread only: rayon-parallel
-//! benchmarks under-report every event because the workers' counts are
-//! invisible. Read parallel entries as coordination overhead, not as the
-//! work itself.
+//! Counters attribute to the calling thread only: rayon-parallel benchmarks under-report every
+//! event because the workers' counts are invisible. Read parallel entries as coordination overhead,
+//! not as the work itself.
 //!
 //! ```text
 //! sudo MATH_BENCH_EVENT=cycles cargo bench -p hash-graph-atlas --bench math_kernels
@@ -135,11 +130,10 @@ fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>) {
 
 /// Scalar-libm baselines for the gradient kernels' `pow` composition.
 ///
-/// The affinity gradients need `d^(2b)` for four lanes with a shared
-/// exponent; gradients tolerate a few ulps. The production choice is the
-/// vendored `exp2(p * log2(d))` composition (measured as
-/// `kernel/pow_f32x4`); these entries keep its scalar-libm alternative
-/// measured in the same isolated and fused-in-coefficient forms.
+/// The affinity gradients need `d^(2b)` for four lanes with a shared exponent; gradients tolerate a
+/// few ulps. The production choice is the vendored `exp2(p * log2(d))` composition (measured as
+/// `kernel/pow_f32x4`); these entries keep its scalar-libm alternative measured in the same
+/// isolated and fused-in-coefficient forms.
 fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
     use core::simd::{Simd, f32x4};
 
@@ -194,9 +188,8 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
 
 /// The production wrappers over the vendored SLEEF kernels.
 ///
-/// Each entry measures a wrapper exactly as production calls it; the
-/// saved per-event baselines make a rewrite of the vendored kernels
-/// visible as an instruction-count or cycle change run over run.
+/// Each entry measures a wrapper exactly as production calls it; the saved per-event baselines make
+/// a rewrite of the vendored kernels visible as an instruction-count or cycle change run over run.
 fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>) {
     use core::simd::{Simd, f32x4, f32x8, f64x4};
 

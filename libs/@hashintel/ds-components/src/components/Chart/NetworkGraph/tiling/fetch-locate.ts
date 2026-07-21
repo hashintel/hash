@@ -3,9 +3,14 @@
  * decodes it into renderable node/edge records.
  *
  * `POST /v1/atlas/locate/{generation}/{variant}` resolves a source entity to
- * its dot and delivers it first, followed by its nearest neighbours (ascending
- * by distance then row id) and the edges among the delivered set. It is the
- * detail view, so `includeDetailedData` defaults on: every delivered node
+ * its dot and answers its **ego-graph**: the source is delivered first,
+ * followed by the delivered edges' partners (both directions, ascending wire
+ * row id), with every edge incident to the source riding the edge columns
+ * (ascending wire edge id, a self-loop exactly once). When the edge cap
+ * truncates, edges whose partners lie nearest the source are kept and
+ * `complete` reads `false`; zero edges with `complete: true` is the honest
+ * answer for an unlinked source. It is the detail view, so
+ * `includeDetailedData` defaults on: every delivered node
  * carries a label, icon, and its capped simple-value properties, and every
  * delivered edge carries the four link-detail fields.
  *
@@ -82,11 +87,18 @@ export interface LocateEdge {
   readonly typeIcon?: string;
 }
 
-/** A decoded locate subgraph plus the source's fly-to target. */
+/**
+ * A decoded locate ego-graph plus the source's fly-to target.
+ *
+ * Partners are delivered wherever they live — they may lie outside the
+ * current viewport. Whether the client flies to them or clamps the camera is
+ * a product decision this transport does not make; `cell`/`zoom` always name
+ * the **source's** fly-to target.
+ */
 export interface LocatedEntity {
-  /** The source (index 0) followed by its nearest neighbours. */
+  /** The source (index 0) followed by its partners (ascending wire row id). */
   readonly nodes: LocateNode[];
-  /** The edges among the delivered nodes. */
+  /** The edges incident to the source (ascending wire edge id). */
   readonly edges: LocateEdge[];
   /** The source's first visible zoom and its tile there — a fly-to target. */
   readonly cell: { readonly z: number; readonly x: number; readonly y: number };
@@ -103,11 +115,6 @@ export interface FetchLocateOptions {
   readonly signal?: AbortSignal;
   /** Retries on a transient failure. Defaults to {@link fetchTile}'s policy. */
   readonly retry?: number;
-  /**
-   * Neighbour budget. Values over the manifest's `limits.locateNeighbours`
-   * clamp to it; omit for the cap itself.
-   */
-  readonly neighbours?: number;
   /**
    * Versioned type URLs conditioning the response's `TYPE_MASK`, so each node
    * carries {@link LocateNode.typeIndices}. Capped by `limits.coloredTypeIds`.
@@ -130,7 +137,6 @@ const locateUrl = (session: SaltileSession, baseUrl: string): string =>
 const locateBody = (
   atlasId: number,
   coloredTypeIds: readonly string[],
-  neighbours: number | undefined,
   includeDetailedData: boolean,
 ): string =>
   JSON.stringify({
@@ -138,7 +144,6 @@ const locateBody = (
     // `entityId`, which is for upstream identities).
     row: atlasId,
     ...(coloredTypeIds.length > 0 ? { coloredTypeIds } : {}),
-    ...(neighbours !== undefined ? { neighbours } : {}),
     // Locate defaults detail on, so only the opt-out rides the body.
     ...(includeDetailedData ? {} : { includeDetailedData: false }),
   });
@@ -149,7 +154,6 @@ const fetchAndDecodeLocate = async (
   baseUrl: string,
   signal: AbortSignal | undefined,
   retries: number | undefined,
-  neighbours: number | undefined,
   coloredTypeIds: readonly string[],
   includeDetailedData: boolean,
 ): Promise<LocatedEntity> => {
@@ -159,7 +163,7 @@ const fetchAndDecodeLocate = async (
     signal,
     retries,
     undefined,
-    locateBody(atlasId, coloredTypeIds, neighbours, includeDetailedData),
+    locateBody(atlasId, coloredTypeIds, includeDetailedData),
   );
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -248,13 +252,16 @@ const fetchAndDecodeLocate = async (
 };
 
 /**
- * Fetches the locate spotlight subgraph for the entity named by `atlasId`: the
- * source, its nearest neighbours, and the edges among them, each hydrated with
- * detail (unless {@link FetchLocateOptions.includeDetailedData} opts out).
+ * Fetches the locate ego-graph for the entity named by `atlasId`: the source,
+ * the partners of its delivered edges, and every edge incident to it, each
+ * hydrated with detail (unless {@link FetchLocateOptions.includeDetailedData}
+ * opts out).
  *
- * @returns The delivered nodes (source first) and edges, with wire positions
- *   mapped to world coordinates, plus the source's fly-to target and a
- *   `complete` flag (`false` when the edge cap truncated the subgraph).
+ * @returns The delivered nodes (source first, partners ascending wire row id)
+ *   and edges (ascending wire edge id), with wire positions mapped to world
+ *   coordinates, plus the source's fly-to target and a `complete` flag
+ *   (`false` when the edge cap truncated; `edges: []` with `complete: true`
+ *   is an unlinked source, not an error).
  * @throws {@link FetchTileError} when the request fails or is rejected
  *   (including `unknown-entity`), or the payload fails to decode or does not
  *   belong to the active generation.
@@ -267,7 +274,6 @@ export const fetchLocate = async (
     baseUrl = ATLAS_API_BASE_URL,
     signal,
     retry,
-    neighbours,
     coloredTypeIds = [],
     includeDetailedData = true,
   } = options;
@@ -280,7 +286,6 @@ export const fetchLocate = async (
       baseUrl,
       signal,
       retry,
-      neighbours,
       coloredTypeIds,
       includeDetailedData,
     );
@@ -297,7 +302,6 @@ export const fetchLocate = async (
         baseUrl,
         signal,
         retry,
-        neighbours,
         coloredTypeIds,
         includeDetailedData,
       );

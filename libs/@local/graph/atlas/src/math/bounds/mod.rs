@@ -11,7 +11,7 @@ use rayon::{
 };
 
 use super::{
-    kernel::fused_mul_add_f64x4,
+    kernel::mul_add_f64x4,
     transform::Transform,
     translation::Translation,
     vec2::{Vec2, Vec2x4, Vec2x4T},
@@ -461,7 +461,7 @@ impl AxisMap {
         }
 
         let unit = (values.cast::<f64>() - Simd::splat(self.minimum)) / Simd::splat(self.extent);
-        fused_mul_add_f64x4(
+        mul_add_f64x4(
             unit,
             Simd::splat(self.target_extent),
             Simd::splat(self.target_minimum),

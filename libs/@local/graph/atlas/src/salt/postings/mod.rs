@@ -2,13 +2,13 @@
 //!
 //! Per-type membership over the base delivery order, and the type graph it expands through.
 //!
-//! [`Postings`] is the filter contract's membership artifact: for every ontology row, which base
-//! delivery
-//! positions carry that type **directly**. A type filter ORs requested rows' membership into one
-//! dense position bitmap; the wire's `TYPE_MASK` column slices membership over a tile's delivered
-//! runs. Inheritance never rides the membership: requests expand to descendant rows first through
-//! the [`ClosureMap`] derived from the published parent edges, so the type graph stays the one
-//! authority for inheritance and no closure is ever materialized on disk.
+//! [`Postings`](build::Postings) is the filter contract's membership artifact: for every ontology
+//! row, which base delivery positions carry that type **directly**. A type filter ORs requested
+//! rows' membership into one dense position bitmap; the wire's `TYPE_MASK` column slices membership
+//! over a tile's delivered runs. Inheritance never rides the membership: requests expand to
+//! descendant rows first through the [`ClosureMap`](closure::ClosureMap) derived from the published
+//! parent edges, so the type graph stays the one authority for inheritance and no closure is ever
+//! materialized on disk.
 //!
 //! Membership is stored per type in the cheaper of two representations, chosen by the writer and
 //! recorded in the file's flags region:
@@ -21,11 +21,12 @@
 //!   coloring by.
 //!
 //! Readers honor whichever representation the file records; the threshold is writer policy
-//! ([`PostingsConfig`]), so revising it never touches the read path.
+//! ([`PostingsConfig`](build::PostingsConfig)), so revising it never touches the read path.
 //!
 //! It derives from the same row-order type column the quadtree consumes
 //! ([`crate::salt::lod::quad::QuadTree::build`]'s `types` parameter), gathered through the lod's
-//! permutation, and publishes as one [`crate::file::postings`] file; [`PostingsArchive`] reopens
+//! permutation, and publishes as one [`crate::file::postings`] file;
+//! [`PostingsArchive`](mapped::PostingsArchive) reopens
 //! the file over a whole-file mapping and validates the artifact contract once, so lookups read
 //! from the page cache without holding anything on the heap.
 //!

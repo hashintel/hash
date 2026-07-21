@@ -171,8 +171,6 @@ pub struct Atlas {
     node_ids: IdentityTableArchive<ArchivedEntityId>,
     /// The edge identity table, joining edge rows to link-entity identities.
     edge_ids: IdentityTableArchive<ArchivedEntityId>,
-    /// The exact spatial index behind locate's neighbour selection, built or cache-loaded at open.
-    locate: locate::LocateIndex,
     /// The node universe's wire row-id codec, derived at open.
     node_codec: codec::RowCodec,
     /// The edge universe's wire row-id codec, derived at open.

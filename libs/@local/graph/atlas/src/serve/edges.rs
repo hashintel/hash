@@ -404,7 +404,7 @@ impl Atlas {
     /// Returns an edge's truncation rank.
     ///
     /// Its worse endpoint's importance rank, where larger values are less prominent.
-    pub(super) fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
+    fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
         self.rank_of_row(edge.source)
             .max(self.rank_of_row(edge.target))
     }

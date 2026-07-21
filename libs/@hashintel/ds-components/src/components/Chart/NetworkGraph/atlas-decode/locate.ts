@@ -6,11 +6,12 @@
  * request, exposes the node/edge columns as typed-array views over the
  * response buffer (never copied), and resolves the detail trailer.
  *
- * A locate response spotlights one entity: the source is delivered
- * first, then its nearest neighbours (ascending by distance then node
- * row id), with the edges among the delivered set riding the edge
- * columns. The HEAD also carries the source's first visible zoom and
- * its tile there — the client's fly-to target.
+ * A locate response answers one entity's ego-graph: the source is
+ * delivered first, then the delivered edges' partners (both
+ * directions, ascending wire row id), with every edge incident to the
+ * source riding the edge columns (ascending wire edge id). The HEAD
+ * also carries the source's first visible zoom and its tile there —
+ * the client's fly-to target.
  *
  * Two shapes the tile/edges trailers never carry appear here (both
  * handled by the shared {@link decodeCbor}): negative integers, and

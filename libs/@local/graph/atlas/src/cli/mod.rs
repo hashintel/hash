@@ -127,10 +127,6 @@ pub struct ServeArgs {
     #[command(flatten)]
     caps: CapsArgs,
 
-    /// The locate index cache directory; absent builds the index on every open.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CACHE_DIR")]
-    cache_dir: Option<String>,
-
     /// The server secret behind the wire row-id codec.
     ///
     /// Absent reads the fixed development value, so wire ids stay deterministic across restarts
@@ -162,11 +158,7 @@ struct CapsArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_TRANSLATE_ENTITY_IDS")]
     translate_entity_ids: Option<u32>,
 
-    /// Largest neighbour budget one locate request may name.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_NEIGHBOURS")]
-    locate_neighbours: Option<u32>,
-
-    /// Most subgraph edges one locate response delivers before the protected rank truncation.
+    /// Most ego-graph edges one locate response delivers before the nearest-partner truncation.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_EDGES")]
     locate_edges: Option<u32>,
 
@@ -198,9 +190,6 @@ impl CapsArgs {
         }
         if let Some(value) = self.translate_entity_ids {
             caps.translate.entity_ids = value;
-        }
-        if let Some(value) = self.locate_neighbours {
-            caps.locate.neighbours = value;
         }
         if let Some(value) = self.locate_edges {
             caps.locate.edges = value;
@@ -395,10 +384,7 @@ pub async fn open_router(
         .map_err(ServeError::Current)?
         .ok_or(ServeError::Missing)?;
 
-    let mut options = OpenOptions {
-        locate_cache: args.cache_dir.map(Into::into),
-        ..OpenOptions::default()
-    };
+    let mut options = OpenOptions::default();
     if let Some(secret) = args.secret {
         options.wire_secret = secret.into_bytes();
     }

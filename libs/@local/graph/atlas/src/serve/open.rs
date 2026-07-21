@@ -7,7 +7,6 @@ use super::{
     Atlas, OpenOptions,
     codec::{EDGE_LABEL, NODE_LABEL, RowCodec},
     error::{ArrayKind, IdentityDomain, OpenAtlasError},
-    locate::LocateIndex,
 };
 use crate::{
     file::{
@@ -104,13 +103,6 @@ impl Atlas {
         let world = generation.repository().metadata.evidence.lod.world;
         let bounds = (morton.count() > 0).then(|| frame_extent(world));
 
-        let locate = {
-            let points = coordinates.points().ok_or(OpenAtlasError::Shape {
-                kind: ArrayKind::Coordinates,
-            })?;
-            LocateIndex::load_or_build(options.locate_cache.as_deref(), id, points)
-        };
-
         // Both universes are validated row counts: the row column is
         // the node universe's permutation and the endpoint column is
         // edge-indexed, so their lengths are the `N` of each codec.
@@ -135,7 +127,6 @@ impl Atlas {
             ontology_ids,
             node_ids,
             edge_ids,
-            locate,
             node_codec,
             edge_codec,
             wire_rows: Vec::new(),

@@ -55,6 +55,10 @@
     clippy::float_arithmetic,
     clippy::indexing_slicing
 )]
+// The documentation's audience is the crate's developers: module docs
+// link private items deliberately, and the links resolve under
+// `--document-private-items`, the form the docs are read in.
+#![allow(rustdoc::private_intra_doc_links)]
 extern crate alloc;
 
 pub mod api;

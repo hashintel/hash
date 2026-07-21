@@ -19,9 +19,7 @@ pub struct ManifestLimits {
     pub colored_type_ids: u32,
     /// Most tiles one edges request may list.
     pub edges_tiles: u32,
-    /// Largest neighbour budget one locate request may name; larger budgets clamp.
-    pub locate_neighbours: u32,
-    /// Most subgraph edges one locate response delivers before the protected rank truncation.
+    /// Most ego-graph edges one locate response delivers before the nearest-partner truncation.
     pub locate_edges: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
@@ -40,7 +38,6 @@ impl ServeCaps {
         ManifestLimits {
             colored_type_ids: self.tile.colored_type_ids,
             edges_tiles: self.edges.tiles,
-            locate_neighbours: self.locate.neighbours,
             locate_edges: self.locate.edges,
             translate_entity_ids: self.translate.entity_ids,
             seal_soft_seconds: self.seal.soft.as_secs(),

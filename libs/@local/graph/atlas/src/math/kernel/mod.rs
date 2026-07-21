@@ -18,6 +18,8 @@ use core::simd::{f32x4, f32x8, f64x4, f64x8};
 #[cfg(feature = "bench")]
 pub mod bench;
 mod sleef;
+#[cfg(test)]
+mod ulp_sweep;
 
 /// Aborts when the running CPU cannot execute the compiled instruction set.
 ///
@@ -65,16 +67,6 @@ pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4
 /// The `f32x8` counterpart of [`mul_add_f32x4`].
 #[inline(always)]
 pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8 {
-    use std::simd::StdFloat as _;
-
-    lhs.mul_add(rhs, accumulator)
-}
-
-/// Fused multiply-add, correctly rounded on every target.
-///
-/// Equivalent to [`mul_add_f64x4`]; both carry the same semantic-fusion guarantee.
-#[inline(always)]
-pub(crate) fn fused_mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
     use std::simd::StdFloat as _;
 
     lhs.mul_add(rhs, accumulator)

@@ -106,7 +106,7 @@ const manifestBody = (generation: string, maxZoom = 16): unknown => ({
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+m", maxZoom },
-  limits: { coloredTypeIds: 8, edgesTiles: 32, locateNeighbours: 64 },
+  limits: { coloredTypeIds: 8, edgesTiles: 32 },
   createdAt: "2026-07-19T16:00:00Z",
 });
 

@@ -1,15 +1,10 @@
 //! The locate endpoint.
 //!
-//! The spatial neighbour index, source resolution, and the request/assembly/encode surface.
+//! Source resolution, ego-graph assembly, and the request/assembly/encode surface.
 //!
-//! The index is kiddo's exact two-dimensional kd-tree over the wire positions column, built eagerly
-//! at open so no first request pays for it, and cached on disk keyed by generation id so a restart
-//! against the same generation loads instead of rebuilding. The cache is a
-//! cache: any read failure - missing, foreign magic, corrupt bytes - falls back to a fresh build
-//! and a best-effort rewrite, never a failed open.
-
-use camino::{Utf8Path, Utf8PathBuf};
-use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
+//! Locate answers the source's ego-graph: every edge incident to the source whose other endpoint
+//! is visible, and the partners those edges connect. Assembly is one adjacency probe plus column
+//! gathers - no spatial index stands behind it.
 
 use super::{
     Atlas, Filter, TileCoordinate, depth_of,
@@ -19,145 +14,19 @@ use super::{
     visibility::{VisibilityProof, VisibleRow},
 };
 use crate::{
-    bitset::BitSet,
-    file::generation::GenerationId,
-    math::Vec2,
+    dataset::NodeRowId,
     morton::{Depth, MortonKey},
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
 
-/// The cache file magic: pins the codec (rkyv 0.8) and the tree's type parameters.
-///
-/// A mismatch after a dependency upgrade reads as foreign and rebuilds.
-const CACHE_MAGIC: &[u8; 8] = b"SALTKDX1";
-
-/// The exact spatial index behind locate's neighbour selection.
-///
-/// Item index = base position, so lookups answer in the positions column's own domain.
-#[derive(Debug)]
-pub(super) struct LocateIndex {
-    tree: ImmutableKdTree<f32, u32, 2, 32>,
-}
-
-impl LocateIndex {
-    /// Builds the index from the positions column.
-    fn build(positions: &[Vec2]) -> Self {
-        let points: Vec<[f32; 2]> = positions
-            .iter()
-            .map(|position| [position.x(), position.y()])
-            .collect();
-
-        Self {
-            tree: ImmutableKdTree::new_from_slice(&points),
-        }
-    }
-
-    /// Loads the generation's cached index.
-    ///
-    /// Or builds it and leaves the cache behind for the next open.
-    ///
-    /// Without a cache directory the build is unconditional; with one, the file is keyed by
-    /// generation id, so distinct generations never collide and a stale entry cannot be mistaken
-    /// for current.
-    pub(super) fn load_or_build(
-        cache: Option<&Utf8Path>,
-        generation: GenerationId,
-        positions: &[Vec2],
-    ) -> Self {
-        let Some(directory) = cache else {
-            return Self::build(positions);
-        };
-        let path = directory.join(format!("locate-{generation}.kdtree"));
-
-        if let Some(index) = Self::read(&path) {
-            return index;
-        }
-
-        let index = Self::build(positions);
-        index.write(directory, &path);
-        index
-    }
-
-    /// Reads one cache file; any failure reads as a miss.
-    fn read(path: &Utf8Path) -> Option<Self> {
-        let bytes = std::fs::read(path).ok()?;
-        let payload = bytes.strip_prefix(CACHE_MAGIC)?;
-
-        // rkyv access requires alignment the heap read does not
-        // guarantee; the copy restores it.
-        let mut aligned = rkyv::util::AlignedVec::<16>::new();
-        aligned.extend_from_slice(payload);
-
-        match rkyv::from_bytes::<ImmutableKdTree<f32, u32, 2, 32>, rkyv::rancor::Error>(&aligned) {
-            Ok(tree) => Some(Self { tree }),
-            Err(error) => {
-                tracing::warn!(%path, %error, "the locate index cache is corrupt; rebuilding");
-                None
-            }
-        }
-    }
-
-    /// Writes the cache file; failures warn and serve proceeds - the cache is never load-bearing.
-    fn write(&self, directory: &Utf8Path, path: &Utf8Path) {
-        let result = std::fs::create_dir_all(directory).and_then(|()| {
-            let bytes =
-                rkyv::to_bytes::<rkyv::rancor::Error>(&self.tree).map_err(std::io::Error::other)?;
-            let mut payload = Vec::with_capacity(CACHE_MAGIC.len() + bytes.len());
-            payload.extend_from_slice(CACHE_MAGIC);
-            payload.extend_from_slice(&bytes);
-            std::fs::write(path, payload)
-        });
-
-        if let Err(error) = result {
-            tracing::warn!(%path, %error, "the locate index cache did not persist");
-        }
-    }
-
-    /// Collects every base position that can be among the `count` nearest around `origin`.
-    ///
-    /// All points at or under the k-nearest boundary distance, unordered, boundary ties included.
-    ///
-    /// The k-nearest query alone would leave boundary ties to the tree's internal order: co-located
-    /// points are real (fit collision clusters), and which of them crosses a cut must follow the
-    /// wire's own tie-break - (distance, node row id), a domain this index does not speak - not the
-    /// index's. The query therefore only fixes the boundary DISTANCE - the multiset of returned
-    /// distances is tie-independent - and a second, radius query hands the caller every candidate
-    /// for the exact selection.
-    pub(super) fn candidates(
-        &self,
-        origin: [f32; 2],
-        count: core::num::NonZero<usize>,
-    ) -> Vec<(f32, u32)> {
-        let boundary = self
-            .tree
-            .nearest_n::<SquaredEuclidean>(&origin, count)
-            .into_iter()
-            .map(|neighbour| neighbour.distance)
-            .max_by(f32::total_cmp);
-        let Some(boundary) = boundary else {
-            return Vec::new();
-        };
-
-        self.tree
-            .within_unsorted::<SquaredEuclidean>(&origin, boundary)
-            .into_iter()
-            .map(|neighbour| (neighbour.distance, neighbour.item))
-            .collect()
-    }
-}
-
 /// The locate endpoint's caps.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct LocateCaps {
-    /// Largest neighbour budget one request may name; requests over it clamp to it.
+    /// Most ego-graph edges one response delivers.
     ///
-    /// Defaults to 32.
-    pub neighbours: u32,
-    /// Most subgraph edges one response delivers.
-    ///
-    /// A larger subgraph truncates by rank with source-incident edges protected, and HEAD reports
-    /// `complete: false`. Defaults to 512: every delivered edge also costs live link hydration,
-    /// so the cap bounds the store round trip, not just wire bytes.
+    /// A larger incident set keeps the edges whose partners lie nearest the source, and HEAD
+    /// reports `complete: false`. Defaults to 512: every delivered edge also costs live link
+    /// hydration, so the cap bounds the store round trip, not just wire bytes.
     pub edges: u32,
     /// Most properties one delivered entity ships.
     ///
@@ -170,7 +39,6 @@ pub struct LocateCaps {
 impl Default for LocateCaps {
     fn default() -> Self {
         Self {
-            neighbours: 32,
             edges: 512,
             properties: 20,
         }
@@ -182,8 +50,6 @@ impl Default for LocateCaps {
 /// Configuration travels as a struct, never constants or bare parameters.
 #[derive(Debug, Clone)]
 pub struct OpenOptions {
-    /// The locate index cache directory; [`None`] builds the index on every open.
-    pub locate_cache: Option<Utf8PathBuf>,
     /// The server secret behind the wire row-id codec.
     ///
     /// The keyed permutation derives from it per generation at open.
@@ -197,7 +63,6 @@ pub struct OpenOptions {
 impl Default for OpenOptions {
     fn default() -> Self {
         Self {
-            locate_cache: None,
             wire_secret: b"atlas-dev-wire-secret".to_vec(),
         }
     }
@@ -249,13 +114,8 @@ impl Atlas {
         Some(self.source_point(self.resolve(proof, wire)?))
     }
 
-    /// Answers a proven-visible node row's identity in every domain a locate response speaks.
-    ///
-    /// Base position, first visible zoom, and fly-to tile.
-    fn source_point(&self, row: VisibleRow) -> SourcePoint {
-        let row = row.get();
-        let position = self.positions_of_row()[row as usize];
-
+    /// Returns the first zoom whose cumulative schedule delivers a base position.
+    fn first_visible_zoom(&self, position: u32) -> u8 {
         // The position's fencepost segment is its morton bucket; the
         // cumulative cut rule (bucket <= z + span_log2) then answers
         // the first delivering zoom.
@@ -267,7 +127,17 @@ impl Atlas {
                     .contains(&u64::from(position))
             })
             .expect("every base position lies in exactly one bucket segment");
-        let zoom = bucket.saturating_sub(self.lod.span_log2);
+
+        bucket.saturating_sub(self.lod.span_log2)
+    }
+
+    /// Answers a proven-visible node row's identity in every domain a locate response speaks.
+    ///
+    /// Base position, first visible zoom, and fly-to tile.
+    fn source_point(&self, row: VisibleRow) -> SourcePoint {
+        let row = row.get();
+        let position = self.positions_of_row()[row as usize];
+        let zoom = self.first_visible_zoom(position);
 
         let key = MortonKey::from_bits(self.morton.codes()[position as usize].get());
         let [x, y] = key.coordinates();
@@ -289,60 +159,85 @@ impl Atlas {
         }
     }
 
-    /// Assembles the locate subgraph around a resolved source.
+    /// Assembles the locate ego-graph around a resolved source.
     ///
-    /// The delivered node set and the capped edge set among it.
+    /// Every edge incident to the source whose other endpoint is visible, and the partners those
+    /// edges connect.
     ///
-    /// Delivered order is the wire's pin: the source first, then its nearest neighbours ascending
-    /// by (distance, wire row id). Edges are the edges endpoint's rule over this small set (both
-    /// endpoints delivered, each edge exactly once), ascending wire edge row after the cap.
+    /// Delivered order is the wire's pin: the source first, then the delivered edges' partners
+    /// ascending by wire row id. Partners derive from the post-cap edge set - a partner whose
+    /// every edge truncated is not delivered. Edges ride ascending by wire edge id after the cap.
     pub(super) fn locate_subgraph(
         &self,
         source: SourcePoint,
-        neighbours: u32,
         caps: LocateCaps,
         proof: &VisibilityProof,
     ) -> LocateSubgraph {
-        let budget = neighbours.min(caps.neighbours) as usize;
+        let endpoints = self.endpoint_pairs();
+        let source_row = u64::from(source.row);
+        let node = NodeRowId::new(source_row);
+        let expect = "resolved sources lie inside the adjacency's node domain";
+        let outgoing = self.adjacency.outgoing(node).expect(expect);
+        let incoming = self.adjacency.incoming(node).expect(expect);
 
-        // The exact selection follows the wire's own (distance, wire
-        // row id) order, so a co-located cluster crosses the budget
-        // cut by a client-observable key - never by tree shape, and
-        // never by internal id order, which the wire codec exists to
-        // hide.
-        let mut candidates = self.visible_candidates(source, budget, proof);
-        candidates.sort_unstable_by(
-            |(left_distance, left_wire, ..), (right_distance, right_wire, ..)| {
-                left_distance
-                    .total_cmp(right_distance)
-                    .then(left_wire.cmp(right_wire))
-            },
-        );
-        candidates.truncate(budget);
-
-        let row_ids = self.row_ids();
-
-        let mut delivered: Vec<u32> = vec![source.position];
-        let mut rows: Vec<u32> = vec![source.row];
-        for &(_, _, row, position) in &candidates {
-            delivered.push(position);
-            rows.push(row);
+        // A self-loop occupies one slot in each direction's run; its
+        // incoming appearance is the duplicate and is skipped, so
+        // every incident edge is collected exactly once. Hidden
+        // partners drop BEFORE selection: the cap selects among
+        // visible edges alone, and a response's cardinality is a
+        // function of the masked view.
+        let incident = outgoing.iter().chain(incoming.iter().filter(|edge| {
+            let index = usize::try_from(edge.get()).expect("edge rows fit usize");
+            endpoints[index][0] != source_row
+        }));
+        let mut edges: Vec<(DeliveredEdge, u32)> = Vec::new();
+        for edge in incident {
+            let index = usize::try_from(edge.get()).expect("edge rows fit usize");
+            let [edge_source, edge_target] = endpoints[index];
+            let partner = if edge_source == source_row {
+                edge_target
+            } else {
+                edge_source
+            };
+            if !proof.contains(narrow(partner)) {
+                continue;
+            }
+            let row = narrow(edge.get());
+            edges.push((
+                DeliveredEdge {
+                    row,
+                    source: narrow(edge_source),
+                    target: narrow(edge_target),
+                },
+                self.edge_codec.encode(row).get(),
+            ));
         }
 
-        let mut in_set = BitSet::new(row_ids.len());
-        for &row in &rows {
-            in_set.insert(row as usize);
-        }
-        let mut edges: Vec<(DeliveredEdge, u32)> = self
-            .qualifying_edges(&in_set)
-            .into_iter()
-            .map(|edge| (edge, self.edge_codec.encode(edge.row).get()))
-            .collect();
         let complete = edges.len() <= caps.edges as usize;
         if !complete {
-            self.truncate_protecting_source(&mut edges, caps.edges as usize, source.row);
+            self.truncate_nearest(&mut edges, caps.edges as usize, source);
         }
         edges.sort_unstable_by_key(|&(_, wire)| wire);
+
+        // Partners derive from the delivered edge set. Distinct rows
+        // carry distinct wire ids (the codec is a bijection), so
+        // adjacent dedup after the wire-keyed sort is exact.
+        let positions_of_row = self.positions_of_row();
+        let mut partners: Vec<(u32, u32)> = edges
+            .iter()
+            .flat_map(|&(edge, _)| [edge.source, edge.target])
+            .filter(|&row| row != source.row)
+            .map(|row| (self.node_codec.encode(row).get(), row))
+            .collect();
+        partners.sort_unstable();
+        partners.dedup();
+
+        let mut rows = vec![source.row];
+        let mut delivered = vec![source.position];
+        for &(_, row) in &partners {
+            rows.push(row);
+            delivered.push(positions_of_row[row as usize]);
+        }
 
         LocateSubgraph {
             rows,
@@ -352,81 +247,53 @@ impl Atlas {
         }
     }
 
-    /// Collects every visible point that can rank among the source's `budget` nearest.
+    /// Keeps the `cap` edges whose partners lie nearest the source.
     ///
-    /// `(distance, wire row, row, position)` per candidate, unordered, boundary ties included.
-    ///
-    /// The k-nearest boundary is searched over all points, so under a mask the query expands -
-    /// doubling its k until the boundary encloses `budget` visible non-source points or the whole
-    /// universe has been seen. Selection therefore happens under the mask: hidden points never
-    /// consume the budget, and a response's cardinality is a function of the masked view alone.
-    fn visible_candidates(
-        &self,
-        source: SourcePoint,
-        budget: usize,
-        proof: &VisibilityProof,
-    ) -> Vec<(f32, u32, u32, u32)> {
-        let row_ids = self.row_ids();
-        let wire_rows = self.wire_rows();
-        let universe = self.positions().len();
-        let origin = {
-            let origin = self.positions()[source.position as usize];
-            [origin.x(), origin.y()]
-        };
-
-        // The source is its own nearest point at distance zero, so
-        // the query asks for one extra and drops it wherever it
-        // surfaces. The boundary distance covers every point the
-        // budget can admit (the budget-th non-source distance never
-        // exceeds the (budget + 1)-th overall).
-        let mut want = budget + 1;
-        loop {
-            let count = core::num::NonZero::new(want).expect("budget + 1 is nonzero");
-            let candidates: Vec<(f32, u32, u32, u32)> = self
-                .locate
-                .candidates(origin, count)
-                .into_iter()
-                .filter(|&(_, position)| {
-                    position != source.position && proof.contains(row_ids[position as usize])
-                })
-                .map(|(distance, position)| {
-                    (
-                        distance,
-                        wire_rows[position as usize],
-                        row_ids[position as usize],
-                        position,
-                    )
-                })
-                .collect();
-
-            if candidates.len() >= budget || want >= universe {
-                return candidates;
-            }
-            want = (want * 2).min(universe);
-        }
-    }
-
-    /// Keeps the `cap` edges the protected rank order selects.
-    ///
-    /// Source-incident edges strictly before context edges, then ascending worse-endpoint rank,
-    /// ties by wire edge row: the spotlight's primary information is how the source connects, so
-    /// neighbour-neighbour context truncates first.
-    fn truncate_protecting_source(
+    /// Ascending (squared wire-frame distance to the partner, partner first-visible zoom, wire
+    /// edge id): equidistant partners cede to the earlier-visible one, and distinct wire ids make
+    /// the key a total order. The key only selects - presentation order stays ascending wire edge
+    /// id.
+    fn truncate_nearest(
         &self,
         edges: &mut Vec<(DeliveredEdge, u32)>,
         cap: usize,
-        source_row: u32,
+        source: SourcePoint,
     ) {
         if cap == 0 {
             edges.clear();
             return;
         }
 
-        let mut ranked: Vec<(ProtectedKey, (DeliveredEdge, u32))> = edges
+        let positions = self.positions();
+        let positions_of_row = self.positions_of_row();
+        let origin = positions[source.position as usize];
+
+        let mut ranked: Vec<(NearestKey, (DeliveredEdge, u32))> = edges
             .drain(..)
             .map(|(edge, wire)| {
-                let context = edge.source != source_row && edge.target != source_row;
-                ((context, self.worse_rank(edge), wire), (edge, wire))
+                let partner = if edge.source == source.row {
+                    edge.target
+                } else {
+                    edge.source
+                };
+                let position = positions_of_row[partner as usize];
+                let point = positions[position as usize];
+                let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
+                // The selection key is pinned to unfused f32
+                // arithmetic so independent derivations from the wire
+                // coordinates agree bit for bit. Squared distances
+                // are non-negative finite floats, whose bit patterns
+                // order exactly as their values do.
+                #[expect(
+                    clippy::suboptimal_flops,
+                    reason = "a fused mul_add rounds differently and reorders near-ties"
+                )]
+                let distance = (dx * dx + dy * dy).to_bits();
+
+                (
+                    (distance, self.first_visible_zoom(position), wire),
+                    (edge, wire),
+                )
             })
             .collect();
         // Partitioning at `cap - 1` places the cap smallest keys - a
@@ -437,16 +304,16 @@ impl Atlas {
     }
 }
 
-/// The protected truncation's sort key.
+/// The nearest-partner truncation's sort key.
 ///
-/// Context edges after source-incident ones, then ascending worse-endpoint rank, then ascending
+/// Ascending squared distance to the partner, then the partner's first visible zoom, then the
 /// wire edge id.
-type ProtectedKey = (bool, u32, u32);
+type NearestKey = (u32, u8, u32);
 
-/// One assembled locate subgraph.
+/// One assembled locate ego-graph.
 ///
-/// The delivered nodes (source first, then neighbours in wire order) and the capped edge set among
-/// them.
+/// The delivered nodes (source first, then partners ascending wire row id) and the capped edge
+/// set among them.
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct LocateSubgraph {
     /// The delivered node rows, in delivered order.
@@ -465,9 +332,6 @@ pub(super) struct LocateSubgraph {
 /// result or deep link carries) XOR `row` (the wire node row id a rendered tile put in the client's
 /// hand). The fields are distinct JSON types, so the union is unambiguous; carrying both or neither
 /// is rejected by name.
-///
-/// `neighbours` is a budget, not a list: a value over the cap CLAMPS to it (the clamp is visible in
-/// `HEAD.count`), where the list-caps reject - a budget has no elements to refuse.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LocateRequest {
@@ -487,9 +351,6 @@ pub struct LocateRequest {
     /// The visibility filter; absent means the trivial bitmap.
     #[serde(default)]
     pub filter: Option<Filter>,
-    /// The neighbour budget; absent means the cap itself.
-    #[serde(default)]
-    pub neighbours: Option<u32>,
     /// Whether the detail trailer rides the response.
     ///
     /// Locate IS the detail view, so unlike every other endpoint it defaults TRUE.
@@ -587,8 +448,8 @@ pub struct LocateDocument {
 impl Atlas {
     /// Answers one locate request.
     ///
-    /// `SALTILEL` envelope bytes spotlighting the source and its nearest neighbours, ready to send
-    /// under `application/vnd.hash.saltile-v1`.
+    /// `SALTILEL` envelope bytes spotlighting the source's ego-graph, ready to send under
+    /// `application/vnd.hash.saltile-v1`.
     ///
     /// A request that sets `includeDetailedData` - which locate DEFAULTS to - is rejected by name:
     /// this path serves deployments without a store connection. A transport with one assembles,
@@ -617,10 +478,8 @@ impl Atlas {
     ///
     /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// The neighbour budget is `request.neighbours` clamped to `caps.locate.neighbours` (absent
-    /// means the cap itself); the clamp is visible in `HEAD.count`. The `coloredTypeIds` cap is the
-    /// tile endpoint's own - one manifest key, `limits.coloredTypeIds`, governs the field wherever
-    /// it appears.
+    /// The `coloredTypeIds` cap is the tile endpoint's own - one manifest key,
+    /// `limits.coloredTypeIds`, governs the field wherever it appears.
     ///
     /// Version 0 serves the full unfiltered set; a request naming a visibility filter is rejected
     /// by name rather than answered with bytes that silently ignore it.
@@ -661,13 +520,12 @@ impl Atlas {
             }
         }
         .ok_or(LocateError::UnknownEntity)?;
-        let budget = request.neighbours.unwrap_or(caps.locate.neighbours);
         let LocateSubgraph {
             rows,
             positions,
             edges,
             complete,
-        } = self.locate_subgraph(source, budget, caps.locate, proof);
+        } = self.locate_subgraph(source, caps.locate, proof);
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());

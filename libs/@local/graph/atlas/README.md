@@ -93,17 +93,17 @@ immutable per generation.
 
 ## The serving surface
 
-| Route                                               | Method | Answer                                                                        |
-| --------------------------------------------------- | ------ | ----------------------------------------------------------------------------- |
-| `/status`                                           | GET    | process liveness                                                              |
-| `/v1/atlas/current`                                 | GET    | the served generation id - the one mutable read                               |
-| `/v1/atlas/generation/{generation}/manifest`        | GET    | wire version, variants, bucket schedule, enforced limits                      |
-| `/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}` | POST   | one tile: positions, row ids, optional type masks and detail trailer          |
-| `/v1/atlas/edges/{generation}/{variant}`            | POST   | the edges among the listed tiles' delivered rows                              |
-| `/v1/atlas/locate/{generation}/{variant}`           | POST   | a spotlight by entity id or wire row id: fly-to cell, neighbours, their edges |
-| `/v1/atlas/translate/{generation}/{variant}`        | POST   | upstream entity ids to row ids and positions (JSON)                           |
-| `/v1/atlas/openapi.json`                            | GET    | the OpenAPI document, pre-rendered at startup                                 |
-| `/v1/atlas/openapi`                                 | GET    | a browsable API reference                                                     |
+| Route                                               | Method | Answer                                                                                    |
+| --------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------- |
+| `/status`                                           | GET    | process liveness                                                                          |
+| `/v1/atlas/current`                                 | GET    | the served generation id - the one mutable read                                           |
+| `/v1/atlas/generation/{generation}/manifest`        | GET    | wire version, variants, bucket schedule, enforced limits                                  |
+| `/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}` | POST   | one tile: positions, row ids, optional type masks and detail trailer                      |
+| `/v1/atlas/edges/{generation}/{variant}`            | POST   | the edges among the listed tiles' delivered rows                                          |
+| `/v1/atlas/locate/{generation}/{variant}`           | POST   | an ego-graph by entity id or wire row id: fly-to cell, the source's edges, their partners |
+| `/v1/atlas/translate/{generation}/{variant}`        | POST   | upstream entity ids to row ids and positions (JSON)                                       |
+| `/v1/atlas/openapi.json`                            | GET    | the OpenAPI document, pre-rendered at startup                                             |
+| `/v1/atlas/openapi`                                 | GET    | a browsable API reference                                                                 |
 
 The API documents itself - the OpenAPI reference is the authoritative
 per-route contract; the notes below are the semantics that span routes.
@@ -127,15 +127,14 @@ Flags with environment fallbacks; absent flags read documented defaults.
 The manifest publishes exactly the values the handlers enforce, so
 advertised and enforced limits cannot disagree:
 
-| Flag                                                                                                                                       | Environment                  | Default                   | Meaning                                                        |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- | ------------------------- | -------------------------------------------------------------- |
-| `--root`                                                                                                                                   | `HASH_GRAPH_ATLAS_ROOT`      | `<tmp>/atlas-generations` | the generation root                                            |
-| `--atlas-host`                                                                                                                             | `HASH_GRAPH_ATLAS_HOST`      | `127.0.0.1`               | listener address                                               |
-| `--atlas-port`                                                                                                                             | `HASH_GRAPH_ATLAS_PORT`      | `4003`                    | listener port                                                  |
-| `--user`, `--password`, `--host`, `--port`, `--database`                                                                                   | `HASH_GRAPH_PG_*`            | local dev store           | the store connection; detail trailers hydrate from it live     |
-| `--cache-dir`                                                                                                                              | `HASH_GRAPH_ATLAS_CACHE_DIR` | absent                    | locate index cache; absent rebuilds the spatial index per open |
-| `--secret`                                                                                                                                 | `HASH_GRAPH_ATLAS_SECRET`    | pinned dev value          | server secret behind the wire row-id codec                     |
-| `--colored-type-ids`, `--edges-tiles`, `--edges`, `--translate-entity-ids`, `--locate-neighbours`, `--locate-edges`, `--locate-properties` | `HASH_GRAPH_ATLAS_CAP_*`     | documented defaults       | per-request caps                                               |
+| Flag                                                                                                                | Environment               | Default                   | Meaning                                                    |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------- | ---------------------------------------------------------- |
+| `--root`                                                                                                            | `HASH_GRAPH_ATLAS_ROOT`   | `<tmp>/atlas-generations` | the generation root                                        |
+| `--atlas-host`                                                                                                      | `HASH_GRAPH_ATLAS_HOST`   | `127.0.0.1`               | listener address                                           |
+| `--atlas-port`                                                                                                      | `HASH_GRAPH_ATLAS_PORT`   | `4003`                    | listener port                                              |
+| `--user`, `--password`, `--host`, `--port`, `--database`                                                            | `HASH_GRAPH_PG_*`         | local dev store           | the store connection; detail trailers hydrate from it live |
+| `--secret`                                                                                                          | `HASH_GRAPH_ATLAS_SECRET` | pinned dev value          | server secret behind the wire row-id codec                 |
+| `--colored-type-ids`, `--edges-tiles`, `--edges`, `--translate-entity-ids`, `--locate-edges`, `--locate-properties` | `HASH_GRAPH_ATLAS_CAP_*`  | documented defaults       | per-request caps                                           |
 
 Startup is fail-closed: no activated generation, any artifact failing
 validation (shape, integrity, or identity tables whose keys are not store

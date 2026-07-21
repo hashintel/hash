@@ -1,6 +1,6 @@
 //! `POST /v1/atlas/locate/{generation}/{variant}`.
 //!
-//! The source entity and its nearest neighbours with the edges among them, as `SALTILEL` bytes.
+//! The source entity's ego-graph - its edges and the partners they connect - as `SALTILEL` bytes.
 
 use alloc::sync::Arc;
 
@@ -21,9 +21,9 @@ use crate::serve::{GenerationId, LocateError, LocateRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str =
-    "Spotlights one entity: resolves the source to its dot, delivers it first with its nearest \
-     neighbours ascending by (distance, node row id), and rides the edges among the delivered set \
-     ascending by edge row id.
+    "Spotlights one entity's ego-graph: resolves the source to its dot, delivers it first with \
+     every linked partner ascending by node row id, and rides the source's edges - both \
+     directions - ascending by edge row id.
 
 The JSON body is required and names the source in EXACTLY ONE of two domains: `entityId` (the \
      upstream id a search result or deep link carries) XOR `row` (the wire node row id a rendered \
@@ -31,10 +31,9 @@ The JSON body is required and names the source in EXACTLY ONE of two domains: `e
      body carrying both or neither answers `invalid-source` (400). The same source yields \
      byte-identical responses through either domain.
 
-`neighbours` is a budget: values over the manifest's `limits.locateNeighbours` CLAMP (visible in \
-     `HEAD.count`), and absent means the cap itself. The subgraph's edges cap at \
-     `limits.locateEdges`; truncation keeps the edges whose worse endpoint ranks best with \
-     source-incident edges protected to the end, and the HEAD's `complete` key reads `false`.
+The edge set caps at `limits.locateEdges`; truncation keeps the edges whose partners lie nearest \
+     the source, the HEAD's `complete` key reads `false`, and a partner whose every edge \
+     truncated is not delivered.
 
 The HEAD carries the source's first visible zoom and its tile there - the client's fly-to target. \
      `coloredTypeIds` rides `TYPE_MASK` exactly as on tiles.
@@ -181,7 +180,7 @@ pub(super) async fn handler(
 pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     operation
         .id("locate")
-        .summary("The source entity's spotlight subgraph, as SALTILEL envelope bytes")
+        .summary("The source entity's ego-graph, as SALTILEL envelope bytes")
         .description(DESCRIPTION)
         .with(|mut operation| {
             if let Some(body) = operation
@@ -199,7 +198,8 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         })
         .response_with::<200, Saltile, _>(|response| {
             response.description(
-                "a `SALTILEL` envelope: the source first, its neighbours, and the edges among them",
+                "a `SALTILEL` envelope: the source first, its linked partners, and the edges \
+                 joining them",
             )
         })
         .response_with::<400, Problem<'static>, _>(|response| {

@@ -712,7 +712,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateNeighbours": 32, "locateEdges": 512, "translateEntityIds": 1024, "sealSoftSeconds": 600, "sealHardSeconds": 900 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "translateEntityIds": 1024, "sealSoftSeconds": 600, "sealHardSeconds": 900 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );
@@ -1346,267 +1346,197 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
     assert_eq!(atlas.resolve_source(&FULL, "not an id"), None);
 }
 
-/// The locate delivered set answers the wire pin.
+/// The locate delivered set answers the wire pin over hand-derived fixture ego-graphs.
 ///
-/// Source first, then neighbours ascending (distance, base position) - proven against a brute-force
-/// scan of the positions column, the independent derivation the kd-tree must agree with.
+/// Source first, then the delivered edges' partners ascending wire row id; edges are the source's
+/// incident set - both directions, a self-loop exactly once - ascending wire edge id.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_subgraph_delivers_source_first_then_nearest() {
+async fn locate_subgraph_delivers_the_ego_graph() {
     use super::locate::LocateCaps;
 
-    let (_generation, atlas) = publish("locate-neighbours").await;
-    let source = atlas
-        .resolve_source(&FULL, &entity_string_of(0))
-        .expect("fixture node ids resolve");
+    let (_generation, atlas) = publish("locate-ego").await;
+    let (node_codec, edge_codec) = test_codecs(&atlas);
 
-    // Brute force: every other position, ascending by (squared
-    // distance, wire row id) - f32 arithmetic matching the index's
-    // own metric, ordered by the wire pin, with the tie key derived
-    // through an independently constructed codec.
-    let (node_codec, _) = test_codecs(&atlas);
-    let positions = atlas.positions();
-    let origin = positions[source.position as usize];
-    let mut expected: Vec<(f32, u32, u32)> = (0..positions.len())
-        .map(narrow_usize)
-        .filter(|&position| position != source.position)
-        .map(|position| {
-            let point = positions[position as usize];
-            let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
-            // The derivation must mirror the index's SquaredEuclidean
-            // bit for bit: a fused mul_add rounds differently and
-            // reorders near-ties.
-            #[expect(
-                clippy::suboptimal_flops,
-                reason = "unfused arithmetic mirrors the index metric exactly"
-            )]
-            (
-                dx * dx + dy * dy,
-                node_codec.encode(atlas.row_ids()[position as usize]).get(),
-                position,
-            )
-        })
-        .collect();
-    expected.sort_unstable_by(
-        |(left_distance, left_row, _), (right_distance, right_row, _)| {
-            left_distance
-                .total_cmp(right_distance)
-                .then(left_row.cmp(right_row))
-        },
-    );
+    // The fixture edge list by row: 0 = (0 -> 1), 1 = (1 -> 2),
+    // 2 = (2 -> 2) self-loop, 3 = (5 -> 40), 4 = (40 -> 5),
+    // 5 = (3 -> 7). Hand-derived ego-graphs, (source, partners,
+    // edge rows):
+    //   ego(0) = partner 1 over edge 0;
+    //   ego(1) = partners {0, 2} over edges {0, 1};
+    //   ego(2) = partner 1 over edges {1, 2} - the self-loop
+    //            delivers exactly once and adds no partner;
+    //   ego(4) = alone, zero edges - the honest-empty case;
+    //   ego(5) = partner 40 over edges {3, 4} - the reciprocal
+    //            pair shares one partner, delivered once.
+    let cases: [(u8, &[u32], &[u32]); 5] = [
+        (0, &[1], &[0]),
+        (1, &[0, 2], &[0, 1]),
+        (2, &[1], &[1, 2]),
+        (4, &[], &[]),
+        (5, &[40], &[3, 4]),
+    ];
 
-    for budget in [0_u32, 1, 3] {
-        let subgraph = atlas.locate_subgraph(source, budget, LocateCaps::default(), &FULL);
-        let mut delivered = vec![source.position];
-        delivered.extend(
-            expected
-                .iter()
-                .take(budget as usize)
-                .map(|&(_, _, position)| position),
-        );
-        assert_eq!(subgraph.positions, delivered, "budget {budget}");
-        let mut rows = vec![source.row];
-        rows.extend(
-            expected
-                .iter()
-                .take(budget as usize)
-                .map(|&(_, _, position)| atlas.row_ids()[position as usize]),
-        );
-        assert_eq!(subgraph.rows, rows, "budget {budget}");
-    }
+    for (source_row, partners, edge_rows) in cases {
+        let source = atlas
+            .resolve_source(&FULL, &entity_string_of(source_row))
+            .expect("fixture node ids resolve");
+        let subgraph = atlas.locate_subgraph(source, LocateCaps::default(), &FULL);
+        assert!(subgraph.complete, "ego({source_row}) is under the cap");
 
-    // A budget over the cap clamps to it: the 48-point fixture
-    // outnumbers the default 32-neighbour cap, so the delivered set
-    // is the source plus exactly the cap.
-    let subgraph = atlas.locate_subgraph(source, u32::MAX, LocateCaps::default(), &FULL);
-    assert_eq!(
-        subgraph.positions.len(),
-        1 + LocateCaps::default().neighbours as usize,
-    );
-    assert_eq!(
-        subgraph.positions[1..],
-        expected[..LocateCaps::default().neighbours as usize]
+        // Partners deliver ascending by wire row id; the expectation
+        // recomputes the order through an independently constructed
+        // codec.
+        let mut expected_rows: Vec<u32> = partners.to_vec();
+        expected_rows.sort_unstable_by_key(|&row| node_codec.encode(row).get());
+        expected_rows.insert(0, u32::from(source_row));
+        assert_eq!(subgraph.rows, expected_rows, "ego({source_row}) rows");
+        let expected_positions: Vec<u32> = expected_rows
             .iter()
-            .map(|&(_, _, position)| position)
-            .collect::<Vec<u32>>(),
-    );
+            .map(|&row| atlas.positions_of_row()[row as usize])
+            .collect();
+        assert_eq!(
+            subgraph.positions, expected_positions,
+            "ego({source_row}) positions",
+        );
+
+        // Edges deliver ascending by wire edge id, endpoints straight
+        // off the fixture edge list.
+        let mut expected_edges: Vec<u32> = edge_rows.to_vec();
+        expected_edges.sort_unstable_by_key(|&row| edge_codec.encode(row).get());
+        let delivered: Vec<u32> = subgraph.edges.iter().map(|&(edge, _)| edge.row).collect();
+        assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
+        for &(edge, wire) in &subgraph.edges {
+            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row as usize];
+            assert_eq!(u64::from(edge.source), edge_source);
+            assert_eq!(u64::from(edge.target), edge_target);
+            assert_eq!(wire, edge_codec.encode(edge.row).get());
+        }
+    }
 }
 
-/// The locate edge set is the both-endpoints rule over the delivered rows, ascending edge row.
+/// The locate edge cap keeps the nearest partners, and their nodes leave with their edges.
 ///
-/// Proven against a brute-force endpoint scan - and the cap truncates by worse-endpoint rank with
-/// source-incident edges protected to the end.
+/// The selection key is ascending (squared wire-frame distance to the partner, partner
+/// first-visible zoom, wire edge id); presentation stays ascending wire edge id. Proven by hand on
+/// the self-loop - its partner is the source itself at distance zero, so it survives every nonzero
+/// cap - and against an independent key derivation swept over every fixture source and cap.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
+async fn locate_edge_cap_keeps_the_nearest_partners() {
     use super::locate::LocateCaps;
 
-    let (_generation, atlas) = publish("locate-edges").await;
+    let (_generation, atlas) = publish("locate-truncation").await;
+    let (node_codec, _) = test_codecs(&atlas);
+    let distance_of = |from: u32, to: u32| {
+        let positions = atlas.positions();
+        let origin = positions[atlas.positions_of_row()[from as usize] as usize];
+        let point = positions[atlas.positions_of_row()[to as usize] as usize];
+        let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
+        // The derivation must mirror the selection key bit for bit:
+        // a fused mul_add rounds differently and reorders near-ties.
+        #[expect(
+            clippy::suboptimal_flops,
+            reason = "unfused arithmetic mirrors the selection key exactly"
+        )]
+        (dx * dx + dy * dy).to_bits()
+    };
 
-    // A source with some but not all edges incident makes the
-    // protection distinction real; pick it from the artifacts.
-    let pairs = atlas.endpoint_pairs();
-    let source_row = (0..atlas.row_ids().len())
-        .map(narrow_usize)
-        .find(|&row| {
-            let incident = pairs
-                .iter()
-                .filter(|&&[source, target]| source == u64::from(row) || target == u64::from(row))
-                .count();
-            incident > 0 && incident < pairs.len()
-        })
-        .expect("the fixture holds a partially incident row");
+    // Row 2 carries the self-loop (edge 2, distance zero) and one
+    // link to row 1 (edge 1). The rows land on distinct wire
+    // coordinates - asserted, so the hand derivation cannot silently
+    // degenerate into a tie.
+    assert_ne!(distance_of(2, 1), 0, "rows 1 and 2 are not co-located");
     let source = atlas
-        .resolve_source(
-            &FULL,
-            &entity_string_of(u8::try_from(source_row).expect("fixture rows are small")),
-        )
+        .resolve_source(&FULL, &entity_string_of(2))
         .expect("fixture node ids resolve");
-
-    // Deliver everything: a raised neighbour cap covers the whole
-    // 48-point fixture, so the subgraph is the full edge set.
-    let everything = LocateCaps {
-        neighbours: u32::MAX,
-        ..LocateCaps::default()
-    };
-    let all = atlas.locate_subgraph(source, u32::MAX, everything, &FULL);
-
-    // Brute force: every edge row whose endpoints are both delivered
-    // (here: all of them), ascending wire edge row - the wire key
-    // derived through an independently constructed codec.
-    let (_, edge_codec) = test_codecs(&atlas);
-    let wire_of = |row: u32| edge_codec.encode(row).get();
-    let mut expected_full: Vec<(u32, u32, u32)> = (0..pairs.len())
-        .map(|edge| {
-            let [edge_source, edge_target] = pairs[edge];
-            (
-                narrow_usize(edge),
-                u32::try_from(edge_source).expect("node rows fit u32"),
-                u32::try_from(edge_target).expect("node rows fit u32"),
-            )
-        })
-        .collect();
-    expected_full.sort_unstable_by_key(|&(row, ..)| wire_of(row));
-    let delivered: Vec<(u32, u32, u32)> = all
-        .edges
-        .iter()
-        .map(|&(edge, _)| (edge.row, edge.source, edge.target))
-        .collect();
-    assert_eq!(delivered, expected_full, "uncapped = the full edge set");
-    assert!(all.complete);
-
-    // The independent rank derivation the truncation must follow;
-    // ties break on the wire edge id.
-    let rank_of_row = |row: u32| atlas.ranks()[atlas.positions_of_row()[row as usize] as usize];
-    let ranked_key = |&(row, edge_source, edge_target): &(u32, u32, u32)| {
-        let context = edge_source != source.row && edge_target != source.row;
-        (
-            context,
-            rank_of_row(edge_source).max(rank_of_row(edge_target)),
-            wire_of(row),
-        )
-    };
-
-    for cap in 0..=expected_full.len() {
-        let caps = LocateCaps {
-            edges: u32::try_from(cap).expect("fixture edge counts are small"),
-            ..everything
-        };
-        let subgraph = atlas.locate_subgraph(source, u32::MAX, caps, &FULL);
-        assert_eq!(subgraph.complete, expected_full.len() <= cap, "cap {cap}");
-
-        let mut expected = expected_full.clone();
-        expected.sort_unstable_by_key(ranked_key);
-        expected.truncate(cap);
-        expected.sort_unstable_by_key(|&(row, ..)| wire_of(row));
-        let survivors: Vec<(u32, u32, u32)> = subgraph
+    let capped = atlas.locate_subgraph(
+        source,
+        LocateCaps {
+            edges: 1,
+            ..LocateCaps::default()
+        },
+        &FULL,
+    );
+    assert!(!capped.complete, "one of two incident edges truncated");
+    assert_eq!(
+        capped
             .edges
             .iter()
-            .map(|&(edge, _)| (edge.row, edge.source, edge.target))
-            .collect();
-        assert_eq!(survivors, expected, "cap {cap}");
-
-        // The protection property, stated directly: source-incident
-        // edges survive any cap that admits them at all.
-        let incident: Vec<u32> = expected_full
-            .iter()
-            .filter(|&&(_, edge_source, edge_target)| {
-                edge_source == source.row || edge_target == source.row
-            })
-            .map(|&(row, ..)| row)
-            .collect();
-        if cap >= incident.len() {
-            for row in &incident {
-                assert!(
-                    survivors.iter().any(|&(survivor, ..)| survivor == *row),
-                    "cap {cap} keeps source-incident edge {row}",
-                );
-            }
-        }
-
-        // Determinism pair: byte-identical assembly on repeat.
-        assert_eq!(
-            subgraph,
-            atlas.locate_subgraph(source, u32::MAX, caps, &FULL),
-            "cap {cap}",
-        );
-    }
-}
-
-/// The locate index cache round-trips.
-///
-/// The first open writes it, a second open loads it and answers identically, and a corrupt cache
-/// rebuilds instead of failing the open.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_index_cache_round_trips() {
-    use super::OpenOptions;
-
-    let (root, generation) = fit_fixture("locate-cache").await;
-    store_identities(&generation);
-    let cache = scratch("locate-cache-dir").join("kdtree-cache");
-    let options = OpenOptions {
-        locate_cache: Some(cache.clone()),
-        ..OpenOptions::default()
-    };
-
-    let fresh = Atlas::open_with(&root, generation.id(), &options)
-        .expect("the first open builds and caches");
-    let path = cache.join(format!("locate-{}.kdtree", generation.id()));
-    assert!(path.exists(), "the first open leaves the cache behind");
-
-    let cached = Atlas::open_with(&root, generation.id(), &options)
-        .expect("the second open loads the cache");
-    let count = core::num::NonZero::new(4_usize).expect("4 is nonzero");
-    // Candidate sets are unordered; a canonical sort makes the
-    // comparison exact.
-    let probe = |atlas: &Atlas, origin: [f32; 2]| {
-        let mut candidates = atlas.locate.candidates(origin, count);
-        candidates.sort_unstable_by(|(left_distance, left), (right_distance, right)| {
-            left_distance
-                .total_cmp(right_distance)
-                .then(left.cmp(right))
-        });
-        candidates
-    };
-    for origin in [[0.0_f32, 0.0], [-0.5, 0.25], [1.0, -1.0]] {
-        assert_eq!(
-            probe(&fresh, origin),
-            probe(&cached, origin),
-            "the cached index answers exactly as the built one",
-        );
-    }
-
-    // A corrupt cache is a miss, never a failure - and it heals.
-    std::fs::write(&path, b"SALTKDX1 garbage after the magic").expect("the cache is writable");
-    let healed = Atlas::open_with(&root, generation.id(), &options)
-        .expect("a corrupt cache rebuilds instead of failing");
-    assert_eq!(probe(&healed, [0.0, 0.0]), probe(&fresh, [0.0, 0.0]));
-    let rewritten = std::fs::read(&path).expect("the cache file exists");
-    assert_ne!(
-        &*rewritten, b"SALTKDX1 garbage after the magic",
-        "the rebuild rewrites the cache",
+            .map(|&(edge, _)| edge.row)
+            .collect::<Vec<u32>>(),
+        [2],
+        "the self-loop is the nearest edge",
     );
+    // Partner 1's only edge truncated, so partner 1 is not
+    // delivered: the source stands alone.
+    assert_eq!(capped.rows, [2]);
+    assert_eq!(capped.positions, [source.position]);
+
+    // The general law, swept: survivors are the cap smallest under
+    // the independent key, presented ascending by wire edge id, and
+    // the delivered nodes are exactly the survivors' partners.
+    for source_row in [0_u8, 1, 2, 3, 4, 5, 7, 40] {
+        let source = atlas
+            .resolve_source(&FULL, &entity_string_of(source_row))
+            .expect("fixture node ids resolve");
+        let full = atlas.locate_subgraph(source, LocateCaps::default(), &FULL);
+
+        for cap in 0..=full.edges.len() {
+            let caps = LocateCaps {
+                edges: u32::try_from(cap).expect("fixture edge counts are small"),
+                ..LocateCaps::default()
+            };
+            let subgraph = atlas.locate_subgraph(source, caps, &FULL);
+            assert_eq!(
+                subgraph.complete,
+                full.edges.len() <= cap,
+                "ego({source_row}) cap {cap}",
+            );
+
+            // The independent key: distance bits, then the partner's
+            // first visible zoom through the public resolve path (the
+            // HEAD fly-to derivation), then the wire edge id.
+            let mut expected = full.edges.clone();
+            expected.sort_unstable_by_key(|&(edge, wire)| {
+                let partner = if edge.source == u32::from(source_row) {
+                    edge.target
+                } else {
+                    edge.source
+                };
+                let zoom = atlas
+                    .resolve_source(
+                        &FULL,
+                        &entity_string_of(u8::try_from(partner).expect("fixture rows fit u8")),
+                    )
+                    .expect("fixture partners resolve")
+                    .zoom;
+                (distance_of(u32::from(source_row), partner), zoom, wire)
+            });
+            expected.truncate(cap);
+            expected.sort_unstable_by_key(|&(_, wire)| wire);
+            assert_eq!(subgraph.edges, expected, "ego({source_row}) cap {cap}");
+
+            let mut partner_keys: Vec<(u32, u32)> = expected
+                .iter()
+                .flat_map(|&(edge, _)| [edge.source, edge.target])
+                .filter(|&row| row != u32::from(source_row))
+                .map(|row| (node_codec.encode(row).get(), row))
+                .collect();
+            partner_keys.sort_unstable();
+            partner_keys.dedup();
+            let mut expected_rows = vec![u32::from(source_row)];
+            expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
+            assert_eq!(subgraph.rows, expected_rows, "ego({source_row}) cap {cap}");
+
+            // Determinism pair: identical assembly on repeat.
+            assert_eq!(
+                subgraph,
+                atlas.locate_subgraph(source, caps, &FULL),
+                "ego({source_row}) cap {cap}",
+            );
+        }
+    }
 }
 
 #[test]
@@ -2274,7 +2204,6 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
         row: None,
         colored_type_ids: Vec::new(),
         filter: None,
-        neighbours: None,
         include_detailed_data: false,
     }
 }
@@ -2296,11 +2225,9 @@ async fn locate_by_wire_row_matches_by_entity() {
     // paths, whose agreement is the whole contract in one assertion.
     let (node_codec, _) = test_codecs(&atlas);
     let wire = node_codec.encode(7).get();
-    let mut by_entity = locate_request(entity_string_of(7));
-    by_entity.neighbours = Some(3);
+    let by_entity = locate_request(entity_string_of(7));
     let mut by_row: super::LocateRequest = serde_json::from_value(serde_json::json!({
         "row": wire,
-        "neighbours": 3,
         "includeDetailedData": false,
     }))
     .expect("a by-row body deserializes");
@@ -2362,12 +2289,10 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let (generation, atlas) = publish("locate-endpoint").await;
     let caps = ServeCaps::default();
 
-    // A bare JSON body reads neighbours = None and
-    // includeDetailedData = true.
+    // A bare JSON body reads includeDetailedData = true.
     let bare: super::LocateRequest =
         serde_json::from_value(serde_json::json!({ "entityId": entity_string_of(0) }))
             .expect("a bare locate body deserializes");
-    assert_eq!(bare.neighbours, None);
     assert!(bare.include_detailed_data);
     assert_eq!(
         atlas.locate(&bare, caps, &FULL),
@@ -2375,7 +2300,6 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     );
 
     let mut request = locate_request(entity_string_of(0));
-    request.neighbours = Some(3);
     let bytes = atlas
         .locate(&request, caps, &FULL)
         .expect("the request is well-formed");
@@ -2386,7 +2310,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let source = atlas
         .resolve_source(&FULL, &entity_string_of(0))
         .expect("row 0 is a node");
-    let subgraph = atlas.locate_subgraph(source, 3, caps.locate, &FULL);
+    let subgraph = atlas.locate_subgraph(source, caps.locate, &FULL);
     let (node_codec, _) = test_codecs(&atlas);
     let wire_of = |row: u32| node_codec.encode(row).get();
     let sources: Vec<u32> = subgraph
@@ -2431,11 +2355,10 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 
 /// Every locate rejection carries its name.
 ///
-/// The unknown-entity doctrine treats unparsable, unknown, and wrong-domain ids identically, and an
-/// over-cap neighbour budget clamps instead of rejecting.
+/// The unknown-entity doctrine treats unparsable, unknown, and wrong-domain ids identically.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_rejections_and_the_neighbour_clamp() {
+async fn locate_rejections_carry_their_names() {
     let (_generation, atlas) = publish("locate-rejects").await;
     let caps = ServeCaps::default();
 
@@ -2481,18 +2404,6 @@ async fn locate_rejections_and_the_neighbour_clamp() {
             .expect_err("filter is a version-0 deferral"),
         super::LocateError::Unsupported("filter"),
     );
-
-    // A budget is not a list: over the cap it clamps, visible only
-    // in the delivered count (the source plus the cap).
-    let mut greedy = locate_request(entity_string_of(0));
-    greedy.neighbours = Some(u32::MAX);
-    let document = atlas
-        .assemble_locate(&greedy, caps, &FULL)
-        .expect("the budget clamps");
-    assert_eq!(
-        atlas.locate_node_entities(&document).count(),
-        caps.locate.neighbours as usize + 1,
-    );
 }
 
 /// The transport path gathers both identity domains and encodes the hydrated trailer byte-exactly.
@@ -2508,7 +2419,6 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
     let caps = ServeCaps::default();
 
     let mut request = locate_request(entity_string_of(0));
-    request.neighbours = Some(4);
     request.include_detailed_data = true;
 
     let document = atlas
@@ -2516,7 +2426,8 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
         .expect("assembly ignores the trailer flag");
     let nodes = atlas.locate_node_entities(&document);
     let links = atlas.locate_link_entities(&document);
-    assert_eq!(nodes.count(), 5, "the source and four neighbours");
+    // Row 0's ego-graph is partner 1 over edge 0.
+    assert_eq!(nodes.count(), 2, "the source and its one partner");
 
     // Hydration is the transport's store round trip; all-null
     // details stand in for it (the property laws are pinned by the
@@ -2528,7 +2439,7 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
     let source = atlas
         .resolve_source(&FULL, &entity_string_of(0))
         .expect("row 0 is a node");
-    let subgraph = atlas.locate_subgraph(source, 4, caps.locate, &FULL);
+    let subgraph = atlas.locate_subgraph(source, caps.locate, &FULL);
     let (node_codec, _) = test_codecs(&atlas);
     let wire_of = |row: u32| node_codec.encode(row).get();
     let sources: Vec<u32> = subgraph
@@ -3205,56 +3116,44 @@ async fn translate_answers_missing_for_denied() {
     assert_eq!(full.edges.len(), 2);
 }
 
-/// Locate selects its neighbours under the mask and hides its source like a missing one.
+/// Locate filters partners under the mask and hides its source like a missing one.
 ///
-/// A hidden source answers the same `UnknownEntity` in both ingress domains; a hidden neighbour
-/// never consumes the budget - the k-nearest search expands until the budget is met from visible
-/// rows alone, and the survivors are exactly the nearest visible by the wire's own order.
+/// A hidden source answers the same `UnknownEntity` in both ingress domains; a hidden partner
+/// drops with its edges BEFORE the cap selects - `complete` stays `true`, so the response never
+/// discloses that anything was withheld.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn locate_selects_under_the_mask() {
+async fn locate_filters_partners_under_the_mask() {
     let (_generation, atlas) = publish("masked-locate").await;
     let caps = ServeCaps::default();
 
-    // Ground truth around row 0 under full visibility.
+    // Ground truth: ego(5) = partner 40 over the reciprocal pair,
+    // edge rows 3 and 4.
     let source = atlas
-        .resolve_source(&FULL, &entity_string_of(0))
-        .expect("row 0 resolves");
-    let budget = 3_u32;
-    let full = atlas.locate_subgraph(source, budget, caps.locate, &FULL);
-    assert_eq!(
-        full.rows.len(),
-        4,
-        "the source and three neighbours deliver"
-    );
-    let nearest = full.rows[1];
+        .resolve_source(&FULL, &entity_string_of(5))
+        .expect("row 5 resolves");
+    let full = atlas.locate_subgraph(source, caps.locate, &FULL);
+    assert_eq!(full.rows, [5, 40], "the source and its one partner");
+    assert_eq!(full.edges.len(), 2);
 
-    // Hiding the nearest neighbour: the budget is still met, the
-    // hidden row is absent, and the selection is exactly the nearest
-    // visible three - the full selection over budget + 1 with the
-    // hidden row removed.
-    let proof = mask_hiding(&atlas, &[nearest]);
-    let masked = atlas.locate_subgraph(source, budget, caps.locate, &proof);
-    assert_eq!(masked.rows.len(), 4, "hidden rows never consume the budget");
-    assert!(!masked.rows.contains(&nearest));
-    let extended = atlas.locate_subgraph(source, budget + 1, caps.locate, &FULL);
-    let expected: Vec<u32> = extended.rows[1..]
-        .iter()
-        .copied()
-        .filter(|&row| row != nearest)
-        .take(budget as usize)
-        .collect();
-    assert_eq!(
-        masked.rows[1..],
-        expected,
-        "selection happens under the mask"
-    );
+    // Hiding the partner removes it and both its edges: the source
+    // stands alone, honestly complete - a masked ego-graph answers
+    // exactly like one where the partner never existed.
+    let proof = mask_hiding(&atlas, &[40]);
+    let masked = atlas.locate_subgraph(source, caps.locate, &proof);
+    assert_eq!(masked.rows, [5], "the hidden partner is not delivered");
+    assert!(masked.edges.is_empty(), "its edges leave with it");
+    assert!(masked.complete, "visibility is not truncation");
 
-    // Every delivered edge joins two delivered (hence visible) rows.
-    for &(edge, _) in &masked.edges {
-        assert!(masked.rows.contains(&edge.source));
-        assert!(masked.rows.contains(&edge.target));
-    }
+    // Hidden partners drop BEFORE selection: under a cap of one, the
+    // masked response still answers from visible edges alone.
+    let capped = super::locate::LocateCaps {
+        edges: 1,
+        ..caps.locate
+    };
+    let capped_masked = atlas.locate_subgraph(source, capped, &proof);
+    assert!(capped_masked.complete, "zero visible edges fit any cap");
+    assert!(capped_masked.edges.is_empty());
 
     // A hidden source is a missing source, in both ingress domains.
     let hidden_source = mask_hiding(&atlas, &[0]);
@@ -3271,7 +3170,6 @@ async fn locate_selects_under_the_mask() {
         row: Some(node_codec.encode(0).get()),
         colored_type_ids: Vec::new(),
         filter: None,
-        neighbours: None,
         include_detailed_data: false,
     };
     assert_eq!(
@@ -3322,12 +3220,12 @@ fn visibility_proof_is_fail_closed() {
 /// The composition law `S = X ∩ V_u` holds under random masks on every delivering endpoint.
 ///
 /// Eight seeded random proofs sweep every tile coordinate in both modes, the full edge grid,
-/// translate over every fixture identity, and locate around a visible source. Containment and
+/// translate over every fixture identity, and every visible locate source. Containment and
 /// exactness are one assertion each time: the masked response equals the unmasked response
 /// with the hidden rows' entries removed - the mask never leaks and never over-drops. The fixture
 /// serves without capacity pressure, so `X` is mask-independent and the filtered-full comparison
-/// is the law verbatim; locate's ground truth instead extends the unmasked search by the hidden
-/// count, mirroring select-under-the-mask through the wire's own `(distance, wire id)` order.
+/// is the law verbatim; locate's ground truth is the fixture edge list itself - the visible
+/// ego-graph, derived edge by edge.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn composition_law_holds_under_random_masks() {
@@ -3337,16 +3235,12 @@ async fn composition_law_holds_under_random_masks() {
 
     for _ in 0..8 {
         let hidden: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
-        assert!(
-            hidden.len() <= 28,
-            "the seeded masks leave locate's extended ground truth under its cap"
-        );
         let proof = mask_hiding(&atlas, &hidden);
 
         assert_tiles_mask_by_intersection(&atlas, &proof, &hidden);
         assert_edges_mask_by_intersection(&generation, &atlas, &proof, &hidden);
         assert_translate_masks_by_visibility(&atlas, &proof, &hidden);
-        assert_locate_selects_under_the_mask(&atlas, &proof, &hidden);
+        assert_locate_delivers_the_visible_ego_graph(&atlas, &proof, &hidden);
     }
 }
 
@@ -3451,54 +3345,107 @@ fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, 
     }
 }
 
-/// The masked selection is the nearest visible by the wire's own order - the unmasked selection
-/// extended past the hidden count, filtered, and cut at the budget.
-fn assert_locate_selects_under_the_mask(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
+/// Every visible source's masked ego-graph is the fixture edge list filtered to visible partners.
+///
+/// Edges ascend by wire edge id, partners derive from the delivered edges ascending wire row id,
+/// and `complete` stays `true`: visibility is not truncation. Wherever the mask shrinks a
+/// source's incident set, a second probe caps the query at exactly the visible cardinality:
+/// hidden partners drop before selection, so the tight cap truncates nothing and delivers the
+/// whole visible set, complete - independent of the truncation key. Selecting first and masking
+/// after would come up short in exactly these configurations.
+fn assert_locate_delivers_the_visible_ego_graph(
+    atlas: &Atlas,
+    proof: &VisibilityProof,
+    hidden: &[u32],
+) {
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
     let caps = ServeCaps::default();
-    let source_row = (0..universe)
-        .find(|row| !hidden.contains(row))
-        .expect("the seeded masks leave visible rows");
-    let source_id = entity_string_of(u8::try_from(source_row).expect("fixture rows fit u8"));
-    let budget = 3_u32;
-    let masked = atlas.locate_subgraph(
-        atlas
-            .resolve_source(proof, &source_id)
-            .expect("a visible source resolves under the mask"),
-        budget,
-        caps.locate,
-        proof,
-    );
-    assert_eq!(
-        masked.rows.len(),
-        1 + budget as usize,
-        "hidden rows never consume the budget"
-    );
-    for &row in &masked.rows {
-        assert!(!hidden.contains(&row), "every delivered row is visible");
-    }
-    let extended = atlas.locate_subgraph(
-        atlas
-            .resolve_source(&FULL, &source_id)
-            .expect("the source resolves in full view"),
-        budget + u32::try_from(hidden.len()).expect("fixture masks fit u32"),
-        caps.locate,
-        &FULL,
-    );
-    let expected: Vec<u32> = extended.rows[1..]
-        .iter()
-        .copied()
-        .filter(|row| !hidden.contains(row))
-        .take(budget as usize)
-        .collect();
-    assert_eq!(
-        masked.rows[1..],
-        expected,
-        "selection happens under the mask"
-    );
-    for &(edge, _) in &masked.edges {
-        assert!(masked.rows.contains(&edge.source));
-        assert!(masked.rows.contains(&edge.target));
+    let (node_codec, edge_codec) = test_codecs(atlas);
+
+    for source_row in (0..universe).filter(|row| !hidden.contains(row)) {
+        let source_id = entity_string_of(u8::try_from(source_row).expect("fixture rows fit u8"));
+        let masked = atlas.locate_subgraph(
+            atlas
+                .resolve_source(proof, &source_id)
+                .expect("a visible source resolves under the mask"),
+            caps.locate,
+            proof,
+        );
+        assert!(masked.complete, "visibility is not truncation");
+
+        // Ground truth off the fixture edge list: incident to the
+        // source, each edge once, partner visible.
+        let mut expected_edges: Vec<u32> = FIXTURE_EDGES
+            .iter()
+            .enumerate()
+            .filter(|&(_, &(_, edge_source, edge_target))| {
+                let incident =
+                    edge_source == u64::from(source_row) || edge_target == u64::from(source_row);
+                let partner = if edge_source == u64::from(source_row) {
+                    edge_target
+                } else {
+                    edge_source
+                };
+                incident && !hidden.contains(&u32::try_from(partner).expect("fixture rows fit u32"))
+            })
+            .map(|(row, _)| narrow_usize(row))
+            .collect();
+        expected_edges.sort_unstable_by_key(|&row| edge_codec.encode(row).get());
+        let delivered: Vec<u32> = masked.edges.iter().map(|&(edge, _)| edge.row).collect();
+        assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
+
+        let mut partner_keys: Vec<(u32, u32)> = expected_edges
+            .iter()
+            .flat_map(|&row| {
+                let (_, edge_source, edge_target) = FIXTURE_EDGES[row as usize];
+                [
+                    u32::try_from(edge_source).expect("fixture rows fit u32"),
+                    u32::try_from(edge_target).expect("fixture rows fit u32"),
+                ]
+            })
+            .filter(|&row| row != source_row)
+            .map(|row| (node_codec.encode(row).get(), row))
+            .collect();
+        partner_keys.sort_unstable();
+        partner_keys.dedup();
+        let mut expected_rows = vec![source_row];
+        expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
+        assert_eq!(masked.rows, expected_rows, "ego({source_row}) rows");
+        for &row in &masked.rows {
+            assert!(!hidden.contains(&row), "every delivered row is visible");
+        }
+
+        // Drop-before-cap, key-independent: whenever the mask shrank
+        // this source's incident set, a cap of exactly the visible
+        // cardinality still delivers every visible edge.
+        let incident = FIXTURE_EDGES
+            .iter()
+            .filter(|&&(_, edge_source, edge_target)| {
+                edge_source == u64::from(source_row) || edge_target == u64::from(source_row)
+            })
+            .count();
+        if !expected_edges.is_empty() && expected_edges.len() < incident {
+            let tight = super::locate::LocateCaps {
+                edges: u32::try_from(expected_edges.len()).expect("the fixture edge count fits"),
+                ..caps.locate
+            };
+            let capped = atlas.locate_subgraph(
+                atlas
+                    .resolve_source(proof, &source_id)
+                    .expect("a visible source resolves under the mask"),
+                tight,
+                proof,
+            );
+            assert!(
+                capped.complete,
+                "a cap at the visible cardinality truncates nothing"
+            );
+            let capped_edges: Vec<u32> = capped.edges.iter().map(|&(edge, _)| edge.row).collect();
+            assert_eq!(
+                capped_edges, expected_edges,
+                "ego({source_row}) under the tight cap"
+            );
+        }
     }
 }
 
@@ -3531,7 +3478,6 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
         row: Some(wire),
         colored_type_ids: Vec::new(),
         filter: None,
-        neighbours: None,
         include_detailed_data: false,
     };
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x9A08);

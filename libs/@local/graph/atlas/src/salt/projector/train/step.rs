@@ -2,7 +2,8 @@
 //!
 //! Forward, hand-gradient fields, budget clip, and the backward-ready surrogate.
 //!
-//! [`objective`] projects the batch rows and hands the coordinates to [`evaluate`], which computes
+//! [`objective`](Evaluation::objective) projects the batch rows and hands the coordinates to
+//! [`evaluate`], which computes
 //! the composite objective in two regimes. The budget-governed families (semantic attraction,
 //! ordinary and hard repulsion, relation attraction) evaluate value and per-node coordinate
 //! gradient against the detached coordinate frame; the relation field is clipped per node against
@@ -129,7 +130,8 @@ impl Evaluation<'_> {
 /// `coordinates` are the batch rows' projections in the batch's local row order, optionally
 /// followed by alignment padding: trailing rows beyond the batch's are the materialized input's
 /// padding twins (see [`ROW_ALIGNMENT`]), which no population references, so they carry exactly
-/// zero force. Split from [`objective`] so the coordinate producer stays exchangeable: the training
+/// zero force. Split from [`objective`](Evaluation::objective) so the coordinate producer stays
+/// exchangeable: the training
 /// loop forwards the model, tests drive hand-built frames.
 ///
 /// # Errors
