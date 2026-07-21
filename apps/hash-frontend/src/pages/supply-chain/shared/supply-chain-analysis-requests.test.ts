@@ -21,8 +21,12 @@ vi.mock("../../../shared/analysis-client", () => ({
   runAnalyses: runAnalysesMock,
 }));
 
-const { fetchSites, fetchSupplierPerformance, resolveSupplyChainDataWebId } =
-  await import("./supply-chain-analysis-requests");
+const {
+  fetchProductionSchedule,
+  fetchSites,
+  fetchSupplierPerformance,
+  resolveSupplyChainDataWebId,
+} = await import("./supply-chain-analysis-requests");
 
 const webId = (value: string) => value as WebId;
 
@@ -43,6 +47,22 @@ describe("fetchSites", () => {
   it("falls back to an empty list when the artifact is missing", async () => {
     fetchAnalysisArtifactMock.mockRejectedValue(new Error("404"));
     await expect(fetchSites(webId("w"))).resolves.toEqual([]);
+  });
+});
+
+describe("fetchProductionSchedule", () => {
+  it("requests the product-scoped schedule analysis", async () => {
+    const schedule = { artifact_type: "production_schedule" };
+    fetchAnalysisArtifactMock.mockResolvedValue(schedule);
+
+    await expect(
+      fetchProductionSchedule(webId("w"), "product-a"),
+    ).resolves.toBe(schedule);
+    expect(fetchAnalysisArtifactMock).toHaveBeenCalledWith({
+      analysis: "productionSchedule",
+      args: { productId: "product-a" },
+      webId: "w",
+    });
   });
 });
 

@@ -42,10 +42,20 @@ type JudgeVerdict = {
   corrections: JudgeCorrection[];
 };
 
+type SerializedJudgeCorrection = Omit<JudgeCorrection, "correctValue"> & {
+  correctValueJson?: string;
+};
+
+type SerializedJudgeVerdict = Omit<JudgeVerdict, "corrections"> & {
+  corrections: SerializedJudgeCorrection[];
+};
+
 const correctionTypeDescriptions = `The types of correction you may issue:
-- "correct-missing": The AI missed a value that can be inferred from the context. You provide the correct value. Do NOT use this if the AI has provided a value that is incorrect – use "correct-incorrect" instead.
-- "correct-incorrect": The AI provided a value that is incorrect based on the context. You provide the correct value. Do NOT use this if the AI has missed a value – use "correct-missing" instead.
-- "delete-unfounded": The AI provided a value for a field that cannot be inferred from the context. You do not provide a correct value, as one cannot be determined.`;
+- "correct-missing": The AI missed a value that can be inferred from the context. You provide the correct value as JSON text in 'correctValueJson'. Do NOT use this if the AI has provided a value that is incorrect – use "correct-incorrect" instead.
+- "correct-incorrect": The AI provided a value that is incorrect based on the context. You provide the correct value as JSON text in 'correctValueJson'. Do NOT use this if the AI has missed a value – use "correct-missing" instead.
+- "delete-unfounded": The AI provided a value for a field that cannot be inferred from the context. You do not provide 'correctValueJson', as a correct value cannot be determined.
+
+The 'correctValueJson' field must contain a valid JSON serialization of the entire correct value. For example, use '"Example"' for a string, '[1, 2]' for an array, and '{"name":"Example"}' for an object.`;
 
 export const judgeSystemPrompt = `# Task
 You are an expert reviewer judging the accuracy and completeness of an AI model's outputs.
@@ -210,17 +220,13 @@ const judgeTool: LlmToolDefinition = {
                 "delete-unfounded",
               ],
             },
-            correctValue: {
-              anyOf: [
-                { type: "string" },
-                { type: "number" },
-                { type: "boolean" },
-                { type: "array" },
-                { type: "object" },
-              ],
+            correctValueJson: {
+              type: "string",
+              description:
+                "The correct value serialized as valid JSON. Required for correct-missing and correct-incorrect; omit for delete-unfounded.",
             },
           },
-          required: ["jsonPath", "correctionType", "correctValue"],
+          required: ["reasoning", "jsonPath", "correctionType"],
           additionalProperties: false,
         },
       },
@@ -230,18 +236,22 @@ const judgeTool: LlmToolDefinition = {
   },
 };
 
-const isJudgeVerdict = (value: unknown): value is JudgeVerdict => {
+const isSerializedJudgeVerdict = (
+  value: unknown,
+): value is SerializedJudgeVerdict => {
   return (
     typeof value === "object" &&
     value !== null &&
     "score" in value &&
     "feedback" in value &&
-    "corrections" in value
+    "corrections" in value &&
+    Array.isArray(value.corrections)
   );
 };
 
 export const judgeAiOutputs = async ({
   exchangeToReview,
+  previousErrors,
   judgeModel,
   judgeAdditionalInstructions,
   testingParams,
@@ -253,6 +263,7 @@ export const judgeAiOutputs = async ({
   const judgePrompt = generateJudgePrompt({
     exchangeToReview,
     judgeAdditionalInstructions,
+    previousErrors,
   });
 
   if (fileMessages.length > 0) {
@@ -326,7 +337,7 @@ export const judgeAiOutputs = async ({
     });
   }
 
-  if (!isJudgeVerdict(toolCall.input)) {
+  if (!isSerializedJudgeVerdict(toolCall.input)) {
     logger.error("Tool call input is not a valid judge verdict");
     return judgeAiOutputs({
       exchangeToReview,
@@ -340,30 +351,57 @@ export const judgeAiOutputs = async ({
   }
 
   const errors: string[] = [];
-  for (const correction of toolCall.input.corrections) {
-    const existingValue = get(lastAiMessage, correction.jsonPath) as
+  const corrections: JudgeCorrection[] = [];
+
+  for (const serializedCorrection of toolCall.input.corrections) {
+    const { correctionType, correctValueJson, jsonPath, reasoning } =
+      serializedCorrection;
+
+    let correctValue: PropertyValue | undefined;
+
+    if (correctionType !== "delete-unfounded") {
+      if (correctValueJson === undefined) {
+        errors.push(
+          `You provided a correction of type ${correctionType} at path ${jsonPath.join(".")} without 'correctValueJson'. Provide the correct value serialized as valid JSON.`,
+        );
+      } else {
+        try {
+          correctValue = JSON.parse(correctValueJson) as PropertyValue;
+        } catch {
+          errors.push(
+            `You provided an invalid JSON serialization in 'correctValueJson' for the correction at path ${jsonPath.join(".")}.`,
+          );
+        }
+      }
+    }
+
+    const existingValue = get(lastAiMessage, jsonPath) as
       | PropertyValue
       | undefined;
 
-    if (
-      correction.correctionType !== "correct-missing" &&
-      existingValue === undefined
-    ) {
+    if (correctionType !== "correct-missing" && existingValue === undefined) {
       errors.push(
-        `You provided a correction of type ${correction.correctionType} at path ${correction.jsonPath.join(
+        `You provided a correction of type ${correctionType} at path ${jsonPath.join(
           ".",
         )} but there is no value at that path. Value must exist to be corrected or deleted. If you are providing a value that was missed, used the 'correct-missing' correction type.`,
       );
     } else if (
-      correction.correctionType === "correct-missing" &&
+      correctionType === "correct-missing" &&
       existingValue !== undefined
     ) {
       errors.push(
-        `You provided a correction of type ${correction.correctionType} at path ${correction.jsonPath.join(
+        `You provided a correction of type ${correctionType} at path ${jsonPath.join(
           ".",
         )} but there is a value at that path. To correct a value that is present but incorrect, used the 'correct-incorrect' correction type.`,
       );
     }
+
+    corrections.push({
+      correctionType,
+      correctValue,
+      jsonPath,
+      reasoning,
+    });
   }
 
   if (errors.length) {
@@ -377,5 +415,9 @@ export const judgeAiOutputs = async ({
     });
   }
 
-  return toolCall.input;
+  return {
+    feedback: toolCall.input.feedback,
+    score: toolCall.input.score,
+    corrections,
+  };
 };

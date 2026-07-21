@@ -3,6 +3,7 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import {
   EditorContext,
   type SimulateViewMode,
@@ -10,6 +11,7 @@ import {
 import { SegmentGroup } from "../../../../components/segment-group";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
+import { OptimizationsView } from "./optimizations/optimizations-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
 
 import type { SegmentOption } from "../../../../components/segment-group";
@@ -57,6 +59,14 @@ const modeOptions: SegmentOption[] = [
     tooltipOptions: { position: "right" },
   },
   {
+    value: "optimizations",
+    label: "Optimizations",
+    icon: <Icon name="sliders" size="sm" />,
+    hideLabel: true,
+    tooltip: "Optimizations",
+    tooltipOptions: { position: "right" },
+  },
+  {
     value: "metrics",
     label: "Metrics",
     icon: <Icon name="chartBarSimple" size="sm" />,
@@ -66,22 +76,28 @@ const modeOptions: SegmentOption[] = [
   },
 ];
 
-const visibleModeOptions = modeOptions.filter(
-  (option) => option.value !== "metrics",
-);
-
 const views = {
   experiments: ExperimentsView,
   scenarios: ScenariosView,
   metrics: MetricsView,
+  optimizations: OptimizationsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
 
 export const SimulateView = () => {
+  const optimization = use(PetrinautOptimizationContext);
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
-  const visibleMode = mode === "metrics" ? "experiments" : mode;
+  const visibleModeOptions = modeOptions.filter(
+    (option) =>
+      option.value !== "metrics" &&
+      (option.value !== "optimizations" || optimization !== null),
+  );
+  const visibleMode =
+    mode === "metrics" || (mode === "optimizations" && !optimization)
+      ? "experiments"
+      : mode;
   const ActiveView = views[visibleMode];
 
   return (

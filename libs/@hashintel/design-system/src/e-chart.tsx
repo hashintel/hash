@@ -1,7 +1,21 @@
 import { Box } from "@mui/material";
-import { BarChart, GraphChart, LineChart, ScatterChart } from "echarts/charts";
+import {
+  BarChart,
+  GraphChart,
+  HeatmapChart,
+  LineChart,
+  MapChart,
+  PieChart,
+  ScatterChart,
+} from "echarts/charts";
 // eslint-disable-next-line no-restricted-imports
-import { GridComponent, TooltipComponent } from "echarts/components";
+import {
+  GeoComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef, useState } from "react";
@@ -10,11 +24,19 @@ import type { BoxProps } from "@mui/material";
 import type {
   BarSeriesOption,
   GraphSeriesOption,
+  HeatmapSeriesOption,
   LineSeriesOption,
+  MapSeriesOption,
+  PieSeriesOption,
   ScatterSeriesOption,
 } from "echarts/charts";
 // eslint-disable-next-line no-restricted-imports
-import type { TooltipComponentOption } from "echarts/components";
+import type {
+  GeoComponentOption,
+  LegendComponentOption,
+  TooltipComponentOption,
+  VisualMapComponentOption,
+} from "echarts/components";
 import type {
   GraphEdgeItemOption,
   GraphNodeItemOption,
@@ -30,12 +52,19 @@ export type SeriesOption =
   | LineSeriesOption
   | ScatterSeriesOption
   | BarSeriesOption
-  | GraphSeriesOption;
+  | GraphSeriesOption
+  | PieSeriesOption
+  | HeatmapSeriesOption
+  | MapSeriesOption;
+
+export type ComponentOption =
+  | TooltipComponentOption
+  | LegendComponentOption
+  | GeoComponentOption
+  | VisualMapComponentOption;
 
 // Combine an Option type with only required components and charts via ComposeOption
-export type ECOption = echarts.ComposeOption<
-  SeriesOption | TooltipComponentOption
->;
+export type ECOption = echarts.ComposeOption<SeriesOption | ComponentOption>;
 
 // Register the required components
 echarts.use([
@@ -43,7 +72,13 @@ echarts.use([
   BarChart,
   ScatterChart,
   GraphChart,
+  PieChart,
+  HeatmapChart,
+  MapChart,
   GridComponent,
+  GeoComponent,
+  LegendComponent,
+  VisualMapComponent,
   SVGRenderer,
   TooltipComponent,
 ]);

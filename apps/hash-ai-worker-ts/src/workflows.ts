@@ -26,6 +26,10 @@ import type {
   MachineId,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
+import type {
+  ComputeDashboardItemDataWorkflowParams,
+  ComputeDashboardItemDataWorkflowResult,
+} from "@local/hash-backend-utils/dashboards";
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
@@ -48,6 +52,22 @@ const graphActivities = proxyActivities<
   startToCloseTimeout: "20 second",
   retry: {
     maximumAttempts: 3,
+  },
+});
+
+/**
+ * Separate proxy for the dashboard data computation activity: it is
+ * long-running (graph query + Python execution in an external sandbox), so
+ * it heartbeats and gets a heartbeat timeout to fail fast if the worker dies.
+ */
+const dashboardActivities = proxyActivities<
+  ReturnType<typeof createAiActivities>
+>({
+  cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,
+  startToCloseTimeout: "600 second", // 10 minutes
+  heartbeatTimeout: "30 second",
+  retry: {
+    maximumAttempts: 1,
   },
 });
 
@@ -530,6 +550,18 @@ export const parseTextFromFile = async (
   params: ParseTextFromFileParams,
 ): Promise<void> => {
   await aiActivities.parseTextFromFileActivity(params);
+};
+
+/**
+ * Compute a dashboard item's chart data server-side (graph query + stored
+ * Python script) and write it to storage as an analysis artifact. Started by
+ * hash-api's analysis gateway when a dashboard item's artifact is missing or
+ * stale.
+ */
+export const computeDashboardItemData = async (
+  params: ComputeDashboardItemDataWorkflowParams,
+): Promise<ComputeDashboardItemDataWorkflowResult> => {
+  return await dashboardActivities.computeDashboardItemDataActivity(params);
 };
 
 export const runFlow = runFlowWorkflow;

@@ -162,7 +162,7 @@ describe("supplier line materialisation", () => {
 
   it("materialises site vendor monthly, worst events, and materials from raw lines", () => {
     const perf: SiteSupplierPerformance = {
-      schema_version: "1.0",
+      schema_version: "1.1",
       generated_at: "2026-06-01T00:00:00Z",
       overall: {
         n_lines: 3,

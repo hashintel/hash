@@ -33,6 +33,7 @@
     "dev:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:backend:api": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
+    "dev:petrinaut-optimization": "yarn workspace @apps/petrinaut-website dev:optimization",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:constraints": "yarn constraints --fix",
     "fix:eslint": "mise run fix:eslint",

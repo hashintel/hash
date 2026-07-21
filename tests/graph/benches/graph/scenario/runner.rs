@@ -39,7 +39,7 @@ use super::stages::{
 use crate::init_tracing;
 
 type InnerPool = hash_graph_postgres_store::store::PostgresStorePool;
-type Pool = FetchingPool<InnerPool, (String, u16)>;
+type Pool = FetchingPool<InnerPool>;
 
 #[derive(Debug, derive_more::Display)]
 pub enum ScenarioError {

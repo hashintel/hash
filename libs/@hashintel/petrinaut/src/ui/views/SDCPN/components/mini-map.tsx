@@ -107,6 +107,8 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
     use(EditorContext);
 
   const isPropertiesPanelVisible = hasSelection;
+  // True inset from the canvas edges (react-flow's default 15px panel margin
+  // is zeroed below) — matches the viewport controls' offset.
   const minimapOffset = 12;
   const panelOffset = isPropertiesPanelVisible
     ? propertiesPanelWidth + PANEL_MARGIN
@@ -118,12 +120,13 @@ export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
       ariaLabel=""
       className={miniMapClassName}
       style={{
+        margin: 0,
         top: minimapOffset,
         right: minimapOffset + panelOffset,
         bottom: "auto",
         left: "auto",
-        width: 130,
-        height: 73,
+        width: 116,
+        height: 65,
         transition: isPanelAnimating ? "right 150ms ease-in-out" : undefined,
       }}
       maskColor="rgba(0, 0, 0, 0.15)"

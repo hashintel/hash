@@ -11,6 +11,10 @@ import {
 } from "../../shared/period-trends";
 import { useProcurementBasis } from "../../shared/procurement-basis-context";
 import {
+  shouldShowProcurementPlanningRow,
+  summarizeProcurementPlanning,
+} from "../../shared/procurement-planning";
+import {
   windowGraphNodeToRange,
   applyProcurementBasisToNode,
 } from "../../shared/range-filter";
@@ -204,24 +208,41 @@ export function useSiteOverviewRows({
   ]);
 
   const planningRows = useMemo(() => {
-    return planningVisibleNodes
-      .filter(
-        (count) => count.plan != null && count.plan > 0 && count.stats.n > 0,
-      )
-      .map((count) => {
-        const plan = count.plan as number;
-        const historical =
-          historicalNodesByKey.get(siteNodeKey(count)) ?? count;
-        const trend = computeTimingTrend(historical, timeRange, measure);
-        return {
-          ...count,
-          deviationPct:
-            (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100,
-          trendPct: trend.pctChange,
-          previousValue: trend.previousValue,
-          previousTrendN: trend.previousN,
-        };
-      });
+    return planningVisibleNodes.flatMap((count) => {
+      const planningSummary =
+        count.type === "procurement"
+          ? summarizeProcurementPlanning(count.observations, count.plan)
+          : null;
+      const plan = count.plan;
+      const shouldShow =
+        count.type === "procurement"
+          ? shouldShowProcurementPlanningRow(plan, count.stats.n)
+          : plan != null && plan > 0 && count.stats.n > 0;
+      if (!shouldShow || plan == null) {
+        return [];
+      }
+      const historical = historicalNodesByKey.get(siteNodeKey(count)) ?? count;
+      const trend = computeTimingTrend(historical, timeRange, measure);
+      const deviationPct =
+        plan <= 0
+          ? null
+          : count.type === "procurement"
+            ? ((measure === "mean"
+                ? planningSummary?.meanVariancePct
+                : measure === "median"
+                  ? planningSummary?.medianVariancePct
+                  : null) ??
+              (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100)
+            : (((selectStat(count.stats, measure) ?? 0) - plan) / plan) * 100;
+      return {
+        ...count,
+        plan,
+        deviationPct,
+        trendPct: trend.pctChange,
+        previousValue: trend.previousValue,
+        previousTrendN: trend.previousN,
+      };
+    });
   }, [planningVisibleNodes, historicalNodesByKey, timeRange, measure]);
 
   const windowedSupplier = useMemo(() => {

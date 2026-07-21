@@ -31,6 +31,17 @@ import { useStepTableView } from "./shared/use-step-table-view";
 
 import type { SiteNode, StepType } from "../../shared/types";
 
+const formatPolicyQuantity = (
+  value: number | null | undefined,
+  uom: string | null | undefined,
+): string => {
+  if (value == null) {
+    return "–";
+  }
+  const quantity = formatNumber(value, { maximumFractionDigits: 3 });
+  return uom ? `${quantity} ${uom}` : quantity;
+};
+
 export const DwellTable = ({
   rows,
   siteId,
@@ -118,6 +129,26 @@ export const DwellTable = ({
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
+                label="MOQ"
+                sort={{
+                  active: sort.key === "moq",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("moq"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
+                label="Safety stock"
+                sort={{
+                  active: sort.key === "safetyStock",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("safetyStock"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
                 label={`Cost (${timeRange})`}
                 sort={{
                   active: sort.key === "cost",
@@ -165,7 +196,7 @@ export const DwellTable = ({
               <td className={threshold.td}>
                 <div className={threshold.cellFlex}>
                   <span
-                    className={threshold.catDot}
+                    className={cx(threshold.catDot, threshold.stepDot)}
                     style={{ backgroundColor: getCategoryColor(row.type) }}
                   />
 
@@ -175,7 +206,7 @@ export const DwellTable = ({
                 </div>
               </td>
               <td className={threshold.td}>
-                <ProductTags products={row.products} />
+                <ProductTags products={row.products} maxVisible={12} />
               </td>
               <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>
@@ -190,6 +221,32 @@ export const DwellTable = ({
                     className={threshold.stackedTrend}
                   />
                 </div>
+              </td>
+              <td className={threshold.tdRight}>
+                <span
+                  className={cx(
+                    threshold.valueStrong,
+                    threshold.policyQuantity,
+                  )}
+                >
+                  {formatPolicyQuantity(
+                    row.inventory_policy?.minimum_order_qty,
+                    row.inventory_policy?.order_uom,
+                  )}
+                </span>
+              </td>
+              <td className={threshold.tdRight}>
+                <span
+                  className={cx(
+                    threshold.valueStrong,
+                    threshold.policyQuantity,
+                  )}
+                >
+                  {formatPolicyQuantity(
+                    row.inventory_policy?.safety_stock_qty,
+                    row.inventory_policy?.safety_stock_uom,
+                  )}
+                </span>
               </td>
               <td className={threshold.tdRight}>
                 <div className={threshold.stackedCell}>
@@ -236,7 +293,7 @@ export const DwellTable = ({
           ))}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={6} className={threshold.emptyCell}>
+              <td colSpan={8} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No dwell steps for this site."
                   : "No dwell steps match the current filters."}

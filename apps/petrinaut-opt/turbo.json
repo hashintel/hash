@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "codegen": {
+      "inputs": ["pyproject.toml", "scripts/generate_openapi.py", "src/**"],
+      "outputs": ["openapi/openapi.json"],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    }
+  }
+}

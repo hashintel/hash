@@ -1,5 +1,6 @@
 import { getPropertyTypes } from "@blockprotocol/graph/stdlib";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { computeDashboardItemDataActivity } from "./activities/compute-dashboard-item-data-activity.js";
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
 import { getDereferencedEntityTypesActivity } from "./activities/get-dereferenced-entity-types-activity.js";
 import { getWebPageActivity } from "./activities/get-web-page-activity.js";
@@ -33,6 +35,10 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type {
+  ComputeDashboardItemDataWorkflowParams,
+  ComputeDashboardItemDataWorkflowResult,
+} from "@local/hash-backend-utils/dashboards";
+import type {
   Embedding,
   EntityEmbedding,
   GraphApi,
@@ -55,6 +61,15 @@ export const createAiActivities = ({
     params: ParseTextFromFileParams,
   ): Promise<void> {
     return parseTextFromFile({ graphApiClient }, params);
+  },
+
+  async computeDashboardItemDataActivity(
+    params: ComputeDashboardItemDataWorkflowParams,
+  ): Promise<ComputeDashboardItemDataWorkflowResult> {
+    return computeDashboardItemDataActivity(
+      { graphApiClient, storageProvider: getStorageProvider() },
+      params,
+    );
   },
 
   async createEmbeddingsActivity(

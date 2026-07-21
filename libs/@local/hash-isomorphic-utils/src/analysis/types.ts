@@ -1,3 +1,4 @@
+import type { JsonObject } from "@blockprotocol/core";
 import type { WebId } from "@blockprotocol/type-system";
 
 /**
@@ -55,6 +56,8 @@ export interface AnalysisResult {
   artifacts?: ArtifactRef[];
   /** Present when `status === "computing"`: hint for the client poll interval. */
   retryAfterMs?: number;
+  /** Analysis-specific JSON metadata which does not require artifact access. */
+  metadata?: JsonObject;
   /** Present when `status === "error"`: human-readable reason. */
   error?: string;
 }

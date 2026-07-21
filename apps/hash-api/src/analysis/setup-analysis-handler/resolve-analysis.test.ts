@@ -26,8 +26,11 @@ import {
 import { resolveInvocation } from "./resolve-analysis";
 
 import type { GraphApi } from "../../graph/context-types";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 
 const mockedGetRole = vi.mocked(getActorGroupRole);
+
+const temporalClient = {} as TemporalClient;
 
 const WEB_ID = "00000000-0000-4000-8000-000000000001" as WebId;
 const ACTOR_ID = "actor-test" as ActorEntityUuid;
@@ -36,6 +39,7 @@ const VERSION = "2026-06-15";
 const manifest = {
   datasetVersion: VERSION,
   products: ["democat-x100-extr"],
+  productionSchedules: ["democat-x100-extr"],
   sites: ["demo-plant"],
   steps: { "democat-x100-extr": ["prod_to_qa_pla"] },
 };
@@ -74,6 +78,7 @@ const resolve = (
     invocation: { id: "test", analysis, args, webId },
     actorId: ACTOR_ID,
     graphApi: {} as GraphApi,
+    temporalClient,
     uploadProvider,
     cache,
   });
@@ -109,6 +114,34 @@ describe("resolveInvocation (supply-chain analyses)", () => {
     expect(result.artifacts![0]!.url).toContain(
       "democat-x100-extr/steps/prod_to_qa_pla.json",
     );
+  });
+
+  it("resolves a production schedule explicitly listed in the manifest", async () => {
+    const result = await resolve("productionSchedule", {
+      productId: "democat-x100-extr",
+    });
+    expect(result.status).toBe("ready");
+    expect(result.artifacts![0]!.name).toBe("schedule");
+    expect(result.artifacts![0]!.url).toContain(
+      "democat-x100-extr/production_schedule.json",
+    );
+  });
+
+  it("fails closed when a product has no production schedule", async () => {
+    const original =
+      storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`]!;
+    storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
+      JSON.stringify({ ...manifest, productionSchedules: undefined });
+    try {
+      const result = await resolve("productionSchedule", {
+        productId: "democat-x100-extr",
+      });
+      expect(result.status).toBe("error");
+      expect(result.error).toMatch(/schedule unavailable/i);
+    } finally {
+      storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
+        original;
+    }
   });
 
   it("errors for an unknown product", async () => {
@@ -158,6 +191,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       },
       actorId: ACTOR_ID,
       graphApi: {} as GraphApi,
+      temporalClient,
       uploadProvider,
       cache,
     });
@@ -182,6 +216,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       },
       actorId: ACTOR_ID,
       graphApi: {} as GraphApi,
+      temporalClient,
       uploadProvider,
       cache,
     });
@@ -245,6 +280,7 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       },
       actorId: ACTOR_ID,
       graphApi: {} as GraphApi,
+      temporalClient,
       uploadProvider: {
         ...uploadProvider,
         presignDownloadByKey,
@@ -278,5 +314,42 @@ describe("resolveInvocation (supply-chain analyses)", () => {
     expect(result.error).toMatch(
       /Resolved analysis artifact key outside the authorised web/i,
     );
+  });
+
+  it("surfaces artifact metadata storage failures as internal errors", async () => {
+    clearAnalysisRegistry();
+    registerAnalyses([
+      {
+        name: "artifactMetadata",
+        resolve: async (context) => {
+          await context.getArtifactLastModified(
+            `analysis/${WEB_ID}/artifact.json`,
+          );
+          return { status: "ready" };
+        },
+      },
+    ]);
+
+    const result = await resolveInvocation({
+      invocation: {
+        id: "test",
+        analysis: "artifactMetadata",
+        args: {},
+        webId: WEB_ID,
+      },
+      actorId: ACTOR_ID,
+      graphApi: {} as GraphApi,
+      temporalClient,
+      uploadProvider: {
+        ...uploadProvider,
+        getObjectLastModified: async () => {
+          throw new Error("Storage unavailable");
+        },
+      } as unknown as FileStorageProvider,
+      cache,
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toBe("Internal error");
   });
 });

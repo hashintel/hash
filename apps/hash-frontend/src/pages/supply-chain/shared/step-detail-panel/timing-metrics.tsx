@@ -13,6 +13,7 @@ import { useBaseMeasure, selectStat, MEASURE_LABELS } from "../measure-context";
 import { type PeriodComparison, computeCostComparison } from "../period-trends";
 import { planSourceLabel } from "../planning-param";
 import { useProcurementBasis } from "../procurement-basis-context";
+import { procurementPlanningTooltipLines } from "../procurement-planning-ui";
 import { previousPeriodLabel } from "./step-detail-format";
 import {
   PlanningAssumptionCell,
@@ -109,6 +110,90 @@ const badgeNeutral = css({
   display: "inline-flex",
   alignItems: "center",
 });
+const policyCard = css({
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "lg",
+  overflow: "hidden",
+  bg: "bgSolid.min",
+});
+const policyRow = css({ display: "flex" });
+const policyCell = css({
+  flex: "1",
+  p: "3",
+  borderRightWidth: "1px",
+  borderRightStyle: "solid",
+  borderRightColor: "bd.subtle",
+  _last: { borderRightWidth: "0" },
+});
+const policyWarnings = css({
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "bd.subtle",
+  px: "3",
+  py: "2",
+  textStyle: "xs",
+  color: "status.warning.fg.body",
+});
+
+const policyQuantity = (value: number, uom: string | null): string => {
+  const quantity = formatNumber(value, { maximumFractionDigits: 3 });
+  return uom ? `${quantity} ${uom}` : quantity;
+};
+
+export const InventoryPolicyRow = ({ step }: { step: StepDetailType }) => {
+  const policy = step.inventory_policy;
+  if (!policy) {
+    return null;
+  }
+
+  const cells = [
+    policy.minimum_order_qty != null
+      ? {
+          label: "Minimum order quantity",
+          value: policyQuantity(policy.minimum_order_qty, policy.order_uom),
+        }
+      : null,
+    policy.order_multiple_qty != null
+      ? {
+          label: "Order multiple",
+          value: policyQuantity(policy.order_multiple_qty, policy.order_uom),
+        }
+      : null,
+    policy.safety_stock_qty != null
+      ? {
+          label: "Safety stock",
+          value: policyQuantity(
+            policy.safety_stock_qty,
+            policy.safety_stock_uom,
+          ),
+        }
+      : null,
+  ].filter((cell): cell is NonNullable<typeof cell> => cell != null);
+
+  if (cells.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={policyCard}>
+      <div className={policyRow}>
+        {cells.map((cell) => (
+          <div key={cell.label} className={policyCell}>
+            <div className={label}>{cell.label}</div>
+            <div className={cx(valueBase, valueStrong)}>{cell.value}</div>
+          </div>
+        ))}
+      </div>
+      {policy.warnings.length > 0 && (
+        <div className={policyWarnings}>
+          {policy.warnings.map((warning) => warning.text).join(" ")}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const KeyMetricsRow = ({
   step,
@@ -181,6 +266,13 @@ export const KeyMetricsRow = ({
 
   const planNote = step.plan_note;
   const planLabel = planNote ? planSourceLabel(planNote) : null;
+  const planningTooltipLines =
+    step.type === "procurement"
+      ? procurementPlanningTooltipLines(
+          step.planning_source,
+          step.planning_alternatives,
+        )
+      : [planLabel ?? planNote].filter((line): line is string => Boolean(line));
 
   return (
     <div className={card}>
@@ -191,8 +283,7 @@ export const KeyMetricsRow = ({
           measureMeetsPlan={
             headlineValue == null || plan == null || headlineValue <= plan
           }
-          planLabel={planLabel}
-          noteRaw={planNote}
+          tooltipLines={planningTooltipLines}
         />
 
         <div className={cellCenter}>

@@ -31,7 +31,7 @@ const resolveValueKind = (type: string): FilterValueKind | null => {
   }
 };
 
-const resolveDataTypeValueKind = ({
+export const resolveDataTypeValueKind = ({
   dataTypeId,
   dataTypes,
   seenDataTypeIds = new Set(),

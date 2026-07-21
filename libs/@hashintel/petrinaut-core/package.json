@@ -30,6 +30,10 @@
       "types": "./dist/ai.d.d.ts",
       "import": "./dist/ai.js"
     },
+    "./compiled-model": {
+      "types": "./dist/compiled-model.d.d.ts",
+      "import": "./dist/compiled-model.js"
+    },
     "./examples": {
       "types": "./dist/examples/index.d.d.ts",
       "import": "./dist/examples/index.js"
@@ -41,6 +45,10 @@
     "./hir-runtime": {
       "types": "./dist/hir-runtime.d.d.ts",
       "import": "./dist/hir-runtime.js"
+    },
+    "./optimization": {
+      "types": "./dist/optimization.d.d.ts",
+      "import": "./dist/optimization.js"
     },
     "./workers/lsp": {
       "types": "./dist/workers/lsp.d.d.ts",

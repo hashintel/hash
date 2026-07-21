@@ -1,6 +1,5 @@
-import { Context } from "@temporalio/activity";
+import { Sandbox } from "@e2b/code-interpreter";
 import dedent from "dedent";
-import { CodeInterpreter, Sandbox } from "e2b";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
@@ -36,6 +35,8 @@ import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/acti
 import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 import type { OpenAI } from "openai";
+
+const contextFilePath = "/home/user/context.json";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -101,34 +102,30 @@ const answerTools: LlmToolDefinition[] = [
 ];
 
 const runPythonCode = async (code: string, contextToUpload: string | null) => {
-  const sandbox = await CodeInterpreter.create();
+  const sandbox = await Sandbox.create({ allowInternetAccess: false });
 
-  if (contextToUpload) {
-    const requestId = Context.current().info.workflowExecution?.workflowId;
-
-    if (!requestId) {
-      throw new Error("Attempt to upload file to sandbox without a workflowId");
+  try {
+    if (contextToUpload) {
+      await sandbox.files.write(contextFilePath, contextToUpload);
     }
 
-    await sandbox.uploadFile(Buffer.from(contextToUpload), requestId);
+    const execution = await sandbox.runCode(code);
+
+    logger.debug("Python code execution response", { execution });
+
+    const stdout = execution.logs.stdout.join("");
+    const stderr = [
+      ...execution.logs.stderr,
+      ...(execution.error ? [execution.error.traceback] : []),
+    ].join("");
+    const artifacts = execution.results.map((result) =>
+      JSON.stringify(result.toJSON()),
+    );
+
+    return { stdout, stderr, artifacts };
+  } finally {
+    await sandbox.kill();
   }
-
-  const response = await sandbox.runPython(code);
-
-  logger.debug("Python code execution response", { response });
-
-  const { stdout, stderr, artifacts } = response;
-
-  const downloadedArtifacts = await Promise.all(
-    artifacts.map(async (artifact) => {
-      const rawArtifact = await artifact.download();
-      return rawArtifact;
-    }),
-  );
-
-  await sandbox.close();
-
-  return { stdout, stderr, artifacts: downloadedArtifacts };
 };
 
 const systemPrompt = dedent(`
@@ -320,11 +317,7 @@ const callModel = async (
             : dedent(`
         The Python code ran successfully.
         The stdout from your code was: ${stdout}
-        The following artifacts were generated:\n${
-          // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          artifacts.join("\n")
-        }
+        The following artifacts were generated:\n${artifacts.join("\n")}
 
         Please now review the code used and whether it correctly operates on the context data.
         If you spot errors in how the code attempts to access the code data, submit another code file with the corrections.
@@ -437,7 +430,6 @@ export const answerQuestionAction: AiFlowActionActivity<
       })
     : undefined;
 
-  let contextFilePath;
   let contextToUpload;
 
   if (entities) {
@@ -514,22 +506,6 @@ export const answerQuestionAction: AiFlowActionActivity<
     contextToUpload = context;
   }
 
-  if (contextToUpload) {
-    const requestId = Context.current().info.workflowExecution?.workflowId;
-
-    if (!requestId) {
-      throw new Error("Attempt to upload file to sandbox without a workflowId");
-    }
-
-    const sandbox = await Sandbox.create({ template: "base" });
-    contextFilePath = await sandbox.uploadFile(
-      Buffer.from(contextToUpload),
-      requestId,
-    );
-
-    await sandbox.close();
-  }
-
   const messages: OpenAI.ChatCompletionCreateParams["messages"] = [
     {
       role: "user",
@@ -539,7 +515,7 @@ export const answerQuestionAction: AiFlowActionActivity<
     },
   ];
 
-  if (contextToUpload && contextFilePath) {
+  if (contextToUpload) {
     let message = dedent(
       `Your boss provides this context data:
       ---CONTEXT BEGINS---

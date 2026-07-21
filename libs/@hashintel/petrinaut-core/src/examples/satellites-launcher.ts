@@ -149,7 +149,7 @@ export const probabilisticSatellitesSDCPN: {
         lambdaType: "predicate",
         lambdaCode: `// Check if two satellites collide (are within collision threshold)
 export default Lambda((tokens, parameters) => {
-  const { satellite_radius } = parameters;
+  const { collision_threshold, satellite_radius } = parameters;
 
   // Get the two satellites
   const [a, b] = tokens.Space;
@@ -157,8 +157,8 @@ export default Lambda((tokens, parameters) => {
   // Calculate distance between satellites
   const distance = Math.hypot(b.x - a.x, b.y - a.y);
 
-  // Collision occurs if distance is less than threshold
-  return distance < satellite_radius;
+  // Collision occurs when the satellite surfaces are within the threshold
+  return distance < satellite_radius * 2 + collision_threshold;
 })`,
         transitionKernelCode: `// When satellites collide, they become debris (lose velocity)
 export default TransitionKernel((tokens) => {

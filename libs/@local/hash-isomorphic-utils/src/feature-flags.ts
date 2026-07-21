@@ -27,6 +27,10 @@ export const featureFlags = [
    * Whether the supply chain dashboard views are accessible
    */
   "supplyChain",
+  /**
+   * Whether the AI-generated dashboards views are accessible
+   */
+  "dashboards",
 ] as const;
 
 export type FeatureFlag = (typeof featureFlags)[number];

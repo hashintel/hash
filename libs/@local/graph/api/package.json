@@ -4,6 +4,9 @@
   "private": true,
   "description": "HASH Graph API",
   "license": "AGPL-3",
+  "exports": {
+    "./openapi.json": "./openapi/openapi.json"
+  },
   "scripts": {
     "codegen:generate-openapi-specs": "cargo run --bin openapi-spec-generator",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-api --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",

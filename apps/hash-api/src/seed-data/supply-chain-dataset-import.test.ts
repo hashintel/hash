@@ -26,7 +26,7 @@ describe("supply-chain dataset import", () => {
     }
   });
 
-  const makeDataset = () => {
+  const makeDataset = (scheduleVersion = "1.1") => {
     const sourceDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "supply-chain-import-"),
     );
@@ -48,6 +48,24 @@ describe("supply-chain dataset import", () => {
       path.join(sourceDir, "demo-product", "steps", "prod_to_qa.json"),
       { id: "prod_to_qa" },
     );
+    writeJson(
+      path.join(sourceDir, "demo-product", "production_schedule.json"),
+      {
+        artifact_type: "production_schedule",
+        artifact_version: scheduleVersion,
+        product_id: "demo-product",
+        lanes: [
+          {
+            material: "1000",
+            name: "Demo Product",
+            bom_depth: 0,
+            role: "finished_good",
+            campaigns: [],
+            batches: [],
+          },
+        ],
+      },
+    );
     writeJson(path.join(sourceDir, "_global", "supplier_performance.json"), {
       vendors: [],
     });
@@ -67,16 +85,41 @@ describe("supply-chain dataset import", () => {
     expect(plan.manifest).toEqual({
       datasetVersion: "local-test",
       products: ["demo-product"],
+      productionSchedules: ["demo-product"],
       sites: ["demo-site"],
       steps: { "demo-product": ["prod_to_qa"] },
     });
     expect(plan.files.map(({ relKey }) => relKey)).toEqual([
       "_global/supplier_performance.json",
       "demo-product/graph.json",
+      "demo-product/production_schedule.json",
       "demo-product/steps/prod_to_qa.json",
       "products.json",
       "sites.json",
     ]);
+  });
+
+  it("does not advertise a malformed production schedule", () => {
+    const sourceDir = makeDataset();
+    writeJson(
+      path.join(sourceDir, "demo-product", "production_schedule.json"),
+      { artifact_type: "production_schedule", product_id: "wrong-product" },
+    );
+    expect(() =>
+      planSupplyChainDatasetImport({
+        sourceDir,
+        version: "local-test",
+      }),
+    ).toThrow("invalid production_schedule.json");
+  });
+
+  it("accepts future production schedule versions with a valid shape", () => {
+    const plan = planSupplyChainDatasetImport({
+      sourceDir: makeDataset("2.0"),
+      version: "local-test",
+    });
+
+    expect(plan.manifest.productionSchedules).toEqual(["demo-product"]);
   });
 
   it("uploads source artifacts under the version and flips current last", async () => {
@@ -105,7 +148,7 @@ describe("supply-chain dataset import", () => {
     });
 
     expect(result).toEqual({
-      uploadedFiles: 7,
+      uploadedFiles: 8,
       products: 1,
       sites: 1,
       steps: 1,

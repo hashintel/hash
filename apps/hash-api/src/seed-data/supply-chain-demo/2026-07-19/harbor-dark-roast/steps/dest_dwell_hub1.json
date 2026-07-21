@@ -1,0 +1,813 @@
+{
+  "id": "dest_dwell_hub1",
+  "label": "Destination Dwell (HUB-1)",
+  "type": "destination_dwell",
+  "durations": [
+    42, 65, 28, 95, 35, 10, 78, 55, 42, 32, 39, 42, 46, 49, 53, 57, 48, 52, 34,
+    48, 30, 34, 36, 41, 43, 36, 39, 42, 46, 49, 53, 45, 48, 52, 44, 48, 30
+  ],
+  "observations": [
+    {
+      "date": "2022-09-15",
+      "value": 42
+    },
+    {
+      "date": "2023-05-05",
+      "value": 65
+    },
+    {
+      "date": "2023-05-20",
+      "value": 28
+    },
+    {
+      "date": "2024-01-10",
+      "value": 95
+    },
+    {
+      "date": "2024-01-25",
+      "value": 35
+    },
+    {
+      "date": "2024-08-15",
+      "value": 10
+    },
+    {
+      "date": "2025-02-05",
+      "value": 78
+    },
+    {
+      "date": "2025-02-18",
+      "value": 55
+    },
+    {
+      "date": "2025-08-10",
+      "value": 42
+    },
+    {
+      "date": "2025-08-20",
+      "value": 32
+    },
+    {
+      "date": "2025-09-06",
+      "value": 39
+    },
+    {
+      "date": "2025-09-12",
+      "value": 42
+    },
+    {
+      "date": "2025-09-18",
+      "value": 46
+    },
+    {
+      "date": "2025-10-04",
+      "value": 49
+    },
+    {
+      "date": "2025-10-10",
+      "value": 53
+    },
+    {
+      "date": "2025-10-16",
+      "value": 57
+    },
+    {
+      "date": "2025-11-05",
+      "value": 48
+    },
+    {
+      "date": "2025-11-11",
+      "value": 52
+    },
+    {
+      "date": "2025-11-17",
+      "value": 34
+    },
+    {
+      "date": "2025-12-06",
+      "value": 48
+    },
+    {
+      "date": "2025-12-12",
+      "value": 30
+    },
+    {
+      "date": "2025-12-18",
+      "value": 34
+    },
+    {
+      "date": "2026-01-04",
+      "value": 36
+    },
+    {
+      "date": "2026-01-10",
+      "value": 41
+    },
+    {
+      "date": "2026-01-16",
+      "value": 43
+    },
+    {
+      "date": "2026-02-05",
+      "value": 36
+    },
+    {
+      "date": "2026-02-11",
+      "value": 39
+    },
+    {
+      "date": "2026-02-17",
+      "value": 42
+    },
+    {
+      "date": "2026-03-06",
+      "value": 46
+    },
+    {
+      "date": "2026-03-12",
+      "value": 49
+    },
+    {
+      "date": "2026-03-18",
+      "value": 53
+    },
+    {
+      "date": "2026-04-04",
+      "value": 45
+    },
+    {
+      "date": "2026-04-10",
+      "value": 48
+    },
+    {
+      "date": "2026-04-16",
+      "value": 52
+    },
+    {
+      "date": "2026-05-05",
+      "value": 44
+    },
+    {
+      "date": "2026-05-11",
+      "value": 48
+    },
+    {
+      "date": "2026-05-17",
+      "value": 30
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2022-09",
+      "mean": 42.0,
+      "median": 42.0,
+      "p10": 42.0,
+      "p25": 42.0,
+      "p75": 42.0,
+      "p90": 42.0,
+      "n": 1,
+      "total_kg_days": 201600.0
+    },
+    {
+      "month": "2023-05",
+      "mean": 46.5,
+      "median": 46.5,
+      "p10": 31.7,
+      "p25": 37.3,
+      "p75": 55.8,
+      "p90": 61.3,
+      "n": 2,
+      "total_kg_days": 446400.0
+    },
+    {
+      "month": "2024-01",
+      "mean": 65.0,
+      "median": 65.0,
+      "p10": 41.0,
+      "p25": 50.0,
+      "p75": 80.0,
+      "p90": 89.0,
+      "n": 2,
+      "total_kg_days": 624000.0
+    },
+    {
+      "month": "2024-08",
+      "mean": 10.0,
+      "median": 10.0,
+      "p10": 10.0,
+      "p25": 10.0,
+      "p75": 10.0,
+      "p90": 10.0,
+      "n": 1,
+      "total_kg_days": 48000.0
+    },
+    {
+      "month": "2025-02",
+      "mean": 66.5,
+      "median": 66.5,
+      "p10": 57.3,
+      "p25": 60.8,
+      "p75": 72.3,
+      "p90": 75.7,
+      "n": 2,
+      "total_kg_days": 638400.0
+    },
+    {
+      "month": "2025-08",
+      "mean": 37.0,
+      "median": 37.0,
+      "p10": 33.0,
+      "p25": 34.5,
+      "p75": 39.5,
+      "p90": 41.0,
+      "n": 2,
+      "total_kg_days": 355200.0
+    },
+    {
+      "month": "2025-09",
+      "mean": 42.3,
+      "median": 42.0,
+      "p10": 39.6,
+      "p25": 40.5,
+      "p75": 44.0,
+      "p90": 45.2,
+      "n": 3,
+      "total_kg_days": 609600.0
+    },
+    {
+      "month": "2025-10",
+      "mean": 53.0,
+      "median": 53.0,
+      "p10": 49.8,
+      "p25": 51.0,
+      "p75": 55.0,
+      "p90": 56.2,
+      "n": 3,
+      "total_kg_days": 763200.0
+    },
+    {
+      "month": "2025-11",
+      "mean": 44.7,
+      "median": 48.0,
+      "p10": 36.8,
+      "p25": 41.0,
+      "p75": 50.0,
+      "p90": 51.2,
+      "n": 3,
+      "total_kg_days": 643200.0
+    },
+    {
+      "month": "2025-12",
+      "mean": 37.3,
+      "median": 34.0,
+      "p10": 30.8,
+      "p25": 32.0,
+      "p75": 41.0,
+      "p90": 45.2,
+      "n": 3,
+      "total_kg_days": 537600.0
+    },
+    {
+      "month": "2026-01",
+      "mean": 40.0,
+      "median": 41.0,
+      "p10": 37.0,
+      "p25": 38.5,
+      "p75": 42.0,
+      "p90": 42.6,
+      "n": 3,
+      "total_kg_days": 576000.0
+    },
+    {
+      "month": "2026-02",
+      "mean": 39.0,
+      "median": 39.0,
+      "p10": 36.6,
+      "p25": 37.5,
+      "p75": 40.5,
+      "p90": 41.4,
+      "n": 3,
+      "total_kg_days": 561600.0
+    },
+    {
+      "month": "2026-03",
+      "mean": 49.3,
+      "median": 49.0,
+      "p10": 46.6,
+      "p25": 47.5,
+      "p75": 51.0,
+      "p90": 52.2,
+      "n": 3,
+      "total_kg_days": 710400.0
+    },
+    {
+      "month": "2026-04",
+      "mean": 48.3,
+      "median": 48.0,
+      "p10": 45.6,
+      "p25": 46.5,
+      "p75": 50.0,
+      "p90": 51.2,
+      "n": 3,
+      "total_kg_days": 696000.0
+    },
+    {
+      "month": "2026-05",
+      "mean": 40.7,
+      "median": 44.0,
+      "p10": 32.8,
+      "p25": 37.0,
+      "p75": 46.0,
+      "p90": 47.2,
+      "n": 3,
+      "total_kg_days": 585600.0
+    }
+  ],
+  "stats": {
+    "n": 37,
+    "mean": 45.0,
+    "median": 44.0,
+    "std": 14.0,
+    "min": 10,
+    "max": 95,
+    "p25": 36.0,
+    "p75": 49.0,
+    "p85": 53.0,
+    "p95": 67.6
+  },
+  "plan": null,
+  "plan_note": null,
+  "pct_exceeding_plan": null,
+  "annotations": [],
+  "cost": {
+    "unit_price": 28.5,
+    "currency": "CHF",
+    "mean_qty": 4800.0,
+    "monthly": [
+      {
+        "month": "2022-09",
+        "n_events": 1,
+        "total_kg_days": 201600.0
+      },
+      {
+        "month": "2023-05",
+        "n_events": 2,
+        "total_kg_days": 446400.0
+      },
+      {
+        "month": "2024-01",
+        "n_events": 2,
+        "total_kg_days": 624000.0
+      },
+      {
+        "month": "2024-08",
+        "n_events": 1,
+        "total_kg_days": 48000.0
+      },
+      {
+        "month": "2025-02",
+        "n_events": 2,
+        "total_kg_days": 638400.0
+      },
+      {
+        "month": "2025-08",
+        "n_events": 2,
+        "total_kg_days": 355200.0
+      },
+      {
+        "month": "2025-09",
+        "n_events": 3,
+        "total_kg_days": 609600.0
+      },
+      {
+        "month": "2025-10",
+        "n_events": 3,
+        "total_kg_days": 763200.0
+      },
+      {
+        "month": "2025-11",
+        "n_events": 3,
+        "total_kg_days": 643200.0
+      },
+      {
+        "month": "2025-12",
+        "n_events": 3,
+        "total_kg_days": 537600.0
+      },
+      {
+        "month": "2026-01",
+        "n_events": 3,
+        "total_kg_days": 576000.0
+      },
+      {
+        "month": "2026-02",
+        "n_events": 3,
+        "total_kg_days": 561600.0
+      },
+      {
+        "month": "2026-03",
+        "n_events": 3,
+        "total_kg_days": 710400.0
+      },
+      {
+        "month": "2026-04",
+        "n_events": 3,
+        "total_kg_days": 696000.0
+      },
+      {
+        "month": "2026-05",
+        "n_events": 3,
+        "total_kg_days": 585600.0
+      }
+    ]
+  },
+  "detail_rows": {
+    "columns": [
+      {
+        "key": "batch",
+        "source_field": "CHARG",
+        "source_table": "MSEG",
+        "label": "Batch"
+      },
+      {
+        "key": "consumption_date",
+        "source_field": "BUDAT",
+        "source_table": "MKPF",
+        "label": "Consumption Date"
+      },
+      {
+        "key": "dwell_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Dwell Days",
+        "unit": "d"
+      },
+      {
+        "key": "kg_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Inventory kg-days",
+        "unit": "kg·d"
+      },
+      {
+        "key": "cons_matnr",
+        "source_field": "MATNR",
+        "source_table": "MSEG",
+        "label": "Consuming Material"
+      },
+      {
+        "key": "cons_material_name",
+        "source_field": "MAKTX",
+        "source_table": "MAKT",
+        "label": "Consuming Material Name"
+      },
+      {
+        "key": "cons_in_current_recipe",
+        "source_field": null,
+        "source_table": null,
+        "label": "In Current Recipe"
+      }
+    ],
+    "rows": [
+      {
+        "batch": "DEST_DWELL_HUB1-001",
+        "consumption_date": "2022-09-15",
+        "dwell_days": 42,
+        "kg_days": 201600,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-002",
+        "consumption_date": "2023-05-05",
+        "dwell_days": 65,
+        "kg_days": 223200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-003",
+        "consumption_date": "2023-05-20",
+        "dwell_days": 28,
+        "kg_days": 223200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-004",
+        "consumption_date": "2024-01-10",
+        "dwell_days": 95,
+        "kg_days": 312000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-005",
+        "consumption_date": "2024-01-25",
+        "dwell_days": 35,
+        "kg_days": 312000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-006",
+        "consumption_date": "2024-08-15",
+        "dwell_days": 10,
+        "kg_days": 48000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-007",
+        "consumption_date": "2025-02-05",
+        "dwell_days": 78,
+        "kg_days": 319200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-008",
+        "consumption_date": "2025-02-18",
+        "dwell_days": 55,
+        "kg_days": 319200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-009",
+        "consumption_date": "2025-08-10",
+        "dwell_days": 42,
+        "kg_days": 177600,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-010",
+        "consumption_date": "2025-08-20",
+        "dwell_days": 32,
+        "kg_days": 177600,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-011",
+        "consumption_date": "2025-09-06",
+        "dwell_days": 39,
+        "kg_days": 203200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-012",
+        "consumption_date": "2025-09-12",
+        "dwell_days": 42,
+        "kg_days": 203200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-013",
+        "consumption_date": "2025-09-18",
+        "dwell_days": 46,
+        "kg_days": 203200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-014",
+        "consumption_date": "2025-10-04",
+        "dwell_days": 49,
+        "kg_days": 254400,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-015",
+        "consumption_date": "2025-10-10",
+        "dwell_days": 53,
+        "kg_days": 254400,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-016",
+        "consumption_date": "2025-10-16",
+        "dwell_days": 57,
+        "kg_days": 254400,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-017",
+        "consumption_date": "2025-11-05",
+        "dwell_days": 48,
+        "kg_days": 214400,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-018",
+        "consumption_date": "2025-11-11",
+        "dwell_days": 52,
+        "kg_days": 214400,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-019",
+        "consumption_date": "2025-11-17",
+        "dwell_days": 34,
+        "kg_days": 214400,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-020",
+        "consumption_date": "2025-12-06",
+        "dwell_days": 48,
+        "kg_days": 179200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-021",
+        "consumption_date": "2025-12-12",
+        "dwell_days": 30,
+        "kg_days": 179200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-022",
+        "consumption_date": "2025-12-18",
+        "dwell_days": 34,
+        "kg_days": 179200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-023",
+        "consumption_date": "2026-01-04",
+        "dwell_days": 36,
+        "kg_days": 192000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-024",
+        "consumption_date": "2026-01-10",
+        "dwell_days": 41,
+        "kg_days": 192000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-025",
+        "consumption_date": "2026-01-16",
+        "dwell_days": 43,
+        "kg_days": 192000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-026",
+        "consumption_date": "2026-02-05",
+        "dwell_days": 36,
+        "kg_days": 187200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-027",
+        "consumption_date": "2026-02-11",
+        "dwell_days": 39,
+        "kg_days": 187200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-028",
+        "consumption_date": "2026-02-17",
+        "dwell_days": 42,
+        "kg_days": 187200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-029",
+        "consumption_date": "2026-03-06",
+        "dwell_days": 46,
+        "kg_days": 236800,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-030",
+        "consumption_date": "2026-03-12",
+        "dwell_days": 49,
+        "kg_days": 236800,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-031",
+        "consumption_date": "2026-03-18",
+        "dwell_days": 53,
+        "kg_days": 236800,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-032",
+        "consumption_date": "2026-04-04",
+        "dwell_days": 45,
+        "kg_days": 232000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-033",
+        "consumption_date": "2026-04-10",
+        "dwell_days": 48,
+        "kg_days": 232000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-034",
+        "consumption_date": "2026-04-16",
+        "dwell_days": 52,
+        "kg_days": 232000,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-035",
+        "consumption_date": "2026-05-05",
+        "dwell_days": 44,
+        "kg_days": 195200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-036",
+        "consumption_date": "2026-05-11",
+        "dwell_days": 48,
+        "kg_days": 195200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "DEST_DWELL_HUB1-037",
+        "consumption_date": "2026-05-17",
+        "dwell_days": 30,
+        "kg_days": 195200,
+        "cons_matnr": "90000300001",
+        "cons_material_name": "Harbor Dark Roast",
+        "cons_in_current_recipe": 1
+      }
+    ]
+  },
+  "ref_date_col": null,
+  "n_batches": null,
+  "n_movements": 10,
+  "yield_data": null,
+  "consumption_data": null,
+  "schema_version": "1.1"
+}

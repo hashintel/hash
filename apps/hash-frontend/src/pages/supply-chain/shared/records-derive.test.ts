@@ -280,4 +280,42 @@ describe("deriveTimingFromRecords", () => {
     expect(out.stats.n).toBe(2);
     expect(out.complete_timing?.stats.n).toBe(2);
   });
+
+  it("derives plain procurement observations from evidence rows", () => {
+    const step = recordsOnlyStep({
+      type: "procurement",
+      plan: 14,
+      detail_rows: {
+        columns: [],
+        rows: [
+          {
+            po_number: "PO-1",
+            po_date: "2026-01-01",
+            first_gr_date: "2026-01-11",
+            last_gr_date: "2026-01-13",
+            po_item: "00010",
+          },
+          {
+            po_number: "PO-1",
+            po_item: "00020",
+            po_date: "2026-01-01",
+            first_gr_date: "2026-01-12",
+            last_gr_date: "2026-01-13",
+          },
+        ],
+      },
+      ref_date_col: "first_gr_date",
+      value_col: "lead_time_days",
+    });
+
+    const out = ensureStepStats(step);
+    expect(out.observations[0]).toEqual({
+      date: "2026-01-11",
+      value: 10,
+    });
+    expect(out.complete_timing?.observations[0]).toEqual({
+      date: "2026-01-13",
+      value: 12,
+    });
+  });
 });

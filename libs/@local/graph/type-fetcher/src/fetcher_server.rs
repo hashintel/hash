@@ -2,6 +2,13 @@ use alloc::sync::Arc;
 use core::{net::IpAddr, time::Duration};
 use std::{collections::HashMap, io};
 
+use axum::{
+    Json, Router,
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse as _, Response},
+    routing::{get, post},
+};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use include_dir::{Dir, DirEntry, include_dir};
@@ -13,12 +20,11 @@ use reqwest::{
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
-use tarpc::context::Context;
 use time::OffsetDateTime;
 use type_system::ontology::VersionedUrl;
 use url::Url;
 
-use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
+use crate::fetcher::{FETCH_ONTOLOGY_TYPES_PATH, FetchedOntologyType, FetcherError};
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -191,13 +197,17 @@ impl FetchServer {
             FetcherError::Serialization(format!("Error deserializing {url}: {err:?}"))
         })
     }
-}
 
-impl Fetcher for FetchServer {
-    #[tracing::instrument(skip(self, _context))]
-    async fn fetch_ontology_types(
+    /// Fetches a list of ontology types identified by their [`VersionedUrl`] and returns them.
+    ///
+    /// # Errors
+    ///
+    /// - [`FetcherError::PredefinedTypes`] if the predefined types cannot be loaded
+    /// - [`FetcherError::Network`] if an ontology type cannot be fetched
+    /// - [`FetcherError::Serialization`] if a fetched ontology type cannot be deserialized
+    #[tracing::instrument(skip(self))]
+    pub async fn fetch_ontology_types(
         mut self,
-        _context: Context,
         ontology_type_urls: Vec<VersionedUrl>,
     ) -> Result<Vec<(FetchedOntologyType, OffsetDateTime)>, FetcherError> {
         self.load_predefined_types().map_err(|err| {
@@ -234,9 +244,64 @@ impl Fetcher for FetchServer {
     }
 }
 
+/// Creates the HTTP router exposing the type fetcher service.
+///
+/// Serves [`FETCH_ONTOLOGY_TYPES_PATH`] for fetching ontology types and `/health` for
+/// healthchecks.
+pub fn router(server: FetchServer) -> Router {
+    Router::new()
+        .route(FETCH_ONTOLOGY_TYPES_PATH, post(fetch_ontology_types))
+        .route("/health", get(async || "Healthy".into_response()))
+        .with_state(server)
+}
+
+async fn fetch_ontology_types(
+    State(server): State<FetchServer>,
+    Json(ontology_type_urls): Json<Vec<VersionedUrl>>,
+) -> Response {
+    match server.fetch_ontology_types(ontology_type_urls).await {
+        Ok(fetched) => Json(fetched).into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fetcher::FetcherClient;
+
+    #[tokio::test]
+    async fn http_round_trip_serves_predefined_type() {
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("should bind to an ephemeral port");
+        let port = listener
+            .local_addr()
+            .expect("listener should have a local address")
+            .port();
+        let app = router(FetchServer {
+            buffer_size: 10,
+            predefined_types: HashMap::new(),
+        });
+        tokio::spawn(async move { axum::serve(listener, app).await });
+
+        let client = FetcherClient::new("127.0.0.1", port).expect("client should build");
+        let url: VersionedUrl =
+            "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1"
+                .parse()
+                .expect("valid versioned URL");
+
+        let fetched = client
+            .fetch_ontology_types(vec![url.clone()])
+            .await
+            .expect("predefined type should be served");
+
+        assert_eq!(fetched.len(), 1);
+        let FetchedOntologyType::DataType(data_type) = &fetched[0].0 else {
+            panic!("expected a data type");
+        };
+        assert_eq!(data_type.id, url);
+    }
 
     #[tokio::test]
     async fn reqwest_https_only_rejects_http_urls() {

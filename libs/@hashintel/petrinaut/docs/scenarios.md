@@ -30,7 +30,7 @@ You will need scenarios when you want to:
 1. Switch to **Simulate** mode and open the **Scenarios** tab.
 2. Click **Create**. The Create Scenario drawer opens.
 3. Fill in **Name** (required, must be unique among scenarios) and an optional description.
-4. Add **Scenario parameters** if you need variables scoped to this scenario. Each parameter has an identifier (snake_case, lowercase; the form auto-converts on blur), a type (Real / Integer / Boolean / Ratio), and a default value. Ratios are clamped to `[0, 1]`; booleans are stored as `1` or `0`.
+4. Add **Scenario parameters** if you need variables scoped to this scenario. Each parameter has an identifier (snake_case, lowercase; the form auto-converts on blur), a type (Real / Integer / Boolean / Ratio), and a default value. Ratios are clamped to `[0, 1]`; booleans are stored as `1` or `0` and exposed to expressions as `true` or `false`.
 5. Set **Parameter bindings** for any net-level parameters whose default you want to override. Each binding is a TypeScript expression; leaving it empty keeps the net default (shown in the placeholder).
 6. Configure **Initial state** for each place that should start with tokens.
 7. Click **Create**. Save is blocked while the form has validation or LSP errors -- hover the disabled button to see why.

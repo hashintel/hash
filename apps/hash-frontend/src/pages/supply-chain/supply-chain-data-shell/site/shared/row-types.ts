@@ -7,6 +7,8 @@ export type Tab = "dwell" | "planning" | "trends" | "suppliers";
 export type SortKey =
   | "median"
   | "cost"
+  | "moq"
+  | "safetyStock"
   | "material"
   | "deviation"
   | "exceeding"
@@ -16,6 +18,8 @@ export type SortKey =
   | "previous"
   | "sample"
   | "status"
+  | "supplier"
+  | "basis"
   | "impact"
   | "opportunity"
   | "vendor"
@@ -42,7 +46,8 @@ export type DwellRow = SiteNode & {
 };
 
 export type PlanningRow = SiteNode & {
-  deviationPct: number;
+  /** Null when the applicable plan is zero: the row remains visible but no percentage is meaningful. */
+  deviationPct: number | null;
   trendPct: number | null;
   previousValue: number | null;
   previousTrendN: number;

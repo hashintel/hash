@@ -29,7 +29,11 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+export type SimulateViewMode =
+  | "scenarios"
+  | "metrics"
+  | "experiments"
+  | "optimizations";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -91,8 +95,8 @@ export type EditorState = {
    */
   hiddenTimelineSeriesIds: Set<string>;
   /**
-   * Which tab is active in the SimulateView sidebar ("scenarios" | "metrics"
-   * | "experiments"). Lifted here so external actions (e.g. the "Manage"
+   * Which tab is active in the SimulateView sidebar. Lifted here so external
+   * actions (e.g. the "Manage"
    * button in the timeline header) can switch it.
    */
   simulateViewMode: SimulateViewMode;

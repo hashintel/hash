@@ -207,12 +207,15 @@ export function instantiateHirBufferKernel(
 /**
  * Instantiates a compiled metric program. `placeIndices[ordinal]` maps each
  * of the artifact's `placeNames` to the frame's place index (resolve once
- * per experiment/simulation, not per frame). Metrics have no parameters
- * object and never intern strings; `__params`/`__dist` are bound for ABI
- * parity with the other programs but unused.
+ * per experiment/simulation, not per frame). `parameterValues` binds the
+ * ambient net `parameters.<name>` reads to the run's resolved values (the
+ * same values the engine binds for dynamics/lambdas/kernels); pass `{}` when
+ * the parameters extension is disabled. Metrics never intern strings, so the
+ * pool is read-only; `__dist` is bound for ABI parity but unused.
  */
 export function instantiateHirMetric(
   source: string,
+  parameterValues: HirParameterValues,
   placeIndices: Int32Array,
   stringPool: HirStringPoolReader,
 ): HirCompiledMetric {
@@ -223,5 +226,10 @@ export function instantiateHirMetric(
     "__pool",
     "__places",
     `"use strict"; return (${source});`,
-  )(hirDistributionRuntime, {}, stringPool, placeIndices) as HirCompiledMetric;
+  )(
+    hirDistributionRuntime,
+    parameterValues,
+    stringPool,
+    placeIndices,
+  ) as HirCompiledMetric;
 }

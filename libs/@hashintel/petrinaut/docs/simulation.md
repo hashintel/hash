@@ -31,7 +31,7 @@ Quick-action buttons next to the picker let you edit the selected scenario, crea
 
 Override values for this run:
 
-- With **No scenario** selected: each [net-level parameter](petri-net-extensions.md#global-parameters) shows its name, variable name, and a value input pre-filled with the default.
+- With **No scenario** selected: each [net-level parameter](petri-net-extensions.md#global-parameters) shows its name and variable name. Boolean parameters use a toggle; real and integer parameters use a numeric input pre-filled with the default.
 - With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter bindings](scenarios.md#parameter-bindings) and are not editable here.
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
@@ -45,15 +45,11 @@ The time step in seconds per frame. Controls the resolution of ODE integration a
 
 Default: `0.01` seconds.
 
-### ODE solver
-
-The numerical method for integrating differential equations. Currently only **Euler** is available.
-
 ## Running a simulation
 
 Press **Play** in the bottom toolbar. The simulation:
 
-1. Initializes with a fresh random seed (single-run simulations re-seed each time you press Play, so two consecutive runs of the same stochastic model produce different trajectories), the current dt, and parameter values.
+1. Initializes with a fixed random seed, the current dt, and parameter values. The seed is the same one used by [optimization](optimization.md) trials, so pressing Play twice with the same configuration reproduces the same trajectory, and a single run can reproduce an optimization trial given the same scenario parameter values, dt, and max time.
 2. Computes frames in a background Web Worker.
 3. Streams frames to the UI for playback.
 

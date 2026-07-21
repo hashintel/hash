@@ -268,6 +268,18 @@ jobs:
         if: always() && github.event_name == 'pull_request'
         run: |
           kill -15 ${{ steps.base-background-tasks.outputs.pid }} || true
+          # `kill` only signals the `turbo` wrapper; the spawned Graph server
+          # survives it and keeps its ports (REST API and type fetcher) bound,
+          # so the head-branch server would fail to bind while the healthcheck
+          # is still answered by the stale base server and the head benches
+          # silently talk to the base binary. Terminate the server itself and
+          # wait for it to exit before the head run starts.
+          pkill -TERM -x hash-graph || true
+          for _ in $(seq 1 30); do
+            pgrep -x hash-graph >/dev/null || break
+            sleep 1
+          done
+          pkill -KILL -x hash-graph || true
           cat var/logs/base-background-task.log
 
       - name: Tear down external services

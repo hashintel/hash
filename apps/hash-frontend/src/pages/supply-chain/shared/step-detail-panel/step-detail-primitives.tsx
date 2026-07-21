@@ -38,6 +38,12 @@ const cellTooltip = css({
   borderRightColor: "bd.subtle",
   cursor: "default",
 });
+const tooltipLines = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  textAlign: "left",
+});
 const cellLabel = css({
   textStyle: "xs",
   fontWeight: "medium",
@@ -111,11 +117,6 @@ const deltaValueBase = css({
 });
 
 const statsWrap = css({ display: "flex", flexDirection: "column", gap: "1.5" });
-const spreadNoteText = css({
-  textStyle: "xs",
-  color: "fg.subtle",
-  letterSpacing: "[0.1px]",
-});
 const normNoteText = css({
   textStyle: "xs",
   color: "fg.muted",
@@ -231,17 +232,13 @@ export const PlanningAssumptionCell = ({
   plan,
   hasPlan,
   measureMeetsPlan,
-  planLabel,
-  noteRaw,
+  tooltipLines: tooltipLineItems,
 }: {
   plan: number | null;
   hasPlan: boolean;
   measureMeetsPlan: boolean;
-  planLabel: string | null;
-  noteRaw: string | null;
+  tooltipLines: string[];
 }) => {
-  const tooltipText = planLabel ?? noteRaw;
-
   const inner = (
     <>
       <div className={cellLabel}>Planning assumption</div>
@@ -263,7 +260,7 @@ export const PlanningAssumptionCell = ({
     </>
   );
 
-  if (!tooltipText) {
+  if (tooltipLineItems.length === 0) {
     return <div className={cell}>{inner}</div>;
   }
 
@@ -271,7 +268,13 @@ export const PlanningAssumptionCell = ({
     <Tooltip
       position="bottom"
       openDelay="fast"
-      content={tooltipText}
+      content={
+        <span className={tooltipLines}>
+          {tooltipLineItems.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </span>
+      }
       className={cellTooltip}
     >
       {inner}
@@ -322,38 +325,6 @@ export const DeltaWithTooltip = ({
   );
 };
 
-function observedSpreadNote(values: number[]): string | null {
-  const vals = values
-    .filter((value) => Number.isFinite(value))
-    .sort((left, right) => left - right);
-  const count = vals.length;
-  if (count === 0) {
-    return null;
-  }
-  const percentile = (product: number) => {
-    const idx = Math.min(
-      count - 1,
-      Math.max(0, Math.round((product / 100) * (count - 1))),
-    );
-    const value = vals[idx];
-    if (value === undefined) {
-      throw new Error(
-        "Percentile index was outside the observed spread series",
-      );
-    }
-    return value;
-  };
-  const median = percentile(50);
-  const p25 = percentile(25);
-  const p75 = percentile(75);
-  const fmtDays = (value: number) =>
-    `${formatNumber(value, { maximumFractionDigits: Number.isInteger(value) ? 0 : 1 })}d`;
-  if (count < 10) {
-    return `Median ${fmtDays(median)} · low sample size · n=${count}`;
-  }
-  return `Median ${fmtDays(median)} · middle 50% of events: ${fmtDays(p25)}–${fmtDays(p75)} · n=${count}`;
-}
-
 export const StatsRow = ({
   step,
   deltas,
@@ -395,7 +366,6 @@ export const StatsRow = ({
   };
 
   const prevRangeLabel = previousPeriodLabel(comparison?.previousRange);
-  const spreadNote = unit === "d" ? observedSpreadNote(step.durations) : null;
   const norm = step.normalization;
 
   return (
@@ -407,14 +377,6 @@ export const StatsRow = ({
           {formatNumber(norm.qty, { maximumFractionDigits: 0 })}{" "}
           {norm.unit ?? ""} batch ({norm.basis}; n={norm.n_batches},{" "}
           {norm.window})
-        </div>
-      )}
-      {spreadNote && (
-        <div
-          className={spreadNoteText}
-          title="Half of the event values were in this range. This describes the spread of the actual data; it is not a prediction or confidence interval."
-        >
-          {spreadNote}
         </div>
       )}
       <div className={statsGrid}>

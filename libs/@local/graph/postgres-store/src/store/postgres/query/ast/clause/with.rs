@@ -1,0 +1,120 @@
+use core::fmt::{self, Write as _};
+
+use crate::store::postgres::query::{Statement, Table, Transpile};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CommonTableExpression {
+    table: Table,
+    statement: Statement,
+}
+
+#[derive(Default, Clone, Debug, PartialEq)]
+pub struct WithExpression {
+    common_table_expressions: Vec<CommonTableExpression>,
+}
+
+impl WithExpression {
+    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement>) {
+        self.common_table_expressions.push(CommonTableExpression {
+            table,
+            statement: statement.into(),
+        });
+    }
+
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.common_table_expressions.len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.common_table_expressions.is_empty()
+    }
+}
+
+impl Transpile for WithExpression {
+    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if self.common_table_expressions.is_empty() {
+            return Ok(());
+        }
+
+        fmt.write_str("WITH ")?;
+        for (idx, expression) in self.common_table_expressions.iter().enumerate() {
+            if idx > 0 {
+                fmt.write_str(", ")?;
+            }
+            expression.table.name().transpile(fmt)?;
+            fmt.write_str(" AS (")?;
+            expression.statement.transpile(fmt)?;
+            fmt.write_char(')')?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::postgres::query::{
+        Alias, FromItem, Identifier, SelectExpression, SelectStatement,
+        test_helper::{max_version_expression, trim_whitespace},
+    };
+
+    #[test]
+    fn transpile_with_expression() {
+        let mut with_clause = WithExpression::default();
+        assert_eq!(with_clause.transpile_to_string(), "");
+
+        with_clause.add_statement(
+            Table::OntologyIds,
+            SelectStatement::builder()
+                .selects(vec![
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::Expression {
+                        expression: max_version_expression(),
+                        alias: Some(Identifier::from("latest_version")),
+                    },
+                ])
+                .from(
+                    FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    })),
+                )
+                .build(),
+        );
+
+        assert_eq!(
+            trim_whitespace(&with_clause.transpile_to_string()),
+            trim_whitespace(
+                r#"
+                WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0")"#
+            )
+        );
+
+        with_clause.add_statement(
+            Table::DataTypes,
+            SelectStatement::builder()
+                .selects(vec![SelectExpression::Asterisk(None)])
+                .from(
+                    FromItem::table(Table::DataTypes).alias(Table::DataTypes.aliased(Alias {
+                        condition_index: 3,
+                        chain_depth: 4,
+                        number: 5,
+                    })),
+                )
+                .build(),
+        );
+
+        assert_eq!(
+            trim_whitespace(&with_clause.transpile_to_string()),
+            trim_whitespace(
+                r#"
+                WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version" FROM "ontology_ids" AS "ontology_ids_0_0_0"),
+                     "data_types" AS (SELECT * FROM "data_types" AS "data_types_3_4_5")"#
+            )
+        );
+    }
+}

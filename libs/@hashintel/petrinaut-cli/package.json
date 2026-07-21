@@ -1,0 +1,33 @@
+{
+  "name": "@hashintel/petrinaut-cli",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Internal JSON-lines CLI for Petrinaut simulations",
+  "license": "(MIT OR Apache-2.0)",
+  "bin": {
+    "petrinaut": "./dist/cli.js",
+    "petrinaut_cli": "./dist/cli.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit",
+    "serve": "node ./dist/cli.js serve",
+    "serve:example": "node ./dist/cli.js serve --model ./examples/sir-model.json --socket /tmp/petrinaut.sock",
+    "test:unit": "vitest"
+  },
+  "dependencies": {
+    "@hashintel/petrinaut-core": "workspace:*",
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.13",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "vite": "8.1.0",
+    "vitest": "4.1.8"
+  }
+}

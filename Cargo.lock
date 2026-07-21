@@ -1417,7 +1417,7 @@ version = "4.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02b45be5c965ce63bec3d284fefe0e042342f4e77f149a1e7aafc045119df738"
 dependencies = [
- "educe 0.6.0",
+ "educe",
  "either",
  "itertools 0.14.0",
  "lalrpop",
@@ -2506,18 +2506,6 @@ dependencies = [
 
 [[package]]
 name = "educe"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4bd92664bf78c4d3dba9b7cdafce6fa15b13ed3ed16175218196942e99168a8"
-dependencies = [
- "enum-ordinalize",
- "proc-macro2",
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
-name = "educe"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d7bc049e1bd8cdeb31b68bbd586a9464ecf9f3944af3958a7a9d0f8b9799417"
@@ -3540,7 +3528,6 @@ dependencies = [
  "regex",
  "reqwest",
  "simple-mermaid",
- "tarpc",
  "time",
  "tokio",
  "tokio-postgres",
@@ -3595,8 +3582,8 @@ dependencies = [
  "jsonwebtoken",
  "md-5",
  "mime",
- "opentelemetry 0.32.0",
- "opentelemetry-semantic-conventions 0.32.1",
+ "opentelemetry",
+ "opentelemetry-semantic-conventions",
  "reqwest",
  "sentry",
  "serde",
@@ -3608,7 +3595,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
- "tracing-opentelemetry 0.33.0",
+ "tracing-opentelemetry",
  "type-system",
  "utoipa",
  "uuid",
@@ -3897,6 +3884,7 @@ dependencies = [
 name = "hash-graph-type-fetcher"
 version = "0.0.0"
 dependencies = [
+ "axum",
  "derive_more",
  "error-stack",
  "futures",
@@ -3906,18 +3894,17 @@ dependencies = [
  "hash-graph-types",
  "hash-temporal-client",
  "include_dir",
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "reqwest",
  "reqwest-middleware",
  "reqwest-tracing",
  "serde",
  "serde_json",
  "simple-mermaid",
- "tarpc",
  "time",
  "tokio",
  "tracing",
- "tracing-opentelemetry 0.33.0",
+ "tracing-opentelemetry",
  "type-system",
  "url",
 ]
@@ -4017,10 +4004,10 @@ dependencies = [
  "clap_builder",
  "derive_more",
  "error-stack",
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "opentelemetry-appender-tracing",
  "opentelemetry-otlp",
- "opentelemetry_sdk 0.32.1",
+ "opentelemetry_sdk",
  "sentry",
  "sentry-core",
  "sentry-types",
@@ -4031,7 +4018,7 @@ dependencies = [
  "tracing-core",
  "tracing-error",
  "tracing-flame",
- "tracing-opentelemetry 0.33.0",
+ "tracing-opentelemetry",
  "tracing-subscriber",
 ]
 
@@ -4041,7 +4028,7 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "hostname",
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "serde",
  "serde_json",
  "simple-mermaid",
@@ -4050,7 +4037,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
- "tracing-opentelemetry 0.33.0",
+ "tracing-opentelemetry",
  "type-system",
  "url",
  "uuid",
@@ -4529,12 +4516,6 @@ checksum = "6cb51c9a029ddc91b07a787f1d86b53ccfa49b0e86688c946ebe8d3555685dd7"
 dependencies = [
  "libm",
 ]
-
-[[package]]
-name = "humantime"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "135b12329e5e3ce057a9f972339ea52bc954fe1e9358ef27f95e89716fbc5424"
 
 [[package]]
 name = "hybrid-array"
@@ -6676,20 +6657,6 @@ checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
 name = "opentelemetry"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaf416e4cb72756655126f7dd7bb0af49c674f4c1b9903e80c009e0c37e552e6"
-dependencies = [
- "futures-core",
- "futures-sink",
- "js-sys",
- "pin-project-lite",
- "thiserror 2.0.18",
- "tracing",
-]
-
-[[package]]
-name = "opentelemetry"
 version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0142c63252a9e054e68a4c61a5778f7b14f576274d593f8ce883d191a099682"
@@ -6707,7 +6674,7 @@ version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c0080f0dc1d7c786f467cd85a4e395fcab11ee852004f39a29a18ab7c25d837"
 dependencies = [
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "tracing",
  "tracing-core",
  "tracing-subscriber",
@@ -6720,9 +6687,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9966929966d17620d7c316c643ba62631826e10021409357772d5eea84f62c35"
 dependencies = [
  "http 1.4.2",
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "opentelemetry-proto",
- "opentelemetry_sdk 0.32.1",
+ "opentelemetry_sdk",
  "prost",
  "thiserror 2.0.18",
  "tokio",
@@ -6736,8 +6703,8 @@ version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56d658ba1faf63f7b9c492cfbe6e0ec365440a16132d3270c1065f7b33f1b638"
 dependencies = [
- "opentelemetry 0.32.0",
- "opentelemetry_sdk 0.32.1",
+ "opentelemetry",
+ "opentelemetry_sdk",
  "prost",
  "tonic",
  "tonic-prost",
@@ -6745,30 +6712,9 @@ dependencies = [
 
 [[package]]
 name = "opentelemetry-semantic-conventions"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83d059a296a47436748557a353c5e6c5705b9470ef6c95cfc52c21a8814ddac2"
-
-[[package]]
-name = "opentelemetry-semantic-conventions"
 version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c913ac17a6c451661ee255f4625d143e51647ae78ebd969b75e41c4442f4fe47"
-
-[[package]]
-name = "opentelemetry_sdk"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11f644aa9e5e31d11896e024305d7e3c98a88884d9f8919dbf37a9991bc47a4b"
-dependencies = [
- "futures-channel",
- "futures-executor",
- "futures-util",
- "opentelemetry 0.30.0",
- "percent-encoding",
- "rand 0.9.4",
- "thiserror 2.0.18",
-]
 
 [[package]]
 name = "opentelemetry_sdk"
@@ -6779,7 +6725,7 @@ dependencies = [
  "futures-channel",
  "futures-executor",
  "futures-util",
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "percent-encoding",
  "portable-atomic",
  "rand 0.9.4",
@@ -9700,40 +9646,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "591ef38edfb78ca4771ee32cf494cb8771944bee237a9b91fc9c1424ac4b777b"
 
 [[package]]
-name = "tarpc"
-version = "0.36.0"
-source = "git+https://github.com/google/tarpc?rev=f55f36d2d876b1868cfcf52f41d0456a60cf726c#f55f36d2d876b1868cfcf52f41d0456a60cf726c"
-dependencies = [
- "anyhow",
- "fnv",
- "futures",
- "humantime",
- "opentelemetry 0.30.0",
- "opentelemetry-semantic-conventions 0.30.0",
- "pin-project",
- "rand 0.8.6",
- "serde",
- "static_assertions",
- "tarpc-plugins",
- "thiserror 2.0.18",
- "tokio",
- "tokio-serde",
- "tokio-util",
- "tracing",
- "tracing-opentelemetry 0.31.0",
-]
-
-[[package]]
-name = "tarpc-plugins"
-version = "0.14.1"
-source = "git+https://github.com/google/tarpc?rev=f55f36d2d876b1868cfcf52f41d0456a60cf726c#f55f36d2d876b1868cfcf52f41d0456a60cf726c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10244,21 +10156,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-serde"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caf600e7036b17782571dd44fa0a5cea3c82f60db5137f774a325a76a0d6852b"
-dependencies = [
- "bytes",
- "educe 0.5.11",
- "futures-core",
- "futures-sink",
- "pin-project",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "tokio-stream"
 version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10563,28 +10460,12 @@ dependencies = [
 
 [[package]]
 name = "tracing-opentelemetry"
-version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddcf5959f39507d0d04d6413119c04f33b623f4f951ebcbdddddfad2d0623a9c"
-dependencies = [
- "js-sys",
- "once_cell",
- "opentelemetry 0.30.0",
- "opentelemetry_sdk 0.30.0",
- "tracing",
- "tracing-core",
- "tracing-subscriber",
- "web-time",
-]
-
-[[package]]
-name = "tracing-opentelemetry"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adbc64cba7137545b8044cb1fe9814f7aacf3c6b5f9b45be8bb5db538befdb26"
 dependencies = [
  "js-sys",
- "opentelemetry 0.32.0",
+ "opentelemetry",
  "tracing",
  "tracing-core",
  "tracing-subscriber",

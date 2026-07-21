@@ -87,6 +87,10 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
+import {
+  getPetrinautOptimizerOrigin,
+  setupPetrinautOptimizerHandler,
+} from "./petrinaut-optimizer/setup-petrinaut-optimizer-handler";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
   setupFileDownloadProxyHandler,
@@ -429,8 +433,16 @@ const main = async () => {
 
   // Connect to Redis
   const redis = await createRedisClient({ url: redisUrl, logger }).connect();
-  const keyv = new Keyv({ store: new KeyvRedis(redis) });
   shutdown.addCleanup("Redis", async () => redis.close());
+
+  /**
+   * `@keyv/redis` bundles its own `@redis/client` whose types are
+   * incompatible with our RESP3-configured client, so let it manage its own
+   * connection from the URL.
+   */
+  const keyvRedisStore = new KeyvRedis(redisUrl);
+  const keyv = new Keyv({ store: keyvRedisStore });
+  shutdown.addCleanup("Keyv Redis", async () => keyvRedisStore.disconnect());
 
   // Connect to the Graph API
   const graphApi = createGraphClient(logger, {
@@ -739,6 +751,11 @@ const main = async () => {
   setupFileDownloadProxyHandler(app, keyv);
 
   setupAnalysisHandler(app, keyv);
+
+  setupPetrinautOptimizerHandler(app, {
+    logger,
+    origin: getPetrinautOptimizerOrigin(),
+  });
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());

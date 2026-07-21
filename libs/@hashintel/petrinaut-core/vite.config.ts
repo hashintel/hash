@@ -14,11 +14,15 @@ export default defineConfig(({ command }) => ({
         index: resolve(packageRoot, "src/index.ts"),
         // Dedicated edge-safe entry exposing only the AI prompt + tool schemas.
         ai: resolve(packageRoot, "src/ai.ts"),
+        // Node/tooling-only reusable model compiler. This depends on the
+        // TypeScript-powered HIR compiler and must stay out of the main entry.
+        "compiled-model": resolve(packageRoot, "src/compiled-model.ts"),
         // HIR compiler (bundles the TypeScript frontend — heavy; used by the
         // LSP worker internally and by tooling/playgrounds).
         hir: resolve(packageRoot, "src/hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
+        optimization: resolve(packageRoot, "src/optimization.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(

@@ -11,6 +11,7 @@ import {
 } from "./product-dwell-scope";
 import {
   fetchGraph as fetchAnalysisGraph,
+  fetchProductionSchedule as fetchAnalysisProductionSchedule,
   fetchProducts as fetchAnalysisProducts,
   fetchSiteSummary as fetchAnalysisSiteSummary,
   fetchSites as fetchAnalysisSites,
@@ -18,6 +19,7 @@ import {
   fetchSupplierPerformance as fetchAnalysisSupplierPerformance,
 } from "./supply-chain-analysis-requests";
 
+import type { ProductionSchedule } from "./production-schedule-types";
 import type {
   Product,
   GraphData,
@@ -44,6 +46,7 @@ let productsCache: Promise<Product[]> | null = null;
  * rejected promise is evicted so a later mount can retry.
  */
 const siteDataCache = new Map<string, Promise<SiteData>>();
+const productionScheduleCache = new Map<string, Promise<ProductionSchedule>>();
 
 /**
  * Site-wide supplier performance. Cached for the session; missing optional
@@ -65,6 +68,7 @@ export function configureDataSource({
   productsCache = null;
   supplierPerformanceCache = null;
   siteDataCache.clear();
+  productionScheduleCache.clear();
 }
 
 const getActiveWebId = (): WebId => {
@@ -140,6 +144,27 @@ export async function fetchGraph(productId: string): Promise<GraphData> {
   );
 
   return { ...graph, nodes: scopedNodes };
+}
+
+/**
+ * Lazily load and session-cache a product's optional schedule. Rejections are
+ * evicted so a transient gateway failure can be retried by remounting.
+ */
+export function fetchProductionSchedule(
+  productId: string,
+): Promise<ProductionSchedule> {
+  const key = `${getActiveWebId()}::${productId}`;
+  const cached = productionScheduleCache.get(key);
+  if (cached) {
+    return cached;
+  }
+  const pending = fetchAnalysisProductionSchedule<ProductionSchedule>(
+    getActiveWebId(),
+    productId,
+  );
+  productionScheduleCache.set(key, pending);
+  pending.catch(() => productionScheduleCache.delete(key));
+  return pending;
 }
 
 export function fetchSupplierPerformance(): Promise<SiteSupplierPerformance | null> {

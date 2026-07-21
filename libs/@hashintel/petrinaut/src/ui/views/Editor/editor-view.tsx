@@ -9,6 +9,7 @@ import {
   productionMachines,
   sirModel,
   supplyChainWithDisruption,
+  supplyChainProfit,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -361,6 +362,14 @@ export const EditorView = ({
                 text: "Probabilistic Satellite Launcher",
                 onClick: () => {
                   createNewNet(probabilisticSatellitesSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-supply-chain-profit",
+                text: "Supply Chain Profit",
+                onClick: () => {
+                  createNewNet(supplyChainProfit);
                   clearSelection();
                 },
               },

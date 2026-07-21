@@ -1,0 +1,420 @@
+{
+  "kind": "petrinaut-optimization",
+  "version": 1,
+  "name": "Supply Chain Profit model optimization",
+  "model": {
+    "title": "Supply Chain Profit model",
+    "definition": {
+      "places": [
+        {
+          "id": "place_raw_inventory",
+          "name": "RawInventory",
+          "colorId": null,
+          "dynamicsEnabled": false,
+          "differentialEquationId": null,
+          "isPort": false,
+          "visualizerCode": "",
+          "showAsInitialState": true,
+          "x": 400,
+          "y": 253.33333333333331
+        },
+        {
+          "id": "place_finished_goods",
+          "name": "FinishedGoods",
+          "colorId": null,
+          "dynamicsEnabled": false,
+          "differentialEquationId": null,
+          "isPort": false,
+          "visualizerCode": "",
+          "showAsInitialState": true,
+          "x": 960,
+          "y": 253.33333333333331
+        },
+        {
+          "id": "place_customer_demand",
+          "name": "CustomerDemand",
+          "colorId": null,
+          "dynamicsEnabled": false,
+          "differentialEquationId": null,
+          "isPort": false,
+          "visualizerCode": "",
+          "showAsInitialState": true,
+          "x": 960,
+          "y": 103.33333333333333
+        },
+        {
+          "id": "place_sold_orders",
+          "name": "SoldOrders",
+          "colorId": null,
+          "dynamicsEnabled": false,
+          "differentialEquationId": null,
+          "isPort": false,
+          "visualizerCode": "",
+          "showAsInitialState": true,
+          "x": 1520,
+          "y": 261.66666666666663
+        },
+        {
+          "id": "place_lost_sales",
+          "name": "LostSales",
+          "colorId": null,
+          "dynamicsEnabled": false,
+          "differentialEquationId": null,
+          "isPort": false,
+          "visualizerCode": "",
+          "showAsInitialState": true,
+          "x": 1520,
+          "y": 95
+        }
+      ],
+      "transitions": [
+        {
+          "id": "trans_replenish_raw",
+          "name": "Replenish raw inventory",
+          "inputArcs": [],
+          "outputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_raw_inventory"
+              },
+              "weight": 10
+            }
+          ],
+          "lambdaType": "stochastic",
+          "lambdaCode": "export default Lambda((input, parameters) => {\n  const reorderGap = Math.max(0, parameters.reorder_threshold - 80);\n  const batchEffect = Math.max(10, parameters.batch_size) / 180;\n  const expediteBoost = 1 + Math.max(0, Math.min(1, parameters.expedite_fraction)) * 0.6;\n  return Math.max(0, 0.015 * reorderGap * batchEffect * expediteBoost);\n});",
+          "transitionKernelCode": "",
+          "x": 120,
+          "y": 253.33333333333331
+        },
+        {
+          "id": "trans_produce_finished",
+          "name": "Produce finished goods",
+          "inputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_raw_inventory"
+              },
+              "weight": 1,
+              "type": "standard"
+            }
+          ],
+          "outputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_finished_goods"
+              },
+              "weight": 1
+            }
+          ],
+          "lambdaType": "stochastic",
+          "lambdaCode": "export default Lambda((input, parameters) => {\n  return Math.max(0, parameters.production_rate);\n});",
+          "transitionKernelCode": "",
+          "x": 680,
+          "y": 253.33333333333331
+        },
+        {
+          "id": "trans_create_demand",
+          "name": "Customer demand arrives",
+          "inputArcs": [],
+          "outputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_customer_demand"
+              },
+              "weight": 1
+            }
+          ],
+          "lambdaType": "stochastic",
+          "lambdaCode": "export default Lambda((input, parameters) => {\n  const baseDemand = 100 * parameters.demand_multiplier;\n  const priceEffect = Math.max(0.1, 1 - 0.018 * (parameters.selling_price - 34));\n  const marketingEffect = 1 + 0.015 * parameters.marketing_spend;\n  return Math.max(0, baseDemand * priceEffect * marketingEffect);\n});",
+          "transitionKernelCode": "",
+          "x": 680,
+          "y": 103.33333333333333
+        },
+        {
+          "id": "trans_sell_order",
+          "name": "Sell order",
+          "inputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_finished_goods"
+              },
+              "weight": 1,
+              "type": "standard"
+            },
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_customer_demand"
+              },
+              "weight": 1,
+              "type": "standard"
+            }
+          ],
+          "outputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_sold_orders"
+              },
+              "weight": 1
+            }
+          ],
+          "lambdaType": "stochastic",
+          "lambdaCode": "export default Lambda(() => {\n  return 250;\n});",
+          "transitionKernelCode": "",
+          "x": 1240,
+          "y": 261.66666666666663
+        },
+        {
+          "id": "trans_lost_sale",
+          "name": "Demand lost to stockout",
+          "inputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_customer_demand"
+              },
+              "weight": 1,
+              "type": "standard"
+            },
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_finished_goods"
+              },
+              "weight": 1,
+              "type": "inhibitor"
+            }
+          ],
+          "outputArcs": [
+            {
+              "endpoint": {
+                "kind": "place",
+                "placeId": "place_lost_sales"
+              },
+              "weight": 1
+            }
+          ],
+          "lambdaType": "stochastic",
+          "lambdaCode": "export default Lambda(() => {\n  return 40;\n});",
+          "transitionKernelCode": "",
+          "x": 1240,
+          "y": 95
+        }
+      ],
+      "types": [],
+      "differentialEquations": [],
+      "parameters": [
+        {
+          "id": "param_production_rate",
+          "name": "Production rate",
+          "variableName": "production_rate",
+          "type": "real",
+          "defaultValue": "100"
+        },
+        {
+          "id": "param_reorder_threshold",
+          "name": "Reorder threshold",
+          "variableName": "reorder_threshold",
+          "type": "integer",
+          "defaultValue": "160"
+        },
+        {
+          "id": "param_batch_size",
+          "name": "Batch size",
+          "variableName": "batch_size",
+          "type": "integer",
+          "defaultValue": "180"
+        },
+        {
+          "id": "param_selling_price",
+          "name": "Selling price",
+          "variableName": "selling_price",
+          "type": "real",
+          "defaultValue": "34"
+        },
+        {
+          "id": "param_expedite_fraction",
+          "name": "Expedited shipping fraction",
+          "variableName": "expedite_fraction",
+          "type": "real",
+          "defaultValue": "0.25"
+        },
+        {
+          "id": "param_marketing_spend",
+          "name": "Marketing spend",
+          "variableName": "marketing_spend",
+          "type": "real",
+          "defaultValue": "20"
+        },
+        {
+          "id": "param_demand_multiplier",
+          "name": "Demand multiplier",
+          "variableName": "demand_multiplier",
+          "type": "real",
+          "defaultValue": "1"
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "scenario_baseline_supply_chain_with_stock",
+          "name": "Baseline with enough stock",
+          "description": "Normal demand with all six operational decision parameters exposed for optimization. Defaults are deliberately near, but not at, the profit optimum.",
+          "scenarioParameters": [
+            {
+              "type": "real",
+              "identifier": "production_rate",
+              "default": 100
+            },
+            {
+              "type": "integer",
+              "identifier": "reorder_threshold",
+              "default": 160
+            },
+            {
+              "type": "integer",
+              "identifier": "batch_size",
+              "default": 180
+            },
+            {
+              "type": "real",
+              "identifier": "selling_price",
+              "default": 34
+            },
+            {
+              "type": "ratio",
+              "identifier": "expedite_fraction",
+              "default": 0.25
+            },
+            {
+              "type": "real",
+              "identifier": "marketing_spend",
+              "default": 20
+            },
+            {
+              "type": "real",
+              "identifier": "demand_multiplier",
+              "default": 1
+            }
+          ],
+          "parameterOverrides": {
+            "param_production_rate": "scenario.production_rate",
+            "param_reorder_threshold": "scenario.reorder_threshold",
+            "param_batch_size": "scenario.batch_size",
+            "param_selling_price": "scenario.selling_price",
+            "param_expedite_fraction": "scenario.expedite_fraction",
+            "param_marketing_spend": "scenario.marketing_spend",
+            "param_demand_multiplier": "scenario.demand_multiplier"
+          },
+          "initialState": {
+            "type": "per_place",
+            "content": {
+              "place_raw_inventory": "200",
+              "place_finished_goods": "100",
+              "place_customer_demand": "0",
+              "place_sold_orders": "0",
+              "place_lost_sales": "0"
+            }
+          }
+        }
+      ],
+      "metrics": [
+        {
+          "id": "metric_profit",
+          "name": "Profit",
+          "description": "Profit objective based on sold orders, lost sales, inventory/backlog holding costs, and policy costs from selling price, production rate, marketing spend, and expedited shipping fraction.",
+          "code": "const soldOrders = state.places.SoldOrders.count;\nconst lostSales = state.places.LostSales.count;\nconst rawInventory = state.places.RawInventory.count;\nconst finishedGoods = state.places.FinishedGoods.count;\nconst customerDemand = state.places.CustomerDemand.count;\n\n// Metrics can read parameters directly\nconst sellingPrice = parameters.selling_price;\nconst productionRate = parameters.production_rate;\nconst marketingSpend = parameters.marketing_spend;\nconst rawExpediteFraction = parameters.expedite_fraction;\nconst expediteFraction = Math.max(0, Math.min(1, rawExpediteFraction));\n\nconst fulfillmentCostPerSoldOrder = 18;\nconst rawInventoryHoldingCost = 0.02;\nconst finishedGoodsHoldingCost = 0.05;\nconst customerDemandBacklogCost = 0.10;\nconst lostSalePenaltyCost = 12;\n\n// Policy costs make all major tunable levers visible in the objective.\n// They are expressed as a per-observation economic charge, so compare runs at\n// the same simulation horizon.\nconst productionCapacityCost = 0.08 * productionRate;\nconst marketingCost = marketingSpend;\nconst expeditePremiumCost = expediteFraction * (3.5 * soldOrders + 0.02 * rawInventory + 0.05 * finishedGoods);\n\nconst revenue = soldOrders * sellingPrice;\nconst variableCost =\n  soldOrders * fulfillmentCostPerSoldOrder +\n  rawInventory * rawInventoryHoldingCost +\n  finishedGoods * finishedGoodsHoldingCost +\n  customerDemand * customerDemandBacklogCost +\n  lostSales * lostSalePenaltyCost;\n\nreturn revenue - variableCost - productionCapacityCost - marketingCost - expeditePremiumCost;"
+        }
+      ],
+      "subnets": [],
+      "componentInstances": [],
+      "version": 1,
+      "meta": {
+        "generator": "Petrinaut"
+      }
+    }
+  },
+  "scenario": {
+    "id": "scenario_baseline_supply_chain_with_stock",
+    "parameterBindings": {
+      "production_rate": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 20,
+          "maximum": 250,
+          "scale": "linear"
+        }
+      },
+      "reorder_threshold": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "integer",
+          "minimum": 81,
+          "maximum": 1000,
+          "step": 1,
+          "scale": "log"
+        }
+      },
+      "batch_size": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "integer",
+          "minimum": 50,
+          "maximum": 800,
+          "step": 1,
+          "scale": "linear"
+        }
+      },
+      "selling_price": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 10,
+          "maximum": 100,
+          "scale": "linear"
+        }
+      },
+      "expedite_fraction": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 0,
+          "maximum": 1,
+          "scale": "linear"
+        }
+      },
+      "marketing_spend": {
+        "kind": "optimize",
+        "domain": {
+          "kind": "continuous",
+          "minimum": 20,
+          "maximum": 100,
+          "scale": "linear"
+        }
+      },
+      "demand_multiplier": {
+        "kind": "fixed",
+        "value": 1
+      }
+    }
+  },
+  "objective": {
+    "metricId": "metric_profit",
+    "direction": "maximize"
+  },
+  "execution": {
+    "seed": 1234,
+    "dt": 0.1,
+    "maxTime": 36.5
+  },
+  "study": {
+    "trials": 1000,
+    "sampler": "tpe"
+  }
+}

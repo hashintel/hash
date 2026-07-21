@@ -1,6 +1,6 @@
 [package]
 name              = "hash-graph-type-fetcher"
-description       = "RPC service definition to fetch external BP types"
+description       = "HTTP service to fetch external BP types"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,10 +13,9 @@ hash-graph-store = { workspace = true, public = true }
 type-system      = { workspace = true, public = true }
 
 # Public third-party dependencies
+axum       = { workspace = true, public = true }
 serde_json = { workspace = true, public = true }
-tarpc      = { workspace = true, public = true, features = ["serde-transport", "serde-transport-json", "tcp", "tokio1"] }
 time       = { workspace = true, public = true, features = ["serde", "std"] }
-tokio      = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true }
@@ -31,10 +30,11 @@ futures               = { workspace = true }
 include_dir           = { workspace = true, features = ["glob"] }
 opentelemetry         = { workspace = true }
 reqwest               = { workspace = true, features = ["json", "stream"] }
-reqwest-middleware    = { workspace = true }
+reqwest-middleware    = { workspace = true, features = ["json"] }
 reqwest-tracing       = { workspace = true }
 serde                 = { workspace = true, features = ["derive"] }
 simple-mermaid        = { workspace = true }
+tokio                 = { workspace = true, features = ["net"] }
 tracing               = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 url                   = { workspace = true }

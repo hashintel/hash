@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -12,9 +12,12 @@ import {
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { isDwellType } from "../categories";
 import { chartTheme } from "../chart-theme";
-import { formatNumber } from "../cost";
+import { formatCost, formatNumber, useCostParams } from "../cost";
 import { countNoun } from "../observation-labels";
+import { SegmentedControl } from "../segmented-control";
+import { dwellCostDistributionValues } from "./distribution-chart/dwell-cost-distribution";
 
 import type { StepDetail } from "../types";
 
@@ -29,6 +32,12 @@ const chartTitle = css({
   fontWeight: "medium",
   color: "fg.max",
   lineHeight: "[20px]",
+});
+const chartHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
 });
 const emptyText = css({ textStyle: "sm", color: "fg.subtle" });
 
@@ -46,7 +55,10 @@ type Bin = {
   isLast: boolean;
   count: number;
   label: string;
+  axisLabel: string;
 };
+
+type DwellDistributionMeasure = "duration" | "value";
 
 function niceStep(rawStep: number): number {
   const mag = 10 ** Math.floor(Math.log10(rawStep));
@@ -63,7 +75,10 @@ function niceStep(rawStep: number): number {
   return 10 * mag;
 }
 
-function buildBins(values: number[]): { bins: Bin[]; binCount: number } {
+function buildBins(
+  values: number[],
+  valueFormatter?: (value: number) => string,
+): { bins: Bin[]; binCount: number } {
   const filtered = values.filter((day): day is number => Number.isFinite(day));
   if (filtered.length === 0) {
     return { bins: [], binCount: 0 };
@@ -73,7 +88,8 @@ function buildBins(values: number[]): { bins: Bin[]; binCount: number } {
   const max = Math.max(...filtered);
   const range = max - min;
   if (range === 0) {
-    const label = formatNumber(min, { maximumFractionDigits: 0 });
+    const label =
+      valueFormatter?.(min) ?? formatNumber(min, { maximumFractionDigits: 0 });
     return {
       bins: [
         {
@@ -82,6 +98,7 @@ function buildBins(values: number[]): { bins: Bin[]; binCount: number } {
           isLast: true,
           count: filtered.length,
           label,
+          axisLabel: label,
         },
       ],
 
@@ -101,8 +118,10 @@ function buildBins(values: number[]): { bins: Bin[]; binCount: number } {
   const count = Math.round((niceMax - niceMin) / step);
 
   const useDecimals = step < 1;
-  const fmt = (value: number) =>
-    formatNumber(value, { maximumFractionDigits: useDecimals ? 1 : 0 });
+  const fmt =
+    valueFormatter ??
+    ((value: number) =>
+      formatNumber(value, { maximumFractionDigits: useDecimals ? 1 : 0 }));
 
   const histogram: Bin[] = [];
   for (let index = 0; index < count; index++) {
@@ -119,6 +138,7 @@ function buildBins(values: number[]): { bins: Bin[]; binCount: number } {
       isLast,
       count: column,
       label,
+      axisLabel: fmt(start),
     });
   }
 
@@ -130,6 +150,10 @@ export const DistributionChart = ({
   dimension = "timing",
   selectedComponent,
 }: DistributionChartProps) => {
+  const { waccRate, storageCost } = useCostParams();
+  const [dwellMeasure, setDwellMeasure] =
+    useState<DwellDistributionMeasure>("duration");
+  const isDwellTiming = dimension === "timing" && isDwellType(step.type);
   const { bins, binCount, refValue, title } = useMemo(() => {
     if (dimension === "yield" && step.yield_data) {
       const { bins: right2, binCount: bc } = buildBins(step.yield_data.values);
@@ -160,29 +184,63 @@ export const DistributionChart = ({
           : "Aggregate consumption variance distribution",
       };
     }
-    const { bins: right, binCount: bc } = buildBins(step.durations);
+    const values =
+      isDwellTiming && dwellMeasure === "value"
+        ? dwellCostDistributionValues(step, waccRate, storageCost)
+        : step.durations;
+    const isValueDistribution = isDwellTiming && dwellMeasure === "value";
+    const { bins: right, binCount: bc } = buildBins(
+      values,
+      isValueDistribution
+        ? (value) =>
+            formatCost(value, step.cost?.currency ?? null, { compact: true })
+        : undefined,
+    );
     return {
       bins: right,
       binCount: bc,
-      refValue: step.plan,
-      title: "Duration distribution",
+      refValue: isValueDistribution ? null : step.plan,
+      title: isDwellTiming ? "Distribution" : "Duration distribution",
     };
-  }, [step, dimension, selectedComponent]);
+  }, [
+    step,
+    dimension,
+    selectedComponent,
+    isDwellTiming,
+    dwellMeasure,
+    waccRate,
+    storageCost,
+  ]);
 
   if (bins.length === 0) {
     return (
       <div className={chartWrap}>
-        <h3 className={chartTitle}>{title}</h3>
+        <div className={chartHeader}>
+          <h3 className={chartTitle}>{title}</h3>
+          {isDwellTiming && (
+            <SegmentedControl
+              value={dwellMeasure}
+              onChange={setDwellMeasure}
+              options={[
+                { value: "duration", label: "Duration" },
+                { value: "value", label: "Value" },
+              ]}
+            />
+          )}
+        </div>
         <p className={emptyText}>
-          {dimension === "consumption" && selectedComponent
-            ? "No in-range matched variance data available"
-            : "No data available"}
+          {isDwellTiming && dwellMeasure === "value"
+            ? "No cost data available"
+            : dimension === "consumption" && selectedComponent
+              ? "No in-range matched variance data available"
+              : "No data available"}
         </p>
       </div>
     );
   }
 
   const hasRef = refValue != null && (dimension !== "timing" || refValue > 0);
+  const isValueDistribution = isDwellTiming && dwellMeasure === "value";
   const rv = refValue ?? 0;
   const refIdx = hasRef
     ? bins.findIndex(
@@ -239,8 +297,23 @@ export const DistributionChart = ({
 
   return (
     <div className={chartWrap}>
-      <h3 className={chartTitle}>{title}</h3>
-      <ResponsiveContainer width="100%" height={380}>
+      <div className={chartHeader}>
+        <h3 className={chartTitle}>{title}</h3>
+        {isDwellTiming && (
+          <SegmentedControl
+            value={dwellMeasure}
+            onChange={setDwellMeasure}
+            options={[
+              { value: "duration", label: "Duration" },
+              { value: "value", label: "Value" },
+            ]}
+          />
+        )}
+      </div>
+      <ResponsiveContainer
+        width="100%"
+        height={isValueDistribution ? 440 : 380}
+      >
         <BarChart
           data={bins}
           margin={{ top: 10, right: 10, bottom: 5, left: 5 }}
@@ -251,9 +324,30 @@ export const DistributionChart = ({
               fontSize: 10,
               fill: chartTheme.axis.tickStrong,
               letterSpacing: 0.2,
+              ...(isValueDistribution
+                ? { angle: -90, textAnchor: "end" as const }
+                : {}),
             }}
+            tickFormatter={(label: string) =>
+              isValueDistribution
+                ? (bins.find((bin) => bin.label === label)?.axisLabel ?? label)
+                : label
+            }
             tickLine={false}
             axisLine={{ stroke: chartTheme.axis.line, strokeWidth: 0.5 }}
+            interval={isValueDistribution ? 0 : undefined}
+            height={isValueDistribution ? 110 : 30}
+            label={
+              isValueDistribution
+                ? {
+                    value: `Dwell cost (${step.cost?.currency ?? "USD"})`,
+                    position: "insideBottom",
+                    offset: -2,
+                    fontSize: 11,
+                    fill: chartTheme.axis.tick,
+                  }
+                : undefined
+            }
           />
 
           <YAxis

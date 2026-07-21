@@ -24,6 +24,7 @@ export interface SupplyChainImportSite {
 export interface SupplyChainManifest {
   datasetVersion: string;
   products: string[];
+  productionSchedules: string[];
   sites: string[];
   steps: Record<string, string[]>;
 }
@@ -93,6 +94,35 @@ const isSite = (value: unknown): value is SupplyChainImportSite =>
   typeof value === "object" &&
   value !== null &&
   typeof (value as JsonObject).slug === "string";
+
+const isProductionSchedule = (value: unknown, productId: string): boolean => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const schedule = value as JsonObject;
+  if (
+    schedule.artifact_type !== "production_schedule" ||
+    schedule.product_id !== productId ||
+    !Array.isArray(schedule.lanes) ||
+    schedule.lanes.length === 0
+  ) {
+    return false;
+  }
+  return schedule.lanes.every((lane) => {
+    if (typeof lane !== "object" || lane === null) {
+      return false;
+    }
+    const row = lane as JsonObject;
+    return (
+      typeof row.material === "string" &&
+      typeof row.name === "string" &&
+      typeof row.bom_depth === "number" &&
+      (row.role === "finished_good" || row.role === "intermediate") &&
+      Array.isArray(row.campaigns) &&
+      Array.isArray(row.batches)
+    );
+  });
+};
 
 const collectJsonFiles = (dir: string): string[] => {
   const out: string[] = [];
@@ -166,6 +196,7 @@ export const planSupplyChainDatasetImport = (params: {
   }
 
   const steps: Record<string, string[]> = {};
+  const productionSchedules: string[] = [];
 
   for (const productId of productIds) {
     const graphPath = path.join(sourceDir, productId, "graph.json");
@@ -188,6 +219,25 @@ export const planSupplyChainDatasetImport = (params: {
     }
 
     steps[productId] = stepIds;
+    const schedulePath = path.join(
+      sourceDir,
+      productId,
+      "production_schedule.json",
+    );
+    if (fs.existsSync(schedulePath)) {
+      if (!fs.statSync(schedulePath).isFile()) {
+        throw new Error(
+          `Product "${productId}" production_schedule.json is not a file`,
+        );
+      }
+      const schedule = readJson<unknown>(schedulePath);
+      if (!isProductionSchedule(schedule, productId)) {
+        throw new Error(
+          `Product "${productId}" has an invalid production_schedule.json`,
+        );
+      }
+      productionSchedules.push(productId);
+    }
   }
 
   const files = collectJsonFiles(sourceDir)
@@ -203,6 +253,7 @@ export const planSupplyChainDatasetImport = (params: {
     manifest: {
       datasetVersion: version,
       products: productIds,
+      productionSchedules,
       sites: siteIds,
       steps,
     },
