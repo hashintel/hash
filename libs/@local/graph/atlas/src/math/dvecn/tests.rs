@@ -330,16 +330,15 @@ fn boxed_dvecn_zero_is_all_zeros() {
 // (two full chunks plus a remainder of three) and `add_scaled`'s 8-lane
 // boundary (one chunk plus three).
 
-/// Logits bounded to `-50..50`, where `exp` is well-conditioned; the
-/// stability of the shifted form under huge logits is pinned by the
-/// example-based tests above.
+/// Logits bounded to `-50..50`, where `exp` is well-conditioned.
+///
+/// The stability of the shifted form under huge logits is pinned by the example-based tests above.
 fn logits_strategy() -> impl Strategy<Value = [f64; 11]> {
     prop::array::uniform11(-50.0_f64..50.0)
 }
 
 proptest! {
-    /// Softmax outputs are probabilities: each lies in `[0, 1]` and they
-    /// sum to one up to rounding.
+    /// Softmax outputs are probabilities: each lies in `[0, 1]` and they sum to one up to rounding.
     #[test]
     fn softmax_outputs_form_a_distribution(logits in logits_strategy()) {
         let probabilities = DVecN::new(logits).softmax();
@@ -351,10 +350,7 @@ proptest! {
         prop_assert!((total - 1.0).abs() < 1e-12, "total {}", total);
     }
 
-    /// Softmax is shift-invariant: adding a common constant to every
-    /// logit leaves the distribution unchanged up to rounding. The shift
-    /// is bounded to `-1e2..1e2` so the shifted logits stay
-    /// well-conditioned.
+    /// Softmax is shift-invariant: adding a common constant to every logit leaves the distribution unchanged up to rounding. The shift is bounded to `-1e2..1e2` so the shifted logits stay well-conditioned.
     #[test]
     fn softmax_is_shift_invariant_on_arbitrary_logits(
         logits in logits_strategy(),
@@ -368,8 +364,7 @@ proptest! {
         }
     }
 
-    /// Log-sum-exp is bracketed by its algebraic bounds:
-    /// `max <= log_sum_exp <= max + ln(N)`, up to rounding.
+    /// Log-sum-exp is bracketed by its algebraic bounds: `max <= log_sum_exp <= max + ln(N)`, up to rounding.
     #[test]
     fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(logits in logits_strategy()) {
         let vec = DVecN::new(logits);
@@ -384,10 +379,7 @@ proptest! {
         );
     }
 
-    /// `add_scaled` matches the scalar fused reference loop bit for bit
-    /// in every component: the SIMD path widens, multiplies, and adds
-    /// with the same single rounding as scalar `mul_add`. Components and
-    /// the factor are bounded to `-1e3..1e3`.
+    /// `add_scaled` matches the scalar fused reference loop bit for bit in every component: the SIMD path widens, multiplies, and adds with the same single rounding as scalar `mul_add`. Components and the factor are bounded to `-1e3..1e3`.
     #[test]
     fn add_scaled_matches_a_scalar_reference_loop(
         accumulator in prop::array::uniform11(-1e3_f64..1e3),

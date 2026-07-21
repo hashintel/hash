@@ -32,8 +32,9 @@ use crate::{
 /// Fixture capacity in components: the largest test corpus.
 const MATRIX_CAPACITY: usize = 128 * PROJECTOR_DIMENSIONS;
 
-/// Fixture rows in SIMD-aligned row-major storage, the shape a mapped
-/// `f32[T, 512]` artifact yields.
+/// Fixture rows in SIMD-aligned row-major storage.
+///
+/// The shape a mapped `f32[T, 512]` artifact yields.
 struct Matrix {
     storage: BoxedVecN<MATRIX_CAPACITY>,
     rows: usize,
@@ -173,8 +174,9 @@ struct DoubledIndex(ExactIndex);
 /// A misbehaving backend naming rows outside the domain.
 struct EscapingIndex(ExactIndex);
 
-/// A backend degraded by a per-row offset: row `i` skips the nearest
-/// `i & 7` candidates, so per-row recall spans a linear ramp and any
+/// A backend degraded by a per-row offset.
+///
+/// Row `i` skips the nearest `i & 7` candidates, so per-row recall spans a linear ramp and any
 /// non-degenerate sample measures real spread.
 struct MixedIndex(ExactIndex);
 
@@ -288,8 +290,7 @@ fn axis(component: usize, value: f32) -> [f32; PROJECTOR_DIMENSIONS] {
     row
 }
 
-/// `e0`, `e1`, `e0 + e1`, and `-e0`: every pairwise distance is known
-/// geometry.
+/// `e0`, `e1`, `e0 + e1`, and `-e0`: every pairwise distance is known geometry.
 fn plane_fixture() -> [[f32; PROJECTOR_DIMENSIONS]; 4] {
     let mut mix = [0.0; PROJECTOR_DIMENSIONS];
     mix[0] = 1.0;
@@ -297,8 +298,9 @@ fn plane_fixture() -> [[f32; PROJECTOR_DIMENSIONS]; 4] {
     [axis(0, 1.0), axis(1, 1.0), mix, axis(0, -1.0)]
 }
 
-/// Distinct unit vectors fanned through the `(0, 1)` plane; distance is
-/// strictly monotone in index separation.
+/// Distinct unit vectors fanned through the `(0, 1)` plane.
+///
+/// Distance is strictly monotone in index separation.
 fn fan_fixture(rows: usize, step: f32) -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
     (0..rows)
         .map(|index| {
@@ -604,8 +606,7 @@ fn spot_check_rejects_a_meaningless_sampling_budget() {
     );
 }
 
-/// A pilot whose spread already resolves the margin decides the check
-/// without a second sample.
+/// A pilot whose spread already resolves the margin decides the check without a second sample.
 #[test]
 #[cfg_attr(
     miri,
@@ -636,8 +637,7 @@ fn spot_check_stops_at_a_decisive_pilot() {
     assert!(check.meets_minimum());
 }
 
-/// A pilot too spread to resolve the margin triggers a correctly
-/// sized second sample.
+/// A pilot too spread to resolve the margin triggers a correctly sized second sample.
 #[test]
 #[cfg_attr(
     miri,

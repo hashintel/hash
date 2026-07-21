@@ -82,8 +82,7 @@ fn row_ids_persist_little_endian() {
     assert_eq!(restored.get(), id.get());
 }
 
-/// A two-node, one-edge fixture over a two-type ontology (type 1 inherits
-/// from type 0).
+/// A two-node, one-edge fixture over a two-type ontology (type 1 inherits from type 0).
 fn fixture() -> MemoryDataset {
     let unit = |component: usize| {
         let mut components = [0.0_f32; PROJECTOR_DIMENSIONS];

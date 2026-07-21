@@ -12,8 +12,7 @@ use super::{
 };
 use crate::integrity::{Sha256, Update as _};
 
-/// A uniquely named file in the system temporary directory, removed on
-/// drop.
+/// A uniquely named file in the system temporary directory, removed on drop.
 struct TempFile {
     path: PathBuf,
 }
@@ -263,8 +262,9 @@ fn vectors_exists_exactly_for_f32_matrices() {
     assert!(opened.vectors::<8>().is_none());
 }
 
-/// The two writers share one format: the same rows through the sized
-/// writer produce the streaming writer's bytes exactly, and the
+/// The two writers share one format.
+///
+/// The same rows through the sized writer produce the streaming writer's bytes exactly, and the
 /// returned digest is the digest of those bytes.
 #[test]
 fn the_sized_writer_matches_the_streaming_writer_byte_for_byte() {
@@ -298,8 +298,9 @@ fn the_sized_writer_matches_the_streaming_writer_byte_for_byte() {
     assert_eq!(digest, hasher.finalize());
 }
 
-/// Whole-row chunks and single rows are one stream: `write_rows`
-/// appends the same bytes `write_row` would, row by row.
+/// Whole-row chunks and single rows are one stream.
+///
+/// `write_rows` appends the same bytes `write_row` would, row by row.
 #[test]
 fn the_sized_writer_accepts_whole_row_chunks() {
     let rows: [[f32; 2]; 4] = [[0.0, 1.0], [2.0, 3.0], [4.0, 5.0], [6.0, 7.0]];
@@ -328,8 +329,9 @@ fn the_sized_writer_accepts_whole_row_chunks() {
     assert_eq!(bulk, rowed);
 }
 
-/// A short stream never seals: the header promised rows the stream
-/// did not deliver, so the digest refuses to endorse the file.
+/// A short stream never seals.
+///
+/// The header promised rows the stream did not deliver, so the digest refuses to endorse the file.
 #[test]
 #[should_panic(expected = "the stream must deliver exactly the shape's promised rows")]
 fn the_sized_writer_rejects_a_short_stream() {

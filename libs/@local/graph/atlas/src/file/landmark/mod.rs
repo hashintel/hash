@@ -1,15 +1,13 @@
 //! The landmark file: selected rows, assignment, and coordinates.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! This is a combined file: the assignment and the coordinates are both
-//! keyed by the selection's ordinal order, meaningless without it, and
-//! always read with it, so all three live in one file and cannot fall
-//! out of sync. The regions:
+//! This is a combined file: the assignment and the coordinates are both keyed by the selection's
+//! ordinal order, meaningless without it, and always read with it, so all three live in one file
+//! and cannot fall out of sync. The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -29,21 +27,17 @@
 //! |        |      | ordinal order                                   |
 //! ```
 //!
-//! Position `i` of the rows region defines landmark ordinal `i`: the
-//! assignment's entries index it, and row `i` of the coordinates region
-//! is its position. All region offsets derive from `M` and `N` with
-//! checked arithmetic ([`FileHeader::expected_file_len`]); a header
-//! whose geometry overflows matches no real file. Every region starts
-//! on a 4096-byte boundary, so the whole-file-mapping alignment
-//! guarantee of the array format applies unchanged: map the whole file
+//! Position `i` of the rows region defines landmark ordinal `i`: the assignment's entries index it,
+//! and row `i` of the coordinates region is its position. All region offsets derive from `M` and
+//! `N` with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose geometry
+//! overflows matches no real file. Every region starts on a 4096-byte boundary, so the
+//! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
 //! and slice, never mmap at a file offset.
 //!
-//! [`read::LandmarkFile`] opens a file under these rules and hands out
-//! the raw typed regions; [`write::write_regions`] streams them into
-//! place. The format owns geometry alone - the skeleton's domain
-//! invariants (ascending rows, ordinals below `M`, finite coordinates)
-//! are `salt::landmark`'s artifact contract, validated where the domain
-//! types live.
+//! [`read::LandmarkFile`] opens a file under these rules and hands out the raw typed regions;
+//! [`write::write_regions`] streams them into place. The format owns geometry alone - the
+//! skeleton's domain invariants (ascending rows, ordinals below `M`, finite coordinates) are
+//! `salt::landmark`'s artifact contract, validated where the domain types live.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -106,8 +100,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Landmark);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -180,9 +175,9 @@ impl FileHeader {
 
     /// Returns the offset of the assignment region.
     ///
-    /// The rows region sits between the header and this offset, zero
-    /// padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The rows region sits between the header and this offset, zero padded to the boundary.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn assignment_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.landmarks(), size_of::<u64>() as u64)?)
@@ -190,8 +185,8 @@ impl FileHeader {
 
     /// Returns the offset of the coordinates region.
     ///
-    /// Returns `None` when the geometry overflows `u64`, in which case
-    /// no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn coordinates_offset(&self) -> Option<u64> {
         let assignment = padded_size(self.rows(), size_of::<u32>() as u64)?;
@@ -200,9 +195,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let coordinate_bytes = self.landmarks().checked_mul(2 * size_of::<f32>() as u64)?;

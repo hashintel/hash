@@ -1,21 +1,17 @@
-//! The identity file: a row-ordered id column and its sorted lookup
-//! pairs.
+//! The identity file: a row-ordered id column and its sorted lookup pairs.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! One file binds a row domain (nodes, edges, or ontology types) to its
-//! source identifiers, in both directions: `row -> id` is indexing into the id
-//! column, and `id -> row` is binary search over the sorted pairs, with
-//! an index prelude in front so a cold lookup faults two pages instead
-//! of `log2(N)` scattered ones. Ids are opaque `K`-byte strings; the
-//! pair order is the order of those bytes, since source identifiers
-//! carry no other one. This is a combined file: the pairs and the index
-//! are derived from the id column, meaningless without it, and always
-//! read with it. The regions:
+//! One file binds a row domain (nodes, edges, or ontology types) to its source identifiers, in both
+//! directions: `row -> id` is indexing into the id column, and `id -> row` is binary search over
+//! the sorted pairs, with an index prelude in front so a cold lookup faults two pages instead of
+//! `log2(N)` scattered ones. Ids are opaque `K`-byte strings; the pair order is the order of those
+//! bytes, since source identifiers carry no other one. This is a combined file: the pairs and the
+//! index are derived from the id column, meaningless without it, and always read with it. The
+//! regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -34,24 +30,18 @@
 //! |        |      | by id bytes                                     |
 //! ```
 //!
-//! Key `i` of the index is the id of pair `i * stride`, so a lookup
-//! binary-searches the index to pick one stride of pairs and
-//! binary-searches within it. All region offsets derive from `K`,
-//! `N`, and the stride with checked arithmetic
-//! ([`FileHeader::expected_file_len`]); a header whose geometry
-//! overflows, or whose width or stride is zero, matches no real file.
-//! Every region starts on a 4096-byte boundary, so the
-//! whole-file-mapping alignment guarantee of the array format applies
-//! unchanged: map the whole file and slice, never mmap at a file
-//! offset.
+//! Key `i` of the index is the id of pair `i * stride`, so a lookup binary-searches the index to
+//! pick one stride of pairs and binary-searches within it. All region offsets derive from `K`, `N`,
+//! and the stride with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose
+//! geometry overflows, or whose width or stride is zero, matches no real file. Every region starts
+//! on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of the array format
+//! applies unchanged: map the whole file and slice, never mmap at a file offset.
 //!
-//! [`read::IdentityFile`] opens a file under these rules and hands out
-//! the raw byte regions; [`write::write_regions`] streams them into
-//! place. The format owns geometry alone - the table's domain
-//! invariants (strictly ascending pair ids, rows inside the domain,
-//! pair agreement with the column, index agreement with the pairs) are
-//! `salt::fit::prepare::identity`'s contract, validated where the
-//! typed table lives.
+//! [`read::IdentityFile`] opens a file under these rules and hands out the raw byte regions;
+//! [`write::write_regions`] streams them into place. The format owns geometry alone - the table's
+//! domain invariants (strictly ascending pair ids, rows inside the domain, pair agreement with the
+//! column, index agreement with the pairs) are `salt::fit::prepare::identity`'s contract, validated
+//! where the typed table lives.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -114,8 +104,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Identity);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -158,8 +149,7 @@ impl FileHeader {
     /// Size of the header, and the offset of the ids region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for `rows` ids of `key_width` bytes, indexed
-    /// every `stride` pairs.
+    /// Creates a header for `rows` ids of `key_width` bytes, indexed every `stride` pairs.
     #[must_use]
     pub(crate) const fn new(key_width: u32, rows: u64, stride: u32) -> Self {
         Self {
@@ -202,8 +192,7 @@ impl FileHeader {
 
     /// Returns the number of index keys the pairs region needs.
     ///
-    /// Returns `None` when the stride is zero, in which case no real
-    /// file matches the header.
+    /// Returns `None` when the stride is zero, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn index_keys(&self) -> Option<u64> {
         if self.stride() == 0 {
@@ -215,9 +204,8 @@ impl FileHeader {
 
     /// Returns the offset of the index region.
     ///
-    /// The ids region sits between the header and this offset, zero
-    /// padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64` or the width is zero, in which case no real file
+    /// The ids region sits between the header and this offset, zero padded to the boundary. Returns
+    /// `None` when the geometry overflows `u64` or the width is zero, in which case no real file
     /// matches the header.
     #[must_use]
     pub(crate) fn index_offset(&self) -> Option<u64> {
@@ -230,8 +218,8 @@ impl FileHeader {
 
     /// Returns the offset of the pairs region.
     ///
-    /// Returns `None` when the geometry overflows `u64` or the width or
-    /// stride is zero, in which case no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64` or the width or stride is zero, in which
+    /// case no real file matches the header.
     #[must_use]
     pub(crate) fn pairs_offset(&self) -> Option<u64> {
         let index = padded_size(self.index_keys()?, u64::from(self.key_width()))?;
@@ -240,9 +228,9 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64` or the width or stride
-    /// is zero, in which case no real file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64` or the width or stride is zero, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let pair_bytes = self.rows().checked_mul(self.pair_size())?;

@@ -1,16 +1,15 @@
-//! Type coloring: resolving `coloredTypeIds` to per-type memberships
-//! with descendant expansion, the `TYPE_MASK` column's serving source.
+//! Type coloring.
 //!
-//! Each requested id is a user-facing versioned type URL. Resolution
-//! is pinned to the generation's snapshot: the URL derives its
-//! ontology uuid, the uuid joins the generation's ontology identity
-//! table, and the resulting row names a closure-map row whose set
-//! bits are every type the request matches - the type itself and all
-//! its descendants. The tile path never consults the live store.
+//! Resolving `coloredTypeIds` to per-type memberships with descendant expansion, the `TYPE_MASK`
+//! column's serving source.
 //!
-//! Failure to resolve is legal at every step - an unparsable URL, a
-//! corpus whose ontology ids are not store identities, a uuid this
-//! generation never ingested - and reads as zero bits in every
+//! Each requested id is a user-facing versioned type URL. Resolution is pinned to the generation's
+//! snapshot: the URL derives its ontology uuid, the uuid joins the generation's ontology identity
+//! table, and the resulting row names a closure-map row whose set bits are every type the request
+//! matches - the type itself and all its descendants. The tile path never consults the live store.
+//!
+//! Failure to resolve is legal at every step - an unparsable URL, a corpus whose ontology ids are
+//! not store identities, a uuid this generation never ingested - and reads as zero bits in every
 //! point's mask, never as an error.
 
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
@@ -24,11 +23,10 @@ use crate::{
     },
 };
 
-/// The mask sources of one request's `coloredTypeIds`, in request
-/// order.
+/// The mask sources of one request's `coloredTypeIds`, in request order.
 ///
-/// Materialized unions live here so the [`Membership`] views the
-/// encoder consumes can borrow them beside the mapped postings.
+/// Materialized unions live here so the [`Membership`] views the encoder consumes can borrow them
+/// beside the mapped postings.
 ///
 /// [`Membership`]: crate::salt::postings::mapped::Membership
 #[derive(Debug)]
@@ -39,19 +37,18 @@ pub(super) struct MaskSet {
 /// One requested id's resolved membership source.
 #[derive(Debug)]
 enum MaskSource {
-    /// The id resolved to a type without proper descendants: the
-    /// stored membership serves directly.
+    /// The id resolved to a type without proper descendants: the stored membership serves directly.
     Stored(OntologyRowId),
-    /// The id resolved to a type with proper descendants: the dense
-    /// union of the closure row's memberships.
+    /// The id resolved to a type with proper descendants.
+    ///
+    /// The dense union of the closure row's memberships.
     Union(Vec<u32>),
     /// The id resolved to no type in this generation: zero bits.
     Unresolved,
 }
 
 impl MaskSet {
-    /// Views the sources as the encoder's membership slice, in
-    /// request order.
+    /// Views the sources as the encoder's membership slice, in request order.
     pub(super) fn memberships<'doc>(
         &'doc self,
         postings: &'doc PostingsArchive,
@@ -72,15 +69,14 @@ impl MaskSet {
 }
 
 impl Atlas {
-    /// Resolves one request's `coloredTypeIds` into mask sources, in
-    /// request order.
+    /// Resolves one request's `coloredTypeIds` into mask sources, in request order.
     pub(super) fn resolve_masks(&self, ids: &[String]) -> MaskSet {
         resolve_masks(&self.postings, &self.closure, &self.ontology_ids, ids)
     }
 }
 
-/// Resolves a request's ids against one generation's postings,
-/// closure map, and ontology identities, in request order.
+/// Resolves a request's ids against one generation's postings, closure map, and ontology
+/// identities, in request order.
 pub(super) fn resolve_masks(
     postings: &PostingsArchive,
     closure: &ClosureMap,
@@ -95,8 +91,7 @@ pub(super) fn resolve_masks(
     }
 }
 
-/// Resolves one requested id: URL to uuid to ontology row to the
-/// closure row's membership union.
+/// Resolves one requested id: URL to uuid to ontology row to the closure row's membership union.
 fn resolve_mask(
     postings: &PostingsArchive,
     closure: &ClosureMap,
@@ -127,7 +122,8 @@ fn resolve_mask(
     MaskSource::Union(union_membership(postings, descendants))
 }
 
-/// Materializes the dense union of every set type's membership:
+/// Materializes the dense union of every set type's membership.
+///
 /// `ceil(N/32)` words, LSB-first over base positions.
 fn union_membership(postings: &PostingsArchive, descendants: &[u64]) -> Vec<u32> {
     use crate::salt::postings::mapped::Membership;

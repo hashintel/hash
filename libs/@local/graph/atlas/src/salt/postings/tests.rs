@@ -41,14 +41,11 @@ fn types(lists: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
         .collect()
 }
 
-/// The hand fixture: eight rows over four types, gathered through a
-/// permutation.
+/// The hand fixture: eight rows over four types, gathered through a permutation.
 ///
-/// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2}
-/// 6:{} 7:{0}`; `row_of_position = [3, 1, 4, 0, 6, 2, 7, 5]`. Member
-/// positions per type, hand-derived: type 0 `[1, 2, 3, 6]`, type 1
-/// `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parents: `1 <- 0`,
-/// `2 <- 0`, `3 <- {1, 2}`.
+/// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2} 6:{} 7:{0}`; `row_of_position =
+/// [3, 1, 4, 0, 6, 2, 7, 5]`. Member positions per type, hand-derived: type 0 `[1, 2, 3, 6]`, type
+/// 1 `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parents: `1 <- 0`, `2 <- 0`, `3 <- {1, 2}`.
 const ROW_OF_POSITION: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
 
 fn fixture_types() -> Vec<SmallVec<OntologyRowId, 2>> {
@@ -59,9 +56,8 @@ fn fixture_parents() -> Vec<SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
 
-/// The fixture's split at `dense_threshold_log2 = 2` (threshold 2):
-/// types 0 (count 4) and 2 (count 3) go dense, types 1 and 3 stay
-/// lists.
+/// The fixture's split at `dense_threshold_log2 = 2` (threshold 2): types 0 (count 4) and 2 (count
+/// 3) go dense, types 1 and 3 stay lists.
 const FIXTURE_CONFIG: PostingsConfig = PostingsConfig {
     dense_threshold_log2: 2,
 };
@@ -411,8 +407,7 @@ fn closure_rejects_parent_cycles() {
     assert_eq!(error.entangled, 2);
 }
 
-/// Reference membership: does `position`'s row carry `type_row`
-/// directly?
+/// Reference membership: does `position`'s row carry `type_row` directly?
 fn reference_contains(
     types: &[SmallVec<OntologyRowId, 2>],
     row_of_position: &[u32],
@@ -425,9 +420,7 @@ fn reference_contains(
 }
 
 proptest! {
-    /// Built postings roundtrip through the file and agree with the
-    /// row-order reference at every (type, position) pair, at every
-    /// representation split the threshold knob can pick.
+    /// Built postings roundtrip through the file and agree with the row-order reference at every (type, position) pair, at every representation split the threshold knob can pick.
     #[test]
     fn built_postings_uphold_the_membership_contract(
         seeds in prop::collection::vec(prop::collection::btree_set(0_u64..5, 0..3), 0..40),

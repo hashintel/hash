@@ -133,8 +133,9 @@ fn keys_quantize_the_frame_corners_center_and_degenerate_axis() {
     assert_eq!(keys[0].coordinates(), [1 << 31, 0]);
 }
 
-/// Keys whose depth-1 and depth-2 cells are hand-picked: axis values
-/// place their top two bits at (depth-1 quadrant, depth-2 sub-cell).
+/// Keys whose depth-1 and depth-2 cells are hand-picked.
+///
+/// Axis values place their top two bits at (depth-1 quadrant, depth-2 sub-cell).
 fn hand_keys() -> [MortonKey; 4] {
     [
         // a: quadrant (0, 0), depth-2 cell (00, 00).
@@ -221,8 +222,7 @@ fn the_base_order_sorts_buckets_then_keys_then_ranks() {
 }
 
 proptest! {
-    /// Coverage holds for every input: each occupied cell at each depth
-    /// of the schedule keeps a representative in the delivered prefix.
+    /// Coverage holds for every input: each occupied cell at each depth of the schedule keeps a representative in the delivered prefix.
     #[test]
     fn cascade_coverage_is_total(
         bits in prop::collection::vec(any::<u64>(), 1..48),
@@ -238,8 +238,7 @@ proptest! {
         prop_assert_eq!(cascade::verify_coverage(&keys, &buckets, deepest), Ok(()));
     }
 
-    /// Below the catch-all, a bucket holds at most one point per cell of
-    /// its own grid.
+    /// Below the catch-all, a bucket holds at most one point per cell of its own grid.
     #[test]
     fn buckets_claim_cells_once(
         bits in prop::collection::vec(any::<u64>(), 1..48),
@@ -273,8 +272,7 @@ proptest! {
         }
     }
 
-    /// The base order is the unique (bucket, key, rank) sort, and its
-    /// permutations invert each other.
+    /// The base order is the unique (bucket, key, rank) sort, and its permutations invert each other.
     #[test]
     fn base_order_is_the_unique_total_sort(
         bits in prop::collection::vec(any::<u64>(), 1..48),
@@ -307,8 +305,9 @@ proptest! {
     }
 }
 
-/// A deterministic ranking for property tests: rows ranked by the
-/// seeded tiebreak alone, through the real rank pass.
+/// A deterministic ranking for property tests.
+///
+/// Rows ranked by the seeded tiebreak alone, through the real rank pass.
 fn seeded_ranking(rows: usize, seed: u64) -> Ranking {
     let importance = vec![0.0_f32; rows];
     let priority = vec![0.0_f32; rows];
@@ -351,11 +350,12 @@ fn lod_config_carries_the_key_width_bound() {
     );
 }
 
-/// The hand stage fixture: four points whose wire positions and
-/// cascade buckets are computed in the comments.
+/// The hand stage fixture.
 ///
-/// World frame [0, 1] x [0, 1]; `span_log2` = 1, `max_tile_depth` = 1,
-/// so the deepest grid is 2 and the catch-all is bucket 2.
+/// Four points whose wire positions and cascade buckets are computed in the comments.
+///
+/// World frame [0, 1] x [0, 1]; `span_log2` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and
+/// the catch-all is bucket 2.
 ///
 /// ```text
 /// row  world         wire           depth-1 quadrant  depth-2 cell
@@ -365,11 +365,10 @@ fn lod_config_carries_the_key_width_bound() {
 /// 3    (0.375, 0.25) (-0.25, -0.5)  (0, 0)            (1, 1)
 /// ```
 ///
-/// Importance ranks the rows in index order. The cascade: row 0 claims
-/// the domain, row 1 its depth-1 quadrant, row 2 the (1, 1) depth-2
-/// cell, and row 3 - co-resident with row 2 at the deepest grid -
-/// takes the catch-all. Buckets [0, 1, 2, 2]; the base order is the
-/// row order (row 2's key sorts below row 3's).
+/// Importance ranks the rows in index order. The cascade: row 0 claims the domain, row 1 its
+/// depth-1 quadrant, row 2 the (1, 1) depth-2 cell, and row 3 - co-resident with row 2 at the
+/// deepest grid - takes the catch-all. Buckets [0, 1, 2, 2]; the base order is the row order (row
+/// 2's key sorts below row 3's).
 fn hand_stage() -> (Lod, LodConfig) {
     let coordinates = [
         Vec2::new(0.0, 0.0),
@@ -583,8 +582,7 @@ fn the_columns_round_trip_through_the_morton_file() {
 }
 
 proptest! {
-    /// Every finite point set builds, and the result upholds the
-    /// serving contract's structural laws.
+    /// Every finite point set builds, and the result upholds the serving contract's structural laws.
     #[test]
     fn built_columns_uphold_the_contract_laws(
         rows in prop::collection::vec(
@@ -703,8 +701,7 @@ proptest! {
     }
 }
 
-/// Direct types for the hand-stage rows: distinct enough that every
-/// union is distinguishable.
+/// Direct types for the hand-stage rows: distinct enough that every union is distinguishable.
 fn hand_types() -> Vec<SmallVec<OntologyRowId, 2>> {
     vec![
         smallvec![OntologyRowId::new(5)],
@@ -885,8 +882,7 @@ fn quad_tree_round_trips_through_the_quad_file() {
 }
 
 proptest! {
-    /// Every built lod cuts into a tree upholding the serving
-    /// contract's structural laws, against linear-scan references.
+    /// Every built lod cuts into a tree upholding the serving contract's structural laws, against linear-scan references.
     #[test]
     fn quad_trees_uphold_the_contract_laws(
         rows in prop::collection::vec(

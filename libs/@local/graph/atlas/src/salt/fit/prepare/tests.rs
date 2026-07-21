@@ -33,8 +33,9 @@ use crate::{
 /// Norm-fixture capacity in components: the largest test matrix.
 const MATRIX_CAPACITY: usize = 700 * PROJECTOR_DIMENSIONS;
 
-/// Fixture rows in SIMD-aligned row-major storage, the shape a mapped
-/// `f32[N, 512]` artifact yields.
+/// Fixture rows in SIMD-aligned row-major storage.
+///
+/// The shape a mapped `f32[N, 512]` artifact yields.
 struct Matrix {
     storage: BoxedVecN<MATRIX_CAPACITY>,
     rows: usize,
@@ -283,9 +284,8 @@ fn scratch(name: &str) -> PathBuf {
 
 /// Writes a three-row fixture table and returns its file bytes.
 ///
-/// Ids arrive out of byte order on purpose: little-endian bytes of
-/// values below 256 sort like the values, so the sorted pair order is
-/// rows 1 (id 10), 2 (id 20), 0 (id 30).
+/// Ids arrive out of byte order on purpose: little-endian bytes of values below 256 sort like the
+/// values, so the sorted pair order is rows 1 (id 10), 2 (id 20), 0 (id 30).
 fn fixture_table_bytes() -> Vec<u8> {
     let mut table = IdentityTable::new();
     for id in [30_u64, 10, 20] {

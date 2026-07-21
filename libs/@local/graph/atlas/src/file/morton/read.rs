@@ -27,8 +27,9 @@ pub enum OpenMortonError {
     Fenceposts(FencepostViolation),
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the shape's
-        /// byte length overflows `u64` or its stride is zero, in which
+        /// The length the header describes.
+        ///
+        /// [`None`] when the shape's byte length overflows `u64` or its stride is zero, in which
         /// case it matches no real file.
         expected: Option<u64>,
         actual: u64,
@@ -82,17 +83,15 @@ impl Error for OpenMortonError {
 
 /// A morton file mapped read-only into memory.
 ///
-/// Opening parses the header, validates the fenceposts, and checks the
-/// length equation, so an open file's segment ranges always slice its
-/// code column without further checks. Codes within each segment are
-/// non-decreasing by the writer's contract (the cascade sort produces
-/// them; publish verifies coverage); the searches here assume it the
-/// way every binary search assumes its slice is sorted.
+/// Opening parses the header, validates the fenceposts, and checks the length equation, so an open
+/// file's segment ranges always slice its code column without further checks. Codes within each
+/// segment are non-decreasing by the writer's contract (the cascade sort produces them; publish
+/// verifies coverage); the searches here assume it the way every binary search assumes its slice is
+/// sorted.
 ///
-/// [`run`](Self::run) is the serving query: the contiguous positions
-/// of one bucket's codes inside one tile cell, found by two
-/// index-accelerated searches that fault two pages instead of
-/// `log2(N)` scattered ones.
+/// [`run`](Self::run) is the serving query: the contiguous positions of one bucket's codes inside
+/// one tile cell, found by two index-accelerated searches that fault two pages instead of `log2(N)`
+/// scattered ones.
 #[derive(Debug)]
 pub(crate) struct MortonFile {
     map: PageMap,
@@ -104,12 +103,10 @@ impl MortonFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenMortonError::Io`] when the file cannot be opened
-    /// or mapped, [`OpenMortonError::Header`] when its leading bytes
-    /// are not a header this module speaks,
-    /// [`OpenMortonError::Fenceposts`] when the header's fenceposts
-    /// break a structural rule, and [`OpenMortonError::Length`] when
-    /// the file length contradicts the header's geometry.
+    /// Returns [`OpenMortonError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenMortonError::Header`] when its leading bytes are not a header this module speaks,
+    /// [`OpenMortonError::Fenceposts`] when the header's fenceposts break a structural rule, and
+    /// [`OpenMortonError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenMortonError> {
         let map = PageMap::open(path).map_err(OpenMortonError::Io)?;
@@ -150,8 +147,8 @@ impl MortonFile {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse
-        // as one, so the deref target is a valid `FileHeader`.
+        // validated that the map is large enough to contain the header and that its bytes parse as
+        // one, so the deref target is a valid `FileHeader`.
         unsafe { &*ptr }
     }
 
@@ -169,8 +166,7 @@ impl MortonFile {
         self.fenceposts.count()
     }
 
-    /// Returns the bucket owning one base position: the segment the
-    /// position falls in.
+    /// Returns the bucket owning one base position: the segment the position falls in.
     ///
     /// # Panics
     ///
@@ -224,12 +220,12 @@ impl MortonFile {
         <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
-    /// Returns the positions of `bucket`'s codes inside `cell`: one
-    /// contiguous run of the base delivery order.
+    /// Returns the positions of `bucket`'s codes inside `cell`.
     ///
-    /// The run is found by two index-accelerated searches constrained
-    /// to the bucket's segment. An empty range means the bucket has no
-    /// point in the cell.
+    /// One contiguous run of the base delivery order.
+    ///
+    /// The run is found by two index-accelerated searches constrained to the bucket's segment. An
+    /// empty range means the bucket has no point in the cell.
     #[must_use]
     pub(crate) fn run(&self, bucket: Depth, cell: MortonCell) -> Range<u64> {
         let segment = self.fenceposts.segment(bucket);
@@ -258,13 +254,11 @@ impl MortonFile {
 
     /// Finds the first position in `range` whose code fails `pred`.
     ///
-    /// `pred` must be monotone over the range's codes - true for a
-    /// prefix, false for the rest - which every threshold predicate
-    /// over non-decreasing codes is. The index narrows the search to
-    /// one final window of at most `stride` codes: sampled index keys
-    /// inside the range locate the window (one faulted index page,
-    /// itself hot across queries), and the window search faults one
-    /// code page.
+    /// `pred` must be monotone over the range's codes - true for a prefix, false for the rest -
+    /// which every threshold predicate over non-decreasing codes is. The index narrows the search
+    /// to one final window of at most `stride` codes: sampled index keys inside the range locate
+    /// the window (one faulted index page, itself hot across queries), and the window search faults
+    /// one code page.
     fn partition_point(&self, range: Range<u64>, pred: impl Fn(u64) -> bool) -> u64 {
         let stride = u64::from(self.header().stride());
 

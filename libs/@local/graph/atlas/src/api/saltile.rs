@@ -1,8 +1,7 @@
 //! Binary envelope responses and the worker that assembles them.
 //!
-//! [`Saltile`] wraps assembled envelope bytes with the family's
-//! media type and the no-store cache posture; [`spawn`] runs the
-//! CPU-bound assembly off the async runtime.
+//! [`Saltile`] wraps assembled envelope bytes with the family's media type and the no-store cache
+//! posture; [`spawn`] runs the CPU-bound assembly off the async runtime.
 
 use aide::{OperationOutput, generate::GenContext, openapi};
 use axum::{
@@ -15,9 +14,9 @@ use super::problem::{Problem, ProblemType};
 /// The tile response media type: the `SALTILE` family, version 1.
 const SALTILE: &str = "application/vnd.hash.saltile-v1";
 
-/// `SALTILE` envelope bytes as a response: the family's media type,
-/// no-store because the client's application-layer cache is the
-/// cache.
+/// `SALTILE` envelope bytes as a response.
+///
+/// The family's media type, no-store because the client's application-layer cache is the cache.
 pub(super) struct Saltile(Vec<u8>);
 
 impl Saltile {
@@ -68,9 +67,8 @@ impl OperationOutput for Saltile {
     }
 }
 
-/// Runs CPU-bound response assembly on a rayon worker behind
-/// `catch_unwind`, mapping a vanished worker or a panic - a producer
-/// bug surfacing as 500, never an unwind across the runtime - to its
+/// Runs CPU-bound response assembly on a rayon worker behind `catch_unwind`, mapping a vanished
+/// worker or a panic - a producer bug surfacing as 500, never an unwind across the runtime - to its
 /// problem document.
 pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + 'static,

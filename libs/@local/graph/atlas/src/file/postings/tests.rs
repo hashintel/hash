@@ -31,9 +31,8 @@ fn scratch(name: &str) -> PathBuf {
 /// type 2: list  {} (empty run); parents {0, 1}
 /// ```
 ///
-/// Flags word: bit 1 set = 2. Membership entries `[0, 3, 9, 38]`
-/// (`M = 4`), posts `[0, 3, 4, 4]`. Parent ids `[0, 1]` (`P = 2`),
-/// posts `[0, 0, 0, 2]`.
+/// Flags word: bit 1 set = 2. Membership entries `[0, 3, 9, 38]` (`M = 4`), posts `[0, 3, 4, 4]`.
+/// Parent ids `[0, 1]` (`P = 2`), posts `[0, 0, 0, 2]`.
 const POINTS: u64 = 10;
 const FLAGS: [u64; 1] = [0b10];
 const MEMBERSHIP_POSTS: [u64; 4] = [0, 3, 4, 4];

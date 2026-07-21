@@ -1,32 +1,25 @@
 //! Exact recall spot check for approximate search backends.
 //!
-//! For each sampled node row, [`spot_check`] compares an approximate
-//! query with a brute-force cosine ranking over the same projector
-//! matrix. Both rankings exclude the query row and resolve equal
-//! distances by ascending row. Recall is the total intersection count
-//! divided by the total number of exact neighbours across the sample,
-//! and a backend is accepted at the configured
+//! For each sampled node row, [`spot_check`] compares an approximate query with a brute-force
+//! cosine ranking over the same projector matrix. Both rankings exclude the query row and resolve
+//! equal distances by ascending row. Recall is the total intersection count divided by the total
+//! number of exact neighbours across the sample, and a backend is accepted at the configured
 //! [minimum](SpotCheckOptions::minimum_recall).
 //!
-//! The sample is sized in two stages (Stein's procedure), because
-//! the criterion is an aggregate mean whose per-row variance is a
-//! corpus property: a pilot sample measures the mean's deviation,
-//! [`mean_sample_size`] derives the count that resolves the
-//! configured [margin](SpotCheckOptions::margin) at the configured
-//! [confidence](SpotCheckOptions::confidence), and a second sample of
-//! that size delivers the verdict when the pilot is too small. The
-//! knobs are scale-free and the variance is measured, never
-//! configured. (An acceptance-sampling budget - this check's
-//! original sizing - certifies all-pass criteria and carries no
-//! guarantee about a mean: per-row recall is strongly bimodal, and
-//! at the acceptance-sized 688 rows the check refused sound backends
-//! on sampling noise.)
+//! The sample is sized in two stages (Stein's procedure), because the criterion is an aggregate
+//! mean whose per-row variance is a corpus property: a pilot sample measures the mean's deviation,
+//! [`mean_sample_size`] derives the count that resolves the configured
+//! [margin](SpotCheckOptions::margin) at the configured [confidence](SpotCheckOptions::confidence),
+//! and a second sample of that size delivers the verdict when the pilot is too small. The knobs are
+//! scale-free and the variance is measured, never configured. (An acceptance-sampling budget - this
+//! check's original sizing - certifies all-pass criteria and carries no guarantee about a mean:
+//! per-row recall is strongly bimodal, and at the acceptance-sized 688 rows the check refused sound
+//! backends on sampling noise.)
 //!
-//! The exact side of the check stands alone as [`ExactReference`]:
-//! one sampled brute-force reference scores any number of backends or
-//! backend settings, so a parameter sweep pays the exact rankings
-//! once instead of once per grid point. [`spot_check`] is the
-//! one-backend composition of the two halves.
+//! The exact side of the check stands alone as [`ExactReference`]: one sampled brute-force
+//! reference scores any number of backends or backend settings, so a parameter sweep pays the exact
+//! rankings once instead of once per grid point. [`spot_check`] is the one-backend composition of
+//! the two halves.
 
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, default::Default, num::NonZero};
@@ -67,23 +60,15 @@ const DEFAULT_PILOT: NonZero<usize> = NonZero::new(688).expect("the default pilo
 /// Pinned sampling and admission settings for one recall spot check.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpotCheckOptions {
-    /// Exact neighbours compared per sampled row; a corpus smaller
-    /// than this compares every non-self row. This is the `k` of the
-    /// measured recall@k, independent of the persisted table's
-    /// neighbour count. Defaults to 50.
+    /// Exact neighbours compared per sampled row; a corpus smaller than this compares every non-self row. This is the `k` of the measured recall@k, independent of the persisted table's neighbour count. Defaults to 50.
     pub neighbours: NonZero<usize> = DEFAULT_NEIGHBOURS,
-    /// Minimum admitted aggregate recall over the sample, in
-    /// `[0, 1]`. Defaults to 0.89.
+    /// Minimum admitted aggregate recall over the sample, in `[0, 1]`. Defaults to 0.89.
     pub minimum_recall: f64 = DEFAULT_MINIMUM_RECALL,
-    /// The aggregate error the sample must resolve, in recall units.
-    /// Defaults to 0.012, the smallest recall difference an admission
-    /// decision turns on.
+    /// The aggregate error the sample must resolve, in recall units. Defaults to 0.012, the smallest recall difference an admission decision turns on.
     pub margin: f64 = DEFAULT_MARGIN,
-    /// One-sided confidence that the aggregate's sampling error stays
-    /// inside the margin, strictly inside `(0, 1)`. Defaults to 0.99.
+    /// One-sided confidence that the aggregate's sampling error stays inside the margin, strictly inside `(0, 1)`. Defaults to 0.99.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
-    /// Rows of the variance pilot; a corpus smaller than this
-    /// compares every row exhaustively. Defaults to 688.
+    /// Rows of the variance pilot; a corpus smaller than this compares every row exhaustively. Defaults to 688.
     pub pilot: NonZero<usize> = DEFAULT_PILOT,
 }
 
@@ -104,8 +89,9 @@ pub(crate) struct RecallSpotCheck {
     pub matched: u64,
     /// Exact neighbours across the whole sample.
     pub expected: u64,
-    /// Sample standard deviation of per-row recall over the verdict
-    /// sample: the measured spread that sized it.
+    /// Sample standard deviation of per-row recall over the verdict sample.
+    ///
+    /// The measured spread that sized it.
     pub deviation: f64,
     /// The admission minimum the check was configured with.
     pub minimum_recall: f64,
@@ -128,8 +114,7 @@ impl RecallSpotCheck {
         recall
     }
 
-    /// Returns whether the backend meets the configured admission
-    /// minimum.
+    /// Returns whether the backend meets the configured admission minimum.
     #[inline]
     #[must_use]
     pub(crate) fn meets_minimum(&self) -> bool {
@@ -207,13 +192,11 @@ fn exact_neighbours(
 
 /// One sampled brute-force reference, reusable across backends.
 ///
-/// The sample and its exact neighbour lists depend only on the corpus
-/// and the sampling draw, so one reference scores any number of
-/// backends or backend settings against identical queries.
+/// The sample and its exact neighbour lists depend only on the corpus and the sampling draw, so one
+/// reference scores any number of backends or backend settings against identical queries.
 #[derive(Debug)]
 pub(crate) struct ExactReference {
-    /// Sampled rows and their exact neighbours, ascending within each
-    /// row's list.
+    /// Sampled rows and their exact neighbours, ascending within each row's list.
     queries: Vec<(NodeRowId, Vec<NodeRowId>)>,
     /// Exact neighbours compared per row.
     neighbours_per_row: usize,
@@ -234,13 +217,11 @@ impl ExactReference {
         self.neighbours_per_row
     }
 
-    /// Samples query rows and computes their exact cosine rankings in
-    /// parallel.
+    /// Samples query rows and computes their exact cosine rankings in parallel.
     ///
-    /// `embeddings` holds the projector representations in row order;
-    /// a mapped `f32[T, 512]` artifact yields the slice directly. A
-    /// `sample_size` beyond the corpus compares every row, and a
-    /// `neighbours` beyond the corpus compares every non-self row.
+    /// `embeddings` holds the projector representations in row order; a mapped `f32[T, 512]`
+    /// artifact yields the slice directly. A `sample_size` beyond the corpus compares every row,
+    /// and a `neighbours` beyond the corpus compares every non-self row.
     ///
     /// # Errors
     ///
@@ -281,10 +262,9 @@ impl ExactReference {
 
     /// Scores a backend's queries against the reference rankings.
     ///
-    /// Sampled rows are queried through
-    /// [`search_by_id`](NearestNeighboursIndex::search_by_id) and
-    /// compared in parallel. The reading carries raw counts and the
-    /// per-row spread; admission criteria live with the caller.
+    /// Sampled rows are queried through [`search_by_id`](NearestNeighboursIndex::search_by_id) and
+    /// compared in parallel. The reading carries raw counts and the per-row spread; admission
+    /// criteria live with the caller.
     ///
     /// # Errors
     ///
@@ -343,8 +323,9 @@ impl ExactReference {
     }
 }
 
-/// One backend's reading against a reference: raw counts and the
-/// measured per-row spread, prior to any admission criterion.
+/// One backend's reading against a reference.
+///
+/// Raw counts and the measured per-row spread, prior to any admission criterion.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Scoring {
     /// Distinct rows compared.
@@ -373,11 +354,11 @@ impl Scoring {
     }
 }
 
-/// Computes the sample standard deviation of per-row recall from the
-/// aggregate counts and the sum of squared per-row recalls.
+/// Computes the sample standard deviation of per-row recall from the aggregate counts and the sum
+/// of squared per-row recalls.
 ///
-/// The per-row sum needs no separate accumulator: it is the matched
-/// total divided by the comparison depth.
+/// The per-row sum needs no separate accumulator: it is the matched total divided by the comparison
+/// depth.
 fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
     if rows < 2 {
         return 0.0;
@@ -395,25 +376,19 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
     variance.sqrt()
 }
 
-/// Measures recall of `index` against exact cosine rankings, sizing
-/// the sample in two stages.
+/// Measures recall of `index` against exact cosine rankings, sizing the sample in two stages.
 ///
-/// `embeddings` holds the projector representations the backend
-/// indexed, in row order; a mapped `f32[T, 512]` artifact yields the
-/// slice directly. A pilot sample measures the per-row spread,
-/// [`mean_sample_size`] derives the count resolving the configured
-/// margin at the configured confidence from it, and when the pilot is
-/// too small a fresh sample of that size delivers the verdict
-/// (Stein's two-stage procedure). A pilot that already covers the
-/// corpus is exhaustive and decides directly. Both draws come from
-/// the one generator, so a seeded check replays exactly.
+/// `embeddings` holds the projector representations the backend indexed, in row order; a mapped
+/// `f32[T, 512]` artifact yields the slice directly. A pilot sample measures the per-row spread,
+/// [`mean_sample_size`] derives the count resolving the configured margin at the configured
+/// confidence from it, and when the pilot is too small a fresh sample of that size delivers the
+/// verdict (Stein's two-stage procedure). A pilot that already covers the corpus is exhaustive and
+/// decides directly. Both draws come from the one generator, so a seeded check replays exactly.
 ///
 /// # Errors
 ///
-/// Returns an error when the corpus holds fewer than two rows, the
-/// margin or confidence is degenerate
-/// ([`SampleBudget`](KnnError::SampleBudget)), or the backend fails a
-/// query.
+/// Returns an error when the corpus holds fewer than two rows, the margin or confidence is
+/// degenerate ([`SampleBudget`](KnnError::SampleBudget)), or the backend fails a query.
 pub(crate) fn spot_check<I>(
     index: &I,
     embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],

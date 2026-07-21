@@ -29,8 +29,9 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-/// Fills a vector with an exactly representable component pattern,
-/// phase-shifted by `offset` so distinct vectors stay distinct.
+/// Fills a vector with an exactly representable component pattern.
+///
+/// Phase-shifted by `offset` so distinct vectors stay distinct.
 fn filled(offset: usize) -> BoxedDVecN<CANONICAL_DIMENSIONS> {
     const PATTERN: [f64; 16] = [
         -1.0, -0.875, -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5,
@@ -50,8 +51,8 @@ fn filled(offset: usize) -> BoxedDVecN<CANONICAL_DIMENSIONS> {
 
 /// A hand-built model with every parameter kind nonzero and distinct.
 ///
-/// The training distances include a tie, pinning that the ascending
-/// order the artifact validates is non-strict.
+/// The training distances include a tie, pinning that the ascending order the artifact validates is
+/// non-strict.
 fn fixture() -> Classifier {
     const SCALES: [f64; 4] = [1.0, 1.25, 1.5, 1.75];
 

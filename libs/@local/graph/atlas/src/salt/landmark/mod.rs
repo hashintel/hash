@@ -1,7 +1,7 @@
 //! The bounded landmark skeleton: selection, assignment, contraction.
 //!
-//! The skeleton caps the nonlinear layout problem at a configured
-//! landmark count `M` independent of the corpus size `N`:
+//! The skeleton caps the nonlinear layout problem at a configured landmark count `M` independent of
+//! the corpus size `N`:
 //!
 //! 1. [`select_landmarks`](select::select_landmarks) draws `M` representative node rows by weighted
 //!    sampling without replacement, honoring subgroup minimums and a retained fraction of the prior
@@ -16,16 +16,13 @@
 //!    gradient descent of the UMAP objective over the quotient graph, on the
 //!    [`AffinityCurve`](crate::math::AffinityCurve) gradient kernels.
 //!
-//! A fitted skeleton publishes as one combined landmark file
-//! ([`artifact`]): selection, assignment, and coordinates share the
-//! ordinal vocabulary, so they live in one artifact and cannot fall
-//! out of sync.
+//! A fitted skeleton publishes as one combined landmark file ([`artifact`]): selection, assignment,
+//! and coordinates share the ordinal vocabulary, so they live in one artifact and cannot fall out
+//! of sync.
 //!
-//! The quotient is a [`SemanticGraph`] like the corpus graph it
-//! contracts, so the layout consumes one graph type at either scale.
-//! Every stage draws its randomness from a caller-seeded generator;
-//! rerunning with equal inputs, options, and seed reproduces the
-//! skeleton exactly.
+//! The quotient is a [`SemanticGraph`] like the corpus graph it contracts, so the layout consumes
+//! one graph type at either scale. Every stage draws its randomness from a caller-seeded generator;
+//! rerunning with equal inputs, options, and seed reproduces the skeleton exactly.
 //!
 //! [`SemanticGraph`]: super::semantic::SemanticGraph
 pub(crate) mod artifact;

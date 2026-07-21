@@ -22,8 +22,9 @@ pub enum OpenIdentityError {
     Header(ValidityError<(), FileHeader>),
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the header's
-        /// geometry overflows `u64` or its width or stride is zero, in
+        /// The length the header describes.
+        ///
+        /// [`None`] when the header's geometry overflows `u64` or its width or stride is zero, in
         /// which case it matches no real file.
         expected: Option<u64>,
         actual: u64,
@@ -73,12 +74,10 @@ impl Error for OpenIdentityError {
 
 /// An identity file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural
-/// rule, so an open file always describes its own regions exactly. The
-/// regions are borrowed straight from the whole-file mapping and start
-/// 4096-byte aligned. Ids are opaque `K`-byte strings at this layer, so
-/// the regions come out as raw bytes of validated length; the typed
-/// table over them, and its domain invariants, are
+/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
+/// and start 4096-byte aligned. Ids are opaque `K`-byte strings at this layer, so the regions come
+/// out as raw bytes of validated length; the typed table over them, and its domain invariants, are
 /// `salt::fit::prepare::identity`'s contract.
 #[derive(Debug)]
 pub(crate) struct IdentityFile {
@@ -90,11 +89,9 @@ impl IdentityFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenIdentityError::Io`] when the file cannot be opened
-    /// or mapped, [`OpenIdentityError::Header`] when its leading bytes
-    /// are not a header this module speaks, and
-    /// [`OpenIdentityError::Length`] when the file length contradicts
-    /// the header's geometry.
+    /// Returns [`OpenIdentityError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenIdentityError::Header`] when its leading bytes are not a header this module speaks,
+    /// and [`OpenIdentityError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenIdentityError> {
         let map = PageMap::open(path).map_err(OpenIdentityError::Io)?;
@@ -128,8 +125,8 @@ impl IdentityFile {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse
-        // as one, so the deref target is a valid `FileHeader`.
+        // validated that the map is large enough to contain the header and that its bytes parse as
+        // one, so the deref target is a valid `FileHeader`.
         unsafe { &*ptr }
     }
 
@@ -181,8 +178,7 @@ impl IdentityFile {
         )
     }
 
-    /// Views the lookup pairs: `N` entries of `K + 8` bytes, ascending
-    /// by id bytes.
+    /// Views the lookup pairs: `N` entries of `K + 8` bytes, ascending by id bytes.
     #[must_use]
     pub(crate) fn pairs(&self) -> &[u8] {
         self.map.region(

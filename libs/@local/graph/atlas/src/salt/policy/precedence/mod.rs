@@ -1,8 +1,7 @@
 //! Precedence resolution: every relation type gets one geometry policy.
 //!
-//! [`resolve`] folds the per-relation evidence into the certified
-//! policy table the relation indexes consume. The source of truth
-//! follows a strict precedence:
+//! [`resolve`] folds the per-relation evidence into the certified policy table the relation indexes
+//! consume. The source of truth follows a strict precedence:
 //!
 //! ```text
 //! explicit human override
@@ -12,16 +11,14 @@
 //! > Overlay fallback for unclassifiable relations
 //! ```
 //!
-//! The classifier is the default operational source: no exhaustive
-//! policy table is required, and a relation type minted after release
-//! receives a policy as soon as its card is embedded and classified.
-//! Overrides are supplied as [`PolicyOverride`] records; where they
-//! come from is the caller's concern.
+//! The classifier is the default operational source: no exhaustive policy table is required, and a
+//! relation type minted after release receives a policy as soon as its card is embedded and
+//! classified. Overrides are supplied as [`PolicyOverride`] records; where they come from is the
+//! caller's concern.
 //!
-//! Each resolved policy carries two distributions. The **selected**
-//! distribution `p` is the winning source's own answer; protection
-//! masses are computed from it. The **attraction** distribution `p*`
-//! additionally passes the applicability mix and Coincident admission:
+//! Each resolved policy carries two distributions. The **selected** distribution `p` is the winning
+//! source's own answer; protection masses are computed from it. The **attraction** distribution
+//! `p*` additionally passes the applicability mix and Coincident admission:
 //!
 //! ```text
 //! p~ = a * p + (1 - a) * Overlay
@@ -29,16 +26,14 @@
 //! p*_C = g * p~_C,   p*_P = p~_P,   p*_O = remainder
 //! ```
 //!
-//! A Coincident prediction that fails admission becomes Overlay, never
-//! Proximal. Only the Coincident and Proximal components are stored;
-//! Overlay is the remainder, so the mix reduces to scaling both stored
-//! components by `a`. Overrides are asserted, not predicted, and carry
-//! applicability 1; unclassifiable relations fall back to pure Overlay
-//! with applicability 0. Strength is the unit multiplier while the
-//! strength head is disabled.
+//! A Coincident prediction that fails admission becomes Overlay, never Proximal. Only the
+//! Coincident and Proximal components are stored; Overlay is the remainder, so the mix reduces to
+//! scaling both stored components by `a`. Overrides are asserted, not predicted, and carry
+//! applicability 1; unclassifiable relations fall back to pure Overlay with applicability 0.
+//! Strength is the unit multiplier while the strength head is disabled.
 //!
-//! Resolution is where policy values leave the solver's double
-//! precision and narrow to working-precision data.
+//! Resolution is where policy values leave the solver's double precision and narrow to
+//! working-precision data.
 
 use core::{error::Error, fmt};
 
@@ -91,13 +86,13 @@ impl Error for ResolveError {}
 pub(crate) enum Classification {
     /// The card was classified.
     Predicted(Prediction),
-    /// No card could be constructed; the relation falls back to
-    /// Overlay for every channel.
+    /// No card could be constructed; the relation falls back to Overlay for every channel.
     Unclassified,
 }
 
-/// A higher-precedence policy record, declared in descending
-/// precedence: the lowest variant present wins.
+/// A higher-precedence policy record, declared in descending precedence.
+///
+/// The lowest variant present wins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum PolicySource {
     /// An explicit human override.
@@ -131,12 +126,10 @@ pub(crate) struct PolicyOverride {
 
 /// The generation's global Coincident admission criteria.
 ///
-/// Admission is enforced only in generations that enable Coincident
-/// geometry; unenforced, the attraction distribution passes through
-/// the mix unchanged and the Coincident force coefficient governs
-/// downstream. The default thresholds are maximally conservative
-/// placeholders: a generation enforcing admission configures them
-/// from its precision release evidence.
+/// Admission is enforced only in generations that enable Coincident geometry; unenforced, the
+/// attraction distribution passes through the mix unchanged and the Coincident force coefficient
+/// governs downstream. The default thresholds are maximally conservative placeholders: a generation
+/// enforcing admission configures them from its precision release evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CoincidentAdmission {
     /// Whether admission is enforced. Defaults to unenforced.
@@ -155,16 +148,14 @@ const impl Default for CoincidentAdmission {
 
 /// Resolves every relation's geometry policy.
 ///
-/// `classifications` is the relation universe: one entry per relation
-/// type in scope, in any order. `overrides` supersede classifier
-/// outcomes by precedence. The result is strictly ascending by relation
-/// row, ready for the relation indexes' certified table.
+/// `classifications` is the relation universe: one entry per relation type in scope, in any order.
+/// `overrides` supersede classifier outcomes by precedence. The result is strictly ascending by
+/// relation row, ready for the relation indexes' certified table.
 ///
 /// # Errors
 ///
-/// Returns a [`ResolveError`] for a duplicated relation, two overrides
-/// at the same precedence for one relation, or an override naming an
-/// unknown relation.
+/// Returns a [`ResolveError`] for a duplicated relation, two overrides at the same precedence for
+/// one relation, or an override naming an unknown relation.
 pub(crate) fn resolve(
     classifications: &[(OntologyRowId, Classification)],
     overrides: &[PolicyOverride],
@@ -218,9 +209,8 @@ pub(crate) fn resolve(
 
 /// Applies the applicability mix and Coincident admission.
 ///
-/// Overlay is the unstored remainder, so mixing toward it scales the
-/// stored components by `a`; admission then reroutes a failing mixed
-/// Coincident mass to that remainder.
+/// Overlay is the unstored remainder, so mixing toward it scales the stored components by `a`;
+/// admission then reroutes a failing mixed Coincident mass to that remainder.
 fn attraction(
     selected: ClassProbabilities,
     applicability: f64,

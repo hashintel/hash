@@ -1,24 +1,19 @@
 //! Operating the pipeline: one production run over a live store.
 //!
-//! The operator seam the [`cli`](crate::cli) commands consume: dial the store
-//! ([`connect`]), drive the production generation runner end to end
-//! ([`live`]) - prior resolution, fit, admission probe, and the
-//! activation decision - and read a plain-number summary. Failures
-//! return errors naming the failing step, the specific fault chained
-//! beneath. The `bench` measurement seams wrap this module with
-//! their own contract - failures panic, the error is the diagnosis -
-//! so the two features share one implementation.
+//! The operator seam the [`cli`](crate::cli) commands consume: dial the store ([`connect`]), drive
+//! the production generation runner end to end ([`live`]) - prior resolution, fit, admission probe,
+//! and the activation decision - and read a plain-number summary. Failures return errors naming the
+//! failing step, the specific fault chained beneath. The `bench` measurement seams wrap this module
+//! with their own contract - failures panic, the error is the diagnosis - so the two features share
+//! one implementation.
 //!
-//! The run embeds cards with the crate's deterministic stand-in
-//! embedder while the embedding-provider seam is unbuilt; the
-//! embedder fingerprint recorded in the published artifacts
-//! discloses the substitution. The relation classifier is real:
-//! supplied as a fitted artifact, or fitted in-run from a supplied
-//! annotation corpus (exactly one of the two).
+//! The run embeds cards with the crate's deterministic stand-in embedder while the
+//! embedding-provider seam is unbuilt; the embedder fingerprint recorded in the published artifacts
+//! discloses the substitution. The relation classifier is real: supplied as a fitted artifact, or
+//! fitted in-run from a supplied annotation corpus (exactly one of the two).
 //!
-//! Nothing here is API for consumers of the crate; the module exists
-//! for the `cli` operator commands and the `bench` measurement
-//! wrappers.
+//! Nothing here is API for consumers of the crate; the module exists for the `cli` operator
+//! commands and the `bench` measurement wrappers.
 
 use core::{error::Error as CoreError, fmt, num::NonZero};
 use std::io;
@@ -83,14 +78,12 @@ impl CoreError for ConnectError {
     }
 }
 
-/// Dials the store named by the connection string and drives the
-/// connection on a background task.
+/// Dials the store named by the connection string and drives the connection on a background task.
 ///
 /// # Errors
 ///
-/// Returns a [`ConnectError`] when the connection string does not
-/// parse or names no TCP host, or when the store refuses the
-/// connection or handshake.
+/// Returns a [`ConnectError`] when the connection string does not parse or names no TCP host, or
+/// when the store refuses the connection or handshake.
 pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
     let config: Config = dsn.parse().map_err(ConnectError::Parse)?;
     let host = config
@@ -125,49 +118,29 @@ pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
 /// Options of one production run.
 #[derive(Debug, Clone)]
 pub struct Options {
-    /// The fit seed; equal seeds replay every draw of the run, the
-    /// admission probe's included.
+    /// The fit seed; equal seeds replay every draw of the run, the admission probe's included.
     pub seed: u64 = 0,
     /// The landmark capacity `M`.
     pub landmarks: NonZero<u32> = const { NonZero::new(4_096).unwrap() },
-    /// Run without a prior even when the root holds an active
-    /// generation.
+    /// Run without a prior even when the root holds an active generation.
     pub fresh: bool = false,
-    /// Assert the Proximal radius instead of measuring it: the
-    /// trainer freezes this value where a calibration pass would
-    /// have measured one. Finite, above the Coincident radius.
+    /// Assert the Proximal radius instead of measuring it: the trainer freezes this value where a calibration pass would have measured one. Finite, above the Coincident radius.
     pub asserted_proximal_radius: Option<f32> = None,
-    /// Withhold the relation evidence from the trained placement:
-    /// every other objective term trains and no reviewed verdicts
-    /// are demanded. For corpora without reviewed-Proximal coverage
-    /// that still want the full trained placement.
+    /// Withhold the relation evidence from the trained placement: every other objective term trains and no reviewed verdicts are demanded. For corpora without reviewed-Proximal coverage that still want the full trained placement.
     pub vacuous_placement: bool = false,
     /// Sampled anchor rows of the admission probe.
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Sampled comparison rows of the admission probe.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },
-    /// Path of a reviewed-verdicts document to supply to the run.
-    /// The trained placement's phase boundary freezes its Proximal
-    /// radius from the reviewed pairs, so a corpus whose relations
-    /// carry Proximal force needs one (or an asserted radius) to
-    /// train.
+    /// Path of a reviewed-verdicts document to supply to the run. The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs, so a corpus whose relations carry Proximal force needs one (or an asserted radius) to train.
     pub verdicts: Option<String> = None,
-    /// Path of an annotation-corpus document: the classifier's
-    /// training supply. The run assembles it, fits the relation
-    /// classifier, and stages the corpus, the embedding table, and
-    /// the model. Exactly one of `annotations` and `classifier` must
-    /// be supplied.
+    /// Path of an annotation-corpus document: the classifier's training supply. The run assembles it, fits the relation classifier, and stages the corpus, the embedding table, and the model. Exactly one of `annotations` and `classifier` must be supplied.
     pub annotations: Option<String> = None,
-    /// Path of a fitted classifier artifact (`.clsf`) to supply in
-    /// place of fitting one. Exactly one of `annotations` and
-    /// `classifier` must be supplied.
+    /// Path of a fitted classifier artifact (`.clsf`) to supply in place of fitting one. Exactly one of `annotations` and `classifier` must be supplied.
     pub classifier: Option<String> = None,
-    /// Override the trained placement's step count, keeping the
-    /// ratified options and the midpoint boundary. Absent, the
-    /// configuration default trains.
+    /// Override the trained placement's step count, keeping the ratified options and the midpoint boundary. Absent, the configuration default trains.
     pub projector_steps: Option<NonZero<usize>> = None,
-    /// Place at the landmark baseline instead of training: the
-    /// fallback placer, for running without the training stage.
+    /// Place at the landmark baseline instead of training: the fallback placer, for running without the training stage.
     pub baseline: bool = false,
 }
 
@@ -194,8 +167,9 @@ pub struct Summary {
     pub report: String,
 }
 
-/// The snapshot step's fault: the store dataset could not open a
-/// transaction over the current snapshot.
+/// The snapshot step's fault.
+///
+/// The store dataset could not open a transaction over the current snapshot.
 #[derive(Debug)]
 pub struct SnapshotError(PostgresDatasetError);
 
@@ -211,8 +185,7 @@ impl CoreError for SnapshotError {
     }
 }
 
-/// The verdicts step's fault: the reviewed-verdicts document was
-/// refused.
+/// The verdicts step's fault: the reviewed-verdicts document was refused.
 #[derive(Debug)]
 pub struct VerdictsError(VerdictSupplyError);
 
@@ -228,8 +201,7 @@ impl CoreError for VerdictsError {
     }
 }
 
-/// The annotations step's fault: the annotation-corpus document
-/// was refused.
+/// The annotations step's fault: the annotation-corpus document was refused.
 #[derive(Debug)]
 pub struct AnnotationsError(AnnotationSupplyError);
 
@@ -245,8 +217,7 @@ impl CoreError for AnnotationsError {
     }
 }
 
-/// The classifier step's fault: the fitted-classifier artifact
-/// was refused.
+/// The classifier step's fault: the fitted-classifier artifact was refused.
 #[derive(Debug)]
 pub struct ClassifierError(ClassifierSupplyError);
 
@@ -262,8 +233,7 @@ impl CoreError for ClassifierError {
     }
 }
 
-/// The run step's fault: the generation runner could not reach a
-/// verdict.
+/// The run step's fault: the generation runner could not reach a verdict.
 #[derive(Debug)]
 pub struct PipelineError(RunnerError<PostgresDatasetError, !>);
 
@@ -281,12 +251,10 @@ impl CoreError for PipelineError {
 
 /// One production run's failure, by step.
 ///
-/// Every variant names the step that failed and holds that step's
-/// concrete fault - nothing erases to `dyn`. The wrapper types
-/// splice into the chain transparently (their display text and
-/// sources are the wrapped fault's, unchanged), so the operator
-/// surface stays concrete while the pipeline's error taxonomy
-/// stays crate-private.
+/// Every variant names the step that failed and holds that step's concrete fault - nothing erases
+/// to `dyn`. The wrapper types splice into the chain transparently (their display text and sources
+/// are the wrapped fault's, unchanged), so the operator surface stays concrete while the pipeline's
+/// error taxonomy stays crate-private.
 #[derive(Debug)]
 pub enum RunError {
     /// The generation root could not open.
@@ -299,12 +267,13 @@ pub enum RunError {
     Annotations(AnnotationsError),
     /// The supplied classifier artifact was refused.
     Classifier(ClassifierError),
-    /// The classifier input is missing or doubled: exactly one of the
-    /// annotation-corpus and classifier-artifact paths must be
-    /// supplied.
+    /// The classifier input is missing or doubled.
+    ///
+    /// Exactly one of the annotation-corpus and classifier-artifact paths must be supplied.
     ClassifierInput,
-    /// The asserted Proximal radius was refused: the value must be
-    /// finite and strictly above the Coincident radius.
+    /// The asserted Proximal radius was refused.
+    ///
+    /// The value must be finite and strictly above the Coincident radius.
     ProximalRadius(f32),
     /// The run could not reach a verdict.
     Run(PipelineError),
@@ -348,8 +317,7 @@ impl CoreError for RunError {
     }
 }
 
-/// Resolves the run's classifier input from the exactly-one path
-/// pair.
+/// Resolves the run's classifier input from the exactly-one path pair.
 fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
     match (
         options.annotations.as_deref(),
@@ -365,21 +333,19 @@ fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
     }
 }
 
-/// Runs one production generation run over the store's current
-/// snapshot into the generation root at `root`.
+/// Runs one production generation run over the store's current snapshot into the generation root at
+/// `root`.
 ///
 /// # Errors
 ///
-/// Returns a [`RunError`] naming the step that failed: opening the
-/// root, opening the snapshot transaction, admitting the supplied
-/// verdicts, annotation-corpus, or classifier documents, validating
-/// the asserted Proximal radius, or the run itself.
+/// Returns a [`RunError`] naming the step that failed: opening the root, opening the snapshot
+/// transaction, admitting the supplied verdicts, annotation-corpus, or classifier documents,
+/// validating the asserted Proximal radius, or the run itself.
 ///
 /// # Panics
 ///
-/// Panics when the options contradict: an asserted Proximal radius
-/// or a vacuous placement combined with the landmark baseline. The
-/// binary's flag parser refuses both combinations before this seam
+/// Panics when the options contradict: an asserted Proximal radius or a vacuous placement combined
+/// with the landmark baseline. The binary's flag parser refuses both combinations before this seam
 /// sees them.
 pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<Summary, RunError> {
     let root = GenerationRoot::new(Utf8PathBuf::from(root)).map_err(RunError::Root)?;

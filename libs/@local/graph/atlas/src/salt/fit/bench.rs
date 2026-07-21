@@ -1,15 +1,13 @@
 //! Measurement seam over one live-store fit.
 //!
-//! The harness target (`examples/fit_live.rs`) dials the development
-//! store, runs the production [`fit`] over its current snapshot, and
-//! reads a plain-number summary. Per-stage wall clock comes from the
-//! pipeline's stage spans, so the target installs a span-close
-//! subscriber rather than timing stages itself; peak residency comes
-//! from the operating system (`/usr/bin/time -l`). Nothing here is API
-//! for consumers of the crate.
+//! The harness target (`examples/fit_live.rs`) dials the development store, runs the production
+//! [`fit`] over its current snapshot, and reads a plain-number summary. Per-stage wall clock comes
+//! from the pipeline's stage spans, so the target installs a span-close subscriber rather than
+//! timing stages itself; peak residency comes from the operating system (`/usr/bin/time -l`).
+//! Nothing here is API for consumers of the crate.
 //!
-//! Failures panic with the failing step's error: a measurement run has
-//! no recovery path, and the error is the diagnosis.
+//! Failures panic with the failing step's error: a measurement run has no recovery path, and the
+//! error is the diagnosis.
 
 use core::num::NonZero;
 
@@ -42,23 +40,15 @@ const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
 pub struct RunOptions {
     /// The fit seed; equal seeds replay every stage's random draws.
     pub seed: u64 = 0,
-    /// The landmark capacity `M`. The default is the capacity the
-    /// legacy pipeline profiled at the million-row scale.
+    /// The landmark capacity `M`. The default is the capacity the legacy pipeline profiled at the million-row scale.
     pub landmarks: NonZero<u32> = const { NonZero::new(4_096).unwrap() },
-    /// Reuse the root's active generation as the prior: card rows by
-    /// text hash, landmarks competing for the retained share.
+    /// Reuse the root's active generation as the prior: card rows by text hash, landmarks competing for the retained share.
     pub reuse_current: bool = false,
-    /// Path of a reviewed-verdicts document to supply to the fit; the
-    /// staged role and its manifest binding then exercise the same
-    /// path production takes.
+    /// Path of a reviewed-verdicts document to supply to the fit; the staged role and its manifest binding then exercise the same path production takes.
     pub verdicts: Option<String> = None,
-    /// Override the trained placement's step count, keeping the
-    /// reference options and the midpoint boundary. Absent, the
-    /// configuration default (the reference schedule) trains.
+    /// Override the trained placement's step count, keeping the reference options and the midpoint boundary. Absent, the configuration default (the reference schedule) trains.
     pub projector_steps: Option<NonZero<usize>> = None,
-    /// Place at the landmark baseline instead of training: the
-    /// fallback placer, for measuring the pipeline without the
-    /// training stage.
+    /// Place at the landmark baseline instead of training: the fallback placer, for measuring the pipeline without the training stage.
     pub baseline: bool = false,
 }
 
@@ -85,13 +75,11 @@ pub struct FitSummary {
     pub retained: u32,
 }
 
-/// Dials the store named by the connection string and drives the
-/// connection on a background task.
+/// Dials the store named by the connection string and drives the connection on a background task.
 ///
 /// # Panics
 ///
-/// Panics when the store cannot be dialed; the
-/// [`crate::run::ConnectError`] is the diagnosis.
+/// Panics when the store cannot be dialed; the [`crate::run::ConnectError`] is the diagnosis.
 pub async fn connect(dsn: &str) -> Client {
     crate::run::connect(dsn)
         .await
@@ -100,9 +88,9 @@ pub async fn connect(dsn: &str) -> Client {
 
 /// A deterministic classifier input fitted from a synthetic corpus.
 ///
-/// The fixture keeps the harness's policy stage real - classification,
-/// resolution, and both artifacts run against it - while the bench
-/// measures the pipeline rather than the classifier supply.
+/// The fixture keeps the harness's policy stage real - classification, resolution, and both
+/// artifacts run against it - while the bench measures the pipeline rather than the classifier
+/// supply.
 #[must_use]
 fn fixture_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
@@ -152,14 +140,13 @@ fn fixture_classifier() -> ClassifierInput {
     }
 }
 
-/// Runs one fit over the store's current snapshot into the generation
-/// root at `root` and activates the published generation, so a later
-/// `reuse_current` run finds it as the prior.
+/// Runs one fit over the store's current snapshot into the generation root at `root` and activates
+/// the published generation, so a later `reuse_current` run finds it as the prior.
 ///
 /// # Panics
 ///
-/// Panics when any step fails: opening the root or the prior, opening
-/// the snapshot transaction, any fit stage, or activation.
+/// Panics when any step fails: opening the root or the prior, opening the snapshot transaction, any
+/// fit stage, or activation.
 pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSummary {
     let root =
         GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");

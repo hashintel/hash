@@ -1,20 +1,16 @@
-//! The locate response: `HEAD`, node and edge columns, and the
-//! detail trailer as one envelope.
+//! The locate response: `HEAD`, node and edge columns, and the detail trailer as one envelope.
 //!
-//! A locate document names its delivered set as an explicit
-//! base-position list - source first, then neighbours in wire order -
-//! over the generation's base-order columns; unlike a tile's
-//! contiguous ranges the set is arbitrary, so the columns gather
-//! point by point. The `SALTILEL` envelope has seven slots: `HEAD`,
-//! the tile response's three node column shapes (`POSITIONS`,
-//! `ROW_IDS`, `TYPE_MASK`), and the edges response's three edge
-//! column shapes (`EDGE_SOURCES`, `EDGE_TARGETS`, `EDGE_ROW_IDS`).
+//! A locate document names its delivered set as an explicit base-position list - source first, then
+//! neighbours in wire order - over the generation's base-order columns; unlike a tile's contiguous
+//! ranges the set is arbitrary, so the columns gather point by point. The `SALTILEL` envelope has
+//! seven slots: `HEAD`, the tile response's three node column shapes (`POSITIONS`, `ROW_IDS`,
+//! `TYPE_MASK`), and the edges response's three edge column shapes (`EDGE_SOURCES`, `EDGE_TARGETS`,
+//! `EDGE_ROW_IDS`).
 //!
-//! The trailer carries detail for every delivered node and edge, and
-//! interns property names profile-natively (WIRE 6b): key 2 is the
-//! deduplicated, bytewise-sorted name table; each entry of key 3 keys
-//! its map by uint index into that table, ascending. The document's
-//! consistency laws are producer contracts and panic when violated.
+//! The trailer carries detail for every delivered node and edge, and interns property names
+//! profile-natively (WIRE 6b): key 2 is the deduplicated, bytewise-sorted name table; each entry of
+//! key 3 keys its map by uint index into that table, ascending. The document's consistency laws are
+//! producer contracts and panic when violated.
 #![expect(
     clippy::little_endian_bytes,
     reason = "column integers are pinned little-endian by the wire contract"
@@ -36,24 +32,22 @@ pub(crate) struct LocateResponse<'doc> {
     pub generation: Sha256Digest,
     /// `HEAD` key 1: the variant index, echoing the route.
     pub variant: u64,
-    /// `HEAD` keys 3 and 4: the source's first visible zoom and its
-    /// tile there - the client's fly-to target. The cell's own `z` is
-    /// the zoom; both keys ride the wire by the pinned schema.
+    /// `HEAD` keys 3 and 4: the source's first visible zoom and its tile there - the client's
+    /// fly-to target. The cell's own `z` is the zoom; both keys ride the wire by the pinned
+    /// schema.
     pub cell: TileCoordinate,
-    /// `HEAD` key 6: `false` when the locate edge cap truncated the
-    /// subgraph.
+    /// `HEAD` key 6: `false` when the locate edge cap truncated the subgraph.
     pub complete: bool,
-    /// The delivered set: base positions in delivered order, source
-    /// first.
+    /// The delivered set: base positions in delivered order, source first.
     pub delivered: &'doc [u32],
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc [Vec2],
     /// The generation's row-id column (row by base position), in full.
     pub rows: &'doc [u32],
-    /// Per-type membership for the request's `coloredTypeIds`, in
-    /// request order: bit `i` of every point's mask reads from
-    /// `masks[i]`. `None` when the request carried no ids - the
-    /// `TYPE_MASK` slot is then absent rather than empty.
+    /// Per-type membership for the request's `coloredTypeIds`, in request order.
+    ///
+    /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
+    /// ids: the `TYPE_MASK` slot is then absent rather than empty.
     pub masks: Option<&'doc [Membership<'doc>]>,
     /// The `EDGE_SOURCES` column: node row ids, edge order.
     pub sources: &'doc [u32],
@@ -61,8 +55,9 @@ pub(crate) struct LocateResponse<'doc> {
     pub targets: &'doc [u32],
     /// The `EDGE_ROW_IDS` column: edge row ids, edge order.
     pub edge_rows: &'doc [u32],
-    /// The hydrated detail trailer; `Some` iff the request set
-    /// `includeDetailedData` (which locate defaults to true).
+    /// The hydrated detail trailer.
+    ///
+    /// `Some` iff the request set `includeDetailedData` (which locate defaults to true).
     pub trailer: Option<LocateTrailer<'doc>>,
 }
 
@@ -71,10 +66,9 @@ impl LocateResponse<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when the document is inconsistent: the edge columns
-    /// disagreeing on the edge count, trailer arrays not covering the
-    /// delivered nodes and edges, or a trailer whose intern table or
-    /// property maps break the interning laws.
+    /// Panics when the document is inconsistent: the edge columns disagreeing on the edge count,
+    /// trailer arrays not covering the delivered nodes and edges, or a trailer whose intern table
+    /// or property maps break the interning laws.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         let edges = self.sources.len();
@@ -160,11 +154,11 @@ impl LocateResponse<'_> {
         column
     }
 
-    /// Assembles the `TYPE_MASK` column: one `ceil(n/8)`-byte mask per
-    /// delivered point, bit `i` LSB-first when the point carries the
-    /// request's type `i` - the tile column's shape over an arbitrary
-    /// delivered list, probed point by point (the set is a spotlight,
-    /// never a bulk slice).
+    /// Assembles the `TYPE_MASK` column.
+    ///
+    /// One `ceil(n/8)`-byte mask per delivered point, bit `i` LSB-first when the point carries the
+    /// request's type `i` - the tile column's shape over an arbitrary delivered list, probed point
+    /// by point (the set is a spotlight, never a bulk slice).
     fn mask_column(&self, masks: &[Membership<'_>]) -> Vec<u8> {
         let stride = masks.len().div_ceil(8);
         let mut column = vec![0_u8; self.delivered.len() * stride];
@@ -188,21 +182,22 @@ impl LocateResponse<'_> {
     }
 }
 
-/// The locate detail trailer: node detail in delivered order, link
-/// detail in edge order, and the property-name intern table between
-/// them (WIRE 6b key order).
+/// The locate detail trailer.
+///
+/// Node detail in delivered order, link detail in edge order, and the property-name intern table
+/// between them (WIRE 6b key order).
 #[derive(Debug)]
 pub(crate) struct LocateTrailer<'doc> {
     /// Trailer key 0: labels, delivered order.
     pub labels: &'doc [Option<&'doc str>],
     /// Trailer key 1: icons, delivered order.
     pub icons: &'doc [Option<&'doc str>],
-    /// Trailer key 2: the intern table - every surviving property
-    /// base URL once, bytewise-sorted.
+    /// Trailer key 2: the intern table - every surviving property base URL once, bytewise-sorted.
     pub property_names: &'doc [&'doc str],
-    /// Trailer key 3: per-node property maps, delivered order, keyed
-    /// by uint index into the intern table, keys ascending. `null`
-    /// marks a node the store no longer serves.
+    /// Trailer key 3.
+    ///
+    /// Per-node property maps, delivered order, keyed by uint index into the intern table, keys
+    /// ascending. `null` marks a node the store no longer serves.
     pub properties: &'doc [Option<&'doc [(u32, PropertyValue<'doc>)]>],
     /// Trailer key 4.
     pub link_labels: &'doc [Option<&'doc str>],
@@ -215,10 +210,11 @@ pub(crate) struct LocateTrailer<'doc> {
 }
 
 impl LocateTrailer<'_> {
-    /// Asserts the coverage and interning laws: node arrays cover
-    /// exactly the delivered nodes, link arrays the delivered edges,
-    /// the intern table is bytewise-sorted and deduplicated, and
-    /// every property map keys ascending into the table's bounds.
+    /// Asserts the coverage and interning laws.
+    ///
+    /// Node arrays cover exactly the delivered nodes, link arrays the delivered edges, the intern
+    /// table is bytewise-sorted and deduplicated, and every property map keys ascending into the
+    /// table's bounds.
     fn check_covers(&self, nodes: usize, edges: usize) {
         for (entries, name) in [(self.labels, "labels"), (self.icons, "icons")] {
             assert_eq!(
@@ -305,16 +301,16 @@ impl LocateTrailer<'_> {
     }
 }
 
-/// One simple property value: the only shapes the wire ships (WIRE
-/// 6b; nested objects and arrays never survive hydration).
+/// One simple property value: the only shapes the wire ships (WIRE 6b.
+///
+/// Nested objects and arrays never survive hydration).
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PropertyValue<'doc> {
     /// A text scalar.
     Text(&'doc str),
     /// An integral scalar.
     Integer(i64),
-    /// A floating scalar; store scalars are doubles and stay double
-    /// on the wire.
+    /// A floating scalar; store scalars are doubles and stay double on the wire.
     Float(f64),
     /// A boolean scalar.
     Boolean(bool),

@@ -15,8 +15,9 @@ pub(crate) fn normalize_whitespace(text: &str) -> Cow<'_, str> {
     RUNS.replace_all(text.trim(), " ")
 }
 
-/// Normalizes a label into a slug: transliterated to ASCII, lowercased,
-/// and joined by hyphens at word boundaries.
+/// Normalizes a label into a slug.
+///
+/// Transliterated to ASCII, lowercased, and joined by hyphens at word boundaries.
 #[must_use]
 pub(crate) fn slugify(label: &str) -> String {
     // Transliteration precedes word segmentation: transliterated output

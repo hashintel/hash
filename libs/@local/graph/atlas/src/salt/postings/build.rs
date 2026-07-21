@@ -1,5 +1,4 @@
-//! The postings build: from the row-order type column to the file's
-//! regions.
+//! The postings build: from the row-order type column to the file's regions.
 
 use std::io;
 
@@ -14,12 +13,7 @@ use crate::{
 /// Configuration of the postings representation split.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsConfig {
-    /// A type's membership goes dense when its member count exceeds
-    /// `N >> dense_threshold_log2`. The default 5 (one in 32) is the
-    /// size-equality point - one list entry costs 32 bitmap bits - so
-    /// a dense run is never larger than the list it replaces; the
-    /// word-parallel OR already wins work at half that density. At
-    /// exact equality the list wins: it reads without bit decoding.
+    /// A type's membership goes dense when its member count exceeds `N >> dense_threshold_log2`. The default 5 (one in 32) is the size-equality point - one list entry costs 32 bitmap bits - so a dense run is never larger than the list it replaces; the word-parallel OR already wins work at half that density. At exact equality the list wins: it reads without bit decoding.
     pub dense_threshold_log2: u8 = 5,
 }
 
@@ -32,11 +26,9 @@ const impl Default for PostingsConfig {
 /// Building the postings failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum PostingsError {
-    /// A node row's direct types name an ontology row outside the type
-    /// domain.
+    /// A node row's direct types name an ontology row outside the type domain.
     NodeType { row: u32, id: u64 },
-    /// A type's direct parents name an ontology row outside the type
-    /// domain.
+    /// A type's direct parents name an ontology row outside the type domain.
     Parent { type_row: u32, id: u64 },
 }
 
@@ -59,8 +51,8 @@ impl core::error::Error for PostingsError {}
 
 /// The type postings of one generation, in writable form.
 ///
-/// Construction picks each type's representation and lays every region
-/// out exactly as the file stores it.
+/// Construction picks each type's representation and lays every region out exactly as the file
+/// stores it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Postings {
     /// The base-position domain `N`.
@@ -69,8 +61,9 @@ pub(crate) struct Postings {
     flags: Vec<u64>,
     /// `T + 1` membership fenceposts over [`Self::entries`].
     membership_posts: Vec<u64>,
-    /// The membership entries, type-major: sorted positions for list
-    /// types, `ceil(N/32)` bitmap words for dense types.
+    /// The membership entries, type-major.
+    ///
+    /// Sorted positions for list types, `ceil(N/32)` bitmap words for dense types.
     entries: Vec<u32>,
     /// `T + 1` parent fenceposts over [`Self::parent_ids`].
     parent_posts: Vec<u64>,
@@ -81,26 +74,22 @@ pub(crate) struct Postings {
 impl Postings {
     /// Builds the postings over the finished lod permutation.
     ///
-    /// `types` holds each node row's direct types in **row** order,
-    /// exactly as the dataset streams them (ascending, deduplicated);
-    /// `row_of_position` is the lod's gather order, so membership
-    /// lands in base delivery order. `parents` holds each ontology
-    /// row's direct parents in ontology-row order - the dataset's
-    /// `Ontology::parents` contract, restated in file shape - and its
-    /// length is the type domain `T`. Walking positions ascending
-    /// makes every list run sorted by construction: no sort pass
-    /// exists.
+    /// `types` holds each node row's direct types in **row** order, exactly as the dataset streams
+    /// them (ascending, deduplicated); `row_of_position` is the lod's gather order, so membership
+    /// lands in base delivery order. `parents` holds each ontology row's direct parents in
+    /// ontology-row order - the dataset's `Ontology::parents` contract, restated in file shape -
+    /// and its length is the type domain `T`. Walking positions ascending makes every list run
+    /// sorted by construction: no sort pass exists.
     ///
     /// # Errors
     ///
-    /// Returns [`PostingsError`] when a row's direct types or a type's
-    /// parents name an ontology row outside the type domain.
+    /// Returns [`PostingsError`] when a row's direct types or a type's parents name an ontology row
+    /// outside the type domain.
     ///
     /// # Panics
     ///
-    /// Panics when `types` and `row_of_position` cover different row
-    /// counts - the lod build already rejected mismatched columns, so
-    /// a disagreement here is a producer bug.
+    /// Panics when `types` and `row_of_position` cover different row counts - the lod build already
+    /// rejected mismatched columns, so a disagreement here is a producer bug.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the Result carries domain errors; mismatched columns are a caller contract \
@@ -189,9 +178,8 @@ impl Postings {
 
     /// Measures the publish evidence over the finished regions.
     ///
-    /// The measurements the manifest records so the threshold knob is
-    /// revised from data, not taste: how many types the split sent
-    /// dense, and the region populations behind the artifact's size.
+    /// The measurements the manifest records so the threshold knob is revised from data, not taste:
+    /// how many types the split sent dense, and the region populations behind the artifact's size.
     #[must_use]
     pub(crate) fn evidence(&self) -> PostingsEvidence {
         PostingsEvidence {
@@ -212,8 +200,8 @@ impl WriteInto for Postings {
 
     /// Writes the postings as a postings file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -238,17 +226,16 @@ impl WriteInto for Postings {
     }
 }
 
-/// The publish evidence of one postings build: measurements the
-/// manifest records so the configuration is revised from data, not
-/// taste.
+/// The publish evidence of one postings build.
+///
+/// Measurements the manifest records so the configuration is revised from data, not taste.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsEvidence {
     /// Types in the domain.
     pub types: u64,
     /// Types whose membership went dense under the threshold.
     pub dense_types: u64,
-    /// Entries in the membership region: list positions plus dense
-    /// bitmap words.
+    /// Entries in the membership region: list positions plus dense bitmap words.
     pub membership_entries: u64,
     /// Direct parent edges in the type graph.
     pub parent_edges: u64,
@@ -256,9 +243,8 @@ pub(crate) struct PostingsEvidence {
 
 /// Lays the parent regions out in file shape.
 ///
-/// The regions restate the dataset's stream; the domain check is the
-/// one condition the stream cannot carry itself (parents may point
-/// forward).
+/// The regions restate the dataset's stream; the domain check is the one condition the stream
+/// cannot carry itself (parents may point forward).
 fn parent_regions(
     parents: &[SmallVec<OntologyRowId, 2>],
 ) -> Result<(Vec<u64>, Vec<u32>), PostingsError> {
@@ -281,8 +267,7 @@ fn parent_regions(
     Ok((posts, ids))
 }
 
-/// Returns `id` as a type-domain index, [`None`] when it lies outside
-/// the domain.
+/// Returns `id` as a type-domain index, [`None`] when it lies outside the domain.
 fn in_domain(id: OntologyRowId, domain: usize) -> Option<usize> {
     usize::try_from(id.get()).ok().filter(|&row| row < domain)
 }

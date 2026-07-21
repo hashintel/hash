@@ -5,22 +5,20 @@ use std::collections::HashSet;
 use super::rank::Ranking;
 use crate::morton::{Depth, MortonKey};
 
-/// Assigns every point its bucket: the shallowest grid depth at which
-/// the point is its cell's first occupant.
+/// Assigns every point its bucket.
 ///
-/// The cascade scans depths coarse to fine. At each depth, every
-/// occupied cell that no earlier-assigned point lies in receives its
-/// first still-unassigned point in rank order; the rest continue
-/// deeper. Points never claiming a cell - co-located within one
-/// deepest-grid cell - take `deepest`, the catch-all bucket, so
-/// `deepest` is the one bucket holding more than one point per cell.
+/// The shallowest grid depth at which the point is its cell's first occupant.
 ///
-/// Delivering every point with a bucket at or below a cut depth
-/// therefore covers every occupied cell of the cut's grid; the claim is
-/// checkable per generation with [`verify_coverage`].
+/// The cascade scans depths coarse to fine. At each depth, every occupied cell that no
+/// earlier-assigned point lies in receives its first still-unassigned point in rank order; the rest
+/// continue deeper. Points never claiming a cell - co-located within one deepest-grid cell - take
+/// `deepest`, the catch-all bucket, so `deepest` is the one bucket holding more than one point per
+/// cell.
 ///
-/// The assignment is a pure function of the keys, the ranking, and
-/// `deepest`.
+/// Delivering every point with a bucket at or below a cut depth therefore covers every occupied
+/// cell of the cut's grid; the claim is checkable per generation with [`verify_coverage`].
+///
+/// The assignment is a pure function of the keys, the ranking, and `deepest`.
 ///
 /// # Panics
 ///
@@ -74,12 +72,10 @@ pub(crate) struct CoverageGap {
 
 /// Checks the cascade's coverage contract over one assignment.
 ///
-/// For every depth up to `deepest` and every occupied cell of that
-/// depth's grid, at least one point of the cell carries a bucket at or
-/// below the depth; delivering the buckets-at-or-below-cut prefix then
-/// shows every occupied cell. The cascade guarantees this by
-/// construction - the check is the publishable evidence, not a
-/// consumer's obligation.
+/// For every depth up to `deepest` and every occupied cell of that depth's grid, at least one point
+/// of the cell carries a bucket at or below the depth; delivering the buckets-at-or-below-cut
+/// prefix then shows every occupied cell. The cascade guarantees this by construction - the check
+/// is the publishable evidence, not a consumer's obligation.
 ///
 /// # Panics
 ///

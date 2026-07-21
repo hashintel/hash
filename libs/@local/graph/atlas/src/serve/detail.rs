@@ -1,11 +1,9 @@
 //! Detail hydration: live label and icon reads for delivered points.
 //!
-//! The Q3 ruling pins the source: detail hydrates AT REQUEST TIME
-//! from Postgres, inline in the trailer - no published label
-//! columns. Reads are LIVE (`now()`, not the snapshot's decision
-//! time): text edited after publish shows on snapshot geometry,
-//! divergence accepted and usually wanted. Hydration queries only
-//! post-intersection ids, so it opens no new auth surface.
+//! The Q3 ruling pins the source: detail hydrates AT REQUEST TIME from Postgres, inline in the
+//! trailer - no published label columns. Reads are LIVE (`now()`, not the snapshot's decision
+//! time): text edited after publish shows on snapshot geometry, divergence accepted and usually
+//! wanted. Hydration queries only post-intersection ids, so it opens no new auth surface.
 //!
 //! The per-point rules mirror the client's own display logic:
 //!
@@ -17,26 +15,21 @@
 //!   inheritance depth wins - a type inherits its ancestors' icons, nearest first. `null` when no
 //!   chain carries one - the client owns the fallback glyph.
 //!
-//! Link entities hydrate through the same rules plus two type
-//! columns: the link's entity-type title and icon, taken from its
-//! first direct type in canonical order (the type icon follows the
+//! Link entities hydrate through the same rules plus two type columns: the link's entity-type title
+//! and icon, taken from its first direct type in canonical order (the type icon follows the
 //! display-field rule above, so it inherits through `allOf`).
 //!
-//! Locate hydrates one more node column: the entity's SIMPLE-VALUED
-//! properties (the Q5 ruling) - strings, numbers, booleans, and
-//! explicit nulls; nested objects and arrays never ship. An
-//! over-cap entity drops properties reverse-lexicographically by
-//! base URL with its LABEL property - the base URL whose value
-//! provides the display label, resolved through the same canonical
-//! type order the label cache uses - protected to the very end, so
-//! the label survives every cap that admits at least one property.
-//! Survivors emit ascending by name, the wire's map-key order. A
-//! number ships as an integer when the store renders it integral
-//! and it fits `i64`, as a double otherwise.
+//! Locate hydrates one more node column: the entity's SIMPLE-VALUED properties (the Q5 ruling) -
+//! strings, numbers, booleans, and explicit nulls; nested objects and arrays never ship. An
+//! over-cap entity drops properties reverse-lexicographically by base URL with its LABEL property -
+//! the base URL whose value provides the display label, resolved through the same canonical type
+//! order the label cache uses - protected to the very end, so the label survives every cap that
+//! admits at least one property. Survivors emit ascending by name, the wire's map-key order. A
+//! number ships as an integer when the store renders it integral and it fits `i64`, as a double
+//! otherwise.
 //!
-//! An id that resolves to no visible entity - deleted since publish,
-//! archived, drafted - reads `null` in every column, mirroring the
-//! zero-mask rule for unresolvable type ids.
+//! An id that resolves to no visible entity - deleted since publish, archived, drafted - reads
+//! `null` in every column, mirroring the zero-mask rule for unresolvable type ids.
 
 use tokio_postgres::Client;
 use zerocopy::IntoBytes as _;
@@ -46,9 +39,10 @@ use crate::dataset::ArchivedEntityId;
 /// The base URL of the system `icon` property an entity may carry.
 const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";
 
-/// The hydration query: one batched lookup, input order preserved
-/// through the ordinality column, absent entities simply missing
-/// from the result.
+/// The hydration query.
+///
+/// One batched lookup, input order preserved through the ordinality column, absent entities simply
+/// missing from the result.
 const DETAIL_QUERY: &str = "
     SELECT
         ids.index,
@@ -87,10 +81,10 @@ const DETAIL_QUERY: &str = "
     ) AS type_icon ON TRUE
 ";
 
-/// The link hydration query: the detail query's columns plus the
-/// first direct type's title, input order preserved through the
-/// ordinality column, absent entities simply missing from the
-/// result.
+/// The link hydration query.
+///
+/// The detail query's columns plus the first direct type's title, input order preserved through the
+/// ordinality column, absent entities simply missing from the result.
 const LINK_DETAIL_QUERY: &str = "
     SELECT
         ids.index,
@@ -141,17 +135,16 @@ const LINK_DETAIL_QUERY: &str = "
     ) AS type_label ON TRUE
 ";
 
-/// The locate hydration query: the detail query's columns plus the
-/// entity's simple-valued properties and the base URL providing its
-/// display label, input order preserved through the ordinality
-/// column, absent entities simply missing from the result.
+/// The locate hydration query.
 ///
-/// The `simple` column aggregates only simple-typed values - the Q5
-/// filter runs in the store, so nested values never cross the
-/// connection. The `label_property` lateral mirrors the
-/// `entity_edition_cache` label derivation (migration V51): the
-/// first `allOf` `labelProperty` path that resolves non-null, in
-/// canonical direct-type order, is the path behind `labels[1]`.
+/// The detail query's columns plus the entity's simple-valued properties and the base URL providing
+/// its display label, input order preserved through the ordinality column, absent entities simply
+/// missing from the result.
+///
+/// The `simple` column aggregates only simple-typed values - the Q5 filter runs in the store, so
+/// nested values never cross the connection. The `label_property` lateral mirrors the
+/// `entity_edition_cache` label derivation (migration V51): the first `allOf` `labelProperty` path
+/// that resolves non-null, in canonical direct-type order, is the path behind `labels[1]`.
 const LOCATE_DETAIL_QUERY: &str = "
     SELECT
         ids.index,
@@ -212,8 +205,9 @@ const LOCATE_DETAIL_QUERY: &str = "
     ) AS label_property ON TRUE
 ";
 
-/// The entity identities behind one delivered set, in delivered
-/// order; the hydration request's subject.
+/// The entity identities behind one delivered set, in delivered order.
+///
+/// The hydration request's subject.
 #[derive(Debug)]
 pub struct DeliveredEntities {
     /// One entry per delivered point.
@@ -244,8 +238,7 @@ pub struct NodeDetails {
 }
 
 impl NodeDetails {
-    /// All-`null` details covering `count` points: the honest answer
-    /// when no id can resolve.
+    /// All-`null` details covering `count` points: the honest answer when no id can resolve.
     #[must_use]
     pub(super) fn empty(count: usize) -> Self {
         Self {
@@ -267,9 +260,9 @@ impl NodeDetails {
     }
 }
 
-/// One simple property value: the only shapes locate's properties
-/// ship (the Q5 ruling; nested objects and arrays are filtered in
-/// the store and never cross the connection).
+/// One simple property value: the only shapes locate's properties ship (the Q5 ruling.
+///
+/// Nested objects and arrays are filtered in the store and never cross the connection).
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimpleValue {
     /// A text scalar.
@@ -284,24 +277,23 @@ pub enum SimpleValue {
     Null,
 }
 
-/// Hydrated per-point locate details, aligned to the delivered
-/// order: the node details plus each entity's capped properties.
+/// Hydrated per-point locate details, aligned to the delivered order.
+///
+/// The node details plus each entity's capped properties.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocateNodeDetails {
     /// The display label per delivered point.
     labels: Vec<Option<String>>,
     /// The icon per delivered point.
     icons: Vec<Option<String>>,
-    /// The surviving properties per delivered point, ascending by
-    /// base URL - the wire's map-key order. `None` marks an entity
-    /// the store no longer serves; a resolved entity without simple
+    /// The surviving properties per delivered point, ascending by base URL - the wire's map-key
+    /// order. `None` marks an entity the store no longer serves; a resolved entity without simple
     /// properties reads an empty list.
     properties: Vec<Option<Vec<(String, SimpleValue)>>>,
 }
 
 impl LocateNodeDetails {
-    /// All-`null` details covering `count` points: the honest answer
-    /// when no id can resolve.
+    /// All-`null` details covering `count` points: the honest answer when no id can resolve.
     #[must_use]
     pub(super) fn empty(count: usize) -> Self {
         Self {
@@ -344,8 +336,7 @@ pub struct LinkDetails {
 }
 
 impl LinkDetails {
-    /// All-`null` details covering `count` edges: the honest answer
-    /// when no id can resolve.
+    /// All-`null` details covering `count` edges: the honest answer when no id can resolve.
     #[must_use]
     pub(super) fn empty(count: usize) -> Self {
         Self {
@@ -399,9 +390,8 @@ impl core::error::Error for DetailError {
 
 /// Live detail reads over one store connection.
 ///
-/// The connection is dialed by the transport layer - the same
-/// `HASH_GRAPH_PG_*` configuration the graph binary speaks - and the
-/// hydration path issues one batched query per request.
+/// The connection is dialed by the transport layer - the same `HASH_GRAPH_PG_*` configuration the
+/// graph binary speaks - and the hydration path issues one batched query per request.
 #[derive(Debug)]
 pub struct PostgresDetails {
     client: Client,
@@ -414,9 +404,9 @@ impl PostgresDetails {
         Self { client }
     }
 
-    /// Hydrates labels and icons for the delivered entities, aligned
-    /// to the delivered order; entities the store no longer serves
-    /// read `null`.
+    /// Hydrates labels and icons for the delivered entities, aligned to the delivered order.
+    ///
+    /// Entities the store no longer serves read `null`.
     ///
     /// # Errors
     ///
@@ -424,8 +414,8 @@ impl PostgresDetails {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain
-    /// or with the wrong column types - a query bug, never data.
+    /// Panics when the store answers rows outside the request domain or with the wrong column
+    /// types: a query bug, never data.
     #[tracing::instrument(skip_all, fields(points = entities.count()))]
     pub async fn labels_and_icons(
         &self,
@@ -456,12 +446,10 @@ impl PostgresDetails {
         Ok(details)
     }
 
-    /// Hydrates labels, icons, and capped simple-valued properties
-    /// for the delivered entities, aligned to the delivered order;
-    /// entities the store no longer serves read `null` in every
-    /// column. `properties` is the per-entity cap (Q5): an over-cap
-    /// entity drops properties reverse-lexicographically by base URL
-    /// with its label property protected to the very end.
+    /// Hydrates labels, icons, and capped simple-valued properties for the delivered entities,
+    /// aligned to the delivered order; entities the store no longer serves read `null` in every
+    /// column. `properties` is the per-entity cap (Q5): an over-cap entity drops properties
+    /// reverse-lexicographically by base URL with its label property protected to the very end.
     ///
     /// # Errors
     ///
@@ -469,8 +457,8 @@ impl PostgresDetails {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain
-    /// or with the wrong column types - a query bug, never data.
+    /// Panics when the store answers rows outside the request domain or with the wrong column
+    /// types: a query bug, never data.
     #[tracing::instrument(skip_all, fields(points = entities.count()))]
     pub async fn locate_details(
         &self,
@@ -513,9 +501,8 @@ impl PostgresDetails {
         Ok(details)
     }
 
-    /// Hydrates labels, icons, and type labels and icons for the
-    /// delivered link entities, aligned to the delivered edge order;
-    /// links the store no longer serves read `null`.
+    /// Hydrates labels, icons, and type labels and icons for the delivered link entities, aligned
+    /// to the delivered edge order; links the store no longer serves read `null`.
     ///
     /// # Errors
     ///
@@ -523,8 +510,8 @@ impl PostgresDetails {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain
-    /// or with the wrong column types - a query bug, never data.
+    /// Panics when the store answers rows outside the request domain or with the wrong column
+    /// types: a query bug, never data.
     #[tracing::instrument(skip_all, fields(edges = entities.count()))]
     pub async fn link_details(
         &self,
@@ -562,14 +549,12 @@ impl PostgresDetails {
     }
 }
 
-/// Parses one entity's simple-property object off the store's text
-/// rendering.
+/// Parses one entity's simple-property object off the store's text rendering.
 ///
 /// # Panics
 ///
-/// Panics when the text is not a JSON object of simple values - the
-/// query filters in the store, so anything else is a query bug,
-/// never data.
+/// Panics when the text is not a JSON object of simple values - the query filters in the store, so
+/// anything else is a query bug, never data.
 pub(super) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
     let object: serde_json::Map<String, serde_json::Value> =
         serde_json::from_str(json).expect("the store renders a JSON object");
@@ -595,10 +580,10 @@ pub(super) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
         .collect()
 }
 
-/// Selects the surviving properties under the per-entity cap: the
-/// drop order is reverse-lexicographic by base URL (bytewise), the
-/// label property drops very last (Q5), and survivors sort ascending
-/// by name - the wire's map-key order.
+/// Selects the surviving properties under the per-entity cap.
+///
+/// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops very
+/// last (Q5), and survivors sort ascending by name - the wire's map-key order.
 pub(super) fn select_properties(
     mut entries: Vec<(String, SimpleValue)>,
     label_property: Option<&str>,
@@ -635,8 +620,7 @@ fn uuid_arrays(ids: &[ArchivedEntityId]) -> (Vec<uuid::Uuid>, Vec<uuid::Uuid>) {
     (web_ids, entity_uuids)
 }
 
-/// Reads a result row's request-domain index off the ordinality
-/// column.
+/// Reads a result row's request-domain index off the ordinality column.
 fn domain_index(row: &tokio_postgres::Row) -> usize {
     let index: i64 = row.get(0);
     // Ordinality is 1-based; an index outside the request domain

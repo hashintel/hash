@@ -1,12 +1,10 @@
 //! The relation-instance spool: the edge drain's working artifact.
 //!
-//! The edge stream is consumed exactly once, before the policy table
-//! exists, so the drain spools every `(edge, relation)` reading into a
-//! scratch file and the relation stage maps it back once the policies
-//! are resolved. The spool is transient by design: it lives in the
-//! The spool is transient by design: it lives in the
-//! run's [`ScratchDirectory`], is consumed by the run that wrote it,
-//! and never publishes.
+//! The edge stream is consumed exactly once, before the policy table exists, so the drain spools
+//! every `(edge, relation)` reading into a scratch file and the relation stage maps it back once
+//! the policies are resolved. The spool is transient by design: it lives in the The spool is
+//! transient by design: it lives in the run's [`ScratchDirectory`], is consumed by the run that
+//! wrote it, and never publishes.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use std::{
@@ -26,9 +24,9 @@ use crate::{
 
 /// One spooled `(edge, relation)` reading.
 ///
-/// The three confidences store their values beside presence bits -
-/// bit 0 link, bit 1 source, bit 2 target, the attraction file's score
-/// vocabulary - so the absent-score distinction survives the spool.
+/// The three confidences store their values beside presence bits - bit 0 link, bit 1 source, bit 2
+/// target, the attraction file's score vocabulary - so the absent-score distinction survives the
+/// spool.
 // `FromBytes` is sound here: every field is an unconstrained primitive
 // encoding, and the score ranges are the dataset stream's contract,
 // consumed rather than re-checked.
@@ -61,9 +59,8 @@ impl InstanceRecord {
 
     /// Encodes one reading of `edge` under `relation`.
     ///
-    /// `multiplicity` is the edge's total reading count: the number of
-    /// relation types the edge carries, each spooled as its own
-    /// record.
+    /// `multiplicity` is the edge's total reading count: the number of relation types the edge
+    /// carries, each spooled as its own record.
     #[must_use]
     pub(crate) fn new(
         edge: EdgeRowId,
@@ -185,9 +182,8 @@ impl InstanceSpool {
 
     /// Maps the spool read-only.
     ///
-    /// An empty spool - an edgeless corpus - maps to zero readings
-    /// without touching the file, since a zero-length mapping does not
-    /// exist.
+    /// An empty spool - an edgeless corpus - maps to zero readings without touching the file, since
+    /// a zero-length mapping does not exist.
     ///
     /// # Errors
     ///
@@ -195,9 +191,8 @@ impl InstanceSpool {
     ///
     /// # Panics
     ///
-    /// Panics when the file length disagrees with the pushed count: the
-    /// spool is written and consumed within one run, so a mismatch is a
-    /// program bug, not a data error.
+    /// Panics when the file length disagrees with the pushed count: the spool is written and
+    /// consumed within one run, so a mismatch is a program bug, not a data error.
     #[tracing::instrument(skip_all)]
     pub(crate) fn map(&self) -> io::Result<MappedInstances> {
         if self.count == 0 {
@@ -205,9 +200,8 @@ impl InstanceSpool {
         }
 
         let file = File::open(&self.path)?;
-        // SAFETY: the spool is written once and consumed within the run
-        // that owns its scratch directory; nothing rewrites it while
-        // mapped.
+        // SAFETY: the spool is written once and consumed within the run that owns its scratch
+        // directory; nothing rewrites it while mapped.
         let map = unsafe { Mmap::map(&file) }?;
 
         assert_eq!(

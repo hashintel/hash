@@ -1,17 +1,14 @@
 //! The quality runner: one probe over a published generation.
 //!
-//! [`run`] wires the suite end to end: it opens the generation's
-//! mapped artifacts - the k-NN table for the clump grouping, the
-//! representation matrix, the coordinate frame, the node identities -
-//! probes them against the dataset's canonical space, resolves the
-//! sampled anchors' direct types through the dataset's probe-scoped
-//! type stream, and renders the readings into a [`QualityReport`]
-//! under the given thresholds.
+//! [`run`] wires the suite end to end: it opens the generation's mapped artifacts - the k-NN table
+//! for the clump grouping, the representation matrix, the coordinate frame, the node identities -
+//! probes them against the dataset's canonical space, resolves the sampled anchors' direct types
+//! through the dataset's probe-scoped type stream, and renders the readings into a
+//! [`QualityReport`] under the given thresholds.
 //!
-//! The dataset must observe the snapshot the generation was fitted
-//! from (its metadata records the axes): the runner matches artifact
-//! rows to source identities through the identity artifact, and a
-//! dataset at other axes would resolve types for a different corpus.
+//! The dataset must observe the snapshot the generation was fitted from (its metadata records the
+//! axes): the runner matches artifact rows to source identities through the identity artifact, and
+//! a dataset at other axes would resolve types for a different corpus.
 
 use core::{error::Error, fmt};
 
@@ -71,8 +68,7 @@ pub(crate) enum QualityRunError<E> {
     InvalidCoordinates,
     /// The node-identity artifact could not be opened.
     OpenIdentities(OpenIdentityError),
-    /// The node-identity artifact does not hold a valid table over the
-    /// dataset's id type.
+    /// The node-identity artifact does not hold a valid table over the dataset's id type.
     InvalidIdentities(InvalidIdentityFile),
     /// The artifacts disagree about the corpus row count.
     Rows {
@@ -146,18 +142,16 @@ impl<E: Error + 'static> Error for QualityRunError<E> {
 
 /// Probes a published generation and reports its map fidelity.
 ///
-/// The generation's artifacts are read from their whole-file mappings;
-/// nothing is copied onto the heap beyond the probe's own bounded
-/// scratch. The dataset serves two probe-scoped streams - canonical
-/// embeddings for the sampled rows, direct types for the anchors - and
-/// must observe the snapshot recorded in the generation's metadata.
+/// The generation's artifacts are read from their whole-file mappings; nothing is copied onto the
+/// heap beyond the probe's own bounded scratch. The dataset serves two probe-scoped streams -
+/// canonical embeddings for the sampled rows, direct types for the anchors - and must observe the
+/// snapshot recorded in the generation's metadata.
 ///
 /// # Errors
 ///
-/// Returns an error when an artifact cannot be opened or does not hold
-/// its role's layout, the artifacts disagree about the corpus row
-/// count, the probe design cannot run over the corpus, or a dataset
-/// stream fails or misdelivers.
+/// Returns an error when an artifact cannot be opened or does not hold its role's layout, the
+/// artifacts disagree about the corpus row count, the probe design cannot run over the corpus, or a
+/// dataset stream fails or misdelivers.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \

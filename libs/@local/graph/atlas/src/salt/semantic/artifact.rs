@@ -1,12 +1,9 @@
-//! The semantic graph's published form: one sparse matrix file and its
-//! mapped reader.
+//! The semantic graph's published form: one sparse matrix file and its mapped reader.
 //!
-//! A [`SemanticGraph`] publishes as one [`crate::file::sprs`] file
-//! holding its [`SemanticMatrix`](super::SemanticMatrix) verbatim.
-//! [`SemanticGraphArchive`] reopens the file over a whole-file mapping
-//! and validates the graph invariants once, so training and release
-//! evaluation read the same weights from the page cache without
-//! holding them on the heap.
+//! A [`SemanticGraph`] publishes as one [`crate::file::sprs`] file holding its
+//! [`SemanticMatrix`](super::SemanticMatrix) verbatim. [`SemanticGraphArchive`] reopens the file
+//! over a whole-file mapping and validates the graph invariants once, so training and release
+//! evaluation read the same weights from the page cache without holding them on the heap.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -28,8 +25,8 @@ impl WriteInto for SemanticGraph {
 
     /// Writes the graph as a sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -93,11 +90,10 @@ impl Error for InvalidSemanticFile {
 
 /// A published semantic graph opened over its mapped file.
 ///
-/// Construction checks the graph invariants once, so an open graph only
-/// serves valid views; the matrix regions stay in the page cache under
-/// memory pressure and off the heap. Each [`view`](Self::view)
-/// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
-/// contract), so stages call it once and hold the view.
+/// Construction checks the graph invariants once, so an open graph only serves valid views; the
+/// matrix regions stay in the page cache under memory pressure and off the heap. Each
+/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
+/// so stages call it once and hold the view.
 #[derive(Debug)]
 pub(crate) struct SemanticGraphArchive {
     file: SprsFile,
@@ -108,8 +104,8 @@ impl SemanticGraphArchive {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file does not hold the graph's matrix
-    /// layout or the matrix violates a [`SemanticGraph`] invariant.
+    /// Returns an error when the file does not hold the graph's matrix layout or the matrix
+    /// violates a [`SemanticGraph`] invariant.
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidSemanticFile> {
         let matrix = file.matrix().map_err(InvalidSemanticFile::Matrix)?;
         validate(matrix)?;

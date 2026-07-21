@@ -1,13 +1,10 @@
 //! Measurement seams for the quality suite's live targets.
 //!
-//! [`sweep`] serves the clump-threshold calibration: the clump epsilon
-//! is a calibrated configuration value whose default must carry
-//! measured corpus structure, not a guess, so the sweep opens a
-//! published k-NN table and reads the grouping's shape at each
-//! candidate threshold. [`assess_current`] runs the full quality
-//! probe against a generation root's active generation over the live
-//! store, at the snapshot the generation records, and returns the
-//! serialized report.
+//! [`sweep`] serves the clump-threshold calibration: the clump epsilon is a calibrated
+//! configuration value whose default must carry measured corpus structure, not a guess, so the
+//! sweep opens a published k-NN table and reads the grouping's shape at each candidate threshold.
+//! [`assess_current`] runs the full quality probe against a generation root's active generation
+//! over the live store, at the snapshot the generation records, and returns the serialized report.
 
 use core::{fmt, num::NonZero};
 use std::path::Path;
@@ -54,11 +51,10 @@ pub struct SweepReading {
     pub grouped_rows: usize,
 }
 
-/// A sweep input's refusal: the path does not hold a readable k-NN
-/// table.
+/// A sweep input's refusal: the path does not hold a readable k-NN table.
 ///
-/// Splices into the chain transparently: the display text and the
-/// sources are the wrapped crate-internal fault's, unchanged.
+/// Splices into the chain transparently: the display text and the sources are the wrapped
+/// crate-internal fault's, unchanged.
 #[derive(Debug)]
 pub struct SweepError(SweepFault);
 
@@ -89,13 +85,11 @@ impl core::error::Error for SweepError {
     }
 }
 
-/// Reads the grouping shape of the k-NN table at `path` for every
-/// candidate threshold.
+/// Reads the grouping shape of the k-NN table at `path` for every candidate threshold.
 ///
 /// # Errors
 ///
-/// Returns a [`SweepError`] when the file cannot be opened or does
-/// not hold a valid k-NN table.
+/// Returns a [`SweepError`] when the file cannot be opened or does not hold a valid k-NN table.
 pub fn sweep(path: impl AsRef<Path>, epsilons: &[f32]) -> Result<Sweep, SweepError> {
     let table =
         KnnArchive::new(SprsFile::open(path).map_err(|error| SweepError(SweepFault::Open(error)))?)
@@ -125,8 +119,7 @@ pub fn sweep(path: impl AsRef<Path>, epsilons: &[f32]) -> Result<Sweep, SweepErr
 pub struct AssessOptions {
     /// The probe seed; equal seeds replay the sampling.
     pub seed: u64 = 0,
-    /// Sampled anchor rows. The suite default is 256; a live run over
-    /// a million rows affords more for sharper subgroup cells.
+    /// Sampled anchor rows. The suite default is 256; a live run over a million rows affords more for sharper subgroup cells.
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Sampled comparison rows.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },
@@ -139,23 +132,22 @@ pub struct Assessment {
     pub generation: String,
     /// Whether the report's gates hold.
     pub passes: bool,
-    /// The full [`QualityReport`](super::report::QualityReport) as
-    /// pretty-printed JSON: the self-describing evidence record.
+    /// The full [`QualityReport`](super::report::QualityReport) as pretty-printed JSON.
+    ///
+    /// The self-describing evidence record.
     pub report: String,
 }
 
 /// Assesses the root's active generation against the live store.
 ///
-/// The dataset is frozen at the snapshot the generation's metadata
-/// records, so artifact rows and store identities describe one
-/// corpus.
+/// The dataset is frozen at the snapshot the generation's metadata records, so artifact rows and
+/// store identities describe one corpus.
 ///
 /// # Panics
 ///
-/// Panics when the root or generation cannot be opened, the
-/// generation records no snapshot axes, the store cannot serve the
-/// snapshot, or the run fails; a measurement target reports its
-/// failures by failing.
+/// Panics when the root or generation cannot be opened, the generation records no snapshot axes,
+/// the store cannot serve the snapshot, or the run fails; a measurement target reports its failures
+/// by failing.
 pub async fn assess_current(client: &mut Client, root: &str, options: AssessOptions) -> Assessment {
     let root =
         GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");

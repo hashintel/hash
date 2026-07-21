@@ -13,14 +13,13 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 
 /// A SHA-256 content identity.
 ///
-/// A digest names exactly one byte sequence: artifacts with equal digests
-/// hold identical bytes, up to SHA-256 collision resistance. Manifests store
-/// digests to pin artifact contents, and readers recompute and compare them
-/// to detect substitution or corruption.
+/// A digest names exactly one byte sequence: artifacts with equal digests hold identical bytes, up
+/// to SHA-256 collision resistance. Manifests store digests to pin artifact contents, and readers
+/// recompute and compare them to detect substitution or corruption.
 ///
-/// The text and JSON form is 64 characters of canonical lowercase
-/// hexadecimal. Parsing rejects uppercase digits and noncanonical lengths,
-/// so a digest that round-trips through text is byte-identical.
+/// The text and JSON form is 64 characters of canonical lowercase hexadecimal. Parsing rejects
+/// uppercase digits and noncanonical lengths, so a digest that round-trips through text is
+/// byte-identical.
 #[derive(
     Debug,
     Copy,
@@ -45,10 +44,9 @@ pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 impl Sha256Digest {
     /// Adopts `bytes` as a digest without computing anything.
     ///
-    /// The caller asserts that `bytes` came out of a SHA-256 computation
-    /// over the content this value is meant to name; nothing here can check
-    /// that. Use this to restore digests from storage formats that persist
-    /// raw bytes rather than hexadecimal text.
+    /// The caller asserts that `bytes` came out of a SHA-256 computation over the content this
+    /// value is meant to name; nothing here can check that. Use this to restore digests from
+    /// storage formats that persist raw bytes rather than hexadecimal text.
     #[must_use]
     #[inline]
     pub const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
@@ -87,16 +85,14 @@ impl FromStr for Sha256Digest {
 
 /// A streaming SHA-256 hasher.
 ///
-/// The hasher absorbs bytes incrementally through
-/// [`Update::update`](super::Update::update) (or any stream via
-/// [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with
-/// [`Sha256::finalize`]. The digest is determined by the concatenated byte
-/// stream alone, never by how it was chunked.
+/// The hasher absorbs bytes incrementally through [`Update::update`](super::Update::update) (or any
+/// stream via [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with
+/// [`Sha256::finalize`]. The digest is determined by the concatenated byte stream alone, never by
+/// how it was chunked.
 ///
-/// Note that byte concatenation is ambiguous across component boundaries:
-/// `["ab", "c"]` and `["a", "bc"]` produce the same digest. When a digest
-/// covers multiple variable-length components, frame each component with its
-/// length before hashing.
+/// Note that byte concatenation is ambiguous across component boundaries: `["ab", "c"]` and `["a",
+/// "bc"]` produce the same digest. When a digest covers multiple variable-length components, frame
+/// each component with its length before hashing.
 ///
 /// # Examples
 ///

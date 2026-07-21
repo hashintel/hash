@@ -22,8 +22,9 @@ pub enum OpenPostingsError {
     Header(ValidityError<(), FileHeader>),
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the header's
-        /// geometry overflows `u64`, in which case it matches no real
+        /// The length the header describes.
+        ///
+        /// [`None`] when the header's geometry overflows `u64`, in which case it matches no real
         /// file.
         expected: Option<u64>,
         actual: u64,
@@ -73,12 +74,10 @@ impl Error for OpenPostingsError {
 
 /// A postings file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural
-/// rule, so an open file always describes its own regions exactly. The
-/// regions are borrowed straight from the whole-file mapping and start
-/// 4096-byte aligned: aligned for every scalar and SIMD width. The
-/// accessors expose geometry alone; the membership and parent contracts
-/// are `salt::postings`'s artifact contract.
+/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
+/// and start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose
+/// geometry alone; the membership and parent contracts are `salt::postings`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct PostingsFile {
     map: PageMap,
@@ -89,11 +88,9 @@ impl PostingsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenPostingsError::Io`] when the file cannot be opened
-    /// or mapped, [`OpenPostingsError::Header`] when its leading bytes
-    /// are not a header this module speaks, and
-    /// [`OpenPostingsError::Length`] when the file length contradicts
-    /// the header's geometry.
+    /// Returns [`OpenPostingsError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenPostingsError::Header`] when its leading bytes are not a header this module speaks,
+    /// and [`OpenPostingsError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPostingsError> {
         let map = PageMap::open(path).map_err(OpenPostingsError::Io)?;
@@ -128,8 +125,8 @@ impl PostingsFile {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse
-        // as one, so the deref target is a valid `FileHeader`.
+        // validated that the map is large enough to contain the header and that its bytes parse as
+        // one, so the deref target is a valid `FileHeader`.
         unsafe { &*ptr }
     }
 
@@ -147,8 +144,9 @@ impl PostingsFile {
         self.header().points()
     }
 
-    /// Views the representation flags: `ceil(T/64)` words, LSB-first,
-    /// bit `t` set when type `t`'s membership run is a dense bitmap.
+    /// Views the representation flags.
+    ///
+    /// `ceil(T/64)` words, LSB-first, bit `t` set when type `t`'s membership run is a dense bitmap.
     #[must_use]
     pub(crate) fn flags(&self) -> &[u64] {
         // The offsets and products in the region reads repeat checked

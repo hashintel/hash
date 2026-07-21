@@ -1,24 +1,19 @@
 //! The atlas read API: Surface v1 routes over one opened generation.
 //!
-//! Four routes serve the demo bootstrap: the mutable `current`
-//! pointer, the immutable per-generation manifest, the tile endpoint
-//! answering `SALTILET` bytes, and the edges endpoint answering
-//! `SALTILEE` bytes. The generation is pinned at startup; rotation
-//! reload is the serving track's step 11, not this shell.
+//! Four routes serve the demo bootstrap: the mutable `current` pointer, the immutable
+//! per-generation manifest, the tile endpoint answering `SALTILET` bytes, and the edges endpoint
+//! answering `SALTILEE` bytes. The generation is pinned at startup; rotation reload is the serving
+//! track's step 11, not this shell.
 //!
-//! Each route lives in its own module - handler, path parameters,
-//! and OpenAPI documentation together - so a new endpoint is a new
-//! module plus one line in [`router`]'s table. The shared pieces are
-//! [`problem`] (the RFC 9457 error surface), [`saltile`] (binary
-//! envelope responses and their assembly worker), and [`reference`]
-//! (the OpenAPI document and its reference page).
+//! Each route lives in its own module - handler, path parameters, and OpenAPI documentation
+//! together - so a new endpoint is a new module plus one line in [`router`]'s table. The shared
+//! pieces are [`problem`] (the RFC 9457 error surface), [`saltile`] (binary envelope responses and
+//! their assembly worker), and [`mod@reference`] (the OpenAPI document and its reference page).
 //!
-//! Response assembly is synchronous and CPU-bound, so handlers
-//! schedule it on a rayon worker behind `catch_unwind` and never
-//! inline on the async runtime. Errors are RFC 9457 problem
-//! documents; binary responses ship `Cache-Control: private,
-//! no-store` because the client's application-layer cache is the
-//! cache.
+//! Response assembly is synchronous and CPU-bound, so handlers schedule it on a rayon worker behind
+//! `catch_unwind` and never inline on the async runtime. Errors are RFC 9457 problem documents;
+//! binary responses ship `Cache-Control: private, no-store` because the client's application-layer
+//! cache is the cache.
 
 use alloc::sync::Arc;
 
@@ -66,28 +61,41 @@ const API_DESCRIPTION: &str = "The read API over one published atlas generation:
 - The envelope byte layout is pinned in the atlas crate's `SPEC-ADDENDUM-WIRE.md`; the TypeScript \
                                decoder lives in the frontend's `NetworkGraph/atlas` module.";
 
-/// The shared route state: the pinned generation, the caps the
-/// handlers enforce and the manifest publishes, and the store
-/// connection detail hydration reads through.
+/// The shared route state.
+///
+/// The pinned generation, the caps the handlers enforce and the manifest publishes, the store
+/// connection detail hydration reads through, and the visibility proof every assembly path masks
+/// by.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
     caps: ServeCaps,
     details: Arc<PostgresDetails>,
+    proof: Arc<VisibilityProof>,
 }
 
-/// Builds the read API router over one opened generation, with the
-/// OpenAPI document generated at startup and served beside the API.
+/// Builds the read API router over one opened generation, with the OpenAPI document generated at
+/// startup and served beside the API.
+///
+/// The visibility proof scopes every response the router serves: the hosting process names its
+/// authority explicitly - [`VisibilityProof::full_visibility`] for operator serving without
+/// sessions - and per-scope proofs replace it when sessions arrive.
 ///
 /// # Panics
 ///
-/// Panics when the OpenAPI document fails to serialize, which the
-/// statically declared route table rules out.
-pub fn router(atlas: Arc<Atlas>, caps: ServeCaps, details: Arc<PostgresDetails>) -> Router {
+/// Panics when the OpenAPI document fails to serialize, which the statically declared route table
+/// rules out.
+pub fn router(
+    atlas: Arc<Atlas>,
+    caps: ServeCaps,
+    details: Arc<PostgresDetails>,
+    proof: VisibilityProof,
+) -> Router {
     let state = AppState {
         atlas,
         caps,
         details,
+        proof: Arc::new(proof),
     };
 
     // Responses are declared explicitly per operation; the

@@ -13,13 +13,12 @@ use crate::math::BoxedVecN;
 
 /// A [`Dataset`] held entirely in memory.
 ///
-/// The dataset is a fixture: it serves whatever rows it was constructed
-/// with, and [`new`](Self::new) validates the structural contracts once so
-/// every stream is consistent by construction. Ids in all three domains
-/// are plain little-endian integers chosen by the caller.
+/// The dataset is a fixture: it serves whatever rows it was constructed with, and
+/// [`new`](Self::new) validates the structural contracts once so every stream is consistent by
+/// construction. Ids in all three domains are plain little-endian integers chosen by the caller.
 ///
-/// Malformed lookups are programmer errors and panic, so the streams are
-/// infallible and [`Dataset::Error`] is `!`.
+/// Malformed lookups are programmer errors and panic, so the streams are infallible and
+/// [`Dataset::Error`] is `!`.
 pub(crate) struct MemoryDataset {
     nodes: Vec<Node<U64<LE>>>,
     edges: Vec<Edge<U64<LE>>>,
@@ -31,18 +30,15 @@ pub(crate) struct MemoryDataset {
 impl MemoryDataset {
     /// Creates a dataset serving exactly the given rows.
     ///
-    /// `canonical` maps node ids to their full canonical embeddings and
-    /// may cover any subset of the nodes; requests outside the covered
-    /// subset panic. `cards` maps ontology ids to their finished cards
-    /// and must cover every ontology row once
-    /// [`render_cards`](Dataset::render_cards) streams; uncovered rows
-    /// panic there.
+    /// `canonical` maps node ids to their full canonical embeddings and may cover any subset of the
+    /// nodes; requests outside the covered subset panic. `cards` maps ontology ids to their
+    /// finished cards and must cover every ontology row once
+    /// [`render_cards`](Dataset::render_cards) streams; uncovered rows panic there.
     ///
     /// # Panics
     ///
-    /// Panics when the rows violate the dataset contracts: an edge
-    /// endpoint or a type reference names a row outside its stream, or a
-    /// type list is not strictly ascending.
+    /// Panics when the rows violate the dataset contracts: an edge endpoint or a type reference
+    /// names a row outside its stream, or a type list is not strictly ascending.
     pub(crate) fn new(
         nodes: Vec<Node<U64<LE>>>,
         edges: Vec<Edge<U64<LE>>>,
@@ -142,8 +138,7 @@ impl Dataset for MemoryDataset {
     ///
     /// # Panics
     ///
-    /// The stream panics when a requested node has no canonical embedding
-    /// in the fixture.
+    /// The stream panics when a requested node has no canonical embedding in the fixture.
     fn canonical_node_embeddings<I: Iterator<Item = U64<LE>>>(
         &self,
         nodes: I,
@@ -179,8 +174,7 @@ impl Dataset for MemoryDataset {
     ///
     /// # Panics
     ///
-    /// The stream panics when the fixture holds no card for an ontology
-    /// row's type.
+    /// The stream panics when the fixture holds no card for an ontology row's type.
     fn render_cards(&self) -> Self::CardStream<'_> {
         stream::iter(self.ontology.iter().map(|entry| {
             let card = self

@@ -1,14 +1,11 @@
 //! Card embedding through an external provider.
 //!
-//! [`ExternalEmbeddingProvider`] adapts any
-//! [`EmbeddingGenerator`] into a [`CardEmbedder`]. The generator family
-//! already pins the vector type, the error type, and the input-order
-//! contract, so backends differ only in data: the
-//! [`EmbeddingContract`] naming the configuration the fingerprint
-//! commits to, and the [`RequestLimits`] the proxy packs requests
-//! under. One request never exceeds the document ceiling or the summed
-//! token ceiling; token counts are exact `cl100k_base` counts, the
-//! encoding of the embedding models this crate targets.
+//! [`ExternalEmbeddingProvider`] adapts any [`EmbeddingGenerator`] into a [`CardEmbedder`]. The
+//! generator family already pins the vector type, the error type, and the input-order contract, so
+//! backends differ only in data: the [`EmbeddingContract`] naming the configuration the fingerprint
+//! commits to, and the [`RequestLimits`] the proxy packs requests under. One request never exceeds
+//! the document ceiling or the summed token ceiling; token counts are exact `cl100k_base` counts,
+//! the encoding of the embedding models this crate targets.
 
 use core::{error::Error, fmt, num::NonZero};
 
@@ -28,11 +25,10 @@ mod tests;
 
 /// The configuration an [`EmbedderFingerprint`] commits to.
 ///
-/// The fields name everything that determines the vector a text embeds
-/// to, as the caller configured the generator; the adapter adds the
-/// dimension it enforces. Stating a contract that differs from the
-/// generator's actual configuration poisons cross-generation reuse, so
-/// construct it beside the generator, from the same values.
+/// The fields name everything that determines the vector a text embeds to, as the caller configured
+/// the generator; the adapter adds the dimension it enforces. Stating a contract that differs from
+/// the generator's actual configuration poisons cross-generation reuse, so construct it beside the
+/// generator, from the same values.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EmbeddingContract {
     /// The provider organization, e.g. `openai`.
@@ -48,8 +44,8 @@ pub(crate) struct EmbeddingContract {
 impl EmbeddingContract {
     /// Returns the fingerprint of this contract.
     ///
-    /// Every field is length-prefixed in the preimage, so fingerprints
-    /// distinguish contracts that concatenate to equal bytes.
+    /// Every field is length-prefixed in the preimage, so fingerprints distinguish contracts that
+    /// concatenate to equal bytes.
     #[expect(
         clippy::little_endian_bytes,
         reason = "the preimage is pinned to canonical little-endian length prefixes on every \
@@ -78,8 +74,7 @@ impl EmbeddingContract {
 
 /// Ceilings one provider request must stay under.
 ///
-/// The defaults are the OpenAI embeddings API's published per-request
-/// ceilings.
+/// The defaults are the OpenAI embeddings API's published per-request ceilings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct RequestLimits {
     /// Maximum texts per request.
@@ -90,10 +85,9 @@ pub(crate) struct RequestLimits {
 
 /// A [`CardEmbedder`] over an external [`EmbeddingGenerator`].
 ///
-/// The proxy owns request sizing: a workload splits into requests that
-/// respect both [`RequestLimits`] ceilings, each text's cost measured
-/// by its exact `cl100k_base` token count. Returned vectors are
-/// re-validated to the canonical width and handed back in input order.
+/// The proxy owns request sizing: a workload splits into requests that respect both
+/// [`RequestLimits`] ceilings, each text's cost measured by its exact `cl100k_base` token count.
+/// Returned vectors are re-validated to the canonical width and handed back in input order.
 #[derive(Debug)]
 pub(crate) struct ExternalEmbeddingProvider<G> {
     generator: G,
@@ -114,9 +108,8 @@ impl<G> ExternalEmbeddingProvider<G> {
 
     /// Returns how many leading texts the next request may carry.
     ///
-    /// At least one text is always admitted once it fits both ceilings
-    /// alone; `offset` locates `texts[0]` in the workload for error
-    /// reports.
+    /// At least one text is always admitted once it fits both ceilings alone; `offset` locates
+    /// `texts[0]` in the workload for error reports.
     fn batch_len(&self, texts: &[&str], offset: usize) -> Result<usize, ExternalEmbeddingError> {
         let mut tokens_left = self.limits.tokens.get();
         for (position, &text) in texts.iter().take(self.limits.documents.get()).enumerate() {

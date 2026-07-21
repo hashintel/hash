@@ -72,9 +72,9 @@ pub(crate) struct Card {
 impl Card {
     /// Adopts pre-rendered text as a finished card.
     ///
-    /// The text is adopted unchanged: no truncation and no lint run, the
-    /// diagnostics record zero truncation passes, and the token count is
-    /// [`HeuristicTokenizer`]'s deterministic byte estimate.
+    /// The text is adopted unchanged: no truncation and no lint run, the diagnostics record zero
+    /// truncation passes, and the token count is [`HeuristicTokenizer`]'s deterministic byte
+    /// estimate.
     #[must_use]
     pub(crate) fn verbatim(card_text: String) -> Self {
         let Ok(token_count) = HeuristicTokenizer.count_tokens(&card_text);
@@ -110,8 +110,7 @@ impl Card {
         &self.truncations
     }
 
-    /// Reports a remaining hard-budget violation or removal of more than
-    /// half the examples.
+    /// Reports a remaining hard-budget violation or removal of more than half the examples.
     #[inline]
     #[must_use]
     pub(crate) const fn severely_truncated(&self) -> bool {
@@ -121,16 +120,15 @@ impl Card {
 
 /// Budgets, renders, and lints one canonical relation card.
 ///
-/// The contents arrive adapter-built; this applies the format's own
-/// normalization (the simple-pair hoist), truncates under the configured
-/// budgets, and verifies the final text is identifier-free.
-/// `forbidden_identifiers` contains source identifiers resolved by the
-/// caller; empty identifiers are ignored.
+/// The contents arrive adapter-built; this applies the format's own normalization (the simple-pair
+/// hoist), truncates under the configured budgets, and verifies the final text is identifier-free.
+/// `forbidden_identifiers` contains source identifiers resolved by the caller; empty identifiers
+/// are ignored.
 ///
 /// # Errors
 ///
-/// Returns an error when tokenization fails or the final text leaks a
-/// URL, UUID, or caller-supplied source identifier.
+/// Returns an error when tokenization fails or the final text leaks a URL, UUID, or caller-supplied
+/// source identifier.
 pub(crate) fn build_card<T, A>(
     mut contents: CardContents<'_, A>,
     config: CardsConfig,

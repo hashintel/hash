@@ -15,8 +15,7 @@ use super::AlignedVecN;
 #[cfg(test)]
 mod tests;
 
-/// An owned `T x N` matrix of `f32` components in one heap allocation
-/// aligned for [`f32x8`].
+/// An owned `T x N` matrix of `f32` components in one heap allocation aligned for [`f32x8`].
 ///
 /// The row width `N` must be a nonzero multiple of 8, so one row's `N * 4` bytes are a multiple of
 /// `align_of::<f32x8>()` and the base alignment carries to every row: [`rows`](Self::rows) views
@@ -84,12 +83,10 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
             )
     }
 
-    /// Creates the zero matrix of `rows` rows in a new aligned
-    /// allocation in `alloc`.
+    /// Creates the zero matrix of `rows` rows in a new aligned allocation in `alloc`.
     ///
-    /// The process is aborted through
-    /// [`handle_alloc_error`](std::alloc::handle_alloc_error) when the
-    /// allocator cannot provide the buffer.
+    /// The process is aborted through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
+    /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
     pub fn zeroed_in(rows: usize, alloc: A) -> Self {
@@ -217,11 +214,10 @@ impl<const N: usize, A: Allocator> Drop for MatrixN<N, A> {
     }
 }
 
-// SAFETY: the matrix owns its buffer exclusively; sending it moves the
-// unique owner, exactly as `Box<[f32]>` is `Send`.
+// SAFETY: the matrix owns its buffer exclusively; sending it moves the unique owner, exactly as
+// `Box<[f32]>` is `Send`.
 unsafe impl<const N: usize, A: Allocator + Send> Send for MatrixN<N, A> {}
 
-// SAFETY: shared access hands out only `&[f32]`-shaped views of the
-// owned buffer; there is no interior mutability, exactly as `Box<[f32]>`
-// is `Sync`.
+// SAFETY: shared access hands out only `&[f32]`-shaped views of the owned buffer; there is no
+// interior mutability, exactly as `Box<[f32]>` is `Sync`.
 unsafe impl<const N: usize, A: Allocator + Sync> Sync for MatrixN<N, A> {}

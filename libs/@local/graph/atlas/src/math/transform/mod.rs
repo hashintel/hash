@@ -14,21 +14,18 @@ mod tests;
 
 /// An affine transformation of 2D space: scale, rotation, and translation.
 ///
-/// A transform maps a vector `p` to `x_axis * p.x + y_axis * p.y +
-/// translation`, where `x_axis` and `y_axis` are the columns of a 2x2
-/// linear part. This is the top of the usual 3x3 homogeneous matrix with
-/// its constant `[0 0 1]` bottom row omitted, so a transform stores six
-/// coefficients rather than nine. Perspective is intentionally out of
-/// scope; every representable transform keeps parallel lines parallel.
+/// A transform maps a vector `p` to `x_axis * p.x + y_axis * p.y + translation`, where `x_axis` and
+/// `y_axis` are the columns of a 2x2 linear part. This is the top of the usual 3x3 homogeneous
+/// matrix with its constant `[0 0 1]` bottom row omitted, so a transform stores six coefficients
+/// rather than nine. Perspective is intentionally out of scope; every representable transform keeps
+/// parallel lines parallel.
 ///
 /// Build transforms from the constructors ([`from_scale`](Self::from_scale),
-/// [`from_rotation`](Self::from_rotation),
-/// [`from_translation`](Self::from_translation), or
-/// [`from_cols`](Self::from_cols) for the general case) and combine them
-/// with [`then`](Self::then), which reads in application order. Apply a
-/// transform to a single vector with [`apply`](Self::apply) or to a whole
-/// [`Vec2x4T`] batch with [`apply_x4`](Self::apply_x4), which stays entirely
-/// in SIMD registers.
+/// [`from_rotation`](Self::from_rotation), [`from_translation`](Self::from_translation), or
+/// [`from_cols`](Self::from_cols) for the general case) and combine them with [`then`](Self::then),
+/// which reads in application order. Apply a transform to a single vector with
+/// [`apply`](Self::apply) or to a whole [`Vec2x4T`] batch with [`apply_x4`](Self::apply_x4), which
+/// stays entirely in SIMD registers.
 ///
 /// # Examples
 ///
@@ -42,8 +39,7 @@ mod tests;
 /// assert_eq!(transform.apply(Vec2::new(3.0, 4.0)), Vec2::new(16.0, 8.0));
 /// ```
 ///
-/// Rotations are exact only where sine and cosine are, so compare with a
-/// tolerance:
+/// Rotations are exact only where sine and cosine are, so compare with a tolerance:
 ///
 /// ```
 /// use hash_graph_atlas::math::{Rotation, Transform, Vec2};
@@ -82,8 +78,7 @@ impl Transform {
 
     /// Creates a transform from its two linear columns and translation.
     ///
-    /// The resulting transform maps `p` to
-    /// `x_axis * p.x + y_axis * p.y + translation`.
+    /// The resulting transform maps `p` to `x_axis * p.x + y_axis * p.y + translation`.
     #[inline]
     #[must_use]
     pub const fn from_cols(x_axis: Vec2, y_axis: Vec2, translation: Vec2) -> Self {
@@ -94,8 +89,7 @@ impl Transform {
         }
     }
 
-    /// Creates a transform that scales each axis independently around the
-    /// origin.
+    /// Creates a transform that scales each axis independently around the origin.
     #[inline]
     #[must_use]
     pub const fn from_scale(scale: Vec2) -> Self {
@@ -124,16 +118,13 @@ impl Transform {
         Self::from_cols(Vec2::new(1.0, 0.0), Vec2::new(0.0, 1.0), translation)
     }
 
-    /// Returns the transform equivalent to applying `self` first, then
-    /// `next`.
+    /// Returns the transform equivalent to applying `self` first, then `next`.
     ///
-    /// This reads in application order: `scale.then(translate)` scales
-    /// before it translates. In matrix notation the result is
-    /// `next * self`.
+    /// This reads in application order: `scale.then(translate)` scales before it translates. In
+    /// matrix notation the result is `next * self`.
     ///
-    /// `next` is anything convertible into a transform, so [`Rotation`]
-    /// and [`Translation`] values compose directly without widening at the
-    /// call site.
+    /// `next` is anything convertible into a transform, so [`Rotation`] and [`Translation`] values
+    /// compose directly without widening at the call site.
     ///
     /// # Examples
     ///
@@ -174,14 +165,13 @@ impl Transform {
 
     /// Transforms four vectors at once, entirely in SIMD registers.
     ///
-    /// Each coefficient is splat across a [`Simd<f32, 4>`](Simd) lane group
-    /// and combined with the batch's axis groups, so the whole
-    /// transformation is two fused multiply-adds per axis with no shuffles.
-    /// Transform batches in the [`Vec2x4T`] layout inside hot loops.
+    /// Each coefficient is splat across a [`Simd<f32, 4>`](Simd) lane group and combined with the
+    /// batch's axis groups, so the whole transformation is two fused multiply-adds per axis with no
+    /// shuffles. Transform batches in the [`Vec2x4T`] layout inside hot loops.
     ///
-    /// On targets with native FMA the per-axis results are computed with a
-    /// single rounding per multiply-add, so they can differ from
-    /// [`apply`](Self::apply) by up to one unit in the last place.
+    /// On targets with native FMA the per-axis results are computed with a single rounding per
+    /// multiply-add, so they can differ from [`apply`](Self::apply) by up to one unit in the last
+    /// place.
     ///
     /// # Examples
     ///
@@ -231,15 +221,14 @@ impl Transform {
 
     /// Returns the transform that undoes `self`, when one exists.
     ///
-    /// The result maps every output of [`apply`](Self::apply) back to its
-    /// input, up to floating-point rounding. The rounding grows with the
-    /// condition of the linear part: a transform that nearly collapses an
-    /// axis inverts with proportionally amplified error.
+    /// The result maps every output of [`apply`](Self::apply) back to its input, up to
+    /// floating-point rounding. The rounding grows with the condition of the linear part: a
+    /// transform that nearly collapses an axis inverts with proportionally amplified error.
     ///
-    /// Returns [`None`] when the determinant of the linear part is zero,
-    /// subnormal, or not finite, in which case no usable inverse exists.
-    /// Note that [`Rotation::inverse`] and [`Translation::inverse`] are
-    /// infallible and exact; prefer them when the transform kind is known.
+    /// Returns [`None`] when the determinant of the linear part is zero, subnormal, or not finite,
+    /// in which case no usable inverse exists. Note that [`Rotation::inverse`] and
+    /// [`Translation::inverse`] are infallible and exact; prefer them when the transform kind is
+    /// known.
     ///
     /// # Examples
     ///

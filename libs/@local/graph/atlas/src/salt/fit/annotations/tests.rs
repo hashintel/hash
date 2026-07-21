@@ -13,8 +13,7 @@ use crate::{
 const DIGEST: &str = "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b";
 const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
 
-/// Composes a minimal contract-conforming document: one hash card
-/// carrying one geometry vote.
+/// Composes a minimal contract-conforming document: one hash card carrying one geometry vote.
 fn document() -> String {
     json!({
         "cards": [{

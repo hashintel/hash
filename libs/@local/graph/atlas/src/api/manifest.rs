@@ -1,5 +1,6 @@
-//! `GET /v1/atlas/generation/{generation}/manifest`: immutable
-//! configuration-derived bootstrap data.
+//! `GET /v1/atlas/generation/{generation}/manifest`.
+//!
+//! Immutable configuration-derived bootstrap data.
 
 use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{
@@ -33,8 +34,9 @@ pub(super) struct GenerationPath {
     generation: String,
 }
 
-/// `GET /v1/atlas/generation/{generation}/manifest`: immutable
-/// configuration-derived bootstrap data.
+/// `GET /v1/atlas/generation/{generation}/manifest`.
+///
+/// Immutable configuration-derived bootstrap data.
 pub(super) async fn handler(
     State(state): State<AppState>,
     Path(GenerationPath { generation }): Path<GenerationPath>,

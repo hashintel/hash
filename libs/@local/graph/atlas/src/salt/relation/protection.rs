@@ -1,37 +1,31 @@
 //! The protection index: per-row no-repel evidence over linked pairs.
 //!
-//! [`ProtectionIndex`] answers one question for an endpoint pair: does
-//! its link evidence veto targeted repulsion? Two channels answer it
-//! independently, because mined hard negatives aim repulsion at specific
-//! pairs while ordinary sampled negatives spread it broadly: each
-//! channel carries its own applicability floor and admission threshold.
+//! [`ProtectionIndex`] answers one question for an endpoint pair: does its link evidence veto
+//! targeted repulsion? Two channels answer it independently, because mined hard negatives aim
+//! repulsion at specific pairs while ordinary sampled negatives spread it broadly: each channel
+//! carries its own applicability floor and admission threshold.
 //!
-//! Evidence is stored, judgement is computed: the index holds one
-//! [`PairEvidence`] per linked pair - the maxima of the applicability-
-//! discounted and undiscounted class evidence over the pair's
-//! instances - and every channel's mass under a floor `F` is
+//! Evidence is stored, judgement is computed: the index holds one [`PairEvidence`] per linked
+//! pair (the maxima of the applicability-discounted and undiscounted class evidence over the
+//! pair's instances), and every channel's mass under a floor `F` is
 //!
 //! ```text
 //! m_F = max(discounted, F * undiscounted),
 //! ```
 //!
-//! exactly, because the maximum distributes over the per-instance
-//! `max(a, F)`: `max_i(c_i p_i max(a_i, F)) = max(max_i(c_i p_i a_i),
-//! F max_i(c_i p_i))`. Floors and thresholds are therefore both
-//! query-time parameters ([`ProtectionConfig`]), and one built index
-//! serves every floor and threshold calibration unchanged.
+//! exactly, because the maximum distributes over the per-instance `max(a, F)`: `max_i(c_i p_i
+//! max(a_i, F)) = max(max_i(c_i p_i a_i), F max_i(c_i p_i))`. Floors and thresholds are therefore
+//! both query-time parameters ([`ProtectionConfig`]), and one built index serves every floor and
+//! threshold calibration unchanged.
 //!
-//! The index is a symmetric compressed sparse row matrix over the
-//! node-row domain, each linked pair stored in both of its rows with
-//! bit-equal evidence: row `i` lists every partner whose link protects
-//! the pair, which is the shape hard-negative mining consumes when it
-//! vets the candidates of one projected point.
+//! The index is a symmetric compressed sparse row matrix over the node-row domain, each linked pair
+//! stored in both of its rows with bit-equal evidence: row `i` lists every partner whose link
+//! protects the pair, which is the shape hard-negative mining consumes when it vets the candidates
+//! of one projected point.
 //!
-//! Protection is deliberately blind to attraction strength: class
-//! coefficients, degree normalization, strength, and force pruning
-//! answer how strongly an admitted force pulls, while protection
-//! answers whether repulsion is safe, so none of those factors enters
-//! the evidence.
+//! Protection is deliberately blind to attraction strength: class coefficients, degree
+//! normalization, strength, and force pruning answer how strongly an admitted force pulls, while
+//! protection answers whether repulsion is safe, so none of those factors enters the evidence.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use core::fmt;
@@ -44,8 +38,7 @@ use crate::{
     file::sprs::{SprsValue, ValueTag},
 };
 
-/// The index's matrix layout: evidence values, `u32` partner columns,
-/// `u64` row pointers.
+/// The index's matrix layout: evidence values, `u32` partner columns, `u64` row pointers.
 pub(crate) type ProtectionMatrix = CsMatI<PairEvidence, u32, u64>;
 
 /// A borrowed [`ProtectionMatrix`].
@@ -53,14 +46,12 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 
 /// One linked pair's aggregated class evidence.
 ///
-/// Both components take the maximum over every admitted instance
-/// between the pair's rows, parallel links and distinct relations
-/// alike: one strong link suffices to veto repulsion, however many weak
-/// ones accompany it. Per instance, the class evidence is the effective
-/// confidence times the selected Coincident and Proximal probability;
-/// `discounted` additionally multiplies the relation's calibrated
-/// applicability. The index validates both components finite,
-/// non-negative, and ordered `discounted <= undiscounted`.
+/// Both components take the maximum over every admitted instance between the pair's rows, parallel
+/// links and distinct relations alike: one strong link suffices to veto repulsion, however many
+/// weak ones accompany it. Per instance, the class evidence is the effective confidence times the
+/// selected Coincident and Proximal probability; `discounted` additionally multiplies the
+/// relation's calibrated applicability. The index validates both components finite, non-negative,
+/// and ordered `discounted <= undiscounted`.
 // FromBytes on purpose: the components carry no construction invariant
 // of their own - the index validates its entries as a whole, exactly
 // like the semantic graph's mapped weights.
@@ -77,8 +68,7 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 )]
 #[repr(C)]
 pub(crate) struct PairEvidence {
-    /// The applicability-discounted evidence maximum,
-    /// `max(c * (p_C + p_P) * a)`.
+    /// The applicability-discounted evidence maximum, `max(c * (p_C + p_P) * a)`.
     pub discounted: f32,
     /// The undiscounted evidence maximum, `max(c * (p_C + p_P))`.
     pub undiscounted: f32,
@@ -93,9 +83,8 @@ impl SprsValue for PairEvidence {
 impl PairEvidence {
     /// Returns the pair's evidence mass under an applicability floor.
     ///
-    /// This is the exact per-channel mass: the floor's `max(a, F)`
-    /// distributes through the per-instance maximum into
-    /// `max(discounted, floor * undiscounted)`.
+    /// This is the exact per-channel mass: the floor's `max(a, F)` distributes through the
+    /// per-instance maximum into `max(discounted, floor * undiscounted)`.
     #[inline]
     #[must_use]
     pub(crate) fn mass(self, floor: f32) -> f32 {
@@ -103,17 +92,13 @@ impl PairEvidence {
     }
 }
 
-/// One protection channel's applicability floor and admission
-/// threshold, valid by construction.
+/// One protection channel's applicability floor and admission threshold, valid by construction.
 ///
-/// The floor lifts a relation's calibrated applicability before it
-/// enters the channel's mass, so a relation too unfamiliar to earn pull
-/// can still retain enough evidence to veto repulsion; 0 leaves
-/// applicability undisturbed. The threshold is the mass at which the
-/// channel protects; 0 protects every linked pair, the conservative
-/// reading of link evidence. Floors and thresholds jointly determine
-/// the protected set and are calibrated together from reviewed
-/// validation pairs.
+/// The floor lifts a relation's calibrated applicability before it enters the channel's mass, so a
+/// relation too unfamiliar to earn pull can still retain enough evidence to veto repulsion; 0
+/// leaves applicability undisturbed. The threshold is the mass at which the channel protects; 0
+/// protects every linked pair, the conservative reading of link evidence. Floors and thresholds
+/// jointly determine the protected set and are calibrated together from reviewed validation pairs.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct ChannelConfig {
     floor: f32 = 0.0,
@@ -123,9 +108,8 @@ pub(crate) struct ChannelConfig {
 impl ChannelConfig {
     /// Creates a channel configuration.
     ///
-    /// Returns [`None`] unless the floor lies in `0.0..=1.0` and the
-    /// threshold is finite and non-negative. The default is floor 0,
-    /// threshold 0.
+    /// Returns [`None`] unless the floor lies in `0.0..=1.0` and the threshold is finite and
+    /// non-negative. The default is floor 0, threshold 0.
     #[must_use]
     pub(crate) const fn new(floor: f32, threshold: f32) -> Option<Self> {
         if !(floor >= 0.0 && floor <= 1.0) {
@@ -159,12 +143,10 @@ impl ChannelConfig {
     }
 }
 
-/// Both channels' query-time protection settings, valid by
-/// construction.
+/// Both channels' query-time protection settings, valid by construction.
 ///
-/// The channels satisfy `ordinary.floor <= hard.floor` and
-/// `hard.threshold <= ordinary.threshold`: hard negatives are aimed at
-/// specific pairs, so their channel warrants at least as much caution
+/// The channels satisfy `ordinary.floor <= hard.floor` and `hard.threshold <= ordinary.threshold`:
+/// hard negatives are aimed at specific pairs, so their channel warrants at least as much caution
 /// in the floor and no more evidence to trip in the threshold.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProtectionConfig {
@@ -182,11 +164,10 @@ const impl Default for ProtectionConfig {
 impl ProtectionConfig {
     /// Creates a protection configuration from the two channels.
     ///
-    /// Returns [`None`] unless `ordinary.floor <= hard.floor` and
-    /// `hard.threshold <= ordinary.threshold`. `protect_ordinary`
-    /// disables the ordinary channel outright: every ordinary negative
-    /// is admitted while hard-negative protection stands. The default
-    /// is both channels at floor 0 and threshold 0 with both active.
+    /// Returns [`None`] unless `ordinary.floor <= hard.floor` and `hard.threshold <=
+    /// ordinary.threshold`. `protect_ordinary` disables the ordinary channel outright: every
+    /// ordinary negative is admitted while hard-negative protection stands. The default is both
+    /// channels at floor 0 and threshold 0 with both active.
     #[must_use]
     pub(crate) const fn new(
         hard: ChannelConfig,
@@ -227,9 +208,8 @@ impl ProtectionConfig {
 
 /// An unordered pair of node rows in canonical order.
 ///
-/// The two rows are stored with [`first`](Self::first) at most
-/// [`second`](Self::second), so a pair equals itself however its rows
-/// arrive.
+/// The two rows are stored with [`first`](Self::first) at most [`second`](Self::second), so a pair
+/// equals itself however its rows arrive.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct NodePair {
     first: NodeRowId,
@@ -285,8 +265,7 @@ pub(crate) struct PairVerdict {
 }
 
 impl PairVerdict {
-    /// The verdict of a pair without link evidence: unprotected in both
-    /// channels.
+    /// The verdict of a pair without link evidence: unprotected in both channels.
     pub(crate) const UNPROTECTED: Self = Self {
         hard: false,
         ordinary: false,
@@ -359,8 +338,8 @@ impl core::error::Error for ProtectionValidationError {}
 
 /// Checks every index invariant over a borrowed matrix.
 ///
-/// Rows check in parallel; the reported violation is the first in row
-/// order regardless of scheduling, so failures are deterministic.
+/// Rows check in parallel; the reported violation is the first in row order regardless of
+/// scheduling, so failures are deterministic.
 // The symmetry check compares the two directions bit-exactly (derived
 // PartialEq over the f32 components): both are written from one
 // aggregated value, so bit equality is the constructed contract.
@@ -422,11 +401,10 @@ fn validate_row(
 
 /// The symmetric no-repel evidence matrix of one generation.
 ///
-/// Row `i` stores the evidence of every protected pair at node row `i`,
-/// keyed by the other endpoint in ascending row order; every pair
-/// appears in both of its rows with bit-equal evidence, and no row
-/// references itself. A pair absent from the matrix has no admitted
-/// link between its rows and is unprotected under every configuration.
+/// Row `i` stores the evidence of every protected pair at node row `i`, keyed by the other endpoint
+/// in ascending row order; every pair appears in both of its rows with bit-equal evidence, and no
+/// row references itself. A pair absent from the matrix has no admitted link between its rows and
+/// is unprotected under every configuration.
 #[derive(Debug, Clone)]
 pub(crate) struct ProtectionIndex(ProtectionMatrix);
 
@@ -435,9 +413,8 @@ impl ProtectionIndex {
     ///
     /// # Errors
     ///
-    /// Returns an error when the matrix is not row-compressed, not
-    /// square, self-referencing, stores a non-finite, negative, or
-    /// misordered evidence pair, or stores an edge whose two directions
+    /// Returns an error when the matrix is not row-compressed, not square, self-referencing, stores
+    /// a non-finite, negative, or misordered evidence pair, or stores an edge whose two directions
     /// are missing or unequal.
     pub(crate) fn new(matrix: ProtectionMatrix) -> Result<Self, ProtectionValidationError> {
         validate(matrix.view())?;
@@ -466,8 +443,8 @@ pub(crate) struct ProtectionView<'view>(ProtectionMatrixView<'view>);
 impl<'view> ProtectionView<'view> {
     /// Wraps a matrix whose invariants already hold.
     ///
-    /// The caller promises the matrix passed [`validate`]; the wrapper
-    /// performs no checks of its own.
+    /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
+    /// own.
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: ProtectionMatrixView<'view>) -> Self {
@@ -512,9 +489,8 @@ impl<'view> ProtectionView<'view> {
 
     /// Looks up a pair's evidence.
     ///
-    /// Returns [`None`] when no admitted link connects the pair's rows,
-    /// or either row lies outside the row domain. Time is one row
-    /// resolution plus a binary search of that row's partners.
+    /// Returns [`None`] when no admitted link connects the pair's rows, or either row lies outside
+    /// the row domain. Time is one row resolution plus a binary search of that row's partners.
     #[must_use]
     pub(crate) fn get(&self, pair: NodePair) -> Option<PairEvidence> {
         let (indptr, columns, evidence) = self.0.into_raw_storage();
@@ -541,9 +517,8 @@ impl<'view> ProtectionView<'view> {
 
     /// Judges a pair's protection under the given configuration.
     ///
-    /// A channel protects when the pair's evidence mass under the
-    /// channel's floor reaches the channel's threshold; a pair without
-    /// link evidence is unprotected in both channels.
+    /// A channel protects when the pair's evidence mass under the channel's floor reaches the
+    /// channel's threshold; a pair without link evidence is unprotected in both channels.
     #[must_use]
     pub(crate) fn judge(&self, pair: NodePair, config: ProtectionConfig) -> PairVerdict {
         let Some(evidence) = self.get(pair) else {

@@ -1,19 +1,17 @@
 //! Applicability distribution fitting over the complete corpus.
 //!
-//! [`fit_applicability`] fits a per-dimension mean and a diagonal
-//! variance shrunk toward the pooled variance,
+//! [`fit_applicability`] fits a per-dimension mean and a diagonal variance shrunk toward the pooled
+//! variance,
 //!
 //! ```text
 //! shrinkage = dimensions / (rows + dimensions),
 //! ```
 //!
-//! which regularizes sparse high-dimensional samples while retaining
-//! dimension-level scale where the sample supports it. The training
-//! rows' own standardized distances are sorted and retained, so a
-//! prediction's applicability is its empirical upper-tail rank: an
-//! embedding far from everything the model was fitted on scores near
-//! zero, flagging the prediction as unsupported. Applicability is not
-//! a fourth geometry class; it is evidence about the embedding.
+//! which regularizes sparse high-dimensional samples while retaining dimension-level scale where
+//! the sample supports it. The training rows' own standardized distances are sorted and retained,
+//! so a prediction's applicability is its empirical upper-tail rank: an embedding far from
+//! everything the model was fitted on scores near zero, flagging the prediction as unsupported.
+//! Applicability is not a fourth geometry class; it is evidence about the embedding.
 
 use super::{FitError, TrainingSet};
 use crate::{

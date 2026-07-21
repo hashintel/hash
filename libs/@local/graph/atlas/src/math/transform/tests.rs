@@ -136,9 +136,10 @@ fn then_widens_rotation_and_translation() {
     assert_vec2_close(transform.apply(Vec2::new(3.0, 4.0)), Vec2::new(-8.0, 7.0));
 }
 
-/// A well-conditioned transform: per-axis scale magnitudes in
-/// `0.1..10` (condition number at most 100), an arbitrary rotation, and
-/// a translation bounded to `-1e3..1e3`.
+/// A well-conditioned transform.
+///
+/// Per-axis scale magnitudes in `0.1..10` (condition number at most 100), an arbitrary rotation,
+/// and a translation bounded to `-1e3..1e3`.
 fn transform_strategy() -> impl Strategy<Value = Transform> {
     (
         0.1_f32..10.0,
@@ -163,19 +164,17 @@ fn transform_strategy() -> impl Strategy<Value = Transform> {
         )
 }
 
-/// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
-/// range.
+/// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// Asserts two points agree up to a tolerance scaled by the magnitude of
-/// the values flowing through the transforms under test.
+/// Asserts two points agree up to a tolerance scaled by the magnitude of the values flowing through
+/// the transforms under test.
 ///
-/// Intermediate coordinates reach roughly `magnitude`, and cancellation
-/// can leave a result far smaller than the values that produced it, so
-/// the tolerance scales with the inputs' magnitude rather than the
-/// result's.
+/// Intermediate coordinates reach roughly `magnitude`, and cancellation can leave a result far
+/// smaller than the values that produced it, so the tolerance scales with the inputs' magnitude
+/// rather than the result's.
 #[track_caller]
 fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
     let tolerance = 128.0 * f32::EPSILON * magnitude.max(1.0);
@@ -188,9 +187,7 @@ fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
 }
 
 proptest! {
-    /// A well-conditioned transform's inverse round-trips points:
-    /// `inverse().apply(apply(p)) == p` up to rounding amplified by the
-    /// bounded (at most 100) condition of the linear part.
+    /// A well-conditioned transform's inverse round-trips points: `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100) condition of the linear part.
     #[test]
     fn inverse_round_trips_arbitrary_points(
         transform in transform_strategy(),
@@ -206,9 +203,7 @@ proptest! {
         assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
     }
 
-    /// Composition distributes over application:
-    /// `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled
-    /// by the intermediate coordinates' magnitude.
+    /// Composition distributes over application: `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled by the intermediate coordinates' magnitude.
     #[test]
     fn then_matches_sequential_application_on_arbitrary_transforms(
         first in transform_strategy(),

@@ -1,27 +1,22 @@
 //! The semantic graph: fuzzy edge weights over the k-NN table.
 //!
-//! The deliverable is [`SemanticGraph`]: a symmetric sparse matrix over
-//! the node-row domain whose entry `(i, j)` weights the semantic edge
-//! between rows `i` and `j` in `(0, 1]`. It is the weighted form of the
-//! [`Knn`](super::knn::table::Knn) table: distances calibrate into
-//! directed fuzzy memberships per row ([`bandwidth`]), and the directed
-//! memberships combine into one undirected weight by the probabilistic
-//! union
+//! The deliverable is [`SemanticGraph`]: a symmetric sparse matrix over the node-row domain whose
+//! entry `(i, j)` weights the semantic edge between rows `i` and `j` in `(0, 1]`. It is the
+//! weighted form of the [`Knn`](super::knn::table::Knn) table: distances calibrate into directed
+//! fuzzy memberships per row ([`bandwidth`]), and the directed memberships combine into one
+//! undirected weight by the probabilistic union
 //!
 //! ```text
 //! w(i, j) = p(i -> j) + p(j -> i) - p(i -> j) * p(j -> i),
 //! ```
 //!
-//! an absent direction contributing zero, so a one-sided edge keeps its
-//! directed membership. The union's support is the union of the
-//! directed supports: a row may carry up to `2k` edges, and every edge
-//! appears in both of its rows with bit-equal weight.
+//! an absent direction contributing zero, so a one-sided edge keeps its directed membership. The
+//! union's support is the union of the directed supports: a row may carry up to `2k` edges, and
+//! every edge appears in both of its rows with bit-equal weight.
 //!
-//! The graph is the training-side attraction structure and is consumed
-//! from its published artifact by training and release evaluation
-//! alike, so backend variation in the k-NN build cannot confound model
-//! comparisons ([`artifact::SemanticGraphArchive`] reopens the published
-//! file).
+//! The graph is the training-side attraction structure and is consumed from its published artifact
+//! by training and release evaluation alike, so backend variation in the k-NN build cannot confound
+//! model comparisons ([`artifact::SemanticGraphArchive`] reopens the published file).
 
 use core::{error::Error, fmt};
 
@@ -48,15 +43,11 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 /// The defaults are the established UMAP fuzzy-set kernel constants.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SmoothingOptions {
-    /// Absolute tolerance on the membership-sum equation at which the
-    /// bisection stops early. Defaults to `1e-5`.
+    /// Absolute tolerance on the membership-sum equation at which the bisection stops early. Defaults to `1e-5`.
     pub tolerance: f64 = 1.0e-5,
-    /// Scale factor of the `sigma` floor: `sigma` never falls below
-    /// this fraction of the row's mean distance (the corpus mean for
-    /// rows without a positive distance). Defaults to `1e-3`.
+    /// Scale factor of the `sigma` floor: `sigma` never falls below this fraction of the row's mean distance (the corpus mean for rows without a positive distance). Defaults to `1e-3`.
     pub bandwidth_floor: f32 = 1.0e-3,
-    /// Bisection iterations per row when the tolerance is not met
-    /// earlier. Defaults to 64.
+    /// Bisection iterations per row when the tolerance is not met earlier. Defaults to 64.
     pub bisection_iterations: usize = 64,
 }
 
@@ -213,12 +204,10 @@ fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationErro
 
 /// The symmetric fuzzy-weight graph of one generation.
 ///
-/// Row `i` stores the weights of every semantic edge at node row `i`,
-/// keyed by the other endpoint in ascending row order. Weights are
-/// finite in `(0, 1]`, no row references itself, and every edge is
-/// stored in both of its rows with bit-equal weight. Rows carry
-/// between `k` and `2k` edges for a `k`-neighbour table: the union of
-/// the directed supports.
+/// Row `i` stores the weights of every semantic edge at node row `i`, keyed by the other endpoint
+/// in ascending row order. Weights are finite in `(0, 1]`, no row references itself, and every edge
+/// is stored in both of its rows with bit-equal weight. Rows carry between `k` and `2k` edges for a
+/// `k`-neighbour table: the union of the directed supports.
 #[derive(Debug, Clone)]
 pub(crate) struct SemanticGraph(SemanticMatrix);
 
@@ -227,10 +216,9 @@ impl SemanticGraph {
     ///
     /// # Errors
     ///
-    /// Returns an error when the matrix is not row-compressed, not
-    /// square over at least two rows, self-referencing, stores a weight
-    /// outside the finite `(0, 1]` range, or stores an edge whose two
-    /// directions are missing or unequal.
+    /// Returns an error when the matrix is not row-compressed, not square over at least two rows,
+    /// self-referencing, stores a weight outside the finite `(0, 1]` range, or stores an edge whose
+    /// two directions are missing or unequal.
     pub(crate) fn new(matrix: SemanticMatrix) -> Result<Self, SemanticValidationError> {
         validate(matrix.view())?;
         Ok(Self(matrix))
@@ -238,11 +226,10 @@ impl SemanticGraph {
 
     /// Weighs a k-NN table into the symmetric semantic graph.
     ///
-    /// Each row's distances calibrate a [`bandwidth`] whose exponential
-    /// memberships sum to `log2(k)`; the directed memberships then
-    /// combine by the probabilistic union. Rows calibrate in parallel
-    /// and deterministically: every row's result lands in its own slot
-    /// regardless of completion order.
+    /// Each row's distances calibrate a [`bandwidth`] whose exponential memberships sum to
+    /// `log2(k)`; the directed memberships then combine by the probabilistic union. Rows calibrate
+    /// in parallel and deterministically: every row's result lands in its own slot regardless of
+    /// completion order.
     pub(crate) fn build(knn: &KnnView<'_>, options: SmoothingOptions) -> Self {
         let rows = knn.rows();
         let neighbours = knn.neighbours();
@@ -319,8 +306,7 @@ impl SemanticGraph {
     }
 }
 
-/// One semantic edge as seen from a row: the other endpoint and the
-/// symmetric weight.
+/// One semantic edge as seen from a row: the other endpoint and the symmetric weight.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SemanticEdge {
     /// The other endpoint's node row.
@@ -336,8 +322,8 @@ pub(crate) struct SemanticGraphView<'view>(SemanticMatrixView<'view>);
 impl<'view> SemanticGraphView<'view> {
     /// Wraps a matrix whose invariants already hold.
     ///
-    /// The caller promises the matrix passed [`validate`]; the wrapper
-    /// performs no checks of its own.
+    /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
+    /// own.
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: SemanticMatrixView<'view>) -> Self {

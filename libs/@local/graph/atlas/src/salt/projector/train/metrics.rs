@@ -1,22 +1,19 @@
-//! Budget reporting buckets and displacement telemetry: overall, per
-//! relation type, per degree decile.
+//! Budget reporting buckets and displacement telemetry.
 //!
-//! The budget's training metrics answer one question per bucket: is
-//! any slice of the relation evidence overpowering the semantic layout
-//! at its nodes? A node's clip outcome lands in the overall bucket and
-//! its relation-degree decile bucket as-is. Per relation type the
-//! recorded outcome is that type's own share: the clip factor is a
-//! scalar on the node's summed relation vector, so a type contributing
-//! the gradient `g` has exactly `factor * g` applied, and its bucket
-//! records that contribution against the node's baseline rather than
-//! double-counting the whole node into every type touching it.
+//! Overall, per relation type, per degree decile.
 //!
-//! Displacement telemetry measures the relation lens's integrated
-//! effect at every refresh tick: with coordinates at both lens
-//! extremes in hand, the per-node displacement
-//! `Delta_i = ||y_i(1) - y_i(0)||` summarizes how far the lens moves
-//! each node, reported over the same axes as the budget. The
-//! displacement is evidence only: it never steers training.
+//! The budget's training metrics answer one question per bucket: is any slice of the relation
+//! evidence overpowering the semantic layout at its nodes? A node's clip outcome lands in the
+//! overall bucket and its relation-degree decile bucket as-is. Per relation type the recorded
+//! outcome is that type's own share: the clip factor is a scalar on the node's summed relation
+//! vector, so a type contributing the gradient `g` has exactly `factor * g` applied, and its bucket
+//! records that contribution against the node's baseline rather than double-counting the whole node
+//! into every type touching it.
+//!
+//! Displacement telemetry measures the relation lens's integrated effect at every refresh tick:
+//! with coordinates at both lens extremes in hand, the per-node displacement `Delta_i = ||y_i(1) -
+//! y_i(0)||` summarizes how far the lens moves each node, reported over the same axes as the
+//! budget. The displacement is evidence only: it never steers training.
 
 use alloc::collections::BTreeMap;
 
@@ -37,12 +34,10 @@ const NO_PARTICIPATION: u8 = u8::MAX;
 
 /// Per-row relation-degree deciles over the attraction evidence.
 ///
-/// A row's degree is the number of attraction instances incident to
-/// it across every relation type. Deciles are rank-based over the
-/// rows that participate at all: equal degrees share a bucket, and
-/// the buckets split the participating rows as evenly as ties allow.
-/// Rows without attraction evidence have no decile - they receive no
-/// relation gradient and appear in no decile bucket.
+/// A row's degree is the number of attraction instances incident to it across every relation type.
+/// Deciles are rank-based over the rows that participate at all: equal degrees share a bucket, and
+/// the buckets split the participating rows as evenly as ties allow. Rows without attraction
+/// evidence have no decile - they receive no relation gradient and appear in no decile bucket.
 #[derive(Debug)]
 pub(crate) struct DegreeDeciles {
     deciles: Box<[u8]>,
@@ -53,9 +48,8 @@ impl DegreeDeciles {
     ///
     /// # Panics
     ///
-    /// Panics when an attraction edge references a row at or beyond
-    /// `rows`; the index and the row domain come from one generation,
-    /// so a mismatch is a wiring defect.
+    /// Panics when an attraction edge references a row at or beyond `rows`; the index and the row
+    /// domain come from one generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(index: &AttractionIndex, rows: usize) -> Self {
         let mut degrees = vec![0_u32; rows];
@@ -95,8 +89,7 @@ impl DegreeDeciles {
         Self { deciles }
     }
 
-    /// Returns the row's decile, [`None`] for rows without attraction
-    /// evidence.
+    /// Returns the row's decile, [`None`] for rows without attraction evidence.
     #[inline]
     #[must_use]
     pub(crate) fn decile(&self, row: usize) -> Option<usize> {
@@ -108,10 +101,9 @@ impl DegreeDeciles {
 
 /// The budget outcome accumulator across steps, per reporting bucket.
 ///
-/// Type buckets are keyed by the relation's ontology row and ordered
-/// by it; decile buckets follow [`DegreeDeciles`]. Buckets accumulate
-/// for the whole run - the loop owns when to snapshot them into
-/// evidence.
+/// Type buckets are keyed by the relation's ontology row and ordered by it; decile buckets follow
+/// [`DegreeDeciles`]. Buckets accumulate for the whole run - the loop owns when to snapshot them
+/// into evidence.
 #[derive(Debug, Default)]
 pub(crate) struct BudgetBreakdown {
     overall: BudgetSummary,
@@ -149,8 +141,7 @@ impl BudgetBreakdown {
         &self.overall
     }
 
-    /// Returns the per-relation-type summaries, ascending by ontology
-    /// row.
+    /// Returns the per-relation-type summaries, ascending by ontology row.
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &BudgetSummary)> {
         self.by_type
             .iter()
@@ -165,13 +156,11 @@ impl BudgetBreakdown {
     }
 }
 
-/// Distinct participating rows per relation type, ascending by
-/// ontology row.
+/// Distinct participating rows per relation type, ascending by ontology row.
 ///
-/// A row participates in a type when any attraction instance of that
-/// type touches it; several instances count once. Built once per
-/// training run and reused by every telemetry tick, so the per-tick
-/// cost is the participant lists, not the edge lists.
+/// A row participates in a type when any attraction instance of that type touches it; several
+/// instances count once. Built once per training run and reused by every telemetry tick, so the
+/// per-tick cost is the participant lists, not the edge lists.
 #[derive(Debug)]
 pub(crate) struct TypeParticipants {
     types: Vec<(OntologyRowId, Box<[usize]>)>,
@@ -198,8 +187,7 @@ impl TypeParticipants {
         Self { types }
     }
 
-    /// Iterates the types and their participants, ascending by
-    /// ontology row.
+    /// Iterates the types and their participants, ascending by ontology row.
     pub(crate) fn iter(&self) -> impl Iterator<Item = (OntologyRowId, &[usize])> {
         self.types
             .iter()
@@ -209,8 +197,7 @@ impl TypeParticipants {
 
 /// Streaming summary statistics for one displacement bucket.
 ///
-/// The sums are accumulated in double precision; `maximum` is zero
-/// until the first record.
+/// The sums are accumulated in double precision; `maximum` is zero until the first record.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct DisplacementMoments {
     count: u64,
@@ -258,18 +245,15 @@ impl DisplacementMoments {
     }
 }
 
-/// Bucket count of [`DisplacementHistogram`]: one bucket per `f32`
-/// biased exponent.
+/// Bucket count of [`DisplacementHistogram`]: one bucket per `f32` biased exponent.
 pub(crate) const EXPONENT_BUCKETS: usize = 256;
 
 /// A displacement histogram over the `f32` exponent grid.
 ///
-/// Bucket `b` counts displacements whose biased exponent is `b`:
-/// bucket 0 holds exact zeros and subnormals, and bucket `b` for
-/// `1 <= b <= 254` holds values in `[2^(b - 127), 2^(b - 126))`. The
-/// format's own grid needs no configured edges and resolves nine
-/// decades to within a factor of two, which is the resolution the
-/// telemetry questions ask at.
+/// Bucket `b` counts displacements whose biased exponent is `b`: bucket 0 holds exact zeros and
+/// subnormals, and bucket `b` for `1 <= b <= 254` holds values in `[2^(b - 127), 2^(b - 126))`. The
+/// format's own grid needs no configured edges and resolves nine decades to within a factor of two,
+/// which is the resolution the telemetry questions ask at.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct DisplacementHistogram {
     counts: [u64; EXPONENT_BUCKETS],
@@ -316,13 +300,11 @@ impl DisplacementHistogram {
 
 /// One refresh tick's displacement field, per reporting bucket.
 ///
-/// The overall and per-decile buckets carry full histograms; the
-/// per-type buckets carry summary moments only, because a corpus has
-/// thousands of relation types and the per-type question - is a type
-/// moving nodes it has little evidence for - reads from location and
-/// spread, not shape. Rows without attraction evidence land in the
-/// overall bucket only: the lens can move them indirectly, and the
-/// map-wide field is exactly what the overall histogram reports.
+/// The overall and per-decile buckets carry full histograms; the per-type buckets carry summary
+/// moments only, because a corpus has thousands of relation types and the per-type question - is a
+/// type moving nodes it has little evidence for - reads from location and spread, not shape. Rows
+/// without attraction evidence land in the overall bucket only: the lens can move them indirectly,
+/// and the map-wide field is exactly what the overall histogram reports.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct DisplacementSummary {
     overall: DisplacementHistogram,
@@ -333,14 +315,12 @@ pub(crate) struct DisplacementSummary {
 impl DisplacementSummary {
     /// Measures the displacement field between two lens extremes.
     ///
-    /// `low` and `high` are the corpus coordinates at the two lens
-    /// extremes, in row order.
+    /// `low` and `high` are the corpus coordinates at the two lens extremes, in row order.
     ///
     /// # Panics
     ///
-    /// Panics when the frames disagree in length or a participant row
-    /// lies outside them; the frames, the participants, and the
-    /// deciles all describe one corpus, so a mismatch is a wiring
+    /// Panics when the frames disagree in length or a participant row lies outside them; the
+    /// frames, the participants, and the deciles all describe one corpus, so a mismatch is a wiring
     /// defect.
     #[must_use]
     pub(crate) fn measure(
@@ -385,8 +365,7 @@ impl DisplacementSummary {
         &self.overall
     }
 
-    /// Returns the per-relation-type moments, ascending by ontology
-    /// row.
+    /// Returns the per-relation-type moments, ascending by ontology row.
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &DisplacementMoments)> {
         self.by_type
             .iter()

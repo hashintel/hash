@@ -39,9 +39,9 @@ impl fmt::Display for ArrayKind {
     }
 }
 
-/// The identity domain an identity artifact serves, for error
-/// reporting: three artifacts share one file format, so a failure
-/// names which table it hit.
+/// The identity domain an identity artifact serves, for error reporting.
+///
+/// Three artifacts share one file format, so a failure names which table it hit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum IdentityDomain {
     /// The ontology identity table, joining type rows to type uuids.
@@ -80,8 +80,8 @@ pub enum OpenAtlasError {
     OpenPostings(OpenPostingsError),
     /// The postings file violates the artifact contract.
     Postings(InvalidPostingsFile),
-    /// The postings parent graph holds a cycle, so no closure map
-    /// exists to expand coloring requests.
+    /// The postings parent graph holds a cycle, so no closure map exists to expand coloring
+    /// requests.
     Closure(ParentCycle),
     /// An identity file failed to open.
     OpenIdentity {
@@ -90,25 +90,24 @@ pub enum OpenAtlasError {
         /// The failure.
         error: OpenIdentityError,
     },
-    /// An identity file violates the table contract. A key width
-    /// other than the store's fails the open loudly: a generation
-    /// whose ids are not store identities does not serve.
+    /// An identity file violates the table contract.
+    ///
+    /// A key width other than the store's fails the open loudly: a generation whose ids are not
+    /// store identities does not serve.
     Identity {
         /// The identity domain the file serves.
         domain: IdentityDomain,
         /// The violation.
         error: InvalidIdentityFile,
     },
-    /// The recorded schedule exceeds the Morton key width, so no tile
-    /// grid exists to serve.
+    /// The recorded schedule exceeds the Morton key width, so no tile grid exists to serve.
     Schedule {
         /// The recorded cells-per-tile-axis exponent.
         span_log2: u8,
         /// The recorded deepest tile zoom.
         max_tile_depth: u8,
     },
-    /// An artifact's element type or shape is not the serving
-    /// contract's.
+    /// An artifact's element type or shape is not the serving contract's.
     Shape {
         /// The artifact's repository role.
         kind: ArrayKind,
@@ -168,8 +167,7 @@ pub enum OpenAtlasError {
         /// Codes in the morton column.
         codes: u64,
     },
-    /// The edge identity table contradicts the adjacency's edge
-    /// domain.
+    /// The edge identity table contradicts the adjacency's edge domain.
     EdgeIdentities {
         /// Rows in the edge identity table.
         identities: u64,

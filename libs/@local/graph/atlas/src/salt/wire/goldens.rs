@@ -1,33 +1,26 @@
 //! The cross-language golden corpus: `fixtures/wire/`.
 //!
-//! Each golden is one encoded response checked in as fixture bytes
-//! plus a JSON sidecar of the expected decoded values (floats as u32
-//! bit patterns), the envelope prefix, and the directory - so the
-//! padding sweep is assertable client-side from the sidecar alone.
-//! The Rust side proves the encoder reproduces the pinned bytes; the
-//! TypeScript decoder consumes the same files and asserts
-//! field-for-field equality - "matches the Rust side" is never
-//! asserted by eye (`SPEC-ADDENDUM-WIRE.md` section 8). The decoder
-//! derives its request echo context from the sidecar `HEAD`; a
-//! request field the `HEAD` does not echo joins the sidecar the day
-//! a golden needs one (settled with Hannah, 2026-07-19 - her
-//! request-block proposal was superseded by this shape the same
-//! day). The coverage spread is Hannah's, folded 2026-07-19.
+//! Each golden is one encoded response checked in as fixture bytes plus a JSON sidecar of the
+//! expected decoded values (floats as u32 bit patterns), the envelope prefix, and the directory -
+//! so the padding sweep is assertable client-side from the sidecar alone. The Rust side proves the
+//! encoder reproduces the pinned bytes; the TypeScript decoder consumes the same files and asserts
+//! field-for-field equality - "matches the Rust side" is never asserted by eye
+//! (`SPEC-ADDENDUM-WIRE.md` section 8). The decoder derives its request echo context from the
+//! sidecar `HEAD`; a request field the `HEAD` does not echo joins the sidecar the day a golden
+//! needs one (settled with Hannah, 2026-07-19 - her request-block proposal was superseded by this
+//! shape the same day). The coverage spread is Hannah's, folded 2026-07-19.
 //!
-//! The corpus follows the addendum's enumeration; G7 (locate)
-//! joined once the locate schema was ratified and its endpoint
-//! landed (2026-07-20) - pinning bytes before the schema exists
-//! would have pinned an invention. The end-to-end golden over a real
-//! published generation is separate: it waits on the
-//! fit-pipeline postings wiring and pins a whole artifact tree, not
-//! an envelope. Every golden here uses `spanLog2 = 2`, so the cut
-//! rule reads `bucket = z + 2` and the root spans buckets `0..=2`.
+//! The corpus follows the addendum's enumeration; G7 (locate) joined once the locate schema was
+//! ratified and its endpoint landed (2026-07-20) - pinning bytes before the schema exists would
+//! have pinned an invention. The end-to-end golden over a real published generation is separate: it
+//! waits on the fit-pipeline postings wiring and pins a whole artifact tree, not an envelope. Every
+//! golden here uses `spanLog2 = 2`, so the cut rule reads `bucket = z + 2` and the root spans
+//! buckets `0..=2`.
 //!
-//! Regenerate with `ATLAS_WIRE_BLESS=1` in the environment; the
-//! default run compares response bytes byte-for-byte and sidecars
-//! by parsed value - the sidecar contract is structural (decoders
-//! parse it, never byte-compare it), so repository JSON formatting
-//! passes over the checked-in fixtures are not drift.
+//! Regenerate with `ATLAS_WIRE_BLESS=1` in the environment; the default run compares response bytes
+//! byte-for-byte and sidecars by parsed value - the sidecar contract is structural (decoders parse
+//! it, never byte-compare it), so repository JSON formatting passes over the checked-in fixtures
+//! are not drift.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the goldens write the contract's little-endian wire integers"
@@ -108,8 +101,9 @@ fn goldens_match_the_checked_in_fixtures() {
     }
 }
 
-/// G9/G10 exist to sweep the padding widths: every width 1 through 7
-/// must occur across the pair, counting the tail padding of the last
+/// G9/G10 exist to sweep the padding widths.
+///
+/// Every width 1 through 7 must occur across the pair, counting the tail padding of the last
 /// present slot.
 #[test]
 fn the_padding_sweep_covers_every_width() {
@@ -151,12 +145,12 @@ fn corpus() -> Vec<Golden> {
     ]
 }
 
-/// Renders a tile golden's sidecar: prefix, directory, decoded
-/// `HEAD`, gathered columns, and trailer.
+/// Renders a tile golden's sidecar.
 ///
-/// `colored` is the request's coloredTypeIds count; `type_mask` is
-/// the hand-derived expected column (present iff `colored > 0`).
-/// `mass` and `appended` describe populated beyond-v1 slots (G8/G10),
+/// Prefix, directory, decoded `HEAD`, gathered columns, and trailer.
+///
+/// `colored` is the request's coloredTypeIds count; `type_mask` is the hand-derived expected column
+/// (present iff `colored > 0`). `mass` and `appended` describe populated beyond-v1 slots (G8/G10),
 /// which a v1 decoder ignores by contract.
 fn tile_sidecar(
     name: &str,
@@ -273,9 +267,10 @@ fn details_sidecar(entries: &[Option<&str>]) -> Value {
     )
 }
 
-/// G1: a non-root delta tile - one run, three points, all columns,
-/// `TYPE_MASK` over three requested types (stride 1, `n % 8 != 0`), a
-/// multi-bit point carrying types 0 and 2, an all-zero point, a
+/// G1.
+///
+/// A non-root delta tile - one run, three points, all columns, `TYPE_MASK` over three requested
+/// types (stride 1, `n % 8 != 0`), a multi-bit point carrying types 0 and 2, an all-zero point, a
 /// single children bit.
 fn g1_minimal_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..12)
@@ -345,10 +340,11 @@ fn g1_minimal_tile() -> Golden {
     }
 }
 
-/// G2: the delta root - buckets `0..=2` with the middle run
-/// zero-length, one contiguous multi-segment range, no
-/// coloredTypeIds (`TYPE_MASK` absent), the required global map with
-/// bounds present, all four children.
+/// G2.
+///
+/// The delta root - buckets `0..=2` with the middle run zero-length, one contiguous multi-segment
+/// range, no coloredTypeIds (`TYPE_MASK` absent), the required global map with bounds present, all
+/// four children.
 fn g2_root_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..4)
         .map(|index| {
@@ -403,9 +399,10 @@ fn g2_root_tile() -> Golden {
     }
 }
 
-/// G3: a total tile - four runs from bucket 0 with a zero-length run
-/// interspersed, bucket-major concatenation, nine requested types
-/// (two-byte mask stride), zero children.
+/// G3.
+///
+/// A total tile - four runs from bucket 0 with a zero-length run interspersed, bucket-major
+/// concatenation, nine requested types (two-byte mask stride), zero children.
 fn g3_total_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..10)
         .map(|index| {
@@ -487,9 +484,10 @@ fn g3_total_tile() -> Golden {
     }
 }
 
-/// G4: the empty root - zero delivered, present-empty columns at one
-/// shared offset, `TYPE_MASK` absent, zero children, and the required
-/// global map with `visibleAtZoom = 0` and bounds ABSENT - the
+/// G4.
+///
+/// The empty root - zero delivered, present-empty columns at one shared offset, `TYPE_MASK` absent,
+/// zero children, and the required global map with `visibleAtZoom = 0` and bounds ABSENT - the
 /// bounds-absent-iff-empty rule, pinned.
 fn g4_empty_root() -> Golden {
     let response = TileResponse {
@@ -532,9 +530,10 @@ fn g4_empty_root() -> Golden {
     }
 }
 
-/// G5: a delta trailer tile - labels and icons with null entries and
-/// non-ASCII UTF-8 (multi-byte sequences and a combining mark),
-/// children bits 0 and 2.
+/// G5.
+///
+/// A delta trailer tile - labels and icons with null entries and non-ASCII UTF-8 (multi-byte
+/// sequences and a combining mark), children bits 0 and 2.
 fn g5_trailer_tile() -> Golden {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
@@ -594,11 +593,10 @@ fn g5_trailer_tile() -> Golden {
     }
 }
 
-/// G6: an edges response - three columns, `complete = false` (the
-/// cap flag is the point), the four-array detail trailer with nulls.
-/// Edge rows ascend per the 6a delivery-order pin - goldens conform
-/// to ratified contracts, not just structure (re-blessed 2026-07-20;
-/// the original predated the pin).
+/// G6: an edges response - three columns, `complete = false` (the cap flag is the point), the
+/// four-array detail trailer with nulls. Edge rows ascend per the 6a delivery-order pin - goldens
+/// conform to ratified contracts, not just structure (re-blessed 2026-07-20; the original predated
+/// the pin).
 fn g6_edges() -> Golden {
     let link_labels = [Some("\u{153}uvre"), Some("created by"), None];
     let link_icons = [Some("\u{1f517}"), None, None];
@@ -651,14 +649,14 @@ fn g6_edges() -> Golden {
     }
 }
 
-/// G7: a locate response - the source first over an arbitrary
-/// delivered list (nothing contiguous), `TYPE_MASK` probed per point,
-/// `complete = false` (the locate edge cap flag is the point), and
-/// the full detail trailer: labels and icons with nulls and
-/// non-ASCII, the interned property-name table shared across nodes,
-/// per-node maps covering every simple value shape (text, positive
-/// and NEGATIVE integers, doubles, booleans, explicit null), a `null`
-/// unresolved entry, an empty resolved map, and the four link arrays.
+/// G7.
+///
+/// A locate response - the source first over an arbitrary delivered list (nothing contiguous),
+/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), and
+/// the full detail trailer: labels and icons with nulls and non-ASCII, the interned property-name
+/// table shared across nodes, per-node maps covering every simple value shape (text, positive and
+/// NEGATIVE integers, doubles, booleans, explicit null), a `null` unresolved entry, an empty
+/// resolved map, and the four link arrays.
 fn g7_locate() -> Golden {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
@@ -772,10 +770,11 @@ fn g7_locate() -> Golden {
     }
 }
 
-/// Renders a locate golden's sidecar: prefix, directory, decoded
-/// `HEAD`, gathered columns, and the detail trailer. `properties`
-/// arrives pre-rendered because its JSON forms are pinned alongside
-/// the wire values in the golden itself.
+/// Renders a locate golden's sidecar.
+///
+/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. `properties`
+/// arrives pre-rendered because its JSON forms are pinned alongside the wire values in the golden
+/// itself.
 fn locate_sidecar(
     name: &str,
     response: &LocateResponse<'_>,
@@ -827,10 +826,9 @@ fn locate_sidecar(
     })
 }
 
-/// G8: the evolution scenario proven in advance - a slot count one
-/// past the v1 tile table, a populated appended slot, and a populated
-/// `MASS` slot; a v1 decoder ignores both by contract, so the sidecar's
-/// expectations cover only the v1 surface.
+/// G8: the evolution scenario proven in advance - a slot count one past the v1 tile table, a
+/// populated appended slot, and a populated `MASS` slot; a v1 decoder ignores both by contract, so
+/// the sidecar's expectations cover only the v1 surface.
 fn g8_appended_slot() -> Golden {
     let positions: Vec<Vec2> = (0_u16..6)
         .map(|index| {
@@ -897,8 +895,10 @@ fn g8_appended_slot() -> Golden {
     }
 }
 
-/// G9: padding sweep, low widths - `HEAD` sized for pad 1, `TYPE_MASK`
-/// for pad 3, `ROW_IDS` for pad 4 (odd delivered).
+/// G9.
+///
+/// Padding sweep, low widths - `HEAD` sized for pad 1, `TYPE_MASK` for pad 3, `ROW_IDS` for pad 4
+/// (odd delivered).
 fn g9_padding_low() -> Golden {
     let positions: Vec<Vec2> = (0_u16..10)
         .map(|index| {
@@ -972,8 +972,10 @@ fn g9_padding_low() -> Golden {
     }
 }
 
-/// G10: padding sweep, high widths - `HEAD` sized for pad 2, `TYPE_MASK`
-/// for pad 5, two appended opaque slots for pads 6 and 7.
+/// G10.
+///
+/// Padding sweep, high widths - `HEAD` sized for pad 2, `TYPE_MASK` for pad 5, two appended opaque
+/// slots for pads 6 and 7.
 fn g10_padding_high() -> Golden {
     let positions: Vec<Vec2> = (0_u16..6)
         .map(|index| {

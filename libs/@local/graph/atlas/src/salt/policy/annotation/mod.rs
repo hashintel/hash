@@ -1,49 +1,40 @@
 //! The supplied annotation corpus of relation cards and their votes.
 //!
-//! An annotation corpus is one JSON document supplied beside the
-//! dataset, carrying every relation card in the classifier's training
-//! deck: the structured content the card template renders, the
-//! grouping axes that keep related cards in one evaluation fold, the
-//! flags marking cards with special assembly-side handling, and the
-//! verbatim per-vote annotation records. The document is the wire
-//! boundary between the annotation tooling and the fit: rendered card
-//! text, embeddings, class counts, and smoothed targets are all
-//! derived in Rust from these fields.
+//! An annotation corpus is one JSON document supplied beside the dataset, carrying every relation
+//! card in the classifier's training deck: the structured content the card template renders, the
+//! grouping axes that keep related cards in one evaluation fold, the flags marking cards with
+//! special assembly-side handling, and the verbatim per-vote annotation records. The document is
+//! the wire boundary between the annotation tooling and the fit: rendered card text, embeddings,
+//! class counts, and smoothed targets are all derived in Rust from these fields.
 //!
-//! [`AnnotationCorpus::from_slice`] runs the whole wire contract at
-//! construction - declared schema, cards strictly ascending by
-//! identity in byte order, identity form per source, immutability
-//! pins for unversioned sources, identifier-free content prose, flag
-//! and vote coupling - so consumers read cards without re-checking.
+//! [`AnnotationCorpus::from_slice`] runs the whole wire contract at construction - declared schema,
+//! cards strictly ascending by identity in byte order, identity form per source, immutability pins
+//! for unversioned sources, identifier-free content prose, flag and vote coupling - so consumers
+//! read cards without re-checking.
 //!
 //! # Identity
 //!
-//! A card's identity is its canonical URL. Types from the hash store
-//! are identified by their full versioned URL: versions are immutable
-//! and distinct, and each version's card is its own annotation
-//! subject. Wikidata records are unversioned at source, so their
-//! entity-URL identity is pinned by a retrieval timestamp and the
-//! digest of the retrieved source record ([`CardIdentity`]).
+//! A card's identity is its canonical URL. Types from the hash store are identified by their full
+//! versioned URL: versions are immutable and distinct, and each version's card is its own
+//! annotation subject. Wikidata records are unversioned at source, so their entity-URL identity is
+//! pinned by a retrieval timestamp and the digest of the retrieved source record
+//! ([`CardIdentity`]).
 //!
 //! # Vote semantics
 //!
-//! Votes are verbatim five-way records: the three [`GeometryClass`]es
-//! plus `unclear` (the judge found the card ambiguous) and `abstain`
-//! (the judge declined to answer). Class counts are derived by
-//! counting the vote list ([`Card::vote_counts`]), so a document
-//! cannot carry counts that disagree with their own provenance.
-//! Unclear and abstain votes assert no geometry class: they are
-//! excluded from both the per-class counts and the target weight,
-//! discounting an uncertain card without distorting its target
-//! distribution.
+//! Votes are verbatim five-way records: the three [`GeometryClass`]es plus `unclear` (the judge
+//! found the card ambiguous) and `abstain` (the judge declined to answer). Class counts are derived
+//! by counting the vote list ([`Card::vote_counts`]), so a document cannot carry counts that
+//! disagree with their own provenance. Unclear and abstain votes assert no geometry class: they are
+//! excluded from both the per-class counts and the target weight, discounting an uncertain card
+//! without distorting its target distribution.
 //!
 //! # Content prose
 //!
-//! Every content string is identifier-free: the admission lint
-//! rejects URL schemes and UUID-shaped tokens in card prose, carrying
-//! the annotation tooling's sanitizer contract across the wire. Votes
-//! were cast on rendered card text, and identifiers in prose would
-//! let a judge bind an answer to a name instead of the content.
+//! Every content string is identifier-free: the admission lint rejects URL schemes and UUID-shaped
+//! tokens in card prose, carrying the annotation tooling's sanitizer contract across the wire.
+//! Votes were cast on rendered card text, and identifiers in prose would let a judge bind an answer
+//! to a name instead of the content.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
@@ -65,9 +56,8 @@ const WIKIDATA_ENTITY_PREFIX: &str = "http://www.wikidata.org/entity/";
 
 /// Deserializes a nullable field whose key must be present.
 ///
-/// The canonical exporter writes every key; a fact the source does
-/// not record is `null`, never an absent key. Serde defaults a
-/// missing [`Option`] field to [`None`] silently, and routing the
+/// The canonical exporter writes every key; a fact the source does not record is `null`, never an
+/// absent key. Serde defaults a missing [`Option`] field to [`None`] silently, and routing the
 /// field through this function restores the missing-key error.
 fn nullable<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
@@ -82,17 +72,16 @@ where
 pub(crate) enum InvalidAnnotationCorpus {
     /// The bytes are not the expected JSON shape.
     ///
-    /// Unknown fields, unknown enum values, absent required keys, and
-    /// noncanonical digests all surface here through their
-    /// deserializers.
+    /// Unknown fields, unknown enum values, absent required keys, and noncanonical digests all
+    /// surface here through their deserializers.
     Json(serde_json::Error),
     /// The document declares a schema this reader does not accept.
     Schema { found: Box<str> },
-    /// A card is not strictly after its predecessor in byte order of
-    /// identity, which also covers duplicated identities.
+    /// A card is not strictly after its predecessor in byte order of identity.
+    ///
+    /// Which also covers duplicated identities.
     UnorderedCards { index: usize },
-    /// A card's identity does not parse under its source's identity
-    /// form.
+    /// A card's identity does not parse under its source's identity form.
     IdentityForm { index: usize, source: Source },
     /// A wikidata card is missing an immutability pin.
     MissingPin { index: usize, field: &'static str },
@@ -221,10 +210,9 @@ impl fmt::Display for Source {
 
 /// A card's canonical identity, in its source's form.
 ///
-/// The variant carries the facts its form requires: a versioned URL
-/// is immutable by itself, while an unversioned wikidata record needs
-/// a retrieval timestamp and the digest of the retrieved source
-/// record to pin what the card was derived from.
+/// The variant carries the facts its form requires: a versioned URL is immutable by itself, while
+/// an unversioned wikidata record needs a retrieval timestamp and the digest of the retrieved
+/// source record to pin what the card was derived from.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum CardIdentity {
     /// A store type at an exact version.
@@ -235,8 +223,7 @@ pub(crate) enum CardIdentity {
         url: Box<str>,
         /// The retrieval instant, as the exporter recorded it.
         retrieved_at: Box<str>,
-        /// The SHA-256 of the canonical-JSON bytes of the retrieved
-        /// source record.
+        /// The SHA-256 of the canonical-JSON bytes of the retrieved source record.
         source_record_hash: Sha256Digest,
     },
 }
@@ -292,11 +279,9 @@ pub(crate) enum Direction {
 
 /// The relation-property assertions a card renders.
 ///
-/// The four boolean fields are tri-state: `true` asserts the
-/// property, `false` asserts its absence, and `null` records that the
-/// source does not record the fact. The exporter always writes every
-/// key, so an absent key is a wire violation rather than a third
-/// spelling of `null`.
+/// The four boolean fields are tri-state: `true` asserts the property, `false` asserts its absence,
+/// and `null` records that the source does not record the fact. The exporter always writes every
+/// key, so an absent key is a wire violation rather than a third spelling of `null`.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Constraints {
@@ -333,9 +318,8 @@ pub(crate) struct Example {
 
 /// The structured fields the canonical card template consumes.
 ///
-/// The template renders these fields into the card text that is
-/// embedded and classified; no rendered text and no embeddings travel
-/// on the wire.
+/// The template renders these fields into the card text that is embedded and classified; no
+/// rendered text and no embeddings travel on the wire.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Content {
@@ -345,8 +329,8 @@ pub(crate) struct Content {
     pub title: String,
     /// The relation's description prose, when any survives.
     ///
-    /// Identifier sanitization at the source can drop every sentence
-    /// of a description; a card without one records `null`.
+    /// Identifier sanitization at the source can drop every sentence of a description; a card
+    /// without one records `null`.
     #[serde(deserialize_with = "nullable")]
     pub description: Option<String>,
     /// Alternative names.
@@ -372,9 +356,8 @@ pub(crate) struct Content {
 
 /// The leakage axes a card is grouped by.
 ///
-/// Evaluation folds union cards sharing any axis value, so related
-/// cards never straddle a train/validation split. Axis values are
-/// grouping strings; identity semantics live in
+/// Evaluation folds union cards sharing any axis value, so related cards never straddle a
+/// train/validation split. Axis values are grouping strings; identity semantics live in
 /// [`CardIdentity`] alone.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -383,13 +366,11 @@ pub(crate) struct Axes {
     pub family: String,
     /// The canonical URLs of inverse relations.
     ///
-    /// Values may name records outside this corpus; they still group
-    /// as shared strings.
+    /// Values may name records outside this corpus; they still group as shared strings.
     pub inverse_of: Vec<String>,
     /// The identity URL with its version removed.
     pub base_url: String,
-    /// The publishing namespace: `host/@web` for hash cards, the
-    /// literal `wikidata` otherwise.
+    /// The publishing namespace: `host/@web` for hash cards, the literal `wikidata` otherwise.
     pub publisher: String,
 }
 
@@ -424,23 +405,20 @@ impl HoldoutClass {
 
 /// The special-handling marks on a card.
 ///
-/// Flags record facts; the handling each fact demands is assembly
-/// policy. A flagged card is never silently dropped by the reader.
+/// Flags record facts; the handling each fact demands is assembly policy. A flagged card is never
+/// silently dropped by the reader.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Flags {
-    /// The card's verdict was disclosed in annotation prompts, so it
-    /// carries no votes.
+    /// The card's verdict was disclosed in annotation prompts, so it carries no votes.
     pub shot_excluded: bool,
-    /// The human verdict class held out for evaluation, when one
-    /// exists.
+    /// The human verdict class held out for evaluation, when one exists.
     #[serde(deserialize_with = "nullable")]
     pub holdout: Option<HoldoutClass>,
-    /// The prescreen stratum the card was drawn from, when one
-    /// exists.
+    /// The prescreen stratum the card was drawn from, when one exists.
     ///
-    /// A stratification fact, never an exclusion: `"unstratified"`
-    /// is a legal value, and vote-coverage rules ignore this field.
+    /// A stratification fact, never an exclusion: `"unstratified"` is a legal value, and
+    /// vote-coverage rules ignore this field.
     #[serde(deserialize_with = "nullable")]
     pub prescreen_stratum: Option<String>,
 }
@@ -448,9 +426,8 @@ pub(crate) struct Flags {
 impl Flags {
     /// Returns whether the card must carry annotation evidence.
     ///
-    /// Shot-excluded cards carry no votes by contract, and holdout
-    /// cards answer to their human verdict; every other card must
-    /// carry at least one vote beyond abstention.
+    /// Shot-excluded cards carry no votes by contract, and holdout cards answer to their human
+    /// verdict; every other card must carry at least one vote beyond abstention.
     #[must_use]
     pub(crate) const fn expects_evidence(&self) -> bool {
         !self.shot_excluded && self.holdout.is_none()
@@ -476,8 +453,7 @@ pub(crate) enum VoteVerdict {
 impl VoteVerdict {
     /// Returns the geometry class this verdict asserts.
     ///
-    /// `Unclear` and `Abstain` assert none; they are excluded from
-    /// class counts and target weight.
+    /// `Unclear` and `Abstain` assert none; they are excluded from class counts and target weight.
     #[must_use]
     pub(crate) const fn geometry(self) -> Option<GeometryClass> {
         match self {
@@ -510,8 +486,7 @@ pub(crate) struct Vote {
     pub effort: String,
     /// The sampling temperature, when the run pinned one.
     ///
-    /// Reasoning-model runs sample without a temperature control and
-    /// record `null`.
+    /// Reasoning-model runs sample without a temperature control and record `null`.
     #[serde(deserialize_with = "nullable")]
     pub temperature: Option<f64>,
     /// The sampling seed, when the provider accepts one.
@@ -613,8 +588,7 @@ struct Document {
 
 /// A validated annotation-corpus document.
 ///
-/// Construction checks the whole wire contract; see the module
-/// documentation for the clauses.
+/// Construction checks the whole wire contract; see the module documentation for the clauses.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct AnnotationCorpus {
     cards: Vec<Card>,
@@ -626,8 +600,7 @@ impl AnnotationCorpus {
     ///
     /// # Errors
     ///
-    /// Returns an [`InvalidAnnotationCorpus`] describing the first
-    /// violated contract clause.
+    /// Returns an [`InvalidAnnotationCorpus`] describing the first violated contract clause.
     pub(crate) fn from_slice(bytes: &[u8]) -> Result<Self, InvalidAnnotationCorpus> {
         let document: Document =
             serde_json::from_slice(bytes).map_err(InvalidAnnotationCorpus::Json)?;
@@ -657,16 +630,14 @@ impl AnnotationCorpus {
         })
     }
 
-    /// Returns the cards, strictly ascending by identity in byte
-    /// order.
+    /// Returns the cards, strictly ascending by identity in byte order.
     #[inline]
     #[must_use]
     pub(crate) const fn cards(&self) -> &[Card] {
         &self.cards
     }
 
-    /// Returns the upstream artifacts the document was derived from,
-    /// by name and content digest.
+    /// Returns the upstream artifacts the document was derived from, by name and content digest.
     #[inline]
     #[must_use]
     pub(crate) const fn sources(&self) -> &BTreeMap<Box<str>, Sha256Digest> {
@@ -716,8 +687,7 @@ fn validate_card(index: usize, card: WireCard) -> Result<Card, InvalidAnnotation
     })
 }
 
-/// Types a wire card's identity under its source's form and pin
-/// rules.
+/// Types a wire card's identity under its source's form and pin rules.
 fn validate_identity(
     index: usize,
     card: &WireCard,
@@ -905,8 +875,7 @@ fn validate_votes(index: usize, votes: &[Vote]) -> Result<(), InvalidAnnotationC
     Ok(())
 }
 
-/// Returns whether `text` carries a URL scheme or a UUID-shaped
-/// token.
+/// Returns whether `text` carries a URL scheme or a UUID-shaped token.
 fn contains_identifier(text: &str) -> bool {
     text.contains("://") || text.as_bytes().windows(36).any(is_uuid_shape)
 }

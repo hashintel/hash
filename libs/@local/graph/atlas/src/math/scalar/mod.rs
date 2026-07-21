@@ -1,20 +1,18 @@
-//! Numerically stable scalar special functions, checked float narrowing,
-//! and validated scalar domains.
+//! Numerically stable scalar special functions with validated domains.
 //!
-//! These formalize numeric patterns that recur across the crate: a stable
-//! softplus and the Huber penalty for layout losses, checked `f64` to
-//! `f32` narrowing for persisted coordinates, and [`UnitFraction`], the
-//! construction-validated `[0, 1]` scalar of configuration fields. Vector
-//! reductions such as softmax and log-sum-exp live on
-//! [`DVecN`](super::DVecN).
+//! Checked float narrowing rides beside them.
+//!
+//! These formalize numeric patterns that recur across the crate: a stable softplus and the Huber
+//! penalty for layout losses, checked `f64` to `f32` narrowing for persisted coordinates, and
+//! [`UnitFraction`], the construction-validated `[0, 1]` scalar of configuration fields. Vector
+//! reductions such as softmax and log-sum-exp live on [`DVecN`](super::DVecN).
 #[cfg(test)]
 mod tests;
 
 /// A finite fraction in `[0, 1]`, valid by construction.
 ///
-/// Configuration fields whose domain is the closed unit interval carry
-/// this type instead of a raw float, so an options value that exists is
-/// valid and the consuming stage validates nothing.
+/// Configuration fields whose domain is the closed unit interval carry this type instead of a raw
+/// float, so an options value that exists is valid and the consuming stage validates nothing.
 ///
 /// # Examples
 ///
@@ -59,11 +57,10 @@ impl UnitFraction {
 
 /// Computes `ln(1 + exp(value))` in a numerically stable form.
 ///
-/// The evaluation uses `max(value, 0) + ln_1p(exp(-|value|))`, which keeps
-/// the intermediate exponent non-positive: the result is finite for every
-/// finite input, approaching `value` itself for large positive inputs and
-/// `0` for large negative inputs. The output is non-negative and satisfies
-/// `softplus(value) - softplus(-value) == value` up to rounding.
+/// The evaluation uses `max(value, 0) + ln_1p(exp(-|value|))`, which keeps the intermediate
+/// exponent non-positive: the result is finite for every finite input, approaching `value` itself
+/// for large positive inputs and `0` for large negative inputs. The output is non-negative and
+/// satisfies `softplus(value) - softplus(-value) == value` up to rounding.
 ///
 /// # Examples
 ///
@@ -83,11 +80,10 @@ pub fn softplus(value: f32) -> f32 {
 
 /// Computes the logistic function `1 / (1 + exp(-value))`.
 ///
-/// The evaluation feeds the negated magnitude to `exp`, keeping the
-/// intermediate exponent non-positive: the result is finite for every
-/// input, lies in `(0, 1)` for finite inputs, and satisfies
-/// `sigmoid(-value) == 1 - sigmoid(value)` up to rounding. The sigmoid is
-/// the first derivative of [`softplus`].
+/// The evaluation feeds the negated magnitude to `exp`, keeping the intermediate exponent
+/// non-positive: the result is finite for every input, lies in `(0, 1)` for finite inputs, and
+/// satisfies `sigmoid(-value) == 1 - sigmoid(value)` up to rounding. The sigmoid is the first
+/// derivative of [`softplus`].
 ///
 /// # Examples
 ///
@@ -114,13 +110,11 @@ pub fn sigmoid(value: f32) -> f32 {
 
 /// Computes the Huber penalty: quadratic below the threshold, linear above.
 ///
-/// For `value <= threshold` the penalty is `value * value / 2`; above the
-/// threshold it continues along the tangent line
-/// `threshold * (value - threshold / 2)`. The two pieces meet at
-/// `threshold * threshold / 2` with matching first derivative `threshold`,
-/// so the penalty is continuous with a continuous first derivative at the
-/// threshold. The comparison is signed; callers pass non-negative
-/// magnitudes such as norms or distances.
+/// For `value <= threshold` the penalty is `value * value / 2`; above the threshold it continues
+/// along the tangent line `threshold * (value - threshold / 2)`. The two pieces meet at
+/// `threshold * threshold / 2` with matching first derivative `threshold`, so the penalty is
+/// continuous with a continuous first derivative at the threshold. The comparison is signed;
+/// callers pass non-negative magnitudes such as norms or distances.
 ///
 /// # Examples
 ///
@@ -144,13 +138,11 @@ pub fn huber(value: f32, threshold: f32) -> f32 {
 
 /// Narrows an `f64` to `f32`, permitting rounding.
 ///
-/// The value is converted with round-to-nearest and returned whenever the
-/// result is finite. Inputs whose magnitude exceeds the `f32` range, the
-/// infinities, and NaN all yield [`None`]. Negative zero narrows to
-/// negative zero, preserving the sign bit.
+/// The value is converted with round-to-nearest and returned whenever the result is finite. Inputs
+/// whose magnitude exceeds the `f32` range, the infinities, and NaN all yield [`None`]. Negative
+/// zero narrows to negative zero, preserving the sign bit.
 ///
-/// For a conversion that also demands bit-exact representability, use
-/// [`narrow_f32_exact`].
+/// For a conversion that also demands bit-exact representability, use [`narrow_f32_exact`].
 ///
 /// # Examples
 ///
@@ -182,12 +174,10 @@ pub const fn narrow_f32(value: f64) -> Option<f32> {
 
 /// Narrows an `f64` to `f32` when the value is exactly representable.
 ///
-/// The conversion succeeds precisely when the input is finite and widening
-/// the narrowed result back to `f64` reproduces the input bit for bit; the
-/// returned `f32` therefore denotes the same real number as the input.
-/// Values that would round, overflow the `f32` range, or fail to be finite
-/// yield [`None`]. Negative zero is exactly representable and keeps its
-/// sign bit.
+/// The conversion succeeds precisely when the input is finite and widening the narrowed result back
+/// to `f64` reproduces the input bit for bit; the returned `f32` therefore denotes the same real
+/// number as the input. Values that would round, overflow the `f32` range, or fail to be finite
+/// yield [`None`]. Negative zero is exactly representable and keeps its sign bit.
 ///
 /// For a conversion that tolerates rounding, use [`narrow_f32`].
 ///

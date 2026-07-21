@@ -1,5 +1,6 @@
-//! Certificates for the attraction file's geometry: header equations,
-//! byte-level round trips, and rejection of foreign or torn bytes.
+//! Certificates for the attraction file's geometry.
+//!
+//! Header equations, byte-level round trips, and rejection of foreign or torn bytes.
 
 use core::assert_matches;
 use std::{fs, path::PathBuf};

@@ -303,8 +303,7 @@ fn open_rejects_malformed_posts_and_children() {
     );
 }
 
-/// Reference locate: the same prefix-digit walk over the in-memory
-/// table.
+/// Reference locate: the same prefix-digit walk over the in-memory table.
 fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
     if nodes.is_empty() {
         return None;
@@ -319,8 +318,7 @@ fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
 }
 
 proptest! {
-    /// Every valid table and set cover roundtrips verbatim, and the
-    /// mapped locate agrees with the in-memory reference walk.
+    /// Every valid table and set cover roundtrips verbatim, and the mapped locate agrees with the in-memory reference walk.
     #[test]
     fn written_tables_roundtrip(
         // Children generated strictly deeper, so the pre-order rule

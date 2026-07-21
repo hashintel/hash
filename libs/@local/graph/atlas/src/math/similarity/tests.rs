@@ -27,8 +27,7 @@ const FIT_POINTS: [Vec2; 6] = [
     Vec2::new(5.0, 5.0),
 ];
 
-/// Twelve spread-out, non-symmetric sample points for the fit
-/// certificates.
+/// Twelve spread-out, non-symmetric sample points for the fit certificates.
 const CERT_POINTS: [Vec2; 12] = [
     Vec2::new(0.0, 0.0),
     Vec2::new(4.0, 1.0),
@@ -49,8 +48,9 @@ const CERT_WEIGHTS: [f32; 12] = [
     1.0, 2.0, 0.5, 1.5, 3.0, 0.25, 1.25, 0.75, 2.5, 0.125, 1.75, 0.375,
 ];
 
-/// Small asymmetric offsets keeping the fitted residual nonzero, so the
-/// error surface has a strict minimum away from the exact-recovery case.
+/// Small asymmetric offsets keeping the fitted residual nonzero.
+///
+/// So the error surface has a strict minimum away from the exact-recovery case.
 const CERT_NOISE: [Vec2; 12] = [
     Vec2::new(0.02, -0.03),
     Vec2::new(-0.04, 0.01),
@@ -66,8 +66,9 @@ const CERT_NOISE: [Vec2; 12] = [
     Vec2::new(0.03, 0.01),
 ];
 
-/// The certificate target: a known similarity image of [`CERT_POINTS`]
-/// plus the asymmetric [`CERT_NOISE`].
+/// The certificate target.
+///
+/// A known similarity image of [`CERT_POINTS`] plus the asymmetric [`CERT_NOISE`].
 fn noisy_certificate_target() -> [Vec2; 12] {
     let known = Similarity::new(1.75, Rotation::from_radians(0.55), Vec2::new(2.5, -1.25))
         .expect("scale 1.75 is normal and positive");
@@ -77,8 +78,8 @@ fn noisy_certificate_target() -> [Vec2; 12] {
 
 /// Weighted squared alignment error of `similarity` over the pairs.
 ///
-/// Computed in plain double precision, independent of the fit's fused
-/// accumulation, so it can referee the optimality certificate.
+/// Computed in plain double precision, independent of the fit's fused accumulation, so it can
+/// referee the optimality certificate.
 #[expect(
     clippy::suboptimal_flops,
     reason = "the reference error deliberately uses plain arithmetic, independent of the FMA path \
@@ -111,8 +112,8 @@ fn weighted_error(
 
 /// Asserts two scalars agree up to a magnitude-scaled tolerance.
 ///
-/// The fit narrows double-precision sums built from `f32`-rounded inputs,
-/// so its coefficients carry a few ulps of working-precision error.
+/// The fit narrows double-precision sums built from `f32`-rounded inputs, so its coefficients carry
+/// a few ulps of working-precision error.
 #[track_caller]
 fn assert_scalar_close(actual: f32, expected: f32) {
     let tolerance = 32.0 * f32::EPSILON * expected.abs().max(1.0);
@@ -565,8 +566,8 @@ fn rms_residual_rejects_invalid_pairings() {
     assert!(similarity.rms_residual_par(&nan, &points).is_none());
 }
 
-/// Asserts both fit entry points reject the pairing, certifying their
-/// [`None`] agreement case by case.
+/// Asserts both fit entry points reject the pairing, certifying their [`None`] agreement case by
+/// case.
 #[track_caller]
 fn assert_fit_rejects(source: &[Vec2], target: &[Vec2], weights: &[f32]) {
     assert!(Similarity::fit(source, target, weights).is_none());
@@ -642,8 +643,9 @@ fn invalid_scales_are_rejected() {
     }
 }
 
-/// An arbitrary well-conditioned similarity: scale in `0.1..10`, an
-/// arbitrary rotation angle, and a translation bounded to `-1e2..1e2`.
+/// An arbitrary well-conditioned similarity.
+///
+/// Scale in `0.1..10`, an arbitrary rotation angle, and a translation bounded to `-1e2..1e2`.
 fn similarity_strategy() -> impl Strategy<Value = Similarity> {
     (0.1_f32..10.0, -16.0_f32..16.0, -1e2_f32..1e2, -1e2_f32..1e2).prop_map(
         |(scale, radians, translate_x, translate_y)| {
@@ -658,11 +660,7 @@ fn similarity_strategy() -> impl Strategy<Value = Similarity> {
 }
 
 proptest! {
-    /// A similarity scales all distances uniformly: for any two points
-    /// separated by at least one unit, the distance ratio equals the
-    /// scale up to a relative tolerance. Coordinates are bounded to
-    /// `-1e3..1e3` and the separation floor keeps the subtraction's
-    /// cancellation error small relative to the distance.
+    /// A similarity scales all distances uniformly: for any two points separated by at least one unit, the distance ratio equals the scale up to a relative tolerance. Coordinates are bounded to `-1e3..1e3` and the separation floor keeps the subtraction's cancellation error small relative to the distance.
     #[test]
     fn apply_scales_distances_uniformly(
         similarity in similarity_strategy(),
@@ -682,10 +680,7 @@ proptest! {
         );
     }
 
-    /// Fitting an exact similarity image of non-collinear points recovers
-    /// the similarity's coefficients. The sources are four well-spread
-    /// base points jittered by at most `0.5`, far less than the base
-    /// triangle's extent, so the points can never become collinear.
+    /// Fitting an exact similarity image of non-collinear points recovers the similarity's coefficients. The sources are four well-spread base points jittered by at most `0.5`, far less than the base triangle's extent, so the points can never become collinear.
     #[test]
     fn fit_recovers_a_random_similarity(
         similarity in similarity_strategy(),

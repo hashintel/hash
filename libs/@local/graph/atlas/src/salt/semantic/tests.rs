@@ -76,8 +76,9 @@ fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn {
     knn_from_rows(&table)
 }
 
-/// The scalar fuzzy-weight reference: the smooth-kNN kernel with libm
-/// exponentials, keyed by directed edge.
+/// The scalar fuzzy-weight reference.
+///
+/// The smooth-kNN kernel with libm exponentials, keyed by directed edge.
 #[expect(
     clippy::suboptimal_flops,
     clippy::cast_precision_loss,

@@ -1,17 +1,15 @@
 //! The relation indexes' published forms and their mapped readers.
 //!
-//! A [`ProtectionIndex`] publishes as one [`crate::file::sprs`] file
-//! holding its [`ProtectionMatrix`](super::protection::ProtectionMatrix)
-//! verbatim; the evidence pair travels as an opaque 8-byte value.
-//! [`ProtectionArchive`] reopens the file over a whole-file mapping and
-//! validates the index invariants once, so hard-negative mining reads
-//! the evidence from the page cache without holding it on the heap.
+//! A [`ProtectionIndex`] publishes as one [`crate::file::sprs`] file holding its
+//! [`ProtectionMatrix`](super::protection::ProtectionMatrix) verbatim; the evidence pair travels as
+//! an opaque 8-byte value. [`ProtectionArchive`] reopens the file over a whole-file mapping and
+//! validates the index invariants once, so hard-negative mining reads the evidence from the page
+//! cache without holding it on the heap.
 //!
-//! An [`AttractionIndex`] publishes as one [`crate::file::attraction`]
-//! file: group records over a flat edge array, the same factorization
-//! the resident index stores. [`AttractionArchive`] reopens it the same
-//! way and validates the index invariants once, so relation-edge
-//! sampling reads groups and edges from the page cache.
+//! An [`AttractionIndex`] publishes as one [`crate::file::attraction`] file: group records over a
+//! flat edge array, the same factorization the resident index stores. [`AttractionArchive`] reopens
+//! it the same way and validates the index invariants once, so relation-edge sampling reads groups
+//! and edges from the page cache.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -41,14 +39,13 @@ impl WriteInto for ProtectionIndex {
 
     /// Writes the index as a sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
-    /// Returns an error when the underlying writer fails, or the index
-    /// spans zero rows, which the format cannot represent: a
-    /// generation without node rows publishes no artifacts.
+    /// Returns an error when the underlying writer fails, or the index spans zero rows, which the
+    /// format cannot represent: a generation without node rows publishes no artifacts.
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -104,11 +101,10 @@ impl Error for InvalidProtectionFile {
 
 /// A published protection index opened over its mapped file.
 ///
-/// Construction checks the index invariants once, so an open index only
-/// serves valid views; the matrix regions stay in the page cache under
-/// memory pressure and off the heap. Each [`view`](Self::view)
-/// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
-/// contract), so stages call it once and hold the view.
+/// Construction checks the index invariants once, so an open index only serves valid views; the
+/// matrix regions stay in the page cache under memory pressure and off the heap. Each
+/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
+/// so stages call it once and hold the view.
 #[derive(Debug)]
 pub(crate) struct ProtectionArchive {
     file: SprsFile,
@@ -119,8 +115,8 @@ impl ProtectionArchive {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file does not hold the index's matrix
-    /// layout or the matrix violates a [`ProtectionIndex`] invariant.
+    /// Returns an error when the file does not hold the index's matrix layout or the matrix
+    /// violates a [`ProtectionIndex`] invariant.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidProtectionFile> {
         let matrix = file.matrix().map_err(InvalidProtectionFile::Matrix)?;
@@ -143,10 +139,9 @@ impl ProtectionArchive {
 impl AttractionIndex {
     /// Writes the index as an attraction file.
     ///
-    /// `rows` is the corpus row domain the edges index into; the index
-    /// does not carry it, the caller's generation does. Returns the
-    /// SHA-256 of the written bytes: the identity the repository
-    /// records for the published file.
+    /// `rows` is the corpus row domain the edges index into; the index does not carry it, the
+    /// caller's generation does. Returns the SHA-256 of the written bytes: the identity the
+    /// repository records for the published file.
     ///
     /// # Errors
     ///
@@ -209,14 +204,11 @@ pub(crate) enum InvalidAttractionIndex {
     RowOutOfDomain { edge: usize },
     /// An edge confidence lies outside `[0, 1]` or is not finite.
     InvalidConfidence { edge: usize },
-    /// An edge degree normalization lies outside `(0, 1]` or is not
-    /// finite.
+    /// An edge degree normalization lies outside `(0, 1]` or is not finite.
     InvalidDegreeNormalization { edge: usize },
-    /// An edge carries score-provenance bits this module does not
-    /// speak.
+    /// An edge carries score-provenance bits this module does not speak.
     UnknownScoredBits { edge: usize },
-    /// The edges within one group break the ascending
-    /// `(source, target, edge)` order.
+    /// The edges within one group break the ascending `(source, target, edge)` order.
     UnorderedEdges { edge: usize },
 }
 
@@ -265,12 +257,10 @@ impl Error for InvalidAttractionIndex {}
 
 /// A published attraction index opened over its mapped file.
 ///
-/// Construction checks the index invariants once - relations strictly
-/// ascending, edge ranges contiguous and non-empty, weights and scores
-/// in domain, edges ascending within their group - so an open index
-/// only serves valid groups and consumers re-validate nothing. The
-/// regions stay in the page cache under memory pressure and off the
-/// heap.
+/// Construction checks the index invariants once - relations strictly ascending, edge ranges
+/// contiguous and non-empty, weights and scores in domain, edges ascending within their group - so
+/// an open index only serves valid groups and consumers re-validate nothing. The regions stay in
+/// the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct AttractionArchive {
     file: AttractionFile,
@@ -281,8 +271,7 @@ impl AttractionArchive {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates an attraction-index
-    /// invariant.
+    /// Returns an error when the file violates an attraction-index invariant.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: AttractionFile) -> Result<Self, InvalidAttractionIndex> {
         let groups = file.groups();

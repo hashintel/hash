@@ -1,53 +1,41 @@
 //! The quality report: rendered probe evidence and release gates.
 //!
-//! [`assess`] turns one probe's readings into a flat, serializable
-//! record: every grid's overall metrics per neighbourhood size,
-//! per-subgroup readings on the primary grid, the subgroup flags the
-//! degradation rule raises, and the thresholds that were applied. The
-//! report is a rendering of [`ProbeReadings`] - regrouping or
-//! re-gating starts from the readings, never from the report.
+//! [`assess`] turns one probe's readings into a flat, serializable record: every grid's overall
+//! metrics per neighbourhood size, per-subgroup readings on the primary grid, the subgroup flags
+//! the degradation rule raises, and the thresholds that were applied. The report is a rendering of
+//! [`ProbeReadings`] - regrouping or re-gating starts from the readings, never from the report.
 //!
-//! The primary fidelity surface is the corpus-exact
-//! map-versus-representation grid: it reads the projector's own
-//! placement without sampling noise, so gates bind there. The sampled
-//! grids provide context - the canonical triangle whose
-//! representation baseline the map's canonical reading is judged
-//! against - and are reported ungated.
+//! The primary fidelity surface is the corpus-exact map-versus-representation grid: it reads the
+//! projector's own placement without sampling noise, so gates bind there. The sampled grids provide
+//! context - the canonical triangle whose representation baseline the map's canonical reading is
+//! judged against - and are reported ungated.
 //!
-//! Subgroups are entity types: an anchor contributes to one subgroup
-//! per direct type, so multi-typed anchors count in each of their
-//! groups. A subgroup flags at a neighbourhood size when its
-//! degradation - one minus recall - exceeds the configured factor
-//! times the overall degradation, the rule the specification sets at
-//! twice. Flags are raised per neighbourhood size, so the size trend
-//! that separates near-tie reshuffling (recall rising with the
-//! neighbourhood) from genuine placement loss is visible in the flags
-//! and in every subgroup's rows. Subgroups below the configured
-//! anchor floor never flag - a handful of anchors cannot support a
-//! degradation ratio - but their rows are still reported.
+//! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
+//! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
+//! its degradation - one minus recall - exceeds the configured factor times the overall
+//! degradation, the rule the specification sets at twice. Flags are raised per neighbourhood size,
+//! so the size trend that separates near-tie reshuffling (recall rising with the neighbourhood)
+//! from genuine placement loss is visible in the flags and in every subgroup's rows. Subgroups
+//! below the configured anchor floor never flag - a handful of anchors cannot support a degradation
+//! ratio - but their rows are still reported.
 //!
-//! Density distortion reads the spread of log neighbourhood-radius
-//! ratios over the anchors, a unit-free reading of uneven compression;
-//! the triplet rows read distance-order preservation over the probe's
-//! shared pair sample for all three space pairs. Both are rendered
-//! from the readings like every other row.
+//! Density distortion reads the spread of log neighbourhood-radius ratios over the anchors, a
+//! unit-free reading of uneven compression; the triplet rows read distance-order preservation over
+//! the probe's shared pair sample for all three space pairs. Both are rendered from the readings
+//! like every other row.
 //!
-//! When the probe carries a clump grouping, the report adds the
-//! corpus reading collapsed onto clump ids and re-evaluates every
-//! flag at that granularity. A flag whose collapsed degradation
-//! satisfies the same factor rule is recorded as clump-resolved: its
-//! entities are placed by clump, and within-clump order is not a
-//! representable quantity, so the specification's triage rule treats
-//! the group as restored rather than degraded. Clump-resolved flags
-//! keep their record in the report but no longer fail the verdict;
-//! without clump evidence every flag stays unresolved and fails, as
-//! before.
+//! When the probe carries a clump grouping, the report adds the corpus reading collapsed onto clump
+//! ids and re-evaluates every flag at that granularity. A flag whose collapsed degradation
+//! satisfies the same factor rule is recorded as clump-resolved: its entities are placed by clump,
+//! and within-clump order is not a representable quantity, so the specification's triage rule
+//! treats the group as restored rather than degraded. Clump-resolved flags keep their record in the
+//! report but no longer fail the verdict; without clump evidence every flag stays unresolved and
+//! fails, as before.
 //!
-//! Metric floors default to unpinned: the specification carries no
-//! verified map-fidelity numbers yet (engine-side measurements arrive
-//! with the first full-scale fits), and an invented floor would gate
-//! releases on fiction. A pinned floor is calibration evidence, and
-//! belongs in configuration next to the measurement that produced it.
+//! Metric floors default to unpinned: the specification carries no verified map-fidelity numbers
+//! yet (engine-side measurements arrive with the first full-scale fits), and an invented floor
+//! would gate releases on fiction. A pinned floor is calibration evidence, and belongs in
+//! configuration next to the measurement that produced it.
 
 use alloc::collections::BTreeMap;
 
@@ -70,9 +58,8 @@ const DEFAULT_MINIMUM_SUBGROUP_ANCHORS: usize = 8;
 
 /// Pinned gates for one assessment.
 ///
-/// Floors and ceilings apply to the corpus map-versus-representation
-/// grid at every neighbourhood size; [`None`] leaves a gate unpinned
-/// and the corresponding reading report-only.
+/// Floors and ceilings apply to the corpus map-versus-representation grid at every neighbourhood
+/// size; [`None`] leaves a gate unpinned and the corresponding reading report-only.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct QualityThresholds {
     /// Minimum recall, in `[0, 1]`. Defaults to unpinned.
@@ -83,18 +70,11 @@ pub(crate) struct QualityThresholds {
     pub minimum_continuity: Option<f64> = None,
     /// Maximum intrusion rate, in `[0, 1]`. Defaults to unpinned.
     pub maximum_intrusion_rate: Option<f64> = None,
-    /// Maximum density-distortion spread. Defaults to unpinned. A
-    /// pinned ceiling fails when the reading is absent - a gate on
-    /// evidence that was never produced is a configuration
-    /// contradiction, surfaced at the verdict.
+    /// Maximum density-distortion spread. Defaults to unpinned. A pinned ceiling fails when the reading is absent - a gate on evidence that was never produced is a configuration contradiction, surfaced at the verdict.
     pub maximum_density_spread: Option<f64> = None,
-    /// Minimum map-versus-representation triplet agreement, in
-    /// `[0, 1]`. Defaults to unpinned; pinned, it fails when the
-    /// triplet readings are disabled.
+    /// Minimum map-versus-representation triplet agreement, in `[0, 1]`. Defaults to unpinned; pinned, it fails when the triplet readings are disabled.
     pub minimum_triplet_agreement: Option<f64> = None,
-    /// A subgroup flags when its degradation exceeds this factor times
-    /// the overall degradation. Defaults to 2, the specification's
-    /// subgroup rule.
+    /// A subgroup flags when its degradation exceeds this factor times the overall degradation. Defaults to 2, the specification's subgroup rule.
     pub subgroup_degradation_factor: f64 = DEFAULT_DEGRADATION_FACTOR,
     /// Subgroups with fewer anchors never flag. Defaults to 8.
     pub minimum_subgroup_anchors: usize = DEFAULT_MINIMUM_SUBGROUP_ANCHORS,
@@ -142,26 +122,25 @@ impl MetricRow {
 
 /// One neighbourhood size's density-distortion reading.
 ///
-/// The reading is the spread of `ln(map radius / representation
-/// radius)` over the anchors: zero when the map rescales every
-/// neighbourhood alike, growing as regions compress or dilate
-/// unevenly. The median log ratio is the global scale offset - it
-/// carries the two metrics' unit difference and is comparable only
-/// across probes of the same spaces.
+/// The reading is the spread of `ln(map radius / representation radius)` over the anchors: zero
+/// when the map rescales every neighbourhood alike, growing as regions compress or dilate unevenly.
+/// The median log ratio is the global scale offset - it carries the two metrics' unit difference
+/// and is comparable only across probes of the same spaces.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DensityRow {
     /// The neighbourhood size the radii were read at.
     pub neighbourhood: usize,
     /// Anchors contributing a finite log ratio.
     pub anchors: usize,
-    /// Anchors excluded for a zero radius: at least `neighbourhood`
-    /// rows coincide with the anchor in one of the spaces.
+    /// Anchors excluded for a zero radius.
+    ///
+    /// At least `neighbourhood` rows coincide with the anchor in one of the spaces.
     pub degenerate: usize,
-    /// The median log radius ratio, absent without contributing
-    /// anchors.
+    /// The median log radius ratio, absent without contributing anchors.
     pub median_log_ratio: Option<f64>,
-    /// The median absolute deviation around the median, unscaled;
-    /// absent without contributing anchors.
+    /// The median absolute deviation around the median, unscaled.
+    ///
+    /// Absent without contributing anchors.
     pub spread: Option<f64>,
 }
 
@@ -172,8 +151,7 @@ pub(crate) struct TripletRow {
     pub triplets: u64,
     /// Triplets whose distance order both spaces share.
     pub preserved: u64,
-    /// The preserved fraction, in `[0, 1]`; 1 when nothing was
-    /// observed.
+    /// The preserved fraction, in `[0, 1]`; 1 when nothing was observed.
     pub agreement: f64,
 }
 
@@ -200,17 +178,17 @@ pub(crate) struct ClumpRow {
     pub neighbourhood: usize,
     /// Queries the row aggregates over.
     pub queries: usize,
-    /// Mean matched fraction of the collapsed neighbourhoods, in
-    /// `[0, 1]`; never below the plain recall at the same size.
+    /// Mean matched fraction of the collapsed neighbourhoods, in `[0, 1]`.
+    ///
+    /// Never below the plain recall at the same size.
     pub recall: f64,
 }
 
 /// The clump-granularity evidence block.
 ///
-/// The grouping's shape - counts at the threshold it was built at -
-/// travels with the collapsed readings, so the block justifies its
-/// own granularity: a threshold grouping half the corpus reads very
-/// differently from one grouping a few percent.
+/// The grouping's shape - counts at the threshold it was built at - travels with the collapsed
+/// readings, so the block justifies its own granularity: a threshold grouping half the corpus reads
+/// very differently from one grouping a few percent.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ClumpReport {
     /// The distance threshold the grouping was built at.
@@ -221,12 +199,14 @@ pub(crate) struct ClumpReport {
     pub groups: usize,
     /// Rows inside multi-row clumps.
     pub grouped_rows: usize,
-    /// Collapsed corpus map-versus-representation readings, one row
-    /// per neighbourhood size in reporting order.
+    /// Collapsed corpus map-versus-representation readings.
+    ///
+    /// One row per neighbourhood size in reporting order.
     pub map_representation: Vec<ClumpRow>,
-    /// Collapsed representation-versus-canonical readings over the
-    /// comparison rows, one row per neighbourhood size in reporting
-    /// order: the representation baseline at clump granularity.
+    /// Collapsed representation-versus-canonical readings over the comparison rows.
+    ///
+    /// One row per neighbourhood size in reporting order: the representation baseline at clump
+    /// granularity.
     pub representation_canonical: Vec<ClumpRow>,
 }
 
@@ -237,8 +217,9 @@ pub(crate) struct SubgroupReport {
     pub ontology_row: OntologyRowId,
     /// Anchors carrying the type.
     pub anchors: usize,
-    /// Corpus map-versus-representation readings, one row per
-    /// neighbourhood size in reporting order.
+    /// Corpus map-versus-representation readings.
+    ///
+    /// One row per neighbourhood size in reporting order.
     pub rows: Vec<MetricRow>,
 }
 
@@ -249,40 +230,37 @@ pub(crate) struct BaselineRow {
     pub neighbourhood: usize,
     /// Queries the row aggregates over.
     pub queries: usize,
-    /// Recall of exact canonical neighbourhoods in the representation,
-    /// in `[0, 1]`.
+    /// Recall of exact canonical neighbourhoods in the representation, in `[0, 1]`.
     pub recall: f64,
-    /// The same reading collapsed onto clump ids, when clump readings
-    /// exist; never below the plain recall.
+    /// The same reading collapsed onto clump ids, when clump readings exist.
+    ///
+    /// Never below the plain recall.
     pub clump_recall: Option<f64>,
 }
 
-/// One subgroup's representation-baseline readings over the sampled
-/// universe.
+/// One subgroup's representation-baseline readings over the sampled universe.
 ///
-/// The stratification separates representation loss from near-tie
-/// reshuffling per the specification's triage rule: a subgroup whose
-/// plain baseline recall trails the overall reading but whose
-/// collapsed recall restores to it is placed by clump in the
-/// representation itself, before any projection.
+/// The stratification separates representation loss from near-tie reshuffling per the
+/// specification's triage rule: a subgroup whose plain baseline recall trails the overall reading
+/// but whose collapsed recall restores to it is placed by clump in the representation itself,
+/// before any projection.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BaselineSubgroupReport {
     /// The subgroup's type, as its ontology row.
     pub ontology_row: OntologyRowId,
     /// Anchors carrying the type.
     pub anchors: usize,
-    /// Representation-versus-canonical readings, one row per
-    /// neighbourhood size in reporting order.
+    /// Representation-versus-canonical readings.
+    ///
+    /// One row per neighbourhood size in reporting order.
     pub rows: Vec<BaselineRow>,
 }
 
 /// One breach of the subgroup degradation rule.
 ///
-/// A flag carries its own triage evidence: when clump readings exist,
-/// the breach is re-evaluated at clump granularity, and a breach the
-/// collapse restores is marked resolved - the subgroup's entities are
-/// placed by clump, and within-clump order is not a representable
-/// quantity.
+/// A flag carries its own triage evidence: when clump readings exist, the breach is re-evaluated at
+/// clump granularity, and a breach the collapse restores is marked resolved - the subgroup's
+/// entities are placed by clump, and within-clump order is not a representable quantity.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
@@ -295,22 +273,20 @@ pub(crate) struct SubgroupFlag {
     pub degradation: f64,
     /// The overall degradation the factor multiplied.
     pub overall_degradation: f64,
-    /// The subgroup's degradation at clump granularity, when clump
-    /// readings exist.
+    /// The subgroup's degradation at clump granularity, when clump readings exist.
     pub clump_degradation: Option<f64>,
-    /// The overall clump-granularity degradation the re-evaluation
-    /// compared against.
+    /// The overall clump-granularity degradation the re-evaluation compared against.
     pub clump_overall_degradation: Option<f64>,
-    /// Whether the clump-granularity re-evaluation satisfies the
-    /// degradation rule; always false without clump readings.
+    /// Whether the clump-granularity re-evaluation satisfies the degradation rule.
+    ///
+    /// Always false without clump readings.
     pub clump_resolved: bool,
 }
 
 /// One probe's rendered evidence and verdict inputs.
 ///
-/// The report carries the probe sizes and the applied thresholds, so
-/// a serialized report justifies its own verdict without the
-/// configuration that produced it.
+/// The report carries the probe sizes and the applied thresholds, so a serialized report justifies
+/// its own verdict without the configuration that produced it.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QualityReport {
     /// Sampled anchor count.
@@ -319,18 +295,19 @@ pub(crate) struct QualityReport {
     pub corpus_universe: usize,
     /// The sampled grids' universe: the comparison row count.
     pub comparisons: usize,
-    /// Corpus map-versus-representation readings, per neighbourhood
-    /// size: the primary, gated surface.
+    /// Corpus map-versus-representation readings, per neighbourhood size.
+    ///
+    /// The primary, gated surface.
     pub map_representation: Vec<MetricRow>,
-    /// The corpus reading collapsed onto clump ids and the grouping's
-    /// shape, when the probe carried a clump grouping.
+    /// The corpus reading collapsed onto clump ids and the grouping's shape.
+    ///
+    /// When the probe carried a clump grouping.
     pub clumps: Option<ClumpReport>,
     /// Sampled map-versus-representation readings.
     pub sampled_map_representation: Vec<MetricRow>,
     /// Sampled map-versus-canonical readings.
     pub sampled_map_canonical: Vec<MetricRow>,
-    /// Sampled representation-versus-canonical readings: the
-    /// representation baseline.
+    /// Sampled representation-versus-canonical readings: the representation baseline.
     pub sampled_representation_canonical: Vec<MetricRow>,
     /// Density-distortion readings, per neighbourhood size.
     pub density: Vec<DensityRow>,
@@ -342,11 +319,11 @@ pub(crate) struct QualityReport {
     pub triplet_representation_canonical: TripletRow,
     /// Per-subgroup primary readings, ascending by ontology row.
     pub subgroups: Vec<SubgroupReport>,
-    /// Per-subgroup representation-baseline readings, ascending by
-    /// ontology row: the audit stratification, report-only.
+    /// Per-subgroup representation-baseline readings, ascending by ontology row.
+    ///
+    /// The audit stratification, report-only.
     pub baseline_subgroups: Vec<BaselineSubgroupReport>,
-    /// Degradation-rule breaches, in subgroup then neighbourhood
-    /// order.
+    /// Degradation-rule breaches, in subgroup then neighbourhood order.
     pub flags: Vec<SubgroupFlag>,
     /// The applied recall floor, when pinned.
     pub minimum_recall: Option<f64>,
@@ -367,14 +344,12 @@ pub(crate) struct QualityReport {
 }
 
 impl QualityReport {
-    /// Returns whether every pinned gate holds and no unresolved
-    /// subgroup flag remains.
+    /// Returns whether every pinned gate holds and no unresolved subgroup flag remains.
     ///
-    /// A flagged subgroup fails the verdict unless its breach is
-    /// clump-resolved - the specification's triage rule records such
-    /// a group as placed by clump, not degraded. The
-    /// approved-exception path for unresolved flags stays a human
-    /// decision recorded outside the report.
+    /// A flagged subgroup fails the verdict unless its breach is clump-resolved - the
+    /// specification's triage rule records such a group as placed by clump, not degraded. The
+    /// approved-exception path for unresolved flags stays a human decision recorded outside the
+    /// report.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
         let gates_hold = self.map_representation.iter().all(|row| {
@@ -412,16 +387,14 @@ impl QualityReport {
 
 /// Renders one probe's readings into a report under the thresholds.
 ///
-/// `anchor_types` lists each anchor's direct types, parallel to the
-/// readings' anchors; an empty list leaves an anchor in the overall
-/// readings only. Subgroup readings merge the per-anchor cells, so the
-/// report costs no ranking work.
+/// `anchor_types` lists each anchor's direct types, parallel to the readings' anchors; an empty
+/// list leaves an anchor in the overall readings only. Subgroup readings merge the per-anchor
+/// cells, so the report costs no ranking work.
 ///
 /// # Panics
 ///
-/// Panics when `anchor_types` and the readings disagree about the
-/// anchor count; both describe one probe, so a mismatch is a wiring
-/// defect.
+/// Panics when `anchor_types` and the readings disagree about the anchor count; both describe one
+/// probe, so a mismatch is a wiring defect.
 #[must_use]
 pub(crate) fn assess(
     readings: &ProbeReadings,
@@ -523,12 +496,10 @@ pub(crate) fn assess(
     }
 }
 
-/// Merges subgroup memberships into per-type rows and degradation
-/// flags.
+/// Merges subgroup memberships into per-type rows and degradation flags.
 ///
-/// Every breach is re-evaluated at clump granularity when clump
-/// readings exist: the same factor rule over the collapsed recalls
-/// decides the flag's resolution.
+/// Every breach is re-evaluated at clump granularity when clump readings exist: the same factor
+/// rule over the collapsed recalls decides the flag's resolution.
 fn subgroup_reports(
     readings: &ProbeReadings,
     overall: &[MetricRow],
@@ -599,13 +570,11 @@ fn subgroup_reports(
     (subgroups, flags)
 }
 
-/// Merges subgroup memberships into per-type representation-baseline
-/// rows.
+/// Merges subgroup memberships into per-type representation-baseline rows.
 ///
-/// Every row merges the sampled representation-versus-canonical cells
-/// of the subgroup's anchors, plain and - when clump readings exist -
-/// collapsed, so the audit stratification and its triage evidence
-/// travel together.
+/// Every row merges the sampled representation-versus-canonical cells of the subgroup's anchors,
+/// plain and - when clump readings exist - collapsed, so the audit stratification and its triage
+/// evidence travel together.
 fn baseline_subgroup_reports(
     readings: &ProbeReadings,
     rungs: &[usize],
@@ -698,8 +667,9 @@ fn density_rows(readings: &ProbeReadings, rungs: &[usize]) -> Vec<DensityRow> {
 // Median and MAD stay private here until a second consumer graduates
 // them into the planned top-level `statistics` module (the tier-B
 // rule: on the second consumer, never speculatively).
-/// Returns the median, averaging the middle pair over even lengths;
-/// [`None`] on empty input. Sorts `values` in place.
+/// Returns the median, averaging the middle pair over even lengths; [`None`] on empty input.
+///
+/// Sorts `values` in place.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,

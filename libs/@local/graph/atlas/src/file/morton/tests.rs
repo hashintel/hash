@@ -19,8 +19,7 @@ fn depth(value: u8) -> Depth {
     Depth::new(value).expect("test depths lie within the documented domain")
 }
 
-/// Fenceposts holding `lengths.len()` leading segments and empty ones
-/// behind them.
+/// Fenceposts holding `lengths.len()` leading segments and empty ones behind them.
 fn posts_of(lengths: &[u64]) -> Fenceposts {
     let mut all = [0_u64; Fenceposts::SEGMENTS];
     all[..lengths.len()].copy_from_slice(lengths);
@@ -140,17 +139,17 @@ fn region_geometry() {
     );
 }
 
-/// Depth-1 quadrant prefixes of a 64-bit key: bit 62 is the x axis's
-/// top bit, bit 63 the y axis's.
+/// Depth-1 quadrant prefixes of a 64-bit key: bit 62 is the x axis's top bit, bit 63 the y axis's.
 const Q10: u64 = 0x4000_0000_0000_0000;
 const Q01: u64 = 0x8000_0000_0000_0000;
 const Q11: u64 = 0xC000_0000_0000_0000;
 /// A depth-2 sub-cell of quadrant (0, 0): top four key bits 0001.
 const SUB: u64 = 0x1000_0000_0000_0000;
 
-/// The hand fixture: three segments over nine codes, non-decreasing
-/// within each, with a duplicated key in the deepest segment standing
-/// for catch-all co-location.
+/// The hand fixture.
+///
+/// Three segments over nine codes, non-decreasing within each, with a duplicated key in the deepest
+/// segment standing for catch-all co-location.
 ///
 /// ```text
 /// position: 0        1  2       3       4  5    6    7       8
@@ -178,8 +177,7 @@ fn fixture_posts() -> Fenceposts {
     posts_of(&[1, 3, 5])
 }
 
-/// Writes the fixture at a deliberately tiny stride so queries walk a
-/// multi-key index.
+/// Writes the fixture at a deliberately tiny stride so queries walk a multi-key index.
 fn fixture_bytes(stride: u32) -> Vec<u8> {
     let mut bytes = Vec::new();
     write_regions(stride, &fixture_posts(), &fixture_codes(), &mut bytes)
@@ -298,8 +296,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 }
 
 proptest! {
-    /// `run` agrees with a linear scan of the segment for every code
-    /// column, cell, and stride.
+    /// `run` agrees with a linear scan of the segment for every code column, cell, and stride.
     #[test]
     fn runs_agree_with_a_linear_scan(
         mut bits in prop::collection::vec(any::<u64>(), 0..64),

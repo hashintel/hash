@@ -13,9 +13,9 @@ pub(crate) struct Description<'text> {
 
 /// A transferable label and optional description, with no source id.
 ///
-/// Every labelled item on a card - inverse, ancestor, endpoint type,
-/// example endpoint - is a phrase, so rendering and detail truncation
-/// are uniform whether or not a description is present today.
+/// Every labelled item on a card - inverse, ancestor, endpoint type, example endpoint - is a
+/// phrase, so rendering and detail truncation are uniform whether or not a description is present
+/// today.
 pub(crate) struct Phrase<'text> {
     pub label: Cow<'text, str>,
     pub description: Option<Description<'text>>,
@@ -24,13 +24,12 @@ pub(crate) struct Phrase<'text> {
 impl<'text> Phrase<'text> {
     /// Normalizes a labelled input into a phrase.
     ///
-    /// A whitespace-only label yields `Ok(None)`; a whitespace-only
-    /// description yields a bare label.
+    /// A whitespace-only label yields `Ok(None)`; a whitespace-only description yields a bare
+    /// label.
     ///
     /// # Errors
     ///
-    /// Returns the segmenter's error when the description cannot be
-    /// segmented.
+    /// Returns the segmenter's error when the description cannot be segmented.
     pub(crate) fn new<S, T>(
         label: &'text str,
         description: Option<&'text str>,

@@ -1,18 +1,17 @@
-//! The refresh tick: whole-corpus forwards, per-rung local scales,
-//! two-extreme hard-negative mining, and displacement telemetry.
+//! The refresh tick.
 //!
-//! Local scales, mined negatives, and the displacement field are all
-//! defined over current coordinates, and current coordinates under a
-//! conditioned model are one frame per lens rung. A tick forwards the
-//! corpus at the rungs it needs - both lens extremes always, every
-//! rung when relation training consumes scale tables - and derives
-//! everything from those shared frames: one scale table per rung,
-//! hard negatives mined at both extremes and pooled by maximum
-//! weight, and the per-node displacement between the extremes.
+//! Whole-corpus forwards, per-rung local scales, two-extreme hard-negative mining, and displacement
+//! telemetry.
 //!
-//! Ticks run at a configured cadence, never per step: the artifacts a
-//! tick produces are deliberately stale between ticks, which is what
-//! keeps their cost off the step path.
+//! Local scales, mined negatives, and the displacement field are all defined over current
+//! coordinates, and current coordinates under a conditioned model are one frame per lens rung. A
+//! tick forwards the corpus at the rungs it needs - both lens extremes always, every rung when
+//! relation training consumes scale tables - and derives everything from those shared frames: one
+//! scale table per rung, hard negatives mined at both extremes and pooled by maximum weight, and
+//! the per-node displacement between the extremes.
+//!
+//! Ticks run at a configured cadence, never per step: the artifacts a tick produces are
+//! deliberately stale between ticks, which is what keeps their cost off the step path.
 
 use core::{error::Error, fmt, num::NonZero, ops::Range};
 
@@ -39,8 +38,7 @@ use crate::{
 /// A refresh tick failed.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum RefreshError {
-    /// A corpus forward produced a non-finite coordinate: training
-    /// diverged at this row and rung.
+    /// A corpus forward produced a non-finite coordinate: training diverged at this row and rung.
     Diverged { row: NodeRowId, eta: f32 },
     /// A local scale came out non-finite at this row and rung.
     NonFiniteScale { row: NodeRowId, eta: f32 },
@@ -74,18 +72,19 @@ impl Error for RefreshError {}
 /// One refresh tick's artifacts.
 #[derive(Debug)]
 pub(crate) struct RefreshOutcome {
-    /// Hard negatives mined at both lens extremes, pooled by maximum
-    /// weight.
+    /// Hard negatives mined at both lens extremes, pooled by maximum weight.
     pub mined: MinedFrame,
-    /// One local-scale table per rung, in [`RUNGS`] order; present
-    /// exactly when the tick ran with scales.
+    /// One local-scale table per rung, in [`RUNGS`] order.
+    ///
+    /// Present exactly when the tick ran with scales.
     pub scales: Option<[LocalScales; RUNGS.len()]>,
     /// The displacement field between the lens extremes.
     pub displacement: DisplacementSummary,
 }
 
-/// The tick-invariant refresh state: the corpus inputs, the miner, and
-/// the telemetry axes, bound once per training run.
+/// The tick-invariant refresh state.
+///
+/// The corpus inputs, the miner, and the telemetry axes, bound once per training run.
 pub(super) struct Refresh<'run> {
     /// The per-row model input columns.
     pub columns: NodeColumns<'run>,
@@ -102,17 +101,15 @@ pub(super) struct Refresh<'run> {
 impl Refresh<'_> {
     /// Runs one refresh tick over the current model.
     ///
-    /// `with_scales` selects the post-boundary shape: every rung is
-    /// forwarded and measured into a scale table. Without it only the
-    /// two extremes are forwarded - the opening semantic-only segment
-    /// and the vacuous-relation run consume no scale tables, so the
-    /// middle rung's forward would be dead weight.
+    /// `with_scales` selects the post-boundary shape: every rung is forwarded and measured into a
+    /// scale table. Without it only the two extremes are forwarded - the opening semantic-only
+    /// segment and the vacuous-relation run consume no scale tables, so the middle rung's forward
+    /// would be dead weight.
     ///
     /// # Errors
     ///
-    /// Returns an error when a forward pass produces a non-finite
-    /// coordinate or scale (training diverged), or when the corpus
-    /// exceeds the spatial index's row encoding.
+    /// Returns an error when a forward pass produces a non-finite coordinate or scale (training
+    /// diverged), or when the corpus exceeds the spatial index's row encoding.
     pub(super) fn tick<B: Backend<FloatElem = f32>>(
         &self,
         model: &Projector<B>,
@@ -154,15 +151,13 @@ impl Refresh<'_> {
 
 /// Projects the whole corpus at one rung, in bounded row slices.
 ///
-/// `forward_rows` bounds each slice's row count, and with it the peak
-/// device memory of a corpus forward; the frame it returns is
-/// identical to a single whole-corpus pass because the model maps rows
-/// independently of each other.
+/// `forward_rows` bounds each slice's row count, and with it the peak device memory of a corpus
+/// forward; the frame it returns is identical to a single whole-corpus pass because the model maps
+/// rows independently of each other.
 ///
 /// # Errors
 ///
-/// Returns an error when a projected coordinate is non-finite:
-/// training diverged.
+/// Returns an error when a projected coordinate is non-finite: training diverged.
 pub(crate) fn forward<B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
     columns: NodeColumns<'_>,
@@ -200,8 +195,8 @@ pub(crate) fn forward<B: Backend<FloatElem = f32>>(
 ///
 /// # Errors
 ///
-/// Returns an error when a scale comes out non-finite: the frame holds
-/// pre-divergence coordinates whose distances overflow.
+/// Returns an error when a scale comes out non-finite: the frame holds pre-divergence coordinates
+/// whose distances overflow.
 pub(crate) fn scales(
     frame: &[Vec2],
     knn: &KnnView<'_>,

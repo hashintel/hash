@@ -1,7 +1,7 @@
-//! Certificates for the hard-negative miner: exhaustive set-algebra
-//! agreement with a brute-force reference, dyadic rank weights, honest
-//! short sets, channel-correct protection vetoes, max-weight pooling,
-//! and determinism.
+//! Certificates for the hard-negative miner.
+//!
+//! Exhaustive set-algebra agreement with a brute-force reference, dyadic rank weights, honest short
+//! sets, channel-correct protection vetoes, max-weight pooling, and determinism.
 
 #![expect(
     clippy::float_cmp,
@@ -81,8 +81,8 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     }
 }
 
-/// An instance of `relation` between `source` and `target` with the
-/// given link confidence (`None` is unscored, the neutral 1).
+/// An instance of `relation` between `source` and `target` with the given link confidence (`None`
+/// is unscored, the neutral 1).
 fn instance(
     edge: u64,
     relation: u64,
@@ -124,10 +124,10 @@ fn hard_config(threshold: f32) -> ProtectionConfig {
     .expect("the fixture channels are ordered")
 }
 
-/// Eight collinear points at triangular-number positions: every
-/// coordinate and squared distance is a small exact integer, and row 2
-/// sees rows 0 and 3 at the same distance, exercising the row
-/// tie-break.
+/// Eight collinear points at triangular-number positions.
+///
+/// Every coordinate and squared distance is a small exact integer, and row 2 sees rows 0 and 3 at
+/// the same distance, exercising the row tie-break.
 fn line_frame() -> Vec<Vec2> {
     [0.0_f32, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0]
         .into_iter()
@@ -135,9 +135,10 @@ fn line_frame() -> Vec<Vec2> {
         .collect()
 }
 
-/// Brute-force reference: sort every row by `(squared distance, row)`,
-/// truncate to the search size, filter the exclusions in order, accept
-/// up to the quota with rank weights.
+/// Brute-force reference.
+///
+/// Sort every row by `(squared distance, row)`, truncate to the search size, filter the exclusions
+/// in order, accept up to the quota with rank weights.
 fn reference_mine(
     coordinates: &[Vec2],
     semantic: &SemanticGraph,

@@ -7,17 +7,13 @@ use zerocopy::{IntoBytes as _, LE, U32, U64};
 use super::FileHeader;
 use crate::file::region::write_padding;
 
-/// Streams the flags, fenceposts, parent edges, and membership entries
-/// as a postings file.
+/// Streams the flags, fenceposts, parent edges, and membership entries as a postings file.
 ///
-/// `flags` holds `ceil(types/64)` words with bit `t` set when type
-/// `t`'s membership run is a dense bitmap; `membership_posts` and
-/// `parent_posts` each hold `types + 1` entries delimiting the
-/// `entries` and `parent_ids` arrays; `points` is the base-position
-/// domain the header records. Regions stream in file order behind the
-/// header, so nothing is buffered here; wrap a raw
-/// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) - the
-/// per-entry writes are small.
+/// `flags` holds `ceil(types/64)` words with bit `t` set when type `t`'s membership run is a dense
+/// bitmap; `membership_posts` and `parent_posts` each hold `types + 1` entries delimiting the
+/// `entries` and `parent_ids` arrays; `points` is the base-position domain the header records.
+/// Regions stream in file order behind the header, so nothing is buffered here; wrap a raw
+/// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) - the per-entry writes are small.
 ///
 /// # Errors
 ///
@@ -25,13 +21,11 @@ use crate::file::region::write_padding;
 ///
 /// # Panics
 ///
-/// Panics when the slices contradict each other - a flags region not
-/// sized to the fencepost count, fencepost regions of differing
-/// lengths, or a final fencepost that is not its array's length -
-/// which violates the caller's construction contract; no file geometry
-/// can represent it. The membership and parent list rules (ascent,
-/// domains, dense run lengths) are `salt::postings`'s construction
-/// contract, asserted where the lists are built.
+/// Panics when the slices contradict each other - a flags region not sized to the fencepost count,
+/// fencepost regions of differing lengths, or a final fencepost that is not its array's length -
+/// which violates the caller's construction contract; no file geometry can represent it. The
+/// membership and parent list rules (ascent, domains, dense run lengths) are `salt::postings`'s
+/// construction contract, asserted where the lists are built.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; contradictory slices are a caller contract \

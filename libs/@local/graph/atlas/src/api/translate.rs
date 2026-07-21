@@ -1,5 +1,6 @@
-//! `POST /v1/atlas/translate/{generation}/{variant}`: upstream
-//! entity ids to atlas row ids, plus wire-frame positions for nodes.
+//! `POST /v1/atlas/translate/{generation}/{variant}`.
+//!
+//! Upstream entity ids to atlas row ids, plus wire-frame positions for nodes.
 
 use alloc::sync::Arc;
 
@@ -44,14 +45,13 @@ pub(super) struct VariantPath {
     // `generation`: an unparsable id must answer the 404 problem.
     #[schemars(with = "GenerationId")]
     generation: String,
-    /// The fitted variant name; the manifest lists what this
-    /// generation serves.
+    /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
 }
 
-/// `POST /v1/atlas/translate/{generation}/{variant}`: upstream entity
-/// ids to atlas identity. The id list is the request's subject, so
-/// the body is required.
+/// `POST /v1/atlas/translate/{generation}/{variant}`: upstream entity ids to atlas identity.
+///
+/// The id list is the request's subject, so the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
     Path(VariantPath {
@@ -73,7 +73,8 @@ pub(super) async fn handler(
 
     let atlas = Arc::clone(&state.atlas);
     let caps = state.caps.translate;
-    match spawn(move || atlas.translate(&request, caps)).await? {
+    let proof = Arc::clone(&state.proof);
+    match spawn(move || atlas.translate(&request, caps, &proof)).await? {
         Ok(response) => Ok((
             [(header::CACHE_CONTROL, "private, no-store")],
             Json(response),

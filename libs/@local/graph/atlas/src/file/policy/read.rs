@@ -22,8 +22,9 @@ pub(crate) enum OpenPolicyError {
     Header(ValidityError<(), FileHeader>),
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the header's
-        /// geometry overflows `u64`, in which case it matches no real
+        /// The length the header describes.
+        ///
+        /// [`None`] when the header's geometry overflows `u64`, in which case it matches no real
         /// file.
         expected: Option<u64>,
         actual: u64,
@@ -73,11 +74,10 @@ impl Error for OpenPolicyError {
 
 /// A policy file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural
-/// rule, so an open file always describes its own region exactly. The
-/// rows are borrowed straight from the whole-file mapping. The accessor
-/// exposes geometry alone; the table's domain invariants are
-/// `salt::policy`'s artifact contract.
+/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// describes its own region exactly. The rows are borrowed straight from the whole-file mapping.
+/// The accessor exposes geometry alone; the table's domain invariants are `salt::policy`'s artifact
+/// contract.
 #[derive(Debug)]
 pub(crate) struct PolicyFile {
     map: PageMap,
@@ -88,11 +88,9 @@ impl PolicyFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenPolicyError::Io`] when the file cannot be opened
-    /// or mapped, [`OpenPolicyError::Header`] when its leading bytes
-    /// are not a header this module speaks, and
-    /// [`OpenPolicyError::Length`] when the file length contradicts the
-    /// header's geometry.
+    /// Returns [`OpenPolicyError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenPolicyError::Header`] when its leading bytes are not a header this module speaks, and
+    /// [`OpenPolicyError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPolicyError> {
         let map = PageMap::open(path).map_err(OpenPolicyError::Io)?;

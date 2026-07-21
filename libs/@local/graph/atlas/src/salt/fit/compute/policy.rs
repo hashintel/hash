@@ -30,16 +30,16 @@ use crate::{
     },
 };
 
-/// The staged policy artifacts of one fit: the classifier beside the
-/// policy table it resolved.
+/// The staged policy artifacts of one fit: the classifier beside the policy table it resolved.
 pub(super) struct PolicyArtifacts {
     pub classifier: RepositoryFile,
     pub policy: RepositoryFile,
     pub evidence: PolicyEvidence,
 }
 
-/// The staged annotation artifacts of one in-run classifier fit: the
-/// corpus document beside the embedding table it assembled to.
+/// The staged annotation artifacts of one in-run classifier fit.
+///
+/// The corpus document beside the embedding table it assembled to.
 pub(super) struct AnnotationArtifacts {
     pub corpus: RepositoryFile,
     pub embeddings: RepositoryFile,
@@ -53,12 +53,12 @@ pub(super) struct ClassifierArtifacts {
 }
 
 impl Context<'_> {
-    /// Classifies every relation type's card, resolves the policy
-    /// table, and stages the classifier beside it.
+    /// Classifies every relation type's card.
     ///
-    /// The relation universe is the distinct ontology rows the edge
-    /// stream carried; each indexes the staged card table, which is
-    /// row-aligned with the type table. Every card exists, so every
+    /// Resolves the policy table, and stages the classifier beside it.
+    ///
+    /// The relation universe is the distinct ontology rows the edge stream carried; each indexes
+    /// the staged card table, which is row-aligned with the type table. Every card exists, so every
     /// relation classifies.
     pub(super) fn stage_policy(
         &self,
@@ -120,10 +120,10 @@ impl Context<'_> {
         })
     }
 
-    /// Obtains the run's relation-policy classifier: a supplied model
-    /// passes through, and an assembled corpus fits one, staging the
-    /// annotation artifacts and recording the fit and holdout
-    /// evidence.
+    /// Obtains the run's relation-policy classifier.
+    ///
+    /// A supplied model passes through, and an assembled corpus fits one, staging the annotation
+    /// artifacts and recording the fit and holdout evidence.
     pub(super) fn acquire_classifier(
         &self,
         plan: &ClassifierPlan,
@@ -144,8 +144,8 @@ impl Context<'_> {
         }
     }
 
-    /// Fits the classifier from the assembled corpus and evaluates it
-    /// on the corpus's holdout cards.
+    /// Fits the classifier from the assembled corpus and evaluates it on the corpus's holdout
+    /// cards.
     fn fit_classifier(
         &self,
         corpus: &AssembledCorpus,

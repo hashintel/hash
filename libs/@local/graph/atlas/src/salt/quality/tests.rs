@@ -48,8 +48,10 @@ use crate::{
     },
 };
 
-/// A six-row, two-neighbour table: a chained near-duplicate triple
-/// {0, 1, 2}, an exact-duplicate pair {3, 4}, and a far singleton 5.
+/// A six-row, two-neighbour table.
+///
+/// A chained near-duplicate triple {0, 1, 2}, an exact-duplicate pair {3, 4}, and a far singleton
+/// 5.
 fn clump_fixture() -> Knn {
     let indptr: Vec<u64> = vec![0, 2, 4, 6, 8, 10, 12];
     let indices: Vec<u32> = vec![1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4];
@@ -110,9 +112,10 @@ fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
     assert_eq!(none.groups(), 0);
 }
 
-/// The default threshold groups at duplicate scale: the fixture's
-/// coincident pair joins while its 0.05-distant chain - twenty-five
-/// defaults wide - stays apart.
+/// The default threshold groups at duplicate scale.
+///
+/// The fixture's coincident pair joins while its 0.05-distant chain - twenty-five defaults wide -
+/// stays apart.
 #[test]
 fn default_epsilon_groups_duplicates_not_neighbours() {
     let table = clump_fixture();
@@ -137,8 +140,9 @@ fn hand_built_labels_read_like_a_grouping() {
     assert_eq!(clumps.clump(3), 2);
 }
 
-/// Hand-computed multiset overlap: the duplicated label 1 matches
-/// twice, 0 once, and the unmatched 2 and 3 earn nothing.
+/// Hand-computed multiset overlap.
+///
+/// The duplicated label 1 matches twice, 0 once, and the unmatched 2 and 3 earn nothing.
 #[test]
 fn clump_aggregate_counts_multiset_overlap() {
     let mut aggregate = ClumpAggregate::new(NonZero::new(4).expect("nonzero"));
@@ -332,12 +336,11 @@ const FIXTURE_CAPACITY: usize = 48 * PROJECTOR_DIMENSIONS;
 
 /// A probe corpus whose three spaces share one deterministic geometry.
 ///
-/// Row `i` sits at an angle on the unit circle in every space: the
-/// representation is `(cos, sin)` in the leading two components, the
-/// canonical embedding extends it with zeros, and the coordinates are
-/// the circle point itself. Chord length and cosine distance are both
-/// monotone in the angular gap, so equal embedding and map angles make
-/// all three spaces order every universe identically - a perfect map.
+/// Row `i` sits at an angle on the unit circle in every space: the representation is `(cos, sin)`
+/// in the leading two components, the canonical embedding extends it with zeros, and the
+/// coordinates are the circle point itself. Chord length and cosine distance are both monotone in
+/// the angular gap, so equal embedding and map angles make all three spaces order every universe
+/// identically - a perfect map.
 struct ProbeFixture {
     node_ids: Vec<U64<LE>>,
     storage: BoxedVecN<FIXTURE_CAPACITY>,
@@ -400,8 +403,9 @@ impl ProbeFixture {
     }
 }
 
-/// Irregularly spaced angles inside a quarter circle: no two gaps
-/// coincide, so no space carries distance ties.
+/// Irregularly spaced angles inside a quarter circle.
+///
+/// No two gaps coincide, so no space carries distance ties.
 fn irregular_angles(rows: usize) -> Vec<f32> {
     #[expect(
         clippy::cast_precision_loss,
@@ -580,10 +584,10 @@ async fn corpus_readings_match_a_sorting_reference() {
     }
 }
 
-/// The probe's clump collapse: singleton labels reproduce plain
-/// recall exactly, and a grouped labelling agrees with a sorting
-/// reference collapsed the same way while never reading below plain
-/// recall.
+/// The probe's clump collapse.
+///
+/// Singleton labels reproduce plain recall exactly, and a grouped labelling agrees with a sorting
+/// reference collapsed the same way while never reading below plain recall.
 #[tokio::test]
 async fn clump_readings_match_a_sorting_reference() {
     // The scrambled fixture from the corpus reference test: map and
@@ -690,9 +694,10 @@ async fn clump_readings_match_a_sorting_reference() {
     }
 }
 
-/// Hand-built readings: six single-query anchors at k = 1 over a
-/// universe of 8, each a plain hit (rank 0) or a horizon miss
-/// (rank 7), reused for all four grids.
+/// Hand-built readings.
+///
+/// Six single-query anchors at k = 1 over a universe of 8, each a plain hit (rank 0) or a horizon
+/// miss (rank 7), reused for all four grids.
 fn flag_fixture(hits: &[bool]) -> ProbeReadings {
     let cells: Vec<Vec<NeighbourhoodAggregate>> = hits
         .iter()
@@ -736,8 +741,9 @@ fn types_of(rows: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
         .collect()
 }
 
-/// Hand-computed subgroup rule: degradations, the 2x factor, the
-/// anchor floor, and multi-typed anchors counting in every group.
+/// Hand-computed subgroup rule.
+///
+/// Degradations, the 2x factor, the anchor floor, and multi-typed anchors counting in every group.
 #[test]
 fn assess_flags_degraded_subgroups() {
     // Anchors 0-3 hit, 4-5 miss: overall recall 2/3, degradation 1/3.
@@ -805,8 +811,9 @@ fn assess_flags_degraded_subgroups() {
     assert!(floored.passes());
 }
 
-/// A clump readings block over the flag fixture: one k = 1 cell per
-/// anchor, its collapsed neighbourhood matched or not.
+/// A clump readings block over the flag fixture.
+///
+/// One k = 1 cell per anchor, its collapsed neighbourhood matched or not.
 fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
     let cells: Vec<Vec<ClumpAggregate>> = matches
         .iter()
@@ -827,9 +834,8 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
     }
 }
 
-/// The triage rule: a flag whose collapsed reading satisfies the
-/// factor is recorded as clump-resolved and stops failing the
-/// verdict; one that stays degraded keeps failing.
+/// The triage rule: a flag whose collapsed reading satisfies the factor is recorded as
+/// clump-resolved and stops failing the verdict; one that stays degraded keeps failing.
 #[test]
 fn clump_resolution_triages_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
@@ -887,8 +893,7 @@ fn clump_resolution_triages_flags() {
     assert!(!report.passes());
 }
 
-/// Hand-computed density rows: log ratios, the median/MAD spread,
-/// and degenerate-radius exclusion.
+/// Hand-computed density rows: log ratios, the median/MAD spread, and degenerate-radius exclusion.
 #[test]
 fn assess_reads_density_from_radii() {
     let mut readings = flag_fixture(&[true, true, true]);
@@ -1163,10 +1168,10 @@ fn runner_scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A probe-scale corpus for publishing through the real fit: unit-norm
-/// pseudo-random representations whose canonical embeddings extend
-/// them with zeros, one node type alternating between two ontology
-/// rows, and one link type.
+/// A probe-scale corpus for publishing through the real fit.
+///
+/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
+/// node type alternating between two ontology rows, and one link type.
 fn runner_dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xE7A);
     let mut canonical = HashMap::new();
@@ -1274,8 +1279,9 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus: the
-/// supplied model input of the fixture fit.
+/// A deterministic classifier fitted from a synthetic corpus.
+///
+/// The supplied model input of the fixture fit.
 fn runner_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
@@ -1324,8 +1330,9 @@ fn runner_classifier() -> ClassifierInput {
     }
 }
 
-/// The runner fixture's probe design: a handful of anchors and
-/// comparisons sized to the 48-row corpus.
+/// The runner fixture's probe design.
+///
+/// A handful of anchors and comparisons sized to the 48-row corpus.
 fn runner_probe_options() -> QualityRunOptions {
     QualityRunOptions {
         probe: ProbeOptions {
@@ -1342,9 +1349,10 @@ fn runner_probe_options() -> QualityRunOptions {
     }
 }
 
-/// The runner end to end: the real fit publishes a generation, the
-/// runner reopens its artifacts, probes them against the same
-/// dataset, resolves anchor types, and reports.
+/// The runner end to end.
+///
+/// The real fit publishes a generation, the runner reopens its artifacts, probes them against the
+/// same dataset, resolves anchor types, and reports.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn runner_reports_a_published_generation() {

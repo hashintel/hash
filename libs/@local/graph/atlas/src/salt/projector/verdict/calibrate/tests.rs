@@ -74,8 +74,9 @@ fn proximal_verdict(relation: u64) -> ResolvedVerdict {
     }
 }
 
-/// Scales of 0.75 with the guard 0.25 make every normalization exactly
-/// one, so measured `z` equals raw 2D distance.
+/// Scales of 0.75 with the guard 0.25 make every normalization exactly one.
+///
+/// So measured `z` equals raw 2D distance.
 fn unit_scales(rows: usize) -> LocalScales {
     LocalScales::new(vec![0.75; rows].into_boxed_slice()).expect("0.75 is a valid scale")
 }

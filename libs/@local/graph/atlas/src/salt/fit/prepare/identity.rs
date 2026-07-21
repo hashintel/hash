@@ -1,20 +1,16 @@
 //! Row identity persistence: source ids per row, translated both ways.
 //!
-//! [`IdentityTable`] collects one domain's source ids in row order
-//! during the dataset drain and writes them as one identity file;
-//! [`IdentityTableArchive`] reopens a written file as the typed lookup
-//! surface: `row -> id` by indexing, `id -> row` by binary search over
-//! the file's sorted pairs behind its index prelude, faulting two
-//! pages on a cold lookup.
+//! [`IdentityTable`] collects one domain's source ids in row order during the dataset drain and
+//! writes them as one identity file; [`IdentityTableArchive`] reopens a written file as the typed
+//! lookup surface: `row -> id` by indexing, `id -> row` by binary search over the file's sorted
+//! pairs behind its index prelude, faulting two pages on a cold lookup.
 //!
-//! The id type is the dataset's ([`Dataset::NodeId`] /
-//! [`Dataset::EdgeId`]): byte-level stable, opaque to the pipeline,
-//! ordered here by its bytes since source identifiers carry no other
-//! order. The file format is `file::identity`'s; this module owns the
-//! table's domain invariants - strictly ascending pair ids, rows
-//! inside the domain, pair agreement with the id column, index
-//! agreement with the pairs - validated once on open with one `O(N)`
-//! pass, so every lookup after that is unchecked.
+//! The id type is the dataset's ([`Dataset::NodeId`] / [`Dataset::EdgeId`]): byte-level stable,
+//! opaque to the pipeline, ordered here by its bytes since source identifiers carry no other order.
+//! The file format is `file::identity`'s; this module owns the table's domain invariants - strictly
+//! ascending pair ids, rows inside the domain, pair agreement with the id column, index agreement
+//! with the pairs - validated once on open with one `O(N)` pass, so every lookup after that is
+//! unchecked.
 //!
 //! [`Dataset::NodeId`]: crate::dataset::Dataset::NodeId
 //! [`Dataset::EdgeId`]: crate::dataset::Dataset::EdgeId
@@ -36,8 +32,8 @@ use crate::{
 
 /// One domain's source ids, collected in row order.
 ///
-/// Push ids as the dataset stream yields rows; the table is the whole
-/// column resident, sorted once at [`write_into`](Self::write_into).
+/// Push ids as the dataset stream yields rows; the table is the whole column resident, sorted once
+/// at [`write_into`](Self::write_into).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct IdentityTable<I> {
     ids: Vec<I>,
@@ -73,11 +69,10 @@ where
 {
     type Error = io::Error;
 
-    /// Writes the table as one identity file, returning the digest of
-    /// the written bytes.
+    /// Writes the table as one identity file, returning the digest of the written bytes.
     ///
-    /// Every region streams in file order; wrap a raw
-    /// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
+    /// Every region streams in file order; wrap a raw [`File`](std::fs::File) in a
+    /// [`BufWriter`](io::BufWriter).
     ///
     /// # Errors
     ///
@@ -85,8 +80,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when two rows carry one id, which the dataset row
-    /// contract excludes.
+    /// Panics when two rows carry one id, which the dataset row contract excludes.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the Result carries write failures; duplicate ids are an upstream contract \
@@ -147,8 +141,7 @@ struct Pair<I> {
     row: U64<LE>,
 }
 
-/// A structurally valid identity file whose contents violate the
-/// table's domain invariants.
+/// A structurally valid identity file whose contents violate the table's domain invariants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InvalidIdentityFile {
     /// The file's id width is not the id type's.
@@ -196,10 +189,9 @@ impl Error for InvalidIdentityFile {}
 
 /// A written identity table reopened as its mapped lookup surface.
 ///
-/// Construction validates the domain invariants in one pass, so the
-/// lookups are unchecked afterwards: [`id`](Self::id) indexes the id
-/// column and [`row_of`](Self::row_of) binary-searches the sorted
-/// pairs behind the file's index prelude.
+/// Construction validates the domain invariants in one pass, so the lookups are unchecked
+/// afterwards: [`id`](Self::id) indexes the id column and [`row_of`](Self::row_of) binary-searches
+/// the sorted pairs behind the file's index prelude.
 #[derive(Debug)]
 pub(crate) struct IdentityTableArchive<I> {
     file: IdentityFile,
@@ -214,9 +206,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the file's id width is not `I`'s, or when
-    /// any pair, row reference, or index key violates the invariants
-    /// listed on [`InvalidIdentityFile`].
+    /// Returns an error when the file's id width is not `I`'s, or when any pair, row reference, or
+    /// index key violates the invariants listed on [`InvalidIdentityFile`].
     #[expect(
         clippy::cast_possible_truncation,
         reason = "an id width is a type's size, far below u32"
@@ -310,9 +301,8 @@ where
 
     /// Returns the row carrying `id`, or [`None`] when no row does.
     ///
-    /// The index prelude narrows the search to one stride of pairs, so
-    /// a cold lookup faults two pages instead of `log2(N)` scattered
-    /// ones.
+    /// The index prelude narrows the search to one stride of pairs, so a cold lookup faults two
+    /// pages instead of `log2(N)` scattered ones.
     #[must_use]
     pub(crate) fn row_of(&self, id: I) -> Option<u64> {
         let bytes = id.as_bytes();

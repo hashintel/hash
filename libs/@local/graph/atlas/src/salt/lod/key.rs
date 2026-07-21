@@ -7,8 +7,7 @@ use crate::{
     morton::MortonKey,
 };
 
-/// The number of grid positions per axis: keys quantize each axis to
-/// 32 bits.
+/// The number of grid positions per axis: keys quantize each axis to 32 bits.
 #[expect(
     clippy::cast_precision_loss,
     reason = "2^32 is a power of two, exact in `f64`"
@@ -17,16 +16,14 @@ const AXIS_CELLS: f64 = (1_u64 << 32) as f64;
 
 /// Quantizes each point onto the frame's 32-bit-per-axis grid.
 ///
-/// Each axis maps affinely from the frame onto `[0, 2^32)` and floors;
-/// points on the frame's maximum edge take the last cell. The mapping
-/// runs in `f64`, so every `f32` coordinate quantizes exactly and the
-/// grid outresolves the data: points closer than one coordinate ULP
-/// share cells, nothing else does. A zero-extent axis (every point
-/// identical on it, permitted by [`Bounds2`]) maps to cell zero.
+/// Each axis maps affinely from the frame onto `[0, 2^32)` and floors; points on the frame's
+/// maximum edge take the last cell. The mapping runs in `f64`, so every `f32` coordinate quantizes
+/// exactly and the grid outresolves the data: points closer than one coordinate ULP share cells,
+/// nothing else does. A zero-extent axis (every point identical on it, permitted by [`Bounds2`])
+/// maps to cell zero.
 ///
-/// The frame is the caller's contract: it contains every point (the
-/// frame fit produces it from these coordinates), and coordinates
-/// outside it clamp onto the boundary cells.
+/// The frame is the caller's contract: it contains every point (the frame fit produces it from
+/// these coordinates), and coordinates outside it clamp onto the boundary cells.
 #[must_use]
 pub(crate) fn keys(points: &[Vec2], frame: Bounds2) -> Box<[MortonKey]> {
     let min = frame.min();

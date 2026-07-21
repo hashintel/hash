@@ -17,11 +17,9 @@ use crate::{
 
 /// Cumulative specific-type link volumes measured in the live store.
 ///
-/// Sixteen specific relation types over 2,196,563 links, spanning five
-/// orders of magnitude; the largest owns 34% of links, the smallest 4
-/// links. Sampling a uniform position below the total and bucketing by
-/// these boundaries reproduces the measured volume distribution at any
-/// corpus scale.
+/// Sixteen specific relation types over 2,196,563 links, spanning five orders of magnitude; the
+/// largest owns 34% of links, the smallest 4 links. Sampling a uniform position below the total and
+/// bucketing by these boundaries reproduces the measured volume distribution at any corpus scale.
 const MEASURED_SPECIFIC_CUMULATIVE: [u64; 16] = [
     739_374, 1_405_028, 1_861_990, 1_971_015, 2_041_671, 2_096_752, 2_143_950, 2_165_211,
     2_185_797, 2_190_391, 2_193_025, 2_195_240, 2_196_479, 2_196_553, 2_196_559, 2_196_563,
@@ -31,25 +29,25 @@ const MEASURED_SPECIFIC_CUMULATIVE: [u64; 16] = [
 const MEASURED_LINKS: NonZero<u64> =
     NonZero::new(MEASURED_SPECIFIC_CUMULATIVE[15]).expect("the measured corpus is non-empty");
 
-/// Relation types in the synthesized table: one base plus the sixteen
-/// specific types.
+/// Relation types in the synthesized table: one base plus the sixteen specific types.
 const RELATION_TYPES: usize = 1 + MEASURED_SPECIFIC_CUMULATIVE.len();
 
-/// Odd multiplier scattering hub ranks over the power-of-two row
-/// domain; odd times anything is invertible modulo a power of two, so
-/// distinct ranks land on distinct rows.
+/// Odd multiplier scattering hub ranks over the power-of-two row domain.
+///
+/// Odd times anything is invertible modulo a power of two, so distinct ranks land on distinct rows.
 const HUB_SCATTER: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// How a synthesized corpus distributes volume over relation types.
 ///
-/// All three profiles share the same endpoint generator, instance
-/// volume, and policy table; they differ only in volume concentration,
-/// so a timing difference between them is attributable to skew alone.
+/// All three profiles share the same endpoint generator, instance volume, and policy table; they
+/// differ only in volume concentration, so a timing difference between them is attributable to skew
+/// alone.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Profile {
-    /// The measured live shape: every link carries the shared base type
-    /// plus one specific type drawn from the measured histogram, so the
-    /// base relation owns exactly half of all instances.
+    /// The measured live shape.
+    ///
+    /// Every link carries the shared base type plus one specific type drawn from the measured
+    /// histogram, so the base relation owns exactly half of all instances.
     Live,
     /// The same instance volume spread evenly over the same type count.
     Uniform,
@@ -71,11 +69,10 @@ impl Profile {
 
 /// A synthesized relation corpus with sorted stage inputs on demand.
 ///
-/// Holds the raw instance set; the group-sorted and pair-sorted copies
-/// each build stage starts from materialize on first use and stay
-/// cached, so a corpus that only runs full builds keeps one copy
-/// resident (roughly 250 MB at the live scale of 2.2M links) and one
-/// that isolates stages keeps three.
+/// Holds the raw instance set; the group-sorted and pair-sorted copies each build stage starts from
+/// materialize on first use and stay cached, so a corpus that only runs full builds keeps one copy
+/// resident (roughly 250 MB at the live scale of 2.2M links) and one that isolates stages keeps
+/// three.
 pub struct Corpus {
     rows: usize,
     links: usize,
@@ -89,19 +86,17 @@ pub struct Corpus {
 impl Corpus {
     /// Synthesizes a corpus of `links` links under `profile`.
     ///
-    /// The row domain is the largest power of two at most half the link
-    /// count (the live ratio: 2.2M links over 1M rows), floored at 64.
-    /// Sources are uniform over the rows; targets follow a truncated
-    /// Zipf tail over one eighth of the rows (the measured hub shape:
-    /// 124K distinct targets, the largest gathering 9% of all links).
-    /// Confidence is unscored throughout, the live corpus's only shape.
-    /// Every draw comes from `rng` seeded with `seed`, so equal
-    /// arguments synthesize equal corpora.
+    /// The row domain is the largest power of two at most half the link count (the live ratio: 2.2M
+    /// links over 1M rows), floored at 64. Sources are uniform over the rows; targets follow a
+    /// truncated Zipf tail over one eighth of the rows (the measured hub shape: 124K distinct
+    /// targets, the largest gathering 9% of all links). Confidence is unscored throughout, the live
+    /// corpus's only shape. Every draw comes from `rng` seeded with `seed`, so equal arguments
+    /// synthesize equal corpora.
     ///
     /// # Panics
     ///
-    /// Panics when the instance set does not fit the address space;
-    /// every internal expectation is satisfied by construction.
+    /// Panics when the instance set does not fit the address space; every internal expectation is
+    /// satisfied by construction.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,

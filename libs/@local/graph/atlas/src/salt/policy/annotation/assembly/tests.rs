@@ -30,8 +30,7 @@ const SHOT: &str = "http://www.wikidata.org/entity/P800";
 const HOLDOUT: &str = "http://www.wikidata.org/entity/P900";
 const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
 
-/// A uniquely named file in the system temporary directory, removed
-/// on drop.
+/// A uniquely named file in the system temporary directory, removed on drop.
 struct TempFile {
     path: PathBuf,
 }
@@ -63,11 +62,10 @@ struct ProgrammedEmbedder;
 impl ProgrammedEmbedder {
     /// The polar angle of each card's programmed embedding.
     ///
-    /// Alpha and beta lie `0.05` radians apart, within the default
-    /// near-duplicate threshold (`1 - cos(0.05) ~= 1.25e-3`); beta and
-    /// delta lie `0.06` radians apart, also within it but farther
-    /// (`1 - cos(0.06) ~= 1.80e-3`); beta and gamma lie `0.10`
-    /// radians apart, outside it (`1 - cos(0.10) ~= 5.0e-3`).
+    /// Alpha and beta lie `0.05` radians apart, within the default near-duplicate threshold (`1 -
+    /// cos(0.05) ~= 1.25e-3`); beta and delta lie `0.06` radians apart, also within it but farther
+    /// (`1 - cos(0.06) ~= 1.80e-3`); beta and gamma lie `0.10` radians apart, outside it (`1 -
+    /// cos(0.10) ~= 5.0e-3`).
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,
@@ -175,8 +173,7 @@ fn wikidata_card(identity: &str, title: &str, family: &str, votes: &[Value]) -> 
     })
 }
 
-/// Composes the full-featured wikidata card behind the template
-/// certificate.
+/// Composes the full-featured wikidata card behind the template certificate.
 fn rich_card() -> Value {
     let mut card = wikidata_card(
         PART_OF,
@@ -304,8 +301,7 @@ fn fixture_corpus() -> AnnotationCorpus {
     AnnotationCorpus::from_slice(bytes.as_bytes()).expect("the fixture corpus admits")
 }
 
-/// Hashes one group's member identities the way assembly labels
-/// groups.
+/// Hashes one group's member identities the way assembly labels groups.
 fn group_digest(members: &[&str]) -> crate::integrity::Sha256Digest {
     let mut hasher = Sha256::new();
     for member in members {

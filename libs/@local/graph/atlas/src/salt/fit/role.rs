@@ -132,18 +132,18 @@ const _: [FileName; 29] = [
 
 /// One staged artifact, carried from its stage to the assembly.
 ///
-/// `file` is the repository binding the seal publishes, `artifact` the
-/// staged value mapped back for the stages that consume it, and
-/// `evidence` the stage's measurement for the generation metadata.
+/// `file` is the repository binding the seal publishes, `artifact` the staged value mapped back for
+/// the stages that consume it, and `evidence` the stage's measurement for the generation metadata.
 pub(super) struct Staged<A, E = ()> {
     pub file: RepositoryFile,
     pub artifact: A,
     pub evidence: E,
 }
 
-/// Stages one artifact under its role: the artifact writes itself
-/// into the role's buffered staged file through its own single
-/// digest pass, and the digest binds to the role.
+/// Stages one artifact under its role.
+///
+/// The artifact writes itself into the role's buffered staged file through its own single digest
+/// pass, and the digest binds to the role.
 pub(super) fn stage<A>(
     staging: &StagedGeneration,
     role: Role,
@@ -160,8 +160,9 @@ where
     Ok(role.file(digest))
 }
 
-/// Runs `write` against the role's buffered staged file, surfacing
-/// flush errors, and binds the written digest to the role.
+/// Runs `write` against the role's buffered staged file.
+///
+/// Surfaces flush errors, and binds the written digest to the role.
 pub(super) fn write_staged(
     staging: &StagedGeneration,
     role: Role,
@@ -188,11 +189,9 @@ pub(super) fn digest_file(path: impl AsRef<Utf8Path>) -> io::Result<Sha256Digest
     Ok(writer.accumulator.finalize())
 }
 
-/// Stages one array column row by row and binds the sealed file's
-/// digest to the role.
+/// Stages one array column row by row and binds the sealed file's digest to the role.
 ///
-/// The digest streams over the finished file because the array writer
-/// seals its header by seeking.
+/// The digest streams over the finished file because the array writer seals its header by seeking.
 pub(super) fn stage_column(
     staging: &StagedGeneration,
     role: Role,
@@ -213,12 +212,11 @@ pub(super) fn stage_column(
     Ok(role.file(digest))
 }
 
-/// Stages one array column whose row count is known up front and
-/// binds the digest accumulated over the single write pass to the
-/// role.
+/// Stages one array column whose row count is known up front and binds the digest accumulated over
+/// the single write pass to the role.
 ///
-/// `dims` is the full shape, the leading dimension the row count;
-/// `rows` must deliver exactly that many rows.
+/// `dims` is the full shape, the leading dimension the row count; `rows` must deliver exactly that
+/// many rows.
 pub(super) fn stage_sized_column(
     staging: &StagedGeneration,
     role: Role,

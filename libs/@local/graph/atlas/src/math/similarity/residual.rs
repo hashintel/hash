@@ -1,10 +1,9 @@
 //! RMS residual of a similarity over point correspondences.
 //!
-//! The residual is the alignment-quality measurement paired with the
-//! Procrustes fit: apply the similarity to every source point, compare
-//! against its target, and reduce the squared distances to one
-//! root-mean-square. Squares accumulate in double precision, four
-//! pairs at a time, serially or across rayon workers.
+//! The residual is the alignment-quality measurement paired with the Procrustes fit: apply the
+//! similarity to every source point, compare against its target, and reduce the squared distances
+//! to one root-mean-square. Squares accumulate in double precision, four pairs at a time, serially
+//! or across rayon workers.
 
 use core::simd::{Simd, num::SimdFloat as _};
 
@@ -20,20 +19,17 @@ use crate::math::{
 };
 
 impl Similarity {
-    /// Returns the root-mean-square distance between the transformed
-    /// source points and their targets.
+    /// Returns the root-mean-square distance between the transformed source points and their
+    /// targets.
     ///
-    /// This is the movement a fitted alignment could not explain: after
-    /// [`fit`](Self::fit) it measures how far the two point sets differ
-    /// beyond scale, rotation, and translation. The transform is applied
-    /// with coefficients widened to `f64` and the squared distances
-    /// accumulate in double precision, so corpus-scale sums keep their
-    /// accuracy; pairs fold four at a time with the trailing `len % 4`
-    /// handled scalar.
+    /// This is the movement a fitted alignment could not explain: after [`fit`](Self::fit) it
+    /// measures how far the two point sets differ beyond scale, rotation, and translation. The
+    /// transform is applied with coefficients widened to `f64` and the squared distances accumulate
+    /// in double precision, so corpus-scale sums keep their accuracy; pairs fold four at a time
+    /// with the trailing `len % 4` handled scalar.
     ///
-    /// Returns [`None`] when the slice lengths differ, no pairs are
-    /// given, or any coordinate is not finite (a non-finite input
-    /// surfaces as a non-finite sum, which is rejected rather than
+    /// Returns [`None`] when the slice lengths differ, no pairs are given, or any coordinate is not
+    /// finite (a non-finite input surfaces as a non-finite sum, which is rejected rather than
     /// returned).
     ///
     /// # Examples
@@ -60,13 +56,11 @@ impl Similarity {
         finish_rms(self.squared_residuals(source, target), source.len())
     }
 
-    /// Returns the root-mean-square residual of large inputs in
-    /// parallel.
+    /// Returns the root-mean-square residual of large inputs in parallel.
     ///
-    /// The contract is identical to [`rms_residual`](Self::rms_residual);
-    /// the chunked reduction carries [`fit_par`](Self::fit_par)'s
-    /// units-in-the-last-place caveat and the same roughly-a-hundred-
-    /// thousand-pairs break-even. Work splits into chunks of
+    /// The contract is identical to [`rms_residual`](Self::rms_residual); the chunked reduction
+    /// carries [`fit_par`](Self::fit_par)'s units-in-the-last-place caveat and the same
+    /// roughly-a-hundred-thousand-pairs break-even. Work splits into chunks of
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[must_use]
     pub fn rms_residual_par(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
@@ -84,12 +78,12 @@ impl Similarity {
         finish_rms(squared, source.len())
     }
 
-    /// Accumulates the squared distances between the transformed source
-    /// points and their targets in double precision.
+    /// Accumulates the squared distances between the transformed source points and their targets in
+    /// double precision.
     ///
-    /// The slices carry equal lengths; the `rms_residual` entry points
-    /// check this once. A non-finite coordinate propagates into the sum
-    /// and is rejected by the callers' finishing step.
+    /// The slices carry equal lengths; the `rms_residual` entry points check this once. A
+    /// non-finite coordinate propagates into the sum and is rejected by the callers' finishing
+    /// step.
     fn squared_residuals(self, source: &[Vec2], target: &[Vec2]) -> f64 {
         // `scale * R * p + t` with the scale folded into the rotation
         // columns once, in double precision.
@@ -133,8 +127,7 @@ impl Similarity {
     }
 }
 
-/// Reduces an accumulated squared-distance sum to the RMS, rejecting
-/// non-finite accumulations.
+/// Reduces an accumulated squared-distance sum to the RMS, rejecting non-finite accumulations.
 #[expect(
     clippy::cast_precision_loss,
     reason = "pair counts remain exactly representable in f64 far beyond any corpus"

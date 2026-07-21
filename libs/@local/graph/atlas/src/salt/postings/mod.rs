@@ -1,19 +1,17 @@
-//! The type postings: per-type membership over the base delivery
-//! order, and the type graph it expands through.
+//! The type postings.
 //!
-//! [`Postings`] is the filter contract's membership artifact
-//! (`SPEC-ADDENDUM-CLOUD.md` section 7; `PLAN.md` "Serving contract
-//! requirements"): for every ontology row, which base delivery
-//! positions carry that type **directly**. A type filter ORs requested
-//! rows' membership into one dense position bitmap; the wire's
-//! `TYPE_MASK` column slices membership over a tile's delivered runs.
-//! Inheritance never rides the membership: requests expand to
-//! descendant rows first through the [`ClosureMap`] derived from the
-//! published parent edges, so the type graph stays the one authority
-//! for inheritance and no closure is ever materialized on disk.
+//! Per-type membership over the base delivery order, and the type graph it expands through.
 //!
-//! Membership is stored per type in the cheaper of two representations,
-//! chosen by the writer and recorded in the file's flags region:
+//! [`Postings`] is the filter contract's membership artifact (`SPEC-ADDENDUM-CLOUD.md` section 7;
+//! `PLAN.md` "Serving contract requirements"): for every ontology row, which base delivery
+//! positions carry that type **directly**. A type filter ORs requested rows' membership into one
+//! dense position bitmap; the wire's `TYPE_MASK` column slices membership over a tile's delivered
+//! runs. Inheritance never rides the membership: requests expand to descendant rows first through
+//! the [`ClosureMap`] derived from the published parent edges, so the type graph stays the one
+//! authority for inheritance and no closure is ever materialized on disk.
+//!
+//! Membership is stored per type in the cheaper of two representations, chosen by the writer and
+//! recorded in the file's flags region:
 //!
 //! - a **list**: the positions sorted ascending, `4` bytes each - the shape a run slice reads
 //!   linearly;
@@ -22,17 +20,14 @@
 //!   measured store), so an all-list format would degenerate exactly on the types most worth
 //!   coloring by.
 //!
-//! Readers honor whichever representation the file records; the
-//! threshold is writer policy ([`PostingsConfig`]), so revising it
-//! never touches the read path.
+//! Readers honor whichever representation the file records; the threshold is writer policy
+//! ([`PostingsConfig`]), so revising it never touches the read path.
 //!
 //! It derives from the same row-order type column the quadtree consumes
-//! ([`crate::salt::lod::quad::QuadTree::build`]'s `types` parameter),
-//! gathered through the lod's permutation, and publishes as one
-//! [`crate::file::postings`] file; [`PostingsArchive`] reopens the file
-//! over a whole-file mapping and validates the artifact contract once,
-//! so lookups read from the page cache without holding anything on the
-//! heap.
+//! ([`crate::salt::lod::quad::QuadTree::build`]'s `types` parameter), gathered through the lod's
+//! permutation, and publishes as one [`crate::file::postings`] file; [`PostingsArchive`] reopens
+//! the file over a whole-file mapping and validates the artifact contract once, so lookups read
+//! from the page cache without holding anything on the heap.
 //!
 //! # Artifact contract
 //!

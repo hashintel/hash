@@ -1,7 +1,7 @@
 //! Certificates for local-scale measurement.
 //!
-//! Fixture distances and coordinates are hand-picked exactly
-//! representable values, so the asserted medians are exact contracts.
+//! Fixture distances and coordinates are hand-picked exactly representable values, so the asserted
+//! medians are exact contracts.
 
 #![expect(
     clippy::float_cmp,
@@ -14,8 +14,9 @@ use crate::{
     salt::knn::table::{Knn, KnnMatrix},
 };
 
-/// A complete-graph neighbour table: every row lists every other row,
-/// with `distances(row)` supplying that row's stored distances in
+/// A complete-graph neighbour table.
+///
+/// Every row lists every other row, with `distances(row)` supplying that row's stored distances in
 /// ascending column order.
 fn complete_table(rows: usize, distances: impl Fn(usize) -> Vec<f32>) -> Knn {
     let neighbours = rows - 1;
@@ -41,12 +42,10 @@ fn complete_table(rows: usize, distances: impl Fn(usize) -> Vec<f32>) -> Knn {
 
 /// Selection follows stored distance, not storage order.
 ///
-/// Seventeen rows make row 0's table sixteen entries wide, one more
-/// than the scale uses. Row 1 - FIRST in storage order - carries the
-/// LARGEST stored distance, so the nearest fifteen are rows 2..=16.
-/// With row `j` placed at `(j, 0)`, the correct median over 2D
-/// distances `{2..=16}` is 9; selecting the first fifteen by storage
-/// order would include row 1 and yield 8.
+/// Seventeen rows make row 0's table sixteen entries wide, one more than the scale uses. Row 1 -
+/// FIRST in storage order - carries the LARGEST stored distance, so the nearest fifteen are rows
+/// 2..=16. With row `j` placed at `(j, 0)`, the correct median over 2D distances `{2..=16}` is 9;
+/// selecting the first fifteen by storage order would include row 1 and yield 8.
 #[test]
 fn selects_neighbours_by_stored_distance_not_storage_order() {
     let rows = 17;
@@ -90,9 +89,8 @@ fn even_neighbour_counts_use_the_midpoint() {
 
 /// Detection completes through the diverged row itself.
 ///
-/// With an odd neighbour count, an observer's median legitimately
-/// skips a single poisoned distance (NaN sorts last), so rows 0..=2
-/// stay finite here - the diverged row 3, whose every distance is
+/// With an odd neighbour count, an observer's median legitimately skips a single poisoned distance
+/// (NaN sorts last), so rows 0..=2 stay finite here - the diverged row 3, whose every distance is
 /// non-finite, is what trips the error.
 #[test]
 fn a_diverged_row_flags_itself_even_when_observers_stay_finite() {

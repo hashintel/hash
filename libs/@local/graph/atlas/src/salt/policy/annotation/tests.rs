@@ -79,8 +79,9 @@ fn wikidata_card() -> Value {
     })
 }
 
-/// Composes a sparse hash card, with the live corpus's presence
-/// realism: no aliases, examples, endpoint constraints, or inverse.
+/// Composes a sparse hash card, with the live corpus's presence realism.
+///
+/// No aliases, examples, endpoint constraints, or inverse.
 fn hash_card() -> Value {
     json!({
         "axes": {

@@ -1,10 +1,9 @@
 //! Serving reads over a real published generation.
 //!
-//! The fixture publishes through the production `fit`, so every
-//! artifact the serving surface maps is the pipeline's own output.
-//! Expectations derive from independently opened artifacts and the
-//! schedule laws - fencepost sums, code-column scans, the quad walk -
-//! never from the assembly under test.
+//! The fixture publishes through the production `fit`, so every artifact the serving surface maps
+//! is the pipeline's own output. Expectations derive from independently opened artifacts and the
+//! schedule laws - fencepost sums, code-column scans, the quad walk - never from the assembly under
+//! test.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the expectations spell out the wire contract's little-endian columns"
@@ -54,8 +53,9 @@ use crate::{
 /// Corpus rows of the fixture fit.
 const NODES: usize = 48;
 
-/// The fixture schedule: `span_log2 = 1`, so the cut rule reads
-/// `bucket = z + 1` and the root spans buckets `0..=1`.
+/// The fixture schedule.
+///
+/// `span_log2 = 1`, so the cut rule reads `bucket = z + 1` and the root spans buckets `0..=1`.
 const FIXTURE_LOD: LodConfig = LodConfig {
     span_log2: 1,
     max_tile_depth: 3,
@@ -70,9 +70,9 @@ const MASS: usize = 4;
 /// The edges slot table, `SPEC-ADDENDUM-WIRE.md` section 6a.
 const EDGE_ROW_IDS: usize = 3;
 
-/// The fixture edge list: `(id, source row, target row)`, edge row
-/// order. Row 2 carries a self-loop; rows 3 and 4 are a reciprocal
-/// pair sharing both endpoints.
+/// The fixture edge list: `(id, source row, target row)`, edge row order.
+///
+/// Row 2 carries a self-loop; rows 3 and 4 are a reciprocal pair sharing both endpoints.
 const FIXTURE_EDGES: [(u64, u64, u64); 6] = [
     (100, 0, 1),
     (101, 1, 2),
@@ -93,9 +93,10 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A fit-scale corpus: unit-norm pseudo-random representations whose
-/// canonical embeddings extend them with zeros, one node type
-/// alternating between two ontology rows, and one link type.
+/// A fit-scale corpus.
+///
+/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
+/// node type alternating between two ontology rows, and one link type.
 fn fixture_dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x5E4E);
     let mut canonical = HashMap::new();
@@ -206,8 +207,9 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier input fitted from a synthetic corpus:
-/// the supplied model input of the fixture fit.
+/// A deterministic classifier input fitted from a synthetic corpus.
+///
+/// The supplied model input of the fixture fit.
 fn fixture_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
@@ -273,9 +275,10 @@ fn fixture_config() -> FitConfig {
     }
 }
 
-/// Fits and publishes one fixture generation, as the pipeline
-/// writes it: identity artifacts carry the memory dataset's 8-byte
-/// positional ids, which the serving open rejects loudly.
+/// Fits and publishes one fixture generation, as the pipeline writes it.
+///
+/// Identity artifacts carry the memory dataset's 8-byte positional ids, which the serving open
+/// rejects loudly.
 async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
     let root = GenerationRoot::new(scratch(name)).expect("the root should open");
     let published = fit(
@@ -297,29 +300,27 @@ async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
     (root, generation)
 }
 
-/// The versioned type URL behind fixture ontology row `row`; the
-/// rewritten ontology identities key each row by the uuid its URL
-/// derives, exactly as the store's identities would.
+/// The versioned type URL behind fixture ontology row `row`.
+///
+/// The rewritten ontology identities key each row by the uuid its URL derives, exactly as the
+/// store's identities would.
 fn fixture_type_url(row: u64) -> String {
     format!("https://example.com/types/fixture-{row}/v/1")
 }
 
-/// The edge-domain seed offset: link entities own ids disjoint from
-/// node ids, as the store's would be.
+/// The edge-domain seed offset.
+///
+/// Link entities own ids disjoint from node ids, as the store's would be.
 const EDGE_SEED: u8 = 64;
 
-/// Rewrites a published fixture generation's identity artifacts with
-/// store-width ids, deterministic by row: ontology row `r` keys the
-/// uuid derived from [`fixture_type_url`] of `r`, node row `r` keys
-/// [`entity_id_of`] of `r`, and edge row `r` keys [`entity_id_of`]
-/// of `EDGE_SEED + r`.
+/// Rewrites a published fixture generation's identity artifacts with store-width ids, deterministic
+/// by row: ontology row `r` keys the uuid derived from [`fixture_type_url`] of `r`, node row `r`
+/// keys [`entity_id_of`] of `r`, and edge row `r` keys [`entity_id_of`] of `EDGE_SEED + r`.
 ///
-/// The memory dataset speaks 8-byte positional ids, which the
-/// serving open rejects by ruling; the rewrite is the test-lane
-/// bridge until a fixture dataset carries store-width ids natively.
-/// Open trusts the metadata document's hash, not per-file digests
-/// (those are verified by tooling), so the rewritten artifacts
-/// serve.
+/// The memory dataset speaks 8-byte positional ids, which the serving open rejects by ruling; the
+/// rewrite is the test-lane bridge until a fixture dataset carries store-width ids natively. Open
+/// trusts the metadata document's hash, not per-file digests (those are verified by tooling), so
+/// the rewritten artifacts serve.
 fn store_identities(generation: &Generation) {
     use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 
@@ -379,8 +380,7 @@ fn rewrite_identities<I>(
         .expect("the identities should write");
 }
 
-/// Publishes one fixture generation with store-width identities and
-/// opens its serving surface.
+/// Publishes one fixture generation with store-width identities and opens its serving surface.
 async fn publish(name: &str) -> (Generation, Atlas) {
     let (root, generation) = fit_fixture(name).await;
     store_identities(&generation);
@@ -414,8 +414,7 @@ fn coordinate_of(cell: MortonCell) -> TileCoordinate {
     }
 }
 
-/// Collects every quad node with its cell, walking children in Morton
-/// child order from the root.
+/// Collects every quad node with its cell, walking children in Morton child order from the root.
 fn walk(quad: &QuadFile, node: u32, cell: MortonCell, out: &mut Vec<(u32, MortonCell)>) {
     out.push((node, cell));
     let children = cell
@@ -752,8 +751,7 @@ fn open_rejects_an_unpublished_generation() {
     );
 }
 
-/// The edge-side serving artifacts of one generation, independently
-/// opened.
+/// The edge-side serving artifacts of one generation, independently opened.
 struct EdgeArtifacts {
     endpoints: ArrayFile,
     ranks: ArrayFile,
@@ -772,8 +770,9 @@ fn open_edge_artifacts(generation: &Generation) -> EdgeArtifacts {
     }
 }
 
-/// Every tile coordinate of the deepest zoom: the cut reaches the
-/// catch-all bucket, so the grid delivers the whole corpus.
+/// Every tile coordinate of the deepest zoom.
+///
+/// The cut reaches the catch-all bucket, so the grid delivers the whole corpus.
 fn full_grid() -> Vec<TileCoordinate> {
     let cells = 1_u32 << FIXTURE_LOD.max_tile_depth;
     (0..cells)
@@ -795,8 +794,9 @@ fn edges_request(tiles: Vec<TileCoordinate>) -> EdgesRequest {
     }
 }
 
-/// Derives the qualifying edge columns for a delivered row set:
-/// both-endpoint edges in ascending edge-row order.
+/// Derives the qualifying edge columns for a delivered row set.
+///
+/// Both-endpoint edges in ascending edge-row order.
 fn qualifying_columns(
     endpoints: &[[u64; 2]],
     delivered: &HashSet<u32>,
@@ -817,9 +817,9 @@ fn qualifying_columns(
     (sources, targets, rows)
 }
 
-/// Maps a derivation's internal edge columns onto the wire's:
-/// every id encoded through independently derived codecs, delivery
-/// order ascending wire edge id.
+/// Maps a derivation's internal edge columns onto the wire's.
+///
+/// Every id encoded through independently derived codecs, delivery order ascending wire edge id.
 fn wire_columns(
     atlas: &Atlas,
     sources: &[u32],
@@ -1165,12 +1165,12 @@ async fn edges_reject_and_report_the_contract() {
     );
 }
 
-/// The edges convenience path rejects the trailer by name; the
-/// transport path assembles, gathers the link identities, and
-/// encodes byte-exactly against the directly built wire document
-/// with the four-array trailer. Hydration is the transport's store
-/// round trip, so the test supplies all-`null` details directly
-/// (G6 pins the non-null trailer bytes).
+/// The edges convenience path rejects the trailer by name.
+///
+/// The transport path assembles, gathers the link identities, and encodes byte-exactly against the
+/// directly built wire document with the four-array trailer. Hydration is the transport's store
+/// round trip, so the test supplies all-`null` details directly (G6 pins the non-null trailer
+/// bytes).
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn detailed_edges_encode_the_hydrated_trailer() {
@@ -1238,10 +1238,10 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
 }
 
-/// Source resolution answers the delivery contract, not just a
-/// formula: the resolved (zoom, cell) tile delivers the row under
-/// the cumulative schedule, and at zoom > 0 the parent tile's
-/// schedule does not - so `zoom` really is the FIRST visible zoom.
+/// Source resolution answers the delivery contract, not just a formula.
+///
+/// The resolved (zoom, cell) tile delivers the row under the cumulative schedule, and at zoom > 0
+/// the parent tile's schedule does not - so `zoom` really is the FIRST visible zoom.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_sources_resolve_to_their_first_visible_tile() {
@@ -1323,10 +1323,10 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
     assert_eq!(atlas.resolve_source("not an id"), None);
 }
 
-/// The locate delivered set answers the wire pin - source first,
-/// then neighbours ascending (distance, base position) - proven
-/// against a brute-force scan of the positions column, the
-/// independent derivation the kd-tree must agree with.
+/// The locate delivered set answers the wire pin.
+///
+/// Source first, then neighbours ascending (distance, base position) - proven against a brute-force
+/// scan of the positions column, the independent derivation the kd-tree must agree with.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_subgraph_delivers_source_first_then_nearest() {
@@ -1409,9 +1409,9 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
     );
 }
 
-/// The locate edge set is the both-endpoints rule over the delivered
-/// rows, ascending edge row - proven against a brute-force endpoint
-/// scan - and the cap truncates by worse-endpoint rank with
+/// The locate edge set is the both-endpoints rule over the delivered rows, ascending edge row.
+///
+/// Proven against a brute-force endpoint scan - and the cap truncates by worse-endpoint rank with
 /// source-incident edges protected to the end.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -1529,9 +1529,10 @@ async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
     }
 }
 
-/// The locate index cache round-trips: the first open writes it, a
-/// second open loads it and answers identically, and a corrupt
-/// cache rebuilds instead of failing the open.
+/// The locate index cache round-trips.
+///
+/// The first open writes it, a second open loads it and answers identically, and a corrupt cache
+/// rebuilds instead of failing the open.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_index_cache_round_trips() {
@@ -1606,10 +1607,10 @@ fn edges_request_parses_the_body_contract() {
     assert!(request.include_detailed_data);
 }
 
-/// A colored request mixing resolvable and unresolvable ids over the
-/// published fixture: `TYPE_MASK` rides the request at full shape,
-/// unresolvable ids read 0 in every mask, and a fixture type URL
-/// resolves to real bits.
+/// A colored request mixing resolvable and unresolvable ids over the published fixture.
+///
+/// `TYPE_MASK` rides the request at full shape, unresolvable ids read 0 in every mask, and a
+/// fixture type URL resolves to real bits.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
@@ -1640,9 +1641,8 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
     );
 }
 
-/// A generation whose identity artifacts carry the memory dataset's
-/// 8-byte positional ids does not serve: the open fails loudly on
-/// the key width, by ruling.
+/// A generation whose identity artifacts carry the memory dataset's 8-byte positional ids does not
+/// serve: the open fails loudly on the key width, by ruling.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn foreign_key_widths_fail_the_open() {
@@ -1664,9 +1664,10 @@ async fn foreign_key_widths_fail_the_open() {
     );
 }
 
-/// Resolution and descendant expansion against hand-built artifacts:
-/// eight points, four types (`1 <- 0`, `2 <- 0`, `3 <- {1, 2}`), the
-/// postings fixture's dense/list split.
+/// Resolution and descendant expansion against hand-built artifacts.
+///
+/// Eight points, four types (`1 <- 0`, `2 <- 0`, `3 <- {1, 2}`), the postings fixture's dense/list
+/// split.
 #[test]
 fn colored_masks_resolve_and_expand_descendants() {
     use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
@@ -1770,14 +1771,14 @@ fn colored_masks_resolve_and_expand_descendants() {
     );
 }
 
-/// The detailed-tile path: assembly, entity gathering, and encoding
-/// with a hydrated trailer, spliced where the transport awaits the
-/// store.
+/// The detailed-tile path.
 ///
-/// The gathered entities carry the fixture's rewritten store-width
-/// ids; hydration itself is the transport's store round trip, so the
-/// test supplies all-`null` details directly. The encoded bytes must
-/// equal the wire document built directly with the trailer.
+/// Assembly, entity gathering, and encoding with a hydrated trailer, spliced where the transport
+/// awaits the store.
+///
+/// The gathered entities carry the fixture's rewritten store-width ids; hydration itself is the
+/// transport's store round trip, so the test supplies all-`null` details directly. The encoded
+/// bytes must equal the wire document built directly with the trailer.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 #[expect(
@@ -1880,8 +1881,7 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
     assert_eq!(bytes, expected, "the trailer path is byte-exact");
 }
 
-/// One synthetic entity identity per seed byte, plus its upstream
-/// string form.
+/// One synthetic entity identity per seed byte, plus its upstream string form.
 fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
     crate::dataset::ArchivedEntityId {
         web_id: uuid::Uuid::from_bytes([seed; 16]).into(),
@@ -1890,14 +1890,15 @@ fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
 }
 
 /// The `webId~entityUuid` string form of [`entity_id_of`]'s identity.
+///
 /// Narrows a fixture-sized index into the wire's `u32` row domain.
 fn narrow_usize(value: usize) -> u32 {
     u32::try_from(value).expect("fixture indexes fit u32")
 }
 
-/// Derives the node and edge wire codecs of an atlas opened with
-/// default options - the independent derivation the assembly's
-/// egress must agree with.
+/// Derives the node and edge wire codecs of an atlas opened with default options.
+///
+/// The independent derivation the assembly's egress must agree with.
 fn test_codecs(atlas: &Atlas) -> (codec::RowCodec, codec::RowCodec) {
     let node = codec::RowCodec::derive(
         b"atlas-dev-wire-secret",
@@ -1947,10 +1948,10 @@ fn entity_identity_table(
     .expect("the identity table validates")
 }
 
-/// Translate resolution against hand-built identity tables: nodes
-/// answer row and wire position, edges answer row, and every
-/// non-resolving shape - draft-suffixed, unparsable, unknown - reads
-/// as an absent key.
+/// Translate resolution against hand-built identity tables.
+///
+/// Nodes answer row and wire position, edges answer row, and every non-resolving shape -
+/// draft-suffixed, unparsable, unknown - reads as an absent key.
 #[test]
 fn translate_resolves_nodes_and_edges_by_identity() {
     use super::translate::{
@@ -2076,10 +2077,10 @@ fn translate_rejects_over_cap() {
     );
 }
 
-/// Translate over the published fixture: the rewritten store-width
-/// identities resolve end to end - node row and wire position agree
-/// with the serving columns, an edge id answers its row, and an
-/// unknown id reads absent.
+/// Translate over the published fixture.
+///
+/// The rewritten store-width identities resolve end to end - node row and wire position agree with
+/// the serving columns, an edge id answers its row, and an unknown id reads absent.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_resolves_store_identities_end_to_end() {
@@ -2231,8 +2232,9 @@ fn select_properties_protect_the_label_to_the_end() {
     );
 }
 
-/// One locate request built directly; the JSON-facing defaults ride
-/// the serde attributes and are asserted where they matter.
+/// One locate request built directly.
+///
+/// The JSON-facing defaults ride the serde attributes and are asserted where they matter.
 fn locate_request(entity_id: String) -> super::LocateRequest {
     super::LocateRequest {
         entity_id: Some(entity_id),
@@ -2244,12 +2246,12 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
     }
 }
 
-/// A locate source names one subject in one of two identity domains:
-/// a by-`row` request resolves through the wire codec's ingress -
-/// pure arithmetic, no store - to the SAME response bytes as the
-/// by-`entityId` request for that node, an out-of-universe wire
-/// value collapses into `unknown-entity`, and a body carrying both
-/// or neither source field is rejected by name with its count.
+/// A locate source names one subject in one of two identity domains.
+///
+/// A by-`row` request resolves through the wire codec's ingress - pure arithmetic, no store - to
+/// the SAME response bytes as the by-`entityId` request for that node, an out-of-universe wire
+/// value collapses into `unknown-entity`, and a body carrying both or neither source field is
+/// rejected by name with its count.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_by_wire_row_matches_by_entity() {
@@ -2310,9 +2312,8 @@ async fn locate_by_wire_row_matches_by_entity() {
     );
 }
 
-/// The locate convenience path rejects the trailer by name (which
-/// locate DEFAULTS to - it is the detail view); the transport path
-/// assembles and encodes byte-exactly against the wire document
+/// The locate convenience path rejects the trailer by name (which locate DEFAULTS to - it is the
+/// detail view); the transport path assembles and encodes byte-exactly against the wire document
 /// derived from the groundwork layers' own outputs.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -2389,10 +2390,8 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     assert_eq!(colored, response(Some(&[Membership::List(&[])])));
 }
 
-/// Every locate rejection carries its name, the unknown-entity
-/// doctrine treats unparsable, unknown, and wrong-domain ids
-/// identically, and an over-cap neighbour budget clamps instead of
-/// rejecting.
+/// Every locate rejection carries its name, the unknown-entity doctrine treats unparsable, unknown,
+/// and wrong-domain ids identically, and an over-cap neighbour budget clamps instead of rejecting.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_rejections_and_the_neighbour_clamp() {
@@ -2455,8 +2454,8 @@ async fn locate_rejections_and_the_neighbour_clamp() {
     );
 }
 
-/// The transport path gathers both identity domains and encodes the
-/// hydrated trailer byte-exactly, interned name table included.
+/// The transport path gathers both identity domains and encodes the hydrated trailer byte-exactly,
+/// interned name table included.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn detailed_locate_encodes_the_hydrated_trailer() {
@@ -2534,10 +2533,10 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
     assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
 }
 
-/// The intern table is the sorted, deduplicated union of surviving
-/// names; each node's map keys by index and keeps its ascending
-/// order. `None` marks an unresolved entity, an empty list a
-/// resolved one without simple properties.
+/// The intern table is the sorted, deduplicated union of surviving names.
+///
+/// Each node's map keys by index and keeps its ascending order. `None` marks an unresolved entity,
+/// an empty list a resolved one without simple properties.
 #[test]
 fn intern_properties_builds_the_table_and_index_maps() {
     use super::{detail::SimpleValue, locate::intern_properties};
@@ -2695,13 +2694,12 @@ fn codec_derivation_is_deterministic() {
     }
 }
 
-/// The D8 codec written a second time, from the addendum's text and
-/// pinned parameter picks rather than from `serve::codec`.
+/// The D8 codec written a second time, from the addendum's text and pinned parameter picks rather
+/// than from `serve::codec`.
 ///
-/// Agreement between the two freezes the wire mapping itself - a
-/// refactor that changes any derived bit fails loudly - and the
-/// reference counts its cycle-walk applications, the observability
-/// the serving codec deliberately does not expose.
+/// Agreement between the two freezes the wire mapping itself - a refactor that changes any derived
+/// bit fails loudly - and the reference counts its cycle-walk applications, the observability the
+/// serving codec deliberately does not expose.
 mod codec_reference {
     use core::hash::Hasher as _;
 
@@ -2755,8 +2753,8 @@ mod codec_reference {
             }
         }
 
-        /// Encodes `row`, returning the wire value and the number of
-        /// network applications the cycle walk took.
+        /// Encodes `row`, returning the wire value and the number of network applications the cycle
+        /// walk took.
         pub(super) fn encode_counting(&self, row: u32) -> (u32, u32) {
             assert!(
                 row < self.universe,
@@ -2776,8 +2774,9 @@ mod codec_reference {
             (value, walks)
         }
 
-        /// Applies the network once: round `i` maps `(L, R)` to
-        /// `(R, L xor F_i(R))`, half widths alternating ceil/floor.
+        /// Applies the network once.
+        ///
+        /// Round `i` maps `(L, R)` to `(R, L xor F_i(R))`, half widths alternating ceil/floor.
         fn permute(&self, mut state: u32) -> u32 {
             for (index, key) in self.keys.iter().enumerate() {
                 let left_bits = if index.is_multiple_of(2) {

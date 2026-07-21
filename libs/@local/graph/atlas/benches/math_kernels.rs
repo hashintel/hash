@@ -6,10 +6,11 @@
 //!
 //! The hardware event defaults to retired instructions and is selected
 //! with `MATH_BENCH_EVENT`: `instructions`, `cycles`,
-//! `branch-mispredictions`, or `l1d-cache-misses`. Each event saves its
-//! own criterion baseline, so run-over-run change reports compare like
-//! with like. Instruction counts are stable across runs but blind to
-//! instruction-level parallelism; confirm a winner in `cycles` before
+//! `branch-mispredictions`, or `l1d-cache-misses`; `wall-time` selects
+//! criterion's default wall-clock measurement instead, which needs no
+//! elevated privileges. Each event saves its own criterion baseline, so
+//! run-over-run change reports compare like with like. Instruction counts are stable across runs
+//! but blind to instruction-level parallelism; confirm a winner in `cycles` before
 //! acting on close calls, and weigh instruction counts higher for kernels
 //! that run fused inside larger loops, where issue slots are the shared
 //! resource.
@@ -21,6 +22,7 @@
 //!
 //! ```text
 //! sudo MATH_BENCH_EVENT=cycles cargo bench -p hash-graph-atlas --bench math_kernels
+//! MATH_BENCH_EVENT=wall-time cargo bench -p hash-graph-atlas --features bench --bench math_kernels
 //! ```
 #![feature(portable_simd)]
 #![expect(
@@ -33,11 +35,10 @@
 
 use core::{hint::black_box, time::Duration};
 
-use codspeed_criterion_compat::{
-    Criterion, Throughput, criterion_group, criterion_main, measurement::Measurement,
-};
-use hash_graph_atlas::math::{
-    AffinityCurve, Bounds2, DVecN, Similarity, Transform, Vec2, Vec2x4T, VecN,
+use codspeed_criterion_compat::{Criterion, Throughput, measurement::Measurement};
+use hash_graph_atlas::{
+    bench::kernel,
+    math::{AffinityCurve, Bounds2, DVecN, Similarity, Transform, Vec2, Vec2x4T, VecN},
 };
 
 const EMBEDDING_DIMENSIONS: usize = 512;
@@ -215,6 +216,50 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
     group.finish();
 }
 
+/// The production wrappers over the vendored SLEEF kernels, paired
+/// with the upstream `sleef` crate calls they replaced.
+///
+/// Each pair is bit-identical by construction (the `math::kernel::sleef`
+/// tests prove it over the full input bit range), so a delta inside a
+/// pair is pure codegen: these entries watch a rewrite of the vendored
+/// kernels for instruction-count or cycle regressions against a fixed
+/// upstream reference. The `pow_f32x4` composition's upstream reference
+/// is `pow_strategy/sleef_exp2_log2_u35`.
+fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>) {
+    use core::simd::{Simd, f32x4, f32x8, f64x4};
+
+    // Lane values spread across the interesting ranges: large-negative
+    // (underflow edge), moderate, near-zero, and large-positive
+    // (overflow edge) keep every polynomial and scaling path live.
+    let f32_inputs = f32x8::from_array([-87.3, -12.5, -1.0, -1e-4, 0.0, 0.5, 42.0, 88.7]);
+    let f64_inputs = f64x4::from_array([-708.0, -0.5, 1e-9, 709.0]);
+    let base = f32x4::from_array([0.25, 2.5, 117.0, 0.9]);
+    let exponent = 0.895_f32;
+
+    let mut group = criterion.benchmark_group("kernel");
+
+    group.throughput(Throughput::Elements(8));
+    group.bench_function("exp_f32x8", |bencher| {
+        bencher.iter(|| kernel::exp_f32x8(black_box(f32_inputs)));
+    });
+    group.bench_function("exp_f32x8_sleef_reference", |bencher| {
+        bencher.iter(|| sleef::f32x::exp_u10(black_box(f32_inputs)));
+    });
+
+    group.throughput(Throughput::Elements(4));
+    group.bench_function("exp_f64x4", |bencher| {
+        bencher.iter(|| kernel::exp_f64x4(black_box(f64_inputs)));
+    });
+    group.bench_function("exp_f64x4_sleef_reference", |bencher| {
+        bencher.iter(|| sleef::f64x::exp_u10(black_box(f64_inputs)));
+    });
+    group.bench_function("pow_f32x4", |bencher| {
+        bencher.iter(|| kernel::pow_f32x4(black_box(base), Simd::splat(black_box(exponent))));
+    });
+
+    group.finish();
+}
+
 fn bench_transforms<M: Measurement>(criterion: &mut Criterion<M>) {
     let transform = Transform::from_scale(Vec2::new(2.0, 3.0))
         .then(Transform::from_translation(Vec2::new(0.5, -1.0)));
@@ -333,15 +378,32 @@ fn hardware_counter() -> Criterion<darwin_kperf_criterion::HardwareCounter> {
         .sample_size(20)
 }
 
-criterion_group!(
-    name = benches;
-    config = hardware_counter();
-    targets = bench_vecn,
-    bench_affinity,
-    bench_pow_strategies,
-    bench_transforms,
-    bench_bounds,
-    bench_similarity_fit,
-    bench_dvecn
-);
-criterion_main!(benches);
+fn run_benches<M: Measurement + 'static>(criterion: &mut Criterion<M>) {
+    bench_vecn(criterion);
+    bench_affinity(criterion);
+    bench_pow_strategies(criterion);
+    bench_kernels(criterion);
+    bench_transforms(criterion);
+    bench_bounds(criterion);
+    bench_similarity_fit(criterion);
+    bench_dvecn(criterion);
+}
+
+// The dispatch mirrors `criterion_group!`/`criterion_main!` expansion;
+// the macros cannot express two measurement types behind one binary.
+fn main() {
+    if std::env::var("MATH_BENCH_EVENT").as_deref() == Ok("wall-time") {
+        let mut criterion = Criterion::default()
+            .save_baseline("wall-time".to_owned())
+            .warm_up_time(Duration::from_millis(500))
+            .measurement_time(Duration::from_secs(1))
+            .sample_size(20)
+            .configure_from_args();
+        run_benches(&mut criterion);
+    } else {
+        let mut criterion = hardware_counter().configure_from_args();
+        run_benches(&mut criterion);
+    }
+
+    Criterion::default().configure_from_args().final_summary();
+}

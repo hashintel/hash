@@ -1,29 +1,23 @@
-//! The training run: schedule, phase boundary, refresh ticks, and the
-//! optimization loop.
+//! The training run: schedule, phase boundary, refresh ticks, and the optimization loop.
 //!
-//! One run trains the conditioned projector end to end. It opens with
-//! a semantic-only segment at the zero rung; at the configured
-//! boundary step it freezes the Proximal radius from data - the
-//! force-mass-weighted 75th percentile of the locally normalized
-//! distance `z` over the reviewed-Proximal attraction pairs, measured
-//! against the boundary's own coordinates - composes the relation
-//! energy, and opens the rung ladder, round-robining the steps across
-//! the lens rungs with the relation term scaled by each step's rung.
-//! Refresh ticks at a configured cadence re-measure everything defined
-//! over current coordinates: per-rung local scales, hard negatives
+//! One run trains the conditioned projector end to end. It opens with a semantic-only segment at
+//! the zero rung; at the configured boundary step it freezes the Proximal radius from data - the
+//! force-mass-weighted 75th percentile of the locally normalized distance `z` over the
+//! reviewed-Proximal attraction pairs, measured against the boundary's own coordinates - composes
+//! the relation energy, and opens the rung ladder, round-robining the steps across the lens rungs
+//! with the relation term scaled by each step's rung. Refresh ticks at a configured cadence
+//! re-measure everything defined over current coordinates: per-rung local scales, hard negatives
 //! mined at both lens extremes, and the displacement telemetry.
 //!
-//! Optimization is Adam under a cosine learning-rate schedule, with
-//! one backward pass per step through the budget surrogate. Batch
-//! draws are seeded and deterministic; gradient accumulation inside
-//! the backend is allowed to be nondeterministic.
+//! Optimization is Adam under a cosine learning-rate schedule, with one backward pass per step
+//! through the budget surrogate. Batch draws are seeded and deterministic; gradient accumulation
+//! inside the backend is allowed to be nondeterministic.
 //!
-//! The frozen radius follows the policy pattern: measured from
-//! reviewed evidence by default, superseded by a configured assertion
-//! when one is supplied, and always reported next to the measured
-//! quantiles so the assertion can be judged against data. A corpus
-//! whose attraction index carries no force at all trains vacuously:
-//! the relation term stays absent and the run records why.
+//! The frozen radius follows the policy pattern: measured from reviewed evidence by default,
+//! superseded by a configured assertion when one is supplied, and always reported next to the
+//! measured quantiles so the assertion can be judged against data. A corpus whose attraction index
+//! carries no force at all trains vacuously: the relation term stays absent and the run records
+//! why.
 
 mod session;
 #[cfg(test)]
@@ -64,19 +58,20 @@ use crate::salt::{
 /// A training run failed.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum TrainError {
-    /// The semantic graph carries no edge weight: there is no layout
-    /// evidence to train against.
+    /// The semantic graph carries no edge weight: there is no layout evidence to train against.
     NoSemanticEvidence,
-    /// The schedule's boundary is step zero, so the Proximal radius
-    /// would be measured on an untrained map instead of the
-    /// semantic-only baseline the measurement is defined over.
+    /// The schedule's boundary is step zero.
+    ///
+    /// So the Proximal radius would be measured on an untrained map instead of the semantic-only
+    /// baseline the measurement is defined over.
     UnbaselinedRadius,
-    /// The attraction index carries Proximal force but no reviewed
-    /// verdict covers any of it, so no radius can be measured.
+    /// The attraction index carries Proximal force but no reviewed verdict covers any of it.
+    ///
+    /// So no radius can be measured.
     MissingProximalReviews,
-    /// The attraction index carries Coincident force but no Proximal
-    /// force, so no measurement can set the Proximal radius the
-    /// relation energy composes with.
+    /// The attraction index carries Coincident force but no Proximal force.
+    ///
+    /// So no measurement can set the Proximal radius the relation energy composes with.
     CoincidentWithoutProximal,
     /// The frozen Proximal radius does not exceed the Coincident one.
     DegenerateRadius { radius: f32, coincident: f32 },
@@ -84,9 +79,9 @@ pub(crate) enum TrainError {
     Refresh(RefreshError),
     /// A training step failed.
     Step(StepError),
-    /// A resumed ladder was handed a schedule differing from the one
-    /// its opening segment ran under, so the scheduler position and
-    /// the phase boundary no longer describe the same run.
+    /// A resumed ladder was handed a schedule differing from the one its opening segment ran under.
+    ///
+    /// So the scheduler position and the phase boundary no longer describe the same run.
     ScheduleChanged {
         opening: TrainingSchedule,
         resumed: TrainingSchedule,
@@ -155,8 +150,9 @@ impl From<StepError> for TrainError {
     }
 }
 
-/// A validated step schedule: run length, phase boundary, refresh
-/// cadence, and the learning-rate envelope.
+/// A validated step schedule.
+///
+/// Run length, phase boundary, refresh cadence, and the learning-rate envelope.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TrainingSchedule {
     steps: NonZero<usize>,
@@ -169,16 +165,13 @@ pub(crate) struct TrainingSchedule {
 impl TrainingSchedule {
     /// Validates a schedule.
     ///
-    /// The boundary is the step index at which the Proximal radius
-    /// freezes and the rung ladder opens; steps below it train at the
-    /// zero rung only. A boundary equal to the step count never opens
-    /// the ladder: the run is semantic-only and records no boundary
-    /// evidence. Refresh ticks run at step zero and every
-    /// `refresh_interval` steps after it.
+    /// The boundary is the step index at which the Proximal radius freezes and the rung ladder
+    /// opens; steps below it train at the zero rung only. A boundary equal to the step count never
+    /// opens the ladder: the run is semantic-only and records no boundary evidence. Refresh ticks
+    /// run at step zero and every `refresh_interval` steps after it.
     ///
-    /// Returns [`None`] unless the boundary lies within the run and
-    /// the learning rates satisfy the cosine schedule's domain:
-    /// `0 < initial <= 1` and `0 <= minimum <= initial`.
+    /// Returns [`None`] unless the boundary lies within the run and the learning rates satisfy the
+    /// cosine schedule's domain: `0 < initial <= 1` and `0 <= minimum <= initial`.
     #[must_use]
     pub(crate) const fn new(
         steps: NonZero<usize>,
@@ -242,13 +235,11 @@ impl TrainingSchedule {
 
 /// The validated relation-lens constants the boundary composes with.
 ///
-/// The Coincident energy arrives fully configured - its radius is a
-/// configuration value until a reviewed-Coincident calibration exists.
-/// Only the Proximal radius is measured at the boundary; `temperature`
-/// and the scale guard `epsilon` complete the composed energy. An
-/// asserted radius, when supplied, supersedes the measurement in the
-/// composed energy while the measured quantiles still land in
-/// evidence.
+/// The Coincident energy arrives fully configured - its radius is a configuration value until a
+/// reviewed-Coincident calibration exists. Only the Proximal radius is measured at the boundary;
+/// `temperature` and the scale guard `epsilon` complete the composed energy. An asserted radius,
+/// when supplied, supersedes the measurement in the composed energy while the measured quantiles
+/// still land in evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationLens {
     coincident: CoincidentEnergy,
@@ -260,10 +251,9 @@ pub(crate) struct RelationLens {
 impl RelationLens {
     /// Validates the lens constants.
     ///
-    /// Returns [`None`] unless the temperature and the scale guard are
-    /// finite and strictly positive, and the asserted radius - when
-    /// supplied - is finite and strictly above the Coincident radius,
-    /// the ordering the composed energy requires.
+    /// Returns [`None`] unless the temperature and the scale guard are finite and strictly
+    /// positive, and the asserted radius - when supplied - is finite and strictly above the
+    /// Coincident radius, the ordering the composed energy requires.
     #[must_use]
     pub(crate) const fn new(
         coincident: CoincidentEnergy,
@@ -310,8 +300,7 @@ impl RelationLens {
         self.epsilon
     }
 
-    /// Returns the configured radius superseding the boundary
-    /// measurement, when one is asserted.
+    /// Returns the configured radius superseding the boundary measurement, when one is asserted.
     #[inline]
     #[must_use]
     pub(crate) const fn asserted_radius(self) -> Option<f32> {
@@ -321,9 +310,8 @@ impl RelationLens {
 
 /// The training run's numerical contract.
 ///
-/// Every field is a validated value; the struct is plain wiring.
-/// `forward_rows` bounds each corpus-forward slice at refresh ticks
-/// and the boundary, and with it the peak device memory of a
+/// Every field is a validated value; the struct is plain wiring. `forward_rows` bounds each
+/// corpus-forward slice at refresh ticks and the boundary, and with it the peak device memory of a
 /// whole-corpus pass.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TrainOptions {
@@ -349,8 +337,8 @@ pub(crate) struct TrainOptions {
 
 /// One generation's borrowed training inputs.
 ///
-/// Every view describes the same corpus rows; the run asserts the row
-/// domains agree and treats a mismatch as a wiring defect.
+/// Every view describes the same corpus rows; the run asserts the row domains agree and treats a
+/// mismatch as a wiring defect.
 #[derive(Debug, Clone)]
 pub(crate) struct TrainerInputs<'run> {
     /// The semantic graph.
@@ -367,8 +355,7 @@ pub(crate) struct TrainerInputs<'run> {
     pub columns: NodeColumns<'run>,
     /// The landmark skeleton's support anchors, corpus rows.
     pub landmarks: &'run [SupportAnchor],
-    /// The temporal support anchors, corpus rows; empty for a first
-    /// generation.
+    /// The temporal support anchors, corpus rows; empty for a first generation.
     pub anchors: &'run [SupportAnchor],
     /// The resolved reviewed verdicts.
     pub verdicts: &'run [ResolvedVerdict],
@@ -385,16 +372,17 @@ pub(crate) enum FrozenRadius {
     Vacuous,
 }
 
-/// The phase boundary's record: when it ran, what it froze, and the
-/// measurement it froze from.
+/// The phase boundary's record: when it ran, what it froze, and the measurement it froze from.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundaryEvidence {
     /// The step index the boundary ran at.
     pub step: usize,
     /// The frozen radius and its provenance.
     pub radius: FrozenRadius,
-    /// The full measurement: pooled radius, per-type quantiles, mass
-    /// shares, and leave-one-type-out radii. Empty on a vacuous run.
+    /// The full measurement.
+    ///
+    /// Pooled radius, per-type quantiles, mass shares, and leave-one-type-out radii. Empty on a
+    /// vacuous run.
     pub calibration: ProximalCalibration,
 }
 
@@ -407,12 +395,10 @@ pub(crate) struct TickTelemetry {
     pub displacement: DisplacementSummary,
 }
 
-/// A training run's evidence: everything the run measured about
-/// itself.
+/// A training run's evidence: everything the run measured about itself.
 #[derive(Debug)]
 pub(crate) struct TrainingEvidence {
-    /// The phase boundary's record; [`None`] when the boundary never
-    /// ran.
+    /// The phase boundary's record; [`None`] when the boundary never ran.
     pub boundary: Option<BoundaryEvidence>,
     /// The run-wide budget outcomes per reporting bucket.
     pub budget: BudgetBreakdown,
@@ -433,19 +419,15 @@ pub(crate) struct Fitted<B: AutodiffBackend> {
 
 /// The training state at entry of the boundary step.
 ///
-/// This is the fork point of a run: the opening segment produces it,
-/// the ladder consumes it, and the checkpoint artifact serializes it
-/// (with the caller's generator position) so a future ladder can
-/// resume from the same boundary. The state is opaque - it exists
-/// only as the output of [`fit_to_boundary`] or of the checkpoint
-/// artifact's validated open path - so a ladder can never start from
-/// a state no opening segment produced.
+/// This is the fork point of a run: the opening segment produces it, the ladder consumes it, and
+/// the checkpoint artifact serializes it (with the caller's generator position) so a future ladder
+/// can resume from the same boundary. The state is opaque - it exists only as the output of
+/// [`fit_to_boundary`] or of the checkpoint artifact's validated open path - so a ladder can never
+/// start from a state no opening segment produced.
 ///
-/// The boundary work itself (radius freeze, opening refresh) is not
-/// part of the state: it happens at entry of [`fit_from_boundary`],
-/// deterministically from the model, so every ladder resumed from one
-/// boundary state freezes the bit-equal radius on a deterministic
-/// backend.
+/// The boundary work itself (radius freeze, opening refresh) is not part of the state: it happens
+/// at entry of [`fit_from_boundary`], deterministically from the model, so every ladder resumed
+/// from one boundary state freezes the bit-equal radius on a deterministic backend.
 // No Debug: the optimizer adaptor does not implement it.
 pub(crate) struct BoundaryState<B: AutodiffBackend<FloatElem = f32>> {
     training: Training<B>,
@@ -481,14 +463,12 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 
     /// Rebuilds a boundary state from its serialized parts.
     ///
-    /// The evidence starts fresh: a resumed ladder's evidence covers
-    /// the segment it runs, boundary measurement included; the opening
-    /// segment's evidence belongs to the run that produced the
+    /// The evidence starts fresh: a resumed ladder's evidence covers the segment it runs, boundary
+    /// measurement included; the opening segment's evidence belongs to the run that produced the
     /// checkpoint.
     ///
-    /// Returns [`None`] when the scheduler position does not sit at
-    /// the schedule's boundary - the parts describe two different
-    /// runs.
+    /// Returns [`None`] when the scheduler position does not sit at the schedule's boundary - the
+    /// parts describe two different runs.
     #[must_use]
     pub(crate) fn from_parts(
         model: Projector<B>,
@@ -524,29 +504,25 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 
 /// Trains the projector over one generation's artifacts.
 ///
-/// The caller owns model initialization and seeds it before the call;
-/// batch draws consume `rng`. Equal models, inputs, options, and seeds
-/// draw equal batches; coordinate-level reproducibility additionally
-/// depends on the backend's own determinism.
+/// The caller owns model initialization and seeds it before the call; batch draws consume `rng`.
+/// Equal models, inputs, options, and seeds draw equal batches; coordinate-level reproducibility
+/// additionally depends on the backend's own determinism.
 ///
-/// The run is the composition of [`fit_to_boundary`] and
-/// [`fit_from_boundary`]; call the phases directly to checkpoint or
-/// fork at the boundary.
+/// The run is the composition of [`fit_to_boundary`] and [`fit_from_boundary`]; call the phases
+/// directly to checkpoint or fork at the boundary.
 ///
 /// # Errors
 ///
-/// Returns an error when the corpus cannot train (no semantic edge
-/// weight), when the boundary cannot freeze a Proximal radius (a
-/// measured radius with no opening segment in front of the boundary,
-/// Proximal force without reviewed coverage or a configured assertion,
-/// Coincident force without any Proximal force, or a radius ordering
-/// the energy rejects), or when training diverges in a step or a tick.
+/// Returns an error when the corpus cannot train (no semantic edge weight), when the boundary
+/// cannot freeze a Proximal radius (a measured radius with no opening segment in front of the
+/// boundary, Proximal force without reviewed coverage or a configured assertion, Coincident force
+/// without any Proximal force, or a radius ordering the energy rejects), or when training diverges
+/// in a step or a tick.
 ///
 /// # Panics
 ///
-/// Panics when the inputs disagree about the corpus row domain or an
-/// anchor references a row outside it; all inputs come from one
-/// generation, so a mismatch is a wiring defect.
+/// Panics when the inputs disagree about the corpus row domain or an anchor references a row
+/// outside it; all inputs come from one generation, so a mismatch is a wiring defect.
 pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
     model: Projector<B>,
     inputs: &TrainerInputs<'_>,
@@ -558,24 +534,21 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
     fit_from_boundary(state, inputs, options, rng, device)
 }
 
-/// Trains the opening segment: steps zero to the phase boundary, all
-/// at the zero rung.
+/// Trains the opening segment: steps zero to the phase boundary, all at the zero rung.
 ///
-/// The returned state is the run's fork point; hand it to
-/// [`fit_from_boundary`] to continue, or serialize it through the
-/// checkpoint artifact first. A boundary equal to the run length makes
+/// The returned state is the run's fork point; hand it to [`fit_from_boundary`] to continue, or
+/// serialize it through the checkpoint artifact first. A boundary equal to the run length makes
 /// this the whole run.
 ///
 /// # Errors
 ///
-/// Returns an error when the corpus cannot train, the boundary is
-/// structurally inadmissible, or training diverges in a step or a
-/// tick.
+/// Returns an error when the corpus cannot train, the boundary is structurally inadmissible, or
+/// training diverges in a step or a tick.
 ///
 /// # Panics
 ///
-/// Panics when the inputs disagree about the corpus row domain or an
-/// anchor references a row outside it.
+/// Panics when the inputs disagree about the corpus row domain or an anchor references a row
+/// outside it.
 pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
     model: Projector<B>,
     inputs: &TrainerInputs<'_>,
@@ -605,24 +578,24 @@ pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Siz
     Ok(BoundaryState { training, schedule })
 }
 
-/// Trains the ladder from a boundary state: freezes the Proximal
-/// radius against the state's own coordinates, then round-robins the
-/// remaining steps across the lens rungs.
+/// Trains the ladder from a boundary state.
 ///
-/// The options must carry the schedule the opening segment ran under;
-/// everything else may differ, which is what a boundary fork varies.
+/// Freezes the Proximal radius against the state's own coordinates, then round-robins the remaining
+/// steps across the lens rungs.
+///
+/// The options must carry the schedule the opening segment ran under; everything else may differ,
+/// which is what a boundary fork varies.
 ///
 /// # Errors
 ///
-/// Returns an error when the schedule differs from the boundary
-/// state's, when the corpus cannot train, the boundary is structurally
-/// inadmissible, the boundary cannot freeze a Proximal radius, or
-/// training diverges in a step or a tick.
+/// Returns an error when the schedule differs from the boundary state's, when the corpus cannot
+/// train, the boundary is structurally inadmissible, the boundary cannot freeze a Proximal radius,
+/// or training diverges in a step or a tick.
 ///
 /// # Panics
 ///
-/// Panics when the inputs disagree about the corpus row domain or an
-/// anchor references a row outside it.
+/// Panics when the inputs disagree about the corpus row domain or an anchor references a row
+/// outside it.
 pub(crate) fn fit_from_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
     state: BoundaryState<B>,
     inputs: &TrainerInputs<'_>,

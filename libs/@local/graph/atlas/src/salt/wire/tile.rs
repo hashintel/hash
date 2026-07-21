@@ -1,20 +1,17 @@
 //! The tile response: `HEAD`, columns, and trailer as one envelope.
 //!
-//! A tile document borrows the generation's base-order columns and
-//! names its delivered set as contiguous base-position ranges in
-//! delivery order - the shape both modes produce (a non-root delta
-//! tile is its quad node's one run; the delta root and every total
-//! tile are bucket-major run lists). Encoding gathers the column
-//! slices, assembles the per-point type masks from the postings
-//! membership, and lays everything into the `SALTILET` five-slot
-//! envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved
-//! `MASS` slot, absent until the product wants density.
+//! A tile document borrows the generation's base-order columns and names its delivered set in one
+//! of [`DeliveredSet`]'s two shapes: contiguous base-position ranges in delivery order - what both
+//! modes produce unmasked (a non-root delta tile is its quad node's one run; the delta root and
+//! every total tile are bucket-major run lists) - or an ascending gathered position list, the
+//! shape a visibility mask leaves behind. Encoding gathers the column entries, assembles the
+//! per-point type masks from the postings membership, and lays everything into the `SALTILET`
+//! five-slot envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot,
+//! absent until the product wants density.
 //!
-//! The document's consistency laws are producer contracts and panic
-//! when violated: the range lengths and the `HEAD`'s per-bucket runs
-//! must agree on the delivered count, trailer arrays cover exactly
-//! the delivered points, and children bits beyond the low four are
-//! reserved zero.
+//! The document's consistency laws are producer contracts and panic when violated: the range
+//! lengths and the `HEAD`'s per-bucket runs must agree on the delivered count, trailer arrays cover
+//! exactly the delivered points, and children bits beyond the low four are reserved zero.
 #![expect(
     clippy::little_endian_bytes,
     reason = "column integers are pinned little-endian by the wire contract"
@@ -34,20 +31,18 @@ use crate::{
 pub(crate) struct TileResponse<'doc> {
     /// The `HEAD` document, slot 0.
     pub head: TileHead<'doc>,
-    /// The delivered set: contiguous base-position ranges in delivery
-    /// order. Zero-length ranges are legal and deliver nothing.
-    pub ranges: &'doc [Range<u32>],
+    /// The delivered set, in either producer shape.
+    pub delivered: DeliveredSet<'doc>,
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc [Vec2],
     /// The generation's row-id column (row by base position), in full.
     pub rows: &'doc [u32],
-    /// Per-type membership for the request's `coloredTypeIds`, in
-    /// request order: bit `i` of every point's mask reads from
-    /// `masks[i]`. `None` when the request carried no ids - the
-    /// `TYPE_MASK` slot is then absent rather than empty.
+    /// Per-type membership for the request's `coloredTypeIds`, in request order.
+    ///
+    /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
+    /// ids: the `TYPE_MASK` slot is then absent rather than empty.
     pub masks: Option<&'doc [Membership<'doc>]>,
-    /// The hydrated detail trailer; `Some` iff the request set
-    /// `includeDetailedData`.
+    /// The hydrated detail trailer; `Some` iff the request set `includeDetailedData`.
     pub trailer: Option<TileTrailer<'doc>>,
 }
 
@@ -56,12 +51,12 @@ impl TileResponse<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when the document is inconsistent: range lengths and
-    /// `HEAD` runs disagreeing on the delivered count, reserved children
-    /// bits set, or trailer arrays not covering the delivered points.
+    /// Panics when the document is inconsistent: range lengths and `HEAD` runs disagreeing on the
+    /// delivered count, reserved children bits set, or trailer arrays not covering the delivered
+    /// points.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
-        let delivered: u64 = self.ranges.iter().map(|range| range.len() as u64).sum();
+        let delivered = self.delivered.count();
         let counted: u64 = self.head.runs.iter().map(|&count| u64::from(count)).sum();
         assert_eq!(
             delivered, counted,
@@ -101,12 +96,11 @@ impl TileResponse<'_> {
     /// Gathers the `POSITIONS` column: f32 xy pairs, delivered order.
     fn positions_column(&self) -> Vec<u8> {
         let mut column = Vec::new();
-        for range in self.ranges {
-            for point in &self.positions[range.start as usize..range.end as usize] {
-                column.extend_from_slice(&point.x().to_le_bytes());
-                column.extend_from_slice(&point.y().to_le_bytes());
-            }
-        }
+        self.delivered.for_each(|position| {
+            let point = self.positions[position as usize];
+            column.extend_from_slice(&point.x().to_le_bytes());
+            column.extend_from_slice(&point.y().to_le_bytes());
+        });
 
         column
     }
@@ -114,25 +108,24 @@ impl TileResponse<'_> {
     /// Gathers the `ROW_IDS` column: u32 row ids, delivered order.
     fn rows_column(&self) -> Vec<u8> {
         let mut column = Vec::new();
-        for range in self.ranges {
-            for &row in &self.rows[range.start as usize..range.end as usize] {
-                column.extend_from_slice(&row.to_le_bytes());
-            }
-        }
+        self.delivered.for_each(|position| {
+            column.extend_from_slice(&self.rows[position as usize].to_le_bytes());
+        });
 
         column
     }
 
-    /// Assembles the `TYPE_MASK` column: one `ceil(n/8)`-byte mask per
-    /// delivered point, bit `i` LSB-first when the point carries the
+    /// Assembles the `TYPE_MASK` column.
+    ///
+    /// One `ceil(n/8)`-byte mask per delivered point, bit `i` LSB-first when the point carries the
     /// request's type `i`.
     ///
-    /// Each membership contributes by walking its positions inside
-    /// each delivered range ascending - a linear merge per requested
-    /// type, never a per-point containment probe. A point matching no
-    /// requested type keeps the zero mask; no sentinel exists.
+    /// Each membership contributes by a linear merge of its ascending positions against the
+    /// delivered set, never a per-point containment probe. A point matching no requested type
+    /// keeps the zero mask; no sentinel exists.
     fn mask_column(&self, masks: &[Membership<'_>]) -> Vec<u8> {
-        let delivered: usize = self.ranges.iter().map(Range::len).sum();
+        let delivered =
+            usize::try_from(self.delivered.count()).expect("delivered counts fit usize");
         let stride = masks.len().div_ceil(8);
         let mut column = vec![0_u8; delivered * stride];
 
@@ -140,17 +133,77 @@ impl TileResponse<'_> {
             let byte = bit >> 3;
             let flag = 1_u8 << (bit & 7);
 
-            let mut base = 0_usize;
-            for range in self.ranges {
-                for position in membership.positions_in(range.clone()) {
-                    let point = base + (position - range.start) as usize;
-                    column[point * stride + byte] |= flag;
+            match self.delivered {
+                DeliveredSet::Ranges(ranges) => {
+                    let mut base = 0_usize;
+                    for range in ranges {
+                        for position in membership.positions_in(range.clone()) {
+                            let point = base + (position - range.start) as usize;
+                            column[point * stride + byte] |= flag;
+                        }
+                        base += range.len();
+                    }
                 }
-                base += range.len();
+                DeliveredSet::Positions(list) => {
+                    let (Some(&first), Some(&last)) = (list.first(), list.last()) else {
+                        continue;
+                    };
+                    let mut cursor = 0_usize;
+                    for position in membership.positions_in(first..last + 1) {
+                        while cursor < list.len() && list[cursor] < position {
+                            cursor += 1;
+                        }
+                        if cursor == list.len() {
+                            break;
+                        }
+                        if list[cursor] == position {
+                            column[cursor * stride + byte] |= flag;
+                        }
+                    }
+                }
             }
         }
 
         column
+    }
+}
+
+/// One delivered point set, in either of the two shapes a producer holds.
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum DeliveredSet<'doc> {
+    /// Contiguous base-position ranges in delivery order.
+    ///
+    /// The unmasked gather. Zero-length ranges are legal and deliver nothing.
+    Ranges(&'doc [Range<u32>]),
+    /// Gathered base positions, ascending: the masked gather, visibility already applied.
+    Positions(&'doc [u32]),
+}
+
+impl DeliveredSet<'_> {
+    /// Counts the delivered points.
+    fn count(self) -> u64 {
+        match self {
+            Self::Ranges(ranges) => ranges.iter().map(|range| range.len() as u64).sum(),
+            Self::Positions(list) => list.len() as u64,
+        }
+    }
+
+    /// Visits the delivered base positions in delivery order.
+    fn for_each(self, mut visit: impl FnMut(u32)) {
+        match self {
+            Self::Ranges(ranges) => {
+                for range in ranges {
+                    for position in range.clone() {
+                        visit(position);
+                    }
+                }
+            }
+            Self::Positions(list) => {
+                for &position in list {
+                    visit(position);
+                }
+            }
+        }
     }
 }
 
@@ -169,21 +222,23 @@ pub(crate) struct TileHead<'doc> {
     pub visible: u64,
     /// Key 6: the first bucket of the runs array.
     pub first_bucket: u8,
-    /// Key 7: per-bucket delivered counts from the first bucket up;
-    /// zero-length entries keep their positional slot.
+    /// Key 7: per-bucket delivered counts from the first bucket up.
+    ///
+    /// Zero-length entries keep their positional slot.
     pub runs: &'doc [u32],
-    /// Key 8: post-intersection set metadata. Required on the root
-    /// tile, permitted everywhere.
+    /// Key 8: post-intersection set metadata. Required on the root tile, permitted everywhere.
     pub global: Option<GlobalHead>,
-    /// Key 9: the occupied-child bitmask; bit `i` = Morton child `i`
-    /// holds a point below this zoom's cut. Bits beyond the low four
+    /// Key 9: the occupied-child bitmask.
+    ///
+    /// Bit `i` = Morton child `i` holds a point below this zoom's cut. Bits beyond the low four
     /// are reserved zero.
     pub children: u8,
 }
 
 impl TileHead<'_> {
-    /// Encodes the `HEAD` map; key 4 (`delivered`) and key 10
-    /// (`trailer`) are derived from the response rather than stored.
+    /// Encodes the `HEAD` map.
+    ///
+    /// Key 4 (`delivered`) and key 10 (`trailer`) are derived from the response rather than stored.
     fn encode(&self, delivered: u64, trailer: bool) -> Vec<u8> {
         assert!(
             self.children < 16,
@@ -244,9 +299,10 @@ pub struct TileCoordinate {
 pub(crate) struct GlobalHead {
     /// Entry 0: points visible at the current zoom.
     pub visible: u64,
-    /// Entry 1: the tight wire-frame extent of the entire visible
-    /// set, absent iff that set is empty. Emitted as
-    /// `[minX, minY, maxX, maxY]`.
+    /// Entry 1.
+    ///
+    /// The tight wire-frame extent of the entire visible set, absent iff that set is empty.
+    /// Emitted as `[minX, minY, maxX, maxY]`.
     pub bounds: Option<Bounds2>,
     /// Entry 2: the deepest occupied bucket of the visible set.
     pub min_resolution: u64,
@@ -272,8 +328,9 @@ impl GlobalHead {
     }
 }
 
-/// The tile detail trailer: hydrated labels and icons, delivered
-/// order, `null` marking a row whose entry did not resolve.
+/// The tile detail trailer.
+///
+/// Hydrated labels and icons, delivered order, `null` marking a row whose entry did not resolve.
 #[derive(Debug)]
 pub(crate) struct TileTrailer<'doc> {
     /// Trailer key 0.

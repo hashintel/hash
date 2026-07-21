@@ -198,9 +198,9 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A config echo published before the classifier supply settings
-/// existed omits them; it deserializes to the compiled defaults, so
-/// generations from before the fields stay openable.
+/// A config echo published before the classifier supply settings existed omits them.
+///
+/// It deserializes to the compiled defaults, so generations from before the fields stay openable.
 #[test]
 fn a_config_echo_without_classifier_supply_settings_still_parses() {
     #[derive(serde::Serialize, serde::Deserialize)]
@@ -219,9 +219,9 @@ fn a_config_echo_without_classifier_supply_settings_still_parses() {
     assert_eq!(echoed.0, config());
 }
 
-/// A config echo published before the group budget existed omits it;
-/// it deserializes to the compiled default, and a tampered budget
-/// refuses to parse.
+/// A config echo published before the group budget existed omits it.
+///
+/// It deserializes to the compiled default, and a tampered budget refuses to parse.
 #[test]
 fn a_config_echo_validates_the_group_budget() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -265,8 +265,9 @@ fn config() -> FitConfig {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus: the
-/// supplied model input of every fixture fit.
+/// A deterministic classifier fitted from a synthetic corpus.
+///
+/// The supplied model input of every fixture fit.
 fn fixture_classifier() -> Classifier {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
@@ -323,9 +324,9 @@ fn fixture_input() -> ClassifierInput {
     supplied(fixture_classifier())
 }
 
-/// Asserts the complete-generation fixture's snapshot counts and its
-/// multiplicity histogram: the dataset streamed two single-typed
-/// edges, so the histogram is a single k = 1 entry.
+/// Asserts the complete-generation fixture's snapshot counts and its multiplicity histogram.
+///
+/// The dataset streamed two single-typed edges, so the histogram is a single k = 1 entry.
 fn assert_complete_generation_snapshot(repository: &SaltRepository) {
     assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
     assert_eq!(repository.metadata.snapshot.edges, 2);
@@ -337,8 +338,7 @@ fn assert_complete_generation_snapshot(repository: &SaltRepository) {
     );
 }
 
-/// Asserts every file the manifest lists matches its recorded digest
-/// byte for byte.
+/// Asserts every file the manifest lists matches its recorded digest byte for byte.
 fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
     for entry in repository.files.files() {
         let bytes = fs::read(path.join(entry.name.as_str())).expect("a published file should read");
@@ -486,12 +486,11 @@ async fn fit_publishes_a_complete_generation() {
     );
 }
 
-/// Asserts the published postings against the fixture by hand: every
-/// position carries its row's direct type, only the link type names a
-/// parent, and the evidence records the representation split - at 48
-/// points the dense threshold is one member and a dense run costs two
-/// words, so both node types go dense and the empty link type stays a
-/// list.
+/// Asserts the published postings against the fixture by hand.
+///
+/// Every position carries its row's direct type, only the link type names a parent, and the
+/// evidence records the representation split - at 48 points the dense threshold is one member and a
+/// dense run costs two words, so both node types go dense and the empty link type stays a list.
 fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) {
     let postings = PostingsArchive::new(
         PostingsFile::open(published.join("postings.post")).expect("the postings should map"),
@@ -761,8 +760,9 @@ fn annotation_vote(verdict: &str) -> serde_json::Value {
     })
 }
 
-/// Composes one hash-identity annotation card; a distinct `slug` and
-/// `family` per card keeps every card its own fold group.
+/// Composes one hash-identity annotation card.
+///
+/// A distinct `slug` and `family` per card keeps every card its own fold group.
 fn annotation_card(
     slug: &str,
     family: &str,
@@ -805,9 +805,9 @@ fn annotation_card(
     })
 }
 
-/// Composes the six-card fixture corpus: four trained cards in four
-/// fold groups, one geometry-verdict holdout, one unclear-verdict
-/// holdout; cards ascend by identity.
+/// Composes the six-card fixture corpus: four trained cards in four fold groups.
+///
+/// One geometry-verdict holdout, one unclear-verdict holdout; cards ascend by identity.
 fn annotation_document() -> String {
     serde_json::json!({
         "cards": [
@@ -1191,8 +1191,9 @@ async fn a_defective_corpus_publishes_nothing() {
     );
 }
 
-/// The projector fixture's training run: short enough for a test,
-/// long enough that the boundary and every rung run.
+/// The projector fixture's training run.
+///
+/// Short enough for a test, long enough that the boundary and every rung run.
 fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
     options.schedule = TrainingSchedule::new(
@@ -1462,10 +1463,9 @@ async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
     );
 }
 
-/// A corpus whose relations carry Proximal force refuses to train
-/// without reviewed coverage or an assertion - and the vacuous
-/// placement is exactly what unblocks it: the same configuration
-/// trains and publishes with the relation evidence withheld.
+/// A corpus whose relations carry Proximal force refuses to train without reviewed coverage or an
+/// assertion - and the vacuous placement is exactly what unblocks it: the same configuration trains
+/// and publishes with the relation evidence withheld.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_vacuous_placement_trains_without_reviews() {
@@ -1630,12 +1630,12 @@ async fn a_canonical_condition_outside_the_schedule_publishes_nothing() {
     );
 }
 
-/// A corpus exercising the edge artifacts: two relation types, a
-/// parallel pair, a self-loop, scored and unscored confidences.
+/// A corpus exercising the edge artifacts.
 ///
-/// Edge rows: 0 and 3 both `0 -> 1` under relation 2 (row 0 scored),
-/// 1 is `2 -> 3` under relations 2 and 3, 2 is the self-loop `3 -> 3`
-/// under relation 3.
+/// Two relation types, a parallel pair, a self-loop, scored and unscored confidences.
+///
+/// Edge rows: 0 and 3 both `0 -> 1` under relation 2 (row 0 scored), 1 is `2 -> 3` under relations
+/// 2 and 3, 2 is the self-loop `3 -> 3` under relation 3.
 fn relation_dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xED6E);
 
@@ -1714,9 +1714,10 @@ fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
         .collect()
 }
 
-/// Asserts the published adjacency matches a by-hand pass over the
-/// fixture edges: the parallel pair leaves node 0, the self-loop
-/// occupies both slots of node 3, and untouched nodes hold empty runs.
+/// Asserts the published adjacency matches a by-hand pass over the fixture edges.
+///
+/// The parallel pair leaves node 0, the self-loop occupies both slots of node 3, and untouched
+/// nodes hold empty runs.
 fn assert_adjacency_reads_back(published: &Utf8Path) {
     let adjacency = AdjacencyArchive::new(
         SprsFile::open(published.join("adjacency.sprs")).expect("the adjacency should map"),
@@ -1736,11 +1737,10 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
     );
 }
 
-/// Asserts the published attraction index against the
-/// [`relation_dataset`] readings: three retained instances under
-/// relation 2, one under relation 3 (the self-loop reading carries no
-/// force and is dropped), with the overridden weights and confidence
-/// provenance intact.
+/// Asserts the published attraction index against the [`relation_dataset`] readings.
+///
+/// Three retained instances under relation 2, one under relation 3 (the self-loop reading carries
+/// no force and is dropped), with the overridden weights and confidence provenance intact.
 fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert_eq!(attraction.rows(), NODES as u64);
     assert_eq!(attraction.group_count(), 2);

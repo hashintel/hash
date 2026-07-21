@@ -155,12 +155,10 @@ impl Error for FitError {
 
 /// One soft label, vote weight, and indivisible validation group.
 ///
-/// The group digest names the finest unit a validation split may not
-/// divide. Corpus assembly unions every leakage axis - relation
-/// family, inverse pair, base URL, publisher, near-duplicate card
-/// family - into this one label before rows reach the fit, so
-/// near-identical corpus entries can never straddle a train/validation
-/// boundary and inflate the out-of-fold metrics.
+/// The group digest names the finest unit a validation split may not divide. Corpus assembly unions
+/// every leakage axis - relation family, inverse pair, base URL, publisher, near-duplicate card
+/// family - into this one label before rows reach the fit, so near-identical corpus entries can
+/// never straddle a train/validation boundary and inflate the out-of-fold metrics.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TrainingRow {
     /// Soft target over the geometry classes, in class order.
@@ -173,8 +171,8 @@ pub(crate) struct TrainingRow {
 
 /// Validated borrowed classifier training data.
 ///
-/// Embeddings borrow in the shape the mapped card-embedding artifact
-/// yields; row `i` of `rows` labels embedding `i`.
+/// Embeddings borrow in the shape the mapped card-embedding artifact yields; row `i` of `rows`
+/// labels embedding `i`.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TrainingSet<'training> {
     embeddings: &'training [AlignedVecN<CANONICAL_DIMENSIONS>],
@@ -186,9 +184,8 @@ impl<'training> TrainingSet<'training> {
     ///
     /// # Errors
     ///
-    /// Returns a [`TrainingSetError`] for an empty corpus, mismatched
-    /// lengths, non-finite embedding components, targets that are not
-    /// probability distributions, or non-positive vote weights.
+    /// Returns a [`TrainingSetError`] for an empty corpus, mismatched lengths, non-finite embedding
+    /// components, targets that are not probability distributions, or non-positive vote weights.
     pub(crate) fn new(
         embeddings: &'training [AlignedVecN<CANONICAL_DIMENSIONS>],
         rows: &'training [TrainingRow],
@@ -282,17 +279,15 @@ impl<'training> TrainingSet<'training> {
 
 /// Optimizer and grouped-validation settings.
 ///
-/// The defaults are starting points pending corpus-scale tuning; the
-/// out-of-fold metrics in [`FitEvidence`] judge them.
+/// The defaults are starting points pending corpus-scale tuning; the out-of-fold metrics in
+/// [`FitEvidence`] judge them.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
-    /// L2 penalty `lambda` multiplying `squared_norm(W) / 2`;
-    /// intercepts are never regularized. Positive. Defaults to 1.0.
+    /// L2 penalty `lambda` multiplying `squared_norm(W) / 2`; intercepts are never regularized. Positive. Defaults to 1.0.
     pub regularization: f64 = 1.0,
     /// Iteration bound per model fit. Positive. Defaults to 500.
     pub maximum_iterations: u64 = 500,
-    /// Euclidean gradient norm at which a fit converges. Positive.
-    /// Defaults to 1e-6.
+    /// Euclidean gradient norm at which a fit converges. Positive. Defaults to 1e-6.
     pub gradient_tolerance: f64 = 1.0e-6,
     /// Retained L-BFGS curvature pairs. Positive. Defaults to 8.
     pub history_size: usize = 8,
@@ -375,9 +370,8 @@ pub(crate) struct Fit {
 ///
 /// # Errors
 ///
-/// Returns a [`FitError`] for invalid configuration, too few relation
-/// groups, a fold without complete class mass, a non-finite
-/// evaluation, an optimizer failure, or a fit that exhausts its
+/// Returns a [`FitError`] for invalid configuration, too few relation groups, a fold without
+/// complete class mass, a non-finite evaluation, an optimizer failure, or a fit that exhausts its
 /// iteration bound above the gradient tolerance.
 pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, FitError> {
     config.validate()?;
@@ -436,8 +430,7 @@ pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, F
     })
 }
 
-/// Copies a flat parameter vector into per-class coefficient rows and
-/// intercepts.
+/// Copies a flat parameter vector into per-class coefficient rows and intercepts.
 fn split_parameters(
     parameters: &Parameters,
 ) -> (
@@ -456,9 +449,8 @@ fn split_parameters(
 
 /// Assigns whole groups to seeded, size-balanced folds.
 ///
-/// Groups are placed largest first onto the currently smallest fold;
-/// equal sizes break by a seeded hash of the group digest and then by
-/// the digest itself, so the assignment is deterministic and
+/// Groups are placed largest first onto the currently smallest fold; equal sizes break by a seeded
+/// hash of the group digest and then by the digest itself, so the assignment is deterministic and
 /// independent of row order.
 fn grouped_folds(
     rows: &[TrainingRow],

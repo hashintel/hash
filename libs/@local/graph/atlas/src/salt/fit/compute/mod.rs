@@ -1,11 +1,9 @@
 //! The compute side of one fit: every stage after ingest.
 //!
-//! [`run`] executes on the rayon pool, so the tokio runtime thread
-//! stays free while the CPU-heavy stages - the neighbour link, the
-//! landmark layout, the level-of-detail sort - do their work. Nothing
-//! here touches the dataset or the embedding provider: every input is
-//! a staged file or a value [`Ingested`] carried across the boundary,
-//! and every failure is a [`StageError`].
+//! [`run`] executes on the rayon pool, so the tokio runtime thread stays free while the CPU-heavy
+//! stages - the neighbour link, the landmark layout, the level-of-detail sort - do their work.
+//! Nothing here touches the dataset or the embedding provider: every input is a staged file or a
+//! value [`Ingested`] carried across the boundary, and every failure is a [`StageError`].
 
 #[cfg(test)]
 pub(super) use self::projector::{
@@ -54,8 +52,9 @@ mod policy;
 mod projector;
 mod relation;
 
-/// The relation-policy classifier supply, resolved on the async side
-/// and carried across the thread boundary.
+/// The relation-policy classifier supply.
+///
+/// Resolved on the async side and carried across the thread boundary.
 pub(super) enum ClassifierPlan {
     /// A fitted model supplied to the run.
     Supplied {
@@ -66,8 +65,7 @@ pub(super) enum ClassifierPlan {
     },
     /// A model to fit from the assembled annotation corpus.
     Fit {
-        /// The assembled training and holdout material, boxed to keep
-        /// the variants near one size.
+        /// The assembled training and holdout material, boxed to keep the variants near one size.
         corpus: Box<AssembledCorpus>,
         /// The SHA-256 of the corpus document's bytes.
         source: Sha256Digest,
@@ -80,11 +78,9 @@ pub(super) enum ClassifierPlan {
 pub(super) struct Inputs {
     /// The fit's configuration, echoed into the metadata.
     pub config: FitConfig,
-    /// The classifier supply: a fitted model, or the assembled corpus
-    /// to fit one from.
+    /// The classifier supply: a fitted model, or the assembled corpus to fit one from.
     pub classifier: ClassifierPlan,
-    /// The manifest binding of the supplied reviewed-verdicts file,
-    /// when one was offered.
+    /// The manifest binding of the supplied reviewed-verdicts file, when one was offered.
     pub reviewed_verdicts: Option<RepositoryFile>,
     /// The validated supplied reviewed-verdicts document.
     pub verdicts: Option<SuppliedVerdicts>,
@@ -92,8 +88,7 @@ pub(super) struct Inputs {
     pub prior: Option<Generation>,
 }
 
-/// The compute stages' shared borrows: every stage method hangs off
-/// this context.
+/// The compute stages' shared borrows: every stage method hangs off this context.
 struct Context<'fit> {
     staging: &'fit StagedGeneration,
     scratch: &'fit ScratchDirectory,
@@ -113,11 +108,10 @@ struct Computed {
     lod: LodOutputs,
 }
 
-/// Runs every compute stage over the staged ingest artifacts and seals
-/// the generation.
+/// Runs every compute stage over the staged ingest artifacts and seals the generation.
 ///
-/// `I` is the dataset's node id type: the identity artifacts reopen
-/// under it for prior-landmark translation and the ranking tiebreak.
+/// `I` is the dataset's node id type: the identity artifacts reopen under it for prior-landmark
+/// translation and the ranking tiebreak.
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the context holds plain borrows and no Drop of its own; the borrow of the staging \
@@ -193,8 +187,7 @@ where
     Ok(staging.seal(&repository)?)
 }
 
-/// Binds every staged file and evidence value into the repository the
-/// seal publishes.
+/// Binds every staged file and evidence value into the repository the seal publishes.
 fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepository {
     let (annotation_corpus, annotation_embeddings, annotation_hashes) =
         match computed.classifier.annotation {

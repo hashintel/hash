@@ -1,8 +1,8 @@
-//! Certificates for the loss terms: every hand-derived derivative is
-//! cross-checked against a finite difference of its own value function,
-//! hand-computed dyadic points are asserted bit-exactly, and the
-//! autodiff support term is compared against an independent analytic
-//! gradient formula.
+//! Certificates for the loss terms.
+//!
+//! Every hand-derived derivative is cross-checked against a finite difference of its own value
+//! function, hand-computed dyadic points are asserted bit-exactly, and the autodiff support term is
+//! compared against an independent analytic gradient formula.
 
 #![expect(
     clippy::float_cmp,
@@ -103,11 +103,10 @@ fn coordinate_difference(
     (above - below) / (2.0 * step)
 }
 
-/// Asserts a derivative against its finite difference with tolerance
-/// scaled to the finite difference's own f32 conditioning.
+/// Asserts a derivative against its finite difference with tolerance scaled to the finite
+/// difference's own f32 conditioning.
 #[track_caller]
-/// Narrows one accumulated field component for a finite-difference
-/// comparison.
+/// Narrows one accumulated field component for a finite-difference comparison.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the finite-difference tolerance operates at working precision"
@@ -424,9 +423,9 @@ fn repulsion_term_gradient_matches_finite_differences() {
     }
 }
 
-/// Builds an attraction index over four nodes and two relations: one
-/// mixed-class relation (Coincident coefficient 1) and one pure
-/// Proximal relation.
+/// Builds an attraction index over four nodes and two relations.
+///
+/// One mixed-class relation (Coincident coefficient 1) and one pure Proximal relation.
 fn attraction_fixture() -> AttractionIndex {
     let policies = [
         RelationPolicy {
@@ -492,11 +491,10 @@ fn attraction_fixture() -> AttractionIndex {
     .attraction
 }
 
-/// Wraps every group of an index with all its edges, as a sampler
-/// emitting everything would.
-/// Converts every group into the batch-local shape under the identity
-/// row map: the fixture coordinates are corpus-length, so corpus rows
-/// and batch positions coincide.
+/// Wraps every group of an index with all its edges, as a sampler emitting everything would.
+///
+/// Converts every group into the batch-local shape under the identity row map: the fixture
+/// coordinates are corpus-length, so corpus rows and batch positions coincide.
 fn full_batch(index: &AttractionIndex) -> Vec<BatchRelationEdges> {
     let position = |row: NodeRowId| {
         BatchRowId::new(u32::try_from(row.get()).expect("fixture rows fit the batch encoding"))

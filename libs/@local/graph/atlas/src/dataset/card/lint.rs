@@ -31,14 +31,12 @@ impl Error for IdentifierLeakError {}
 
 /// Rejects universal keys and the adapter's known source identifiers.
 ///
-/// Every check requires the match to stand on its own token boundary, so
-/// ordinary prose that merely resembles an identifier passes. Empty
-/// identifiers are ignored.
+/// Every check requires the match to stand on its own token boundary, so ordinary prose that merely
+/// resembles an identifier passes. Empty identifiers are ignored.
 ///
 /// # Errors
 ///
-/// Returns an error when the text contains a URL, a UUID, or one of
-/// `forbidden_identifiers`.
+/// Returns an error when the text contains a URL, a UUID, or one of `forbidden_identifiers`.
 pub(crate) fn lint_card_text(
     card_text: &str,
     forbidden_identifiers: &[&str],

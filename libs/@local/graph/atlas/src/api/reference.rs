@@ -1,5 +1,6 @@
-//! The self-serving documentation: the OpenAPI document rendered at
-//! startup and the Scalar reference page over it.
+//! The self-serving documentation.
+//!
+//! The OpenAPI document rendered at startup and the Scalar reference page over it.
 
 use aide::{axum::IntoApiResponse, scalar::Scalar};
 use axum::{Extension, body::Bytes, http::header, response::Html};
@@ -11,11 +12,10 @@ pub(super) async fn serve_document(Extension(document): Extension<Bytes>) -> imp
 
 /// Builds the handler serving the Scalar reference page.
 ///
-/// aide's bundled theme asks for `"Inter", var(--system-fonts)` but
-/// ships neither: Inter never loads and the standalone bundle never
-/// defines `--system-fonts`, so the `font-family` computes invalid
-/// and the page falls back to the browser's default serif. The patch
-/// pins a self-contained system stack instead.
+/// aide's bundled theme asks for `"Inter", var(--system-fonts)` but ships neither: Inter never
+/// loads and the standalone bundle never defines `--system-fonts`, so the `font-family` computes
+/// invalid and the page falls back to the browser's default serif. The patch pins a self-contained
+/// system stack instead.
 pub(super) fn page() -> impl Fn() -> core::future::Ready<Html<String>> + Clone {
     let bundled = Scalar::new("/v1/atlas/openapi.json")
         .with_title("HASH Atlas API")

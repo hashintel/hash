@@ -137,8 +137,7 @@ fn dvec2x4t_reduce_sums_each_axis() {
 }
 
 proptest! {
-    /// Widening is exact for every finite f32 pair, and narrowing it back
-    /// reproduces the input bit for bit.
+    /// Widening is exact for every finite f32 pair, and narrowing it back reproduces the input bit for bit.
     #[test]
     fn widening_round_trips_exactly(
         x in -1e30_f32..1e30,
@@ -151,8 +150,7 @@ proptest! {
         prop_assert_eq!(widened.narrow(), Some(vec));
     }
 
-    /// The products agree with their f32 counterparts computed on widened
-    /// inputs: products of exactly-widened values carry no f32 rounding.
+    /// The products agree with their f32 counterparts computed on widened inputs: products of exactly-widened values carry no f32 rounding.
     #[test]
     fn products_refine_the_f32_counterparts(
         ax in -1e3_f32..1e3, ay in -1e3_f32..1e3,

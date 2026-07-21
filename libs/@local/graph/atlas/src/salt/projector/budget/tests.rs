@@ -1,11 +1,9 @@
 //! Certificates for the budget clip algebra and the gradient surrogate.
 //!
-//! The clip assertions are bit-exact where every intermediate is
-//! dyadic; the budget inequalities hold as strict properties over
-//! random inputs. The surrogate certificates establish the seam the
-//! training loop depends on: one backward pass through the surrogate
-//! deposits exactly the requested coordinate gradient, both at a
-//! detached coordinate leaf and through the full model Jacobian.
+//! The clip assertions are bit-exact where every intermediate is dyadic; the budget inequalities
+//! hold as strict properties over random inputs. The surrogate certificates establish the seam the
+//! training loop depends on: one backward pass through the surrogate deposits exactly the requested
+//! coordinate gradient, both at a detached coordinate leaf and through the full model Jacobian.
 
 #![expect(
     clippy::float_cmp,
@@ -184,10 +182,9 @@ fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
 
 /// Nudges every parameter off its initialization.
 ///
-/// The identity-contract layers initialize to zero and would block
-/// gradient flow into the deep block parameters, leaving the surrogate
-/// certificate comparing zeros with zeros; a deterministic ramp makes
-/// every parameter's gradient generically nonzero.
+/// The identity-contract layers initialize to zero and would block gradient flow into the deep
+/// block parameters, leaving the surrogate certificate comparing zeros with zeros; a deterministic
+/// ramp makes every parameter's gradient generically nonzero.
 struct Perturb;
 
 impl ModuleMapper<TestBackend> for Perturb {
@@ -327,9 +324,7 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
 }
 
 proptest! {
-    /// Both budget inequalities hold for every input: the applied
-    /// gradient's norm stays within `positive * baseline` and within
-    /// `total * baseline`, and both factors lie in `(0, 1]`.
+    /// Both budget inequalities hold for every input: the applied gradient's norm stays within `positive * baseline` and within `total * baseline`, and both factors lie in `(0, 1]`.
     #[test]
     fn clip_satisfies_the_budget_inequalities(
         semantic_x in -1e3_f32..1e3,

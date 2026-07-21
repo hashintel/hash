@@ -15,26 +15,21 @@ use super::{
 
 /// Instances per parallel emission chunk within one relation group.
 ///
-/// Relation volume is heavily skewed - a handful of types own most
-/// links - so the group pass cannot lean on group-level parallelism
-/// alone: one dominant relation would serialize it. Within a group,
-/// instances therefore emit over chunks of this size. Boundaries are
-/// fixed positions of the sorted slice and the chunk partials combine
-/// in chunk order, so the double-precision evidence sums associate
-/// identically on every run: the build stays a function of the
-/// instance set, whatever the thread count or scheduling. The size is
-/// a granularity, not a tuned number - large enough that per-chunk
-/// task and buffer overhead vanishes behind tens of thousands of
-/// column searches, small enough that a million-instance relation
-/// splits into dozens of stealable pieces; any nearby power of two
-/// serves equally.
+/// Relation volume is heavily skewed - a handful of types own most links - so the group pass cannot
+/// lean on group-level parallelism alone: one dominant relation would serialize it. Within a group,
+/// instances therefore emit over chunks of this size. Boundaries are fixed positions of the sorted
+/// slice and the chunk partials combine in chunk order, so the double-precision evidence sums
+/// associate identically on every run: the build stays a function of the instance set, whatever the
+/// thread count or scheduling. The size is a granularity, not a tuned number - large enough that
+/// per-chunk task and buffer overhead vanishes behind tens of thousands of column searches, small
+/// enough that a million-instance relation splits into dozens of stealable pieces; any nearby power
+/// of two serves equally.
 pub(super) const EMISSION_CHUNK: usize = 1 << 14;
 
 /// Builds the attraction and protection indexes together.
 ///
-/// See [`RelationIndexes::build`] for the contract; this is its
-/// implementation, composed from the named stages below so each stage
-/// stays measurable on its own.
+/// See [`RelationIndexes::build`] for the contract; this is its implementation, composed from the
+/// named stages below so each stage stays measurable on its own.
 pub(super) fn build(
     rows: usize,
     policies: Policies<'_>,
@@ -89,10 +84,9 @@ pub(super) fn build(
 
 /// Sorts instances by relation group and returns the proper count.
 ///
-/// Self-references sort behind every proper instance, so the returned
-/// partition point drops them without moving memory. The remainder of
-/// the key is total under the edge stream's uniqueness contract, making
-/// the unstable parallel sort deterministic.
+/// Self-references sort behind every proper instance, so the returned partition point drops them
+/// without moving memory. The remainder of the key is total under the edge stream's uniqueness
+/// contract, making the unstable parallel sort deterministic.
 pub(super) fn sort_by_group(instances: &mut [RelationInstance]) -> usize {
     instances.par_sort_unstable_by_key(|instance| {
         (
@@ -109,14 +103,12 @@ pub(super) fn sort_by_group(instances: &mut [RelationInstance]) -> usize {
 
 /// Resolves every group's range and policy over group-sorted instances.
 ///
-/// The resolution precedes any parallel work: the emission pass is
-/// infallible, and the first uncovered relation in ascending order is
-/// the deterministic error.
+/// The resolution precedes any parallel work: the emission pass is infallible, and the first
+/// uncovered relation in ascending order is the deterministic error.
 ///
 /// # Errors
 ///
-/// Returns an error when an instance references a relation the policy
-/// table does not cover.
+/// Returns an error when an instance references a relation the policy table does not cover.
 pub(super) fn resolve_groups<'policy>(
     proper: &[RelationInstance],
     policies: Policies<'policy>,
@@ -137,9 +129,9 @@ pub(super) fn resolve_groups<'policy>(
 
 /// Builds every relation's attraction group over its resolved range.
 ///
-/// `chunk` is the emission granularity; the index build passes
-/// [`EMISSION_CHUNK`], and the granularity claim on that constant is
-/// verified by benchmarking other values through this parameter.
+/// `chunk` is the emission granularity; the index build passes [`EMISSION_CHUNK`], and the
+/// granularity claim on that constant is verified by benchmarking other values through this
+/// parameter.
 pub(super) fn build_groups(
     proper: &[RelationInstance],
     group_ranges: Vec<(Range<usize>, &RelationPolicy)>,
@@ -154,10 +146,9 @@ pub(super) fn build_groups(
 
 /// Reorders proper instances in place by canonical endpoint pair.
 ///
-/// Instances of one pair may arrive in any order behind the pair key;
-/// the protection aggregation's per-component maximum is
-/// order-independent, so the assembled index is still a function of
-/// the set.
+/// Instances of one pair may arrive in any order behind the pair key; the protection aggregation's
+/// per-component maximum is order-independent, so the assembled index is still a function of the
+/// set.
 pub(super) fn sort_by_pair(proper: &mut [RelationInstance]) {
     proper
         .par_sort_unstable_by_key(|instance| NodePair::new(instance.source, instance.target).key());
@@ -170,22 +161,18 @@ fn same_pair(one: &RelationInstance, other: &RelationInstance) -> bool {
 
 /// Assembles the symmetric evidence matrix from pair-sorted instances.
 ///
-/// Two passes over the pair runs: counting fills the row pointers, the
-/// scatter writes each pair's aggregated evidence into both of its
-/// rows. Canonical pair order makes the scatter emit every row's
-/// partners ascending without a sort: a row's smaller partners arrive
-/// while the row is some pair's second endpoint (ascending by the
-/// pairs' first components), its larger partners afterwards while it
-/// is the first (ascending by second components). The scatter is
-/// sequential and costs about as much as both whole-slice sorts
-/// together at live scale (measured at 4.4M instances); the index
-/// validation behind it re-checks the constructed invariants in
-/// parallel.
+/// Two passes over the pair runs: counting fills the row pointers, the scatter writes each pair's
+/// aggregated evidence into both of its rows. Canonical pair order makes the scatter emit every
+/// row's partners ascending without a sort: a row's smaller partners arrive while the row is some
+/// pair's second endpoint (ascending by the pairs' first components), its larger partners
+/// afterwards while it is the first (ascending by second components). The scatter is sequential and
+/// costs about as much as both whole-slice sorts together at live scale (measured at 4.4M
+/// instances); the index validation behind it re-checks the constructed invariants in parallel.
 ///
 /// # Panics
 ///
-/// Panics when an instance endpoint lies outside the `rows` domain,
-/// which the dataset row contract excludes.
+/// Panics when an instance endpoint lies outside the `rows` domain, which the dataset row contract
+/// excludes.
 pub(super) fn assemble_protection(
     rows: usize,
     proper: &[RelationInstance],
@@ -264,13 +251,11 @@ pub(super) struct GroupEvidence {
 
 /// Builds one relation's attraction group from its contiguous instances.
 ///
-/// The slice is one relation's run of the `(source, target, edge)` sort.
-/// Degrees count over two compact endpoint columns in one scratch
-/// allocation: the source column inherits the run's order, the target
-/// column sorts here, and a row's degree is the share sum over its
-/// run in each column, read as a prefix difference. Emission then
-/// parallelizes over `chunk`-sized chunks reading those shared
-/// columns.
+/// The slice is one relation's run of the `(source, target, edge)` sort. Degrees count over two
+/// compact endpoint columns in one scratch allocation: the source column inherits the run's order,
+/// the target column sorts here, and a row's degree is the share sum over its run in each column,
+/// read as a prefix difference. Emission then parallelizes over `chunk`-sized chunks reading those
+/// shared columns.
 fn build_group(
     instances: &[RelationInstance],
     policy: &RelationPolicy,
@@ -324,11 +309,10 @@ fn build_group(
     (AttractionGroup::new(relation, weights, edges), evidence)
 }
 
-/// One group column: endpoint rows ascending, with the running share
-/// total ahead of every position.
+/// One group column: endpoint rows ascending, with the running share total ahead of every position.
 ///
-/// A row's degree is the share sum over its run, read as a prefix
-/// difference; lookups stay binary searches.
+/// A row's degree is the share sum over its run, read as a prefix difference; lookups stay binary
+/// searches.
 struct DegreeColumn {
     rows: Vec<u64>,
     prefix: Vec<f64>,
@@ -337,8 +321,8 @@ struct DegreeColumn {
 impl DegreeColumn {
     /// Sorts the entries and accumulates the share prefix.
     ///
-    /// The sort key includes the share bits, so equal rows order their
-    /// shares deterministically and the prefix sums are reproducible.
+    /// The sort key includes the share bits, so equal rows order their shares deterministically and
+    /// the prefix sums are reproducible.
     fn new(mut entries: Vec<(u64, f64)>) -> Self {
         entries.par_sort_unstable_by(|left, right| {
             left.0.cmp(&right.0).then(left.1.total_cmp(&right.1))

@@ -1,5 +1,4 @@
-//! The level-of-detail stage: served columns in base delivery order
-//! and the quadtree cut over them.
+//! The level-of-detail stage: served columns in base delivery order and the quadtree cut over them.
 
 use smallvec::SmallVec;
 
@@ -46,8 +45,7 @@ pub(super) struct LodArtifacts {
     pub row_of_position: RepositoryFile,
 }
 
-/// Everything the level-of-detail stage produced: the staged files and
-/// both evidence sections.
+/// Everything the level-of-detail stage produced: the staged files and both evidence sections.
 pub(super) struct LodOutputs {
     pub files: LodArtifacts,
     pub evidence: LodEvidence,
@@ -56,17 +54,14 @@ pub(super) struct LodOutputs {
 }
 
 impl Context<'_> {
-    /// Derives the level-of-detail structure over the staged
-    /// coordinates, stages every served column, and cuts the finished
-    /// columns into the staged quadtree.
+    /// Derives the level-of-detail structure over the staged coordinates.
     ///
-    /// The importance column comes from the configured signal over the
-    /// staged artifacts, and the metadata's ranking origin records the
-    /// signal that ran.
-    /// `types` is each node row's direct types in row order, the
-    /// quadtree's per-tile type sets and the postings' membership
-    /// source; `parents` is each ontology row's direct parents in row
-    /// order, the postings' type graph.
+    /// Stages every served column, and cuts the finished columns into the staged quadtree.
+    ///
+    /// The importance column comes from the configured signal over the staged artifacts, and the
+    /// metadata's ranking origin records the signal that ran. `types` is each node row's direct
+    /// types in row order, the quadtree's per-tile type sets and the postings' membership source;
+    /// `parents` is each ontology row's direct parents in row order, the postings' type graph.
     pub(super) fn stage_lod<I>(
         &self,
         types: &[SmallVec<OntologyRowId, 2>],
@@ -192,11 +187,9 @@ impl Context<'_> {
         })
     }
 
-    /// Cuts the quadtree over the finished columns while they are
-    /// still resident and stages it.
+    /// Cuts the quadtree over the finished columns while they are still resident and stages it.
     ///
-    /// The cut runs under the configuration the cascade ran under,
-    /// which the build re-checks.
+    /// The cut runs under the configuration the cascade ran under, which the build re-checks.
     fn stage_quad(
         &self,
         lod: &Lod,
@@ -217,11 +210,10 @@ impl Context<'_> {
         Ok((file, tree.evidence()))
     }
 
-    /// Builds the postings over the finished lod permutation and
-    /// stages them beside the quadtree.
+    /// Builds the postings over the finished lod permutation and stages them beside the quadtree.
     ///
-    /// Membership gathers through the same permutation the served
-    /// columns did; the parent regions restate the ontology stream.
+    /// Membership gathers through the same permutation the served columns did; the parent regions
+    /// restate the ontology stream.
     fn stage_postings(
         &self,
         types: &[SmallVec<OntologyRowId, 2>],

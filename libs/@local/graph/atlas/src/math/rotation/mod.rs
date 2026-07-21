@@ -12,24 +12,20 @@ mod tests;
 
 /// A rotation about the origin, stored as the unit vector `(cos, sin)`.
 ///
-/// The decomposed representation is the contract of this type: the angle's
-/// cosine and sine are computed once (or supplied directly) and every
-/// subsequent operation is plain arithmetic on them. Composing two
-/// rotations via [`then`](Self::then) multiplies the unit vectors, which
-/// adds the angles without any trigonometric calls, and
-/// [`inverse`](Self::inverse) negates the sine, which is exact: no rounding
-/// occurs at all.
+/// The decomposed representation is the contract of this type: the angle's cosine and sine are
+/// computed once (or supplied directly) and every subsequent operation is plain arithmetic on them.
+/// Composing two rotations via [`then`](Self::then) multiplies the unit vectors, which adds the
+/// angles without any trigonometric calls, and [`inverse`](Self::inverse) negates the sine, which
+/// is exact: no rounding occurs at all.
 ///
-/// Angles follow the mathematical convention: radians, counterclockwise,
-/// with `x` growing right and `y` growing up. In a `y`-down space (such as
-/// screen coordinates) the visual direction of rotation is reversed.
+/// Angles follow the mathematical convention: radians, counterclockwise, with `x` growing right and
+/// `y` growing up. In a `y`-down space (such as screen coordinates) the visual direction of
+/// rotation is reversed.
 ///
-/// Note that long chains of [`then`](Self::then) accumulate rounding in the
-/// stored vector, letting it drift off the unit circle by a few units in
-/// the last place per composition. Call
-/// [`renormalize`](Self::renormalize) periodically when composing
-/// rotations incrementally; the angle is unaffected, only the vector's
-/// length is corrected.
+/// Note that long chains of [`then`](Self::then) accumulate rounding in the stored vector, letting
+/// it drift off the unit circle by a few units in the last place per composition. Call
+/// [`renormalize`](Self::renormalize) periodically when composing rotations incrementally; the
+/// angle is unaffected, only the vector's length is corrected.
 ///
 /// # Examples
 ///
@@ -63,8 +59,8 @@ impl Rotation {
 
     /// Creates a rotation from an angle in radians.
     ///
-    /// This is the only constructor that calls into trigonometry; the
-    /// resulting cosine and sine are reused by every later operation.
+    /// This is the only constructor that calls into trigonometry; the resulting cosine and sine are
+    /// reused by every later operation.
     #[inline]
     #[must_use]
     pub fn from_radians(radians: f32) -> Self {
@@ -75,10 +71,9 @@ impl Rotation {
 
     /// Creates a rotation directly from its cosine and sine.
     ///
-    /// The pair must lie on the unit circle: `cos * cos + sin * sin == 1`
-    /// up to rounding. This is useful when the pair is already available,
-    /// for example from normalizing a direction vector, and avoids
-    /// round-tripping through an angle.
+    /// The pair must lie on the unit circle: `cos * cos + sin * sin == 1` up to rounding. This is
+    /// useful when the pair is already available, for example from normalizing a direction vector,
+    /// and avoids round-tripping through an angle.
     #[inline]
     #[must_use]
     pub const fn from_cos_sin(cos: f32, sin: f32) -> Self {
@@ -106,12 +101,11 @@ impl Rotation {
         self.sin().atan2(self.cos())
     }
 
-    /// Returns the rotation equivalent to applying `self` first, then
-    /// `next`.
+    /// Returns the rotation equivalent to applying `self` first, then `next`.
     ///
-    /// Rotations commute, so the order only matters for consistency with
-    /// the other transform types. The composition adds the two angles by
-    /// multiplying the stored unit vectors; no trigonometric calls occur.
+    /// Rotations commute, so the order only matters for consistency with the other transform types.
+    /// The composition adds the two angles by multiplying the stored unit vectors; no trigonometric
+    /// calls occur.
     #[inline]
     #[must_use]
     pub const fn then(self, next: Self) -> Self {
@@ -123,13 +117,11 @@ impl Rotation {
 
     /// Rescales the stored vector back onto the unit circle.
     ///
-    /// Composition accumulates rounding in the vector's length at roughly
-    /// one unit in the last place per [`then`](Self::then); a drifted
-    /// length scales every vector passed to [`apply`](Self::apply) by that
-    /// factor. Renormalizing divides the drift out at the cost of one
-    /// square root, leaving the angle unchanged up to rounding. Calling it
-    /// once every few hundred compositions keeps the error invisible in
-    /// `f32`.
+    /// Composition accumulates rounding in the vector's length at roughly one unit in the last
+    /// place per [`then`](Self::then); a drifted length scales every vector passed to
+    /// [`apply`](Self::apply) by that factor. Renormalizing divides the drift out at the cost of
+    /// one square root, leaving the angle unchanged up to rounding. Calling it once every few
+    /// hundred compositions keeps the error invisible in `f32`.
     #[inline]
     #[must_use]
     pub fn renormalize(self) -> Self {
@@ -144,9 +136,9 @@ impl Rotation {
 
     /// Returns the rotation by the negated angle.
     ///
-    /// This negates the stored sine, which is exact: applying a rotation
-    /// and then its inverse reproduces the rounding of the forward and
-    /// backward applications only, never of the inversion itself.
+    /// This negates the stored sine, which is exact: applying a rotation and then its inverse
+    /// reproduces the rounding of the forward and backward applications only, never of the
+    /// inversion itself.
     #[inline]
     #[must_use]
     pub const fn inverse(self) -> Self {
@@ -165,9 +157,8 @@ impl Rotation {
 
     /// Rotates four vectors at once, entirely in SIMD registers.
     ///
-    /// On targets with native FMA the results can differ from
-    /// [`apply`](Self::apply) by up to one unit in the last place, because
-    /// the fused operations round once instead of twice.
+    /// On targets with native FMA the results can differ from [`apply`](Self::apply) by up to one
+    /// unit in the last place, because the fused operations round once instead of twice.
     #[inline]
     #[must_use]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {

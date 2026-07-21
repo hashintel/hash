@@ -1,10 +1,9 @@
 //! The policy file: the resolved geometry policy table.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
 //! One region of fixed-width records behind the pinned header:
 //!
@@ -19,23 +18,19 @@
 //! | 4096   |      | policies: `PolicyRow[P]`, ascending by relation |
 //! ```
 //!
-//! Each 32-byte [`PolicyRow`] resolves one relation type: the relation's
-//! ontology row, the effective attraction and selected class
-//! distributions (Coincident and Proximal components; Overlay is the
-//! remainder), the calibrated applicability, and the strength
-//! multiplier. The file length is `4096 + 32 * P` with checked
-//! arithmetic ([`FileHeader::expected_file_len`]); a header whose
-//! geometry overflows matches no real file. The region starts on a
-//! 4096-byte boundary, so the whole-file-mapping alignment guarantee of
-//! the array format applies unchanged: map the whole file and slice,
-//! never mmap at a file offset.
+//! Each 32-byte [`PolicyRow`] resolves one relation type: the relation's ontology row, the
+//! effective attraction and selected class distributions (Coincident and Proximal components;
+//! Overlay is the remainder), the calibrated applicability, and the strength multiplier. The file
+//! length is `4096 + 32 * P` with checked arithmetic ([`FileHeader::expected_file_len`]); a header
+//! whose geometry overflows matches no real file. The region starts on a 4096-byte boundary, so the
+//! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
+//! and slice, never mmap at a file offset.
 //!
-//! [`read::PolicyFile`] opens a file under these rules and hands out the
-//! raw typed rows; [`write::write_rows`] streams them into place. The
-//! format owns geometry alone - the table's domain invariants (strictly
-//! ascending relations, probabilities and applicability in `[0, 1]`,
-//! finite nonnegative strength) are `salt::policy`'s artifact contract,
-//! validated where the domain types live.
+//! [`read::PolicyFile`] opens a file under these rules and hands out the raw typed rows;
+//! [`write::write_rows`] streams them into place. The format owns geometry alone - the table's
+//! domain invariants (strictly ascending relations, probabilities and applicability in `[0, 1]`,
+//! finite nonnegative strength) are `salt::policy`'s artifact contract, validated where the domain
+//! types live.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -92,8 +87,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Policy);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -114,8 +110,7 @@ pub(crate) enum Version {
 
 /// One resolved relation policy in wire form.
 ///
-/// Any byte pattern parses at this layer; the domain ranges are the
-/// typed layer's contract.
+/// Any byte pattern parses at this layer; the domain ranges are the typed layer's contract.
 #[derive(
     Debug,
     Copy,
@@ -191,9 +186,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let row_bytes = self.policies().checked_mul(size_of::<PolicyRow>() as u64)?;

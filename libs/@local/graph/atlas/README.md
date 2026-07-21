@@ -142,6 +142,17 @@ validation (shape, integrity, or identity tables whose keys are not store
 identities), or an unreachable store all refuse to serve. `ctrl-c` stops
 the server gracefully.
 
+### The compose stack
+
+The `atlas` service in `infra/compose/compose.yml` serves the
+repository's `var/atlas-generations` directory (bind-mounted, gitignored)
+against the stack's `postgres`. Fitting stays outside the stack: run
+`hash-graph atlas fit --root var/atlas-generations ...` on the host and
+the service serves the activated generation from the shared directory.
+Serving and fitting never combine implicitly — a serve refuses an empty
+root rather than fitting one, and the service reports unhealthy until a
+generation exists. No other service waits on it.
+
 ## Storage model
 
 A generation id is the SHA-256 of its metadata document:

@@ -12,8 +12,7 @@ pub(crate) trait Tokenizer {
     ///
     /// # Errors
     ///
-    /// Returns the tokenizer's error when `text` contains input the
-    /// encoding cannot count.
+    /// Returns the tokenizer's error when `text` contains input the encoding cannot count.
     fn count_tokens(&self, text: &str) -> Result<usize, Self::Error>;
 }
 

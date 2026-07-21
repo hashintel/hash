@@ -1,15 +1,12 @@
 //! LMDB-backed HNSW behind the nearest-neighbours seam.
 //!
-//! [`HannoyIndex`] adapts one [hannoy] index inside one [heed] LMDB
-//! environment to [`NearestNeighboursIndex`]. The environment lives in
-//! a directory guarded by an advisory file lock, so one process owns
-//! the index at a time. Item keys are node rows narrowed to hannoy's
-//! `u32` key space; a generation whose row count exceeds `u32::MAX`
-//! does not fit this backend.
+//! [`HannoyIndex`] adapts one [hannoy] index inside one [heed] LMDB environment to
+//! [`NearestNeighboursIndex`]. The environment lives in a directory guarded by an advisory file
+//! lock, so one process owns the index at a time. Item keys are node rows narrowed to hannoy's
+//! `u32` key space; a generation whose row count exceeds `u32::MAX` does not fit this backend.
 //!
-//! Backend distances are rescaled onto the crate's `[0, 2]` cosine
-//! scale before they cross the seam, and results are ordered by
-//! ascending `(distance, id)`.
+//! Backend distances are rescaled onto the crate's `[0, 2]` cosine scale before they cross the
+//! seam, and results are ordered by ascending `(distance, id)`.
 
 use core::{error::Error, fmt, num::TryFromIntError};
 use std::{
@@ -66,23 +63,11 @@ const DEFAULT_EF_SEARCH: usize = 128;
 pub(crate) struct HannoyIndexOptions {
     /// Upper bound of the LMDB memory map, in bytes.
     ///
-    /// The map is a virtual-address reservation, not an allocation:
-    /// pages materialize as the index writes them, so the bound costs
-    /// nothing until it is reached. A write beyond it fails with an
-    /// [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, and
-    /// the remedy is a larger bound. The 1 TiB default covers roughly
-    /// 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two orders of
-    /// magnitude beyond a million-row generation.
+    /// The map is a virtual-address reservation, not an allocation: pages materialize as the index writes them, so the bound costs nothing until it is reached. A write beyond it fails with an [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, and the remedy is a larger bound. The 1 TiB default covers roughly 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two orders of magnitude beyond a million-row generation.
     pub map_size: usize = DEFAULT_MAP_SIZE,
-    /// Breadth of the candidate frontier while linking one item into
-    /// the graph. Larger values buy link quality with one-time build
-    /// cost, and link quality bounds the recall any search breadth
-    /// can reach afterwards.
+    /// Breadth of the candidate frontier while linking one item into the graph. Larger values buy link quality with one-time build cost, and link quality bounds the recall any search breadth can reach afterwards.
     pub ef_construction: usize = DEFAULT_EF_CONSTRUCTION,
-    /// Breadth of the candidate frontier while searching; a search
-    /// never runs below the requested neighbour count. Larger values
-    /// buy recall with per-query cost, and the recall spot check is
-    /// the arbiter of whether a setting suffices.
+    /// Breadth of the candidate frontier while searching; a search never runs below the requested neighbour count. Larger values buy recall with per-query cost, and the recall spot check is the arbiter of whether a setting suffices.
     pub ef_search: usize = DEFAULT_EF_SEARCH,
 }
 
@@ -175,8 +160,8 @@ impl HannoyIndex {
     ///
     /// # Errors
     ///
-    /// Returns an error when the lock file cannot be created or is held
-    /// elsewhere, or the environment cannot open.
+    /// Returns an error when the lock file cannot be created or is held elsewhere, or the
+    /// environment cannot open.
     pub(crate) fn new(
         base: impl AsRef<Utf8Path>,
         options: HannoyIndexOptions,

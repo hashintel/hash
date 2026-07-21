@@ -8,9 +8,9 @@ use super::{FileHeader, PolicyRow};
 
 /// Streams the policy rows as a policy file.
 ///
-/// `rows` are the resolved policies, ascending by relation; the header
-/// records their count verbatim. Wrap a raw [`File`](std::fs::File) in
-/// a [`BufWriter`](io::BufWriter) when the table is small.
+/// `rows` are the resolved policies, ascending by relation; the header records their count
+/// verbatim. Wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) when the table is
+/// small.
 ///
 /// # Errors
 ///

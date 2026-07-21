@@ -9,8 +9,9 @@ use crate::{
     salt::projector::verdict::{InvalidReviewedVerdicts, PlacementClass},
 };
 
-/// A document in the canonical exporter's shape: alphabetical keys,
-/// one type verdict with a store identity.
+/// A document in the canonical exporter's shape.
+///
+/// Alphabetical keys, one type verdict with a store identity.
 const DOCUMENT: &str = r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{"cards.jsonl":"2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b"},"type_verdicts":[{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"}]}
 "#;
 

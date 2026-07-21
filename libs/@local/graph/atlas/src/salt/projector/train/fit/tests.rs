@@ -1,11 +1,11 @@
-//! Certificates for the training run: end-to-end convergence, the
-//! phase boundary's radius policy, the lens schedule, and the refresh
+//! Certificates for the training run.
+//!
+//! End-to-end convergence, the phase boundary's radius policy, the lens schedule, and the refresh
 //! telemetry.
 //!
-//! The corpus is two four-node semantic clusters whose representations
-//! share a cluster pattern, so the model can learn the separation the
-//! semantic edges describe; landmarks on one row per cluster keep the
-//! frame from collapsing or drifting.
+//! The corpus is two four-node semantic clusters whose representations share a cluster pattern, so
+//! the model can learn the separation the semantic edges describe; landmarks on one row per cluster
+//! keep the frame from collapsing or drifting.
 
 #![expect(
     clippy::float_cmp,

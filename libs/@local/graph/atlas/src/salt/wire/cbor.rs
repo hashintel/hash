@@ -1,26 +1,20 @@
 //! The deterministic CBOR emitter.
 //!
-//! RFC 8949 section 4.2.1 deterministic encoding, restricted further
-//! by the wire contract: definite lengths only, integer map keys, no
-//! tags, no indefinite items. Floats are fixed-width by originating
-//! type - geometry and `HEAD` values are IEEE 754 single, locate
-//! trailer property values double (WIRE 6b; store scalars are
-//! doubles) - never the deterministic-core value-dependent shortest
-//! form. The writer emits exactly this subset and nothing else -
-//! tags in particular have no emitter, which is the profile's proof
-//! surface staying minimal.
+//! RFC 8949 section 4.2.1 deterministic encoding, restricted further by the wire contract: definite
+//! lengths only, integer map keys, no tags, no indefinite items. Floats are fixed-width by
+//! originating type - geometry and `HEAD` values are IEEE 754 single, locate trailer property
+//! values double (WIRE 6b; store scalars are doubles) - never the deterministic-core
+//! value-dependent shortest form. The writer emits exactly this subset and nothing else - tags in
+//! particular have no emitter, which is the profile's proof surface staying minimal.
 //!
-//! Two profile laws live with the caller, checked by the goldens
-//! rather than writer state: map keys are emitted in ascending numeric
-//! order (single-byte encodings below 24 make numeric order the
-//! required bytewise order), and a declared map or array length is
-//! followed by exactly that many items. Every emission site in this
-//! module's consumers writes its keys as literals in ascending source
-//! order.
+//! Two profile laws live with the caller, checked by the goldens rather than writer state: map keys
+//! are emitted in ascending numeric order (single-byte encodings below 24 make numeric order the
+//! required bytewise order), and a declared map or array length is followed by exactly that many
+//! items. Every emission site in this module's consumers writes its keys as literals in ascending
+//! source order.
 //!
-//! Heads follow RFC 8949's shortest form: the argument rides inline
-//! below 24 and in the narrowest of 1, 2, 4, or 8 big-endian bytes
-//! otherwise. CBOR arguments are network byte order - the one
+//! Heads follow RFC 8949's shortest form: the argument rides inline below 24 and in the narrowest
+//! of 1, 2, 4, or 8 big-endian bytes otherwise. CBOR arguments are network byte order - the one
 //! big-endian region of a little-endian wire.
 #![expect(
     clippy::big_endian_bytes,
@@ -74,8 +68,9 @@ impl CborWriter {
         self.head(Self::MAJOR_UINT, value);
     }
 
-    /// Emits a signed integer: major type 0 for non-negative values,
-    /// major type 1 otherwise, shortest form either way.
+    /// Emits a signed integer.
+    ///
+    /// Major type 0 for non-negative values, major type 1 otherwise, shortest form either way.
     pub(crate) fn int(&mut self, value: i64) {
         match u64::try_from(value) {
             Ok(value) => self.head(Self::MAJOR_UINT, value),
@@ -101,10 +96,9 @@ impl CborWriter {
 
     /// Emits a single-precision float.
     ///
-    /// Geometry and `HEAD` floats originate as `f32` and stay single
-    /// on the wire; the deterministic-core shortest float form is
-    /// deliberately NOT applied - width is fixed by the originating
-    /// type, not the value.
+    /// Geometry and `HEAD` floats originate as `f32` and stay single on the wire; the
+    /// deterministic-core shortest float form is deliberately NOT applied - width is fixed by the
+    /// originating type, not the value.
     pub(crate) fn f32(&mut self, value: f32) {
         self.bytes.push(Self::HEAD_F32);
         self.bytes.extend_from_slice(&value.to_be_bytes());
@@ -112,9 +106,8 @@ impl CborWriter {
 
     /// Emits a double-precision float.
     ///
-    /// Locate trailer property values originate as store doubles and
-    /// stay double on the wire (WIRE 6b), under the same fixed-width
-    /// posture as [`CborWriter::f32`].
+    /// Locate trailer property values originate as store doubles and stay double on the wire (WIRE
+    /// 6b), under the same fixed-width posture as [`CborWriter::f32`].
     pub(crate) fn f64(&mut self, value: f64) {
         self.bytes.push(Self::HEAD_F64);
         self.bytes.extend_from_slice(&value.to_be_bytes());
@@ -137,8 +130,7 @@ impl CborWriter {
         self.head(Self::MAJOR_ARRAY, length);
     }
 
-    /// Emits a map head; the caller emits `length` key-value pairs
-    /// after it, keys ascending.
+    /// Emits a map head; the caller emits `length` key-value pairs after it, keys ascending.
     pub(crate) fn map(&mut self, length: u64) {
         self.head(Self::MAJOR_MAP, length);
     }

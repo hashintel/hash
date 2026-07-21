@@ -1,12 +1,9 @@
-//! SIMD-native math primitives for fitting and serving 2D maps of
-//! embeddings.
+//! SIMD-native math primitives for fitting and serving 2D maps of embeddings.
 //!
-//! Everything here exists to make one pipeline fast and correct: take
-//! high-dimensional embedding vectors, lay them out on a 2D map, and keep
-//! transforming, aligning, and verifying that map. The types are `f32`
-//! throughout, batch four-wide where hot loops iterate, and every
-//! performance claim in their docs traces to emitted assembly or a
-//! hardware-counter measurement.
+//! Everything here exists to make one pipeline fast and correct: take high-dimensional embedding
+//! vectors, lay them out on a 2D map, and keep transforming, aligning, and verifying that map. The
+//! types are `f32` throughout, batch four-wide where hot loops iterate, and every performance claim
+//! in their docs traces to emitted assembly or a hardware-counter measurement.
 //!
 //! ```
 //! use hash_graph_atlas::math::{Bounds2, Vec2};
@@ -26,46 +23,39 @@
 //!
 //! # The types, by role
 //!
-//! 2D geometry: [`Vec2`] is the scalar point/vector; [`Vec2x4`] (natural
-//! order) and [`Vec2x4T`] (transposed order) batch four of them for SIMD,
-//! staging and computing respectively. [`Bounds2`] is the validated
-//! bounding box, with serial, SIMD, and parallel construction.
+//! 2D geometry: [`Vec2`] is the scalar point/vector; [`Vec2x4`] (natural order) and [`Vec2x4T`]
+//! (transposed order) batch four of them for SIMD, staging and computing respectively. [`Bounds2`]
+//! is the validated bounding box, with serial, SIMD, and parallel construction.
 //!
-//! Transforms, most constrained first: [`Rotation`] (angle only, exact
-//! inverse), [`Translation`] (offset only, exact inverse), [`Similarity`]
-//! (uniform scale + rotation + translation, total inverse, fitted from
-//! weighted point correspondences), [`Transform`] (general affine,
-//! fallible inverse). Prefer the most constrained type that models the
-//! job; each widens into [`Transform`] via [`From`], and composition is
-//! always `a.then(b)`, reading in application order.
+//! Transforms, most constrained first: [`Rotation`] (angle only, exact inverse), [`Translation`]
+//! (offset only, exact inverse), [`Similarity`] (uniform scale + rotation + translation, total
+//! inverse, fitted from weighted point correspondences), [`Transform`] (general affine, fallible
+//! inverse). Prefer the most constrained type that models the job; each widens into [`Transform`]
+//! via [`From`], and composition is always `a.then(b)`, reading in application order.
 //!
-//! Embeddings: [`VecN`] is the `N`-dimensional `f32` vector with the
-//! distance kernels; [`BoxedVecN`] owns SIMD-aligned heap storage and
-//! hands out [`AlignedVecN`] references. [`DVecN`] is the
-//! double-precision twin for the few consumers whose algorithms need it.
+//! Embeddings: [`VecN`] is the `N`-dimensional `f32` vector with the distance kernels;
+//! [`BoxedVecN`] owns SIMD-aligned heap storage and hands out [`AlignedVecN`] references. [`DVecN`]
+//! is the double-precision twin for the few consumers whose algorithms need it.
 //!
-//! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of
-//! UMAP-style layouts and its attraction/repulsion gradients over
-//! batches; its parameters come from [`AffinityCurve::fit`].
+//! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
+//! attraction/repulsion gradients over batches; its parameters come from [`AffinityCurve::fit`].
 //!
-//! Scalar helpers: [`softplus`], [`huber`], and the checked narrowings
-//! [`narrow_f32`] / [`narrow_f32_exact`].
+//! Scalar helpers: [`softplus`], [`huber`], and the checked narrowings [`narrow_f32`] /
+//! [`narrow_f32_exact`].
 //!
 //! # Precision policy
 //!
-//! `f32` is the working precision: coordinates, transforms, gradients,
-//! and distances take and return `f32`. Long reductions accumulate in
-//! `f64` internally and round once at the end, which the kernel docs
-//! state as an accuracy guarantee rather than exposing in signatures.
-//! `f64` appears in a signature only where a consumer's algorithm demands
-//! it, such as classifier logits on [`DVecN`].
+//! `f32` is the working precision: coordinates, transforms, gradients, and distances take and
+//! return `f32`. Long reductions accumulate in `f64` internally and round once at the end, which
+//! the kernel docs state as an accuracy guarantee rather than exposing in signatures. `f64` appears
+//! in a signature only where a consumer's algorithm demands it, such as classifier logits on
+//! [`DVecN`].
 //!
 //! # Batching
 //!
-//! Hot loops work in [`Vec2x4T`]: convert `[Vec2; 4]` once at the loop
-//! boundary (paying one shuffle), run axis-parallel arithmetic inside,
-//! and write back with [`Vec2x4T::from_lanes`]. Batch types are aligned
-//! for full-width vector loads, and conversions to [`Simd`] compile to
+//! Hot loops work in [`Vec2x4T`]: convert `[Vec2; 4]` once at the loop boundary (paying one
+//! shuffle), run axis-parallel arithmetic inside, and write back with [`Vec2x4T::from_lanes`].
+//! Batch types are aligned for full-width vector loads, and conversions to [`Simd`] compile to
 //! single load and store instructions.
 //!
 //! [`Simd`]: core::simd::Simd

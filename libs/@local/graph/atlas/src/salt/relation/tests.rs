@@ -23,8 +23,7 @@ use crate::{
 /// The row domain every fixture spans.
 const ROWS: usize = 8;
 
-/// A neutral policy: full Proximal attraction, full applicability, unit
-/// strength.
+/// A neutral policy: full Proximal attraction, full applicability, unit strength.
 fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
@@ -639,8 +638,7 @@ fn assert_indexes_equal(one: &RelationIndexes, other: &RelationIndexes) {
 }
 
 prop_compose! {
-    /// Instances over three relations and eight rows, with unique edge
-    /// rows and arbitrary optional scores.
+    /// Instances over three relations and eight rows, with unique edge rows and arbitrary optional scores.
     fn arbitrary_instances()(
         raw in proptest::collection::vec(
             (
@@ -675,8 +673,7 @@ prop_compose! {
 }
 
 proptest! {
-    /// The build is a function of the instance set, not its order, and
-    /// its output orders are the documented invariants.
+    /// The build is a function of the instance set, not its order, and its output orders are the documented invariants.
     #[test]
     fn build_is_order_independent_and_sorted(instances in arbitrary_instances()) {
         let policies = [
@@ -1011,8 +1008,9 @@ fn a_corrupted_attraction_file_names_its_broken_invariant() {
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
 
-/// The floored pair mass computed instance by instance, the
-/// pre-factorization form of the protection evidence.
+/// The floored pair mass computed instance by instance.
+///
+/// The pre-factorization form of the protection evidence.
 fn forward_reference_mass(
     instances: &[RelationInstance],
     policies: &[RelationPolicy],

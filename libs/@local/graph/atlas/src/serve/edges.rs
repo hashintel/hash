@@ -1,5 +1,7 @@
-//! Edges delivery: the edges among the listed tiles' delivered rows,
-//! answered as `SALTILEE` envelope bytes in ascending edge-row order.
+//! Edges delivery.
+//!
+//! The edges among the listed tiles' delivered rows, answered as `SALTILEE` envelope bytes in
+//! ascending edge-row order.
 
 use core::{error::Error, fmt};
 
@@ -7,6 +9,7 @@ use super::{
     Atlas, Filter, TileCoordinate, cell_of, depth_of,
     detail::{DeliveredEntities, LinkDetails},
     narrow,
+    visibility::VisibilityProof,
 };
 use crate::{
     bitset::BitSet,
@@ -16,8 +19,8 @@ use crate::{
 
 /// An edges request was rejected.
 ///
-/// Every variant is a named, data-carrying rejection for the
-/// transport layer to map onto its error vocabulary.
+/// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
+/// vocabulary.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EdgesError {
     /// The request lists more tiles than the cap admits.
@@ -43,8 +46,9 @@ pub enum EdgesError {
         /// The requested y index.
         y: u32,
     },
-    /// The request names a feature this build does not serve; the
-    /// carried name is the request field.
+    /// The request names a feature this build does not serve.
+    ///
+    /// The carried name is the request field.
     Unsupported(&'static str),
 }
 
@@ -91,18 +95,19 @@ pub struct EdgesRequest {
 
 /// The edges endpoint's request and response caps.
 ///
-/// Transport configuration with documented defaults, never wire
-/// constants: the transport constructs one value and the manifest
-/// publishes the same value, so enforcement and advertisement
-/// cannot disagree.
+/// Transport configuration with documented defaults, never wire constants: the transport constructs
+/// one value and the manifest publishes the same value, so enforcement and advertisement cannot
+/// disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EdgesCaps {
-    /// Most tiles one request may list; the manifest publishes this
-    /// value as `limits.edgesTiles`. Defaults to 256.
+    /// Most tiles one request may list; the manifest publishes this value as `limits.edgesTiles`.
+    ///
+    /// Defaults to 256.
     pub tiles: u32,
-    /// Most edges one response delivers; beyond it the rank-ordered
-    /// cap truncates and `HEAD` reports `complete: false`. Defaults
-    /// to `0x4000` - roughly 200 KiB of columns.
+    /// Most edges one response delivers.
+    ///
+    /// Beyond it the rank-ordered cap truncates and `HEAD` reports `complete: false`. Defaults to
+    /// `0x4000` - roughly 200 KiB of columns.
     pub edges: u32,
 }
 
@@ -126,81 +131,80 @@ pub(super) struct DeliveredEdge {
     pub target: u32,
 }
 
-/// One assembled edges response: everything [`Atlas::encode_edges`]
-/// needs.
+/// One assembled edges response: everything [`Atlas::encode_edges`] needs.
 ///
-/// The document owns its columns, so it crosses thread boundaries
-/// between assembly, hydration, and encoding - the envelope was
-/// designed for hydration-last, and the split mirrors it: assembly
-/// and encoding are CPU-bound, hydration awaits the store between
-/// them.
+/// The document owns its columns, so it crosses thread boundaries between assembly, hydration, and
+/// encoding - the envelope was designed for hydration-last, and the split mirrors it: assembly and
+/// encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
 pub struct EdgesDocument {
     complete: bool,
     sources: Vec<u32>,
     targets: Vec<u32>,
     edge_rows: Vec<u32>,
-    /// The internal edge rows behind `edge_rows`, delivered order:
-    /// the hydration key the identity table speaks.
+    /// The internal edge rows behind `edge_rows`, delivered order.
+    ///
+    /// The hydration key the identity table speaks.
     internal_rows: Vec<u32>,
 }
 
 impl Atlas {
-    /// Answers one edges request: `SALTILEE` envelope bytes carrying
-    /// the edges whose endpoints both lie in the listed tiles'
-    /// delivered rows, ready to send under
-    /// `application/vnd.hash.saltile-v1`.
+    /// Answers one edges request.
     ///
-    /// A request that sets `includeDetailedData` is rejected by
-    /// name: this path serves deployments without a store
-    /// connection. A transport with one assembles, hydrates, and
-    /// encodes through [`Atlas::assemble_edges`],
-    /// [`Atlas::delivered_edge_entities`], and
-    /// [`Atlas::encode_edges`].
+    /// `SALTILEE` envelope bytes carrying the edges whose endpoints both lie in the listed tiles'
+    /// delivered rows, ready to send under `application/vnd.hash.saltile-v1`.
+    ///
+    /// A request that sets `includeDetailedData` is rejected by name: this path serves deployments
+    /// without a store connection. A transport with one assembles, hydrates, and encodes through
+    /// [`Atlas::assemble_edges`], [`Atlas::delivered_edge_entities`], and [`Atlas::encode_edges`].
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_edges`], plus
-    /// [`EdgesError::Unsupported`] when the request sets
+    /// As [`Atlas::assemble_edges`], plus [`EdgesError::Unsupported`] when the request sets
     /// `includeDetailedData`.
-    pub fn edges(&self, request: &EdgesRequest, caps: EdgesCaps) -> Result<Vec<u8>, EdgesError> {
+    pub fn edges(
+        &self,
+        request: &EdgesRequest,
+        caps: EdgesCaps,
+        proof: &VisibilityProof,
+    ) -> Result<Vec<u8>, EdgesError> {
         if request.include_detailed_data {
             return Err(EdgesError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_edges(request, caps)?;
+        let document = self.assemble_edges(request, caps, proof)?;
         Ok(self.encode_edges(&document, None))
     }
 
-    /// Assembles one edges request into its owned document: every
-    /// rejection happens here, so encoding cannot fail.
+    /// Assembles one edges request into its owned document.
     ///
-    /// Delivery order is ascending edge row id, independent of the
-    /// tiles listed and of truncation, so identical requests yield
-    /// identical bytes. Every id on the wire is the generation's
-    /// keyed wire id, so the order carries no internal-order
-    /// information. Beyond `caps.edges` the rank-ordered cap keeps
-    /// the edges whose worse endpoint ranks best - an edge is only
-    /// as prominent as its less-prominent endpoint - with ties
-    /// broken by wire edge row id, and `HEAD` reports
-    /// `complete: false`.
+    /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// Version 0 serves the full unfiltered edge set; a request
-    /// naming a visibility filter is rejected by name rather than
-    /// answered with bytes that silently ignore it.
+    /// Delivery order is ascending edge row id, independent of the tiles listed and of truncation,
+    /// so identical requests yield identical bytes. Every id on the wire is the generation's keyed
+    /// wire id, so the order carries no internal-order information. Beyond `caps.edges` the
+    /// rank-ordered cap keeps the edges whose worse endpoint ranks best - an edge is only as
+    /// prominent as its less-prominent endpoint - with ties broken by wire edge row id, and `HEAD`
+    /// reports `complete: false`.
+    ///
+    /// The edge set inherits the visibility mask through its endpoints: the delivered row sets
+    /// intersect the proof before edges qualify, so an edge with a hidden endpoint is never
+    /// delivered and requires no edge-level check of its own.
+    ///
+    /// Version 0 serves the full unfiltered edge set; a request naming a visibility filter is
+    /// rejected by name rather than answered with bytes that silently ignore it.
     ///
     /// # Errors
     ///
-    /// Returns [`EdgesError::Tiles`] when the request lists more
-    /// tiles than `caps.tiles`, [`EdgesError::Depth`] when a listed
-    /// zoom exceeds the generation's deepest served tile,
-    /// [`EdgesError::Grid`] when a listed coordinate lies outside its
-    /// zoom's grid, and [`EdgesError::Unsupported`] when the request
-    /// names a version-0 deferral.
+    /// Returns [`EdgesError::Tiles`] when the request lists more tiles than `caps.tiles`,
+    /// [`EdgesError::Depth`] when a listed zoom exceeds the generation's deepest served tile,
+    /// [`EdgesError::Grid`] when a listed coordinate lies outside its zoom's grid, and
+    /// [`EdgesError::Unsupported`] when the request names a version-0 deferral.
     pub fn assemble_edges(
         &self,
         request: &EdgesRequest,
         caps: EdgesCaps,
+        proof: &VisibilityProof,
     ) -> Result<EdgesDocument, EdgesError> {
         if request.filter.is_some() {
             return Err(EdgesError::Unsupported("filter"));
@@ -212,7 +216,8 @@ impl Atlas {
             });
         }
 
-        let delivered = self.delivered_rows(&request.tiles)?;
+        let mut delivered = self.delivered_rows(&request.tiles)?;
+        proof.intersect(&mut delivered);
         // The wire edge id rides selection: truncation ties and the
         // delivery sort both compare wire values, so nothing the
         // response exposes orders by internal id.
@@ -247,15 +252,13 @@ impl Atlas {
         })
     }
 
-    /// Gathers the link-entity identities behind the document's
-    /// delivered edges, in delivered order: the hydration request's
-    /// subject.
+    /// Gathers the link-entity identities behind the document's delivered edges, in delivered
+    /// order: the hydration request's subject.
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the adjacency's
-    /// edge domain, which open's cross-artifact validation rules
-    /// out.
+    /// Panics when the identity table contradicts the adjacency's edge domain, which open's
+    /// cross-artifact validation rules out.
     #[must_use]
     pub fn delivered_edge_entities(&self, document: &EdgesDocument) -> DeliveredEntities {
         let ids = document
@@ -271,14 +274,15 @@ impl Atlas {
         DeliveredEntities::new(ids)
     }
 
-    /// Encodes an assembled document: `SALTILEE` envelope bytes,
-    /// ready to send under `application/vnd.hash.saltile-v1`, with
-    /// the detail trailer riding iff `details` is supplied.
+    /// Encodes an assembled document.
+    ///
+    /// `SALTILEE` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
+    /// detail trailer riding iff `details` is supplied.
     ///
     /// # Panics
     ///
-    /// Panics when supplied details do not cover the document's
-    /// delivered edges - a transport bug, never request data.
+    /// Panics when supplied details do not cover the document's delivered edges - a transport bug,
+    /// never request data.
     #[must_use]
     pub fn encode_edges(&self, document: &EdgesDocument, details: Option<&LinkDetails>) -> Vec<u8> {
         let columns = details.map(|details| {
@@ -310,12 +314,10 @@ impl Atlas {
         .encode()
     }
 
-    /// Collects the union of the listed tiles' delivered rows as a
-    /// row-indexed set.
+    /// Collects the union of the listed tiles' delivered rows as a row-indexed set.
     ///
-    /// A tile's delivered set is mode-independent - its cumulative
-    /// delta set equals its total set - so the union is one run scan
-    /// per bucket of each tile's cumulative schedule, deduplicated by
+    /// A tile's delivered set is mode-independent - its cumulative delta set equals its total set -
+    /// so the union is one run scan per bucket of each tile's cumulative schedule, deduplicated by
     /// the set itself.
     fn delivered_rows(&self, tiles: &[TileCoordinate]) -> Result<BitSet, EdgesError> {
         let row_ids = self.row_ids();
@@ -348,12 +350,10 @@ impl Atlas {
         Ok(delivered)
     }
 
-    /// Collects every edge whose endpoints both lie in `delivered`,
-    /// in no particular order.
+    /// Collects every edge whose endpoints both lie in `delivered`, in no particular order.
     ///
-    /// The walk visits each delivered row's outgoing run, so every
-    /// qualifying edge appears exactly once: an edge occupies exactly
-    /// one outgoing slot, and a self-loop's one endpoint is both its
+    /// The walk visits each delivered row's outgoing run, so every qualifying edge appears exactly
+    /// once: an edge occupies exactly one outgoing slot, and a self-loop's one endpoint is both its
     /// source and its target.
     pub(super) fn qualifying_edges(&self, delivered: &BitSet) -> Vec<DeliveredEdge> {
         let endpoints = self.endpoint_pairs();
@@ -380,8 +380,9 @@ impl Atlas {
         edges
     }
 
-    /// Keeps the `cap` edges the rank-ordered cap selects: ascending
-    /// by worse-endpoint rank, ties by wire edge row id.
+    /// Keeps the `cap` edges the rank-ordered cap selects.
+    ///
+    /// Ascending by worse-endpoint rank, ties by wire edge row id.
     fn truncate_by_rank(&self, edges: &mut Vec<(DeliveredEdge, u32)>, cap: usize) {
         if cap == 0 {
             edges.clear();
@@ -399,15 +400,15 @@ impl Atlas {
         edges.extend(ranked.into_iter().map(|(_, entry)| entry));
     }
 
-    /// Returns an edge's truncation rank: its worse endpoint's
-    /// importance rank, where larger values are less prominent.
+    /// Returns an edge's truncation rank.
+    ///
+    /// Its worse endpoint's importance rank, where larger values are less prominent.
     pub(super) fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
         self.rank_of_row(edge.source)
             .max(self.rank_of_row(edge.target))
     }
 
-    /// Returns a node row's importance rank through the position
-    /// permutation.
+    /// Returns a node row's importance rank through the position permutation.
     fn rank_of_row(&self, row: u32) -> u32 {
         let position = self.positions_of_row()[row as usize];
         self.ranks()[position as usize]

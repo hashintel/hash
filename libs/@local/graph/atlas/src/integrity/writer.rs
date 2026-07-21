@@ -8,9 +8,9 @@ use pin_project_lite::pin_project;
 
 /// A byte accumulator: state that absorbs a stream of bytes.
 ///
-/// [`Sha256`](super::Sha256) implements this. The absorbed value is
-/// determined by the concatenated byte stream alone: feeding one large
-/// slice and feeding the same bytes across many calls are equivalent.
+/// [`Sha256`](super::Sha256) implements this. The absorbed value is determined by the concatenated
+/// byte stream alone: feeding one large slice and feeding the same bytes across many calls are
+/// equivalent.
 pub trait Update {
     /// Absorbs `bytes` into the accumulator.
     fn update(&mut self, bytes: &[u8]);
@@ -19,16 +19,13 @@ pub trait Update {
 pin_project! {
     /// A stream terminal that feeds every byte into an [`Update`] accumulator.
     ///
-    /// [`Writer`] lets an accumulator terminate whichever pipeline produces the
-    /// bytes, without buffering the content in memory:
+    /// [`Writer`] lets an accumulator terminate whichever pipeline produces the bytes, without buffering the content in memory:
     ///
     /// - [`io::Write`] for synchronous streams,
     /// - [`tokio::io::AsyncWrite`] for asynchronous streams,
     /// - [`Sink`](futures_sink::Sink) for framed byte chunks.
     ///
-    /// Writes always succeed in full, and flush, shutdown, and close are no-ops.
-    /// The accumulator is the public field, so the finished value is one field
-    /// access away.
+    /// Writes always succeed in full, and flush, shutdown, and close are no-ops. The accumulator is the public field, so the finished value is one field access away.
     ///
     /// # Examples
     ///

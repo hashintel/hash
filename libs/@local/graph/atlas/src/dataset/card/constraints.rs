@@ -36,12 +36,10 @@ impl<'text, A: Allocator> EndpointConstraint<'text, A> {
         })
     }
 
-    /// Reports whether the constraint allows at most one target per
-    /// source.
+    /// Reports whether the constraint allows at most one target per source.
     ///
-    /// A lone simple pair carries no association a paired block could
-    /// disambiguate, so the card renders it through the independent
-    /// source and target sections instead.
+    /// A lone simple pair carries no association a paired block could disambiguate, so the card
+    /// renders it through the independent source and target sections instead.
     pub(super) const fn is_simple_pair(&self) -> bool {
         self.minimum_targets.is_none() && matches!(self.maximum_targets, None | Some(1))
     }
@@ -110,9 +108,8 @@ impl Display for Direction {
 
 /// The shared constraint vocabulary.
 ///
-/// `None` means the datasource does not record that fact and renders as
-/// "not recorded"; `Some(false)` is a recorded negative assertion. Cards
-/// report the ontology as-is.
+/// `None` means the datasource does not record that fact and renders as "not recorded";
+/// `Some(false)` is a recorded negative assertion. Cards report the ontology as-is.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Constraints {
     pub symmetric: Option<bool>,

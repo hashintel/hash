@@ -1,14 +1,12 @@
 //! The open-world relation-policy classifier.
 //!
-//! The annotation corpus bootstraps a shared model; it is not an
-//! enumeration of the production type universe. Every relation type
-//! without a higher-precedence explicit policy record is classified,
-//! including types the corpus never saw - that is the open-world
-//! contract, and the applicability score below is its safety valve.
+//! The annotation corpus bootstraps a shared model; it is not an enumeration of the production type
+//! universe. Every relation type without a higher-precedence explicit policy record is classified,
+//! including types the corpus never saw - that is the open-world contract, and the applicability
+//! score below is its safety valve.
 //!
-//! [`Classifier`] evaluates a three-class linear model over the full
-//! 3,072-component relation-card embedding. For embedding `e`,
-//! coefficient rows `W`, intercepts `b`, and calibration temperature
+//! [`Classifier`] evaluates a three-class linear model over the full 3,072-component relation-card
+//! embedding. For embedding `e`, coefficient rows `W`, intercepts `b`, and calibration temperature
 //! `T`, prediction computes
 //!
 //! ```text
@@ -17,26 +15,24 @@
 //! calibrated = softmax(logits / T)
 //! ```
 //!
-//! Applicability is evidence about the embedding, independent of the
-//! class probabilities: the standardized diagonal-Mahalanobis distance
-//! of `e` from the training distribution, ranked against the sorted
-//! training distances,
+//! Applicability is evidence about the embedding, independent of the class probabilities: the
+//! standardized diagonal-Mahalanobis distance of `e` from the training distribution, ranked against
+//! the sorted training distances,
 //!
 //! ```text
 //! distance = sqrt(mean(((e - mean) * inverse_scale)^2))
 //! applicability = 1 - lower_bound(training_distances, distance) / N.
 //! ```
 //!
-//! Lower-bound rank semantics keep an embedding that ties a training
-//! distance exactly applicable. How the score mixes a prediction toward
-//! Overlay is precedence resolution's contract, not the classifier's.
+//! Lower-bound rank semantics keep an embedding that ties a training distance exactly applicable.
+//! How the score mixes a prediction toward Overlay is precedence resolution's contract, not the
+//! classifier's.
 //!
-//! [`fit`] trains the model from a weighted soft-label corpus; raw and
-//! calibrated posteriors stay separate in [`Prediction`] so calibration
-//! cannot be applied twice.
+//! [`fit()`] trains the model from a weighted soft-label corpus; raw and calibrated posteriors stay
+//! separate in [`Prediction`] so calibration cannot be applied twice.
 //!
-//! Inputs are `f32` data widened to `f64` at the arithmetic seams
-//! ([`AlignedVecN::dot_wide`]); parameters and outputs live in `f64`.
+//! Inputs are `f32` data widened to `f64` at the arithmetic seams ([`AlignedVecN::dot_wide`]);
+//! parameters and outputs live in `f64`.
 
 use core::{
     error::Error,
@@ -80,9 +76,8 @@ impl Error for PredictError {}
 
 /// Applicability evidence fitted from the training distribution.
 ///
-/// `inverse_scales` components are positive and `distances` is sorted
-/// ascending, nonnegative, and non-empty; [`fit`] and validated
-/// artifact reads are the construction sites.
+/// `inverse_scales` components are positive and `distances` is sorted ascending, nonnegative, and
+/// non-empty; [`fit()`] and validated artifact reads are the construction sites.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Applicability {
     mean: BoxedDVecN<CANONICAL_DIMENSIONS>,
@@ -92,9 +87,8 @@ pub(crate) struct Applicability {
 
 /// The fitted policy classifier.
 ///
-/// Coefficient rows follow class order. All parameters are finite and
-/// the temperature is positive; [`fit`] and validated artifact reads
-/// are the construction sites.
+/// Coefficient rows follow class order. All parameters are finite and the temperature is positive;
+/// [`fit()`] and validated artifact reads are the construction sites.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Classifier {
     coefficients: [BoxedDVecN<CANONICAL_DIMENSIONS>; GeometryClass::COUNT],
@@ -115,8 +109,7 @@ pub(crate) struct Prediction {
     pub calibrated: Posterior,
     /// Standardized distance from the training distribution.
     pub distance: f64,
-    /// Upper-tail rank of `distance` among the training distances, in
-    /// `[0, 1]`.
+    /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
     pub applicability: f64,
 }
 
@@ -132,13 +125,11 @@ impl Classifier {
     ///
     /// # Errors
     ///
-    /// Returns [`PredictError`] when finite inputs and parameters
-    /// overflow during evaluation.
+    /// Returns [`PredictError`] when finite inputs and parameters overflow during evaluation.
     ///
     /// # Complexity
     ///
-    /// Runs in `O(D)` time for `D = 3072` and constant additional
-    /// space.
+    /// Runs in `O(D)` time for `D = 3072` and constant additional space.
     pub(crate) fn predict(
         &self,
         embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
@@ -177,11 +168,10 @@ impl Classifier {
     }
 }
 
-/// Standardized diagonal-Mahalanobis distance of an embedding from a
-/// fitted training distribution.
+/// Standardized diagonal-Mahalanobis distance of an embedding from a fitted training distribution.
 ///
-/// Computes `sqrt(mean(((e - mean) * inverse_scale)^2))`, accumulated
-/// in double precision over two independent chains.
+/// Computes `sqrt(mean(((e - mean) * inverse_scale)^2))`, accumulated in double precision over two
+/// independent chains.
 fn standardized_distance(
     embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
     mean: &AlignedDVecN<CANONICAL_DIMENSIONS>,
@@ -211,9 +201,8 @@ fn standardized_distance(
 
 /// Temperature-scaled softmax over class logits.
 ///
-/// The logits divide by the temperature and pass through the
-/// max-shifted [`DVecN::softmax`], so finite logits and a positive
-/// temperature always produce a valid distribution.
+/// The logits divide by the temperature and pass through the max-shifted [`DVecN::softmax`], so
+/// finite logits and a positive temperature always produce a valid distribution.
 fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> [f64; GeometryClass::COUNT] {
     *DVecN::new(logits.map(|value| value / temperature))
         .softmax()

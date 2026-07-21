@@ -1,26 +1,22 @@
 //! The 2D hard-negative miner over detached coordinate frames.
 //!
-//! At a configured cadence - never per optimizer step - training mines
-//! each node's closest projected points and admits the ones no other
-//! evidence explains: a mined pair must not be a semantic edge, must
-//! not be protected under the hard channel, and must not be the node
-//! itself. What survives is independent evidence of a false neighbour -
-//! two points close on the map that nothing says belong together - and
-//! is repelled by the same bounded negative energy as ordinary
+//! At a configured cadence - never per optimizer step - training mines each node's closest
+//! projected points and admits the ones no other evidence explains: a mined pair must not be a
+//! semantic edge, must not be protected under the hard channel, and must not be the node itself.
+//! What survives is independent evidence of a false neighbour - two points close on the map that
+//! nothing says belong together - and is repelled by the same bounded negative energy as ordinary
 //! negatives, weighted by closeness rank.
 //!
-//! Under a conditioned model the current map is one map per lens value,
-//! so a refresh tick mines one [`SpatialField`] per lens extreme and
-//! pools the frames with [`MinedFrame::pool`]: a pair mined in both
-//! keeps its maximum weight. Pooling is safe by saturation - the
-//! bounded negative energy exerts vanishing force on pairs far apart in
-//! a frame, so pooled pairs act only where they are genuinely close.
+//! Under a conditioned model the current map is one map per lens value, so a refresh tick mines one
+//! [`SpatialField`] per lens extreme and pools the frames with [`MinedFrame::pool`]: a pair mined
+//! in both keeps its maximum weight. Pooling is safe by saturation - the bounded negative energy
+//! exerts vanishing force on pairs far apart in a frame, so pooled pairs act only where they are
+//! genuinely close.
 //!
-//! The spatial index is exact (a balanced kd-tree), so a query returns
-//! THE nearest points: no recall accounting, and no retry loop widening
-//! the search when exclusions thin the candidates. A node whose map
-//! neighbourhood is fully explained yields an honest short set - it has
-//! no false neighbours to repel.
+//! The spatial index is exact (a balanced kd-tree), so a query returns THE nearest points: no
+//! recall accounting, and no retry loop widening the search when exclusions thin the candidates. A
+//! node whose map neighbourhood is fully explained yields an honest short set - it has no false
+//! neighbours to repel.
 
 #[cfg(test)]
 mod tests;
@@ -42,13 +38,11 @@ use crate::{
 
 /// Validated mining schedule and rank-weight coefficients.
 ///
-/// Per row, the miner examines the nearest `neighbours * search_margin`
-/// projected points and admits up to `neighbours` of them past the
-/// exclusions; the margin is what keeps a row surrounded by its own
-/// semantic cluster from starving. An admitted candidate at closeness
-/// rank `r` weighs `maximum_weight * (1 - r / neighbours)^rank_exponent`:
-/// the nearest surviving false neighbour carries the full weight and
-/// the last admissible rank fades toward zero, satisfying the bounded
+/// Per row, the miner examines the nearest `neighbours * search_margin` projected points and admits
+/// up to `neighbours` of them past the exclusions; the margin is what keeps a row surrounded by its
+/// own semantic cluster from starving. An admitted candidate at closeness rank `r` weighs
+/// `maximum_weight * (1 - r / neighbours)^rank_exponent`: the nearest surviving false neighbour
+/// carries the full weight and the last admissible rank fades toward zero, satisfying the bounded
 /// rank-weight contract.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct MinerOptions {
@@ -61,8 +55,8 @@ pub(crate) struct MinerOptions {
 impl MinerOptions {
     /// Validates a mining schedule.
     ///
-    /// Returns [`None`] unless the weight bound and the rank exponent
-    /// are finite and strictly positive.
+    /// Returns [`None`] unless the weight bound and the rank exponent are finite and strictly
+    /// positive.
     #[must_use]
     pub(crate) const fn new(
         neighbours: NonZero<usize>,
@@ -127,8 +121,7 @@ impl MinerOptions {
         self.maximum_weight * (1.0 - relative).powf(self.rank_exponent)
     }
 
-    /// Returns the per-row search size: quota times margin, plus the
-    /// query point itself.
+    /// Returns the per-row search size: quota times margin, plus the query point itself.
     const fn search_size(self) -> usize {
         self.neighbours
             .get()
@@ -163,9 +156,8 @@ impl Error for SpatialFieldError {}
 
 /// The exact 2D neighbour index over one frame's detached coordinates.
 ///
-/// One field is built per lens extreme at every refresh tick and
-/// dropped with it; queries are read-only and thread-safe. Exactness
-/// is part of the contract: consumers account for no recall.
+/// One field is built per lens extreme at every refresh tick and dropped with it; queries are
+/// read-only and thread-safe. Exactness is part of the contract: consumers account for no recall.
 pub(crate) struct SpatialField<'frame> {
     tree: ImmutableKdTree<f32, u32, 2, 32>,
     points: &'frame [[f32; 2]],
@@ -185,9 +177,8 @@ impl<'frame> SpatialField<'frame> {
     ///
     /// # Errors
     ///
-    /// Returns an error when a coordinate is not finite (a diverged
-    /// projection must fail the tick, not seed an index) or the row
-    /// count exceeds the index's `u32` item encoding.
+    /// Returns an error when a coordinate is not finite (a diverged projection must fail the tick,
+    /// not seed an index) or the row count exceeds the index's `u32` item encoding.
     pub(crate) fn new(coordinates: &'frame [Vec2]) -> Result<Self, SpatialFieldError> {
         if let Some(row) = coordinates.iter().position(|point| !point.is_finite()) {
             return Err(SpatialFieldError::NonFinite { row });
@@ -215,12 +206,10 @@ impl<'frame> SpatialField<'frame> {
         self.points.len()
     }
 
-    /// Returns the `count` nearest rows to `row`, ascending by
-    /// `(squared distance, row)`.
+    /// Returns the `count` nearest rows to `row`, ascending by `(squared distance, row)`.
     ///
-    /// The query point is in the index, so `row` itself leads the
-    /// result. The secondary row order pins ties: equal distances are
-    /// returned in one order regardless of tree traversal.
+    /// The query point is in the index, so `row` itself leads the result. The secondary row order
+    /// pins ties: equal distances are returned in one order regardless of tree traversal.
     fn nearest(&self, row: usize, count: usize) -> Vec<(f32, u32)> {
         let count = NonZero::new(count.min(self.points.len()))
             .expect("search sizes are at least one by construction");
@@ -243,13 +232,11 @@ impl<'frame> SpatialField<'frame> {
 
 /// The exclusion evidence one generation mines against.
 ///
-/// The semantic graph vetoes pairs the attraction objective already
-/// pulls together (the graph is symmetric, so one row's adjacency
-/// decides), and the protection evidence vetoes pairs whose links veto
-/// targeted repulsion under the hard channel. Typed-separation control
-/// sets and signed-policy conflicts are further exclusions the
-/// admission contract names; the initial generation has no signed
-/// policies, so both sets are empty here.
+/// The semantic graph vetoes pairs the attraction objective already pulls together (the graph is
+/// symmetric, so one row's adjacency decides), and the protection evidence vetoes pairs whose links
+/// veto targeted repulsion under the hard channel. Typed-separation control sets and signed-policy
+/// conflicts are further exclusions the admission contract names; the initial generation has no
+/// signed policies, so both sets are empty here.
 #[derive(Debug)]
 pub(crate) struct HardNegativeMiner<'view> {
     semantic: SemanticGraphView<'view>,
@@ -263,9 +250,8 @@ impl<'view> HardNegativeMiner<'view> {
     ///
     /// # Panics
     ///
-    /// Panics when the two views disagree about the row domain; both
-    /// artifacts come from one generation, so a mismatch is a wiring
-    /// defect.
+    /// Panics when the two views disagree about the row domain; both artifacts come from one
+    /// generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
         semantic: SemanticGraphView<'view>,
@@ -287,17 +273,14 @@ impl<'view> HardNegativeMiner<'view> {
         }
     }
 
-    /// Mines one frame: per row, the admissible closest projected
-    /// points with their rank weights.
+    /// Mines one frame: per row, the admissible closest projected points with their rank weights.
     ///
-    /// Rows mine independently and in parallel; the result is a
-    /// function of the inputs alone.
+    /// Rows mine independently and in parallel; the result is a function of the inputs alone.
     ///
     /// # Panics
     ///
-    /// Panics when the frame's row domain disagrees with the exclusion
-    /// evidence; both come from one generation, so a mismatch is a
-    /// wiring defect.
+    /// Panics when the frame's row domain disagrees with the exclusion evidence; both come from one
+    /// generation, so a mismatch is a wiring defect.
     pub(crate) fn mine(&self, field: &SpatialField<'_>) -> MinedFrame {
         assert_eq!(
             field.rows(),
@@ -368,9 +351,9 @@ impl<'view> HardNegativeMiner<'view> {
 
 /// One frame's mined hard negatives, grouped by anchor row.
 ///
-/// Rows keep their candidates in closeness-rank order after a mine and
-/// in ascending target order after a pool; the weights ride beside the
-/// targets either way, so consumers never reconstruct rank.
+/// Rows keep their candidates in closeness-rank order after a mine and in ascending target order
+/// after a pool; the weights ride beside the targets either way, so consumers never reconstruct
+/// rank.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct MinedFrame {
     /// Per-row spans into the columns, `rows + 1` entries from zero.
@@ -416,15 +399,16 @@ impl MinedFrame {
             })
     }
 
-    /// Pools two frames of one refresh tick: the union of each row's
-    /// pairs, a pair mined in both keeping its maximum weight.
+    /// Pools two frames of one refresh tick.
+    ///
+    /// The union of each row's pairs, a pair mined in both keeping its maximum weight.
     ///
     /// Pooled rows order by ascending target.
     ///
     /// # Panics
     ///
-    /// Panics when the frames disagree about the row domain; both come
-    /// from one refresh tick, so a mismatch is a wiring defect.
+    /// Panics when the frames disagree about the row domain; both come from one refresh tick, so a
+    /// mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn pool(&self, other: &Self) -> Self {
         assert_eq!(

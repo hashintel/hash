@@ -7,12 +7,10 @@ use crate::integrity::{Sha256, Update as _};
 
 /// The per-row inputs of the rank pass, one entry per point row.
 ///
-/// Rows rank by configured importance, then stable semantic priority,
-/// then a seeded hash of the entity identity, so the order is total
-/// and reproducible from the columns and the seed alone. The columns
-/// are equal-length by construction and the row count fits the `u32`
-/// row encoding. `I` is the dataset's node id type; the ranking
-/// consumes its canonical bytes alone.
+/// Rows rank by configured importance, then stable semantic priority, then a seeded hash of the
+/// entity identity, so the order is total and reproducible from the columns and the seed alone. The
+/// columns are equal-length by construction and the row count fits the `u32` row encoding. `I` is
+/// the dataset's node id type; the ranking consumes its canonical bytes alone.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct RankInputs<'columns, I> {
     importance: &'columns [f32],
@@ -23,8 +21,8 @@ pub(crate) struct RankInputs<'columns, I> {
 impl<'columns, I> RankInputs<'columns, I> {
     /// Wraps the rank columns.
     ///
-    /// Returns [`None`] when the columns disagree on length or the row
-    /// count does not fit the `u32` row encoding.
+    /// Returns [`None`] when the columns disagree on length or the row count does not fit the `u32`
+    /// row encoding.
     #[must_use]
     pub(crate) const fn new(
         importance: &'columns [f32],
@@ -57,33 +55,28 @@ impl<'columns, I> RankInputs<'columns, I> {
     }
 }
 
-/// The rank order of one generation's rows: a permutation and its
-/// inverse.
+/// The rank order of one generation's rows: a permutation and its inverse.
 ///
-/// Rank 0 is the most important row. Both views exist because both are
-/// consumed: the cascade claims cells in ascending rank, and the
-/// published columns record each position's rank.
+/// Rank 0 is the most important row. Both views exist because both are consumed: the cascade claims
+/// cells in ascending rank, and the published columns record each position's rank.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Ranking {
-    /// Row index by rank: `row_of_rank[rank]` is the row holding that
-    /// rank.
+    /// Row index by rank: `row_of_rank[rank]` is the row holding that rank.
     pub row_of_rank: Box<[u32]>,
     /// Rank by row index: `rank_of_row[row]` is the row's rank.
     pub rank_of_row: Box<[u32]>,
 }
 
 impl Ranking {
-    /// Ranks the rows by descending importance, then descending
-    /// priority, then the seeded identity hash ascending.
+    /// Ranks the rows by descending importance.
     ///
-    /// Scores compare under IEEE 754 `totalOrder`, so the ranking is
-    /// total and deterministic for every bit pattern; both score
-    /// columns arrive finite - importance by the
-    /// [`ImportanceSignal`](crate::salt::importance::ImportanceSignal)
-    /// contract, priority as a constant column until it grows a
-    /// source - and nothing here re-checks them. Equal seeds give
-    /// equal rankings; the seed is recorded in the generation's
-    /// metadata.
+    /// Then descending priority, then the seeded identity hash ascending.
+    ///
+    /// Scores compare under IEEE 754 `totalOrder`, so the ranking is total and deterministic for
+    /// every bit pattern; both score columns arrive finite - importance by the
+    /// [`ImportanceSignal`](crate::salt::importance::ImportanceSignal) contract, priority as a
+    /// constant column until it grows a source - and nothing here re-checks them. Equal seeds give
+    /// equal rankings; the seed is recorded in the generation's metadata.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the inputs' constructor admits only row counts that fit `u32`"
@@ -126,10 +119,9 @@ impl Ranking {
 
 /// Hashes one entity identity under the ranking seed.
 ///
-/// The first eight digest bytes, little endian, of the SHA-256 over the
-/// seed followed by the identity bytes. Identities are unique per row,
-/// SHA-256 is collision-resistant at this width for corpus-scale row
-/// counts, and a new seed reshuffles every tie deterministically.
+/// The first eight digest bytes, little endian, of the SHA-256 over the seed followed by the
+/// identity bytes. Identities are unique per row, SHA-256 is collision-resistant at this width for
+/// corpus-scale row counts, and a new seed reshuffles every tie deterministically.
 #[expect(
     clippy::little_endian_bytes,
     reason = "the hash is pinned to the same canonical little-endian bytes on every platform"

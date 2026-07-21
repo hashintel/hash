@@ -12,16 +12,18 @@ fn document(type_verdicts: &str, pair_verdicts: &str) -> String {
     )
 }
 
-/// Composes one type verdict whose relation is the `hash`-namespace
-/// form of its base URL, as the exporter emits it.
+/// Composes one type verdict whose relation is the `hash`-namespace form of its base URL.
+///
+/// As the exporter emits it.
 fn verdict(class: &str, base: &str, version: u32) -> String {
     format!(
         r#"{{"class":"{class}","relation":"hash:{base}","reviewer":"Bilal Mahmoud","versioned_url":"{base}v/{version}"}}"#
     )
 }
 
-/// Derives a type-table entry through the raw `UUIDv5` constructor,
-/// independently of the resolver's `OntologyTypeUuid::from_url` path.
+/// Derives a type-table entry through the raw `UUIDv5` constructor.
+///
+/// Independently of the resolver's `OntologyTypeUuid::from_url` path.
 fn table_entry(base: &str, version: u32) -> ArchivedOntologyTypeUuid {
     ArchivedOntologyTypeUuid::from(Uuid::new_v5(
         &Uuid::NAMESPACE_URL,

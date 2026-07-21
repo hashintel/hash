@@ -1,19 +1,15 @@
 //! The placement stage: the trained projector or the landmark baseline.
 //!
-//! The stage owns the coordinate seam of one fit. Under the baseline
-//! placement every row takes its assigned landmark's layout coordinate;
-//! under the projector placement the stage trains the conditioned model
-//! over the staged artifacts, stages its checkpoint, projects the whole
-//! corpus at every ladder rung, measures the ladder, and publishes the
-//! canonical rung's field aligned into the baseline frame. The metadata
-//! records which placement ran and, for a trained one, the training and
-//! ladder measurements.
+//! The stage owns the coordinate seam of one fit. Under the baseline placement every row takes its
+//! assigned landmark's layout coordinate; under the projector placement the stage trains the
+//! conditioned model over the staged artifacts, stages its checkpoint, projects the whole corpus at
+//! every ladder rung, measures the ladder, and publishes the canonical rung's field aligned into
+//! the baseline frame. The metadata records which placement ran and, for a trained one, the
+//! training and ladder measurements.
 //!
-//! Rung frames are transient: each projects into the run's scratch
-//! directory and maps back for measurement, so the stage's owned
-//! working set stays one frame regardless of the schedule length. Only
-//! the canonical aligned column publishes - version 1 publishes one
-//! variant.
+//! Rung frames are transient: each projects into the run's scratch directory and maps back for
+//! measurement, so the stage's owned working set stays one frame regardless of the schedule length.
+//! Only the canonical aligned column publishes - version 1 publishes one variant.
 
 use std::{
     fs::File,
@@ -67,17 +63,15 @@ use crate::{
     },
 };
 
-/// The inference half of the placement backend: Metal behind the
-/// `gpu` feature, the CPU otherwise. The CPU backend stays the
-/// fixture and determinism harness, so tests run without the feature.
+/// The inference half of the placement backend: Metal behind the `gpu` feature, the CPU otherwise.
 ///
-/// The Metal flavor names the UNFUSED `CubeBackend` directly rather
-/// than `burn::backend::Metal`: the default alias wraps the runtime
-/// in `burn-fusion`, whose stream ordering (0.21.0, ordering.rs:65)
-/// panics out of bounds under this workload's dynamic relation-batch
-/// shapes, killing the device service thread. Fusion is an optional
-/// optimization layer; the unfused backend is the same runtime
-/// without it.
+/// The CPU backend stays the fixture and determinism harness, so tests run without the feature.
+///
+/// The Metal flavor names the UNFUSED `CubeBackend` directly rather than `burn::backend::Metal`:
+/// the default alias wraps the runtime in `burn-fusion`, whose stream ordering (0.21.0,
+/// ordering.rs:65) panics out of bounds under this workload's dynamic relation-batch shapes,
+/// killing the device service thread. Fusion is an optional optimization layer; the unfused backend
+/// is the same runtime without it.
 #[cfg(feature = "gpu")]
 pub(in crate::salt::fit) type TrainerInner =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
@@ -128,8 +122,7 @@ pub(in crate::salt::fit) struct VerdictResolution {
 pub(super) struct PlacementArtifacts {
     /// The staged canonical coordinate column.
     pub coordinates: RepositoryFile,
-    /// The staged projector checkpoint; present exactly for a trained
-    /// placement.
+    /// The staged projector checkpoint; present exactly for a trained placement.
     pub checkpoint: Option<RepositoryFile>,
     /// Which placement ran.
     pub placement: Placement,
@@ -158,8 +151,8 @@ impl Context<'_> {
         self.stage_projector(options, inputs)
     }
 
-    /// Trains the projector, stages its checkpoint, and publishes the
-    /// canonical rung's aligned field.
+    /// Trains the projector, stages its checkpoint, and publishes the canonical rung's aligned
+    /// field.
     fn stage_projector(
         &self,
         options: &ProjectorOptions,
@@ -311,8 +304,7 @@ impl Context<'_> {
         Ok(fitted)
     }
 
-    /// Stages the published model checkpoint, digesting the framework
-    /// bytes as they stream.
+    /// Stages the published model checkpoint, digesting the framework bytes as they stream.
     fn stage_checkpoint(
         &self,
         model: &Projector<TrainerBackend>,
@@ -328,12 +320,10 @@ impl Context<'_> {
         Ok(Role::Projector.file(writer.accumulator.finalize()))
     }
 
-    /// Projects, measures, and publishes the condition ladder,
-    /// returning its evidence.
+    /// Projects, measures, and publishes the condition ladder, returning its evidence.
     ///
-    /// Every rung projects into the scratch directory and maps back;
-    /// the canonical rung's field, aligned into the baseline frame,
-    /// stages as the coordinate column, and the relation loss
+    /// Every rung projects into the scratch directory and maps back; the canonical rung's field,
+    /// aligned into the baseline frame, stages as the coordinate column, and the relation loss
     /// re-measures over the persisted bytes.
     fn measure_conditions(
         &self,
@@ -422,8 +412,9 @@ impl Context<'_> {
         ))
     }
 
-    /// Streams one coordinate frame of `rows` points into the staged
-    /// canonical column, returning the sealed file's digest.
+    /// Streams one coordinate frame of `rows` points into the staged canonical column.
+    ///
+    /// Returns the sealed file's digest.
     fn stage_coordinate_column(
         &self,
         rows: u64,
@@ -441,8 +432,9 @@ impl Context<'_> {
         Ok(array.finish()?)
     }
 
-    /// Resolves the supplied verdicts against the staged ontology
-    /// identity column, typed by the dataset's own ontology id.
+    /// Resolves the supplied verdicts against the staged ontology identity column.
+    ///
+    /// Typed by the dataset's own ontology id.
     pub(super) fn resolve_verdicts<O>(
         &self,
         verdicts: Option<&SuppliedVerdicts>,
@@ -461,13 +453,13 @@ impl Context<'_> {
     }
 }
 
-/// Resolves supplied verdicts against the ontology identity column at
-/// `path`, read under the dataset's ontology id type `O`.
+/// Resolves supplied verdicts against the ontology identity column at `path`.
 ///
-/// Each verdict's reviewed versioned URL derives the id naming it in
-/// the corpus's own id space ([`OntologyIdentity`]); verdicts whose
-/// identity derives no id there record as unresolved. A column file
-/// keyed by any other id type fails the open.
+/// Read under the dataset's ontology id type `O`.
+///
+/// Each verdict's reviewed versioned URL derives the id naming it in the corpus's own id space
+/// ([`OntologyIdentity`]); verdicts whose identity derives no id there record as unresolved. A
+/// column file keyed by any other id type fails the open.
 pub(in crate::salt::fit) fn resolve_supplied<O>(
     path: &Utf8Path,
     supplied: &SuppliedVerdicts,
@@ -491,11 +483,11 @@ where
     })
 }
 
-/// Composes the relation energy the ladder measures with, from the
-/// configured lens and the boundary's frozen radius.
+/// Composes the relation energy the ladder measures with.
 ///
-/// Returns [`None`] for a vacuous boundary: no force means no relation
-/// loss to measure.
+/// From the configured lens and the boundary's frozen radius.
+///
+/// Returns [`None`] for a vacuous boundary: no force means no relation loss to measure.
 fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<RelationEnergy> {
     let radius = match radius {
         FrozenRadius::Measured { radius } | FrozenRadius::Asserted { radius } => radius,
@@ -509,15 +501,14 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
     )
 }
 
-/// Anchors every skeleton landmark at its laid-out coordinate, with
-/// the skeleton's own local ruler as its radius.
+/// Anchors every skeleton landmark at its laid-out coordinate.
 ///
-/// The radius is the median layout distance to the landmark's nearest
-/// skeleton neighbours - the same local-scale convention the relation
-/// loss normalizes by - so a landmark in a dense skeleton region holds
-/// its row tighter than one in a sparse region. A one-landmark
-/// skeleton has no ruler and anchors at radius zero; the support
-/// term's epsilon guards the division.
+/// With the skeleton's own local ruler as its radius.
+///
+/// The radius is the median layout distance to the landmark's nearest skeleton neighbours - the
+/// same local-scale convention the relation loss normalizes by - so a landmark in a dense skeleton
+/// region holds its row tighter than one in a sparse region. A one-landmark skeleton has no ruler
+/// and anchors at radius zero; the support term's epsilon guards the division.
 fn landmark_anchors(
     skeleton: &LandmarkSkeletonArchive,
     options: &ProjectorOptions,
@@ -538,13 +529,21 @@ fn landmark_anchors(
         .collect()
 }
 
-/// Computes one landmark's median layout distance to its nearest
-/// skeleton neighbours.
+/// Computes one landmark's median layout distance to its nearest skeleton neighbours.
 ///
-/// The neighbour count and median convention are the corpus
-/// local-scale kernel's ([`insert_nearest`] and [`sorted_median`]);
-/// the skeleton is capacity-bounded, so the nearest set comes from a
-/// plain pass over the layout.
+/// The neighbour count and median convention are the corpus local-scale kernel's
+/// ([`insert_nearest`] and [`sorted_median`]); the skeleton is capacity-bounded, so the nearest set
+/// comes from a plain pass over the layout.
+// PERF: called once per landmark, this is an all-nearest-neighbours
+// scan - O(S^2) distance evaluations over the capacity-bounded
+// skeleton, tens of milliseconds once per fit. If skeleton capacity
+// ever rises enough to matter, the fix is algorithmic before it is
+// SIMD: build one kd-tree over the layout (kiddo, already in-tree
+// for serving) and take the fifteen nearest per landmark in
+// O(S log S) total. The median consumes distances only, so tied
+// neighbour choices cannot change the result - an exact index
+// reproduces today's output bit for bit. Measure at a raised
+// capacity before acting.
 fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
     let mut nearest = [f32::INFINITY; LOCAL_SCALE_NEIGHBOURS];
     let mut count = 0_usize;
@@ -572,13 +571,13 @@ fn semantic_weight(view: &SemanticGraphView<'_>) -> f64 {
     total
 }
 
-/// Normalizes the configured coefficient bases by their objective
-/// masses: semantic and ordinary by the total semantic edge weight,
-/// hard by the corpus row count, landmark by the anchor pool size.
+/// Normalizes the configured coefficient bases by their objective masses.
 ///
-/// The relation base passes through, and a pool of zero keeps its
-/// base inert rather than dividing by nothing - the temporal-anchor
-/// pool is empty until its seam lands. A weightless graph passes
+/// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, landmark
+/// by the anchor pool size.
+///
+/// The relation base passes through, and a pool of zero keeps its base inert rather than dividing
+/// by nothing - the temporal-anchor pool is empty until its seam lands. A weightless graph passes
 /// every base through unchanged.
 #[expect(
     clippy::cast_precision_loss,
@@ -634,13 +633,13 @@ fn write_frame(path: impl AsRef<Utf8Path>, frame: &[Vec2]) -> Result<(), StageEr
     Ok(())
 }
 
-/// Measures the corpus-total relation loss of one frame: every
-/// attraction instance's weighted class-mixture energy at its locally
-/// normalized distance, accumulated in double precision.
+/// Measures the corpus-total relation loss of one frame.
 ///
-/// The per-instance formula is the batch relation term's with the
-/// estimator scale at one; the twin lives at
-/// [`relation_term`](crate::salt::projector::loss::relation_term).
+/// Every attraction instance's weighted class-mixture energy at its locally normalized distance,
+/// accumulated in double precision.
+///
+/// The per-instance formula is the batch relation term's with the estimator scale at one; the twin
+/// lives at [`relation_term`](crate::salt::projector::loss::relation_term).
 fn relation_loss(
     frame: &[Vec2],
     scales: &LocalScales,

@@ -1,38 +1,29 @@
 //! Stochastic gradient layout over a semantic graph.
 //!
-//! [`layout_landmarks`] places one 2D point per graph row by descending
-//! the UMAP objective: the cross-entropy between the graph's fuzzy
-//! weights and the [`AffinityCurve`] over layout distances. Sampled
-//! edges pull their endpoints together, and uniformly sampled vertices
-//! push the sampled endpoint away.
+//! [`layout_landmarks`] places one 2D point per graph row by descending the UMAP objective: the
+//! cross-entropy between the graph's fuzzy weights and the [`AffinityCurve`] over layout distances.
+//! Sampled edges pull their endpoints together, and uniformly sampled vertices push the sampled
+//! endpoint away.
 //!
-//! Sampling follows the edge weights: an edge is due every
-//! `maximum_weight / weight` epochs, so the strongest edge is sampled
-//! every epoch and weaker edges proportionally less often. Edges whose
-//! period exceeds the epoch budget would never be due and are dropped
-//! up front. Every sampled edge additionally repels
-//! [`negative_sample_rate`](LayoutOptions::negative_sample_rate)
-//! uniformly drawn vertices, and the learning rate decays linearly to
-//! zero across the epoch budget.
+//! Sampling follows the edge weights: an edge is due every `maximum_weight / weight` epochs, so the
+//! strongest edge is sampled every epoch and weaker edges proportionally less often. Edges whose
+//! period exceeds the epoch budget would never be due and are dropped up front. Every sampled edge
+//! additionally repels [`negative_sample_rate`](LayoutOptions::negative_sample_rate) uniformly
+//! drawn vertices, and the learning rate decays linearly to zero across the epoch budget.
 //!
-//! Due edges apply in [`Vec2x4T`] batches of four: gradients within one
-//! batch are evaluated at the batch's entry coordinates and the four
-//! negative-sample gradients of one chunk accumulate against one anchor
-//! position - mini-batch semantics rather than strictly sequential
-//! updates.
+//! Due edges apply in [`Vec2x4T`] batches of four: gradients within one batch are evaluated at the
+//! batch's entry coordinates and the four negative-sample gradients of one chunk accumulate against
+//! one anchor position - mini-batch semantics rather than strictly sequential updates.
 //!
-//! Points start on a jittered circle of diameter ten, the span the
-//! per-axis [gradient clip](AffinityCurve::GRADIENT_CLIP) is designed
-//! against. Every draw comes from the caller-seeded generator, so a
-//! rerun over an equal graph, curve, options, and seed reproduces the
-//! layout exactly. Rows without edges keep their initial placement: no
-//! attraction schedules them, and repulsion moves only the sampled
-//! endpoint.
+//! Points start on a jittered circle of diameter ten, the span the per-axis [gradient
+//! clip](AffinityCurve::GRADIENT_CLIP) is designed against. Every draw comes from the caller-seeded
+//! generator, so a rerun over an equal graph, curve, options, and seed reproduces the layout
+//! exactly. Rows without edges keep their initial placement: no attraction schedules them, and
+//! repulsion moves only the sampled endpoint.
 //!
-//! The optimizer is serial by design: each gradient step reads
-//! coordinates the previous step wrote, and the bit-reproducible
-//! layout is the property the serial order buys. Parallelism belongs
-//! to the stages around it, not inside the epoch loop.
+//! The optimizer is serial by design: each gradient step reads coordinates the previous step wrote,
+//! and the bit-reproducible layout is the property the serial order buys. Parallelism belongs to
+//! the stages around it, not inside the epoch loop.
 
 use core::{array, error::Error, f32::consts::TAU, fmt, num::NonZero, simd::num::SimdFloat as _};
 
@@ -44,8 +35,7 @@ use crate::{
     salt::semantic::SemanticGraphView,
 };
 
-/// A value offered as a [`LearningRate`] is not finite and strictly
-/// positive.
+/// A value offered as a [`LearningRate`] is not finite and strictly positive.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LearningRateError(f32);
 
@@ -61,8 +51,7 @@ impl fmt::Display for LearningRateError {
 
 impl Error for LearningRateError {}
 
-/// An epoch-zero learning rate: finite and strictly positive, valid by
-/// construction.
+/// An epoch-zero learning rate: finite and strictly positive, valid by construction.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "f32", into = "f32")]
 pub(crate) struct LearningRate(f32);
@@ -70,8 +59,7 @@ pub(crate) struct LearningRate(f32);
 impl LearningRate {
     /// Validates a learning rate.
     ///
-    /// Returns [`None`] unless the value is finite and strictly
-    /// positive.
+    /// Returns [`None`] unless the value is finite and strictly positive.
     #[inline]
     #[must_use]
     pub(crate) const fn new(value: f32) -> Option<Self> {
@@ -106,8 +94,7 @@ impl From<LearningRate> for f32 {
     }
 }
 
-/// A value offered as a [`RepulsionStrength`] is not finite and
-/// non-negative.
+/// A value offered as a [`RepulsionStrength`] is not finite and non-negative.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RepulsionStrengthError(f32);
 
@@ -177,8 +164,7 @@ impl From<RepulsionStrength> for f32 {
 pub(crate) struct LayoutOptions {
     /// Optimization epochs. Defaults to 500.
     pub epochs: NonZero<u32> = const { NonZero::new(500).unwrap() },
-    /// Learning rate at epoch zero; it decays linearly to zero across
-    /// the epoch budget. Defaults to 1.
+    /// Learning rate at epoch zero; it decays linearly to zero across the epoch budget. Defaults to 1.
     pub initial_learning_rate: LearningRate = const { LearningRate::new(1.0).unwrap() },
     /// Weight of repulsive updates. Defaults to 1.
     pub repulsion_strength: RepulsionStrength = const { RepulsionStrength::new(1.0).unwrap() },
@@ -206,10 +192,9 @@ impl Error for EdgelessGraphError {}
 
 /// Lays out one point per graph row, in row order.
 ///
-/// `graph` is the attraction structure - for the landmark skeleton, the
-/// quotient over the landmark domain, indexed by ordinal - and `curve`
-/// the fitted low-dimensional kernel ([`AffinityCurve::fit`]). `rng`
-/// drives the initial placement and the negative draws.
+/// `graph` is the attraction structure - for the landmark skeleton, the quotient over the landmark
+/// domain, indexed by ordinal - and `curve` the fitted low-dimensional kernel
+/// ([`AffinityCurve::fit`]). `rng` drives the initial placement and the negative draws.
 ///
 /// # Errors
 ///
@@ -237,24 +222,24 @@ pub(crate) fn layout_landmarks(
     Ok(optimizer.run().into_boxed_slice())
 }
 
-/// Radius of the initial circle: a diameter of ten matches the span the
-/// per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP) is designed
-/// against.
+/// Radius of the initial circle.
+///
+/// A diameter of ten matches the span the per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP)
+/// is designed against.
 // Pinned, not configurable: the radius and the clip fix one ratio -
 // how far a single sample can move a point relative to the layout's
 // extent - and a knob on one side silently changes it. If the frame
 // ever moves, both move together.
 const INITIAL_RADIUS: f32 = 5.0;
-/// Relative radial jitter of the initial circle, breaking the regular
-/// polygon's symmetry.
+/// Relative radial jitter of the initial circle, breaking the regular polygon's symmetry.
 // Pinned, not configurable: any small positive value serves; the only
 // distinguishable settings are zero (restores the symmetric saddle)
 // and large (distorts the circle for nothing).
 const RADIAL_JITTER: f32 = 0.01;
 
-/// Places every vertex on the jittered initial circle, by vertex order:
-/// the vertex's share of a full turn, applied to a jittered radius
-/// vector.
+/// Places every vertex on the jittered initial circle, by vertex order.
+///
+/// The vertex's share of a full turn, applied to a jittered radius vector.
 #[expect(
     clippy::cast_precision_loss,
     reason = "vertex ordinals lose angular precision only beyond exact f32 integers, where \
@@ -274,8 +259,7 @@ fn initial_coordinates(rows: usize, mut rng: impl Rng) -> Vec<Vec2> {
 struct EdgeSchedule {
     heads: Vec<u32>,
     tails: Vec<u32>,
-    /// Epochs between samples of each edge: `maximum / weight`, at
-    /// least one.
+    /// Epochs between samples of each edge: `maximum / weight`, at least one.
     periods: Vec<f32>,
     /// The epoch at which each edge is next due.
     due: Vec<f32>,
@@ -284,9 +268,8 @@ struct EdgeSchedule {
 impl EdgeSchedule {
     /// Extracts the edges due at least once within the epoch budget.
     ///
-    /// Returns [`None`] when the graph stores no edges. Weights are
-    /// finite in `(0, 1]` by the graph's invariants, so the schedule
-    /// re-validates nothing.
+    /// Returns [`None`] when the graph stores no edges. Weights are finite in `(0, 1]` by the
+    /// graph's invariants, so the schedule re-validates nothing.
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_precision_loss,
@@ -388,8 +371,8 @@ impl<R: Rng> Optimizer<R> {
 
     /// Applies the symmetric attraction update of four edges.
     ///
-    /// Edges sharing a vertex within one batch see the batch's entry
-    /// coordinates; their updates accumulate.
+    /// Edges sharing a vertex within one batch see the batch's entry coordinates; their updates
+    /// accumulate.
     fn attract_x4(&mut self, edges: [usize; 4], learning_rate: f32) {
         let heads = edges.map(|edge| self.schedule.heads[edge] as usize);
         let tails = edges.map(|edge| self.schedule.tails[edge] as usize);
@@ -419,10 +402,9 @@ impl<R: Rng> Optimizer<R> {
 
     /// Repels the anchor from `negative_sample_rate` drawn vertices.
     ///
-    /// Draws apply in chunks of four against the anchor's position at
-    /// chunk entry, with a scalar remainder. A draw of the anchor
-    /// itself is a coincident pair and contributes no gradient, so no
-    /// draw is rejected.
+    /// Draws apply in chunks of four against the anchor's position at chunk entry, with a scalar
+    /// remainder. A draw of the anchor itself is a coincident pair and contributes no gradient, so
+    /// no draw is rejected.
     fn repel(&mut self, anchor: usize, learning_rate: f32) {
         let mut remaining = self.options.negative_sample_rate.get();
         while remaining >= 4 {

@@ -1,19 +1,14 @@
-//! The incident-edge adjacency: node rows to the edge rows touching
-//! them.
+//! The incident-edge adjacency: node rows to the edge rows touching them.
 //!
-//! [`Adjacency`] is the serving contract's topology artifact: for every
-//! node row, the edge rows leaving it and the edge rows arriving at it,
-//! as two adjacent runs of one shared value array. Values are edge row
-//! ids alone - attributes resolve through edge-row-indexed columns, so
-//! the adjacency never re-publishes when an attribute column changes.
-//! It derives from the endpoint column in one counting pass and
-//! publishes as one structure-only [`crate::file::sprs`] matrix:
-//! `2N` compressed rows over the fencepost column, edge row ids as the
-//! indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so
-//! no value bytes exist on disk. [`AdjacencyArchive`] reopens the file
-//! over a whole-file mapping and validates the list invariants once,
-//! so lookups read from the page cache without holding the lists on
-//! the heap.
+//! [`Adjacency`] is the serving contract's topology artifact: for every node row, the edge rows
+//! leaving it and the edge rows arriving at it, as two adjacent runs of one shared value array.
+//! Values are edge row ids alone - attributes resolve through edge-row-indexed columns, so the
+//! adjacency never re-publishes when an attribute column changes. It derives from the endpoint
+//! column in one counting pass and publishes as one structure-only [`crate::file::sprs`] matrix:
+//! `2N` compressed rows over the fencepost column, edge row ids as the indices, and
+//! [`unit`](crate::file::sprs::ValueTag::Unit) values, so no value bytes exist on disk.
+//! [`AdjacencyArchive`] reopens the file over a whole-file mapping and validates the list
+//! invariants once, so lookups read from the page cache without holding the lists on the heap.
 //!
 //! # List contract
 //!
@@ -53,13 +48,14 @@ mod tests;
 
 /// The incident-edge adjacency of one generation, in writable form.
 ///
-/// Construction orders every run; the fencepost and value columns are
-/// exactly the file's pointer and index regions.
+/// Construction orders every run; the fencepost and value columns are exactly the file's pointer
+/// and index regions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Adjacency {
-    /// `2N + 1` fenceposts: node row `i` owns the outgoing run
-    /// `fenceposts[2i] .. fenceposts[2i + 1]` and the incoming run
-    /// `fenceposts[2i + 1] .. fenceposts[2i + 2]`.
+    /// `2N + 1` fenceposts.
+    ///
+    /// Node row `i` owns the outgoing run `fenceposts[2i] .. fenceposts[2i + 1]` and the incoming
+    /// run `fenceposts[2i + 1] .. fenceposts[2i + 2]`.
     fenceposts: Vec<u64>,
     /// `2E` edge row ids, strictly ascending within each run.
     values: Vec<u64>,
@@ -68,16 +64,14 @@ pub(crate) struct Adjacency {
 impl Adjacency {
     /// Builds the adjacency over the endpoint column.
     ///
-    /// `endpoints[e]` is edge row `e`'s `[source, target]` node rows;
-    /// `rows` is the node-row domain they index into. Time and memory
-    /// are `O(N + E)`: one counting pass, one prefix sum, and one fill
-    /// in edge-row order, which is what makes every run strictly
-    /// ascending by construction.
+    /// `endpoints[e]` is edge row `e`'s `[source, target]` node rows; `rows` is the node-row domain
+    /// they index into. Time and memory are `O(N + E)`: one counting pass, one prefix sum, and one
+    /// fill in edge-row order, which is what makes every run strictly ascending by construction.
     ///
     /// # Panics
     ///
-    /// Panics when an endpoint lies outside the `rows` domain, which
-    /// the dataset row contract excludes.
+    /// Panics when an endpoint lies outside the `rows` domain, which the dataset row contract
+    /// excludes.
     #[must_use]
     pub(crate) fn build(rows: usize, endpoints: &[[u64; 2]]) -> Self {
         let mut fenceposts = vec![0_u64; 2 * rows + 1];
@@ -119,17 +113,17 @@ impl Adjacency {
 impl WriteInto for Adjacency {
     type Error = WriteSprsError;
 
-    /// Writes the adjacency as a structure-only sparse matrix file, at
-    /// the narrowest index width covering the edge count.
+    /// Writes the adjacency as a structure-only sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// At the narrowest index width covering the edge count.
+    ///
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
-    /// Returns an error when the underlying writer fails, or when the
-    /// adjacency spans no node rows: the corpus contract places at
-    /// least one node, and an empty row domain has no on-disk form.
+    /// Returns an error when the underlying writer fails, or when the adjacency spans no node rows:
+    /// the corpus contract places at least one node, and an empty row domain has no on-disk form.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -181,8 +175,10 @@ impl WriteInto for Adjacency {
 /// An opened sparse matrix file does not hold a valid adjacency.
 #[derive(Debug)]
 pub enum InvalidAdjacencyFile {
-    /// The file is not the structure-only matrix the adjacency
-    /// publishes, or its compressed structure is invalid.
+    /// The file fails the published adjacency shape.
+    ///
+    /// The bytes are not the structure-only matrix the adjacency publishes, or the compressed
+    /// structure is invalid.
     Matrix(SprsMatrixError),
     /// The row dimension is odd: runs pair two per node.
     OddRows { rows: u64 },
@@ -248,13 +244,11 @@ enum Width {
 
 /// A published adjacency opened over its mapped sparse matrix file.
 ///
-/// Construction checks the list contract once - the structure-only
-/// element types and compressed structure (fencepost coverage,
-/// strictly ascending runs, in-bound indices), paired runs, the
-/// domain-bound column dimension, and every edge in exactly one slot
-/// per direction - so an open adjacency only serves valid runs and
-/// consumers re-validate nothing. The regions stay in the page cache
-/// under memory pressure and off the heap.
+/// Construction checks the list contract once - the structure-only element types and compressed
+/// structure (fencepost coverage, strictly ascending runs, in-bound indices), paired runs, the
+/// domain-bound column dimension, and every edge in exactly one slot per direction - so an open
+/// adjacency only serves valid runs and consumers re-validate nothing. The regions stay in the page
+/// cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct AdjacencyArchive {
     file: SprsFile,
@@ -331,8 +325,7 @@ impl AdjacencyArchive {
         }
     }
 
-    /// Returns the fencepost pair index of `node`, when the node row is
-    /// in domain.
+    /// Returns the fencepost pair index of `node`, when the node row is in domain.
     fn posts(&self, node: NodeRowId) -> Option<usize> {
         if node.get() >= self.nodes {
             return None;
@@ -340,37 +333,37 @@ impl AdjacencyArchive {
         Some(usize::try_from(2 * node.get()).expect("resident node domains fit usize"))
     }
 
-    /// Returns the edge rows leaving `node`, strictly ascending, when
-    /// the node row is in domain.
+    /// Returns the edge rows leaving `node`, strictly ascending, when the node row is in domain.
     #[must_use]
     pub(crate) fn outgoing(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
         Some(self.run(posts, posts + 1))
     }
 
-    /// Returns the edge rows arriving at `node`, strictly ascending,
-    /// when the node row is in domain.
+    /// Returns the edge rows arriving at `node`.
+    ///
+    /// Strictly ascending, when the node row is in domain.
     #[must_use]
     pub(crate) fn incoming(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
         Some(self.run(posts + 1, posts + 2))
     }
 
-    /// Returns every edge row touching `node` - the contiguous outgoing
-    /// run followed by the incoming run - when the node row is in
-    /// domain.
+    /// Returns every edge row touching `node`.
     ///
-    /// A self-loop at `node` appears in both runs; consumers merging
-    /// the directions dedupe knowingly.
+    /// The contiguous outgoing run followed by the incoming run - when the node row is in domain.
+    ///
+    /// A self-loop at `node` appears in both runs; consumers merging the directions dedupe
+    /// knowingly.
     #[must_use]
     pub(crate) fn incident(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
         Some(self.run(posts, posts + 2))
     }
 
-    /// Returns the number of edge slots touching `node` - the incident
-    /// run's length, a self-loop counting twice - when the node row is
-    /// in domain.
+    /// Returns the number of edge slots touching `node`.
+    ///
+    /// The incident run's length, a self-loop counting twice - when the node row is in domain.
     #[must_use]
     pub(crate) fn degree(&self, node: NodeRowId) -> Option<usize> {
         let posts = self.posts(node)?;
@@ -383,11 +376,10 @@ impl AdjacencyArchive {
 
 /// Validates the list contract over a mapped file at index type `I`.
 ///
-/// Returns the node and edge row counts. The compressed structure -
-/// fencepost coverage, strictly ascending runs, indices below the
-/// column bound - is the matrix view's re-check; the walk below adds
-/// what the format cannot know: paired runs, the domain-bound column
-/// dimension, and the exactly-once slot rule.
+/// Returns the node and edge row counts. The compressed structure - fencepost coverage, strictly
+/// ascending runs, indices below the column bound - is the matrix view's re-check; the walk below
+/// adds what the format cannot know: paired runs, the domain-bound column dimension, and the
+/// exactly-once slot rule.
 fn validate<I>(file: &SprsFile) -> Result<(u64, u64), InvalidAdjacencyFile>
 where
     I: SprsIndex + Into<u64> + Copy,
@@ -444,8 +436,7 @@ where
 
 /// A borrowed edge row id array, at either stored width.
 ///
-/// Value-level accessors widen to `u64`, so consumers stay
-/// width-agnostic.
+/// Value-level accessors widen to `u64`, so consumers stay width-agnostic.
 #[derive(Debug, Copy, Clone)]
 enum EdgeValues<'map> {
     /// Four-byte edge row ids.
@@ -476,8 +467,7 @@ impl EdgeValues<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is at or beyond [`len`](Self::len), like a
-    /// slice.
+    /// Panics when `index` is at or beyond [`len`](Self::len), like a slice.
     #[inline]
     #[must_use]
     const fn get(&self, index: usize) -> u64 {
@@ -532,8 +522,7 @@ impl EdgeList<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is at or beyond [`len`](Self::len), like a
-    /// slice.
+    /// Panics when `index` is at or beyond [`len`](Self::len), like a slice.
     #[inline]
     #[must_use]
     pub(crate) const fn get(&self, index: usize) -> EdgeRowId {
@@ -548,10 +537,9 @@ impl EdgeList<'_> {
     /// Returns whether the list holds `edge`, by binary search.
     ///
     /// Correct over [`outgoing`](AdjacencyArchive::outgoing) and
-    /// [`incoming`](AdjacencyArchive::incoming) lists, whose runs are
-    /// strictly ascending. An [`incident`](AdjacencyArchive::incident)
-    /// list concatenates two ascending runs and is not globally
-    /// sorted; query its directions separately.
+    /// [`incoming`](AdjacencyArchive::incoming) lists, whose runs are strictly ascending. An
+    /// [`incident`](AdjacencyArchive::incident) list concatenates two ascending runs and is not
+    /// globally sorted; query its directions separately.
     #[must_use]
     pub(crate) const fn contains(&self, edge: EdgeRowId) -> bool {
         let mut low = 0;

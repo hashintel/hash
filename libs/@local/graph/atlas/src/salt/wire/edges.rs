@@ -1,17 +1,13 @@
 //! The edges response: `HEAD` and three edge columns as one envelope.
 //!
-//! An edges document carries its delivery-order columns directly -
-//! the endpoint assembles them by merging the adjacency artifact over
-//! the requested tiles' delivered rows and applying the rank-ordered
-//! cap - so unlike the tile document nothing here slices base-order
-//! arrays. The `SALTILEE` envelope has four slots: `HEAD`,
-//! `EDGE_SOURCES`, `EDGE_TARGETS`, `EDGE_ROW_IDS`, every one always
-//! present (a tile set without visible edges delivers present-empty
-//! columns).
+//! An edges document carries its delivery-order columns directly - the endpoint assembles them by
+//! merging the adjacency artifact over the requested tiles' delivered rows and applying the
+//! rank-ordered cap - so unlike the tile document nothing here slices base-order arrays. The
+//! `SALTILEE` envelope has four slots: `HEAD`, `EDGE_SOURCES`, `EDGE_TARGETS`, `EDGE_ROW_IDS`,
+//! every one always present (a tile set without visible edges delivers present-empty columns).
 //!
-//! The `HEAD` keeps an explicit `complete` flag: cap truncation is not
-//! derivable client-side, while auth-invisible edges are not
-//! truncation at all - missing is denied.
+//! The `HEAD` keeps an explicit `complete` flag: cap truncation is not derivable client-side, while
+//! auth-invisible edges are not truncation at all - missing is denied.
 #![expect(
     clippy::little_endian_bytes,
     reason = "column integers are pinned little-endian by the wire contract"
@@ -27,8 +23,7 @@ pub(crate) struct EdgesResponse<'doc> {
     pub generation: Sha256Digest,
     /// `HEAD` key 1: the variant index, echoing the route.
     pub variant: u64,
-    /// `HEAD` key 3: `false` when the rank-ordered cap truncated the
-    /// set.
+    /// `HEAD` key 3: `false` when the rank-ordered cap truncated the set.
     pub complete: bool,
     /// The `EDGE_SOURCES` column: node row ids, delivery order.
     pub sources: &'doc [u32],
@@ -36,8 +31,7 @@ pub(crate) struct EdgesResponse<'doc> {
     pub targets: &'doc [u32],
     /// The `EDGE_ROW_IDS` column: edge row ids, delivery order.
     pub edge_rows: &'doc [u32],
-    /// The hydrated detail trailer; `Some` iff the request set
-    /// `includeDetailedData`.
+    /// The hydrated detail trailer; `Some` iff the request set `includeDetailedData`.
     pub trailer: Option<EdgesTrailer<'doc>>,
 }
 
@@ -46,9 +40,8 @@ impl EdgesResponse<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when the document is inconsistent: the three columns
-    /// disagreeing on the edge count, or trailer arrays not covering
-    /// the delivered edges.
+    /// Panics when the document is inconsistent: the three columns disagreeing on the edge count,
+    /// or trailer arrays not covering the delivered edges.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         let count = self.sources.len();
@@ -98,8 +91,9 @@ impl EdgesResponse<'_> {
     }
 }
 
-/// The edges detail trailer: four per-edge detail arrays, edge order,
-/// `null` marking an edge whose entry did not resolve.
+/// The edges detail trailer.
+///
+/// Four per-edge detail arrays, edge order, `null` marking an edge whose entry did not resolve.
 #[expect(
     clippy::struct_field_names,
     reason = "the fields mirror the wire trailer key names verbatim"

@@ -1,8 +1,7 @@
 //! Probe orchestration: sampled anchor neighbourhoods in three spaces.
 //!
-//! [`probe`] samples anchor rows and reads how faithfully each anchor's
-//! neighbourhood survives in the 2D map, judged against the
-//! 512-component representation and the full canonical space. Two
+//! [`probe`] samples anchor rows and reads how faithfully each anchor's neighbourhood survives in
+//! the 2D map, judged against the 512-component representation and the full canonical space. Two
 //! passes feed one kernel set:
 //!
 //! - The corpus pass ranks every non-anchor row against each anchor in the map and the
@@ -15,19 +14,16 @@
 //!   representation baseline - are measured under the identical design, so the comparison is like
 //!   for like.
 //!
-//! A sampled reading's neighbourhood is coarser than a corpus reading's
-//! at equal `k`: the `k` nearest of a uniform sample of `m` rows sit at
-//! the corpus-scale depth of roughly `k * rows / m` neighbours. The two
-//! passes therefore answer different questions - fine placement against
-//! the representation, coarse placement against the canonical space -
-//! and [`ProbeReadings`] keeps them apart.
+//! A sampled reading's neighbourhood is coarser than a corpus reading's at equal `k`: the `k`
+//! nearest of a uniform sample of `m` rows sit at the corpus-scale depth of roughly `k * rows / m`
+//! neighbours. The two passes therefore answer different questions - fine placement against the
+//! representation, coarse placement against the canonical space - and [`ProbeReadings`] keeps them
+//! apart.
 //!
-//! Every ranking resolves distance ties by ascending row, so equal
-//! inputs produce equal readings. Readings are kept per anchor
-//! ([`ReadingGrid`]), so overall and per-subgroup roll-ups merge cells
-//! instead of re-ranking. Anchors rank independently and in parallel;
-//! the corpus pass performs `anchors * rows` representation-kernel
-//! evaluations and dominates the probe's runtime.
+//! Every ranking resolves distance ties by ascending row, so equal inputs produce equal readings.
+//! Readings are kept per anchor ([`ReadingGrid`]), so overall and per-subgroup roll-ups merge cells
+//! instead of re-ranking. Anchors rank independently and in parallel; the corpus pass performs
+//! `anchors * rows` representation-kernel evaluations and dominates the probe's runtime.
 #![expect(
     clippy::cast_possible_truncation,
     reason = "the corpus row domain is checked against the crate's u32 row encoding at entry"
@@ -85,28 +81,15 @@ const DEFAULT_TRIPLET_PAIRS: usize = 64;
 /// Pinned sampling and neighbourhood settings for one probe.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProbeOptions {
-    /// Sampled anchor rows: the queries every reading aggregates over.
-    /// Defaults to 256.
+    /// Sampled anchor rows: the queries every reading aggregates over. Defaults to 256.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows: the shared universe the sampled pass
-    /// ranks. More rows sharpen the canonical readings toward finer
-    /// neighbourhood scales and grow the canonical fetch linearly.
-    /// Defaults to 4096.
+    /// Sampled comparison rows: the shared universe the sampled pass ranks. More rows sharpen the canonical readings toward finer neighbourhood scales and grow the canonical fetch linearly. Defaults to 4096.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
-    /// Neighbourhood sizes to read at, in reporting order; must be
-    /// non-empty. The trend across sizes is itself evidence: recall
-    /// rising with `k` is the near-tie reshuffling fingerprint.
-    /// Defaults to 15, 30, and 50.
+    /// Neighbourhood sizes to read at, in reporting order; must be non-empty. The trend across sizes is itself evidence: recall rising with `k` is the near-tie reshuffling fingerprint. Defaults to 15, 30, and 50.
     pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
-    /// Horizon multiplier: a false neighbour counts as an intrusion or
-    /// extrusion when its opposite-space rank reaches `factor * k`
-    /// (clamped to the universe), separating genuinely foreign points
-    /// from reshuffling near the neighbourhood boundary. Defaults to 2.
+    /// Horizon multiplier: a false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches `factor * k` (clamped to the universe), separating genuinely foreign points from reshuffling near the neighbourhood boundary. Defaults to 2.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
-    /// Comparison-point pairs sampled for the triplet readings; every
-    /// anchor reads the one shared pair sample, so the estimate's mean
-    /// is unbiased while pair-driven variance is shared across
-    /// anchors. Zero disables the readings. Defaults to 64.
+    /// Comparison-point pairs sampled for the triplet readings; every anchor reads the one shared pair sample, so the estimate's mean is unbiased while pair-driven variance is shared across anchors. Zero disables the readings. Defaults to 64.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 
@@ -127,8 +110,7 @@ pub(crate) enum ProbeError<E> {
     },
     /// The options name no neighbourhood size.
     NoNeighbourhoods,
-    /// A neighbourhood size violates the aggregate domain over one of
-    /// the probe's universes.
+    /// A neighbourhood size violates the aggregate domain over one of the probe's universes.
     Neighbourhood { k: usize, universe: usize },
     /// The corpus row count exceeds the crate's `u32` row encoding.
     RowsExceedProbeDomain { rows: usize },
@@ -194,11 +176,10 @@ impl<E: Error + 'static> Error for ProbeError<E> {
 
 /// One generation's row-aligned probe inputs.
 ///
-/// The three slices describe the same rows in the same order; mapped
-/// `f32[N, 512]` and `f32[N, 2]` artifacts yield the representation
-/// and coordinate slices directly. A clump grouping over the same
-/// rows rides along through [`with_clumps`](Self::with_clumps) when
-/// the probe reads clump-granularity recall.
+/// The three slices describe the same rows in the same order; mapped `f32[N, 512]` and `f32[N, 2]`
+/// artifacts yield the representation and coordinate slices directly. A clump grouping over the
+/// same rows rides along through [`with_clumps`](Self::with_clumps) when the probe reads
+/// clump-granularity recall.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ProbeCorpus<'corpus, N> {
     node_ids: &'corpus [N],
@@ -212,8 +193,8 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     ///
     /// # Panics
     ///
-    /// Panics when the slices disagree about the row count; all three
-    /// describe one generation, so a mismatch is a wiring defect.
+    /// Panics when the slices disagree about the row count; all three describe one generation, so a
+    /// mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
         node_ids: &'corpus [N],
@@ -239,13 +220,12 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
         }
     }
 
-    /// Attaches a clump grouping, enabling the collapsed corpus
-    /// reading.
+    /// Attaches a clump grouping, enabling the collapsed corpus reading.
     ///
     /// # Panics
     ///
-    /// Panics when the grouping labels a different row count; both
-    /// describe one generation, so a mismatch is a wiring defect.
+    /// Panics when the grouping labels a different row count; both describe one generation, so a
+    /// mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn with_clumps(mut self, clumps: &'corpus Clumps) -> Self {
         assert_eq!(
@@ -266,16 +246,14 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 
 /// Reads the map's neighbourhood fidelity over sampled anchors.
 ///
-/// Anchor and comparison rows are sampled disjointly without
-/// replacement, and the anchors' and comparison rows' canonical
-/// embeddings are fetched through the dataset's probe-scoped stream
+/// Anchor and comparison rows are sampled disjointly without replacement, and the anchors' and
+/// comparison rows' canonical embeddings are fetched through the dataset's probe-scoped stream
 /// before any ranking begins.
 ///
 /// # Errors
 ///
-/// Returns an error when the corpus cannot host the probe design, a
-/// neighbourhood size violates an aggregate domain, the row count
-/// exceeds the crate's `u32` row encoding, or the canonical stream
+/// Returns an error when the corpus cannot host the probe design, a neighbourhood size violates an
+/// aggregate domain, the row count exceeds the crate's `u32` row encoding, or the canonical stream
 /// fails, misdelivers, or ends short.
 #[expect(
     clippy::future_not_send,
@@ -441,9 +419,8 @@ fn split_sampled_readings(readings: Vec<pass::SampledReading>) -> SampledColumns
 
 /// Checks the probe design fits the corpus.
 ///
-/// The design holds when the row count fits the `u32` probe domain,
-/// at least one neighbourhood size is named, and the corpus can host
-/// the disjoint anchor and comparison samples.
+/// The design holds when the row count fits the `u32` probe domain, at least one neighbourhood size
+/// is named, and the corpus can host the disjoint anchor and comparison samples.
 fn validate_design<E>(rows: usize, options: &ProbeOptions) -> Result<(), ProbeError<E>> {
     if u32::try_from(rows).is_err() {
         return Err(ProbeError::RowsExceedProbeDomain { rows });
@@ -482,11 +459,10 @@ fn aggregate_template<E>(
         .collect()
 }
 
-/// Samples distinct comparison-index pairs, uniform over ordered
-/// pairs.
+/// Samples distinct comparison-index pairs, uniform over ordered pairs.
 ///
-/// A universe of one comparison point holds no pairs and yields none
-/// regardless of the requested count.
+/// A universe of one comparison point holds no pairs and yields none regardless of the requested
+/// count.
 fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u32; 2]]> {
     let Some(second_choices) = NonZero::new(comparisons as u64 - 1) else {
         return Box::new([]);
@@ -505,8 +481,7 @@ fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u3
     .collect()
 }
 
-/// Splits per-anchor triplet arrays into per-pair columns, preserving
-/// the pair order.
+/// Splits per-anchor triplet arrays into per-pair columns, preserving the pair order.
 fn transpose_triplets(
     triplets: Vec<[TripletAggregate; SpacePair::COUNT]>,
 ) -> [Vec<TripletAggregate>; SpacePair::COUNT] {
@@ -520,8 +495,7 @@ fn transpose_triplets(
     columns
 }
 
-/// Splits per-anchor space-pair cell arrays into per-pair cell rows,
-/// preserving the pair order.
+/// Splits per-anchor space-pair cell arrays into per-pair cell rows, preserving the pair order.
 fn transpose_pairs(
     cells: Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
 ) -> [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] {
@@ -575,9 +549,8 @@ impl<E: Error + 'static> Error for DeliveryError<E> {
 
 /// Matches an unordered delivery stream against its requests.
 ///
-/// Probe-scoped dataset streams owe no delivery order and identify
-/// their items only by source id, so deliveries are matched by id
-/// bytes and checked for completeness - every requested id exactly
+/// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
+/// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
 /// once, nothing else - and the payloads return in request order.
 #[expect(
     clippy::future_not_send,

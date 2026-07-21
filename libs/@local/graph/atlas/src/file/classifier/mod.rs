@@ -1,15 +1,13 @@
 //! The classifier file: the fitted relation-policy model in one file.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! This is a combined file: the coefficient rows, the applicability
-//! moments, and the training distances are fitted together, meaningless
-//! apart, and always read together, so the whole model lives in one file
-//! and cannot fall out of sync. The scalar parameters - temperature and
+//! This is a combined file: the coefficient rows, the applicability moments, and the training
+//! distances are fitted together, meaningless apart, and always read together, so the whole model
+//! lives in one file and cannot fall out of sync. The scalar parameters - temperature and
 //! intercepts - ride in the header. The regions:
 //!
 //! ```text
@@ -33,21 +31,18 @@
 //! | ...    |      | distances: `f64[T]` sorted training distances   |
 //! ```
 //!
-//! The class count 3 is pinned by the layout version: the class schema
-//! is versioned with the model, and a new schema is a new layout, never
-//! a runtime extension. All region offsets derive from `D` and `T` with
-//! checked arithmetic ([`FileHeader::expected_file_len`]); a header
-//! whose geometry overflows matches no real file. Every region starts on
-//! a 4096-byte boundary, so the whole-file-mapping alignment guarantee
-//! of the array format applies unchanged: map the whole file and slice,
-//! never mmap at a file offset.
+//! The class count 3 is pinned by the layout version: the class schema is versioned with the model,
+//! and a new schema is a new layout, never a runtime extension. All region offsets derive from `D`
+//! and `T` with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose geometry
+//! overflows matches no real file. Every region starts on a 4096-byte boundary, so the
+//! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
+//! and slice, never mmap at a file offset.
 //!
-//! [`read::ClassifierFile`] opens a file under these rules and hands out
-//! the raw typed regions; [`write::write_regions`] streams them into
-//! place. The format owns geometry alone - the model's domain invariants
-//! (finite parameters, positive temperature, positive inverse scales,
-//! sorted nonnegative distances) are `salt::policy::classifier`'s
-//! artifact contract, validated where the domain types live.
+//! [`read::ClassifierFile`] opens a file under these rules and hands out the raw typed regions;
+//! [`write::write_regions`] streams them into place. The format owns geometry alone - the model's
+//! domain invariants (finite parameters, positive temperature, positive inverse scales, sorted
+//! nonnegative distances) are `salt::policy::classifier`'s artifact contract, validated where the
+//! domain types live.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -113,8 +108,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Classifier);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -160,9 +156,8 @@ impl FileHeader {
     /// Size of the header, and the offset of the coefficients region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for a `D = dimension` model whose applicability
-    /// evidence holds `distances` training distances, with the scalar
-    /// parameters verbatim.
+    /// Creates a header for a `D = dimension` model whose applicability evidence holds `distances`
+    /// training distances, with the scalar parameters verbatim.
     #[must_use]
     pub(crate) const fn new(
         dimension: u64,
@@ -225,9 +220,9 @@ impl FileHeader {
 
     /// Returns the offset of the mean region.
     ///
-    /// The coefficients region sits between the header and this offset,
-    /// zero padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The coefficients region sits between the header and this offset, zero padded to the
+    /// boundary. Returns `None` when the geometry overflows `u64`, in which case no real file
+    /// matches the header.
     #[must_use]
     pub(crate) fn mean_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(CLASSES as u64, self.vector_bytes()?)?)
@@ -235,8 +230,8 @@ impl FileHeader {
 
     /// Returns the offset of the inverse-scales region.
     ///
-    /// Returns `None` when the geometry overflows `u64`, in which case
-    /// no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn inverse_scales_offset(&self) -> Option<u64> {
         self.mean_offset()?
@@ -245,8 +240,8 @@ impl FileHeader {
 
     /// Returns the offset of the distances region.
     ///
-    /// Returns `None` when the geometry overflows `u64`, in which case
-    /// no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn distances_offset(&self) -> Option<u64> {
         self.inverse_scales_offset()?
@@ -255,9 +250,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let distance_bytes = self.distance_count().checked_mul(size_of::<f64>() as u64)?;

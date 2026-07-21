@@ -25,11 +25,10 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// The five-node fixture with a parallel pair, a self-loop, and a
-/// zero-degree node.
+/// The five-node fixture with a parallel pair, a self-loop, and a zero-degree node.
 ///
-/// Edge rows: 0 and 3 both `0 -> 1` (parallel), 1 is `2 -> 3`, 2 is the
-/// self-loop `3 -> 3`. Node row 4 touches nothing.
+/// Edge rows: 0 and 3 both `0 -> 1` (parallel), 1 is `2 -> 3`, 2 is the self-loop `3 -> 3`. Node
+/// row 4 touches nothing.
 const ENDPOINTS: [[u64; 2]; 4] = [[0, 1], [2, 3], [3, 3], [0, 1]];
 const ROWS: usize = 5;
 
@@ -126,8 +125,7 @@ fn an_edgeless_corpus_builds_empty_lists() {
     );
 }
 
-/// Writes a hand-built structure-only matrix and opens it as a mapped
-/// adjacency.
+/// Writes a hand-built structure-only matrix and opens it as a mapped adjacency.
 fn open_structure(
     dir: &Utf8PathBuf,
     name: &str,
@@ -196,9 +194,10 @@ fn violated_list_invariants_are_rejected() {
     ));
 }
 
-/// A fencepost column anchored past zero passes the compressed-row
-/// check - the entry count reads relative to the first post - but
-/// leaves leading slots no run owns, which the adjacency rejects.
+/// A fencepost column anchored past zero passes the compressed-row check.
+///
+/// The entry count reads relative to the first post - but leaves leading slots no run owns, which
+/// the adjacency rejects.
 #[test]
 #[expect(
     clippy::little_endian_bytes,
@@ -252,9 +251,9 @@ fn the_build_is_independent_of_the_endpoint_values_within_a_row() {
     assert_eq!(list(mapped.incident(NodeRowId::new(3))), [3, 1, 3]);
 }
 
-/// Wide indices read back through the same accessors: a hand-built
-/// eight-byte matrix validates and serves runs like the narrow files
-/// the writer emits.
+/// Wide indices read back through the same accessors.
+///
+/// A hand-built eight-byte matrix validates and serves runs like the narrow files the writer emits.
 #[test]
 fn wide_indices_read_back() {
     let dir = scratch("wide");

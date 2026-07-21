@@ -12,9 +12,8 @@ pub(crate) const POINTS: [Vec2; 4] = [
 
 /// Asserts two vectors agree up to a magnitude-scaled tolerance.
 ///
-/// The tolerance is a few dozen ulps of the expected value, which absorbs
-/// the rounding of trigonometry, FMA contraction, and inverse round trips
-/// without accepting real errors.
+/// The tolerance is a few dozen ulps of the expected value, which absorbs the rounding of
+/// trigonometry, FMA contraction, and inverse round trips without accepting real errors.
 #[track_caller]
 pub(crate) fn assert_vec2_close(actual: Vec2, expected: Vec2) {
     let tolerance = |reference: f32| 32.0 * f32::EPSILON * reference.abs().max(1.0);

@@ -90,9 +90,8 @@ impl Error for KnnValidationError {}
 
 /// Checks every table invariant over a borrowed matrix.
 ///
-/// Structural invariants (in-bounds, strictly ascending row entries,
-/// consistent pointers) hold for any existing [`KnnMatrixView`]; this
-/// checks the domain invariants layered on top.
+/// Structural invariants (in-bounds, strictly ascending row entries, consistent pointers) hold for
+/// any existing [`KnnMatrixView`]; this checks the domain invariants layered on top.
 pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationError> {
     if !matrix.is_csr() {
         return Err(KnnValidationError::ColumnCompressed);
@@ -150,14 +149,11 @@ pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationErr
     Ok(())
 }
 
-/// The table's matrix layout: `u32` neighbour columns under `u64` row
-/// pointers.
+/// The table's matrix layout: `u32` neighbour columns under `u64` row pointers.
 ///
-/// Columns are `u32` because node rows are bound to a `u32` encoding
-/// end to end (the wire row ids, the search backend's item keys, the
-/// persisted column region); row pointers are `u64` so the persisted
-/// and resident layouts coincide and a mapped table is the same type
-/// as a built one.
+/// Columns are `u32` because node rows are bound to a `u32` encoding end to end (the wire row ids,
+/// the search backend's item keys, the persisted column region); row pointers are `u64` so the
+/// persisted and resident layouts coincide and a mapped table is the same type as a built one.
 pub(crate) type KnnMatrix = CsMatI<f32, u32, u64>;
 
 /// A borrowed [`KnnMatrix`].
@@ -165,16 +161,14 @@ pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 
 /// The persisted directed k-nearest-neighbour table of one generation.
 ///
-/// A square compressed sparse row matrix over the node-row domain: row
-/// `i` stores the cosine distances of the `k` nearest non-self
-/// neighbours of node row `i`, keyed by neighbour row in ascending row
-/// order. Every row stores exactly `k` entries, no row references
-/// itself, and every distance is finite in `[0, 2]`. The row format
-/// makes duplicate neighbours unrepresentable: entries within a row are
-/// strictly ascending by column.
+/// A square compressed sparse row matrix over the node-row domain: row `i` stores the cosine
+/// distances of the `k` nearest non-self neighbours of node row `i`, keyed by neighbour row in
+/// ascending row order. Every row stores exactly `k` entries, no row references itself, and every
+/// distance is finite in `[0, 2]`. The row format makes duplicate neighbours unrepresentable:
+/// entries within a row are strictly ascending by column.
 ///
-/// A `0.0` distance is a stored value (duplicate embeddings are exactly
-/// coincident), never an absent entry.
+/// A `0.0` distance is a stored value (duplicate embeddings are exactly coincident), never an
+/// absent entry.
 #[derive(Debug, Clone)]
 pub(crate) struct Knn(KnnMatrix);
 
@@ -183,28 +177,23 @@ impl Knn {
     ///
     /// # Errors
     ///
-    /// Returns an error when the matrix is not row-compressed, not
-    /// square over at least two rows, ragged, self-referencing, or
-    /// carries a distance outside the finite `[0, 2]` range.
+    /// Returns an error when the matrix is not row-compressed, not square over at least two rows,
+    /// ragged, self-referencing, or carries a distance outside the finite `[0, 2]` range.
     pub(crate) fn new(matrix: KnnMatrix) -> Result<Self, KnnValidationError> {
         validate(matrix.view())?;
         Ok(Self(matrix))
     }
 
-    /// Queries every node row of `index` and assembles the validated
-    /// table.
+    /// Queries every node row of `index` and assembles the validated table.
     ///
-    /// The backend must hold exactly the rows `0..rows`, already built.
-    /// Rows are queried in parallel; the assembled table is
-    /// deterministic for a deterministic backend because each row's
-    /// results are written to that row's slot regardless of completion
-    /// order.
+    /// The backend must hold exactly the rows `0..rows`, already built. Rows are queried in
+    /// parallel; the assembled table is deterministic for a deterministic backend because each
+    /// row's results are written to that row's slot regardless of completion order.
     ///
     /// # Errors
     ///
-    /// Returns an error when the backend fails, returns a malformed or
-    /// short result, or the assembled table violates a [`Knn`]
-    /// invariant.
+    /// Returns an error when the backend fails, returns a malformed or short result, or the
+    /// assembled table violates a [`Knn`] invariant.
     pub(crate) fn build<I>(
         index: &I,
         rows: usize,
@@ -343,8 +332,8 @@ pub(crate) struct KnnView<'view>(KnnMatrixView<'view>);
 impl<'view> KnnView<'view> {
     /// Wraps a matrix whose invariants already hold.
     ///
-    /// The caller promises the matrix passed [`validate`]; the wrapper
-    /// performs no checks of its own.
+    /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
+    /// own.
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: KnnMatrixView<'view>) -> Self {

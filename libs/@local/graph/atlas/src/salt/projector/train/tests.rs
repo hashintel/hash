@@ -1,7 +1,7 @@
-//! Certificates for the training-step machinery: deterministic seeded
-//! draws, estimator scales, batch-local re-indexing, hand-computed
-//! objective fields verified through autodiff, budget-clip wiring, and
-//! the reporting buckets.
+//! Certificates for the training-step machinery.
+//!
+//! Deterministic seeded draws, estimator scales, batch-local re-indexing, hand-computed objective
+//! fields verified through autodiff, budget-clip wiring, and the reporting buckets.
 
 #![expect(
     clippy::float_cmp,
@@ -136,10 +136,10 @@ fn relation_indexes(
     .expect("the fixture instances satisfy the input contract")
 }
 
-/// The affinity energy of the dyadic fixtures: `a = 1, b = 1,
-/// epsilon = 0.5`, so at squared distance one both logarithm arguments
-/// are exactly one (zero value) and the derivative mass is exactly
-/// `0.25`.
+/// The affinity energy of the dyadic fixtures.
+///
+/// `a = 1, b = 1, epsilon = 0.5`, so at squared distance one both logarithm arguments are exactly
+/// one (zero value) and the derivative mass is exactly `0.25`.
 fn affinity() -> AffinityEnergy {
     AffinityEnergy::new(
         AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
@@ -148,10 +148,10 @@ fn affinity() -> AffinityEnergy {
     .expect("the fixture epsilon is valid")
 }
 
-/// The relation energy of the dyadic fixtures: Proximal radius one at
-/// temperature one half, so `z = 1` sits exactly on the radius with
-/// derivative `sigmoid(0) = 0.5`; the scale guard is `0.5` so unit
-/// normalization comes from local scales of `0.5`.
+/// The relation energy of the dyadic fixtures: Proximal radius one at temperature one half.
+///
+/// So `z = 1` sits exactly on the radius with derivative `sigmoid(0) = 0.5`; the scale guard is
+/// `0.5` so unit normalization comes from local scales of `0.5`.
 fn relation_energy() -> RelationEnergy {
     RelationEnergy::new(
         CoincidentEnergy::new(0.25, 1.0).expect("the fixture coincident energy is valid"),
@@ -165,10 +165,10 @@ fn support_options() -> SupportOptions {
     SupportOptions::new(1.0, 0.5).expect("the fixture support options are valid")
 }
 
-/// Coefficients used by the objective fixtures: `lambda_S = 0.5` pairs
-/// with a semantic scale of two for a unit semantic factor, and
-/// `lambda_N = 2` doubles the ordinary term so the two families are
-/// distinguishable in the combined field.
+/// Coefficients used by the objective fixtures.
+///
+/// `lambda_S = 0.5` pairs with a semantic scale of two for a unit semantic factor, and `lambda_N =
+/// 2` doubles the ordinary term so the two families are distinguishable in the combined field.
 fn coefficients() -> Coefficients {
     Coefficients::new(0.5, 2.0, 1.0, 1.0, 1.0, 1.0).expect("the fixture coefficients are valid")
 }
@@ -595,9 +595,10 @@ fn objective_matches_the_hand_computed_semantic_field() {
     assert_eq!(metrics.overall().nodes(), 0);
 }
 
-/// The relation fixture: rows {0, 1} at unit distance, one semantic
-/// pair, and one single-edge Proximal group whose hand factors are
-/// exactly `c = 1`, `nu = 0.5`, class weights `(0, 1)`, strength one.
+/// The relation fixture.
+///
+/// Rows {0, 1} at unit distance, one semantic pair, and one single-edge Proximal group whose hand
+/// factors are exactly `c = 1`, `nu = 0.5`, class weights `(0, 1)`, strength one.
 fn relation_fixture() -> (RelationIndexes, LocalScales) {
     let indexes = relation_indexes(2, &[proximal_policy(7)], vec![instance(0, 7, 0, 1)]);
     let scales =
@@ -898,18 +899,17 @@ fn displacement_summary_reports_every_axis() {
 
 /// Corpus rows of the padding fixtures.
 ///
-/// Exactly 32 rows participate in the gradient certificate's batch:
-/// at 32 every tensor of both the padded and the unpadded graph
-/// reaches the CPU backend's SIMD dispatch threshold, so both graphs
-/// compute with the same element-wise kernels. Below it the dispatch
-/// is mixed and the comparison measures the backend's reciprocal
-/// estimate (the SIMD reciprocal is a hardware approximation that the
-/// autodiff division backward consumes), not the padding.
+/// Exactly 32 rows participate in the gradient certificate's batch: at 32 every tensor of both the
+/// padded and the unpadded graph reaches the CPU backend's SIMD dispatch threshold, so both graphs
+/// compute with the same element-wise kernels. Below it the dispatch is mixed and the comparison
+/// measures the backend's reciprocal estimate (the SIMD reciprocal is a hardware approximation that
+/// the autodiff division backward consumes), not the padding.
 const PADDING_ROWS: usize = 32;
 const PADDING_CAPACITY: usize = PADDING_ROWS * PROJECTOR_DIMENSIONS;
 
-/// Builds the padding fixtures' input columns: distinct dyadic
-/// representations and cycled roles over [`PADDING_ROWS`] corpus rows.
+/// Builds the padding fixtures' input columns.
+///
+/// Distinct dyadic representations and cycled roles over [`PADDING_ROWS`] corpus rows.
 fn padding_columns() -> (BoxedVecN<PADDING_CAPACITY>, Vec<NodeRole>) {
     let mut storage = BoxedVecN::zero();
     let array = storage.as_array_mut();
@@ -946,10 +946,9 @@ fn padding_column_view<'corpus>(
 
 /// Nudges every parameter off its initialization.
 ///
-/// The identity-contract layers initialize to zero and would block
-/// gradient flow into the deep block parameters, leaving the padding
-/// certificate comparing zeros with zeros; a deterministic ramp makes
-/// every parameter's gradient generically nonzero.
+/// The identity-contract layers initialize to zero and would block gradient flow into the deep
+/// block parameters, leaving the padding certificate comparing zeros with zeros; a deterministic
+/// ramp makes every parameter's gradient generically nonzero.
 struct Perturb;
 
 impl ModuleMapper<TestBackend> for Perturb {

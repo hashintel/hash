@@ -1,456 +1,351 @@
-//! SLEEF transcendental kernels, vendored verbatim.
+//! Vectorized transcendental kernels for the SIMD wrappers in
+//! [`math::kernel`](super).
 //!
-//! Every function, helper, and constant in this module is vendored
-//! verbatim from the [`sleef`] crate, version 0.3.3 (MIT OR
-//! Apache-2.0), a pure-Rust port of the SLEEF vector math library
-//! (Naoki Shibata and contributors, Boost Software License 1.0):
-//! <https://github.com/burrbull/sleef-rs>. The comments inside the
-//! function bodies keep the upstream style so the code stays
-//! diffable against its source; the house documentation register
-//! does not apply to this file.
+//! [`exp_f32`], [`exp2_f32`], [`log2_f32`], and [`exp_f64`] evaluate
+//! their function on every lane of a portable-SIMD vector without a
+//! libm call, in three steps each: range reduction splits the input
+//! into an integer power of two and a small residual, a short minimax
+//! polynomial approximates the function on the residual, and
+//! reconstruction applies the power of two through direct
+//! exponent-field arithmetic. Each function documents its own error
+//! bound; the bounds are inherited from the SLEEF accuracy tiers the
+//! kernels derive from (`u10` is within 1.0 ULP, `u35` within 3.5).
 //!
-//! The vendored surface is exactly the four entry points the crate
-//! consumes through [`math::kernel`](super): `expf` (1.0-ulp f32
-//! exponential), `exp2f` and `log2f` (3.5-ulp f32 stages composing
-//! the power kernel), and `exp` (1.0-ulp f64 exponential), plus the
-//! reconstruction helpers and range-reduction constants they reach.
+//! # Reproducibility contract
 //!
-//! Deliberate divergences from upstream, all bit-preserving on every
-//! target this crate builds for today:
+//! Fit artifacts are content-hashed, so these kernels must produce
+//! bit-identical results on every target the crate builds for. Two
+//! properties carry that guarantee:
 //!
-//! - `mla` is pinned to separate multiply-add. Upstream branches on `cfg!(target_feature = "fma")`,
-//!   a flag that is false on aarch64 (the cfg string is x86-only) and on default x86-64 builds, so
-//!   the pin equals upstream behavior on both real targets while removing the silent result change
-//!   a `+fma` build would cause. Content-hashed fit artifacts depend on this pin; changing it is a
-//!   fit-format epoch, not a flag flip.
-//! - `exp` keeps only upstream's non-FMA coefficient branch, the one selected under the pin above.
-//!   Upstream's FMA branch carries a different degree-10 coefficient set; vendoring one set is what
-//!   keeps the function's results identical across architectures.
-//! - Upstream's associated-constant sugar (`F32x::R_LN2`) is flattened to module constants applied
-//!   through `Simd::splat`, and its `Poly` trait to standalone functions. The values and the
-//!   operation order are unchanged.
+//! - [`MulAdd::mla`] is pinned to separate multiply and add. A fused `mul_add` rounds once instead
+//!   of twice and therefore changes result bits; adopting it is a fit-format epoch (every content
+//!   hash re-blessed), never a build-flag flip.
+//! - Every step is plain `f32`/`f64` lane arithmetic, bit shifts, and lane selects, with one
+//!   rounding per operation as IEEE 754 requires; no step depends on a target-specific instruction.
+//!
+//! # Provenance and divergences
+//!
+//! The algorithms, evaluation order, polynomial coefficients, and
+//! range-reduction constants are from the [`sleef`] crate, version
+//! 0.3.3 (MIT OR Apache-2.0), a pure-Rust port of the SLEEF vector
+//! math library (Naoki Shibata and contributors, Boost Software
+//! License 1.0): <https://github.com/burrbull/sleef-rs>. The entry
+//! points correspond to upstream's `f32x::exp_u10`, `f32x::exp2_u35`,
+//! `f32x::log2_u35`, and `f64x::exp_u10`. This module diverges from
+//! upstream in form, never in result bits:
+//!
+//! - `mla` is pinned as the contract above states. Upstream selects fused `mul_add` under
+//!   `cfg!(target_feature = "fma")`, an x86-only cfg string that is false on aarch64 and on default
+//!   x86-64 builds, so the pin equals upstream behavior on both targets the crate builds for today.
+//! - `exp_f64` keeps only the coefficient set of upstream's non-FMA branch, the one the pin
+//!   selects. Upstream's FMA branch carries a different degree-10 set; one set is what keeps
+//!   results identical across architectures.
+//! - Nearest-integer rounding uses [`round_ties_even`](std::simd::StdFloat::round_ties_even)
+//!   directly. Upstream computes the same round-half-to-even through an add-subtract trick against
+//!   `2^23` (`2^52` for `f64`) plus sign restoration, predating the portable-SIMD API; the
+//!   intrinsic returns the identical value in every rounding regime, including the pass-through
+//!   above `2^23` where the trick's guard bit runs out.
+//! - Lane suppression uses mask selects against zero where upstream masks the raw bits through a
+//!   sign-extended integer AND; names, the `Poly`/`Sign` trait helpers (flattened to explicit
+//!   Estrin steps and plain functions), and constant spellings (shortest round-trip literals,
+//!   `core` constants where the value is exactly a named one) follow this crate's conventions.
+//!
+//! # Verification
 //!
 //! The tests at the bottom of this file prove bit-identity against
 //! the `sleef` crate itself (a dev-dependency) across strided sweeps
-//! of the full input bit range, special values included.
-#![expect(
-    clippy::approx_constant,
-    clippy::cast_precision_loss,
-    clippy::doc_paragraphs_missing_punctuation,
-    clippy::excessive_precision,
-    clippy::many_single_char_names,
-    clippy::min_ident_chars,
-    clippy::unseparated_literal_suffix,
-    clippy::use_self,
-    reason = "the module is vendored verbatim from sleef 0.3.3; upstream constants, names, and \
-              doc lines stay diffable against their source until the planned house rewrite \
-              dissolves this block under the bit-identity tests"
-)]
+//! of the full input bit range: every exponent, both signs, zeros,
+//! infinities, subnormals, and NaN payloads. A change that alters any
+//! output bit of any lane fails them; a change that survives them is
+//! form, not behavior.
 
 use core::simd::prelude::*;
+use std::simd::StdFloat as _;
 
 type F32x<const N: usize> = Simd<f32, N>;
 type I32x<const N: usize> = Simd<i32, N>;
 type F64x<const N: usize> = Simd<f64, N>;
 type I64x<const N: usize> = Simd<i64, N>;
 
-trait MaskToInt {
-    type Int;
-    fn to_int(self) -> Self::Int;
-}
-
-impl<T, const N: usize> MaskToInt for Mask<T, N>
-where
-    T: std::simd::MaskElement + std::simd::SimdElement + From<i8>,
-{
-    type Int = Simd<T, N>;
-
-    fn to_int(self) -> Self::Int {
-        self.select(Simd::splat(T::from(-1)), Simd::splat(T::from(0)))
-    }
-}
-
-// Range-reduction constants, verbatim from sleef 0.3.3 src/f32.rs
-// and src/f64.rs.
-const L2U_F: f32 = 0.693_145_751_953_125;
-const L2L_F: f32 = 1.428_606_765_330_187_045_e-6;
-const R_LN2_F: f32 =
-    1.442_695_040_888_963_407_359_924_681_001_892_137_426_645_954_152_985_934_135_449_406_931;
-const F1_32: f32 = (1u64 << 32) as f32;
-const F1_23: f32 = (1u32 << 23) as f32;
-const L2_U: f64 = 0.693_147_180_559_662_956_511_601_805_686_950_683_593_75;
-const L2_L: f64 = 0.282_352_905_630_315_771_225_884_481_750_134_360_255_254_120_68_e-12;
-const R_LN2: f64 =
-    1.442_695_040_888_963_407_359_924_681_001_892_137_426_645_954_152_985_934_135_449_406_931;
-const D1_52: f64 = (1u64 << 52) as f64;
-
 /// Multiply-accumulate, pinned to separate multiply and add.
 ///
-/// Upstream selects `mul_add` under `cfg!(target_feature = "fma")`;
-/// this pin is the module's reproducibility contract (see the module
-/// documentation).
+/// The two roundings (one per operation) are part of the module's
+/// reproducibility contract; see the module documentation.
 trait MulAdd {
-    fn mla(self, y: Self, z: Self) -> Self;
+    /// Returns `self * multiplier + addend`, rounding after each
+    /// operation.
+    fn mla(self, multiplier: Self, addend: Self) -> Self;
 }
 
 impl<const N: usize> MulAdd for F32x<N> {
     #[inline]
-    fn mla(self, y: Self, z: Self) -> Self {
-        self * y + z
+    fn mla(self, multiplier: Self, addend: Self) -> Self {
+        self * multiplier + addend
     }
 }
 
 impl<const N: usize> MulAdd for F64x<N> {
     #[inline]
-    fn mla(self, y: Self, z: Self) -> Self {
-        self * y + z
+    fn mla(self, multiplier: Self, addend: Self) -> Self {
+        self * multiplier + addend
     }
 }
 
-trait Sign {
-    type Bits;
-    fn sign_bit(self) -> Self::Bits;
-    fn mul_sign(self, other: Self) -> Self;
-    fn or_sign(self, other: Self) -> Self;
-}
+// ln 2 split into a coarse part whose low mantissa bits are zero and
+// the remainder. Multiplying the coarse part by a small integer is
+// exact, so the range reduction `x - nearest * ln2` loses no bits to
+// the subtraction; the remainder repays the split's truncation.
+const LN2_HI_F32: f32 = 0.693_145_75;
+const LN2_LO_F32: f32 = 1.428_606_8e-6;
+const LN2_HI_F64: f64 = 0.693_147_180_559_663;
+const LN2_LO_F64: f64 = 2.823_529_056_303_157_7e-13;
 
-impl<const N: usize> Sign for F32x<N> {
-    type Bits = Simd<u32, N>;
-
-    #[inline]
-    fn sign_bit(self) -> Self::Bits {
-        self.to_bits() & F32x::splat(-0.).to_bits()
-    }
-
-    #[inline]
-    fn mul_sign(self, other: Self) -> Self {
-        Self::from_bits(self.to_bits() ^ other.sign_bit())
-    }
-
-    #[inline]
-    fn or_sign(self, other: Self) -> Self {
-        Self::from_bits(self.to_bits() | other.sign_bit())
-    }
-}
-
-impl<const N: usize> Sign for F64x<N> {
-    type Bits = Simd<u64, N>;
-
-    #[inline]
-    fn sign_bit(self) -> Self::Bits {
-        self.to_bits() & F64x::splat(-0.).to_bits()
-    }
-
-    #[inline]
-    fn mul_sign(self, other: Self) -> Self {
-        Self::from_bits(self.to_bits() ^ other.sign_bit())
-    }
-
-    #[inline]
-    fn or_sign(self, other: Self) -> Self {
-        Self::from_bits(self.to_bits() | other.sign_bit())
-    }
-}
-
-trait RoundInt {
-    type Int;
-    fn round(self) -> Self;
-    fn roundi(self) -> Self::Int;
-}
-
-impl<const N: usize> RoundInt for F32x<N> {
-    type Int = I32x<N>;
-
-    #[inline]
-    fn round(self) -> Self {
-        rintf(self)
-    }
-
-    #[inline]
-    fn roundi(self) -> Self::Int {
-        self.round().cast()
-    }
-}
-
-impl<const N: usize> RoundInt for F64x<N> {
-    type Int = I32x<N>;
-
-    #[inline]
-    fn round(self) -> Self {
-        rint(self)
-    }
-
-    #[inline]
-    fn roundi(self) -> Self::Int {
-        self.round().cast()
-    }
-}
-
-fn rintf<const N: usize>(d: F32x<N>) -> F32x<N> {
-    /* #ifdef FULL_FP_ROUNDING
-        return vrint_vf_vf(d);
-    #else */
-    let c = F32x::splat(F1_23).mul_sign(d);
-    d.abs()
-        .simd_gt(F32x::splat(F1_23))
-        .select(d, ((d + c) - c).or_sign(d))
-    // #endif
-}
-
-fn rint<const N: usize>(d: F64x<N>) -> F64x<N> {
-    /*
-    #ifdef FULL_FP_ROUNDING
-    return vrint_vd_vd(d);
-    #else
-    */
-    let c = F64x::splat(D1_52).mul_sign(d);
-    d.abs()
-        .simd_gt(F64x::splat(D1_52))
-        .select(d, ((d + c) - c).or_sign(d))
-    //#endif
-}
-
-fn pow2if<const N: usize>(q: I32x<N>) -> F32x<N> {
-    F32x::from_bits(((q + I32x::splat(0x7F)) << I32x::splat(23)).cast())
-}
-
-fn ldexp2kf<const N: usize>(d: F32x<N>, e: I32x<N>) -> F32x<N> {
-    let e1 = e >> I32x::splat(1);
-    d * pow2if(e1) * pow2if(e - e1)
-}
-
-fn ldexp3kf<const N: usize>(d: F32x<N>, q: I32x<N>) -> F32x<N> {
-    F32x::from_bits((d.to_bits().cast() + (q << I32x::splat(23))).cast())
-}
-
-fn ilogb2kf<const N: usize>(d: F32x<N>) -> I32x<N> {
-    let q = d.to_bits().cast();
-    let mut q = q >> I32x::splat(23);
-    q &= I32x::splat(0xFF);
-    q - I32x::splat(0x7F)
-}
-
-fn cast_into_upper<const N: usize>(q: I32x<N>) -> I64x<N> {
-    let q64 = q.cast();
-    q64 << I64x::splat(32)
-}
-
-fn pow2i<const N: usize>(q: I32x<N>) -> F64x<N> {
-    let q = I32x::splat(0x3FF) + q;
-    let r = cast_into_upper(q);
-    F64x::from_bits((r << I64x::splat(20)).cast())
-}
-
-fn ldexp2k<const N: usize>(d: F64x<N>, e: I32x<N>) -> F64x<N> {
-    let e1 = e >> I32x::splat(1);
-    d * pow2i(e1) * pow2i(e - (e1))
-}
-
-fn poly2<const N: usize>(x: F64x<N>, c1: f64, c0: f64) -> F64x<N> {
-    x.mla(F64x::splat(c1), F64x::splat(c0))
-}
-
-fn poly4<const N: usize>(x: F64x<N>, x2: F64x<N>, c3: f64, c2: f64, c1: f64, c0: f64) -> F64x<N> {
-    x2.mla(
-        x.mla(F64x::splat(c3), F64x::splat(c2)),
-        x.mla(F64x::splat(c1), F64x::splat(c0)),
-    )
-}
-
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the signature is vendored verbatim from sleef's `Poly` trait"
-)]
-fn poly8<const N: usize>(
-    x: F64x<N>,
-    x2: F64x<N>,
-    x4: F64x<N>,
-    c7: f64,
-    c6: f64,
-    c5: f64,
-    c4: f64,
-    c3: f64,
-    c2: f64,
-    c1: f64,
-    c0: f64,
-) -> F64x<N> {
-    x4.mla(poly4(x, x2, c7, c6, c5, c4), poly4(x, x2, c3, c2, c1, c0))
-}
-
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the signature is vendored verbatim from sleef's `Poly` trait"
-)]
-fn poly10<const N: usize>(
-    x: F64x<N>,
-    x2: F64x<N>,
-    x4: F64x<N>,
-    x8: F64x<N>,
-    c9: f64,
-    c8: f64,
-    c7: f64,
-    c6: f64,
-    c5: f64,
-    c4: f64,
-    c3: f64,
-    c2: f64,
-    c1: f64,
-    c0: f64,
-) -> F64x<N> {
-    x8.mla(
-        poly2(x, c9, c8),
-        poly8(x, x2, x4, c7, c6, c5, c4, c3, c2, c1, c0),
-    )
-}
-
-/// Base-*e* exponential function
+/// Two raised to each lane of `exponent`, by constructing the
+/// exponent field of the result directly.
 ///
-/// This function returns the value of *e* raised to ***a***.
-/// The error bound of the returned value is `1.0 ULP`.
-pub(super) fn expf<const N: usize>(d: F32x<N>) -> F32x<N> {
-    let q = (d * F32x::splat(R_LN2_F)).roundi();
+/// Exact for exponents where the result is a normal `f32`; the
+/// callers keep exponents in that range by splitting (see
+/// [`scale_by_pow2_f32`]).
+fn pow2_f32<const N: usize>(exponent: I32x<N>) -> F32x<N> {
+    // 0x7F is the f32 exponent bias; 23 the mantissa width.
+    F32x::from_bits(((exponent + I32x::splat(0x7F)) << I32x::splat(23)).cast())
+}
 
-    let s = q.cast::<f32>().mla(-F32x::splat(L2U_F), d);
-    let s = q.cast::<f32>().mla(-F32x::splat(L2L_F), s);
+/// Two raised to each lane of `exponent`, as `f64`.
+///
+/// The `f64` counterpart of [`pow2_f32`]; exact for exponents where
+/// the result is a normal `f64`.
+fn pow2_f64<const N: usize>(exponent: I32x<N>) -> F64x<N> {
+    // 0x3FF is the f64 exponent bias; the field starts 20 bits into
+    // the upper half of the word, so the biased value is widened to
+    // the upper 32 bits first and shifted into place there.
+    let biased = I32x::splat(0x3FF) + exponent;
+    let upper = biased.cast::<i64>() << I64x::splat(32);
+    F64x::from_bits((upper << I64x::splat(20)).cast())
+}
 
-    let mut u = F32x::splat(0.000_198_527_617_612_853_646_278_381)
-        .mla(s, F32x::splat(0.001_393_043_552_525_341_510_772_71))
-        .mla(s, F32x::splat(0.008_333_360_776_305_198_669_433_59))
-        .mla(s, F32x::splat(0.041_666_485_369_205_474_853_515_6))
-        .mla(s, F32x::splat(0.166_666_671_633_720_397_949_219))
-        .mla(s, F32x::splat(0.5));
+/// Scales each lane by two raised to `exponent`, in two half-steps.
+///
+/// Applying `2^(exponent/2)` twice keeps each factor a normal number
+/// for the exponent range the reconstruction step produces, where a
+/// single factor could overflow or flush to zero before the scaled
+/// value lands back in range.
+fn scale_by_pow2_f32<const N: usize>(values: F32x<N>, exponent: I32x<N>) -> F32x<N> {
+    let half = exponent >> I32x::splat(1);
+    values * pow2_f32(half) * pow2_f32(exponent - half)
+}
 
-    u = F32x::splat(1.) + (s * s).mla(u, s);
+/// Scales each lane by two raised to `exponent`, as `f64`.
+///
+/// The `f64` counterpart of [`scale_by_pow2_f32`].
+fn scale_by_pow2_f64<const N: usize>(values: F64x<N>, exponent: I32x<N>) -> F64x<N> {
+    let half = exponent >> I32x::splat(1);
+    values * pow2_f64(half) * pow2_f64(exponent - half)
+}
 
-    u = ldexp2kf(u, q);
+/// Scales each lane by two raised to `exponent`, by adding to the
+/// exponent field in place.
+///
+/// One integer add instead of two multiplies, valid only while input
+/// and result are both normal numbers; the caller guarantees the
+/// range.
+fn scale_by_pow2_direct_f32<const N: usize>(values: F32x<N>, exponent: I32x<N>) -> F32x<N> {
+    F32x::from_bits((values.to_bits().cast() + (exponent << I32x::splat(23))).cast())
+}
 
-    u = F32x::from_bits(!d.simd_lt(F32x::splat(-104.)).to_int().cast::<u32>() & u.to_bits());
+/// The unbiased binary exponent of each lane, read from the exponent
+/// field.
+///
+/// For a normal lane this is `floor(log2(|lane|))`; subnormal lanes
+/// are scaled into the normal range by the caller first.
+fn binary_exponent_f32<const N: usize>(values: F32x<N>) -> I32x<N> {
+    let field = (values.to_bits().cast::<i32>() >> I32x::splat(23)) & I32x::splat(0xFF);
+    field - I32x::splat(0x7F)
+}
+
+/// Base-e exponential of each lane, within 1.0 ULP of the exact
+/// value.
+///
+/// A zero lane yields exactly one and a negative-infinity lane
+/// exactly zero. Lanes above 100 yield positive infinity and lanes
+/// below -104 exactly zero, brackets outside `f32` range either way;
+/// NaN propagates.
+pub(super) fn exp_f32<const N: usize>(values: F32x<N>) -> F32x<N> {
+    // Reduce: values = nearest * ln2 + reduced, |reduced| <= ln2 / 2.
+    let nearest = (values * F32x::splat(core::f32::consts::LOG2_E)).round_ties_even();
+    let exponent = nearest.cast::<i32>();
+    let reduced = exponent.cast::<f32>().mla(-F32x::splat(LN2_HI_F32), values);
+    let reduced = exponent
+        .cast::<f32>()
+        .mla(-F32x::splat(LN2_LO_F32), reduced);
+
+    // Approximate: exp(r) = 1 + r + r^2 * (1/2 + r * P(r)) with P a
+    // degree-4 tail of minimax-tuned reciprocal factorials 1/3!
+    // through 1/7!.
+    let tail = F32x::splat(0.000_198_527_62)
+        .mla(reduced, F32x::splat(0.001_393_043_6))
+        .mla(reduced, F32x::splat(0.008_333_361))
+        .mla(reduced, F32x::splat(0.041_666_485))
+        .mla(reduced, F32x::splat(0.166_666_67))
+        .mla(reduced, F32x::splat(0.5));
+    let poly = F32x::splat(1.) + (reduced * reduced).mla(tail, reduced);
+
+    // Reconstruct: exp(values) = 2^exponent * exp(reduced).
+    let result = scale_by_pow2_f32(poly, exponent);
+
+    let result = values
+        .simd_lt(F32x::splat(-104.))
+        .select(F32x::splat(0.), result);
     F32x::splat(100.)
-        .simd_lt(d)
-        .select(F32x::splat(f32::INFINITY), u)
+        .simd_lt(values)
+        .select(F32x::splat(f32::INFINITY), result)
 }
 
-/// Base-2 exponential function
+/// Base-2 exponential of each lane, within 3.5 ULP of the exact
+/// value.
 ///
-/// This function returns 2 raised to ***a***.
-/// The error bound of the returned value is `3.5 ULP`.
-pub(super) fn exp2f<const N: usize>(d: F32x<N>) -> F32x<N> {
-    let mut u = d.round();
-    let q = u.roundi();
+/// Lanes at or above 128 yield positive infinity and lanes below
+/// -150 exactly zero, the `f32` overflow and underflow bounds; NaN
+/// propagates.
+pub(super) fn exp2_f32<const N: usize>(values: F32x<N>) -> F32x<N> {
+    // Reduce: values = nearest + fraction, |fraction| <= 1/2; the
+    // integer part goes straight into the exponent field.
+    let nearest = values.round_ties_even();
+    let exponent = nearest.cast::<i32>();
+    let fraction = values - nearest;
 
-    let s = d - u;
+    // Approximate 2^fraction with a degree-6 minimax polynomial; the
+    // leading coefficients are ln(2)^k / k!.
+    let poly = F32x::splat(0.000_153_592_09)
+        .mla(fraction, F32x::splat(0.001_339_262_7))
+        .mla(fraction, F32x::splat(0.009_618_385))
+        .mla(fraction, F32x::splat(0.055_503_473))
+        .mla(fraction, F32x::splat(0.240_226_45))
+        .mla(fraction, F32x::splat(core::f32::consts::LN_2))
+        .mla(fraction, F32x::splat(1.));
 
-    u = F32x::splat(0.153_592_089_2_e-3)
-        .mla(s, F32x::splat(0.133_926_270_1_e-2))
-        .mla(s, F32x::splat(0.961_838_476_4_e-2))
-        .mla(s, F32x::splat(0.555_034_726_9_e-1))
-        .mla(s, F32x::splat(0.240_226_447_6))
-        .mla(s, F32x::splat(0.693_147_182_5))
-        .mla(s, F32x::splat(0.1_e+1));
+    // Reconstruct: 2^values = 2^exponent * 2^fraction.
+    let result = scale_by_pow2_f32(poly, exponent);
 
-    u = ldexp2kf(u, q);
-
-    u = d
+    let result = values
         .simd_ge(F32x::splat(128.))
-        .select(F32x::splat(f32::INFINITY), u);
-    F32x::from_bits(!d.simd_lt(F32x::splat(-150.)).to_int().cast::<u32>() & u.to_bits())
+        .select(F32x::splat(f32::INFINITY), result);
+    values
+        .simd_lt(F32x::splat(-150.))
+        .select(F32x::splat(0.), result)
 }
 
-/// Base-2 logarithm function
+/// Base-2 logarithm of each lane, within 3.5 ULP of the exact value.
 ///
-/// This function returns the base-2 logarithm of ***a***.
-/// The error bound of the returned value is `3.5 ULP`.
-pub(super) fn log2f<const N: usize>(mut d: F32x<N>) -> F32x<N> {
-    //if !cfg!(feature = "enable_avx512f") && !cfg!(feature = "enable_avx512fnofma")
-    let (m, e) = {
-        let o = d.simd_lt(F32x::splat(f32::MIN_POSITIVE));
-        d = o.select(d * (F32x::splat(F1_32) * F32x::splat(F1_32)), d);
-        let e = ilogb2kf(d * F32x::splat(1. / 0.75));
-        (ldexp3kf(d, -e), o.select(e - I32x::splat(64), e))
-        /*} else {
-            let e = vgetexp_vf_vf(d * F32x::splat(1./0.75));
-            (vgetmant_vf_vf(d), e.simd_eq(F32x::INFINITY).select(F32x::splat(128.), e))
-        */
-    };
+/// A zero lane yields negative infinity, a positive-infinity lane
+/// positive infinity, and a negative lane NaN; NaN propagates.
+pub(super) fn log2_f32<const N: usize>(values: F32x<N>) -> F32x<N> {
+    // Scale subnormal lanes into the normal range so the exponent
+    // field read is exact; the 2^64 factor is repaid on the exponent
+    // afterwards.
+    let is_subnormal = values.simd_lt(F32x::splat(f32::MIN_POSITIVE));
+    let scaled = is_subnormal.select(values * F32x::splat(1.844_674_4e19), values);
 
-    let x = (m - F32x::splat(1.)) / (m + F32x::splat(1.));
-    let x2 = x * x;
+    // Reduce: scaled = 2^exponent * mantissa with mantissa in
+    // [0.75, 1.5); the 1/0.75 factor centers the interval on one,
+    // which keeps the ratio below small in magnitude.
+    let exponent = binary_exponent_f32(scaled * F32x::splat(1. / 0.75));
+    let mantissa = scale_by_pow2_direct_f32(scaled, -exponent);
+    let exponent = is_subnormal.select(exponent - I32x::splat(64), exponent);
 
-    let t = F32x::splat(0.437_408_834_7)
-        .mla(x2, F32x::splat(0.576_484_382_2))
-        .mla(x2, F32x::splat(0.961_802_423));
+    // Approximate: log2(mantissa) via the arctanh identity on
+    // ratio = (mantissa - 1) / (mantissa + 1), an odd series in the
+    // ratio; the constant term of the ladder is 2/ln(2).
+    let ratio = (mantissa - F32x::splat(1.)) / (mantissa + F32x::splat(1.));
+    let ratio_squared = ratio * ratio;
 
-    //if !cfg!(feature = "enable_avx512f") && !cfg!(feature = "enable_avx512fnofma")
-    {
-        let mut r = (x2 * x).mla(t, x.mla(F32x::splat(0.288_539_004_3_e+1), e.cast()));
+    let poly = F32x::splat(0.437_408_83)
+        .mla(ratio_squared, F32x::splat(0.576_484_4))
+        .mla(ratio_squared, F32x::splat(0.961_802_4));
+    let result = (ratio_squared * ratio).mla(
+        poly,
+        ratio.mla(F32x::splat(2. * core::f32::consts::LOG2_E), exponent.cast()),
+    );
 
-        r = d
-            .simd_eq(F32x::splat(f32::INFINITY))
-            .select(F32x::splat(f32::INFINITY), r);
-        r = (d.simd_lt(F32x::splat(0.)) | d.is_nan()).select(F32x::splat(f32::NAN), r);
-        d.simd_eq(F32x::splat(0.))
-            .select(F32x::splat(f32::NEG_INFINITY), r)
-        /*} else {
-            let r = (x2 * x).mla(t, x.mla(F32x::splat(0.288_539_004_3_e+1), e));
-
-            vfixup_vf_vf_vf_vi2_i(r, d, I32::splat((4 << (2*4)) | (3 << (4*4)) | (5 << (5*4)) | (2 << (6*4))), 0)
-        */
-    }
+    let result = values
+        .simd_eq(F32x::splat(f32::INFINITY))
+        .select(F32x::splat(f32::INFINITY), result);
+    let result =
+        (values.simd_lt(F32x::splat(0.)) | values.is_nan()).select(F32x::splat(f32::NAN), result);
+    values
+        .simd_eq(F32x::splat(0.))
+        .select(F32x::splat(f32::NEG_INFINITY), result)
 }
 
-/// Base-*e* exponential function
+/// Base-e exponential of each lane, within 1.0 ULP of the exact
+/// value.
 ///
-/// This function returns the value of *e* raised to ***a***.
-/// The error bound of the returned value is `1.0 ULP`.
-pub(super) fn exp<const N: usize>(d: F64x<N>) -> F64x<N> {
-    let mut u = (d * F64x::splat(R_LN2)).round();
-    let q = u.roundi();
+/// A zero lane yields exactly one and a negative-infinity lane
+/// exactly zero. Lanes above the `f64` overflow bound (about 709.78)
+/// yield positive infinity and lanes below -1000 exactly zero; NaN
+/// propagates.
+pub(super) fn exp_f64<const N: usize>(values: F64x<N>) -> F64x<N> {
+    // Reduce: values = nearest * ln2 + reduced, |reduced| <= ln2 / 2.
+    let nearest = (values * F64x::splat(core::f64::consts::LOG2_E)).round_ties_even();
+    let exponent = nearest.cast::<i32>();
+    let reduced = nearest.mla(-F64x::splat(LN2_HI_F64), values);
+    let reduced = nearest.mla(-F64x::splat(LN2_LO_F64), reduced);
 
-    let s = u.mla(-F64x::splat(L2_U), d);
-    let s = u.mla(-F64x::splat(L2_L), s);
+    // Approximate: exp(r) = 1 + r + r^2 * (1/2 + r * P(r)) with P a
+    // degree-9 tail of minimax-tuned reciprocal factorials 1/3!
+    // through 1/12!, evaluated in Estrin form: coefficient pairs
+    // first, then quads folded over the squared and quartic powers,
+    // then the top pair over the octic power.
+    let reduced_2 = reduced * reduced;
+    let reduced_4 = reduced_2 * reduced_2;
+    let reduced_8 = reduced_4 * reduced_4;
 
-    // Upstream branches on `cfg!(target_feature = "fma")` here with a
-    // second coefficient set; this module keeps only the branch the
-    // `mla` pin selects (see the module documentation).
-    {
-        let s2 = s * s;
-        let s4 = s2 * s2;
-        let s8 = s4 * s4;
+    let pair_01 = reduced.mla(
+        F64x::splat(0.041_666_666_666_666_505),
+        F64x::splat(0.166_666_666_666_666_85),
+    );
+    let pair_23 = reduced.mla(
+        F64x::splat(0.001_388_888_888_897_745),
+        F64x::splat(0.008_333_333_333_316_527),
+    );
+    let pair_45 = reduced.mla(
+        F64x::splat(2.480_158_715_923_547_3e-5),
+        F64x::splat(0.000_198_412_698_960_509_2),
+    );
+    let pair_67 = reduced.mla(
+        F64x::splat(2.755_739_112_349_004_7e-7),
+        F64x::splat(2.755_723_629_119_288_3e-6),
+    );
+    let pair_89 = reduced.mla(
+        F64x::splat(2.088_606_211_072_837e-9),
+        F64x::splat(2.511_129_308_928_765_2e-8),
+    );
 
-        u = poly10(
-            s,
-            s2,
-            s4,
-            s8,
-            2.088_606_211_072_836_875_363_41_e-9,
-            2.511_129_308_928_765_186_106_61_e-8,
-            2.755_739_112_349_004_718_933_38_e-7,
-            2.755_723_629_119_288_276_294_23_e-6,
-            2.480_158_715_923_547_299_879_1_e-5,
-            0.000_198_412_698_960_509_205_564_975,
-            0.001_388_888_888_897_744_922_079_62,
-            0.008_333_333_333_316_527_216_649_84,
-            0.041_666_666_666_666_504_759_142_2,
-            0.166_666_666_666_666_851_703_837,
-        )
-        .mla(s, F64x::splat(0.5));
+    let quad_03 = reduced_2.mla(pair_23, pair_01);
+    let quad_47 = reduced_2.mla(pair_67, pair_45);
+    let oct_07 = reduced_4.mla(quad_47, quad_03);
+    let tail = reduced_8
+        .mla(pair_89, oct_07)
+        .mla(reduced, F64x::splat(0.5));
 
-        u = F64x::splat(1.) + (s * s).mla(u, s);
-    }
+    let poly = F64x::splat(1.) + (reduced * reduced).mla(tail, reduced);
 
-    u = ldexp2k(u, q);
+    // Reconstruct: exp(values) = 2^exponent * exp(reduced).
+    let result = scale_by_pow2_f64(poly, exponent);
 
-    u = d
-        .simd_gt(F64x::splat(709.782_711_149_557_429_092_172_174_26))
-        .select(F64x::splat(f64::INFINITY), u);
-    F64x::from_bits(!d.simd_lt(F64x::splat(-1000.)).to_int().cast::<u64>() & u.to_bits())
+    let result = values
+        .simd_gt(F64x::splat(709.782_711_149_557_5))
+        .select(F64x::splat(f64::INFINITY), result);
+    values
+        .simd_lt(F64x::splat(-1000.))
+        .select(F64x::splat(0.), result)
 }
 
 #[cfg(test)]
 mod tests {
     use core::simd::prelude::*;
 
-    use super::{exp, exp2f, expf, log2f};
+    use super::{exp_f32, exp_f64, exp2_f32, log2_f32};
 
     // The strides are odd so consecutive samples land in different
     // exponent/mantissa phases; full-bit-range iteration covers
@@ -460,7 +355,7 @@ mod tests {
     const F64_STRIDE: usize = 0x0400_0000_000D;
 
     #[test]
-    fn expf_is_bit_identical_to_the_sleef_crate() {
+    fn exp_f32_is_bit_identical_to_the_sleef_crate() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -470,16 +365,16 @@ mod tests {
                 filled = 0;
                 let input = Simd::from_array(lanes);
                 assert_eq!(
-                    expf(input).to_bits(),
+                    exp_f32(input).to_bits(),
                     ::sleef::f32x::exp_u10(input).to_bits(),
-                    "expf diverged from the sleef crate at {input:?}",
+                    "exp_f32 diverged from the sleef crate at {input:?}",
                 );
             }
         }
     }
 
     #[test]
-    fn exp2f_is_bit_identical_to_the_sleef_crate() {
+    fn exp2_f32_is_bit_identical_to_the_sleef_crate() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -489,16 +384,16 @@ mod tests {
                 filled = 0;
                 let input = Simd::from_array(lanes);
                 assert_eq!(
-                    exp2f(input).to_bits(),
+                    exp2_f32(input).to_bits(),
                     ::sleef::f32x::exp2_u35(input).to_bits(),
-                    "exp2f diverged from the sleef crate at {input:?}",
+                    "exp2_f32 diverged from the sleef crate at {input:?}",
                 );
             }
         }
     }
 
     #[test]
-    fn log2f_is_bit_identical_to_the_sleef_crate() {
+    fn log2_f32_is_bit_identical_to_the_sleef_crate() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -508,16 +403,16 @@ mod tests {
                 filled = 0;
                 let input = Simd::from_array(lanes);
                 assert_eq!(
-                    log2f(input).to_bits(),
+                    log2_f32(input).to_bits(),
                     ::sleef::f32x::log2_u35(input).to_bits(),
-                    "log2f diverged from the sleef crate at {input:?}",
+                    "log2_f32 diverged from the sleef crate at {input:?}",
                 );
             }
         }
     }
 
     #[test]
-    fn exp_is_bit_identical_to_the_sleef_crate() {
+    fn exp_f64_is_bit_identical_to_the_sleef_crate() {
         let mut lanes = [0.0_f64; 4];
         let mut filled = 0;
         for bits in (0..=u64::MAX).step_by(F64_STRIDE) {
@@ -527,9 +422,9 @@ mod tests {
                 filled = 0;
                 let input = Simd::from_array(lanes);
                 assert_eq!(
-                    exp(input).to_bits(),
+                    exp_f64(input).to_bits(),
                     ::sleef::f64x::exp_u10(input).to_bits(),
-                    "exp diverged from the sleef crate at {input:?}",
+                    "exp_f64 diverged from the sleef crate at {input:?}",
                 );
             }
         }

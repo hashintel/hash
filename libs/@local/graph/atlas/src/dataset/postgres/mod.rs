@@ -26,13 +26,12 @@ mod card;
 
 /// The node universe shared by every corpus query.
 ///
-/// `$1` is the transaction-time point and `$2` the decision-time point of
-/// the dataset's [`TemporalAxes`].
+/// `$1` is the transaction-time point and `$2` the decision-time point of the dataset's
+/// [`TemporalAxes`].
 ///
-/// `scope` is every non-draft, non-archived entity holding a
-/// whole-entity embedding whose edition is current at the dataset's
-/// temporal axes, with its dense row assigned by canonical
-/// `(web_id, entity_uuid)` order.
+/// `scope` is every non-draft, non-archived entity holding a whole-entity embedding whose edition
+/// is current at the dataset's temporal axes, with its dense row assigned by canonical `(web_id,
+/// entity_uuid)` order.
 //
 // The embeddings table's own `draft_id` column is deliberately not
 // consulted: the unique index `(web_id, entity_uuid, property)` NULLS NOT
@@ -60,9 +59,8 @@ const SCOPE: &str = "
 
 /// The link universe, composed after [`SCOPE`].
 ///
-/// `links` pairs each link entity's left and right attachments and
-/// densifies both endpoints through `scope`, so links with out-of-scope
-/// endpoints drop out here.
+/// `links` pairs each link entity's left and right attachments and densifies both endpoints through
+/// `scope`, so links with out-of-scope endpoints drop out here.
 const LINKS: &str = "
     links AS (
         SELECT
@@ -100,10 +98,9 @@ const LINKS: &str = "
 
 /// The `type_rows` CTE: per-edition ordinal arrays over the type table.
 ///
-/// `$3` is the ordinal-ordered type table and `editions` names the CTE
-/// whose rows receive their direct-type ordinals. The aggregation is
-/// set-based over one hash join, so its cost scales with the edition
-/// count, not with rendered output rows.
+/// `$3` is the ordinal-ordered type table and `editions` names the CTE whose rows receive their
+/// direct-type ordinals. The aggregation is set-based over one hash join, so its cost scales with
+/// the edition count, not with rendered output rows.
 fn type_rows_cte(editions: &str) -> String {
     format!(
         "
@@ -364,30 +361,27 @@ fn render_card(
 
 /// A [`Dataset`] reading one frozen view of the HASH graph store.
 ///
-/// The dataset's scope is every non-draft, non-archived entity that holds
-/// a whole-entity embedding and is current at the dataset's
-/// [`TemporalAxes`], plus every link whose endpoints both fall inside
-/// that scope. Prefix truncation, l2 normalization, and endpoint
-/// densification all happen inside the store's queries; the connection
-/// ships dense rows and normalized prefixes only.
+/// The dataset's scope is every non-draft, non-archived entity that holds a whole-entity embedding
+/// and is current at the dataset's [`TemporalAxes`], plus every link whose endpoints both fall
+/// inside that scope. Prefix truncation, l2 normalization, and endpoint densification all happen
+/// inside the store's queries; the connection ships dense rows and normalized prefixes only.
 pub(crate) struct PostgresDataset<'client> {
     transaction: Transaction<'client>,
     axes: TemporalAxes,
     type_table: OnceCell<Vec<Uuid>>,
-    /// Content-affecting card extraction controls, consumed by
-    /// [`render_cards`](Dataset::render_cards).
+    /// Content-affecting card extraction controls.
+    ///
+    /// Consumed by [`render_cards`](Dataset::render_cards).
     pub cards: CardParameters,
 }
 
 impl<'client> PostgresDataset<'client> {
-    /// Freezes one view of the store at `axes` and serves a dataset from
-    /// it.
+    /// Freezes one view of the store at `axes` and serves a dataset from it.
     ///
-    /// The view stays frozen until the dataset is dropped. The axes are
-    /// the fit's declared bitemporal inputs: record them in the
-    /// generation metadata, and pass axes in the past to read the graph
-    /// as it stood then. Card extraction starts from the default
-    /// [`CardParameters`]; assign [`cards`](Self::cards) to change them.
+    /// The view stays frozen until the dataset is dropped. The axes are the fit's declared
+    /// bitemporal inputs: record them in the generation metadata, and pass axes in the past to read
+    /// the graph as it stood then. Card extraction starts from the default [`CardParameters`];
+    /// assign [`cards`](Self::cards) to change them.
     ///
     /// # Errors
     ///
@@ -425,13 +419,13 @@ impl<'client> PostgresDataset<'client> {
         })
     }
 
-    /// Returns the type table: every type reachable from the corpus at
-    /// any inheritance depth, in ordinal (uuid byte) order.
+    /// Returns the type table.
     ///
-    /// The table bootstraps on first use by any stream and stays cached
-    /// for the dataset's lifetime; the frozen transaction guarantees
-    /// every later query observes the types the bootstrap saw. The store
-    /// materializes closures, so all-depth rows are exactly the closure.
+    /// Every type reachable from the corpus at any inheritance depth, in ordinal (uuid byte) order.
+    ///
+    /// The table bootstraps on first use by any stream and stays cached for the dataset's lifetime;
+    /// the frozen transaction guarantees every later query observes the types the bootstrap saw.
+    /// The store materializes closures, so all-depth rows are exactly the closure.
     async fn type_table(&self) -> Result<&[Uuid], PostgresDatasetError> {
         self.type_table
             .get_or_try_init(|| async {
@@ -465,8 +459,9 @@ impl<'client> PostgresDataset<'client> {
             .map(Vec::as_slice)
     }
 
-    /// Issues `sql` with the dataset's temporal axes as `$1`/`$2` and the
-    /// type table as `$3`, and adapts the row stream through `decode`.
+    /// Issues `sql` with the dataset's temporal axes as `$1`/`$2` and the type table as `$3`.
+    ///
+    /// Adapts the row stream through `decode`.
     fn stream_query<'this, T>(
         &'this self,
         sql: String,
@@ -763,24 +758,19 @@ impl Dataset for PostgresDataset<'_> {
         .and_then(|row| core::future::ready(decode_node_types(&row)))
     }
 
-    /// Opens the stream of canonical relation cards, in ontology row
-    /// order.
+    /// Opens the stream of canonical relation cards, in ontology row order.
     ///
-    /// Each card is built from the store facts observed at the dataset's
-    /// temporal axes: the type's prose and ancestor chain, the source
-    /// types constraining it as a link, and pooled live link instances
-    /// as examples. A type that nothing constrains and nothing
-    /// instantiates as a link - every non-link entity type - renders
-    /// prose and ancestry alone. All facts arrive in one pass over the
-    /// store before the first card renders, so the per-card cost is
-    /// rendering alone. [`cards`](Self::cards) controls example
-    /// selection and the token budgets, and the rendered bytes are
-    /// deterministic in the dataset and those parameters.
+    /// Each card is built from the store facts observed at the dataset's temporal axes: the type's
+    /// prose and ancestor chain, the source types constraining it as a link, and pooled live link
+    /// instances as examples. A type that nothing constrains and nothing instantiates as a link -
+    /// every non-link entity type - renders prose and ancestry alone. All facts arrive in one pass
+    /// over the store before the first card renders, so the per-card cost is rendering alone.
+    /// [`cards`](Self::cards) controls example selection and the token budgets, and the rendered
+    /// bytes are deterministic in the dataset and those parameters.
     ///
-    /// Items carry [`io::ErrorKind::InvalidData`] when a type's stored
-    /// constraints violate the card contract, and `io::Error::other`
-    /// when a query fails, a rendered text cannot be tokenized, or a
-    /// final text leaks a source identifier.
+    /// Items carry [`io::ErrorKind::InvalidData`] when a type's stored constraints violate the card
+    /// contract, and `io::Error::other` when a query fails, a rendered text cannot be tokenized, or
+    /// a final text leaks a source identifier.
     fn render_cards(&self) -> Self::CardStream<'_> {
         async move {
             let types = self.type_table().await.map_err(io::Error::other)?;

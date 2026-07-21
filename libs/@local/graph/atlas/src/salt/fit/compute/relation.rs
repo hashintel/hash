@@ -1,5 +1,4 @@
-//! The relation stage: adjacency, instance assembly, and the relation
-//! indexes.
+//! The relation stage: adjacency, instance assembly, and the relation indexes.
 
 use super::{
     super::{
@@ -18,8 +17,9 @@ use crate::{
     },
 };
 
-/// The staged relation artifacts of one fit: both index files beside
-/// the owned indexes the placement stage consumes.
+/// The staged relation artifacts of one fit.
+///
+/// Both index files beside the owned indexes the placement stage consumes.
 pub(super) struct RelationArtifacts {
     pub attraction: RepositoryFile,
     pub protection: RepositoryFile,
@@ -30,8 +30,7 @@ pub(super) struct RelationArtifacts {
 }
 
 impl Context<'_> {
-    /// Derives the incident-edge adjacency from the staged endpoint
-    /// column and stages it.
+    /// Derives the incident-edge adjacency from the staged endpoint column and stages it.
     pub(super) fn stage_adjacency(&self, rows: usize) -> Result<RepositoryFile, StageError> {
         let _span = tracing::info_span!("adjacency").entered();
 
@@ -47,13 +46,13 @@ impl Context<'_> {
         Ok(file)
     }
 
-    /// Assembles the spooled relation instances against the staged
-    /// policy table, builds both relation indexes, and stages them.
+    /// Assembles the spooled relation instances against the staged policy table.
     ///
-    /// `rows` is the node-row domain the protection matrix spans. The
-    /// spool holds one reading per `(edge, relation)` pair; the policy
-    /// table covers exactly the relation universe those readings carry,
-    /// so every instance resolves.
+    /// Builds both relation indexes, and stages them.
+    ///
+    /// `rows` is the node-row domain the protection matrix spans. The spool holds one reading per
+    /// `(edge, relation)` pair; the policy table covers exactly the relation universe those
+    /// readings carry, so every instance resolves.
     pub(super) fn stage_relations(
         &self,
         rows: usize,

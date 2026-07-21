@@ -1,21 +1,18 @@
 //! Measurement seam for the search-backend parameter sweep.
 //!
-//! [`sweep`] reads the active generation's representation matrix and
-//! measures the hannoy backend across a grid of `ef_construction` and
-//! `ef_search` values, replaying the production fit's exact random
-//! streams per fit seed (`Stage::KnnLink` for the build,
-//! `Stage::RecallCheck` for the sample), so a grid point reproduces
-//! what a live fit at that seed and setting would have measured.
-//! Repeating a seed in the grid rebuilds the same configuration
-//! twice, separating build nondeterminism from seed spread.
+//! [`sweep`] reads the active generation's representation matrix and measures the hannoy backend
+//! across a grid of `ef_construction` and `ef_search` values, replaying the production fit's exact
+//! random streams per fit seed (`Stage::KnnLink` for the build, `Stage::RecallCheck` for the
+//! sample), so a grid point reproduces what a live fit at that seed and setting would have
+//! measured. Repeating a seed in the grid rebuilds the same configuration twice, separating build
+//! nondeterminism from seed spread.
 //!
-//! The exact reference is computed once per distinct seed and scores
-//! every grid point; `ef_search` is a query-time setting, so one
-//! build serves its whole search row by reopening the persisted
+//! The exact reference is computed once per distinct seed and scores every grid point; `ef_search`
+//! is a query-time setting, so one build serves its whole search row by reopening the persisted
 //! environment. Nothing here is API for consumers of the crate.
 //!
-//! Failures panic with the failing step's error: a measurement run
-//! has no recovery path, and the error is the diagnosis.
+//! Failures panic with the failing step's error: a measurement run has no recovery path, and the
+//! error is the diagnosis.
 
 use alloc::borrow::Cow;
 use core::{num::NonZero, time::Duration};
@@ -49,9 +46,7 @@ const REFERENCE_ROWS: NonZero<usize> = NonZero::new(2_048).expect("the reference
 /// The sweep grid.
 #[derive(Debug, Clone)]
 pub struct SweepOptions {
-    /// Fit seeds whose build and sample streams are replayed. A
-    /// repeated seed rebuilds the same configuration again, measuring
-    /// build nondeterminism.
+    /// Fit seeds whose build and sample streams are replayed. A repeated seed rebuilds the same configuration again, measuring build nondeterminism.
     pub seeds: Cow<'static, [u64]> = Cow::Borrowed(DEFAULT_SEEDS),
     /// `ef_construction` values; one index build per (seed, value).
     pub constructions: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_CONSTRUCTIONS),
@@ -67,9 +62,8 @@ const impl Default for SweepOptions {
 
 /// One `ef_search` reading of one built index against one sample.
 ///
-/// The production check reads the diagonal - a build scored against
-/// its own seed's sample; off-diagonal readings separate build
-/// quality from sample hardness.
+/// The production check reads the diagonal - a build scored against its own seed's sample;
+/// off-diagonal readings separate build quality from sample hardness.
 #[derive(Debug, Copy, Clone)]
 pub struct SweepPoint {
     /// The fit seed whose `recall-check` stream drew the sample.
@@ -121,14 +115,12 @@ pub struct BackendSweep {
     pub builds: Vec<SweepBuild>,
 }
 
-/// Sweeps the backend grid over the active generation's
-/// representations.
+/// Sweeps the backend grid over the active generation's representations.
 ///
 /// # Panics
 ///
-/// Panics when the root, pointer, generation, or representation
-/// matrix cannot be opened, or when a build or query fails; a
-/// measurement target reports its failures by failing.
+/// Panics when the root, pointer, generation, or representation matrix cannot be opened, or when a
+/// build or query fails; a measurement target reports its failures by failing.
 pub fn sweep(root: &str, options: &SweepOptions) -> BackendSweep {
     let root =
         GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");
@@ -261,8 +253,8 @@ fn build_index(
     started.elapsed()
 }
 
-/// Scores the built index at every (sample, `ef_search`) pair by
-/// reopening the persisted environment per search breadth.
+/// Scores the built index at every (sample, `ef_search`) pair by reopening the persisted
+/// environment per search breadth.
 fn score_grid(
     directory: &Utf8Path,
     references: &[(u64, ExactReference)],

@@ -1,21 +1,19 @@
 //! Scalar pair energies and their hand-derived first derivatives.
 //!
-//! Every energy exposes its value together with the derivative the
-//! batch terms fold into coordinate gradients, so the pair loops in the
-//! parent module stay pure plumbing. Each derivative is certified
-//! against a finite-difference reference in the unit tests; the value
-//! and derivative always compute in one fused evaluation.
+//! Every energy exposes its value together with the derivative the batch terms fold into coordinate
+//! gradients, so the pair loops in the parent module stay pure plumbing. Each derivative is
+//! certified against a finite-difference reference in the unit tests; the value and derivative
+//! always compute in one fused evaluation.
 
 use crate::math::{AffinityCurve, huber, sigmoid, softplus};
 
 /// The semantic edge energy over the low-dimensional affinity.
 ///
-/// For squared pair distance `u` and affinity `q(u) = 1 / (1 + a u^b)`,
-/// attraction penalizes improbable placement of a positive edge by
-/// `-ln(q + epsilon)` and repulsion penalizes probable placement of a
-/// negative pair by `-ln(1 - q + epsilon)`. The offset keeps both
-/// logarithms finite over the affinity's whole range, and bounds the
-/// repulsion derivative as the pair approaches coincidence.
+/// For squared pair distance `u` and affinity `q(u) = 1 / (1 + a u^b)`, attraction penalizes
+/// improbable placement of a positive edge by `-ln(q + epsilon)` and repulsion penalizes probable
+/// placement of a negative pair by `-ln(1 - q + epsilon)`. The offset keeps both logarithms finite
+/// over the affinity's whole range, and bounds the repulsion derivative as the pair approaches
+/// coincidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AffinityEnergy {
     curve: AffinityCurve,
@@ -25,14 +23,12 @@ pub(crate) struct AffinityEnergy {
 impl AffinityEnergy {
     /// Binds an affinity curve to a logarithm offset.
     ///
-    /// Returns [`None`] unless the offset is finite and strictly
-    /// positive and the curve's exponent satisfies `b >= 0.5`. The
-    /// offset keeps the attraction value finite for far pairs and
-    /// bounds the repulsion gradient for near pairs; the exponent
-    /// bound keeps the coordinate gradient finite at coincidence,
-    /// where its magnitude scales as `d^(2b - 1)` (fitted curves land
-    /// well inside the bound - rejecting the rest makes gradient
-    /// boundedness a property of the type, not of the corpus).
+    /// Returns [`None`] unless the offset is finite and strictly positive and the curve's exponent
+    /// satisfies `b >= 0.5`. The offset keeps the attraction value finite for far pairs and bounds
+    /// the repulsion gradient for near pairs; the exponent bound keeps the coordinate gradient
+    /// finite at coincidence, where its magnitude scales as `d^(2b - 1)` (fitted curves land well
+    /// inside the bound - rejecting the rest makes gradient boundedness a property of the type, not
+    /// of the corpus).
     #[must_use]
     pub(crate) fn new(curve: AffinityCurve, epsilon: f32) -> Option<Self> {
         (epsilon.is_finite() && epsilon > 0.0 && curve.b() >= 0.5)
@@ -46,12 +42,11 @@ impl AffinityEnergy {
         self.epsilon
     }
 
-    /// Evaluates the attraction energy and its derivative in the
-    /// squared distance.
+    /// Evaluates the attraction energy and its derivative in the squared distance.
     ///
-    /// Returns `(-ln(q + epsilon), d/du of the same)`. The derivative
-    /// is zero at `u == 0`: a coincident pair has no direction to pull
-    /// along, and the value is already at its minimum there.
+    /// Returns `(-ln(q + epsilon), d/du of the same)`. The derivative is zero at `u == 0`: a
+    /// coincident pair has no direction to pull along, and the value is already at its minimum
+    /// there.
     #[must_use]
     pub(crate) fn attraction(self, distance_squared: f32) -> (f32, f32) {
         let affinity = self.curve.affinity(distance_squared);
@@ -65,15 +60,12 @@ impl AffinityEnergy {
         (value, derivative)
     }
 
-    /// Evaluates the repulsion energy and its derivative in the squared
-    /// distance.
+    /// Evaluates the repulsion energy and its derivative in the squared distance.
     ///
-    /// Returns `(-ln(1 - q + epsilon), d/du of the same)`. The
-    /// derivative is zero at `u == 0` for the same directional reason
-    /// as [`attraction`](Self::attraction). Near coincidence the
-    /// offset carries the boundedness: `1 - q` itself vanishes there,
-    /// and without the offset the coordinate gradient would diverge
-    /// for every exponent.
+    /// Returns `(-ln(1 - q + epsilon), d/du of the same)`. The derivative is zero at `u == 0` for
+    /// the same directional reason as [`attraction`](Self::attraction). Near coincidence the offset
+    /// carries the boundedness: `1 - q` itself vanishes there, and without the offset the
+    /// coordinate gradient would diverge for every exponent.
     #[must_use]
     pub(crate) fn repulsion(self, distance_squared: f32) -> (f32, f32) {
         let affinity = self.curve.affinity(distance_squared);
@@ -89,8 +81,8 @@ impl AffinityEnergy {
 
     /// Computes the shared derivative mass `a b u^(b - 1) q^2`.
     ///
-    /// `-q'(u)` in both derivatives; the callers divide by their
-    /// respective logarithm arguments and choose the sign.
+    /// `-q'(u)` in both derivatives; the callers divide by their respective logarithm arguments and
+    /// choose the sign.
     fn mass(self, distance_squared: f32, affinity: f32) -> f32 {
         #[expect(
             clippy::min_ident_chars,
@@ -103,11 +95,10 @@ impl AffinityEnergy {
 
 /// The Proximal class energy: a smooth one-sided pull toward a radius.
 ///
-/// `E(z) = temperature * softplus((z - radius) / temperature)` rises
-/// linearly once the normalized distance exceeds the radius and decays
-/// to zero below it; the temperature sets the width of the soft
-/// transition. The energy never pulls a pair tighter than its radius
-/// asks: the derivative fades smoothly to zero inside.
+/// `E(z) = temperature * softplus((z - radius) / temperature)` rises linearly once the normalized
+/// distance exceeds the radius and decays to zero below it; the temperature sets the width of the
+/// soft transition. The energy never pulls a pair tighter than its radius asks: the derivative
+/// fades smoothly to zero inside.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProximalEnergy {
     radius: f32,
@@ -117,8 +108,8 @@ pub(crate) struct ProximalEnergy {
 impl ProximalEnergy {
     /// Validates a Proximal energy.
     ///
-    /// Returns [`None`] unless the radius is finite and non-negative
-    /// and the temperature is finite and strictly positive.
+    /// Returns [`None`] unless the radius is finite and non-negative and the temperature is finite
+    /// and strictly positive.
     #[must_use]
     pub(crate) fn new(radius: f32, temperature: f32) -> Option<Self> {
         let valid =
@@ -138,8 +129,8 @@ impl ProximalEnergy {
 
     /// Evaluates the energy and its derivative at a normalized distance.
     ///
-    /// The derivative is the logistic function of the scaled excess: it
-    /// approaches one far outside the radius and zero far inside.
+    /// The derivative is the logistic function of the scaled excess: it approaches one far outside
+    /// the radius and zero far inside.
     #[must_use]
     pub(crate) fn evaluate(self, normalized: f32) -> (f32, f32) {
         let argument = (normalized - self.radius) / self.temperature;
@@ -149,10 +140,9 @@ impl ProximalEnergy {
 
 /// The Coincident class energy: a robust pull below a tight radius.
 ///
-/// `E(z) = huber(max(z - radius, 0), threshold)` is zero inside the
-/// radius, quadratic just outside it, and linear beyond the threshold,
-/// so one far-flung pair cannot dominate a batch. The derivative is
-/// continuous everywhere.
+/// `E(z) = huber(max(z - radius, 0), threshold)` is zero inside the radius, quadratic just outside
+/// it, and linear beyond the threshold, so one far-flung pair cannot dominate a batch. The
+/// derivative is continuous everywhere.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CoincidentEnergy {
     radius: f32,
@@ -162,8 +152,8 @@ pub(crate) struct CoincidentEnergy {
 impl CoincidentEnergy {
     /// Validates a Coincident energy.
     ///
-    /// Returns [`None`] unless the radius is finite and non-negative
-    /// and the Huber threshold is finite and strictly positive.
+    /// Returns [`None`] unless the radius is finite and non-negative and the Huber threshold is
+    /// finite and strictly positive.
     #[must_use]
     pub(crate) const fn new(radius: f32, threshold: f32) -> Option<Self> {
         let valid = radius.is_finite() && radius >= 0.0 && threshold.is_finite() && threshold > 0.0;
@@ -189,8 +179,8 @@ impl CoincidentEnergy {
 
     /// Evaluates the energy and its derivative at a normalized distance.
     ///
-    /// The derivative is zero inside the radius, the excess itself in
-    /// the quadratic regime, and the threshold in the linear regime.
+    /// The derivative is zero inside the radius, the excess itself in the quadratic regime, and the
+    /// threshold in the linear regime.
     #[must_use]
     pub(crate) fn evaluate(self, normalized: f32) -> (f32, f32) {
         let excess = (normalized - self.radius).max(0.0);
@@ -198,14 +188,14 @@ impl CoincidentEnergy {
     }
 }
 
-/// The relation edge energy: a weighted Coincident and Proximal mixture
-/// over locally normalized distance.
+/// The relation edge energy.
 ///
-/// The two radii satisfy `coincident < proximal`: the tight class must
-/// ask for a strictly closer placement than the loose one. `epsilon`
-/// guards the local scales in the normalization
-/// `z = d / sqrt((scale_i + epsilon) (scale_j + epsilon))`, keeping `z`
-/// finite where a diverged neighbourhood measured a zero radius.
+/// A weighted Coincident and Proximal mixture over locally normalized distance.
+///
+/// The two radii satisfy `coincident < proximal`: the tight class must ask for a strictly closer
+/// placement than the loose one. `epsilon` guards the local scales in the normalization `z = d /
+/// sqrt((scale_i + epsilon) (scale_j + epsilon))`, keeping `z` finite where a diverged
+/// neighbourhood measured a zero radius.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationEnergy {
     coincident: CoincidentEnergy,
@@ -216,9 +206,8 @@ pub(crate) struct RelationEnergy {
 impl RelationEnergy {
     /// Validates a relation energy.
     ///
-    /// Returns [`None`] unless the scale guard is finite and strictly
-    /// positive and the Coincident radius lies strictly below the
-    /// Proximal one.
+    /// Returns [`None`] unless the scale guard is finite and strictly positive and the Coincident
+    /// radius lies strictly below the Proximal one.
     #[must_use]
     pub(crate) fn new(
         coincident: CoincidentEnergy,
@@ -240,11 +229,10 @@ impl RelationEnergy {
         self.epsilon
     }
 
-    /// Evaluates the weighted class mixture and its derivative at a
-    /// normalized distance.
+    /// Evaluates the weighted class mixture and its derivative at a normalized distance.
     ///
-    /// Each class energy is scaled by its weight; the derivative is the
-    /// matching weighted sum of class derivatives.
+    /// Each class energy is scaled by its weight; the derivative is the matching weighted sum of
+    /// class derivatives.
     #[must_use]
     pub(crate) fn mixture(
         self,

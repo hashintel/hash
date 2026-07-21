@@ -24,8 +24,9 @@ pub enum OpenSprsError {
     Header(ValidityError<(), FileHeader>),
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the header's
-        /// geometry overflows `u64` or its shape is not a matrix, in
+        /// The length the header describes.
+        ///
+        /// [`None`] when the header's geometry overflows `u64` or its shape is not a matrix, in
         /// which case it matches no real file.
         expected: Option<u64>,
         actual: u64,
@@ -127,10 +128,9 @@ impl Error for SprsMatrixError {
 
 /// A sparse matrix file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural
-/// rule, so an open file always describes its own regions exactly. The
-/// regions are borrowed straight from the whole-file mapping and start
-/// 4096-byte aligned: aligned for every scalar and SIMD width.
+/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
+/// and start 4096-byte aligned: aligned for every scalar and SIMD width.
 #[derive(Debug)]
 pub(crate) struct SprsFile {
     map: PageMap,
@@ -141,10 +141,9 @@ impl SprsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenSprsError::Io`] when the file cannot be opened or
-    /// mapped, [`OpenSprsError::Header`] when its leading bytes are not
-    /// a header this module speaks, and [`OpenSprsError::Length`] when
-    /// the file length contradicts the header's geometry.
+    /// Returns [`OpenSprsError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenSprsError::Header`] when its leading bytes are not a header this module speaks, and
+    /// [`OpenSprsError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenSprsError> {
         let map = PageMap::open(path).map_err(OpenSprsError::Io)?;
 
@@ -177,8 +176,8 @@ impl SprsFile {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse
-        // as one, so the deref target is a valid `FileHeader`.
+        // validated that the map is large enough to contain the header and that its bytes parse as
+        // one, so the deref target is a valid `FileHeader`.
         unsafe { &*ptr }
     }
 
@@ -235,24 +234,19 @@ impl SprsFile {
 
     /// Views the matrix at its described element types.
     ///
-    /// The view exists exactly for the element combination the header
-    /// describes ([`value`](Self::value) tag and
-    /// [`value_width`](Self::value_width) both, [`index`](Self::index),
-    /// [`iptr`](Self::iptr)), so a region is never read at the wrong
-    /// width; an [`Opaque`](ValueTag::Opaque) value carries no identity
-    /// beyond its width, which is that tag's documented contract. A
-    /// [`Unit`](ValueTag::Unit) matrix stores no value bytes; its `()`
-    /// entries materialize at the recorded entry count, so the
-    /// structure-only view drives sparse algorithms like any other.
-    /// Every call re-checks the compressed-row structure, which costs
-    /// one pass over the entries; callers hold on to the view within a
-    /// stage.
+    /// The view exists exactly for the element combination the header describes
+    /// ([`value`](Self::value) tag and [`value_width`](Self::value_width) both,
+    /// [`index`](Self::index), [`iptr`](Self::iptr)), so a region is never read at the wrong width;
+    /// an [`Opaque`](ValueTag::Opaque) value carries no identity beyond its width, which is that
+    /// tag's documented contract. A [`Unit`](ValueTag::Unit) matrix stores no value bytes; its `()`
+    /// entries materialize at the recorded entry count, so the structure-only view drives sparse
+    /// algorithms like any other. Every call re-checks the compressed-row structure, which costs
+    /// one pass over the entries; callers hold on to the view within a stage.
     ///
     /// # Errors
     ///
-    /// Returns an error when the requested element types differ from
-    /// the described ones, the matrix exceeds the address space, or the
-    /// regions violate the compressed-row structure.
+    /// Returns an error when the requested element types differ from the described ones, the matrix
+    /// exceeds the address space, or the regions violate the compressed-row structure.
     pub(crate) fn matrix<N, I, Iptr>(&self) -> Result<CsMatViewI<'_, N, I, Iptr>, SprsMatrixError>
     where
         N: SprsValue,
@@ -318,18 +312,17 @@ impl SprsFile {
         .map_err(|(_, _, _, error)| SprsMatrixError::Structure(error))
     }
 
-    /// Views the pointer region at its described element type without
-    /// re-checking the compressed structure.
+    /// Views the pointer region at its described element type without re-checking the compressed
+    /// structure.
     ///
-    /// The element check is [`matrix`](Self::matrix)'s; the structural
-    /// contract stays that accessor's to validate, so callers hold a
-    /// successful [`matrix`](Self::matrix) call over this file before
-    /// reading regions directly.
+    /// The element check is [`matrix`](Self::matrix)'s; the structural contract stays that
+    /// accessor's to validate, so callers hold a successful [`matrix`](Self::matrix) call over this
+    /// file before reading regions directly.
     ///
     /// # Errors
     ///
-    /// Returns an error when the file stores a different pointer
-    /// element type than the requested one.
+    /// Returns an error when the file stores a different pointer element type than the requested
+    /// one.
     pub(crate) fn indptr<Iptr>(&self) -> Result<&[Iptr], SprsMatrixError>
     where
         Iptr: SprsIndex,
@@ -347,18 +340,16 @@ impl SprsFile {
             .expect("open validated the region sizes and the mapping their alignment"))
     }
 
-    /// Views the index region at its described element type without
-    /// re-checking the compressed structure.
+    /// Views the index region at its described element type without re-checking the compressed
+    /// structure.
     ///
-    /// The element check is [`matrix`](Self::matrix)'s; the structural
-    /// contract stays that accessor's to validate, so callers hold a
-    /// successful [`matrix`](Self::matrix) call over this file before
-    /// reading regions directly.
+    /// The element check is [`matrix`](Self::matrix)'s; the structural contract stays that
+    /// accessor's to validate, so callers hold a successful [`matrix`](Self::matrix) call over this
+    /// file before reading regions directly.
     ///
     /// # Errors
     ///
-    /// Returns an error when the file stores a different index element
-    /// type than the requested one.
+    /// Returns an error when the file stores a different index element type than the requested one.
     pub(crate) fn indices<I>(&self) -> Result<&[I], SprsMatrixError>
     where
         I: SprsIndex,

@@ -1,5 +1,6 @@
-//! `POST /v1/atlas/edges/{generation}/{variant}`: the edges among
-//! the listed tiles' delivered rows, as `SALTILEE` bytes.
+//! `POST /v1/atlas/edges/{generation}/{variant}`.
+//!
+//! The edges among the listed tiles' delivered rows, as `SALTILEE` bytes.
 
 use alloc::sync::Arc;
 
@@ -51,14 +52,14 @@ pub(super) struct VariantPath {
     // `generation`: an unparsable id must answer the 404 problem.
     #[schemars(with = "GenerationId")]
     generation: String,
-    /// The fitted variant name; the manifest lists what this
-    /// generation serves.
+    /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
 }
 
-/// `POST /v1/atlas/edges/{generation}/{variant}`: the edges among the
-/// listed tiles' delivered rows, as `SALTILEE` bytes. The tiles list
-/// is the request's subject, so the body is required.
+/// `POST /v1/atlas/edges/{generation}/{variant}`.
+///
+/// The edges among the listed tiles' delivered rows, as `SALTILEE` bytes. The tiles list is the
+/// request's subject, so the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
     Path(VariantPath {
@@ -85,11 +86,14 @@ pub(super) async fn handler(
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let caps = state.caps.edges;
+    let proof = Arc::clone(&state.proof);
     let assembled = spawn(move || {
-        atlas.assemble_edges(&request, caps).map(|document| {
-            let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
-            (document, entities)
-        })
+        atlas
+            .assemble_edges(&request, caps, &proof)
+            .map(|document| {
+                let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
+                (document, entities)
+            })
     })
     .await?;
 

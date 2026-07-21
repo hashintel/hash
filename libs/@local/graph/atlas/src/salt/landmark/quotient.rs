@@ -1,24 +1,18 @@
 //! Quotient contraction of the semantic graph.
 //!
-//! The corpus semantic graph contracts through the nearest-landmark
-//! assignment: every corpus edge whose endpoints map to distinct
-//! landmarks contributes its weight to the directed landmark pair, in
-//! double precision. Each landmark row then normalizes by its largest
-//! inflow, keeps its strongest
-//! [`maximum_neighbours`](QuotientOptions::maximum_neighbours), and
-//! the two directions of a pair combine by maximum, so the result is a
-//! symmetric [`SemanticGraph`] over the landmark domain with weights
-//! in `(0, 1]` and optimization memory proportional to the landmark
-//! count.
+//! The corpus semantic graph contracts through the nearest-landmark assignment: every corpus edge
+//! whose endpoints map to distinct landmarks contributes its weight to the directed landmark pair,
+//! in double precision. Each landmark row then normalizes by its largest inflow, keeps its
+//! strongest [`maximum_neighbours`](QuotientOptions::maximum_neighbours), and the two directions of
+//! a pair combine by maximum, so the result is a symmetric [`SemanticGraph`] over the landmark
+//! domain with weights in `(0, 1]` and optimization memory proportional to the landmark count.
 //!
-//! The corpus graph stores every edge in both rows, so each undirected
-//! corpus edge feeds both directions of its landmark pair; the
-//! per-row normalization is what keeps the contraction from being a
-//! plain doubling.
+//! The corpus graph stores every edge in both rows, so each undirected corpus edge feeds both
+//! directions of its landmark pair; the per-row normalization is what keeps the contraction from
+//! being a plain doubling.
 //!
-//! The contraction accumulates in parallel, one task per landmark over
-//! that landmark's corpus rows in ascending order, so the sums are
-//! bit-equal to a serial pass at any thread count.
+//! The contraction accumulates in parallel, one task per landmark over that landmark's corpus rows
+//! in ascending order, so the sums are bit-equal to a serial pass at any thread count.
 
 use core::{error::Error, fmt, num::NonZero};
 use std::collections::HashMap;
@@ -33,8 +27,7 @@ use crate::salt::semantic::{
 /// Contraction settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct QuotientOptions {
-    /// Strongest directed edges each landmark row keeps before the
-    /// symmetric union. Defaults to 64.
+    /// Strongest directed edges each landmark row keeps before the symmetric union. Defaults to 64.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent). It bounds quotient
     // memory at roughly `M * 64` directed edges before the union; the
@@ -97,8 +90,8 @@ impl Error for QuotientError {
 ///
 /// # Errors
 ///
-/// Returns an error when the assignment does not cover the graph's
-/// rows or when no edge crosses landmark boundaries.
+/// Returns an error when the assignment does not cover the graph's rows or when no edge crosses
+/// landmark boundaries.
 pub(crate) fn quotient_graph(
     semantic: &SemanticGraphView<'_>,
     assignment: &LandmarkAssignment,
@@ -207,8 +200,7 @@ pub(crate) fn quotient_graph(
     Ok(SemanticGraph::new(matrix)?)
 }
 
-/// Corpus rows grouped by their assigned landmark, ascending within
-/// each group.
+/// Corpus rows grouped by their assigned landmark, ascending within each group.
 struct GroupedRows {
     /// Group boundaries: landmark `l` owns `rows[starts[l]..starts[l + 1]]`.
     starts: Vec<usize>,

@@ -1,8 +1,9 @@
-//! Sampling utilities: unbiased bounded integers, subset sampling, and
-//! statistical acceptance verification.
+//! Sampling utilities.
 //!
-//! Every sampler draws from a caller-provided [`Rng`], so any generator
-//! works and seeded runs reproduce exactly:
+//! Unbiased bounded integers, subset sampling, and statistical acceptance verification.
+//!
+//! Every sampler draws from a caller-provided [`Rng`], so any generator works and seeded runs
+//! reproduce exactly:
 //!
 //! - [`uniform_below`] draws one unbiased integer below a bound.
 //! - [`sample_indices`] draws distinct indices without replacement, in memory proportional to the
@@ -28,10 +29,9 @@ mod tests;
 
 /// Draws an unbiased uniform integer in `[0, bound)`.
 ///
-/// Every value below the bound is exactly equally likely; the draw
-/// consumes a small bounded expected number of generator words. The
-/// non-zero bound makes the empty range unrepresentable, so the draw
-/// always succeeds.
+/// Every value below the bound is exactly equally likely; the draw consumes a small bounded
+/// expected number of generator words. The non-zero bound makes the empty range unrepresentable, so
+/// the draw always succeeds.
 ///
 /// # Examples
 ///
@@ -53,15 +53,16 @@ pub fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
     rng.random_range(0..bound.get())
 }
 
-/// Samples `N` distinct indices from `[0, population)` uniformly at
-/// random, without replacement, into a fixed-size array.
+/// Samples `N` distinct indices from `[0, population)` uniformly at random.
 ///
-/// Every `N`-element subset of the population is equally likely, and the
-/// returned order is itself uniformly random. Memory is proportional to
-/// the sample, never to the population, and nothing is heap-allocated.
+/// Without replacement, into a fixed-size array.
 ///
-/// Returns [`None`] when the population holds fewer than `N` indices:
-/// there is no `N`-element sample to draw.
+/// Every `N`-element subset of the population is equally likely, and the returned order is itself
+/// uniformly random. Memory is proportional to the sample, never to the population, and nothing is
+/// heap-allocated.
+///
+/// Returns [`None`] when the population holds fewer than `N` indices: there is no `N`-element
+/// sample to draw.
 ///
 /// # Examples
 ///
@@ -81,19 +82,18 @@ pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> O
     sample_array::<_, N>(&mut rng, population)
 }
 
-/// Samples `count` distinct indices from `[0, population)` uniformly at
-/// random, without replacement, for sample sizes chosen at runtime.
+/// Samples `count` distinct indices from `[0, population)` uniformly at random.
 ///
-/// Every `count`-element subset of the population is equally likely, and
-/// the returned order is itself uniformly random. Memory is proportional
-/// to the sample. Prefer [`sample_indices`] when the sample size is a
-/// compile-time constant; it skips the heap entirely.
+/// Without replacement, for sample sizes chosen at runtime.
+///
+/// Every `count`-element subset of the population is equally likely, and the returned order is
+/// itself uniformly random. Memory is proportional to the sample. Prefer [`sample_indices`] when
+/// the sample size is a compile-time constant; it skips the heap entirely.
 ///
 /// # Panics
 ///
-/// Panics when `count` exceeds `population`: there is no `count`-element
-/// sample to draw, and an oversized request is a caller bug rather than
-/// a runtime condition.
+/// Panics when `count` exceeds `population`: there is no `count`-element sample to draw, and an
+/// oversized request is a caller bug rather than a runtime condition.
 ///
 /// # Examples
 ///
@@ -112,24 +112,21 @@ pub fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) ->
     sample(&mut rng, population, count)
 }
 
-/// Computes the number of uniformly sampled items to check so that an
-/// all-pass result certifies a defect-rate bound at a confidence level.
+/// Computes the number of uniformly sampled items to check so that an all-pass result certifies a
+/// defect-rate bound at a confidence level.
 ///
-/// Checking this many uniformly sampled items and finding all of them
-/// valid establishes, with probability at least `confidence`, that the
-/// true fraction of invalid items is below `defect_rate`.
+/// Checking this many uniformly sampled items and finding all of them valid establishes, with
+/// probability at least `confidence`, that the true fraction of invalid items is below
+/// `defect_rate`.
 ///
-/// If the true defect fraction were at least `defect_rate`, the
-/// probability that `n` independent uniform samples all pass would be at
-/// most `(1 - defect_rate)^n`; requiring that this is at most
-/// `1 - confidence` gives the smallest sufficient count,
-/// `n = ceil(ln(1 - confidence) / ln(1 - defect_rate))`. Sampling without
-/// replacement from a finite population only lowers the all-pass
+/// If the true defect fraction were at least `defect_rate`, the probability that `n` independent
+/// uniform samples all pass would be at most `(1 - defect_rate)^n`; requiring that this is at most
+/// `1 - confidence` gives the smallest sufficient count, `n = ceil(ln(1 - confidence) / ln(1 -
+/// defect_rate))`. Sampling without replacement from a finite population only lowers the all-pass
 /// probability, so the bound stays valid and conservative there too.
 ///
-/// Returns [`None`] unless `defect_rate` and `confidence` are both
-/// strictly between 0 and 1; parameters outside that open interval carry
-/// no statistical meaning.
+/// Returns [`None`] unless `defect_rate` and `confidence` are both strictly between 0 and 1;
+/// parameters outside that open interval carry no statistical meaning.
 ///
 /// # Examples
 ///
@@ -170,29 +167,23 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
     Some(samples)
 }
 
-/// Computes the number of uniformly sampled items whose mean estimates
-/// the population mean within `margin` at a one-sided confidence level,
-/// given the per-item standard deviation.
+/// Computes the number of uniformly sampled items whose mean estimates the population mean within
+/// `margin` at a one-sided confidence level, given the per-item standard deviation.
 ///
-/// The estimate's standard error is `deviation / sqrt(n)`, so
-/// `n = ceil((z * deviation / margin)^2)` with `z` the standard normal
-/// quantile of `confidence` keeps the probability of a sampling error
-/// beyond `margin` (in one direction) at most `1 - confidence`, by the
-/// central limit theorem. This sizes aggregate-mean criteria; an
-/// all-pass criterion is sized by [`acceptance_sample_size`] instead,
-/// and the two are not interchangeable - an acceptance budget carries
-/// no guarantee about a mean's error.
+/// The estimate's standard error is `deviation / sqrt(n)`, so `n = ceil((z * deviation /
+/// margin)^2)` with `z` the standard normal quantile of `confidence` keeps the probability of a
+/// sampling error beyond `margin` (in one direction) at most `1 - confidence`, by the central limit
+/// theorem. This sizes aggregate-mean criteria; an all-pass criterion is sized by
+/// [`acceptance_sample_size`] instead, and the two are not interchangeable - an acceptance budget
+/// carries no guarantee about a mean's error.
 ///
-/// The deviation is the caller's to supply: bounded-per-item means
-/// admit the distribution-free bound (half the range), and a pilot
-/// sample's measured deviation sizes the final sample without baking a
-/// population constant into configuration (Stein's two-stage
-/// procedure).
+/// The deviation is the caller's to supply: bounded-per-item means admit the distribution-free
+/// bound (half the range), and a pilot sample's measured deviation sizes the final sample without
+/// baking a population constant into configuration (Stein's two-stage procedure).
 ///
-/// Returns [`None`] unless `margin` is strictly positive, `confidence`
-/// is strictly between 0 and 1, and `deviation` is finite and
-/// non-negative; parameters outside those domains carry no statistical
-/// meaning.
+/// Returns [`None`] unless `margin` is strictly positive, `confidence` is strictly between 0 and 1,
+/// and `deviation` is finite and non-negative; parameters outside those domains carry no
+/// statistical meaning.
 ///
 /// # Examples
 ///
@@ -232,14 +223,13 @@ pub fn mean_sample_size(deviation: f64, margin: f64, confidence: f64) -> Option<
 
 /// Inverts the standard normal cumulative distribution.
 ///
-/// Returns the value `z` with `Phi(z) = probability`: the boundary a
-/// standard normal variable stays below with exactly the given
-/// probability. Computed by Acklam's rational approximation, whose
-/// relative error stays below `1.15e-9` over the open unit interval -
-/// beyond any sampling design's sensitivity.
+/// Returns the value `z` with `Phi(z) = probability`: the boundary a standard normal variable stays
+/// below with exactly the given probability. Computed by Acklam's rational approximation, whose
+/// relative error stays below `1.15e-9` over the open unit interval - beyond any sampling design's
+/// sensitivity.
 ///
-/// Returns [`None`] unless `probability` is strictly between 0 and 1;
-/// the endpoints have no finite quantile.
+/// Returns [`None`] unless `probability` is strictly between 0 and 1; the endpoints have no finite
+/// quantile.
 ///
 /// # Examples
 ///

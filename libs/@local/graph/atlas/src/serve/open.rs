@@ -1,6 +1,7 @@
-//! The open pass: mapping a generation's serving artifacts and
-//! validating each format plus their cross-artifact agreement once,
-//! so every read after it trusts its views.
+//! The open pass.
+//!
+//! Mapping a generation's serving artifacts and validating each format plus their cross-artifact
+//! agreement once, so every read after it trusts its views.
 
 use super::{
     Atlas, OpenOptions,
@@ -29,26 +30,25 @@ use crate::{
 };
 
 impl Atlas {
-    /// Opens generation `id` from `root` and maps every serving
-    /// artifact, validating each format once.
+    /// Opens generation `id` from `root` and maps every serving artifact, validating each format
+    /// once.
     ///
     /// # Errors
     ///
-    /// Returns [`OpenAtlasError::Unpublished`] when the generation is
-    /// not published in this root, [`OpenAtlasError::Artifact`] when
-    /// the metadata document or an artifact fails its format's
-    /// validation, [`OpenAtlasError::Schedule`] when the recorded
-    /// schedule exceeds the key width, [`OpenAtlasError::Shape`] when
-    /// an artifact holds the wrong element type or shape, and
-    /// [`OpenAtlasError::Columns`] or [`OpenAtlasError::Subtree`] when
-    /// the artifacts disagree on the point count.
+    /// Returns [`OpenAtlasError::Unpublished`] when the generation is not published in this root,
+    /// [`OpenAtlasError::Artifact`] when the metadata document or an artifact fails its format's
+    /// validation, [`OpenAtlasError::Schedule`] when the recorded schedule exceeds the key width,
+    /// [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape, and
+    /// [`OpenAtlasError::Columns`] or [`OpenAtlasError::Subtree`] when the artifacts disagree on
+    /// the point count.
     #[tracing::instrument(skip_all)]
     pub fn open(root: &GenerationRoot, id: GenerationId) -> Result<Self, OpenAtlasError> {
         Self::open_with(root, id, &OpenOptions::default())
     }
 
-    /// Opens a published generation for serving under explicit
-    /// options; [`Atlas::open`] is this with the defaults.
+    /// Opens a published generation for serving under explicit options.
+    ///
+    /// [`Atlas::open`] is this with the defaults.
     ///
     /// # Errors
     ///
@@ -248,9 +248,9 @@ impl Atlas {
     }
 }
 
-/// Opens and validates one identity artifact, binding its failures
-/// to the domain it serves. Every failure is loud - a key width
-/// other than the store's included.
+/// Opens and validates one identity artifact, binding its failures to the domain it serves.
+///
+/// Every failure is loud - a key width other than the store's included.
 fn open_identities<I>(
     generation: &Generation,
     file: &RepositoryFile,
@@ -265,8 +265,7 @@ where
         .map_err(|error| OpenAtlasError::Identity { domain, error })
 }
 
-/// Opens one array artifact, binding its open error to the role it
-/// serves.
+/// Opens one array artifact, binding its open error to the role it serves.
 fn open_array(
     generation: &Generation,
     file: &RepositoryFile,
@@ -276,12 +275,10 @@ fn open_array(
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })
 }
 
-/// Derives the tight wire-frame extent of the full point set from the
-/// world frame.
+/// Derives the tight wire-frame extent of the full point set from the world frame.
 ///
-/// Normalization maps each axis's world minimum and maximum onto the
-/// frame edges - values real points attain - and collapses a
-/// zero-extent axis to the frame centre, so the extent is exact
+/// Normalization maps each axis's world minimum and maximum onto the frame edges - values real
+/// points attain - and collapses a zero-extent axis to the frame centre, so the extent is exact
 /// without scanning the coordinate column.
 fn frame_extent(world: Bounds2) -> Bounds2 {
     #[expect(
@@ -303,8 +300,7 @@ fn frame_extent(world: Bounds2) -> Bounds2 {
         .expect("the frame extent corners are finite and ordered")
 }
 
-/// Narrows an artifact's row count to the `u32` universe a codec
-/// permutes.
+/// Narrows an artifact's row count to the `u32` universe a codec permutes.
 fn narrow_count(count: usize) -> u32 {
     u32::try_from(count).expect("row counts share the u32 row-id domain")
 }

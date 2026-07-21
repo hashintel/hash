@@ -1,20 +1,16 @@
 //! Double-precision `N`-dimensional vectors and their reductions.
 //!
-//! [`DVecN`] is the `f64` twin of [`VecN`](super::VecN), for the few
-//! consumers whose algorithms demand double precision throughout, such as
-//! classifier logits feeding a quasi-Newton optimizer. Its reductions
-//! ([`softmax`](DVecN::softmax), [`log_sum_exp`](DVecN::log_sum_exp))
-//! shift, exponentiate, and fold four lanes at a time; the exponential
-//! goes through [`kernel::exp_f64x4`](super::kernel), which currently
-//! lowers to one libm call per lane.
+//! [`DVecN`] is the `f64` twin of [`VecN`](super::VecN), for the few consumers whose algorithms
+//! demand double precision throughout, such as classifier logits feeding a quasi-Newton optimizer.
+//! Its reductions ([`softmax`](DVecN::softmax), [`log_sum_exp`](DVecN::log_sum_exp)) shift,
+//! exponentiate, and fold four lanes at a time; the exponential goes through
+//! [`kernel::exp_f64x4`](super::kernel), which currently lowers to one libm call per lane.
 //!
-//! [`BoxedDVecN`] owns a heap allocation aligned for [`f64x8`] and hands
-//! out [`AlignedDVecN`] references to it, mirroring
-//! [`BoxedVecN`](super::BoxedVecN): the storage for optimizer state -
-//! parameter and gradient vectors - whose dimension is far too large for
-//! the stack. The [`argmin`](mod@argmin) submodule implements the
-//! `argmin-math` operations on the boxed vector, so quasi-Newton solvers
-//! run their inner loops on these kernels.
+//! [`BoxedDVecN`] owns a heap allocation aligned for [`f64x8`] and hands out [`AlignedDVecN`]
+//! references to it, mirroring [`BoxedVecN`](super::BoxedVecN): the storage for optimizer state -
+//! parameter and gradient vectors - whose dimension is far too large for the stack. The
+//! [`argmin`](mod@argmin) submodule implements the `argmin-math` operations on the boxed vector, so
+//! quasi-Newton solvers run their inner loops on these kernels.
 
 use alloc::alloc::Global;
 use core::{
@@ -35,9 +31,8 @@ mod tests;
 
 /// An `N`-dimensional vector of `f64` components.
 ///
-/// A [`DVecN`] is guaranteed to have the same layout as `[f64; N]`, so
-/// borrowed arrays convert in place through [`from_ref`](Self::from_ref)
-/// and [`from_mut`](Self::from_mut) without copying.
+/// A [`DVecN`] is guaranteed to have the same layout as `[f64; N]`, so borrowed arrays convert in
+/// place through [`from_ref`](Self::from_ref) and [`from_mut`](Self::from_mut) without copying.
 ///
 /// # Examples
 ///
@@ -84,9 +79,8 @@ impl<const N: usize> DVecN<N> {
     #[must_use]
     pub const fn from_mut(value: &mut [f64; N]) -> &mut Self {
         let ptr = (&raw mut *value).cast::<Self>();
-        // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, so the
-        // cast preserves layout and validity; the mutable borrow is carried
-        // through to the wrapper unchanged.
+        // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, so the cast preserves layout
+        // and validity; the mutable borrow is carried through to the wrapper unchanged.
         unsafe { &mut *ptr }
     }
 
@@ -99,8 +93,8 @@ impl<const N: usize> DVecN<N> {
 
     /// Returns the largest component.
     ///
-    /// NaN components lose, following [`f64::max`]; the maximum of the
-    /// empty vector is [`f64::NEG_INFINITY`], the identity of the fold.
+    /// NaN components lose, following [`f64::max`]; the maximum of the empty vector is
+    /// [`f64::NEG_INFINITY`], the identity of the fold.
     #[inline]
     #[must_use]
     pub fn max(self) -> f64 {
@@ -120,8 +114,7 @@ impl<const N: usize> DVecN<N> {
 
     /// Returns the sum of the components.
     ///
-    /// The components are folded four lanes at a time; the sum of the
-    /// empty vector is zero.
+    /// The components are folded four lanes at a time; the sum of the empty vector is zero.
     #[inline]
     #[must_use]
     pub fn sum(self) -> f64 {
@@ -137,16 +130,13 @@ impl<const N: usize> DVecN<N> {
         remainder.iter().fold(folded, |sum, &value| sum + value)
     }
 
-    /// Computes the softmax of the components with max-shifting for
-    /// stability.
+    /// Computes the softmax of the components with max-shifting for stability.
     ///
-    /// The maximum component is subtracted before exponentiation, so the
-    /// result is finite for any finite input, including components with
-    /// magnitudes far beyond the range where a naive `exp` overflows.
-    /// Every output lies in `[0, 1]`, the outputs sum to 1 up to rounding
-    /// whenever `N >= 1`, and shifting all components by a common constant
-    /// leaves the result unchanged up to rounding. For `N = 0` the result
-    /// is the empty vector.
+    /// The maximum component is subtracted before exponentiation, so the result is finite for any
+    /// finite input, including components with magnitudes far beyond the range where a naive `exp`
+    /// overflows. Every output lies in `[0, 1]`, the outputs sum to 1 up to rounding whenever `N >=
+    /// 1`, and shifting all components by a common constant leaves the result unchanged up to
+    /// rounding. For `N = 0` the result is the empty vector.
     ///
     /// # Examples
     ///
@@ -168,15 +158,13 @@ impl<const N: usize> DVecN<N> {
         exponentials.scaled(denominator.recip())
     }
 
-    /// Computes `ln(sum(exp(components)))` with max-shifting for
-    /// stability.
+    /// Computes `ln(sum(exp(components)))` with max-shifting for stability.
     ///
-    /// The maximum is factored out as `max + ln(sum(exp(value - max)))`,
-    /// keeping every intermediate exponent non-positive: the result is
-    /// finite for any finite, non-empty input. A single-component vector
-    /// returns that component exactly, and `N` equal components give
-    /// `value + ln(N)`. For `N = 0` the result is [`f64::NEG_INFINITY`],
-    /// the logarithm of the empty sum.
+    /// The maximum is factored out as `max + ln(sum(exp(value - max)))`, keeping every intermediate
+    /// exponent non-positive: the result is finite for any finite, non-empty input. A
+    /// single-component vector returns that component exactly, and `N` equal components give
+    /// `value + ln(N)`. For `N = 0` the result is [`f64::NEG_INFINITY`], the logarithm of the
+    /// empty sum.
     ///
     /// # Examples
     ///
@@ -202,8 +190,8 @@ impl<const N: usize> DVecN<N> {
         maximum + sum.ln()
     }
 
-    /// Computes `exp(component - shift)` for every component and their
-    /// sum in a single pass, four lanes at a time.
+    /// Computes `exp(component - shift)` for every component and their sum in a single pass, four
+    /// lanes at a time.
     #[inline]
     #[must_use]
     fn shifted_exponentials(mut self, shift: f64) -> (Self, f64) {
@@ -229,9 +217,8 @@ impl<const N: usize> DVecN<N> {
 
     /// Returns the dot product of the two vectors.
     ///
-    /// The products are fused and summed eight lanes at a time; see
-    /// [`VecN::dot_wide`] for the mixed-precision variant over `f32`
-    /// data.
+    /// The products are fused and summed eight lanes at a time; see [`VecN::dot_wide`] for the
+    /// mixed-precision variant over `f32` data.
     // Lane-width choice: as in `VecN::dot_accumulated` - `f64x8` is a
     // fourfold unroll on 128-bit NEON, and two independent accumulators
     // keep enough FMA chains in flight to cover the latency-throughput
@@ -291,10 +278,9 @@ impl<const N: usize> DVecN<N> {
 
     /// Adds a working-precision vector, component-wise.
     ///
-    /// Each `f32` component of `rhs` widens to `f64` exactly, so the
-    /// update carries only the rounding of the addition itself. This is
-    /// the moment-accumulation kernel of statistics kept in double
-    /// precision over single-precision data.
+    /// Each `f32` component of `rhs` widens to `f64` exactly, so the update carries only the
+    /// rounding of the addition itself. This is the moment-accumulation kernel of statistics kept
+    /// in double precision over single-precision data.
     #[inline]
     pub fn add_widened(&mut self, rhs: &VecN<N>) {
         let (chunks, remainder) = self.0.as_chunks_mut::<8>();
@@ -311,11 +297,10 @@ impl<const N: usize> DVecN<N> {
 
     /// Adds `factor` times a working-precision vector, component-wise.
     ///
-    /// Each `f32` component of `direction` widens to `f64` exactly, so the
-    /// update `self += direction * factor` carries only the rounding of
-    /// the fused multiply-add itself. This is the gradient-accumulation
-    /// kernel of optimizers that keep their state in double precision
-    /// over single-precision data.
+    /// Each `f32` component of `direction` widens to `f64` exactly, so the update `self +=
+    /// direction * factor` carries only the rounding of the fused multiply-add itself. This is the
+    /// gradient-accumulation kernel of optimizers that keep their state in double precision over
+    /// single-precision data.
     #[inline]
     pub fn add_scaled(&mut self, direction: &VecN<N>, factor: f64) {
         let scale = f64x8::splat(factor);
@@ -331,14 +316,12 @@ impl<const N: usize> DVecN<N> {
         }
     }
 
-    /// Adds the squared deviation of a working-precision vector from
-    /// `mean`, component-wise.
+    /// Adds the squared deviation of a working-precision vector from `mean`, component-wise.
     ///
-    /// Each `f32` component of `value` widens to `f64` exactly, so the
-    /// update `self += (value - mean)^2` carries only the rounding of
-    /// the subtraction and the fused multiply-add. This is the
-    /// second-moment kernel of diagonal-variance fits kept in double
-    /// precision over single-precision data.
+    /// Each `f32` component of `value` widens to `f64` exactly, so the update `self += (value -
+    /// mean)^2` carries only the rounding of the subtraction and the fused multiply-add. This is
+    /// the second-moment kernel of diagonal-variance fits kept in double precision over
+    /// single-precision data.
     #[inline]
     pub fn add_squared_deviation(&mut self, value: &VecN<N>, mean: &Self) {
         let (chunks, remainder) = self.0.as_chunks_mut::<8>();
@@ -393,16 +376,14 @@ const impl<const N: usize> From<DVecN<N>> for [f64; N] {
 
 /// An `N`-dimensional vector whose storage is aligned for [`f64x8`].
 ///
-/// The alignment is a construction invariant: the type has the same layout
-/// as `[f64; N]`, and every value originates from a [`BoxedDVecN`] or from
-/// a constructor that checks (or, for
-/// [`from_ref_unchecked`](Self::from_ref_unchecked), demands) that the
-/// address is a multiple of `align_of::<f64x8>()`. The transparent layout
-/// means any array that happens to be aligned can be wrapped in place.
+/// The alignment is a construction invariant: the type has the same layout as `[f64; N]`, and every
+/// value originates from a [`BoxedDVecN`] or from a constructor that checks (or, for
+/// [`from_ref_unchecked`](Self::from_ref_unchecked), demands) that the address is a multiple of
+/// `align_of::<f64x8>()`. The transparent layout means any array that happens to be aligned can be
+/// wrapped in place.
 ///
-/// The payoff is [`lanes`](Self::lanes): every 8-lane load comes from an
-/// aligned address, so iteration over the vector never splits a cache
-/// line.
+/// The payoff is [`lanes`](Self::lanes): every 8-lane load comes from an aligned address, so
+/// iteration over the vector never splits a cache line.
 // No `FromBytes`/`FromZeros`: a byte-level constructor would let
 // `zerocopy::transmute_ref!` produce references to unaligned arrays,
 // bypassing the alignment invariant.
@@ -417,13 +398,13 @@ impl<const N: usize> AlignedDVecN<N> {
     ///
     /// # Safety
     ///
-    /// `value` must be aligned to `align_of::<f64x8>()` bytes. Consumers of
-    /// the wrapper are allowed to rely on that alignment for aligned loads.
+    /// `value` must be aligned to `align_of::<f64x8>()` bytes. Consumers of the wrapper are allowed
+    /// to rely on that alignment for aligned loads.
     #[inline]
     #[must_use]
     pub const unsafe fn from_ref_unchecked(value: &[f64; N]) -> &Self {
-        // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, and the
-        // alignment invariant is the caller's contract.
+        // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, and the alignment invariant is
+        // the caller's contract.
         unsafe { &*ptr::from_ref(value).cast::<Self>() }
     }
 
@@ -431,22 +412,20 @@ impl<const N: usize> AlignedDVecN<N> {
     ///
     /// # Safety
     ///
-    /// `value` must be aligned to `align_of::<f64x8>()` bytes. Consumers of
-    /// the wrapper are allowed to rely on that alignment for aligned loads
-    /// and stores.
+    /// `value` must be aligned to `align_of::<f64x8>()` bytes. Consumers of the wrapper are allowed
+    /// to rely on that alignment for aligned loads and stores.
     #[inline]
     #[must_use]
     pub const unsafe fn from_mut_unchecked(value: &mut [f64; N]) -> &mut Self {
-        // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, and the
-        // alignment invariant is the caller's contract.
+        // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, and the alignment invariant is
+        // the caller's contract.
         unsafe { &mut *ptr::from_mut(value).cast::<Self>() }
     }
 
     /// Wraps a borrowed array, checking its alignment.
     ///
-    /// Returns [`None`] when `value` is not aligned to
-    /// `align_of::<f64x8>()` bytes. Stack arrays and plain boxes usually
-    /// are not; obtain aligned storage from [`BoxedDVecN`].
+    /// Returns [`None`] when `value` is not aligned to `align_of::<f64x8>()` bytes. Stack arrays
+    /// and plain boxes usually are not; obtain aligned storage from [`BoxedDVecN`].
     #[must_use]
     pub fn from_ref(value: &[f64; N]) -> Option<&Self> {
         if !value.as_ptr().is_aligned_to(align_of::<f64x8>()) {
@@ -459,9 +438,8 @@ impl<const N: usize> AlignedDVecN<N> {
 
     /// Wraps a mutable array, checking its alignment.
     ///
-    /// Returns [`None`] when `value` is not aligned to
-    /// `align_of::<f64x8>()` bytes. Stack arrays and plain boxes usually
-    /// are not; obtain aligned storage from [`BoxedDVecN`].
+    /// Returns [`None`] when `value` is not aligned to `align_of::<f64x8>()` bytes. Stack arrays
+    /// and plain boxes usually are not; obtain aligned storage from [`BoxedDVecN`].
     #[must_use]
     pub fn from_mut(value: &mut [f64; N]) -> Option<&mut Self> {
         if !value.as_ptr().is_aligned_to(align_of::<f64x8>()) {
@@ -486,14 +464,12 @@ impl<const N: usize> AlignedDVecN<N> {
         &mut self.0
     }
 
-    /// Returns the components as aligned 8-lane SIMD groups plus a scalar
-    /// remainder.
+    /// Returns the components as aligned 8-lane SIMD groups plus a scalar remainder.
     ///
-    /// The split is [`AlignedVecN::lanes`](super::AlignedVecN::lanes) at
-    /// double precision: group `i` holds components `8 * i` through
-    /// `8 * i + 7`, and the remainder holds the trailing `N % 8`
-    /// components. The type's alignment invariant guarantees no misaligned
-    /// prefix exists, so no components precede the groups.
+    /// The split is [`AlignedVecN::lanes`](super::AlignedVecN::lanes) at double precision: group
+    /// `i` holds components `8 * i` through `8 * i + 7`, and the remainder holds the trailing `N %
+    /// 8` components. The type's alignment invariant guarantees no misaligned prefix exists, so no
+    /// components precede the groups.
     #[inline]
     #[must_use]
     pub fn lanes(&self) -> (&[f64x8], &[f64]) {
@@ -507,11 +483,11 @@ impl<const N: usize> AlignedDVecN<N> {
         (lanes, suffix)
     }
 
-    /// Returns the components as mutable aligned 8-lane SIMD groups plus a
-    /// mutable scalar remainder.
+    /// Returns the components as mutable aligned 8-lane SIMD groups plus a mutable scalar
+    /// remainder.
     ///
-    /// The split is the same as [`lanes`](Self::lanes); writes through
-    /// either slice update the vector in place.
+    /// The split is the same as [`lanes`](Self::lanes); writes through either slice update the
+    /// vector in place.
     #[inline]
     #[must_use]
     pub fn lanes_mut(&mut self) -> (&mut [f64x8], &mut [f64]) {
@@ -549,8 +525,7 @@ impl<const N: usize> AlignedDVecN<N> {
         DVecN::from_ref(self.as_array()).abs_sum()
     }
 
-    /// Adds `factor` times a working-precision vector; see
-    /// [`DVecN::add_scaled`].
+    /// Adds `factor` times a working-precision vector; see [`DVecN::add_scaled`].
     #[inline]
     pub fn add_scaled(&mut self, direction: &VecN<N>, factor: f64) {
         DVecN::from_mut(self.as_array_mut()).add_scaled(direction, factor);
@@ -562,8 +537,9 @@ impl<const N: usize> AlignedDVecN<N> {
         DVecN::from_mut(self.as_array_mut()).add_widened(rhs);
     }
 
-    /// Adds a working-precision vector's squared deviation from `mean`;
-    /// see [`DVecN::add_squared_deviation`].
+    /// Adds a working-precision vector's squared deviation from `mean`.
+    ///
+    /// See [`DVecN::add_squared_deviation`].
     #[inline]
     pub fn add_squared_deviation(&mut self, value: &VecN<N>, mean: &Self) {
         DVecN::from_mut(self.as_array_mut())
@@ -593,32 +569,28 @@ impl<const N: usize> DivAssign<f64> for AlignedDVecN<N> {
     }
 }
 
-/// An owned `N`-dimensional vector in a heap allocation aligned for
-/// [`f64x8`].
+/// An owned `N`-dimensional vector in a heap allocation aligned for [`f64x8`].
 ///
-/// The buffer is allocated with `align_of::<f64x8>()` alignment regardless
-/// of `N`, so dereferencing always yields an [`AlignedDVecN`]. This is the
-/// storage for double-precision optimizer state - parameter and gradient
-/// vectors whose dimension is far too large for the stack.
+/// The buffer is allocated with `align_of::<f64x8>()` alignment regardless of `N`, so dereferencing
+/// always yields an [`AlignedDVecN`]. This is the storage for double-precision optimizer state -
+/// parameter and gradient vectors whose dimension is far too large for the stack.
 pub struct BoxedDVecN<const N: usize, A: Allocator = Global> {
     ptr: NonNull<f64>,
     alloc: A,
 }
 
 impl<const N: usize> BoxedDVecN<N> {
-    /// Copies the vector into a new aligned allocation in the global
-    /// allocator.
+    /// Copies the vector into a new aligned allocation in the global allocator.
     #[inline]
     #[must_use]
     pub fn new(value: &DVecN<N>) -> Self {
         Self::new_in(value, Global)
     }
 
-    /// Creates the zero vector in a new aligned allocation in the global
-    /// allocator.
+    /// Creates the zero vector in a new aligned allocation in the global allocator.
     ///
-    /// Every component is `0.0` and the buffer is valid for in-place
-    /// filling through [`as_array_mut`](AlignedDVecN::as_array_mut).
+    /// Every component is `0.0` and the buffer is valid for in-place filling through
+    /// [`as_array_mut`](AlignedDVecN::as_array_mut).
     #[inline]
     #[must_use]
     pub fn zero() -> Self {
@@ -627,8 +599,9 @@ impl<const N: usize> BoxedDVecN<N> {
 }
 
 impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
-    /// The allocation layout: `N` components, padded to the alignment of
-    /// [`f64x8`]. Allocation and deallocation must agree on this.
+    /// The allocation layout: `N` components, padded to the alignment of [`f64x8`].
+    ///
+    /// Allocation and deallocation must agree on this.
     #[inline]
     fn layout() -> Layout {
         Layout::array::<f64>(N)
@@ -638,9 +611,8 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
 
     /// Creates the zero vector in a new aligned allocation in `alloc`.
     ///
-    /// The process is aborted through
-    /// [`handle_alloc_error`](std::alloc::handle_alloc_error) when the
-    /// allocator cannot provide the buffer.
+    /// The process is aborted through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
+    /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
     pub fn zero_in(alloc: A) -> Self {
@@ -658,9 +630,8 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
 
     /// Copies the vector into a new aligned allocation in `alloc`.
     ///
-    /// The process is aborted through
-    /// [`handle_alloc_error`](std::alloc::handle_alloc_error) when the
-    /// allocator cannot provide the buffer.
+    /// The process is aborted through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
+    /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
     pub fn new_in(value: &DVecN<N>, alloc: A) -> Self {
@@ -671,21 +642,20 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
         this
     }
 
-    /// Copies the vector into a new aligned allocation in `alloc`,
-    /// surfacing allocation failure.
+    /// Copies the vector into a new aligned allocation in `alloc`, surfacing allocation failure.
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] when the allocator cannot provide the
-    /// buffer. No memory is leaked in that case.
+    /// Returns [`AllocError`] when the allocator cannot provide the buffer. No memory is leaked in
+    /// that case.
     #[inline]
     pub fn try_new_in(value: &DVecN<N>, alloc: A) -> Result<Self, AllocError> {
         let layout = Self::layout();
         let allocation = alloc.allocate(layout)?;
         let ptr = allocation.cast::<f64>();
 
-        // SAFETY: the buffer was just allocated for at least `N` components
-        // and cannot overlap the borrowed source.
+        // SAFETY: the buffer was just allocated for at least `N` components and cannot overlap the
+        // borrowed source.
         unsafe {
             ptr::copy_nonoverlapping(value.as_array().as_ptr(), ptr.as_ptr(), N);
         }
@@ -698,19 +668,17 @@ const impl<const N: usize, A: Allocator> Deref for BoxedDVecN<N, A> {
     type Target = AlignedDVecN<N>;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY: `ptr` owns an initialized buffer of `N` components for as
-        // long as `self` lives, allocated with the alignment of `f64x8` by
-        // `layout`.
+        // SAFETY: `ptr` owns an initialized buffer of `N` components for as long as `self` lives,
+        // allocated with the alignment of `f64x8` by `layout`.
         unsafe { AlignedDVecN::from_ref_unchecked(&*self.ptr.as_ptr().cast::<[f64; N]>()) }
     }
 }
 
 const impl<const N: usize, A: Allocator> DerefMut for BoxedDVecN<N, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY: `ptr` owns an initialized buffer of `N` components for as
-        // long as `self` lives, allocated with the alignment of `f64x8` by
-        // `layout`; the exclusive borrow of `self` guards the exclusive
-        // reference.
+        // SAFETY: `ptr` owns an initialized buffer of `N` components for as long as `self` lives,
+        // allocated with the alignment of `f64x8` by `layout`; the exclusive borrow of `self`
+        // guards the exclusive reference.
         unsafe { AlignedDVecN::from_mut_unchecked(&mut *self.ptr.as_ptr().cast::<[f64; N]>()) }
     }
 }
@@ -725,8 +693,8 @@ impl<const N: usize, A: Allocator + Clone> Clone for BoxedDVecN<N, A> {
         // Both buffers share the same layout for a given `N`, so the
         // existing allocation is reused instead of reallocating.
         //
-        // SAFETY: both pointers own initialized buffers of `N` components,
-        // and two live boxes cannot alias.
+        // SAFETY: both pointers own initialized buffers of `N` components, and two live boxes
+        // cannot alias.
         unsafe {
             ptr::copy_nonoverlapping(source.as_array().as_ptr(), self.ptr.as_ptr(), N);
         }
@@ -778,18 +746,18 @@ const impl<const N: usize, A: Allocator> PartialEq for BoxedDVecN<N, A> {
 impl<const N: usize, A: Allocator> Drop for BoxedDVecN<N, A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `ptr` was allocated by `alloc` in `new_in` with the same
-        // layout and has not been deallocated since.
+        // SAFETY: `ptr` was allocated by `alloc` in `new_in` with the same layout and has not been
+        // deallocated since.
         unsafe {
             self.alloc.deallocate(self.ptr.cast::<u8>(), Self::layout());
         }
     }
 }
 
-// SAFETY: the buffer is exclusively owned and its `f64` components are
-// `Send` and `Sync`; the allocator's own thread-safety carries the bound.
+// SAFETY: the buffer is exclusively owned and its `f64` components are `Send` and `Sync`; the
+// allocator's own thread-safety carries the bound.
 unsafe impl<const N: usize, A: Allocator + Send> Send for BoxedDVecN<N, A> {}
 
-// SAFETY: shared access only exposes `&[f64; N]`, which is `Sync`; the
-// allocator's own thread-safety carries the bound.
+// SAFETY: shared access only exposes `&[f64; N]`, which is `Sync`; the allocator's own
+// thread-safety carries the bound.
 unsafe impl<const N: usize, A: Allocator + Sync> Sync for BoxedDVecN<N, A> {}

@@ -460,17 +460,16 @@ fn from_slice_rejects_what_would_break_the_invariant() {
     assert!(empty.is_empty());
 }
 
-/// Components bounded to the well-conditioned `-1e3..1e3` range, in the
-/// fixed dimension 19: two full 8-lane chunks plus a remainder of three,
-/// crossing the SIMD chunk boundary in both the batched body and the
-/// scalar tail.
+/// Components bounded to the well-conditioned `-1e3..1e3` range, in the fixed dimension 19.
+///
+/// Two full 8-lane chunks plus a remainder of three, crossing the SIMD chunk boundary in both the
+/// batched body and the scalar tail.
 fn components_strategy() -> impl Strategy<Value = [f32; 19]> {
     prop::array::uniform19(-1e3_f32..1e3)
 }
 
 proptest! {
-    /// The dot product commutes bit for bit: both orders accumulate the
-    /// same products in the same order.
+    /// The dot product commutes bit for bit: both orders accumulate the same products in the same order.
     #[test]
     fn dot_is_commutative(left in components_strategy(), right in components_strategy()) {
         prop_assert_eq!(
@@ -485,8 +484,7 @@ proptest! {
         prop_assert!(VecN::new(components).norm_squared() >= 0.0);
     }
 
-    /// Cosine distance lies in `[0, 2]`, and the distance from a non-zero
-    /// vector to itself is zero up to rounding.
+    /// Cosine distance lies in `[0, 2]`, and the distance from a non-zero vector to itself is zero up to rounding.
     #[test]
     fn cosine_distance_stays_in_range_and_vanishes_on_self(
         left in components_strategy(),
@@ -502,9 +500,7 @@ proptest! {
         prop_assert!(left.cosine_distance(&left) < 1e-6);
     }
 
-    /// The fused SIMD dot product matches a plain-f64 reference loop
-    /// within a relative tolerance plus a small absolute floor for
-    /// cancelled sums.
+    /// The fused SIMD dot product matches a plain-f64 reference loop within a relative tolerance plus a small absolute floor for cancelled sums.
     #[test]
     fn dot_matches_a_plain_f64_reference(
         left in components_strategy(),

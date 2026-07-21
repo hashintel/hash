@@ -1,11 +1,9 @@
 //! HASH graph-store facts projected into relation-card contents.
 //!
-//! [`build_contents`] is the HASH datasource adapter: it turns the facts
-//! recorded for one link entity type - prose, per-source link
-//! constraints, and link instances - into [`CardContents`] for
-//! [`build_card`](super::format::build_card). Every input row names
-//! types at their latest version, and text borrows from the rows until
-//! whitespace normalization forces ownership.
+//! [`build_contents`] is the HASH datasource adapter: it turns the facts recorded for one link
+//! entity type - prose, per-source link constraints, and link instances - into [`CardContents`] for
+//! [`build_card`](super::format::build_card). Every input row names types at their latest version,
+//! and text borrows from the rows until whitespace normalization forces ownership.
 //!
 //! Example candidates flow through a deterministic pipeline in front of
 //! [`select_diverse_examples`]:
@@ -20,9 +18,9 @@
 //! 5. claim one rendered-pair conflict token per candidate, so textually identical examples from
 //!    separate webs appear at most once.
 //!
-//! Candidates matching no source type surface only when every per-source
-//! group is empty, as one unlabelled group; with no constraining source
-//! types at all, every candidate forms one unlabelled group.
+//! Candidates matching no source type surface only when every per-source group is empty, as one
+//! unlabelled group; with no constraining source types at all, every candidate forms one unlabelled
+//! group.
 
 use alloc::{
     alloc::{Allocator, Global},
@@ -59,8 +57,7 @@ pub(crate) struct TypePhrase<'text> {
 /// One relation's own facts, resolved to its latest version.
 #[derive(Debug)]
 pub(crate) struct TypeFacts<'text, A: Allocator = Global> {
-    /// The relation's base id: a URL whose path ends in the type's slug
-    /// and a trailing slash.
+    /// The relation's base id: a URL whose path ends in the type's slug and a trailing slash.
     pub id: &'text str,
     /// The relation's display title.
     pub title: &'text str,
@@ -68,17 +65,17 @@ pub(crate) struct TypeFacts<'text, A: Allocator = Global> {
     pub description: Option<&'text str>,
     /// The inverse reading's title, when the schema records one.
     pub inverse_title: Option<&'text str>,
-    /// Ancestor types ordered by depth then id, with the relation itself
-    /// and the link root excluded.
+    /// Ancestor types ordered by depth then id.
+    ///
+    /// With the relation itself and the link root excluded.
     pub ancestors: Vec<TypePhrase<'text>, A>,
 }
 
 /// One source type's link constraint on the relation.
 ///
-/// Each constraining source type arrives as exactly one row, and the
-/// target list holds the latest version per target type, ordered by
-/// target id. The adapter contributes the casefolded-title ordering the
-/// card renders.
+/// Each constraining source type arrives as exactly one row, and the target list holds the latest
+/// version per target type, ordered by target id. The adapter contributes the casefolded-title
+/// ordering the card renders.
 #[derive(Debug)]
 pub(crate) struct EndpointAssociation<'text, A: Allocator = Global> {
     /// The source type's base id.
@@ -87,11 +84,9 @@ pub(crate) struct EndpointAssociation<'text, A: Allocator = Global> {
     pub source: TypePhrase<'text>,
     /// The allowed target types; an empty list allows any target type.
     pub targets: Vec<TypePhrase<'text>, A>,
-    /// The fewest targets one source instance links, when the schema
-    /// records a minimum.
+    /// The fewest targets one source instance links, when the schema records a minimum.
     pub minimum_targets: Option<usize>,
-    /// The most targets one source instance links, when the schema
-    /// records a maximum.
+    /// The most targets one source instance links, when the schema records a maximum.
     pub maximum_targets: Option<usize>,
 }
 
@@ -108,29 +103,25 @@ pub(crate) struct ExampleRow<'text, A: Allocator = Global> {
     pub source_label: &'text str,
     /// The target endpoint's display label.
     pub target_label: &'text str,
-    /// The source endpoint's first direct type id; empty when the store
-    /// records no direct type.
+    /// The source endpoint's first direct type id; empty when the store records no direct type.
     pub source_direct_type: &'text str,
     /// The source endpoint's type ids, nearest first.
     pub source_type_closure: Vec<&'text str, A>,
-    /// Occurrences of the source entity among the relation's instances;
-    /// at least 1.
+    /// Occurrences of the source entity among the relation's instances; at least 1.
     pub source_frequency: u64,
-    /// Occurrences of the target entity among the relation's instances;
-    /// at least 1.
+    /// Occurrences of the target entity among the relation's instances; at least 1.
     pub target_frequency: u64,
 }
 
 /// Builds card contents from one relation's graph-store facts.
 ///
-/// Associations render as endpoint constraints ordered by casefolded
-/// source title then source id, and drive both the single-value
-/// constraint and example grouping. Example candidates pass through the
-/// deterministic pipeline described in the [module docs](self) before
+/// Associations render as endpoint constraints ordered by casefolded source title then source id,
+/// and drive both the single-value constraint and example grouping. Example candidates pass through
+/// the deterministic pipeline described in the [module docs](self) before
 /// [`select_diverse_examples`] fills at most `example_count` slots.
 ///
-/// `Ok(None)` reports an association outside its contract: a source
-/// title with no visible text, or a minimum above its maximum.
+/// `Ok(None)` reports an association outside its contract: a source title with no visible text, or
+/// a minimum above its maximum.
 ///
 /// # Errors
 ///
@@ -250,8 +241,8 @@ where
 
 /// Builds one association's endpoint constraint.
 ///
-/// `Ok(None)` reports an association outside its contract; a target
-/// whose title holds no visible text is skipped.
+/// `Ok(None)` reports an association outside its contract; a target whose title holds no visible
+/// text is skipped.
 ///
 /// # Errors
 ///
@@ -302,9 +293,8 @@ type ExampleGroup<'text, A> =
 
 /// Normalizes candidates into deterministic processing order.
 ///
-/// Candidates sort by [`order_key`], endpoint labels collapse interior
-/// whitespace, candidates a blank label leaves unrenderable drop out, and
-/// every endpoint pair keeps its first candidate.
+/// Candidates sort by [`order_key`], endpoint labels collapse interior whitespace, candidates a
+/// blank label leaves unrenderable drop out, and every endpoint pair keeps its first candidate.
 fn normalized_examples<'text, A: Allocator + Clone>(
     relation_id: &str,
     examples: Vec<ExampleRow<'text, A>, A>,
@@ -343,8 +333,8 @@ fn normalized_examples<'text, A: Allocator + Clone>(
 
 /// Keys one candidate's position in the deterministic processing order.
 ///
-/// The digest covers the relation and candidate identities separated by
-/// NUL bytes, so the order is a property of the facts alone.
+/// The digest covers the relation and candidate identities separated by NUL bytes, so the order is
+/// a property of the facts alone.
 fn order_key<A: Allocator>(relation_id: &str, row: &ExampleRow<'_, A>) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(relation_id.as_bytes());
@@ -358,11 +348,9 @@ fn order_key<A: Allocator>(relation_id: &str, row: &ExampleRow<'_, A>) -> Sha256
 
 /// Stratifies candidates by their nearest constraining source type.
 ///
-/// Grouping matches type ids, so title collisions between source types
-/// leave assignment unchanged. Candidates matching no source type appear
-/// only when every per-source group is empty, as one unlabelled group;
-/// with no source types at all, every candidate forms one unlabelled
-/// group.
+/// Grouping matches type ids, so title collisions between source types leave assignment unchanged.
+/// Candidates matching no source type appear only when every per-source group is empty, as one
+/// unlabelled group; with no source types at all, every candidate forms one unlabelled group.
 fn example_groups<'text, A: Allocator + Clone>(
     associations: &[EndpointAssociation<'text, A>],
     candidates: Vec<NormalizedExample<'text, A>, A>,
@@ -409,8 +397,8 @@ fn unlabelled_group<'text, A: Allocator + Clone>(
 
 /// Finds the source type nearest in the candidate's type closure.
 ///
-/// Sources tying on closure position resolve to the earlier source, and
-/// a candidate whose closure contains no source type yields `None`.
+/// Sources tying on closure position resolve to the earlier source, and a candidate whose closure
+/// contains no source type yields `None`.
 fn nearest_source<A: Allocator>(
     associations: &[EndpointAssociation<'_, A>],
     candidate: &NormalizedExample<'_, A>,
@@ -436,9 +424,8 @@ fn nearest_source<A: Allocator>(
 
 /// Wraps one candidate pool as a selection group.
 ///
-/// Every candidate claims its endpoint identities plus one rendered-pair
-/// conflict token, and scores by endpoint prominence. The candidate's
-/// first direct type id forms the diversity subgroup.
+/// Every candidate claims its endpoint identities plus one rendered-pair conflict token, and scores
+/// by endpoint prominence. The candidate's first direct type id forms the diversity subgroup.
 fn example_group<'text, A: Allocator + Clone>(
     title: Option<&'text str>,
     pool: Vec<NormalizedExample<'text, A>, A>,
@@ -471,10 +458,9 @@ fn example_group<'text, A: Allocator + Clone>(
 
 /// Builds a candidate's rendered-pair conflict token.
 ///
-/// The token joins the casefolded group title (empty for the unlabelled
-/// group) and both casefolded endpoint labels with NUL bytes under the
-/// `rendered:` prefix, so one card never repeats a line of identical
-/// rendered text even when the underlying entities differ.
+/// The token joins the casefolded group title (empty for the unlabelled group) and both casefolded
+/// endpoint labels with NUL bytes under the `rendered:` prefix, so one card never repeats a line of
+/// identical rendered text even when the underlying entities differ.
 fn rendered_pair(title: Option<&str>, source_label: &str, target_label: &str) -> String {
     let mut token = String::from("rendered:");
     token.extend(casefolded(title.unwrap_or_default()));
@@ -487,9 +473,8 @@ fn rendered_pair(title: Option<&str>, source_label: &str, target_label: &str) ->
 
 /// Scores a candidate by its endpoints' prominence.
 ///
-/// Prominence is `ln(1 + frequency)` summed over both endpoints, so a
-/// pair of moderately connected entities outranks one hub paired with an
-/// obscure partner.
+/// Prominence is `ln(1 + frequency)` summed over both endpoints, so a pair of moderately connected
+/// entities outranks one hub paired with an obscure partner.
 fn recognizability<A: Allocator>(row: &ExampleRow<'_, A>) -> f64 {
     ln_count(row.source_frequency) + ln_count(row.target_frequency)
 }
@@ -511,8 +496,8 @@ fn casefolded(text: &str) -> impl Iterator<Item = char> {
 
 /// Extracts the relation's slug: the last path segment of its base id.
 ///
-/// Trailing slashes do not count as segment boundaries, so the canonical
-/// `.../entity-type/<slug>/` shape yields `<slug>`.
+/// Trailing slashes do not count as segment boundaries, so the canonical `.../entity-type/<slug>/`
+/// shape yields `<slug>`.
 fn slug(id: &str) -> &str {
     id.trim_end_matches('/')
         .rsplit('/')

@@ -1,22 +1,19 @@
-//! One training step's objective: forward, hand-gradient fields,
-//! budget clip, and the backward-ready surrogate.
+//! One training step's objective.
 //!
-//! [`objective`] projects the batch rows and hands the coordinates to
-//! [`evaluate`], which computes the composite objective in two
-//! regimes. The budget-governed families (semantic attraction,
-//! ordinary and hard repulsion, relation attraction) evaluate value
-//! and per-node coordinate gradient against the detached coordinate
-//! frame; the relation field is clipped per node against the semantic
-//! one, and the combined field re-enters the parameter graph through
-//! the surrogate scalar, whose single backward pass deposits exactly
-//! that field. The support families (temporal anchors, landmarks) ride
-//! ordinary autodiff on the coordinate tensor - they are outside the
+//! Forward, hand-gradient fields, budget clip, and the backward-ready surrogate.
+//!
+//! [`objective`] projects the batch rows and hands the coordinates to [`evaluate`], which computes
+//! the composite objective in two regimes. The budget-governed families (semantic attraction,
+//! ordinary and hard repulsion, relation attraction) evaluate value and per-node coordinate
+//! gradient against the detached coordinate frame; the relation field is clipped per node against
+//! the semantic one, and the combined field re-enters the parameter graph through the surrogate
+//! scalar, whose single backward pass deposits exactly that field. The support families (temporal
+//! anchors, landmarks) ride ordinary autodiff on the coordinate tensor - they are outside the
 //! budget - and add onto the same scalar.
 //!
-//! Relation-inactive nodes - every node when the batch carries no
-//! relation edges, and any node whose accumulated relation gradient is
-//! exactly zero - contribute their semantic gradient unclipped and are
-//! not recorded into the budget metrics: there is nothing to budget.
+//! Relation-inactive nodes - every node when the batch carries no relation edges, and any node
+//! whose accumulated relation gradient is exactly zero - contribute their semantic gradient
+//! unclipped and are not recorded into the budget metrics: there is nothing to budget.
 
 use burn::tensor::{
     Tensor, TensorData,
@@ -43,8 +40,8 @@ use crate::{
 
 /// The step's evaluated loss values, one per objective family.
 ///
-/// Values are the scaled batch sums the step actually descends;
-/// families absent from the batch report zero.
+/// Values are the scaled batch sums the step actually descends; families absent from the batch
+/// report zero.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct LossBreakdown {
     /// Semantic attraction.
@@ -79,9 +76,8 @@ impl LossBreakdown {
 
 /// One step's backward-ready scalar and its evaluated values.
 ///
-/// A single backward pass through `surrogate` deposits the budgeted
-/// coordinate field and the support gradients into the shared model
-/// parameters.
+/// A single backward pass through `surrogate` deposits the budgeted coordinate field and the
+/// support gradients into the shared model parameters.
 pub(crate) struct Objective<B: AutodiffBackend> {
     /// The scalar to backpropagate.
     pub surrogate: Tensor<B, 1>,
@@ -89,11 +85,12 @@ pub(crate) struct Objective<B: AutodiffBackend> {
     pub loss: LossBreakdown,
 }
 
-/// The step objective's run-bound context: the corpus input columns,
-/// the numerical contract, and the reporting decile axis.
+/// The step objective's run-bound context.
 ///
-/// Bound once per training run; the loop composes the frozen relation
-/// energy into `options` at the phase boundary.
+/// The corpus input columns, the numerical contract, and the reporting decile axis.
+///
+/// Bound once per training run; the loop composes the frozen relation energy into `options` at the
+/// phase boundary.
 #[derive(Debug)]
 pub(crate) struct Evaluation<'run> {
     /// The per-row model input columns of the whole corpus.
@@ -109,14 +106,12 @@ impl Evaluation<'_> {
     ///
     /// # Errors
     ///
-    /// Returns an error when the forward pass produces a non-finite
-    /// coordinate: training diverged.
+    /// Returns an error when the forward pass produces a non-finite coordinate: training diverged.
     ///
     /// # Panics
     ///
-    /// Panics on wiring defects: input columns disagreeing with the
-    /// batch rows, relation edges without a frozen relation energy, or
-    /// scale tables missing where relation edges are present.
+    /// Panics on wiring defects: input columns disagreeing with the batch rows, relation edges
+    /// without a frozen relation energy, or scale tables missing where relation edges are present.
     pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>>(
         &self,
         model: &Projector<B>,
@@ -131,24 +126,20 @@ impl Evaluation<'_> {
 
 /// Evaluates the composite objective against projected coordinates.
 ///
-/// `coordinates` are the batch rows' projections in the batch's local
-/// row order, optionally followed by alignment padding: trailing rows
-/// beyond the batch's are the materialized input's padding twins (see
-/// [`ROW_ALIGNMENT`]), which no population references, so they carry
-/// exactly zero force. Split from [`objective`] so the coordinate
-/// producer stays exchangeable: the training loop forwards the model,
-/// tests drive hand-built frames.
+/// `coordinates` are the batch rows' projections in the batch's local row order, optionally
+/// followed by alignment padding: trailing rows beyond the batch's are the materialized input's
+/// padding twins (see [`ROW_ALIGNMENT`]), which no population references, so they carry exactly
+/// zero force. Split from [`objective`] so the coordinate producer stays exchangeable: the training
+/// loop forwards the model, tests drive hand-built frames.
 ///
 /// # Errors
 ///
-/// Returns an error when a coordinate is non-finite: training
-/// diverged.
+/// Returns an error when a coordinate is non-finite: training diverged.
 ///
 /// # Panics
 ///
-/// Panics on wiring defects: a coordinate row count disagreeing with
-/// the batch, relation edges without a frozen relation energy, or a
-/// missing scale table.
+/// Panics on wiring defects: a coordinate row count disagreeing with the batch, relation edges
+/// without a frozen relation energy, or a missing scale table.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "a frame/batch row mismatch is a wiring defect contract, not a recoverable error"
@@ -254,8 +245,7 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
     })
 }
 
-/// Evaluates the relation term per type, clips per node, and records
-/// the budget metrics.
+/// Evaluates the relation term per type, clips per node, and records the budget metrics.
 ///
 /// Returns the relation loss value and the flattened combined field.
 fn relation_pass(
@@ -364,14 +354,13 @@ fn relation_pass(
     (value, combined)
 }
 
-/// Reads the detached coordinate frame back to the host and checks
-/// that every point is finite.
+/// Reads the detached coordinate frame back to the host and checks that every point is finite.
 ///
-/// Padding rows replicate the last participating row, so a non-finite
-/// padded point reports that row.
+/// Padding rows replicate the last participating row, so a non-finite padded point reports that
+/// row.
 ///
-/// Returns the raw row-major components; view them through
-/// [`Vec2::from_slice`] rather than copying.
+/// Returns the raw row-major components; view them through [`Vec2::from_slice`] rather than
+/// copying.
 fn read_frame<B: Backend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
     rows: &[NodeRowId],

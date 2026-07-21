@@ -1,15 +1,13 @@
 //! `argmin-math` operations for [`BoxedDVecN`].
 //!
-//! These impls make the boxed double-precision vector a parameter and
-//! gradient type for argmin's quasi-Newton solvers: every bulk operation
-//! of a solver's inner loop - dot products, norms, vector arithmetic,
-//! scaled updates - runs on this crate's `f64x8` kernels instead of a
-//! backend's. The set covers what L-BFGS and its line searches demand of
-//! both the parameter and the gradient type; operations arrive here with
-//! their first demanding solver, never speculatively.
+//! These impls make the boxed double-precision vector a parameter and gradient type for argmin's
+//! quasi-Newton solvers: every bulk operation of a solver's inner loop - dot products, norms,
+//! vector arithmetic, scaled updates - runs on this crate's `f64x8` kernels instead of a backend's.
+//! The set covers what L-BFGS and its line searches demand of both the parameter and the gradient
+//! type; operations arrive here with their first demanding solver, never speculatively.
 //!
-//! Every operation returns a freshly allocated vector, which is argmin's
-//! cost model: the solver owns its iteration state and replaces it whole.
+//! Every operation returns a freshly allocated vector, which is argmin's cost model: the solver
+//! owns its iteration state and replaces it whole.
 
 use core::{
     alloc::Allocator,
@@ -29,8 +27,8 @@ mod tests;
 
 /// Transforms every component of a copy of `source`.
 ///
-/// `lanes_op` handles the aligned 8-lane groups and `scalar_op` the
-/// trailing `N % 8` components; both must compute the same function.
+/// `lanes_op` handles the aligned 8-lane groups and `scalar_op` the trailing `N % 8` components;
+/// both must compute the same function.
 #[inline]
 fn map<const N: usize, A: Allocator + Clone>(
     source: &BoxedDVecN<N, A>,
@@ -50,11 +48,10 @@ fn map<const N: usize, A: Allocator + Clone>(
     output
 }
 
-/// Combines the components of `left` and `right` pairwise into a new
-/// vector.
+/// Combines the components of `left` and `right` pairwise into a new vector.
 ///
-/// `lanes_op` handles the aligned 8-lane groups and `scalar_op` the
-/// trailing `N % 8` components; both must compute the same function.
+/// `lanes_op` handles the aligned 8-lane groups and `scalar_op` the trailing `N % 8` components;
+/// both must compute the same function.
 #[inline]
 fn zip<const N: usize, A: Allocator + Clone>(
     left: &BoxedDVecN<N, A>,

@@ -22,16 +22,14 @@ mod tests;
 
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
-/// A [`Bounds2`] is defined by its minimum and maximum corners. Every value
-/// upholds two invariants: both corners are finite, and `min <= max` holds
-/// per component. Constructors enforce this by returning [`None`] for
-/// invalid input, so downstream code can rely on the box being usable
+/// A [`Bounds2`] is defined by its minimum and maximum corners. Every value upholds two invariants:
+/// both corners are finite, and `min <= max` holds per component. Constructors enforce this by
+/// returning [`None`] for invalid input, so downstream code can rely on the box being usable
 /// without re-validating.
 ///
 /// The primary workflow is: gather the extent of a point set with
-/// [`from_points`](Self::from_points), then map it onto a target region
-/// with [`fit`](Self::fit), which yields a [`Transform`] to apply to the
-/// points (in batches via [`Transform::apply_x4`]).
+/// [`from_points`](Self::from_points), then map it onto a target region with [`fit`](Self::fit),
+/// which yields a [`Transform`] to apply to the points (in batches via [`Transform::apply_x4`]).
 ///
 /// # Examples
 ///
@@ -72,17 +70,15 @@ pub struct Bounds2 {
 impl Bounds2 {
     /// Points per rayon work item in [`from_slice_par`](Self::from_slice_par).
     ///
-    /// 4096 points are 32 KiB, comfortably inside L1 while large enough
-    /// that per-task overhead disappears against the fold.
+    /// 4096 points are 32 KiB, comfortably inside L1 while large enough that per-task overhead
+    /// disappears against the fold.
     pub const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
 
     /// Creates a bounding box from its corners.
     ///
-    /// Returns [`None`] unless both corners are finite and `min <= max`
-    /// holds per component. A degenerate box with `min == max` on an axis
-    /// is allowed; widen it with
-    /// [`with_minimum_extent`](Self::with_minimum_extent) if a positive
-    /// extent is required.
+    /// Returns [`None`] unless both corners are finite and `min <= max` holds per component. A
+    /// degenerate box with `min == max` on an axis is allowed; widen it with
+    /// [`with_minimum_extent`](Self::with_minimum_extent) if a positive extent is required.
     #[must_use]
     pub const fn new(min: Vec2, max: Vec2) -> Option<Self> {
         if !min.is_finite() || !max.is_finite() || min.x() > max.x() || min.y() > max.y() {
@@ -94,12 +90,11 @@ impl Bounds2 {
 
     /// Computes the tight bounding box of a point set.
     ///
-    /// Returns [`None`] when the iterator is empty or any coordinate is
-    /// not finite; the returned box always reflects every input point.
+    /// Returns [`None`] when the iterator is empty or any coordinate is not finite; the returned
+    /// box always reflects every input point.
     ///
-    /// This is the flexible, scalar entry point. When the points are
-    /// already in a slice, prefer [`from_slice`](Self::from_slice), which
-    /// folds four points per step.
+    /// This is the flexible, scalar entry point. When the points are already in a slice, prefer
+    /// [`from_slice`](Self::from_slice), which folds four points per step.
     #[must_use]
     pub fn from_points(points: impl IntoIterator<Item = Vec2>) -> Option<Self> {
         let mut points = points.into_iter();
@@ -117,10 +112,9 @@ impl Bounds2 {
 
     /// Computes the tight bounding box of a point slice with SIMD folds.
     ///
-    /// The contract is identical to [`from_points`](Self::from_points):
-    /// [`None`] for an empty slice or any non-finite coordinate. Points
-    /// are folded four at a time, with the trailing `len % 4` points
-    /// handled scalar.
+    /// The contract is identical to [`from_points`](Self::from_points): [`None`] for an empty slice
+    /// or any non-finite coordinate. Points are folded four at a time, with the trailing `len % 4`
+    /// points handled scalar.
     #[must_use]
     pub fn from_slice(points: &[Vec2]) -> Option<Self> {
         if points.is_empty() {
@@ -160,34 +154,29 @@ impl Bounds2 {
 
     /// Computes the tight bounding box of a large point slice in parallel.
     ///
-    /// The contract is identical to [`from_points`](Self::from_points):
-    /// [`None`] for an empty slice or any non-finite coordinate. The slice
-    /// is split into chunks folded with [`from_slice`](Self::from_slice)
-    /// on rayon workers, then combined with [`union`](Self::union).
+    /// The contract is identical to [`from_points`](Self::from_points): [`None`] for an empty slice
+    /// or any non-finite coordinate. The slice is split into chunks folded with
+    /// [`from_slice`](Self::from_slice) on rayon workers, then combined with
+    /// [`union`](Self::union).
     ///
-    /// The fold is memory-bound: a single core already streams near the
-    /// machine's bandwidth, so the parallel gain is real but modest
-    /// (measured around a third at a million points) and does not grow
-    /// with core count. Below roughly a hundred thousand points,
+    /// The fold is memory-bound: a single core already streams near the machine's bandwidth, so the
+    /// parallel gain is real but modest (measured around a third at a million points) and does not
+    /// grow with core count. Below roughly a hundred thousand points,
     /// [`from_slice`](Self::from_slice) is faster outright.
     ///
-    /// Work splits into chunks of
-    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) points; use
-    /// [`from_slice_par_with`](Self::from_slice_par_with) to tune the
-    /// granularity.
+    /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) points; use
+    /// [`from_slice_par_with`](Self::from_slice_par_with) to tune the granularity.
     #[inline]
     #[must_use]
     pub fn from_slice_par(points: &[Vec2]) -> Option<Self> {
         Self::from_slice_par_with(points, Self::PARALLEL_CHUNK)
     }
 
-    /// Computes the tight bounding box in parallel with a caller-chosen
-    /// chunk granularity.
+    /// Computes the tight bounding box in parallel with a caller-chosen chunk granularity.
     ///
-    /// The contract is identical to [`from_slice`](Self::from_slice).
-    /// Each rayon work item folds `chunk` points; smaller chunks balance
-    /// better across uneven core loads, larger chunks amortize task
-    /// overhead. [`from_slice_par`](Self::from_slice_par) uses
+    /// The contract is identical to [`from_slice`](Self::from_slice). Each rayon work item folds
+    /// `chunk` points; smaller chunks balance better across uneven core loads, larger chunks
+    /// amortize task overhead. [`from_slice_par`](Self::from_slice_par) uses
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
     #[must_use]
     pub fn from_slice_par_with(points: &[Vec2], chunk: NonZero<usize>) -> Option<Self> {
@@ -250,12 +239,12 @@ impl Bounds2 {
         }
     }
 
-    /// Widens any axis narrower than `minimum` to exactly `minimum`,
-    /// symmetrically around its centre.
+    /// Widens any axis narrower than `minimum` to exactly `minimum`.
     ///
-    /// This repairs degenerate boxes (all points on a line, or a single
-    /// point) before operations that divide by the extent, such as
-    /// [`fit`](Self::fit) or density rasterization.
+    /// Symmetrically around its centre.
+    ///
+    /// This repairs degenerate boxes (all points on a line, or a single point) before operations
+    /// that divide by the extent, such as [`fit`](Self::fit) or density rasterization.
     #[inline]
     #[must_use]
     pub fn with_minimum_extent(self, minimum: f32) -> Self {
@@ -272,16 +261,14 @@ impl Bounds2 {
 
     /// Returns the transform mapping this box onto `target`.
     ///
-    /// Each axis is scaled and translated independently, so `self.min`
-    /// lands on `target.min` and `self.max` on `target.max`. This is the
-    /// normalize-into-viewport operation: fit a layout's extent, then map
-    /// every point into `[0, size]` coordinates with one batched
-    /// transform.
+    /// Each axis is scaled and translated independently, so `self.min` lands on `target.min` and
+    /// `self.max` on `target.max`. This is the normalize-into-viewport operation: fit a layout's
+    /// extent, then map every point into `[0, size]` coordinates with one batched transform.
     ///
-    /// Returns [`None`] when this box has an axis with zero, subnormal, or
-    /// otherwise non-normal extent, where the scale factor degenerates;
-    /// widen with [`with_minimum_extent`](Self::with_minimum_extent)
-    /// first when the point set may be collinear.
+    /// Returns [`None`] when this box has an axis with zero, subnormal, or otherwise non-normal
+    /// extent, where the scale factor degenerates; widen with
+    /// [`with_minimum_extent`](Self::with_minimum_extent) first when the point set may be
+    /// collinear.
     ///
     /// # Examples
     ///
@@ -317,20 +304,16 @@ impl Bounds2 {
 
     /// Maps points from this box onto `target`, exactly per axis.
     ///
-    /// Each axis maps affinely in `f64` - subtract this box's minimum,
-    /// divide by its extent, scale onto the target axis - and rounds
-    /// once to `f32`, so every output component is within one `f32`
-    /// ULP of the exact mapping for every input magnitude, including
-    /// boxes sitting far from the origin relative to their extent.
-    /// This box's corners land on the target's corners; points outside
-    /// this box extrapolate along the same map. A zero-extent axis
-    /// (every point identical on it) maps to the centre of the
-    /// target's axis.
+    /// Each axis maps affinely in `f64` - subtract this box's minimum, divide by its extent, scale
+    /// onto the target axis - and rounds once to `f32`, so every output component is within one
+    /// `f32` ULP of the exact mapping for every input magnitude, including boxes sitting far from
+    /// the origin relative to their extent. This box's corners land on the target's corners; points
+    /// outside this box extrapolate along the same map. A zero-extent axis (every point identical
+    /// on it) maps to the centre of the target's axis.
     ///
-    /// Points are mapped in parallel, four at a time per axis: each
-    /// batch converts to [`Vec2x4T`] at the loop boundary and widens
-    /// its lane groups to `f64`, so the batched and scalar paths round
-    /// identically and the output is independent of the split.
+    /// Points are mapped in parallel, four at a time per axis: each batch converts to [`Vec2x4T`]
+    /// at the loop boundary and widens its lane groups to `f64`, so the batched and scalar paths
+    /// round identically and the output is independent of the split.
     ///
     /// # Examples
     ///
@@ -373,8 +356,7 @@ impl Bounds2 {
     }
 }
 
-/// One axis's affine map of [`Bounds2::normalize_into`], with every
-/// coefficient widened to `f64`.
+/// One axis's affine map of [`Bounds2::normalize_into`], with every coefficient widened to `f64`.
 #[derive(Copy, Clone)]
 struct AxisMap {
     minimum: f64,
@@ -415,8 +397,8 @@ impl AxisMap {
         unit.mul_add(self.target_extent, self.target_minimum) as f32
     }
 
-    /// Maps four coordinates onto their target axis, rounding each lane
-    /// exactly as [`apply`](Self::apply) rounds one value.
+    /// Maps four coordinates onto their target axis, rounding each lane exactly as
+    /// [`apply`](Self::apply) rounds one value.
     fn apply_x4(self, values: Simd<f32, 4>) -> Simd<f32, 4> {
         if self.extent == 0.0 {
             #[expect(
@@ -436,8 +418,8 @@ impl AxisMap {
     }
 }
 
-/// Folds an interleaved `x y x y ...` lane group into a single vector,
-/// combining the four values of each axis with `combine`.
+/// Folds an interleaved `x y x y ...` lane group into a single vector, combining the four values of
+/// each axis with `combine`.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; inlining into the \

@@ -21,17 +21,18 @@ pub enum OpenQuadError {
     Nodes { nodes: u64 },
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the shape's
-        /// byte length overflows `u64`, in which case it matches no
-        /// real file.
+        /// The length the header describes.
+        ///
+        /// [`None`] when the shape's byte length overflows `u64`, in which case it matches no real
+        /// file.
         expected: Option<u64>,
         actual: u64,
     },
-    /// A type-set fencepost breaks a structural rule: posts anchor at
-    /// zero, never decrease, and close at the header's entry count.
+    /// A type-set fencepost breaks a structural rule.
+    ///
+    /// Posts anchor at zero, never decrease, and close at the header's entry count.
     Posts { index: u64 },
-    /// A child index escapes the table or fails to point deeper in the
-    /// pre-order.
+    /// A child index escapes the table or fails to point deeper in the pre-order.
     Child { node: u64, child: u32 },
 }
 
@@ -97,16 +98,13 @@ impl Error for OpenQuadError {
 
 /// A quad file mapped read-only into memory.
 ///
-/// Opening parses the header, checks the length equation, and
-/// validates the structural rules - fenceposts anchored, non-decreasing
-/// and closing at the header's entry count; children inside the table
-/// and pointing deeper - so traversals and set slices never re-check.
-/// Within-set ascending order is the writer's contract, assumed the way
-/// every merge assumes its sorted inputs.
+/// Opening parses the header, checks the length equation, and validates the structural rules -
+/// fenceposts anchored, non-decreasing and closing at the header's entry count; children inside the
+/// table and pointing deeper - so traversals and set slices never re-check. Within-set ascending
+/// order is the writer's contract, assumed the way every merge assumes its sorted inputs.
 ///
-/// [`locate`](Self::locate) is the serving query: the node owning one
-/// tile cell, found by walking the two-bit digits of the cell's key
-/// prefix from the root.
+/// [`locate`](Self::locate) is the serving query: the node owning one tile cell, found by walking
+/// the two-bit digits of the cell's key prefix from the root.
 #[derive(Debug)]
 pub(crate) struct QuadFile {
     map: PageMap,
@@ -117,14 +115,12 @@ impl QuadFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenQuadError::Io`] when the file cannot be opened or
-    /// mapped, [`OpenQuadError::Header`] when its leading bytes are not
-    /// a header this module speaks, [`OpenQuadError::Nodes`] when the
-    /// node count collides with the child sentinel,
-    /// [`OpenQuadError::Length`] when the file length contradicts the
-    /// header's geometry, [`OpenQuadError::Posts`] when a type-set
-    /// fencepost breaks a structural rule, and [`OpenQuadError::Child`]
-    /// when a child index escapes the table or fails to point deeper.
+    /// Returns [`OpenQuadError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenQuadError::Header`] when its leading bytes are not a header this module speaks,
+    /// [`OpenQuadError::Nodes`] when the node count collides with the child sentinel,
+    /// [`OpenQuadError::Length`] when the file length contradicts the header's geometry,
+    /// [`OpenQuadError::Posts`] when a type-set fencepost breaks a structural rule, and
+    /// [`OpenQuadError::Child`] when a child index escapes the table or fails to point deeper.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenQuadError> {
         let map = PageMap::open(path).map_err(OpenQuadError::Io)?;
@@ -195,8 +191,8 @@ impl QuadFile {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse
-        // as one, so the deref target is a valid `FileHeader`.
+        // validated that the map is large enough to contain the header and that its bytes parse as
+        // one, so the deref target is a valid `FileHeader`.
         unsafe { &*ptr }
     }
 
@@ -213,13 +209,11 @@ impl QuadFile {
         <[Node]>::ref_from_bytes(bytes).expect("node records tolerate any alignment")
     }
 
-    /// Views the type-set fenceposts: one entry count per node plus the
-    /// closing count.
+    /// Views the type-set fenceposts: one entry count per node plus the closing count.
     ///
-    /// Unlike the morton file's 34 header posts, these are `N + 1`
-    /// entries, so they stay a raw view - validated once at open, read
-    /// through `.get()` twice per set lookup - rather than a copied
-    /// validated type that would double the region's memory.
+    /// Unlike the morton file's 34 header posts, these are `N + 1` entries, so they stay a raw
+    /// view (validated once at open, read through `.get()` twice per set lookup) rather than a
+    /// copied validated type that would double the region's memory.
     #[must_use]
     fn posts(&self) -> &[U64<LE>] {
         let bytes = self.map.region(
@@ -259,12 +253,12 @@ impl QuadFile {
         &self.ids()[start..end]
     }
 
-    /// Returns the node owning `cell`, [`None`] when the schedule
-    /// delivers nothing new below the cell's deepest ancestor node.
+    /// Returns the node owning `cell`.
     ///
-    /// The walk consumes the two-bit digits of the cell's key prefix
-    /// from the root: digit `d` names the Morton child quadrant at
-    /// depth `d + 1`. An empty table locates nothing.
+    /// [`None`] when the schedule delivers nothing new below the cell's deepest ancestor node.
+    ///
+    /// The walk consumes the two-bit digits of the cell's key prefix from the root: digit `d` names
+    /// the Morton child quadrant at depth `d + 1`. An empty table locates nothing.
     #[must_use]
     pub(crate) fn locate(&self, cell: MortonCell) -> Option<u32> {
         let nodes = self.nodes();

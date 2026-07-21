@@ -1,18 +1,14 @@
-//! Prepare representations: persist the working artifacts of one
-//! generation.
+//! Prepare representations: persist the working artifacts of one generation.
 //!
-//! The stage consumes dataset streams once and writes the artifacts
-//! every later stage reads, so downstream stages address rows in
-//! mapped files instead of re-consuming the source.
-//! [`write_node_representations`] covers the node half: the `f32[N, 512]`
-//! representation matrix, row-aligned with the node stream, with the
-//! node ids and direct types collected into [`NodeColumns`] in the same
-//! pass, and [`norm::spot_check`] certifies the written rows' source
-//! contract (finite, unit-norm) by acceptance sampling over the mapped
-//! matrix. [`identity`] owns both domains' identity artifacts - the
-//! edge table fills during the fit's edge drain, which [`instance`]
-//! spools relation readings from. The card-embedding half of the stage
-//! is [`embedding`](crate::salt::embedding).
+//! The stage consumes dataset streams once and writes the artifacts every later stage reads, so
+//! downstream stages address rows in mapped files instead of re-consuming the source.
+//! [`write_node_representations`] covers the node half: the `f32[N, 512]` representation matrix,
+//! row-aligned with the node stream, with the node ids and direct types collected into
+//! [`NodeColumns`] in the same pass, and [`norm::spot_check`] certifies the written rows' source
+//! contract (finite, unit-norm) by acceptance sampling over the mapped matrix. [`identity`] owns
+//! both domains' identity artifacts - the edge table fills during the fit's edge drain, which
+//! [`instance`] spools relation readings from. The card-embedding half of the stage is
+//! [`embedding`](crate::salt::embedding).
 
 use core::{error::Error, fmt, pin::pin};
 use std::io::{self, Seek, Write};
@@ -64,28 +60,26 @@ impl<E: Error + 'static> Error for PrepareError<E> {
 pub(crate) struct NodeColumns<I> {
     /// Entry `i` is node row `i`'s source id.
     pub ids: identity::IdentityTable<I>,
-    /// Entry `i` is node row `i`'s direct types, ascending and
-    /// deduplicated as the dataset streams them.
+    /// Entry `i` is node row `i`'s direct types, ascending and deduplicated as the dataset streams
+    /// them.
     pub types: Vec<SmallVec<OntologyRowId, 2>>,
 }
 
-/// Streams every node's representation into one `f32[N, 512]` array
-/// file, collecting the node ids and direct types in the same pass.
+/// Streams every node's representation into one `f32[N, 512]` array file, collecting the node ids
+/// and direct types in the same pass.
 ///
-/// Row `i` of the written matrix is the embedding of node row `i`, so the
-/// matrix is row-aligned with every artifact keyed by
-/// [`NodeRowId`](crate::dataset::NodeRowId), and entry `i` of the
-/// returned columns is that row's source id and type set. The finished
-/// file's repository digest is computed at publish.
+/// Row `i` of the written matrix is the embedding of node row `i`, so the matrix is row-aligned
+/// with every artifact keyed by [`NodeRowId`](crate::dataset::NodeRowId), and entry `i` of the
+/// returned columns is that row's source id and type set. The finished file's repository digest is
+/// computed at publish.
 ///
 /// Every node issues one write; wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter).
 ///
 /// # Errors
 ///
-/// Returns an error when the dataset fails to deliver a node or the
-/// destination fails to accept bytes; either way the destination holds an
-/// unfinished file no reader accepts.
+/// Returns an error when the dataset fails to deliver a node or the destination fails to accept
+/// bytes; either way the destination holds an unfinished file no reader accepts.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \

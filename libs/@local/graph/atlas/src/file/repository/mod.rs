@@ -1,21 +1,18 @@
 //! Published files and their identities.
 //!
-//! A repository is a directory of immutable published files. Each file is
-//! known by its name, relative to the repository root, and by the SHA-256
-//! of its bytes. The name locates the file; the hash is its identity:
-//! verification tooling recomputes it, and equal hashes across
-//! repositories mean the file can be shared rather than copied.
+//! A repository is a directory of immutable published files. Each file is known by its name,
+//! relative to the repository root, and by the SHA-256 of its bytes. The name locates the file; the
+//! hash is its identity: verification tooling recomputes it, and equal hashes across repositories
+//! mean the file can be shared rather than copied.
 //!
-//! The repository itself is versioned by [`RepositoryVersion`], recorded
-//! in the metadata document that describes it. It is the JSON analog of
-//! the pinned binary headers: deserialization admits only versions this
-//! module implements, so reading a repository of another version fails
-//! before anything is interpreted.
+//! The repository itself is versioned by [`RepositoryVersion`], recorded in the metadata document
+//! that describes it. It is the JSON analog of the pinned binary headers: deserialization admits
+//! only versions this module implements, so reading a repository of another version fails before
+//! anything is interpreted.
 //!
-//! The layout (directory structure, naming) is version 0 and **mutable**:
-//! change it freely to fit what the pipeline needs and increment
-//! [`RepositoryVersion`] when you do; published files are immutable, the
-//! conventions around them are not, until they stabilize.
+//! The layout (directory structure, naming) is version 0 and **mutable**: change it freely to fit
+//! what the pipeline needs and increment [`RepositoryVersion`] when you do; published files are
+//! immutable, the conventions around them are not, until they stabilize.
 
 use alloc::borrow::Cow;
 
@@ -26,8 +23,8 @@ mod tests;
 
 /// A repository layout version this module implements.
 ///
-/// Serialized as a plain integer. Deserialization admits no other value;
-/// increment on any layout change.
+/// Serialized as a plain integer. Deserialization admits no other value; increment on any layout
+/// change.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
@@ -69,12 +66,10 @@ impl core::error::Error for UnknownRepositoryVersion {}
 
 /// A plain, visible file name within a repository directory.
 ///
-/// Names contain no path separators or NUL bytes and never start with a
-/// dot: files of one repository live flat in its directory, and
-/// dot-prefixed entries are transient staging state, never published
-/// files. Pinned names borrow ([`pinned`](Self::pinned), validated at
-/// compile time in const position); names read from disk or documents
-/// own their text.
+/// Names contain no path separators or NUL bytes and never start with a dot: files of one
+/// repository live flat in its directory, and dot-prefixed entries are transient staging state,
+/// never published files. Pinned names borrow ([`pinned`](Self::pinned), validated at compile time
+/// in const position); names read from disk or documents own their text.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub(crate) struct FileName(Cow<'static, str>);
@@ -82,8 +77,8 @@ pub(crate) struct FileName(Cow<'static, str>);
 impl FileName {
     /// Wraps a plain, visible file name.
     ///
-    /// Returns [`None`] when the name is empty, contains a path
-    /// separator or NUL byte, or starts with a dot.
+    /// Returns [`None`] when the name is empty, contains a path separator or NUL byte, or starts
+    /// with a dot.
     #[must_use]
     pub(crate) fn new(name: impl Into<Cow<'static, str>>) -> Option<Self> {
         let name = name.into();
@@ -95,9 +90,8 @@ impl FileName {
     ///
     /// # Panics
     ///
-    /// Panics when the name is not a plain, visible file name; in const
-    /// position the panic is a compile error, so a pinned name that
-    /// exists is valid.
+    /// Panics when the name is not a plain, visible file name; in const position the panic is a
+    /// compile error, so a pinned name that exists is valid.
     #[must_use]
     pub(crate) const fn pinned(name: &'static str) -> Self {
         assert!(
@@ -170,8 +164,7 @@ impl core::fmt::Display for InvalidFileName {
 
 impl core::error::Error for InvalidFileName {}
 
-/// One published file: its name within the repository and the SHA-256 of
-/// its bytes.
+/// One published file: its name within the repository and the SHA-256 of its bytes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RepositoryFile {
     pub name: FileName,

@@ -1,30 +1,23 @@
 //! Card embedding with cross-generation reuse.
 //!
-//! Every scoped type's relation card embeds once per generation into a
-//! canonical 3,072-component vector; the vectors form the card-embedding
-//! table, row-aligned with the ontology stream that produced the cards.
-//! A card's identity is the SHA-256 of its rendered text: equal texts
-//! embed once within a generation, and rows whose text is unchanged
-//! since a prior generation are copied from that generation's table
-//! without touching the provider.
+//! Every scoped type's relation card embeds once per generation into a canonical 3,072-component
+//! vector; the vectors form the card-embedding table, row-aligned with the ontology stream that
+//! produced the cards. A card's identity is the SHA-256 of its rendered text: equal texts embed
+//! once within a generation, and rows whose text is unchanged since a prior generation are copied
+//! from that generation's table without touching the provider.
 //!
-//! [`embed_cards`] is the entry point. It consumes finished [`Card`]s in
-//! ontology row order, deduplicates by text hash, satisfies what it can
-//! from a prior generation, and submits the remaining unique texts to a
-//! [`CardEmbedder`] in one call; request sizing against provider
-//! ceilings is the embedder's own concern. The assembled
-//! [`CardEmbeddingTable`] serializes into two array files: the
-//! `f32[T, 3072]` embedding matrix and the `u8[T, 32]` card-hash column.
-//! Card texts are not published, so the hash column is the persisted key
-//! that lets the next generation match its freshly rendered cards
-//! against these rows.
+//! [`embed_cards`] is the entry point. It consumes finished [`Card`]s in ontology row order,
+//! deduplicates by text hash, satisfies what it can from a prior generation, and submits the
+//! remaining unique texts to a [`CardEmbedder`] in one call; request sizing against provider
+//! ceilings is the embedder's own concern. The assembled [`CardEmbeddingTable`] serializes into two
+//! array files: the `f32[T, 3072]` embedding matrix and the `u8[T, 32]` card-hash column. Card
+//! texts are not published, so the hash column is the persisted key that lets the next generation
+//! match its freshly rendered cards against these rows.
 //!
-//! A prior generation arrives as a [`CardEmbeddingView`]: borrowed
-//! columns, exactly the shape a mapped pair of published files yields,
-//! so reuse reads the prior table without materializing it in memory.
-//! Reuse is sound only between equal embedding contracts, so every
-//! embedder states an [`EmbedderFingerprint`] and a view whose recorded
-//! fingerprint differs is ignored wholesale.
+//! A prior generation arrives as a [`CardEmbeddingView`]: borrowed columns, exactly the shape a
+//! mapped pair of published files yields, so reuse reads the prior table without materializing it
+//! in memory. Reuse is sound only between equal embedding contracts, so every embedder states an
+//! [`EmbedderFingerprint`] and a view whose recorded fingerprint differs is ignored wholesale.
 
 use core::{error::Error, fmt};
 use std::{collections::HashMap, io};
@@ -45,14 +38,12 @@ mod tests;
 
 /// Identity of one complete embedding contract.
 ///
-/// The digest's preimage covers everything that determines the vector a
-/// text embeds to: provider, endpoint, model identity, requested
-/// dimension, and encoding configuration. Equal fingerprints promise
-/// interchangeable vectors for equal texts.
+/// The digest's preimage covers everything that determines the vector a text embeds to: provider,
+/// endpoint, model identity, requested dimension, and encoding configuration. Equal fingerprints
+/// promise interchangeable vectors for equal texts.
 ///
-/// The fingerprint decides cross-generation reuse: a persisted
-/// table records the fingerprint that minted it, and rows are copied
-/// out of a prior generation only under a matching fingerprint, so a
+/// The fingerprint decides cross-generation reuse: a persisted table records the fingerprint that
+/// minted it, and rows are copied out of a prior generation only under a matching fingerprint, so a
 /// contract change invalidates every cached row at once.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
@@ -81,20 +72,20 @@ impl EmbedderFingerprint {
 pub(crate) trait CardEmbedder {
     type Error;
 
-    /// Returns the identity of the embedding contract this provider
-    /// serves; see [`EmbedderFingerprint`].
+    /// Returns the identity of the embedding contract this provider serves.
+    ///
+    /// See [`EmbedderFingerprint`].
     fn fingerprint(&self) -> EmbedderFingerprint;
 
     /// Embeds every text, returned in input order.
     ///
-    /// One call covers the whole workload: an implementation splits it
-    /// into as many provider requests as its own ceilings (document
-    /// counts, token totals) require.
+    /// One call covers the whole workload: an implementation splits it into as many provider
+    /// requests as its own ceilings (document counts, token totals) require.
     ///
     /// # Errors
     ///
-    /// Returns a provider-defined error when embedding fails; the caller
-    /// treats the whole workload as failed.
+    /// Returns a provider-defined error when embedding fails; the caller treats the whole workload
+    /// as failed.
     fn embed(
         &self,
         texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
@@ -103,10 +94,9 @@ pub(crate) trait CardEmbedder {
 
 /// How the rows of one [`embed_cards`] run were obtained.
 ///
-/// The counts describe unique texts: `reused + embedded` is the number
-/// of distinct card texts, and rows beyond that count are duplicates
-/// resolved without provider or prior-table work. Destined for the
-/// generation metadata document.
+/// The counts describe unique texts: `reused + embedded` is the number of distinct card texts, and
+/// rows beyond that count are duplicates resolved without provider or prior-table work. Destined
+/// for the generation metadata document.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct CardEmbeddingStats {
     /// Unique texts copied from the prior generation's table.
@@ -117,10 +107,9 @@ pub(crate) struct CardEmbeddingStats {
 
 /// Borrowed card-embedding columns of one generation.
 ///
-/// Row `i` holds the embedding and text hash of the card at ontology
-/// row `i`; the ordinal-to-type-id mapping is the type table's. The
-/// columns are exactly what the two published array files contain, so a
-/// view over mapped files reads a prior generation in place.
+/// Row `i` holds the embedding and text hash of the card at ontology row `i`; the
+/// ordinal-to-type-id mapping is the type table's. The columns are exactly what the two published
+/// array files contain, so a view over mapped files reads a prior generation in place.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct CardEmbeddingView<'table> {
     fingerprint: EmbedderFingerprint,
@@ -131,9 +120,8 @@ pub(crate) struct CardEmbeddingView<'table> {
 impl<'table> CardEmbeddingView<'table> {
     /// Creates a view over row-aligned columns.
     ///
-    /// `components` is the row-major embedding matrix; the view exists
-    /// exactly when it holds [`CANONICAL_DIMENSIONS`] components per
-    /// hash.
+    /// `components` is the row-major embedding matrix; the view exists exactly when it holds
+    /// [`CANONICAL_DIMENSIONS`] components per hash.
     #[must_use]
     pub(crate) const fn new(
         fingerprint: EmbedderFingerprint,
@@ -192,9 +180,9 @@ impl<'table> CardEmbeddingView<'table> {
 
 /// The owned card-embedding table one [`embed_cards`] run assembles.
 ///
-/// The row semantics are [`CardEmbeddingView`]'s; owning the columns is
-/// what the generation under construction needs before its files are
-/// written. Every read surface is on the [`view`](Self::view).
+/// The row semantics are [`CardEmbeddingView`]'s; owning the columns is what the generation under
+/// construction needs before its files are written. Every read surface is on the
+/// [`view`](Self::view).
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct CardEmbeddingTable {
     fingerprint: EmbedderFingerprint,
@@ -256,8 +244,8 @@ impl CardEmbeddingTable {
 
     /// Writes the `f32[T, 3072]` embedding matrix as an array file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -280,8 +268,8 @@ impl CardEmbeddingTable {
 
     /// Writes the `u8[T, 32]` card-hash column as an array file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -347,18 +335,15 @@ struct UniqueCard<'card> {
 
 /// Embeds `cards` into a row-aligned table, reusing prior rows.
 ///
-/// `cards` arrive in ontology row order and row `i` of the returned
-/// table belongs to `cards[i]`. Equal texts embed once. A `prior` view
-/// serves rows whose text hash it contains, provided its fingerprint
-/// equals the embedder's; the provider sees exactly the texts neither
-/// source covers, in one [`embed`](CardEmbedder::embed) call, and sees
-/// nothing when every row is covered.
+/// `cards` arrive in ontology row order and row `i` of the returned table belongs to `cards[i]`.
+/// Equal texts embed once. A `prior` view serves rows whose text hash it contains, provided its
+/// fingerprint equals the embedder's; the provider sees exactly the texts neither source covers, in
+/// one [`embed`](CardEmbedder::embed) call, and sees nothing when every row is covered.
 ///
 /// # Errors
 ///
-/// Returns an error when the provider fails, changes the row count, or
-/// returns a vector with a non-finite component. No partial table is
-/// produced.
+/// Returns an error when the provider fails, changes the row count, or returns a vector with a
+/// non-finite component. No partial table is produced.
 pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
     embedder: &E,
     cards: &[Card],

@@ -136,10 +136,7 @@ fn narrowing_preserves_negative_zero() {
 }
 
 proptest! {
-    /// Softplus is non-negative and satisfies the shift identity
-    /// `softplus(x) - softplus(-x) == x` up to rounding scaled by `|x|`.
-    /// Inputs are bounded to `-1e4..1e4`, where the stable form is
-    /// well-conditioned; the asymptotes are pinned above.
+    /// Softplus is non-negative and satisfies the shift identity `softplus(x) - softplus(-x) == x` up to rounding scaled by `|x|`. Inputs are bounded to `-1e4..1e4`, where the stable form is well-conditioned; the asymptotes are pinned above.
     #[test]
     fn softplus_is_non_negative_and_satisfies_the_shift_identity(value in -1e4_f32..1e4) {
         prop_assert!(softplus(value) >= 0.0);
@@ -152,10 +149,7 @@ proptest! {
         );
     }
 
-    /// The sigmoid lies in `[0, 1]`, is monotone non-decreasing, and
-    /// satisfies the complement identity `sigmoid(-x) == 1 - sigmoid(x)`
-    /// up to rounding. Inputs are bounded to `-1e4..1e4`; the asymptotes
-    /// are pinned above.
+    /// The sigmoid lies in `[0, 1]`, is monotone non-decreasing, and satisfies the complement identity `sigmoid(-x) == 1 - sigmoid(x)` up to rounding. Inputs are bounded to `-1e4..1e4`; the asymptotes are pinned above.
     #[test]
     fn sigmoid_is_bounded_monotone_and_complementary(
         first in -1e4_f32..1e4,
@@ -178,11 +172,7 @@ proptest! {
         );
     }
 
-    /// The Huber penalty is non-negative and monotone non-decreasing in
-    /// the magnitude for a fixed positive threshold: the quadratic and
-    /// linear pieces are each monotone and meet continuously at the
-    /// threshold. Magnitudes are bounded to `0..1e3` and thresholds to
-    /// `1e-3..1e3`.
+    /// The Huber penalty is non-negative and monotone non-decreasing in the magnitude for a fixed positive threshold: the quadratic and linear pieces are each monotone and meet continuously at the threshold. Magnitudes are bounded to `0..1e3` and thresholds to `1e-3..1e3`.
     #[test]
     fn huber_is_non_negative_and_monotone_in_the_magnitude(
         first in 0.0_f32..1e3,
@@ -200,18 +190,14 @@ proptest! {
         );
     }
 
-    /// Widening an `f32` to `f64` and narrowing it back is the identity:
-    /// every finite `f32` is exactly representable in `f64`, and
-    /// round-to-nearest returns it unchanged.
+    /// Widening an `f32` to `f64` and narrowing it back is the identity: every finite `f32` is exactly representable in `f64`, and round-to-nearest returns it unchanged.
     #[test]
     fn narrow_f32_round_trips_every_finite_f32(value in -f32::MAX..=f32::MAX) {
         prop_assert_eq!(narrow_f32(f64::from(value)), Some(value));
         prop_assert_eq!(narrow_f32_exact(f64::from(value)), Some(value));
     }
 
-    /// Exact narrowing is a refinement of rounding narrowing: whenever
-    /// `narrow_f32_exact` accepts a value, `narrow_f32` returns the same
-    /// bits (a representable value rounds to itself).
+    /// Exact narrowing is a refinement of rounding narrowing: whenever `narrow_f32_exact` accepts a value, `narrow_f32` returns the same bits (a representable value rounds to itself).
     #[test]
     fn narrow_f32_exact_agrees_with_narrow_f32_when_it_succeeds(value in -1e300_f64..1e300) {
         if let Some(exact) = narrow_f32_exact(value) {

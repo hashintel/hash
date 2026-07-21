@@ -1,11 +1,9 @@
 //! Wire encoder tests: hand-derived bytes for every layer.
 //!
-//! CBOR expectations come from RFC 8949 appendix A where the profile
-//! covers them and are derived by hand at the byte level otherwise;
-//! envelope and response expectations are derived in comments before
-//! the assertions. The checked-in goldens (`goldens.rs`) carry the
-//! cross-language corpus; these tests pin the layers separately so a
-//! failure names its layer.
+//! CBOR expectations come from RFC 8949 appendix A where the profile covers them and are derived by
+//! hand at the byte level otherwise; envelope and response expectations are derived in comments
+//! before the assertions. The checked-in goldens (`goldens.rs`) carry the cross-language corpus;
+//! these tests pin the layers separately so a failure names its layer.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the tests read and write the contract's little-endian wire integers"
@@ -276,10 +274,7 @@ mod envelope {
 }
 
 proptest! {
-    /// The directory laws hold for every present/absent payload mix:
-    /// sequential 8-aligned starts from the fixed payload origin,
-    /// extents matching payload lengths, zero padding, and a total
-    /// length of the last present end aligned to 8.
+    /// The directory laws hold for every present/absent payload mix: sequential 8-aligned starts from the fixed payload origin, extents matching payload lengths, zero padding, and a total length of the last present end aligned to 8.
     #[test]
     fn envelope_directory_laws(
         payloads in proptest::collection::vec(
@@ -742,9 +737,9 @@ mod locate {
         ]
     }
 
-    /// A three-node, two-edge response without a trailer: delivered
-    /// base positions 2, 0, 3 (source first) over a four-point base
-    /// column.
+    /// A three-node, two-edge response without a trailer.
+    ///
+    /// Delivered base positions 2, 0, 3 (source first) over a four-point base column.
     fn minimal(positions: &[Vec2]) -> LocateResponse<'_> {
         LocateResponse {
             generation: Sha256Digest::from_bytes_unchecked([0xAB; 32]),

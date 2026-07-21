@@ -1,40 +1,31 @@
-//! The wire row-id boundary: a keyed permutation of each dense row
-//! universe, applied where ids cross the wire.
+//! The wire row-id boundary.
 //!
-//! Internal row ids are dense and assignment-ordered, so shipping
-//! them verbatim lets a principal bound hidden row counts between
-//! two visible ids (gap analysis). Ids therefore cross the wire
-//! through [`RowCodec`], a keyed bijection of the universe `[0, N)`:
-//! the wire ids one scope receives are distributed as a uniform
-//! subset of `[0, N)`, so every statistic of the received ids
-//! reduces to an estimate of `N` and order, adjacency, and creation
-//! time stay hidden.
+//! A keyed permutation of each dense row universe, applied where ids cross the wire.
+//!
+//! Internal row ids are dense and assignment-ordered, so shipping them verbatim lets a principal
+//! bound hidden row counts between two visible ids (gap analysis). Ids therefore cross the wire
+//! through [`RowCodec`], a keyed bijection of the universe `[0, N)`: the wire ids one scope
+//! receives are distributed as a uniform subset of `[0, N)`, so every statistic of the received ids
+//! reduces to an estimate of `N` and order, adjacency, and creation time stay hidden.
 //!
 //! # Model
 //!
-//! For a universe of `N > 1` rows let `b = ceil(log2 N)`. An
-//! eight-round Feistel network permutes `[0, 2^b)`: round `i` splits
-//! the `b`-bit state into a left half of `ceil(b/2)` bits and a
-//! right half of `floor(b/2)` bits - widths alternating per round,
-//! so odd `b` needs no rounding correction - and maps `(L, R)` to
-//! `(R, L xor F_i(R))` under the keyed round function `F_i`
-//! (SipHash-2-4 truncated to the half width). Cycle walking
-//! restricts the permutation to `[0, N)`: encoding reapplies the
-//! network until the value lands below `N`, and decoding walks the
-//! inverse network the same way. Because `2^b < 2N`, the expected
-//! walk length is below two applications. A universe of zero or one
-//! rows takes the identity codec.
+//! For a universe of `N > 1` rows let `b = ceil(log2 N)`. An eight-round Feistel network permutes
+//! `[0, 2^b)`: round `i` splits the `b`-bit state into a left half of `ceil(b/2)` bits and a right
+//! half of `floor(b/2)` bits - widths alternating per round, so odd `b` needs no rounding
+//! correction - and maps `(L, R)` to `(R, L xor F_i(R))` under the keyed round function `F_i`
+//! (SipHash-2-4 truncated to the half width). Cycle walking restricts the permutation to `[0, N)`:
+//! encoding reapplies the network until the value lands below `N`, and decoding walks the inverse
+//! network the same way. Because `2^b < 2N`, the expected walk length is below two applications. A
+//! universe of zero or one rows takes the identity codec.
 //!
 //! # Keys
 //!
-//! Round keys derive from `HKDF-SHA256` over the server secret,
-//! salted by the generation identity and expanded under a
-//! per-universe label, when a generation opens for serving. Equal
-//! `(secret, generation, label, N)` give equal mappings, so
-//! responses stay byte-deterministic across restarts; a different
-//! generation changes every wire id, and the label separates the
-//! node and edge universes cryptographically. The fit pipeline is
-//! untouched: no artifact stores a wire id.
+//! Round keys derive from `HKDF-SHA256` over the server secret, salted by the generation identity
+//! and expanded under a per-universe label, when a generation opens for serving. Equal `(secret,
+//! generation, label, N)` give equal mappings, so responses stay byte-deterministic across
+//! restarts; a different generation changes every wire id, and the label separates the node and
+//! edge universes cryptographically. The fit pipeline is untouched: no artifact stores a wire id.
 
 use core::hash::Hasher as _;
 
@@ -59,9 +50,8 @@ pub(crate) const EDGE_LABEL: &[u8] = b"atlas.wire.edge.v0";
 
 /// A row id as it crosses the wire.
 ///
-/// The value relates to an internal row id only through the owning
-/// generation's [`RowCodec`]; [`RowCodec::encode`] is the sole
-/// constructor. Comparisons order wire values, so a tie broken on
+/// The value relates to an internal row id only through the owning generation's [`RowCodec`];
+/// [`RowCodec::encode`] is the sole constructor. Comparisons order wire values, so a tie broken on
 /// [`WireRow`] is client-observable without exposing internal order.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WireRow(u32);
@@ -75,13 +65,11 @@ impl WireRow {
     }
 }
 
-/// The keyed bijection between one dense row universe and its wire
-/// ids.
+/// The keyed bijection between one dense row universe and its wire ids.
 ///
-/// One codec serves one universe of one generation; [`Self::derive`]
-/// is the constructor. Encoding and decoding are exact inverses over
-/// `[0, N)` (bijectivity holds for every key), and both are pure:
-/// the mapping never changes while the generation serves.
+/// One codec serves one universe of one generation; [`Self::derive`] is the constructor. Encoding
+/// and decoding are exact inverses over `[0, N)` (bijectivity holds for every key), and both are
+/// pure: the mapping never changes while the generation serves.
 #[derive(Debug)]
 pub(crate) struct RowCodec {
     /// The universe size `N`; rows and wire values live in `[0, N)`.
@@ -95,9 +83,8 @@ pub(crate) struct RowCodec {
 impl RowCodec {
     /// Derives the codec of one universe from the server secret.
     ///
-    /// The generation identity salts the extraction and `label`
-    /// separates universes under one generation; equal arguments
-    /// derive equal codecs.
+    /// The generation identity salts the extraction and `label` separates universes under one
+    /// generation; equal arguments derive equal codecs.
     pub(crate) fn derive(
         secret: &[u8],
         generation: GenerationId,
@@ -131,9 +118,8 @@ impl RowCodec {
     ///
     /// # Panics
     ///
-    /// Panics when `row` lies outside the universe: encoding is a
-    /// producer contract, and an out-of-universe row upstream is a
-    /// defect, never data.
+    /// Panics when `row` lies outside the universe: encoding is a producer contract, and an
+    /// out-of-universe row upstream is a defect, never data.
     pub(crate) fn encode(&self, row: u32) -> WireRow {
         assert!(
             row < self.universe,
@@ -151,12 +137,10 @@ impl RowCodec {
         WireRow(value)
     }
 
-    /// Decodes a wire value back to its internal row id, [`None`]
-    /// outside the universe.
+    /// Decodes a wire value back to its internal row id, [`None`] outside the universe.
     ///
-    /// [`None`] is the single out-of-universe answer; ingress
-    /// resolution collapses it with every other lookup failure
-    /// before a response can observe the cause.
+    /// [`None`] is the single out-of-universe answer; ingress resolution collapses it with every
+    /// other lookup failure before a response can observe the cause.
     pub(crate) fn decode(&self, wire: u32) -> Option<u32> {
         if wire >= self.universe {
             return None;
@@ -224,8 +208,9 @@ const fn mask(bits: u32) -> u32 {
     }
 }
 
-/// Evaluates one round function: keyed SipHash-2-4 of the right
-/// half, truncated by the caller to the left-half width.
+/// Evaluates one round function.
+///
+/// Keyed SipHash-2-4 of the right half, truncated by the caller to the left-half width.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the caller masks to the half width; the narrowing keeps the used bits"

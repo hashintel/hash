@@ -1,47 +1,40 @@
 //! Fit inputs behind one trait.
 //!
-//! A [`Dataset`] is the pipeline's only window onto the graph it maps. It
-//! exposes four row-ordered streams - [`nodes`], [`edges`], [`ontology`],
-//! and [`render_cards`] - plus a probe fetch for canonical embeddings.
-//! Everything the fit learns about the graph arrives through these five
-//! methods; where the data physically lives (a live Postgres store, a
-//! synthetic fixture) is an implementation concern the pipeline cannot
-//! observe.
+//! A [`Dataset`] is the pipeline's only window onto the graph it maps. It exposes four row-ordered
+//! streams - [`nodes`], [`edges`], [`ontology`], and [`render_cards`] - plus a probe fetch for
+//! canonical embeddings. Everything the fit learns about the graph arrives through these five
+//! methods; where the data physically lives (a live Postgres store, a synthetic fixture) is an
+//! implementation concern the pipeline cannot observe.
 //!
 //! # Rows and identity
 //!
-//! Every stream assigns dense ids by position: the `n`-th item of a stream
-//! occupies row `n`. There is no row field to keep consistent - position
-//! is the assignment. Cross-references use the typed row ids
-//! ([`NodeRowId`], [`EdgeRowId`], [`OntologyRowId`]), so an edge names its
-//! endpoints by node row and a node names its types by ontology row.
+//! Every stream assigns dense ids by position: the `n`-th item of a stream occupies row `n`. There
+//! is no row field to keep consistent - position is the assignment. Cross-references use the typed
+//! row ids ([`NodeRowId`], [`EdgeRowId`], [`OntologyRowId`]), so an edge names its endpoints by
+//! node row and a node names its types by ontology row.
 //!
-//! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`],
-//! [`Dataset::OntologyId`]) are opaque to the pipeline: they are byte-level
-//! stable (the zerocopy bounds), which is exactly enough to persist them
-//! into the identity artifacts that let serving translate rows back to
-//! graph identities. The pipeline itself computes on rows alone.
+//! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`], [`Dataset::OntologyId`]) are
+//! opaque to the pipeline: they are byte-level stable (the zerocopy bounds), which is exactly
+//! enough to persist them into the identity artifacts that let serving translate rows back to graph
+//! identities. The pipeline itself computes on rows alone.
 //!
 //! # Snapshot semantics
 //!
-//! All streams of one dataset observe a single frozen view of the graph:
-//! two streams never disagree about which entities exist or what they
-//! contain. Implementations that read from a live store hold one
-//! repeatable-read transaction open for the dataset's lifetime.
+//! All streams of one dataset observe a single frozen view of the graph: two streams never disagree
+//! about which entities exist or what they contain. Implementations that read from a live store
+//! hold one repeatable-read transaction open for the dataset's lifetime.
 //!
-//! Streams from one dataset may share a connection and therefore
-//! serialize; consumers drain one stream to completion before starting the
-//! next. The pipeline ingests nodes, then edges, then ontology.
+//! Streams from one dataset may share a connection and therefore serialize; consumers drain one
+//! stream to completion before starting the next. The pipeline ingests nodes, then edges, then
+//! ontology.
 //!
 //! # Types travel direct, closure is derived
 //!
-//! Nodes and edges carry their **direct** types only. The ontology stream
-//! carries each type's direct supertypes, so the full inheritance
-//! structure is available as a small graph and every closure question
-//! (admission checks, card rendering, serving-side filter expansion) is
-//! answered by reachability over it rather than by materialized per-node
-//! closures. One structure is the authority for inheritance; per-node
-//! closure data that could disagree with it never exists.
+//! Nodes and edges carry their **direct** types only. The ontology stream carries each type's
+//! direct supertypes, so the full inheritance structure is available as a small graph and every
+//! closure question (admission checks, card rendering, serving-side filter expansion) is answered
+//! by reachability over it rather than by materialized per-node closures. One structure is the
+//! authority for inheritance; per-node closure data that could disagree with it never exists.
 //!
 //! [`nodes`]: Dataset::nodes
 //! [`edges`]: Dataset::edges
@@ -75,16 +68,16 @@ mod tests;
 /// Components in a canonical entity embedding as the store persists it.
 pub(crate) const CANONICAL_DIMENSIONS: usize = 3072;
 
-/// Components in the projector representation: the l2-normalized leading
-/// slice of the canonical embedding.
+/// Components in the projector representation.
+///
+/// The l2-normalized leading slice of the canonical embedding.
 pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
 
 /// The bitemporal point one dataset observes.
 ///
-/// The axes are declared inputs of a fit: a generation records them, and
-/// a rerun with equal axes over unchanged history reads equal data. Axes
-/// in the past read the graph as it stood then; the store's temporal
-/// tables retain that history.
+/// The axes are declared inputs of a fit: a generation records them, and a rerun with equal axes
+/// over unchanged history reads equal data. Axes in the past read the graph as it stood then; the
+/// store's temporal tables retain that history.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct TemporalAxes {
     /// The transaction-time point: which writes are visible.
@@ -138,9 +131,8 @@ impl Deref for ArchivedEntityUuid {
         }
 
         let ptr = &raw const *self;
-        // SAFETY: `Self` is `repr(transparent)` over `[u8; 16]`, and the
-        // target chain `EntityUuid(Uuid)`, `Uuid([u8; 16])` is
-        // `repr(transparent)` at every link.
+        // SAFETY: `Self` is `repr(transparent)` over `[u8; 16]`, and the target chain
+        // `EntityUuid(Uuid)`, `Uuid([u8; 16])` is `repr(transparent)` at every link.
         unsafe { &*ptr.cast::<EntityUuid>() }
     }
 }
@@ -179,9 +171,9 @@ impl Deref for ArchivedWebId {
         }
 
         let ptr = &raw const *self;
-        // SAFETY: as for `ArchivedEntityUuid`; the chain here is
-        // `WebId(ActorGroupEntityUuid)`, `ActorGroupEntityUuid(EntityUuid)`,
-        // `EntityUuid(Uuid)`, `Uuid([u8; 16])`, transparent at every link.
+        // SAFETY: as for `ArchivedEntityUuid`; the chain here is `WebId(ActorGroupEntityUuid)`,
+        // `ActorGroupEntityUuid(EntityUuid)`, `EntityUuid(Uuid)`, `Uuid([u8; 16])`, transparent at
+        // every link.
         unsafe { &*ptr.cast::<WebId>() }
     }
 }
@@ -211,12 +203,10 @@ impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
 
 /// The identity-derivation contract of an ontology id type.
 ///
-/// Supplied inputs name types by canonical identity - reviewed
-/// verdicts carry versioned URLs - while each corpus keys its type
-/// table in its own id space. An id type derives the id naming a
-/// given identity in that space, or answers [`None`] for an identity
-/// form its provider does not mint ids from; a positional id space
-/// mints ids from no identity.
+/// Supplied inputs name types by canonical identity - reviewed verdicts carry versioned URLs -
+/// while each corpus keys its type table in its own id space. An id type derives the id naming a
+/// given identity in that space, or answers [`None`] for an identity form its provider does not
+/// mint ids from; a positional id space mints ids from no identity.
 pub(crate) trait OntologyIdentity: Sized {
     /// Derives the id naming `url` in this id space.
     fn from_versioned_url(url: &VersionedUrl) -> Option<Self>;
@@ -251,19 +241,17 @@ impl Deref for ArchivedOntologyTypeUuid {
         }
 
         let ptr = &raw const *self;
-        // SAFETY: as for `ArchivedEntityUuid`; the chain here is
-        // `OntologyTypeUuid(Uuid)`, `Uuid([u8; 16])`, transparent at every
-        // link.
+        // SAFETY: as for `ArchivedEntityUuid`; the chain here is `OntologyTypeUuid(Uuid)`,
+        // `Uuid([u8; 16])`, transparent at every link.
         unsafe { &*ptr.cast::<OntologyTypeUuid>() }
     }
 }
 
 /// A reference to a node by its position in [`Dataset::nodes`].
 ///
-/// Rows are dense and zero-based: the value is the position of the
-/// referenced node in the stream. The little-endian representation is the
-/// persisted form, so a column of these ids is written to and read from
-/// artifact files without conversion.
+/// Rows are dense and zero-based: the value is the position of the referenced node in the stream.
+/// The little-endian representation is the persisted form, so a column of these ids is written to
+/// and read from artifact files without conversion.
 #[derive(
     Debug,
     Copy,
@@ -327,10 +315,9 @@ impl From<NodeRowId> for u64 {
 
 /// A reference to an edge by its position in [`Dataset::edges`].
 ///
-/// Rows are dense and zero-based: the value is the position of the
-/// referenced edge in the stream. The little-endian representation is the
-/// persisted form, so a column of these ids is written to and read from
-/// artifact files without conversion.
+/// Rows are dense and zero-based: the value is the position of the referenced edge in the stream.
+/// The little-endian representation is the persisted form, so a column of these ids is written to
+/// and read from artifact files without conversion.
 #[derive(
     Debug,
     Copy,
@@ -364,10 +351,9 @@ impl EdgeRowId {
 
 /// A reference to a type by its position in [`Dataset::ontology`].
 ///
-/// Rows are dense and zero-based: the value is the position of the
-/// referenced type in the stream. The little-endian representation is the
-/// persisted form, so a column of these ids is written to and read from
-/// artifact files without conversion.
+/// Rows are dense and zero-based: the value is the position of the referenced type in the stream.
+/// The little-endian representation is the persisted form, so a column of these ids is written to
+/// and read from artifact files without conversion.
 #[derive(
     Debug,
     Copy,
@@ -449,8 +435,7 @@ impl<'de> serde::Deserialize<'de> for OntologyRowId {
 
 /// The byte-level form of a non-draft entity identity.
 ///
-/// Drafts never enter a dataset's scope; the identity is the web and
-/// entity components alone.
+/// Drafts never enter a dataset's scope; the identity is the web and entity components alone.
 #[derive(
     Debug,
     Copy,
@@ -474,42 +459,42 @@ pub(crate) struct ArchivedEntityId {
 /// One type in the generation's type table.
 #[derive(Debug, Clone)]
 pub(crate) struct Ontology<O> {
-    /// The source identifier, persisted so serving can translate ontology
-    /// rows back to graph type ids.
+    /// The source identifier, persisted so serving can translate ontology rows back to graph type
+    /// ids.
     pub id: O,
 
     /// Direct supertypes, ascending by ontology row and deduplicated.
     ///
-    /// Only depth-one edges appear; ancestors beyond the direct parents
-    /// are reached by walking the type graph. A parent may occupy a later
-    /// stream position than its child, so references resolve only once
-    /// the ontology stream is fully ingested.
+    /// Only depth-one edges appear; ancestors beyond the direct parents are reached by walking the
+    /// type graph. A parent may occupy a later stream position than its child, so references
+    /// resolve only once the ontology stream is fully ingested.
     pub parents: SmallVec<OntologyRowId, 2>,
 }
 
 /// One entity of the graph: a point the fit places on the map.
 #[derive(Debug, Clone)]
 pub(crate) struct Node<N> {
-    /// The source identifier, persisted so serving can translate node rows
-    /// back to graph identities.
+    /// The source identifier, persisted so serving can translate node rows back to graph
+    /// identities.
     pub id: N,
 
     /// Direct types, ascending by ontology row and deduplicated.
     pub ontology: SmallVec<OntologyRowId, 2>,
 
-    /// The projector representation: the entity embedding's leading
-    /// [`PROJECTOR_DIMENSIONS`] components, l2-normalized at the source.
+    /// The projector representation.
     ///
-    /// The norm is 1 up to `f32` rounding and every component is finite.
-    /// The pipeline spot-checks this contract statistically. Every node
-    /// carries an embedding: entities without one are outside every
-    /// dataset's scope, and the row domain equals the placeable domain.
+    /// The entity embedding's leading [`PROJECTOR_DIMENSIONS`] components, l2-normalized at the
+    /// source.
+    ///
+    /// The norm is 1 up to `f32` rounding and every component is finite. The pipeline spot-checks
+    /// this contract statistically. Every node carries an embedding: entities without one are
+    /// outside every dataset's scope, and the row domain equals the placeable domain.
     pub embedding: BoxedVecN<PROJECTOR_DIMENSIONS>,
 
     /// The store's confidence in the entity, in `0.0..=1.0`.
     ///
-    /// `None` is unscored, which consumers treat as the neutral factor 1
-    /// while retaining the scored/unscored distinction.
+    /// `None` is unscored, which consumers treat as the neutral factor 1 while retaining the
+    /// scored/unscored distinction.
     // f64 mirrors the store schema (DOUBLE PRECISION); working precision
     // narrows to f32 at the point of use.
     pub confidence: Option<f64>,
@@ -517,13 +502,12 @@ pub(crate) struct Node<N> {
 
 /// One link between two nodes.
 ///
-/// Links are entities in the graph, so an edge has its own identity, its
-/// own types (which identify the relation), and, when the store holds one,
-/// own embedding.
+/// Links are entities in the graph, so an edge has its own identity, its own types (which identify
+/// the relation), and, when the store holds one, own embedding.
 #[derive(Debug, Clone)]
 pub(crate) struct Edge<E> {
-    /// The source identifier, persisted so serving can translate edge rows
-    /// back to graph identities.
+    /// The source identifier, persisted so serving can translate edge rows back to graph
+    /// identities.
     pub id: E,
 
     /// The node the link points from.
@@ -532,59 +516,55 @@ pub(crate) struct Edge<E> {
     /// The node the link points to.
     pub target: NodeRowId,
 
-    /// Direct types of the link entity, ascending by ontology row and
-    /// deduplicated.
+    /// Direct types of the link entity, ascending by ontology row and deduplicated.
     pub ontology: SmallVec<OntologyRowId, 2>,
 
-    /// The link entity's own embedding prefix, under the same contract as
-    /// [`Node::embedding`], when the store holds one.
+    /// The link entity's own embedding prefix.
+    ///
+    /// Under the same contract as [`Node::embedding`], when the store holds one.
     pub embedding: Option<BoxedVecN<PROJECTOR_DIMENSIONS>>,
 
     /// The store's confidence in the link itself, in `0.0..=1.0`.
     ///
-    /// `None` is unscored, which consumers treat as the neutral factor 1
-    /// while retaining the scored/unscored distinction. The same reading
-    /// applies to [`source_confidence`](Self::source_confidence) and
+    /// `None` is unscored, which consumers treat as the neutral factor 1 while retaining the
+    /// scored/unscored distinction. The same reading applies to
+    /// [`source_confidence`](Self::source_confidence) and
     /// [`target_confidence`](Self::target_confidence).
     pub confidence: Option<f64>,
 
-    /// The store's confidence in the link's attachment to
-    /// [`source`](Self::source), in `0.0..=1.0`.
+    /// The store's confidence in the link's attachment to [`source`](Self::source), in
+    /// `0.0..=1.0`.
     pub source_confidence: Option<f64>,
 
-    /// The store's confidence in the link's attachment to
-    /// [`target`](Self::target), in `0.0..=1.0`.
+    /// The store's confidence in the link's attachment to [`target`](Self::target), in
+    /// `0.0..=1.0`.
     pub target_confidence: Option<f64>,
 }
 
 /// The data one fit runs over, wherever it lives.
 ///
-/// See the [module documentation](self) for the row, snapshot, and type
-/// contracts every implementation upholds. In short: streams assign dense
-/// ids by position, all streams observe one frozen view of the graph, and
-/// types travel as direct types plus a parent graph.
+/// See the [module documentation](self) for the row, snapshot, and type contracts every
+/// implementation upholds. In short: streams assign dense ids by position, all streams observe one
+/// frozen view of the graph, and types travel as direct types plus a parent graph.
 pub(crate) trait Dataset {
     /// The source identifier of a node.
     ///
-    /// Byte-level stable so identity columns persist as raw bytes; opaque
-    /// to the pipeline otherwise. `Send + Sync + 'static` because id
-    /// columns cross onto and are shared across compute-pool workers
-    /// (the fit offloads its stage tail to rayon; the ranking tiebreak
-    /// hashes id columns in parallel), which every plain-bytes id
-    /// satisfies.
+    /// Byte-level stable so identity columns persist as raw bytes; opaque to the pipeline
+    /// otherwise. `Send + Sync + 'static` because id columns cross onto and are shared across
+    /// compute-pool workers (the fit offloads its stage tail to rayon; the ranking tiebreak hashes
+    /// id columns in parallel), which every plain-bytes id satisfies.
     type NodeId: ByteStable + Send + 'static;
 
     /// The source identifier of an edge.
     ///
-    /// Byte-level stable so identity columns persist as raw bytes; opaque
-    /// to the pipeline otherwise.
+    /// Byte-level stable so identity columns persist as raw bytes; opaque to the pipeline
+    /// otherwise.
     type EdgeId: ByteStable;
 
     /// The source identifier of an ontology type.
     ///
-    /// Byte-level stable so the type table persists as raw bytes;
-    /// opaque to the pipeline otherwise, except for the declared
-    /// [`OntologyIdentity`] capability verdict resolution consumes.
+    /// Byte-level stable so the type table persists as raw bytes; opaque to the pipeline otherwise,
+    /// except for the declared [`OntologyIdentity`] capability verdict resolution consumes.
     type OntologyId: ByteStable + OntologyIdentity + Eq + core::hash::Hash;
 
     /// The failure produced when the underlying source cannot deliver.
@@ -624,46 +604,41 @@ pub(crate) trait Dataset {
     where
         Self: 'this;
 
-    /// Returns the bitemporal point this dataset observes, when its
-    /// source has temporal axes.
+    /// Returns the bitemporal point this dataset observes, when its source has temporal axes.
     ///
-    /// A generation's metadata records the value as part of its input
-    /// snapshot. Sources without temporal history, such as synthetic
-    /// fixtures, return [`None`].
+    /// A generation's metadata records the value as part of its input snapshot. Sources without
+    /// temporal history, such as synthetic fixtures, return [`None`].
     #[must_use]
     fn axes(&self) -> Option<TemporalAxes>;
 
     /// Opens the node stream.
     ///
-    /// The `n`-th item occupies node row `n`. Every [`NodeRowId`] emitted
-    /// anywhere in this dataset references a position this stream yields.
+    /// The `n`-th item occupies node row `n`. Every [`NodeRowId`] emitted anywhere in this dataset
+    /// references a position this stream yields.
     #[must_use]
     fn nodes(&self) -> Self::NodeStream<'_>;
 
     /// Opens the edge stream.
     ///
-    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge
-    /// are in scope: links whose endpoints fall outside the dataset's
-    /// scope are filtered at the source and never appear.
+    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge are in scope: links
+    /// whose endpoints fall outside the dataset's scope are filtered at the source and never
+    /// appear.
     #[must_use]
     fn edges(&self) -> Self::EdgeStream<'_>;
 
     /// Opens the ontology stream.
     ///
-    /// The `n`-th item occupies ontology row `n`. The stream is
-    /// self-referential through [`Ontology::parents`] and resolves only
-    /// once fully ingested.
+    /// The `n`-th item occupies ontology row `n`. The stream is self-referential through
+    /// [`Ontology::parents`] and resolves only once fully ingested.
     #[must_use]
     fn ontology(&self) -> Self::OntologyStream<'_>;
 
     /// Opens a stream of full canonical embeddings for the given nodes.
     ///
-    /// Each requested node yields its complete
-    /// [`CANONICAL_DIMENSIONS`]-component embedding as stored, with every
-    /// component finite. Requests are probe-scoped: bounded anchor and
-    /// comparison sets for evaluating the fitted map against exact
-    /// canonical-space neighbourhoods. The corpus-scale representation is
-    /// [`Node::embedding`].
+    /// Each requested node yields its complete [`CANONICAL_DIMENSIONS`]-component embedding as
+    /// stored, with every component finite. Requests are probe-scoped: bounded anchor and
+    /// comparison sets for evaluating the fitted map against exact canonical-space neighbourhoods.
+    /// The corpus-scale representation is [`Node::embedding`].
     #[must_use]
     fn canonical_node_embeddings<I: Iterator<Item = Self::NodeId>>(
         &self,
@@ -672,12 +647,10 @@ pub(crate) trait Dataset {
 
     /// Opens a stream of direct-type lists for the given nodes.
     ///
-    /// Each requested node yields its direct types, ascending by
-    /// ontology row and deduplicated: the same lists the node stream
-    /// carries, without the embeddings that make a corpus pass heavy.
-    /// Requests are probe-scoped: bounded anchor sets for grouping
-    /// quality readings by subgroup. The corpus-scale source is
-    /// [`Node::ontology`].
+    /// Each requested node yields its direct types, ascending by ontology row and deduplicated: the
+    /// same lists the node stream carries, without the embeddings that make a corpus pass heavy.
+    /// Requests are probe-scoped: bounded anchor sets for grouping quality readings by subgroup.
+    /// The corpus-scale source is [`Node::ontology`].
     #[must_use]
     fn node_types<I: Iterator<Item = Self::NodeId>>(
         &self,
@@ -686,19 +659,17 @@ pub(crate) trait Dataset {
 
     /// Opens the card stream.
     ///
-    /// The `n`-th item is the finished [`Card`] for ontology row `n`,
-    /// paired with the type's source identifier. The card text is what
-    /// an embedding model consumes to represent the type - title,
-    /// description, and constraints, resolved through the type's full
-    /// inheritance chain - and the card carries its budget diagnostics
-    /// (token count, truncation passes) for artifact metadata. One pass
-    /// renders every card, so implementations amortize fact gathering
-    /// across the whole type table. Rendering is deterministic for a
-    /// given dataset, so equal datasets produce equal bytes.
+    /// The `n`-th item is the finished [`Card`] for ontology row `n`, paired with the type's source
+    /// identifier. The card text is what an embedding model consumes to represent the type - title,
+    /// description, and constraints, resolved through the type's full inheritance chain - and the
+    /// card carries its budget diagnostics (token count, truncation passes) for artifact metadata.
+    /// One pass renders every card, so implementations amortize fact gathering across the whole
+    /// type table. Rendering is deterministic for a given dataset, so equal datasets produce equal
+    /// bytes.
     ///
-    /// Items carry `io::Error`: source failures surface through
-    /// `io::Error::other`, and a type whose stored facts cannot render
-    /// under the card contract surfaces as [`io::ErrorKind::InvalidData`].
+    /// Items carry `io::Error`: source failures surface through `io::Error::other`, and a type
+    /// whose stored facts cannot render under the card contract surfaces as
+    /// [`io::ErrorKind::InvalidData`].
     #[must_use]
     fn render_cards(&self) -> Self::CardStream<'_>;
 }

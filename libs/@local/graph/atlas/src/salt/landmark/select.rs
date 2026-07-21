@@ -1,26 +1,22 @@
 //! Weighted stratified landmark selection.
 //!
-//! Selection is weighted sampling without replacement by exponential
-//! clocks: candidate `i` receives the priority
+//! Selection is weighted sampling without replacement by exponential clocks: candidate `i` receives
+//! the priority
 //!
 //! ```text
 //! t_i = -ln(U_i) / w_i,
 //! ```
 //!
-//! `U_i` drawn uniformly from `(0, 1]` and `w_i` the candidate's
-//! sampling weight, and the smallest priorities win. Selection runs in
-//! three phases over one shared set of priorities: subgroup minimums
-//! first, then prior landmarks up to the retained target, then a free
-//! fill to capacity. Later phases never evict earlier picks, so every
-//! minimum still holds in the final selection.
+//! `U_i` drawn uniformly from `(0, 1]` and `w_i` the candidate's sampling weight, and the smallest
+//! priorities win. Selection runs in three phases over one shared set of priorities: subgroup
+//! minimums first, then prior landmarks up to the retained target, then a free fill to capacity.
+//! Later phases never evict earlier picks, so every minimum still holds in the final selection.
 //!
-//! The corpus-scale passes run in parallel and deterministically:
-//! priorities come from one generator per fixed-size candidate chunk,
-//! each seeded by the caller's generator, and every phase reduces
-//! thread-local top-`k` heaps into the unique best set under the
-//! (priority, index) total order. A rerun over equal candidates with
-//! an equally seeded generator selects identical rows at any thread
-//! count.
+//! The corpus-scale passes run in parallel and deterministically: priorities come from one
+//! generator per fixed-size candidate chunk, each seeded by the caller's generator, and every phase
+//! reduces thread-local top-`k` heaps into the unique best set under the (priority, index) total
+//! order. A rerun over equal candidates with an equally seeded generator selects identical rows at
+//! any thread count.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use alloc::collections::BinaryHeap;
@@ -84,8 +80,7 @@ impl SubgroupDimension {
     }
 }
 
-/// Categorical values on every stratification axis, indexed by
-/// [`SubgroupDimension`].
+/// Categorical values on every stratification axis, indexed by [`SubgroupDimension`].
 #[derive(
     Debug,
     Copy,
@@ -135,8 +130,9 @@ pub(crate) struct SubgroupMinimum {
     pub count: NonZero<usize>,
 }
 
-/// A candidate's relative selection propensity: finite and strictly
-/// positive, valid by construction.
+/// A candidate's relative selection propensity.
+///
+/// Finite and strictly positive, valid by construction.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub(crate) struct SamplingWeight(f64);
 
@@ -146,8 +142,7 @@ impl SamplingWeight {
 
     /// Validates a weight.
     ///
-    /// Returns [`None`] unless the value is finite and strictly
-    /// positive.
+    /// Returns [`None`] unless the value is finite and strictly positive.
     #[inline]
     #[must_use]
     pub(crate) const fn new(value: f64) -> Option<Self> {
@@ -188,14 +183,9 @@ impl LandmarkCandidate {
 /// Capacity and retention settings for one selection.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SelectionOptions {
-    /// The landmark capacity `M`: at most this many rows are selected,
-    /// fewer only when the corpus is smaller. The `u32` width is the
-    /// [`LandmarkOrdinal`] encoding's contract: every selection
-    /// position fits the persisted ordinal form.
+    /// The landmark capacity `M`: at most this many rows are selected, fewer only when the corpus is smaller. The `u32` width is the [`LandmarkOrdinal`] encoding's contract: every selection position fits the persisted ordinal form.
     pub maximum_count: NonZero<u32>,
-    /// Fraction of the capacity reserved for prior landmarks when
-    /// enough are on offer. Retention stabilizes
-    /// generation-to-generation orientation. Defaults to 0.25.
+    /// Fraction of the capacity reserved for prior landmarks when enough are on offer. Retention stabilizes generation-to-generation orientation. Defaults to 0.25.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent); the temporal-drift
     // and landmark rank-correlation criteria revise it from evidence.
@@ -204,11 +194,9 @@ pub(crate) struct SelectionOptions {
 
 /// A reference to a landmark by its position in a [`LandmarkSelection`].
 ///
-/// Ordinals are dense and zero-based: the value is the position of the
-/// landmark's node row in the selection's ascending row order. The
-/// little-endian representation is the persisted form, so a column of
-/// these ordinals is written to and read from artifact files without
-/// conversion.
+/// Ordinals are dense and zero-based: the value is the position of the landmark's node row in the
+/// selection's ascending row order. The little-endian representation is the persisted form, so a
+/// column of these ordinals is written to and read from artifact files without conversion.
 #[derive(
     Debug,
     Copy,
@@ -278,8 +266,7 @@ impl LandmarkSelection {
         self.retained_count
     }
 
-    /// Returns the ordinal of a selected row, or `None` when the row
-    /// is not a landmark.
+    /// Returns the ordinal of a selected row, or `None` when the row is not a landmark.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the selection length is bounded by the u32 capacity at construction"
@@ -346,29 +333,24 @@ impl Error for SelectionError {}
 
 /// Candidates per parallel work item.
 ///
-/// For priorities this is also the seeding unit: one generator stream
-/// serves this many candidates, so which stream draws for which
-/// candidate is fixed by this constant alone and results are
-/// independent of thread count. The constant is pinned rather than
-/// configurable because changing it changes selections for equal
-/// seeds. 4096 candidates give each task tens of microseconds of work,
+/// For priorities this is also the seeding unit: one generator stream serves this many candidates,
+/// so which stream draws for which candidate is fixed by this constant alone and results are
+/// independent of thread count. The constant is pinned rather than configurable because changing it
+/// changes selections for equal seeds. 4096 candidates give each task tens of microseconds of work,
 /// large enough that per-task overhead disappears against the scans.
 const PARALLEL_CHUNK: usize = 4096;
 
-/// Selects at most the configured capacity, honoring minimums and
-/// retention.
+/// Selects at most the configured capacity, honoring minimums and retention.
 ///
-/// `candidates` arrive in strictly ascending row order; `rng` seeds
-/// the priority streams. The selection satisfies every subgroup
-/// minimum, then retains prior landmarks up to
-/// `ceil(capacity * retained_fraction)` when enough are on offer, then
-/// fills to capacity, all by ascending exponential-clock priority.
+/// `candidates` arrive in strictly ascending row order; `rng` seeds the priority streams. The
+/// selection satisfies every subgroup minimum, then retains prior landmarks up to `ceil(capacity *
+/// retained_fraction)` when enough are on offer, then fills to capacity, all by ascending
+/// exponential-clock priority.
 ///
 /// # Errors
 ///
-/// Returns an error for an empty corpus, unordered candidate rows,
-/// duplicate minimums, or minimums the corpus or capacity cannot
-/// satisfy.
+/// Returns an error for an empty corpus, unordered candidate rows, duplicate minimums, or minimums
+/// the corpus or capacity cannot satisfy.
 pub(crate) fn select_landmarks<R>(
     candidates: &[LandmarkCandidate],
     minimums: &[SubgroupMinimum],
@@ -466,8 +448,8 @@ where
 
 /// Draws every candidate's exponential-clock priority, in parallel.
 ///
-/// One generator serves each [`PARALLEL_CHUNK`] of candidates, seeded
-/// from the caller's generator in chunk order.
+/// One generator serves each [`PARALLEL_CHUNK`] of candidates, seeded from the caller's generator
+/// in chunk order.
 fn priorities<R>(candidates: &[LandmarkCandidate], rng: &mut R) -> Vec<f64>
 where
     R: Rng + SeedableRng,
@@ -535,14 +517,12 @@ fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
     (capacity as f64 * retained_fraction.get()).ceil() as usize
 }
 
-/// Returns the indices of the `count` smallest-priority unselected
-/// candidates satisfying `predicate`, or fewer when the pool is
-/// smaller.
+/// Returns the indices of the `count` smallest-priority unselected candidates satisfying
+/// `predicate`, or fewer when the pool is smaller.
 ///
-/// Workers fold thread-local heaps of the `count` best candidates and
-/// the heaps merge pairwise: the result is the unique best set under
-/// the (priority, index) total order, independent of how the scan
-/// splits across threads.
+/// Workers fold thread-local heaps of the `count` best candidates and the heaps merge pairwise: the
+/// result is the unique best set under the (priority, index) total order, independent of how the
+/// scan splits across threads.
 fn best_indices(
     candidates: &[LandmarkCandidate],
     priorities: &[f64],
@@ -595,8 +575,7 @@ fn push_bounded(heap: &mut BinaryHeap<RankedCandidate>, ranked: RankedCandidate,
     }
 }
 
-/// Inserts the chosen indices and returns how many carried the prior
-/// landmark flag.
+/// Inserts the chosen indices and returns how many carried the prior landmark flag.
 fn mark(selected: &mut BitSet, candidates: &[LandmarkCandidate], indices: &[usize]) -> usize {
     let mut retained = 0;
     for &index in indices {

@@ -1,12 +1,9 @@
 //! The ingest side of one fit: everything that reads the dataset.
 //!
-//! [`run`] drains the dataset streams - nodes, edges, ontology, cards -
-//! into their staged artifacts and resident columns and certifies the
-//! representation
-//! contract, so everything the compute side needs afterwards lives in
-//! staged files and the returned [`Ingested`] value. The dataset and
-//! the embedding provider are never touched again after this module
-//! returns.
+//! [`run`] drains the dataset streams - nodes, edges, ontology, cards - into their staged artifacts
+//! and resident columns and certifies the representation contract, so everything the compute side
+//! needs afterwards lives in staged files and the returned [`Ingested`] value. The dataset and the
+//! embedding provider are never touched again after this module returns.
 
 use alloc::collections::BTreeSet;
 use core::pin::pin;
@@ -45,8 +42,9 @@ use crate::{
         relation::RelationConfidence,
     },
 };
-/// Everything one fit's ingest produced: the staged stream artifacts,
-/// the snapshot the metadata records, and the passed admission
+/// Everything one fit's ingest produced.
+///
+/// The staged stream artifacts, the snapshot the metadata records, and the passed admission
 /// evidence.
 pub(super) struct Ingested {
     /// The bitemporal point the dataset observed.
@@ -55,16 +53,13 @@ pub(super) struct Ingested {
     pub fingerprint: EmbedderFingerprint,
     /// Nodes the dataset streamed.
     pub nodes: u64,
-    /// Each node row's direct types, in row order: the quadtree
-    /// build's type column.
+    /// Each node row's direct types, in row order: the quadtree build's type column.
     pub node_types: Vec<SmallVec<OntologyRowId, 2>>,
     /// Edges the dataset streamed.
     pub edges: u64,
-    /// The relation universe: distinct ontology rows the edge stream
-    /// carried, ascending.
+    /// The relation universe: distinct ontology rows the edge stream carried, ascending.
     pub relations: Vec<OntologyRowId>,
-    /// Each ontology row's direct parents, in row order: the postings
-    /// build's parent column.
+    /// Each ontology row's direct parents, in row order: the postings build's parent column.
     pub type_parents: Vec<SmallVec<OntologyRowId, 2>>,
     /// The staged representation matrix.
     pub representations: RepositoryFile,
@@ -74,11 +69,9 @@ pub(super) struct Ingested {
     pub edge_identities: RepositoryFile,
     /// The staged endpoint column.
     pub edge_endpoints: RepositoryFile,
-    /// The spooled `(edge, relation)` readings the relation stage
-    /// consumes.
+    /// The spooled `(edge, relation)` readings the relation stage consumes.
     pub instances: InstanceSpool,
-    /// The edge multiplicity histogram: entry `i` counts edges
-    /// carrying `i + 1` relation readings.
+    /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
     pub multi_typed: Vec<u64>,
     /// The staged card-embedding artifacts.
     pub cards: CardArtifacts,
@@ -88,11 +81,9 @@ pub(super) struct Ingested {
 
 /// Drains the dataset into the staged stream artifacts.
 ///
-/// The stages run in the dataset's documented ingest order - nodes,
-/// edges, ontology, then the card render over the same type table -
-/// and the representation contract is certified before the card
-/// stream touches the embedding provider, so a defective corpus never
-/// spends provider budget.
+/// The stages run in the dataset's documented ingest order - nodes, edges, ontology, then the card
+/// render over the same type table - and the representation contract is certified before the card
+/// stream touches the embedding provider, so a defective corpus never spends provider budget.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -188,13 +179,11 @@ struct NodeArtifacts {
     identities: RepositoryFile,
 }
 
-/// Streams every node's representation into the staged `f32[N, 512]`
-/// matrix and its ids into the staged identity file, keeping the type
-/// column resident for the quadtree build.
+/// Streams every node's representation into the staged `f32[N, 512]` matrix and its ids into the
+/// staged identity file, keeping the type column resident for the quadtree build.
 ///
-/// The matrix digest streams over the finished file because the writer
-/// seals its header by seeking; the identity writer is forward-only
-/// and digests inline.
+/// The matrix digest streams over the finished file because the writer seals its header by seeking;
+/// the identity writer is forward-only and digests inline.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -232,8 +221,9 @@ where
     })
 }
 
-/// Certifies the source contract on the freshly staged representation
-/// rows, returning the passing evidence.
+/// Certifies the source contract on the freshly staged representation rows.
+///
+/// Returns the passing evidence.
 fn certify_representations<D, E>(
     staging: &StagedGeneration,
     config: &FitConfig,
@@ -267,8 +257,7 @@ fn certify_representations<D, E>(
 struct EdgeArtifacts {
     /// Edges the stream carried.
     edges: u64,
-    /// The relation universe: distinct ontology rows the edges
-    /// carried, ascending.
+    /// The relation universe: distinct ontology rows the edges carried, ascending.
     relations: Vec<OntologyRowId>,
     /// The staged edge identity table.
     identities: RepositoryFile,
@@ -276,8 +265,7 @@ struct EdgeArtifacts {
     endpoints: RepositoryFile,
     /// The spooled `(edge, relation)` readings.
     instances: InstanceSpool,
-    /// The edge multiplicity histogram: entry `i` counts edges
-    /// carrying `i + 1` relation readings.
+    /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
     multi_typed: Vec<u64>,
 }
 
@@ -291,14 +279,14 @@ const fn narrow(confidence: f64) -> f32 {
     confidence as f32
 }
 
-/// Drains the edge stream once: ids into the staged identity file,
-/// endpoints into the staged `u64[E, 2]` column, the relation universe
-/// into its ascending set, and one spooled reading per
-/// `(edge, relation)` pair for the relation stage.
+/// Drains the edge stream once.
 ///
-/// The endpoint digest streams over the finished file because the
-/// array writer seals its header by seeking; the identity writer is
-/// forward-only and digests inline.
+/// Ids into the staged identity file, endpoints into the staged `u64[E, 2]` column, the relation
+/// universe into its ascending set, and one spooled reading per `(edge, relation)` pair for the
+/// relation stage.
+///
+/// The endpoint digest streams over the finished file because the array writer seals its header by
+/// seeking; the identity writer is forward-only and digests inline.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -385,9 +373,8 @@ where
 
 /// Drains the ontology stream into the resident parent column.
 ///
-/// The column is type-scale and crosses to the compute side by value:
-/// the postings build restates it as the published type graph's
-/// parent regions.
+/// The column is type-scale and crosses to the compute side by value: the postings build restates
+/// it as the published type graph's parent regions.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -422,13 +409,11 @@ pub(super) struct CardArtifacts {
     pub stats: CardEmbeddingStats,
 }
 
-/// Renders every card, embeds the unique texts, and stages the two
-/// card-embedding columns beside the ontology identity table collected
-/// from the same stream.
+/// Renders every card, embeds the unique texts, and stages the two card-embedding columns beside
+/// the ontology identity table collected from the same stream.
 ///
-/// A prior generation's card files map back as the reuse table:
-/// texts whose hash appears there keep their rows without touching
-/// the provider. Reuse is fingerprint-guarded inside [`embed_cards`],
+/// A prior generation's card files map back as the reuse table: texts whose hash appears there keep
+/// their rows without touching the provider. Reuse is fingerprint-guarded inside [`embed_cards`],
 /// so a changed embedding contract re-embeds everything.
 #[expect(
     clippy::future_not_send,

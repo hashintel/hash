@@ -9,11 +9,9 @@ use crate::{dataset::OntologyRowId, file::postings::read::PostingsFile};
 pub enum InvalidPostingsFile {
     /// A flags bit at or beyond the type count is set.
     FlagsTail,
-    /// The membership fenceposts break anchoring, ordering, or
-    /// coverage at `position`.
+    /// The membership fenceposts break anchoring, ordering, or coverage at `position`.
     MembershipPosts { position: usize },
-    /// The parent fenceposts break anchoring, ordering, or coverage
-    /// at `position`.
+    /// The parent fenceposts break anchoring, ordering, or coverage at `position`.
     ParentPosts { position: usize },
     /// A dense run's length is not the bitmap word count.
     DenseLength { type_row: u64 },
@@ -74,12 +72,10 @@ impl core::error::Error for InvalidPostingsFile {}
 
 /// A published postings artifact opened over its mapped file.
 ///
-/// Construction checks the artifact contract once - fencepost
-/// anchoring/ordering/coverage in both regions, dense run lengths and
-/// tail bits, list ascent and domains, parent ascent and domains - so
-/// an open postings only serves valid runs and consumers re-validate
-/// nothing. The regions stay in the page cache under memory pressure
-/// and off the heap.
+/// Construction checks the artifact contract once - fencepost anchoring/ordering/coverage in both
+/// regions, dense run lengths and tail bits, list ascent and domains, parent ascent and domains -
+/// so an open postings only serves valid runs and consumers re-validate nothing. The regions stay
+/// in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct PostingsArchive {
     file: PostingsFile,
@@ -169,8 +165,7 @@ impl PostingsArchive {
         self.file.points()
     }
 
-    /// Returns `type_row`'s membership at its stored representation,
-    /// when the row is in domain.
+    /// Returns `type_row`'s membership at its stored representation, when the row is in domain.
     #[must_use]
     pub(crate) fn membership(&self, type_row: OntologyRowId) -> Option<Membership<'_>> {
         let row = type_row.get();
@@ -191,8 +186,7 @@ impl PostingsArchive {
         })
     }
 
-    /// Returns `type_row`'s direct parent rows, strictly ascending,
-    /// when the row is in domain.
+    /// Returns `type_row`'s direct parent rows, strictly ascending, when the row is in domain.
     #[must_use]
     pub(crate) fn parents(&self, type_row: OntologyRowId) -> Option<&[u32]> {
         let row = type_row.get();
@@ -217,8 +211,7 @@ fn run_of<'map>(posts: &[u64], values: &'map [u32], type_row: u64) -> &'map [u32
     &values[start..end]
 }
 
-/// Checks one fencepost region: anchored at zero, non-decreasing,
-/// closing at the array length.
+/// Checks one fencepost region: anchored at zero, non-decreasing, closing at the array length.
 fn validate_posts(
     posts: &[u64],
     close: u64,
@@ -238,14 +231,16 @@ fn validate_posts(
     Ok(())
 }
 
-/// One type's membership over the base delivery order, borrowed from
-/// the mapped entries array at its stored representation.
+/// One type's membership over the base delivery order.
+///
+/// Borrowed from the mapped entries array at its stored representation.
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum Membership<'map> {
     /// Base positions, strictly ascending.
     List(&'map [u32]),
-    /// A dense bitmap over all `N` positions: `ceil(N/32)` words,
-    /// LSB-first - position `p` is bit `p & 31` of word `p >> 5`.
+    /// A dense bitmap over all `N` positions.
+    ///
+    /// `ceil(N/32)` words, LSB-first - position `p` is bit `p & 31` of word `p >> 5`.
     Dense(&'map [u32]),
 }
 
@@ -270,9 +265,9 @@ impl Membership<'_> {
         }
     }
 
-    /// Iterates the member positions inside `range`, ascending - the
-    /// shape a delivered run's mask column interleaves from. An
-    /// inverted range is empty.
+    /// Iterates the member positions inside `range`, ascending.
+    ///
+    /// The shape a delivered run's mask column interleaves from. An inverted range is empty.
     pub(crate) fn positions_in(&self, range: Range<u32>) -> MembershipPositions<'_> {
         let range = range.start..range.end.max(range.start);
         match *self {
@@ -295,8 +290,9 @@ impl Membership<'_> {
 pub(crate) enum MembershipPositions<'map> {
     /// The member slice of a list run.
     List(core::slice::Iter<'map, u32>),
-    /// A cursor over a dense run's bits. The cursor is `u64` so the
-    /// word-boundary jump cannot overflow at the top of the `u32`
+    /// A cursor over a dense run's bits.
+    ///
+    /// The cursor is `u64` so the word-boundary jump cannot overflow at the top of the `u32`
     /// position domain.
     Dense {
         words: &'map [u32],

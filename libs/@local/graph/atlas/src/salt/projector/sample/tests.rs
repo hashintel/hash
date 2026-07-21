@@ -1,6 +1,6 @@
-//! Certificates for the minibatch samplers: distribution laws,
-//! per-type caps under skew, veto admission, and seeded
-//! reproducibility.
+//! Certificates for the minibatch samplers.
+//!
+//! Distribution laws, per-type caps under skew, veto admission, and seeded reproducibility.
 
 use core::num::NonZero;
 
@@ -270,9 +270,10 @@ fn relation_sampling_is_seeded() {
     );
 }
 
-/// The negative sampler's fixture: four rows, a semantic edge `(0, 1)`,
-/// and a link `(2, 3)` whose evidence protects it from ordinary
-/// repulsion under the default configuration.
+/// The negative sampler's fixture.
+///
+/// Four rows, a semantic edge `(0, 1)`, and a link `(2, 3)` whose evidence protects it from
+/// ordinary repulsion under the default configuration.
 fn negative_fixture() -> (SemanticGraph, RelationIndexes) {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);
     let policies = [proximal_policy(7)];

@@ -1,11 +1,9 @@
 //! Store-fact queries behind [`PostgresDataset`]'s card rendering.
 //!
-//! [`corpus_facts`] gathers everything [`build_contents`] consumes for
-//! every type in the dataset's type table, inside the frozen transaction
-//! and at its temporal axes. Four queries cover the whole table - prose,
-//! ancestors, associations, examples - so the expensive scans over the
-//! entity tables amortize across all cards instead of repeating per
-//! type:
+//! [`corpus_facts`] gathers everything [`build_contents`] consumes for every type in the dataset's
+//! type table, inside the frozen transaction and at its temporal axes. Four queries cover the whole
+//! table - prose, ancestors, associations, examples - so the expensive scans over the entity tables
+//! amortize across all cards instead of repeating per type:
 //!
 //! - each type's prose and its (depth, id)-ordered ancestor chain, with the type itself and the
 //!   link root excluded;
@@ -15,21 +13,17 @@
 //! - pooled example candidates over each link type's current instances, with display labels,
 //!   nearest-first source-type closures, and endpoint frequencies within the relation.
 //!
-//! Only types descending from the link root carry instances into the
-//! example query. For a type that nothing constrains as a link and that
-//! has no link instances - every non-link entity type - the association
-//! and example sets are empty and the card carries prose and ancestry
-//! alone.
+//! Only types descending from the link root carry instances into the example query. For a type that
+//! nothing constrains as a link and that has no link instances - every non-link entity type - the
+//! association and example sets are empty and the card carries prose and ancestry alone.
 //!
-//! Type prose resolves by pinned ontology id without a liveness check:
-//! the type table derives from current editions under the same snapshot,
-//! and the versioned type rows it references are immutable. The
-//! association query filters to current types, where liveness decides
-//! which constraints exist.
+//! Type prose resolves by pinned ontology id without a liveness check: the type table derives from
+//! current editions under the same snapshot, and the versioned type rows it references are
+//! immutable. The association query filters to current types, where liveness decides which
+//! constraints exist.
 //!
-//! Every identifier the queries resolve - type ids at every version,
-//! entity ids of example endpoints - feeds each card's final text linter
-//! as a forbidden identifier.
+//! Every identifier the queries resolve - type ids at every version, entity ids of example
+//! endpoints - feeds each card's final text linter as a forbidden identifier.
 //!
 //! [`PostgresDataset`]: super::PostgresDataset
 //! [`build_contents`]: crate::dataset::card::hash::build_contents
@@ -48,25 +42,19 @@ const LINK_ROOT_BASE_URL: &str = "https://blockprotocol.org/@blockprotocol/types
 
 /// Content-affecting controls for card extraction.
 ///
-/// A card is deterministic in the dataset's temporal axes and these
-/// parameters, so a generation records both. [`PostgresDataset::new`]
-/// starts from the defaults.
+/// A card is deterministic in the dataset's temporal axes and these parameters, so a generation
+/// records both. [`PostgresDataset::new`] starts from the defaults.
 ///
 /// [`PostgresDataset::new`]: super::PostgresDataset::new
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) struct CardParameters {
     /// The most examples one finished card presents.
     pub example_count: usize = 8,
-    /// Example candidates fetched per source-type subgroup, as a
-    /// multiple of [`example_count`](Self::example_count).
+    /// Example candidates fetched per source-type subgroup, as a multiple of [`example_count`](Self::example_count).
     ///
-    /// A transfer bound: the diverse selector consumes candidates from
-    /// each subgroup in a deterministic order, and the pool is the slack
-    /// it has for rejecting duplicates and conflicts. Rows beyond the
-    /// pool can never be selected.
+    /// A transfer bound: the diverse selector consumes candidates from each subgroup in a deterministic order, and the pool is the slack it has for rejecting duplicates and conflicts. Rows beyond the pool can never be selected.
     pub subgroup_pool_factor: usize = 8,
-    /// Example candidates fetched per relation across all subgroups, as
-    /// a multiple of [`example_count`](Self::example_count).
+    /// Example candidates fetched per relation across all subgroups, as a multiple of [`example_count`](Self::example_count).
     pub pool_factor: usize = 32,
     /// Token budgets for structural truncation.
     pub budgets: CardsConfig = CardsConfig { .. },
@@ -186,8 +174,7 @@ impl RelationFacts {
 
 /// Gathers card facts for every type in `types` inside `transaction`.
 ///
-/// The `n`-th returned facts belong to `types[n]`, so the result aligns
-/// with ontology row order.
+/// The `n`-th returned facts belong to `types[n]`, so the result aligns with ontology row order.
 ///
 /// # Errors
 ///
@@ -195,9 +182,8 @@ impl RelationFacts {
 ///
 /// # Panics
 ///
-/// Panics when the store violates its own referential contracts: a type
-/// in `types` without a versioned type row (the `entity_is_of_type`
-/// foreign key forbids this).
+/// Panics when the store violates its own referential contracts: a type in `types` without a
+/// versioned type row (the `entity_is_of_type` foreign key forbids this).
 pub(super) async fn corpus_facts(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
@@ -282,9 +268,8 @@ async fn prose_rows(
 
 /// Fetches every type's ancestors ordered by (depth, id).
 ///
-/// The store's inheritance table holds no self rows, other versions of a
-/// type's own base id are filtered out with it, and the link root
-/// contributes no prose.
+/// The store's inheritance table holds no self rows, other versions of a type's own base id are
+/// filtered out with it, and the link root contributes no prose.
 async fn ancestor_rows(
     transaction: &Transaction<'_>,
     types: &[Uuid],
@@ -339,11 +324,10 @@ async fn ancestor_rows(
 
 /// The association query.
 ///
-/// `$1` is the type table and `$2` the transaction-time point.
-/// `current_types` is the latest current version of every entity type;
-/// `matched` is each source type's newest `links` constraint keyed under
-/// any version of a scoped type's base id; the target lateral resolves
-/// the constraint's references to latest-current prose per base id.
+/// `$1` is the type table and `$2` the transaction-time point. `current_types` is the latest
+/// current version of every entity type; `matched` is each source type's newest `links` constraint
+/// keyed under any version of a scoped type's base id; the target lateral resolves the constraint's
+/// references to latest-current prose per base id.
 const ASSOCIATIONS: &str = "
     WITH current_types AS (
         SELECT DISTINCT ON (ids.base_url)
@@ -424,12 +408,10 @@ const ASSOCIATIONS: &str = "
 
 /// Fetches every current source type constraining each scoped type.
 ///
-/// A source constrains a type when the latest current version of its
-/// resolved schema holds a `links` key under the type's base id at any
-/// version; a source constraining several versions contributes the
-/// newest constraint. Allowed targets resolve per base id to their
-/// latest current prose, ordered by target id; a target reference whose
-/// base id is no longer current drops out.
+/// A source constrains a type when the latest current version of its resolved schema holds a
+/// `links` key under the type's base id at any version; a source constraining several versions
+/// contributes the newest constraint. Allowed targets resolve per base id to their latest current
+/// prose, ordered by target id; a target reference whose base id is no longer current drops out.
 async fn association_rows(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
@@ -480,14 +462,12 @@ async fn association_rows(
 
 /// The example query.
 ///
-/// `$1` is the type table, `$2`/`$3` the temporal axes, `$4` the link
-/// root's base id, `$5` the per-subgroup pool bound, and `$6` the
-/// per-relation pool bound. `relations` restricts the table to types
-/// descending from the link root, `links` is each relation's current
-/// non-draft instances, `raw_examples` joins both endpoints through
-/// their own currency filters and the edition cache, and the remaining
-/// stages score, dedup by endpoint pair, and pool per relation in
-/// `stable_hash` order.
+/// `$1` is the type table, `$2`/`$3` the temporal axes, `$4` the link root's base id, `$5` the
+/// per-subgroup pool bound, and `$6` the per-relation pool bound. `relations` restricts the table
+/// to types descending from the link root, `links` is each relation's current non-draft instances,
+/// `raw_examples` joins both endpoints through their own currency filters and the edition cache,
+/// and the remaining stages score, dedup by endpoint pair, and pool per relation in `stable_hash`
+/// order.
 const EXAMPLES: &str = "
     WITH relations AS (
         SELECT mapping.ordinality, mapping.ontology_id
@@ -631,13 +611,11 @@ const EXAMPLES: &str = "
 
 /// Fetches pooled example candidates over each link type's instances.
 ///
-/// Instances are entities whose direct type is the relation, current and
-/// non-draft at the dataset's axes, with both endpoints equally current
-/// and carrying a visible display label. One row survives per endpoint
-/// pair, frequencies count each endpoint's occurrences among the
-/// relation's instances before that dedup, and pooling bounds transfer:
-/// per source-direct-type subgroup first, then per relation, in a
-/// deterministic hash order.
+/// Instances are entities whose direct type is the relation, current and non-draft at the dataset's
+/// axes, with both endpoints equally current and carrying a visible display label. One row survives
+/// per endpoint pair, frequencies count each endpoint's occurrences among the relation's instances
+/// before that dedup, and pooling bounds transfer: per source-direct-type subgroup first, then per
+/// relation, in a deterministic hash order.
 async fn example_rows(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,

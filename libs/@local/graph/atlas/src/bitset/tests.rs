@@ -55,9 +55,27 @@ fn insert_rejects_out_of_capacity_indices() {
     set.insert(10);
 }
 
+/// Intersection keeps exactly the shared indices, and indices beyond the other set's capacity
+/// read as absent from it.
+#[test]
+fn intersection_matches_set_semantics() {
+    // 130 spans three words; 70 spans two - the third word and the
+    // second word's tail cover the capacity-mismatch paths.
+    let mut wide = BitSet::new(130);
+    for index in [0, 63, 64, 69, 70, 100, 129] {
+        wide.insert(index);
+    }
+    let mut narrow = BitSet::new(70);
+    for index in [0, 63, 69] {
+        narrow.insert(index);
+    }
+
+    wide.intersect_with(&narrow);
+    assert_eq!(wide.iter().collect::<Vec<_>>(), [0, 63, 69]);
+}
+
 proptest! {
-    /// The packed words agree with a reference set on membership,
-    /// count, and iteration order at every capacity shape.
+    /// The packed words agree with a reference set on membership, count, and iteration order at every capacity shape.
     #[test]
     fn agrees_with_a_reference_set(
         len in 1_usize..300,

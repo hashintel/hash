@@ -1,26 +1,21 @@
 //! Benchmark seams over the relation-index build.
 //!
-//! Wall-time claims about the build - the mega relation no longer
-//! serializes emission, assembly is sort-dominated, the emission chunk
-//! is a granularity rather than a tuned number - are claims about
-//! parallel composition, and only hold or fail at realistic scale and
-//! skew. This module gives the bench target (an external crate) exactly
-//! the levers those claims need while every internal type stays
-//! private: corpus synthesis at measured live shapes ([`Corpus`],
-//! [`Profile`]), each production stage runnable from its own input
-//! state, and plain-number summaries ([`BuildSummary`]).
+//! Wall-time claims about the build - the mega relation no longer serializes emission, assembly is
+//! sort-dominated, the emission chunk is a granularity rather than a tuned number - are claims
+//! about parallel composition, and only hold or fail at realistic scale and skew. This module gives
+//! the bench target (an external crate) exactly the levers those claims need while every internal
+//! type stays private: corpus synthesis at measured live shapes ([`Corpus`], [`Profile`]), each
+//! production stage runnable from its own input state, and plain-number summaries
+//! ([`BuildSummary`]).
 //!
-//! The stage runners call the production functions that
-//! [`RelationIndexes::build`] composes, never mirrors of them, so a
-//! change to the build is measured rather than silently diverged from.
-//! Stages that reorder their input take a [`Scratch`] buffer the caller
-//! clones outside the timed region; stages that only read consume the
-//! corpus's pre-sorted copies directly.
+//! The stage runners call the production functions that [`RelationIndexes::build`] composes, never
+//! mirrors of them, so a change to the build is measured rather than silently diverged from. Stages
+//! that reorder their input take a [`Scratch`] buffer the caller clones outside the timed region;
+//! stages that only read consume the corpus's pre-sorted copies directly.
 //!
-//! Beside the build seams, the judge runners (`judge`) compare the two
-//! access layouts hard-negative mining could vet candidates through:
-//! pointwise pair probes against per-row partner merges, over one
-//! synthesized mining sweep ([`JudgeProbes`]).
+//! Beside the build seams, the judge runners (`judge`) compare the two access layouts hard-negative
+//! mining could vet candidates through: pointwise pair probes against per-row partner merges, over
+//! one synthesized mining sweep ([`JudgeProbes`]).
 
 pub use self::{
     fixture::{Corpus, Profile},
@@ -59,38 +54,36 @@ pub struct BuildSummary {
 
 /// An owned instance buffer for stages that reorder their input.
 ///
-/// Cloning one costs a large memcpy at bench scales; do it in the
-/// benchmark harness's setup phase, outside the timed region.
+/// Cloning one costs a large memcpy at bench scales; do it in the benchmark harness's setup phase,
+/// outside the timed region.
 #[derive(Clone)]
 pub struct Scratch(Vec<super::RelationInstance>);
 
 impl Scratch {
     /// Runs the group sort alone, returning the proper instance count.
     ///
-    /// The buffer should hold instances in synthesis order
-    /// ([`Corpus::scratch`]): the sort has a sortedness fast path, so
-    /// only an unsorted buffer measures the production pass.
+    /// The buffer should hold instances in synthesis order ([`Corpus::scratch`]): the sort has a
+    /// sortedness fast path, so only an unsorted buffer measures the production pass.
     pub fn sort_by_group(&mut self) -> usize {
         build::sort_by_group(&mut self.0)
     }
 
-    /// Runs the pair sort alone over a group-sorted buffer
-    /// ([`Corpus::grouped_scratch`]), the production input state.
+    /// Runs the pair sort alone over a group-sorted buffer ([`Corpus::grouped_scratch`]).
+    ///
+    /// The production input state.
     pub fn sort_by_pair(&mut self) {
         build::sort_by_pair(&mut self.0);
     }
 }
 
 impl Corpus {
-    /// Clones the instances in synthesis order, the full build's and
-    /// the group sort's input state.
+    /// Clones the instances in synthesis order, the full build's and the group sort's input state.
     #[must_use]
     pub fn scratch(&self) -> Scratch {
         Scratch(self.instances().to_vec())
     }
 
-    /// Clones the group-sorted proper instances, the pair sort's input
-    /// state.
+    /// Clones the group-sorted proper instances, the pair sort's input state.
     #[must_use]
     pub fn grouped_scratch(&self) -> Scratch {
         Scratch(self.grouped().to_vec())
@@ -100,8 +93,8 @@ impl Corpus {
     ///
     /// # Panics
     ///
-    /// Panics when the settings are not finite and non-negative, or the
-    /// build rejects the corpus, which the synthesis contract excludes.
+    /// Panics when the settings are not finite and non-negative, or the build rejects the corpus,
+    /// which the synthesis contract excludes.
     #[must_use]
     pub fn build_in(&self, scratch: &mut Scratch, coincident: f32, pruning: f32) -> BuildSummary {
         let attraction = AttractionOptions::new(coincident, pruning)
@@ -118,13 +111,14 @@ impl Corpus {
         }
     }
 
-    /// Runs the group emission alone at `chunk` granularity, reading
-    /// the corpus's group-sorted instances.
+    /// Runs the group emission alone at `chunk` granularity.
+    ///
+    /// Reads the corpus's group-sorted instances.
     ///
     /// # Panics
     ///
-    /// Panics when the corpus references an uncovered relation, which
-    /// the synthesis contract excludes.
+    /// Panics when the corpus references an uncovered relation, which the synthesis contract
+    /// excludes.
     pub fn emit_groups(&self, chunk: usize) {
         let ranges = build::resolve_groups(self.grouped(), self.policies())
             .expect("the synthesized corpus covers every relation");
@@ -136,8 +130,7 @@ impl Corpus {
         ));
     }
 
-    /// Runs the protection assembly alone, reading the corpus's
-    /// pair-sorted instances.
+    /// Runs the protection assembly alone, reading the corpus's pair-sorted instances.
     pub fn assemble_protection(&self) {
         drop(build::assemble_protection(
             self.rows(),
@@ -146,19 +139,16 @@ impl Corpus {
         ));
     }
 
-    /// Runs the protection index's validation alone, over the corpus's
-    /// assembled index.
+    /// Runs the protection index's validation alone, over the corpus's assembled index.
     ///
-    /// Assembly constructs every invariant the validation re-checks;
-    /// timing the check against
-    /// [`assemble_protection`](Self::assemble_protection) attributes
-    /// the assembly stage's cost between the scatter and the
-    /// re-validation.
+    /// Assembly constructs every invariant the validation re-checks; timing the check against
+    /// [`assemble_protection`](Self::assemble_protection) attributes the assembly stage's cost
+    /// between the scatter and the re-validation.
     ///
     /// # Panics
     ///
-    /// Panics when the assembled matrix fails its own validation, which
-    /// the scatter contract excludes.
+    /// Panics when the assembled matrix fails its own validation, which the scatter contract
+    /// excludes.
     pub fn validate_protection(&self) {
         let matrix = self.protection().matrix();
         super::protection::validate(matrix).expect("the assembled matrix is valid");

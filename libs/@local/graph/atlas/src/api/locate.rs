@@ -1,6 +1,6 @@
-//! `POST /v1/atlas/locate/{generation}/{variant}`: the source entity
-//! and its nearest neighbours with the edges among them, as
-//! `SALTILEL` bytes.
+//! `POST /v1/atlas/locate/{generation}/{variant}`.
+//!
+//! The source entity and its nearest neighbours with the edges among them, as `SALTILEL` bytes.
 
 use alloc::sync::Arc;
 
@@ -57,14 +57,14 @@ pub(super) struct VariantPath {
     // `generation`: an unparsable id must answer the 404 problem.
     #[schemars(with = "GenerationId")]
     generation: String,
-    /// The fitted variant name; the manifest lists what this
-    /// generation serves.
+    /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
 }
 
-/// `POST /v1/atlas/locate/{generation}/{variant}`: the source's
-/// spotlight subgraph, as `SALTILEL` bytes. The source id is the
-/// request's subject, so the body is required.
+/// `POST /v1/atlas/locate/{generation}/{variant}`.
+///
+/// The source's spotlight subgraph, as `SALTILEL` bytes. The source id is the request's subject, so
+/// the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
     Path(VariantPath {
@@ -91,16 +91,19 @@ pub(super) async fn handler(
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let caps = state.caps;
+    let proof = Arc::clone(&state.proof);
     let assembled = spawn(move || {
-        atlas.assemble_locate(&request, caps).map(|document| {
-            let entities = detailed.then(|| {
-                (
-                    atlas.locate_node_entities(&document),
-                    atlas.locate_link_entities(&document),
-                )
-            });
-            (document, entities)
-        })
+        atlas
+            .assemble_locate(&request, caps, &proof)
+            .map(|document| {
+                let entities = detailed.then(|| {
+                    (
+                        atlas.locate_node_entities(&document),
+                        atlas.locate_link_entities(&document),
+                    )
+                });
+                (document, entities)
+            })
     })
     .await?;
 

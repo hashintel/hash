@@ -1,18 +1,14 @@
-//! Importance signals: the configured column behind the delivery
-//! ranking.
+//! Importance signals: the configured column behind the delivery ranking.
 //!
-//! The base delivery order ranks rows by importance first
-//! ([`crate::salt::lod::rank`]), so the importance column decides what
-//! a zoomed-out tile shows. [`ImportanceSignal`] is the derivation
-//! seam: an implementation turns published generation artifacts into
-//! one `f32[N]` column, and [`RankingConfig`] selects which one a fit
-//! runs - adding a signal is one implementation plus one variant, and
-//! the exhaustive matches carry it into the config echo and the
-//! metadata origin marker.
+//! The base delivery order ranks rows by importance first ([`crate::salt::lod::rank`]), so the
+//! importance column decides what a zoomed-out tile shows. [`ImportanceSignal`] is the derivation
+//! seam: an implementation turns published generation artifacts into one `f32[N]` column, and
+//! [`RankingConfig`] selects which one a fit runs - adding a signal is one implementation plus one
+//! variant, and the exhaustive matches carry it into the config echo and the metadata origin
+//! marker.
 //!
-//! Every signal is a pure function of published artifacts and the
-//! configuration: equal generations derive equal columns, so the
-//! ranking stays reproducible from the manifest alone.
+//! Every signal is a pure function of published artifacts and the configuration: equal generations
+//! derive equal columns, so the ranking stays reproducible from the manifest alone.
 
 use crate::{dataset::NodeRowId, salt::adjacency::AdjacencyArchive};
 
@@ -21,13 +17,13 @@ mod tests;
 
 /// Selects the importance signal of one fit.
 ///
-/// The variant is echoed into the manifest and mirrored by the
-/// metadata's ranking origin, so a published generation names the
-/// signal its delivery order ran under.
+/// The variant is echoed into the manifest and mirrored by the metadata's ranking origin, so a
+/// published generation names the signal its delivery order ran under.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum RankingConfig {
-    /// A constant column: the delivery order reduces to the seeded
-    /// identity tiebreak, a deterministic unbiased sample.
+    /// A constant column.
+    ///
+    /// The delivery order reduces to the seeded identity tiebreak, a deterministic unbiased sample.
     ConstantColumns,
     /// Incident degree over the adjacency: hub entities deliver first.
     IncidentDegree,
@@ -41,16 +37,14 @@ const impl Default for RankingConfig {
 
 /// One importance derivation over published generation artifacts.
 ///
-/// The column is an ordinal sort key: the ranking consumes it through
-/// IEEE 754 `totalOrder` comparisons alone, greater delivers first,
-/// and monotone transforms of a signal rank identically - magnitudes
-/// are never read. Every entry is finite: under `totalOrder` a NaN
-/// fails nowhere, it silently delivers its row at an extreme zoom.
-/// The column holds exactly one entry per node row.
+/// The column is an ordinal sort key: the ranking consumes it through IEEE 754 `totalOrder`
+/// comparisons alone, greater delivers first, and monotone transforms of a signal rank
+/// identically: magnitudes are never read. Every entry is finite: under `totalOrder` a NaN fails
+/// nowhere, it silently delivers its row at an extreme zoom. The column holds exactly one entry per
+/// node row.
 ///
-/// Implementations are deterministic: the column is a function of the
-/// artifacts and the configuration alone, never of thread count or
-/// timing.
+/// Implementations are deterministic: the column is a function of the artifacts and the
+/// configuration alone, never of thread count or timing.
 // The first signal whose entries are not finite by construction (a
 // learned score read from an artifact) validates them behind a column
 // newtype at its own boundary; the constant and integer-cast signals
@@ -75,16 +69,13 @@ impl ImportanceSignal for ConstantImportance {
     }
 }
 
-/// Incident degree: each row's importance is the number of edge slots
-/// touching it.
+/// Incident degree: each row's importance is the number of edge slots touching it.
 ///
-/// Degrees read straight off the adjacency fenceposts, so the
-/// derivation is `O(N)` over an artifact the fit already published. A
-/// self-loop occupies both slots of its node and counts twice, the
-/// same reading the adjacency documents. Degrees convert to `f32`
-/// exactly up to 2^24 incident slots per node; beyond that the ranking
-/// key rounds, which reorders only rows already within a quarter of a
-/// percent of each other.
+/// Degrees read straight off the adjacency fenceposts, so the derivation is `O(N)` over an artifact
+/// the fit already published. A self-loop occupies both slots of its node and counts twice, the
+/// same reading the adjacency documents. Degrees convert to `f32` exactly up to 2^24 incident slots
+/// per node; beyond that the ranking key rounds, which reorders only rows already within a quarter
+/// of a percent of each other.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct DegreeImportance<'map> {
     adjacency: &'map AdjacencyArchive,
@@ -104,8 +95,8 @@ impl ImportanceSignal for DegreeImportance<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `rows` disagrees with the adjacency's node domain,
-    /// which the row-aligned artifact contract excludes.
+    /// Panics when `rows` disagrees with the adjacency's node domain, which the row-aligned
+    /// artifact contract excludes.
     #[expect(
         clippy::cast_precision_loss,
         reason = "degrees stay exactly representable in f32 far beyond any plausible fan-in; the \

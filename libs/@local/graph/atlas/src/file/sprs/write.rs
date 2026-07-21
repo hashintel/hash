@@ -14,11 +14,11 @@ use crate::file::region::write_region;
 pub(crate) enum WriteSprsError {
     /// The underlying writer failed.
     Io(io::Error),
-    /// The matrix is sliced: its pointers do not begin at zero, which
-    /// has no on-disk form. Copy the slice into an owned matrix first.
+    /// The matrix is sliced: its pointers do not begin at zero, which has no on-disk form.
+    ///
+    /// Copy the slice into an owned matrix first.
     Sliced,
-    /// The matrix has a zero dimension, which terminates the shape and
-    /// matches no real file.
+    /// The matrix has a zero dimension, which terminates the shape and matches no real file.
     ZeroDimension { rows: usize, columns: usize },
 }
 
@@ -52,16 +52,15 @@ impl Error for WriteSprsError {
 
 /// Streams `matrix` as a sparse matrix file.
 ///
-/// The written element types and compressed dimension are the matrix's
-/// own, recorded in the header, so the file reopens as exactly the
-/// view it was written from. Every region streams in file order behind
-/// the header; wrap a raw [`File`](std::fs::File) in a
-/// [`BufWriter`](io::BufWriter) when the matrix is small.
+/// The written element types and compressed dimension are the matrix's own, recorded in the header,
+/// so the file reopens as exactly the view it was written from. Every region streams in file order
+/// behind the header; wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) when the
+/// matrix is small.
 ///
 /// # Errors
 ///
-/// Returns an error when the underlying writer fails or the matrix has
-/// no on-disk form: sliced pointers or a zero dimension.
+/// Returns an error when the underlying writer fails or the matrix has no on-disk form: sliced
+/// pointers or a zero dimension.
 pub(crate) fn write_matrix<N, I, Iptr, IptrStorage, IStorage, DStorage>(
     matrix: &CsMatBase<N, I, IptrStorage, IStorage, DStorage, Iptr>,
     mut write: impl io::Write,

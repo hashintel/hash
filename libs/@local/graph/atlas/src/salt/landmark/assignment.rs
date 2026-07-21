@@ -1,11 +1,10 @@
 //! Nearest-landmark assignment over the search backend.
 //!
-//! Every corpus row maps to the ordinal of its nearest selected
-//! landmark by cosine distance over the projector representations.
-//! Landmarks map to themselves without a search; every other row asks
-//! a backend built over exactly the landmark rows for its single
-//! nearest neighbour. The backend keys landmarks by their corpus node
-//! row, and ordinals fall out of the selection's ascending order.
+//! Every corpus row maps to the ordinal of its nearest selected landmark by cosine distance over
+//! the projector representations. Landmarks map to themselves without a search; every other row
+//! asks a backend built over exactly the landmark rows for its single nearest neighbour. The
+//! backend keys landmarks by their corpus node row, and ordinals fall out of the selection's
+//! ascending order.
 
 use core::{error::Error, fmt};
 
@@ -21,9 +20,8 @@ use crate::{
 
 /// Dense corpus-to-landmark assignment in node-row order.
 ///
-/// Every stored ordinal lies below [`landmarks`](Self::landmarks), the
-/// length of the selection the assignment was built against, so
-/// consumers index landmark-domain tables without re-validation.
+/// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection the
+/// assignment was built against, so consumers index landmark-domain tables without re-validation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LandmarkAssignment {
     landmark_by_row: Box<[LandmarkOrdinal]>,
@@ -68,8 +66,7 @@ impl LandmarkAssignment {
         &self.landmark_by_row
     }
 
-    /// Returns the ordinal domain size: every stored ordinal lies
-    /// below it.
+    /// Returns the ordinal domain size: every stored ordinal lies below it.
     #[inline]
     #[must_use]
     pub(crate) const fn landmarks(&self) -> usize {
@@ -124,16 +121,15 @@ impl<E: Error + 'static> Error for AssignmentError<E> {
 
 /// Assigns every corpus row to its nearest selected landmark.
 ///
-/// `embeddings` holds the projector representations in node-row order;
-/// a mapped `f32[N, 512]` artifact yields the slice directly. The
-/// empty backend ingests exactly the landmark rows, links under `rng`,
-/// and answers one nearest-neighbour query per non-landmark row, in
-/// parallel and deterministically for a deterministic backend.
+/// `embeddings` holds the projector representations in node-row order; a mapped `f32[N, 512]`
+/// artifact yields the slice directly. The empty backend ingests exactly the landmark rows, links
+/// under `rng`, and answers one nearest-neighbour query per non-landmark row, in parallel and
+/// deterministically for a deterministic backend.
 ///
 /// # Errors
 ///
-/// Returns an error when a selected row lies outside the corpus, the
-/// backend fails, or a search returns nothing or a non-landmark row.
+/// Returns an error when a selected row lies outside the corpus, the backend fails, or a search
+/// returns nothing or a non-landmark row.
 pub(crate) fn assign_landmarks<I>(
     index: &mut I,
     rng: impl Rng + SeedableRng,

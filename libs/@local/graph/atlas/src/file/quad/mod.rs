@@ -1,33 +1,27 @@
 //! The quad file: quadtree topology over the base delivery order.
 //!
-//! Layout version 1 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 1 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! Each node is one tile of the bucket-cut schedule
-//! (`SPEC-ADDENDUM-CLOUD.md` sections 2, 4, and 6): the node at depth
-//! `z` stores the `(start, length)` run of its own-bucket points -
-//! bucket `z + span_log2` inside the node's cell, buckets `0..=span_log2`
-//! for the root - in the base delivery order of the generation's
-//! row-aligned columns. The runs are derived state, rebuildable from the
-//! morton file by binary search, stored so node records are total and
-//! serving does no searches. Together the runs partition the base order:
-//! every point belongs to exactly one node's run, the tile that first
-//! delivers it. No per-node point-cloud files exist; a node's points are
+//! Each node is one tile of the bucket-cut schedule (`SPEC-ADDENDUM-CLOUD.md` sections 2, 4, and
+//! 6): the node at depth `z` stores the `(start, length)` run of its own-bucket points (bucket
+//! `z + span_log2` inside the node's cell, buckets `0..=span_log2` for the root) in the base
+//! delivery order of the generation's row-aligned columns. The runs are derived state, rebuildable
+//! from the morton file by binary search, stored so node records are total and serving does no
+//! searches. Together the runs partition the base order: every point belongs to exactly one node's
+//! run, the tile that first delivers it. No per-node point-cloud files exist; a node's points are
 //! slices of the flat columns.
 //!
-//! Beside the topology each node stores its subtree point count (every
-//! point whose key lies in the node's cell, whatever its bucket) and its
-//! direct-type set: the union of per-point direct type ids over the
-//! subtree, sorted ascending, held as one shared id array plus per-node
-//! fenceposts (`PLAN.md` "Serving contract requirements"). Closures are
-//! never materialized; the type graph is the authority for inheritance.
+//! Beside the topology each node stores its subtree point count (every point whose key lies in the
+//! node's cell, whatever its bucket) and its direct-type set: the union of per-point direct type
+//! ids over the subtree, sorted ascending, held as one shared id array plus per-node fenceposts
+//! (`PLAN.md` "Serving contract requirements"). Closures are never materialized; the type graph is
+//! the authority for inheritance.
 //!
-//! The node table, the fenceposts, and the id array are all derived from
-//! one cut of one generation and are meaningless apart, so they form one
-//! combined file. The regions:
+//! The node table, the fenceposts, and the id array are all derived from one cut of one generation
+//! and are meaningless apart, so they form one combined file. The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -56,29 +50,24 @@
 //! | 28     | 4    | point count of the subtree, `u32`               |
 //! ```
 //!
-//! The root is node 0 and covers the whole wire frame: the fixed
-//! `[-1, 1]` square of the frame-normalization contract, which is why no
-//! bounds field exists - the manifest records the world frame, and a
-//! bounds copy here could only contradict it. Children are in Morton
-//! child order, the key order of `MortonCell::children`: child `i` holds
-//! the quadrant whose next axis bits are `x = i & 1`, `y = i >> 1`, so a
-//! traversal consumes the two-bit digits of a cell's key prefix
-//! directly. (Version 0 named the quadrants by compass, which presumed a
-//! `y`-axis orientation the format does not own.)
+//! The root is node 0 and covers the whole wire frame: the fixed `[-1, 1]` square of the
+//! frame-normalization contract, which is why no bounds field exists - the manifest records the
+//! world frame, and a bounds copy here could only contradict it. Children are in Morton child
+//! order, the key order of `MortonCell::children`: child `i` holds the quadrant whose next axis
+//! bits are `x = i & 1`, `y = i >> 1`, so a traversal consumes the two-bit digits of a cell's key
+//! prefix directly. (Version 0 named the quadrants by compass, which presumed a `y`-axis
+//! orientation the format does not own.)
 //!
-//! Node `n`'s type set is `ids[posts[n]..posts[n + 1]]` and the last
-//! fencepost is the entry count `T`, mirrored in the header because the
-//! length equation needs the region sizes before any region is mapped.
-//! Opening validates the header, the length equation
-//! ([`FileHeader::expected_file_len`]), the fencepost rules (anchored at
-//! zero, non-decreasing, closing at `T`), and the child rules (below the
-//! node count, pointing deeper in the table - the writer emits depth-first
-//! pre-order), so traversals and set slices never re-check. Within-set
-//! ascending order is the writer's contract, asserted before the bytes
-//! exist and then trusted the way every merge trusts its sorted inputs.
-//! Both variable regions start on 4096-byte boundaries, so the
-//! whole-file-mapping alignment guarantee of the array format applies
-//! unchanged: map the whole file and slice, never mmap at a file offset.
+//! Node `n`'s type set is `ids[posts[n]..posts[n + 1]]` and the last fencepost is the entry count
+//! `T`, mirrored in the header because the length equation needs the region sizes before any region
+//! is mapped. Opening validates the header, the length equation
+//! ([`FileHeader::expected_file_len`]), the fencepost rules (anchored at zero, non-decreasing,
+//! closing at `T`), and the child rules (below the node count, pointing deeper in the table - the
+//! writer emits depth-first pre-order), so traversals and set slices never re-check. Within-set
+//! ascending order is the writer's contract, asserted before the bytes exist and then trusted the
+//! way every merge trusts its sorted inputs. Both variable regions start on 4096-byte boundaries,
+//! so the whole-file-mapping alignment guarantee of the array format applies unchanged: map the
+//! whole file and slice, never mmap at a file offset.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -142,8 +131,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Quad);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -162,13 +152,11 @@ pub(crate) enum Version {
     V1 = 1,
 }
 
-/// One quadtree node: child links, the own-bucket run, and the subtree
-/// point count.
+/// One quadtree node: child links, the own-bucket run, and the subtree point count.
 ///
-/// The `u32::MAX` sentinel marks an absent child, so
-/// [`Node::new`] rejects it as an index and every other bit pattern is
-/// meaningful. The run is a range of base delivery positions: the
-/// node's own-bucket points, sliced from the flat base-ordered columns.
+/// The `u32::MAX` sentinel marks an absent child, so [`Node::new`] rejects it as an index and every
+/// other bit pattern is meaningful. The run is a range of base delivery positions: the node's
+/// own-bucket points, sliced from the flat base-ordered columns.
 #[derive(
     Debug,
     Copy,
@@ -183,8 +171,7 @@ pub(crate) enum Version {
 )]
 #[repr(C)]
 pub(crate) struct Node {
-    /// Child node indexes in Morton child order; `u32::MAX` marks no
-    /// child.
+    /// Child node indexes in Morton child order; `u32::MAX` marks no child.
     children: [U32<LE>; 4],
     /// First base position of the own-bucket run.
     start: U64<LE>,
@@ -200,14 +187,14 @@ impl Node {
 
     /// Creates a node record.
     ///
-    /// `children` are node indexes in Morton child order, [`None`] for
-    /// absent quadrants; `start..start + length` is the own-bucket run
-    /// in base delivery positions; `points` counts the whole subtree.
+    /// `children` are node indexes in Morton child order, [`None`] for absent quadrants;
+    /// `start..start + length` is the own-bucket run in base delivery positions; `points` counts
+    /// the whole subtree.
     ///
     /// # Panics
     ///
-    /// Panics when a child index is the `u32::MAX` sentinel, which no
-    /// node table this size can contain.
+    /// Panics when a child index is the `u32::MAX` sentinel, which no node table this size can
+    /// contain.
     #[must_use]
     pub(crate) const fn new(
         children: [Option<u32>; 4],
@@ -236,8 +223,7 @@ impl Node {
         }
     }
 
-    /// Returns the child node index of one quadrant, [`None`] when the
-    /// quadrant has no node.
+    /// Returns the child node index of one quadrant, [`None`] when the quadrant has no node.
     ///
     /// # Panics
     ///
@@ -258,8 +244,9 @@ impl Node {
         [self.child(0), self.child(1), self.child(2), self.child(3)]
     }
 
-    /// Returns the own-bucket run: base delivery positions of the
-    /// points this node's tile delivers first.
+    /// Returns the own-bucket run.
+    ///
+    /// Base delivery positions of the points this node's tile delivers first.
     #[inline]
     #[must_use]
     pub(crate) const fn run(&self) -> Range<u64> {
@@ -267,8 +254,9 @@ impl Node {
         start..start + self.length.get() as u64
     }
 
-    /// Returns the subtree point count: every point whose key lies in
-    /// the node's cell, whatever its bucket.
+    /// Returns the subtree point count.
+    ///
+    /// Every point whose key lies in the node's cell, whatever its bucket.
     #[inline]
     #[must_use]
     pub(crate) const fn points(&self) -> u32 {
@@ -283,15 +271,12 @@ impl Node {
     }
 }
 
-/// The per-node direct-type sets: one shared id array segmented by
-/// node fenceposts.
+/// The per-node direct-type sets: one shared id array segmented by node fenceposts.
 ///
-/// Fencepost `n` is where node `n`'s set begins and the last fencepost
-/// is the total entry count, so node `n`'s set is
-/// `ids[posts[n]..posts[n + 1]]`. Posts are anchored at zero and
-/// non-decreasing, and every set is strictly ascending, all by
-/// construction, so the writer streams the regions without further
-/// checks.
+/// Fencepost `n` is where node `n`'s set begins and the last fencepost is the total entry count, so
+/// node `n`'s set is `ids[posts[n]..posts[n + 1]]`. Posts are anchored at zero and non-decreasing,
+/// and every set is strictly ascending, all by construction, so the writer streams the regions
+/// without further checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TypeSets {
     posts: Box<[u64]>,
@@ -303,8 +288,8 @@ impl TypeSets {
     ///
     /// # Panics
     ///
-    /// Panics when a set is not strictly ascending - a producer bug the
-    /// format cannot represent, caught before any bytes exist.
+    /// Panics when a set is not strictly ascending - a producer bug the format cannot represent,
+    /// caught before any bytes exist.
     #[must_use]
     pub(crate) fn from_sets(sets: &[Vec<u32>]) -> Self {
         let mut posts = Vec::with_capacity(sets.len() + 1);
@@ -384,8 +369,7 @@ impl FileHeader {
     /// Size of the header, and the offset of the node table.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for `nodes` records over `type_ids` type-id
-    /// entries.
+    /// Creates a header for `nodes` records over `type_ids` type-id entries.
     #[must_use]
     pub(crate) const fn new(nodes: u64, type_ids: u64) -> Self {
         Self {
@@ -404,8 +388,7 @@ impl FileHeader {
         self.nodes.get()
     }
 
-    /// Returns the type-id entry count: the value the last fencepost
-    /// must close at.
+    /// Returns the type-id entry count: the value the last fencepost must close at.
     #[inline]
     #[must_use]
     pub(crate) const fn type_ids(&self) -> u64 {
@@ -414,9 +397,8 @@ impl FileHeader {
 
     /// Returns the offset of the type-set fencepost region.
     ///
-    /// The node table sits between the header and this offset, zero
-    /// padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The node table sits between the header and this offset, zero padded to the boundary. Returns
+    /// `None` when the geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn posts_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.nodes.get(), size_of::<Node>() as u64)?)
@@ -424,10 +406,9 @@ impl FileHeader {
 
     /// Returns the offset of the type-id region.
     ///
-    /// The fencepost region sits between [`Self::posts_offset`] and
-    /// this offset, zero padded to the boundary. Returns `None` when
-    /// the geometry overflows `u64`, in which case no real file matches
-    /// the header.
+    /// The fencepost region sits between [`Self::posts_offset`] and this offset, zero padded to the
+    /// boundary. Returns `None` when the geometry overflows `u64`, in which case no real file
+    /// matches the header.
     #[must_use]
     pub(crate) fn ids_offset(&self) -> Option<u64> {
         let posts = padded_size(self.nodes.get().checked_add(1)?, size_of::<u64>() as u64)?;
@@ -436,9 +417,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let ids = self.type_ids.get().checked_mul(size_of::<u32>() as u64)?;

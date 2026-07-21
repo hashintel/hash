@@ -1,13 +1,10 @@
-//! The policy table's published form: one policy file and its mapped
-//! reader.
+//! The policy table's published form: one policy file and its mapped reader.
 //!
-//! The resolved table publishes as one [`crate::file::policy`] file in
-//! the order [`resolve`](super::resolve) produces: strictly ascending by
-//! relation row. [`PolicyTableArchive`] reopens the file over a
-//! whole-file mapping, validates the table invariants once, and hands
-//! out the rows as a borrowed [`RelationPolicy`] slice: the domain
-//! type's `repr(C)` layout is the file's pinned wire row, so reads
-//! decode nothing.
+//! The resolved table publishes as one [`crate::file::policy`] file in the order
+//! [`resolve`](super::resolve) produces: strictly ascending by relation row. [`PolicyTableArchive`]
+//! reopens the file over a whole-file mapping, validates the table invariants once, and hands out
+//! the rows as a borrowed [`RelationPolicy`] slice: the domain type's `repr(C)` layout is the
+//! file's pinned wire row, so reads decode nothing.
 
 use core::{error::Error, fmt, mem::offset_of};
 use std::io;
@@ -53,9 +50,10 @@ const _: () = {
 pub(crate) enum InvalidPolicyFile {
     /// The rows break the strictly ascending relation order.
     UnorderedRelations { index: usize },
-    /// A policy carries a value outside its domain: a probability or
-    /// applicability outside `[0, 1]`, or a strength that is not
-    /// finite and nonnegative.
+    /// A policy carries a value outside its domain.
+    ///
+    /// A probability or applicability outside `[0, 1]`, or a strength that is not finite and
+    /// nonnegative.
     Domain { index: usize },
 }
 
@@ -78,9 +76,8 @@ impl Error for InvalidPolicyFile {}
 
 /// Writes the resolved policies as a policy file.
 ///
-/// `policies` is [`resolve`](super::resolve)'s output: strictly
-/// ascending by relation row, every value in its domain, written as
-/// its own bytes. Returns the SHA-256 of the written bytes: the
+/// `policies` is [`resolve`](super::resolve)'s output: strictly ascending by relation row, every
+/// value in its domain, written as its own bytes. Returns the SHA-256 of the written bytes: the
 /// identity the repository records for the published file.
 ///
 /// # Errors
@@ -89,8 +86,8 @@ impl Error for InvalidPolicyFile {}
 ///
 /// # Panics
 ///
-/// Panics when the policies are not strictly ascending by relation,
-/// which violates the resolution contract.
+/// Panics when the policies are not strictly ascending by relation, which violates the resolution
+/// contract.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; an unordered table is a caller contract \
@@ -122,10 +119,9 @@ pub(crate) fn write_policies(
 
 /// A published policy table opened over its mapped file.
 ///
-/// Construction checks the table invariants once - relations strictly
-/// ascending, every value in its domain - so an open table only serves
-/// valid policies and consumers re-validate nothing. The rows stay in
-/// the page cache under memory pressure and off the heap.
+/// Construction checks the table invariants once - relations strictly ascending, every value in its
+/// domain - so an open table only serves valid policies and consumers re-validate nothing. The rows
+/// stay in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct PolicyTableArchive {
     file: PolicyFile,

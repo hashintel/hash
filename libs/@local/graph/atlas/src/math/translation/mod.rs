@@ -9,10 +9,9 @@ mod tests;
 
 /// A translation of 2D space by a fixed offset.
 ///
-/// A `translation: Translation` in a signature promises that the value
-/// moves points and composes by adding offsets. Composition via
-/// [`then`](Self::then) adds the offsets, and [`inverse`](Self::inverse)
-/// negates them, which is exact: no rounding occurs at all.
+/// A `translation: Translation` in a signature promises that the value moves points and composes by
+/// adding offsets. Composition via [`then`](Self::then) adds the offsets, and
+/// [`inverse`](Self::inverse) negates them, which is exact: no rounding occurs at all.
 ///
 /// # Examples
 ///
@@ -63,11 +62,10 @@ impl Translation {
         self.0
     }
 
-    /// Returns the translation equivalent to applying `self` first, then
-    /// `next`.
+    /// Returns the translation equivalent to applying `self` first, then `next`.
     ///
-    /// Translations commute, so the order only matters for consistency
-    /// with the other transform types. The offsets are added.
+    /// Translations commute, so the order only matters for consistency with the other transform
+    /// types. The offsets are added.
     #[inline]
     #[must_use]
     pub const fn then(self, next: Self) -> Self {
@@ -76,9 +74,8 @@ impl Translation {
 
     /// Returns the translation by the negated offset.
     ///
-    /// Negation is exact, so a translation followed by its inverse
-    /// reproduces the input bit for bit whenever the intermediate sum is
-    /// exactly representable.
+    /// Negation is exact, so a translation followed by its inverse reproduces the input bit for bit
+    /// whenever the intermediate sum is exactly representable.
     #[inline]
     #[must_use]
     pub const fn inverse(self) -> Self {

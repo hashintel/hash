@@ -1,12 +1,10 @@
 //! The lod stage: from canonical coordinates to the served columns.
 //!
-//! [`Lod::build`] runs the whole level-of-detail derivation for one
-//! generation: fit the world frame, normalize the coordinates into the
-//! wire frame, quantize Morton keys, rank, cascade, sort into the base
-//! delivery order, and gather every served column into that order. The
-//! result is a pure function of the coordinates, the rank inputs, the
-//! seed, and the configuration, so equal generations produce byte-equal
-//! columns.
+//! [`Lod::build`] runs the whole level-of-detail derivation for one generation: fit the world
+//! frame, normalize the coordinates into the wire frame, quantize Morton keys, rank, cascade, sort
+//! into the base delivery order, and gather every served column into that order. The result is a
+//! pure function of the coordinates, the rank inputs, the seed, and the configuration, so equal
+//! generations produce byte-equal columns.
 
 use rayon::prelude::*;
 
@@ -26,20 +24,13 @@ const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1
 
 /// Configuration of the level-of-detail schedule.
 ///
-/// Both values are unvalidated starting points, revised against the
-/// [`LodEvidence`] of real generations; the manifest records what a
-/// generation was built with.
+/// Both values are unvalidated starting points, revised against the [`LodEvidence`] of real
+/// generations; the manifest records what a generation was built with.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct LodConfig {
-    /// Cells per tile axis of the delivery cut, as its base-2 log: a
-    /// tile at zoom `z` delivers buckets at or below `z + span_log2`.
-    /// Defaults to 6 (a 64x64 sample grid, at most 4096 points per
-    /// incremental tile).
+    /// Cells per tile axis of the delivery cut, as its base-2 log: a tile at zoom `z` delivers buckets at or below `z + span_log2`. Defaults to 6 (a 64x64 sample grid, at most 4096 points per incremental tile).
     pub span_log2: u8 = 6,
-    /// The deepest tile zoom the schedule serves. Defaults to 18,
-    /// which with the default span puts the deepest cascade grid at
-    /// depth 24 - the resolution where `f32` coordinates in the wire
-    /// frame stop separating points.
+    /// The deepest tile zoom the schedule serves. Defaults to 18, which with the default span puts the deepest cascade grid at depth 24 - the resolution where `f32` coordinates in the wire frame stop separating points.
     pub max_tile_depth: u8 = 18,
 }
 
@@ -50,12 +41,12 @@ const impl Default for LodConfig {
 }
 
 impl LodConfig {
-    /// Returns the deepest cascade grid: `max_tile_depth + span_log2`,
-    /// the catch-all bucket of the cut schedule.
+    /// Returns the deepest cascade grid.
     ///
-    /// Returns [`None`] when the sum exceeds the 32 subdivisions a
-    /// 64-bit Morton key resolves - the key-width inequality
-    /// `z_max + m <= 32` - in which case the configuration matches no
+    /// `max_tile_depth + span_log2`, the catch-all bucket of the cut schedule.
+    ///
+    /// Returns [`None`] when the sum exceeds the 32 subdivisions a 64-bit Morton key resolves - the
+    /// key-width inequality `z_max + m <= 32` - in which case the configuration matches no
     /// buildable schedule.
     #[must_use]
     pub(crate) const fn deepest(self) -> Option<Depth> {
@@ -71,12 +62,10 @@ impl LodConfig {
 pub(crate) enum LodError {
     /// The configuration names a schedule no 64-bit key resolves.
     Schedule { config: LodConfig },
-    /// The rank columns cover a different row count than the
-    /// coordinates. (Columns disagreeing among themselves cannot
-    /// reach here: [`RankInputs`] admits only equal-length columns.)
+    /// The rank columns cover a different row count than the coordinates. (Columns disagreeing
+    /// among themselves cannot reach here: [`RankInputs`] admits only equal-length columns.)
     Columns { coordinates: usize },
-    /// The coordinates hold a non-finite value or no rows, so no world
-    /// frame exists.
+    /// The coordinates hold a non-finite value or no rows, so no world frame exists.
     Frame,
 }
 
@@ -104,23 +93,22 @@ impl core::fmt::Display for LodError {
 
 impl core::error::Error for LodError {}
 
-/// The level-of-detail structure of one generation, every column in
-/// base delivery order.
+/// The level-of-detail structure of one generation, every column in base delivery order.
 ///
-/// This is the writable form of the serving artifacts: the wire
-/// coordinate column, the Morton code column with its bucket
-/// fenceposts, the rank column, and the row permutations. The
-/// [`evidence`](Self::evidence) is measured from the finished columns
-/// and belongs in the generation's metadata document.
+/// This is the writable form of the serving artifacts: the wire coordinate column, the Morton code
+/// column with its bucket fenceposts, the rank column, and the row permutations. The
+/// [`evidence`](Self::evidence) is measured from the finished columns and belongs in the
+/// generation's metadata document.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Lod {
-    /// The world frame the coordinates were normalized from. Together
-    /// with the fixed `[-1, 1]` wire frame this is the frame
-    /// transform: the manifest records it, clients and the placement
-    /// path re-derive the identical map from it.
+    /// The world frame the coordinates were normalized from.
+    ///
+    /// Together with the fixed `[-1, 1]` wire frame this is the frame transform: the manifest
+    /// records it, clients and the placement path re-derive the identical map from it.
     pub world: Bounds2,
-    /// Wire coordinates in base order: the canonical coordinates
-    /// normalized into the wire frame. This column is the wire.
+    /// Wire coordinates in base order: the canonical coordinates normalized into the wire frame.
+    ///
+    /// This column is the wire.
     pub coordinates: Box<[Vec2]>,
     /// Morton codes in base order, segmented by [`Self::fenceposts`].
     pub codes: Box<[MortonKey]>,
@@ -128,36 +116,31 @@ pub(crate) struct Lod {
     pub fenceposts: Fenceposts,
     /// Each base position's importance rank.
     pub rank_of_position: Box<[u32]>,
-    /// Each rank's base position: the traversal order of filter
-    /// registration.
+    /// Each rank's base position: the traversal order of filter registration.
     pub position_of_rank: Box<[u32]>,
-    /// Each row's base position: the permutation the filter contract
-    /// maps entity bitmaps through.
+    /// Each row's base position: the permutation the filter contract maps entity bitmaps through.
     pub position_of_row: Box<[u32]>,
-    /// Each base position's row: the gather order that assembles any
-    /// further row-aligned column into base order.
+    /// Each base position's row.
+    ///
+    /// The gather order that assembles any further row-aligned column into base order.
     pub row_of_position: Box<[u32]>,
 }
 
 impl Lod {
-    /// Builds the level-of-detail structure over the canonical
-    /// coordinates.
+    /// Builds the level-of-detail structure over the canonical coordinates.
     ///
-    /// `coordinates` is the canonical `f32[N, 2]` column in row order;
-    /// `inputs` the per-row rank columns; `seed` the generation's
-    /// reproducibility seed. The world frame is fitted from the
-    /// coordinates and each axis normalized onto `[-1, 1]` in `f64`
-    /// with one final rounding, so the wire column is within `2^-23`
-    /// of exact everywhere and reproducible across targets. Keys
-    /// quantize the normalized column, not the input, so wire
-    /// coordinates and tile cells can never disagree.
+    /// `coordinates` is the canonical `f32[N, 2]` column in row order; `inputs` the per-row rank
+    /// columns; `seed` the generation's reproducibility seed. The world frame is fitted from the
+    /// coordinates and each axis normalized onto `[-1, 1]` in `f64` with one final rounding, so the
+    /// wire column is within `2^-23` of exact everywhere and reproducible across targets. Keys
+    /// quantize the normalized column, not the input, so wire coordinates and tile cells can never
+    /// disagree.
     ///
     /// # Errors
     ///
-    /// Returns [`LodError::Schedule`] when the configuration exceeds
-    /// the key width, [`LodError::Columns`] when the rank columns
-    /// disagree with the coordinates, and [`LodError::Frame`] when the
-    /// coordinates admit no world frame (no rows, or a non-finite
+    /// Returns [`LodError::Schedule`] when the configuration exceeds the key width,
+    /// [`LodError::Columns`] when the rank columns disagree with the coordinates, and
+    /// [`LodError::Frame`] when the coordinates admit no world frame (no rows, or a non-finite
     /// value).
     pub(crate) fn build<I>(
         coordinates: &[Vec2],
@@ -230,15 +213,14 @@ impl Lod {
 
     /// Measures the publish evidence over the finished columns.
     ///
-    /// The measurements the manifest records: the bucket histogram
-    /// (whose tail calibrates `max_tile_depth`), the catch-all
-    /// population and its co-location excess, and the observed
+    /// The measurements the manifest records: the bucket histogram (whose tail calibrates
+    /// `max_tile_depth`), the catch-all population and its co-location excess, and the observed
     /// per-tile own-bucket maximum against the geometric cap.
     ///
     /// # Panics
     ///
-    /// Panics when `config` is not the configuration the structure was
-    /// built under, detected through its unbuildable schedule.
+    /// Panics when `config` is not the configuration the structure was built under, detected
+    /// through its unbuildable schedule.
     #[must_use]
     pub(crate) fn evidence(&self, config: LodConfig) -> LodEvidence {
         let deepest = config
@@ -282,28 +264,31 @@ impl Lod {
     }
 }
 
-/// The publish evidence of one lod build: measurements the manifest
-/// records so the configuration is revised from data, not taste.
+/// The publish evidence of one lod build.
+///
+/// Measurements the manifest records so the configuration is revised from data, not taste.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LodEvidence {
     /// The world frame the wire coordinates were normalized from.
     pub world: Bounds2,
     /// Points per bucket; the tail calibrates `max_tile_depth`.
     pub bucket_histogram: [u64; Fenceposts::SEGMENTS],
-    /// Points in the deepest bucket: the co-located residue plus the
-    /// deepest grid's regular claims.
+    /// Points in the deepest bucket.
+    ///
+    /// The co-located residue plus the deepest grid's regular claims.
     pub catch_all_population: u64,
-    /// Catch-all points beyond one per distinct deepest-grid cell:
-    /// the population no cut depth can thin.
+    /// Catch-all points beyond one per distinct deepest-grid cell.
+    ///
+    /// The population no cut depth can thin.
     pub co_location_excess: u64,
-    /// The largest own-bucket delta any tile of the schedule delivers,
-    /// verified against the geometric cap `4^span_log2`; co-location
-    /// can exceed the cap only in the catch-all bucket.
+    /// The largest own-bucket delta any tile of the schedule delivers.
+    ///
+    /// Verified against the geometric cap `4^span_log2`; co-location can exceed the cap only in
+    /// the catch-all bucket.
     pub max_tile_delta: u64,
 }
 
-/// Counts the distinct depth-`depth` prefixes of a segment-sorted code
-/// slice.
+/// Counts the distinct depth-`depth` prefixes of a segment-sorted code slice.
 fn distinct_prefixes(codes: &[MortonKey], depth: Depth) -> u64 {
     let mut distinct = 0;
     let mut previous = None;
@@ -318,8 +303,8 @@ fn distinct_prefixes(codes: &[MortonKey], depth: Depth) -> u64 {
     distinct
 }
 
-/// Returns the size of the largest group of equal depth-`depth`
-/// prefixes in a segment-sorted code slice.
+/// Returns the size of the largest group of equal depth-`depth` prefixes in a segment-sorted code
+/// slice.
 fn largest_prefix_group(codes: &[MortonKey], depth: Depth) -> u64 {
     let mut largest = 0;
     let mut current = 0;

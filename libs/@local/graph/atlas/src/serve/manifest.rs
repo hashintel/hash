@@ -1,16 +1,17 @@
-//! The manifest document: the immutable Surface v1 bootstrap, derived
-//! from the generation's configuration alone.
+//! The manifest document.
+//!
+//! The immutable Surface v1 bootstrap, derived from the generation's configuration alone.
 
 use super::{Atlas, GenerationId, ServeCaps, VARIANTS};
 use crate::salt::wire::WIRE_VERSION;
 
-/// The per-request caps of the manifest's `limits` block: transport
-/// configuration published as data, so clients validate before
-/// sending instead of learning caps from rejections.
+/// The per-request caps of the manifest's `limits` block.
 ///
-/// Never built freehand outside tests: [`ServeCaps::limits`]
-/// derives it from the caps the handlers actually enforce, so the
-/// published limits cannot disagree with enforcement.
+/// Transport configuration published as data, so clients validate before sending instead of
+/// learning caps from rejections.
+///
+/// Never built freehand outside tests: [`ServeCaps::limits`] derives it from the caps the handlers
+/// actually enforce, so the published limits cannot disagree with enforcement.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestLimits {
@@ -18,20 +19,18 @@ pub struct ManifestLimits {
     pub colored_type_ids: u32,
     /// Most tiles one edges request may list.
     pub edges_tiles: u32,
-    /// Largest neighbour budget one locate request may name; larger
-    /// budgets clamp.
+    /// Largest neighbour budget one locate request may name; larger budgets clamp.
     pub locate_neighbours: u32,
-    /// Most subgraph edges one locate response delivers before the
-    /// protected rank truncation.
+    /// Most subgraph edges one locate response delivers before the protected rank truncation.
     pub locate_edges: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
 }
 
 impl ServeCaps {
-    /// Derives the manifest's `limits` block from the caps the
-    /// handlers enforce: one source, so the published limits cannot
-    /// disagree with enforcement.
+    /// Derives the manifest's `limits` block from the caps the handlers enforce.
+    ///
+    /// One source, so the published limits cannot disagree with enforcement.
     #[must_use]
     pub const fn limits(&self) -> ManifestLimits {
         ManifestLimits {
@@ -44,9 +43,10 @@ impl ServeCaps {
     }
 }
 
-/// The immutable per-generation manifest: the Surface v1 bootstrap
-/// document, derived from configuration alone so it can be shared
-/// across principals.
+/// The immutable per-generation manifest.
+///
+/// The Surface v1 bootstrap document, derived from configuration alone so it can be shared across
+/// principals.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
@@ -60,9 +60,10 @@ pub struct Manifest {
     pub bucket_schedule: BucketSchedule,
     /// The per-request caps.
     pub limits: ManifestLimits,
-    /// The snapshot's decision-time point, ISO-8601. Absent for
-    /// generations fitted from sources without temporal axes, such as
-    /// synthetic fixtures.
+    /// The snapshot's decision-time point, ISO-8601.
+    ///
+    /// Absent for generations fitted from sources without temporal axes, such as synthetic
+    /// fixtures.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
 }
@@ -80,8 +81,7 @@ pub struct BucketSchedule {
 }
 
 impl Atlas {
-    /// Assembles the generation's manifest document under the given
-    /// request caps.
+    /// Assembles the generation's manifest document under the given request caps.
     #[must_use]
     pub fn manifest(&self, limits: ManifestLimits) -> Manifest {
         // Timestamps serialize as ISO-8601 strings; anything else

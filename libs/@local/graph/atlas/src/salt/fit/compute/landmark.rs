@@ -41,13 +41,11 @@ use crate::{
 };
 
 impl Context<'_> {
-    /// Marks the current rows whose nodes were landmarks of the prior
-    /// generation.
+    /// Marks the current rows whose nodes were landmarks of the prior generation.
     ///
-    /// The prior skeleton's rows translate through the prior identity
-    /// table to source ids and through the staged current table back
-    /// to rows; nodes that left the corpus since the prior generation
-    /// simply mark nothing.
+    /// The prior skeleton's rows translate through the prior identity table to source ids and
+    /// through the staged current table back to rows; nodes that left the corpus since the prior
+    /// generation simply mark nothing.
     pub(super) fn prior_landmark_marks<I>(&self, prior: &Generation) -> Result<BitSet, StageError>
     where
         I: ByteStable,
@@ -90,12 +88,11 @@ impl Context<'_> {
         Ok(marks)
     }
 
-    /// Selects, assigns, contracts, and lays out the landmark skeleton,
-    /// staging it as one combined file and mapping it back for the
-    /// stages that consume it.
+    /// Selects, assigns, contracts, and lays out the landmark skeleton, staging it as one combined
+    /// file and mapping it back for the stages that consume it.
     ///
-    /// Candidates are uniform over the corpus; `prior_marks` names the
-    /// rows competing for the retained share.
+    /// Candidates are uniform over the corpus; `prior_marks` names the rows competing for the
+    /// retained share.
     // TODO: candidates take stratification axes and subgroup minimums
     //       once a stage computes them.
     pub(super) fn build_landmark_skeleton(
@@ -174,8 +171,9 @@ impl Context<'_> {
         })
     }
 
-    /// Stages the baseline coordinates: every row's assigned landmark
-    /// coordinate as one `f32[N, 2]` array file.
+    /// Stages the baseline coordinates.
+    ///
+    /// Every row's assigned landmark coordinate as one `f32[N, 2]` array file.
     pub(super) fn stage_baseline_coordinates(
         &self,
         skeleton: &LandmarkSkeletonArchive,
@@ -189,8 +187,9 @@ impl Context<'_> {
     }
 }
 
-/// Streams every row's assigned landmark coordinate into one `f32[N, 2]`
-/// array file, returning the sealed file's digest.
+/// Streams every row's assigned landmark coordinate into one `f32[N, 2]` array file.
+///
+/// Returns the sealed file's digest.
 fn place_at_landmarks(
     skeleton: &LandmarkSkeletonArchive,
     writer: impl io::Write,

@@ -1,20 +1,16 @@
 //! The serialized form of one fit's configuration.
 //!
-//! The metadata document echoes the whole [`FitConfig`], so a replay
-//! takes every setting from the published record instead of the
-//! defaults compiled into the replaying binary. `serde_derive` does
-//! not parse default field values, so the options structs cannot carry
-//! their own derives; each has a field-for-field shadow here (the
-//! [serde remote pattern]). Deserialization constructs the real struct
-//! field by field: an option field added to a stage fails compilation
-//! here until the echo carries it.
+//! The metadata document echoes the whole [`FitConfig`], so a replay takes every setting from the
+//! published record instead of the defaults compiled into the replaying binary. `serde_derive` does
+//! not parse default field values, so the options structs cannot carry their own derives; each has
+//! a field-for-field shadow here (the [serde remote pattern]). Deserialization constructs the real
+//! struct field by field: an option field added to a stage fails compilation here until the echo
+//! carries it.
 //!
-//! Validated fields ([`UnitFraction`], [`LearningRate`],
-//! [`RepulsionStrength`], [`AffinityCurve`], the `NonZero` counts)
-//! deserialize through their validating constructors, so a document
-//! whose echo violates a construction invariant refuses to parse. The
-//! `math` types serialize through the with-modules here rather than
-//! own impls: `math` is serialization-free, and how a curve or a
+//! Validated fields ([`UnitFraction`], [`LearningRate`], [`RepulsionStrength`], [`AffinityCurve`],
+//! the `NonZero` counts) deserialize through their validating constructors, so a document whose
+//! echo violates a construction invariant refuses to parse. The `math` types serialize through the
+//! with-modules here rather than own impls: `math` is serialization-free, and how a curve or a
 //! fraction appears in a document is the document's concern.
 //!
 //! [serde remote pattern]: https://serde.rs/remote-derive.html
@@ -43,8 +39,9 @@ use crate::{
     },
 };
 
-/// Serializes a [`UnitFraction`] as its plain fraction, validating
-/// through [`UnitFraction::new`] on deserialize.
+/// Serializes a [`UnitFraction`] as its plain fraction.
+///
+/// Validates through [`UnitFraction::new`] on deserialize.
 mod unit_fraction {
     use serde::{Deserialize as _, de::Error as _};
 
@@ -74,8 +71,9 @@ mod unit_fraction {
     }
 }
 
-/// Serializes an [`AffinityCurve`] as its two named parameters,
-/// validating through [`AffinityCurve::new`] on deserialize.
+/// Serializes an [`AffinityCurve`] as its two named parameters.
+///
+/// Validates through [`AffinityCurve::new`] on deserialize.
 mod affinity_curve {
     #![expect(
         clippy::min_ident_chars,
@@ -123,8 +121,9 @@ mod affinity_curve {
     }
 }
 
-/// Serializes policy overrides as named records, validating each
-/// distribution through [`Posterior::new`] on deserialize.
+/// Serializes policy overrides as named records.
+///
+/// Validates each distribution through [`Posterior::new`] on deserialize.
 ///
 /// [`Posterior::new`]: crate::salt::policy::Posterior::new
 mod policy_overrides {
@@ -206,8 +205,9 @@ mod policy_overrides {
     }
 }
 
-/// Serializes [`AttractionOptions`] as its two named settings,
-/// validating through [`AttractionOptions::new`] on deserialize.
+/// Serializes [`AttractionOptions`] as its two named settings.
+///
+/// Validates through [`AttractionOptions::new`] on deserialize.
 mod attraction_options {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
@@ -255,8 +255,9 @@ mod attraction_options {
     }
 }
 
-/// Serializes [`PlacementOptions`] as a tagged record, validating
-/// every projector setting through its constructor on deserialize.
+/// Serializes [`PlacementOptions`] as a tagged record.
+///
+/// Validates every projector setting through its constructor on deserialize.
 mod placement {
     use core::num::NonZero;
 
@@ -353,8 +354,7 @@ mod placement {
         asserted_radius: Option<f32>,
     }
 
-    /// The protection thresholds' wire form; each channel is
-    /// `[floor, threshold]`.
+    /// The protection thresholds' wire form; each channel is `[floor, threshold]`.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct ProtectionRecord {
         hard: [f32; 2],
@@ -469,8 +469,9 @@ mod placement {
     }
 
     impl ProjectorRecord {
-        /// Validates the wire fields into the real options, field by
-        /// field through the constructors.
+        /// Validates the wire fields into the real options.
+        ///
+        /// Field by field through the constructors.
         fn into_options<E: serde::de::Error>(self) -> Result<ProjectorOptions, E> {
             let record = self;
             let schedule = TrainingSchedule::new(
@@ -716,8 +717,7 @@ struct PolicyOptionsDef {
     classifier_fit: ClassifierFitConfig,
 }
 
-/// serde shadow of [`AssemblyConfig`]; deserialization revalidates the
-/// threshold's domain.
+/// serde shadow of [`AssemblyConfig`]; deserialization revalidates the threshold's domain.
 mod assembly_config {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
@@ -734,8 +734,7 @@ mod assembly_config {
         maximum_group_fraction: f64,
     }
 
-    /// The compiled default budget, echoed for documents that predate
-    /// the field.
+    /// The compiled default budget, echoed for documents that predate the field.
     fn default_maximum_group_fraction() -> f64 {
         AssemblyConfig::default().maximum_group_fraction
     }
@@ -774,8 +773,9 @@ mod assembly_config {
     }
 }
 
-/// serde shadow of the classifier's fit configuration; deserialization
-/// revalidates through the configuration's own domain check.
+/// serde shadow of the classifier's fit configuration.
+///
+/// Deserialization revalidates through the configuration's own domain check.
 mod classifier_fit_config {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
@@ -826,8 +826,7 @@ mod classifier_fit_config {
     }
 }
 
-/// serde shadow of [`FitConfig`]: the metadata document's echo of every
-/// setting one fit ran under.
+/// serde shadow of [`FitConfig`]: the metadata document's echo of every setting one fit ran under.
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "FitConfig")]
 pub(crate) struct FitConfigDef {

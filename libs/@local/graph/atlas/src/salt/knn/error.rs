@@ -7,8 +7,7 @@ use super::table::KnnValidationError;
 pub(crate) enum KnnError<E> {
     /// The backend reported an error.
     Backend(E),
-    /// The assembled table violates a [`Knn`](super::table::Knn)
-    /// invariant.
+    /// The assembled table violates a [`Knn`](super::table::Knn) invariant.
     Invalid(KnnValidationError),
     /// The row domain exceeds the table's `u32` column encoding.
     TooManyRows { rows: usize },
@@ -16,8 +15,7 @@ pub(crate) enum KnnError<E> {
     TooManyEntries { rows: usize, neighbours: usize },
     /// A sampling budget cannot size a sample.
     SampleBudget { margin: f64, confidence: f64 },
-    /// A search returned a different neighbour count than the table
-    /// stores per row.
+    /// A search returned a different neighbour count than the table stores per row.
     SearchCount {
         row: usize,
         expected: usize,

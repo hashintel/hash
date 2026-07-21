@@ -149,10 +149,7 @@ fn acceptance_sample_size_rejects_degenerate_parameters() {
 }
 
 proptest! {
-    /// The returned count is sufficient and minimal: `n` all-pass samples
-    /// push the false-acceptance probability to the target or below, and
-    /// `n - 1` samples do not. This is the function's entire contract,
-    /// certified over the whole meaningful parameter space.
+    /// The returned count is sufficient and minimal: `n` all-pass samples push the false-acceptance probability to the target or below, and `n - 1` samples do not. This is the function's entire contract, certified over the whole meaningful parameter space.
     #[test]
     fn acceptance_sample_size_is_sufficient_and_minimal(
         defect_rate in 1e-6_f64..0.5,
@@ -199,8 +196,7 @@ proptest! {
         prop_assert!(value < bound.get());
     }
 
-    /// Samples are always distinct, in range, and exactly `N` long for any
-    /// covering population.
+    /// Samples are always distinct, in range, and exactly `N` long for any covering population.
     #[test]
     fn sample_indices_is_a_valid_subset(seed in any::<u64>(), population in 8_usize..10_000) {
         let picked = sample_indices::<8>(
@@ -218,8 +214,8 @@ proptest! {
     }
 }
 
-/// The quantile matches tabulated standard normal values through both
-/// rational-approximation regions.
+/// The quantile matches tabulated standard normal values through both rational-approximation
+/// regions.
 #[test]
 fn normal_quantile_matches_tabulated_values() {
     // Central region.
@@ -275,9 +271,9 @@ fn normal_quantile_rejects_out_of_domain_probabilities() {
     assert_eq!(normal_quantile(f64::NAN), None);
 }
 
-/// The mean sample size follows the closed form and its monotonicity
-/// laws: tighter margins and higher confidence grow the sample,
-/// smaller deviations shrink it.
+/// The mean sample size follows the closed form and its monotonicity laws.
+///
+/// Tighter margins and higher confidence grow the sample, smaller deviations shrink it.
 #[test]
 fn mean_sample_size_follows_the_closed_form() {
     // ceil((2.326348 * 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.

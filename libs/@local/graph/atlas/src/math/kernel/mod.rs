@@ -1,14 +1,12 @@
 //! Shared portable-SIMD operations.
 //!
-//! The fused multiply-add dispatchers select between native FMA and
-//! separate multiply-add per target. The transcendentals are vectorized
-//! through the SLEEF kernels vendored in [`self::sleef`]. Each wrapper
-//! documents its own accuracy bound: the variant is chosen per kernel
-//! by measuring the consumers' requirements against instruction counts,
-//! from the 1.0-ulp `u10` tier down to compositions of the cheaper
-//! 3.5-ulp `u35` tier. The wrappers are the crate's single seam onto
-//! the vendored kernels: every consumer routes through here, and the
-//! `math::kernel` tests bound each wrapper's error against scalar libm.
+//! The fused multiply-add dispatchers select between native FMA and separate multiply-add per
+//! target. The transcendentals are vectorized through the SLEEF kernels vendored in
+//! [`self::sleef`]. Each wrapper documents its own accuracy bound: the variant is chosen per kernel
+//! by measuring the consumers' requirements against instruction counts, from the 1.0-ulp `u10` tier
+//! down to compositions of the cheaper 3.5-ulp `u35` tier. The wrappers are the crate's single seam
+//! onto the vendored kernels: every consumer routes through here, and the `math::kernel` tests
+//! bound each wrapper's error against scalar libm.
 // `StdFloat` also exposes vector `exp`/`ln`, but the compiler lowers them
 // to one libm call per lane on every current target (verified against the
 // emitted assembly), which is why the bodies below call the vendored
@@ -16,6 +14,8 @@
 
 use core::simd::{f32x4, f32x8, f64x4, f64x8};
 
+#[cfg(feature = "bench")]
+pub mod bench;
 mod sleef;
 
 /// Fused multiply-add when the target provides native FMA instructions.
@@ -52,12 +52,10 @@ pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8
 
 /// Fused multiply-add, correctly rounded on every target.
 ///
-/// The fusion is semantic: targets without native FMA take a software
-/// path with the same single rounding, so every lane matches scalar
-/// [`f64::mul_add`] bit for bit on every platform. This is the variant
-/// for consumers whose contract includes byte-reproducibility across
-/// targets; [`mul_add_f64x4`] trades that guarantee for speed where
-/// FMA hardware is absent.
+/// The fusion is semantic: targets without native FMA take a software path with the same single
+/// rounding, so every lane matches scalar [`f64::mul_add`] bit for bit on every platform. This is
+/// the variant for consumers whose contract includes byte-reproducibility across targets;
+/// [`mul_add_f64x4`] trades that guarantee for speed where FMA hardware is absent.
 #[inline(always)]
 pub(crate) fn fused_mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
     use std::simd::StdFloat as _;
@@ -105,13 +103,13 @@ pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8
 )]
 #[inline(always)]
 pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
-    sleef::exp(values)
+    sleef::exp_f64(values)
 }
 
 /// Exponential of each lane, accurate to 1.0 unit in the last place.
 ///
-/// Exact at the special points consumers lean on: a zero lane yields
-/// exactly one and a negative-infinity lane yields exactly zero.
+/// Exact at the special points consumers lean on: a zero lane yields exactly one and a
+/// negative-infinity lane yields exactly zero.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
@@ -119,22 +117,19 @@ pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
 )]
 #[inline(always)]
 pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
-    sleef::expf(values)
+    sleef::exp_f32(values)
 }
 
-/// Raises each lane of `base` to the matching lane of `exponent`, for
-/// strictly positive bases.
+/// Raises each lane of `base` to the matching lane of `exponent`, for strictly positive bases.
 ///
-/// The power is evaluated as `exp2(exponent * log2(base))` from the
-/// vendored SLEEF 3.5-ulp stages. The relative error grows with the magnitude of the
-/// result's binary exponent: a few units in the last place for results
-/// near one, on the order of `1e-4` at the edges of the normal range.
-/// Gradient kernels tolerate far more; callers needing 1-ulp powers
-/// should take the scalar [`f32::powf`] per lane instead.
+/// The power is evaluated as `exp2(exponent * log2(base))` from the vendored SLEEF 3.5-ulp stages.
+/// The relative error grows with the magnitude of the result's binary exponent: a few units in the
+/// last place for results near one, on the order of `1e-4` at the edges of the normal range.
+/// Gradient kernels tolerate far more; callers needing 1-ulp powers should take the scalar
+/// [`f32::powf`] per lane instead.
 ///
-/// A `base` of zero yields zero for positive exponents, infinity for
-/// negative exponents, and NaN when the exponent is also zero; negative
-/// bases yield NaN.
+/// A `base` of zero yields zero for positive exponents, infinity for negative exponents, and NaN
+/// when the exponent is also zero; negative bases yield NaN.
 // Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf):
 // this composition 87 instructions / 31 cycles, four scalar libm `powf`
 // calls 311 / 36, sleef's 1.0-ulp `pow_u10` 474 / 125. The scalar
@@ -161,7 +156,7 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 )]
 #[inline(always)]
 pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
-    sleef::exp2f(exponent * sleef::log2f(base))
+    sleef::exp2_f32(exponent * sleef::log2_f32(base))
 }
 
 #[cfg(test)]

@@ -23,8 +23,9 @@ pub enum OpenArrayError {
     Header,
     /// The file length contradicts the header's shape.
     Length {
-        /// The length the header describes; [`None`] when the shape's
-        /// byte length overflows `u64` and matches no real file.
+        /// The length the header describes.
+        ///
+        /// [`None`] when the shape's byte length overflows `u64` and matches no real file.
         expected: Option<u64>,
         actual: u64,
     },
@@ -75,11 +76,10 @@ impl Error for OpenArrayError {
 
 /// An array file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural
-/// rule, so an open file always describes its own data exactly. The data
-/// is borrowed straight from the whole-file mapping and therefore starts
-/// 4096-byte aligned: aligned for every scalar and SIMD width, so typed
-/// views over it never fail for alignment.
+/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// describes its own data exactly. The data is borrowed straight from the whole-file mapping and
+/// therefore starts 4096-byte aligned: aligned for every scalar and SIMD width, so typed views over
+/// it never fail for alignment.
 #[derive(Debug)]
 pub(crate) struct ArrayFile {
     map: PageMap,
@@ -90,10 +90,9 @@ impl ArrayFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenArrayError::Io`] when the file cannot be opened or
-    /// mapped, [`OpenArrayError::Header`] when its leading bytes are not
-    /// a header this module speaks, and [`OpenArrayError::Length`] when
-    /// the file length contradicts the header's shape.
+    /// Returns [`OpenArrayError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenArrayError::Header`] when its leading bytes are not a header this module speaks, and
+    /// [`OpenArrayError::Length`] when the file length contradicts the header's shape.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenArrayError> {
         let map = PageMap::open(path).map_err(OpenArrayError::Io)?;
 
@@ -127,9 +126,8 @@ impl ArrayFile {
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and we have validated
         // in the constructor that the map is large enough to contain the header and that its bytes
-        // parse as one, so the deref target is a valid `FileHeader`.
-        // We could use `try_from_bytes` here, but that would make that validation at every call
-        // site.
+        // parse as one, so the deref target is a valid `FileHeader`. We could use `try_from_bytes`
+        // here, but that would make that validation at every call site.
         unsafe { &*ptr }
     }
 
@@ -156,10 +154,9 @@ impl ArrayFile {
 
     /// Views the data as `N`-component SIMD-aligned vectors.
     ///
-    /// The view exists exactly when the file holds `f32` elements shaped
-    /// `[T, N]`; the returned slice holds the `T` rows in order. A
-    /// zero-element file is zero vectors of every dimension, since its
-    /// shape records no row width.
+    /// The view exists exactly when the file holds `f32` elements shaped `[T, N]`; the returned
+    /// slice holds the `T` rows in order. A zero-element file is zero vectors of every dimension,
+    /// since its shape records no row width.
     #[must_use]
     pub(crate) fn vectors<const N: usize>(&self) -> Option<&[AlignedVecN<N>]> {
         if self.header().variant() != ArrayVariant::F32 {
@@ -178,10 +175,9 @@ impl ArrayFile {
 
     /// Views the data as 2D points in row order.
     ///
-    /// The view exists exactly when the file holds `f32` elements shaped
-    /// `[T, 2]`; the returned slice holds the `T` points in order. A
-    /// zero-element file is zero points, since its shape records no row
-    /// width.
+    /// The view exists exactly when the file holds `f32` elements shaped `[T, 2]`; the returned
+    /// slice holds the `T` points in order. A zero-element file is zero points, since its shape
+    /// records no row width.
     #[must_use]
     pub(crate) fn points(&self) -> Option<&[Vec2]> {
         if self.header().variant() != ArrayVariant::F32 {
@@ -199,8 +195,7 @@ impl ArrayFile {
 
     /// Views the data as packed `f32` elements in row-major file order.
     ///
-    /// The view exists exactly when the file holds `f32` elements,
-    /// whatever its shape.
+    /// The view exists exactly when the file holds `f32` elements, whatever its shape.
     #[must_use]
     pub(crate) fn f32_elements(&self) -> Option<&[f32]> {
         if self.header().variant() != ArrayVariant::F32 {
@@ -212,8 +207,7 @@ impl ArrayFile {
 
     /// Views the data as packed `u32` elements in row-major file order.
     ///
-    /// The view exists exactly when the file holds `u32` elements,
-    /// whatever its shape.
+    /// The view exists exactly when the file holds `u32` elements, whatever its shape.
     #[must_use]
     pub(crate) fn u32_elements(&self) -> Option<&[u32]> {
         if self.header().variant() != ArrayVariant::U32 {
@@ -225,10 +219,9 @@ impl ArrayFile {
 
     /// Views the data as `u64` pairs in row order.
     ///
-    /// The view exists exactly when the file holds `u64` elements shaped
-    /// `[T, 2]`; the returned slice holds the `T` pairs in order. A
-    /// zero-element file is zero pairs, since its shape records no row
-    /// width.
+    /// The view exists exactly when the file holds `u64` elements shaped `[T, 2]`; the returned
+    /// slice holds the `T` pairs in order. A zero-element file is zero pairs, since its shape
+    /// records no row width.
     #[must_use]
     pub(crate) fn u64_pairs(&self) -> Option<&[[u64; 2]]> {
         if self.header().variant() != ArrayVariant::U64 {
@@ -246,10 +239,9 @@ impl ArrayFile {
 
     /// Views the data as SHA-256 digests in row order.
     ///
-    /// The view exists exactly when the file holds `u8` elements shaped
-    /// `[T, 32]`; the returned slice holds the `T` digests in order. A
-    /// zero-element file is zero digests, since its shape records no
-    /// row width.
+    /// The view exists exactly when the file holds `u8` elements shaped `[T, 32]`; the returned
+    /// slice holds the `T` digests in order. A zero-element file is zero digests, since its shape
+    /// records no row width.
     #[must_use]
     pub(crate) fn digests(&self) -> Option<&[Sha256Digest]> {
         if self.header().variant() != ArrayVariant::U8 {

@@ -1,12 +1,10 @@
 //! The probe's ranking passes: per-anchor workers over shared inputs.
 //!
-//! Each pass is a context binding its shared inputs once; running one
-//! ranks the anchors independently and in parallel under one total
-//! order - distances by [`f32::total_cmp`], ties by ascending row -
-//! and returns per-anchor cells cloned from a prevalidated template.
-//! The corpus pass counts ranks against bounded threshold sets, so its
-//! per-thread memory follows the search depth, never the corpus; the
-//! sampled pass sorts whole comparison universes, whose size the probe
+//! Each pass is a context binding its shared inputs once; running one ranks the anchors
+//! independently and in parallel under one total order - distances by [`f32::total_cmp`], ties by
+//! ascending row - and returns per-anchor cells cloned from a prevalidated template. The corpus
+//! pass counts ranks against bounded threshold sets, so its per-thread memory follows the search
+//! depth, never the corpus; the sampled pass sorts whole comparison universes, whose size the probe
 //! design bounds.
 
 // PERF: at the default search depth (K = 50) the linear threshold-
@@ -53,13 +51,13 @@ pub(super) struct AnchorReading {
     pub cells: Vec<NeighbourhoodAggregate>,
     /// Neighbourhood radii, one per neighbourhood size.
     pub radii: Vec<RadiusPair>,
-    /// Clump-collapsed aggregates, one per neighbourhood size; empty
-    /// when the pass carries no clump grouping.
+    /// Clump-collapsed aggregates, one per neighbourhood size.
+    ///
+    /// Empty when the pass carries no clump grouping.
     pub clumps: Vec<ClumpAggregate>,
 }
 
-/// The corpus pass's shared inputs: every anchor against every
-/// non-anchor row.
+/// The corpus pass's shared inputs: every anchor against every non-anchor row.
 pub(super) struct CorpusPass<'pass> {
     /// The representation matrix, in row order.
     pub representations: &'pass [AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -73,14 +71,14 @@ pub(super) struct CorpusPass<'pass> {
     pub template: &'pass [NeighbourhoodAggregate],
     /// The neighbourhood sizes, in the template's order.
     pub neighbourhoods: &'pass [NonZero<usize>],
-    /// Clump labels over the corpus rows, when the probe reads
-    /// clump-granularity recall beside the plain reading.
+    /// Clump labels over the corpus rows.
+    ///
+    /// When the probe reads clump-granularity recall beside the plain reading.
     pub clumps: Option<&'pass Clumps>,
 }
 
 impl CorpusPass<'_> {
-    /// Ranks every anchor, returning each one's per-neighbourhood
-    /// readings.
+    /// Ranks every anchor, returning each one's per-neighbourhood readings.
     pub(super) fn run(&self, anchor_rows: &[usize]) -> Vec<AnchorReading> {
         anchor_rows
             .par_iter()
@@ -92,11 +90,9 @@ impl CorpusPass<'_> {
 
     /// Ranks one anchor against every non-anchor row in both spaces.
     ///
-    /// The rank of a neighbour is the count of universe rows strictly
-    /// nearer under the total order, accumulated against the opposite
-    /// space's nearest [`search`](Self::search) rows during each scan;
-    /// the representation matrix is scanned once and the coordinate
-    /// frame twice.
+    /// The rank of a neighbour is the count of universe rows strictly nearer under the total order,
+    /// accumulated against the opposite space's nearest [`search`](Self::search) rows during each
+    /// scan; the representation matrix is scanned once and the coordinate frame twice.
     fn anchor(&self, anchor: usize, scratch: &mut CorpusScratch) -> AnchorReading {
         let anchor_point = self.coordinates[anchor];
         let anchor_embedding = &self.representations[anchor];
@@ -195,11 +191,10 @@ impl CorpusPass<'_> {
         }
     }
 
-    /// Reads the clump-collapsed cells from the anchor's nearest
-    /// lists, empty without a grouping.
+    /// Reads the clump-collapsed cells from the anchor's nearest lists, empty without a grouping.
     ///
-    /// Both nearest lists already exist in scratch, so the collapsed
-    /// reading costs two small sorts per neighbourhood size.
+    /// Both nearest lists already exist in scratch, so the collapsed reading costs two small sorts
+    /// per neighbourhood size.
     fn clump_cells(&self, scratch: &mut CorpusScratch) -> Vec<ClumpAggregate> {
         let Some(clumps) = self.clumps else {
             return Vec::new();
@@ -228,19 +223,19 @@ impl CorpusPass<'_> {
 
 /// One anchor's sampled-pass output across the space pairs.
 pub(super) struct SampledReading {
-    /// Rank aggregates per space pair, each one cell per neighbourhood
-    /// size, in [`SpacePair`] order.
+    /// Rank aggregates per space pair.
+    ///
+    /// Each one cell per neighbourhood size, in [`SpacePair`] order.
     pub cells: [Vec<NeighbourhoodAggregate>; SpacePair::COUNT],
     /// Triplet aggregates, in [`SpacePair`] order.
     pub triplets: [TripletAggregate; SpacePair::COUNT],
-    /// Clump-collapsed representation-versus-canonical aggregates, one
-    /// per neighbourhood size; empty when the pass carries no clump
-    /// grouping.
+    /// Clump-collapsed representation-versus-canonical aggregates, one per neighbourhood size.
+    ///
+    /// Empty when the pass carries no clump grouping.
     pub baseline_clumps: Vec<ClumpAggregate>,
 }
 
-/// The sampled pass's shared inputs: every anchor against the
-/// comparison rows in all three spaces.
+/// The sampled pass's shared inputs: every anchor against the comparison rows in all three spaces.
 pub(super) struct SampledPass<'pass> {
     /// The representation matrix, in row order.
     pub representations: &'pass [AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -258,15 +253,15 @@ pub(super) struct SampledPass<'pass> {
     pub neighbourhoods: &'pass [NonZero<usize>],
     /// The shared comparison-index pairs the triplet readings sample.
     pub pairs: &'pass [[u32; 2]],
-    /// Clump labels over the corpus rows, when the probe reads the
-    /// representation baseline at clump granularity beside the plain
+    /// Clump labels over the corpus rows.
+    ///
+    /// When the probe reads the representation baseline at clump granularity beside the plain
     /// reading.
     pub clumps: Option<&'pass Clumps>,
 }
 
 impl SampledPass<'_> {
-    /// Ranks every anchor, returning each one's per-space-pair and
-    /// clump-collapsed readings.
+    /// Ranks every anchor, returning each one's per-space-pair and clump-collapsed readings.
     pub(super) fn run(&self, anchor_rows: &[usize]) -> Vec<SampledReading> {
         anchor_rows
             .par_iter()
@@ -285,8 +280,8 @@ impl SampledPass<'_> {
             .collect()
     }
 
-    /// Ranks one anchor's comparison universe in all three spaces and
-    /// reads the space pairs and triplet verdicts.
+    /// Ranks one anchor's comparison universe in all three spaces and reads the space pairs and
+    /// triplet verdicts.
     fn anchor(
         &self,
         index: usize,
@@ -375,15 +370,14 @@ impl SampledPass<'_> {
         (cells, triplets)
     }
 
-    /// Reads the clump-collapsed representation-versus-canonical cells
-    /// from the anchor's orderings, empty without a grouping.
+    /// Reads the clump-collapsed representation-versus-canonical cells from the anchor's orderings.
     ///
-    /// Both orderings already exist in scratch after
-    /// [`anchor`](Self::anchor), so the collapsed baseline costs two
-    /// small sorts per neighbourhood size. The canonical ordering is
-    /// the reference: the collapse reads how much of each exact
-    /// canonical neighbourhood the representation keeps once
-    /// near-duplicate siblings are interchangeable.
+    /// Empty without a grouping.
+    ///
+    /// Both orderings already exist in scratch after [`anchor`](Self::anchor), so the collapsed
+    /// baseline costs two small sorts per neighbourhood size. The canonical ordering is the
+    /// reference: the collapse reads how much of each exact canonical neighbourhood the
+    /// representation keeps once near-duplicate siblings are interchangeable.
     fn clump_cells(&self, scratch: &mut SampledScratch) -> Vec<ClumpAggregate> {
         let Some(clumps) = self.clumps else {
             return Vec::new();
@@ -412,8 +406,8 @@ impl SampledPass<'_> {
 
 /// One ranked row under the probe's total order.
 ///
-/// Distances order by [`f32::total_cmp`] and ties resolve by ascending
-/// row, so equal distances rank in one order in every pass.
+/// Distances order by [`f32::total_cmp`] and ties resolve by ascending row, so equal distances rank
+/// in one order in every pass.
 #[derive(Debug, Copy, Clone)]
 struct Ranked {
     distance: f32,
@@ -461,8 +455,7 @@ fn push_bounded(heap: &mut BinaryHeap<Ranked>, candidate: Ranked, bound: usize) 
     }
 }
 
-/// Reusable per-thread buffers for the corpus pass, each bounded by the
-/// search depth.
+/// Reusable per-thread buffers for the corpus pass, each bounded by the search depth.
 #[derive(Default)]
 struct CorpusScratch {
     heap: BinaryHeap<Ranked>,
@@ -484,8 +477,7 @@ impl CorpusScratch {
     }
 }
 
-/// Reusable per-thread buffers for the sampled pass, each sized by the
-/// comparison universe.
+/// Reusable per-thread buffers for the sampled pass, each sized by the comparison universe.
 struct SampledScratch {
     map_distances: Vec<f32>,
     representation_distances: Vec<f32>,

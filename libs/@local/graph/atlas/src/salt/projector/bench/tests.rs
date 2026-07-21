@@ -29,8 +29,9 @@ fn batches_are_unit_norm_and_deterministic() {
     }
 }
 
-/// Both models of one flavor agree: the autodiff decoration wraps the
-/// same weights, so the training loss is the inference mean.
+/// Both models of one flavor agree.
+///
+/// The autodiff decoration wraps the same weights, so the training loss is the inference mean.
 fn assert_flavors_agree(kind: BackendKind) {
     let model = Model::build::<Xoshiro256PlusPlus>(kind, 42);
     let batch = batch(16);

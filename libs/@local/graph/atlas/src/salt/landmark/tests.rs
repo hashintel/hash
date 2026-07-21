@@ -427,8 +427,9 @@ impl NearestNeighboursIndex for ExactIndex {
     }
 }
 
-/// Six rows in three well-separated directions: rows 0 and 1 point one
-/// way, 2 and 3 another, 4 and 5 a third.
+/// Six rows in three well-separated directions.
+///
+/// Rows 0 and 1 point one way, 2 and 3 another, 4 and 5 a third.
 fn clustered_embeddings() -> Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> {
     let directions = [(0_usize, 1_usize), (2, 3), (4, 5)];
     let mut rows = Vec::new();
@@ -448,8 +449,9 @@ fn clustered_embeddings() -> Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> {
     rows
 }
 
-/// Fixture rows in SIMD-aligned row-major storage, the shape a mapped
-/// `f32[N, 512]` artifact yields.
+/// Fixture rows in SIMD-aligned row-major storage.
+///
+/// The shape a mapped `f32[N, 512]` artifact yields.
 struct Matrix {
     storage: BoxedVecN<{ 8 * PROJECTOR_DIMENSIONS }>,
     rows: usize,
@@ -548,8 +550,9 @@ fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph
     SemanticGraph::new(matrix).expect("the fixture satisfies the graph invariants")
 }
 
-/// A corpus semantic graph over six rows: edges within clusters carry
-/// weight 1.0, one bridge edge (1, 2) carries 0.5, and one weaker
+/// A corpus semantic graph over six rows.
+///
+/// Edges within clusters carry weight 1.0, one bridge edge (1, 2) carries 0.5, and one weaker
 /// bridge (3, 4) carries 0.25.
 fn corpus_graph() -> SemanticGraph {
     semantic_from_edges(
@@ -882,8 +885,9 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-/// A skeleton from real stage outputs over the clustered fixture,
-/// alongside the stage outputs it was assembled from.
+/// A skeleton from real stage outputs over the clustered fixture.
+///
+/// Alongside the stage outputs it was assembled from.
 fn fixture_skeleton() -> (LandmarkSkeleton, LandmarkAssignment, Box<[Vec2]>) {
     let matrix = Matrix::new(&clustered_embeddings());
     let selection = selection_of(&[0, 2, 4]);

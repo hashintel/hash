@@ -7,9 +7,8 @@ pub(crate) trait TextSegmenter {
 
     /// Returns `(offset, sentence)` slices in source order.
     ///
-    /// Offsets index into `text` and every slice starts at its offset, so
-    /// callers can address the text before, inside, and after any
-    /// sentence.
+    /// Offsets index into `text` and every slice starts at its offset, so callers can address the
+    /// text before, inside, and after any sentence.
     ///
     /// # Errors
     ///
@@ -23,10 +22,9 @@ pub(crate) trait TextSegmenter {
 
 /// The default sentence segmenter: Unicode Standard Annex 29 boundaries.
 ///
-/// Sentence boundaries follow the Unicode default rules for every
-/// language, so segmentation is deterministic and needs no training data.
-/// Abbreviation-heavy prose can split early ("Dr. Smith"); truncation
-/// quality degrades gracefully when it does.
+/// Sentence boundaries follow the Unicode default rules for every language, so segmentation is
+/// deterministic and needs no training data. Abbreviation-heavy prose can split early ("Dr.
+/// Smith"); truncation quality degrades gracefully when it does.
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct UnicodeSegmenter;
 

@@ -1,6 +1,7 @@
-//! Tile delivery: one `z/x/y` request answered with `SALTILET`
-//! envelope bytes, in delta or total mode, with the `TYPE_MASK`
-//! column riding requests that color types.
+//! Tile delivery.
+//!
+//! One `z/x/y` request answered with `SALTILET` envelope bytes, in delta or total mode, with the
+//! `TYPE_MASK` column riding requests that color types.
 
 use core::{error::Error, fmt, ops::Range};
 
@@ -10,25 +11,26 @@ use super::{
     depth_of,
     detail::{DeliveredEntities, NodeDetails},
     narrow,
+    visibility::VisibilityProof,
 };
 use crate::{
     file::quad::Node,
+    math::Bounds2,
     morton::{Depth, MortonCell},
-    salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
+    salt::wire::tile::{DeliveredSet, GlobalHead, TileHead, TileResponse, TileTrailer},
 };
 
 /// The tile endpoint's request caps.
 ///
-/// Transport configuration with documented defaults, never wire
-/// constants: the transport constructs one value and the manifest
-/// publishes the same value, so enforcement and advertisement
-/// cannot disagree.
+/// Transport configuration with documented defaults, never wire constants: the transport constructs
+/// one value and the manifest publishes the same value, so enforcement and advertisement cannot
+/// disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TileCaps {
-    /// Most `coloredTypeIds` entries one request may carry; the
-    /// manifest publishes this value as `limits.coloredTypeIds`.
-    /// Defaults to 32 - at that ceiling the `TYPE_MASK` stride is
-    /// four bytes per point.
+    /// Most `coloredTypeIds` entries one request may carry.
+    ///
+    /// The manifest publishes this value as `limits.coloredTypeIds`. Defaults to 32 - at that
+    /// ceiling the `TYPE_MASK` stride is four bytes per point.
     pub colored_type_ids: u32,
 }
 
@@ -42,10 +44,9 @@ const impl Default for TileCaps {
 
 /// A tile request was rejected.
 ///
-/// Every variant is a named, data-carrying rejection for the transport
-/// layer to map onto its error vocabulary; none of them can result
-/// from a well-formed request against the serving contract's limits,
-/// which the manifest publishes as data.
+/// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
+/// vocabulary; none of them can result from a well-formed request against the serving contract's
+/// limits, which the manifest publishes as data.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TileError {
     /// The request carries more `coloredTypeIds` than the cap admits.
@@ -71,8 +72,9 @@ pub enum TileError {
         /// The requested y index.
         y: u32,
     },
-    /// The request names a feature this build does not serve; the
-    /// carried name is the request field.
+    /// The request names a feature this build does not serve.
+    ///
+    /// The carried name is the request field.
     Unsupported(&'static str),
 }
 
@@ -103,16 +105,14 @@ impl fmt::Display for TileError {
 
 impl Error for TileError {}
 
-/// The query context of one tile request: the ratified POST body,
-/// every field optional.
+/// The query context of one tile request: the ratified POST body, every field optional.
 #[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TileQuery {
     /// The delivery mode; delta when the request names none.
     #[serde(default)]
     pub mode: Mode,
-    /// Versioned type ids conditioning the `TYPE_MASK` column, in
-    /// request order.
+    /// Versioned type ids conditioning the `TYPE_MASK` column, in request order.
     #[serde(default)]
     pub colored_type_ids: Vec<String>,
     /// The visibility filter; absent means the trivial bitmap.
@@ -123,8 +123,9 @@ pub struct TileQuery {
     pub include_detailed_data: bool,
 }
 
-/// One tile read: the route's coordinate plus the body's query
-/// context, joined by the transport layer.
+/// One tile read.
+///
+/// The route's coordinate plus the body's query context, joined by the transport layer.
 #[derive(Debug, Clone)]
 pub struct TileRequest {
     /// The tile address from the route.
@@ -133,14 +134,13 @@ pub struct TileRequest {
     pub query: TileQuery,
 }
 
-/// One assembled tile: everything [`Atlas::encode_tile`] needs
-/// except the columns it gathers at encode time.
+/// One assembled tile.
 ///
-/// The document owns its derived data, so it crosses thread
-/// boundaries between assembly, hydration, and encoding - the
-/// envelope was designed for hydration-last, and the split mirrors
-/// it: assembly and encoding are CPU-bound, hydration awaits the
-/// store between them.
+/// Everything [`Atlas::encode_tile`] needs except the columns it gathers at encode time.
+///
+/// The document owns its derived data, so it crosses thread boundaries between assembly, hydration,
+/// and encoding - the envelope was designed for hydration-last, and the split mirrors it: assembly
+/// and encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
 pub struct TileDocument {
     coordinate: TileCoordinate,
@@ -148,62 +148,115 @@ pub struct TileDocument {
     visible: u64,
     first_bucket: u8,
     runs: Vec<u32>,
-    ranges: Vec<Range<u32>>,
+    delivered: DeliveredPoints,
     children: u8,
     global: Option<GlobalHead>,
     mask_set: Option<MaskSet>,
 }
 
+/// The document's delivered point set.
+///
+/// Borrowed-shape ranges when every row is visible, a gathered ascending position list under a
+/// mask.
+#[derive(Debug)]
+enum DeliveredPoints {
+    /// Contiguous base-position ranges in delivery order.
+    Ranges(Vec<Range<u32>>),
+    /// Gathered base positions, ascending, visibility already applied.
+    Positions(Vec<u32>),
+}
+
+impl DeliveredPoints {
+    /// Views the set in the wire encoder's borrowed shape.
+    fn as_wire(&self) -> DeliveredSet<'_> {
+        match self {
+            Self::Ranges(ranges) => DeliveredSet::Ranges(ranges),
+            Self::Positions(list) => DeliveredSet::Positions(list),
+        }
+    }
+
+    /// Counts the delivered points.
+    fn count(&self) -> usize {
+        match self {
+            Self::Ranges(ranges) => ranges.iter().map(Range::len).sum(),
+            Self::Positions(list) => list.len(),
+        }
+    }
+
+    /// Visits the delivered base positions in delivery order.
+    fn for_each(&self, mut visit: impl FnMut(u32)) {
+        match self {
+            Self::Ranges(ranges) => {
+                for range in ranges {
+                    for position in range.clone() {
+                        visit(position);
+                    }
+                }
+            }
+            Self::Positions(list) => {
+                for &position in list {
+                    visit(position);
+                }
+            }
+        }
+    }
+}
+
 impl Atlas {
-    /// Answers one tile request without the detail trailer:
-    /// `SALTILET` envelope bytes, ready to send under
-    /// `application/vnd.hash.saltile-v1`.
+    /// Answers one tile request without the detail trailer.
     ///
-    /// A request that sets `includeDetailedData` is rejected by
-    /// name: this path serves deployments without a store
-    /// connection. A transport with one assembles, hydrates, and
-    /// encodes through [`Atlas::assemble_tile`],
-    /// [`Atlas::delivered_entities`], and [`Atlas::encode_tile`].
+    /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`.
+    ///
+    /// A request that sets `includeDetailedData` is rejected by name: this path serves deployments
+    /// without a store connection. A transport with one assembles, hydrates, and encodes through
+    /// [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and [`Atlas::encode_tile`].
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_tile`], plus
-    /// [`TileError::Unsupported`] when the query sets
+    /// As [`Atlas::assemble_tile`], plus [`TileError::Unsupported`] when the query sets
     /// `includeDetailedData`.
-    pub fn tile(&self, request: &TileRequest, caps: TileCaps) -> Result<Vec<u8>, TileError> {
+    pub fn tile(
+        &self,
+        request: &TileRequest,
+        caps: TileCaps,
+        proof: &VisibilityProof,
+    ) -> Result<Vec<u8>, TileError> {
         if request.query.include_detailed_data {
             return Err(TileError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_tile(request, caps)?;
+        let document = self.assemble_tile(request, caps, proof)?;
         Ok(self.encode_tile(&document, None))
     }
 
-    /// Assembles one tile request into its owned document: every
-    /// rejection happens here, so encoding cannot fail.
+    /// Assembles one tile request into its owned document.
     ///
-    /// The `TYPE_MASK` column rides exactly the requests that supply
-    /// `coloredTypeIds`: bit `i` of a point's mask reads 1 when the
-    /// point carries the request's type `i` or one of its
-    /// descendants. An id that resolves to no type in this
-    /// generation is legal and reads 0 in every mask.
+    /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// Version 0 serves the full unfiltered visible set in both
-    /// modes; a request naming a filter is rejected by name rather
-    /// than answered with bytes that silently ignore it.
+    /// The `TYPE_MASK` column rides exactly the requests that supply `coloredTypeIds`: bit `i` of a
+    /// point's mask reads 1 when the point carries the request's type `i` or one of its
+    /// descendants. An id that resolves to no type in this generation is legal and reads 0 in every
+    /// mask.
+    ///
+    /// The delivered set, the per-bucket runs, and every occupancy-derived `HEAD` field (`visible`
+    /// counts, the `children` bitmask, the root's global metadata) are computed over the masked
+    /// view: a hidden point contributes to none of them, so a scope's tile carries no evidence of
+    /// what the mask removed - a fully masked tile is a tile that never had rows.
+    ///
+    /// Version 0 serves the full unfiltered visible set in both modes; a request naming a filter is
+    /// rejected by name rather than answered with bytes that silently ignore it.
     ///
     /// # Errors
     ///
-    /// Returns [`TileError::Types`] when the request carries more
-    /// `coloredTypeIds` than `caps.colored_type_ids`,
-    /// [`TileError::Depth`] when the zoom exceeds the generation's
-    /// deepest served tile, [`TileError::Grid`] when the coordinate
-    /// lies outside the zoom's grid, and [`TileError::Unsupported`]
-    /// when the query names a version-0 deferral.
+    /// Returns [`TileError::Types`] when the request carries more `coloredTypeIds` than
+    /// `caps.colored_type_ids`, [`TileError::Depth`] when the zoom exceeds the generation's deepest
+    /// served tile, [`TileError::Grid`] when the coordinate lies outside the zoom's grid, and
+    /// [`TileError::Unsupported`] when the query names a version-0 deferral.
     pub fn assemble_tile(
         &self,
         request: &TileRequest,
         caps: TileCaps,
+        proof: &VisibilityProof,
     ) -> Result<TileDocument, TileError> {
         if request.query.filter.is_some() {
             return Err(TileError::Unsupported("filter"));
@@ -243,17 +296,25 @@ impl Atlas {
             (Mode::Total, _) => self.total(cut, cell),
         };
 
-        let children = node.map_or(0, occupied_children);
-        let visible = match node {
-            _ if coordinate.z == 0 => self.morton.count(),
-            Some(node) => u64::from(node.points()),
-            None => self.population(cell),
+        let (delivered, runs) = if proof.is_full() {
+            (DeliveredPoints::Ranges(ranges), runs)
+        } else {
+            self.gather_visible(&ranges, proof)
         };
-        let global = (coordinate.z == 0).then(|| GlobalHead {
-            visible: self.morton.fenceposts().segment(cut).end,
-            bounds: self.bounds,
-            min_resolution: self.deepest_occupied(),
-        });
+
+        let children = if proof.is_full() {
+            node.map_or(0, occupied_children)
+        } else {
+            node.map_or(0, |node| self.visible_children(node, proof))
+        };
+        let visible = if coordinate.z == 0 {
+            proof.visible_below(self.morton.count())
+        } else if proof.is_full() {
+            node.map_or_else(|| self.population(cell), |node| u64::from(node.points()))
+        } else {
+            self.visible_population(cell, proof)
+        };
+        let global = (coordinate.z == 0).then(|| self.global_head(cut, proof));
 
         let mask_set = (!request.query.colored_type_ids.is_empty())
             .then(|| self.resolve_masks(&request.query.colored_type_ids));
@@ -264,46 +325,181 @@ impl Atlas {
             visible,
             first_bucket,
             runs,
-            ranges,
+            delivered,
             children,
             global,
             mask_set,
         })
     }
 
-    /// Gathers the entity identities behind the document's delivered
-    /// set, in delivered order: the hydration request's subject.
+    /// Gathers the visible positions of each delivery range, with the per-bucket runs recounted
+    /// over the survivors.
+    fn gather_visible(
+        &self,
+        ranges: &[Range<u32>],
+        proof: &VisibilityProof,
+    ) -> (DeliveredPoints, Vec<u32>) {
+        let row_ids = self.row_ids();
+        let mut gathered = Vec::new();
+        let mut runs = Vec::with_capacity(ranges.len());
+        for range in ranges {
+            let before = gathered.len();
+            for position in range.clone() {
+                if proof.contains(row_ids[position as usize]) {
+                    gathered.push(position);
+                }
+            }
+            runs.push(narrow((gathered.len() - before) as u64));
+        }
+
+        (DeliveredPoints::Positions(gathered), runs)
+    }
+
+    /// Reads the occupied-child bitmask over the masked view.
+    ///
+    /// Bit `i` set when Morton child `i` holds a visible point below this zoom's cut.
+    ///
+    /// The walk descends each child's quad subtree and scans every node's own-bucket run until a
+    /// visible row surfaces, so a child whose subtree the mask empties reads unoccupied - the
+    /// client never fetches a tile the mask made empty, and the bitmask carries no evidence that
+    /// hidden points exist.
+    fn visible_children(&self, node: &Node, proof: &VisibilityProof) -> u8 {
+        (0..4).fold(0_u8, |bits, quadrant| {
+            let occupied = node
+                .child(quadrant)
+                .is_some_and(|child| self.subtree_has_visible(child, proof));
+            bits | (u8::from(occupied) << quadrant)
+        })
+    }
+
+    /// Returns whether any node in the quad subtree rooted at `index` delivers a visible row.
+    fn subtree_has_visible(&self, index: u32, proof: &VisibilityProof) -> bool {
+        let row_ids = self.row_ids();
+        let nodes = self.quad.nodes();
+        let mut stack = vec![index];
+        while let Some(index) = stack.pop() {
+            let node = &nodes[index as usize];
+            let run = node.run();
+            for position in run.start..run.end {
+                let position = usize::try_from(position).expect("base positions fit usize");
+                if proof.contains(row_ids[position]) {
+                    return true;
+                }
+            }
+            for quadrant in 0..4 {
+                if let Some(child) = node.child(quadrant) {
+                    stack.push(child);
+                }
+            }
+        }
+
+        false
+    }
+
+    /// Counts the visible points of `cell` across every occupied bucket.
+    ///
+    /// [`Self::population`] over the masked view.
+    fn visible_population(&self, cell: MortonCell, proof: &VisibilityProof) -> u64 {
+        let row_ids = self.row_ids();
+        let lengths = self.morton.fenceposts().lengths();
+        (0..=Depth::MAX.get())
+            .filter(|&bucket| lengths[bucket as usize] > 0)
+            .map(|bucket| {
+                let run = self.morton.run(depth_of(bucket), cell);
+                (run.start..run.end)
+                    .filter(|&position| {
+                        proof.contains(
+                            row_ids[usize::try_from(position).expect("base positions fit usize")],
+                        )
+                    })
+                    .count() as u64
+            })
+            .sum()
+    }
+
+    /// Assembles the root's global metadata over the masked view.
+    ///
+    /// The visible delivered count, the tight extent of the visible set, and its deepest occupied
+    /// bucket.
+    fn global_head(&self, cut: Depth, proof: &VisibilityProof) -> GlobalHead {
+        if proof.is_full() {
+            return GlobalHead {
+                visible: self.morton.fenceposts().segment(cut).end,
+                bounds: self.bounds,
+                min_resolution: self.deepest_occupied(),
+            };
+        }
+
+        let row_ids = self.row_ids();
+        let positions = self.positions();
+        let end = self.morton.fenceposts().segment(cut).end;
+        let visible = (0..end)
+            .filter(|&position| {
+                proof
+                    .contains(row_ids[usize::try_from(position).expect("base positions fit usize")])
+            })
+            .count() as u64;
+        let bounds = Bounds2::from_points(
+            row_ids
+                .iter()
+                .zip(positions)
+                .filter(|&(&row, _)| proof.contains(row))
+                .map(|(_, &point)| point),
+        );
+        let min_resolution = (0..=Depth::MAX.get())
+            .rev()
+            .find(|&bucket| {
+                self.morton
+                    .fenceposts()
+                    .segment(depth_of(bucket))
+                    .any(|position| {
+                        proof.contains(
+                            row_ids[usize::try_from(position).expect("base positions fit usize")],
+                        )
+                    })
+            })
+            .map_or(0, u64::from);
+
+        GlobalHead {
+            visible,
+            bounds,
+            min_resolution,
+        }
+    }
+
+    /// Gathers the entity identities behind the document's delivered set, in delivered order.
+    ///
+    /// The hydration request's subject.
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the row column,
-    /// which open's cross-artifact validation rules out.
+    /// Panics when the identity table contradicts the row column, which open's cross-artifact
+    /// validation rules out.
     #[must_use]
     pub fn delivered_entities(&self, document: &TileDocument) -> DeliveredEntities {
         let row_ids = self.row_ids();
-        let count = document.ranges.iter().map(Range::len).sum();
-        let mut ids = Vec::with_capacity(count);
-        for range in &document.ranges {
-            for &row in &row_ids[range.start as usize..range.end as usize] {
-                ids.push(
-                    self.node_ids
-                        .id(u64::from(row))
-                        .expect("open validated the identity rows against the code column"),
-                );
-            }
-        }
+        let mut ids = Vec::with_capacity(document.delivered.count());
+        document.delivered.for_each(|position| {
+            let row = row_ids[position as usize];
+            ids.push(
+                self.node_ids
+                    .id(u64::from(row))
+                    .expect("open validated the identity rows against the code column"),
+            );
+        });
 
         DeliveredEntities::new(ids)
     }
 
-    /// Encodes an assembled document: `SALTILET` envelope bytes,
-    /// ready to send under `application/vnd.hash.saltile-v1`, with
-    /// the detail trailer riding iff `details` is supplied.
+    /// Encodes an assembled document.
+    ///
+    /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
+    /// detail trailer riding iff `details` is supplied.
     ///
     /// # Panics
     ///
-    /// Panics when supplied details do not cover the document's
-    /// delivered points - a transport bug, never request data.
+    /// Panics when supplied details do not cover the document's delivered points - a transport bug,
+    /// never request data.
     #[must_use]
     pub fn encode_tile(&self, document: &TileDocument, details: Option<&NodeDetails>) -> Vec<u8> {
         let masks = document
@@ -331,7 +527,7 @@ impl Atlas {
                 global: document.global,
                 children: document.children,
             },
-            ranges: &document.ranges,
+            delivered: document.delivered.as_wire(),
             positions: self.positions(),
             rows: self.wire_rows(),
             masks: masks.as_deref(),
@@ -341,15 +537,16 @@ impl Atlas {
         response.encode()
     }
 
-    /// Returns the quad node owning `cell`, [`None`] when the schedule
-    /// delivers nothing new at or below it.
+    /// Returns the quad node owning `cell`, [`None`] when the schedule delivers nothing new at or
+    /// below it.
     fn node_of(&self, cell: MortonCell) -> Option<&Node> {
         let index = self.quad.locate(cell)?;
         Some(&self.quad.nodes()[index as usize])
     }
 
-    /// Assembles the zoom-0 delta delivery: buckets `0..=m` as
-    /// fencepost differences, one contiguous base-order range.
+    /// Assembles the zoom-0 delta delivery.
+    ///
+    /// Buckets `0..=m` as fencepost differences, one contiguous base-order range.
     #[expect(
         clippy::single_range_in_vec_init,
         reason = "an array of one range is what a delta delivery IS"
@@ -365,8 +562,9 @@ impl Atlas {
         (0, runs, vec![0..end])
     }
 
-    /// Assembles a total delivery: one code-column run per bucket of
-    /// the cumulative schedule, bucket-major.
+    /// Assembles a total delivery.
+    ///
+    /// One code-column run per bucket of the cumulative schedule, bucket-major.
     fn total(&self, cut: Depth, cell: MortonCell) -> (u8, Vec<u32>, Vec<Range<u32>>) {
         let mut runs = Vec::with_capacity(cut.get() as usize + 1);
         let mut ranges = Vec::with_capacity(cut.get() as usize + 1);
@@ -379,8 +577,9 @@ impl Atlas {
         (0, runs, ranges)
     }
 
-    /// Counts the points of `cell` across every occupied bucket: the
-    /// subtree count of a cell without a quad node.
+    /// Counts the points of `cell` across every occupied bucket.
+    ///
+    /// The subtree count of a cell without a quad node.
     fn population(&self, cell: MortonCell) -> u64 {
         let lengths = self.morton.fenceposts().lengths();
         (0..=Depth::MAX.get())
@@ -403,8 +602,9 @@ impl Atlas {
     }
 }
 
-/// Assembles a non-root delta delivery: the node's own-bucket run
-/// verbatim, one zero-length run when the cell has no node.
+/// Assembles a non-root delta delivery.
+///
+/// The node's own-bucket run verbatim, one zero-length run when the cell has no node.
 #[expect(
     clippy::single_range_in_vec_init,
     reason = "an array of one range is what a delta delivery IS"
@@ -423,9 +623,10 @@ fn delta(cut: Depth, node: Option<&Node>) -> (u8, Vec<u32>, Vec<Range<u32>>) {
     )
 }
 
-/// Reads the occupied-child bitmask off a node record: bit `i` set
-/// when Morton child `i` holds a point below the node's cut, which by
-/// the node-existence rule is exactly when the child node exists.
+/// Reads the occupied-child bitmask off a node record.
+///
+/// Bit `i` set when Morton child `i` holds a point below the node's cut, which by the
+/// node-existence rule is exactly when the child node exists.
 fn occupied_children(node: &Node) -> u8 {
     (0..4).fold(0_u8, |bits, quadrant| {
         bits | (u8::from(node.child(quadrant).is_some()) << quadrant)

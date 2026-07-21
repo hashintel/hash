@@ -60,15 +60,14 @@ impl Error for OpenError {
     }
 }
 
-/// A published generation opened for reading: its identity, directory,
-/// and parsed metadata document.
+/// A published generation opened for reading.
 ///
-/// Opening verifies the document against the generation id - the
-/// directory is named by the SHA-256 of `metadata.json` - so a value of
-/// this type names bytes that hash to its id. Artifact files are
-/// located by [`path_of`](Self::path_of) and opened by their format
-/// modules; the per-file hashes the document records are verified by
-/// tooling, not on every open.
+/// Its identity, directory, and parsed metadata document.
+///
+/// Opening verifies the document against the generation id - the directory is named by the SHA-256
+/// of `metadata.json` - so a value of this type names bytes that hash to its id. Artifact files are
+/// located by [`path_of`](Self::path_of) and opened by their format modules; the per-file hashes
+/// the document records are verified by tooling, not on every open.
 #[derive(Debug, Clone)]
 pub(crate) struct Generation {
     id: GenerationId,
@@ -81,10 +80,9 @@ impl GenerationRoot {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenError::Unpublished`] when the generation is not
-    /// published in this root, [`OpenError::Identity`] when the
-    /// document's bytes do not hash to `id`, [`OpenError::Document`]
-    /// when they do not parse as a repository this module speaks, and
+    /// Returns [`OpenError::Unpublished`] when the generation is not published in this root,
+    /// [`OpenError::Identity`] when the document's bytes do not hash to `id`,
+    /// [`OpenError::Document`] when they do not parse as a repository this module speaks, and
     /// [`OpenError::Io`] when they cannot be read.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(&self, id: GenerationId) -> Result<Generation, OpenError> {

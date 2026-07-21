@@ -1,9 +1,8 @@
 //! RFC 9457 problem documents: the error surface of every route.
 //!
-//! The `type` member carries Surface v1's stable slugs, the body
-//! ships as `application/problem+json`, and the shared rejections -
-//! foreign generation, foreign variant - live here beside the
-//! document they produce.
+//! The `type` member carries Surface v1's stable slugs, the body ships as
+//! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
+//! live here beside the document they produce.
 
 use alloc::borrow::Cow;
 
@@ -21,8 +20,7 @@ use crate::serve::{GenerationId, VARIANTS};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub(super) enum ProblemType {
-    /// A producer bug surfacing as a 500: the assembly panicked or
-    /// its worker vanished.
+    /// A producer bug surfacing as a 500: the assembly panicked or its worker vanished.
     #[serde(rename = "internal")]
     InternalError,
     /// The route names a generation this process does not serve.
@@ -35,18 +33,15 @@ pub(super) enum ProblemType {
     UnsupportedFeature,
     /// An edges body listing more tiles than the manifest's cap.
     TooManyTiles,
-    /// A tile body carrying more `coloredTypeIds` than the
-    /// manifest's cap.
+    /// A tile body carrying more `coloredTypeIds` than the manifest's cap.
     TooManyTypes,
-    /// A translate body listing more entity ids than the manifest's
-    /// cap.
+    /// A translate body listing more entity ids than the manifest's cap.
     TooManyEntityIds,
-    /// A locate source id that does not name a visible node -
-    /// nonexistent, denied, and unparsable answer identically
-    /// (missing = denied).
+    /// A locate source id that does not name a visible node.
+    ///
+    /// Nonexistent, denied, and unparsable answer identically (missing = denied).
     UnknownEntity,
-    /// A locate body that does not name exactly one source:
-    /// `entityId` XOR `row`.
+    /// A locate body that does not name exactly one source: `entityId` XOR `row`.
     InvalidSource,
     /// A required request body that did not arrive.
     MissingBody,
@@ -139,12 +134,10 @@ impl OperationOutput for Problem<'_> {
     }
 }
 
-/// Rejects a route whose generation echo does not name the pinned
-/// generation.
+/// Rejects a route whose generation echo does not name the pinned generation.
 ///
-/// An unparsable id and a foreign id answer the same rejection: both
-/// name a generation this process does not serve, and the client's
-/// recovery - re-bootstrap through `current` - is identical.
+/// An unparsable id and a foreign id answer the same rejection: both name a generation this process
+/// does not serve, and the client's recovery - re-bootstrap through `current` - is identical.
 pub(super) fn reject_generation(
     state: &AppState,
     generation: &str,

@@ -1,35 +1,29 @@
 //! Proximal-radius calibration: the boundary measurement freezing `u_P`.
 //!
-//! At the end of semantic-only training the Proximal radius is set from
-//! data: measure the locally normalized distance `z` over the pairs of
-//! every reviewed-Proximal relation type and freeze the radius at the
-//! 75th percentile, so the Proximal energy acts primarily on the
-//! outlying quarter. "Outlying quarter" is meant in the units that
-//! matter: each pair's `z` is weighted by the force the training loop
-//! will actually apply to it,
+//! At the end of semantic-only training the Proximal radius is set from data: measure the locally
+//! normalized distance `z` over the pairs of every reviewed-Proximal relation type and freeze the
+//! radius at the 75th percentile, so the Proximal energy acts primarily on the outlying quarter.
+//! "Outlying quarter" is meant in the units that matter: each pair's `z` is weighted by the force
+//! the training loop will actually apply to it,
 //!
 //! ```text
 //! w = min(cap, n) / n * c * nu * p_P * h
 //!     |-- sampler --|   |-- loss weight --|
 //! ```
 //!
-//! where `min(cap, n) / n` is the pair's inclusion probability once the
-//! relation sampler draws its type (types are drawn uniformly, so the
-//! type-level factor is constant and drops out of the percentile),
-//! `c` is effective confidence, `nu` the degree normalization, and
-//! `p_P * h` the group's Proximal class weight and strength multiplier.
-//! The sampler factor keeps a high-volume type from buying the radius
-//! with edge count; the degree factor keeps hub-heavy types from
-//! inflating it - a pair into a high-degree hub exerts proportionally
-//! little force on the layout and pulls the percentile just as weakly.
-//! Both factors are read from the built artifacts, so the measurement
-//! cannot drift from what training consumes.
+//! where `min(cap, n) / n` is the pair's inclusion probability once the relation sampler draws its
+//! type (types are drawn uniformly, so the type-level factor is constant and drops out of the
+//! percentile), `c` is effective confidence, `nu` the degree normalization, and `p_P * h` the
+//! group's Proximal class weight and strength multiplier. The sampler factor keeps a high-volume
+//! type from buying the radius with edge count; the degree factor keeps hub-heavy types from
+//! inflating it - a pair into a high-degree hub exerts proportionally little force on the layout
+//! and pulls the percentile just as weakly. Both factors are read from the built artifacts, so the
+//! measurement cannot drift from what training consumes.
 //!
-//! `z = d / sqrt((rho_i + eps)(rho_j + eps))` is measured in the
-//! relation loss's own normalization convention, with the same local
-//! scales and the same scale guard the relation energy is constructed
-//! with. The measured radius is what makes that energy's "act outside
-//! the radius" contract mean the same population at training time.
+//! `z = d / sqrt((rho_i + eps)(rho_j + eps))` is measured in the relation loss's own normalization
+//! convention, with the same local scales and the same scale guard the relation energy is
+//! constructed with. The measured radius is what makes that energy's "act outside the radius"
+//! contract mean the same population at training time.
 
 #[cfg(test)]
 mod tests;
@@ -45,10 +39,9 @@ use crate::{
 
 /// Validated calibration parameters.
 ///
-/// `cap` is the relation sampler's per-type edge cap and `epsilon` the
-/// relation energy's scale guard; both must be the values the training
-/// loop runs with, or the measured radius describes a different
-/// population than the loss acts on.
+/// `cap` is the relation sampler's per-type edge cap and `epsilon` the relation energy's scale
+/// guard; both must be the values the training loop runs with, or the measured radius describes a
+/// different population than the loss acts on.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CalibrationOptions {
     cap: NonZero<usize>,
@@ -58,8 +51,8 @@ pub(crate) struct CalibrationOptions {
 impl CalibrationOptions {
     /// Validates calibration parameters.
     ///
-    /// Returns [`None`] unless `epsilon` is finite and strictly
-    /// positive, the same domain the relation energy accepts.
+    /// Returns [`None`] unless `epsilon` is finite and strictly positive, the same domain the
+    /// relation energy accepts.
     #[must_use]
     pub(crate) fn new(cap: NonZero<usize>, epsilon: f32) -> Option<Self> {
         (epsilon.is_finite() && epsilon > 0.0).then_some(Self { cap, epsilon })
@@ -71,49 +64,46 @@ impl CalibrationOptions {
 pub(crate) struct TypeCalibration {
     /// The reviewed relation's ontology row.
     pub relation: OntologyRowId,
-    /// The type's retained attraction pairs; zero when the index holds
-    /// no group for it.
+    /// The type's retained attraction pairs; zero when the index holds no group for it.
     pub pairs: usize,
-    /// The type's total pair weight - its mass in the pooled
-    /// percentile.
+    /// The type's total pair weight - its mass in the pooled percentile.
     pub mass: f64,
-    /// The weighted 25th, 50th, and 75th percentiles of the type's own
-    /// `z` values; [`None`] when the type contributes no mass.
+    /// The weighted 25th, 50th, and 75th percentiles of the type's own `z` values.
+    ///
+    /// [`None`] when the type contributes no mass.
     pub quantiles: Option<[f32; 3]>,
-    /// The pooled radius re-measured with this type left out;
-    /// [`None`] when nothing else carries mass. The spread of these
-    /// values across types is the review-sufficiency instrument: a
-    /// tight cluster means the radius does not hinge on any single
-    /// review, a wide one names the review that owns it.
+    /// The pooled radius re-measured with this type left out.
+    ///
+    /// [`None`] when nothing else carries mass. The spread of these values across types is the
+    /// review-sufficiency instrument: a tight cluster means the radius does not hinge on any
+    /// single review, a wide one names the review that owns it.
     pub radius_without: Option<f32>,
 }
 
 /// The boundary measurement over every reviewed-Proximal type.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ProximalCalibration {
-    /// The frozen radius `u_P`: the weighted 75th percentile of `z`
-    /// over all reviewed-Proximal pairs. [`None`] when no pair
-    /// carries mass - the caller decides whether that is an error
-    /// (proximal mass exists elsewhere, nothing reviewed to calibrate
-    /// from) or a vacuous no-op.
+    /// The frozen radius `u_P`.
+    ///
+    /// The weighted 75th percentile of `z` over all reviewed-Proximal pairs. [`None`] when no pair
+    /// carries mass - the caller decides whether that is an error (proximal mass exists elsewhere,
+    /// nothing reviewed to calibrate from) or a vacuous no-op.
     pub radius: Option<f32>,
-    /// Per-type evidence, in the order the verdicts resolve (ascending
-    /// by relation row).
+    /// Per-type evidence, in the order the verdicts resolve (ascending by relation row).
     pub types: Vec<TypeCalibration>,
 }
 
 /// Measures the reviewed-Proximal `z` population and its percentiles.
 ///
-/// Verdicts with a class other than Proximal are ignored: Overlay
-/// carries no geometry and Coincident calibrates its own radius when
-/// it is enabled. A Proximal verdict whose relation has no attraction
-/// group contributes a zero-mass evidence entry.
+/// Verdicts with a class other than Proximal are ignored: Overlay carries no geometry and
+/// Coincident calibrates its own radius when it is enabled. A Proximal verdict whose relation has
+/// no attraction group contributes a zero-mass evidence entry.
 ///
 /// # Panics
 ///
-/// Panics when the scales do not cover the coordinate rows, or when an
-/// edge references a row outside them; the index, coordinates, and
-/// scales all describe one corpus, so a mismatch is a wiring defect.
+/// Panics when the scales do not cover the coordinate rows, or when an edge references a row
+/// outside them; the index, coordinates, and scales all describe one corpus, so a mismatch is a
+/// wiring defect.
 pub(crate) fn calibrate(
     verdicts: &[ResolvedVerdict],
     index: &AttractionIndex,
@@ -240,8 +230,9 @@ pub(crate) fn calibrate(
     ProximalCalibration { radius, types }
 }
 
-/// Returns the smallest `z` whose cumulative weight reaches the given
-/// fraction of the total, over entries yielded ascending by `z`.
+/// Returns the smallest `z` whose cumulative weight reaches the given fraction of the total.
+///
+/// Over entries yielded ascending by `z`.
 fn weighted_quantile(
     sorted: impl IntoIterator<Item = (f32, f64)>,
     total: f64,

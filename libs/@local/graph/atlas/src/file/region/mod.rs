@@ -1,9 +1,7 @@
-//! Page-aligned region infrastructure shared by the artifact file
-//! formats.
+//! Page-aligned region infrastructure shared by the artifact file formats.
 //!
-//! Every artifact file in [`crate::file`] follows one shape: a header
-//! page, then data regions in a fixed order, each starting on a
-//! [`PAGE`] boundary and zero padded up to the next. This module
+//! Every artifact file in [`crate::file`] follows one shape: a header page, then data regions in a
+//! fixed order, each starting on a [`PAGE`] boundary and zero padded up to the next. This module
 //! carries the pieces of that shape every format otherwise restates:
 //!
 //! - [`padded_size`] is the checked arithmetic step of a header's offset chain - one region's byte
@@ -13,23 +11,22 @@
 //! - [`PageMap`] is the read-side mapping: one place holds the safety argument for mapping
 //!   published files, the header-page slice, and the region carving every reader repeats.
 //!
-//! Each format keeps its own header type, geometry validation, and
-//! error vocabulary; this module is deliberately ignorant of what a
-//! region holds.
+//! Each format keeps its own header type, geometry validation, and error vocabulary; this module is
+//! deliberately ignorant of what a region holds.
 
 use std::{fs::File, io, path::Path};
 
 use memmap2::Mmap;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
-/// A byte-level stable element of a persisted region: one whose value
-/// is exactly its bytes, at any alignment.
+/// A byte-level stable element of a persisted region.
 ///
-/// Identity columns and other opaque records persist as raw bytes and
-/// read back as typed slices straight from a mapping; this alias
-/// names the capability stack that contract needs in one place. The
-/// blanket implementation makes the alias free to adopt: any type
-/// with the constituent traits already is one.
+/// One whose value is exactly its bytes, at any alignment.
+///
+/// Identity columns and other opaque records persist as raw bytes and read back as typed slices
+/// straight from a mapping; this alias names the capability stack that contract needs in one place.
+/// The blanket implementation makes the alias free to adopt: any type with the constituent traits
+/// already is one.
 pub(crate) trait ByteStable:
     Copy + Sync + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayout
 {
@@ -40,27 +37,25 @@ impl<T: Copy + Sync + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayou
 {
 }
 
-/// One page: the size of every format's header and the boundary every
-/// data region starts on.
+/// One page: the size of every format's header and the boundary every data region starts on.
 pub(crate) const PAGE: u64 = 4096;
 
 /// [`PAGE`] as a slice length.
 const PAGE_BYTES: usize = 4096;
 const _: () = assert!(PAGE_BYTES as u64 == PAGE);
 
-/// The padded byte size of a region of `count` elements `width` bytes
-/// wide: the exact size rounded up to the next [`PAGE`] boundary.
+/// The padded byte size of a region of `count` elements `width` bytes wide.
 ///
-/// A region's successor starts this many bytes after it in the file,
-/// which makes the sum of a header page and the padded sizes of the
-/// preceding regions an offset chain. Returns `None` when the size
-/// overflows `u64`.
+/// The exact size rounded up to the next [`PAGE`] boundary.
+///
+/// A region's successor starts this many bytes after it in the file, which makes the sum of a
+/// header page and the padded sizes of the preceding regions an offset chain. Returns `None` when
+/// the size overflows `u64`.
 pub(crate) fn padded_size(count: u64, width: u64) -> Option<u64> {
     count.checked_mul(width)?.checked_next_multiple_of(PAGE)
 }
 
-/// Writes one page-aligned region: `bytes`, then the zero padding up
-/// to the next [`PAGE`] boundary.
+/// Writes one page-aligned region: `bytes`, then the zero padding up to the next [`PAGE`] boundary.
 ///
 /// # Errors
 ///
@@ -70,13 +65,11 @@ pub(crate) fn write_region(mut write: impl io::Write, bytes: &[u8]) -> io::Resul
     write_padding(write, bytes.len() as u64)
 }
 
-/// Writes the zero padding that closes a region of `len` bytes at the
-/// next [`PAGE`] boundary.
+/// Writes the zero padding that closes a region of `len` bytes at the next [`PAGE`] boundary.
 ///
-/// A region whose size already sits on the boundary closes with no
-/// padding at all. This is the streaming counterpart of
-/// [`write_region`] for regions produced element by element rather
-/// than as one slice.
+/// A region whose size already sits on the boundary closes with no padding at all. This is the
+/// streaming counterpart of [`write_region`] for regions produced element by element rather than as
+/// one slice.
 ///
 /// # Errors
 ///
@@ -89,11 +82,10 @@ pub(crate) fn write_padding(mut write: impl io::Write, len: u64) -> io::Result<(
 
 /// A memory-mapped artifact file.
 ///
-/// The mapping relies on the publish contract of [`crate::file`]:
-/// published artifact files are immutable, so the borrowed bytes
-/// cannot change beneath a reader. [`Self::region`] carves the
-/// page-aligned data regions out of the mapping once a format's own
-/// validation has accepted the geometry they come from.
+/// The mapping relies on the publish contract of [`crate::file`]: published artifact files are
+/// immutable, so the borrowed bytes cannot change beneath a reader. [`Self::region`] carves the
+/// page-aligned data regions out of the mapping once a format's own validation has accepted the
+/// geometry they come from.
 #[derive(Debug)]
 pub(crate) struct PageMap {
     map: Mmap,
@@ -107,9 +99,8 @@ impl PageMap {
     /// Returns the error when the file cannot be opened or mapped.
     pub(crate) fn open(path: impl AsRef<Path>) -> io::Result<Self> {
         let file = File::open(path)?;
-        // SAFETY: published artifact files are immutable (the
-        // `crate::file` publish contract: temporary path, rename into
-        // place, never rewritten), so the mapped bytes cannot change
+        // SAFETY: published artifact files are immutable (the `crate::file` publish contract:
+        // temporary path, rename into place, never rewritten), so the mapped bytes cannot change
         // beneath the borrow.
         let map = unsafe { Mmap::map(&file) }?;
         Ok(Self { map })
@@ -134,10 +125,9 @@ impl PageMap {
     ///
     /// # Panics
     ///
-    /// Panics when the region escapes the mapping. Offsets and lengths
-    /// repeat checked computations the format's open already accepted
-    /// against the file length, so a validated caller never reaches
-    /// the panic.
+    /// Panics when the region escapes the mapping. Offsets and lengths repeat checked computations
+    /// the format's open already accepted against the file length, so a validated caller never
+    /// reaches the panic.
     pub(crate) fn region(&self, offset: u64, len: u64) -> &[u8] {
         let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
         let len = usize::try_from(len).expect("a mapped region fits the address space");

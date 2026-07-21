@@ -1,10 +1,9 @@
 //! Per-node relation-gradient budgets in coordinate space.
 //!
-//! The relation objective must never overpower the semantic layout at
-//! any single node: before the relation gradient reaches shared model
-//! parameters, each node's relation contribution is scaled down to a
-//! budget proportional to that node's semantic gradient. The clip is
-//! pure 2D vector algebra over detached values:
+//! The relation objective must never overpower the semantic layout at any single node: before the
+//! relation gradient reaches shared model parameters, each node's relation contribution is scaled
+//! down to a budget proportional to that node's semantic gradient. The clip is pure 2D vector
+//! algebra over detached values:
 //!
 //! ```text
 //! baseline = max(|semantic|, floor)
@@ -14,14 +13,13 @@
 //!
 //! The budgeted gradients re-enter the parameter graph through
 //! [`surrogate`]: one backward pass through the returned scalar deposits
-//! exactly the requested per-node coordinate gradient, and the clip
-//! factors stay constants the optimizer cannot differentiate through.
+//! exactly the requested per-node coordinate gradient, and the clip factors stay constants the
+//! optimizer cannot differentiate through.
 //!
-//! With a single attractive relation branch, the trailing
-//! total-variation factor binds only when the positive factor also
-//! binds, and then shaves at most an `epsilon`-order amount; it is kept
-//! because its activation rate is a required training metric and a
-//! future signed branch would make it load-bearing.
+//! With a single attractive relation branch, the trailing total-variation factor binds only when
+//! the positive factor also binds, and then shaves at most an `epsilon`-order amount; it is kept
+//! because its activation rate is a required training metric and a future signed branch would make
+//! it load-bearing.
 
 #[cfg(test)]
 mod tests;
@@ -32,11 +30,10 @@ use crate::math::Vec2;
 
 /// Validated budget coefficients.
 ///
-/// `positive` bounds the relation gradient against the per-node
-/// semantic baseline, `total` bounds the relation contribution that is
-/// finally applied, `floor` keeps the baseline positive where the
-/// semantic gradient vanishes, and `epsilon` guards the norm
-/// divisions. The positive coefficient never exceeds the total one.
+/// `positive` bounds the relation gradient against the per-node semantic baseline, `total` bounds
+/// the relation contribution that is finally applied, `floor` keeps the baseline positive where the
+/// semantic gradient vanishes, and `epsilon` guards the norm divisions. The positive coefficient
+/// never exceeds the total one.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct BudgetOptions {
     positive: f32,
@@ -48,8 +45,7 @@ pub(crate) struct BudgetOptions {
 impl BudgetOptions {
     /// Validates budget coefficients.
     ///
-    /// Returns [`None`] unless every value is finite and strictly
-    /// positive and `positive <= total`.
+    /// Returns [`None`] unless every value is finite and strictly positive and `positive <= total`.
     #[must_use]
     pub(crate) const fn new(positive: f32, total: f32, floor: f32, epsilon: f32) -> Option<Self> {
         let coefficients_valid = positive.is_finite()
@@ -100,12 +96,11 @@ impl BudgetOptions {
 
     /// Clips one node's relation gradient against its semantic budget.
     ///
-    /// Both inputs are coordinate-space gradients of the same node:
-    /// `semantic` from the semantic-side terms, already scaled by their
-    /// loss coefficients, and `relation` from the relation term
-    /// likewise. The returned gradient satisfies both budget bounds:
-    /// its norm stays within `total * baseline`, and the intermediate
-    /// positive step stays within `positive * baseline`.
+    /// Both inputs are coordinate-space gradients of the same node: `semantic` from the
+    /// semantic-side terms, already scaled by their loss coefficients, and `relation` from the
+    /// relation term likewise. The returned gradient satisfies both budget bounds: its norm stays
+    /// within `total * baseline`, and the intermediate positive step stays within `positive *
+    /// baseline`.
     #[must_use]
     pub(crate) fn clip(self, semantic: Vec2, relation: Vec2) -> ClippedRelation {
         let semantic_norm = semantic.length();
@@ -145,10 +140,9 @@ pub(crate) struct ClippedRelation {
 
 /// Streaming aggregation of budget outcomes for the training metrics.
 ///
-/// One summary aggregates the nodes recorded into it; the training loop
-/// keeps one per reporting bucket (overall, per relation type, per
-/// degree decile) and records each node's outcome into every bucket it
-/// belongs to. Ratio means are accumulated in double precision.
+/// One summary aggregates the nodes recorded into it; the training loop keeps one per reporting
+/// bucket (overall, per relation type, per degree decile) and records each node's outcome into
+/// every bucket it belongs to. Ratio means are accumulated in double precision.
 #[derive(Debug, Default)]
 pub(crate) struct BudgetSummary {
     nodes: usize,
@@ -207,11 +201,10 @@ impl BudgetSummary {
     /// Returns the fraction of nodes whose total-variation cap bound.
     ///
     /// With equal positive and total coefficients this coincides with
-    /// [`clipped_fraction`](Self::clipped_fraction) by arithmetic: a
-    /// positively clipped gradient lands within one epsilon of the
-    /// shared budget, so the trailing factor dips just below one.
-    /// Read it against [`mean_cap_factor`](Self::mean_cap_factor),
-    /// which separates that epsilon signature from real capping.
+    /// [`clipped_fraction`](Self::clipped_fraction) by arithmetic: a positively clipped gradient
+    /// lands within one epsilon of the shared budget, so the trailing factor dips just below one.
+    /// Read it against [`mean_cap_factor`](Self::mean_cap_factor), which separates that epsilon
+    /// signature from real capping.
     #[must_use]
     pub(crate) fn capped_fraction(&self) -> Option<f32> {
         self.fraction(self.capped)
@@ -219,9 +212,8 @@ impl BudgetSummary {
 
     /// Returns the mean total-variation cap factor.
     ///
-    /// One minus this mean is the fraction of relation-gradient mass
-    /// the cap actually removed: near one, cap activations are the
-    /// epsilon shave; materially below one, the cap is load-bearing.
+    /// One minus this mean is the fraction of relation-gradient mass the cap actually removed: near
+    /// one, cap activations are the epsilon shave; materially below one, the cap is load-bearing.
     #[must_use]
     pub(crate) fn mean_cap_factor(&self) -> Option<f32> {
         self.mean(self.cap_factor)
@@ -276,15 +268,13 @@ impl BudgetSummary {
     }
 }
 
-/// Builds the scalar whose backward pass carries budgeted coordinate
-/// gradients into the model parameters.
+/// Builds the scalar whose backward pass carries budgeted coordinate gradients into the model
+/// parameters.
 ///
-/// The returned value is `sum_i <coordinates[i], gradient[i]>`: its
-/// gradient with respect to `coordinates` is exactly `gradient`, so a
-/// single backward pass propagates the caller's per-node vectors
-/// through the projector's Jacobian. `gradient` lives on the inner
-/// backend and enters the graph as a constant - the model cannot
-/// differentiate through the budget's clip factors.
+/// The returned value is `sum_i <coordinates[i], gradient[i]>`: its gradient with respect to
+/// `coordinates` is exactly `gradient`, so a single backward pass propagates the caller's per-node
+/// vectors through the projector's Jacobian. `gradient` lives on the inner backend and enters the
+/// graph as a constant - the model cannot differentiate through the budget's clip factors.
 pub(crate) fn surrogate<B: AutodiffBackend>(
     coordinates: Tensor<B, 2>,
     gradient: Tensor<B::InnerBackend, 2>,

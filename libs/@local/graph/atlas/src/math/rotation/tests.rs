@@ -71,21 +71,20 @@ fn renormalize_removes_composition_drift() {
     assert!((renormalized.radians()).abs() < 1e-2);
 }
 
-/// An angle within a few turns of zero, where `sin_cos` is
-/// well-conditioned.
+/// An angle within a few turns of zero, where `sin_cos` is well-conditioned.
 fn angle() -> impl Strategy<Value = f32> {
     -16.0_f32..16.0
 }
 
-/// A vector with coordinates bounded to the well-conditioned `-1e5..1e5`
-/// range; the rotation laws are about algebra, not overflow.
+/// A vector with coordinates bounded to the well-conditioned `-1e5..1e5` range.
+///
+/// The rotation laws are about algebra, not overflow.
 fn vec2_strategy() -> impl Strategy<Value = Vec2> {
     (-1e5_f32..1e5, -1e5_f32..1e5).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
 proptest! {
-    /// Rotation preserves length: `|apply(v)| == |v|` up to rounding
-    /// scaled by the vector's magnitude.
+    /// Rotation preserves length: `|apply(v)| == |v|` up to rounding scaled by the vector's magnitude.
     #[test]
     fn apply_preserves_length(radians in angle(), vec in vec2_strategy()) {
         let rotated = Rotation::from_radians(radians).apply(vec);
@@ -97,9 +96,7 @@ proptest! {
         );
     }
 
-    /// Composition distributes over application:
-    /// `a.then(b).apply(v) == b.apply(a.apply(v))` up to rounding scaled
-    /// by the vector's magnitude.
+    /// Composition distributes over application: `a.then(b).apply(v) == b.apply(a.apply(v))` up to rounding scaled by the vector's magnitude.
     #[test]
     fn then_matches_sequential_application(
         first_radians in angle(),
@@ -120,8 +117,7 @@ proptest! {
         );
     }
 
-    /// The inverse undoes the rotation: `inverse().apply(apply(v)) == v`
-    /// up to rounding scaled by the vector's magnitude.
+    /// The inverse undoes the rotation: `inverse().apply(apply(v)) == v` up to rounding scaled by the vector's magnitude.
     #[test]
     fn inverse_undoes_apply(radians in angle(), vec in vec2_strategy()) {
         let rotation = Rotation::from_radians(radians);
@@ -136,10 +132,7 @@ proptest! {
         );
     }
 
-    /// Renormalizing preserves the angle: the cosine and sine keep their
-    /// direction (compared componentwise rather than through `atan2`,
-    /// which wraps at pi), even after enough compositions to accumulate
-    /// drift.
+    /// Renormalizing preserves the angle: the cosine and sine keep their direction (compared componentwise rather than through `atan2`, which wraps at pi), even after enough compositions to accumulate drift.
     #[test]
     fn renormalize_preserves_the_angle(radians in angle(), compositions in 1_usize..64) {
         let step = Rotation::from_radians(radians);

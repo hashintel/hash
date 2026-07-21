@@ -1,20 +1,16 @@
 //! Benchmark seams over the projector model.
 //!
-//! The training backend decision (train time is the binding
-//! constraint) and the refresh-cost risk (one full-corpus forward per
-//! ladder rung per cadence tick) both price out through two numbers:
-//! forward wall time at inference batches, and forward-plus-backward
-//! wall time at training minibatches, each at the real architecture.
-//! This module gives the bench target (an external crate) those levers
-//! over the production [`Projector`] - never a mirror - while the model
-//! types stay private.
+//! The training backend decision (train time is the binding constraint) and the refresh-cost risk
+//! (one full-corpus forward per ladder rung per cadence tick) both price out through two numbers:
+//! forward wall time at inference batches, and forward-plus-backward wall time at training
+//! minibatches, each at the real architecture. This module gives the bench target (an external
+//! crate) those levers over the production [`Projector`] - never a mirror - while the model types
+//! stay private.
 //!
-//! Batches are synthesized at the corpus shape the trainer feeds:
-//! unit-norm 512-wide representations, mixed roles, a width-1 `[eta]`
-//! condition. The backward pass drives a mean-coordinate loss;
-//! gradient VALUES are meaningless, but the traversal is the full
-//! autodiff graph the composite objective shares, so its wall time is
-//! the decision's number.
+//! Batches are synthesized at the corpus shape the trainer feeds: unit-norm 512-wide
+//! representations, mixed roles, a width-1 `[eta]` condition. The backward pass drives a
+//! mean-coordinate loss; gradient VALUES are meaningless, but the traversal is the full autodiff
+//! graph the composite objective shares, so its wall time is the decision's number.
 
 use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
@@ -34,17 +30,17 @@ const ARCHITECTURE: Architecture = Architecture { .. };
 /// The CPU backend under measurement.
 type Cpu = NdArray;
 
-/// The GPU backend under measurement: burn's `CubeCL` `wgpu` runtime
-/// compiling to MSL, with fusion enabled - the configuration a GPU
+/// The GPU backend under measurement.
+///
+/// Burn's `CubeCL` `wgpu` runtime compiling to MSL, with fusion enabled - the configuration a GPU
 /// deployment would run.
 #[cfg(feature = "bench-gpu")]
 type Gpu = burn::backend::Metal;
 
 /// One synthesized batch at the trainer's input shape.
 ///
-/// Holds the raw columns; tensors materialize per run so device
-/// transfer and graph construction stay inside the timed region,
-/// exactly as they recur per training step.
+/// Holds the raw columns; tensors materialize per run so device transfer and graph construction
+/// stay inside the timed region, exactly as they recur per training step.
 pub struct Batch {
     rows: usize,
     representation: Vec<f32>,
@@ -57,8 +53,7 @@ pub struct Batch {
 pub enum BackendKind {
     /// The CPU backend, burn's ndarray.
     Cpu,
-    /// The Metal GPU backend, available behind the `bench-gpu`
-    /// feature.
+    /// The Metal GPU backend, available behind the `bench-gpu` feature.
     #[cfg(feature = "bench-gpu")]
     Metal,
 }
@@ -84,10 +79,9 @@ impl BackendKind {
 
 /// A [`Projector`] pair at the default architecture on one backend.
 ///
-/// Holds the plain model for inference forwards and the
-/// autodiff-decorated model for training steps, built from equal
-/// seeds: the same function, differing only in bookkeeping. The
-/// backend stays an internal choice, selected by [`BackendKind`].
+/// Holds the plain model for inference forwards and the autodiff-decorated model for training
+/// steps, built from equal seeds: the same function, differing only in bookkeeping. The backend
+/// stays an internal choice, selected by [`BackendKind`].
 pub struct Model(Flavor);
 
 // Boxed for variant-size parity: a CPU pair holds its parameters
@@ -98,8 +92,9 @@ enum Flavor {
     Metal(Box<Pair<Gpu>>),
 }
 
-/// The plain and autodiff-decorated models of one backend, in the
-/// f32 configuration every flavor is measured at.
+/// The plain and autodiff-decorated models of one backend.
+///
+/// In the f32 configuration every flavor is measured at.
 struct Pair<B: Backend<FloatElem = f32>> {
     projector: Projector<B>,
     trained: Projector<Autodiff<B>>,
@@ -108,10 +103,9 @@ struct Pair<B: Backend<FloatElem = f32>> {
 
 /// Synthesizes a batch of `rows` unit-norm representations.
 ///
-/// Representations are random unit vectors (the prepared node matrix's
-/// contract), roles cycle over the vocabulary, and the condition is
-/// the relation-lens column, alternating the ladder's pinned extremes
-/// so `FiLM` sees both.
+/// Representations are random unit vectors (the prepared node matrix's contract), roles cycle over
+/// the vocabulary, and the condition is the relation-lens column, alternating the ladder's pinned
+/// extremes so `FiLM` sees both.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "the role and condition columns cycle by row position"
@@ -167,8 +161,8 @@ where
 impl Model {
     /// Builds the default architecture on the chosen backend.
     ///
-    /// The plain and decorated models are built from equal seeds, so
-    /// every flavor computes the same function.
+    /// The plain and decorated models are built from equal seeds, so every flavor computes the same
+    /// function.
     #[must_use]
     pub fn build<R>(kind: BackendKind, seed: u64) -> Self
     where
@@ -189,9 +183,8 @@ impl Model {
 
     /// Runs one inference forward pass, returning the coordinate sum.
     ///
-    /// The scalar readback forces the whole output to materialize and
-    /// blocks on the device, so asynchronous backends cannot defer
-    /// work past the timed region.
+    /// The scalar readback forces the whole output to materialize and blocks on the device, so
+    /// asynchronous backends cannot defer work past the timed region.
     #[must_use]
     pub fn forward(&self, batch: &Batch) -> f32 {
         match &self.0 {
@@ -203,9 +196,9 @@ impl Model {
 
     /// Runs one training step's tensor work: forward, loss, backward.
     ///
-    /// The loss is the coordinate mean - the cheapest scalar that pulls
-    /// gradients through every parameter - and a device sync after the
-    /// backward fences the traversal inside the timed region.
+    /// The loss is the coordinate mean - the cheapest scalar that pulls gradients through every
+    /// parameter - and a device sync after the backward fences the traversal inside the timed
+    /// region.
     #[must_use]
     pub fn forward_backward(&self, batch: &Batch) -> f32 {
         match &self.0 {

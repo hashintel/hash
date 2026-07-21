@@ -23,12 +23,13 @@ use crate::math::{AffinityCurve, Vec2, Vec2x4T, tests::POINTS};
 const CURVE_A: f32 = 1.577;
 const CURVE_B: f32 = 0.895;
 
-/// Independent f64 reference for the fit objective: the residual sum of
-/// squares of a candidate curve against the target falloff sampled on
-/// the crate's default grid, 300 samples over `[0, 3 * spread]`.
+/// Independent f64 reference for the fit objective.
 ///
-/// The grid constants are written out by hand so the reference breaks
-/// loudly when the documented default contract changes.
+/// The residual sum of squares of a candidate curve against the target falloff sampled on the
+/// crate's default grid, 300 samples over `[0, 3 * spread]`.
+///
+/// The grid constants are written out by hand so the reference breaks loudly when the documented
+/// default contract changes.
 fn reference_rss(spread: f64, minimum_distance: f64, curve_a: f64, curve_b: f64) -> f64 {
     let mut rss = 0.0;
     for index in 0..300_u16 {
@@ -49,9 +50,9 @@ fn curve() -> AffinityCurve {
     AffinityCurve::new(CURVE_A, CURVE_B).expect("reference parameters are positive and finite")
 }
 
-/// Independent f64 reference for the attraction coefficient, transcribed
-/// from the pre-SIMD scalar kernel rather than from the implementation
-/// under test.
+/// Independent f64 reference for the attraction coefficient.
+///
+/// Transcribed from the pre-SIMD scalar kernel rather than from the implementation under test.
 fn reference_attraction(from: Vec2, to: Vec2) -> Vec2 {
     let distance_squared = f64::from(from.distance_squared(to));
     if distance_squared <= 0.0 {
@@ -422,9 +423,9 @@ fn gradients_stay_finite_at_extreme_distances() {
     assert!(batch.get(0).is_finite());
 }
 
-/// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
-/// range; extreme-distance behaviour is pinned by the example-based tests
-/// above.
+/// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
+///
+/// Extreme-distance behaviour is pinned by the example-based tests above.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
@@ -434,23 +435,22 @@ fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
     prop::array::uniform4(point_strategy())
 }
 
-/// Curve parameters bounded to `a` in `1e-3..1e3` and `b` in `0.1..5`,
-/// where `a * d^(2b)` stays finite over the strategy's distances.
+/// Curve parameters bounded to `a` in `1e-3..1e3` and `b` in `0.1..5`.
+///
+/// Where `a * d^(2b)` stays finite over the strategy's distances.
 fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
     (1e-3_f32..1e3, 0.1_f32..5.0).prop_map(|(curve_a, curve_b)| {
         AffinityCurve::new(curve_a, curve_b).expect("the strategy's ranges are positive and finite")
     })
 }
 
-/// Asserts a batch lane agrees with its scalar twin within a relative
-/// tolerance of `1e-3` (with a matching absolute floor for near-zero
-/// gradients).
+/// Asserts a batch lane agrees with its scalar twin within a relative tolerance of `1e-3` (with a
+/// matching absolute floor for near-zero gradients).
 ///
-/// The bound covers the batch kernels' vectorized `d^(2b)` power, which
-/// composes sleef's 3.5-ulp `exp2`/`log2` stages: the exponent's
-/// absolute error grows with `|log2(d^2)|`, so the power's relative
-/// error reaches a few times `1e-5` over the strategy's distance range,
-/// well inside `1e-3`, against the scalar path's 0.5-ulp libm `powf`.
+/// The bound covers the batch kernels' vectorized `d^(2b)` power, which composes sleef's 3.5-ulp
+/// `exp2`/`log2` stages: the exponent's absolute error grows with `|log2(d^2)|`, so the power's
+/// relative error reaches a few times `1e-5` over the strategy's distance range, well inside
+/// `1e-3`, against the scalar path's 0.5-ulp libm `powf`.
 #[track_caller]
 fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
     let tolerance = |reference: f32| 1e-3 * reference.abs().max(1e-3);
@@ -463,10 +463,7 @@ fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
 }
 
 proptest! {
-    /// The affinity lies in `(0, 1]` and is monotone non-increasing in
-    /// the squared distance, up to a few ulps of libm `powf` rounding.
-    /// Squared distances are bounded to `0..1e6`, where `a * d^(2b)`
-    /// stays finite for every curve in the strategy.
+    /// The affinity lies in `(0, 1]` and is monotone non-increasing in the squared distance, up to a few ulps of libm `powf` rounding. Squared distances are bounded to `0..1e6`, where `a * d^(2b)` stays finite for every curve in the strategy.
     #[test]
     fn affinity_is_a_monotone_probability(
         curve in curve_strategy(),
@@ -492,10 +489,7 @@ proptest! {
         );
     }
 
-    /// For distinct points, the attraction gradient is anti-parallel to
-    /// the difference vector (it pulls `from` toward `to`) and the
-    /// repulsion gradient is parallel (it pushes `from` away). The
-    /// separation floor keeps the coefficients away from underflow.
+    /// For distinct points, the attraction gradient is anti-parallel to the difference vector (it pulls `from` toward `to`) and the repulsion gradient is parallel (it pushes `from` away). The separation floor keeps the coefficients away from underflow.
     #[test]
     fn gradients_align_with_the_difference_vector(
         from in point_strategy(),
@@ -509,10 +503,7 @@ proptest! {
         prop_assert!(curve.repulsion(from, to, 1.0).dot(difference) > 0.0);
     }
 
-    /// The batch attraction kernel agrees with the scalar kernel in every
-    /// lane. This crosses the sleef `exp2`/`log2` pow path against the
-    /// scalar libm `powf` path over the whole in-range input space; the
-    /// tolerance follows the kernel's documented 3.5-ulp-stage bound.
+    /// The batch attraction kernel agrees with the scalar kernel in every lane. This crosses the sleef `exp2`/`log2` pow path against the scalar libm `powf` path over the whole in-range input space; the tolerance follows the kernel's documented 3.5-ulp-stage bound.
     #[test]
     fn attraction_x4_matches_scalar_attraction_per_lane(
         from in point_array_strategy(),
@@ -530,8 +521,7 @@ proptest! {
         }
     }
 
-    /// The batch repulsion kernel agrees with the scalar kernel in every
-    /// lane, under the same pow-path bound as attraction.
+    /// The batch repulsion kernel agrees with the scalar kernel in every lane, under the same pow-path bound as attraction.
     #[test]
     fn repulsion_x4_matches_scalar_repulsion_per_lane(
         from in point_array_strategy(),

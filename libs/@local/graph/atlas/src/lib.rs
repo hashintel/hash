@@ -1,12 +1,11 @@
 //! # HASH Graph Atlas
 //!
-//! Fits 2D maps over the entity embeddings stored in the HASH Graph, blending semantic
-//! similarity (what entities mean) with relational structure (how they connect), and distills
-//! each map into a small encoder so that new entities can be placed on existing maps without
-//! refitting.
+//! Fits 2D maps over the entity embeddings stored in the HASH Graph, blending semantic similarity
+//! (what entities mean) with relational structure (how they connect), and distills each map into a
+//! small encoder so that new entities can be placed on existing maps without refitting.
 //!
-//! The crate is organized as a foundation of domain-independent modules
-//! and the SALT pipeline built on top of them:
+//! The crate is organized as a foundation of domain-independent modules and the SALT pipeline built
+//! on top of them:
 //!
 //! - [`math`] - 2D geometry, transforms, embedding kernels, and the affinity curve, all
 //!   SIMD-native.

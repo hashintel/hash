@@ -1,22 +1,19 @@
-//! The generation runner: one production run from snapshot to active
-//! generation.
+//! The generation runner: one production run from snapshot to active generation.
 //!
-//! [`run`] composes the pipeline's separate decisions into the one
-//! sequence production takes: the prior comes from the root's active
-//! generation, [`fit`] publishes a complete verified generation, the
-//! quality suite probes the published artifacts against the same
-//! snapshot, and a passing verdict activates the generation by the
-//! atomic pointer flip. A failing verdict is an [`Outcome`], not an
-//! error: the generation stays published as a candidate, its report
-//! is the evidence, and activating it anyway is a human decision made
-//! outside the runner ([`GenerationRoot::activate`] by hand).
+//! [`run`] composes the pipeline's separate decisions into the one sequence production takes: the
+//! prior comes from the root's active generation, [`fit`] publishes a complete verified generation,
+//! the quality suite probes the published artifacts against the same snapshot, and a passing
+//! verdict activates the generation by the atomic pointer flip. A failing verdict is an
+//! [`Outcome`], not an error: the generation stays published as a candidate, its report is the
+//! evidence, and activating it anyway is a human decision made outside the runner
+//! ([`GenerationRoot::activate`] by hand).
 //!
-//! The whole run replays from the one fit seed: the admission probe's
-//! generator derives from it under a pinned name, exactly as the fit
-//! stages derive theirs, so equal configurations sample equal anchors.
+//! The whole run replays from the one fit seed: the admission probe's generator derives from it
+//! under a pinned name, exactly as the fit stages derive theirs, so equal configurations sample
+//! equal anchors.
 //!
-//! Retiring old generations is not the runner's decision; pruning a
-//! root is offline tooling over published directories.
+//! Retiring old generations is not the runner's decision; pruning a root is offline tooling over
+//! published directories.
 
 use core::{error::Error, fmt};
 
@@ -49,22 +46,22 @@ mod tests;
 /// Where one run's prior generation comes from.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) enum PriorMode {
-    /// The root's active generation seeds reuse: card rows by text
-    /// hash, landmarks competing for the retained share. A root
-    /// without an activation runs fresh.
+    /// The root's active generation seeds reuse.
+    ///
+    /// Card rows by text hash, landmarks competing for the retained share. A root without an
+    /// activation runs fresh.
     #[default]
     ReuseActive,
-    /// No prior: every card row embeds anew and the landmark
-    /// selection starts cold. The clean slate for a changed embedding
-    /// contract.
+    /// No prior: every card row embeds anew and the landmark selection starts cold.
+    ///
+    /// The clean slate for a changed embedding contract.
     Fresh,
 }
 
 /// Every setting of one generation run.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RunnerOptions {
-    /// The fit's settings; its seed also derives the admission
-    /// probe's sampling.
+    /// The fit's settings; its seed also derives the admission probe's sampling.
     pub fit: FitConfig,
     /// Where the prior generation comes from.
     pub prior: PriorMode = PriorMode::ReuseActive,
@@ -75,21 +72,18 @@ pub(crate) struct RunnerOptions {
 /// How one published generation left the runner.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Admission {
-    /// The report's gates held and the root's pointer names the
-    /// generation.
+    /// The report's gates held and the root's pointer names the generation.
     Active,
-    /// The report refused admission; the generation is published but
-    /// not activated. Serving it anyway is a decision recorded
-    /// outside the runner.
+    /// The report refused admission; the generation is published but not activated.
+    ///
+    /// Serving it anyway is a decision recorded outside the runner.
     Candidate,
 }
 
-/// One finished run: the published generation and its admission
-/// evidence.
+/// One finished run: the published generation and its admission evidence.
 #[derive(Debug, Clone)]
 pub(crate) struct Outcome {
-    /// The published generation, reopened and verified against its
-    /// identity.
+    /// The published generation, reopened and verified against its identity.
     pub generation: Generation,
     /// The admission probe's full evidence record.
     pub report: QualityReport,
@@ -99,9 +93,8 @@ pub(crate) struct Outcome {
 
 /// The run could not reach a verdict.
 ///
-/// Variants after the fit carry the published generation's identity:
-/// the artifacts are complete on disk, and the remedy - reopening,
-/// re-probing, or activating by hand - starts from that id rather
+/// Variants after the fit carry the published generation's identity: the artifacts are complete on
+/// disk, and the remedy - reopening, re-probing, or activating by hand - starts from that id rather
 /// than from another fit.
 #[derive(Debug)]
 pub(crate) enum RunnerError<D, E> {
@@ -161,26 +154,21 @@ impl<D: Error + 'static, E: Error + 'static> Error for RunnerError<D, E> {
 
 /// Runs one generation end to end and activates it on admission.
 ///
-/// The dataset serves both halves of the run - the fit's ingest
-/// streams and the admission probe's sampled lookups - so the probed
-/// corpus is the fitted corpus by construction. The classifier input
-/// is a supplied fitted artifact or an annotation corpus the fit
-/// assembles and fits inside the run ([`ClassifierInput`]), and the
-/// reviewed verdicts are a supplied input the fit stages for the
-/// trainer, absent when no review file accompanies the run.
+/// The dataset serves both halves of the run - the fit's ingest streams and the admission probe's
+/// sampled lookups - so the probed corpus is the fitted corpus by construction. The classifier
+/// input is a supplied fitted artifact or an annotation corpus the fit assembles and fits inside
+/// the run ([`ClassifierInput`]), and the reviewed verdicts are a supplied input the fit stages for
+/// the trainer, absent when no review file accompanies the run.
 ///
-/// A report that refuses admission returns [`Admission::Candidate`]
-/// with the generation published and unactivated; only failures that
-/// prevent a verdict are errors.
+/// A report that refuses admission returns [`Admission::Candidate`] with the generation published
+/// and unactivated; only failures that prevent a verdict are errors.
 ///
 /// # Errors
 ///
-/// Returns an error when the prior cannot be resolved
-/// ([`RunnerError::Current`], [`RunnerError::Prior`]), the fit cannot
-/// publish ([`RunnerError::Fit`]), or - with the published
-/// generation's identity attached - when the generation cannot be
-/// reopened, the probe cannot produce a report, or the admitted
-/// generation cannot be activated.
+/// Returns an error when the prior cannot be resolved ([`RunnerError::Current`],
+/// [`RunnerError::Prior`]), the fit cannot publish ([`RunnerError::Fit`]), or - with the published
+/// generation's identity attached - when the generation cannot be reopened, the probe cannot
+/// produce a report, or the admitted generation cannot be activated.
 #[expect(
     clippy::future_not_send,
     reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
@@ -261,9 +249,8 @@ where
 
 /// Derives the admission probe's generator from the fit seed.
 ///
-/// The pinned name keeps the derivation disjoint from every fit
-/// stage's, so the probe samples independently of the fit's draws
-/// while the whole run replays from the one seed.
+/// The pinned name keeps the derivation disjoint from every fit stage's, so the probe samples
+/// independently of the fit's draws while the whole run replays from the one seed.
 fn probe_rng(seed: u64) -> Xoshiro256PlusPlus {
     let mut hasher = Sha256::new();
     #[expect(

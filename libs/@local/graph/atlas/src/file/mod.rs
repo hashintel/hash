@@ -1,11 +1,9 @@
 //! On-disk storage for atlas artifacts.
 //!
-//! Artifacts are plain files in a directory, one artifact per file,
-//! described by metadata stored beside them. There is no container
-//! format: the filesystem is the container. A generation is published by
-//! writing every file to a temporary directory, syncing, and renaming it
-//! into place, so it is either absent or complete; published files are
-//! immutable and may be cached forever.
+//! Artifacts are plain files in a directory, one artifact per file, described by metadata stored
+//! beside them. There is no container format: the filesystem is the container. A generation is
+//! published by writing every file to a temporary directory, syncing, and renaming it into place,
+//! so it is either absent or complete; published files are immutable and may be cached forever.
 //!
 //! - [`array`](mod@array) is the raw scalar array file: a self-describing 4096-byte header followed
 //!   by the packed elements, so a whole-file mapping yields page-aligned data.
@@ -37,24 +35,20 @@
 //! - [`generation`] is the directory layer around them: staging, the atomic publish, and the
 //!   current-generation pointer.
 //!
-//! Integrity is layered by cost. Array headers validate by parsing (the
-//! magic and version are pinned, so foreign bytes fail to parse), the one
-//! structural rule is the file length equation, torn writes are prevented
-//! by the temporary-path-and-rename publish, and corruption detection is
-//! the SHA-256 each repository file records, verified by tooling rather
-//! than on every load.
+//! Integrity is layered by cost. Array headers validate by parsing (the magic and version are
+//! pinned, so foreign bytes fail to parse), the one structural rule is the file length equation,
+//! torn writes are prevented by the temporary-path-and-rename publish, and corruption detection is
+//! the SHA-256 each repository file records, verified by tooling rather than on every load.
 //!
-//! Every format here is at layout version 0 and **mutable**: change any
-//! layout freely to fit what the pipeline needs and increment its version
-//! when you do. Pinned parses rejecting other versions is the intended
-//! failure mode; no migration or compatibility machinery exists on
-//! purpose until a format stabilizes. This applies to the binary headers
-//! and to the metadata document's schema alike.
+//! Every format here is at layout version 0 and **mutable**: change any layout freely to fit what
+//! the pipeline needs and increment its version when you do. Pinned parses rejecting other versions
+//! is the intended failure mode; no migration or compatibility machinery exists on purpose until a
+//! format stabilizes. This applies to the binary headers and to the metadata document's schema
+//! alike.
 //!
 //! # Format palette
 //!
-//! Each artifact uses the weakest format its access pattern permits, in
-//! this preference order:
+//! Each artifact uses the weakest format its access pattern permits, in this preference order:
 //!
 //! 1. **Raw array file** ([`array`](mod@array)): flat numeric data on the serving or training hot
 //!    path, where access is a page-aligned zero-copy mapping and decode cost is unacceptable.
@@ -72,17 +66,14 @@
 //! 5. **JSON**: the metadata document alone - small, read once, and inspected by humans more often
 //!    than machines.
 //!
-//! Formats owned by frameworks (the burn checkpoint) stay as the
-//! framework writes them.
+//! Formats owned by frameworks (the burn checkpoint) stay as the framework writes them.
 //!
-//! Parts combine into one file when they are derived from one another,
-//! meaningless apart, and always read together - a lookup index in front
-//! of the array it indexes is the canonical case. A combined file is a
-//! specialized zerocopy file whose pinned header names each region
-//! statically, and every array region starts on a 4096-byte boundary
-//! (zero-padded up to it), so the whole-file-mapping alignment guarantee
-//! is unchanged. Parts that version or get replaced independently stay
-//! separate files.
+//! Parts combine into one file when they are derived from one another, meaningless apart, and
+//! always read together - a lookup index in front of the array it indexes is the canonical case. A
+//! combined file is a specialized zerocopy file whose pinned header names each region statically,
+//! and every array region starts on a 4096-byte boundary (zero-padded up to it), so the
+//! whole-file-mapping alignment guarantee is unchanged. Parts that version or get replaced
+//! independently stay separate files.
 //!
 //! # Artifacts
 //!
@@ -133,9 +124,8 @@
 //! | generation metadata             | inputs, seeds, config, quality metrics, file | JSON   |
 //! |                                 | names + hashes; the root of trust            |        |
 //!
-//! The parquet row is pending the dependency decision; until then it
-//! stores as struct-of-arrays array files without losing anything but
-//! external queryability.
+//! The parquet row is pending the dependency decision; until then it stores as struct-of-arrays
+//! array files without losing anything but external queryability.
 
 // Design notes (rationale, not contract):
 //
@@ -207,17 +197,13 @@ pub(crate) mod repository;
 pub(crate) mod salt;
 pub(crate) mod sprs;
 
-/// A value that writes itself as one artifact stream and names the
-/// written bytes.
+/// A value that writes itself as one artifact stream and names the written bytes.
 ///
-/// The digest is the SHA-256 of exactly the bytes written, in one
-/// pass - the identity the repository records for the published
-/// file. The bound is [`io::Write`] alone: an implementation that
-/// would seal its output by seeking back cannot produce an honest
-/// streaming digest, so a value whose serialization only knows its
-/// geometry at the end pre-computes it instead (an array-shaped
-/// artifact knows its own row count and writes header-first through
-/// [`array::SizedArrayWriter`]).
+/// The digest is the SHA-256 of exactly the bytes written, in one pass - the identity the
+/// repository records for the published file. The bound is [`io::Write`] alone: an implementation
+/// that would seal its output by seeking back cannot produce an honest streaming digest, so a value
+/// whose serialization only knows its geometry at the end pre-computes it instead (an array-shaped
+/// artifact knows its own row count and writes header-first through [`array::SizedArrayWriter`]).
 pub(crate) trait WriteInto {
     /// The failure the artifact's serialization can produce.
     type Error;
@@ -226,7 +212,6 @@ pub(crate) trait WriteInto {
     ///
     /// # Errors
     ///
-    /// Returns an error when the underlying writer fails or the value
-    /// has no on-disk form.
+    /// Returns an error when the underlying writer fails or the value has no on-disk form.
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, Self::Error>;
 }

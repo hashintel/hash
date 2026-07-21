@@ -22,8 +22,9 @@ pub(crate) enum OpenAttractionError {
     Header(ValidityError<(), FileHeader>),
     /// The file length contradicts the header's geometry.
     Length {
-        /// The length the header describes; [`None`] when the header's
-        /// geometry overflows `u64`, in which case it matches no real
+        /// The length the header describes.
+        ///
+        /// [`None`] when the header's geometry overflows `u64`, in which case it matches no real
         /// file.
         expected: Option<u64>,
         actual: u64,
@@ -73,12 +74,10 @@ impl Error for OpenAttractionError {
 
 /// An attraction file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural
-/// rule, so an open file always describes its own regions exactly. The
-/// regions are borrowed straight from the whole-file mapping and start
-/// 4096-byte aligned: aligned for every scalar and SIMD width. The
-/// accessors expose geometry alone; the index's domain invariants are
-/// `salt::relation`'s artifact contract.
+/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
+/// and start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose
+/// geometry alone; the index's domain invariants are `salt::relation`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct AttractionFile {
     map: PageMap,
@@ -89,11 +88,9 @@ impl AttractionFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenAttractionError::Io`] when the file cannot be
-    /// opened or mapped, [`OpenAttractionError::Header`] when its
-    /// leading bytes are not a header this module speaks, and
-    /// [`OpenAttractionError::Length`] when the file length contradicts
-    /// the header's geometry.
+    /// Returns [`OpenAttractionError::Io`] when the file cannot be opened or mapped,
+    /// [`OpenAttractionError::Header`] when its leading bytes are not a header this module speaks,
+    /// and [`OpenAttractionError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenAttractionError> {
         let map = PageMap::open(path).map_err(OpenAttractionError::Io)?;
 
@@ -127,8 +124,8 @@ impl AttractionFile {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse
-        // as one, so the deref target is a valid `FileHeader`.
+        // validated that the map is large enough to contain the header and that its bytes parse as
+        // one, so the deref target is a valid `FileHeader`.
         unsafe { &*ptr }
     }
 

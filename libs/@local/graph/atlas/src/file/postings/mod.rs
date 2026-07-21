@@ -1,28 +1,23 @@
-//! The postings file: per-type membership over the base delivery
-//! order, and the type graph's direct parent edges.
+//! The postings file.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Per-type membership over the base delivery order, and the type graph's direct parent edges.
 //!
-//! For every ontology row the file stores which base delivery positions
-//! carry that type directly, in one of two representations per type: a
-//! sorted position list, or a dense bitmap over all `N` positions. The
-//! flags region records each type's representation; the fenceposts
-//! delimit each type's run of the shared entries array either way.
-//! Beside the membership sits the type graph: each type's direct parent
-//! rows, the authority every descendant expansion derives from - per-row
-//! or per-type closures are never materialized (`PLAN.md` "Serving
-//! contract requirements").
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! The membership, the flags, and the parent edges all describe one
-//! ontology-row domain of one generation and are meaningless apart, so
-//! they form one combined file. Every region a lookup or the closure
-//! build touches first - flags, fenceposts, parents - sits in the
-//! leading pages; the entries array is the bulk data behind them. The
-//! regions:
+//! For every ontology row the file stores which base delivery positions carry that type directly,
+//! in one of two representations per type: a sorted position list, or a dense bitmap over all `N`
+//! positions. The flags region records each type's representation; the fenceposts delimit each
+//! type's run of the shared entries array either way. Beside the membership sits the type graph:
+//! each type's direct parent rows, the authority every descendant expansion derives from - per-row
+//! or per-type closures are never materialized (`PLAN.md` "Serving contract requirements").
+//!
+//! The membership, the flags, and the parent edges all describe one ontology-row domain of one
+//! generation and are meaningless apart, so they form one combined file. Every region a lookup or
+//! the closure build touches first - flags, fenceposts, parents - sits in the leading pages; the
+//! entries array is the bulk data behind them. The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -47,23 +42,19 @@
 //! | ...    |      | membership entries: `u32[M]`, type-major        |
 //! ```
 //!
-//! Type `t`'s membership run is `entries[posts[t]..posts[t + 1]]`: a
-//! list type's run holds its base positions sorted ascending; a dense
-//! type's run holds `ceil(N/32)` bitmap words, LSB-first (position `p`
-//! is bit `p & 31` of word `p >> 5`). Its parent list is
-//! `parent_ids[parent_posts[t]..parent_posts[t + 1]]`, direct parents
-//! only, ascending. Both last fenceposts are mirrored in the header
-//! (`M`, `P`) because the length equation needs the region sizes before
-//! any region is mapped.
+//! Type `t`'s membership run is `entries[posts[t]..posts[t + 1]]`: a list type's run holds its base
+//! positions sorted ascending; a dense type's run holds `ceil(N/32)` bitmap words, LSB-first
+//! (position `p` is bit `p & 31` of word `p >> 5`). Its parent list is
+//! `parent_ids[parent_posts[t]..parent_posts[t + 1]]`, direct parents only, ascending. Both last
+//! fenceposts are mirrored in the header (`M`, `P`) because the length equation needs the region
+//! sizes before any region is mapped.
 //!
-//! The format owns geometry alone - the header parse and the file
-//! length equation ([`FileHeader::expected_file_len`]). The membership
-//! and parent contracts (fencepost coverage, ascending lists, dense run
-//! lengths and tail bits, domains) are the postings artifact contract,
-//! validated where the domain type lives. Every region starts on a
-//! 4096-byte boundary, so the whole-file-mapping alignment guarantee of
-//! the array format applies unchanged: map the whole file and slice,
-//! never mmap at a file offset.
+//! The format owns geometry alone - the header parse and the file length equation
+//! ([`FileHeader::expected_file_len`]). The membership and parent contracts (fencepost coverage,
+//! ascending lists, dense run lengths and tail bits, domains) are the postings artifact contract,
+//! validated where the domain type lives. Every region starts on a 4096-byte boundary, so the
+//! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
+//! and slice, never mmap at a file offset.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -126,8 +117,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Postings);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -171,9 +163,8 @@ impl FileHeader {
     /// Size of the header, and the offset of the flags region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for `types` ontology rows over `points` base
-    /// positions, with `entries` membership entries and `parent_edges`
-    /// parent ids.
+    /// Creates a header for `types` ontology rows over `points` base positions, with `entries`
+    /// membership entries and `parent_edges` parent ids.
     #[must_use]
     pub(crate) const fn new(types: u64, points: u64, entries: u64, parent_edges: u64) -> Self {
         Self {
@@ -194,24 +185,25 @@ impl FileHeader {
         self.types.get()
     }
 
-    /// Returns the point count `N`: the base positions a dense bitmap
-    /// covers and a list entry must stay below.
+    /// Returns the point count `N`.
+    ///
+    /// The base positions a dense bitmap covers and a list entry must stay below.
     #[inline]
     #[must_use]
     pub(crate) const fn points(&self) -> u64 {
         self.points.get()
     }
 
-    /// Returns the membership entry count `M`: the value the last
-    /// membership fencepost must close at.
+    /// Returns the membership entry count `M`.
+    ///
+    /// The value the last membership fencepost must close at.
     #[inline]
     #[must_use]
     pub(crate) const fn entries(&self) -> u64 {
         self.entries.get()
     }
 
-    /// Returns the parent edge count `P`: the value the last parent
-    /// fencepost must close at.
+    /// Returns the parent edge count `P`: the value the last parent fencepost must close at.
     #[inline]
     #[must_use]
     pub(crate) const fn parent_edges(&self) -> u64 {
@@ -227,8 +219,8 @@ impl FileHeader {
 
     /// Returns the fencepost count `T + 1` of both fencepost regions.
     ///
-    /// Returns `None` when the count overflows `u64`, in which case no
-    /// real file matches the header.
+    /// Returns `None` when the count overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) const fn fencepost_count(&self) -> Option<u64> {
         self.types.get().checked_add(1)
@@ -236,9 +228,9 @@ impl FileHeader {
 
     /// Returns the offset of the membership fencepost region.
     ///
-    /// The flags region sits between the header and this offset, zero
-    /// padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The flags region sits between the header and this offset, zero padded to the boundary.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn membership_posts_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.flags_words(), size_of::<u64>() as u64)?)
@@ -246,8 +238,8 @@ impl FileHeader {
 
     /// Returns the offset of the parent fencepost region.
     ///
-    /// Returns `None` when the geometry overflows `u64`, in which case
-    /// no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn parent_posts_offset(&self) -> Option<u64> {
         self.membership_posts_offset()?
@@ -256,8 +248,8 @@ impl FileHeader {
 
     /// Returns the offset of the parent id region.
     ///
-    /// Returns `None` when the geometry overflows `u64`, in which case
-    /// no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn parent_ids_offset(&self) -> Option<u64> {
         self.parent_posts_offset()?
@@ -266,8 +258,8 @@ impl FileHeader {
 
     /// Returns the offset of the membership entries region.
     ///
-    /// Returns `None` when the geometry overflows `u64`, in which case
-    /// no real file matches the header.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn entries_offset(&self) -> Option<u64> {
         let ids = padded_size(self.parent_edges.get(), size_of::<u32>() as u64)?;
@@ -276,9 +268,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let entries = self.entries.get().checked_mul(size_of::<u32>() as u64)?;

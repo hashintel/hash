@@ -1,15 +1,13 @@
 //! The operator commands: fit a generation, serve the atlas.
 //!
-//! The `hash-graph atlas` subcommand consumes this module: [`FitArgs`]
-//! and [`fit`] run one production generation over the live store, and
-//! [`ServeArgs`] and [`open_router`] open the root's active generation
-//! and build the read-API router ([`crate::api`]) the graph binary
-//! hosts. The store flags mirror the graph's `HASH_GRAPH_PG_*`
-//! environment, so one deployment configuration drives both.
+//! The `hash-graph atlas` subcommand consumes this module: [`FitArgs`] and [`fit`] run one
+//! production generation over the live store, and [`ServeArgs`] and [`open_router`] open the root's
+//! active generation and build the read-API router ([`crate::api`]) the graph binary hosts. The
+//! store flags mirror the graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration
+//! drives both.
 //!
-//! A future `cli` cargo feature may rebuild a standalone operator
-//! binary over these same commands; until then the graph binary is
-//! the one entry point.
+//! A future `cli` cargo feature may rebuild a standalone operator binary over these same commands;
+//! until then the graph binary is the one entry point.
 
 use alloc::sync::Arc;
 use core::{error::Error as CoreError, fmt, num::NonZero};
@@ -46,8 +44,7 @@ pub struct FitArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_ROOT", default_value_t = default_root())]
     root: String,
 
-    /// The run seed; equal seeds replay every draw, the admission
-    /// probe's included.
+    /// The run seed; equal seeds replay every draw, the admission probe's included.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SEED", default_value_t = 0)]
     seed: u64,
 
@@ -55,8 +52,7 @@ pub struct FitArgs {
     #[arg(long, default_value = "4096")]
     landmarks: NonZero<u32>,
 
-    /// Ignore the root's active generation instead of reusing it as
-    /// the prior.
+    /// Ignore the root's active generation instead of reusing it as the prior.
     #[arg(long)]
     fresh: bool,
 
@@ -68,45 +64,43 @@ pub struct FitArgs {
     #[arg(long, default_value = "4096")]
     comparisons: NonZero<usize>,
 
-    /// Path of a reviewed-verdicts document to supply. The trained
-    /// placement's phase boundary freezes its Proximal radius from
-    /// the reviewed pairs, so a corpus whose relations carry Proximal
-    /// force needs one to train.
+    /// Path of a reviewed-verdicts document to supply.
+    ///
+    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
+    /// so a corpus whose relations carry Proximal force needs one to train.
     #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS")]
     verdicts: Option<String>,
 
-    /// Path of an annotation-corpus document: the classifier's
-    /// training supply. The run assembles it, fits the relation
-    /// classifier, and stages the corpus, the embedding table, and
-    /// the model beside the generation.
+    /// Path of an annotation-corpus document: the classifier's training supply.
+    ///
+    /// The run assembles it, fits the relation classifier, and stages the corpus, the embedding
+    /// table, and the model beside the generation.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS")]
     annotations: Option<String>,
 
-    /// Path of a fitted classifier artifact (.clsf) to supply in
-    /// place of fitting one.
+    /// Path of a fitted classifier artifact (.clsf) to supply in place of fitting one.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CLASSIFIER")]
     classifier: Option<String>,
 
-    /// Override the trained placement's step count, keeping the
-    /// ratified options and the midpoint boundary.
+    /// Override the trained placement's step count, keeping the ratified options and the midpoint
+    /// boundary.
     #[arg(long)]
     projector_steps: Option<NonZero<usize>>,
 
-    /// Place at the landmark baseline instead of training the
-    /// projector: the fallback placer.
+    /// Place at the landmark baseline instead of training the projector: the fallback placer.
     #[arg(long)]
     baseline: bool,
 
-    /// Assert the Proximal radius instead of measuring it at the
-    /// phase boundary. Finite, above the Coincident radius (0.05
-    /// ratified); contradicts --baseline.
+    /// Assert the Proximal radius instead of measuring it at the phase boundary.
+    ///
+    /// Finite, above the Coincident radius (0.05 ratified); contradicts --baseline.
     #[arg(long, conflicts_with = "baseline")]
     assert_proximal_radius: Option<f32>,
 
-    /// Train the full placement with the relation evidence withheld:
-    /// no reviewed verdicts or radius needed, every other objective
-    /// term trains. The unblocking flag for corpora without
-    /// reviewed-Proximal coverage.
+    /// Train the full placement with the relation evidence withheld.
+    ///
+    /// No reviewed verdicts or radius needed, every other objective term trains. The unblocking
+    /// flag for corpora without reviewed-Proximal coverage.
     #[arg(
         long,
         conflicts_with = "baseline",
@@ -121,9 +115,8 @@ pub struct FitArgs {
 
 /// Root and serving settings of one serve.
 ///
-/// Listener address, lifecycle, and the store connection belong to
-/// the hosting binary; these flags configure what the atlas serves,
-/// not where it listens or which store it dials.
+/// Listener address, lifecycle, and the store connection belong to the hosting binary; these flags
+/// configure what the atlas serves, not where it listens or which store it dials.
 #[derive(Debug, Args)]
 pub struct ServeArgs {
     /// The generation root directory.
@@ -133,23 +126,23 @@ pub struct ServeArgs {
     #[command(flatten)]
     caps: CapsArgs,
 
-    /// The locate index cache directory; absent builds the index on
-    /// every open.
+    /// The locate index cache directory; absent builds the index on every open.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CACHE_DIR")]
     cache_dir: Option<String>,
 
-    /// The server secret behind the wire row-id codec; absent reads
-    /// the fixed development value, so wire ids stay deterministic
-    /// across restarts without configuration. Production supplies
-    /// its own.
+    /// The server secret behind the wire row-id codec.
+    ///
+    /// Absent reads the fixed development value, so wire ids stay deterministic across restarts
+    /// without configuration. Production supplies its own.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SECRET", hide_env_values = true)]
     secret: Option<String>,
 }
 
-/// The per-request serving caps: absent flags read the documented
-/// defaults off [`ServeCaps`], so the default values live in exactly
-/// one place. The manifest publishes whatever this resolves to - the
-/// handlers enforce the same value by construction.
+/// The per-request serving caps.
+///
+/// Absent flags read the documented defaults off [`ServeCaps`], so the default values live in
+/// exactly one place. The manifest publishes whatever this resolves to - the handlers enforce the
+/// same value by construction.
 #[derive(Debug, Args)]
 struct CapsArgs {
     /// Most `coloredTypeIds` one tile request may carry.
@@ -172,8 +165,7 @@ struct CapsArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_NEIGHBOURS")]
     locate_neighbours: Option<u32>,
 
-    /// Most subgraph edges one locate response delivers before the
-    /// protected rank truncation.
+    /// Most subgraph edges one locate response delivers before the protected rank truncation.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_EDGES")]
     locate_edges: Option<u32>,
 
@@ -214,9 +206,8 @@ impl CapsArgs {
 
 /// One fit invocation's failure, by step.
 ///
-/// The store and run variants splice into the chain transparently
-/// (their display text and sources are the wrapped fault's,
-/// unchanged); the report variant names its own step.
+/// The store and run variants splice into the chain transparently (their display text and sources
+/// are the wrapped fault's, unchanged); the report variant names its own step.
 #[derive(Debug)]
 pub enum FitError {
     /// The store connection failed.
@@ -288,16 +279,15 @@ impl CoreError for ServeError {
     }
 }
 
-/// Runs one production generation run over the store at `dsn` and
-/// prints its summary.
+/// Runs one production generation run over the store at `dsn` and prints its summary.
 ///
-/// The hosting binary supplies the connection string; the graph
-/// binary renders it from the same store flags its server reads.
+/// The hosting binary supplies the connection string; the graph binary renders it from the same
+/// store flags its server reads.
 ///
 /// # Errors
 ///
-/// Returns a [`FitError`] naming the step that failed: dialing the
-/// store, the run itself, or writing the admission report.
+/// Returns a [`FitError`] naming the step that failed: dialing the store, the run itself, or
+/// writing the admission report.
 #[expect(
     clippy::print_stdout,
     clippy::use_debug,
@@ -361,21 +351,24 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
     Ok(())
 }
 
-/// Opens the root's active generation and builds the read-API router
-/// over it, `/status` liveness route included.
+/// Opens the root's active generation and builds the read-API router over it, `/status` liveness
+/// route included.
 ///
-/// The hosting binary owns the listener, lifecycle, middleware, and
-/// the store connection string `dsn` (detail trailers hydrate from
-/// the store on every serve); the router carries everything the
-/// atlas serves.
+/// The hosting binary owns the listener, lifecycle, middleware, the store connection string `dsn`
+/// (detail trailers hydrate from the store on every serve), and the visibility proof `proof` -
+/// the authority every response is masked by, named explicitly at the call site; the router
+/// carries everything the atlas serves.
 ///
 /// # Errors
 ///
-/// Returns a [`ServeError`] naming the step that failed: opening the
-/// root, reading the current-generation pointer, the pointer being
-/// absent, opening the generation's artifacts, or dialing the store
-/// the detail trailers hydrate from.
-pub async fn open_router(args: ServeArgs, dsn: &str) -> Result<Router, ServeError> {
+/// Returns a [`ServeError`] naming the step that failed: opening the root, reading the
+/// current-generation pointer, the pointer being absent, opening the generation's artifacts, or
+/// dialing the store the detail trailers hydrate from.
+pub async fn open_router(
+    args: ServeArgs,
+    dsn: &str,
+    proof: VisibilityProof,
+) -> Result<Router, ServeError> {
     let root = GenerationRoot::new(args.root.as_str()).map_err(ServeError::Root)?;
     let generation = root
         .current()
@@ -401,8 +394,10 @@ pub async fn open_router(args: ServeArgs, dsn: &str) -> Result<Router, ServeErro
     tracing::info!("detail trailers hydrate from the store");
     let details = Arc::new(PostgresDetails::new(client));
 
-    Ok(api::router(atlas, args.caps.resolve(), details).route(
-        "/status",
-        axum::routing::get(async || axum::http::StatusCode::OK),
-    ))
+    Ok(
+        api::router(atlas, args.caps.resolve(), details, proof).route(
+            "/status",
+            axum::routing::get(async || axum::http::StatusCode::OK),
+        ),
+    )
 }

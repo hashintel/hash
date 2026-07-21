@@ -1,15 +1,13 @@
 //! Rank-based fidelity kernels over a shared comparison universe.
 //!
-//! Every kernel here consumes neighbour orderings, never coordinates:
-//! a query's view of the universe is a permutation of `0..m` listing
-//! the comparison points from nearest to farthest, one permutation per
-//! space. Which spaces produced the orderings - the 2D map against the
-//! 512-component representation, either against exact canonical
-//! distances - is the orchestration's concern, so one set of kernels
-//! serves every space pair the suite reports.
+//! Every kernel here consumes neighbour orderings, never coordinates: a query's view of the
+//! universe is a permutation of `0..m` listing the comparison points from nearest to farthest, one
+//! permutation per space. Which spaces produced the orderings - the 2D map against the
+//! 512-component representation, either against exact canonical distances - is the orchestration's
+//! concern, so one set of kernels serves every space pair the suite reports.
 //!
-//! For a query with reference ordering `R` and map ordering `M`, the
-//! per-query quantities at neighbourhood size `k` are:
+//! For a query with reference ordering `R` and map ordering `M`, the per-query quantities at
+//! neighbourhood size `k` are:
 //!
 //! - shared neighbours: `|R_k intersect M_k|`, where `X_k` is the ordering's first `k` points;
 //!   recall at `k` is the shared count over `k`.
@@ -20,19 +18,16 @@
 //! - intrusions and extrusions: the false neighbours whose rank excess passes a configured horizon,
 //!   separating genuinely foreign points from near-boundary reshuffling among close ranks.
 //!
-//! [`NeighbourhoodAggregate`] accumulates these over queries and
-//! normalizes trustworthiness and continuity onto `[0, 1]` (1 is a
-//! perfect map, 0 the worst permutation) by the worst-case penalty
-//! `q * k * (2m - 3k + 1) / 2`: each of `q` queries can misplace at
-//! most `k` points, and their rank excesses are largest when the
-//! false neighbours occupy the ordering's final `k` positions. Over a
-//! universe of `m = n - 1` non-self points this reduces to the
-//! Venna-Kaski normalization `2 / (n k (2n - 3k - 1))`.
+//! [`NeighbourhoodAggregate`] accumulates these over queries and normalizes trustworthiness and
+//! continuity onto `[0, 1]` (1 is a perfect map, 0 the worst permutation) by the worst-case penalty
+//! `q * k * (2m - 3k + 1) / 2`: each of `q` queries can misplace at most `k` points, and their rank
+//! excesses are largest when the false neighbours occupy the ordering's final `k` positions. Over a
+//! universe of `m = n - 1` non-self points this reduces to the Venna-Kaski normalization `2 / (n k
+//! (2n - 3k - 1))`.
 //!
-//! [`rank_correlation`] is Spearman's rho between two distance
-//! profiles - the landmark rank-correlation reading - computed without
-//! tie correction, which is exact whenever the profiles carry no equal
-//! distances.
+//! [`rank_correlation`] is Spearman's rho between two distance profiles - the landmark
+//! rank-correlation reading - computed without tie correction, which is exact whenever the profiles
+//! carry no equal distances.
 #![expect(
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation,
@@ -46,9 +41,8 @@
 
 /// Reusable inverse-rank buffers for one comparison universe.
 ///
-/// Sized once per universe; [`NeighbourhoodAggregate::observe`] fills
-/// both buffers per query, so a suite pass allocates two `u32` rows
-/// regardless of query count.
+/// Sized once per universe; [`NeighbourhoodAggregate::observe`] fills both buffers per query, so a
+/// suite pass allocates two `u32` rows regardless of query count.
 pub(crate) struct RankScratch {
     reference_rank: Vec<u32>,
     map_rank: Vec<u32>,
@@ -67,11 +61,9 @@ impl RankScratch {
 
 /// Accumulated neighbourhood agreement between two orderings.
 ///
-/// One aggregate fixes a universe size, a neighbourhood size, and an
-/// intrusion horizon at construction; queries accumulate through
-/// [`observe`](Self::observe) and the metric readings divide the
-/// totals on demand. An aggregate over a single query is that query's
-/// own reading.
+/// One aggregate fixes a universe size, a neighbourhood size, and an intrusion horizon at
+/// construction; queries accumulate through [`observe`](Self::observe) and the metric readings
+/// divide the totals on demand. An aggregate over a single query is that query's own reading.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct NeighbourhoodAggregate {
     universe: usize,
@@ -88,14 +80,12 @@ pub(crate) struct NeighbourhoodAggregate {
 impl NeighbourhoodAggregate {
     /// Creates an empty aggregate.
     ///
-    /// `universe` is the comparison-point count every observed
-    /// ordering permutes; `k` the neighbourhood size; `horizon` the
-    /// 1-based rank beyond which a false neighbour counts as an
+    /// `universe` is the comparison-point count every observed ordering permutes; `k` the
+    /// neighbourhood size; `horizon` the 1-based rank beyond which a false neighbour counts as an
     /// intrusion or extrusion rather than a reshuffle.
     ///
-    /// Returns [`None`] unless `0 < k <= universe / 2` (the
-    /// trustworthiness normalizer is positive on this domain) and
-    /// `k <= horizon <= universe`.
+    /// Returns [`None`] unless `0 < k <= universe / 2` (the trustworthiness normalizer is positive
+    /// on this domain) and `k <= horizon <= universe`.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -126,14 +116,12 @@ impl NeighbourhoodAggregate {
 
     /// Accumulates one query's pair of orderings.
     ///
-    /// Each slice lists the universe's points nearest-first in its
-    /// space and must be a permutation of `0..universe`; the query
-    /// itself is not a universe point, so it appears in neither.
+    /// Each slice lists the universe's points nearest-first in its space and must be a permutation
+    /// of `0..universe`; the query itself is not a universe point, so it appears in neither.
     ///
     /// # Panics
     ///
-    /// Panics when either ordering's length differs from the universe
-    /// or names a point outside it.
+    /// Panics when either ordering's length differs from the universe or names a point outside it.
     pub(crate) fn observe(
         &mut self,
         by_reference: &[u32],
@@ -168,18 +156,15 @@ impl NeighbourhoodAggregate {
 
     /// Accumulates one query from each neighbourhood's opposite ranks.
     ///
-    /// `reference_ranks_of_map_neighbours` holds the reference-space
-    /// ranks of the query's `k` nearest map points, nearest-first, and
-    /// `map_ranks_of_reference_neighbours` the mirror image; ranks are
-    /// 0-based positions in the universe. The metrics are functions of
-    /// exactly these `2k` ranks, so a caller that computes ranks by
-    /// counting - without materializing whole orderings - observes
-    /// through here and [`observe`](Self::observe) reduces to it.
+    /// `reference_ranks_of_map_neighbours` holds the reference-space ranks of the query's `k`
+    /// nearest map points, nearest-first, and `map_ranks_of_reference_neighbours` the mirror image;
+    /// ranks are 0-based positions in the universe. The metrics are functions of exactly these `2k`
+    /// ranks, so a caller that computes ranks by counting - without materializing whole orderings -
+    /// observes through here and [`observe`](Self::observe) reduces to it.
     ///
     /// # Panics
     ///
-    /// Panics when either slice's length differs from `k` or a rank
-    /// lies outside the universe.
+    /// Panics when either slice's length differs from `k` or a rank lies outside the universe.
     pub(crate) fn observe_ranks(
         &mut self,
         reference_ranks_of_map_neighbours: &[u32],
@@ -248,16 +233,14 @@ impl NeighbourhoodAggregate {
 
     /// Folds another aggregate's observations into this one.
     ///
-    /// Merging aggregates observed over disjoint query sets equals one
-    /// aggregate observing their union, so per-query aggregates roll
-    /// up into overall and per-subgroup readings without revisiting
-    /// orderings.
+    /// Merging aggregates observed over disjoint query sets equals one aggregate observing their
+    /// union, so per-query aggregates roll up into overall and per-subgroup readings without
+    /// revisiting orderings.
     ///
     /// # Panics
     ///
-    /// Panics when the aggregates disagree about the universe, the
-    /// neighbourhood size, or the horizon; readings normalized against
-    /// different shapes do not share totals.
+    /// Panics when the aggregates disagree about the universe, the neighbourhood size, or the
+    /// horizon; readings normalized against different shapes do not share totals.
     pub(crate) fn merge(&mut self, other: &Self) {
         assert!(
             self.universe == other.universe && self.k == other.k && self.horizon == other.horizon,
@@ -286,8 +269,9 @@ impl NeighbourhoodAggregate {
         self.universe
     }
 
-    /// Returns the mean fraction of shared k-neighbourhoods, in
-    /// `[0, 1]`; an empty aggregate reads 1.
+    /// Returns the mean fraction of shared k-neighbourhoods, in `[0, 1]`.
+    ///
+    /// An empty aggregate reads 1.
     #[must_use]
     pub(crate) fn recall(&self) -> f64 {
         let Some(pairs) = self.pairs() else {
@@ -297,8 +281,9 @@ impl NeighbourhoodAggregate {
         self.shared as f64 / pairs
     }
 
-    /// Returns the fraction of map neighbours past the horizon in the
-    /// reference ordering, in `[0, 1]`; an empty aggregate reads 0.
+    /// Returns the fraction of map neighbours past the horizon in the reference ordering.
+    ///
+    /// In `[0, 1]`; an empty aggregate reads 0.
     #[must_use]
     pub(crate) fn intrusion_rate(&self) -> f64 {
         let Some(pairs) = self.pairs() else {
@@ -308,8 +293,9 @@ impl NeighbourhoodAggregate {
         self.intrusions as f64 / pairs
     }
 
-    /// Returns the fraction of reference neighbours past the horizon
-    /// in the map ordering, in `[0, 1]`; an empty aggregate reads 0.
+    /// Returns the fraction of reference neighbours past the horizon in the map ordering.
+    ///
+    /// In `[0, 1]`; an empty aggregate reads 0.
     #[must_use]
     pub(crate) fn extrusion_rate(&self) -> f64 {
         let Some(pairs) = self.pairs() else {
@@ -319,15 +305,13 @@ impl NeighbourhoodAggregate {
         self.extrusions as f64 / pairs
     }
 
-    /// Returns the trustworthiness reading, in `[0, 1]`; an empty
-    /// aggregate reads 1.
+    /// Returns the trustworthiness reading, in `[0, 1]`; an empty aggregate reads 1.
     #[must_use]
     pub(crate) fn trustworthiness(&self) -> f64 {
         self.normalized(self.trust_penalty)
     }
 
-    /// Returns the continuity reading, in `[0, 1]`; an empty
-    /// aggregate reads 1.
+    /// Returns the continuity reading, in `[0, 1]`; an empty aggregate reads 1.
     #[must_use]
     pub(crate) fn continuity(&self) -> f64 {
         self.normalized(self.continuity_penalty)
@@ -361,12 +345,10 @@ impl NeighbourhoodAggregate {
 
 /// Accumulated order agreement over sampled triplets.
 ///
-/// A triplet fixes an anchor and two comparison points and is
-/// preserved when the map orders the points' distances from the
-/// anchor as the reference space does, both spaces compared under the
-/// shared `(distance, row)` total order - a pair coincident in both
-/// spaces is therefore preserved, and one coincident in exactly one
-/// space is not. An aggregate over one anchor's pairs is that
+/// A triplet fixes an anchor and two comparison points and is preserved when the map orders the
+/// points' distances from the anchor as the reference space does, both spaces compared under the
+/// shared `(distance, row)` total order - a pair coincident in both spaces is therefore preserved,
+/// and one coincident in exactly one space is not. An aggregate over one anchor's pairs is that
 /// anchor's own reading.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) struct TripletAggregate {
@@ -403,8 +385,7 @@ impl TripletAggregate {
         self.preserved
     }
 
-    /// Returns the preserved fraction, in `[0, 1]`; an empty aggregate
-    /// reads 1.
+    /// Returns the preserved fraction, in `[0, 1]`; an empty aggregate reads 1.
     #[must_use]
     pub(crate) fn agreement(&self) -> f64 {
         if self.triplets == 0 {
@@ -417,12 +398,10 @@ impl TripletAggregate {
 
 /// Computes Spearman's rho between two distance profiles.
 ///
-/// Both slices measure the same points from one query in two spaces;
-/// the result is the Pearson correlation of their rank sequences, in
-/// `[-1, 1]`. Ranks are assigned by sort order without tie averaging,
-/// exact whenever each profile's distances are pairwise distinct;
-/// profiles shorter than two points return 0, carrying no order
-/// information.
+/// Both slices measure the same points from one query in two spaces; the result is the Pearson
+/// correlation of their rank sequences, in `[-1, 1]`. Ranks are assigned by sort order without tie
+/// averaging, exact whenever each profile's distances are pairwise distinct; profiles shorter than
+/// two points return 0, carrying no order information.
 ///
 /// # Panics
 ///

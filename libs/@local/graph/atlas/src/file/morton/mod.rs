@@ -1,19 +1,17 @@
-//! The morton file: bucket fenceposts and a page index in front of the
-//! delivery-ordered morton codes.
+//! The morton file.
 //!
-//! Layout version 1 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Bucket fenceposts and a page index in front of the delivery-ordered morton codes.
 //!
-//! The codes are in the base delivery order: bucket-major, ascending
-//! within each bucket segment. Nothing about that column is
-//! interpretable on its own - a binary search is valid only inside one
-//! segment, and the page index samples across segment boundaries - so
-//! the segment fenceposts live in the header, and index, fenceposts,
-//! and codes form one combined file that cannot fall out of sync. The
-//! regions:
+//! Layout version 1 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
+//!
+//! The codes are in the base delivery order: bucket-major, ascending within each bucket segment.
+//! Nothing about that column is interpretable on its own - a binary search is valid only inside one
+//! segment, and the page index samples across segment boundaries - so the segment fenceposts live
+//! in the header, and index, fenceposts, and codes form one combined file that cannot fall out of
+//! sync. The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -29,24 +27,19 @@
 //! |        |      | each bucket segment                             |
 //! ```
 //!
-//! Fencepost `b` is the position where bucket `b`'s codes begin, so
-//! segment `b` is `codes[posts[b]..posts[b + 1]]` and the last
-//! fencepost is the code count `N` - the header stores no separate
-//! count to contradict. [`Fenceposts`] carries the two structural
-//! rules (anchored at zero, non-decreasing) as a validated type, so an
-//! open file always slices without checks.
+//! Fencepost `b` is the position where bucket `b`'s codes begin, so segment `b` is
+//! `codes[posts[b]..posts[b + 1]]` and the last fencepost is the code count `N` - the header stores
+//! no separate count to contradict. [`Fenceposts`] carries the two structural rules (anchored at
+//! zero, non-decreasing) as a validated type, so an open file always slices without checks.
 //!
-//! Key `i` of the index is code `i * stride`. A lookup clamps to one
-//! segment, binary-searches the index keys sampled inside it to pick
-//! one stride of codes, and binary-searches within that stride: two
-//! faulted pages instead of `log2(N)` scattered ones. All region
-//! offsets derive from the stride and the last fencepost with checked
-//! arithmetic ([`FileHeader::codes_offset`],
-//! [`FileHeader::expected_file_len`]); a header whose geometry
-//! overflows, or whose stride is zero, matches no real file. Both
-//! regions start on 4096-byte boundaries, so the whole-file-mapping
-//! alignment guarantee of the array format applies unchanged: map the
-//! whole file and slice, never mmap at a file offset.
+//! Key `i` of the index is code `i * stride`. A lookup clamps to one segment, binary-searches the
+//! index keys sampled inside it to pick one stride of codes, and binary-searches within that
+//! stride: two faulted pages instead of `log2(N)` scattered ones. All region offsets derive from
+//! the stride and the last fencepost with checked arithmetic ([`FileHeader::codes_offset`],
+//! [`FileHeader::expected_file_len`]); a header whose geometry overflows, or whose stride is zero,
+//! matches no real file. Both regions start on 4096-byte boundaries, so the whole-file-mapping
+//! alignment guarantee of the array format applies unchanged: map the whole file and slice, never
+//! mmap at a file offset.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -71,12 +64,12 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-/// A fencepost breaks the two structural rules: posts anchor at zero
-/// and never decrease.
+/// A fencepost breaks the two structural rules: posts anchor at zero and never decrease.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct FencepostViolation {
-    /// The offending fencepost: index 0 is not zero, or the post at
-    /// this index is smaller than its predecessor.
+    /// The offending fencepost.
+    ///
+    /// Index 0 is not zero, or the post at this index is smaller than its predecessor.
     pub index: u8,
 }
 
@@ -91,20 +84,19 @@ impl fmt::Display for FencepostViolation {
 
 impl core::error::Error for FencepostViolation {}
 
-/// The bucket segmentation of the code column: one position per
-/// segment boundary.
+/// The bucket segmentation of the code column: one position per segment boundary.
 ///
-/// Fencepost `b` is where bucket `b`'s codes begin and the last
-/// fencepost is the total code count, so segment `b` is the range
-/// `posts[b]..posts[b + 1]`. Every value is anchored at zero and
-/// non-decreasing by construction, so segment ranges always slice a
-/// column of [`count`](Self::count) elements without further checks.
+/// Fencepost `b` is where bucket `b`'s codes begin and the last fencepost is the total code count,
+/// so segment `b` is the range `posts[b]..posts[b + 1]`. Every value is anchored at zero and
+/// non-decreasing by construction, so segment ranges always slice a column of
+/// [`count`](Self::count) elements without further checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Fenceposts([u64; Self::POSTS]);
 
 impl Fenceposts {
-    /// One segment per bucket the cascade can assign: every depth from
-    /// the whole domain to a fully pinned key.
+    /// One segment per bucket the cascade can assign.
+    ///
+    /// Every depth from the whole domain to a fully pinned key.
     pub(crate) const POSTS: usize = Self::SEGMENTS + 1;
     /// One more fencepost than segments, closing the last range.
     pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
@@ -113,8 +105,8 @@ impl Fenceposts {
     ///
     /// # Errors
     ///
-    /// Returns the first [`FencepostViolation`]: a first post other
-    /// than zero, or a post smaller than its predecessor.
+    /// Returns the first [`FencepostViolation`]: a first post other than zero, or a post smaller
+    /// than its predecessor.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the loop index is bounded by the 34 fenceposts"
@@ -137,9 +129,8 @@ impl Fenceposts {
 
     /// Accumulates per-segment lengths into fenceposts.
     ///
-    /// The result is anchored and non-decreasing by construction.
-    /// Returns [`None`] when the running total overflows `u64`, in
-    /// which case no real column matches the lengths.
+    /// The result is anchored and non-decreasing by construction. Returns [`None`] when the running
+    /// total overflows `u64`, in which case no real column matches the lengths.
     pub(crate) const fn from_lengths(lengths: &[u64; Self::SEGMENTS]) -> Option<Self> {
         let mut posts = [0_u64; Self::POSTS];
 
@@ -233,8 +224,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Morton);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -276,8 +268,7 @@ impl FileHeader {
     /// Size of the header, and the offset of the index region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for `fenceposts`-segmented codes indexed every
-    /// `stride` codes.
+    /// Creates a header for `fenceposts`-segmented codes indexed every `stride` codes.
     #[must_use]
     pub(crate) const fn new(stride: u32, fenceposts: &Fenceposts) -> Self {
         let posts = fenceposts.posts();
@@ -313,8 +304,8 @@ impl FileHeader {
 
     /// Returns the raw fencepost positions, unvalidated.
     ///
-    /// The header parse pins magic and version only; the fencepost
-    /// rules are [`Fenceposts::new`]'s to check when a file opens.
+    /// The header parse pins magic and version only; the fencepost rules are [`Fenceposts::new`]'s
+    /// to check when a file opens.
     #[must_use]
     pub(crate) const fn posts(&self) -> [u64; Fenceposts::POSTS] {
         let mut posts = [0_u64; Fenceposts::POSTS];
@@ -340,9 +331,9 @@ impl FileHeader {
 
     /// Returns the offset of the code region.
     ///
-    /// The index region sits between the header and this offset, zero
-    /// padded to the boundary. Returns `None` when the geometry overflows
-    /// `u64`, in which case no real file matches the header.
+    /// The index region sits between the header and this offset, zero padded to the boundary.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn codes_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.index_keys()?, size_of::<u64>() as u64)?)
@@ -350,9 +341,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let code_bytes = self.count().checked_mul(size_of::<u64>() as u64)?;

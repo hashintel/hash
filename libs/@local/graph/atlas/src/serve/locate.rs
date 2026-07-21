@@ -1,13 +1,12 @@
-//! The locate endpoint: the spatial neighbour index, source
-//! resolution, and the request/assembly/encode surface.
+//! The locate endpoint.
 //!
-//! The index is kiddo's exact two-dimensional kd-tree over the wire
-//! positions column, built eagerly at open so no first request pays
-//! for it, and cached on disk keyed by generation id so a restart
-//! against the same generation loads instead of rebuilding (ruling
-//! 2026-07-20). The cache is a cache: any read failure - missing,
-//! foreign magic, corrupt bytes - falls back to a fresh build and a
-//! best-effort rewrite, never a failed open.
+//! The spatial neighbour index, source resolution, and the request/assembly/encode surface.
+//!
+//! The index is kiddo's exact two-dimensional kd-tree over the wire positions column, built eagerly
+//! at open so no first request pays for it, and cached on disk keyed by generation id so a restart
+//! against the same generation loads instead of rebuilding (ruling 2026-07-20). The cache is a
+//! cache: any read failure - missing, foreign magic, corrupt bytes - falls back to a fresh build
+//! and a best-effort rewrite, never a failed open.
 
 use camino::{Utf8Path, Utf8PathBuf};
 use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
@@ -17,6 +16,7 @@ use super::{
     detail::{DeliveredEntities, LinkDetails, LocateNodeDetails, SimpleValue},
     edges::{DeliveredEdge, borrow},
     narrow,
+    visibility::{VisibilityProof, VisibleRow},
 };
 use crate::{
     bitset::BitSet,
@@ -26,14 +26,14 @@ use crate::{
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
 
-/// The cache file magic: pins the codec (rkyv 0.8) and the tree's
-/// type parameters; a mismatch after a dependency upgrade reads as
-/// foreign and rebuilds.
+/// The cache file magic: pins the codec (rkyv 0.8) and the tree's type parameters.
+///
+/// A mismatch after a dependency upgrade reads as foreign and rebuilds.
 const CACHE_MAGIC: &[u8; 8] = b"SALTKDX1";
 
-/// The exact spatial index behind locate's neighbour selection: item
-/// index = base position, so lookups answer in the positions
-/// column's own domain.
+/// The exact spatial index behind locate's neighbour selection.
+///
+/// Item index = base position, so lookups answer in the positions column's own domain.
 #[derive(Debug)]
 pub(super) struct LocateIndex {
     tree: ImmutableKdTree<f32, u32, 2, 32>,
@@ -52,13 +52,12 @@ impl LocateIndex {
         }
     }
 
-    /// Loads the generation's cached index, or builds it and leaves
-    /// the cache behind for the next open.
+    /// Loads the generation's cached index, or builds it and leaves the cache behind for the next
+    /// open.
     ///
-    /// Without a cache directory the build is unconditional; with
-    /// one, the file is keyed by generation id, so distinct
-    /// generations never collide and a stale entry cannot be
-    /// mistaken for current.
+    /// Without a cache directory the build is unconditional; with one, the file is keyed by
+    /// generation id, so distinct generations never collide and a stale entry cannot be mistaken
+    /// for current.
     pub(super) fn load_or_build(
         cache: Option<&Utf8Path>,
         generation: GenerationId,
@@ -97,8 +96,7 @@ impl LocateIndex {
         }
     }
 
-    /// Writes the cache file; failures warn and serve proceeds - the
-    /// cache is never load-bearing.
+    /// Writes the cache file; failures warn and serve proceeds - the cache is never load-bearing.
     fn write(&self, directory: &Utf8Path, path: &Utf8Path) {
         let result = std::fs::create_dir_all(directory).and_then(|()| {
             let bytes =
@@ -114,19 +112,16 @@ impl LocateIndex {
         }
     }
 
-    /// Collects every base position that can be among the `count`
-    /// nearest around `origin`: all points at or under the k-nearest
-    /// boundary distance, unordered, boundary ties included.
+    /// Collects every base position that can be among the `count` nearest around `origin`.
     ///
-    /// The k-nearest query alone would leave boundary ties to the
-    /// tree's internal order: co-located points are real (fit
-    /// collision clusters), and which of them crosses a cut must
-    /// follow the wire's own tie-break - (distance, node row id), a
-    /// domain this index does not speak - not the index's. The query
-    /// therefore only fixes the boundary DISTANCE - the multiset of
-    /// returned distances is tie-independent - and a second, radius
-    /// query hands the caller every candidate for the exact
-    /// selection.
+    /// All points at or under the k-nearest boundary distance, unordered, boundary ties included.
+    ///
+    /// The k-nearest query alone would leave boundary ties to the tree's internal order: co-located
+    /// points are real (fit collision clusters), and which of them crosses a cut must follow the
+    /// wire's own tie-break - (distance, node row id), a domain this index does not speak - not the
+    /// index's. The query therefore only fixes the boundary DISTANCE - the multiset of returned
+    /// distances is tie-independent - and a second, radius query hands the caller every candidate
+    /// for the exact selection.
     pub(super) fn candidates(
         &self,
         origin: [f32; 2],
@@ -153,22 +148,22 @@ impl LocateIndex {
 /// The locate endpoint's caps.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct LocateCaps {
-    /// Largest neighbour budget one request may name; requests over
-    /// it clamp to it. The documented default is 32 (ratified
-    /// 2026-07-20, amended from 64).
+    /// Largest neighbour budget one request may name; requests over it clamp to it.
+    ///
+    /// The documented default is 32 (ratified 2026-07-20, amended from 64).
     pub neighbours: u32,
-    /// Most subgraph edges one response delivers; a larger subgraph
-    /// truncates by rank with source-incident edges protected, and
-    /// HEAD reports `complete: false`. The documented default is 512
-    /// (ratified 2026-07-20, replacing the vetoed uncapped draft -
-    /// every delivered edge also costs live link hydration, so the
-    /// cap bounds the store round trip, not just wire bytes).
+    /// Most subgraph edges one response delivers.
+    ///
+    /// A larger subgraph truncates by rank with source-incident edges protected, and HEAD reports
+    /// `complete: false`. The documented default is 512 (ratified 2026-07-20, replacing the vetoed
+    /// uncapped draft - every delivered edge also costs live link hydration, so the cap bounds the
+    /// store round trip, not just wire bytes).
     pub edges: u32,
-    /// Most properties one delivered entity ships; an over-cap
-    /// entity drops properties reverse-lexicographically by base URL
-    /// with its label property protected to the very end, so the
-    /// label survives every cap that admits at least one property.
-    /// The documented default is 20 (Q5, ratified 2026-07-19).
+    /// Most properties one delivered entity ships.
+    ///
+    /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
+    /// property protected to the very end, so the label survives every cap that admits at least
+    /// one property. The documented default is 20 (Q5, ratified 2026-07-19).
     pub properties: u32,
 }
 
@@ -182,21 +177,20 @@ impl Default for LocateCaps {
     }
 }
 
-/// The options one serving open takes; configuration travels as a
-/// struct, never constants or bare parameters (ruling 2026-07-20).
+/// The options one serving open takes.
+///
+/// Configuration travels as a struct, never constants or bare parameters (ruling 2026-07-20).
 #[derive(Debug, Clone)]
 pub struct OpenOptions {
-    /// The locate index cache directory; [`None`] builds the index
-    /// on every open.
+    /// The locate index cache directory; [`None`] builds the index on every open.
     pub locate_cache: Option<Utf8PathBuf>,
-    /// The server secret behind the wire row-id codec; the keyed
-    /// permutation derives from it per generation at open.
+    /// The server secret behind the wire row-id codec.
     ///
-    /// The default is a fixed development value: wire ids stay
-    /// deterministic across restarts without configuration, and a
-    /// production deployment supplies its own secret. The secret
-    /// never rotates for a generation while it serves; rotation
-    /// happens at generation boundaries.
+    /// The keyed permutation derives from it per generation at open.
+    ///
+    /// The default is a fixed development value: wire ids stay deterministic across restarts
+    /// without configuration, and a production deployment supplies its own secret. The secret
+    /// never rotates for a generation while it serves; rotation happens at generation boundaries.
     pub wire_secret: Vec<u8>,
 }
 
@@ -209,8 +203,7 @@ impl Default for OpenOptions {
     }
 }
 
-/// One resolved locate source: the subject's identity in every
-/// domain a locate response speaks.
+/// One resolved locate source: the subject's identity in every domain a locate response speaks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct SourcePoint {
     /// The node row id.
@@ -224,33 +217,43 @@ pub(super) struct SourcePoint {
 }
 
 impl Atlas {
-    /// Resolves a locate source: upstream entity id to node row,
-    /// base position, first visible zoom, and fly-to tile.
+    /// Resolves a locate source.
     ///
-    /// [`None`] for everything that does not name a visible node -
-    /// unparsable, draft-suffixed, unknown, or an edge id - the
-    /// transport's `unknown-entity` problem, identical for missing
-    /// and denied.
-    pub(super) fn resolve_source(&self, entity_id: &str) -> Option<SourcePoint> {
+    /// Upstream entity id to node row, base position, first visible zoom, and fly-to tile.
+    ///
+    /// [`None`] for everything that does not name a visible node - unparsable, draft-suffixed,
+    /// unknown, hidden by the proof, or an edge id - the transport's `unknown-entity` problem,
+    /// identical for missing and denied.
+    pub(super) fn resolve_source(
+        &self,
+        proof: &VisibilityProof,
+        entity_id: &str,
+    ) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
-        Some(self.source_point(narrow(self.node_ids.row_of(id)?)))
+        let row = proof.verify(narrow(self.node_ids.row_of(id)?))?;
+        Some(self.source_point(row))
     }
 
-    /// Resolves a locate source named by its wire node row id: the
-    /// identifier a rendered tile put in the client's hand.
+    /// Resolves a locate source named by its wire node row id.
     ///
-    /// Ingress rides the same keyed codec as egress, so the lookup
-    /// is pure arithmetic - no store round trip. [`None`] for every
-    /// out-of-universe value; in-universe values always name a row,
-    /// because the codec is a bijection of `[0, N)`.
-    pub(super) fn resolve_wire_source(&self, wire: u32) -> Option<SourcePoint> {
-        Some(self.source_point(self.node_codec.decode(wire)?))
+    /// The identifier a rendered tile put in the client's hand.
+    ///
+    /// Ingress rides [`Atlas::resolve`] - the same keyed codec as egress, so the lookup is pure
+    /// arithmetic, no store round trip. [`None`] for out-of-universe values and for rows the proof
+    /// hides, collapsed at the seam before any caller observes the cause.
+    pub(super) fn resolve_wire_source(
+        &self,
+        proof: &VisibilityProof,
+        wire: u32,
+    ) -> Option<SourcePoint> {
+        Some(self.source_point(self.resolve(proof, wire)?))
     }
 
-    /// Answers a resolved node row's identity in every domain a
-    /// locate response speaks: base position, first visible zoom,
-    /// and fly-to tile.
-    fn source_point(&self, row: u32) -> SourcePoint {
+    /// Answers a proven-visible node row's identity in every domain a locate response speaks.
+    ///
+    /// Base position, first visible zoom, and fly-to tile.
+    fn source_point(&self, row: VisibleRow) -> SourcePoint {
+        let row = row.get();
         let position = self.positions_of_row()[row as usize];
 
         // The position's fencepost segment is its morton bucket; the
@@ -286,54 +289,28 @@ impl Atlas {
         }
     }
 
-    /// Assembles the locate subgraph around a resolved source: the
-    /// delivered node set and the capped edge set among it.
+    /// Assembles the locate subgraph around a resolved source.
     ///
-    /// Delivered order is the wire's pin: the source first, then its
-    /// nearest neighbours ascending by (distance, wire row id).
-    /// Edges are the edges endpoint's rule over this small set (both
-    /// endpoints delivered, each edge exactly once), ascending wire
-    /// edge row after the cap.
+    /// The delivered node set and the capped edge set among it.
+    ///
+    /// Delivered order is the wire's pin: the source first, then its nearest neighbours ascending
+    /// by (distance, wire row id). Edges are the edges endpoint's rule over this small set (both
+    /// endpoints delivered, each edge exactly once), ascending wire edge row after the cap.
     pub(super) fn locate_subgraph(
         &self,
         source: SourcePoint,
         neighbours: u32,
         caps: LocateCaps,
+        proof: &VisibilityProof,
     ) -> LocateSubgraph {
         let budget = neighbours.min(caps.neighbours) as usize;
 
-        // The source is its own nearest point at distance zero, so
-        // the query asks for one extra and drops it wherever it
-        // surfaces. The boundary distance covers every point the
-        // budget can admit (the budget-th non-source distance never
-        // exceeds the (budget + 1)-th overall); the exact selection
-        // then follows the wire's own (distance, wire row id) order,
-        // so a co-located cluster crosses the budget cut by a
-        // client-observable key - never by tree shape, and never by
-        // internal id order, which the wire codec exists to hide.
-        let row_ids = self.row_ids();
-        let wire_rows = self.wire_rows();
-        let count = core::num::NonZero::new(budget + 1).expect("budget + 1 is nonzero");
-        let mut candidates: Vec<(f32, u32, u32, u32)> = self
-            .locate
-            .candidates(
-                {
-                    let origin = self.positions()[source.position as usize];
-                    [origin.x(), origin.y()]
-                },
-                count,
-            )
-            .into_iter()
-            .filter(|&(_, position)| position != source.position)
-            .map(|(distance, position)| {
-                (
-                    distance,
-                    wire_rows[position as usize],
-                    row_ids[position as usize],
-                    position,
-                )
-            })
-            .collect();
+        // The exact selection follows the wire's own (distance, wire
+        // row id) order, so a co-located cluster crosses the budget
+        // cut by a client-observable key - never by tree shape, and
+        // never by internal id order, which the wire codec exists to
+        // hide.
+        let mut candidates = self.visible_candidates(source, budget, proof);
         candidates.sort_unstable_by(
             |(left_distance, left_wire, ..), (right_distance, right_wire, ..)| {
                 left_distance
@@ -342,6 +319,8 @@ impl Atlas {
             },
         );
         candidates.truncate(budget);
+
+        let row_ids = self.row_ids();
 
         let mut delivered: Vec<u32> = vec![source.position];
         let mut rows: Vec<u32> = vec![source.row];
@@ -373,12 +352,65 @@ impl Atlas {
         }
     }
 
-    /// Keeps the `cap` edges the protected rank order selects:
-    /// source-incident edges strictly before context edges, then
-    /// ascending worse-endpoint rank, ties by wire edge row (ruling
-    /// 2026-07-20 - the spotlight's primary information is how the
-    /// source connects, so neighbour-neighbour context truncates
-    /// first).
+    /// Collects every visible point that can be among the `budget` nearest visible neighbours of
+    /// the source: `(distance, wire row, row, position)` per candidate, unordered, boundary ties
+    /// included.
+    ///
+    /// The k-nearest boundary is searched over ALL points, so under a mask the query expands -
+    /// doubling its k until the boundary encloses `budget` visible non-source points or the whole
+    /// universe has been seen. Selection therefore happens under the mask: hidden points never
+    /// consume the budget, and a response's cardinality is a function of the masked view alone.
+    fn visible_candidates(
+        &self,
+        source: SourcePoint,
+        budget: usize,
+        proof: &VisibilityProof,
+    ) -> Vec<(f32, u32, u32, u32)> {
+        let row_ids = self.row_ids();
+        let wire_rows = self.wire_rows();
+        let universe = self.positions().len();
+        let origin = {
+            let origin = self.positions()[source.position as usize];
+            [origin.x(), origin.y()]
+        };
+
+        // The source is its own nearest point at distance zero, so
+        // the query asks for one extra and drops it wherever it
+        // surfaces. The boundary distance covers every point the
+        // budget can admit (the budget-th non-source distance never
+        // exceeds the (budget + 1)-th overall).
+        let mut want = budget + 1;
+        loop {
+            let count = core::num::NonZero::new(want).expect("budget + 1 is nonzero");
+            let candidates: Vec<(f32, u32, u32, u32)> = self
+                .locate
+                .candidates(origin, count)
+                .into_iter()
+                .filter(|&(_, position)| {
+                    position != source.position && proof.contains(row_ids[position as usize])
+                })
+                .map(|(distance, position)| {
+                    (
+                        distance,
+                        wire_rows[position as usize],
+                        row_ids[position as usize],
+                        position,
+                    )
+                })
+                .collect();
+
+            if candidates.len() >= budget || want >= universe {
+                return candidates;
+            }
+            want = (want * 2).min(universe);
+        }
+    }
+
+    /// Keeps the `cap` edges the protected rank order selects.
+    ///
+    /// Source-incident edges strictly before context edges, then ascending worse-endpoint rank,
+    /// ties by wire edge row (ruling 2026-07-20 - the spotlight's primary information is how the
+    /// source connects, so neighbour-neighbour context truncates first).
     fn truncate_protecting_source(
         &self,
         edges: &mut Vec<(DeliveredEdge, u32)>,
@@ -405,13 +437,15 @@ impl Atlas {
     }
 }
 
-/// The protected truncation's sort key: context edges after
-/// source-incident ones, then ascending worse-endpoint rank, then
-/// ascending wire edge id.
+/// The protected truncation's sort key.
+///
+/// Context edges after source-incident ones, then ascending worse-endpoint rank, then ascending
+/// wire edge id.
 type ProtectedKey = (bool, u32, u32);
 
-/// One assembled locate subgraph: the delivered nodes (source first,
-/// then neighbours in wire order) and the capped edge set among
+/// One assembled locate subgraph.
+///
+/// The delivered nodes (source first, then neighbours in wire order) and the capped edge set among
 /// them.
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct LocateSubgraph {
@@ -419,39 +453,35 @@ pub(super) struct LocateSubgraph {
     pub rows: Vec<u32>,
     /// The delivered base positions, parallel to `rows`.
     pub positions: Vec<u32>,
-    /// The delivered edges paired with their wire edge ids,
-    /// ascending by wire edge id.
+    /// The delivered edges paired with their wire edge ids, ascending by wire edge id.
     pub edges: Vec<(DeliveredEdge, u32)>,
-    /// Whether every qualifying edge is delivered; `false` iff the
-    /// cap truncated.
+    /// Whether every qualifying edge is delivered; `false` iff the cap truncated.
     pub complete: bool,
 }
 
 /// One locate request: the source entity and the delivery knobs.
 ///
-/// The source is named in exactly one of two domains: `entityId`
-/// (the upstream identity a search result or deep link carries) XOR
-/// `row` (the wire node row id a rendered tile put in the client's
-/// hand). The fields are distinct JSON types, so the union is
-/// unambiguous; carrying both or neither is rejected by name.
+/// The source is named in exactly one of two domains: `entityId` (the upstream identity a search
+/// result or deep link carries) XOR `row` (the wire node row id a rendered tile put in the client's
+/// hand). The fields are distinct JSON types, so the union is unambiguous; carrying both or neither
+/// is rejected by name.
 ///
-/// `neighbours` is a budget, not a list: a value over the cap CLAMPS
-/// to it (the clamp is visible in `HEAD.count`), where the list-caps
-/// reject - a budget has no elements to refuse.
+/// `neighbours` is a budget, not a list: a value over the cap CLAMPS to it (the clamp is visible in
+/// `HEAD.count`), where the list-caps reject - a budget has no elements to refuse.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LocateRequest {
-    /// The source entity id, in the node identity domain; exactly
-    /// one of this and `row` names the source.
+    /// The source entity id, in the node identity domain.
+    ///
+    /// Exactly one of this and `row` names the source.
     #[serde(default)]
     pub entity_id: Option<String>,
-    /// The source as a wire node row id - the value a tile's
-    /// `ROW_IDS` column delivered; exactly one of this and
-    /// `entityId` names the source.
+    /// The source as a wire node row id - the value a tile's `ROW_IDS` column delivered.
+    ///
+    /// Exactly one of this and `entityId` names the source.
     #[serde(default)]
     pub row: Option<u32>,
-    /// The type ids whose membership masks ride `TYPE_MASK`; absent
-    /// or empty omits the slot.
+    /// The type ids whose membership masks ride `TYPE_MASK`; absent or empty omits the slot.
     #[serde(default)]
     pub colored_type_ids: Vec<String>,
     /// The visibility filter; absent means the trivial bitmap.
@@ -460,8 +490,9 @@ pub struct LocateRequest {
     /// The neighbour budget; absent means the cap itself.
     #[serde(default)]
     pub neighbours: Option<u32>,
-    /// Whether the detail trailer rides the response. Locate IS the
-    /// detail view, so unlike every other endpoint it defaults TRUE.
+    /// Whether the detail trailer rides the response.
+    ///
+    /// Locate IS the detail view, so unlike every other endpoint it defaults TRUE.
     #[serde(default = "detailed_by_default")]
     pub include_detailed_data: bool,
 }
@@ -473,22 +504,21 @@ const fn detailed_by_default() -> bool {
 
 /// A locate request the atlas rejects, by name.
 ///
-/// Every variant is a named, data-carrying rejection for the
-/// transport layer to map onto its error vocabulary.
+/// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
+/// vocabulary.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LocateError {
-    /// The source id does not name a visible node - nonexistent,
-    /// denied, and unparsable are IDENTICAL by doctrine (missing =
-    /// denied; an id that cannot name an entity is an entity that
-    /// does not exist). An out-of-universe wire `row` collapses
-    /// here too: one body, whatever the input domain.
+    /// The source id does not name a visible node - nonexistent, denied, and unparsable are
+    /// IDENTICAL by doctrine (missing = denied; an id that cannot name an entity is an entity that
+    /// does not exist). An out-of-universe wire `row` collapses here too: one body, whatever the
+    /// input domain.
     UnknownEntity,
-    /// The request does not name exactly one source: `entityId` and
-    /// `row` are one subject in two identity domains, and the body
-    /// must carry exactly one of them.
+    /// The request does not name exactly one source.
+    ///
+    /// `entityId` and `row` are one subject in two identity domains, and the body must carry
+    /// exactly one of them.
     Source {
-        /// How many of the two source fields the body carries -
-        /// zero or two, never one.
+        /// How many of the two source fields the body carries - zero or two, never one.
         carried: usize,
     },
     /// The request carries more `coloredTypeIds` than the cap admits.
@@ -498,8 +528,9 @@ pub enum LocateError {
         /// The cap the manifest publishes as `limits.coloredTypeIds`.
         maximum: u32,
     },
-    /// The request names a feature this build does not serve; the
-    /// carried name is the request field.
+    /// The request names a feature this build does not serve.
+    ///
+    /// The carried name is the request field.
     Unsupported(&'static str),
 }
 
@@ -531,14 +562,11 @@ impl core::fmt::Display for LocateError {
 
 impl core::error::Error for LocateError {}
 
-/// One assembled locate response: everything [`Atlas::encode_locate`]
-/// needs.
+/// One assembled locate response: everything [`Atlas::encode_locate`] needs.
 ///
-/// The document owns its columns, so it crosses thread boundaries
-/// between assembly, hydration, and encoding - the envelope was
-/// designed for hydration-last, and the split mirrors it: assembly
-/// and encoding are CPU-bound, hydration awaits the store between
-/// them.
+/// The document owns its columns, so it crosses thread boundaries between assembly, hydration, and
+/// encoding - the envelope was designed for hydration-last, and the split mirrors it: assembly and
+/// encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
 pub struct LocateDocument {
     source: SourcePoint,
@@ -547,70 +575,67 @@ pub struct LocateDocument {
     sources: Vec<u32>,
     targets: Vec<u32>,
     edge_rows: Vec<u32>,
-    /// The internal edge rows behind `edge_rows`, delivered order:
-    /// the hydration key the identity table speaks.
+    /// The internal edge rows behind `edge_rows`, delivered order.
+    ///
+    /// The hydration key the identity table speaks.
     internal_rows: Vec<u32>,
     complete: bool,
     mask_set: Option<super::color::MaskSet>,
 }
 
 impl Atlas {
-    /// Answers one locate request: `SALTILEL` envelope bytes
-    /// spotlighting the source and its nearest neighbours, ready to
-    /// send under `application/vnd.hash.saltile-v1`.
+    /// Answers one locate request.
     ///
-    /// A request that sets `includeDetailedData` - which locate
-    /// DEFAULTS to - is rejected by name: this path serves
-    /// deployments without a store connection. A transport with one
-    /// assembles, hydrates, and encodes through
-    /// [`Atlas::assemble_locate`], [`Atlas::locate_node_entities`],
+    /// `SALTILEL` envelope bytes spotlighting the source and its nearest neighbours, ready to send
+    /// under `application/vnd.hash.saltile-v1`.
+    ///
+    /// A request that sets `includeDetailedData` - which locate DEFAULTS to - is rejected by name:
+    /// this path serves deployments without a store connection. A transport with one assembles,
+    /// hydrates, and encodes through [`Atlas::assemble_locate`], [`Atlas::locate_node_entities`],
     /// [`Atlas::locate_link_entities`], and [`Atlas::encode_locate`].
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_locate`], plus
-    /// [`LocateError::Unsupported`] when the request sets (or
+    /// As [`Atlas::assemble_locate`], plus [`LocateError::Unsupported`] when the request sets (or
     /// defaults) `includeDetailedData`.
     pub fn locate(
         &self,
         request: &LocateRequest,
         caps: super::ServeCaps,
+        proof: &VisibilityProof,
     ) -> Result<Vec<u8>, LocateError> {
         if request.include_detailed_data {
             return Err(LocateError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_locate(request, caps)?;
+        let document = self.assemble_locate(request, caps, proof)?;
         Ok(self.encode_locate(&document, None))
     }
 
-    /// Assembles one locate request into its owned document: every
-    /// rejection happens here, so encoding cannot fail.
+    /// Assembles one locate request into its owned document.
     ///
-    /// The neighbour budget is `request.neighbours` clamped to
-    /// `caps.locate.neighbours` (absent means the cap itself); the
-    /// clamp is visible in `HEAD.count`. The `coloredTypeIds` cap is
-    /// the tile endpoint's own - one manifest key,
-    /// `limits.coloredTypeIds`, governs the field wherever it
-    /// appears.
+    /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// Version 0 serves the full unfiltered set; a request naming a
-    /// visibility filter is rejected by name rather than answered
-    /// with bytes that silently ignore it.
+    /// The neighbour budget is `request.neighbours` clamped to `caps.locate.neighbours` (absent
+    /// means the cap itself); the clamp is visible in `HEAD.count`. The `coloredTypeIds` cap is the
+    /// tile endpoint's own - one manifest key, `limits.coloredTypeIds`, governs the field wherever
+    /// it appears.
+    ///
+    /// Version 0 serves the full unfiltered set; a request naming a visibility filter is rejected
+    /// by name rather than answered with bytes that silently ignore it.
     ///
     /// # Errors
     ///
-    /// Returns [`LocateError::Source`] when the body does not name
-    /// exactly one of `entityId` and `row`,
-    /// [`LocateError::UnknownEntity`] when the source does not
-    /// resolve to a visible node, [`LocateError::Types`] when the
-    /// request carries more `coloredTypeIds` than
-    /// `caps.tile.colored_type_ids`, and [`LocateError::Unsupported`]
-    /// when the request names a version-0 deferral.
+    /// Returns [`LocateError::Source`] when the body does not name exactly one of `entityId` and
+    /// `row`, [`LocateError::UnknownEntity`] when the source does not resolve to a visible node,
+    /// [`LocateError::Types`] when the request carries more `coloredTypeIds` than
+    /// `caps.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
+    /// version-0 deferral.
     pub fn assemble_locate(
         &self,
         request: &LocateRequest,
         caps: super::ServeCaps,
+        proof: &VisibilityProof,
     ) -> Result<LocateDocument, LocateError> {
         if request.filter.is_some() {
             return Err(LocateError::Unsupported("filter"));
@@ -626,8 +651,8 @@ impl Atlas {
         // paths but land in the same SourcePoint domain, and every
         // failure past this match is one rejection: unknown-entity.
         let source = match (request.entity_id.as_deref(), request.row) {
-            (Some(id), None) => self.resolve_source(id),
-            (None, Some(wire)) => self.resolve_wire_source(wire),
+            (Some(id), None) => self.resolve_source(proof, id),
+            (None, Some(wire)) => self.resolve_wire_source(proof, wire),
             (entity, row) => {
                 return Err(LocateError::Source {
                     carried: usize::from(entity.is_some()) + usize::from(row.is_some()),
@@ -641,7 +666,7 @@ impl Atlas {
             positions,
             edges,
             complete,
-        } = self.locate_subgraph(source, budget, caps.locate);
+        } = self.locate_subgraph(source, budget, caps.locate, proof);
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
@@ -670,14 +695,14 @@ impl Atlas {
         })
     }
 
-    /// Gathers the entity identities behind the document's delivered
-    /// nodes, in delivered order: the node hydration request's
-    /// subject.
+    /// Gathers the entity identities behind the document's delivered nodes, in delivered order.
+    ///
+    /// The node hydration request's subject.
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the row column,
-    /// which open's cross-artifact validation rules out.
+    /// Panics when the identity table contradicts the row column, which open's cross-artifact
+    /// validation rules out.
     #[must_use]
     pub fn locate_node_entities(&self, document: &LocateDocument) -> DeliveredEntities {
         let ids = document
@@ -693,15 +718,14 @@ impl Atlas {
         DeliveredEntities::new(ids)
     }
 
-    /// Gathers the link-entity identities behind the document's
-    /// delivered edges, in edge order: the link hydration request's
-    /// subject.
+    /// Gathers the link-entity identities behind the document's delivered edges, in edge order.
+    ///
+    /// The link hydration request's subject.
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the adjacency's
-    /// edge domain, which open's cross-artifact validation rules
-    /// out.
+    /// Panics when the identity table contradicts the adjacency's edge domain, which open's
+    /// cross-artifact validation rules out.
     #[must_use]
     pub fn locate_link_entities(&self, document: &LocateDocument) -> DeliveredEntities {
         let ids = document
@@ -717,22 +741,20 @@ impl Atlas {
         DeliveredEntities::new(ids)
     }
 
-    /// Encodes an assembled document: `SALTILEL` envelope bytes,
-    /// ready to send under `application/vnd.hash.saltile-v1`, with
-    /// the detail trailer riding iff `details` is supplied.
+    /// Encodes an assembled document.
     ///
-    /// The trailer interns property names at encode time: the table
-    /// is the bytewise-sorted union of every delivered node's
-    /// surviving names, and each node's map keys by index into it -
-    /// the per-entity ascending-name order the hydration layer
-    /// produces IS ascending index order, so the wire laws hold by
-    /// construction.
+    /// `SALTILEL` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
+    /// detail trailer riding iff `details` is supplied.
+    ///
+    /// The trailer interns property names at encode time: the table is the bytewise-sorted union of
+    /// every delivered node's surviving names, and each node's map keys by index into it - the
+    /// per-entity ascending-name order the hydration layer produces IS ascending index order, so
+    /// the wire laws hold by construction.
     ///
     /// # Panics
     ///
-    /// Panics when supplied details do not cover the document's
-    /// delivered nodes and edges - a transport bug, never request
-    /// data.
+    /// Panics when supplied details do not cover the document's delivered nodes and edges - a
+    /// transport bug, never request data.
     #[must_use]
     pub fn encode_locate(
         &self,
@@ -792,16 +814,17 @@ impl Atlas {
     }
 }
 
-/// One node's wire property map: uint indexes into the intern table
-/// paired with borrowed values, ascending by index. `None` marks an
-/// entity the store no longer serves.
+/// One node's wire property map.
+///
+/// Uint indexes into the intern table paired with borrowed values, ascending by index. `None` marks
+/// an entity the store no longer serves.
 type PropertyMap<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 
 /// The encoder's borrowed view of one [`PropertyMap`].
 type PropertyMapView<'doc> = Option<&'doc [(u32, PropertyValue<'doc>)]>;
 
-/// The trailer's owned hydration columns, borrowed from the detail
-/// structs for the encoder's lifetime.
+/// The trailer's owned hydration columns, borrowed from the detail structs for the encoder's
+/// lifetime.
 #[derive(Debug)]
 struct HydratedColumns<'doc> {
     labels: Vec<Option<&'doc str>>,
@@ -814,10 +837,9 @@ struct HydratedColumns<'doc> {
     link_type_icons: Vec<Option<&'doc str>>,
 }
 
-/// Builds the property-name intern table and the per-node uint-index
-/// maps: the table is the bytewise-sorted, deduplicated union of
-/// every surviving name; each node's entries keep the hydration
-/// layer's ascending-name order, which maps to ascending indexes.
+/// Builds the property-name intern table and the per-node uint-index maps: the table is the
+/// bytewise-sorted, deduplicated union of every surviving name; each node's entries keep the
+/// hydration layer's ascending-name order, which maps to ascending indexes.
 pub(super) fn intern_properties(
     entries: &[Option<Vec<(String, SimpleValue)>>],
 ) -> (Vec<&str>, Vec<PropertyMap<'_>>) {

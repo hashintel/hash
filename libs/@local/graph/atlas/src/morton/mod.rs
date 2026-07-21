@@ -1,30 +1,25 @@
 //! Z-order keys: two 32-bit axes interleaved into one sortable `u64`.
 //!
-//! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair - `x`
-//! into the even bits, `y` into the odd bits - so that comparing keys
-//! compares positions along the Z-order curve. Every axis-aligned
-//! power-of-two cell of the grid is one contiguous key range, so a
-//! sorted key array answers cell queries with two binary searches.
+//! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair - `x` into the even bits, `y` into
+//! the odd bits - so that comparing keys compares positions along the Z-order curve. Every
+//! axis-aligned power-of-two cell of the grid is one contiguous key range, so a sorted key array
+//! answers cell queries with two binary searches.
 //!
-//! [`Depth`] counts subdivisions: depth 0 is the whole domain, each
-//! step quarters a cell, and depth 32 pins both axes to a single key.
-//! A tile address `(z, x, y)` names the cell
-//! [`MortonCell::new(z, x, y)`](MortonCell::new); the cell containing
-//! an existing key is [`MortonKey::cell`]. Cells subdivide in key
-//! order via [`MortonCell::children`].
+//! [`Depth`] counts subdivisions: depth 0 is the whole domain, each step quarters a cell, and depth
+//! 32 pins both axes to a single key. A tile address `(z, x, y)` names the cell
+//! [`MortonCell::new(z, x, y)`](MortonCell::new); the cell containing an existing key is
+//! [`MortonKey::cell`]. Cells subdivide in key order via [`MortonCell::children`].
 //!
-//! This module owns only the arithmetic; the on-disk sorted-code
-//! format lives in the file layer.
+//! This module owns only the arithmetic; the on-disk sorted-code format lives in the file layer.
 
 #[cfg(test)]
 mod tests;
 
 /// A subdivision depth between the whole domain and a single key.
 ///
-/// Depth `d` cells are the squares of a `2^d x 2^d` grid over the
-/// axis domain. [`Depth::MIN`] is the whole domain; [`Depth::MAX`]
-/// fixes all 32 bits of both axes, so a cell at it holds exactly one
-/// key.
+/// Depth `d` cells are the squares of a `2^d x 2^d` grid over the axis domain. [`Depth::MIN`] is
+/// the whole domain; [`Depth::MAX`] fixes all 32 bits of both axes, so a cell at it holds exactly
+/// one key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Depth(u8);
 
@@ -66,9 +61,8 @@ impl Depth {
 
 /// A Z-order key: two 32-bit axes interleaved into one `u64`.
 ///
-/// `x` occupies the even bits and `y` the odd bits, least significant
-/// pair first, so key order is Z-order curve order and every
-/// [`MortonCell`] is one contiguous key range. Every bit pattern is a
+/// `x` occupies the even bits and `y` the odd bits, least significant pair first, so key order is
+/// Z-order curve order and every [`MortonCell`] is one contiguous key range. Every bit pattern is a
 /// valid key.
 ///
 /// # Examples
@@ -113,8 +107,9 @@ impl MortonKey {
         [compact_bits(self.0), compact_bits(self.0 >> 1)]
     }
 
-    /// Returns the cell index at `depth`: the leading `2 * depth` key
-    /// bits, a value below `4^depth` that is dense over the depth's
+    /// Returns the cell index at `depth`.
+    ///
+    /// The leading `2 * depth` key bits, a value below `4^depth` that is dense over the depth's
     /// grid.
     ///
     /// # Examples
@@ -145,8 +140,9 @@ impl MortonKey {
     }
 }
 
-/// One cell of a depth's grid: the contiguous key range from
-/// [`min_key`](Self::min_key) to [`max_key`](Self::max_key), both
+/// One cell of a depth's grid.
+///
+/// The contiguous key range from [`min_key`](Self::min_key) to [`max_key`](Self::max_key), both
 /// inclusive.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MortonCell {
@@ -158,8 +154,8 @@ pub struct MortonCell {
 impl MortonCell {
     /// Wraps the cell at `(x, y)` of the depth's grid.
     ///
-    /// The grid spans `2^depth` cells per axis; returns [`None`] when
-    /// either coordinate lies outside it.
+    /// The grid spans `2^depth` cells per axis; returns [`None`] when either coordinate lies
+    /// outside it.
     ///
     /// # Examples
     ///
@@ -218,9 +214,8 @@ impl MortonCell {
 
     /// Returns the four child cells in key order.
     ///
-    /// Child `i` holds the keys whose next axis bits are `x = i & 1`
-    /// and `y = i >> 1`; the children's ranges partition the parent's
-    /// in that order. Returns [`None`] at [`Depth::MAX`].
+    /// Child `i` holds the keys whose next axis bits are `x = i & 1` and `y = i >> 1`; the
+    /// children's ranges partition the parent's in that order. Returns [`None`] at [`Depth::MAX`].
     #[must_use]
     pub const fn children(self) -> Option<[Self; 4]> {
         let Some(depth) = Depth::new(self.depth.get() + 1) else {
@@ -249,8 +244,7 @@ impl MortonCell {
     }
 }
 
-/// Returns the key bits a cell at `depth` does not fix: the low
-/// `64 - 2 * depth` bits.
+/// Returns the key bits a cell at `depth` does not fix: the low `64 - 2 * depth` bits.
 const fn low_mask(depth: Depth) -> u64 {
     match depth.get() {
         0 => u64::MAX,

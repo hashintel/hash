@@ -1,18 +1,14 @@
 //! The regularized soft-target objective and its L-BFGS driver.
 //!
-//! Parameters are one flat vector `[w_C | w_P | w_O | b]`: the three
-//! coefficient rows in class order followed by the three intercepts.
-//! [`fit_model`] minimizes the weighted soft-label cross-entropy plus
-//! the coefficient L2 penalty from zero initial parameters and returns
-//! the parameters only when the Euclidean gradient norm reaches the
-//! configured tolerance.
+//! Parameters are one flat vector `[w_C | w_P | w_O | b]`: the three coefficient rows in class
+//! order followed by the three intercepts. [`fit_model`] minimizes the weighted soft-label
+//! cross-entropy plus the coefficient L2 penalty from zero initial parameters and returns the
+//! parameters only when the Euclidean gradient norm reaches the configured tolerance.
 //!
-//! The objective is evaluated in double precision; `f32` embeddings
-//! enter through [`AlignedVecN::dot_wide`] and
-//! [`DVecN::add_scaled`](crate::math::DVecN::add_scaled). A trial step
-//! that overflows evaluates to `f64::INFINITY`, which the Armijo
-//! condition rejects like any insufficient step, so the line search
-//! backs off toward the finite region instead of aborting.
+//! The objective is evaluated in double precision; `f32` embeddings enter through
+//! [`AlignedVecN::dot_wide`] and [`DVecN::add_scaled`](crate::math::DVecN::add_scaled). A trial
+//! step that overflows evaluates to `f64::INFINITY`, which the Armijo condition rejects like any
+//! insufficient step, so the line search backs off toward the finite region instead of aborting.
 
 use argmin::{
     core::{CostFunction, Executor, Gradient, State as _},
@@ -46,16 +42,14 @@ const BACKTRACKING_FACTOR: f64 = 0.5;
 
 /// The weighted objective over one training portion of the corpus.
 ///
-/// Membership is a view: the objective sees every row whose fold is
-/// not held out, and the full corpus when no fold is. Nothing is
-/// materialized per fold.
+/// Membership is a view: the objective sees every row whose fold is not held out, and the full
+/// corpus when no fold is. Nothing is materialized per fold.
 #[derive(Debug, Copy, Clone)]
 pub(super) struct Objective<'fit> {
     pub training: TrainingSet<'fit>,
     /// Fold assignment per training row.
     pub folds: &'fit [usize],
-    /// The validation fold excluded from this fit, [`None`] for the
-    /// full corpus.
+    /// The validation fold excluded from this fit, [`None`] for the full corpus.
     pub held_out: Option<usize>,
     pub regularization: f64,
 }
@@ -75,8 +69,7 @@ impl Objective<'_> {
             .map(|(row, _)| row)
     }
 
-    /// Requires positive target mass for every class in the training
-    /// portion.
+    /// Requires positive target mass for every class in the training portion.
     pub(super) fn validate_class_mass(&self) -> Result<(), FitError> {
         let mut masses = [0.0_f64; GeometryClass::COUNT];
         for row_index in self.members() {
@@ -209,9 +202,8 @@ pub(super) fn logits(
 ///
 /// # Errors
 ///
-/// Returns a [`FitError`] when a class has no target mass in the
-/// training portion, the optimizer fails internally, or the iteration
-/// bound is exhausted above the gradient tolerance.
+/// Returns a [`FitError`] when a class has no target mass in the training portion, the optimizer
+/// fails internally, or the iteration bound is exhausted above the gradient tolerance.
 pub(super) fn fit_model(
     training: TrainingSet<'_>,
     folds: &[usize],

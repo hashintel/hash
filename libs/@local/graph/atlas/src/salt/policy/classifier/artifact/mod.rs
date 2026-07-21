@@ -1,12 +1,9 @@
-//! The classifier's published form: one combined file and its
-//! validated read.
+//! The classifier's published form: one combined file and its validated read.
 //!
-//! A fitted classifier publishes as one [`crate::file::classifier`]
-//! file, so the parameters that predict together cannot fall out of
-//! sync. [`Classifier::from_artifact`] validates the domain invariants
-//! once and copies the model into owned aligned storage: the model is
-//! kilobyte-scale, so predictions run from resident parameters and no
-//! consumer holds the mapping.
+//! A fitted classifier publishes as one [`crate::file::classifier`] file, so the parameters that
+//! predict together cannot fall out of sync. [`Classifier::from_artifact`] validates the domain
+//! invariants once and copies the model into owned aligned storage: the model is kilobyte-scale, so
+//! predictions run from resident parameters and no consumer holds the mapping.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -106,8 +103,8 @@ impl WriteInto for Classifier {
 
     /// Writes the model as a classifier file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -135,14 +132,12 @@ impl WriteInto for Classifier {
 }
 
 impl Classifier {
-    /// Reads a model out of its opened file, validating the domain
-    /// invariants once.
+    /// Reads a model out of its opened file, validating the domain invariants once.
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates a model invariant: a
-    /// foreign dimension, a non-finite parameter, a non-positive
-    /// temperature or inverse scale, or training distances that are
+    /// Returns an error when the file violates a model invariant: a foreign dimension, a non-finite
+    /// parameter, a non-positive temperature or inverse scale, or training distances that are
     /// empty, negative, or unordered.
     #[tracing::instrument(skip_all)]
     pub(crate) fn from_artifact(file: &ClassifierFile) -> Result<Self, InvalidClassifierFile> {

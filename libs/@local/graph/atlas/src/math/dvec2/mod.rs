@@ -16,16 +16,15 @@ mod tests;
 
 /// A 2D vector of `f64` components, for accumulating over [`Vec2`] data.
 ///
-/// A [`DVec2`] is the double-precision accumulator twin of [`Vec2`]: sums
-/// of weighted points, centroids, and moment corrections live here while
-/// a reduction runs, then narrow back to the working precision once at
-/// the end via [`narrow`](Self::narrow). Widening a [`Vec2`] through
-/// [`From`] is exact for every value, so per-component products of
-/// widened inputs carry no `f32` rounding.
+/// A [`DVec2`] is the double-precision accumulator twin of [`Vec2`]: sums of weighted points,
+/// centroids, and moment corrections live here while a reduction runs, then narrow back to the
+/// working precision once at the end via [`narrow`](Self::narrow). Widening a [`Vec2`] through
+/// [`From`] is exact for every value, so per-component products of widened inputs carry no `f32`
+/// rounding.
 ///
-/// The surface is deliberately the accumulator's: arithmetic, the two
-/// products, and the exact widening and checked narrowing conversions.
-/// Geometry (interpolation, clamping, bounds) belongs to [`Vec2`].
+/// The surface is deliberately the accumulator's: arithmetic, the two products, and the exact
+/// widening and checked narrowing conversions. Geometry (interpolation, clamping, bounds) belongs
+/// to [`Vec2`].
 ///
 /// # Examples
 ///
@@ -90,8 +89,9 @@ impl DVec2 {
         self.x().mul_add(other.x(), self.y() * other.y())
     }
 
-    /// Returns the perpendicular dot product, the `z` component of the 3D
-    /// cross product; the sign semantics match [`Vec2::perp_dot`].
+    /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
+    ///
+    /// The sign semantics match [`Vec2::perp_dot`].
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> f64 {
@@ -105,8 +105,7 @@ impl DVec2 {
         self.dot(self)
     }
 
-    /// Returns `self * factor + accumulator` with one rounding per
-    /// component.
+    /// Returns `self * factor + accumulator` with one rounding per component.
     #[inline]
     #[must_use]
     pub const fn mul_add(self, factor: f64, accumulator: Self) -> Self {
@@ -118,8 +117,8 @@ impl DVec2 {
 
     /// Narrows both components to the working precision.
     ///
-    /// Returns [`None`] when either component leaves the finite `f32`
-    /// range, following [`narrow_f32`](super::narrow_f32).
+    /// Returns [`None`] when either component leaves the finite `f32` range, following
+    /// [`narrow_f32`](super::narrow_f32).
     #[inline]
     #[must_use]
     pub const fn narrow(self) -> Option<Vec2> {
@@ -185,16 +184,13 @@ const impl Div<f64> for DVec2 {
     }
 }
 
-/// Four double-precision 2D vectors packed in transposed
-/// (structure-of-arrays) order.
+/// Four double-precision 2D vectors packed in transposed (structure-of-arrays) order.
 ///
-/// The `f64` twin of [`Vec2x4T`]: all four `x` values followed by all
-/// four `y` values, aligned for [`Simd<f64, 8>`](Simd). The surface is
-/// fold-shaped - widen a [`Vec2x4T`] batch through [`From`] (exact for
-/// every component), form lane-wise products, accumulate with
-/// [`mul_add`](Self::mul_add), and terminally [`reduce`](Self::reduce)
-/// to a [`DVec2`] - because the type exists for double-precision moment
-/// accumulation over batches of working-precision points.
+/// The `f64` twin of [`Vec2x4T`]: all four `x` values followed by all four `y` values, aligned for
+/// [`Simd<f64, 8>`](Simd). The surface is fold-shaped - widen a [`Vec2x4T`] batch through [`From`]
+/// (exact for every component), form lane-wise products, accumulate with
+/// [`mul_add`](Self::mul_add), and terminally [`reduce`](Self::reduce) to a [`DVec2`] - because the
+/// type exists for double-precision moment accumulation over batches of working-precision points.
 ///
 /// # Examples
 ///
@@ -264,8 +260,8 @@ impl DVec2x4T {
 
     /// Returns all eight components as a single SIMD vector.
     ///
-    /// The lane order is the memory order: `x0 x1 x2 x3 y0 y1 y2 y3`.
-    /// This compiles to a single full-width vector load.
+    /// The lane order is the memory order: `x0 x1 x2 x3 y0 y1 y2 y3`. This compiles to a single
+    /// full-width vector load.
     #[inline]
     #[must_use]
     pub const fn to_simd(self) -> Simd<f64, 8> {
@@ -274,22 +270,19 @@ impl DVec2x4T {
 
     /// Returns the four pairwise dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA
-    /// the multiply-add is fused; for components widened from `f32` both
-    /// lane products are exact, so the fused and separate forms agree
-    /// bit for bit and the result carries a single rounding either way.
+    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add is fused;
+    /// for components widened from `f32` both lane products are exact, so the fused and separate
+    /// forms agree bit for bit and the result carries a single rounding either way.
     #[inline]
     #[must_use]
     pub fn dot(self, other: Self) -> Simd<f64, 4> {
         mul_add_f64x4(self.xs(), other.xs(), self.ys() * other.ys())
     }
 
-    /// Returns the four pairwise perpendicular dot products as SIMD
-    /// lanes.
+    /// Returns the four pairwise perpendicular dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign
-    /// semantics of [`Vec2::perp_dot`]. The rounding behaviour is
-    /// [`dot`](Self::dot)'s.
+    /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign semantics of [`Vec2::perp_dot`].
+    /// The rounding behaviour is [`dot`](Self::dot)'s.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f64, 4> {
@@ -303,13 +296,13 @@ impl DVec2x4T {
         self.dot(self)
     }
 
-    /// Returns `self * factor + accumulator`, with lane `i` of `factor`
-    /// scaling both components of vector `i`.
+    /// Returns `self * factor + accumulator`.
     ///
-    /// This is the weighted-moment accumulation step: on targets with
-    /// native FMA each component fuses, and for components widened from
-    /// `f32` scaled by a widened weight the products are exact, so the
-    /// fused and separate forms agree bit for bit.
+    /// With lane `i` of `factor` scaling both components of vector `i`.
+    ///
+    /// This is the weighted-moment accumulation step: on targets with native FMA each component
+    /// fuses, and for components widened from `f32` scaled by a widened weight the products are
+    /// exact, so the fused and separate forms agree bit for bit.
     #[inline]
     #[must_use]
     pub fn mul_add(self, factor: Simd<f64, 4>, accumulator: Self) -> Self {
@@ -319,8 +312,7 @@ impl DVec2x4T {
         )
     }
 
-    /// Sums the four vectors into one [`DVec2`]: the terminal reduction
-    /// of an accumulation.
+    /// Sums the four vectors into one [`DVec2`]: the terminal reduction of an accumulation.
     #[inline]
     #[must_use]
     pub fn reduce(self) -> DVec2 {

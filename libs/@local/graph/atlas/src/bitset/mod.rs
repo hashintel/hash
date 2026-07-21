@@ -1,10 +1,9 @@
 //! Fixed-capacity dense bit sets over row domains.
 //!
-//! [`BitSet`] marks membership over a dense zero-based index domain in
-//! one bit per index - an eighth of a `Vec<bool>` - packed into `u64`
-//! words, so iteration skips absent runs sixty-four indices at a time.
-//! The capacity is fixed at construction: the set answers for exactly
-//! the indices below it and panics beyond, like a slice.
+//! [`BitSet`] marks membership over a dense zero-based index domain in one bit per index - an
+//! eighth of a `Vec<bool>` - packed into `u64` words, so iteration skips absent runs sixty-four
+//! indices at a time. The capacity is fixed at construction: the set answers for exactly the
+//! indices below it and panics beyond, like a slice.
 
 #[cfg(test)]
 mod tests;
@@ -82,6 +81,16 @@ impl BitSet {
     pub const fn insert(&mut self, index: usize) {
         assert!(index < self.len, "the index lies beyond the capacity");
         self.words[index >> Self::WORD_SHIFT] |= 1 << (index & Self::WORD_MASK);
+    }
+
+    /// Removes every index absent from `other`, leaving the intersection.
+    ///
+    /// The capacities may differ: an index beyond `other`'s capacity is absent from it by
+    /// definition, so it is removed here.
+    pub fn intersect_with(&mut self, other: &Self) {
+        for (index, word) in self.words.iter_mut().enumerate() {
+            *word &= other.words.get(index).copied().unwrap_or(0);
+        }
     }
 
     /// Returns the number of indices in the set.

@@ -9,12 +9,10 @@ use crate::file::region::{write_padding, write_region};
 
 /// Streams the model regions as a classifier file.
 ///
-/// `coefficients` holds one `f64[D]` row per class in class order,
-/// `mean` and `inverse_scales` the applicability moments, and
-/// `distances` the sorted training distances; the header records the
-/// dimension `D = mean.len()`, the distance count, and the scalar
-/// parameters verbatim. Every region streams in file order behind the
-/// header; wrap a raw [`File`](std::fs::File) in a
+/// `coefficients` holds one `f64[D]` row per class in class order, `mean` and `inverse_scales` the
+/// applicability moments, and `distances` the sorted training distances; the header records the
+/// dimension `D = mean.len()`, the distance count, and the scalar parameters verbatim. Every region
+/// streams in file order behind the header; wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter) when the regions are small.
 ///
 /// # Errors
@@ -23,8 +21,7 @@ use crate::file::region::{write_padding, write_region};
 ///
 /// # Panics
 ///
-/// Panics when the regions disagree on the dimension, which no file
-/// geometry can represent.
+/// Panics when the regions disagree on the dimension, which no file geometry can represent.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; disagreeing regions are a caller contract \

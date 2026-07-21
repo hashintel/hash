@@ -238,21 +238,23 @@ fn normalize_into_stays_exact_far_from_the_origin() {
     assert_eq!(mapped, [Vec2::splat(-0.5)]);
 }
 
-/// A point with coordinates bounded to the well-conditioned `-1e3..1e3`
-/// range; the bounding-box laws are about corner algebra, not overflow.
+/// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
+///
+/// The bounding-box laws are about corner algebra, not overflow.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// A point vector short enough to keep case counts sane while crossing
-/// the SIMD fold's chunk boundary in both directions.
+/// A point vector short enough to keep case counts sane while crossing the SIMD fold's chunk
+/// boundary in both directions.
 fn points_strategy() -> impl Strategy<Value = Vec<Vec2>> {
     prop::collection::vec(point_strategy(), 0..64)
 }
 
-/// A well-conditioned box: a corner bounded to `-1e3..1e3` and per-axis
-/// extents in `1..1e3`, bounded away from the degenerate scales `fit`
-/// rejects.
+/// A well-conditioned box.
+///
+/// A corner bounded to `-1e3..1e3` and per-axis extents in `1..1e3`, bounded away from the
+/// degenerate scales `fit` rejects.
 fn bounds_strategy() -> impl Strategy<Value = Bounds2> {
     (point_strategy(), 1.0_f32..1e3, 1.0_f32..1e3).prop_map(|(min, width, height)| {
         Bounds2::new(min, min + Vec2::new(width, height))
@@ -261,9 +263,7 @@ fn bounds_strategy() -> impl Strategy<Value = Bounds2> {
 }
 
 proptest! {
-    /// The box computed from a point set contains every input point: the
-    /// min/max folds are exact, so containment is boundary-inclusive with
-    /// no tolerance.
+    /// The box computed from a point set contains every input point: the min/max folds are exact, so containment is boundary-inclusive with no tolerance.
     #[test]
     fn from_points_contains_every_input_point(points in points_strategy()) {
         prop_assume!(!points.is_empty());
@@ -276,8 +276,7 @@ proptest! {
         }
     }
 
-    /// The union contains both operands' corners, exactly: union folds
-    /// min/max, which never rounds.
+    /// The union contains both operands' corners, exactly: union folds min/max, which never rounds.
     #[test]
     fn union_contains_both_operands_corners(
         left in bounds_strategy(),
@@ -291,9 +290,7 @@ proptest! {
         }
     }
 
-    /// The SIMD fold agrees with the scalar fold on arbitrary point
-    /// vectors, including the empty one: both compute the same exact
-    /// min/max corners (or the same rejection).
+    /// The SIMD fold agrees with the scalar fold on arbitrary point vectors, including the empty one: both compute the same exact min/max corners (or the same rejection).
     #[test]
     fn from_slice_equals_from_points_on_arbitrary_points(points in points_strategy()) {
         prop_assert_eq!(
@@ -302,10 +299,7 @@ proptest! {
         );
     }
 
-    /// The batched lanes and the scalar tail of `normalize_into` round
-    /// identically: mapping a slice equals mapping every point alone
-    /// (a single-point slice takes the scalar path), so the output is
-    /// independent of how points fall into batches.
+    /// The batched lanes and the scalar tail of `normalize_into` round identically: mapping a slice equals mapping every point alone (a single-point slice takes the scalar path), so the output is independent of how points fall into batches.
     #[test]
     fn normalize_into_agrees_between_batched_and_scalar_paths(
         points in points_strategy(),
@@ -320,11 +314,7 @@ proptest! {
         }
     }
 
-    /// The fitted transform maps source corners onto target corners, up
-    /// to rounding scaled by the target box's magnitude: extents are
-    /// bounded to `1..1e3` (well-conditioned scale factors), and the
-    /// cancellation in `point - min` is amplified by at most the extent
-    /// ratio.
+    /// The fitted transform maps source corners onto target corners, up to rounding scaled by the target box's magnitude: extents are bounded to `1..1e3` (well-conditioned scale factors), and the cancellation in `point - min` is amplified by at most the extent ratio.
     #[test]
     fn fit_maps_source_corners_onto_target_corners(
         source in bounds_strategy(),

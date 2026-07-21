@@ -13,9 +13,8 @@
 //!   admission contract names; the initial generation has no signed policies, so both sets are
 //!   empty here.
 //!
-//! Every sampler draws from a caller-supplied random stream and nothing
-//! else: equal artifacts, stream types, and seeds reproduce a batch
-//! exactly.
+//! Every sampler draws from a caller-supplied random stream and nothing else: equal artifacts,
+//! stream types, and seeds reproduce a batch exactly.
 
 #[cfg(test)]
 mod tests;
@@ -39,24 +38,24 @@ use crate::{
 
 /// Weight-proportional semantic-positive edge sampler.
 ///
-/// Draws are independent (with replacement): a duplicate edge in one
-/// batch is a legitimate sample, and the estimator needs no
-/// without-replacement correction. The drawn weight itself stays out of
+/// Draws are independent (with replacement): a duplicate edge in one batch is a legitimate sample,
+/// and the estimator needs no without-replacement correction. The drawn weight itself stays out of
 /// the emitted pair - proportional sampling already accounts for it.
 #[derive(Debug)]
 pub(crate) struct SemanticEdgeSampler<'graph> {
     graph: SemanticGraphView<'graph>,
-    /// Cumulative row weight totals, `rows + 1` entries from zero;
-    /// accumulated in double precision in row-major edge order, the
-    /// same order the per-draw walk re-accumulates.
+    /// Cumulative row weight totals, `rows + 1` entries from zero.
+    ///
+    /// Accumulated in double precision in row-major edge order, the same order the per-draw walk
+    /// re-accumulates.
     cumulative: Box<[f64]>,
 }
 
 impl<'graph> SemanticEdgeSampler<'graph> {
     /// Indexes a semantic graph for weight-proportional draws.
     ///
-    /// Returns [`None`] when the graph holds no edge weight to draw
-    /// from: a corpus without semantic edges cannot train.
+    /// Returns [`None`] when the graph holds no edge weight to draw from: a corpus without semantic
+    /// edges cannot train.
     #[must_use]
     pub(crate) fn new(graph: SemanticGraphView<'graph>) -> Option<Self> {
         let mut cumulative = Vec::with_capacity(graph.rows() + 1);
@@ -82,9 +81,9 @@ impl<'graph> SemanticEdgeSampler<'graph> {
 
     /// Returns the graph's total positive edge weight.
     ///
-    /// The semantic term's estimator scales its batch mean by this
-    /// total, keeping the loss coefficient's meaning independent of
-    /// corpus size. Accumulated in double precision, rounded on return.
+    /// The semantic term's estimator scales its batch mean by this total, keeping the loss
+    /// coefficient's meaning independent of corpus size. Accumulated in double precision, rounded
+    /// on return.
     #[must_use]
     pub(crate) fn total_weight(&self) -> f32 {
         #[expect(
@@ -148,12 +147,11 @@ pub(crate) struct SampledRelationEdges<'index> {
 
 /// Per-type-capped relation attraction sampler.
 ///
-/// Relation types are drawn uniformly without replacement, then each
-/// selected type contributes at most the per-type cap of distinct
-/// edges: the cap is what keeps a high-volume relation from owning a
-/// batch. Uniform type selection is the strongest anti-skew choice; a
-/// square-root-of-edge-count weighting is the sanctioned alternative if
-/// quality evidence shows the cap alone starves high-volume relations.
+/// Relation types are drawn uniformly without replacement, then each selected type contributes at
+/// most the per-type cap of distinct edges: the cap is what keeps a high-volume relation from
+/// owning a batch. Uniform type selection is the strongest anti-skew choice; a
+/// square-root-of-edge-count weighting is the sanctioned alternative if quality evidence shows the
+/// cap alone starves high-volume relations.
 #[derive(Debug)]
 pub(crate) struct RelationEdgeSampler<'index> {
     groups: &'index [AttractionGroup],
@@ -171,8 +169,8 @@ impl<'index> RelationEdgeSampler<'index> {
 
     /// Draws up to `types` relation types with at most `cap` edges each.
     ///
-    /// Fewer types than requested means every type participates; a
-    /// group smaller than the cap contributes all its edges.
+    /// Fewer types than requested means every type participates; a group smaller than the cap
+    /// contributes all its edges.
     pub(crate) fn sample(
         &self,
         types: usize,
@@ -217,14 +215,14 @@ pub(crate) struct OrdinaryNegativeSampler<'view> {
 }
 
 impl<'view> OrdinaryNegativeSampler<'view> {
-    /// Binds the veto sources: the semantic-positive set and the
-    /// protection evidence judged under `config`.
+    /// Binds the veto sources.
+    ///
+    /// The semantic-positive set and the protection evidence judged under `config`.
     ///
     /// # Panics
     ///
-    /// Panics when the two views disagree about the row domain; both
-    /// artifacts come from one generation, so a mismatch is a wiring
-    /// defect.
+    /// Panics when the two views disagree about the row domain; both artifacts come from one
+    /// generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
         semantic: SemanticGraphView<'view>,
@@ -246,11 +244,10 @@ impl<'view> OrdinaryNegativeSampler<'view> {
 
     /// Draws up to `count` distinct admissible pairs.
     ///
-    /// Rejection is bounded: the attempt budget guarantees termination
-    /// when the admissible pool is smaller than the request (dense tiny
-    /// corpora, aggressive protection), where the honest outcome is a
-    /// shorter batch. At corpus scale the vetoed fraction of all pairs
-    /// is vanishing and the budget never binds.
+    /// Rejection is bounded: the attempt budget guarantees termination when the admissible pool is
+    /// smaller than the request (dense tiny corpora, aggressive protection), where the honest
+    /// outcome is a shorter batch. At corpus scale the vetoed fraction of all pairs is vanishing
+    /// and the budget never binds.
     pub(crate) fn sample(&self, count: usize, mut rng: impl Rng) -> Vec<NodePair> {
         let rows = self.semantic.rows();
         if rows < 2 {

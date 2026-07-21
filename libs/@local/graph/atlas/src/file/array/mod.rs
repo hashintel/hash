@@ -1,14 +1,12 @@
 //! Raw scalar array files.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! An array file is a 4096-byte [`FileHeader`] followed by the array's
-//! elements, packed little-endian in row-major order with nothing between
-//! them:
+//! An array file is a 4096-byte [`FileHeader`] followed by the array's elements, packed
+//! little-endian in row-major order with nothing between them:
 //!
 //! ```text
 //! | offset | size | field                                          |
@@ -21,37 +19,32 @@
 //! | 4096   |      | data                                           |
 //! ```
 //!
-//! The shape is the longest prefix of nonzero dimensions; the first zero
-//! terminates it and everything after is ignored. An empty shape (leading
-//! zero) is a zero-element array, and the header is the whole file. There
-//! is no rank field and no invalid shape: every bit pattern means
-//! something, so parsing a header never validates more than the magic,
-//! version, and variant, which are pinned single-variant enums that fail
-//! byte-level parsing for files this module does not speak.
+//! The shape is the longest prefix of nonzero dimensions; the first zero terminates it and
+//! everything after is ignored. An empty shape (leading zero) is a zero-element array, and the
+//! header is the whole file. There is no rank field and no invalid shape: every bit pattern means
+//! something, so parsing a header never validates more than the magic, version, and variant, which
+//! are pinned single-variant enums that fail byte-level parsing for files this module does not
+//! speak.
 //!
-//! The single structural rule lives where it can be checked totally: the
-//! file length equals `4096 + element count * element width`
-//! ([`FileHeader::expected_file_len`]). A shape whose element count or
-//! byte length overflows `u64` matches no real file and is rejected by
-//! that same rule.
+//! The single structural rule lives where it can be checked totally: the file length equals `4096 +
+//! element count * element width` ([`FileHeader::expected_file_len`]). A shape whose element count
+//! or byte length overflows `u64` matches no real file and is rejected by that same rule.
 //!
 //! # Mapping and alignment
 //!
-//! Map the whole file and slice the data at [`FileHeader::SIZE`]; never
-//! map at a nonzero file offset. A whole-file mapping starts page-aligned
-//! on every supported target, every page size is a multiple of 4096, and
-//! the data begins 4096 bytes in, so the data slice is 4096-byte aligned:
-//! aligned for every scalar and SIMD width without further checks. This
-//! guarantee is a property of mapping; a header read into an arbitrary
-//! heap buffer is only as aligned as the buffer.
+//! Map the whole file and slice the data at [`FileHeader::SIZE`]; never map at a nonzero file
+//! offset. A whole-file mapping starts page-aligned on every supported target, every page size is a
+//! multiple of 4096, and the data begins 4096 bytes in, so the data slice is 4096-byte aligned:
+//! aligned for every scalar and SIMD width without further checks. This guarantee is a property of
+//! mapping; a header read into an arbitrary heap buffer is only as aligned as the buffer.
 //!
-//! There are no checksums. Torn writes are prevented by writing to a
-//! temporary path and renaming into place; corruption detection, where
-//! wanted, is a strong hash stored beside the file by whoever names it.
+//! There are no checksums. Torn writes are prevented by writing to a temporary path and renaming
+//! into place; corruption detection, where wanted, is a strong hash stored beside the file by
+//! whoever names it.
 //!
-//! [`ArrayFile`] opens a file under these rules and hands out typed views
-//! of its data; [`ArrayWriter`] streams rows behind a reserved header for
-//! arrays whose leading dimension is discovered by writing.
+//! [`ArrayFile`] opens a file under these rules and hands out typed views of its data;
+//! [`ArrayWriter`] streams rows behind a reserved header for arrays whose leading dimension is
+//! discovered by writing.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -114,8 +107,9 @@ impl FileHeaderMagic {
 }
 
 // not pretty, but allows us to pin a specific version, required for the derive
-/// A layout version this module implements. Byte-level construction admits
-/// no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -221,10 +215,9 @@ impl Dim {
 
 /// A scalar array shape: the longest prefix of nonzero dimensions.
 ///
-/// The first zero dimension terminates the shape and everything after it
-/// is ignored, so every bit pattern is a meaningful shape and there is
-/// nothing to validate. An empty shape (a leading zero) is a zero-element
-/// array.
+/// The first zero dimension terminates the shape and everything after it is ignored, so every bit
+/// pattern is a meaningful shape and there is nothing to validate. An empty shape (a leading zero)
+/// is a zero-element array.
 #[derive(
     Debug,
     Copy,
@@ -246,9 +239,8 @@ impl ArrayShape {
 
     /// Creates a shape from its dimensions.
     ///
-    /// Returns `None` when `dims` holds more than [`Self::MAX_RANK`]
-    /// dimensions. A zero dimension is allowed; it terminates the shape
-    /// there.
+    /// Returns `None` when `dims` holds more than [`Self::MAX_RANK`] dimensions. A zero dimension
+    /// is allowed; it terminates the shape there.
     #[must_use]
     pub(crate) const fn new(dims: &[Dim]) -> Option<Self> {
         if dims.len() > Self::MAX_RANK {
@@ -275,8 +267,8 @@ impl ArrayShape {
 
     /// Returns the number of elements.
     ///
-    /// The empty shape has zero elements; a shape whose product overflows
-    /// `u64` returns `None` and matches no real file.
+    /// The empty shape has zero elements; a shape whose product overflows `u64` returns `None` and
+    /// matches no real file.
     #[must_use]
     pub(crate) fn element_count(&self) -> Option<u64> {
         let dims = self.dims();
@@ -291,8 +283,8 @@ impl ArrayShape {
 
 /// The 4096-byte header of an array file.
 ///
-/// The data follows at offset [`Self::SIZE`], so a whole-file mapping
-/// yields a 4096-byte-aligned data slice.
+/// The data follows at offset [`Self::SIZE`], so a whole-file mapping yields a 4096-byte-aligned
+/// data slice.
 #[derive(
     Copy,
     Clone,
@@ -343,8 +335,7 @@ impl FileHeader {
 
     /// Returns the data length in bytes.
     ///
-    /// Returns `None` on `u64` overflow, in which case no real file
-    /// matches the header.
+    /// Returns `None` on `u64` overflow, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn byte_length(&self) -> Option<u64> {
         self.shape
@@ -354,9 +345,9 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected: it is the
-    /// format's single structural rule. Returns `None` on `u64` overflow,
-    /// in which case no real file matches the header.
+    /// A file whose length differs from this value is rejected: it is the format's single
+    /// structural rule. Returns `None` on `u64` overflow, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         self.byte_length()?.checked_add(Self::SIZE as u64)

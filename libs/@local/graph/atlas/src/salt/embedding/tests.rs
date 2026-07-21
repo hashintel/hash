@@ -25,8 +25,9 @@ fn fingerprint(preimage: &[u8]) -> EmbedderFingerprint {
     EmbedderFingerprint::new(hasher.finalize())
 }
 
-/// A deterministic vector for one text: component 0 is the text length
-/// plus the embedder's offset, every other component is zero.
+/// A deterministic vector for one text.
+///
+/// Component 0 is the text length plus the embedder's offset, every other component is zero.
 #[expect(
     clippy::cast_precision_loss,
     reason = "fixture card texts are a handful of bytes, exactly representable in f32"

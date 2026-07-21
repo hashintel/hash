@@ -1,8 +1,7 @@
 //! A deterministic stand-in for the pipeline's embedding provider.
 //!
-//! The pipeline consumes a card embedder it does not produce.
-//! [`StubEmbedder`] keeps every downstream stage real while no
-//! provider credentials are in play, and its fingerprint records the
+//! The pipeline consumes a card embedder it does not produce. [`StubEmbedder`] keeps every
+//! downstream stage real while no provider credentials are in play, and its fingerprint records the
 //! substitution in every generation it publishes.
 
 use core::future::ready;
@@ -14,12 +13,10 @@ use crate::{
     salt::embedding::{CardEmbedder, EmbedderFingerprint},
 };
 
-/// A deterministic provider deriving each embedding from its text
-/// hash.
+/// A deterministic provider deriving each embedding from its text hash.
 ///
-/// The stub keeps provider latency and credentials out of the
-/// pipeline while the card table stays content-addressed, so
-/// prior-reuse runs exercise the real prior-table path.
+/// The stub keeps provider latency and credentials out of the pipeline while the card table stays
+/// content-addressed, so prior-reuse runs exercise the real prior-table path.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct StubEmbedder;
 

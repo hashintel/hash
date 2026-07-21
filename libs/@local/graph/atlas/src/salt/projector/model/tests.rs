@@ -1,9 +1,8 @@
 //! Certificates for the projector model's initialization contracts.
 //!
-//! Identity assertions are bit-exact by design: the zero-initialized
-//! layers contribute exactly zero, `1 + 0 = 1` exactly, and `h * 1 + 0`
-//! reproduces `h` bit for bit, so any drift is a broken contract, not
-//! rounding.
+//! Identity assertions are bit-exact by design: the zero-initialized layers contribute exactly
+//! zero, `1 + 0 = 1` exactly, and `h * 1 + 0` reproduces `h` bit for bit, so any drift is a broken
+//! contract, not rounding.
 
 use core::num::NonZero;
 
@@ -97,9 +96,10 @@ fn film_is_identity_at_initialization_for_every_condition() {
     }
 }
 
-/// Pins the modulation arithmetic the identity certificates cannot
-/// see: the `[dgamma; beta]` column order, the `+ 1` on gamma, and
-/// per-row conditions. Every value is dyadic, so equality is exact.
+/// Pins the modulation arithmetic the identity certificates cannot see.
+///
+/// The `[dgamma; beta]` column order, the `+ 1` on gamma, and per-row conditions. Every value is
+/// dyadic, so equality is exact.
 #[test]
 fn film_modulates_by_hand_computed_values() {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(31);

@@ -94,10 +94,9 @@ fn bullets<'this, T: Display>(header: &'this str, items: &'this [T]) -> impl Dis
 
 /// Structured card body; its [`Display`] output is the canonical text.
 ///
-/// Adapters construct the contents directly from their own data: every
-/// field is public, [`Phrase::new`] normalizes labelled prose, and
-/// [`format::build_card`](super::format::build_card) budgets, renders,
-/// and lints the result.
+/// Adapters construct the contents directly from their own data: every field is public,
+/// [`Phrase::new`] normalizes labelled prose, and [`format::build_card`](super::format::build_card)
+/// budgets, renders, and lints the result.
 pub(crate) struct CardContents<'text, A: Allocator = Global> {
     pub prelude: Prelude<'text, A>,
     pub ancestors: Vec<Phrase<'text>, A>,
@@ -119,9 +118,8 @@ impl<A: Allocator> CardContents<'_, A> {
         self.examples.len()
     }
 
-    /// Collapses a lone at-most-one-target endpoint constraint into the
-    /// independent source and target sections, replacing any
-    /// adapter-supplied summaries.
+    /// Collapses a lone at-most-one-target endpoint constraint into the independent source and
+    /// target sections, replacing any adapter-supplied summaries.
     pub(super) fn hoist_simple_pair(&mut self) {
         let [only] = &*self.endpoint_constraints else {
             return;
@@ -175,8 +173,9 @@ impl<A: Allocator> CardContents<'_, A> {
         }
     }
 
-    /// Removes the last example of the largest multi-example group,
-    /// preferring the latest such group on ties.
+    /// Removes the last example of the largest multi-example group.
+    ///
+    /// Prefers the latest such group on ties.
     fn drop_example_slot(&mut self) -> Option<Cow<'static, str>> {
         let index = {
             let groups = self.example_groups();

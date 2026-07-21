@@ -41,10 +41,10 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A probe-scale corpus for the real fit: unit-norm pseudo-random
-/// representations whose canonical embeddings extend them with zeros,
-/// one node type alternating between two ontology rows, and one link
-/// type.
+/// A probe-scale corpus for the real fit.
+///
+/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
+/// node type alternating between two ontology rows, and one link type.
 fn dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x27A);
     let mut canonical = HashMap::new();
@@ -152,8 +152,9 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus: the
-/// supplied model input of the fixture runs.
+/// A deterministic classifier fitted from a synthetic corpus.
+///
+/// The supplied model input of the fixture runs.
 fn classifier() -> ClassifierInput {
     const ROWS: usize = 4;
     // Coprime to the dimension, so no two corpus rows repeat.
@@ -275,8 +276,7 @@ async fn a_passing_run_activates_the_generation() {
     );
 }
 
-/// A run whose report refuses admission publishes a candidate and
-/// leaves the pointer alone.
+/// A run whose report refuses admission publishes a candidate and leaves the pointer alone.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_refused_run_leaves_a_candidate() {
@@ -317,8 +317,7 @@ async fn a_refused_run_leaves_a_candidate() {
     );
 }
 
-/// The second run reuses the active generation as its prior; a fresh
-/// run ignores it.
+/// The second run reuses the active generation as its prior; a fresh run ignores it.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn prior_modes_route_reuse() {

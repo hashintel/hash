@@ -1,21 +1,17 @@
 //! Classifier training-set assembly over a validated annotation corpus.
 //!
-//! [`assemble`] turns an [`AnnotationCorpus`] into everything the
-//! classifier fit consumes: each admitted card is rendered through the
-//! canonical card template, embedded, given a smoothed soft target and
-//! a vote weight, and assigned to the indivisible validation group its
-//! leakage axes and near-duplicate neighbours imply. The output is
-//! deterministic in the corpus bytes, the embedding provider, and the
-//! [`AssemblyConfig`], so one corpus assembles to one training set.
+//! [`assemble`] turns an [`AnnotationCorpus`] into everything the classifier fit consumes: each
+//! admitted card is rendered through the canonical card template, embedded, given a smoothed soft
+//! target and a vote weight, and assigned to the indivisible validation group its leakage axes and
+//! near-duplicate neighbours imply. The output is deterministic in the corpus bytes, the embedding
+//! provider, and the [`AssemblyConfig`], so one corpus assembles to one training set.
 //!
-//! Rendering goes through the same template, budgets, and lint as
-//! generation-time production cards, so classifier-time and
-//! generation-time card text cannot drift from each other.
+//! Rendering goes through the same template, budgets, and lint as generation-time production cards,
+//! so classifier-time and generation-time card text cannot drift from each other.
 //!
 //! # Card policy
 //!
-//! Flags record facts; this module is the explicit policy deciding
-//! what they mean for training:
+//! Flags record facts; this module is the explicit policy deciding what they mean for training:
 //!
 //! - shot-excluded cards are excluded: their verdicts were disclosed in judging prompts, so
 //!   training on them would leak the prompt material into the model;
@@ -30,52 +26,39 @@
 //!
 //! # Targets and weights
 //!
-//! With `n_k` the card's votes for geometry class `k` (of `K = 3`
-//! classes) and `m = sum_k n_k` its geometry-vote total, the soft
-//! target is the Dirichlet posterior mean
+//! With `n_k` the card's votes for geometry class `k` (of `K = 3` classes) and `m = sum_k n_k` its
+//! geometry-vote total, the soft target is the Dirichlet posterior mean
 //!
 //! ```text
 //! q_k = (n_k + alpha) / (m + K * alpha),    alpha = 1/2,
 //! ```
 //!
-//! the Jeffreys prior: a card's target stays a proper distribution at
-//! any vote count, and few-vote cards shrink toward uniform instead
-//! of asserting certainty their evidence does not carry. The row
-//! weight is `m`, so the fit's cross-entropy counts each geometry
-//! vote once.
+//! the Jeffreys prior: a card's target stays a proper distribution at any vote count, and few-vote
+//! cards shrink toward uniform instead of asserting certainty their evidence does not carry. The
+//! row weight is `m`, so the fit's cross-entropy counts each geometry vote once.
 //!
 //! # Validation groups
 //!
-//! Rows that could leak shared content across a train/validation
-//! split must share a group. A union-find joins cards through every
-//! value-keyed leakage axis - relation family, inverse pair (through
-//! the named identity, on or off corpus), base URL - and through
-//! near-duplication of the rendered cards themselves: two rows join
-//! when the cosine distance `1 - cos` between their embeddings is at
-//! most [`AssemblyConfig::near_duplicate_epsilon`], and the exact
-//! all-pairs graph is affordable at annotation-corpus scale. The
-//! group label is the SHA-256 over the component's member identity
-//! URLs in ascending byte order, so it is stable under any traversal
-//! order.
+//! Rows that could leak shared content across a train/validation split must share a group. A
+//! union-find joins cards through every value-keyed leakage axis - relation family, inverse pair
+//! (through the named identity, on or off corpus), base URL - and through near-duplication of the
+//! rendered cards themselves: two rows join when the cosine distance `1 - cos` between their
+//! embeddings is at most [`AssemblyConfig::near_duplicate_epsilon`], and the exact all-pairs graph
+//! is affordable at annotation-corpus scale. The group label is the SHA-256 over the component's
+//! member identity URLs in ascending byte order, so it is stable under any traversal order.
 //!
-//! A component larger than
-//! [`AssemblyConfig::maximum_group_fraction`] of the trained rows
-//! would starve grouped validation, so subdivision relaxes its axes
-//! in information order - the axis whose one edge says least about
-//! leakage goes first. Family edges drop inside the component, then
-//! base-URL edges, then near-duplicate edges cut farthest-first (the
-//! kept cut is the largest distance under which every part fits the
-//! budget). Identity and inverse edges never relax: a part they alone
-//! hold over budget is accepted and recorded in the evidence rather
-//! than split. Relaxation is per-component - groups already within
-//! budget keep every axis.
+//! A component larger than [`AssemblyConfig::maximum_group_fraction`] of the trained rows would
+//! starve grouped validation, so subdivision relaxes its axes in information order - the axis whose
+//! one edge says least about leakage goes first. Family edges drop inside the component, then
+//! base-URL edges, then near-duplicate edges cut farthest-first (the kept cut is the largest
+//! distance under which every part fits the budget). Identity and inverse edges never relax: a part
+//! they alone hold over budget is accepted and recorded in the evidence rather than split.
+//! Relaxation is per-component - groups already within budget keep every axis.
 //!
-//! Publisher is not a union axis: on the live corpus it collapses the
-//! 1,684 cards into 5 components (1,619 under `wikidata`), leaving
-//! grouped validation nothing to validate - and a publisher axis
-//! would teach fold assignment to segregate publishers, where
-//! validation wants them intermingled. The axis stays on the wire
-//! as a recorded fact for stratified evaluation.
+//! Publisher is not a union axis: on the live corpus it collapses the 1,684 cards into 5 components
+//! (1,619 under `wikidata`), leaving grouped validation nothing to validate - and a publisher axis
+//! would teach fold assignment to segregate publishers, where validation wants them intermingled.
+//! The axis stays on the wire as a recorded fact for stratified evaluation.
 
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
@@ -96,29 +79,22 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// The Dirichlet smoothing strength: the Jeffreys prior for a
-/// three-class multinomial.
+/// The Dirichlet smoothing strength: the Jeffreys prior for a three-class multinomial.
 const DIRICHLET_ALPHA: f64 = 0.5;
 
 /// The prose language every corpus card must declare.
 ///
-/// The template's sentence segmentation and token budgets are
-/// properties of one corpus language, and production cards render
-/// under the same tag.
+/// The template's sentence segmentation and token budgets are properties of one corpus language,
+/// and production cards render under the same tag.
 const CARD_LANGUAGE: &str = "en";
 
 /// Assembly settings.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct AssemblyConfig {
-    /// The cosine-distance threshold under which two rendered cards
-    /// count as near-duplicates and share a validation group, on the
-    /// `1 - cos` scale in `[0, 2]`. Positive. Defaults to `2e-3`, the
-    /// near-tie threshold established for this embedding family.
+    /// The cosine-distance threshold under which two rendered cards count as near-duplicates and share a validation group, on the `1 - cos` scale in `[0, 2]`. Positive. Defaults to `2e-3`, the near-tie threshold established for this embedding family.
     pub near_duplicate_epsilon: f64 = 2.0e-3,
 
-    /// The largest fraction of the trained rows one validation group
-    /// may hold before subdivision relaxes its weakest axes, in
-    /// `(0, 1]`. Defaults to `0.1`.
+    /// The largest fraction of the trained rows one validation group may hold before subdivision relaxes its weakest axes, in `(0, 1]`. Defaults to `0.1`.
     pub maximum_group_fraction: f64 = 0.1,
 }
 
@@ -132,8 +108,7 @@ pub(crate) enum AssemblyError<E> {
         /// The declared language tag.
         language: Box<str>,
     },
-    /// An endpoint constraint's minimum target count exceeds its
-    /// maximum.
+    /// An endpoint constraint's minimum target count exceeds its maximum.
     Cardinality {
         /// The card's corpus index.
         card: usize,
@@ -182,9 +157,8 @@ impl<E: core::error::Error + 'static> core::error::Error for AssemblyError<E> {
 
 /// What one assembly admitted, dropped, and derived.
 ///
-/// Destined for the generation metadata beside the fit evidence, so a
-/// published classifier names the corpus policy outcomes it was
-/// trained under.
+/// Destined for the generation metadata beside the fit evidence, so a published classifier names
+/// the corpus policy outcomes it was trained under.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AssemblyEvidence {
     /// Cards the corpus supplied.
@@ -199,11 +173,9 @@ pub(crate) struct AssemblyEvidence {
     pub trained: usize,
     /// Distinct card texts embedded.
     pub unique_texts: usize,
-    /// Rows whose rendering exceeded the hard budget or dropped more
-    /// than half their examples.
+    /// Rows whose rendering exceeded the hard budget or dropped more than half their examples.
     pub severely_truncated: usize,
-    /// Indivisible validation groups over the trained rows, after
-    /// subdivision.
+    /// Indivisible validation groups over the trained rows, after subdivision.
     pub fold_groups: usize,
     /// Near-duplicate pairs found at the configured threshold.
     pub near_duplicate_pairs: usize,
@@ -212,8 +184,7 @@ pub(crate) struct AssemblyEvidence {
     /// Over-budget components subdivision split.
     #[serde(default)]
     pub subdivided_groups: usize,
-    /// Groups accepted over budget because identity and
-    /// near-duplication alone hold them together.
+    /// Groups accepted over budget because identity and near-duplication alone hold them together.
     #[serde(default)]
     pub oversized_accepted: usize,
     /// The weakest axis rank subdivision engaged.
@@ -221,8 +192,9 @@ pub(crate) struct AssemblyEvidence {
     pub deepest_relaxation: Relaxation,
 }
 
-/// The axis rank a subdivision relaxed, ordered by the leakage
-/// information one edge of the axis carries.
+/// The axis rank a subdivision relaxed.
+///
+/// Ordered by the leakage information one edge of the axis carries.
 #[derive(
     Debug,
     Copy,
@@ -244,13 +216,11 @@ pub(crate) enum Relaxation {
     Family,
     /// Base-URL edges were dropped inside over-budget groups.
     Base,
-    /// Near-duplicate edges were cut farthest-first inside
-    /// over-budget groups.
+    /// Near-duplicate edges were cut farthest-first inside over-budget groups.
     NearDuplicate,
 }
 
-/// One human-verdict holdout card, rendered and embedded beside the
-/// training rows.
+/// One human-verdict holdout card, rendered and embedded beside the training rows.
 #[derive(Debug)]
 pub(crate) struct HoldoutCard {
     /// The card's identity.
@@ -263,13 +233,11 @@ pub(crate) struct HoldoutCard {
 
 /// One assembled training set and its provenance.
 ///
-/// Row `i` of the embedding table, the training rows, and the
-/// identities all describe the same card; holdout cards occupy the
-/// table rows after the trained rows, addressed through
-/// [`holdouts`](Self::holdouts). The table is the artifact shape the
-/// fit stages and maps; the mapped embedding matrix's leading trained
-/// rows and [`rows`](Self::rows) together satisfy the classifier's
-/// training-set contract.
+/// Row `i` of the embedding table, the training rows, and the identities all describe the same
+/// card; holdout cards occupy the table rows after the trained rows, addressed through
+/// [`holdouts`](Self::holdouts). The table is the artifact shape the fit stages and maps; the
+/// mapped embedding matrix's leading trained rows and [`rows`](Self::rows) together satisfy the
+/// classifier's training-set contract.
 #[derive(Debug)]
 pub(crate) struct AssembledCorpus {
     table: CardEmbeddingTable,
@@ -313,15 +281,14 @@ impl AssembledCorpus {
 
 /// Assembles the classifier training set from a validated corpus.
 ///
-/// See the module documentation for the card policy, the target
-/// arithmetic, and the grouping semantics.
+/// See the module documentation for the card policy, the target arithmetic, and the grouping
+/// semantics.
 ///
 /// # Errors
 ///
-/// Returns an [`AssemblyError`] when a card declares a language the
-/// template does not render, carries an impossible endpoint
-/// cardinality, fails template rendering, when the embedding provider
-/// fails, or when policy admits no card.
+/// Returns an [`AssemblyError`] when a card declares a language the template does not render,
+/// carries an impossible endpoint cardinality, fails template rendering, when the embedding
+/// provider fails, or when policy admits no card.
 pub(crate) async fn assemble<E>(
     corpus: &AnnotationCorpus,
     embedder: &E,
@@ -577,8 +544,8 @@ fn phrase<'text>(
 
 /// Assigns every trained row its validation-group digest.
 ///
-/// The returned digests align with `trained`; the evidence gains the
-/// group count and the near-duplicate pair count.
+/// The returned digests align with `trained`; the evidence gains the group count and the
+/// near-duplicate pair count.
 fn validation_groups(
     trained: &[(usize, &Card, VoteCounts)],
     view: CardEmbeddingView<'_>,
@@ -698,8 +665,9 @@ struct RowAxes {
     base: u32,
 }
 
-/// Which axis ranks a partition unites through, beside the identity
-/// axis and the near-duplicate pairs it always honours.
+/// Which axis ranks a partition unites through.
+///
+/// Beside the identity axis and the near-duplicate pairs it always honours.
 #[derive(Copy, Clone)]
 struct Ranks {
     family: bool,
@@ -715,13 +683,12 @@ const RANKS_ALL: Ranks = Ranks {
     cut: f64::INFINITY,
 };
 
-/// Splits an over-budget component by relaxing its weakest remaining
-/// axis, recursing one rank deeper wherever a part stays over budget.
+/// Splits an over-budget component by relaxing its weakest remaining axis, recursing one rank
+/// deeper wherever a part stays over budget.
 ///
-/// The relaxation order is family, then base URL, then near-duplicate
-/// edges farthest-first; identity edges never relax. A part the
-/// deepest relaxation cannot fit is accepted over budget and counted
-/// in the evidence.
+/// The relaxation order is family, then base URL, then near-duplicate edges farthest-first;
+/// identity edges never relax. A part the deepest relaxation cannot fit is accepted over budget and
+/// counted in the evidence.
 fn subdivide(
     component: &[u32],
     level: Relaxation,
@@ -780,9 +747,10 @@ fn subdivide(
     groups
 }
 
-/// Cuts a component's near-duplicate edges farthest-first: the kept
-/// cut is the largest distance under which every resulting part fits
-/// the budget, or the empty cut when none does.
+/// Cuts a component's near-duplicate edges farthest-first.
+///
+/// The kept cut is the largest distance under which every resulting part fits the budget, or the
+/// empty cut when none does.
 fn farthest_first_cut(
     component: &[u32],
     axes: &[RowAxes],
@@ -845,9 +813,9 @@ fn farthest_first_cut(
     )
 }
 
-/// Unites a row subset through the admitted axis ranks and returns
-/// the resulting parts, members ascending, parts ordered by first
-/// member.
+/// Unites a row subset through the admitted axis ranks and returns the resulting parts.
+///
+/// Members ascending, parts ordered by first member.
 fn partition(
     subset: &[u32],
     axes: &[RowAxes],
@@ -911,8 +879,7 @@ fn partition(
     parts
 }
 
-/// Returns the Dirichlet posterior-mean target over the geometry
-/// classes.
+/// Returns the Dirichlet posterior-mean target over the geometry classes.
 fn dirichlet_target(counts: &VoteCounts) -> [f64; GeometryClass::COUNT] {
     let total = integer(GeometryClass::COUNT as u64).mul_add(DIRICHLET_ALPHA, weight(counts));
     counts

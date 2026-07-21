@@ -5,20 +5,22 @@ use rayon::prelude::*;
 use super::rank::Ranking;
 use crate::morton::{Depth, MortonKey};
 
-/// The base delivery order of one generation: bucket-major, Morton
-/// within bucket, rank within key ties.
+/// The base delivery order of one generation.
 ///
-/// Every served column publishes in this order, filters index it, and
-/// a tile is a set of contiguous runs of it. The order is a pure
-/// function of buckets, keys, and ranking - the third sort component
-/// makes ties total, so the permutation is unique and reproducible.
+/// Bucket-major, Morton within bucket, rank within key ties.
+///
+/// Every served column publishes in this order, filters index it, and a tile is a set of contiguous
+/// runs of it. The order is a pure function of buckets, keys, and ranking - the third sort
+/// component makes ties total, so the permutation is unique and reproducible.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BaseOrder {
-    /// Row index by base position: the gather order that assembles a
-    /// served column from a row-ordered one.
+    /// Row index by base position.
+    ///
+    /// The gather order that assembles a served column from a row-ordered one.
     pub row_of_position: Box<[u32]>,
-    /// Base position by row index: the row-to-position permutation the
-    /// filter contract maps entity ids through.
+    /// Base position by row index.
+    ///
+    /// The row-to-position permutation the filter contract maps entity ids through.
     pub position_of_row: Box<[u32]>,
 }
 
@@ -27,8 +29,7 @@ impl BaseOrder {
     ///
     /// # Panics
     ///
-    /// Panics when `keys`, `buckets`, and `ranking` disagree on the row
-    /// count.
+    /// Panics when `keys`, `buckets`, and `ranking` disagree on the row count.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the ranking's constructor admits only row counts that fit `u32`"

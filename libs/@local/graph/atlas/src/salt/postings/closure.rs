@@ -1,24 +1,20 @@
 //! The type closure map: descendant bitsets over the parent graph.
 //!
-//! Request-time inheritance expansion is one OR: a requested type's
-//! descendant row names every type whose instances the request
-//! matches, so expanding a request is `OR` of the requested rows and
-//! testing a type against a request is one bit read. The map derives
-//! at open from the published parent edges, the one authority for
-//! inheritance, and lives on the heap: `T^2` bits stay in the low
-//! megabytes while `T` stays in the low thousands (`PLAN.md` "Serving
-//! contract requirements").
+//! Request-time inheritance expansion is one OR: a requested type's descendant row names every type
+//! whose instances the request matches, so expanding a request is `OR` of the requested rows and
+//! testing a type against a request is one bit read. The map derives at open from the published
+//! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
+//! low megabytes while `T` stays in the low thousands (`PLAN.md` "Serving contract requirements").
 
 use crate::{dataset::OntologyRowId, salt::postings::mapped::PostingsArchive};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///
-/// Type inheritance is acyclic at the source; a cycle in published
-/// bytes means the generation's ontology stream was defective.
+/// Type inheritance is acyclic at the source; a cycle in published bytes means the generation's
+/// ontology stream was defective.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ParentCycle {
-    /// Types entangled in cycles: every type whose descendant set
-    /// never settled.
+    /// Types entangled in cycles: every type whose descendant set never settled.
     pub entangled: u64,
 }
 
@@ -36,10 +32,9 @@ impl core::error::Error for ParentCycle {}
 
 /// Descendant bitsets over the type domain, one row per type.
 ///
-/// Row `t` marks every type whose instances a filter or coloring
-/// request naming `t` matches: `t` itself and every type reaching `t`
-/// through parent edges. Rows are `ceil(T/64)` words, LSB-first, laid
-/// out row-major so a request's expansion ORs whole rows word-wise.
+/// Row `t` marks every type whose instances a filter or coloring request naming `t` matches: `t`
+/// itself and every type reaching `t` through parent edges. Rows are `ceil(T/64)` words, LSB-first,
+/// laid out row-major so a request's expansion ORs whole rows word-wise.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ClosureMap {
     /// The type domain `T`.
@@ -53,15 +48,14 @@ pub(crate) struct ClosureMap {
 impl ClosureMap {
     /// Derives the closure map from the opened postings' parent graph.
     ///
-    /// Types are processed children-first (Kahn's ordering over the
-    /// parent edges): a type's settled descendant row ORs into each of
-    /// its parents' rows, so every row settles in one pass over the
+    /// Types are processed children-first (Kahn's ordering over the parent edges): a type's settled
+    /// descendant row ORs into each of its parents' rows, so every row settles in one pass over the
     /// edges.
     ///
     /// # Errors
     ///
-    /// Returns [`ParentCycle`] when the parent graph holds a cycle, in
-    /// which case the generation's ontology stream was defective.
+    /// Returns [`ParentCycle`] when the parent graph holds a cycle, in which case the generation's
+    /// ontology stream was defective.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(postings: &PostingsArchive) -> Result<Self, ParentCycle> {
         let types = usize::try_from(postings.types()).expect("resident type domains fit usize");
@@ -126,15 +120,15 @@ impl ClosureMap {
         self.types
     }
 
-    /// Returns the words per row: the length expansion scratch rows
-    /// allocate at.
+    /// Returns the words per row: the length expansion scratch rows allocate at.
     #[inline]
     #[must_use]
     pub(crate) const fn stride(&self) -> usize {
         self.stride
     }
 
-    /// Borrows `type_row`'s descendant row, when the row is in domain:
+    /// Borrows `type_row`'s descendant row, when the row is in domain.
+    ///
     /// `ceil(T/64)` words, LSB-first.
     #[must_use]
     pub(crate) fn descendants(&self, type_row: OntologyRowId) -> Option<&[u64]> {
@@ -144,9 +138,9 @@ impl ClosureMap {
         Some(&self.bits[row * self.stride..(row + 1) * self.stride])
     }
 
-    /// Returns whether `descendant` descends from `ancestor` (a type
-    /// descends from itself), [`None`] when either row is out of
-    /// domain.
+    /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).
+    ///
+    /// [`None`] when either row is out of domain.
     #[must_use]
     pub(crate) fn contains(
         &self,

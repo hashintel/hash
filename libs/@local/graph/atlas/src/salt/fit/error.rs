@@ -1,12 +1,10 @@
 //! The fit pipeline's failure surface.
 //!
-//! Two layers mirror the pipeline's thread boundary. [`StageError`] is
-//! the compute side: every failure a staged artifact or admission check
-//! can produce once ingest has finished streaming - carrying no dataset
-//! or provider type, it is `Send + 'static` by construction and crosses
-//! the rayon offload freely. [`FitError`] wraps it beside the failures
-//! only the async ingest can produce: the dataset's, the card stream's,
-//! and the embedding provider's.
+//! Two layers mirror the pipeline's thread boundary. [`StageError`] is the compute side: every
+//! failure a staged artifact or admission check can produce once ingest has finished streaming -
+//! carrying no dataset or provider type, it is `Send + 'static` by construction and crosses the
+//! rayon offload freely. [`FitError`] wraps it beside the failures only the async ingest can
+//! produce: the dataset's, the card stream's, and the embedding provider's.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -53,15 +51,13 @@ use crate::{
 
 /// The projector placement could not produce its canonical field.
 ///
-/// Every variant aborts the fit: a generation whose coordinates the
-/// configured placement could not produce publishes nothing.
+/// Every variant aborts the fit: a generation whose coordinates the configured placement could not
+/// produce publishes nothing.
 #[derive(Debug)]
 pub(crate) enum PlacementError {
-    /// The projector objective rejects the fit's low-dimensional
-    /// kernel or affinity offset.
+    /// The projector objective rejects the fit's low-dimensional kernel or affinity offset.
     ObjectiveCurve { exponent: f32, offset: f32 },
-    /// The configured architecture disagrees with the dataset's
-    /// representation width.
+    /// The configured architecture disagrees with the dataset's representation width.
     RepresentationWidth { configured: usize },
     /// Projector training failed.
     Train(TrainError),
@@ -149,16 +145,14 @@ impl From<CanonicalError> for PlacementError {
 
 /// A prior generation offered for reuse could not serve it.
 ///
-/// The prior's artifacts are read exactly as published ones are; a
-/// prior that fails here is corrupt, of another layout version, or of
-/// another dataset's id type, and the fit aborts rather than silently
-/// running without reuse.
+/// The prior's artifacts are read exactly as published ones are; a prior that fails here is
+/// corrupt, of another layout version, or of another dataset's id type, and the fit aborts rather
+/// than silently running without reuse.
 #[derive(Debug)]
 pub(crate) enum PriorError {
     /// A prior card-embedding array failed to map.
     MapCards(OpenArrayError),
-    /// The prior card files do not hold row-aligned digest and
-    /// embedding columns.
+    /// The prior card files do not hold row-aligned digest and embedding columns.
     MalformedCards,
     /// The prior landmark file failed to map.
     MapLandmarks(OpenLandmarkError),
@@ -166,11 +160,11 @@ pub(crate) enum PriorError {
     InvalidLandmarks(InvalidLandmarkFile),
     /// A prior identity file failed to map.
     MapIdentities(OpenIdentityError),
-    /// A prior identity file does not hold a valid table over the
-    /// dataset's id type.
+    /// A prior identity file does not hold a valid table over the dataset's id type.
     InvalidIdentities(InvalidIdentityFile),
-    /// The prior skeleton selects a row beyond the prior identity
-    /// table: the two artifacts describe different corpora.
+    /// The prior skeleton selects a row beyond the prior identity table.
+    ///
+    /// The two artifacts describe different corpora.
     SkeletonBeyondIdentities { row: u64 },
 }
 
@@ -220,8 +214,8 @@ impl Error for PriorError {
 
 /// A compute-side stage failed; nothing was published.
 ///
-/// Every variant is dataset- and provider-free, so the whole enum is
-/// `Send + 'static` and crosses the rayon offload boundary.
+/// Every variant is dataset- and provider-free, so the whole enum is `Send + 'static` and crosses
+/// the rayon offload boundary.
 #[derive(Debug)]
 pub(crate) enum StageError {
     /// A staged write, scratch directory, or digest pass failed.
@@ -236,8 +230,7 @@ pub(crate) enum StageError {
     RecallBelowMinimum(recall::RecallSpotCheck),
     /// The k-NN table failed to assemble or admit.
     Knn(KnnError<HannoyIndexError>),
-    /// The assembled corpus violates the classifier's training-set
-    /// contract.
+    /// The assembled corpus violates the classifier's training-set contract.
     ClassifierTraining(TrainingSetError),
     /// The relation classifier failed to fit.
     ClassifierFit(ClassifierFitError),
@@ -301,9 +294,10 @@ pub(crate) enum StageError {
     Prior(PriorError),
     /// The finished staging failed to seal into a generation.
     Seal(SealError),
-    /// A stage panicked on the compute pool; the payload's message
-    /// survives, the staging directory was removed during unwinding,
-    /// and the async executor never observes the unwind.
+    /// A stage panicked on the compute pool.
+    ///
+    /// The payload's message survives, the staging directory was removed during unwinding, and the
+    /// async executor never observes the unwind.
     Panicked { message: Option<String> },
 }
 
@@ -658,9 +652,8 @@ impl Error for StageError {
 
 /// One fit failed; nothing was published.
 ///
-/// `D` is the dataset's error, `E` the embedding provider's; both can
-/// only arise during ingest. Every compute-side failure arrives as
-/// [`FitError::Stage`].
+/// `D` is the dataset's error, `E` the embedding provider's; both can only arise during ingest.
+/// Every compute-side failure arrives as [`FitError::Stage`].
 #[derive(Debug)]
 pub(crate) enum FitError<D, E> {
     /// The dataset failed to deliver a stream item.
@@ -669,8 +662,7 @@ pub(crate) enum FitError<D, E> {
     Cards(io::Error),
     /// The embedding provider failed to produce the card table.
     Embedding(CardEmbeddingError<E>),
-    /// The supplied annotation corpus failed to assemble into the
-    /// classifier's training set.
+    /// The supplied annotation corpus failed to assemble into the classifier's training set.
     Assembly(AssemblyError<E>),
     /// A streamed ingest write failed.
     Io(io::Error),

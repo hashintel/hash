@@ -12,13 +12,11 @@ pub(crate) enum RelationIndexError {
         position: usize,
         relation: OntologyRowId,
     },
-    /// A policy stores a probability, applicability, or strength outside
-    /// its domain.
+    /// A policy stores a probability, applicability, or strength outside its domain.
     PolicyDomain { relation: OntologyRowId },
     /// An instance references a relation the policy table does not cover.
     MissingPolicy { relation: OntologyRowId },
-    /// The row domain exceeds the protection matrix's `u32` column
-    /// encoding.
+    /// The row domain exceeds the protection matrix's `u32` column encoding.
     TooManyRows { rows: usize },
 }
 

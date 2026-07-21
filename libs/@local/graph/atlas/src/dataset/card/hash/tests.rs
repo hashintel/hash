@@ -1,8 +1,7 @@
 //! Fixture tests for the HASH fact-to-contents projection.
 //!
-//! Every fixture is a set of adapter input rows; assertions inspect the
-//! assembled contents or, for the golden test, the fully rendered card
-//! text byte-for-byte.
+//! Every fixture is a set of adapter input rows; assertions inspect the assembled contents or, for
+//! the golden test, the fully rendered card text byte-for-byte.
 
 use std::collections::HashSet;
 

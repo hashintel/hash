@@ -784,6 +784,7 @@ __metadata:
     "@rust/harpc-server": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-api": "workspace:*"
+    "@rust/hash-graph-atlas": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-postgres-store": "workspace:*"
@@ -13758,7 +13759,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas":
+"@rust/hash-graph-atlas@workspace:*, @rust/hash-graph-atlas@workspace:libs/@local/graph/atlas":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-atlas@workspace:libs/@local/graph/atlas"
   dependencies:

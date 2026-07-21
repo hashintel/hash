@@ -1,13 +1,11 @@
 //! Disjoint-set forests over dense index domains.
 //!
-//! A [`DisjointSet`] partitions the indices `0..len` into groups that
-//! merge pairwise: every index starts alone, [`unite`](DisjointSet::unite)
-//! joins two indices' groups, and [`find`](DisjointSet::find) names any
-//! index's group by a representative index that stays stable until the
-//! group merges again. A sequence of `u` unions and `f` finds costs
-//! `O((u + f) alpha(len))` with the inverse-Ackermann factor below 5
-//! for every physical input, so connected components over an edge list
-//! cost one pass over the edges.
+//! A [`DisjointSet`] partitions the indices `0..len` into groups that merge pairwise: every index
+//! starts alone, [`unite`](DisjointSet::unite) joins two indices' groups, and
+//! [`find`](DisjointSet::find) names any index's group by a representative index that stays stable
+//! until the group merges again. A sequence of `u` unions and `f` finds costs `O((u + f)
+//! alpha(len))` with the inverse-Ackermann factor below 5 for every physical input, so connected
+//! components over an edge list cost one pass over the edges.
 //!
 //! # Examples
 //!
@@ -28,8 +26,8 @@ mod tests;
 
 /// A union-find partition of the indices `0..len`.
 ///
-/// Uses path halving and union by size, so both operations run in
-/// effectively constant amortized time.
+/// Uses path halving and union by size, so both operations run in effectively constant amortized
+/// time.
 #[derive(Debug, Clone)]
 pub struct DisjointSet {
     // parent[i] == i marks a representative; size is meaningful only
@@ -85,8 +83,8 @@ impl DisjointSet {
 
     /// Returns `index`'s group representative.
     ///
-    /// Two indices share a group exactly when their representatives are
-    /// equal at the same partition state.
+    /// Two indices share a group exactly when their representatives are equal at the same partition
+    /// state.
     ///
     /// # Panics
     ///
@@ -110,8 +108,8 @@ impl DisjointSet {
 
     /// Merges the groups of `one` and `other`.
     ///
-    /// Returns whether a merge happened; two indices already sharing a
-    /// group leave the partition unchanged.
+    /// Returns whether a merge happened; two indices already sharing a group leave the partition
+    /// unchanged.
     ///
     /// # Panics
     ///

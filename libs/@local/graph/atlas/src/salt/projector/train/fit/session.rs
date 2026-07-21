@@ -1,20 +1,18 @@
-//! The run's machinery: input admission, the samplers and evaluators
-//! derived from one generation's artifacts, and the shared step loop
-//! both phases execute.
+//! The run's machinery.
 //!
-//! A [`Session`] is everything the loop derives deterministically from
-//! the borrowed inputs and options; [`Training`] is the mutable state
-//! a step advances - model, optimizer, scheduler, evidence. The split
-//! is what makes the phase boundary a first-class seam: the opening
-//! segment and the ladder run the same loop body over the same
-//! session, and a resumed ladder rebuilds its session from the same
-//! artifacts while the training state arrives from the checkpoint.
+//! Input admission, the samplers and evaluators derived from one generation's artifacts, and the
+//! shared step loop both phases execute.
 //!
-//! Refresh products (mined negatives, per-rung scale tables) never
-//! cross a [`Session::run`] call: the boundary step opens with an
-//! unconditional refresh, so a ladder segment re-derives them from the
-//! model it starts with. That property is what makes a checkpointed
-//! resume bit-equal to the straight run on a deterministic backend.
+//! A [`Session`] is everything the loop derives deterministically from the borrowed inputs and
+//! options; [`Training`] is the mutable state a step advances - model, optimizer, scheduler,
+//! evidence. The split is what makes the phase boundary a first-class seam: the opening segment and
+//! the ladder run the same loop body over the same session, and a resumed ladder rebuilds its
+//! session from the same artifacts while the training state arrives from the checkpoint.
+//!
+//! Refresh products (mined negatives, per-rung scale tables) never cross a [`Session::run`] call:
+//! the boundary step opens with an unconditional refresh, so a ladder segment re-derives them from
+//! the model it starts with. That property is what makes a checkpointed resume bit-equal to the
+//! straight run on a deterministic backend.
 
 use core::ops::Range;
 
@@ -63,9 +61,8 @@ pub(crate) type TrainerOptimizerRecord<B> =
 
 /// The mutable training state one step advances.
 ///
-/// This is exactly the state that crosses the phase boundary; the
-/// checkpoint artifact serializes it (with the caller's generator
-/// position) and a resumed ladder starts from it.
+/// This is exactly the state that crosses the phase boundary; the checkpoint artifact serializes it
+/// (with the caller's generator position) and a resumed ladder starts from it.
 // No Debug: the optimizer adaptor does not implement it.
 pub(super) struct Training<B: AutodiffBackend<FloatElem = f32>> {
     pub model: Projector<B>,
@@ -76,8 +73,8 @@ pub(super) struct Training<B: AutodiffBackend<FloatElem = f32>> {
 
 /// Builds the trainer's optimizer.
 ///
-/// One construction site keeps a resumed run's optimizer identical to
-/// the one the opening segment trained under.
+/// One construction site keeps a resumed run's optimizer identical to the one the opening segment
+/// trained under.
 pub(super) fn optimizer<B: AutodiffBackend<FloatElem = f32>>() -> TrainerOptimizer<B> {
     AdamConfig::new().with_epsilon(1.0e-8).init()
 }
@@ -107,12 +104,10 @@ impl<'run> Session<'run> {
     ///
     /// # Errors
     ///
-    /// Returns an error when the corpus cannot train (no semantic edge
-    /// weight) or the boundary is structurally inadmissible (a
-    /// measured radius with no opening segment in front of the
-    /// boundary, Proximal force without reviewed coverage or a
-    /// configured assertion, or Coincident force without any Proximal
-    /// force).
+    /// Returns an error when the corpus cannot train (no semantic edge weight) or the boundary is
+    /// structurally inadmissible (a measured radius with no opening segment in front of the
+    /// boundary, Proximal force without reviewed coverage or a configured assertion, or Coincident
+    /// force without any Proximal force).
     pub(super) fn new(
         inputs: &'run TrainerInputs<'run>,
         options: &'run TrainOptions,
@@ -168,13 +163,11 @@ impl<'run> Session<'run> {
         })
     }
 
-    /// Runs the loop over one step range and returns the advanced
-    /// state.
+    /// Runs the loop over one step range and returns the advanced state.
     ///
-    /// The body is phase-agnostic: the opening segment passes
-    /// `0..boundary`, the ladder `boundary..steps`, and the boundary
-    /// work (radius freeze, unconditional refresh) triggers on the
-    /// step index alone.
+    /// The body is phase-agnostic: the opening segment passes `0..boundary`, the ladder
+    /// `boundary..steps`, and the boundary work (radius freeze, unconditional refresh) triggers on
+    /// the step index alone.
     pub(super) fn run<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
         &mut self,
         training: Training<B>,
@@ -257,16 +250,15 @@ impl<'run> Session<'run> {
     }
 }
 
-/// Selects a step's rung index: zero through the opening segment,
-/// round-robin across [`RUNGS`] once the ladder opens.
+/// Selects a step's rung index.
 ///
-/// A vacuous run pins the zero rung throughout. With no relation
-/// force the objective is identical at every rung, so lens variation
-/// could teach the modulation head nothing but batch-sampling noise;
-/// a zero condition instead leaves the head's condition weights with
-/// exactly zero gradient, so every projected rung of a forceless
-/// corpus is bit-identical - the flat ladder is a certificate, not an
-/// accident.
+/// Zero through the opening segment, round-robin across [`RUNGS`] once the ladder opens.
+///
+/// A vacuous run pins the zero rung throughout. With no relation force the objective is identical
+/// at every rung, so lens variation could teach the modulation head nothing but batch-sampling
+/// noise; a zero condition instead leaves the head's condition weights with exactly zero gradient,
+/// so every projected rung of a forceless corpus is bit-identical - the flat ladder is a
+/// certificate, not an accident.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "the rung round-robin is a step-count modulus"
@@ -283,8 +275,8 @@ const fn rung(step_index: usize, boundary: usize, vacuous: bool) -> usize {
 ///
 /// # Panics
 ///
-/// Panics when relation edges are drawn before a scale-bearing tick;
-/// the boundary always runs one, so a miss is a wiring defect.
+/// Panics when relation edges are drawn before a scale-bearing tick; the boundary always runs one,
+/// so a miss is a wiring defect.
 fn draw_batch<R: Rng + ?Sized>(
     sampler: &BatchSampler<'_>,
     rung_index: usize,
@@ -309,14 +301,14 @@ fn draw_batch<R: Rng + ?Sized>(
     Batch::assemble(populations, batch_scales)
 }
 
-/// Validates the corpus row domain and the boundary's structural
-/// admissibility; returns whether the run is vacuous.
+/// Validates the corpus row domain and the boundary's structural admissibility.
 ///
-/// The decision whether the boundary can freeze a radius is
-/// structural: force, review coverage, and the presence of an opening
-/// segment to measure after are properties of the index, the
-/// verdicts, and the schedule, not of coordinates, so an impossible
-/// boundary fails here instead of after the opening segment.
+/// Returns whether the run is vacuous.
+///
+/// The decision whether the boundary can freeze a radius is structural: force, review coverage, and
+/// the presence of an opening segment to measure after are properties of the index, the verdicts,
+/// and the schedule, not of coordinates, so an impossible boundary fails here instead of after the
+/// opening segment.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "a row-domain mismatch between one generation's artifacts is a wiring defect \
@@ -361,13 +353,13 @@ fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, Tra
     Ok(!force.proximal && !force.coincident)
 }
 
-/// Runs the phase boundary: measures the reviewed-Proximal `z`
-/// population against the boundary's own coordinates, freezes the
-/// Proximal radius, and composes the relation energy.
+/// Runs the phase boundary.
 ///
-/// On a vacuous run - no attraction force at all - there is nothing to
-/// measure or compose, a configured assertion included; the evidence
-/// records the fact and the relation term stays absent.
+/// Measures the reviewed-Proximal `z` population against the boundary's own coordinates, freezes
+/// the Proximal radius, and composes the relation energy.
+///
+/// On a vacuous run - no attraction force at all - there is nothing to measure or compose, a
+/// configured assertion included; the evidence records the fact and the relation term stays absent.
 fn freeze_radius<B: AutodiffBackend<FloatElem = f32>>(
     model: &Projector<B>,
     inputs: &TrainerInputs<'_>,
@@ -457,13 +449,11 @@ impl ForceClasses {
     }
 }
 
-/// Whether any reviewed-Proximal verdict covers a group that exerts
-/// Proximal force.
+/// Whether any reviewed-Proximal verdict covers a group that exerts Proximal force.
 ///
-/// This is the coordinate-free core of the boundary measurement: the
-/// calibration's pair weights are positive exactly on these groups'
-/// instances, so a positive measured mass exists if and only if this
-/// holds.
+/// This is the coordinate-free core of the boundary measurement: the calibration's pair weights are
+/// positive exactly on these groups' instances, so a positive measured mass exists if and only if
+/// this holds.
 fn reviewed_proximal_force(index: &AttractionIndex, verdicts: &[ResolvedVerdict]) -> bool {
     verdicts
         .iter()
@@ -479,8 +469,9 @@ fn reviewed_proximal_force(index: &AttractionIndex, verdicts: &[ResolvedVerdict]
         })
 }
 
-/// Whether a group can exert any force: instances exist and the
-/// strength multiplier passes them through.
+/// Whether a group can exert any force.
+///
+/// Instances exist and the strength multiplier passes them through.
 fn exerts_force(group: &AttractionGroup) -> bool {
     !group.edges().is_empty() && group.weights().strength > 0.0
 }

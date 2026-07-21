@@ -1,5 +1,4 @@
-//! `POST /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`: one
-//! tile as `SALTILET` bytes.
+//! `POST /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`: one tile as `SALTILET` bytes.
 
 use alloc::sync::Arc;
 
@@ -48,8 +47,7 @@ pub(super) struct TilePath {
     // `generation`: an unparsable id must answer the 404 problem.
     #[schemars(with = "GenerationId")]
     generation: String,
-    /// The fitted variant name; the manifest lists what this
-    /// generation serves.
+    /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
     /// The zoom: a subdivision depth; `0` addresses the root.
     z: u8,
@@ -59,9 +57,9 @@ pub(super) struct TilePath {
     y: u32,
 }
 
-/// `POST /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`: one tile
-/// as `SALTILET` bytes. An absent body reads as the all-defaults
-/// query.
+/// `POST /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`: one tile as `SALTILET` bytes.
+///
+/// An absent body reads as the all-defaults query.
 pub(super) async fn handler(
     State(state): State<AppState>,
     Path(TilePath {
@@ -88,8 +86,9 @@ pub(super) async fn handler(
     // last section by design, so geometry never waits on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let caps = state.caps.tile;
+    let proof = Arc::clone(&state.proof);
     let assembled = spawn(move || {
-        atlas.assemble_tile(&request, caps).map(|document| {
+        atlas.assemble_tile(&request, caps, &proof).map(|document| {
             let entities = detailed.then(|| atlas.delivered_entities(&document));
             (document, entities)
         })

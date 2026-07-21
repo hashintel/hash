@@ -9,19 +9,19 @@ use crate::integrity::{Sha256, Sha256Digest, Writer};
 
 /// Writes an array file row by row, counting rows as they stream.
 ///
-/// The leading dimension is the row count, known only when the stream
-/// ends, so the header is written last: [`new`](Self::new) reserves the
-/// header region with bytes no parse accepts, rows append behind it, and
-/// [`finish`](Self::finish) seals the file with the real header. An
-/// abandoned write therefore never leaves a file a reader accepts.
+/// The leading dimension is the row count, known only when the stream ends, so the header is
+/// written last: [`new`](Self::new) reserves the header region with bytes no parse accepts, rows
+/// append behind it, and [`finish`](Self::finish) seals the file with the real header. An abandoned
+/// write therefore never leaves a file a reader accepts.
 ///
-/// Every row issues one write; wrap a raw [`File`](std::fs::File) in a
-/// [`BufWriter`](io::BufWriter) when rows are small.
+/// Every row issues one write; wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter)
+/// when rows are small.
 pub(crate) struct ArrayWriter<W> {
     writer: W,
     variant: ArrayVariant,
-    /// The finished file's dimensions; slot 0 holds the row count and is
-    /// set at [`finish`](Self::finish).
+    /// The finished file's dimensions.
+    ///
+    /// Slot 0 holds the row count and is set at [`finish`](Self::finish).
     dims: [Dim; ArrayShape::MAX_RANK],
     row_bytes: u64,
     rows: u64,
@@ -30,8 +30,8 @@ pub(crate) struct ArrayWriter<W> {
 impl<W: Write + Seek> ArrayWriter<W> {
     /// Creates a writer and reserves the header region.
     ///
-    /// `row_dims` shapes one row - the dimensions behind the leading row
-    /// count - so the finished file's shape is `[rows, ..row_dims]`.
+    /// `row_dims` shapes one row - the dimensions behind the leading row count - so the finished
+    /// file's shape is `[rows, ..row_dims]`.
     ///
     /// # Errors
     ///
@@ -39,9 +39,9 @@ impl<W: Write + Seek> ArrayWriter<W> {
     ///
     /// # Panics
     ///
-    /// Panics when `row_dims` holds [`ArrayShape::MAX_RANK`] or more
-    /// dimensions, contains a zero (which would terminate the shape
-    /// early), or describes a row whose byte length overflows `u64`.
+    /// Panics when `row_dims` holds [`ArrayShape::MAX_RANK`] or more dimensions, contains a zero
+    /// (which would terminate the shape early), or describes a row whose byte length overflows
+    /// `u64`.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "a malformed row shape is a programmer error, not a writer failure"
@@ -104,8 +104,8 @@ impl<W: Write + Seek> ArrayWriter<W> {
 
     /// Seals the file: writes the real header and flushes.
     ///
-    /// Returns the number of rows written. Zero rows seal as the
-    /// zero-element array, whose shape terminates at the leading zero.
+    /// Returns the number of rows written. Zero rows seal as the zero-element array, whose shape
+    /// terminates at the leading zero.
     ///
     /// # Errors
     ///
@@ -122,19 +122,17 @@ impl<W: Write + Seek> ArrayWriter<W> {
     }
 }
 
-/// Writes an array file whose full shape - the leading row count
-/// included - is known before the stream.
+/// Writes an array file whose full shape.
 ///
-/// The header leads the file and rows follow in one pass, with the
-/// SHA-256 of the written bytes accumulating alongside, so
-/// [`finish`](Self::finish) returns the file's digest without a
-/// second read. The writer never seeks; a stream whose row count is
-/// only known at its end uses [`ArrayWriter`] instead and pays a
-/// digest pass over the finished file.
+/// The leading row count included - is known before the stream.
 ///
-/// The written bytes are exactly [`ArrayWriter`]'s for the same rows:
-/// the two writers share one format, and only the header's timing
-/// differs.
+/// The header leads the file and rows follow in one pass, with the SHA-256 of the written bytes
+/// accumulating alongside, so [`finish`](Self::finish) returns the file's digest without a second
+/// read. The writer never seeks; a stream whose row count is only known at its end uses
+/// [`ArrayWriter`] instead and pays a digest pass over the finished file.
+///
+/// The written bytes are exactly [`ArrayWriter`]'s for the same rows: the two writers share one
+/// format, and only the header's timing differs.
 pub(crate) struct SizedArrayWriter<W> {
     writer: Writer<Sha256, W>,
     row_bytes: u64,
@@ -145,9 +143,8 @@ pub(crate) struct SizedArrayWriter<W> {
 impl<W: Write> SizedArrayWriter<W> {
     /// Creates the writer and writes the header.
     ///
-    /// `dims` is the finished file's full shape: the leading dimension
-    /// is the row count - zero seals as the zero-element array - and
-    /// the rest shape one row.
+    /// `dims` is the finished file's full shape: the leading dimension is the row count - zero
+    /// seals as the zero-element array - and the rest shape one row.
     ///
     /// # Errors
     ///
@@ -155,9 +152,8 @@ impl<W: Write> SizedArrayWriter<W> {
     ///
     /// # Panics
     ///
-    /// Panics when `dims` is empty or exceeds the maximum shape rank,
-    /// when a row dimension is zero (which would terminate the shape
-    /// early), or when one row's byte length overflows `u64`.
+    /// Panics when `dims` is empty or exceeds the maximum shape rank, when a row dimension is zero
+    /// (which would terminate the shape early), or when one row's byte length overflows `u64`.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "a malformed shape is a programmer error, not a writer failure"
@@ -203,8 +199,8 @@ impl<W: Write> SizedArrayWriter<W> {
     ///
     /// # Panics
     ///
-    /// Panics when `row` is not exactly one row long, or when the row
-    /// exceeds the shape's promised count.
+    /// Panics when `row` is not exactly one row long, or when the row exceeds the shape's promised
+    /// count.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "a mis-sized row is a programmer error, not a writer failure"
@@ -226,8 +222,8 @@ impl<W: Write> SizedArrayWriter<W> {
     ///
     /// # Panics
     ///
-    /// Panics when `bytes` does not hold exactly `rows` rows, or when
-    /// the rows exceed the shape's promised count.
+    /// Panics when `bytes` does not hold exactly `rows` rows, or when the rows exceed the shape's
+    /// promised count.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "a mis-sized stream is a programmer error, not a writer failure"
@@ -258,9 +254,8 @@ impl<W: Write> SizedArrayWriter<W> {
     ///
     /// # Panics
     ///
-    /// Panics when the stream delivered fewer rows than the shape
-    /// promised: the header is already on disk, so a short stream is a
-    /// file no honest digest should endorse.
+    /// Panics when the stream delivered fewer rows than the shape promised: the header is already
+    /// on disk, so a short stream is a file no honest digest should endorse.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "a short stream is a programmer error, not a writer failure"

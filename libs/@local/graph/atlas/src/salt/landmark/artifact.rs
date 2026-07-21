@@ -1,13 +1,10 @@
-//! The landmark skeleton's published form: one combined file and its
-//! mapped reader.
+//! The landmark skeleton's published form: one combined file and its mapped reader.
 //!
-//! A fitted skeleton - selection, assignment, and layout coordinates -
-//! publishes as one [`crate::file::landmark`] file, so the three parts
-//! that share the ordinal vocabulary cannot fall out of sync.
-//! [`LandmarkSkeletonArchive`] reopens the file over a whole-file
-//! mapping and validates the skeleton invariants once, so training and
-//! serving read landmark data from the page cache without holding it
-//! on the heap.
+//! A fitted skeleton - selection, assignment, and layout coordinates - publishes as one
+//! [`crate::file::landmark`] file, so the three parts that share the ordinal vocabulary cannot fall
+//! out of sync. [`LandmarkSkeletonArchive`] reopens the file over a whole-file mapping and
+//! validates the skeleton invariants once, so training and serving read landmark data from the page
+//! cache without holding it on the heap.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -69,10 +66,9 @@ impl Error for InvalidLandmarkFile {}
 
 /// A fitted landmark skeleton, assembled for publication.
 ///
-/// The three parts share one ordinal vocabulary by construction: the
-/// assignment was built against the selection (its ordinal domain is
-/// the selection's length), and the constructor pins the coordinates
-/// to the same domain.
+/// The three parts share one ordinal vocabulary by construction: the assignment was built against
+/// the selection (its ordinal domain is the selection's length), and the constructor pins the
+/// coordinates to the same domain.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LandmarkSkeleton {
     selection: LandmarkSelection,
@@ -85,9 +81,8 @@ impl LandmarkSkeleton {
     ///
     /// # Panics
     ///
-    /// Panics when the parts disagree on the landmark count or a
-    /// coordinate is not finite; both violate the contracts of the
-    /// stages that produced them.
+    /// Panics when the parts disagree on the landmark count or a coordinate is not finite; both
+    /// violate the contracts of the stages that produced them.
     #[must_use]
     pub(crate) fn new(
         selection: LandmarkSelection,
@@ -124,8 +119,8 @@ impl WriteInto for LandmarkSkeleton {
 
     /// Writes the skeleton as a landmark file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -148,11 +143,10 @@ impl WriteInto for LandmarkSkeleton {
 
 /// A published landmark skeleton opened over its mapped file.
 ///
-/// Construction checks the skeleton invariants once - node rows
-/// strictly ascending, every assignment ordinal inside the landmark
-/// domain, every coordinate finite - so an open skeleton only serves
-/// valid views and consumers re-validate nothing. The regions stay in
-/// the page cache under memory pressure and off the heap.
+/// Construction checks the skeleton invariants once - node rows strictly ascending, every
+/// assignment ordinal inside the landmark domain, every coordinate finite - so an open skeleton
+/// only serves valid views and consumers re-validate nothing. The regions stay in the page cache
+/// under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct LandmarkSkeletonArchive {
     file: LandmarkFile,
@@ -212,16 +206,16 @@ impl LandmarkSkeletonArchive {
         self.file.rows()
     }
 
-    /// Views the selected node rows, strictly ascending: position `i`
-    /// is landmark ordinal `i`.
+    /// Views the selected node rows, strictly ascending: position `i` is landmark ordinal `i`.
     #[must_use]
     pub(crate) fn selected_rows(&self) -> &[NodeRowId] {
         <[NodeRowId]>::ref_from_bytes(self.file.selected_rows().as_bytes())
             .expect("the persisted encoding is transparent over its byteorder type")
     }
 
-    /// Views the assignment: entry `i` is node row `i`'s landmark
-    /// ordinal, inside the landmark domain.
+    /// Views the assignment.
+    ///
+    /// Entry `i` is node row `i`'s landmark ordinal, inside the landmark domain.
     #[must_use]
     pub(crate) fn assignment(&self) -> &[LandmarkOrdinal] {
         <[LandmarkOrdinal]>::ref_from_bytes(self.file.assignment().as_bytes())

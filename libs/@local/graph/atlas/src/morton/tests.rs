@@ -99,8 +99,7 @@ proptest! {
         prop_assert_eq!(MortonKey::new(x, y).coordinates(), [x, y]);
     }
 
-    /// Every key lies in its own containing cell at every depth, and
-    /// the cell's address form agrees with the key's prefix.
+    /// Every key lies in its own containing cell at every depth, and the cell's address form agrees with the key's prefix.
     #[test]
     fn keys_lie_in_their_cells(bits: u64, depth in 0_u8..=32) {
         let depth = Depth::new(depth).expect("the strategy stays within the documented domain");

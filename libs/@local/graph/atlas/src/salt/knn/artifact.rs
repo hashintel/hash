@@ -1,11 +1,9 @@
-//! The k-NN table's published form: one sparse matrix file and its
-//! mapped reader.
+//! The k-NN table's published form: one sparse matrix file and its mapped reader.
 //!
-//! A [`Knn`] table publishes as one [`crate::file::sprs`] file holding
-//! its [`KnnMatrix`](super::table::KnnMatrix) verbatim. [`KnnArchive`]
-//! reopens the file over a whole-file mapping and validates the table
-//! invariants once, so later pipeline stages read the table without
-//! holding it on the heap.
+//! A [`Knn`] table publishes as one [`crate::file::sprs`] file holding its
+//! [`KnnMatrix`](super::table::KnnMatrix) verbatim. [`KnnArchive`] reopens the file over a
+//! whole-file mapping and validates the table invariants once, so later pipeline stages read the
+//! table without holding it on the heap.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -27,8 +25,8 @@ impl WriteInto for Knn {
 
     /// Writes the table as a sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
     ///
     /// # Errors
     ///
@@ -53,11 +51,10 @@ impl WriteInto for Knn {
 
 /// A published k-NN table opened over its mapped file.
 ///
-/// Construction checks the table invariants once, so an open table
-/// only serves valid views; the matrix regions stay in the page cache
-/// under memory pressure and off the heap. Each [`view`](Self::view)
-/// re-checks the compressed-row structure ([`SprsFile::matrix`]'s
-/// contract), so stages call it once and hold the view.
+/// Construction checks the table invariants once, so an open table only serves valid views; the
+/// matrix regions stay in the page cache under memory pressure and off the heap. Each
+/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
+/// so stages call it once and hold the view.
 #[derive(Debug)]
 pub(crate) struct KnnArchive {
     file: SprsFile,
@@ -68,8 +65,8 @@ impl KnnArchive {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file does not hold the table's matrix
-    /// layout or the matrix violates a [`Knn`] invariant.
+    /// Returns an error when the file does not hold the table's matrix layout or the matrix
+    /// violates a [`Knn`] invariant.
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidKnnFile> {
         let matrix = file.matrix().map_err(InvalidKnnFile::Matrix)?;
         validate(matrix)?;

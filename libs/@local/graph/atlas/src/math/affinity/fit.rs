@@ -1,19 +1,17 @@
-//! Least-squares fitting of the affinity curve to a membership
-//! falloff.
+//! Least-squares fitting of the affinity curve to a membership falloff.
 //!
-//! The fit is a two-parameter Levenberg-Marquardt loop whose normal
-//! equations are a symmetric 2x2 system solved in closed form; no
-//! matrix library is involved, and no allocation happens on any path.
+//! The fit is a two-parameter Levenberg-Marquardt loop whose normal equations are a symmetric 2x2
+//! system solved in closed form; no matrix library is involved, and no allocation happens on any
+//! path.
 
 use super::AffinityCurve;
 use crate::math::scalar::narrow_f32;
 
 /// The sample grid a curve is fitted over.
 ///
-/// [`AffinityCurve::fit`] uses the default grid; [`AffinityCurve::fit_with`]
-/// accepts a custom one. The grid determines which distances vote in the
-/// least-squares balance between the fitted curve and the target falloff:
-/// its resolution around the membership breakpoint and how far into the
+/// [`AffinityCurve::fit`] uses the default grid; [`AffinityCurve::fit_with`] accepts a custom one.
+/// The grid determines which distances vote in the least-squares balance between the fitted curve
+/// and the target falloff: its resolution around the membership breakpoint and how far into the
 /// tail it reaches.
 ///
 /// # Examples
@@ -38,47 +36,37 @@ use crate::math::scalar::narrow_f32;
 /// ```
 #[derive(Debug, Copy, Clone, Default)]
 pub struct AffinityFitConfig {
-    /// Number of evenly spaced sample distances for the least-squares
-    /// target.
+    /// Number of evenly spaced sample distances for the least-squares target.
     ///
-    /// More samples resolve the target falloff more finely, in particular
-    /// around the `minimum_distance` breakpoint, at proportionally more
-    /// work per solver pass. At least [`MIN_SAMPLES`](Self::MIN_SAMPLES).
+    /// More samples resolve the target falloff more finely, in particular around the `minimum_distance` breakpoint, at proportionally more work per solver pass. At least [`MIN_SAMPLES`](Self::MIN_SAMPLES).
     pub samples: u16 = 300,
     /// The sampled range extends this many spreads from zero.
     ///
-    /// A wider range weights the tail of the falloff more: far samples
-    /// gain votes in the least-squares balance, sharpening the fitted
-    /// tail exponent `b` at the cost of fidelity near the breakpoint.
-    /// Finite and strictly positive.
+    /// A wider range weights the tail of the falloff more: far samples gain votes in the least-squares balance, sharpening the fitted tail exponent `b` at the cost of fidelity near the breakpoint. Finite and strictly positive.
     pub range_in_spreads: f32 = 3.0,
 }
 
 impl AffinityFitConfig {
     /// Fewest samples [`AffinityCurve::fit_with`] accepts.
     ///
-    /// The two-parameter fit needs the grid to populate both regimes of
-    /// the piecewise target - the flat membership plateau inside
-    /// `minimum_distance` and the exponential tail beyond it - with a
-    /// handful of points each; below eight samples the fit is
-    /// underdetermined against the target it is meant to trace.
+    /// The two-parameter fit needs the grid to populate both regimes of the piecewise target - the
+    /// flat membership plateau inside `minimum_distance` and the exponential tail beyond it - with
+    /// a handful of points each; below eight samples the fit is underdetermined against the target
+    /// it is meant to trace.
     pub const MIN_SAMPLES: u16 = 8;
 }
 
 impl AffinityCurve {
     /// Fits a curve from the desired membership falloff.
     ///
-    /// The falloff keeps membership at `1` inside `minimum_distance` and
-    /// decays as `exp(-(d - minimum_distance) / spread)` beyond it. The
-    /// falloff is sampled on the crate's default grid - 300 evenly
-    /// spaced distances over `[0, 3 * spread]` - and the curve is fitted
-    /// to the samples by Levenberg-Marquardt least squares. The fit runs
-    /// once at initialization, in double precision, and narrows the
-    /// result to the working `f32` parameters.
+    /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
+    /// minimum_distance) / spread)` beyond it. The falloff is sampled on the crate's default grid -
+    /// 300 evenly spaced distances over `[0, 3 * spread]` - and the curve is fitted to the samples
+    /// by Levenberg-Marquardt least squares. The fit runs once at initialization, in double
+    /// precision, and narrows the result to the working `f32` parameters.
     ///
-    /// Returns [`None`] when `spread` is not finite and strictly
-    /// positive, when `minimum_distance` is not finite and strictly
-    /// positive or exceeds `spread`, or when the least-squares fit fails
+    /// Returns [`None`] when `spread` is not finite and strictly positive, when `minimum_distance`
+    /// is not finite and strictly positive or exceeds `spread`, or when the least-squares fit fails
     /// to converge to parameters that [`new`](Self::new) accepts.
     ///
     /// # Examples
@@ -97,24 +85,19 @@ impl AffinityCurve {
         Self::fit_with(spread, minimum_distance, AffinityFitConfig::default())
     }
 
-    /// Fits a curve from the desired membership falloff over a configured
-    /// sample grid.
+    /// Fits a curve from the desired membership falloff over a configured sample grid.
     ///
-    /// The falloff keeps membership at `1` inside `minimum_distance` and
-    /// decays as `exp(-(d - minimum_distance) / spread)` beyond it. It is
-    /// sampled at [`samples`](AffinityFitConfig::samples) evenly spaced
-    /// distances over `[0, range_in_spreads * spread]` and the curve is
-    /// fitted to the samples by Levenberg-Marquardt least squares, in
-    /// double precision, narrowing the result to the working `f32`
-    /// parameters. [`fit`](Self::fit) delegates here with the default
-    /// grid.
+    /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
+    /// minimum_distance) / spread)` beyond it. It is sampled at
+    /// [`samples`](AffinityFitConfig::samples) evenly spaced distances over `[0, range_in_spreads *
+    /// spread]` and the curve is fitted to the samples by Levenberg-Marquardt least squares, in
+    /// double precision, narrowing the result to the working `f32` parameters. [`fit`](Self::fit)
+    /// delegates here with the default grid.
     ///
-    /// Returns [`None`] when `spread` is not finite and strictly
-    /// positive, when `minimum_distance` is not finite and strictly
-    /// positive or exceeds `spread`, when `config` holds fewer than
-    /// [`MIN_SAMPLES`](AffinityFitConfig::MIN_SAMPLES) samples or a range
-    /// that is not finite and strictly positive, or when the
-    /// least-squares fit fails to converge to parameters that
+    /// Returns [`None`] when `spread` is not finite and strictly positive, when `minimum_distance`
+    /// is not finite and strictly positive or exceeds `spread`, when `config` holds fewer than
+    /// [`MIN_SAMPLES`](AffinityFitConfig::MIN_SAMPLES) samples or a range that is not finite and
+    /// strictly positive, or when the least-squares fit fails to converge to parameters that
     /// [`new`](Self::new) accepts.
     #[must_use]
     pub fn fit_with(spread: f32, minimum_distance: f32, config: AffinityFitConfig) -> Option<Self> {
@@ -155,15 +138,13 @@ impl AffinityCurve {
 
 /// Initial Levenberg-Marquardt damping factor.
 const INITIAL_DAMPING: f64 = 1e-3;
-/// Multiplicative damping adjustment: accepted steps divide by it,
-/// rejected steps multiply.
+/// Multiplicative damping adjustment: accepted steps divide by it, rejected steps multiply.
 const DAMPING_SCALE: f64 = 3.0;
 /// Upper bound on accepted Levenberg-Marquardt iterations.
 const MAX_ITERATIONS: u32 = 100;
 /// Upper bound on consecutively rejected steps within one iteration.
 const MAX_REJECTIONS: u32 = 16;
-/// Relative tolerance below which a step or a cost improvement counts as
-/// converged.
+/// Relative tolerance below which a step or a cost improvement counts as converged.
 const CONVERGENCE_TOLERANCE: f64 = 1e-10;
 
 /// Evenly spaced sample distances of the fit target, starting at zero.
@@ -189,12 +170,10 @@ impl SampleGrid {
     }
 }
 
-/// Sums of one solver pass: the least-squares objective and the terms of
-/// the 2x2 normal equations.
+/// Sums of one solver pass: the least-squares objective and the terms of the 2x2 normal equations.
 ///
-/// With the residual vector `r` and its Jacobian `J` in `(a, b)`, the
-/// `j_*` fields are the entries of the normal matrix `J^T J` and the
-/// `g_*` fields the entries of the gradient `J^T r`.
+/// With the residual vector `r` and its Jacobian `J` in `(a, b)`, the `j_*` fields are the entries
+/// of the normal matrix `J^T J` and the `g_*` fields the entries of the gradient `J^T r`.
 #[derive(Debug, Copy, Clone)]
 struct NormalEquations {
     /// Sum of squared residuals, the objective being minimized.
@@ -233,16 +212,15 @@ impl NormalEquations {
     }
 }
 
-/// Fits the affinity curve `1 / (1 + a * d^(2b))` to a target sampled on
-/// a grid, by Levenberg-Marquardt least squares.
+/// Fits the affinity curve `1 / (1 + a * d^(2b))` to a target sampled on a grid.
 ///
-/// Both parameters start at `1` and stay strictly positive throughout.
-/// Each iteration solves the damped 2x2 normal equations of the analytic
-/// Jacobian in closed form and accepts the step when it lowers the
-/// residual sum of squares; rejected steps raise the damping and retry.
-/// Returns the fitted `(a, b)`, or [`None`] when the initial evaluation
-/// is non-finite, when every damping retry of an iteration fails, or
-/// when the iteration cap passes without convergence.
+/// By Levenberg-Marquardt least squares.
+///
+/// Both parameters start at `1` and stay strictly positive throughout. Each iteration solves the
+/// damped 2x2 normal equations of the analytic Jacobian in closed form and accepts the step when it
+/// lowers the residual sum of squares; rejected steps raise the damping and retry. Returns the
+/// fitted `(a, b)`, or [`None`] when the initial evaluation is non-finite, when every damping retry
+/// of an iteration fails, or when the iteration cap passes without convergence.
 pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option<(f64, f64)> {
     // Same starting point as scipy's `curve_fit`, which the reference
     // implementation relied on: both parameters at 1.
@@ -312,13 +290,11 @@ pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option
 
 /// Accumulates one pass of the fit objective at the given parameters.
 ///
-/// Computes the residual `1 / (1 + a * d^(2b)) - target(d)` and its
-/// analytic partial derivatives at every grid distance, folding the
-/// residual sum of squares and the normal-equation sums in a single
-/// pass, accumulated in double precision. `b` is strictly positive, so
-/// the zero-distance sample contributes `d^(2b) = 0` to its residual;
-/// its partials are zero in both parameters, and skipping them keeps
-/// `ln` off distance zero.
+/// Computes the residual `1 / (1 + a * d^(2b)) - target(d)` and its analytic partial derivatives at
+/// every grid distance, folding the residual sum of squares and the normal-equation sums in a
+/// single pass, accumulated in double precision. `b` is strictly positive, so the zero-distance
+/// sample contributes `d^(2b) = 0` to its residual; its partials are zero in both parameters, and
+/// skipping them keeps `ln` off distance zero.
 ///
 /// Returns [`None`] when any accumulated sum turns non-finite.
 fn evaluate(
@@ -353,15 +329,12 @@ fn evaluate(
     sums.is_finite().then_some(sums)
 }
 
-/// Solves the damped normal equations for one Levenberg-Marquardt step
-/// in closed form.
+/// Solves the damped normal equations for one Levenberg-Marquardt step in closed form.
 ///
-/// Dampens each diagonal entry of `J^T J` by `1 + damping` and solves
-/// the symmetric 2x2 system `M * step = -g` by Cramer's rule. Returns
-/// [`None`] when the damped determinant falls to the cancellation floor
-/// (the system is numerically singular at this damping; a larger
-/// damping factor restores diagonal dominance) or when the step is
-/// non-finite.
+/// Dampens each diagonal entry of `J^T J` by `1 + damping` and solves the symmetric 2x2 system `M *
+/// step = -g` by Cramer's rule. Returns [`None`] when the damped determinant falls to the
+/// cancellation floor (the system is numerically singular at this damping; a larger damping factor
+/// restores diagonal dominance) or when the step is non-finite.
 fn solve_damped(equations: NormalEquations, damping: f64) -> Option<(f64, f64)> {
     let damped_aa = equations.j_aa * (1.0 + damping);
     let damped_bb = equations.j_bb * (1.0 + damping);

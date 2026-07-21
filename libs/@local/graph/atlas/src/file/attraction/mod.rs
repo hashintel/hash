@@ -1,14 +1,12 @@
 //! The attraction file: relation groups over a flat edge array.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! This is a combined file: the group records delimit ranges of the edge
-//! array, meaningless without it, and always read with it, so both live
-//! in one file and cannot fall out of sync. The regions:
+//! This is a combined file: the group records delimit ranges of the edge array, meaningless without
+//! it, and always read with it, so both live in one file and cannot fall out of sync. The regions:
 //!
 //! ```text
 //! | offset | size   | region                                        |
@@ -25,23 +23,19 @@
 //! | ...    | E * 40 | edges: [`EdgeRecord`] in group-major order    |
 //! ```
 //!
-//! Group `i` owns the edge rows `first_edge[i] .. first_edge[i + 1]`,
-//! with the final group ending at `E`. Edge records within one group
-//! keep the order the index defines; consumers address edges by
-//! `(group, offset)` and never re-sort. All region offsets derive from
-//! `G` and `E` with checked arithmetic
-//! ([`FileHeader::expected_file_len`]); a header whose geometry
-//! overflows matches no real file. Every region starts on a 4096-byte
-//! boundary, so the whole-file-mapping alignment guarantee of the array
-//! format applies unchanged: map the whole file and slice, never mmap
-//! at a file offset.
+//! Group `i` owns the edge rows `first_edge[i] .. first_edge[i + 1]`, with the final group ending
+//! at `E`. Edge records within one group keep the order the index defines; consumers address edges
+//! by `(group, offset)` and never re-sort. All region offsets derive from `G` and `E` with checked
+//! arithmetic ([`FileHeader::expected_file_len`]); a header whose geometry overflows matches no
+//! real file. Every region starts on a 4096-byte boundary, so the whole-file-mapping alignment
+//! guarantee of the array format applies unchanged: map the whole file and slice, never mmap at a
+//! file offset.
 //!
-//! [`read::AttractionFile`] opens a file under these rules and hands
-//! out the raw typed regions; [`write::write_records`] streams them
-//! into place. The format owns geometry alone - the index's domain
-//! invariants (ascending relations, contiguous non-empty ranges, weight
-//! and score domains, in-group edge order) are `salt::relation`'s
-//! artifact contract, validated where the domain types live.
+//! [`read::AttractionFile`] opens a file under these rules and hands out the raw typed regions;
+//! [`write::write_records`] streams them into place. The format owns geometry alone - the index's
+//! domain invariants (ascending relations, contiguous non-empty ranges, weight and score domains,
+//! in-group edge order) are `salt::relation`'s artifact contract, validated where the domain types
+//! live.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -104,8 +98,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Attraction);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -126,8 +121,8 @@ pub(crate) enum Version {
 
 /// One relation group: identity, shared weights, and its edge range.
 ///
-/// The range starts at `first_edge` and ends at the next group's
-/// `first_edge`, or at the file's edge count for the final group.
+/// The range starts at `first_edge` and ends at the next group's `first_edge`, or at the file's
+/// edge count for the final group.
 // `FromBytes` is sound here: every field is an unconstrained primitive
 // encoding, and the domain rules over them (ordering, ranges, weight
 // domains) are validated by the mapped bridge, not the record.
@@ -181,8 +176,7 @@ pub(crate) struct EdgeRecord {
     pub confidence: F32<LE>,
     /// The degree normalization `nu`.
     pub normalization: F32<LE>,
-    /// Score provenance bits: link, source, and target presence in the
-    /// three lowest bits.
+    /// Score provenance bits: link, source, and target presence in the three lowest bits.
     pub scored: U32<LE>,
     /// Alignment filler; writers emit zero, readers ignore.
     pub reserved: U32<LE>,
@@ -214,8 +208,8 @@ impl FileHeader {
     /// Size of the header, and the offset of the groups region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for `groups` relation groups over `edges` edge
-    /// records spanning `rows` corpus rows.
+    /// Creates a header for `groups` relation groups over `edges` edge records spanning `rows`
+    /// corpus rows.
     #[must_use]
     pub(crate) const fn new(groups: u64, edges: u64, rows: u64) -> Self {
         Self {
@@ -252,9 +246,9 @@ impl FileHeader {
 
     /// Returns the offset of the edges region.
     ///
-    /// The groups region sits between the header and this offset, zero
-    /// padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The groups region sits between the header and this offset, zero padded to the boundary.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn edges_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.groups(), size_of::<GroupRecord>() as u64)?)
@@ -262,9 +256,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let edge_bytes = self.edges().checked_mul(size_of::<EdgeRecord>() as u64)?;

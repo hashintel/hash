@@ -1,16 +1,13 @@
 //! The quadtree build: cutting the base delivery order into tiles.
 //!
-//! [`QuadTree::build`] derives the quad file's regions from the
-//! finished lod columns: one node per tile the bucket-cut schedule can
-//! deliver something new into, each carrying its own-bucket run of the
-//! base order, its subtree point count, and its direct-type set
-//! (`SPEC-ADDENDUM-CLOUD.md` section 6; `PLAN.md` "Serving contract
-//! requirements").
+//! [`QuadTree::build`] derives the quad file's regions from the finished lod columns: one node per
+//! tile the bucket-cut schedule can deliver something new into, each carrying its own-bucket run of
+//! the base order, its subtree point count, and its direct-type set (`SPEC-ADDENDUM-CLOUD.md`
+//! section 6; `PLAN.md` "Serving contract requirements").
 //!
-//! The root always exists and covers the wire frame; a deeper cell gets
-//! a node exactly when it contains a point the parent tile's cut did
-//! not deliver - a point whose bucket is at least the cell's own cut
-//! `z + span_log2`. Two cascade facts shape the tree:
+//! The root always exists and covers the wire frame; a deeper cell gets a node exactly when it
+//! contains a point the parent tile's cut did not deliver - a point whose bucket is at least the
+//! cell's own cut `z + span_log2`. Two cascade facts shape the tree:
 //!
 //! - Chains self-terminate: a point alone in its depth-`d` cell is that cell's best-ranked
 //!   occupant, so the first-occupant cascade assigns it a bucket no deeper than the first depth
@@ -21,14 +18,12 @@
 //!   contiguous because the base order is bucket-major. Every point is delivered exactly once
 //!   across the incremental tile pyramid.
 //!
-//! No depth cap appears in the recursion: the cascade assigns no bucket
-//! beyond `max_tile_depth + span_log2`, so leaves at the deepest tile
-//! zoom fall out by construction.
+//! No depth cap appears in the recursion: the cascade assigns no bucket beyond `max_tile_depth +
+//! span_log2`, so leaves at the deepest tile zoom fall out by construction.
 //!
-//! Each node's run is narrowed by the partition-point searches of
-//! `file/morton`'s `run` query (first code at or above the cell's
-//! minimum key, first beyond its maximum), so the builder and the
-//! served lookups can never disagree about a run's extent.
+//! Each node's run is narrowed by the partition-point searches of `file/morton`'s `run` query
+//! (first code at or above the cell's minimum key, first beyond its maximum), so the builder and
+//! the served lookups can never disagree about a run's extent.
 
 use alloc::collections::BTreeSet;
 use core::ops::Range;
@@ -50,15 +45,13 @@ use crate::{
 pub(crate) enum QuadError {
     /// The configuration names a schedule no 64-bit key resolves.
     Schedule { config: LodConfig },
-    /// The type column covers a different row count than the lod
-    /// columns.
+    /// The type column covers a different row count than the lod columns.
     Columns { rows: usize },
-    /// The lod columns hold points in a bucket beyond the
-    /// configuration's deepest grid: the configuration is not the one
-    /// the lod was built under.
+    /// The lod columns hold points in a bucket beyond the configuration's deepest grid.
+    ///
+    /// The configuration is not the one the lod was built under.
     Bucket { bucket: u8 },
-    /// A direct type names an ontology row beyond the `u32` ordinals
-    /// the quad file stores.
+    /// A direct type names an ontology row beyond the `u32` ordinals the quad file stores.
     TypeOrdinal { row: u32, id: u64 },
     /// The tree needs more nodes than `u32` indexes address.
     Nodes,
@@ -94,12 +87,10 @@ impl core::fmt::Display for QuadError {
 
 impl core::error::Error for QuadError {}
 
-/// The quadtree of one generation: the quad file's regions in writable
-/// form.
+/// The quadtree of one generation: the quad file's regions in writable form.
 ///
-/// Node 0 is the root; records are in depth-first pre-order with
-/// children in Morton child order, so every child index points deeper
-/// in the table. [`evidence`](Self::evidence) is measured from the
+/// Node 0 is the root; records are in depth-first pre-order with children in Morton child order, so
+/// every child index points deeper in the table. [`evidence`](Self::evidence) is measured from the
 /// finished tree and belongs in the generation's metadata document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct QuadTree {
@@ -114,23 +105,19 @@ pub(crate) struct QuadTree {
 impl QuadTree {
     /// Builds the quadtree over the finished lod columns.
     ///
-    /// `types` holds each row's direct types in **row** order, exactly
-    /// as the dataset streams them (ascending, deduplicated); the
-    /// builder gathers them into base order through the lod's
-    /// permutation. `config` must be the configuration the lod was
-    /// built under: a mismatch surfaces as [`QuadError::Bucket`] when
-    /// the lod's cascade ran deeper than the configuration allows, and
-    /// cannot be observed here otherwise.
+    /// `types` holds each row's direct types in **row** order, exactly as the dataset streams them
+    /// (ascending, deduplicated); the builder gathers them into base order through the lod's
+    /// permutation. `config` must be the configuration the lod was built under: a mismatch surfaces
+    /// as [`QuadError::Bucket`] when the lod's cascade ran deeper than the configuration allows,
+    /// and cannot be observed here otherwise.
     ///
     /// # Errors
     ///
-    /// Returns [`QuadError::Schedule`] when the configuration exceeds
-    /// the key width, [`QuadError::Columns`] when the type column
-    /// disagrees with the lod columns, [`QuadError::Bucket`] when the
-    /// lod holds points beyond the configuration's deepest grid,
-    /// [`QuadError::TypeOrdinal`] when a direct type escapes the file's
-    /// `u32` ordinals, and [`QuadError::Nodes`] when the tree escapes
-    /// `u32` node indexes.
+    /// Returns [`QuadError::Schedule`] when the configuration exceeds the key width,
+    /// [`QuadError::Columns`] when the type column disagrees with the lod columns,
+    /// [`QuadError::Bucket`] when the lod holds points beyond the configuration's deepest grid,
+    /// [`QuadError::TypeOrdinal`] when a direct type escapes the file's `u32` ordinals, and
+    /// [`QuadError::Nodes`] when the tree escapes `u32` node indexes.
     pub(crate) fn build(
         lod: &Lod,
         types: &[SmallVec<OntologyRowId, 2>],
@@ -197,9 +184,9 @@ impl QuadTree {
     }
 }
 
-/// The publish evidence of one quadtree build: measurements the
-/// manifest records so the configuration is revised from data, not
-/// taste.
+/// The publish evidence of one quadtree build.
+///
+/// Measurements the manifest records so the configuration is revised from data, not taste.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct QuadEvidence {
     /// Nodes in the table.
@@ -212,8 +199,7 @@ pub(crate) struct QuadEvidence {
     pub type_entries: u64,
 }
 
-/// One range per bucket: the positions of the bucket's codes inside
-/// the cell under construction.
+/// One range per bucket: the positions of the bucket's codes inside the cell under construction.
 type BucketRanges = [Range<usize>; Fenceposts::SEGMENTS];
 
 /// The whole-domain ranges: every bucket's full segment.
@@ -232,8 +218,7 @@ struct Builder<'lod> {
     codes: &'lod [MortonKey],
     /// Each base position's direct types as `u32` ordinals.
     position_types: Vec<SmallVec<u32, 2>>,
-    /// The cut's span exponent `m`: a tile at zoom `z` delivers
-    /// buckets at or below `z + m`.
+    /// The cut's span exponent `m`: a tile at zoom `z` delivers buckets at or below `z + m`.
     span_log2: u8,
     /// The deepest bucket the cascade assigned into.
     deepest: Depth,
@@ -246,8 +231,9 @@ struct Builder<'lod> {
 }
 
 impl Builder<'_> {
-    /// Builds the node for `cell` over the bucket `ranges` narrowed to
-    /// it, returning the node's table index.
+    /// Builds the node for `cell` over the bucket `ranges` narrowed to it.
+    ///
+    /// Returns the node's table index.
     fn node(&mut self, cell: MortonCell, ranges: &BucketRanges) -> Result<u32, QuadError> {
         let Ok(index) = u32::try_from(self.nodes.len()) else {
             return Err(QuadError::Nodes);
@@ -305,9 +291,10 @@ impl Builder<'_> {
         Ok(index)
     }
 
-    /// Returns the own-bucket run: bucket `z + span_log2` for a tile
-    /// at zoom `z`, buckets `0..=span_log2` whole for the root - a
-    /// single contiguous range because the base order is bucket-major.
+    /// Returns the own-bucket run.
+    ///
+    /// Bucket `z + span_log2` for a tile at zoom `z`, buckets `0..=span_log2` whole for the root -
+    /// a single contiguous range because the base order is bucket-major.
     fn run(&self, depth: Depth, ranges: &BucketRanges) -> Range<usize> {
         if depth == Depth::MIN {
             let cut = usize::from(self.span_log2);
@@ -325,16 +312,18 @@ impl Builder<'_> {
         }
     }
 
-    /// Returns whether `ranges` holds no point in a bucket beyond
-    /// `cut`: nothing below this tile's zoom delivers anything new.
+    /// Returns whether `ranges` holds no point in a bucket beyond `cut`.
+    ///
+    /// Nothing below this tile's zoom delivers anything new.
     fn exhausted(&self, cut: u8, ranges: &BucketRanges) -> bool {
         ranges[usize::from(cut) + 1..=usize::from(self.deepest.get())]
             .iter()
             .all(Range::is_empty)
     }
 
-    /// Narrows every bucket's range to the codes inside `cell`, by the
-    /// partition-point searches of `file/morton`'s `run` query.
+    /// Narrows every bucket's range to the codes inside `cell`.
+    ///
+    /// By the partition-point searches of `file/morton`'s `run` query.
     fn narrow(&self, ranges: &BucketRanges, cell: MortonCell) -> BucketRanges {
         core::array::from_fn(|bucket| {
             let range = &ranges[bucket];

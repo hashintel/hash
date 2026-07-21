@@ -22,9 +22,10 @@ use crate::{
 };
 
 impl Context<'_> {
-    /// Builds the search backend over the mapped representations,
-    /// admits it by exact recall, and stages the derived k-NN table,
-    /// mapping it back for the stages that consume it.
+    /// Builds the search backend over the mapped representations.
+    ///
+    /// Admits it by exact recall, and stages the derived k-NN table, mapping it back for the stages
+    /// that consume it.
     pub(super) fn build_neighbour_table(
         &self,
         rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -74,8 +75,9 @@ impl Context<'_> {
         })
     }
 
-    /// Smooths the mapped k-NN table into the staged fuzzy semantic
-    /// graph, mapping it back for the stages that consume it.
+    /// Smooths the mapped k-NN table into the staged fuzzy semantic graph.
+    ///
+    /// Maps it back for the stages that consume it.
     pub(super) fn stage_semantic(
         &self,
         knn: &KnnArchive,

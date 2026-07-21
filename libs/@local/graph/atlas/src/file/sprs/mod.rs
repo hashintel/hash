@@ -1,14 +1,12 @@
 //! The sparse matrix file: one compressed-sparse-row matrix, mappable.
 //!
-//! Layout version 1 is **mutable**: change the layout freely to fit what
-//! the pipeline needs and increment [`Version`] when you do. The pinned
-//! parse rejects bytes of other versions, which is the intended failure
-//! mode; no migration or compatibility machinery exists on purpose until
-//! the format stabilizes.
+//! Layout version 1 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
+//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
+//! format stabilizes.
 //!
-//! This is a combined file: a compressed sparse matrix is three
-//! columns - pointers, indices, values - derived together, meaningless
-//! apart, and always read together, so all three live in one file and
+//! This is a combined file: a compressed sparse matrix is three columns (pointers, indices, values)
+//! derived together, meaningless apart, and always read together, so all three live in one file and
 //! cannot fall out of sync. The regions:
 //!
 //! ```text
@@ -39,26 +37,19 @@
 //! [`Csr`]: StorageVariant::Csr
 //! [`Csc`]: StorageVariant::Csc
 //!
-//! The element types describe the regions exactly: value geometry
-//! derives from the recorded width, and [`read::SprsFile`]'s typed
-//! accessor exists only for the described combination - matching tag,
-//! matching width, matching index types - so a region is never read at
-//! the wrong width. The shape is a rank-2
-//! [`ArrayShape`]: a shape of any other rank has no region geometry and
-//! matches no real file, so a matrix with zero rows or columns is
-//! unrepresentable on purpose. All region offsets derive from the
-//! header fields with checked arithmetic
-//! ([`FileHeader::expected_file_len`]); a header whose geometry
-//! overflows matches no real file. Every region starts on a 4096-byte
-//! boundary, so the whole-file-mapping alignment guarantee of the array
-//! format applies unchanged: map the whole file and slice, never mmap
-//! at a file offset.
+//! The element types describe the regions exactly: value geometry derives from the recorded width,
+//! and [`read::SprsFile`]'s typed accessor exists only for the described combination - matching
+//! tag, matching width, matching index types - so a region is never read at the wrong width. The
+//! shape is a rank-2 [`ArrayShape`]: a shape of any other rank has no region geometry and matches
+//! no real file, so a matrix with zero rows or columns is unrepresentable on purpose. All region
+//! offsets derive from the header fields with checked arithmetic
+//! ([`FileHeader::expected_file_len`]); a header whose geometry overflows matches no real file.
+//! Every region starts on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of
+//! the array format applies unchanged: map the whole file and slice, never mmap at a file offset.
 //!
-//! [`read::SprsFile`] opens a file under these rules;
-//! [`write::write_matrix`] streams a borrowed
-//! [`CsMatBase`](sprs::CsMatBase) into them. Reader and writer speak
-//! the same matrix types, so a written matrix reopens as the view it
-//! was written from.
+//! [`read::SprsFile`] opens a file under these rules; [`write::write_matrix`] streams a borrowed
+//! [`CsMatBase`](sprs::CsMatBase) into them. Reader and writer speak the same matrix types, so a
+//! written matrix reopens as the view it was written from.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -124,8 +115,9 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Sprs);
 }
 
-/// A layout version this module implements. Byte-level construction
-/// admits no other value; increment on any layout change.
+/// A layout version this module implements.
+///
+/// Byte-level construction admits no other value; increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -146,11 +138,10 @@ pub(crate) enum Version {
 
 /// The element type of an index region.
 ///
-/// This is the fixed-width intersection of what a file can store and
-/// what [`sprs::SpIndex`] implements: the signed and unsigned widths
-/// from 16 to 64 bits. Eight-bit types are not indices to `sprs`, and
-/// the target-width `usize`/`isize` have no on-disk form; a matrix
-/// held in target-width indices persists through a fixed-width type.
+/// This is the fixed-width intersection of what a file can store and what [`sprs::SpIndex`]
+/// implements: the signed and unsigned widths from 16 to 64 bits. Eight-bit types are not indices
+/// to `sprs`, and the target-width `usize`/`isize` have no on-disk form; a matrix held in
+/// target-width indices persists through a fixed-width type.
 #[derive(
     Debug,
     Copy,
@@ -189,13 +180,11 @@ impl IndexVariant {
 
 /// The type tag of a value region.
 ///
-/// A value entry's recorded geometry is its byte width; the tag is the
-/// identity layered on top. The scalar tags pin an exact type, so an
-/// `f32` region never reads back as `u32`. [`Opaque`](Self::Opaque)
-/// records no identity beyond the width: two opaque types of one width
-/// are interchangeable on the wire, and a type carries that tag exactly
-/// when it opts into being so. The scalar discriminants mirror
-/// [`ArrayVariant`](super::array::ArrayVariant), so the two formats
+/// A value entry's recorded geometry is its byte width; the tag is the identity layered on top. The
+/// scalar tags pin an exact type, so an `f32` region never reads back as `u32`.
+/// [`Opaque`](Self::Opaque) records no identity beyond the width: two opaque types of one width are
+/// interchangeable on the wire, and a type carries that tag exactly when it opts into being so. The
+/// scalar discriminants mirror [`ArrayVariant`](super::array::ArrayVariant), so the two formats
 /// speak one scalar vocabulary.
 #[derive(
     Debug,
@@ -228,17 +217,17 @@ pub enum ValueTag {
     F32 = 0x0D,
     F64 = 0x0E,
     F128 = 0x0F,
-    /// The zero-width unit: the value region is empty and every entry
-    /// is `()`. The tag of structure-only matrices, whose payload is
-    /// the compressed pattern alone.
+    /// The zero-width unit: the value region is empty and every entry is `()`.
+    ///
+    /// The tag of structure-only matrices, whose payload is the compressed pattern alone.
     Unit = 0x10,
 }
 
 impl ValueTag {
     /// Returns the width a scalar tag pins, in bytes.
     ///
-    /// [`Opaque`](Self::Opaque) pins no width: its types are described
-    /// by the header's recorded width alone.
+    /// [`Opaque`](Self::Opaque) pins no width: its types are described by the header's recorded
+    /// width alone.
     #[inline]
     #[must_use]
     pub(crate) const fn width(self) -> Option<u64> {
@@ -256,13 +245,11 @@ impl ValueTag {
 
 /// A type a value region stores.
 ///
-/// A value's recorded geometry is `size_of::<Self>()`, written into the
-/// header and re-checked against the viewing type, so a region is never
-/// sliced or reinterpreted at a width other than the type's own. The
-/// [`ValueTag`] is the identity on top of the width: scalar tags pin
-/// the exact type, while [`ValueTag::Opaque`] types are identified by
-/// width alone and accept that any equal-width opaque type reads the
-/// same region.
+/// A value's recorded geometry is `size_of::<Self>()`, written into the header and re-checked
+/// against the viewing type, so a region is never sliced or reinterpreted at a width other than the
+/// type's own. The [`ValueTag`] is the identity on top of the width: scalar tags pin the exact
+/// type, while [`ValueTag::Opaque`] types are identified by width alone and accept that any
+/// equal-width opaque type reads the same region.
 // Safe on purpose: both region geometry and byte reinterpretation
 // derive from size_of::<Self>() at write and view time alike, so no
 // impl-provided width exists to lie about. The compile-time asserts
@@ -273,11 +260,9 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Co
 
     /// Views a value region as its elements.
     ///
-    /// `bytes` holds exactly `entries * size_of::<Self>()` bytes on a
-    /// 4096-byte boundary - the format's region guarantee. The unit
-    /// type overrides the byte-reinterpreting default: no value bytes
-    /// exist for it, so its elements materialize at the entry count
-    /// alone.
+    /// `bytes` holds exactly `entries * size_of::<Self>()` bytes on a 4096-byte boundary - the
+    /// format's region guarantee. The unit type overrides the byte-reinterpreting default: no value
+    /// bytes exist for it, so its elements materialize at the entry count alone.
     fn view_region(bytes: &[u8], entries: usize) -> &[Self] {
         let _: usize = entries;
         <[Self]>::ref_from_bytes(bytes)
@@ -287,16 +272,15 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Co
 
 /// A scalar type an index region stores.
 ///
-/// The variant is the type's wire identity: an index region reads back
-/// as `I` exactly when the header records `I::VARIANT`. Every
-/// implementor is an [`SpIndex`], so a mapped region drives sparse
-/// algorithms directly.
+/// The variant is the type's wire identity: an index region reads back as `I` exactly when the
+/// header records `I::VARIANT`. Every implementor is an [`SpIndex`], so a mapped region drives
+/// sparse algorithms directly.
 ///
 /// # Safety
 ///
-/// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry
-/// and byte reinterpretation both derive from the variant's width, so
-/// a lying implementation reads regions at the wrong boundaries.
+/// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry and byte reinterpretation both
+/// derive from the variant's width, so a lying implementation reads regions at the wrong
+/// boundaries.
 pub(crate) unsafe trait SprsIndex:
     SpIndex + FromBytes + IntoBytes + Immutable
 {
@@ -341,11 +325,10 @@ impl SprsValue for () {
     const TAG: ValueTag = ValueTag::Unit;
 
     fn view_region(_bytes: &[u8], entries: usize) -> &[Self] {
-        // SAFETY: `()` is zero-sized, so the slice covers no bytes:
-        // `NonNull::dangling` is non-null and aligned, zero bytes are
-        // valid for reads at any address, and no element count of a
-        // zero-sized type overflows `isize` in bytes. Every value of
-        // the unit type is trivially initialized and valid.
+        // SAFETY: `()` is zero-sized, so the slice covers no bytes: `NonNull::dangling` is non-null
+        // and aligned, zero bytes are valid for reads at any address, and no element count of a
+        // zero-sized type overflows `isize` in bytes. Every value of the unit type is trivially
+        // initialized and valid.
         unsafe { core::slice::from_raw_parts(core::ptr::NonNull::dangling().as_ptr(), entries) }
     }
 }
@@ -448,8 +431,8 @@ impl FileHeader {
     /// Size of the header, and the offset of the pointer region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for an `nnz`-entry matrix shaped `[rows,
-    /// columns]` with the given element types and compressed dimension.
+    /// Creates a header for an `nnz`-entry matrix shaped `[rows, columns]` with the given element
+    /// types and compressed dimension.
     #[must_use]
     pub(crate) const fn new(
         value: ValueTag,
@@ -518,8 +501,7 @@ impl FileHeader {
 
     /// Returns the `(rows, columns)` shape.
     ///
-    /// Returns `None` unless the shape has rank 2, in which case no
-    /// real file matches the header.
+    /// Returns `None` unless the shape has rank 2, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn matrix_shape(&self) -> Option<(u64, u64)> {
         match *self.shape.dims() {
@@ -530,8 +512,7 @@ impl FileHeader {
 
     /// Returns the compressed dimension's extent.
     ///
-    /// Returns `None` unless the shape has rank 2, in which case no
-    /// real file matches the header.
+    /// Returns `None` unless the shape has rank 2, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn outer_count(&self) -> Option<u64> {
         let (rows, columns) = self.matrix_shape()?;
@@ -543,9 +524,9 @@ impl FileHeader {
 
     /// Returns the offset of the index region.
     ///
-    /// The pointer region sits between the header and this offset,
-    /// zero padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The pointer region sits between the header and this offset, zero padded to the boundary.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn indices_offset(&self) -> Option<u64> {
         let iptr = padded_size(self.outer_count()?.checked_add(1)?, self.iptr.width())?;
@@ -554,9 +535,9 @@ impl FileHeader {
 
     /// Returns the offset of the value region.
     ///
-    /// The index region sits between the previous offset and this one,
-    /// zero padded to the boundary. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The index region sits between the previous offset and this one, zero padded to the boundary.
+    /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
+    /// header.
     #[must_use]
     pub(crate) fn values_offset(&self) -> Option<u64> {
         self.indices_offset()?
@@ -565,9 +546,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns
-    /// `None` when the geometry overflows `u64`, in which case no real
-    /// file matches the header.
+    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
+    /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let value_bytes = self.nnz.get().checked_mul(self.value_width.get())?;
