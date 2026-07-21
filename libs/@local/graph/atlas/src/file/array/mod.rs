@@ -65,7 +65,8 @@ pub(crate) use self::{
     write::{ArrayWriter, SizedArrayWriter},
 };
 
-// not pretty, but allows us to pin a specific version, required for the derive
+// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// pinned magic value.
 #[derive(
     Debug,
     Copy,
@@ -106,7 +107,8 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Salt);
 }
 
-// not pretty, but allows us to pin a specific version, required for the derive
+// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// pinned magic value.
 /// A layout version this module implements.
 ///
 /// Byte-level construction admits no other value; increment on any layout change.

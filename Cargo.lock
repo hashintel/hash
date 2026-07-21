@@ -4171,12 +4171,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ccff2060df2e1a42732ab1e7af8c5f930ed3d0255aaadfae66e032781e8d271a"
 
 [[package]]
-name = "doubled"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dd32c7cc01b2799bf6ddb980f595b6235fb5ebdb7926b4010202663e9448ffd"
-
-[[package]]
 name = "doxygen-rs"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5905,6 +5899,7 @@ dependencies = [
  "axum",
  "burn",
  "camino",
+ "chacha20poly1305",
  "clap",
  "codspeed-criterion-compat",
  "darwin-kperf-criterion",
@@ -5930,13 +5925,13 @@ dependencies = [
  "rayon",
  "regex",
  "rkyv",
+ "roaring 0.11.4",
  "schemars 1.2.1",
  "serde",
  "serde_json",
  "sha2 0.11.0",
  "simple-mermaid",
  "siphasher",
- "sleef",
  "smallvec 2.0.0-alpha.12",
  "sprs",
  "tiktoken-rs",
@@ -12863,15 +12858,6 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
-
-[[package]]
-name = "sleef"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea6dbf8ab191d2d292f99457cf06f1465b7764a856a5cfee3ab8ada09d7e03cf"
-dependencies = [
- "doubled",
-]
 
 [[package]]
 name = "slotmap"

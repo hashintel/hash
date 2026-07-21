@@ -340,9 +340,9 @@ pub(crate) struct MeasurementOptions {
     // value as config, setting no precedent); the canonical-selection
     // criteria revise it from evidence.
     pub distinguishability_floor: f64 = 1.0e-8,
-    /// Slack by which a rung's relation loss may exceed its predecessor's and still count as monotonic.
+    /// Slack by which a rung's relation loss may exceed its predecessor's.
     ///
-    /// Defaults to `0.05`.
+    /// Within it the rung still counts as monotonic. Defaults to `0.05`.
     // Same provenance as the floor.
     pub monotonicity_tolerance: f64 = 0.05,
 }

@@ -152,10 +152,10 @@ proptest! {
         );
     }
 
-    /// The sigmoid lies in `[0, 1]`, is monotone non-decreasing, and satisfies its complement identity.
+    /// The sigmoid is monotone non-decreasing and satisfies its complement identity.
     ///
-    /// `sigmoid(-x) == 1 - sigmoid(x)` up to rounding. Inputs are bounded to `-1e4..1e4`; the
-    /// asymptotes are pinned above.
+    /// Values lie in `[0, 1]`; `sigmoid(-x) == 1 - sigmoid(x)` up to rounding. Inputs are bounded
+    /// to `-1e4..1e4`; the asymptotes are pinned above.
     #[test]
     fn sigmoid_is_bounded_monotone_and_complementary(
         first in -1e4_f32..1e4,

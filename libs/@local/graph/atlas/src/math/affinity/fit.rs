@@ -79,7 +79,7 @@ impl AffinityCurve {
     /// use hash_graph_atlas::math::AffinityCurve;
     ///
     /// // The reference inputs: spread 1.0, minimum distance 0.1.
-    /// let curve = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
+    /// let curve = AffinityCurve::fit(1.0, 0.1).expect("reference inputs are well-conditioned");
     ///
     /// assert!((curve.a() - 1.577).abs() < 0.01);
     /// assert!((curve.b() - 0.895).abs() < 0.01);

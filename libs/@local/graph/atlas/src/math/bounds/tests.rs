@@ -293,7 +293,7 @@ proptest! {
         }
     }
 
-    /// The SIMD fold agrees with the scalar fold on arbitrary point vectors, including the empty one.
+    /// The SIMD fold agrees with the scalar fold on arbitrary point vectors, empty included.
     ///
     /// Both compute the same exact min/max corners (or the same rejection).
     #[test]

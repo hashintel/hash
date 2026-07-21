@@ -322,8 +322,7 @@ impl Bounds2 {
     ///
     /// let layout = Bounds2::new(Vec2::new(-2.0, 0.0), Vec2::new(6.0, 4.0))
     ///     .expect("corners are finite and ordered");
-    /// let frame =
-    ///     Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
+    /// let frame = Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("the frame is valid");
     ///
     /// let mapped = layout.normalize_into(frame, &[Vec2::new(-2.0, 0.0), Vec2::new(2.0, 2.0)]);
     /// assert_eq!(mapped, [Vec2::new(-1.0, -1.0), Vec2::new(0.0, 0.0)]);

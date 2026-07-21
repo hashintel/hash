@@ -183,7 +183,8 @@ impl Fenceposts {
     }
 }
 
-// not pretty, but allows us to pin a specific version, required for the derive
+// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// pinned magic value.
 #[derive(
     Debug,
     Copy,

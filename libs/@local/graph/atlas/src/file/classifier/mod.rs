@@ -67,7 +67,8 @@ const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 /// Geometry classes per model: pinned by the layout version.
 pub(crate) const CLASSES: usize = 3;
 
-// not pretty, but allows us to pin a specific version, required for the derive
+// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// pinned magic value.
 #[derive(
     Debug,
     Copy,

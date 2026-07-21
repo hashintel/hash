@@ -1,7 +1,8 @@
 //! Shared portable-SIMD operations.
 //!
-//! The fused multiply-add dispatchers select between native FMA and separate multiply-add per
-//! target. The transcendentals are vectorized through the SLEEF kernels vendored in
+//! Multiply-adds are semantically fused: one correctly rounded result per lane, defined by
+//! IEEE 754 on every target, so content-hashed artifacts reproduce across platforms by
+//! construction. The transcendentals are vectorized through the SLEEF kernels vendored in
 //! [`self::sleef`]. Each wrapper documents its own accuracy bound: the variant is chosen per kernel
 //! by measuring the consumers' requirements against instruction counts, from the 1.0-ulp `u10` tier
 //! down to compositions of the cheaper 3.5-ulp `u35` tier. The wrappers are the crate's single seam
@@ -18,44 +19,60 @@ use core::simd::{f32x4, f32x8, f64x4, f64x8};
 pub mod bench;
 mod sleef;
 
-/// Fused multiply-add when the target provides native FMA instructions.
-#[inline(always)]
-#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
-pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4 {
-    use std::simd::StdFloat as _;
-
-    lhs.mul_add(rhs, accumulator)
-}
-
-/// Separate multiplication and addition when native FMA is unavailable.
-#[inline(always)]
-#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
-pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4 {
-    lhs * rhs + accumulator
-}
-
-/// Fused multiply-add when the target provides native FMA instructions.
-#[inline(always)]
-#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
-pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8 {
-    use std::simd::StdFloat as _;
-
-    lhs.mul_add(rhs, accumulator)
-}
-
-/// Separate multiplication and addition when native FMA is unavailable.
-#[inline(always)]
-#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
-pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8 {
-    lhs * rhs + accumulator
+/// Aborts when the running CPU cannot execute the compiled instruction set.
+///
+/// x86-64 builds carry the workspace's x86-64-v3 baseline (AVX2, FMA, BMI2), so on an older
+/// machine the process would otherwise die on an illegal instruction at an arbitrary point. This
+/// check turns that into a diagnosable failure at process entry; on targets whose baseline needs
+/// no runtime support (aarch64) it compiles to nothing.
+///
+/// # Panics
+///
+/// Panics when the CPU lacks the compiled baseline's instruction-set extensions.
+#[expect(
+    clippy::missing_const_for_fn,
+    reason = "const only where the x86-64 arm compiles out; the runtime feature detection is the \
+              function's purpose"
+)]
+pub(crate) fn verify_cpu_baseline() {
+    #[cfg(target_arch = "x86_64")]
+    {
+        assert!(
+            std::arch::is_x86_feature_detected!("avx2")
+                && std::arch::is_x86_feature_detected!("fma")
+                && std::arch::is_x86_feature_detected!("bmi2"),
+            "this binary is compiled for the x86-64-v3 baseline (AVX2, FMA, BMI2); the current \
+             CPU does not support it"
+        );
+    }
 }
 
 /// Fused multiply-add, correctly rounded on every target.
 ///
-/// The fusion is semantic: targets without native FMA take a software path with the same single
-/// rounding, so every lane matches scalar [`f64::mul_add`] bit for bit on every platform. This is
-/// the variant for consumers whose contract includes byte-reproducibility across targets;
-/// [`mul_add_f64x4`] trades that guarantee for speed where FMA hardware is absent.
+/// The fusion is semantic: targets without FMA hardware take a software path with the same single
+/// rounding, so every lane matches scalar [`f32::mul_add`] bit for bit on every platform.
+/// Hardware presence changes speed, never bits; x86-64 builds ride the workspace's x86-64-v3
+/// baseline for the hardware lowering.
+#[inline(always)]
+pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4 {
+    use std::simd::StdFloat as _;
+
+    lhs.mul_add(rhs, accumulator)
+}
+
+/// Fused multiply-add, correctly rounded on every target.
+///
+/// The `f32x8` counterpart of [`mul_add_f32x4`].
+#[inline(always)]
+pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8 {
+    use std::simd::StdFloat as _;
+
+    lhs.mul_add(rhs, accumulator)
+}
+
+/// Fused multiply-add, correctly rounded on every target.
+///
+/// Equivalent to [`mul_add_f64x4`]; both carry the same semantic-fusion guarantee.
 #[inline(always)]
 pub(crate) fn fused_mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
     use std::simd::StdFloat as _;
@@ -63,36 +80,24 @@ pub(crate) fn fused_mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) ->
     lhs.mul_add(rhs, accumulator)
 }
 
-/// Fused multiply-add when the target provides native FMA instructions.
+/// Fused multiply-add, correctly rounded on every target.
+///
+/// The `f64x4` counterpart of [`mul_add_f32x4`].
 #[inline(always)]
-#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
 pub(crate) fn mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
     use std::simd::StdFloat as _;
 
     lhs.mul_add(rhs, accumulator)
 }
 
-/// Separate multiplication and addition when native FMA is unavailable.
+/// Fused multiply-add, correctly rounded on every target.
+///
+/// The `f64x8` counterpart of [`mul_add_f32x4`].
 #[inline(always)]
-#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
-pub(crate) fn mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
-    lhs * rhs + accumulator
-}
-
-/// Fused multiply-add when the target provides native FMA instructions.
-#[inline(always)]
-#[cfg(any(target_arch = "aarch64", target_feature = "fma"))]
 pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
     use std::simd::StdFloat as _;
 
     lhs.mul_add(rhs, accumulator)
-}
-
-/// Separate multiplication and addition when native FMA is unavailable.
-#[inline(always)]
-#[cfg(not(any(target_arch = "aarch64", target_feature = "fma")))]
-pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8 {
-    lhs * rhs + accumulator
 }
 
 /// Exponential of each lane, accurate to 1.0 unit in the last place.
@@ -131,26 +136,24 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 /// A `base` of zero yields zero for positive exponents, infinity for negative exponents, and NaN
 /// when the exponent is also zero; negative bases yield NaN.
 // Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf,
-// house kernels): this composition 70 instructions / 21
-// cycles, four scalar libm `powf` calls 311 / 36, sleef's 1.0-ulp
-// `pow_u10` 473 / 123. The scalar near-tie in standalone cycles
-// vanishes under load: embedded in the attraction-coefficient
-// arithmetic the upstream form of the composition holds 30 cycles
-// (the extra work rides its idle issue slots) while the scalar option
-// grows to 38; the house form differs from upstream only by cheaper
-// nearest-integer rounding. The tie also does not generalize across machines: it
-// needs an out-of-order engine wide and deep enough to overlap four
-// independent libm bodies (IPC ~8.6 here) and Apple's branch-free
-// `powf`; production Linux targets have neither, and glibc's `powf` is
-// a different, branchier function with different rounding. The composition's cost travels with
-// the binary - same sleef code, same 87 instructions, bit-identical
-// results on every platform - which also keeps content-hashed fits
-// reproducible across dev and prod. Inside the fused gradient kernels
-// the instruction count is additionally the shared resource: the
-// composition leaves three quarters of the issue slots to the
-// surrounding batch arithmetic and stays in vector registers.
-// `StdFloat` offers no vector `pow`, and its `exp2`/`log2` scalarize to
-// one libm call per lane.
+// fused ladders): this composition 68 instructions / 18 cycles, four
+// scalar libm `powf` calls 311 / 36. The scalar near-tie in
+// standalone cycles vanishes under load: embedded in the
+// attraction-coefficient arithmetic the composition rides idle issue
+// slots while the scalar bodies compete for them. The tie also does
+// not generalize across machines: it needs an out-of-order engine
+// wide and deep enough to overlap four independent libm bodies (IPC
+// ~8.6 here) and Apple's branch-free `powf`; production Linux targets
+// have neither, and glibc's `powf` is a different, branchier function
+// with different rounding. The composition's cost travels with the
+// binary - same vendored code, bit-identical results on every
+// platform - which also keeps content-hashed fits reproducible across
+// dev and prod. Inside the fused gradient kernels the instruction
+// count is additionally the shared resource: the composition leaves
+// three quarters of the issue slots to the surrounding batch
+// arithmetic and stays in vector registers. `StdFloat` offers no
+// vector `pow`, and its `exp2`/`log2` scalarize to one libm call per
+// lane.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \

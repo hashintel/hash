@@ -88,7 +88,8 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// not pretty, but allows us to pin a specific version, required for the derive
+// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// pinned magic value.
 #[derive(
     Debug,
     Copy,

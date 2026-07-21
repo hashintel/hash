@@ -13765,6 +13765,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "workspace:*"
     "@rust/darwin-kperf-criterion": "workspace:*"
+    "@rust/darwin-kperf-events": "workspace:*"
     "@rust/error-stack": "workspace:*"
     "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"

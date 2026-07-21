@@ -132,6 +132,7 @@ bytes-utils                        = { version = "0.1.4", default-features = fal
 camino                             = { version = "1.1.12", default-features = false }
 cargo_metadata                     = { version = "0.23.0", default-features = false }
 cedar-policy-core                  = { version = "4.5.1", default-features = false, features = ["decimal"] }                                                                                       # FIXME: Remove `decimal`: https://github.com/cedar-policy/cedar/issues/1700
+chacha20poly1305                   = { version = "0.10.1", default-features = false, features = ["alloc"] }
 circular-buffer                    = { version = "1.1.0", default-features = false }
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
@@ -265,7 +266,6 @@ sha2                               = { version = "0.11.0", default-features = fa
 similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
 siphasher                          = { version = "1.0.3", default-features = false }
-sleef                              = { version = "=0.3.3" }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }

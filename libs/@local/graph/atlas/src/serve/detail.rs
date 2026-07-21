@@ -141,8 +141,8 @@ const LINK_DETAIL_QUERY: &str = "
 /// its display label, input order preserved through the ordinality column, absent entities simply
 /// missing from the result.
 ///
-/// The `simple` column aggregates only simple-typed values - the Q5 filter runs in the store, so
-/// nested values never cross the connection. The `label_property` lateral mirrors the
+/// The `simple` column aggregates only simple-typed values - the simple-value filter runs in the
+/// store, so nested values never cross the connection. The `label_property` lateral mirrors the
 /// `entity_edition_cache` label derivation (migration V51): the first `allOf` `labelProperty` path
 /// that resolves non-null, in canonical direct-type order, is the path behind `labels[1]`.
 const LOCATE_DETAIL_QUERY: &str = "
@@ -586,7 +586,7 @@ pub(super) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
 /// Selects the surviving properties under the per-entity cap.
 ///
 /// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops very
-/// last (Q5), and survivors sort ascending by name - the wire's map-key order.
+/// last, and survivors sort ascending by name - the wire's map-key order.
 pub(super) fn select_properties(
     mut entries: Vec<(String, SimpleValue)>,
     label_property: Option<&str>,

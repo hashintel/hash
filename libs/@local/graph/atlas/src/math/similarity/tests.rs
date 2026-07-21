@@ -685,7 +685,7 @@ proptest! {
         );
     }
 
-    /// Fitting an exact similarity image of non-collinear points recovers the similarity's coefficients.
+    /// Fitting an exact similarity image of non-collinear points recovers the coefficients.
     ///
     /// The sources are four well-spread base points jittered by at most `0.5`, far less than the
     /// base triangle's extent, so the points can never become collinear.

@@ -126,8 +126,8 @@ impl ArrayFile {
 
         // SAFETY: The map is valid for the lifetime of the file, immutable, and we have validated
         // in the constructor that the map is large enough to contain the header and that its bytes
-        // parse as one, so the deref target is a valid `FileHeader`. We could use `try_from_bytes`
-        // here, but that would make that validation at every call site.
+        // parse as one, so the deref target is a valid `FileHeader`. The constructor's validation
+        // makes per-call `try_from_bytes` re-validation redundant.
         unsafe { &*ptr }
     }
 

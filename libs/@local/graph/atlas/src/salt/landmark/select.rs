@@ -192,8 +192,7 @@ pub(crate) struct SelectionOptions {
     /// Fraction of the capacity reserved for prior landmarks when enough are on offer.
     ///
     /// Retention stabilizes generation-to-generation orientation. Defaults to 0.25.
-    // The default is an unvalidated starting point (legacy required
-    // the value as config, setting no precedent); the temporal-drift
+    // The default is an unvalidated starting point; the temporal-drift
     // and landmark rank-correlation criteria revise it from evidence.
     pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
 }

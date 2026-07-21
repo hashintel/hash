@@ -133,12 +133,13 @@ fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>) {
     });
 }
 
-/// Shootout between candidate `pow` lowerings for the gradient kernels.
+/// Scalar-libm baselines for the gradient kernels' `pow` composition.
 ///
 /// The affinity gradients need `d^(2b)` for four lanes with a shared
-/// exponent; gradients tolerate a few ulps. Candidates: sleef's 1.0-ulp
-/// vector pow, four scalar libm calls (fast on Apple's libm), and the
-/// `exp2(p * log2(d))` composition from sleef's cheaper 3.5-ulp variants.
+/// exponent; gradients tolerate a few ulps. The production choice is the
+/// vendored `exp2(p * log2(d))` composition (measured as
+/// `kernel/pow_f32x4`); these entries keep its scalar-libm alternative
+/// measured in the same isolated and fused-in-coefficient forms.
 fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
     use core::simd::{Simd, f32x4};
 
@@ -148,9 +149,6 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
     let mut group = criterion.benchmark_group("pow_strategy");
     group.throughput(Throughput::Elements(4));
 
-    group.bench_function("sleef_pow_u10", |bencher| {
-        bencher.iter(|| sleef::f32x::pow_u10(black_box(base), Simd::splat(black_box(exponent))));
-    });
     group.bench_function("scalar_libm_powf", |bencher| {
         bencher.iter(|| {
             let lanes = black_box(base).to_array();
@@ -164,15 +162,7 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
             ])
         });
     });
-    group.bench_function("sleef_exp2_log2_u35", |bencher| {
-        bencher.iter(|| {
-            sleef::f32x::exp2_u35(
-                Simd::splat(black_box(exponent)) * sleef::f32x::log2_u35(black_box(base)),
-            )
-        });
-    });
-
-    // The fused variants embed each strategy in the attraction-coefficient
+    // The fused variant embeds the strategy in the attraction-coefficient
     // arithmetic, measuring what the isolated calls cannot: whether the
     // instruction-count gap converts to cycles once the pow competes with
     // surrounding vector work for issue slots.
@@ -183,16 +173,6 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
             / (Simd::splat(curve_a) * power * distance_squared + Simd::splat(1.0))
     };
 
-    group.bench_function("fused_sleef_exp2_log2_u35", |bencher| {
-        bencher.iter(|| {
-            let distance_squared = black_box(base);
-            let power = sleef::f32x::exp2_u35(
-                Simd::splat(black_box(exponent)) * sleef::f32x::log2_u35(distance_squared),
-            );
-
-            coefficient(power, distance_squared)
-        });
-    });
     group.bench_function("fused_scalar_libm_powf", |bencher| {
         bencher.iter(|| {
             let distance_squared = black_box(base);
@@ -208,27 +188,15 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>) {
             coefficient(power, distance_squared)
         });
     });
-    group.bench_function("fused_sleef_pow_u10", |bencher| {
-        bencher.iter(|| {
-            let distance_squared = black_box(base);
-            let power = sleef::f32x::pow_u10(distance_squared, Simd::splat(black_box(exponent)));
-
-            coefficient(power, distance_squared)
-        });
-    });
 
     group.finish();
 }
 
-/// The production wrappers over the vendored SLEEF kernels, paired
-/// with the upstream `sleef` crate calls they replaced.
+/// The production wrappers over the vendored SLEEF kernels.
 ///
-/// Each pair is bit-identical by construction (the `math::kernel::sleef`
-/// tests prove it over the full input bit range), so a delta inside a
-/// pair is pure codegen: these entries watch a rewrite of the vendored
-/// kernels for instruction-count or cycle regressions against a fixed
-/// upstream reference. The `pow_f32x4` composition's upstream reference
-/// is `pow_strategy/sleef_exp2_log2_u35`.
+/// Each entry measures a wrapper exactly as production calls it; the
+/// saved per-event baselines make a rewrite of the vendored kernels
+/// visible as an instruction-count or cycle change run over run.
 fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>) {
     use core::simd::{Simd, f32x4, f32x8, f64x4};
 
@@ -246,37 +214,13 @@ fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>) {
     group.bench_function("exp_f32x8", |bencher| {
         bencher.iter(|| kernel::exp_f32x8(black_box(f32_inputs)));
     });
-    group.bench_function("exp_f32x8_sleef_reference", |bencher| {
-        bencher.iter(|| sleef::f32x::exp_u10(black_box(f32_inputs)));
-    });
 
     group.throughput(Throughput::Elements(4));
     group.bench_function("exp_f64x4", |bencher| {
         bencher.iter(|| kernel::exp_f64x4(black_box(f64_inputs)));
     });
-    group.bench_function("exp_f64x4_sleef_reference", |bencher| {
-        bencher.iter(|| sleef::f64x::exp_u10(black_box(f64_inputs)));
-    });
     group.bench_function("pow_f32x4", |bencher| {
         bencher.iter(|| kernel::pow_f32x4(black_box(base), Simd::splat(black_box(exponent))));
-    });
-
-    // The `_fma_probe` entries run the same ladders with fused
-    // multiply-add; the delta against their unfused pair is the price
-    // the reproducibility pin pays, which an FMA fit-format epoch
-    // would buy back.
-    group.throughput(Throughput::Elements(8));
-    group.bench_function("exp_f32x8_fma_probe", |bencher| {
-        bencher.iter(|| kernel::exp_f32x8_fma_probe(black_box(f32_inputs)));
-    });
-    group.throughput(Throughput::Elements(4));
-    group.bench_function("exp_f64x4_fma_probe", |bencher| {
-        bencher.iter(|| kernel::exp_f64x4_fma_probe(black_box(f64_inputs)));
-    });
-    group.bench_function("pow_f32x4_fma_probe", |bencher| {
-        bencher.iter(|| {
-            kernel::pow_f32x4_fma_probe(black_box(base), Simd::splat(black_box(exponent)))
-        });
     });
 
     group.finish();

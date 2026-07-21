@@ -25,6 +25,10 @@ pub struct ManifestLimits {
     pub locate_edges: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
+    /// The sealed-blob asynchronous-refresh horizon, seconds.
+    pub seal_soft_seconds: u64,
+    /// The sealed-blob rejection bound, seconds.
+    pub seal_hard_seconds: u64,
 }
 
 impl ServeCaps {
@@ -39,6 +43,8 @@ impl ServeCaps {
             locate_neighbours: self.locate.neighbours,
             locate_edges: self.locate.edges,
             translate_entity_ids: self.translate.entity_ids,
+            seal_soft_seconds: self.seal.soft.as_secs(),
+            seal_hard_seconds: self.seal.hard.as_secs(),
         }
     }
 }

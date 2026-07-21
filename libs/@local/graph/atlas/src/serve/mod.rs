@@ -26,8 +26,9 @@
 //!
 //! Each read surface lives in its own module - request vocabulary, rejections, and assembly
 //! together: [`tile`](self) delivery, [`edges`](self) delivery, the [`manifest`](self) document,
-//! [`visibility`](self) (the proof and the resolution seam), and the [`open`](self) pass that
-//! validates everything the others rely on.
+//! [`visibility`](self) (the proof and the resolution seam), [`seal`](self) (the sealed bitmap
+//! blob the session transport carries), and the [`open`](self) pass that validates everything the
+//! others rely on.
 
 pub use self::{
     codec::WireRow,
@@ -39,6 +40,7 @@ pub use self::{
     error::OpenAtlasError,
     locate::{LocateCaps, LocateDocument, LocateError, LocateRequest, OpenOptions},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
+    seal::SealCaps,
     tile::{TileCaps, TileDocument, TileError, TileQuery, TileRequest},
     translate::{
         TranslateCaps, TranslateError, TranslateRequest, TranslateResponse, TranslatedEdge,
@@ -73,6 +75,7 @@ mod error;
 mod locate;
 mod manifest;
 mod open;
+mod seal;
 mod tile;
 mod translate;
 mod visibility;
@@ -102,6 +105,8 @@ pub struct ServeCaps {
     pub locate: LocateCaps,
     /// The translate endpoint's caps.
     pub translate: TranslateCaps,
+    /// The sealed-blob staleness caps.
+    pub seal: SealCaps,
 }
 
 /// An opaque visibility filter: the upstream-owned predicate document.

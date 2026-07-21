@@ -6,8 +6,8 @@
 //! store flags mirror the graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration
 //! drives both.
 //!
-//! A future `cli` cargo feature may rebuild a standalone operator binary over these same commands;
-//! until then the graph binary is the one entry point.
+//! The graph binary is the one entry point; these commands carry no listener, lifecycle, or
+//! store dialing of their own beyond what their arguments name.
 
 use alloc::sync::Arc;
 use core::{error::Error as CoreError, fmt, num::NonZero};
@@ -173,6 +173,14 @@ struct CapsArgs {
     /// Most properties one located entity ships in its trailer map.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_PROPERTIES")]
     locate_properties: Option<u32>,
+
+    /// The sealed-blob asynchronous-refresh horizon, seconds.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_SEAL_SOFT_SECONDS")]
+    seal_soft_seconds: Option<u64>,
+
+    /// The sealed-blob rejection bound, seconds.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_SEAL_HARD_SECONDS")]
+    seal_hard_seconds: Option<u64>,
 }
 
 impl CapsArgs {
@@ -199,6 +207,12 @@ impl CapsArgs {
         }
         if let Some(value) = self.locate_properties {
             caps.locate.properties = value;
+        }
+        if let Some(value) = self.seal_soft_seconds {
+            caps.seal.soft = core::time::Duration::from_secs(value);
+        }
+        if let Some(value) = self.seal_hard_seconds {
+            caps.seal.hard = core::time::Duration::from_secs(value);
         }
 
         caps
@@ -295,6 +309,8 @@ impl CoreError for ServeError {
     reason = "the summary is the command's product; `Duration` formats through `Debug`"
 )]
 pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
+    crate::math::kernel::verify_cpu_baseline();
+
     let options = run::Options {
         seed: args.seed,
         landmarks: args.landmarks,
@@ -371,6 +387,8 @@ pub async fn open_router(
     dsn: &str,
     proof: VisibilityProof,
 ) -> Result<Router, ServeError> {
+    crate::math::kernel::verify_cpu_baseline();
+
     let root = GenerationRoot::new(args.root.as_str()).map_err(ServeError::Root)?;
     let generation = root
         .current()

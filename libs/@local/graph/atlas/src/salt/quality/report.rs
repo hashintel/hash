@@ -13,7 +13,7 @@
 //! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
 //! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
 //! its degradation - one minus recall - exceeds the configured factor times the overall
-//! degradation, the rule the specification sets at twice. Flags are raised per neighbourhood size,
+//! degradation - twice, by the normative default. Flags are raised per neighbourhood size,
 //! so the size trend that separates near-tie reshuffling (recall rising with the neighbourhood)
 //! from genuine placement loss is visible in the flags and in every subgroup's rows. Subgroups
 //! below the configured anchor floor never flag - a handful of anchors cannot support a degradation
@@ -27,13 +27,13 @@
 //! When the probe carries a clump grouping, the report adds the corpus reading collapsed onto clump
 //! ids and re-evaluates every flag at that granularity. A flag whose collapsed degradation
 //! satisfies the same factor rule is recorded as clump-resolved: its entities are placed by clump,
-//! and within-clump order is not a representable quantity, so the specification's triage rule
+//! and within-clump order is not a representable quantity, so the triage rule
 //! treats the group as restored rather than degraded. Clump-resolved flags keep their record in the
 //! report but no longer fail the verdict; without clump evidence every flag stays unresolved and
 //! fails, as before.
 //!
-//! Metric floors default to unpinned: the specification carries no verified map-fidelity numbers
-//! yet (engine-side measurements arrive with the first full-scale fits), and an invented floor
+//! Metric floors default to unpinned: no verified map-fidelity numbers exist, a floor pins at the
+//! first full-scale calibration, and an invented floor
 //! would gate releases on fiction. A pinned floor is calibration evidence, and belongs in
 //! configuration next to the measurement that produced it.
 
@@ -48,8 +48,8 @@ use super::{
 };
 use crate::dataset::OntologyRowId;
 
-// The degradation factor is normative (specification 6.7: no important
-// subgroup may suffer more than twice the overall degradation). The
+// The degradation factor is normative: no important subgroup may
+// suffer more than twice the overall degradation. The
 // anchor floor bounds single-anchor leverage on a subgroup reading to
 // one eighth; it is a sampling-noise floor, not a statement about
 // which subgroups matter.
@@ -81,7 +81,8 @@ pub(crate) struct QualityThresholds {
     pub minimum_triplet_agreement: Option<f64> = None,
     /// A subgroup flags when its degradation exceeds this factor times the overall degradation.
     ///
-    /// Defaults to 2, the specification's subgroup rule.
+    /// Defaults to 2, the normative subgroup rule: no important subgroup may suffer more than
+    /// twice the overall degradation.
     pub subgroup_degradation_factor: f64 = DEFAULT_DEGRADATION_FACTOR,
     /// Subgroups with fewer anchors never flag. Defaults to 8.
     pub minimum_subgroup_anchors: usize = DEFAULT_MINIMUM_SUBGROUP_ANCHORS,
@@ -248,7 +249,7 @@ pub(crate) struct BaselineRow {
 /// One subgroup's representation-baseline readings over the sampled universe.
 ///
 /// The stratification separates representation loss from near-tie reshuffling per the
-/// specification's triage rule: a subgroup whose plain baseline recall trails the overall reading
+/// triage rule: a subgroup whose plain baseline recall trails the overall reading
 /// but whose collapsed recall restores to it is placed by clump in the representation itself,
 /// before any projection.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -354,7 +355,7 @@ impl QualityReport {
     /// Returns whether every pinned gate holds and no unresolved subgroup flag remains.
     ///
     /// A flagged subgroup fails the verdict unless its breach is clump-resolved - the
-    /// specification's triage rule records such a group as placed by clump, not degraded. The
+    /// triage rule records such a group as placed by clump, not degraded. The
     /// approved-exception path for unresolved flags stays a human decision recorded outside the
     /// report.
     #[must_use]
@@ -671,9 +672,8 @@ fn density_rows(readings: &ProbeReadings, rungs: &[usize]) -> Vec<DensityRow> {
         .collect()
 }
 
-// Median and MAD stay private here until a second consumer graduates
-// them into the planned top-level `statistics` module (the tier-B
-// rule: on the second consumer, never speculatively).
+// Median and MAD stay private here: shared statistics vocabulary
+// graduates on its second consumer, never speculatively.
 /// Returns the median, averaging the middle pair over even lengths; [`None`] on empty input.
 ///
 /// Sorts `values` in place.

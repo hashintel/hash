@@ -31,6 +31,7 @@
     default_field_values,
     never_type,
     exhaustive_patterns,
+    f128,
 
     // Library Features
     allocator_api,

@@ -1,6 +1,12 @@
 [registries.crates-io]
 protocol = "sparse"
 
+# x86-64 builds assume the x86-64-v3 baseline (AVX2, FMA, BMI2): the math kernels pin fused
+# multiply-add semantics and take the hardware lowering from it. `hash-graph-atlas` verifies the
+# baseline at process entry, turning a mismatched machine into a diagnosable failure.
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["-Ctarget-cpu=x86-64-v3"]
+
 [unstable]
 cargo-lints       = true
 codegen-backend   = true

@@ -3,14 +3,14 @@
 //! The server-held proof of what one scope may see, and the single join point every row ingress
 //! factors through.
 //!
-//! [`VisibilityProof`] is the authorization addendum's `V_u` as a value: the node rows one scope
+//! [`VisibilityProof`] is the visible row set `V_u` as a value: the node rows one scope
 //! may see under one generation and permission epoch. The proof covers the node universe alone - an
 //! edge is visible exactly when both its endpoints are, so edge visibility derives wherever a node
 //! set is already masked. Every assembly path takes a proof by construction; no `Option` exists
 //! whose `None` means "everything", and the full-visibility value is a distinct, named constructor
 //! rather than a default.
 //!
-//! [`Atlas::resolve`] is the seam the addendum's P8 fixes: decode the wire id, then test mask
+//! [`Atlas::resolve`] is the single resolution seam: decode the wire id, then test mask
 //! membership, with decode failure, out-of-universe values, and mask misses all collapsing to the
 //! same [`None`] before any rendering observes the cause. [`VisibleRow`] has no other constructor,
 //! so a row that reaches point-lookup assembly carries its visibility in the type; set-shaped paths

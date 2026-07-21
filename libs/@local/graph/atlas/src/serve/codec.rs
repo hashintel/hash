@@ -37,9 +37,9 @@ use crate::file::generation::GenerationId;
 
 /// The Feistel round count one codec applies.
 //
-// Four rounds is the classical strong-PRP threshold (Luby-Rackoff)
-// and the spec's floor; eight buys a second full pass of margin at
-// sub-microsecond cost per id.
+// Four rounds is the classical strong-PRP threshold (Luby-Rackoff);
+// eight buys a second full pass of margin at sub-microsecond cost
+// per id.
 const ROUNDS: usize = 8;
 
 /// The HKDF expansion label of the node-row universe.

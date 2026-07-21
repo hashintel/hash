@@ -33,6 +33,7 @@ hash-graph-types               = { workspace = true }
 aide                 = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
 argmin               = { workspace = true }
 burn                 = { workspace = true, features = ["autodiff", "ndarray"] }
+chacha20poly1305     = { workspace = true }
 clap                 = { workspace = true, features = ["derive", "env"] }
 futures              = { workspace = true }
 hannoy               = { workspace = true }
@@ -47,6 +48,7 @@ rand_xoshiro         = { workspace = true }
 rayon                = { workspace = true }
 regex                = { workspace = true }
 rkyv                 = { workspace = true }
+roaring              = { workspace = true, features = ["std"] }
 schemars             = { workspace = true }
 serde                = { workspace = true, features = ["derive"] }
 serde_json           = { workspace = true, features = ["float_roundtrip"] }
@@ -64,7 +66,6 @@ codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 darwin-kperf-events       = { workspace = true }
 proptest                  = { workspace = true }
-sleef                     = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
 uuid                      = { workspace = true, features = ["v5"] }
