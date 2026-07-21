@@ -167,6 +167,7 @@ fn evidence() -> Evidence {
             retained_mass: 1.5,
             pruned_mass: 0.0,
             self_references: 0,
+            multi_typed_edges: vec![2],
         },
         lod: LodEvidence {
             world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))

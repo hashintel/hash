@@ -32,11 +32,13 @@
 //! [`open`](self) pass that validates everything the others rely on.
 
 pub use self::{
+    codec::WireRow,
     detail::{
         DeliveredEntities, DetailError, LinkDetails, LocateNodeDetails, NodeDetails,
         PostgresDetails, SimpleValue,
     },
     edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
+    error::OpenAtlasError,
     locate::{LocateCaps, LocateDocument, LocateError, LocateRequest, OpenOptions},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     tile::{TileCaps, TileDocument, TileError, TileQuery, TileRequest},
@@ -64,6 +66,7 @@ pub use crate::{
     salt::wire::{Mode, tile::TileCoordinate},
 };
 
+mod codec;
 mod color;
 mod detail;
 mod edges;
@@ -169,6 +172,14 @@ pub struct Atlas {
     /// The exact spatial index behind locate's neighbour selection,
     /// built or cache-loaded at open.
     locate: locate::LocateIndex,
+    /// The node universe's wire row-id codec, derived at open.
+    node_codec: codec::RowCodec,
+    /// The edge universe's wire row-id codec, derived at open.
+    edge_codec: codec::RowCodec,
+    /// The wire row-id column in base order: the row column mapped
+    /// through the node codec once at open, so position-driven
+    /// gathers (tiles, locate) pay nothing per request.
+    wire_rows: Vec<u32>,
     /// The tight wire-frame extent of the full point set, absent iff
     /// the generation holds no points. Derived from the world frame:
     /// normalization anchors each non-degenerate axis's extremes onto
@@ -200,6 +211,11 @@ impl Atlas {
         self.rows
             .u32_elements()
             .expect("open validated the row-column shape")
+    }
+
+    /// Views the wire row-id column in base order.
+    const fn wire_rows(&self) -> &[u32] {
+        self.wire_rows.as_slice()
     }
 
     /// Views the endpoint column: edge row to `[source, target]`.

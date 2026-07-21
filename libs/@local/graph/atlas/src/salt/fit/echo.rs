@@ -727,18 +727,26 @@ mod assembly_config {
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
         near_duplicate_epsilon: f64,
+        // Absent on documents published before subdivision existed;
+        // no grouping consumed the budget there, so the compiled
+        // default records those runs faithfully.
+        #[serde(default = "default_maximum_group_fraction")]
+        maximum_group_fraction: f64,
     }
 
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` contract passes the field by reference"
-    )]
+    /// The compiled default budget, echoed for documents that predate
+    /// the field.
+    fn default_maximum_group_fraction() -> f64 {
+        AssemblyConfig::default().maximum_group_fraction
+    }
+
     pub(super) fn serialize<S>(config: &AssemblyConfig, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         Record {
             near_duplicate_epsilon: config.near_duplicate_epsilon,
+            maximum_group_fraction: config.maximum_group_fraction,
         }
         .serialize(serializer)
     }
@@ -753,9 +761,15 @@ mod assembly_config {
                 "the near-duplicate threshold must be positive and finite",
             ));
         }
+        if !(record.maximum_group_fraction > 0.0 && record.maximum_group_fraction <= 1.0) {
+            return Err(D::Error::custom(
+                "the group budget must be a fraction in (0, 1]",
+            ));
+        }
 
         Ok(AssemblyConfig {
             near_duplicate_epsilon: record.near_duplicate_epsilon,
+            maximum_group_fraction: record.maximum_group_fraction,
         })
     }
 }

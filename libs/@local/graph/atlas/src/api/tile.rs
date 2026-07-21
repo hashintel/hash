@@ -9,7 +9,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use hash_graph_atlas::serve::{GenerationId, TileCoordinate, TileError, TileQuery, TileRequest};
 use tracing::Instrument as _;
 
 use super::{
@@ -17,6 +16,7 @@ use super::{
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
 };
+use crate::serve::{GenerationId, TileCoordinate, TileError, TileQuery, TileRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str = "Assembles the tile at `z/x/y` for the requested delivery context.

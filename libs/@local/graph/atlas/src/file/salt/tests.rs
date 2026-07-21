@@ -22,7 +22,7 @@ use crate::{
     salt::{
         AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
         GeometryClass, HoldoutClass, LodEvidence, NormSpotCheck, PolicyOptions, PolicyOverride,
-        PolicySource, Posterior, PostingsEvidence, QuadEvidence, RecallSpotCheck,
+        PolicySource, Posterior, PostingsEvidence, QuadEvidence, RecallSpotCheck, Relaxation,
         RepresentationDefect, SelectionOptions,
         fit::{PlacementOptions, ProjectorOptions},
         ladder::{Conditions, LadderOptions},
@@ -178,6 +178,9 @@ fn classifier_evidence() -> ClassifierEvidence {
             fold_groups: 1_088,
             near_duplicate_pairs: 12,
             near_duplicate_epsilon: 2.0e-3,
+            subdivided_groups: 1,
+            oversized_accepted: 0,
+            deepest_relaxation: Relaxation::Family,
         },
         fit: ClassifierFitSummary {
             folds: 5,
@@ -241,6 +244,7 @@ fn evidence() -> Evidence {
             retained_mass: 4_200_000.0,
             pruned_mass: 32.0,
             self_references: 1_024,
+            multi_typed_edges: vec![8_799_998, 1],
         },
         lod: lod_evidence(),
         quad: QuadEvidence {

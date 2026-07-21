@@ -66,8 +66,9 @@ pub(super) enum ClassifierPlan {
     },
     /// A model to fit from the assembled annotation corpus.
     Fit {
-        /// The assembled training and holdout material.
-        corpus: AssembledCorpus,
+        /// The assembled training and holdout material, boxed to keep
+        /// the variants near one size.
+        corpus: Box<AssembledCorpus>,
         /// The SHA-256 of the corpus document's bytes.
         source: Sha256Digest,
         /// The corpus document's staged binding.
@@ -147,7 +148,8 @@ where
     let (classifier, classifier_artifacts) = context.acquire_classifier(&inputs.classifier)?;
     let policy = context.stage_policy(&classifier, &ingested.relations)?;
     let adjacency = context.stage_adjacency(rows.len())?;
-    let relations = context.stage_relations(rows.len(), &ingested.instances)?;
+    let relations =
+        context.stage_relations(rows.len(), &ingested.instances, &ingested.multi_typed)?;
     let knn = context.build_neighbour_table(rows)?;
     let semantic = context.stage_semantic(&knn.artifact)?;
 

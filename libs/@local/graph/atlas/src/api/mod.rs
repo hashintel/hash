@@ -30,7 +30,8 @@ use aide::{
     openapi::{Info, OpenApi},
 };
 use axum::{Extension, Router, body::Bytes};
-use hash_graph_atlas::serve::{Atlas, PostgresDetails, ServeCaps};
+
+use crate::serve::{Atlas, PostgresDetails, ServeCaps};
 
 mod current;
 mod edges;
@@ -77,7 +78,12 @@ struct AppState {
 
 /// Builds the read API router over one opened generation, with the
 /// OpenAPI document generated at startup and served beside the API.
-pub(crate) fn router(atlas: Arc<Atlas>, caps: ServeCaps, details: Arc<PostgresDetails>) -> Router {
+///
+/// # Panics
+///
+/// Panics when the OpenAPI document fails to serialize, which the
+/// statically declared route table rules out.
+pub fn router(atlas: Arc<Atlas>, caps: ServeCaps, details: Arc<PostgresDetails>) -> Router {
     let state = AppState {
         atlas,
         caps,

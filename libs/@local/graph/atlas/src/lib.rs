@@ -57,9 +57,11 @@
 )]
 extern crate alloc;
 
+pub mod api;
 #[cfg(feature = "bench")]
 pub mod bench;
 pub mod bitset;
+pub mod cli;
 pub(crate) mod dataset;
 pub mod disjoint;
 mod file;
@@ -67,7 +69,6 @@ pub mod integrity;
 pub mod math;
 pub mod morton;
 pub mod random;
-#[cfg(any(feature = "cli", feature = "bench"))]
 pub mod run;
 mod salt;
 pub mod serve;

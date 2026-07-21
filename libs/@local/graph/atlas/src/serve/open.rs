@@ -4,6 +4,7 @@
 
 use super::{
     Atlas, OpenOptions,
+    codec::{EDGE_LABEL, NODE_LABEL, RowCodec},
     error::{ArrayKind, IdentityDomain, OpenAtlasError},
     locate::LocateIndex,
 };
@@ -110,7 +111,15 @@ impl Atlas {
             LocateIndex::load_or_build(options.locate_cache.as_deref(), id, points)
         };
 
-        let this = Self {
+        // Both universes are validated row counts: the row column is
+        // the node universe's permutation and the endpoint column is
+        // edge-indexed, so their lengths are the `N` of each codec.
+        let node_universe = narrow_count(rows.u32_elements().map_or(0, <[u32]>::len));
+        let edge_universe = narrow_count(endpoints.u64_pairs().map_or(0, <[[u64; 2]]>::len));
+        let node_codec = RowCodec::derive(&options.wire_secret, id, NODE_LABEL, node_universe);
+        let edge_codec = RowCodec::derive(&options.wire_secret, id, EDGE_LABEL, edge_universe);
+
+        let mut this = Self {
             generation,
             lod,
             quad,
@@ -127,10 +136,21 @@ impl Atlas {
             node_ids,
             edge_ids,
             locate,
+            node_codec,
+            edge_codec,
+            wire_rows: Vec::new(),
             bounds,
         };
 
         this.validate()?;
+
+        // The wire column maps the validated row column once, so
+        // every position-driven gather reads permuted ids for free.
+        this.wire_rows = this
+            .row_ids()
+            .iter()
+            .map(|&row| this.node_codec.encode(row).get())
+            .collect();
 
         Ok(this)
     }
@@ -281,4 +301,10 @@ fn frame_extent(world: Bounds2) -> Bounds2 {
 
     Bounds2::new(Vec2::new(min_x, min_y), Vec2::new(max_x, max_y))
         .expect("the frame extent corners are finite and ordered")
+}
+
+/// Narrows an artifact's row count to the `u32` universe a codec
+/// permutes.
+fn narrow_count(count: usize) -> u32 {
+    u32::try_from(count).expect("row counts share the u32 row-id domain")
 }

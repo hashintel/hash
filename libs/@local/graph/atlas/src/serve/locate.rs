@@ -184,11 +184,29 @@ impl Default for LocateCaps {
 
 /// The options one serving open takes; configuration travels as a
 /// struct, never constants or bare parameters (ruling 2026-07-20).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct OpenOptions {
     /// The locate index cache directory; [`None`] builds the index
     /// on every open.
     pub locate_cache: Option<Utf8PathBuf>,
+    /// The server secret behind the wire row-id codec; the keyed
+    /// permutation derives from it per generation at open.
+    ///
+    /// The default is a fixed development value: wire ids stay
+    /// deterministic across restarts without configuration, and a
+    /// production deployment supplies its own secret. The secret
+    /// never rotates for a generation while it serves; rotation
+    /// happens at generation boundaries.
+    pub wire_secret: Vec<u8>,
+}
+
+impl Default for OpenOptions {
+    fn default() -> Self {
+        Self {
+            locate_cache: None,
+            wire_secret: b"atlas-dev-wire-secret".to_vec(),
+        }
+    }
 }
 
 /// One resolved locate source: the subject's identity in every
@@ -215,7 +233,24 @@ impl Atlas {
     /// and denied.
     pub(super) fn resolve_source(&self, entity_id: &str) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
-        let row = narrow(self.node_ids.row_of(id)?);
+        Some(self.source_point(narrow(self.node_ids.row_of(id)?)))
+    }
+
+    /// Resolves a locate source named by its wire node row id: the
+    /// identifier a rendered tile put in the client's hand.
+    ///
+    /// Ingress rides the same keyed codec as egress, so the lookup
+    /// is pure arithmetic - no store round trip. [`None`] for every
+    /// out-of-universe value; in-universe values always name a row,
+    /// because the codec is a bijection of `[0, N)`.
+    pub(super) fn resolve_wire_source(&self, wire: u32) -> Option<SourcePoint> {
+        Some(self.source_point(self.node_codec.decode(wire)?))
+    }
+
+    /// Answers a resolved node row's identity in every domain a
+    /// locate response speaks: base position, first visible zoom,
+    /// and fly-to tile.
+    fn source_point(&self, row: u32) -> SourcePoint {
         let position = self.positions_of_row()[row as usize];
 
         // The position's fencepost segment is its morton bucket; the
@@ -243,22 +278,22 @@ impl Atlas {
             }
         };
 
-        Some(SourcePoint {
+        SourcePoint {
             row,
             position,
             zoom,
             cell,
-        })
+        }
     }
 
     /// Assembles the locate subgraph around a resolved source: the
     /// delivered node set and the capped edge set among it.
     ///
     /// Delivered order is the wire's pin: the source first, then its
-    /// nearest neighbours ascending by (distance, base position).
+    /// nearest neighbours ascending by (distance, wire row id).
     /// Edges are the edges endpoint's rule over this small set (both
-    /// endpoints delivered, each edge exactly once), ascending edge
-    /// row after the cap.
+    /// endpoints delivered, each edge exactly once), ascending wire
+    /// edge row after the cap.
     pub(super) fn locate_subgraph(
         &self,
         source: SourcePoint,
@@ -272,12 +307,14 @@ impl Atlas {
         // surfaces. The boundary distance covers every point the
         // budget can admit (the budget-th non-source distance never
         // exceeds the (budget + 1)-th overall); the exact selection
-        // then follows the wire's own (distance, node row id) order,
-        // so a co-located cluster crosses the budget cut by row,
-        // never by tree shape.
+        // then follows the wire's own (distance, wire row id) order,
+        // so a co-located cluster crosses the budget cut by a
+        // client-observable key - never by tree shape, and never by
+        // internal id order, which the wire codec exists to hide.
         let row_ids = self.row_ids();
+        let wire_rows = self.wire_rows();
         let count = core::num::NonZero::new(budget + 1).expect("budget + 1 is nonzero");
-        let mut candidates: Vec<(f32, u32, u32)> = self
+        let mut candidates: Vec<(f32, u32, u32, u32)> = self
             .locate
             .candidates(
                 {
@@ -288,20 +325,27 @@ impl Atlas {
             )
             .into_iter()
             .filter(|&(_, position)| position != source.position)
-            .map(|(distance, position)| (distance, row_ids[position as usize], position))
+            .map(|(distance, position)| {
+                (
+                    distance,
+                    wire_rows[position as usize],
+                    row_ids[position as usize],
+                    position,
+                )
+            })
             .collect();
         candidates.sort_unstable_by(
-            |(left_distance, left_row, _), (right_distance, right_row, _)| {
+            |(left_distance, left_wire, ..), (right_distance, right_wire, ..)| {
                 left_distance
                     .total_cmp(right_distance)
-                    .then(left_row.cmp(right_row))
+                    .then(left_wire.cmp(right_wire))
             },
         );
         candidates.truncate(budget);
 
         let mut delivered: Vec<u32> = vec![source.position];
         let mut rows: Vec<u32> = vec![source.row];
-        for &(_, row, position) in &candidates {
+        for &(_, _, row, position) in &candidates {
             delivered.push(position);
             rows.push(row);
         }
@@ -310,12 +354,16 @@ impl Atlas {
         for &row in &rows {
             in_set.insert(row as usize);
         }
-        let mut edges = self.qualifying_edges(&in_set);
+        let mut edges: Vec<(DeliveredEdge, u32)> = self
+            .qualifying_edges(&in_set)
+            .into_iter()
+            .map(|edge| (edge, self.edge_codec.encode(edge.row).get()))
+            .collect();
         let complete = edges.len() <= caps.edges as usize;
         if !complete {
             self.truncate_protecting_source(&mut edges, caps.edges as usize, source.row);
         }
-        edges.sort_unstable_by_key(|edge| edge.row);
+        edges.sort_unstable_by_key(|&(_, wire)| wire);
 
         LocateSubgraph {
             rows,
@@ -327,13 +375,13 @@ impl Atlas {
 
     /// Keeps the `cap` edges the protected rank order selects:
     /// source-incident edges strictly before context edges, then
-    /// ascending worse-endpoint rank, ties by edge row (ruling
+    /// ascending worse-endpoint rank, ties by wire edge row (ruling
     /// 2026-07-20 - the spotlight's primary information is how the
     /// source connects, so neighbour-neighbour context truncates
     /// first).
     fn truncate_protecting_source(
         &self,
-        edges: &mut Vec<DeliveredEdge>,
+        edges: &mut Vec<(DeliveredEdge, u32)>,
         cap: usize,
         source_row: u32,
     ) {
@@ -342,20 +390,25 @@ impl Atlas {
             return;
         }
 
-        let mut ranked: Vec<((bool, u32, u32), DeliveredEdge)> = edges
+        let mut ranked: Vec<(ProtectedKey, (DeliveredEdge, u32))> = edges
             .drain(..)
-            .map(|edge| {
+            .map(|(edge, wire)| {
                 let context = edge.source != source_row && edge.target != source_row;
-                ((context, self.worse_rank(edge), edge.row), edge)
+                ((context, self.worse_rank(edge), wire), (edge, wire))
             })
             .collect();
         // Partitioning at `cap - 1` places the cap smallest keys - a
-        // total order, since edge rows are distinct - in the head.
+        // total order, since wire edge ids are distinct - in the head.
         ranked.select_nth_unstable_by_key(cap - 1, |&(key, _)| key);
         ranked.truncate(cap);
-        edges.extend(ranked.into_iter().map(|(_, edge)| edge));
+        edges.extend(ranked.into_iter().map(|(_, entry)| entry));
     }
 }
+
+/// The protected truncation's sort key: context edges after
+/// source-incident ones, then ascending worse-endpoint rank, then
+/// ascending wire edge id.
+type ProtectedKey = (bool, u32, u32);
 
 /// One assembled locate subgraph: the delivered nodes (source first,
 /// then neighbours in wire order) and the capped edge set among
@@ -366,8 +419,9 @@ pub(super) struct LocateSubgraph {
     pub rows: Vec<u32>,
     /// The delivered base positions, parallel to `rows`.
     pub positions: Vec<u32>,
-    /// The delivered edges, ascending edge row.
-    pub edges: Vec<DeliveredEdge>,
+    /// The delivered edges paired with their wire edge ids,
+    /// ascending by wire edge id.
+    pub edges: Vec<(DeliveredEdge, u32)>,
     /// Whether every qualifying edge is delivered; `false` iff the
     /// cap truncated.
     pub complete: bool,
@@ -375,14 +429,27 @@ pub(super) struct LocateSubgraph {
 
 /// One locate request: the source entity and the delivery knobs.
 ///
+/// The source is named in exactly one of two domains: `entityId`
+/// (the upstream identity a search result or deep link carries) XOR
+/// `row` (the wire node row id a rendered tile put in the client's
+/// hand). The fields are distinct JSON types, so the union is
+/// unambiguous; carrying both or neither is rejected by name.
+///
 /// `neighbours` is a budget, not a list: a value over the cap CLAMPS
 /// to it (the clamp is visible in `HEAD.count`), where the list-caps
 /// reject - a budget has no elements to refuse.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LocateRequest {
-    /// The source entity id, in the node identity domain.
-    pub entity_id: String,
+    /// The source entity id, in the node identity domain; exactly
+    /// one of this and `row` names the source.
+    #[serde(default)]
+    pub entity_id: Option<String>,
+    /// The source as a wire node row id - the value a tile's
+    /// `ROW_IDS` column delivered; exactly one of this and
+    /// `entityId` names the source.
+    #[serde(default)]
+    pub row: Option<u32>,
     /// The type ids whose membership masks ride `TYPE_MASK`; absent
     /// or empty omits the slot.
     #[serde(default)]
@@ -413,8 +480,17 @@ pub enum LocateError {
     /// The source id does not name a visible node - nonexistent,
     /// denied, and unparsable are IDENTICAL by doctrine (missing =
     /// denied; an id that cannot name an entity is an entity that
-    /// does not exist).
+    /// does not exist). An out-of-universe wire `row` collapses
+    /// here too: one body, whatever the input domain.
     UnknownEntity,
+    /// The request does not name exactly one source: `entityId` and
+    /// `row` are one subject in two identity domains, and the body
+    /// must carry exactly one of them.
+    Source {
+        /// How many of the two source fields the body carries -
+        /// zero or two, never one.
+        carried: usize,
+    },
     /// The request carries more `coloredTypeIds` than the cap admits.
     Types {
         /// The carried id count.
@@ -432,6 +508,13 @@ impl core::fmt::Display for LocateError {
         match self {
             Self::UnknownEntity => {
                 formatter.write_str("the entity id does not name a visible node")
+            }
+            Self::Source { carried } => {
+                write!(
+                    formatter,
+                    "the request carries {carried} source fields where exactly one of entityId \
+                     and row names the subject"
+                )
             }
             Self::Types { count, maximum } => {
                 write!(
@@ -464,6 +547,9 @@ pub struct LocateDocument {
     sources: Vec<u32>,
     targets: Vec<u32>,
     edge_rows: Vec<u32>,
+    /// The internal edge rows behind `edge_rows`, delivered order:
+    /// the hydration key the identity table speaks.
+    internal_rows: Vec<u32>,
     complete: bool,
     mask_set: Option<super::color::MaskSet>,
 }
@@ -514,8 +600,10 @@ impl Atlas {
     ///
     /// # Errors
     ///
-    /// Returns [`LocateError::UnknownEntity`] when the source id does
-    /// not resolve to a visible node, [`LocateError::Types`] when the
+    /// Returns [`LocateError::Source`] when the body does not name
+    /// exactly one of `entityId` and `row`,
+    /// [`LocateError::UnknownEntity`] when the source does not
+    /// resolve to a visible node, [`LocateError::Types`] when the
     /// request carries more `coloredTypeIds` than
     /// `caps.tile.colored_type_ids`, and [`LocateError::Unsupported`]
     /// when the request names a version-0 deferral.
@@ -534,9 +622,19 @@ impl Atlas {
             });
         }
 
-        let source = self
-            .resolve_source(&request.entity_id)
-            .ok_or(LocateError::UnknownEntity)?;
+        // The two source forms resolve through different ingress
+        // paths but land in the same SourcePoint domain, and every
+        // failure past this match is one rejection: unknown-entity.
+        let source = match (request.entity_id.as_deref(), request.row) {
+            (Some(id), None) => self.resolve_source(id),
+            (None, Some(wire)) => self.resolve_wire_source(wire),
+            (entity, row) => {
+                return Err(LocateError::Source {
+                    carried: usize::from(entity.is_some()) + usize::from(row.is_some()),
+                });
+            }
+        }
+        .ok_or(LocateError::UnknownEntity)?;
         let budget = request.neighbours.unwrap_or(caps.locate.neighbours);
         let LocateSubgraph {
             rows,
@@ -548,10 +646,12 @@ impl Atlas {
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
         let mut edge_rows = Vec::with_capacity(edges.len());
-        for edge in &edges {
-            sources.push(edge.source);
-            targets.push(edge.target);
-            edge_rows.push(edge.row);
+        let mut internal_rows = Vec::with_capacity(edges.len());
+        for &(edge, wire) in &edges {
+            sources.push(self.node_codec.encode(edge.source).get());
+            targets.push(self.node_codec.encode(edge.target).get());
+            edge_rows.push(wire);
+            internal_rows.push(edge.row);
         }
 
         let mask_set = (!request.colored_type_ids.is_empty())
@@ -564,6 +664,7 @@ impl Atlas {
             sources,
             targets,
             edge_rows,
+            internal_rows,
             complete,
             mask_set,
         })
@@ -604,7 +705,7 @@ impl Atlas {
     #[must_use]
     pub fn locate_link_entities(&self, document: &LocateDocument) -> DeliveredEntities {
         let ids = document
-            .edge_rows
+            .internal_rows
             .iter()
             .map(|&row| {
                 self.edge_ids
@@ -680,7 +781,7 @@ impl Atlas {
             complete: document.complete,
             delivered: &document.delivered,
             positions: self.positions(),
-            rows: self.row_ids(),
+            rows: self.wire_rows(),
             masks: masks.as_deref(),
             sources: &document.sources,
             targets: &document.targets,

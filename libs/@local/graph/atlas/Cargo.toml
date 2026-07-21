@@ -12,12 +12,13 @@ type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 argmin-math    = { workspace = true, features = ["primitives"], public = true }
+axum           = { workspace = true, public = true }
 camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
 rand           = { workspace = true, public = true }
 rand_core      = { workspace = true, public = true }
 sprs           = { workspace = true, public = true }
-tokio          = { workspace = true, features = ["macros", "rt-multi-thread", "sync"], public = true }
+tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync"], public = true }
 tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
 uuid           = { workspace = true, public = true, features = ["std", "v7"] }
 zerocopy       = { workspace = true, features = ["derive"], public = true }
@@ -29,14 +30,14 @@ hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 
 # Private third-party dependencies
-aide                 = { workspace = true, optional = true, features = ["axum", "axum-json", "macros", "scalar"] }
+aide                 = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
 argmin               = { workspace = true }
-axum                 = { workspace = true, optional = true }
 burn                 = { workspace = true, features = ["autodiff", "ndarray"] }
-clap                 = { workspace = true, optional = true, features = ["derive", "env"] }
+clap                 = { workspace = true, features = ["derive", "env"] }
 futures              = { workspace = true }
 hannoy               = { workspace = true }
 heed                 = { workspace = true }
+hkdf                 = { workspace = true }
 kiddo                = { workspace = true, features = ["rkyv_08"] }
 memchr               = { workspace = true }
 memmap2              = { workspace = true }
@@ -51,11 +52,10 @@ serde                = { workspace = true, features = ["derive"] }
 serde_json           = { workspace = true, features = ["float_roundtrip"] }
 sha2                 = { workspace = true }
 simple-mermaid       = { workspace = true }
-sleef                = { workspace = true }
+siphasher            = { workspace = true }
 smallvec             = { workspace = true }
 tiktoken-rs          = { workspace = true }
 tracing              = { workspace = true }
-tracing-subscriber   = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation = { workspace = true }
 unidecode            = { workspace = true }
 
@@ -63,6 +63,7 @@ unidecode            = { workspace = true }
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 proptest                  = { workspace = true }
+sleef                     = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
 uuid                      = { workspace = true, features = ["v5"] }
@@ -70,8 +71,8 @@ uuid                      = { workspace = true, features = ["v5"] }
 [features]
 # Exposes `hash_graph_atlas::bench`, the measurement seams the
 # `[[bench]]` and `[[example]]` targets consume; not API for consumers
-# of the crate. `tokio/net` dials the live store for `fit_live`.
-bench = ["tokio/net"]
+# of the crate.
+bench = []
 # Adds the Metal-backed flavor to the projector measurement seam
 # (burn's CubeCL wgpu runtime compiling to MSL). Compiles anywhere;
 # running it requires an Apple GPU, so its tests are ignored by
@@ -82,15 +83,10 @@ bench-gpu = ["bench", "burn/metal"]
 # The CPU backend stays the fixture/CI harness, so tests run without
 # this feature.
 gpu = ["burn/metal"]
-# Builds the `atlas` operator binary: `fit` runs the production
-# generation runner against a live store, `serve` hosts the atlas
-# read API. A testing tool, not API for consumers of the crate; it
-# consumes the `run` operator seam. `tokio/net` dials the store.
-cli = ["dep:aide", "dep:axum", "dep:clap", "dep:tracing-subscriber", "tokio/net", "tokio/signal"]
-
-[[bin]]
-name              = "atlas"
-required-features = ["cli"]
+# The operator commands (`cli` module) and the read-API routes (`api`
+# module) build unconditionally: the `hash-graph` binary is the one
+# entry point. A future `cli` feature may rebuild a standalone
+# operator binary over the same modules.
 
 [[example]]
 name              = "clump_sweep"

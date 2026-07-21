@@ -21,7 +21,7 @@
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
 
-use super::Atlas;
+use super::{Atlas, codec::RowCodec};
 use crate::{
     dataset::ArchivedEntityId, math::Vec2, salt::fit::prepare::identity::IdentityTableArchive,
 };
@@ -142,6 +142,7 @@ impl Atlas {
             &self.edge_ids,
             self.positions(),
             self.positions_of_row(),
+            (&self.node_codec, &self.edge_codec),
         )
     }
 }
@@ -155,6 +156,7 @@ pub(super) fn translate(
     edge_ids: &IdentityTableArchive<ArchivedEntityId>,
     positions: &[Vec2],
     position_of_row: &[u32],
+    (node_codec, edge_codec): (&RowCodec, &RowCodec),
 ) -> Result<TranslateResponse, TranslateError> {
     if request.entity_ids.len() > caps.entity_ids as usize {
         return Err(TranslateError::Ids {
@@ -177,7 +179,7 @@ pub(super) fn translate(
             nodes.insert(
                 id_string.clone(),
                 TranslatedNode {
-                    id: row,
+                    id: node_codec.encode(row).get(),
                     x: point.x(),
                     y: point.y(),
                 },
@@ -186,7 +188,9 @@ pub(super) fn translate(
             edges.insert(
                 id_string.clone(),
                 TranslatedEdge {
-                    id: u32::try_from(row).expect("edge rows share the u32 row-id domain"),
+                    id: edge_codec
+                        .encode(u32::try_from(row).expect("edge rows share the u32 row-id domain"))
+                        .get(),
                 },
             );
         } else {

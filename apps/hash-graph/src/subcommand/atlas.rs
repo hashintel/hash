@@ -1,9 +1,10 @@
 use core::{net::SocketAddr, time::Duration};
 
-use axum::{Router, http::StatusCode, routing::get};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
+use hash_graph_atlas::cli;
+use hash_graph_postgres_store::store::DatabaseConnectionInfo;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_util::sync::CancellationToken;
@@ -17,15 +18,19 @@ use crate::{
 #[derive(Debug, Clone, Parser)]
 pub struct AtlasAddress {
     /// The host the atlas HTTP server is listening at.
-    #[clap(long, default_value = "127.0.0.1", env = "HASH_ATLAS_HOST")]
+    #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_ATLAS_HOST")]
     pub atlas_host: String,
 
     /// The port the atlas HTTP server is listening at.
-    #[clap(long, default_value_t = 4003, env = "HASH_ATLAS_PORT")]
+    #[clap(long, default_value_t = 4003, env = "HASH_GRAPH_ATLAS_PORT")]
     pub atlas_port: u16,
 }
 
 /// CLI arguments for the `atlas` subcommand.
+///
+/// Without a subcommand, `atlas` serves the root's active generation
+/// - the deployment default (`command: atlas` in the compose stack).
+/// `atlas fit` runs one production generation over the live store.
 #[derive(Debug, Parser)]
 pub struct AtlasArgs {
     #[clap(flatten)]
@@ -33,23 +38,37 @@ pub struct AtlasArgs {
 
     #[clap(flatten)]
     pub healthcheck: HealthcheckArgs,
+
+    #[clap(flatten)]
+    pub serve: cli::ServeArgs,
+
+    #[clap(flatten)]
+    pub db_info: DatabaseConnectionInfo,
+
+    #[command(subcommand)]
+    pub command: Option<AtlasCommand>,
 }
 
-/// Placeholder service surface: `/status` reports liveness and nothing else.
-///
-/// The SALT Atlas implementation replaces this router while keeping the
-/// subcommand, address, and healthcheck wiring.
-fn router() -> Router {
-    Router::new()
-        .route("/status", get(async || StatusCode::OK))
-        .layer(HttpTracingLayer)
+/// The explicit atlas operations; absent means serve.
+#[derive(Debug, clap::Subcommand)]
+pub enum AtlasCommand {
+    /// Fits one generation over the live store and activates it on
+    /// admission.
+    Fit(Box<cli::FitArgs>),
 }
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
 pub(crate) async fn run_atlas(
     address: AtlasAddress,
+    serve: cli::ServeArgs,
+    dsn: String,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
+    let router = cli::open_router(serve, &dsn)
+        .await
+        .change_context(GraphError)?
+        .layer(HttpTracingLayer);
+
     let listener = TcpListener::bind((&*address.atlas_host, address.atlas_port))
         .await
         .change_context(GraphError)?;
@@ -61,7 +80,7 @@ pub(crate) async fn run_atlas(
 
     axum::serve(
         listener,
-        router().into_make_service_with_connect_info::<SocketAddr>(),
+        router.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown.cancelled_owned())
     .await
@@ -80,6 +99,13 @@ pub(crate) async fn run_atlas(
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
 pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
+    if let Some(AtlasCommand::Fit(fit_args)) = args.command {
+        return cli::fit(*fit_args, &args.db_info.url())
+            .await
+            .map_err(Report::new)
+            .change_context(GraphError);
+    }
+
     if args.healthcheck.healthcheck {
         return wait_healthcheck(|| healthcheck(args.address.clone()), &args.healthcheck)
             .await
@@ -88,10 +114,10 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
 
     let lifecycle = ServerLifecycle::new();
     let shutdown = lifecycle.shutdown.clone();
-    lifecycle.spawn(
-        "Atlas",
-        async move { run_atlas(args.address, shutdown).await },
-    );
+    let dsn = args.db_info.url();
+    lifecycle.spawn("Atlas", async move {
+        run_atlas(args.address, args.serve, dsn, shutdown).await
+    });
 
     // Wait for shutdown signal or unexpected server exit
     let aborted = tokio::select! {
@@ -156,6 +182,13 @@ mod tests {
 
     #[tokio::test]
     async fn status_endpoint_reports_healthy() {
+        // The liveness route mirrors the one `cli::open_router` mounts
+        // beside the read API; the test exercises the healthcheck
+        // plumbing without standing up a generation.
+        let router = axum::Router::new().route(
+            "/status",
+            axum::routing::get(async || axum::http::StatusCode::OK),
+        );
         let listener = TcpListener::bind(("127.0.0.1", 0))
             .await
             .expect("should bind to an ephemeral port");
@@ -163,7 +196,7 @@ mod tests {
             .local_addr()
             .expect("listener should have a local address")
             .port();
-        tokio::spawn(async move { axum::serve(listener, router()).await });
+        tokio::spawn(async move { axum::serve(listener, router).await });
 
         let address = AtlasAddress {
             atlas_host: "127.0.0.1".to_owned(),

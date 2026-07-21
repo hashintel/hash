@@ -178,7 +178,7 @@ pub(crate) fn calibrate(
 
             let weight = sampling
                 * f64::from(edge.confidence.value())
-                * f64::from(edge.degree_normalization)
+                * f64::from(edge.normalization)
                 * class;
             mass += weight;
             population.push((z, weight, tag));

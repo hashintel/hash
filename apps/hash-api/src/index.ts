@@ -48,6 +48,7 @@ import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
+import { setupAtlasProxy } from "./atlas-proxy";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
@@ -595,6 +596,12 @@ const main = async () => {
     app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
     app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
   }
+
+  /**
+   * Proxy to the atlas server — saltile bodies stream through
+   * untouched, so this stays ahead of the body parsers.
+   */
+  setupAtlasProxy(app, logger);
 
   /** END PROXIES */
 

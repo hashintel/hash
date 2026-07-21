@@ -77,6 +77,9 @@ pub(super) struct Ingested {
     /// The spooled `(edge, relation)` readings the relation stage
     /// consumes.
     pub instances: InstanceSpool,
+    /// The edge multiplicity histogram: entry `i` counts edges
+    /// carrying `i + 1` relation readings.
+    pub multi_typed: Vec<u64>,
     /// The staged card-embedding artifacts.
     pub cards: CardArtifacts,
     /// The passed representation-contract spot check.
@@ -167,6 +170,7 @@ where
         edge_identities: edge_artifacts.identities,
         edge_endpoints: edge_artifacts.endpoints,
         instances: edge_artifacts.instances,
+        multi_typed: edge_artifacts.multi_typed,
         cards,
         norm,
     })
@@ -272,6 +276,9 @@ struct EdgeArtifacts {
     endpoints: RepositoryFile,
     /// The spooled `(edge, relation)` readings.
     instances: InstanceSpool,
+    /// The edge multiplicity histogram: entry `i` counts edges
+    /// carrying `i + 1` relation readings.
+    multi_typed: Vec<u64>,
 }
 
 /// Narrows a stream confidence to working precision.
@@ -307,6 +314,7 @@ where
 {
     let mut ids = IdentityTable::new();
     let mut relations = BTreeSet::new();
+    let mut multi_typed: Vec<u64> = Vec::new();
     let mut spool = InstanceSpoolWriter::create(scratch)?;
 
     let mut writer = BufWriter::new(staging.create(&Role::EdgeEndpoints.file_name())?);
@@ -329,6 +337,21 @@ where
             source: edge.source_confidence.map(narrow),
             target: edge.target_confidence.map(narrow),
         };
+        // Every direct type reads separately at share 1/multiplicity:
+        // a multi-typed link is a mixture of its relation domains'
+        // opinions, one link's worth of force in total. The M0 rule
+        // that selected exactly one domain per link by canonical-URL
+        // order retired 2026-07-20 with the versioned-URL identity
+        // work.
+        let multiplicity = u32::try_from(edge.ontology.len())
+            .expect("an edge's deduplicated direct types are far below u32");
+        if multiplicity > 0 {
+            let slot = edge.ontology.len() - 1;
+            if multi_typed.len() <= slot {
+                multi_typed.resize(slot + 1, 0);
+            }
+            multi_typed[slot] += 1;
+        }
         for &relation in &edge.ontology {
             relations.insert(relation.get());
             spool.push(InstanceRecord::new(
@@ -337,6 +360,7 @@ where
                 edge.source,
                 edge.target,
                 confidence,
+                multiplicity,
             ))?;
         }
     }
@@ -355,6 +379,7 @@ where
         identities,
         endpoints: Role::EdgeEndpoints.file(digest),
         instances,
+        multi_typed,
     })
 }
 

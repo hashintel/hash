@@ -333,7 +333,7 @@ impl Atlas {
             },
             ranges: &document.ranges,
             positions: self.positions(),
-            rows: self.row_ids(),
+            rows: self.wire_rows(),
             masks: masks.as_deref(),
             trailer,
         };

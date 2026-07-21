@@ -9,19 +9,23 @@ use axum::{
     extract::{Path, State},
     http::{StatusCode, header},
 };
-use hash_graph_atlas::serve::{GenerationId, TranslateError, TranslateRequest, TranslateResponse};
 
 use super::{
     AppState,
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::spawn,
 };
+use crate::serve::{GenerationId, TranslateError, TranslateRequest, TranslateResponse};
 
 /// The operation's description.
 const DESCRIPTION: &str = "Translates upstream entity ids (`webId~entityUuid`) to atlas identity: \
                            the row ids every binary response speaks (`ROW_IDS` / `EDGE_ROW_IDS`) \
                            plus, for nodes, the wire-frame position - the correlation seam \
                            between separately fetched entities and dots already on screen.
+
+Row ids are opaque per-generation values: consistent across every endpoint of one generation, \
+                           carrying no ordering or adjacency information, and not stable across \
+                           generations - re-translate after a generation change.
 
 The response is two maps keyed by the requested id string echoed verbatim, so kind is carried by \
                            which map answers. An id that resolves to nothing is an ABSENT key - \

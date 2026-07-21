@@ -2,9 +2,9 @@
 
 use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{Json, extract::State, http::header};
-use hash_graph_atlas::serve::GenerationId;
 
 use super::AppState;
+use crate::serve::GenerationId;
 
 /// The operation's description.
 const DESCRIPTION: &str = "The generation this process serves, pinned at startup. Re-read it \

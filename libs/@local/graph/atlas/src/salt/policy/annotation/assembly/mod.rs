@@ -58,12 +58,26 @@
 //! URLs in ascending byte order, so it is stable under any traversal
 //! order.
 //!
+//! A component larger than
+//! [`AssemblyConfig::maximum_group_fraction`] of the trained rows
+//! would starve grouped validation, so subdivision relaxes its axes
+//! in information order - the axis whose one edge says least about
+//! leakage goes first. Family edges drop inside the component, then
+//! base-URL edges, then near-duplicate edges cut farthest-first (the
+//! kept cut is the largest distance under which every part fits the
+//! budget). Identity and inverse edges never relax: a part they alone
+//! hold over budget is accepted and recorded in the evidence rather
+//! than split. Relaxation is per-component - groups already within
+//! budget keep every axis.
+//!
 //! Publisher is not a union axis: on the live corpus it collapses the
 //! 1,684 cards into 5 components (1,619 under `wikidata`), leaving
-//! grouped validation nothing to validate. The axis stays on the wire
+//! grouped validation nothing to validate - and a publisher axis
+//! would teach fold assignment to segregate publishers, where
+//! validation wants them intermingled. The axis stays on the wire
 //! as a recorded fact for stratified evaluation.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use super::{AnnotationCorpus, Card, CardIdentity, Content, Direction, HoldoutClass, VoteCounts};
 use crate::{
@@ -101,6 +115,11 @@ pub(crate) struct AssemblyConfig {
     /// `1 - cos` scale in `[0, 2]`. Positive. Defaults to `2e-3`, the
     /// near-tie threshold established for this embedding family.
     pub near_duplicate_epsilon: f64 = 2.0e-3,
+
+    /// The largest fraction of the trained rows one validation group
+    /// may hold before subdivision relaxes its weakest axes, in
+    /// `(0, 1]`. Defaults to `0.1`.
+    pub maximum_group_fraction: f64 = 0.1,
 }
 
 /// The corpus could not be assembled into a training set.
@@ -183,12 +202,51 @@ pub(crate) struct AssemblyEvidence {
     /// Rows whose rendering exceeded the hard budget or dropped more
     /// than half their examples.
     pub severely_truncated: usize,
-    /// Indivisible validation groups over the trained rows.
+    /// Indivisible validation groups over the trained rows, after
+    /// subdivision.
     pub fold_groups: usize,
     /// Near-duplicate pairs found at the configured threshold.
     pub near_duplicate_pairs: usize,
     /// The threshold the near-duplicate derivation ran under.
     pub near_duplicate_epsilon: f64,
+    /// Over-budget components subdivision split.
+    #[serde(default)]
+    pub subdivided_groups: usize,
+    /// Groups accepted over budget because identity and
+    /// near-duplication alone hold them together.
+    #[serde(default)]
+    pub oversized_accepted: usize,
+    /// The weakest axis rank subdivision engaged.
+    #[serde(default)]
+    pub deepest_relaxation: Relaxation,
+}
+
+/// The axis rank a subdivision relaxed, ordered by the leakage
+/// information one edge of the axis carries.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Default,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum Relaxation {
+    /// Every group fit the budget under the full union.
+    #[default]
+    None,
+    /// Relation-family edges were dropped inside over-budget groups.
+    Family,
+    /// Base-URL edges were dropped inside over-budget groups.
+    Base,
+    /// Near-duplicate edges were cut farthest-first inside
+    /// over-budget groups.
+    NearDuplicate,
 }
 
 /// One human-verdict holdout card, rendered and embedded beside the
@@ -283,6 +341,9 @@ where
         fold_groups: 0,
         near_duplicate_pairs: 0,
         near_duplicate_epsilon: config.near_duplicate_epsilon,
+        subdivided_groups: 0,
+        oversized_accepted: 0,
+        deepest_relaxation: Relaxation::None,
     };
 
     let mut trained = Vec::new();
@@ -526,41 +587,36 @@ fn validation_groups(
 ) -> Vec<Sha256Digest> {
     let rows = trained.len();
 
-    // Value-keyed axis nodes join cards sharing an axis value; an
-    // inverse pair meets at the named identity's node whether or not
-    // that identity is itself on the corpus.
-    let mut keys = HashMap::new();
-    let intern = |keys: &mut HashMap<String, usize>, key: String| {
-        let next = rows + keys.len();
+    // Value-keyed axes join cards sharing an axis value; an inverse
+    // pair meets at the named identity's key whether or not that
+    // identity is itself on the corpus.
+    let mut keys: HashMap<String, u32> = HashMap::new();
+    let mut intern = |key: String| {
+        let next = u32::try_from(keys.len()).expect("the axis-value domain is bound to u32");
         *keys.entry(key).or_insert(next)
     };
 
-    let mut edges = Vec::new();
-    for (row, (_, corpus_card, _)) in trained.iter().enumerate() {
+    let mut axes_by_row = Vec::with_capacity(rows);
+    for (_, corpus_card, _) in trained {
         let axes = &corpus_card.axes;
-        let identity = corpus_card.identity.canonical_url();
+        let mut identity = vec![intern(format!(
+            "id:{}",
+            corpus_card.identity.canonical_url()
+        ))];
+        identity.extend(
+            axes.inverse_of
+                .iter()
+                .map(|inverse| intern(format!("id:{inverse}"))),
+        );
 
-        for key in [
-            format!("id:{identity}"),
-            format!("family:{}", axes.family),
-            format!("base:{}", axes.base_url),
-        ] {
-            edges.push((row, intern(&mut keys, key)));
-        }
-
-        for inverse in &axes.inverse_of {
-            edges.push((row, intern(&mut keys, format!("id:{inverse}"))));
-        }
+        axes_by_row.push(RowAxes {
+            identity,
+            family: intern(format!("family:{}", axes.family)),
+            base: intern(format!("base:{}", axes.base_url)),
+        });
     }
 
-    let mut components = DisjointSet::new(rows + keys.len());
-    // The constructor asserts the whole domain fits the u32 encoding,
-    // so every node index converts.
-    let node = |value: usize| u32::try_from(value).expect("the domain is bound to u32");
-    for (row, key) in edges {
-        components.unite(node(row), node(key));
-    }
-
+    let mut pairs = Vec::new();
     for left in 0..rows {
         let embedding = view
             .embedding(OntologyRowId::new(left as u64))
@@ -570,41 +626,289 @@ fn validation_groups(
                 .embedding(OntologyRowId::new(right as u64))
                 .expect("the table holds one row per trained card");
 
-            if f64::from(embedding.cosine_distance(other)) <= config.near_duplicate_epsilon {
-                evidence.near_duplicate_pairs += 1;
-                components.unite(node(left), node(right));
+            let distance = f64::from(embedding.cosine_distance(other));
+            if distance <= config.near_duplicate_epsilon {
+                let node =
+                    |value: usize| u32::try_from(value).expect("the row domain is bound to u32");
+                pairs.push((node(left), node(right), distance));
             }
         }
     }
+    evidence.near_duplicate_pairs = pairs.len();
 
-    // Trained rows ascend by card identity (the corpus order), so each
-    // component's members are already in ascending byte order.
-    let mut members: HashMap<u32, Vec<usize>> = HashMap::new();
-    for row in 0..rows {
-        members
-            .entry(components.find(node(row)))
-            .or_default()
-            .push(row);
-    }
-    evidence.fold_groups = members.len();
-
-    let digests: HashMap<u32, Sha256Digest> = members
-        .into_iter()
-        .map(|(representative, member_rows)| {
-            let mut hasher = Sha256::new();
-            for row in member_rows {
-                let (_, corpus_card, _) = &trained[row];
-                hasher.update(corpus_card.identity.canonical_url().as_bytes());
-                hasher.update(b"\n");
-            }
-
-            (representative, hasher.finalize())
-        })
+    // A single row cannot leak against itself: the budget never
+    // falls under one row.
+    let budget = (config.maximum_group_fraction * integer(rows as u64)).max(1.0);
+    let all: Vec<u32> = (0..rows)
+        .map(|row| u32::try_from(row).expect("the row domain is bound to u32"))
         .collect();
 
-    (0..rows)
-        .map(|row| digests[&components.find(node(row))])
+    let mut groups = Vec::new();
+    for component in partition(&all, &axes_by_row, &pairs, RANKS_ALL) {
+        if integer(component.len() as u64) <= budget {
+            groups.push(component);
+            continue;
+        }
+
+        let produced = subdivide(
+            &component,
+            Relaxation::Family,
+            &axes_by_row,
+            &pairs,
+            budget,
+            evidence,
+        );
+        if produced.len() > 1 {
+            evidence.subdivided_groups += 1;
+        }
+        groups.extend(produced);
+    }
+    evidence.fold_groups = groups.len();
+
+    // Trained rows ascend by card identity (the corpus order), so each
+    // group's members are already in ascending byte order.
+    let mut assigned: Vec<Option<Sha256Digest>> = vec![None; rows];
+    for group in groups {
+        let mut hasher = Sha256::new();
+        for &row in &group {
+            let (_, corpus_card, _) = &trained[row as usize];
+            hasher.update(corpus_card.identity.canonical_url().as_bytes());
+            hasher.update(b"\n");
+        }
+
+        let digest = hasher.finalize();
+        for row in group {
+            assigned[row as usize] = Some(digest);
+        }
+    }
+
+    assigned
+        .into_iter()
+        .map(|digest| digest.expect("every trained row belongs to exactly one group"))
         .collect()
+}
+
+/// One trained row's interned axis values.
+struct RowAxes {
+    /// The row's own identity and every inverse identity it names.
+    identity: Vec<u32>,
+    /// The relation family.
+    family: u32,
+    /// The base URL.
+    base: u32,
+}
+
+/// Which axis ranks a partition unites through, beside the identity
+/// axis and the near-duplicate pairs it always honours.
+#[derive(Copy, Clone)]
+struct Ranks {
+    family: bool,
+    base: bool,
+    /// The inclusive cosine-distance cut for near-duplicate pairs.
+    cut: f64,
+}
+
+/// Every axis at full strength.
+const RANKS_ALL: Ranks = Ranks {
+    family: true,
+    base: true,
+    cut: f64::INFINITY,
+};
+
+/// Splits an over-budget component by relaxing its weakest remaining
+/// axis, recursing one rank deeper wherever a part stays over budget.
+///
+/// The relaxation order is family, then base URL, then near-duplicate
+/// edges farthest-first; identity edges never relax. A part the
+/// deepest relaxation cannot fit is accepted over budget and counted
+/// in the evidence.
+fn subdivide(
+    component: &[u32],
+    level: Relaxation,
+    axes: &[RowAxes],
+    pairs: &[(u32, u32, f64)],
+    budget: f64,
+    evidence: &mut AssemblyEvidence,
+) -> Vec<Vec<u32>> {
+    evidence.deepest_relaxation = evidence.deepest_relaxation.max(level);
+
+    let (parts, deeper) = match level {
+        Relaxation::None => unreachable!("subdivision engages at the family rank"),
+        Relaxation::Family => (
+            partition(
+                component,
+                axes,
+                pairs,
+                Ranks {
+                    family: false,
+                    ..RANKS_ALL
+                },
+            ),
+            Relaxation::Base,
+        ),
+        Relaxation::Base => (
+            partition(
+                component,
+                axes,
+                pairs,
+                Ranks {
+                    family: false,
+                    base: false,
+                    ..RANKS_ALL
+                },
+            ),
+            Relaxation::NearDuplicate,
+        ),
+        Relaxation::NearDuplicate => {
+            let parts = farthest_first_cut(component, axes, pairs, budget);
+            evidence.oversized_accepted += parts
+                .iter()
+                .filter(|part| integer(part.len() as u64) > budget)
+                .count();
+            return parts;
+        }
+    };
+
+    let mut groups = Vec::with_capacity(parts.len());
+    for part in parts {
+        if integer(part.len() as u64) <= budget {
+            groups.push(part);
+        } else {
+            groups.extend(subdivide(&part, deeper, axes, pairs, budget, evidence));
+        }
+    }
+    groups
+}
+
+/// Cuts a component's near-duplicate edges farthest-first: the kept
+/// cut is the largest distance under which every resulting part fits
+/// the budget, or the empty cut when none does.
+fn farthest_first_cut(
+    component: &[u32],
+    axes: &[RowAxes],
+    pairs: &[(u32, u32, f64)],
+    budget: f64,
+) -> Vec<Vec<u32>> {
+    // Candidate cuts are the distinct pair distances inside the
+    // component, ascending; a cut keeps every pair at or under it.
+    let mut distances: Vec<f64> = {
+        let members: HashSet<u32> = component.iter().copied().collect();
+        pairs
+            .iter()
+            .filter(|(left, right, _)| members.contains(left) && members.contains(right))
+            .map(|&(_, _, distance)| distance)
+            .collect()
+    };
+    distances.sort_unstable_by(f64::total_cmp);
+    distances.dedup();
+
+    let fits = |cut: f64| {
+        partition(
+            component,
+            axes,
+            pairs,
+            Ranks {
+                family: false,
+                base: false,
+                cut,
+            },
+        )
+        .iter()
+        .all(|part| integer(part.len() as u64) <= budget)
+    };
+
+    // Component size is monotone in the cut, so the fitting prefix of
+    // the candidate list is contiguous and binary-searchable.
+    let (mut fitting, mut exceeded) = (None, distances.len());
+    let mut low = 0;
+    while low < exceeded {
+        let middle = usize::midpoint(low, exceeded);
+        if fits(distances[middle]) {
+            fitting = Some(distances[middle]);
+            low = middle + 1;
+        } else {
+            exceeded = middle;
+        }
+    }
+
+    // The empty cut keeps identity edges alone; the caller records
+    // any part still over budget.
+    partition(
+        component,
+        axes,
+        pairs,
+        Ranks {
+            family: false,
+            base: false,
+            cut: fitting.unwrap_or(f64::NEG_INFINITY),
+        },
+    )
+}
+
+/// Unites a row subset through the admitted axis ranks and returns
+/// the resulting parts, members ascending, parts ordered by first
+/// member.
+fn partition(
+    subset: &[u32],
+    axes: &[RowAxes],
+    pairs: &[(u32, u32, f64)],
+    ranks: Ranks,
+) -> Vec<Vec<u32>> {
+    let mut local_of: HashMap<u32, u32> = HashMap::with_capacity(subset.len());
+    for (local, &row) in subset.iter().enumerate() {
+        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        local_of.insert(row, local);
+    }
+
+    let mut components = DisjointSet::new(subset.len());
+    let mut first_of_key: HashMap<u32, u32> = HashMap::new();
+    for (local, &row) in subset.iter().enumerate() {
+        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        let row_axes = &axes[row as usize];
+
+        let mut join = |key: u32| match first_of_key.entry(key) {
+            Entry::Occupied(first) => {
+                components.unite(local, *first.get());
+            }
+            Entry::Vacant(slot) => {
+                slot.insert(local);
+            }
+        };
+
+        for &key in &row_axes.identity {
+            join(key);
+        }
+        if ranks.family {
+            join(row_axes.family);
+        }
+        if ranks.base {
+            join(row_axes.base);
+        }
+    }
+
+    for (left, right, distance) in pairs {
+        if *distance <= ranks.cut
+            && let (Some(&left), Some(&right)) = (local_of.get(left), local_of.get(right))
+        {
+            components.unite(left, right);
+        }
+    }
+
+    let mut parts: Vec<Vec<u32>> = Vec::new();
+    let mut part_of_representative: HashMap<u32, usize> = HashMap::new();
+    for (local, &row) in subset.iter().enumerate() {
+        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        let representative = components.find(local);
+        let part = *part_of_representative
+            .entry(representative)
+            .or_insert_with(|| {
+                parts.push(Vec::new());
+                parts.len() - 1
+            });
+        parts[part].push(row);
+    }
+
+    parts
 }
 
 /// Returns the Dirichlet posterior-mean target over the geometry

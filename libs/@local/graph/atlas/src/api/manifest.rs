@@ -7,12 +7,12 @@ use axum::{
     extract::{Path, State},
     http::header,
 };
-use hash_graph_atlas::serve::{GenerationId, Manifest};
 
 use super::{
     AppState,
     problem::{Problem, reject_generation},
 };
+use crate::serve::{GenerationId, Manifest};
 
 /// The operation's description.
 const DESCRIPTION: &str = "Immutable bootstrap configuration, derived from the generation alone: \

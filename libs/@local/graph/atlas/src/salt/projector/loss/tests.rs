@@ -463,6 +463,7 @@ fn attraction_fixture() -> AttractionIndex {
             source: NodeRowId::new(0),
             target: NodeRowId::new(1),
             confidence: RelationConfidence::default(),
+            multiplicity: 1,
         },
         RelationInstance {
             edge: EdgeRowId::new(1),
@@ -470,6 +471,7 @@ fn attraction_fixture() -> AttractionIndex {
             source: NodeRowId::new(2),
             target: NodeRowId::new(3),
             confidence: RelationConfidence::default(),
+            multiplicity: 1,
         },
         RelationInstance {
             edge: EdgeRowId::new(2),
@@ -477,6 +479,7 @@ fn attraction_fixture() -> AttractionIndex {
             source: NodeRowId::new(0),
             target: NodeRowId::new(2),
             confidence: RelationConfidence::default(),
+            multiplicity: 1,
         },
     ];
     RelationIndexes::build(
@@ -511,7 +514,7 @@ fn full_batch(index: &AttractionIndex) -> Vec<BatchRelationEdges> {
                     source: position(edge.source),
                     target: position(edge.target),
                     confidence: edge.confidence.value(),
-                    degree_normalization: edge.degree_normalization,
+                    normalization: edge.normalization,
                 })
                 .collect(),
         })

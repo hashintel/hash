@@ -138,6 +138,7 @@ impl Corpus {
                 source,
                 target,
                 confidence: RelationConfidence::default(),
+                multiplicity: 1,
             }
         };
 

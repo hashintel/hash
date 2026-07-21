@@ -76,6 +76,7 @@ harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
 hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
+hash-graph-atlas.path               = "libs/@local/graph/atlas"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
@@ -171,6 +172,7 @@ hannoy                             = { version = "0.1.7-nested-rtxns" }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 heed                               = { version = "0.22.1" }
 hifijson                           = { version = "0.4.0", default-features = false }
+hkdf                               = { version = "0.13.0", default-features = false }
 hostname                           = { version = "0.4.2", default-features = false }
 http                               = { version = "1.3.1", default-features = false }
 humansize                          = { version = "2.1.3", default-features = false }
@@ -262,7 +264,8 @@ serde_plain                        = { version = "1.0.2", default-features = fal
 sha2                               = { version = "0.11.0", default-features = false }
 similar-asserts                    = { version = "2.0.0", default-features = false }
 simple-mermaid                     = { version = "0.2.0", default-features = false }
-sleef                              = { version = "0.3" }
+siphasher                          = { version = "1.0.3", default-features = false }
+sleef                              = { version = "=0.3.3" }
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 sort-package-json                  = { version = "0.0.12" }

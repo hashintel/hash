@@ -92,7 +92,7 @@ pub(crate) struct AttractionEdge {
     pub confidence: EffectiveConfidence,
     /// The degree normalization `nu`, in `(0, 1]`, computed over the
     /// complete admitted instance set of the group's relation.
-    pub degree_normalization: f32,
+    pub normalization: f32,
 }
 
 /// The per-relation weight factors of one attraction group.

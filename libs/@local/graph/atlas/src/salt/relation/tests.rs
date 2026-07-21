@@ -49,6 +49,7 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
         source: NodeRowId::new(source),
         target: NodeRowId::new(target),
         confidence: RelationConfidence::default(),
+        multiplicity: 1,
     }
 }
 
@@ -148,14 +149,14 @@ fn degree_normalization_counts_the_relations_complete_instance_set() {
     assert_eq!(edges.len(), 5);
     assert_eq!(edges[0].source, NodeRowId::new(0));
     assert_eq!(edges[0].target, NodeRowId::new(1));
-    assert_eq!(edges[0].degree_normalization, 0.25);
+    assert_eq!(edges[0].normalization, 0.25);
     // The 0 -> 3 edge sees (1 + 3)(1 + 1) = 8.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the reference narrows to working precision exactly like the contract"
     )]
     let expected = (1.0 / 8.0_f64.sqrt()) as f32;
-    assert_eq!(edges[2].degree_normalization, expected);
+    assert_eq!(edges[2].normalization, expected);
 }
 
 #[test]
@@ -169,7 +170,7 @@ fn degrees_are_per_relation() {
     );
 
     for group in indexes.attraction.groups() {
-        assert_eq!(group.edges()[0].degree_normalization, 0.5);
+        assert_eq!(group.edges()[0].normalization, 0.5);
     }
 }
 
@@ -291,7 +292,7 @@ fn pruned_instances_keep_their_degree_contributions() {
 
     let edges = indexes.attraction.groups()[0].edges();
     assert_eq!(edges.len(), 1);
-    assert_eq!(edges[0].degree_normalization, 0.25);
+    assert_eq!(edges[0].normalization, 0.25);
     assert_eq!(indexes.evidence.pruned_edges, 4);
 }
 
@@ -597,7 +598,7 @@ fn a_group_spanning_several_emission_chunks_matches_the_chain_reference() {
             reason = "the reference narrows to working precision exactly like the contract"
         )]
         let expected = ((left * right).sqrt().recip()) as f32;
-        assert_eq!(edge.degree_normalization, expected, "edge {position}");
+        assert_eq!(edge.normalization, expected, "edge {position}");
     }
 
     // Every unscored instance carries mass exactly 1.0, so the chunked
@@ -666,6 +667,7 @@ prop_compose! {
                         source: source_score,
                         target: target_score,
                     },
+                    multiplicity: 1,
                 }
             })
             .collect()
@@ -1033,4 +1035,86 @@ fn forward_reference_mass(
         mass = mass.max(confidence * positive * policy.applicability.max(floor));
     }
     mass
+}
+
+/// The instance carrying `multiplicity` readings of its edge.
+fn multi(mut base: RelationInstance, multiplicity: u32) -> RelationInstance {
+    base.multiplicity = multiplicity;
+    base
+}
+
+#[test]
+fn a_two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
+    // One edge read under two relations at multiplicity 2 versus the
+    // same two readings as independent single-typed edges: the mixture
+    // halves each reading's mass, so the total is the mean. Every
+    // factor is a power of two, so the arithmetic is exact.
+    let policies = [proximal_policy(0), proximal_policy(1)];
+    let mixed = build_default(
+        &policies,
+        vec![
+            multi(instance(0, 0, 1, 2), 2),
+            multi(instance(0, 1, 1, 2), 2),
+        ],
+    );
+    let separate = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 1, 1, 2)]);
+
+    assert_eq!(
+        mixed.evidence.retained_mass,
+        separate.evidence.retained_mass / 2.0,
+    );
+
+    // Each group holds the reading at half a link's force: share 0.5
+    // on the mass and share-weighted degrees 0.5 at both endpoints,
+    // so the persisted factor is 0.5 / sqrt(1.5 * 1.5).
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the reference narrows to working precision exactly like the contract"
+    )]
+    let expected = (0.5 / (1.5_f64 * 1.5).sqrt()) as f32;
+    for group in mixed.attraction.groups() {
+        let edges = group.edges();
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].normalization, expected);
+    }
+}
+
+#[test]
+fn protection_evidence_ignores_multiplicity() {
+    // The same pair under one relation, single-typed versus 4-typed:
+    // protection aggregates by maximum over undivided evidence, so a
+    // fractional reading still fully vetoes.
+    let policies = [proximal_policy(0)];
+    let single = build_default(&policies, vec![instance(0, 0, 1, 2)]);
+    let quartered = build_default(&policies, vec![multi(instance(0, 0, 1, 2), 4)]);
+
+    let evidence = |indexes: &RelationIndexes| {
+        indexes
+            .protection
+            .view()
+            .get(pair(1, 2))
+            .expect("the fixture pair is protected")
+    };
+    assert_eq!(evidence(&single), evidence(&quartered));
+}
+
+#[test]
+fn single_typed_builds_are_unchanged_by_the_share_machinery() {
+    // Shares of 1.0 sum to exact integer degrees and multiply masses
+    // by exactly 1: the k = 1 path is bit-identical to the pre-share
+    // arithmetic. Two edges meet at row 1, so the shared endpoint's
+    // degree is 2 and the far endpoints' degrees are 1.
+    let policies = [proximal_policy(0)];
+    let indexes = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 0, 1, 3)]);
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the reference narrows to working precision exactly like the contract"
+    )]
+    let expected = (1.0 / (3.0_f64 * 2.0).sqrt()) as f32;
+    let group = &indexes.attraction.groups()[0];
+    for edge in group.edges() {
+        assert_eq!(edge.normalization, expected);
+    }
+    assert_eq!(indexes.evidence.retained_mass, 2.0);
 }

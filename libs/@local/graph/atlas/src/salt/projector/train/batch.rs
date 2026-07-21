@@ -432,7 +432,7 @@ impl Batch {
                         source: local(edge.source),
                         target: local(edge.target),
                         confidence: edge.confidence.value(),
-                        degree_normalization: edge.degree_normalization,
+                        normalization: edge.normalization,
                     })
                     .collect(),
             })

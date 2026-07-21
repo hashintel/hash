@@ -9,7 +9,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use hash_graph_atlas::serve::{EdgesError, EdgesRequest, GenerationId};
 use tracing::Instrument as _;
 
 use super::{
@@ -17,6 +16,7 @@ use super::{
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
 };
+use crate::serve::{EdgesError, EdgesRequest, GenerationId};
 
 /// The operation's description.
 const DESCRIPTION: &str =

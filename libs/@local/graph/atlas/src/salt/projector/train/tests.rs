@@ -118,6 +118,7 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
         source: NodeRowId::new(source),
         target: NodeRowId::new(target),
         confidence: RelationConfidence::default(),
+        multiplicity: 1,
     }
 }
 
@@ -614,7 +615,7 @@ fn relation_batch(indexes: &RelationIndexes, scales: &LocalScales, eta: f32) -> 
     assert_eq!(weights.strength, 1.0);
     let edge = group.edges()[0];
     assert_eq!(edge.confidence.value(), 1.0);
-    assert_eq!(edge.degree_normalization, 0.5);
+    assert_eq!(edge.normalization, 0.5);
 
     let mut populations = empty_populations(eta);
     populations.semantic = vec![pair(0, 1)];

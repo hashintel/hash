@@ -140,6 +140,9 @@ pub struct EdgesDocument {
     sources: Vec<u32>,
     targets: Vec<u32>,
     edge_rows: Vec<u32>,
+    /// The internal edge rows behind `edge_rows`, delivered order:
+    /// the hydration key the identity table speaks.
+    internal_rows: Vec<u32>,
 }
 
 impl Atlas {
@@ -174,10 +177,13 @@ impl Atlas {
     ///
     /// Delivery order is ascending edge row id, independent of the
     /// tiles listed and of truncation, so identical requests yield
-    /// identical bytes. Beyond `caps.edges` the rank-ordered cap
-    /// keeps the edges whose worse endpoint ranks best - an edge is
-    /// only as prominent as its less-prominent endpoint - with ties
-    /// broken by edge row id, and `HEAD` reports `complete: false`.
+    /// identical bytes. Every id on the wire is the generation's
+    /// keyed wire id, so the order carries no internal-order
+    /// information. Beyond `caps.edges` the rank-ordered cap keeps
+    /// the edges whose worse endpoint ranks best - an edge is only
+    /// as prominent as its less-prominent endpoint - with ties
+    /// broken by wire edge row id, and `HEAD` reports
+    /// `complete: false`.
     ///
     /// Version 0 serves the full unfiltered edge set; a request
     /// naming a visibility filter is rejected by name rather than
@@ -207,20 +213,29 @@ impl Atlas {
         }
 
         let delivered = self.delivered_rows(&request.tiles)?;
-        let mut edges = self.qualifying_edges(&delivered);
+        // The wire edge id rides selection: truncation ties and the
+        // delivery sort both compare wire values, so nothing the
+        // response exposes orders by internal id.
+        let mut edges: Vec<(DeliveredEdge, u32)> = self
+            .qualifying_edges(&delivered)
+            .into_iter()
+            .map(|edge| (edge, self.edge_codec.encode(edge.row).get()))
+            .collect();
         let complete = edges.len() <= caps.edges as usize;
         if !complete {
             self.truncate_by_rank(&mut edges, caps.edges as usize);
         }
-        edges.sort_unstable_by_key(|edge| edge.row);
+        edges.sort_unstable_by_key(|&(_, wire)| wire);
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
         let mut edge_rows = Vec::with_capacity(edges.len());
-        for edge in &edges {
-            sources.push(edge.source);
-            targets.push(edge.target);
-            edge_rows.push(edge.row);
+        let mut internal_rows = Vec::with_capacity(edges.len());
+        for &(edge, wire) in &edges {
+            sources.push(self.node_codec.encode(edge.source).get());
+            targets.push(self.node_codec.encode(edge.target).get());
+            edge_rows.push(wire);
+            internal_rows.push(edge.row);
         }
 
         Ok(EdgesDocument {
@@ -228,6 +243,7 @@ impl Atlas {
             sources,
             targets,
             edge_rows,
+            internal_rows,
         })
     }
 
@@ -243,7 +259,7 @@ impl Atlas {
     #[must_use]
     pub fn delivered_edge_entities(&self, document: &EdgesDocument) -> DeliveredEntities {
         let ids = document
-            .edge_rows
+            .internal_rows
             .iter()
             .map(|&row| {
                 self.edge_ids
@@ -365,22 +381,22 @@ impl Atlas {
     }
 
     /// Keeps the `cap` edges the rank-ordered cap selects: ascending
-    /// by worse-endpoint rank, ties by edge row id.
-    fn truncate_by_rank(&self, edges: &mut Vec<DeliveredEdge>, cap: usize) {
+    /// by worse-endpoint rank, ties by wire edge row id.
+    fn truncate_by_rank(&self, edges: &mut Vec<(DeliveredEdge, u32)>, cap: usize) {
         if cap == 0 {
             edges.clear();
             return;
         }
 
-        let mut ranked: Vec<(u32, DeliveredEdge)> = edges
+        let mut ranked: Vec<(u32, (DeliveredEdge, u32))> = edges
             .drain(..)
-            .map(|edge| (self.worse_rank(edge), edge))
+            .map(|entry| (self.worse_rank(entry.0), entry))
             .collect();
         // Partitioning at `cap - 1` places the cap smallest keys - a
-        // total order, since edge rows are distinct - in the head.
-        ranked.select_nth_unstable_by_key(cap - 1, |&(rank, edge)| (rank, edge.row));
+        // total order, since wire edge ids are distinct - in the head.
+        ranked.select_nth_unstable_by_key(cap - 1, |&(rank, (_, wire))| (rank, wire));
         ranked.truncate(cap);
-        edges.extend(ranked.into_iter().map(|(_, edge)| edge));
+        edges.extend(ranked.into_iter().map(|(_, entry)| entry));
     }
 
     /// Returns an edge's truncation rank: its worse endpoint's

@@ -321,12 +321,12 @@ fn hardware_counter() -> Criterion<darwin_kperf_criterion::HardwareCounter> {
         _ => HardwareCounter::instructions(),
     };
 
+    // Per-event baselines keep the change report meaningful: comparing
+    // a cycles run against an instructions baseline is unit nonsense.
     Criterion::default()
         .with_measurement(
             counter.expect("hardware counters require root on Apple Silicon (run under sudo)"),
         )
-        // Per-event baselines keep the change report meaningful: comparing
-        // a cycles run against an instructions baseline is unit nonsense.
         .save_baseline(event.to_owned())
         .warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(1))

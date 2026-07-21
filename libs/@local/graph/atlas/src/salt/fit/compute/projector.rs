@@ -663,7 +663,7 @@ fn relation_loss(
                 weights.coincident,
                 weights.proximal,
             );
-            let factor = edge.confidence.value() * edge.degree_normalization * weights.strength;
+            let factor = edge.confidence.value() * edge.normalization * weights.strength;
 
             total = f64::from(factor).mul_add(f64::from(value), total);
         }

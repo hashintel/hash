@@ -70,7 +70,7 @@ fn edge(edge: u64, source: u64, target: u64, confidence: f32, degree: f32) -> Ed
         source: U64::new(source),
         target: U64::new(target),
         confidence: F32::new(confidence),
-        degree_normalization: F32::new(degree),
+        normalization: F32::new(degree),
         scored: U32::new(0b101),
         reserved: U32::new(0),
     }
@@ -118,7 +118,7 @@ fn written_records_reopen_verbatim() {
     assert_eq!(edges[1].source.get(), 2);
     assert_eq!(edges[1].target.get(), 3);
     assert_eq!(edges[2].confidence.get(), 0.25);
-    assert_eq!(edges[2].degree_normalization.get(), 1.0);
+    assert_eq!(edges[2].normalization.get(), 1.0);
     assert_eq!(edges[0].scored.get(), 0b101);
 }
 

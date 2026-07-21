@@ -99,6 +99,7 @@ fn instance(
             link,
             ..RelationConfidence::default()
         },
+        multiplicity: 1,
     }
 }
 

@@ -6,6 +6,10 @@
 //! indexes serving reads from them. The stages land here as they are
 //! built; `PLAN.md` at the crate root tracks the order.
 
+// The relaxation rank surfaces in evidence assertions; production
+// code reaches it through the evidence struct.
+#[cfg(test)]
+pub(crate) use self::policy::annotation::assembly::Relaxation;
 #[cfg(test)]
 pub(crate) use self::{
     embedding::CardEmbedder,

@@ -99,7 +99,6 @@ mod error;
 mod ingest;
 pub(crate) mod prepare;
 mod role;
-#[cfg(any(feature = "bench", feature = "cli"))]
 pub(crate) mod stub;
 pub(crate) mod verdicts;
 
@@ -603,7 +602,7 @@ where
                 "staged and assembled the supplied annotation corpus"
             );
             compute::ClassifierPlan::Fit {
-                corpus,
+                corpus: Box::new(corpus),
                 source: supplied.hash(),
                 staged: file,
             }

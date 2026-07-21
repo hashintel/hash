@@ -182,7 +182,7 @@ impl AttractionIndex {
                     source: U64::new(edge.source.get()),
                     target: U64::new(edge.target.get()),
                     confidence: F32::new(edge.confidence.value()),
-                    degree_normalization: F32::new(edge.degree_normalization),
+                    normalization: F32::new(edge.normalization),
                     scored: U32::new(bits),
                     reserved: U32::new(0),
                 }
@@ -340,7 +340,7 @@ impl AttractionArchive {
                 return Err(InvalidAttractionIndex::InvalidConfidence { edge: index });
             }
 
-            let degree = edge.degree_normalization.get();
+            let degree = edge.normalization.get();
             if !(degree > 0.0 && degree <= 1.0) {
                 return Err(InvalidAttractionIndex::InvalidDegreeNormalization { edge: index });
             }
@@ -470,6 +470,6 @@ const fn decode(record: &EdgeRecord) -> AttractionEdge {
         target: NodeRowId::new(record.target.get()),
         confidence: EffectiveConfidence::new(record.confidence.get(), scored)
             .expect("the mapped index validated every confidence at open"),
-        degree_normalization: record.degree_normalization.get(),
+        normalization: record.normalization.get(),
     }
 }

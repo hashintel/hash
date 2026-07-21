@@ -38,15 +38,33 @@
 //! ```
 //!
 //! where a missing score contributes the neutral factor 1 and sets a
-//! retained provenance bit, and the degree normalization
+//! retained provenance bit, the reading share
+//!
+//! ```text
+//! s = 1 / multiplicity,
+//! ```
+//!
+//! which distributes one link's worth of force over the edge's
+//! relation readings - a multi-typed link is a mixture of its types'
+//! geometric opinions, never a sum, while parallel links remain
+//! independent assertions at full strength - and the degree
+//! normalization
 //!
 //! ```text
 //! nu = 1 / sqrt((1 + degree_r(i)) * (1 + degree_r(j))),
 //! ```
 //!
-//! where `degree_r` counts the relation's admitted instances at a row.
-//! Degrees always cover the complete admitted instance set: force pruning
-//! drops an edge from sampling without reweighting its neighbours.
+//! where `degree_r` sums the shares of the relation's admitted
+//! instances at a row, so an edge contributes one unit of degree
+//! across its readings at each endpoint. Degrees always cover the
+//! complete admitted instance set: force pruning drops an edge from
+//! sampling without reweighting its neighbours. The persisted
+//! per-instance factor is the combined normalization `nu * s`.
+//!
+//! Protection is exempt from the share on purpose: evidence
+//! aggregates by maximum, and a fractional reading still fully
+//! asserts its relation - conservation for geometry, conjunction for
+//! safety.
 //!
 //! The per-relation group carries the class weights
 //!
@@ -233,9 +251,12 @@ impl EffectiveConfidence {
 /// types.
 ///
 /// A link entity carrying several relation types yields one instance per
-/// type, all referencing the same edge row and confidence scores. The
-/// caller admits instances (security mode and conflict quarantine are
-/// upstream concerns); every instance handed to the build participates.
+/// type, all referencing the same edge row and confidence scores. Each
+/// instance carries the share `1 / multiplicity` of the edge's force,
+/// so the edge's total force mass is one link's worth regardless of
+/// how many types it carries. The caller admits instances (security
+/// mode and conflict quarantine are upstream concerns); every instance
+/// handed to the build participates.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationInstance {
     /// The edge row the instance was read from.
@@ -248,6 +269,9 @@ pub(crate) struct RelationInstance {
     pub target: NodeRowId,
     /// The link's confidence scores.
     pub confidence: RelationConfidence,
+    /// The edge's total reading count across its relation types, at
+    /// least 1.
+    pub multiplicity: u32,
 }
 
 /// A certified relation policy table.
@@ -305,7 +329,7 @@ impl<'policy> Policies<'policy> {
 ///
 /// The recorded threshold is the criterion the pruned/retained split
 /// was judged against.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BuildEvidence {
     /// The force-pruning threshold the build applied.
     pub pruning_threshold: f32,
@@ -322,6 +346,9 @@ pub(crate) struct BuildEvidence {
     /// Instances dropped because both endpoints are one row; they carry
     /// no geometric force and enter no index.
     pub self_references: usize,
+    /// The edge multiplicity histogram: entry `i` counts edges
+    /// carrying `i + 1` relation readings.
+    pub multi_typed_edges: Vec<u64>,
 }
 
 impl BuildEvidence {

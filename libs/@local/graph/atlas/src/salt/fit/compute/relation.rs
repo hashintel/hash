@@ -58,6 +58,7 @@ impl Context<'_> {
         &self,
         rows: usize,
         spool: &InstanceSpool,
+        multi_typed: &[u64],
     ) -> Result<RelationArtifacts, StageError> {
         let _span = tracing::info_span!("relations").entered();
 
@@ -75,9 +76,12 @@ impl Context<'_> {
             .collect();
         drop(mapped);
 
-        let indexes =
+        let mut indexes =
             RelationIndexes::build(rows, policies, &mut instances, self.config.attraction)?;
         drop(instances);
+        // The histogram is a drain fact the build cannot see; it joins
+        // the evidence here on its way to the manifest.
+        indexes.evidence.multi_typed_edges = multi_typed.to_vec();
 
         let attraction = write_staged(self.staging, Role::Attraction, |writer| {
             indexes.attraction.write_into(rows as u64, writer)

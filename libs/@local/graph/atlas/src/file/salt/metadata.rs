@@ -398,6 +398,11 @@ struct BuildEvidenceDef {
     retained_mass: f64,
     pruned_mass: f64,
     self_references: usize,
+    // Absent on documents published before the multiplicity mixture;
+    // no multi-typed edge existed in those stores, so the empty
+    // histogram records them faithfully.
+    #[serde(default)]
+    multi_typed_edges: Vec<u64>,
 }
 
 /// Serializes a [`Depth`] as its subdivision count, validating through

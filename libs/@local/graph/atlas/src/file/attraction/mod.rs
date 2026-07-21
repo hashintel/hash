@@ -180,7 +180,7 @@ pub(crate) struct EdgeRecord {
     /// The effective confidence `c`.
     pub confidence: F32<LE>,
     /// The degree normalization `nu`.
-    pub degree_normalization: F32<LE>,
+    pub normalization: F32<LE>,
     /// Score provenance bits: link, source, and target presence in the
     /// three lowest bits.
     pub scored: U32<LE>,

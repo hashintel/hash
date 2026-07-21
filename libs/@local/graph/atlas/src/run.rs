@@ -1,6 +1,6 @@
 //! Operating the pipeline: one production run over a live store.
 //!
-//! The operator seam the `atlas` binary consumes: dial the store
+//! The operator seam the [`cli`](crate::cli) commands consume: dial the store
 //! ([`connect`]), drive the production generation runner end to end
 //! ([`live`]) - prior resolution, fit, admission probe, and the
 //! activation decision - and read a plain-number summary. Failures
@@ -9,13 +9,16 @@
 //! their own contract - failures panic, the error is the diagnosis -
 //! so the two features share one implementation.
 //!
-//! The run embeds cards and classifies relations with the crate's
-//! deterministic stand-ins while the training ingestion seam is
-//! unbuilt; the embedder fingerprint recorded in the published
-//! artifacts discloses the substitution.
+//! The run embeds cards with the crate's deterministic stand-in
+//! embedder while the embedding-provider seam is unbuilt; the
+//! embedder fingerprint recorded in the published artifacts
+//! discloses the substitution. The relation classifier is real:
+//! supplied as a fitted artifact, or fitted in-run from a supplied
+//! annotation corpus (exactly one of the two).
 //!
 //! Nothing here is API for consumers of the crate; the module exists
-//! for the `cli` binary and the `bench` measurement wrappers.
+//! for the `cli` operator commands and the `bench` measurement
+//! wrappers.
 
 use core::{error::Error as CoreError, fmt, num::NonZero};
 use std::io;

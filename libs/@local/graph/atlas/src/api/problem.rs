@@ -13,9 +13,9 @@ use axum::{
     http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
-use hash_graph_atlas::serve::{GenerationId, VARIANTS};
 
 use super::AppState;
+use crate::serve::{GenerationId, VARIANTS};
 
 /// The `type` member of one problem document: Surface v1's slugs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
@@ -45,6 +45,9 @@ pub(super) enum ProblemType {
     /// nonexistent, denied, and unparsable answer identically
     /// (missing = denied).
     UnknownEntity,
+    /// A locate body that does not name exactly one source:
+    /// `entityId` XOR `row`.
+    InvalidSource,
     /// A required request body that did not arrive.
     MissingBody,
 }

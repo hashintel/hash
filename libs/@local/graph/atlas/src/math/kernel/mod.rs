@@ -2,19 +2,21 @@
 //!
 //! The fused multiply-add dispatchers select between native FMA and
 //! separate multiply-add per target. The transcendentals are vectorized
-//! through [`sleef`], a dependency-free pure-Rust port of the SLEEF
-//! vector math library. Each wrapper documents its own accuracy bound:
-//! the variant is chosen per kernel by measuring the consumers'
-//! requirements against instruction counts, from the 1.0-ulp `u10` tier
-//! down to compositions of the cheaper 3.5-ulp `u35` tier. The wrappers
-//! are the crate's single seam onto the library: every consumer routes
-//! through here, and the `math::kernel` tests bound each wrapper's error
-//! against scalar libm.
+//! through the SLEEF kernels vendored in [`self::sleef`]. Each wrapper
+//! documents its own accuracy bound: the variant is chosen per kernel
+//! by measuring the consumers' requirements against instruction counts,
+//! from the 1.0-ulp `u10` tier down to compositions of the cheaper
+//! 3.5-ulp `u35` tier. The wrappers are the crate's single seam onto
+//! the vendored kernels: every consumer routes through here, and the
+//! `math::kernel` tests bound each wrapper's error against scalar libm.
 // `StdFloat` also exposes vector `exp`/`ln`, but the compiler lowers them
 // to one libm call per lane on every current target (verified against the
-// emitted assembly), which is why the bodies below call sleef instead.
+// emitted assembly), which is why the bodies below call the vendored
+// kernels instead.
 
 use core::simd::{f32x4, f32x8, f64x4, f64x8};
+
+mod sleef;
 
 /// Fused multiply-add when the target provides native FMA instructions.
 #[inline(always)]
@@ -99,11 +101,11 @@ pub(crate) fn mul_add_f64x8(lhs: f64x8, rhs: f64x8, accumulator: f64x8) -> f64x8
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
-              transparent so only sleef's own call remains"
+              transparent so only the vendored kernel's call remains"
 )]
 #[inline(always)]
 pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
-    sleef::f64x::exp_u10(values)
+    sleef::exp(values)
 }
 
 /// Exponential of each lane, accurate to 1.0 unit in the last place.
@@ -113,18 +115,18 @@ pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
-              transparent so only sleef's own call remains"
+              transparent so only the vendored kernel's call remains"
 )]
 #[inline(always)]
 pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
-    sleef::f32x::exp_u10(values)
+    sleef::expf(values)
 }
 
 /// Raises each lane of `base` to the matching lane of `exponent`, for
 /// strictly positive bases.
 ///
-/// The power is evaluated as `exp2(exponent * log2(base))` from sleef's
-/// 3.5-ulp stages. The relative error grows with the magnitude of the
+/// The power is evaluated as `exp2(exponent * log2(base))` from the
+/// vendored SLEEF 3.5-ulp stages. The relative error grows with the magnitude of the
 /// result's binary exponent: a few units in the last place for results
 /// near one, on the order of `1e-4` at the edges of the normal range.
 /// Gradient kernels tolerate far more; callers needing 1-ulp powers
@@ -155,11 +157,11 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
-              transparent so only sleef's own calls remain"
+              transparent so only the vendored kernels' calls remain"
 )]
 #[inline(always)]
 pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
-    sleef::f32x::exp2_u35(exponent * sleef::f32x::log2_u35(base))
+    sleef::exp2f(exponent * sleef::log2f(base))
 }
 
 #[cfg(test)]

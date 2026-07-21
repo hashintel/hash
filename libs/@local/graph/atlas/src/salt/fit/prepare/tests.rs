@@ -473,6 +473,7 @@ fn instance_records_round_trip_their_option_confidences() {
             NodeRowId::new(1),
             NodeRowId::new(2),
             confidence,
+            3,
         );
         let instance = record.instance();
 
@@ -481,6 +482,7 @@ fn instance_records_round_trip_their_option_confidences() {
         assert_eq!(instance.source.get(), 1);
         assert_eq!(instance.target.get(), 2);
         assert_eq!(instance.confidence, confidence, "case {index}");
+        assert_eq!(instance.multiplicity, 3, "case {index}");
     }
 }
 
@@ -504,6 +506,7 @@ fn the_spool_round_trips_through_its_scratch_file() {
                 source: None,
                 target: None,
             },
+            2,
         ),
         InstanceRecord::new(
             EdgeRowId::new(1),
@@ -511,6 +514,7 @@ fn the_spool_round_trips_through_its_scratch_file() {
             NodeRowId::new(2),
             NodeRowId::new(2),
             RelationConfidence::default(),
+            1,
         ),
     ];
 

@@ -10,7 +10,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
 };
-use hash_graph_atlas::serve::{GenerationId, LocateError, LocateRequest};
 use tracing::Instrument as _;
 
 use super::{
@@ -18,18 +17,24 @@ use super::{
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
 };
+use crate::serve::{GenerationId, LocateError, LocateRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str =
-    "Spotlights one entity: resolves the source id to its dot, delivers it first with its nearest \
+    "Spotlights one entity: resolves the source to its dot, delivers it first with its nearest \
      neighbours ascending by (distance, node row id), and rides the edges among the delivered set \
      ascending by edge row id.
 
-The JSON body is required. `neighbours` is a budget: values over the manifest's \
-     `limits.locateNeighbours` CLAMP (visible in `HEAD.count`), and absent means the cap itself. \
-     The subgraph's edges cap at `limits.locateEdges`; truncation keeps the edges whose worse \
-     endpoint ranks best with source-incident edges protected to the end, and the HEAD's \
-     `complete` key reads `false`.
+The JSON body is required and names the source in EXACTLY ONE of two domains: `entityId` (the \
+     upstream id a search result or deep link carries) XOR `row` (the wire node row id a rendered \
+     tile delivered in `ROW_IDS` - the natural click-to-spotlight loop, no translate detour). A \
+     body carrying both or neither answers `invalid-source` (400). The same source yields \
+     byte-identical responses through either domain.
+
+`neighbours` is a budget: values over the manifest's `limits.locateNeighbours` CLAMP (visible in \
+     `HEAD.count`), and absent means the cap itself. The subgraph's edges cap at \
+     `limits.locateEdges`; truncation keeps the edges whose worse endpoint ranks best with \
+     source-incident edges protected to the end, and the HEAD's `complete` key reads `false`.
 
 The HEAD carries the source's first visible zoom and its tile there - the client's fly-to target. \
      `coloredTypeIds` rides `TYPE_MASK` exactly as on tiles.
@@ -38,8 +43,8 @@ The HEAD carries the source's first visible zoom and its tile there - the client
      store for every delivered node (label, icon, capped simple-value properties keyed into the \
      interned name table) and every delivered edge (the four link detail arrays).
 
-An id that does not name a visible node answers `unknown-entity` (404): nonexistent, denied, and \
-     unparsable are identical - missing = denied.
+A source that does not name a visible node answers `unknown-entity` (404): nonexistent, denied, \
+     unparsable, and out-of-universe `row` values are identical - missing = denied.
 
 Version 0 rejects `filter` with an `unsupported-feature` problem.";
 
@@ -75,7 +80,7 @@ pub(super) async fn handler(
         return Err(Problem::new(
             StatusCode::BAD_REQUEST,
             ProblemType::MissingBody,
-            "a locate request names its source entity in a JSON body",
+            "a locate request names its source in a JSON body",
         ));
     };
 
@@ -115,6 +120,13 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
+        Err(error @ LocateError::Source { .. }) => {
+            return Err(Problem::new(
+                StatusCode::BAD_REQUEST,
+                ProblemType::InvalidSource,
+                error.to_string(),
+            ));
+        }
         Err(error @ LocateError::Unsupported(_)) => {
             return Err(Problem::new(
                 StatusCode::NOT_IMPLEMENTED,
@@ -126,7 +138,7 @@ pub(super) async fn handler(
 
     let details = match entities {
         Some((nodes, links)) => {
-            let internal = |error: hash_graph_atlas::serve::DetailError| {
+            let internal = |error: crate::serve::DetailError| {
                 Problem::new(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     ProblemType::InternalError,
@@ -176,7 +188,8 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 .and_then(|body| body.as_item_mut())
             {
                 body.description = Some(
-                    "the locate request; the `entityId` source is the request's subject".to_owned(),
+                    "the locate request; exactly one of `entityId` and `row` names the subject"
+                        .to_owned(),
                 );
             }
             operation
@@ -187,12 +200,12 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
             )
         })
         .response_with::<400, Problem<'static>, _>(|response| {
-            response.description("`too-many-types` or `missing-body`")
+            response.description("`too-many-types`, `invalid-source`, or `missing-body`")
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation`, `unknown-variant`, or `unknown-entity` (identical for \
-                 nonexistent, denied, and unparsable source ids)",
+                 nonexistent, denied, unparsable, and out-of-universe sources)",
             )
         })
         .response_with::<501, Problem<'static>, _>(|response| {

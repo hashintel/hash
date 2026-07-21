@@ -22,7 +22,8 @@ use zerocopy::{LE, U64};
 
 use super::{
     Atlas, EdgesCaps, EdgesError, EdgesRequest, Filter, GenerationId, GenerationRoot, Mode,
-    ServeCaps, TileCaps, TileCoordinate, TileError, TileQuery, TileRequest, error::OpenAtlasError,
+    ServeCaps, TileCaps, TileCoordinate, TileError, TileQuery, TileRequest, codec,
+    error::OpenAtlasError,
 };
 use crate::{
     dataset::{
@@ -505,9 +506,12 @@ async fn serves_tiles_from_a_published_generation() {
     );
     assert!(section(&bytes, MASS).is_none(), "MASS is reserved-absent");
 
+    // The wire column carries the codec's ids: encode the head of
+    // the base order through the independent derivation.
+    let (node_codec, _) = test_codecs(&atlas);
     let expected_rows: Vec<u8> = row_ids[..head]
         .iter()
-        .flat_map(|&row| row.to_le_bytes())
+        .flat_map(|&row| node_codec.encode(row).get().to_le_bytes())
         .collect();
     assert_eq!(rows_section, expected_rows);
     let expected_positions: Vec<u8> = points[..head]
@@ -558,7 +562,10 @@ async fn serves_tiles_from_a_published_generation() {
         delivered_rows.extend(tile_rows);
     }
 
-    let mut expected: Vec<u32> = row_ids.to_vec();
+    let mut expected: Vec<u32> = row_ids
+        .iter()
+        .map(|&row| node_codec.encode(row).get())
+        .collect();
     expected.sort_unstable();
     delivered_rows.sort_unstable();
     assert_eq!(delivered_rows, expected, "each row arrives exactly once");
@@ -810,6 +817,42 @@ fn qualifying_columns(
     (sources, targets, rows)
 }
 
+/// Maps a derivation's internal edge columns onto the wire's:
+/// every id encoded through independently derived codecs, delivery
+/// order ascending wire edge id.
+fn wire_columns(
+    atlas: &Atlas,
+    sources: &[u32],
+    targets: &[u32],
+    rows: &[u32],
+) -> (Vec<u32>, Vec<u32>, Vec<u32>) {
+    let (node_codec, edge_codec) = test_codecs(atlas);
+    let mut triples: Vec<(u32, u32, u32)> = rows
+        .iter()
+        .zip(sources)
+        .zip(targets)
+        .map(|((&row, &source), &target)| {
+            (
+                edge_codec.encode(row).get(),
+                node_codec.encode(source).get(),
+                node_codec.encode(target).get(),
+            )
+        })
+        .collect();
+    triples.sort_unstable_by_key(|&(wire, ..)| wire);
+
+    let mut wire_sources = Vec::with_capacity(triples.len());
+    let mut wire_targets = Vec::with_capacity(triples.len());
+    let mut wire_rows = Vec::with_capacity(triples.len());
+    for (wire, source, target) in triples {
+        wire_sources.push(source);
+        wire_targets.push(target);
+        wire_rows.push(wire);
+    }
+
+    (wire_sources, wire_targets, wire_rows)
+}
+
 fn expected_edges_bytes(
     generation: &Generation,
     complete: bool,
@@ -860,6 +903,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
         FIXTURE_EDGES.len(),
         "every fixture edge qualifies"
     );
+    let (sources, targets, rows) = wire_columns(&atlas, &sources, &targets, &rows);
     assert_eq!(
         bytes,
         expected_edges_bytes(&generation, true, &sources, &targets, &rows),
@@ -897,6 +941,7 @@ async fn edges_serve_the_root_visible_subgraph() {
     let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
 
     let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
+    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
     let bytes = atlas
         .edges(&edges_request(vec![root]), EdgesCaps::default())
@@ -969,6 +1014,7 @@ async fn edges_exclude_partially_delivered_pairs() {
         !edge_rows.contains(&crossing),
         "the crossing edge is excluded from the derivation",
     );
+    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
     assert_eq!(
         bytes,
         expected_edges_bytes(&generation, true, &sources, &targets, &edge_rows),
@@ -995,22 +1041,25 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
     let rank_of_row =
         |row: u64| ranks[positions[usize::try_from(row).expect("fixture rows fit usize")] as usize];
 
-    // Under full coverage every edge qualifies; the cap keeps the two
-    // whose worse endpoint ranks best, emitted in edge-row order.
-    let mut ranked: Vec<(u32, u32)> = endpoints
+    // Under full coverage every edge qualifies; the cap keeps the
+    // two whose worse endpoint ranks best - ties on the wire edge
+    // id - emitted in ascending wire edge order.
+    let (_, edge_codec) = test_codecs(&atlas);
+    let mut ranked: Vec<(u32, u32, u32)> = endpoints
         .iter()
         .enumerate()
         .map(|(row, &[source, target])| {
+            let row = u32::try_from(row).expect("fixture edge rows fit u32");
             (
                 rank_of_row(source).max(rank_of_row(target)),
-                u32::try_from(row).expect("fixture edge rows fit u32"),
+                edge_codec.encode(row).get(),
+                row,
             )
         })
         .collect();
     ranked.sort_unstable();
     ranked.truncate(2);
-    let mut kept: Vec<u32> = ranked.into_iter().map(|(_, row)| row).collect();
-    kept.sort_unstable();
+    let kept: Vec<u32> = ranked.into_iter().map(|(.., row)| row).collect();
     let sources: Vec<u32> = kept
         .iter()
         .map(|&row| u32::try_from(endpoints[row as usize][0]).expect("fixture rows fit u32"))
@@ -1019,6 +1068,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         .iter()
         .map(|&row| u32::try_from(endpoints[row as usize][1]).expect("fixture rows fit u32"))
         .collect();
+    let (sources, targets, kept) = wire_columns(&atlas, &sources, &targets, &kept);
 
     let capped = EdgesCaps {
         edges: 2,
@@ -1161,6 +1211,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     let head = usize::try_from(head).expect("fixture counts fit usize");
     let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
     let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
+    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
 
     let entities = atlas.delivered_edge_entities(&document);
     assert_eq!(entities.count(), edge_rows.len());
@@ -1195,6 +1246,8 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_sources_resolve_to_their_first_visible_tile() {
     let (_generation, atlas) = publish("locate-resolve").await;
+    let (node_codec, _) = test_codecs(&atlas);
+    let wire_of = |row: u32| node_codec.encode(row).get();
 
     let row_of = |bytes: &[u8]| {
         let rows = section(bytes, ROW_IDS).expect("ROW_IDS is present");
@@ -1228,7 +1281,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             .tile(&request, TileCaps::default())
             .expect("the resolved tile serves");
         assert!(
-            row_of(&bytes).contains(&source.row),
+            row_of(&bytes).contains(&wire_of(source.row)),
             "the resolved tile delivers its source",
         );
 
@@ -1251,7 +1304,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
                 .tile(&parent, TileCaps::default())
                 .expect("the parent tile serves");
             assert!(
-                !row_of(&bytes).contains(&source.row),
+                !row_of(&bytes).contains(&wire_of(source.row)),
                 "the parent zoom does not deliver the source yet",
             );
             resolved += 1;
@@ -1285,8 +1338,10 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
         .expect("fixture node ids resolve");
 
     // Brute force: every other position, ascending by (squared
-    // distance, node row id) - f32 arithmetic matching the index's
-    // own metric, ordered by the wire pin.
+    // distance, wire row id) - f32 arithmetic matching the index's
+    // own metric, ordered by the wire pin, with the tie key derived
+    // through an independently constructed codec.
+    let (node_codec, _) = test_codecs(&atlas);
     let positions = atlas.positions();
     let origin = positions[source.position as usize];
     let mut expected: Vec<(f32, u32, u32)> = (0..positions.len())
@@ -1304,7 +1359,7 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
             )]
             (
                 dx * dx + dy * dy,
-                atlas.row_ids()[position as usize],
+                node_codec.encode(atlas.row_ids()[position as usize]).get(),
                 position,
             )
         })
@@ -1332,7 +1387,7 @@ async fn locate_subgraph_delivers_source_first_then_nearest() {
             expected
                 .iter()
                 .take(budget as usize)
-                .map(|&(_, row, _)| row),
+                .map(|&(_, _, position)| atlas.row_ids()[position as usize]),
         );
         assert_eq!(subgraph.rows, rows, "budget {budget}");
     }
@@ -1393,8 +1448,11 @@ async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
     let all = atlas.locate_subgraph(source, u32::MAX, everything);
 
     // Brute force: every edge row whose endpoints are both delivered
-    // (here: all of them), ascending edge row.
-    let expected_full: Vec<(u32, u32, u32)> = (0..pairs.len())
+    // (here: all of them), ascending WIRE edge row - the wire key
+    // derived through an independently constructed codec.
+    let (_, edge_codec) = test_codecs(&atlas);
+    let wire_of = |row: u32| edge_codec.encode(row).get();
+    let mut expected_full: Vec<(u32, u32, u32)> = (0..pairs.len())
         .map(|edge| {
             let [edge_source, edge_target] = pairs[edge];
             (
@@ -1404,22 +1462,24 @@ async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
             )
         })
         .collect();
+    expected_full.sort_unstable_by_key(|&(row, ..)| wire_of(row));
     let delivered: Vec<(u32, u32, u32)> = all
         .edges
         .iter()
-        .map(|edge| (edge.row, edge.source, edge.target))
+        .map(|&(edge, _)| (edge.row, edge.source, edge.target))
         .collect();
     assert_eq!(delivered, expected_full, "uncapped = the full edge set");
     assert!(all.complete);
 
-    // The independent rank derivation the truncation must follow.
+    // The independent rank derivation the truncation must follow;
+    // ties break on the wire edge id.
     let rank_of_row = |row: u32| atlas.ranks()[atlas.positions_of_row()[row as usize] as usize];
     let ranked_key = |&(row, edge_source, edge_target): &(u32, u32, u32)| {
         let context = edge_source != source.row && edge_target != source.row;
         (
             context,
             rank_of_row(edge_source).max(rank_of_row(edge_target)),
-            row,
+            wire_of(row),
         )
     };
 
@@ -1434,11 +1494,11 @@ async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
         let mut expected = expected_full.clone();
         expected.sort_unstable_by_key(ranked_key);
         expected.truncate(cap);
-        expected.sort_unstable_by_key(|&(row, ..)| row);
+        expected.sort_unstable_by_key(|&(row, ..)| wire_of(row));
         let survivors: Vec<(u32, u32, u32)> = subgraph
             .edges
             .iter()
-            .map(|edge| (edge.row, edge.source, edge.target))
+            .map(|&(edge, _)| (edge.row, edge.source, edge.target))
             .collect();
         assert_eq!(survivors, expected, "cap {cap}");
 
@@ -1482,6 +1542,7 @@ async fn locate_index_cache_round_trips() {
     let cache = scratch("locate-cache-dir").join("kdtree-cache");
     let options = OpenOptions {
         locate_cache: Some(cache.clone()),
+        ..OpenOptions::default()
     };
 
     let fresh = Atlas::open_with(&root, generation.id(), &options)
@@ -1802,7 +1863,13 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
         },
         ranges: &[0..end],
         positions: points,
-        rows: row_ids,
+        rows: &{
+            let (node_codec, _) = test_codecs(&atlas);
+            row_ids
+                .iter()
+                .map(|&row| node_codec.encode(row).get())
+                .collect::<Vec<u32>>()
+        },
         masks: None,
         trailer: Some(TileTrailer {
             labels: &nothing,
@@ -1826,6 +1893,25 @@ fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
 /// Narrows a fixture-sized index into the wire's `u32` row domain.
 fn narrow_usize(value: usize) -> u32 {
     u32::try_from(value).expect("fixture indexes fit u32")
+}
+
+/// Derives the node and edge wire codecs of an atlas opened with
+/// default options - the independent derivation the assembly's
+/// egress must agree with.
+fn test_codecs(atlas: &Atlas) -> (codec::RowCodec, codec::RowCodec) {
+    let node = codec::RowCodec::derive(
+        b"atlas-dev-wire-secret",
+        atlas.generation(),
+        codec::NODE_LABEL,
+        narrow_usize(atlas.row_ids().len()),
+    );
+    let edge = codec::RowCodec::derive(
+        b"atlas-dev-wire-secret",
+        atlas.generation(),
+        codec::EDGE_LABEL,
+        narrow_usize(atlas.endpoint_pairs().len()),
+    );
+    (node, edge)
 }
 
 fn entity_string_of(seed: u8) -> String {
@@ -1901,6 +1987,20 @@ fn translate_resolves_nodes_and_edges_by_identity() {
             entity_string_of(0xAB),                        // unknown: absent
         ],
     };
+    // Three node rows and two edge rows are the tables' universes;
+    // the expectations below encode through the same derivation.
+    let node_codec = codec::RowCodec::derive(
+        b"atlas-dev-wire-secret",
+        codec_generation(),
+        codec::NODE_LABEL,
+        3,
+    );
+    let edge_codec = codec::RowCodec::derive(
+        b"atlas-dev-wire-secret",
+        codec_generation(),
+        codec::EDGE_LABEL,
+        2,
+    );
     let response = translate(
         &request,
         TranslateCaps::default(),
@@ -1908,6 +2008,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         &edges,
         &positions,
         &position_of_row,
+        (&node_codec, &edge_codec),
     )
     .expect("the request is under the cap");
 
@@ -1916,7 +2017,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         vec![(
             entity_string_of(2),
             TranslatedNode {
-                id: 1,
+                id: node_codec.encode(1).get(),
                 x: 0.75,
                 y: -0.5,
             },
@@ -1924,7 +2025,12 @@ fn translate_resolves_nodes_and_edges_by_identity() {
     );
     assert_eq!(
         response.edges.into_iter().collect::<Vec<_>>(),
-        vec![(entity_string_of(10), TranslatedEdge { id: 0 })],
+        vec![(
+            entity_string_of(10),
+            TranslatedEdge {
+                id: edge_codec.encode(0).get(),
+            },
+        )],
     );
 }
 
@@ -1941,8 +2047,28 @@ fn translate_rejects_over_cap() {
     let over = TranslateRequest {
         entity_ids: vec![String::new(); TranslateCaps::default().entity_ids as usize + 1],
     };
+    let node_codec = codec::RowCodec::derive(
+        b"atlas-dev-wire-secret",
+        codec_generation(),
+        codec::NODE_LABEL,
+        1,
+    );
+    let edge_codec = codec::RowCodec::derive(
+        b"atlas-dev-wire-secret",
+        codec_generation(),
+        codec::EDGE_LABEL,
+        1,
+    );
     assert_eq!(
-        translate(&over, TranslateCaps::default(), &nodes, &edges, &[], &[]),
+        translate(
+            &over,
+            TranslateCaps::default(),
+            &nodes,
+            &edges,
+            &[],
+            &[],
+            (&node_codec, &edge_codec),
+        ),
         Err(TranslateError::Ids {
             count: TranslateCaps::default().entity_ids as usize + 1,
             maximum: TranslateCaps::default().entity_ids,
@@ -1976,12 +2102,13 @@ async fn translate_resolves_store_identities_end_to_end() {
 
     let position = atlas.positions_of_row()[0] as usize;
     let point = atlas.positions()[position];
+    let (node_codec, edge_codec) = test_codecs(&atlas);
     assert_eq!(
         response.nodes.into_iter().collect::<Vec<_>>(),
         vec![(
             entity_string_of(0),
             TranslatedNode {
-                id: 0,
+                id: node_codec.encode(0).get(),
                 x: point.x(),
                 y: point.y(),
             },
@@ -1989,7 +2116,12 @@ async fn translate_resolves_store_identities_end_to_end() {
     );
     assert_eq!(
         response.edges.into_iter().collect::<Vec<_>>(),
-        vec![(entity_string_of(EDGE_SEED), TranslatedEdge { id: 0 })],
+        vec![(
+            entity_string_of(EDGE_SEED),
+            TranslatedEdge {
+                id: edge_codec.encode(0).get(),
+            },
+        )],
     );
 }
 
@@ -2103,12 +2235,79 @@ fn select_properties_protect_the_label_to_the_end() {
 /// the serde attributes and are asserted where they matter.
 fn locate_request(entity_id: String) -> super::LocateRequest {
     super::LocateRequest {
-        entity_id,
+        entity_id: Some(entity_id),
+        row: None,
         colored_type_ids: Vec::new(),
         filter: None,
         neighbours: None,
         include_detailed_data: false,
     }
+}
+
+/// A locate source names one subject in one of two identity domains:
+/// a by-`row` request resolves through the wire codec's ingress -
+/// pure arithmetic, no store - to the SAME response bytes as the
+/// by-`entityId` request for that node, an out-of-universe wire
+/// value collapses into `unknown-entity`, and a body carrying both
+/// or neither source field is rejected by name with its count.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_by_wire_row_matches_by_entity() {
+    let (_generation, atlas) = publish("locate-by-row").await;
+    let caps = ServeCaps::default();
+
+    // Row 7's wire id round-trips by construction (the codec is a
+    // bijection); the equivalence under test is the two REQUEST
+    // paths, whose agreement is the whole contract in one assertion.
+    let (node_codec, _) = test_codecs(&atlas);
+    let wire = node_codec.encode(7).get();
+    let mut by_entity = locate_request(entity_string_of(7));
+    by_entity.neighbours = Some(3);
+    let mut by_row: super::LocateRequest = serde_json::from_value(serde_json::json!({
+        "row": wire,
+        "neighbours": 3,
+        "includeDetailedData": false,
+    }))
+    .expect("a by-row body deserializes");
+    assert_eq!(by_row.row, Some(wire));
+    assert_eq!(by_row.entity_id, None);
+    assert_eq!(
+        atlas.locate(&by_entity, caps).expect("the entity resolves"),
+        atlas.locate(&by_row, caps).expect("the wire row resolves"),
+        "one node, two source domains, identical bytes",
+    );
+
+    // 48 nodes occupy wire values [0, 48); 48 is the smallest
+    // out-of-universe value, and u32::MAX is any garbage. Both
+    // collapse into the entity path's own rejection.
+    for garbage in [48, u32::MAX] {
+        by_row.row = Some(garbage);
+        assert_eq!(
+            atlas
+                .assemble_locate(&by_row, caps)
+                .expect_err("the value is outside the universe"),
+            super::LocateError::UnknownEntity,
+            "{garbage}",
+        );
+    }
+
+    // Both sources or none: rejected by name, with the count.
+    by_row.row = Some(wire);
+    by_row.entity_id = Some(entity_string_of(7));
+    assert_eq!(
+        atlas
+            .assemble_locate(&by_row, caps)
+            .expect_err("two sources are ambiguous"),
+        super::LocateError::Source { carried: 2 },
+    );
+    by_row.row = None;
+    by_row.entity_id = None;
+    assert_eq!(
+        atlas
+            .assemble_locate(&by_row, caps)
+            .expect_err("no source names no subject"),
+        super::LocateError::Source { carried: 0 },
+    );
 }
 
 /// The locate convenience path rejects the trailer by name (which
@@ -2148,9 +2347,20 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
         .resolve_source(&entity_string_of(0))
         .expect("row 0 is a node");
     let subgraph = atlas.locate_subgraph(source, 3, caps.locate);
-    let sources: Vec<u32> = subgraph.edges.iter().map(|edge| edge.source).collect();
-    let targets: Vec<u32> = subgraph.edges.iter().map(|edge| edge.target).collect();
-    let edge_rows: Vec<u32> = subgraph.edges.iter().map(|edge| edge.row).collect();
+    let (node_codec, _) = test_codecs(&atlas);
+    let wire_of = |row: u32| node_codec.encode(row).get();
+    let sources: Vec<u32> = subgraph
+        .edges
+        .iter()
+        .map(|&(edge, _)| wire_of(edge.source))
+        .collect();
+    let targets: Vec<u32> = subgraph
+        .edges
+        .iter()
+        .map(|&(edge, _)| wire_of(edge.target))
+        .collect();
+    let edge_rows: Vec<u32> = subgraph.edges.iter().map(|&(_, wire)| wire).collect();
+    let wire_rows: Vec<u32> = atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     let response = |masks: Option<&[Membership<'_>]>| {
         LocateResponse {
             generation: generation.id().digest(),
@@ -2159,7 +2369,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             complete: subgraph.complete,
             delivered: &subgraph.positions,
             positions: atlas.positions(),
-            rows: atlas.row_ids(),
+            rows: &wire_rows,
             masks,
             sources: &sources,
             targets: &targets,
@@ -2278,9 +2488,20 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
         .resolve_source(&entity_string_of(0))
         .expect("row 0 is a node");
     let subgraph = atlas.locate_subgraph(source, 4, caps.locate);
-    let sources: Vec<u32> = subgraph.edges.iter().map(|edge| edge.source).collect();
-    let targets: Vec<u32> = subgraph.edges.iter().map(|edge| edge.target).collect();
-    let edge_rows: Vec<u32> = subgraph.edges.iter().map(|edge| edge.row).collect();
+    let (node_codec, _) = test_codecs(&atlas);
+    let wire_of = |row: u32| node_codec.encode(row).get();
+    let sources: Vec<u32> = subgraph
+        .edges
+        .iter()
+        .map(|&(edge, _)| wire_of(edge.source))
+        .collect();
+    let targets: Vec<u32> = subgraph
+        .edges
+        .iter()
+        .map(|&(edge, _)| wire_of(edge.target))
+        .collect();
+    let edge_rows: Vec<u32> = subgraph.edges.iter().map(|&(_, wire)| wire).collect();
+    let wire_rows: Vec<u32> = atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     assert_eq!(links.count(), edge_rows.len());
 
     let no_nodes: Vec<Option<&str>> = vec![None; nodes.count()];
@@ -2293,7 +2514,7 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
         complete: subgraph.complete,
         delivered: &subgraph.positions,
         positions: atlas.positions(),
-        rows: atlas.row_ids(),
+        rows: &wire_rows,
         masks: None,
         sources: &sources,
         targets: &targets,
@@ -2359,5 +2580,352 @@ fn intern_properties_builds_the_table_and_index_maps() {
             ]),
             Some(vec![]),
         ],
+    );
+}
+
+/// Returns a fixed generation identity for codec derivation.
+fn codec_generation() -> GenerationId {
+    "1111111111111111111111111111111111111111111111111111111111111111"
+        .parse()
+        .expect("the literal is 64 hex digits")
+}
+
+#[test]
+fn codec_bijects_every_small_universe() {
+    for universe in [
+        1_u32, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 48, 100, 257, 1000,
+    ] {
+        let codec = codec::RowCodec::derive(b"secret", codec_generation(), b"test", universe);
+
+        let mut image: Vec<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+        for (row, &wire) in (0..universe).zip(&image) {
+            assert_eq!(
+                codec.decode(wire),
+                Some(row),
+                "decode inverts encode at N={universe}",
+            );
+        }
+        image.sort_unstable();
+        assert!(
+            image.into_iter().eq(0..universe),
+            "the image is exactly [0, {universe})",
+        );
+    }
+}
+
+#[test]
+fn codec_round_trips_a_large_universe_sample() {
+    let universe = 500_000;
+    let codec = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
+
+    let mut seen = HashSet::new();
+    for row in (0..universe).step_by(631) {
+        let wire = codec.encode(row).get();
+        assert!(wire < universe, "wire values stay in the universe");
+        assert!(seen.insert(wire), "sampled wire values stay distinct");
+        assert_eq!(codec.decode(wire), Some(row));
+    }
+}
+
+#[test]
+fn codec_answers_none_outside_the_universe() {
+    let codec = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 48);
+
+    assert_eq!(codec.decode(48), None);
+    assert_eq!(codec.decode(49), None);
+    assert_eq!(codec.decode(u32::MAX), None);
+}
+
+#[test]
+fn codec_degenerate_universes_take_the_identity() {
+    let empty = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 0);
+    assert_eq!(empty.decode(0), None);
+
+    let single = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 1);
+    assert_eq!(single.encode(0).get(), 0);
+    assert_eq!(single.decode(0), Some(0));
+    assert_eq!(single.decode(1), None);
+}
+
+#[test]
+#[should_panic(expected = "the codec encodes rows of its own universe")]
+fn codec_encode_rejects_out_of_universe_rows() {
+    let codec = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 48);
+    _ = codec.encode(48);
+}
+
+#[test]
+fn codec_separates_secrets_generations_and_labels() {
+    let universe = 4096;
+    let base = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
+    let other_secret =
+        codec::RowCodec::derive(b"another", codec_generation(), codec::NODE_LABEL, universe);
+    let other_generation = codec::RowCodec::derive(
+        b"secret",
+        "2222222222222222222222222222222222222222222222222222222222222222"
+            .parse()
+            .expect("the literal is 64 hex digits"),
+        codec::NODE_LABEL,
+        universe,
+    );
+    let other_label =
+        codec::RowCodec::derive(b"secret", codec_generation(), codec::EDGE_LABEL, universe);
+
+    for (name, other) in [
+        ("secret", &other_secret),
+        ("generation", &other_generation),
+        ("label", &other_label),
+    ] {
+        let differing = (0..universe)
+            .filter(|&row| base.encode(row) != other.encode(row))
+            .count();
+        assert!(differing > 0, "a changed {name} changes the mapping");
+    }
+}
+
+#[test]
+fn codec_derivation_is_deterministic() {
+    let universe = 4096;
+    let first = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
+    let second =
+        codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
+
+    for row in 0..universe {
+        assert_eq!(first.encode(row), second.encode(row));
+    }
+}
+
+/// The D8 codec written a second time, from the addendum's text and
+/// pinned parameter picks rather than from `serve::codec`.
+///
+/// Agreement between the two freezes the wire mapping itself - a
+/// refactor that changes any derived bit fails loudly - and the
+/// reference counts its cycle-walk applications, the observability
+/// the serving codec deliberately does not expose.
+mod codec_reference {
+    use core::hash::Hasher as _;
+
+    use hkdf::Hkdf;
+    use sha2::Sha256;
+    use siphasher::sip::SipHasher24;
+
+    use crate::file::generation::GenerationId;
+
+    /// The pinned Feistel round count.
+    const ROUNDS: usize = 8;
+
+    /// One universe's reference codec.
+    pub(super) struct Reference {
+        /// The universe size `N`.
+        universe: u32,
+        /// The Feistel width `b = ceil(log2 N)`; zero is the identity.
+        bits: u32,
+        /// The per-round SipHash-2-4 keys.
+        keys: [[u8; 16]; ROUNDS],
+    }
+
+    impl Reference {
+        /// Derives the reference codec of one universe.
+        pub(super) fn derive(
+            secret: &[u8],
+            generation: GenerationId,
+            label: &[u8],
+            universe: u32,
+        ) -> Self {
+            let salt = generation.digest().to_bytes();
+            let mut material = [0_u8; 16 * ROUNDS];
+            Hkdf::<Sha256>::new(Some(&salt), secret)
+                .expand(label, &mut material)
+                .expect("128 octets stay within HKDF-SHA256's expansion bound");
+
+            let mut keys = [[0_u8; 16]; ROUNDS];
+            for (key, chunk) in keys.iter_mut().zip(material.as_chunks::<16>().0) {
+                *key = *chunk;
+            }
+
+            let bits = match universe {
+                0 | 1 => 0,
+                _ => u32::BITS - (universe - 1).leading_zeros(),
+            };
+
+            Self {
+                universe,
+                bits,
+                keys,
+            }
+        }
+
+        /// Encodes `row`, returning the wire value and the number of
+        /// network applications the cycle walk took.
+        pub(super) fn encode_counting(&self, row: u32) -> (u32, u32) {
+            assert!(
+                row < self.universe,
+                "the reference shares the producer contract"
+            );
+            if self.bits == 0 {
+                return (row, 0);
+            }
+
+            let mut walks = 1_u32;
+            let mut value = self.permute(row);
+            while value >= self.universe {
+                walks += 1;
+                value = self.permute(value);
+            }
+
+            (value, walks)
+        }
+
+        /// Applies the network once: round `i` maps `(L, R)` to
+        /// `(R, L xor F_i(R))`, half widths alternating ceil/floor.
+        fn permute(&self, mut state: u32) -> u32 {
+            for (index, key) in self.keys.iter().enumerate() {
+                let left_bits = if index.is_multiple_of(2) {
+                    self.bits.div_ceil(2)
+                } else {
+                    self.bits >> 1_u32
+                };
+                let right_bits = self.bits - left_bits;
+                let left = state >> right_bits;
+                let right = state & mask(right_bits);
+                state = (right << left_bits) | (left ^ (round(key, right) & mask(left_bits)));
+            }
+
+            state
+        }
+    }
+
+    /// Returns the low-`bits` mask.
+    const fn mask(bits: u32) -> u32 {
+        if bits == 0 {
+            0
+        } else {
+            u32::MAX >> (32 - bits)
+        }
+    }
+
+    /// Evaluates one round function.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the caller masks to the half width; the narrowing keeps the used bits"
+    )]
+    fn round(key: &[u8; 16], half: u32) -> u32 {
+        let mut hasher = SipHasher24::new_with_key(key);
+        hasher.write(&half.to_le_bytes());
+        hasher.finish() as u32
+    }
+}
+
+#[test]
+fn codec_agrees_with_the_spec_reference() {
+    for universe in [2_u32, 3, 5, 48, 100, 257, 1025, 4096] {
+        let codec =
+            codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
+        let model = codec_reference::Reference::derive(
+            b"secret",
+            codec_generation(),
+            codec::NODE_LABEL,
+            universe,
+        );
+
+        for row in 0..universe {
+            let (wire, _) = model.encode_counting(row);
+            assert_eq!(
+                codec.encode(row).get(),
+                wire,
+                "both expressions of D8 agree at N={universe}, row {row}",
+            );
+        }
+    }
+}
+
+#[test]
+fn codec_cycle_walks_stay_short() {
+    // Universes one past a power of two maximize 2^b / N, the walk
+    // bound's worst case: the expected walk approaches two there.
+    for universe in [5_u32, 9, (1 << 10) + 1, (1 << 16) + 1, 300_000] {
+        let model = codec_reference::Reference::derive(
+            b"secret",
+            codec_generation(),
+            codec::NODE_LABEL,
+            universe,
+        );
+
+        let mut total = 0_u64;
+        let mut longest = 0_u32;
+        for row in 0..universe {
+            let (_, walks) = model.encode_counting(row);
+            total += u64::from(walks);
+            longest = longest.max(walks);
+        }
+
+        // Mean below 2.5 in integers: a width off by one bit doubles
+        // the mean to about four, well past the gate.
+        assert!(
+            2 * total < 5 * u64::from(universe),
+            "the mean walk stays near the theorem's bound at N={universe}: {total} total",
+        );
+        assert!(longest < 64, "no walk runs away at N={universe}: {longest}");
+    }
+}
+
+#[test]
+fn codec_image_is_the_universe_at_scale() {
+    let universe = 300_000;
+    let codec = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
+
+    let mut image: Vec<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+    image.sort_unstable();
+    assert!(
+        image.into_iter().eq(0..universe),
+        "the image is exactly [0, {universe})",
+    );
+}
+
+#[test]
+fn codec_wire_ids_disclose_only_the_universe_size() {
+    let universe = 10_000_u32;
+    let sample = 100_u32;
+    let trials = 128_u32;
+
+    // Two selections a mapping bias would separate: the first block
+    // of assignment order, and a stride spanning the universe.
+    let block: Vec<u32> = (0..sample).collect();
+    let spread: Vec<u32> = (0..sample).map(|index| index * 97).collect();
+
+    let mut block_total = 0_u64;
+    let mut spread_total = 0_u64;
+    for trial in 0..trials {
+        let secret = trial.to_le_bytes();
+        let codec =
+            codec::RowCodec::derive(&secret, codec_generation(), codec::NODE_LABEL, universe);
+        let widest = |rows: &[u32]| {
+            rows.iter()
+                .map(|&row| u64::from(codec.encode(row).get()))
+                .max()
+                .expect("the selection is nonempty")
+        };
+        block_total += widest(&block);
+        spread_total += widest(&spread);
+    }
+
+    // Averaged over trials, the German-tank estimate m(1 + 1/k) - 1
+    // recovers N from a uniform k-subset; the small additive
+    // constants wash into the tolerance. Comparisons stay in the
+    // scale of N * k * trials - multiplied out, never divided. Both
+    // selections estimating one N is section 9's claim: wire ids
+    // answer "how many rows", never "which rows".
+    let scaled = |total: u64| total * u64::from(sample + 1);
+    let target = u64::from(universe) * u64::from(sample) * u64::from(trials);
+    let tolerance = 300 * u64::from(sample) * u64::from(trials);
+    for (name, total) in [("block", block_total), ("spread", spread_total)] {
+        assert!(
+            scaled(total).abs_diff(target) < tolerance,
+            "the {name} selection estimates the universe: {total} total",
+        );
+    }
+    assert!(
+        scaled(block_total.abs_diff(spread_total)) < tolerance,
+        "the selections are indistinguishable through wire ids: {block_total} vs {spread_total}",
     );
 }

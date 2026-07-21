@@ -51,6 +51,7 @@ pub(crate) struct InstanceRecord {
     source_confidence: F32<LE>,
     target_confidence: F32<LE>,
     scored: U32<LE>,
+    multiplicity: U32<LE>,
 }
 
 impl InstanceRecord {
@@ -59,6 +60,10 @@ impl InstanceRecord {
     const TARGET: u32 = 1 << 2;
 
     /// Encodes one reading of `edge` under `relation`.
+    ///
+    /// `multiplicity` is the edge's total reading count: the number of
+    /// relation types the edge carries, each spooled as its own
+    /// record.
     #[must_use]
     pub(crate) fn new(
         edge: EdgeRowId,
@@ -66,6 +71,7 @@ impl InstanceRecord {
         source: NodeRowId,
         target: NodeRowId,
         confidence: RelationConfidence,
+        multiplicity: u32,
     ) -> Self {
         let mut scored = 0;
         if confidence.link.is_some() {
@@ -87,6 +93,7 @@ impl InstanceRecord {
             source_confidence: F32::new(confidence.source.unwrap_or(1.0)),
             target_confidence: F32::new(confidence.target.unwrap_or(1.0)),
             scored: U32::new(scored),
+            multiplicity: U32::new(multiplicity),
         }
     }
 
@@ -105,6 +112,7 @@ impl InstanceRecord {
                 source: (scored & Self::SOURCE != 0).then(|| self.source_confidence.get()),
                 target: (scored & Self::TARGET != 0).then(|| self.target_confidence.get()),
             },
+            multiplicity: self.multiplicity.get(),
         }
     }
 }
@@ -231,4 +239,4 @@ impl MappedInstances {
     }
 }
 
-const _: () = assert!(size_of::<InstanceRecord>() == 48);
+const _: () = assert!(size_of::<InstanceRecord>() == 52);

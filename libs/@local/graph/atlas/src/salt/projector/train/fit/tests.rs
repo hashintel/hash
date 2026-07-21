@@ -272,6 +272,7 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
         source: NodeRowId::new(source),
         target: NodeRowId::new(target),
         confidence: RelationConfidence::default(),
+        multiplicity: 1,
     }
 }
 

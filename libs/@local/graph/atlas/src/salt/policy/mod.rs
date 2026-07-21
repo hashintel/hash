@@ -17,13 +17,6 @@ use core::{fmt, mem};
 
 use crate::dataset::OntologyRowId;
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "the assembly stage awaits its consumer, the fit pipeline"
-    )
-)]
 pub(crate) mod annotation;
 pub(crate) mod artifact;
 pub(crate) mod classifier;

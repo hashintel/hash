@@ -219,6 +219,35 @@ fn a_config_echo_without_classifier_supply_settings_still_parses() {
     assert_eq!(echoed.0, config());
 }
 
+/// A config echo published before the group budget existed omits it;
+/// it deserializes to the compiled default, and a tampered budget
+/// refuses to parse.
+#[test]
+fn a_config_echo_validates_the_group_budget() {
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
+
+    let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+    let assembly = document
+        .pointer_mut("/policy/assembly")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the echo carries the assembly settings");
+    assert!(assembly.remove("maximum_group_fraction").is_some());
+
+    let echoed: Echo =
+        serde_json::from_value(document.clone()).expect("the pre-budget echo still deserializes");
+    assert_eq!(echoed.0, config());
+
+    document
+        .pointer_mut("/policy/assembly")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the echo carries the assembly settings")
+        .insert("maximum_group_fraction".to_owned(), serde_json::json!(1.5));
+    let error = serde_json::from_value::<Echo>(document)
+        .expect_err("an out-of-range budget refuses to parse");
+    assert!(error.to_string().contains("fraction in (0, 1]"));
+}
+
 fn config() -> FitConfig {
     FitConfig {
         seed: 7,
@@ -294,6 +323,20 @@ fn fixture_input() -> ClassifierInput {
     supplied(fixture_classifier())
 }
 
+/// Asserts the complete-generation fixture's snapshot counts and its
+/// multiplicity histogram: the dataset streamed two single-typed
+/// edges, so the histogram is a single k = 1 entry.
+fn assert_complete_generation_snapshot(repository: &SaltRepository) {
+    assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
+    assert_eq!(repository.metadata.snapshot.edges, 2);
+    assert_eq!(repository.metadata.snapshot.ontology_types, 3);
+    assert!(repository.metadata.snapshot.axes.is_none());
+    assert_eq!(
+        repository.metadata.evidence.relations.multi_typed_edges,
+        vec![2],
+    );
+}
+
 /// Asserts every file the manifest lists matches its recorded digest
 /// byte for byte.
 fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
@@ -358,11 +401,7 @@ async fn fit_publishes_a_complete_generation() {
     assert!(repository.files.projector.is_none());
     assert!(repository.metadata.evidence.projector.is_none());
 
-    // The snapshot records what the dataset streamed.
-    assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
-    assert_eq!(repository.metadata.snapshot.edges, 2);
-    assert_eq!(repository.metadata.snapshot.ontology_types, 3);
-    assert!(repository.metadata.snapshot.axes.is_none());
+    assert_complete_generation_snapshot(&repository);
     // The document echoes the whole configuration the fit ran under,
     // defaults included: a replay reads its settings from here.
     assert_eq!(repository.metadata.reproducibility.config, config());
@@ -1844,14 +1883,21 @@ async fn the_edge_artifacts_publish_and_read_back() {
     assert_eq!(repository.metadata.evidence.policy.relations, 2);
     assert_eq!(repository.metadata.evidence.policy.overridden, 2);
 
-    // Force masses by hand: each retained instance weighs c * s+ with
-    // s+ = 0.5, so 0.5 * 0.5 + three unscored 1.0 * 0.5 = 1.75.
+    // Force masses by hand: each retained instance weighs c * s+ * s
+    // with s+ = 0.5 and the reading share s = 1/multiplicity. The
+    // scored single-typed edge gives 0.5 * 0.5, the two-typed edge's
+    // readings give two 1.0 * 0.5 * 0.5, and the unscored single-typed
+    // edge gives 1.0 * 0.5: total 1.25. Every factor is a power of
+    // two, so the sum is exact.
     let relations = &repository.metadata.evidence.relations;
     assert_eq!(relations.retained_edges, 4);
     assert_eq!(relations.pruned_edges, 0);
     assert_eq!(relations.self_references, 1);
-    assert_eq!(relations.retained_mass.to_bits(), 1.75_f64.to_bits());
+    assert_eq!(relations.retained_mass.to_bits(), 1.25_f64.to_bits());
     assert_eq!(relations.pruned_mass.to_bits(), 0.0_f64.to_bits());
+    // Three edges carry one relation reading (the self-loop counts at
+    // the drain), one carries two.
+    assert_eq!(relations.multi_typed_edges, vec![3, 1]);
 
     let quad = &repository.metadata.evidence.quad;
     assert!(quad.nodes >= 1);

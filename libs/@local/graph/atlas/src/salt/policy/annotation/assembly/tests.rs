@@ -65,14 +65,16 @@ impl ProgrammedEmbedder {
     ///
     /// Alpha and beta lie `0.05` radians apart, within the default
     /// near-duplicate threshold (`1 - cos(0.05) ~= 1.25e-3`); beta and
-    /// gamma lie `0.10` radians apart, outside it
-    /// (`1 - cos(0.10) ~= 5.0e-3`).
+    /// delta lie `0.06` radians apart, also within it but farther
+    /// (`1 - cos(0.06) ~= 1.80e-3`); beta and gamma lie `0.10`
+    /// radians apart, outside it (`1 - cos(0.10) ~= 5.0e-3`).
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,
             "has part" => 0.3,
             "alpha" => 1.0,
             "beta" => 1.05,
+            "delta" => 1.11,
             "gamma" => 1.15,
             "Employed By" => 2.0,
             "holdout" => 2.5,
@@ -395,9 +397,18 @@ fn a_lone_simple_pair_hoists_into_the_independent_sections() {
 #[tokio::test]
 async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     let corpus = fixture_corpus();
-    let assembled = assemble(&corpus, &ProgrammedEmbedder, AssemblyConfig::default())
-        .await
-        .expect("the fixture corpus assembles");
+    // The whole-corpus budget keeps every axis engaged: the fixture
+    // certifies the full union, not subdivision.
+    let assembled = assemble(
+        &corpus,
+        &ProgrammedEmbedder,
+        AssemblyConfig {
+            maximum_group_fraction: 1.0,
+            ..
+        },
+    )
+    .await
+    .expect("the fixture corpus assembles");
 
     let evidence = assembled.evidence();
     assert_eq!(evidence.supplied, 9);
@@ -409,6 +420,9 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     assert_eq!(evidence.severely_truncated, 0);
     assert_eq!(evidence.fold_groups, 4);
     assert_eq!(evidence.near_duplicate_pairs, 1);
+    assert_eq!(evidence.subdivided_groups, 0);
+    assert_eq!(evidence.oversized_accepted, 0);
+    assert_eq!(evidence.deepest_relaxation, super::Relaxation::None);
 
     let rows = assembled.rows();
     assert_eq!(rows.len(), 6);
@@ -511,4 +525,203 @@ async fn a_language_the_template_does_not_render_is_rejected() {
     assert!(
         matches!(error, AssemblyError::Language { card: 0, ref language } if &**language == "de"),
     );
+}
+
+/// Assembles a document's cards under the given group budget.
+async fn assemble_under(cards: &[Value], maximum_group_fraction: f64) -> super::AssembledCorpus {
+    let corpus = AnnotationCorpus::from_slice(document(cards).as_bytes())
+        .expect("the subdivision corpus admits");
+    assemble(
+        &corpus,
+        &ProgrammedEmbedder,
+        AssemblyConfig {
+            maximum_group_fraction,
+            ..
+        },
+    )
+    .await
+    .expect("the subdivision corpus assembles")
+}
+
+#[tokio::test]
+async fn subdivision_relaxes_family_inside_the_oversized_component() {
+    // Six cards glued into one component by a single family key; the
+    // alpha/beta near-tie survives the family relaxation.
+    let cards: Vec<Value> = [
+        ("http://www.wikidata.org/entity/P90a", "alpha"),
+        ("http://www.wikidata.org/entity/P90b", "beta"),
+        ("http://www.wikidata.org/entity/P90c", "gamma"),
+        ("http://www.wikidata.org/entity/P90d", "Employed By"),
+        ("http://www.wikidata.org/entity/P90e", "part of"),
+        ("http://www.wikidata.org/entity/P90f", "has part"),
+    ]
+    .map(|(identity, title)| wikidata_card(identity, title, "giant", &[vote("overlay")]))
+    .into();
+
+    let assembled = assemble_under(&cards, 0.4).await;
+
+    let evidence = assembled.evidence();
+    assert_eq!(evidence.trained, 6);
+    assert_eq!(evidence.near_duplicate_pairs, 1);
+    assert_eq!(evidence.fold_groups, 5);
+    assert_eq!(evidence.subdivided_groups, 1);
+    assert_eq!(evidence.oversized_accepted, 0);
+    assert_eq!(evidence.deepest_relaxation, super::Relaxation::Family);
+
+    let rows = assembled.rows();
+    assert_eq!(rows.len(), 6);
+    assert_eq!(
+        rows[0].group,
+        group_digest(&[
+            "http://www.wikidata.org/entity/P90a",
+            "http://www.wikidata.org/entity/P90b"
+        ])
+    );
+    assert_eq!(rows[1].group, rows[0].group);
+    for (row, identity) in [
+        (2, "http://www.wikidata.org/entity/P90c"),
+        (3, "http://www.wikidata.org/entity/P90d"),
+        (4, "http://www.wikidata.org/entity/P90e"),
+        (5, "http://www.wikidata.org/entity/P90f"),
+    ] {
+        assert_eq!(rows[row].group, group_digest(&[identity]));
+    }
+}
+
+#[tokio::test]
+async fn subdivision_relaxes_base_when_family_is_not_the_glue() {
+    // Four cards glued only by a shared base URL; families are unique,
+    // embeddings far apart.
+    let cards: Vec<Value> = [
+        ("http://www.wikidata.org/entity/P91a", "gamma", "f-1"),
+        ("http://www.wikidata.org/entity/P91b", "Employed By", "f-2"),
+        ("http://www.wikidata.org/entity/P91c", "part of", "f-3"),
+        ("http://www.wikidata.org/entity/P91d", "has part", "f-4"),
+    ]
+    .map(|(identity, title, family)| {
+        let mut card = wikidata_card(identity, title, family, &[vote("overlay")]);
+        card["axes"]["base_url"] = json!("https://shared/base");
+        card
+    })
+    .into();
+
+    let assembled = assemble_under(&cards, 0.3).await;
+
+    let evidence = assembled.evidence();
+    assert_eq!(evidence.fold_groups, 4);
+    assert_eq!(evidence.subdivided_groups, 1);
+    assert_eq!(evidence.oversized_accepted, 0);
+    assert_eq!(evidence.deepest_relaxation, super::Relaxation::Base);
+
+    let rows = assembled.rows();
+    for (row, identity) in [
+        (0, "http://www.wikidata.org/entity/P91a"),
+        (1, "http://www.wikidata.org/entity/P91b"),
+        (2, "http://www.wikidata.org/entity/P91c"),
+        (3, "http://www.wikidata.org/entity/P91d"),
+    ] {
+        assert_eq!(rows[row].group, group_digest(&[identity]));
+    }
+}
+
+#[tokio::test]
+async fn subdivision_cuts_near_duplicates_farthest_first() {
+    // A near-duplicate chain: alpha-beta at ~1.25e-3, beta-delta at
+    // ~1.80e-3. The budget admits pairs; the cut drops the farther
+    // link and keeps the nearer one.
+    let cards: Vec<Value> = [
+        ("http://www.wikidata.org/entity/P92a", "alpha", "f-1"),
+        ("http://www.wikidata.org/entity/P92b", "beta", "f-2"),
+        ("http://www.wikidata.org/entity/P92c", "delta", "f-3"),
+    ]
+    .map(|(identity, title, family)| wikidata_card(identity, title, family, &[vote("overlay")]))
+    .into();
+
+    let assembled = assemble_under(&cards, 0.7).await;
+
+    let evidence = assembled.evidence();
+    assert_eq!(evidence.near_duplicate_pairs, 2);
+    assert_eq!(evidence.fold_groups, 2);
+    assert_eq!(evidence.subdivided_groups, 1);
+    assert_eq!(evidence.oversized_accepted, 0);
+    assert_eq!(
+        evidence.deepest_relaxation,
+        super::Relaxation::NearDuplicate
+    );
+
+    let rows = assembled.rows();
+    assert_eq!(rows.len(), 3);
+    assert_eq!(
+        rows[0].group,
+        group_digest(&[
+            "http://www.wikidata.org/entity/P92a",
+            "http://www.wikidata.org/entity/P92b"
+        ])
+    );
+    assert_eq!(rows[1].group, rows[0].group);
+    assert_eq!(
+        rows[2].group,
+        group_digest(&["http://www.wikidata.org/entity/P92c"])
+    );
+}
+
+#[tokio::test]
+async fn an_identity_web_is_accepted_over_budget() {
+    // Two cards name a third as their inverse: identity edges alone
+    // hold all three together, and identity never relaxes.
+    let cards: Vec<Value> = [
+        ("http://www.wikidata.org/entity/P93a", "gamma", "f-1"),
+        ("http://www.wikidata.org/entity/P93b", "Employed By", "f-2"),
+        ("http://www.wikidata.org/entity/P93c", "part of", "f-3"),
+    ]
+    .map(|(identity, title, family)| {
+        let mut card = wikidata_card(identity, title, family, &[vote("overlay")]);
+        if identity != "http://www.wikidata.org/entity/P93b" {
+            card["axes"]["inverse_of"] = json!(["http://www.wikidata.org/entity/P93b"]);
+        }
+        card
+    })
+    .into();
+
+    let assembled = assemble_under(&cards, 0.5).await;
+
+    let evidence = assembled.evidence();
+    assert_eq!(evidence.fold_groups, 1);
+    assert_eq!(evidence.subdivided_groups, 0);
+    assert_eq!(evidence.oversized_accepted, 1);
+    assert_eq!(
+        evidence.deepest_relaxation,
+        super::Relaxation::NearDuplicate
+    );
+
+    let group = group_digest(&[
+        "http://www.wikidata.org/entity/P93a",
+        "http://www.wikidata.org/entity/P93b",
+        "http://www.wikidata.org/entity/P93c",
+    ]);
+    for row in assembled.rows() {
+        assert_eq!(row.group, group);
+    }
+}
+
+#[tokio::test]
+async fn subdivision_is_deterministic() {
+    let cards: Vec<Value> = [
+        ("http://www.wikidata.org/entity/P90a", "alpha"),
+        ("http://www.wikidata.org/entity/P90b", "beta"),
+        ("http://www.wikidata.org/entity/P90c", "gamma"),
+        ("http://www.wikidata.org/entity/P90d", "Employed By"),
+        ("http://www.wikidata.org/entity/P90e", "part of"),
+        ("http://www.wikidata.org/entity/P90f", "has part"),
+    ]
+    .map(|(identity, title)| wikidata_card(identity, title, "giant", &[vote("overlay")]))
+    .into();
+
+    let first = assemble_under(&cards, 0.4).await;
+    let second = assemble_under(&cards, 0.4).await;
+    let groups = |assembled: &super::AssembledCorpus| -> Vec<_> {
+        assembled.rows().iter().map(|row| row.group).collect()
+    };
+    assert_eq!(groups(&first), groups(&second));
+    assert_eq!(first.evidence(), second.evidence());
 }

@@ -144,7 +144,7 @@ pub(crate) struct BatchRelationEdge {
     /// corpus edge was scored.
     pub confidence: f32,
     /// The degree normalization `nu`, in `(0, 1]`.
-    pub degree_normalization: f32,
+    pub normalization: f32,
 }
 
 /// A per-node coordinate gradient accumulator.
@@ -292,7 +292,7 @@ fn affinity_term(
 /// Evaluates the relation attraction term over a sampled batch.
 ///
 /// Per instance the contribution is `scale * confidence *
-/// degree_normalization * strength` times the weighted class mixture at
+/// normalization * strength` times the weighted class mixture at
 /// the locally normalized distance `z = d / sqrt((rho_i + eps)(rho_j +
 /// eps))`. The local scales are detached measurements: the gradient
 /// flows through `d` only, so `dz/dd` is a per-pair constant.
@@ -332,7 +332,7 @@ pub(crate) fn relation_term(
                 weights.coincident,
                 weights.proximal,
             );
-            let factor = scale * edge.confidence * edge.degree_normalization * weights.strength;
+            let factor = scale * edge.confidence * edge.normalization * weights.strength;
 
             total = f64::from(factor).mul_add(f64::from(value), total);
             if distance <= 0.0 {

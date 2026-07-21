@@ -60,6 +60,9 @@ pub(super) fn build(
         retained_mass: 0.0,
         pruned_mass: 0.0,
         self_references,
+        // The histogram is a drain fact; the staging pass records it
+        // after the build.
+        multi_typed_edges: Vec::new(),
     };
 
     let mut groups = Vec::with_capacity(built.len());
@@ -264,9 +267,10 @@ pub(super) struct GroupEvidence {
 /// The slice is one relation's run of the `(source, target, edge)` sort.
 /// Degrees count over two compact endpoint columns in one scratch
 /// allocation: the source column inherits the run's order, the target
-/// column sorts here, and a row's degree is the sum of its two
-/// binary-searchable run lengths. Emission then parallelizes over
-/// `chunk`-sized chunks reading those shared columns.
+/// column sorts here, and a row's degree is the share sum over its
+/// run in each column, read as a prefix difference. Emission then
+/// parallelizes over `chunk`-sized chunks reading those shared
+/// columns.
 fn build_group(
     instances: &[RelationInstance],
     policy: &RelationPolicy,
@@ -281,17 +285,23 @@ fn build_group(
     };
     let scale = weights.scale();
 
-    let mut columns = Vec::with_capacity(instances.len() * 2);
-    columns.extend(instances.iter().map(|instance| instance.source.get()));
-    columns.extend(instances.iter().map(|instance| instance.target.get()));
-    let (sources, targets) = columns.split_at_mut(instances.len());
-    debug_assert!(sources.is_sorted(), "the group sort orders sources");
-    targets.par_sort_unstable();
-    let (sources, targets) = (&*sources, &*targets);
+    let share = |instance: &RelationInstance| f64::from(instance.multiplicity.max(1)).recip();
+    let sources = DegreeColumn::new(
+        instances
+            .iter()
+            .map(|instance| (instance.source.get(), share(instance)))
+            .collect(),
+    );
+    let targets = DegreeColumn::new(
+        instances
+            .iter()
+            .map(|instance| (instance.target.get(), share(instance)))
+            .collect(),
+    );
 
     let mut yielded: Vec<(Vec<AttractionEdge>, GroupEvidence)> = instances
         .par_chunks(chunk)
-        .map(|chunk| emit_chunk(chunk, sources, targets, scale, attraction))
+        .map(|chunk| emit_chunk(chunk, &sources, &targets, scale, attraction))
         .collect();
 
     // Combined in chunk order; see EMISSION_CHUNK for why that keeps
@@ -314,24 +324,66 @@ fn build_group(
     (AttractionGroup::new(relation, weights, edges), evidence)
 }
 
+/// One group column: endpoint rows ascending, with the running share
+/// total ahead of every position.
+///
+/// A row's degree is the share sum over its run, read as a prefix
+/// difference; lookups stay binary searches.
+struct DegreeColumn {
+    rows: Vec<u64>,
+    prefix: Vec<f64>,
+}
+
+impl DegreeColumn {
+    /// Sorts the entries and accumulates the share prefix.
+    ///
+    /// The sort key includes the share bits, so equal rows order their
+    /// shares deterministically and the prefix sums are reproducible.
+    fn new(mut entries: Vec<(u64, f64)>) -> Self {
+        entries.par_sort_unstable_by(|left, right| {
+            left.0.cmp(&right.0).then(left.1.total_cmp(&right.1))
+        });
+
+        let mut prefix = Vec::with_capacity(entries.len() + 1);
+        let mut total = 0.0_f64;
+        prefix.push(total);
+        for &(_, share) in &entries {
+            total += share;
+            prefix.push(total);
+        }
+
+        Self {
+            rows: entries.into_iter().map(|(row, _)| row).collect(),
+            prefix,
+        }
+    }
+
+    /// Returns the share-weighted degree of `row`.
+    fn degree(&self, row: u64) -> f64 {
+        let start = self.rows.partition_point(|&entry| entry < row);
+        let end = self.rows.partition_point(|&entry| entry <= row);
+        self.prefix[end] - self.prefix[start]
+    }
+}
+
 /// Emits one fixed chunk of a group's instances against its columns.
 fn emit_chunk(
     chunk: &[RelationInstance],
-    sources: &[u64],
-    targets: &[u64],
+    sources: &DegreeColumn,
+    targets: &DegreeColumn,
     scale: f32,
     attraction: AttractionOptions,
 ) -> (Vec<AttractionEdge>, GroupEvidence) {
-    let count = |column: &[u64], row: u64| {
-        column.partition_point(|&entry| entry <= row) - column.partition_point(|&entry| entry < row)
-    };
-    let degree = |row: u64| count(sources, row) + count(targets, row);
-
     let mut edges = Vec::with_capacity(chunk.len());
     let mut evidence = GroupEvidence::default();
     for instance in chunk {
         let confidence = instance.confidence.effective();
-        let mass = confidence.value() * scale;
+        let share = f64::from(instance.multiplicity.max(1)).recip();
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the share is in (0, 1]; narrowing to working precision is the operation"
+        )]
+        let mass = confidence.value() * scale * share as f32;
         if mass < attraction.pruning_threshold() {
             evidence.pruned += 1;
             evidence.pruned_mass += f64::from(mass);
@@ -339,15 +391,17 @@ fn emit_chunk(
         }
 
         #[expect(
-            clippy::cast_precision_loss,
             clippy::cast_possible_truncation,
-            reason = "degrees are bounded by the instance count, far below f64 integer precision; \
-                      the final narrowing to working precision is the operation"
+            reason = "the factor is in (0, 1]; the final narrowing to working precision is the \
+                      operation"
         )]
-        let degree_normalization = {
+        let normalization = {
+            // A row's degree spans both columns: it may source some
+            // edges and receive others.
+            let degree = |row: u64| sources.degree(row) + targets.degree(row);
             let source = degree(instance.source.get());
             let target = degree(instance.target.get());
-            (((1 + source) as f64 * (1 + target) as f64).sqrt().recip()) as f32
+            (((1.0 + source) * (1.0 + target)).sqrt().recip() * share) as f32
         };
 
         edges.push(AttractionEdge {
@@ -355,7 +409,7 @@ fn emit_chunk(
             source: instance.source,
             target: instance.target,
             confidence,
-            degree_normalization,
+            normalization,
         });
         evidence.retained_mass += f64::from(mass);
     }
