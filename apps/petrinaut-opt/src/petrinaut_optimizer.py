@@ -15,12 +15,14 @@ from typing import Any, Literal, TypeAlias, cast
 
 import optuna
 from fastapi import Request
+from opentelemetry import trace
 
 from src.petrinaut_client import PetrinautModel, PetrinautRunError
 from src.utils import Phase, set_status
 
 
 log = logging.getLogger("pn_optimize")
+tracer = trace.get_tracer("pn_optimize")
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 SAMPLERS = {
@@ -206,24 +208,29 @@ class PetrinautOptimizer:
 
     def objective(self, trial: optuna.Trial) -> float:
         """Propose one flat parameter set and ask Petrinaut to evaluate it."""
-        parameter_values = self.suggest(trial)
-        try:
-            value = self.pn_model.objective(parameter_values)
-        except PetrinautRunError as error:
-            log.warning(
-                "trial %d failed — pruned\nstderr: %s",
-                trial.number,
-                str(error),
-            )
-            raise optuna.TrialPruned() from error
+        with tracer.start_as_current_span("optimization.trial") as span:
+            span.set_attribute("optuna.trial.number", trial.number)
+            parameter_values = self.suggest(trial)
+            try:
+                value = self.pn_model.objective(parameter_values)
+            except PetrinautRunError as error:
+                span.set_attribute("optuna.trial.pruned", True)
+                span.record_exception(error)
+                log.warning(
+                    "trial %d failed — pruned\nstderr: %s",
+                    trial.number,
+                    str(error),
+                )
+                raise optuna.TrialPruned() from error
 
-        log.info(
-            "trial %d value=%.6g params=%s",
-            trial.number,
-            value,
-            parameter_values,
-        )
-        return value
+            span.set_attribute("optuna.trial.value", value)
+            log.info(
+                "trial %d value=%.6g params=%s",
+                trial.number,
+                value,
+                parameter_values,
+            )
+            return value
 
     async def stream_all(
         self, request: Request, run_id: str, n_trials: int
