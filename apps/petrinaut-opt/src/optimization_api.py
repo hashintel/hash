@@ -121,19 +121,23 @@ app.add_middleware(RequestBodyLimitMiddleware)
 def create_model(
     optimization_manifest: dict[str, Any],
     *,
-    correlation_id: str | None = None,
+    optimization_run_id: str | None = None,
 ) -> PetrinautModel:
     """Create the CLI adapter; retained as a narrow seam for API tests."""
-    return PetrinautModel(optimization_manifest, correlation_id=correlation_id)
+    return PetrinautModel(
+        optimization_manifest, optimization_run_id=optimization_run_id
+    )
 
 
 def initialize_optimizer(
     optimization_manifest: dict[str, Any],
     *,
-    correlation_id: str | None = None,
+    optimization_run_id: str | None = None,
 ) -> PetrinautOptimizer:
     """Start Petrinaut and build an Optuna study from its description."""
-    model = create_model(optimization_manifest, correlation_id=correlation_id)
+    model = create_model(
+        optimization_manifest, optimization_run_id=optimization_run_id
+    )
     try:
         model.start()
         return PetrinautOptimizer(model)
@@ -193,7 +197,9 @@ async def _initialize_admitted_optimizer(
     """Initialize off-loop and clean up if the request task is cancelled."""
     initializer = asyncio.create_task(
         asyncio.to_thread(
-            initialize_optimizer, optimization_manifest, correlation_id=run_id
+            initialize_optimizer,
+            optimization_manifest,
+            optimization_run_id=run_id,
         )
     )
     try:

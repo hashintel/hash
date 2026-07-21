@@ -34,11 +34,11 @@ _MAX_PENDING_STDERR_LINE_BYTES = 16 * 1024
 _MAX_FORWARDED_STDERR_LINES = 1000
 
 
-def _child_environment(correlation_id: str | None = None) -> dict[str, str]:
+def _child_environment(optimization_run_id: str | None = None) -> dict[str, str]:
     """Avoid exposing the API process's credentials to model expressions.
 
-    The environment stays an allowlist: the correlation id is the explicit
-    value owned by this run, never read from the service's ambient
+    The environment stays an allowlist: the optimization run id is the
+    explicit value owned by this run, never read from the service's ambient
     environment.
     """
     environment = {
@@ -51,8 +51,8 @@ def _child_environment(correlation_id: str | None = None) -> dict[str, str]:
     node_options = os.environ.get("PETRINAUT_CLI_NODE_OPTIONS", "").strip()
     if node_options:
         environment["NODE_OPTIONS"] = node_options
-    if correlation_id:
-        environment["PETRINAUT_CORRELATION_ID"] = correlation_id
+    if optimization_run_id:
+        environment["PETRINAUT_OPTIMIZATION_RUN_ID"] = optimization_run_id
     return environment
 
 
@@ -76,7 +76,7 @@ class PetrinautModel:
         optimization_manifest: Mapping[str, Any],
         *,
         command: Sequence[str] = ("petrinaut",),
-        correlation_id: str | None = None,
+        optimization_run_id: str | None = None,
         popen_factory: Callable[..., Any] = subprocess.Popen,
         bootstrap_timeout_seconds: float = BOOTSTRAP_TIMEOUT_SECONDS,
         request_timeout_seconds: float = PROTOCOL_READ_TIMEOUT_SECONDS,
@@ -88,7 +88,7 @@ class PetrinautModel:
 
         self.optimization_manifest = dict(optimization_manifest)
         self.command = tuple(command)
-        self.correlation_id = correlation_id
+        self.optimization_run_id = optimization_run_id
         self._popen_factory = popen_factory
         self._bootstrap_timeout_seconds = bootstrap_timeout_seconds
         self._request_timeout_seconds = request_timeout_seconds
@@ -141,7 +141,7 @@ class PetrinautModel:
                     stderr=subprocess.PIPE,
                     bufsize=0,
                     close_fds=True,
-                    env=_child_environment(self.correlation_id),
+                    env=_child_environment(self.optimization_run_id),
                     start_new_session=True,
                     umask=0o077,
                 )
@@ -315,7 +315,7 @@ class PetrinautModel:
                     "further lines are drained but not logged",
                     extra={
                         "event": "cli_stderr_suppressed",
-                        "run_id": self.correlation_id,
+                        "run_id": self.optimization_run_id,
                         "forwarded_lines": _MAX_FORWARDED_STDERR_LINES,
                     },
                 )
@@ -325,7 +325,7 @@ class PetrinautModel:
             text,
             extra={
                 "event": "cli_stderr",
-                "run_id": self.correlation_id,
+                "run_id": self.optimization_run_id,
                 "stderr_truncated": truncated,
             },
         )
@@ -516,7 +516,7 @@ class PetrinautModel:
             "Petrinaut CLI terminated",
             extra={
                 "event": "cli_terminated",
-                "run_id": self.correlation_id,
+                "run_id": self.optimization_run_id,
                 "termination": termination,
                 "graceful": graceful,
                 "returncode": process.poll(),

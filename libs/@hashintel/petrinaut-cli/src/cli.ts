@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 
 import { serve } from "./commands/serve";
 import { serveStdio } from "./commands/stdio";
-import { correlationIdFromEnvironment } from "./runtime/diagnostics";
+import { optimizationRunIdFromEnvironment } from "./runtime/diagnostics";
 
 function printUsage(): void {
   process.stderr.write(`Usage:
@@ -85,9 +85,9 @@ async function main(): Promise<void> {
     );
   }
 
-  // Read the parent-supplied correlation id once at startup; it is passed
-  // down explicitly so the serve loop never reads ambient state itself.
-  const correlationId = correlationIdFromEnvironment(process.env);
+  // Read the parent-supplied optimization run id once at startup; it is
+  // passed down explicitly so the serve loop never reads ambient state itself.
+  const optimizationRunId = optimizationRunIdFromEnvironment(process.env);
 
   if (parsed.values.socket !== undefined) {
     if (parsed.values.socket.trim() === "") {
@@ -101,13 +101,13 @@ async function main(): Promise<void> {
       socketPath: parsed.values.socket,
     });
   } else if (modelStdin) {
-    await serveStdio({ modelStdin: true, correlationId });
+    await serveStdio({ modelStdin: true, optimizationRunId });
   } else if (modelPath) {
-    await serveStdio({ modelPath, correlationId });
+    await serveStdio({ modelPath, optimizationRunId });
   } else if (optimizationStdin) {
-    await serveStdio({ optimizationStdin: true, correlationId });
+    await serveStdio({ optimizationStdin: true, optimizationRunId });
   } else if (optimizationPath) {
-    await serveStdio({ optimizationPath, correlationId });
+    await serveStdio({ optimizationPath, optimizationRunId });
   }
 }
 

@@ -47,7 +47,7 @@ precise shape:
      "time": "2026-07-19T12:00:00.000Z",
      "level": "info",
      "event": "request",
-     "correlationId": "6f8b…",
+     "optimizationRunId": "6f8b…",
      "id": 2,
      "method": "optimization.evaluate",
      "durationMs": 41,
@@ -62,9 +62,9 @@ precise shape:
    Diagnostics never contain model content, request params, or error
    messages — those can embed user-authored code.
 
-   `correlationId` echoes the `PETRINAUT_CORRELATION_ID` environment
-   variable supplied by the parent at spawn time (`null` when unset), so CLI
-   diagnostics can be joined with the parent's own logs.
+   `optimizationRunId` echoes the `PETRINAUT_OPTIMIZATION_RUN_ID`
+   environment variable supplied by the parent at spawn time (`null` when
+   unset), so CLI diagnostics can be joined with the parent's own logs.
 
 Parents may parse these JSON lines or ignore them entirely, but must keep
 draining stderr so the pipe cannot fill and block the CLI. The production

@@ -254,7 +254,7 @@ describe("CLI transports", () => {
       input,
       output,
       errorOutput,
-      correlationId: "run-abc",
+      optimizationRunId: "run-abc",
     });
     input.end(
       [
@@ -276,13 +276,13 @@ describe("CLI transports", () => {
         time: expect.any(String),
         level: "info",
         event: "bootstrap_completed",
-        correlationId: "run-abc",
+        optimizationRunId: "run-abc",
       },
       {
         time: expect.any(String),
         level: "info",
         event: "request",
-        correlationId: "run-abc",
+        optimizationRunId: "run-abc",
         id: 1,
         method: "metadata",
         durationMs: expect.any(Number),
@@ -292,7 +292,7 @@ describe("CLI transports", () => {
         time: expect.any(String),
         level: "warn",
         event: "request",
-        correlationId: "run-abc",
+        optimizationRunId: "run-abc",
         id: 2,
         method: "nope",
         durationMs: expect.any(Number),
@@ -302,7 +302,7 @@ describe("CLI transports", () => {
         time: expect.any(String),
         level: "info",
         event: "stdin_eof",
-        correlationId: "run-abc",
+        optimizationRunId: "run-abc",
       },
     ]);
     // Request params and error messages never reach the diagnostics.
@@ -335,9 +335,9 @@ describe("CLI transports", () => {
     expect(diagnostics).toEqual([
       expect.objectContaining({
         event: "bootstrap_completed",
-        correlationId: null,
+        optimizationRunId: null,
       }),
-      expect.objectContaining({ event: "stdin_eof", correlationId: null }),
+      expect.objectContaining({ event: "stdin_eof", optimizationRunId: null }),
     ]);
   });
 

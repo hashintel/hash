@@ -176,9 +176,9 @@ class PetrinautOptimizer:
             sampler=self.sampler,
         )
         self.pn_model = pn_model
-        # The CLI adapter carries the run's correlation id; fall back to None
+        # The CLI adapter carries the optimization run id; fall back to None
         # for adapters (and test doubles) created without one.
-        self.correlation_id = getattr(pn_model, "correlation_id", None)
+        self.optimization_run_id = getattr(pn_model, "optimization_run_id", None)
         self.lock = threading.Lock()
 
     def suggest(self, trial: optuna.Trial) -> dict[str, Scalar]:
@@ -226,7 +226,7 @@ class PetrinautOptimizer:
                 trial.number,
                 extra={
                     "event": "trial_pruned",
-                    "run_id": self.correlation_id,
+                    "run_id": self.optimization_run_id,
                     "trial": trial.number,
                     "error": str(error)[:TRIAL_ERROR_LOG_CHARACTERS],
                 },
@@ -240,7 +240,7 @@ class PetrinautOptimizer:
             parameter_values,
             extra={
                 "event": "trial_completed",
-                "run_id": self.correlation_id,
+                "run_id": self.optimization_run_id,
                 "trial": trial.number,
                 "objective": value,
             },

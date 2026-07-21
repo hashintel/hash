@@ -181,8 +181,8 @@ Correlation chain — one optimization is traceable end to end:
    `X-Optimization-Run-ID` response header, which NodeAPI logs as
    `optimizationRunId`).
 3. The `run_id` is passed to the spawned CLI as the
-   `PETRINAUT_CORRELATION_ID` environment variable, and the CLI echoes it as
-   `correlationId` in its stderr diagnostics.
+   `PETRINAUT_OPTIMIZATION_RUN_ID` environment variable, and the CLI echoes
+   it as `optimizationRunId` in its stderr diagnostics.
 
 CLI stderr is not discarded: after the ready handshake, every stderr line
 (often itself a JSON diagnostic, see

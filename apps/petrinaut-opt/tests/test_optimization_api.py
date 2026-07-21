@@ -258,12 +258,12 @@ def test_admission_logs_carry_request_and_trace_correlation(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    received_correlation_ids: list[str | None] = []
+    received_optimization_run_ids: list[str | None] = []
 
     def initialize(
-        _manifest: dict[str, Any], *, correlation_id: str | None = None
+        _manifest: dict[str, Any], *, optimization_run_id: str | None = None
     ) -> FakeOptimizer:
-        received_correlation_ids.append(correlation_id)
+        received_optimization_run_ids.append(optimization_run_id)
         return FakeOptimizer()
 
     monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
@@ -284,7 +284,7 @@ def test_admission_logs_carry_request_and_trace_correlation(
     assert response.status_code == 200
     run_id = response.headers["x-optimization-run-id"]
     # The optimizer receives the run id as the CLI spawn correlation id.
-    assert received_correlation_ids == [run_id]
+    assert received_optimization_run_ids == [run_id]
     events = {
         getattr(record, "event", None): record
         for record in caplog.records

@@ -59,7 +59,9 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     monkeypatch.setenv("PETRINAUT_CLI_NODE_OPTIONS", "--max-old-space-size=768")
     # The spawn environment stays an allowlist: the correlation id must be
     # the explicit per-run value, never read from the ambient environment.
-    monkeypatch.setenv("PETRINAUT_CORRELATION_ID", "ambient-must-not-leak")
+    monkeypatch.setenv(
+        "PETRINAUT_OPTIMIZATION_RUN_ID", "ambient-must-not-leak"
+    )
     process = FakeProcess(
         [
             {"id": 1, "result": optimization_description},
@@ -76,7 +78,7 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     model = PetrinautModel(
         optimization_manifest,
         command=("node", "/cli.js"),
-        correlation_id="run-123",
+        optimization_run_id="run-123",
         popen_factory=popen_factory,
     )
     model.start()
@@ -96,7 +98,9 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     assert invocation["kwargs"]["start_new_session"] is True
     assert invocation["kwargs"]["env"]["NODE_OPTIONS"] == ("--max-old-space-size=768")
     assert "AWS_SECRET_ACCESS_KEY" not in invocation["kwargs"]["env"]
-    assert invocation["kwargs"]["env"]["PETRINAUT_CORRELATION_ID"] == "run-123"
+    assert invocation["kwargs"]["env"]["PETRINAUT_OPTIMIZATION_RUN_ID"] == (
+        "run-123"
+    )
     assert lines == [
         optimization_manifest,
         {"id": 1, "method": "optimization.describe"},
@@ -218,11 +222,13 @@ def test_drains_stderr_after_the_ready_line(
     model.close()
 
 
-def test_spawn_environment_omits_an_unset_correlation_id(
+def test_spawn_environment_omits_an_unset_optimization_run_id(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PETRINAUT_CORRELATION_ID", "ambient-must-not-leak")
+    monkeypatch.setenv(
+        "PETRINAUT_OPTIMIZATION_RUN_ID", "ambient-must-not-leak"
+    )
     invocation: dict[str, Any] = {}
     process = FakeProcess([])
 
@@ -234,10 +240,10 @@ def test_spawn_environment_omits_an_unset_correlation_id(
     model.start()
     model.close()
 
-    assert "PETRINAUT_CORRELATION_ID" not in invocation["kwargs"]["env"]
+    assert "PETRINAUT_OPTIMIZATION_RUN_ID" not in invocation["kwargs"]["env"]
 
 
-def test_forwards_cli_stderr_lines_into_logs_with_the_correlation_id(
+def test_forwards_cli_stderr_lines_into_logs_with_the_optimization_run_id(
     optimization_manifest: dict,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -248,7 +254,7 @@ def test_forwards_cli_stderr_lines_into_logs_with_the_correlation_id(
     )
     model = PetrinautModel(
         optimization_manifest,
-        correlation_id="run-777",
+        optimization_run_id="run-777",
         popen_factory=lambda *_args, **_kwargs: process,
     )
 
@@ -282,7 +288,7 @@ def test_truncates_oversized_cli_stderr_lines(
     )
     model = PetrinautModel(
         optimization_manifest,
-        correlation_id="run-778",
+        optimization_run_id="run-778",
         popen_factory=lambda *_args, **_kwargs: process,
     )
 
@@ -383,7 +389,7 @@ def test_seeds_stderr_drain_with_bytes_read_past_the_handshake(
     process.stderr = reader
     model = PetrinautModel(
         optimization_manifest,
-        correlation_id="run-seed",
+        optimization_run_id="run-seed",
         popen_factory=lambda *_args, **_kwargs: process,
     )
 
@@ -413,7 +419,7 @@ def test_graceful_close_logs_the_eof_termination_path(
     process = FakeProcess([])
     model = PetrinautModel(
         optimization_manifest,
-        correlation_id="run-779",
+        optimization_run_id="run-779",
         popen_factory=lambda *_args, **_kwargs: process,
     )
     model.start()
@@ -438,7 +444,7 @@ def test_prompt_close_logs_the_signalled_termination_path(
     process = FakeProcess([])
     model = PetrinautModel(
         optimization_manifest,
-        correlation_id="run-780",
+        optimization_run_id="run-780",
         popen_factory=lambda *_args, **_kwargs: process,
     )
     model.start()

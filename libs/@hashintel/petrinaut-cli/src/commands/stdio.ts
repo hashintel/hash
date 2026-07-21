@@ -53,8 +53,8 @@ type ServeStdioOptions = (
   input?: Readable;
   output?: Writable;
   errorOutput?: Writable;
-  /** Parent-supplied correlation id echoed in stderr diagnostics. */
-  correlationId?: string | null;
+  /** Parent-supplied optimization run id echoed in stderr diagnostics. */
+  optimizationRunId?: string | null;
 };
 
 function writeResponse(output: Writable, value: unknown): void {
@@ -66,7 +66,7 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
   const output = options.output ?? process.stdout;
   const errorOutput = options.errorOutput ?? process.stderr;
   const diagnostics = createDiagnostics({
-    correlationId: options.correlationId ?? null,
+    optimizationRunId: options.optimizationRunId ?? null,
     errorOutput,
   });
   const lines = createInterface({ input, crlfDelay: Infinity });

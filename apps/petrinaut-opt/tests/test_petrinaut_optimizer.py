@@ -128,12 +128,12 @@ def test_objective_sends_only_flat_suggested_values(
     assert model.evaluations == [{"rate": 1.25, "count": 8, "enabled": True}]
 
 
-def test_trial_outcomes_are_logged_with_the_model_correlation_id(
+def test_trial_outcomes_are_logged_with_the_optimization_run_id(
     optimization_description: dict,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     model = FakeModel(optimization_description)
-    model.correlation_id = "run-c1"  # type: ignore[attr-defined]
+    model.optimization_run_id = "run-c1"  # type: ignore[attr-defined]
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
 
@@ -149,12 +149,12 @@ def test_trial_outcomes_are_logged_with_the_model_correlation_id(
     assert completed.trial == 0
 
 
-def test_pruned_trials_are_logged_with_the_model_correlation_id(
+def test_pruned_trials_are_logged_with_the_optimization_run_id(
     optimization_description: dict,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     model = FailingModel(optimization_description, PetrinautRunError("scenario failed"))
-    model.correlation_id = "run-c2"  # type: ignore[attr-defined]
+    model.optimization_run_id = "run-c2"  # type: ignore[attr-defined]
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
 

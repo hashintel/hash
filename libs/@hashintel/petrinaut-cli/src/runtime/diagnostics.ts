@@ -28,20 +28,20 @@ export type Diagnostics = {
   ) => void;
 };
 
-/** Read the parent-supplied correlation id from an environment map. */
-export function correlationIdFromEnvironment(
+/** Read the parent-supplied optimization run id from an environment map. */
+export function optimizationRunIdFromEnvironment(
   environment: Record<string, string | undefined>,
 ): string | null {
-  const value = environment.PETRINAUT_CORRELATION_ID?.trim();
+  const value = environment.PETRINAUT_OPTIMIZATION_RUN_ID?.trim();
   return value ? value.slice(0, MAX_FIELD_CHARACTERS) : null;
 }
 
-/** Create a stderr JSON-lines logger bound to one correlation id. */
+/** Create a stderr JSON-lines logger bound to one optimization run id. */
 export function createDiagnostics({
-  correlationId,
+  optimizationRunId,
   errorOutput,
 }: {
-  correlationId: string | null;
+  optimizationRunId: string | null;
   errorOutput: Writable;
 }): Diagnostics {
   return {
@@ -50,7 +50,7 @@ export function createDiagnostics({
         time: new Date().toISOString(),
         level,
         event: event.slice(0, MAX_FIELD_CHARACTERS),
-        correlationId,
+        optimizationRunId,
       };
       for (const [key, value] of Object.entries(fields)) {
         entry[key] =
