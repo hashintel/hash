@@ -56,8 +56,9 @@ fn fixture_parents() -> Vec<SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
 
-/// The fixture's split at `dense_threshold_log2 = 2` (threshold 2): types 0 (count 4) and 2 (count
-/// 3) go dense, types 1 and 3 stay lists.
+/// The fixture's split at `dense_threshold_log2 = 2` (threshold 2).
+///
+/// Types 0 (count 4) and 2 (count 3) go dense, types 1 and 3 stay lists.
 const FIXTURE_CONFIG: PostingsConfig = PostingsConfig {
     dense_threshold_log2: 2,
 };

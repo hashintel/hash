@@ -333,8 +333,9 @@ fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
     }
 }
 
-/// Runs one production generation run over the store's current snapshot into the generation root at
-/// `root`.
+/// Runs one production generation over the store's current snapshot.
+///
+/// The published generation lands in the generation root at `root`.
 ///
 /// # Errors
 ///

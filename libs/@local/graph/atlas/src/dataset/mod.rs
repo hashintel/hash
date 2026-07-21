@@ -459,8 +459,9 @@ pub(crate) struct ArchivedEntityId {
 /// One type in the generation's type table.
 #[derive(Debug, Clone)]
 pub(crate) struct Ontology<O> {
-    /// The source identifier, persisted so serving can translate ontology rows back to graph type
-    /// ids.
+    /// The source identifier.
+    ///
+    /// Persisted so serving can translate ontology rows back to graph type ids.
     pub id: O,
 
     /// Direct supertypes, ascending by ontology row and deduplicated.
@@ -474,8 +475,9 @@ pub(crate) struct Ontology<O> {
 /// One entity of the graph: a point the fit places on the map.
 #[derive(Debug, Clone)]
 pub(crate) struct Node<N> {
-    /// The source identifier, persisted so serving can translate node rows back to graph
-    /// identities.
+    /// The source identifier.
+    ///
+    /// Persisted so serving can translate node rows back to graph identities.
     pub id: N,
 
     /// Direct types, ascending by ontology row and deduplicated.
@@ -506,8 +508,9 @@ pub(crate) struct Node<N> {
 /// the relation), and, when the store holds one, own embedding.
 #[derive(Debug, Clone)]
 pub(crate) struct Edge<E> {
-    /// The source identifier, persisted so serving can translate edge rows back to graph
-    /// identities.
+    /// The source identifier.
+    ///
+    /// Persisted so serving can translate edge rows back to graph identities.
     pub id: E,
 
     /// The node the link points from.
@@ -532,12 +535,14 @@ pub(crate) struct Edge<E> {
     /// [`target_confidence`](Self::target_confidence).
     pub confidence: Option<f64>,
 
-    /// The store's confidence in the link's attachment to [`source`](Self::source), in
-    /// `0.0..=1.0`.
+    /// The store's confidence in the link's attachment to [`source`](Self::source).
+    ///
+    /// The value lies in `0.0..=1.0`.
     pub source_confidence: Option<f64>,
 
-    /// The store's confidence in the link's attachment to [`target`](Self::target), in
-    /// `0.0..=1.0`.
+    /// The store's confidence in the link's attachment to [`target`](Self::target).
+    ///
+    /// The value lies in `0.0..=1.0`.
     pub target_confidence: Option<f64>,
 }
 

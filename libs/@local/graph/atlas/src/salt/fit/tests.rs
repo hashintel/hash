@@ -1463,6 +1463,8 @@ async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
     );
 }
 
+/// The vacuous placement unblocks a Proximal corpus lacking reviewed coverage.
+///
 /// A corpus whose relations carry Proximal force refuses to train without reviewed coverage or an
 /// assertion - and the vacuous placement is exactly what unblocks it: the same configuration trains
 /// and publishes with the relation evidence withheld.

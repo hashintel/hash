@@ -145,11 +145,11 @@ impl TileResponse<'_> {
                     }
                 }
                 DeliveredSet::Positions(list) => {
-                    let (Some(&first), Some(&last)) = (list.first(), list.last()) else {
+                    let (Some(&lowest), Some(&highest)) = (list.first(), list.last()) else {
                         continue;
                     };
                     let mut cursor = 0_usize;
-                    for position in membership.positions_in(first..last + 1) {
+                    for position in membership.positions_in(lowest..highest + 1) {
                         while cursor < list.len() && list[cursor] < position {
                             cursor += 1;
                         }
@@ -181,7 +181,7 @@ pub(crate) enum DeliveredSet<'doc> {
 
 impl DeliveredSet<'_> {
     /// Counts the delivered points.
-    fn count(self) -> u64 {
+    pub(crate) fn count(self) -> u64 {
         match self {
             Self::Ranges(ranges) => ranges.iter().map(|range| range.len() as u64).sum(),
             Self::Positions(list) => list.len() as u64,
@@ -189,7 +189,7 @@ impl DeliveredSet<'_> {
     }
 
     /// Visits the delivered base positions in delivery order.
-    fn for_each(self, mut visit: impl FnMut(u32)) {
+    pub(crate) fn for_each(self, mut visit: impl FnMut(u32)) {
         match self {
             Self::Ranges(ranges) => {
                 for range in ranges {

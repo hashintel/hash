@@ -517,8 +517,9 @@ fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
     (capacity as f64 * retained_fraction.get()).ceil() as usize
 }
 
-/// Returns the indices of the `count` smallest-priority unselected candidates satisfying
-/// `predicate`, or fewer when the pool is smaller.
+/// Returns the indices of the `count` smallest-priority unselected candidates.
+///
+/// Only candidates satisfying `predicate` qualify; fewer return when the pool is smaller.
 ///
 /// Workers fold thread-local heaps of the `count` best candidates and the heaps merge pairwise: the
 /// result is the unique best set under the (priority, index) total order, independent of how the

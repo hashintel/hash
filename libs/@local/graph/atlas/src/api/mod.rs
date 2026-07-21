@@ -26,7 +26,7 @@ use aide::{
 };
 use axum::{Extension, Router, body::Bytes};
 
-use crate::serve::{Atlas, PostgresDetails, ServeCaps};
+use crate::serve::{Atlas, PostgresDetails, ServeCaps, VisibilityProof};
 
 mod current;
 mod edges;

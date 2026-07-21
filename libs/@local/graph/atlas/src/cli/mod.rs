@@ -21,7 +21,7 @@ use crate::{
     run::{self, ConnectError, RunError},
     serve::{
         Atlas, CurrentError, GenerationRoot, OpenAtlasError, OpenOptions, PostgresDetails,
-        ServeCaps,
+        ServeCaps, VisibilityProof,
     },
 };
 

@@ -168,7 +168,7 @@ enum DeliveredPoints {
 
 impl DeliveredPoints {
     /// Views the set in the wire encoder's borrowed shape.
-    fn as_wire(&self) -> DeliveredSet<'_> {
+    const fn as_wire(&self) -> DeliveredSet<'_> {
         match self {
             Self::Ranges(ranges) => DeliveredSet::Ranges(ranges),
             Self::Positions(list) => DeliveredSet::Positions(list),
@@ -379,8 +379,7 @@ impl Atlas {
         let mut stack = vec![index];
         while let Some(index) = stack.pop() {
             let node = &nodes[index as usize];
-            let run = node.run();
-            for position in run.start..run.end {
+            for position in node.run() {
                 let position = usize::try_from(position).expect("base positions fit usize");
                 if proof.contains(row_ids[position]) {
                     return true;
@@ -405,8 +404,8 @@ impl Atlas {
         (0..=Depth::MAX.get())
             .filter(|&bucket| lengths[bucket as usize] > 0)
             .map(|bucket| {
-                let run = self.morton.run(depth_of(bucket), cell);
-                (run.start..run.end)
+                self.morton
+                    .run(depth_of(bucket), cell)
                     .filter(|&position| {
                         proof.contains(
                             row_ids[usize::try_from(position).expect("base positions fit usize")],

@@ -41,7 +41,7 @@ use super::{
     envelope::EnvelopeWriter,
     locate::{LocateResponse, LocateTrailer, PropertyValue},
     tests::{directory, section},
-    tile::{GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
+    tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
     integrity::Sha256Digest,
@@ -170,13 +170,12 @@ fn tile_sidecar(
 
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
-    for range in response.ranges {
-        for point in &response.positions[range.start as usize..range.end as usize] {
-            positions_bits.push(point.x().to_bits());
-            positions_bits.push(point.y().to_bits());
-        }
-        row_ids.extend_from_slice(&response.rows[range.start as usize..range.end as usize]);
-    }
+    response.delivered.for_each(|position| {
+        let point = response.positions[position as usize];
+        positions_bits.push(point.x().to_bits());
+        positions_bits.push(point.y().to_bits());
+        row_ids.push(response.rows[position as usize]);
+    });
 
     let global = head.global.as_ref().map_or(Value::Null, |global| {
         let bounds_bits = global.bounds.as_ref().map_or(Value::Null, |bounds| {
@@ -309,7 +308,7 @@ fn g1_minimal_tile() -> Golden {
             global: None,
             children: 0b0100,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),
@@ -375,7 +374,7 @@ fn g2_root_tile() -> Golden {
             }),
             children: 0b1111,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: None,
@@ -449,7 +448,7 @@ fn g3_total_tile() -> Golden {
             global: None,
             children: 0,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),
@@ -506,7 +505,7 @@ fn g4_empty_root() -> Golden {
             }),
             children: 0,
         },
-        ranges: &[],
+        delivered: DeliveredSet::Ranges(&[]),
         positions: &[],
         rows: &[],
         masks: None,
@@ -566,7 +565,7 @@ fn g5_trailer_tile() -> Golden {
             global: None,
             children: 0b0101,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: None,
@@ -853,7 +852,7 @@ fn g8_appended_slot() -> Golden {
             global: None,
             children: 0b0001,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: None,
@@ -940,7 +939,7 @@ fn g9_padding_low() -> Golden {
             global: None,
             children: 0b0011,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),
@@ -1011,7 +1010,7 @@ fn g10_padding_high() -> Golden {
             global: None,
             children: 0b1000,
         },
-        ranges: &ranges,
+        delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),

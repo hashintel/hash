@@ -397,8 +397,9 @@ impl AxisMap {
         unit.mul_add(self.target_extent, self.target_minimum) as f32
     }
 
-    /// Maps four coordinates onto their target axis, rounding each lane exactly as
-    /// [`apply`](Self::apply) rounds one value.
+    /// Maps four coordinates onto their target axis.
+    ///
+    /// Rounds each lane exactly as [`apply`](Self::apply) rounds one value.
     fn apply_x4(self, values: Simd<f32, 4>) -> Simd<f32, 4> {
         if self.extent == 0.0 {
             #[expect(
@@ -418,8 +419,9 @@ impl AxisMap {
     }
 }
 
-/// Folds an interleaved `x y x y ...` lane group into a single vector, combining the four values of
-/// each axis with `combine`.
+/// Folds an interleaved `x y x y ...` lane group into a single vector.
+///
+/// Combines the four values of each axis with `combine`.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; inlining into the \

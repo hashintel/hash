@@ -190,8 +190,9 @@ impl<const N: usize> DVecN<N> {
         maximum + sum.ln()
     }
 
-    /// Computes `exp(component - shift)` for every component and their sum in a single pass, four
-    /// lanes at a time.
+    /// Computes `exp(component - shift)` for every component and their sum in a single pass.
+    ///
+    /// Processes four lanes at a time.
     #[inline]
     #[must_use]
     fn shifted_exponentials(mut self, shift: f64) -> (Self, f64) {
@@ -483,8 +484,7 @@ impl<const N: usize> AlignedDVecN<N> {
         (lanes, suffix)
     }
 
-    /// Returns the components as mutable aligned 8-lane SIMD groups plus a mutable scalar
-    /// remainder.
+    /// Returns the components as mutable aligned 8-lane groups plus a mutable scalar remainder.
     ///
     /// The split is the same as [`lanes`](Self::lanes); writes through either slice update the
     /// vector in place.

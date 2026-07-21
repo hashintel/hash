@@ -566,8 +566,9 @@ fn rms_residual_rejects_invalid_pairings() {
     assert!(similarity.rms_residual_par(&nan, &points).is_none());
 }
 
-/// Asserts both fit entry points reject the pairing, certifying their [`None`] agreement case by
-/// case.
+/// Asserts both fit entry points reject the pairing.
+///
+/// Certifies their [`None`] agreement case by case.
 #[track_caller]
 fn assert_fit_rejects(source: &[Vec2], target: &[Vec2], weights: &[f32]) {
     assert!(Similarity::fit(source, target, weights).is_none());

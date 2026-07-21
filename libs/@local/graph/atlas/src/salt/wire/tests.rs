@@ -21,7 +21,7 @@ use super::{
     edges::{EdgesResponse, EdgesTrailer},
     envelope::EnvelopeWriter,
     locate::{LocateResponse, LocateTrailer, PropertyValue},
-    tile::{GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
+    tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
     integrity::Sha256Digest,
@@ -321,8 +321,8 @@ proptest! {
 
 mod tile {
     use super::{
-        Bounds2, GlobalHead, Membership, Mode, Sha256Digest, TileCoordinate, TileHead,
-        TileResponse, TileTrailer, Vec2, section,
+        Bounds2, DeliveredSet, GlobalHead, Membership, Mode, Sha256Digest, TileCoordinate,
+        TileHead, TileResponse, TileTrailer, Vec2, section,
     };
 
     /// A tiny consistent tile: two points from one delta run.
@@ -343,7 +343,7 @@ mod tile {
                 global: None,
                 children: 0b0010,
             },
-            ranges,
+            delivered: DeliveredSet::Ranges(ranges),
             positions,
             rows,
             masks: None,

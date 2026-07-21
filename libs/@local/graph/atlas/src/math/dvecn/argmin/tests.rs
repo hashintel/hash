@@ -12,8 +12,10 @@ use argmin_math::{
 
 use crate::math::BoxedDVecN;
 
-/// Deterministic, sign-varying components crossing two 8-lane chunks plus a three-component
-/// remainder, so every operation exercises both its lane kernel and its scalar tail.
+/// Deterministic, sign-varying components crossing two 8-lane chunks and a remainder.
+///
+/// The three-component tail means every operation exercises both its lane kernel and its scalar
+/// tail.
 fn scattered(offset: f64) -> BoxedDVecN<19> {
     BoxedDVecN::from(core::array::from_fn::<f64, 19, _>(|index| {
         let value = f64::from(u8::try_from(index).expect("test sizes are small"));

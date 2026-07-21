@@ -169,8 +169,9 @@ fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// Asserts two points agree up to a tolerance scaled by the magnitude of the values flowing through
-/// the transforms under test.
+/// Asserts two points agree up to a magnitude-scaled tolerance.
+///
+/// The tolerance scales with the magnitude of the values flowing through the transforms under test.
 ///
 /// Intermediate coordinates reach roughly `magnitude`, and cancellation can leave a result far
 /// smaller than the values that produced it, so the tolerance scales with the inputs' magnitude

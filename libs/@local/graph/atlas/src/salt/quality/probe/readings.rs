@@ -193,8 +193,9 @@ pub(crate) struct ProbeReadings {
     ///
     /// The representation baseline the map's canonical reading is judged against.
     pub sampled_representation_canonical: ReadingGrid,
-    /// Corpus neighbourhood radii, anchor-major with one entry per neighbourhood size, in the
-    /// grids' axis order.
+    /// Corpus neighbourhood radii.
+    ///
+    /// Anchor-major with one entry per neighbourhood size, in the grids' axis order.
     pub radii: Box<[RadiusPair]>,
     /// The shared comparison-point pairs the triplet readings sample.
     ///

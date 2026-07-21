@@ -60,13 +60,15 @@ impl<E: Error + 'static> Error for PrepareError<E> {
 pub(crate) struct NodeColumns<I> {
     /// Entry `i` is node row `i`'s source id.
     pub ids: identity::IdentityTable<I>,
-    /// Entry `i` is node row `i`'s direct types, ascending and deduplicated as the dataset streams
-    /// them.
+    /// Entry `i` is node row `i`'s direct types.
+    ///
+    /// Ascending and deduplicated as the dataset streams them.
     pub types: Vec<SmallVec<OntologyRowId, 2>>,
 }
 
-/// Streams every node's representation into one `f32[N, 512]` array file, collecting the node ids
-/// and direct types in the same pass.
+/// Streams every node's representation into one `f32[N, 512]` array file.
+///
+/// Collects the node ids and direct types in the same pass.
 ///
 /// Row `i` of the written matrix is the embedding of node row `i`, so the matrix is row-aligned
 /// with every artifact keyed by [`NodeRowId`](crate::dataset::NodeRowId), and entry `i` of the

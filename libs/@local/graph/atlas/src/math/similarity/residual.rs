@@ -19,8 +19,7 @@ use crate::math::{
 };
 
 impl Similarity {
-    /// Returns the root-mean-square distance between the transformed source points and their
-    /// targets.
+    /// Returns the root-mean-square distance from transformed source points to their targets.
     ///
     /// This is the movement a fitted alignment could not explain: after [`fit`](Self::fit) it
     /// measures how far the two point sets differ beyond scale, rotation, and translation. The
@@ -78,8 +77,7 @@ impl Similarity {
         finish_rms(squared, source.len())
     }
 
-    /// Accumulates the squared distances between the transformed source points and their targets in
-    /// double precision.
+    /// Accumulates squared transformed-source-to-target distances in double precision.
     ///
     /// The slices carry equal lengths; the `rms_residual` entry points check this once. A
     /// non-finite coordinate propagates into the sum and is rejected by the callers' finishing

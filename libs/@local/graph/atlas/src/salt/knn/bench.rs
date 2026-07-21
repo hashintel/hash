@@ -253,8 +253,9 @@ fn build_index(
     started.elapsed()
 }
 
-/// Scores the built index at every (sample, `ef_search`) pair by reopening the persisted
-/// environment per search breadth.
+/// Scores the built index at every (sample, `ef_search`) pair.
+///
+/// Reopens the persisted environment per search breadth.
 fn score_grid(
     directory: &Utf8Path,
     references: &[(u64, ExactReference)],

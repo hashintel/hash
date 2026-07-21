@@ -67,11 +67,9 @@ use crate::{
 ///
 /// The CPU backend stays the fixture and determinism harness, so tests run without the feature.
 ///
-/// The Metal flavor names the UNFUSED `CubeBackend` directly rather than `burn::backend::Metal`:
-/// the default alias wraps the runtime in `burn-fusion`, whose stream ordering (0.21.0,
-/// ordering.rs:65) panics out of bounds under this workload's dynamic relation-batch shapes,
-/// killing the device service thread. Fusion is an optional optimization layer; the unfused backend
-/// is the same runtime without it.
+/// The Metal flavor is the unfused `CubeBackend`: under the fused `burn::backend::Metal` alias,
+/// `burn-fusion`'s stream ordering (0.21.0, ordering.rs:65) panics out of bounds on this
+/// workload's dynamic relation-batch shapes, killing the device service thread.
 #[cfg(feature = "gpu")]
 pub(in crate::salt::fit) type TrainerInner =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
@@ -151,8 +149,9 @@ impl Context<'_> {
         self.stage_projector(options, inputs)
     }
 
-    /// Trains the projector, stages its checkpoint, and publishes the canonical rung's aligned
-    /// field.
+    /// Trains the projector and publishes the canonical rung's aligned field.
+    ///
+    /// The checkpoint stages beside it.
     fn stage_projector(
         &self,
         options: &ProjectorOptions,

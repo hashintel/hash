@@ -214,8 +214,9 @@ proptest! {
     }
 }
 
-/// The quantile matches tabulated standard normal values through both rational-approximation
-/// regions.
+/// The quantile matches tabulated standard normal values.
+///
+/// Both rational-approximation regions are exercised.
 #[test]
 fn normal_quantile_matches_tabulated_values() {
     // Central region.

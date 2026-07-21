@@ -453,8 +453,7 @@ impl<const N: usize> AlignedVecN<N> {
         (lanes, suffix)
     }
 
-    /// Returns the components as mutable aligned 8-lane SIMD groups plus a mutable scalar
-    /// remainder.
+    /// Returns the components as mutable aligned 8-lane groups plus a mutable scalar remainder.
     ///
     /// The split is the same as [`lanes`](Self::lanes); writes through either slice update the
     /// vector in place, so SIMD kernels can transform embeddings without a staging copy.

@@ -15,8 +15,9 @@ use crate::{
     },
 };
 
-/// A prediction whose calibrated distribution and applicability are the only fields resolution
-/// reads.
+/// A prediction carrying only the fields resolution reads.
+///
+/// The calibrated distribution and the applicability.
 fn prediction(calibrated: [f64; 3], applicability: f64) -> Prediction {
     let posterior = Posterior::new(calibrated).expect("test distributions are valid");
     Prediction {

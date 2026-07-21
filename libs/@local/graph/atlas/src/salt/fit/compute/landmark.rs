@@ -88,8 +88,9 @@ impl Context<'_> {
         Ok(marks)
     }
 
-    /// Selects, assigns, contracts, and lays out the landmark skeleton, staging it as one combined
-    /// file and mapping it back for the stages that consume it.
+    /// Selects, assigns, contracts, and lays out the landmark skeleton.
+    ///
+    /// Stages it as one combined file and maps it back for the stages that consume it.
     ///
     /// Candidates are uniform over the corpus; `prior_marks` names the rows competing for the
     /// retained share.

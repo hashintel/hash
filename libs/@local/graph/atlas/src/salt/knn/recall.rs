@@ -354,8 +354,9 @@ impl Scoring {
     }
 }
 
-/// Computes the sample standard deviation of per-row recall from the aggregate counts and the sum
-/// of squared per-row recalls.
+/// Computes the sample standard deviation of per-row recall.
+///
+/// Derived from the aggregate counts and the sum of squared per-row recalls.
 ///
 /// The per-row sum needs no separate accumulator: it is the matched total divided by the comparison
 /// depth.

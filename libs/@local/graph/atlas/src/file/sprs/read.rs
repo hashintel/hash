@@ -312,8 +312,9 @@ impl SprsFile {
         .map_err(|(_, _, _, error)| SprsMatrixError::Structure(error))
     }
 
-    /// Views the pointer region at its described element type without re-checking the compressed
-    /// structure.
+    /// Views the pointer region at its described element type.
+    ///
+    /// The compressed structure is not re-checked.
     ///
     /// The element check is [`matrix`](Self::matrix)'s; the structural contract stays that
     /// accessor's to validate, so callers hold a successful [`matrix`](Self::matrix) call over this
@@ -340,8 +341,9 @@ impl SprsFile {
             .expect("open validated the region sizes and the mapping their alignment"))
     }
 
-    /// Views the index region at its described element type without re-checking the compressed
-    /// structure.
+    /// Views the index region at its described element type.
+    ///
+    /// The compressed structure is not re-checked.
     ///
     /// The element check is [`matrix`](Self::matrix)'s; the structural contract stays that
     /// accessor's to validate, so callers hold a successful [`matrix`](Self::matrix) call over this

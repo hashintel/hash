@@ -71,7 +71,7 @@ impl VisibilityProof {
     }
 
     /// Returns whether node row `row` is visible.
-    pub(super) fn contains(&self, row: u32) -> bool {
+    pub(super) const fn contains(&self, row: u32) -> bool {
         match &self.rows {
             Rows::Full => true,
             Rows::Mask(bitmap) => {
@@ -83,7 +83,7 @@ impl VisibilityProof {
 
     /// Returns whether the edge with endpoints `source` and `target` is visible: edge visibility
     /// is both endpoints', derived, never independently granted.
-    pub(super) fn edge_visible(&self, source: u32, target: u32) -> bool {
+    pub(super) const fn edge_visible(&self, source: u32, target: u32) -> bool {
         self.contains(source) && self.contains(target)
     }
 

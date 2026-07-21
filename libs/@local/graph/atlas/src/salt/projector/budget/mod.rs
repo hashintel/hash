@@ -268,8 +268,9 @@ impl BudgetSummary {
     }
 }
 
-/// Builds the scalar whose backward pass carries budgeted coordinate gradients into the model
-/// parameters.
+/// Builds the backward-ready scalar of the budgeted objective.
+///
+/// Its backward pass carries the budgeted coordinate gradients into the model parameters.
 ///
 /// The returned value is `sum_i <coordinates[i], gradient[i]>`: its gradient with respect to
 /// `coordinates` is exactly `gradient`, so a single backward pass propagates the caller's per-node

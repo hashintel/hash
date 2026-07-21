@@ -118,8 +118,10 @@ impl<A: Allocator> CardContents<'_, A> {
         self.examples.len()
     }
 
-    /// Collapses a lone at-most-one-target endpoint constraint into the independent source and
-    /// target sections, replacing any adapter-supplied summaries.
+    /// Collapses a lone at-most-one-target endpoint constraint.
+    ///
+    /// The constraint folds into the independent source and target sections, replacing any
+    /// adapter-supplied summaries.
     pub(super) fn hoist_simple_pair(&mut self) {
         let [only] = &*self.endpoint_constraints else {
             return;

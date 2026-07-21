@@ -11,8 +11,9 @@ use super::{
 };
 use crate::math::{Rotation, Similarity, Vec2};
 
-/// A sixteen-point deterministic cloud with spread radii and no symmetry a similarity could
-/// exploit.
+/// A sixteen-point deterministic cloud.
+///
+/// Spread radii and no symmetry a similarity could exploit.
 fn base_field() -> Vec<Vec2> {
     (0..16_u8)
         .map(|index| {

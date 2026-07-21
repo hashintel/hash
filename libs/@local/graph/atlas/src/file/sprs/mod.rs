@@ -431,8 +431,10 @@ impl FileHeader {
     /// Size of the header, and the offset of the pointer region.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header for an `nnz`-entry matrix shaped `[rows, columns]` with the given element
-    /// types and compressed dimension.
+    /// Creates a matrix header from its full geometry.
+    ///
+    /// An `nnz`-entry matrix shaped `[rows, columns]`, with the given element types and compressed
+    /// dimension.
     #[must_use]
     pub(crate) const fn new(
         value: ValueTag,

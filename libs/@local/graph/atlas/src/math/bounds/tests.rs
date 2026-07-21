@@ -245,8 +245,9 @@ fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// A point vector short enough to keep case counts sane while crossing the SIMD fold's chunk
-/// boundary in both directions.
+/// A point vector crossing the SIMD fold's chunk boundary in both directions.
+///
+/// Short enough to keep case counts sane.
 fn points_strategy() -> impl Strategy<Value = Vec<Vec2>> {
     prop::collection::vec(point_strategy(), 0..64)
 }

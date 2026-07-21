@@ -62,8 +62,10 @@ impl LodConfig {
 pub(crate) enum LodError {
     /// The configuration names a schedule no 64-bit key resolves.
     Schedule { config: LodConfig },
-    /// The rank columns cover a different row count than the coordinates. (Columns disagreeing
-    /// among themselves cannot reach here: [`RankInputs`] admits only equal-length columns.)
+    /// The rank columns cover a different row count than the coordinates.
+    ///
+    /// Columns disagreeing among themselves cannot reach here: [`RankInputs`] admits only
+    /// equal-length columns.
     Columns { coordinates: usize },
     /// The coordinates hold a non-finite value or no rows, so no world frame exists.
     Frame,
@@ -303,8 +305,9 @@ fn distinct_prefixes(codes: &[MortonKey], depth: Depth) -> u64 {
     distinct
 }
 
-/// Returns the size of the largest group of equal depth-`depth` prefixes in a segment-sorted code
-/// slice.
+/// Returns the size of the largest group of equal depth-`depth` prefixes.
+///
+/// Measured over a segment-sorted code slice.
 fn largest_prefix_group(codes: &[MortonKey], depth: Depth) -> u64 {
     let mut largest = 0;
     let mut current = 0;

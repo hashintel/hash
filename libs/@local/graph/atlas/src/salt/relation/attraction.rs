@@ -82,8 +82,9 @@ pub(crate) struct AttractionEdge {
     pub target: NodeRowId,
     /// The instance's effective confidence `c` with score provenance.
     pub confidence: EffectiveConfidence,
-    /// The degree normalization `nu`, in `(0, 1]`, computed over the complete admitted instance
-    /// set of the group's relation.
+    /// The degree normalization `nu`, in `(0, 1]`.
+    ///
+    /// Computed over the complete admitted instance set of the group's relation.
     pub normalization: f32,
 }
 

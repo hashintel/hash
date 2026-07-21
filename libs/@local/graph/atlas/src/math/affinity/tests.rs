@@ -444,8 +444,9 @@ fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
     })
 }
 
-/// Asserts a batch lane agrees with its scalar twin within a relative tolerance of `1e-3` (with a
-/// matching absolute floor for near-zero gradients).
+/// Asserts a batch lane agrees with its scalar twin within a relative tolerance of `1e-3`.
+///
+/// A matching absolute floor covers near-zero gradients.
 ///
 /// The bound covers the batch kernels' vectorized `d^(2b)` power, which composes sleef's 3.5-ulp
 /// `exp2`/`log2` stages: the exponent's absolute error grows with `|log2(d^2)|`, so the power's

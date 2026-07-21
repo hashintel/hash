@@ -834,8 +834,10 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
     }
 }
 
-/// The triage rule: a flag whose collapsed reading satisfies the factor is recorded as
-/// clump-resolved and stops failing the verdict; one that stays degraded keeps failing.
+/// The clump-resolution triage rule.
+///
+/// A flag whose collapsed reading satisfies the factor is recorded as clump-resolved and stops
+/// failing the verdict; one that stays degraded keeps failing.
 #[test]
 fn clump_resolution_triages_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);

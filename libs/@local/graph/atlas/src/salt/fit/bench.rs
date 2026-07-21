@@ -140,8 +140,10 @@ fn fixture_classifier() -> ClassifierInput {
     }
 }
 
-/// Runs one fit over the store's current snapshot into the generation root at `root` and activates
-/// the published generation, so a later `reuse_current` run finds it as the prior.
+/// Runs one fit over the store's snapshot and activates the published generation.
+///
+/// A later `reuse_current` run finds it as the prior; the fit lands in the generation root at
+/// `root`.
 ///
 /// # Panics
 ///

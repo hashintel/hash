@@ -32,8 +32,9 @@ pub fn current_generation(root: &str) -> Option<String> {
         .map(|id| id.to_string())
 }
 
-/// Runs one production generation run over the store's current snapshot into the generation root at
-/// `root`.
+/// Runs one production generation over the store's current snapshot.
+///
+/// The published generation lands in the generation root at `root`.
 ///
 /// # Panics
 ///

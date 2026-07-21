@@ -103,8 +103,9 @@ fn coordinate_difference(
     (above - below) / (2.0 * step)
 }
 
-/// Asserts a derivative against its finite difference with tolerance scaled to the finite
-/// difference's own f32 conditioning.
+/// Asserts a derivative against its finite difference.
+///
+/// The tolerance scales to the finite difference's own f32 conditioning.
 #[track_caller]
 /// Narrows one accumulated field component for a finite-difference comparison.
 #[expect(

@@ -64,7 +64,12 @@ pub(crate) async fn run_atlas(
     dsn: String,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    let router = cli::open_router(serve, &dsn)
+    // This process serves without scoped sessions: full visibility
+    // is the operator's explicit choice here, never a default the
+    // library assumes. Scoped per-session proofs replace this value
+    // when the authorization era's session transport lands.
+    let proof = hash_graph_atlas::serve::VisibilityProof::full_visibility();
+    let router = cli::open_router(serve, &dsn, proof)
         .await
         .change_context(GraphError)?
         .layer(HttpTracingLayer);

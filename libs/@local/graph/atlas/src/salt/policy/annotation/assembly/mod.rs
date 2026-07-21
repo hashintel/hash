@@ -683,8 +683,9 @@ const RANKS_ALL: Ranks = Ranks {
     cut: f64::INFINITY,
 };
 
-/// Splits an over-budget component by relaxing its weakest remaining axis, recursing one rank
-/// deeper wherever a part stays over budget.
+/// Splits an over-budget component by relaxing its weakest remaining axis.
+///
+/// Recurses one rank deeper wherever a part stays over budget.
 ///
 /// The relaxation order is family, then base URL, then near-duplicate edges farthest-first;
 /// identity edges never relax. A part the deepest relaxation cannot fit is accepted over budget and

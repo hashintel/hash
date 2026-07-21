@@ -179,8 +179,10 @@ struct NodeArtifacts {
     identities: RepositoryFile,
 }
 
-/// Streams every node's representation into the staged `f32[N, 512]` matrix and its ids into the
-/// staged identity file, keeping the type column resident for the quadtree build.
+/// Streams every node's representation and ids into their staged files.
+///
+/// The representations fill the staged `f32[N, 512]` matrix and the ids the staged identity file;
+/// the type column stays resident for the quadtree build.
 ///
 /// The matrix digest streams over the finished file because the writer seals its header by seeking;
 /// the identity writer is forward-only and digests inline.
@@ -409,8 +411,9 @@ pub(super) struct CardArtifacts {
     pub stats: CardEmbeddingStats,
 }
 
-/// Renders every card, embeds the unique texts, and stages the two card-embedding columns beside
-/// the ontology identity table collected from the same stream.
+/// Renders every card, embeds the unique texts, and stages the card-embedding columns.
+///
+/// Both columns land beside the ontology identity table collected from the same stream.
 ///
 /// A prior generation's card files map back as the reuse table: texts whose hash appears there keep
 /// their rows without touching the provider. Reuse is fingerprint-guarded inside [`embed_cards`],

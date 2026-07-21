@@ -144,8 +144,9 @@ impl Context<'_> {
         }
     }
 
-    /// Fits the classifier from the assembled corpus and evaluates it on the corpus's holdout
-    /// cards.
+    /// Fits the classifier from the assembled corpus.
+    ///
+    /// Evaluates it on the corpus's holdout cards.
     fn fit_classifier(
         &self,
         corpus: &AssembledCorpus,

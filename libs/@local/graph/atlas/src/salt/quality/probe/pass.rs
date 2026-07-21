@@ -280,8 +280,9 @@ impl SampledPass<'_> {
             .collect()
     }
 
-    /// Ranks one anchor's comparison universe in all three spaces and reads the space pairs and
-    /// triplet verdicts.
+    /// Ranks one anchor's comparison universe in all three spaces.
+    ///
+    /// Reads the space pairs and triplet verdicts.
     fn anchor(
         &self,
         index: usize,

@@ -112,8 +112,10 @@ pub fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) ->
     sample(&mut rng, population, count)
 }
 
-/// Computes the number of uniformly sampled items to check so that an all-pass result certifies a
-/// defect-rate bound at a confidence level.
+/// Computes the sample size certifying a defect-rate bound.
+///
+/// The number of uniformly sampled items to check so that an all-pass result certifies the bound at
+/// a confidence level.
 ///
 /// Checking this many uniformly sampled items and finding all of them valid establishes, with
 /// probability at least `confidence`, that the true fraction of invalid items is below
@@ -167,8 +169,10 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
     Some(samples)
 }
 
-/// Computes the number of uniformly sampled items whose mean estimates the population mean within
-/// `margin` at a one-sided confidence level, given the per-item standard deviation.
+/// Computes the sample size estimating the population mean within `margin`.
+///
+/// The number of uniformly sampled items whose mean reaches the one-sided confidence level, given
+/// the per-item standard deviation.
 ///
 /// The estimate's standard error is `deviation / sqrt(n)`, so `n = ceil((z * deviation /
 /// margin)^2)` with `z` the standard normal quantile of `confidence` keeps the probability of a

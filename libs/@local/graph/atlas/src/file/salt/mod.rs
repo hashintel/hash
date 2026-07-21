@@ -73,11 +73,13 @@ pub(crate) struct SaltFiles {
     ///
     /// An array file.
     pub position_of_rank: RepositoryFile,
-    /// Each node row's base position, `u32[N]`: the permutation the filter contract maps entity
-    /// bitmaps through; an array file.
+    /// Each node row's base position, `u32[N]`.
+    ///
+    /// The permutation the filter contract maps entity bitmaps through; an array file.
     pub position_of_row: RepositoryFile,
-    /// Each base position's node row, `u32[N]`: the gather order that assembles any row-aligned
-    /// column into base order; an array file.
+    /// Each base position's node row, `u32[N]`.
+    ///
+    /// The gather order that assembles any row-aligned column into base order; an array file.
     pub row_of_position: RepositoryFile,
     /// The node identities: source id per node row and the sorted lookup pairs, one identity file.
     pub node_identities: RepositoryFile,
