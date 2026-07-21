@@ -64,13 +64,13 @@ const FIXTURE_LOD: LodConfig = LodConfig {
     max_tile_depth: 3,
 };
 
-/// The tile slot table, `SPEC-ADDENDUM-WIRE.md` section 3.
+/// The tile payload's pinned slot indexes.
 const POSITIONS: usize = 1;
 const ROW_IDS: usize = 2;
 const TYPE_MASK: usize = 3;
 const MASS: usize = 4;
 
-/// The edges slot table, `SPEC-ADDENDUM-WIRE.md` section 6a.
+/// The edges payload's pinned slot index.
 const EDGE_ROW_IDS: usize = 3;
 
 /// The fixture edge list: `(id, source row, target row)`, edge row order.
@@ -316,12 +316,14 @@ fn fixture_type_url(row: u64) -> String {
 /// Link entities own ids disjoint from node ids, as the store's would be.
 const EDGE_SEED: u8 = 64;
 
-/// Rewrites a published fixture generation's identity artifacts with store-width ids, deterministic
-/// by row: ontology row `r` keys the uuid derived from [`fixture_type_url`] of `r`, node row `r`
-/// keys [`entity_id_of`] of `r`, and edge row `r` keys [`entity_id_of`] of `EDGE_SEED + r`.
+/// Rewrites a published fixture generation's identity artifacts with store-width ids.
 ///
-/// The memory dataset speaks 8-byte positional ids, which the serving open rejects by ruling; the
-/// rewrite is the test-lane bridge until a fixture dataset carries store-width ids natively. Open
+/// Deterministic by row: ontology row `r` keys the uuid derived from [`fixture_type_url`] of `r`,
+/// and node row `r` keys [`entity_id_of`] of `r`. Edge row `r` keys [`entity_id_of`] of
+/// `EDGE_SEED + r`.
+///
+/// The memory dataset speaks 8-byte positional ids, which the serving open rejects; the rewrite
+/// is the test-lane bridge that gives a fixture generation store-width ids. Open
 /// trusts the metadata document's hash, not per-file digests (those are verified by tooling), so
 /// the rewritten artifacts serve.
 fn store_identities(generation: &Generation) {
@@ -1256,7 +1258,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
 /// Source resolution answers the delivery contract, not just a formula.
 ///
 /// The resolved (zoom, cell) tile delivers the row under the cumulative schedule, and at zoom > 0
-/// the parent tile's schedule does not - so `zoom` really is the FIRST visible zoom.
+/// the parent tile's schedule does not - so `zoom` really is the first visible zoom.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_sources_resolve_to_their_first_visible_tile() {
@@ -1663,8 +1665,9 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
     );
 }
 
-/// A generation whose identity artifacts carry the memory dataset's 8-byte positional ids does not
-/// serve: the open fails loudly on the key width, by ruling.
+/// A generation carrying the memory dataset's 8-byte positional ids does not serve.
+///
+/// The open fails loudly on the key width.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn foreign_key_widths_fail_the_open() {
@@ -2346,9 +2349,11 @@ async fn locate_by_wire_row_matches_by_entity() {
     );
 }
 
-/// The locate convenience path rejects the trailer by name (which locate DEFAULTS to - it is the
-/// detail view); the transport path assembles and encodes byte-exactly against the wire document
-/// derived from the groundwork layers' own outputs.
+/// Locate's two entry points split on the trailer.
+///
+/// The convenience path rejects the trailer by name (which locate defaults to - it is the detail
+/// view); the transport path assembles and encodes byte-exactly against the wire document derived
+/// from the groundwork layers' own outputs.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_end_to_end_encodes_the_pinned_envelope() {
@@ -2424,8 +2429,10 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     assert_eq!(colored, response(Some(&[Membership::List(&[])])));
 }
 
-/// Every locate rejection carries its name, the unknown-entity doctrine treats unparsable, unknown,
-/// and wrong-domain ids identically, and an over-cap neighbour budget clamps instead of rejecting.
+/// Every locate rejection carries its name.
+///
+/// The unknown-entity doctrine treats unparsable, unknown, and wrong-domain ids identically, and an
+/// over-cap neighbour budget clamps instead of rejecting.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_rejections_and_the_neighbour_clamp() {
@@ -2488,8 +2495,9 @@ async fn locate_rejections_and_the_neighbour_clamp() {
     );
 }
 
-/// The transport path gathers both identity domains and encodes the hydrated trailer byte-exactly,
-/// interned name table included.
+/// The transport path gathers both identity domains and encodes the hydrated trailer byte-exactly.
+///
+/// Interned name table included.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn detailed_locate_encodes_the_hydrated_trailer() {
@@ -2728,8 +2736,9 @@ fn codec_derivation_is_deterministic() {
     }
 }
 
-/// The D8 codec written a second time, from the addendum's text and pinned parameter picks rather
-/// than from `serve::codec`.
+/// The D8 codec written a second time.
+///
+/// From the addendum's text and pinned parameter picks rather than from `serve::codec`.
 ///
 /// Agreement between the two freezes the wire mapping itself - a refactor that changes any derived
 /// bit fails loudly - and the reference counts its cycle-walk applications, the observability the
@@ -2787,8 +2796,9 @@ mod codec_reference {
             }
         }
 
-        /// Encodes `row`, returning the wire value and the number of network applications the cycle
-        /// walk took.
+        /// Encodes `row`.
+        ///
+        /// Returns the wire value and the number of network applications the cycle walk took.
         pub(super) fn encode_counting(&self, row: u32) -> (u32, u32) {
             assert!(
                 row < self.universe,
@@ -3007,9 +3017,10 @@ async fn resolve_collapses_every_failure_to_one_none() {
 /// The composition law on the tile path: `S = X ∩ V_u`, order preserved, in both modes.
 ///
 /// The masked tile's columns are exactly the unmasked columns with the hidden rows' entries
-/// removed - the mask never reorders and never over-drops (P1 + P2 together) - and a fully masked
-/// populated tile answers byte-identically to a tile that never had rows (P8: empty is empty; the
-/// head's occupancy fields carry no evidence of hidden points).
+/// removed (the mask never reorders and never over-drops; P1 + P2 together), and a fully masked
+/// populated
+/// tile answers byte-identically to a tile that never had rows (P8: empty is empty; the head's
+/// occupancy fields carry no evidence of hidden points).
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_masked_tile_serves_exactly_the_visible_intersection() {
@@ -3122,8 +3133,8 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
 /// The edges path inherits the mask through its endpoints.
 ///
 /// Hiding one node removes exactly the edges incident to it - the delivered sets intersect the
-/// proof before edges qualify, so the response is byte-identical to the qualifying computation
-/// over the visible row set.
+/// proof before edges qualify, so the response is byte-identical to the qualifying computation over
+/// the visible row set.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_edges_inherit_endpoint_visibility() {
@@ -3157,8 +3168,8 @@ async fn masked_edges_inherit_endpoint_visibility() {
 
 /// Translate answers missing for denied, in both identity domains.
 ///
-/// A hidden node's id is an absent key exactly like a nonexistent id; an edge is absent when
-/// either endpoint hides (edge visibility derives) and present while both endpoints show.
+/// A hidden node's id is an absent key exactly like a nonexistent id; an edge is absent when either
+/// endpoint hides (edge visibility derives) and present while both endpoints show.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_answers_missing_for_denied() {
@@ -3306,4 +3317,281 @@ fn visibility_proof_is_fail_closed() {
     assert_eq!(proof.visible_below(4), 2);
     assert_eq!(FULL.visible_below(48), 48);
     assert!(FULL.contains(u32::MAX));
+}
+
+/// The composition law `S = X ∩ V_u` holds under random masks on every delivering endpoint.
+///
+/// Eight seeded random proofs sweep every tile coordinate in both modes, the full edge grid,
+/// translate over every fixture identity, and locate around a visible source. Containment (P1) and
+/// exactness (P2) are one assertion each time: the masked response equals the unmasked response
+/// with the hidden rows' entries removed - the mask never leaks and never over-drops. The fixture
+/// serves without capacity pressure, so `X` is mask-independent and the filtered-full comparison
+/// is the law verbatim; locate's ground truth instead extends the unmasked search by the hidden
+/// count, mirroring select-under-the-mask through the wire's own `(distance, wire id)` order.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn composition_law_holds_under_random_masks() {
+    let (generation, atlas) = publish("composition-sweep").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x51CA);
+
+    for _ in 0..8 {
+        let hidden: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
+        assert!(
+            hidden.len() <= 28,
+            "the seeded masks leave locate's extended ground truth under its cap"
+        );
+        let proof = mask_hiding(&atlas, &hidden);
+
+        assert_tiles_mask_by_intersection(&atlas, &proof, &hidden);
+        assert_edges_mask_by_intersection(&generation, &atlas, &proof, &hidden);
+        assert_translate_masks_by_visibility(&atlas, &proof, &hidden);
+        assert_locate_selects_under_the_mask(&atlas, &proof, &hidden);
+    }
+}
+
+/// Every tile coordinate, both modes: the masked rows are the unmasked rows with the hidden
+/// entries removed, order preserved.
+fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
+    let (node_codec, _) = test_codecs(atlas);
+    let hidden_wire: HashSet<u32> = hidden
+        .iter()
+        .map(|&row| node_codec.encode(row).get())
+        .collect();
+
+    for z in 0..=FIXTURE_LOD.max_tile_depth {
+        let cells = 1_u32 << z;
+        for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
+            for mode in [Mode::Delta, Mode::Total] {
+                let full_bytes = atlas
+                    .tile(&request(z, x, y, mode), TileCaps::default(), &FULL)
+                    .expect("the unmasked tile serves");
+                let masked_bytes = atlas
+                    .tile(&request(z, x, y, mode), TileCaps::default(), proof)
+                    .expect("the masked tile serves");
+                let full_rows =
+                    decode_rows(section(&full_bytes, ROW_IDS).expect("ROW_IDS is present"));
+                let masked_rows =
+                    decode_rows(section(&masked_bytes, ROW_IDS).expect("ROW_IDS is present"));
+                let expected: Vec<u32> = full_rows
+                    .iter()
+                    .copied()
+                    .filter(|wire| !hidden_wire.contains(wire))
+                    .collect();
+                assert_eq!(
+                    masked_rows, expected,
+                    "the {mode:?} tile {z}/{x}/{y} masks by intersection"
+                );
+            }
+        }
+    }
+}
+
+/// The masked grid answers the qualifying computation over the visible row set, byte for byte.
+fn assert_edges_mask_by_intersection(
+    generation: &Generation,
+    atlas: &Atlas,
+    proof: &VisibilityProof,
+    hidden: &[u32],
+) {
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let endpoints: Vec<[u64; 2]> = FIXTURE_EDGES
+        .iter()
+        .map(|&(_, source, target)| [source, target])
+        .collect();
+    let delivered: HashSet<u32> = (0..universe).filter(|row| !hidden.contains(row)).collect();
+    let (sources, targets, rows) = qualifying_columns(&endpoints, &delivered);
+    let (sources, targets, rows) = wire_columns(atlas, &sources, &targets, &rows);
+    assert_eq!(
+        atlas
+            .edges(&edges_request(full_grid()), EdgesCaps::default(), proof)
+            .expect("the masked grid serves"),
+        expected_edges_bytes(generation, true, &sources, &targets, &rows),
+    );
+}
+
+/// Every fixture identity translates exactly when visible (nodes) or when both endpoints are
+/// (edges).
+fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
+    use super::translate::{TranslateCaps, TranslateRequest};
+
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let every_identity: Vec<String> = (0..universe)
+        .map(|row| entity_string_of(u8::try_from(row).expect("fixture rows fit u8")))
+        .chain((0..FIXTURE_EDGES.len()).map(|row| {
+            entity_string_of(EDGE_SEED + u8::try_from(row).expect("fixture edge rows fit u8"))
+        }))
+        .collect();
+    let translated = atlas
+        .translate(
+            &TranslateRequest {
+                entity_ids: every_identity,
+            },
+            TranslateCaps::default(),
+            proof,
+        )
+        .expect("the request is under the cap");
+    for row in 0..universe {
+        let id = entity_string_of(u8::try_from(row).expect("fixture rows fit u8"));
+        assert_eq!(
+            translated.nodes.contains_key(&id),
+            !hidden.contains(&row),
+            "node {row} translates exactly when visible"
+        );
+    }
+    for (row, &(_, source, target)) in FIXTURE_EDGES.iter().enumerate() {
+        let id = entity_string_of(EDGE_SEED + u8::try_from(row).expect("edge rows fit u8"));
+        let visible = !hidden.contains(&u32::try_from(source).expect("fixture rows fit u32"))
+            && !hidden.contains(&u32::try_from(target).expect("fixture rows fit u32"));
+        assert_eq!(
+            translated.edges.contains_key(&id),
+            visible,
+            "edge {row} translates exactly when both endpoints show"
+        );
+    }
+}
+
+/// The masked selection is the nearest visible by the wire's own order - the unmasked selection
+/// extended past the hidden count, filtered, and cut at the budget.
+fn assert_locate_selects_under_the_mask(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let caps = ServeCaps::default();
+    let source_row = (0..universe)
+        .find(|row| !hidden.contains(row))
+        .expect("the seeded masks leave visible rows");
+    let source_id = entity_string_of(u8::try_from(source_row).expect("fixture rows fit u8"));
+    let budget = 3_u32;
+    let masked = atlas.locate_subgraph(
+        atlas
+            .resolve_source(proof, &source_id)
+            .expect("a visible source resolves under the mask"),
+        budget,
+        caps.locate,
+        proof,
+    );
+    assert_eq!(
+        masked.rows.len(),
+        1 + budget as usize,
+        "hidden rows never consume the budget"
+    );
+    for &row in &masked.rows {
+        assert!(!hidden.contains(&row), "every delivered row is visible");
+    }
+    let extended = atlas.locate_subgraph(
+        atlas
+            .resolve_source(&FULL, &source_id)
+            .expect("the source resolves in full view"),
+        budget + u32::try_from(hidden.len()).expect("fixture masks fit u32"),
+        caps.locate,
+        &FULL,
+    );
+    let expected: Vec<u32> = extended.rows[1..]
+        .iter()
+        .copied()
+        .filter(|row| !hidden.contains(row))
+        .take(budget as usize)
+        .collect();
+    assert_eq!(
+        masked.rows[1..],
+        expected,
+        "selection happens under the mask"
+    );
+    for &(edge, _) in &masked.edges {
+        assert!(masked.rows.contains(&edge.source));
+        assert!(masked.rows.contains(&edge.target));
+    }
+}
+
+/// Hidden and nonexistent answer identically at every id-bearing ingress, under any mask.
+///
+/// Eight seeded random proofs sweep every hidden row through the three ingresses that accept an
+/// identifier: locate by entity id, locate by wire row id, and translate. Each denied request is
+/// compared against the same request naming something that never existed - an unknown entity seed,
+/// a wire value outside the codec's image - and the answers are equal values at the seam. The
+/// renderers downstream are deterministic functions of those values, so equal values are equal
+/// response bytes: P8's collapse, swept rather than sampled.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
+    use super::translate::{TranslateCaps, TranslateRequest};
+
+    let (_generation, atlas) = publish("p8-collapse").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let (node_codec, _) = test_codecs(&atlas);
+    let caps = ServeCaps::default();
+
+    // Identifiers that never existed: an entity seed no fixture row
+    // or edge carries, and the first wire value outside the image.
+    let ghost_id = entity_string_of(203);
+    let ghost_wire = (0..=u32::MAX)
+        .find(|&wire| atlas.resolve(&FULL, wire).is_none())
+        .expect("the image has forty-eight values; almost everything is outside it");
+    let by_row = |wire: u32| super::LocateRequest {
+        entity_id: None,
+        row: Some(wire),
+        colored_type_ids: Vec::new(),
+        filter: None,
+        neighbours: None,
+        include_detailed_data: false,
+    };
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x9A08);
+
+    for _ in 0..8 {
+        let hidden: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
+        assert!(!hidden.is_empty(), "the seeded masks hide at least one row");
+        let proof = mask_hiding(&atlas, &hidden);
+
+        // The nonexistent baselines, once per proof.
+        let missing_entity = atlas
+            .assemble_locate(&locate_request(ghost_id.clone()), caps, &proof)
+            .map(|_| ())
+            .expect_err("an unknown entity rejects");
+        let missing_row = atlas
+            .assemble_locate(&by_row(ghost_wire), caps, &proof)
+            .map(|_| ())
+            .expect_err("an out-of-image wire value rejects");
+        let missing_translated = atlas
+            .translate(
+                &TranslateRequest {
+                    entity_ids: vec![ghost_id.clone()],
+                },
+                TranslateCaps::default(),
+                &proof,
+            )
+            .expect("the request is under the cap");
+
+        for &row in &hidden {
+            let id = entity_string_of(u8::try_from(row).expect("fixture rows fit u8"));
+
+            let denied = atlas
+                .assemble_locate(&locate_request(id.clone()), caps, &proof)
+                .map(|_| ())
+                .expect_err("a hidden source rejects");
+            assert_eq!(denied, missing_entity, "denied and missing are one error");
+            assert_eq!(denied, super::LocateError::UnknownEntity);
+
+            let denied = atlas
+                .assemble_locate(&by_row(node_codec.encode(row).get()), caps, &proof)
+                .map(|_| ())
+                .expect_err("a hidden row's wire id rejects");
+            assert_eq!(
+                denied, missing_row,
+                "the row ingress collapses the same way"
+            );
+
+            let denied = atlas
+                .translate(
+                    &TranslateRequest {
+                        entity_ids: vec![id],
+                    },
+                    TranslateCaps::default(),
+                    &proof,
+                )
+                .expect("the request is under the cap");
+            assert_eq!(
+                denied, missing_translated,
+                "a denied id translates exactly like one that never existed"
+            );
+        }
+    }
 }

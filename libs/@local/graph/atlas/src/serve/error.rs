@@ -80,8 +80,9 @@ pub enum OpenAtlasError {
     OpenPostings(OpenPostingsError),
     /// The postings file violates the artifact contract.
     Postings(InvalidPostingsFile),
-    /// The postings parent graph holds a cycle, so no closure map exists to expand coloring
-    /// requests.
+    /// The postings parent graph holds a cycle.
+    ///
+    /// So no closure map exists to expand coloring requests.
     Closure(ParentCycle),
     /// An identity file failed to open.
     OpenIdentity {

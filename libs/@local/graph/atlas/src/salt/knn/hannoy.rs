@@ -43,13 +43,13 @@ const INDEX: u16 = 0;
 
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
-// Revised from the full-scale sweep (2026-07-19, 985,932 rows,
-// recall@50, exact references replaying the fit's streams; ratified):
+// Sized by a full-scale sweep (985,932 rows, recall@50, exact
+// references replaying the fit's streams):
 // construction 128 -> 256 buys ~+0.009 population recall (~0.893 ->
 // ~0.902 against the 0.89 floor) for ~+90s build (155 -> 245s), and
 // same-seed rebuilds spread +-0.007 (hannoy links in parallel; the
 // seed pins the level stream, not the link order), so the margin must
-// clear that spread. Search breadth measured INERT: 64 -> 256 bought
+// clear that spread. Search breadth measured inert: 64 -> 256 bought
 // +0.002-0.005 on every build at 2.2x query cost, so 128 stays - it
 // is 2.5x the deepest query in this crate (the 50-neighbour recall
 // audit) and above hannoy's default of 100. Sweep harness:

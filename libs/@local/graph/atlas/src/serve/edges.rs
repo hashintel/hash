@@ -252,8 +252,9 @@ impl Atlas {
         })
     }
 
-    /// Gathers the link-entity identities behind the document's delivered edges, in delivered
-    /// order: the hydration request's subject.
+    /// Gathers the link-entity identities behind the document's delivered edges.
+    ///
+    /// In delivered order: the hydration request's subject.
     ///
     /// # Panics
     ///

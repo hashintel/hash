@@ -1,12 +1,11 @@
 //! The wire encoder: atlas responses as `SALTILE` envelope bytes.
 //!
-//! `SPEC-ADDENDUM-WIRE.md` is the normative contract this module implements; the checked-in goldens
-//! under `fixtures/wire/` are the cross-language proof the TypeScript decoder builds against. One
-//! envelope carries every binary response kind (tile, edges, and, with the locate endpoint,
-//! locate) as a 16-byte prefix, a fixed offset directory, 8-aligned payload sections, and an
-//! optional
-//! CBOR trailer tail. Structured payloads are CBOR under the deterministic profile in [`cbor`];
-//! columns are raw little-endian arrays a decoder views without parsing.
+//! The envelope layout is a pinned public contract; the checked-in goldens under `fixtures/wire/`
+//! are the cross-language proof the TypeScript decoder builds against. One
+//! envelope carries every binary response kind (tile, edges, and, with the locate endpoint, locate)
+//! as a 16-byte prefix, a fixed offset directory, 8-aligned payload sections, and an optional CBOR
+//! trailer tail. Structured payloads are CBOR under the deterministic profile in [`cbor`]; columns
+//! are raw little-endian arrays a decoder views without parsing.
 //!
 //! The module is pure byte emission: a response document in, one `Vec<u8>` out. Every input is
 //! assembled by server code from validated artifacts and an admitted request, so inconsistencies

@@ -33,13 +33,13 @@ use crate::disjoint::DisjointSet;
 
 /// The default clump threshold, as cosine distance over the 512-component representation.
 ///
-/// Calibrated against the fitted development corpus (2026-07-19, 985,932 rows, 30 stored neighbours
-/// per row): the multi-row group count is flat at 131.5K within 0.1% across thresholds in `[0.0012,
+/// Calibrated against a fitted development corpus (985,932 rows, 30 stored neighbours per row): the
+/// multi-row group count is flat at 131.5K within 0.1% across thresholds in `[0.0012,
 /// 0.0028]` while coverage grows from 49% to 61%, so every value on that plateau produces the same
 /// grouping structure. At 0.002 - cosine similarity 0.999 - the grouping reads 131,560 groups
 /// covering 55.8% of the corpus at mean size 4.2. Below the plateau exact duplicates stay split;
 /// above roughly 0.0045 the components percolate (group count falls while sizes grow without
-/// bound). The 2026-07-12 audit structure (165K groups, 66% coverage, mean size near 4) came from a
+/// bound). An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a
 /// different grouping construction and is not reproducible by epsilon-connected components over the
 /// k-NN table at any threshold; it anchors the scale of this value, not the value itself.
 pub(crate) const DEFAULT_EPSILON: f32 = 0.002;

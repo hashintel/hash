@@ -4,7 +4,7 @@
 //! whose instances the request matches, so expanding a request is `OR` of the requested rows and
 //! testing a type against a request is one bit read. The map derives at open from the published
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
-//! low megabytes while `T` stays in the low thousands (`PLAN.md` "Serving contract requirements").
+//! low megabytes while `T` stays in the low thousands.
 
 use crate::{dataset::OntologyRowId, salt::postings::mapped::PostingsArchive};
 

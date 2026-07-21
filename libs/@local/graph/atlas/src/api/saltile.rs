@@ -67,9 +67,10 @@ impl OperationOutput for Saltile {
     }
 }
 
-/// Runs CPU-bound response assembly on a rayon worker behind `catch_unwind`, mapping a vanished
-/// worker or a panic - a producer bug surfacing as 500, never an unwind across the runtime - to its
-/// problem document.
+/// Runs CPU-bound response assembly on a rayon worker behind `catch_unwind`.
+///
+/// Maps a vanished worker or a panic - a producer bug surfacing as 500, never an unwind across the
+/// runtime - to its problem document.
 pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + 'static,
 ) -> Result<T, Problem<'static>> {

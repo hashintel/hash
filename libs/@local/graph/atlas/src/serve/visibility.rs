@@ -1,29 +1,31 @@
-//! The visibility seam: the server-held proof of what one scope may see, and the single join
-//! point every row ingress factors through.
+//! The visibility seam.
+//!
+//! The server-held proof of what one scope may see, and the single join point every row ingress
+//! factors through.
 //!
 //! [`VisibilityProof`] is the authorization addendum's `V_u` as a value: the node rows one scope
-//! may see under one generation and permission epoch. The proof covers the node universe alone -
-//! an edge is visible exactly when both its endpoints are, so edge visibility derives wherever a
-//! node set is already masked. Every assembly path takes a proof by construction; no `Option`
-//! exists whose `None` means "everything", and the full-visibility value is a distinct, named
-//! constructor rather than a default.
+//! may see under one generation and permission epoch. The proof covers the node universe alone - an
+//! edge is visible exactly when both its endpoints are, so edge visibility derives wherever a node
+//! set is already masked. Every assembly path takes a proof by construction; no `Option` exists
+//! whose `None` means "everything", and the full-visibility value is a distinct, named constructor
+//! rather than a default.
 //!
 //! [`Atlas::resolve`] is the seam the addendum's P8 fixes: decode the wire id, then test mask
 //! membership, with decode failure, out-of-universe values, and mask misses all collapsing to the
-//! same [`None`] before any rendering observes the cause. [`VisibleRow`] has no other
-//! constructor, so a row that reaches point-lookup assembly carries its visibility in the type;
-//! set-shaped paths (tile gathers, edge endpoint sets) mask through [`VisibilityProof::intersect`]
-//! and [`VisibilityProof::contains`] wholesale instead of minting a value per row.
+//! same [`None`] before any rendering observes the cause. [`VisibleRow`] has no other constructor,
+//! so a row that reaches point-lookup assembly carries its visibility in the type; set-shaped paths
+//! (tile gathers, edge endpoint sets) mask through [`VisibilityProof::intersect`] and
+//! [`VisibilityProof::contains`] wholesale instead of minting a value per row.
 
 use super::Atlas;
 use crate::bitset::BitSet;
 
 /// The server-held visibility proof of one scope: the node rows the scope may see.
 ///
-/// A proof enters a handler by construction - the assembly signatures take one, so a missing
-/// proof is unrepresentable rather than defaulted. The two constructors mark the two legitimate
-/// origins: [`Self::full_visibility`] for operator serving without sessions, and
-/// [`Self::from_bitmap`] for a scope's evaluated visibility bitmap.
+/// A proof enters a handler by construction - the assembly signatures take one, so a missing proof
+/// is unrepresentable rather than defaulted. The two constructors mark the two legitimate origins:
+/// [`Self::full_visibility`] for operator serving without sessions, and [`Self::from_bitmap`] for a
+/// scope's evaluated visibility bitmap.
 ///
 /// Membership is fail-closed: a row beyond the held bitmap's capacity is not visible, so a proof
 /// built against the wrong universe hides rows rather than revealing them.
@@ -53,8 +55,9 @@ impl VisibilityProof {
         Self { rows: Rows::Full }
     }
 
-    /// Constructs a proof from one scope's visibility bitmap: bit `r` set means node row `r` is
-    /// visible.
+    /// Constructs a proof from one scope's visibility bitmap.
+    ///
+    /// Bit `r` set means node row `r` is visible.
     ///
     /// The bitmap is server-held state (a fresh visibility evaluation or a verified sealed blob),
     /// never a client-supplied value. Rows at or beyond the bitmap's capacity read as hidden.
@@ -81,8 +84,9 @@ impl VisibilityProof {
         }
     }
 
-    /// Returns whether the edge with endpoints `source` and `target` is visible: edge visibility
-    /// is both endpoints', derived, never independently granted.
+    /// Returns whether the edge with endpoints `source` and `target` is visible.
+    ///
+    /// Edge visibility is both endpoints', derived, never independently granted.
     pub(super) const fn edge_visible(&self, source: u32, target: u32) -> bool {
         self.contains(source) && self.contains(target)
     }
@@ -115,9 +119,9 @@ impl VisibilityProof {
 
 /// A node row that carries its visibility proof in the type.
 ///
-/// The only constructor is the resolution seam, so an assembly function that takes a
-/// [`VisibleRow`] cannot be reached with an unproven row. The value is the internal row id for
-/// in-process gathers; it never crosses the wire.
+/// The only constructor is the resolution seam, so an assembly function that takes a [`VisibleRow`]
+/// cannot be reached with an unproven row. The value is the internal row id for in-process gathers;
+/// it never crosses the wire.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct VisibleRow {
     row: u32,
@@ -131,8 +135,9 @@ impl VisibleRow {
 }
 
 impl Atlas {
-    /// Resolves a wire node row id to its proven-visible internal row: the single join point of
-    /// the response discipline.
+    /// Resolves a wire node row id to its proven-visible internal row.
+    ///
+    /// The single join point of the response discipline.
     ///
     /// Decode failure (out-of-universe wire values) and mask misses (rows the proof hides) both
     /// answer the same [`None`], so forbidden and nonexistent are indistinguishable to everything

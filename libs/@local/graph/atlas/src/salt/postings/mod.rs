@@ -2,8 +2,8 @@
 //!
 //! Per-type membership over the base delivery order, and the type graph it expands through.
 //!
-//! [`Postings`] is the filter contract's membership artifact (`SPEC-ADDENDUM-CLOUD.md` section 7;
-//! `PLAN.md` "Serving contract requirements"): for every ontology row, which base delivery
+//! [`Postings`] is the filter contract's membership artifact: for every ontology row, which base
+//! delivery
 //! positions carry that type **directly**. A type filter ORs requested rows' membership into one
 //! dense position bitmap; the wire's `TYPE_MASK` column slices membership over a tile's delivered
 //! runs. Inheritance never rides the membership: requests expand to descendant rows first through

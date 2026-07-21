@@ -11,10 +11,10 @@
 //!
 //! An id that resolves to nothing is an ABSENT key, never an error and never a null entry:
 //! nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
-//! visibility proof hides are indistinguishable by doctrine (missing = denied). A node answers
-//! only when its row is visible; an edge only when both its endpoints are - edge visibility
-//! derives, never independently granted. Served wholly from the published identity artifacts and
-//! the fitted coordinate column; the store is never consulted.
+//! visibility proof hides are indistinguishable by doctrine (missing = denied). A node answers only
+//! when its row is visible; an edge only when both its endpoints are - edge visibility derives,
+//! never independently granted. Served wholly from the published identity artifacts and the fitted
+//! coordinate column; the store is never consulted.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
@@ -36,8 +36,7 @@ const ENTITY_ID_DELIMITER: char = '~';
 pub struct TranslateCaps {
     /// Most entity ids one request may carry.
     ///
-    /// The manifest publishes this value as `limits.translateEntityIds`. Defaults to 1024 (amended
-    /// down from 4096, 2026-07-20).
+    /// The manifest publishes this value as `limits.translateEntityIds`. Defaults to 1024.
     pub entity_ids: u32,
 }
 
@@ -150,8 +149,9 @@ impl Atlas {
     }
 }
 
-/// Resolves a request's ids against one generation's identity tables and fitted coordinates,
-/// under the scope's visibility proof.
+/// Resolves a request's ids against one generation's identity tables and fitted coordinates.
+///
+/// Under the scope's visibility proof.
 #[expect(
     clippy::too_many_arguments,
     reason = "the parameters are one generation's column views, listed once at the one call site"

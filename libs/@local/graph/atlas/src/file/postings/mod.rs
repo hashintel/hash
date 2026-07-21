@@ -12,7 +12,7 @@
 //! positions. The flags region records each type's representation; the fenceposts delimit each
 //! type's run of the shared entries array either way. Beside the membership sits the type graph:
 //! each type's direct parent rows, the authority every descendant expansion derives from - per-row
-//! or per-type closures are never materialized (`PLAN.md` "Serving contract requirements").
+//! or per-type closures are never materialized.
 //!
 //! The membership, the flags, and the parent edges all describe one ontology-row domain of one
 //! generation and are meaningless apart, so they form one combined file. Every region a lookup or

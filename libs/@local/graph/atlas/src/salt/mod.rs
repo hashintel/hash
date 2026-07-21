@@ -2,8 +2,7 @@
 //!
 //! SALT turns one frozen [`Dataset`](crate::dataset::Dataset) into a published atlas generation: a
 //! 2D map over the graph's entities, artifacts on disk under `crate::file`'s formats, and the
-//! spatial indexes serving reads from them. The stages land here as they are built; `PLAN.md` at
-//! the crate root tracks the order.
+//! spatial indexes serving reads from them.
 
 // The relaxation rank surfaces in evidence assertions; production
 // code reaches it through the evidence struct.

@@ -68,8 +68,9 @@ impl EnvelopeWriter {
         }
     }
 
-    /// Records the next slot as present and appends its payload, zero-padded to the next 8
-    /// boundary.
+    /// Records the next slot as present and appends its payload.
+    ///
+    /// Zero-padded to the next 8 boundary.
     ///
     /// # Panics
     ///

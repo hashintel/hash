@@ -39,7 +39,7 @@ pub fn current_generation(root: &str) -> Option<String> {
 /// # Panics
 ///
 /// Panics when any step fails; a measurement target reports its failures by failing, and the
-/// [`crate::run::Error`] chain is the diagnosis.
+/// [`crate::run::RunError`] chain is the diagnosis.
 pub async fn run_live(client: &mut Client, root: &str, options: LiveOptions) -> RunSummary {
     crate::run::live(client, root, options)
         .await

@@ -13,13 +13,12 @@
 //! (the columns are mapped memory), so an async transport schedules them on a compute pool - rayon
 //! plus `catch_unwind` - never inline on its runtime threads.
 //!
-//! The route and body vocabulary is `SPEC-ADDENDUM-API.md` Surface v1; the response bytes implement
-//! `SPEC-ADDENDUM-WIRE.md`. The remaining version-0 deferral rejects honestly instead of serving
-//! wrong bytes: a request that names a visibility `filter` receives an `Unsupported` rejection
-//! until the filter endpoint lands (`SPEC-ADDENDUM-AUTHZ.md` section 7).
+//! The route and body vocabulary and the response bytes are pinned public contracts. The one
+//! deferral rejects honestly instead of serving wrong bytes: a request that names a visibility
+//! `filter` receives an `Unsupported` rejection.
 //!
 //! Every assembly path takes a [`VisibilityProof`] - the server-held statement of which node rows
-//! the bound scope may see (`SPEC-ADDENDUM-AUTHZ.md`). Responses compute over the masked view:
+//! the bound scope may see. Responses compute over the masked view:
 //! delivered sets intersect the proof, edges inherit visibility from their endpoints, and row
 //! ingress factors through [`Atlas::resolve`], where decode failure, out-of-universe values, and
 //! mask misses collapse to one `None` - forbidden and nonexistent answer identical bytes. A
@@ -178,10 +177,11 @@ pub struct Atlas {
     /// The row column mapped through the node codec once at open, so position-driven gathers
     /// (tiles, locate) pay nothing per request.
     wire_rows: Vec<u32>,
-    /// The tight wire-frame extent of the full point set, absent iff the generation holds no
-    /// points. Derived from the world frame: normalization anchors each non-degenerate axis's
-    /// extremes onto the frame edges and collapses degenerate axes to the centre, so the extent
-    /// follows without scanning the column.
+    /// The tight wire-frame extent of the full point set.
+    ///
+    /// Absent iff the generation holds no points. Derived from the world frame: normalization
+    /// anchors each non-degenerate axis's extremes onto the frame edges and collapses degenerate
+    /// axes to the centre, so the extent follows without scanning the column.
     bounds: Option<Bounds2>,
 }
 

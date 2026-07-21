@@ -82,8 +82,9 @@ pub struct FitArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_CLASSIFIER")]
     classifier: Option<String>,
 
-    /// Override the trained placement's step count, keeping the ratified options and the midpoint
-    /// boundary.
+    /// Override the trained placement's step count.
+    ///
+    /// Keeps the ratified options and the midpoint boundary.
     #[arg(long)]
     projector_steps: Option<NonZero<usize>>,
 
@@ -93,7 +94,7 @@ pub struct FitArgs {
 
     /// Assert the Proximal radius instead of measuring it at the phase boundary.
     ///
-    /// Finite, above the Coincident radius (0.05 ratified); contradicts --baseline.
+    /// Finite, above the Coincident radius `0.05`; contradicts --baseline.
     #[arg(long, conflicts_with = "baseline")]
     assert_proximal_radius: Option<f32>,
 
@@ -351,13 +352,14 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
     Ok(())
 }
 
-/// Opens the root's active generation and builds the read-API router over it, `/status` liveness
-/// route included.
+/// Opens the root's active generation and builds the read-API router over it.
+///
+/// `/status` liveness route included.
 ///
 /// The hosting binary owns the listener, lifecycle, middleware, the store connection string `dsn`
-/// (detail trailers hydrate from the store on every serve), and the visibility proof `proof` -
-/// the authority every response is masked by, named explicitly at the call site; the router
-/// carries everything the atlas serves.
+/// (detail trailers hydrate from the store on every serve), and the visibility proof `proof` - the
+/// authority every response is masked by, named explicitly at the call site; the router carries
+/// everything the atlas serves.
 ///
 /// # Errors
 ///

@@ -332,8 +332,9 @@ impl Atlas {
         })
     }
 
-    /// Gathers the visible positions of each delivery range, with the per-bucket runs recounted
-    /// over the survivors.
+    /// Gathers the visible positions of each delivery range.
+    ///
+    /// With the per-bucket runs recounted over the survivors.
     fn gather_visible(
         &self,
         ranges: &[Range<u32>],
@@ -536,8 +537,9 @@ impl Atlas {
         response.encode()
     }
 
-    /// Returns the quad node owning `cell`, [`None`] when the schedule delivers nothing new at or
-    /// below it.
+    /// Returns the quad node owning `cell`.
+    ///
+    /// [`None`] when the schedule delivers nothing new at or below it.
     fn node_of(&self, cell: MortonCell) -> Option<&Node> {
         let index = self.quad.locate(cell)?;
         Some(&self.quad.nodes()[index as usize])

@@ -3,11 +3,11 @@
 //! A tile document borrows the generation's base-order columns and names its delivered set in one
 //! of [`DeliveredSet`]'s two shapes: contiguous base-position ranges in delivery order - what both
 //! modes produce unmasked (a non-root delta tile is its quad node's one run; the delta root and
-//! every total tile are bucket-major run lists) - or an ascending gathered position list, the
-//! shape a visibility mask leaves behind. Encoding gathers the column entries, assembles the
-//! per-point type masks from the postings membership, and lays everything into the `SALTILET`
-//! five-slot envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot,
-//! absent until the product wants density.
+//! every total tile are bucket-major run lists) - or an ascending gathered position list, the shape
+//! a visibility mask leaves behind. Encoding gathers the column entries, assembles the per-point
+//! type masks from the postings membership, and lays everything into the `SALTILET` five-slot
+//! envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot, absent
+//! until the product wants density.
 //!
 //! The document's consistency laws are producer contracts and panic when violated: the range
 //! lengths and the `HEAD`'s per-bucket runs must agree on the delivered count, trailer arrays cover
@@ -121,8 +121,8 @@ impl TileResponse<'_> {
     /// request's type `i`.
     ///
     /// Each membership contributes by a linear merge of its ascending positions against the
-    /// delivered set, never a per-point containment probe. A point matching no requested type
-    /// keeps the zero mask; no sentinel exists.
+    /// delivered set, never a per-point containment probe. A point matching no requested type keeps
+    /// the zero mask; no sentinel exists.
     fn mask_column(&self, masks: &[Membership<'_>]) -> Vec<u8> {
         let delivered =
             usize::try_from(self.delivered.count()).expect("delivered counts fit usize");

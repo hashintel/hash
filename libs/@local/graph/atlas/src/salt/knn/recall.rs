@@ -40,7 +40,7 @@ use crate::{
 const DEFAULT_NEIGHBOURS: NonZero<usize> =
     NonZero::new(50).expect("the default comparison depth is nonzero");
 const DEFAULT_MINIMUM_RECALL: f64 = 0.89;
-// The margin is what the check must resolve: the 2026-07-19 backend
+// The margin is what the check must resolve: the full-scale backend
 // sweep (985,932 rows) measured healthy builds at ~0.902 against the
 // 0.89 floor, so a coarser margin cannot distinguish a healthy build
 // from a degraded one, and a finer margin buys certainty about

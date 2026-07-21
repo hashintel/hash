@@ -55,8 +55,9 @@ fn insert_rejects_out_of_capacity_indices() {
     set.insert(10);
 }
 
-/// Intersection keeps exactly the shared indices, and indices beyond the other set's capacity
-/// read as absent from it.
+/// Intersection keeps exactly the shared indices.
+///
+/// Indices beyond the other set's capacity read as absent from it.
 #[test]
 fn intersection_matches_set_semantics() {
     // 130 spans three words; 70 spans two - the third word and the

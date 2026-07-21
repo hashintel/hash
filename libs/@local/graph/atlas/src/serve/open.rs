@@ -30,13 +30,14 @@ use crate::{
 };
 
 impl Atlas {
-    /// Opens generation `id` from `root` and maps every serving artifact, validating each format
-    /// once.
+    /// Opens generation `id` from `root` and maps every serving artifact.
+    ///
+    /// Validates each format once.
     ///
     /// # Errors
     ///
     /// Returns [`OpenAtlasError::Unpublished`] when the generation is not published in this root,
-    /// [`OpenAtlasError::Artifact`] when the metadata document or an artifact fails its format's
+    /// a per-artifact variant when the metadata document or an artifact fails its format's
     /// validation, [`OpenAtlasError::Schedule`] when the recorded schedule exceeds the key width,
     /// [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape, and
     /// [`OpenAtlasError::Columns`] or [`OpenAtlasError::Subtree`] when the artifacts disagree on
@@ -83,8 +84,7 @@ impl Atlas {
         let closure = ClosureMap::new(&postings)?;
         // Identity tables fail loud, key width included: a
         // generation whose ids are not store identities does not
-        // serve (ruling 2026-07-20, reversing the foreign-width
-        // degradation this open briefly carried).
+        // serve.
         let ontology_ids = open_identities(
             &generation,
             &files.ontology_identities,

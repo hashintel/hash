@@ -4,7 +4,7 @@
 //!
 //! The index is kiddo's exact two-dimensional kd-tree over the wire positions column, built eagerly
 //! at open so no first request pays for it, and cached on disk keyed by generation id so a restart
-//! against the same generation loads instead of rebuilding (ruling 2026-07-20). The cache is a
+//! against the same generation loads instead of rebuilding. The cache is a
 //! cache: any read failure - missing, foreign magic, corrupt bytes - falls back to a fresh build
 //! and a best-effort rewrite, never a failed open.
 
@@ -52,8 +52,9 @@ impl LocateIndex {
         }
     }
 
-    /// Loads the generation's cached index, or builds it and leaves the cache behind for the next
-    /// open.
+    /// Loads the generation's cached index.
+    ///
+    /// Or builds it and leaves the cache behind for the next open.
     ///
     /// Without a cache directory the build is unconditional; with one, the file is keyed by
     /// generation id, so distinct generations never collide and a stale entry cannot be mistaken
@@ -150,20 +151,19 @@ impl LocateIndex {
 pub struct LocateCaps {
     /// Largest neighbour budget one request may name; requests over it clamp to it.
     ///
-    /// The documented default is 32 (ratified 2026-07-20, amended from 64).
+    /// Defaults to 32.
     pub neighbours: u32,
     /// Most subgraph edges one response delivers.
     ///
     /// A larger subgraph truncates by rank with source-incident edges protected, and HEAD reports
-    /// `complete: false`. The documented default is 512 (ratified 2026-07-20, replacing the vetoed
-    /// uncapped draft - every delivered edge also costs live link hydration, so the cap bounds the
-    /// store round trip, not just wire bytes).
+    /// `complete: false`. Defaults to 512: every delivered edge also costs live link hydration,
+    /// so the cap bounds the store round trip, not just wire bytes.
     pub edges: u32,
     /// Most properties one delivered entity ships.
     ///
     /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
     /// property protected to the very end, so the label survives every cap that admits at least
-    /// one property. The documented default is 20 (Q5, ratified 2026-07-19).
+    /// one property. Defaults to 20.
     pub properties: u32,
 }
 
@@ -179,7 +179,7 @@ impl Default for LocateCaps {
 
 /// The options one serving open takes.
 ///
-/// Configuration travels as a struct, never constants or bare parameters (ruling 2026-07-20).
+/// Configuration travels as a struct, never constants or bare parameters.
 #[derive(Debug, Clone)]
 pub struct OpenOptions {
     /// The locate index cache directory; [`None`] builds the index on every open.
@@ -352,11 +352,11 @@ impl Atlas {
         }
     }
 
-    /// Collects every visible point that can be among the `budget` nearest visible neighbours of
-    /// the source: `(distance, wire row, row, position)` per candidate, unordered, boundary ties
-    /// included.
+    /// Collects every visible point that can rank among the source's `budget` nearest.
     ///
-    /// The k-nearest boundary is searched over ALL points, so under a mask the query expands -
+    /// `(distance, wire row, row, position)` per candidate, unordered, boundary ties included.
+    ///
+    /// The k-nearest boundary is searched over all points, so under a mask the query expands -
     /// doubling its k until the boundary encloses `budget` visible non-source points or the whole
     /// universe has been seen. Selection therefore happens under the mask: hidden points never
     /// consume the budget, and a response's cardinality is a function of the masked view alone.
@@ -409,8 +409,8 @@ impl Atlas {
     /// Keeps the `cap` edges the protected rank order selects.
     ///
     /// Source-incident edges strictly before context edges, then ascending worse-endpoint rank,
-    /// ties by wire edge row (ruling 2026-07-20 - the spotlight's primary information is how the
-    /// source connects, so neighbour-neighbour context truncates first).
+    /// ties by wire edge row: the spotlight's primary information is how the source connects, so
+    /// neighbour-neighbour context truncates first.
     fn truncate_protecting_source(
         &self,
         edges: &mut Vec<(DeliveredEdge, u32)>,
@@ -508,10 +508,11 @@ const fn detailed_by_default() -> bool {
 /// vocabulary.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LocateError {
-    /// The source id does not name a visible node - nonexistent, denied, and unparsable are
-    /// IDENTICAL by doctrine (missing = denied; an id that cannot name an entity is an entity that
-    /// does not exist). An out-of-universe wire `row` collapses here too: one body, whatever the
-    /// input domain.
+    /// The source id does not name a visible node - nonexistent.
+    ///
+    /// Denied, and unparsable are IDENTICAL by doctrine (missing = denied; an id that cannot name
+    /// an entity is an entity that does not exist). An out-of-universe wire `row` collapses here
+    /// too: one body, whatever the input domain.
     UnknownEntity,
     /// The request does not name exactly one source.
     ///
@@ -823,8 +824,9 @@ type PropertyMap<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 /// The encoder's borrowed view of one [`PropertyMap`].
 type PropertyMapView<'doc> = Option<&'doc [(u32, PropertyValue<'doc>)]>;
 
-/// The trailer's owned hydration columns, borrowed from the detail structs for the encoder's
-/// lifetime.
+/// The trailer's owned hydration columns.
+///
+/// Borrowed from the detail structs for the encoder's lifetime.
 #[derive(Debug)]
 struct HydratedColumns<'doc> {
     labels: Vec<Option<&'doc str>>,
@@ -837,9 +839,10 @@ struct HydratedColumns<'doc> {
     link_type_icons: Vec<Option<&'doc str>>,
 }
 
-/// Builds the property-name intern table and the per-node uint-index maps: the table is the
-/// bytewise-sorted, deduplicated union of every surviving name; each node's entries keep the
-/// hydration layer's ascending-name order, which maps to ascending indexes.
+/// Builds the property-name intern table and the per-node uint-index maps.
+///
+/// The table is the bytewise-sorted, deduplicated union of every surviving name; each node's
+/// entries keep the hydration layer's ascending-name order, which maps to ascending indexes.
 pub(super) fn intern_properties(
     entries: &[Option<Vec<(String, SimpleValue)>>],
 ) -> (Vec<&str>, Vec<PropertyMap<'_>>) {

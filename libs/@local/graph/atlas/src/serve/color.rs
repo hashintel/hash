@@ -75,8 +75,9 @@ impl Atlas {
     }
 }
 
-/// Resolves a request's ids against one generation's postings, closure map, and ontology
-/// identities, in request order.
+/// Resolves a request's ids against one generation's postings.
+///
+/// Closure map, and ontology identities, in request order.
 pub(super) fn resolve_masks(
     postings: &PostingsArchive,
     closure: &ClosureMap,

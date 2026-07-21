@@ -130,13 +130,15 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 ///
 /// A `base` of zero yields zero for positive exponents, infinity for negative exponents, and NaN
 /// when the exponent is also zero; negative bases yield NaN.
-// Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf):
-// this composition 87 instructions / 31 cycles, four scalar libm `powf`
-// calls 311 / 36, sleef's 1.0-ulp `pow_u10` 474 / 125. The scalar
-// near-tie in standalone cycles vanishes under load: embedded in the
-// attraction-coefficient arithmetic the composition holds 33 cycles
+// Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf,
+// house kernels): this composition 70 instructions / 21
+// cycles, four scalar libm `powf` calls 311 / 36, sleef's 1.0-ulp
+// `pow_u10` 473 / 123. The scalar near-tie in standalone cycles
+// vanishes under load: embedded in the attraction-coefficient
+// arithmetic the upstream form of the composition holds 30 cycles
 // (the extra work rides its idle issue slots) while the scalar option
-// grows to 44. The tie also does not generalize across machines: it
+// grows to 38; the house form differs from upstream only by cheaper
+// nearest-integer rounding. The tie also does not generalize across machines: it
 // needs an out-of-order engine wide and deep enough to overlap four
 // independent libm bodies (IPC ~8.6 here) and Apple's branch-free
 // `powf`; production Linux targets have neither, and glibc's `powf` is

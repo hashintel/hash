@@ -2,8 +2,7 @@
 //!
 //! [`QuadTree::build`] derives the quad file's regions from the finished lod columns: one node per
 //! tile the bucket-cut schedule can deliver something new into, each carrying its own-bucket run of
-//! the base order, its subtree point count, and its direct-type set (`SPEC-ADDENDUM-CLOUD.md`
-//! section 6; `PLAN.md` "Serving contract requirements").
+//! the base order, its subtree point count, and its direct-type set.
 //!
 //! The root always exists and covers the wire frame; a deeper cell gets a node exactly when it
 //! contains a point the parent tile's cut did not deliver - a point whose bucket is at least the

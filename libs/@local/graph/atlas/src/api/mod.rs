@@ -74,8 +74,9 @@ struct AppState {
     proof: Arc<VisibilityProof>,
 }
 
-/// Builds the read API router over one opened generation, with the OpenAPI document generated at
-/// startup and served beside the API.
+/// Builds the read API router over one opened generation.
+///
+/// With the OpenAPI document generated at startup and served beside the API.
 ///
 /// The visibility proof scopes every response the router serves: the hosting process names its
 /// authority explicitly - [`VisibilityProof::full_visibility`] for operator serving without

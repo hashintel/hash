@@ -32,9 +32,10 @@ pub(crate) struct LocateResponse<'doc> {
     pub generation: Sha256Digest,
     /// `HEAD` key 1: the variant index, echoing the route.
     pub variant: u64,
-    /// `HEAD` keys 3 and 4: the source's first visible zoom and its tile there - the client's
-    /// fly-to target. The cell's own `z` is the zoom; both keys ride the wire by the pinned
-    /// schema.
+    /// `HEAD` keys 3 and 4: the source's first visible zoom and its tile there.
+    ///
+    /// The client's fly-to target. The cell's own `z` is the zoom; both keys ride the wire by the
+    /// pinned schema.
     pub cell: TileCoordinate,
     /// `HEAD` key 6: `false` when the locate edge cap truncated the subgraph.
     pub complete: bool,
@@ -301,9 +302,9 @@ impl LocateTrailer<'_> {
     }
 }
 
-/// One simple property value: the only shapes the wire ships (WIRE 6b.
+/// One simple property value: the only shapes the wire ships.
 ///
-/// Nested objects and arrays never survive hydration).
+/// Nested objects and arrays never survive hydration.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PropertyValue<'doc> {
     /// A text scalar.

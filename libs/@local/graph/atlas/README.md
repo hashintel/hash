@@ -191,9 +191,12 @@ What the crate does guarantee, independent of the surrounding service:
   route.
 - Request caps are enforced at the handlers and published in the manifest
   from the same value, by construction.
-
-Row-level visibility enforcement (per-principal masking) is specified and
-under construction; see `SPEC-ADDENDUM-AUTHZ.md`.
+- Every response is computed over a server-held visibility proof: row
+  sets intersect it, edges inherit visibility from their endpoints, and
+  hidden rows are indistinguishable from nonexistent ones. This process
+  serves with the explicit full-visibility operator proof until a
+  session transport supplies per-scope proofs; the sealed-bitmap session
+  path is specified and under construction (`SPEC-ADDENDUM-AUTHZ.md`).
 
 ## Limitations
 

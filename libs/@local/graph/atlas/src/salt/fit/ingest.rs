@@ -329,10 +329,7 @@ where
         };
         // Every direct type reads separately at share 1/multiplicity:
         // a multi-typed link is a mixture of its relation domains'
-        // opinions, one link's worth of force in total. The M0 rule
-        // that selected exactly one domain per link by canonical-URL
-        // order retired 2026-07-20 with the versioned-URL identity
-        // work.
+        // opinions, one link's worth of force in total.
         let multiplicity = u32::try_from(edge.ontology.len())
             .expect("an edge's deduplicated direct types are far below u32");
         if multiplicity > 0 {

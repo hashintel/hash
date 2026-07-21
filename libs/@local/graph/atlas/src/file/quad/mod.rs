@@ -5,20 +5,18 @@
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
 //!
-//! Each node is one tile of the bucket-cut schedule (`SPEC-ADDENDUM-CLOUD.md` sections 2, 4, and
-//! 6): the node at depth `z` stores the `(start, length)` run of its own-bucket points (bucket
-//! `z + span_log2` inside the node's cell, buckets `0..=span_log2` for the root) in the base
-//! delivery order of the generation's row-aligned columns. The runs are derived state, rebuildable
-//! from the morton file by binary search, stored so node records are total and serving does no
-//! searches. Together the runs partition the base order: every point belongs to exactly one node's
-//! run, the tile that first delivers it. No per-node point-cloud files exist; a node's points are
-//! slices of the flat columns.
+//! Each node is one tile of the bucket-cut schedule: the node at depth `z` stores the `(start,
+//! length)` run of its own-bucket points (bucket `z + span_log2` inside the node's cell, buckets
+//! `0..=span_log2` for the root) in the base delivery order of the generation's row-aligned
+//! columns. The runs are derived state, rebuildable from the morton file by binary search, stored
+//! so node records are total and serving does no searches. Together the runs partition the base
+//! order: every point belongs to exactly one node's run, the tile that first delivers it. No
+//! per-node point-cloud files exist; a node's points are slices of the flat columns.
 //!
 //! Beside the topology each node stores its subtree point count (every point whose key lies in the
 //! node's cell, whatever its bucket) and its direct-type set: the union of per-point direct type
-//! ids over the subtree, sorted ascending, held as one shared id array plus per-node fenceposts
-//! (`PLAN.md` "Serving contract requirements"). Closures are never materialized; the type graph is
-//! the authority for inheritance.
+//! ids over the subtree, sorted ascending, held as one shared id array plus per-node fenceposts.
+//! Closures are never materialized; the type graph is the authority for inheritance.
 //!
 //! The node table, the fenceposts, and the id array are all derived from one cut of one generation
 //! and are meaningless apart, so they form one combined file. The regions:
