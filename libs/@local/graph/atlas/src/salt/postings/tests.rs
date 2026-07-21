@@ -421,7 +421,10 @@ fn reference_contains(
 }
 
 proptest! {
-    /// Built postings roundtrip through the file and agree with the row-order reference at every (type, position) pair, at every representation split the threshold knob can pick.
+    /// Built postings roundtrip through the file and agree with the row-order reference.
+    ///
+    /// Agreement holds at every (type, position) pair, at every representation split the threshold
+    /// knob can pick.
     #[test]
     fn built_postings_uphold_the_membership_contract(
         seeds in prop::collection::vec(prop::collection::btree_set(0_u64..5, 0..3), 0..40),

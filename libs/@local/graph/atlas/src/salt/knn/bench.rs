@@ -46,7 +46,9 @@ const REFERENCE_ROWS: NonZero<usize> = NonZero::new(2_048).expect("the reference
 /// The sweep grid.
 #[derive(Debug, Clone)]
 pub struct SweepOptions {
-    /// Fit seeds whose build and sample streams are replayed. A repeated seed rebuilds the same configuration again, measuring build nondeterminism.
+    /// Fit seeds whose build and sample streams are replayed.
+    ///
+    /// A repeated seed rebuilds the same configuration again, measuring build nondeterminism.
     pub seeds: Cow<'static, [u64]> = Cow::Borrowed(DEFAULT_SEEDS),
     /// `ef_construction` values; one index build per (seed, value).
     pub constructions: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_CONSTRUCTIONS),

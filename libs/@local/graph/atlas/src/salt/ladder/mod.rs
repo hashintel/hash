@@ -333,12 +333,16 @@ pub(crate) struct Field<'coordinates> {
 /// Cross-condition measurement thresholds.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct MeasurementOptions {
-    /// Minimum RMS movement against the preceding rung for a rung to count as distinguishable. Defaults to `1e-8`.
+    /// Minimum RMS movement against the preceding rung for a rung to count as distinguishable.
+    ///
+    /// Defaults to `1e-8`.
     // The default is an unvalidated starting point (legacy required the
     // value as config, setting no precedent); the canonical-selection
     // criteria revise it from evidence.
     pub distinguishability_floor: f64 = 1.0e-8,
-    /// Slack by which a rung's relation loss may exceed its predecessor's and still count as monotonic. Defaults to `0.05`.
+    /// Slack by which a rung's relation loss may exceed its predecessor's and still count as monotonic.
+    ///
+    /// Defaults to `0.05`.
     // Same provenance as the floor.
     pub monotonicity_tolerance: f64 = 0.05,
 }
@@ -361,7 +365,10 @@ pub(crate) struct LadderOptions {
     pub conditions: Conditions = Conditions::REFERENCE,
     /// The cross-condition measurement thresholds.
     pub measurement: MeasurementOptions = MeasurementOptions::default(),
-    /// The condition whose aligned field publishes as the canonical coordinates. Defaults to `1.0`, the full-strength lens, matching the reference pipeline's canonical condition.
+    /// The condition whose aligned field publishes as the canonical coordinates.
+    ///
+    /// Defaults to `1.0`, the full-strength lens, matching the reference pipeline's canonical
+    /// condition.
     pub canonical: f32 = 1.0,
 }
 

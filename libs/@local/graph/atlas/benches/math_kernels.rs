@@ -6,9 +6,13 @@
 //!
 //! The hardware event defaults to retired instructions and is selected
 //! with `MATH_BENCH_EVENT`: `instructions`, `cycles`,
-//! `branch-mispredictions`, or `l1d-cache-misses`; `wall-time` selects
-//! criterion's default wall-clock measurement instead, which needs no
-//! elevated privileges. Each event saves its own criterion baseline, so
+//! `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls`
+//! (cycles the scheduler issued nothing because execution was
+//! waiting, the direct view of dependency-chain latency), or
+//! `simd-instructions` (retired vector ALU operations, loop
+//! scaffolding filtered out); `wall-time` selects criterion's default
+//! wall-clock measurement instead, which needs no elevated
+//! privileges. Each event saves its own criterion baseline, so
 //! run-over-run change reports compare like with like. Instruction counts are stable across runs
 //! but blind to instruction-level parallelism; confirm a winner in `cycles` before
 //! acting on close calls, and weigh instruction counts higher for kernels
@@ -257,6 +261,24 @@ fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>) {
         bencher.iter(|| kernel::pow_f32x4(black_box(base), Simd::splat(black_box(exponent))));
     });
 
+    // The `_fma_probe` entries run the same ladders with fused
+    // multiply-add; the delta against their unfused pair is the price
+    // the reproducibility pin pays, which an FMA fit-format epoch
+    // would buy back.
+    group.throughput(Throughput::Elements(8));
+    group.bench_function("exp_f32x8_fma_probe", |bencher| {
+        bencher.iter(|| kernel::exp_f32x8_fma_probe(black_box(f32_inputs)));
+    });
+    group.throughput(Throughput::Elements(4));
+    group.bench_function("exp_f64x4_fma_probe", |bencher| {
+        bencher.iter(|| kernel::exp_f64x4_fma_probe(black_box(f64_inputs)));
+    });
+    group.bench_function("pow_f32x4_fma_probe", |bencher| {
+        bencher.iter(|| {
+            kernel::pow_f32x4_fma_probe(black_box(base), Simd::splat(black_box(exponent)))
+        });
+    });
+
     group.finish();
 }
 
@@ -347,22 +369,31 @@ fn bench_dvecn<M: Measurement + 'static>(criterion: &mut Criterion<M>) {
 
 fn hardware_counter() -> Criterion<darwin_kperf_criterion::HardwareCounter> {
     use darwin_kperf_criterion::HardwareCounter;
+    use darwin_kperf_events::Event;
 
     let event = std::env::var("MATH_BENCH_EVENT");
     let event = match event.as_deref() {
-        Ok(name @ ("instructions" | "cycles" | "branch-mispredictions" | "l1d-cache-misses")) => {
-            name
-        }
+        Ok(
+            name @ ("instructions"
+            | "cycles"
+            | "branch-mispredictions"
+            | "l1d-cache-misses"
+            | "backend-stalls"
+            | "simd-instructions"),
+        ) => name,
         Err(_) => "instructions",
         Ok(other) => panic!(
             "unknown MATH_BENCH_EVENT `{other}`; expected `instructions`, `cycles`, \
-             `branch-mispredictions`, or `l1d-cache-misses`"
+             `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls`, `simd-instructions`, \
+             or `wall-time`"
         ),
     };
     let counter = match event {
         "cycles" => HardwareCounter::cycles(),
         "branch-mispredictions" => HardwareCounter::branch_mispredictions(),
         "l1d-cache-misses" => HardwareCounter::l1d_cache_misses(),
+        "backend-stalls" => HardwareCounter::custom(Event::ArmStallBackend),
+        "simd-instructions" => HardwareCounter::custom(Event::InstSimdAluVec),
         _ => HardwareCounter::instructions(),
     };
 

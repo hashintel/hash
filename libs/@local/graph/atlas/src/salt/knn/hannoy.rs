@@ -63,11 +63,21 @@ const DEFAULT_EF_SEARCH: usize = 128;
 pub(crate) struct HannoyIndexOptions {
     /// Upper bound of the LMDB memory map, in bytes.
     ///
-    /// The map is a virtual-address reservation, not an allocation: pages materialize as the index writes them, so the bound costs nothing until it is reached. A write beyond it fails with an [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, and the remedy is a larger bound. The 1 TiB default covers roughly 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two orders of magnitude beyond a million-row generation.
+    /// The map is a virtual-address reservation, not an allocation: pages materialize as the index
+    /// writes them, so the bound costs nothing until it is reached. A write beyond it fails with an
+    /// [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, and the remedy is a larger
+    /// bound. The 1 TiB default covers roughly 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two
+    /// orders of magnitude beyond a million-row generation.
     pub map_size: usize = DEFAULT_MAP_SIZE,
-    /// Breadth of the candidate frontier while linking one item into the graph. Larger values buy link quality with one-time build cost, and link quality bounds the recall any search breadth can reach afterwards.
+    /// Breadth of the candidate frontier while linking one item into the graph.
+    ///
+    /// Larger values buy link quality with one-time build cost, and link quality bounds the recall
+    /// any search breadth can reach afterwards.
     pub ef_construction: usize = DEFAULT_EF_CONSTRUCTION,
-    /// Breadth of the candidate frontier while searching; a search never runs below the requested neighbour count. Larger values buy recall with per-query cost, and the recall spot check is the arbiter of whether a setting suffices.
+    /// Breadth of the candidate frontier while searching.
+    ///
+    /// A search never runs below the requested neighbour count. Larger values buy recall with
+    /// per-query cost, and the recall spot check is the arbiter of whether a setting suffices.
     pub ef_search: usize = DEFAULT_EF_SEARCH,
 }
 

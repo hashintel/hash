@@ -70,11 +70,18 @@ pub(crate) struct QualityThresholds {
     pub minimum_continuity: Option<f64> = None,
     /// Maximum intrusion rate, in `[0, 1]`. Defaults to unpinned.
     pub maximum_intrusion_rate: Option<f64> = None,
-    /// Maximum density-distortion spread. Defaults to unpinned. A pinned ceiling fails when the reading is absent - a gate on evidence that was never produced is a configuration contradiction, surfaced at the verdict.
+    /// Maximum density-distortion spread.
+    ///
+    /// Defaults to unpinned. A pinned ceiling fails when the reading is absent - a gate on evidence
+    /// that was never produced is a configuration contradiction, surfaced at the verdict.
     pub maximum_density_spread: Option<f64> = None,
-    /// Minimum map-versus-representation triplet agreement, in `[0, 1]`. Defaults to unpinned; pinned, it fails when the triplet readings are disabled.
+    /// Minimum map-versus-representation triplet agreement, in `[0, 1]`.
+    ///
+    /// Defaults to unpinned; pinned, it fails when the triplet readings are disabled.
     pub minimum_triplet_agreement: Option<f64> = None,
-    /// A subgroup flags when its degradation exceeds this factor times the overall degradation. Defaults to 2, the specification's subgroup rule.
+    /// A subgroup flags when its degradation exceeds this factor times the overall degradation.
+    ///
+    /// Defaults to 2, the specification's subgroup rule.
     pub subgroup_degradation_factor: f64 = DEFAULT_DEGRADATION_FACTOR,
     /// Subgroups with fewer anchors never flag. Defaults to 8.
     pub minimum_subgroup_anchors: usize = DEFAULT_MINIMUM_SUBGROUP_ANCHORS,

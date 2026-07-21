@@ -318,7 +318,9 @@ fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
 }
 
 proptest! {
-    /// Every valid table and set cover roundtrips verbatim, and the mapped locate agrees with the in-memory reference walk.
+    /// Every valid table and set cover roundtrips verbatim.
+    ///
+    /// The mapped locate agrees with the in-memory reference walk.
     #[test]
     fn written_tables_roundtrip(
         // Children generated strictly deeper, so the pre-order rule

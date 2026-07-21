@@ -222,7 +222,10 @@ fn the_base_order_sorts_buckets_then_keys_then_ranks() {
 }
 
 proptest! {
-    /// Coverage holds for every input: each occupied cell at each depth of the schedule keeps a representative in the delivered prefix.
+    /// Coverage holds for every input.
+    ///
+    /// Each occupied cell at each depth of the schedule keeps a representative in the delivered
+    /// prefix.
     #[test]
     fn cascade_coverage_is_total(
         bits in prop::collection::vec(any::<u64>(), 1..48),
@@ -272,7 +275,9 @@ proptest! {
         }
     }
 
-    /// The base order is the unique (bucket, key, rank) sort, and its permutations invert each other.
+    /// The base order is the unique (bucket, key, rank) sort.
+    ///
+    /// Its permutations invert each other.
     #[test]
     fn base_order_is_the_unique_total_sort(
         bits in prop::collection::vec(any::<u64>(), 1..48),
@@ -582,7 +587,9 @@ fn the_columns_round_trip_through_the_morton_file() {
 }
 
 proptest! {
-    /// Every finite point set builds, and the result upholds the serving contract's structural laws.
+    /// Every finite point set builds.
+    ///
+    /// The result upholds the serving contract's structural laws.
     #[test]
     fn built_columns_uphold_the_contract_laws(
         rows in prop::collection::vec(
@@ -639,8 +646,8 @@ proptest! {
         }
 
         // The delivered prefix covers every occupied cell at every
-        // published depth: SPEC 3.8's assertion over the built
-        // columns, buckets reconstructed from the fenceposts.
+        // published depth - the coverage contract, asserted over the
+        // built columns, buckets reconstructed from the fenceposts.
         let buckets: Vec<Depth> = (0..lod.fenceposts.count())
             .map(|position| {
                 (0..=deepest.get())
@@ -656,7 +663,7 @@ proptest! {
 
         // At most one delivered point per depth-d cell at every cut
         // d below the deepest grid, jointly across buckets - the
-        // addendum section 2 claim the mass channel leans on. The
+        // uniqueness claim the mass channel leans on. The
         // cascade's represented rule guarantees it: a claim never
         // lands in a cell holding an earlier-assigned point, so two
         // points sharing a depth-d cell cannot both carry buckets at
@@ -882,7 +889,9 @@ fn quad_tree_round_trips_through_the_quad_file() {
 }
 
 proptest! {
-    /// Every built lod cuts into a tree upholding the serving contract's structural laws, against linear-scan references.
+    /// Every built lod cuts into a tree upholding the serving contract's structural laws.
+    ///
+    /// Certified against linear-scan references.
     #[test]
     fn quad_trees_uphold_the_contract_laws(
         rows in prop::collection::vec(

@@ -464,7 +464,10 @@ fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
 }
 
 proptest! {
-    /// The affinity lies in `(0, 1]` and is monotone non-increasing in the squared distance, up to a few ulps of libm `powf` rounding. Squared distances are bounded to `0..1e6`, where `a * d^(2b)` stays finite for every curve in the strategy.
+    /// The affinity lies in `(0, 1]` and is monotone non-increasing in the squared distance.
+    ///
+    /// Monotonicity holds up to a few ulps of libm `powf` rounding. Squared distances are bounded
+    /// to `0..1e6`, where `a * d^(2b)` stays finite for every curve in the strategy.
     #[test]
     fn affinity_is_a_monotone_probability(
         curve in curve_strategy(),
@@ -490,7 +493,11 @@ proptest! {
         );
     }
 
-    /// For distinct points, the attraction gradient is anti-parallel to the difference vector (it pulls `from` toward `to`) and the repulsion gradient is parallel (it pushes `from` away). The separation floor keeps the coefficients away from underflow.
+    /// Attraction pulls `from` toward `to`; repulsion pushes it away.
+    ///
+    /// For distinct points, the attraction gradient is anti-parallel to the difference vector and
+    /// the repulsion gradient is parallel. The separation floor keeps the coefficients away from
+    /// underflow.
     #[test]
     fn gradients_align_with_the_difference_vector(
         from in point_strategy(),
@@ -504,7 +511,11 @@ proptest! {
         prop_assert!(curve.repulsion(from, to, 1.0).dot(difference) > 0.0);
     }
 
-    /// The batch attraction kernel agrees with the scalar kernel in every lane. This crosses the sleef `exp2`/`log2` pow path against the scalar libm `powf` path over the whole in-range input space; the tolerance follows the kernel's documented 3.5-ulp-stage bound.
+    /// The batch attraction kernel agrees with the scalar kernel in every lane.
+    ///
+    /// This crosses the sleef `exp2`/`log2` pow path against the scalar libm `powf` path over the
+    /// whole in-range input space; the tolerance follows the kernel's documented 3.5-ulp-stage
+    /// bound.
     #[test]
     fn attraction_x4_matches_scalar_attraction_per_lane(
         from in point_array_strategy(),
@@ -522,7 +533,9 @@ proptest! {
         }
     }
 
-    /// The batch repulsion kernel agrees with the scalar kernel in every lane, under the same pow-path bound as attraction.
+    /// The batch repulsion kernel agrees with the scalar kernel in every lane.
+    ///
+    /// The same pow-path bound as attraction applies.
     #[test]
     fn repulsion_x4_matches_scalar_repulsion_per_lane(
         from in point_array_strategy(),

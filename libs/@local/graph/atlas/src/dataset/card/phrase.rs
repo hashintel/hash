@@ -14,8 +14,8 @@ pub(crate) struct Description<'text> {
 /// A transferable label and optional description, with no source id.
 ///
 /// Every labelled item on a card - inverse, ancestor, endpoint type, example endpoint - is a
-/// phrase, so rendering and detail truncation are uniform whether or not a description is present
-/// today.
+/// phrase, so rendering and detail truncation are uniform whether or not a description is
+/// present.
 pub(crate) struct Phrase<'text> {
     pub label: Cow<'text, str>,
     pub description: Option<Description<'text>>,

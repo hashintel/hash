@@ -19,13 +19,15 @@ pub trait Update {
 pin_project! {
     /// A stream terminal that feeds every byte into an [`Update`] accumulator.
     ///
-    /// [`Writer`] lets an accumulator terminate whichever pipeline produces the bytes, without buffering the content in memory:
+    /// [`Writer`] lets an accumulator terminate whichever pipeline produces the bytes, without
+    /// buffering the content in memory:
     ///
     /// - [`io::Write`] for synchronous streams,
     /// - [`tokio::io::AsyncWrite`] for asynchronous streams,
     /// - [`Sink`](futures_sink::Sink) for framed byte chunks.
     ///
-    /// Writes always succeed in full, and flush, shutdown, and close are no-ops. The accumulator is the public field, so the finished value is one field access away.
+    /// Writes always succeed in full, and flush, shutdown, and close are no-ops. The accumulator is
+    /// the public field, so the finished value is one field access away.
     ///
     /// # Examples
     ///

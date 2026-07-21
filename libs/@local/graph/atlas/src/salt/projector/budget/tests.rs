@@ -324,7 +324,10 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
 }
 
 proptest! {
-    /// Both budget inequalities hold for every input: the applied gradient's norm stays within `positive * baseline` and within `total * baseline`, and both factors lie in `(0, 1]`.
+    /// Both budget inequalities hold for every input.
+    ///
+    /// The applied gradient's norm stays within `positive * baseline` and within `total *
+    /// baseline`, and both factors lie in `(0, 1]`.
     #[test]
     fn clip_satisfies_the_budget_inequalities(
         semantic_x in -1e3_f32..1e3,

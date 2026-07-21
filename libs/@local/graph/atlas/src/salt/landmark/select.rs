@@ -183,9 +183,15 @@ impl LandmarkCandidate {
 /// Capacity and retention settings for one selection.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SelectionOptions {
-    /// The landmark capacity `M`: at most this many rows are selected, fewer only when the corpus is smaller. The `u32` width is the [`LandmarkOrdinal`] encoding's contract: every selection position fits the persisted ordinal form.
+    /// The landmark capacity `M`.
+    ///
+    /// At most this many rows are selected, fewer only when the corpus is smaller. The `u32` width
+    /// is the [`LandmarkOrdinal`] encoding's contract: every selection position fits the persisted
+    /// ordinal form.
     pub maximum_count: NonZero<u32>,
-    /// Fraction of the capacity reserved for prior landmarks when enough are on offer. Retention stabilizes generation-to-generation orientation. Defaults to 0.25.
+    /// Fraction of the capacity reserved for prior landmarks when enough are on offer.
+    ///
+    /// Retention stabilizes generation-to-generation orientation. Defaults to 0.25.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent); the temporal-drift
     // and landmark rank-correlation criteria revise it from evidence.

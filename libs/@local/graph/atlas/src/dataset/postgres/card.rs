@@ -50,11 +50,17 @@ const LINK_ROOT_BASE_URL: &str = "https://blockprotocol.org/@blockprotocol/types
 pub(crate) struct CardParameters {
     /// The most examples one finished card presents.
     pub example_count: usize = 8,
-    /// Example candidates fetched per source-type subgroup, as a multiple of [`example_count`](Self::example_count).
+    /// Example candidates fetched per source-type subgroup.
     ///
-    /// A transfer bound: the diverse selector consumes candidates from each subgroup in a deterministic order, and the pool is the slack it has for rejecting duplicates and conflicts. Rows beyond the pool can never be selected.
+    /// A multiple of [`example_count`](Self::example_count).
+    ///
+    /// A transfer bound: the diverse selector consumes candidates from each subgroup in a
+    /// deterministic order, and the pool is the slack it has for rejecting duplicates and
+    /// conflicts. Rows beyond the pool can never be selected.
     pub subgroup_pool_factor: usize = 8,
-    /// Example candidates fetched per relation across all subgroups, as a multiple of [`example_count`](Self::example_count).
+    /// Example candidates fetched per relation across all subgroups.
+    ///
+    /// A multiple of [`example_count`](Self::example_count).
     pub pool_factor: usize = 32,
     /// Token budgets for structural truncation.
     pub budgets: CardsConfig = CardsConfig { .. },

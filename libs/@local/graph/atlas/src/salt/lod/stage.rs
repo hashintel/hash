@@ -28,9 +28,15 @@ const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1
 /// generations; the manifest records what a generation was built with.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct LodConfig {
-    /// Cells per tile axis of the delivery cut, as its base-2 log: a tile at zoom `z` delivers buckets at or below `z + span_log2`. Defaults to 6 (a 64x64 sample grid, at most 4096 points per incremental tile).
+    /// Cells per tile axis of the delivery cut, as its base-2 log.
+    ///
+    /// A tile at zoom `z` delivers buckets at or below `z + span_log2`. Defaults to 6 (a 64x64
+    /// sample grid, at most 4096 points per incremental tile).
     pub span_log2: u8 = 6,
-    /// The deepest tile zoom the schedule serves. Defaults to 18, which with the default span puts the deepest cascade grid at depth 24 - the resolution where `f32` coordinates in the wire frame stop separating points.
+    /// The deepest tile zoom the schedule serves.
+    ///
+    /// Defaults to 18, which with the default span puts the deepest cascade grid at depth 24 - the
+    /// resolution where `f32` coordinates in the wire frame stop separating points.
     pub max_tile_depth: u8 = 18,
 }
 

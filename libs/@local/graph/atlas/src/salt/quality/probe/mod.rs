@@ -83,13 +83,26 @@ const DEFAULT_TRIPLET_PAIRS: usize = 64;
 pub(crate) struct ProbeOptions {
     /// Sampled anchor rows: the queries every reading aggregates over. Defaults to 256.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows: the shared universe the sampled pass ranks. More rows sharpen the canonical readings toward finer neighbourhood scales and grow the canonical fetch linearly. Defaults to 4096.
+    /// Sampled comparison rows: the shared universe the sampled pass ranks.
+    ///
+    /// More rows sharpen the canonical readings toward finer neighbourhood scales and grow the
+    /// canonical fetch linearly. Defaults to 4096.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
-    /// Neighbourhood sizes to read at, in reporting order; must be non-empty. The trend across sizes is itself evidence: recall rising with `k` is the near-tie reshuffling fingerprint. Defaults to 15, 30, and 50.
+    /// Neighbourhood sizes to read at, in reporting order; must be non-empty.
+    ///
+    /// The trend across sizes is itself evidence: recall rising with `k` is the near-tie
+    /// reshuffling fingerprint. Defaults to 15, 30, and 50.
     pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
-    /// Horizon multiplier: a false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches `factor * k` (clamped to the universe), separating genuinely foreign points from reshuffling near the neighbourhood boundary. Defaults to 2.
+    /// Horizon multiplier for the intrusion and extrusion readings.
+    ///
+    /// A false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches
+    /// `factor * k` (clamped to the universe), separating genuinely foreign points from reshuffling
+    /// near the neighbourhood boundary. Defaults to 2.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
-    /// Comparison-point pairs sampled for the triplet readings; every anchor reads the one shared pair sample, so the estimate's mean is unbiased while pair-driven variance is shared across anchors. Zero disables the readings. Defaults to 64.
+    /// Comparison-point pairs sampled for the triplet readings.
+    ///
+    /// Every anchor reads the one shared pair sample, so the estimate's mean is unbiased while
+    /// pair-driven variance is shared across anchors. Zero disables the readings. Defaults to 64.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 

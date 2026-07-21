@@ -5908,6 +5908,7 @@ dependencies = [
  "clap",
  "codspeed-criterion-compat",
  "darwin-kperf-criterion",
+ "darwin-kperf-events",
  "error-stack",
  "futures",
  "futures-sink",

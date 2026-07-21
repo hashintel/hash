@@ -356,6 +356,58 @@ impl Bounds2 {
     }
 }
 
+impl Bounds2 {
+    /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
+    ///
+    /// Each axis maps affinely onto `[0, 2^32)` in `f64` - so every `f32` coordinate quantizes
+    /// exactly - and floors. Coordinates outside the bounds clamp onto the boundary cells: points
+    /// at or beyond the maximum edge take the last cell, points below the minimum take cell zero.
+    /// A zero-extent axis maps to cell zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::{Bounds2, Vec2};
+    ///
+    /// let bounds = Bounds2::new(Vec2::ZERO, Vec2::new(1.0, 1.0)).expect("the bounds are ordered");
+    /// assert_eq!(bounds.quantize(Vec2::ZERO), [0, 0]);
+    /// assert_eq!(bounds.quantize(Vec2::new(1.0, 0.5)), [u32::MAX, 1 << 31]);
+    /// ```
+    #[must_use]
+    pub fn quantize(self, point: Vec2) -> [u32; 2] {
+        let size = self.size();
+        [
+            quantize_axis(point.x(), self.min.x(), size.x()),
+            quantize_axis(point.y(), self.min.y(), size.y()),
+        ]
+    }
+}
+
+/// The number of grid positions per axis of [`Bounds2::quantize`].
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "2^32 is a power of two, exact in `f64`"
+)]
+const AXIS_CELLS: f64 = (1_u64 << 32) as f64;
+
+/// Maps one coordinate onto its axis grid cell.
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the saturating float-to-int cast is the clamp onto the axis grid"
+)]
+fn quantize_axis(value: f32, min: f32, extent: f32) -> u32 {
+    if extent == 0.0 {
+        return 0;
+    }
+
+    let unit = (f64::from(value) - f64::from(min)) / f64::from(extent);
+    // Rust float-to-int casts saturate: negative inputs clamp to cell
+    // zero, inputs at or beyond the maximum edge to the last cell, and
+    // a NaN coordinate to cell zero.
+    (unit * AXIS_CELLS) as u32
+}
+
 /// One axis's affine map of [`Bounds2::normalize_into`], with every coefficient widened to `f64`.
 #[derive(Copy, Clone)]
 struct AxisMap {

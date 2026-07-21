@@ -12,6 +12,7 @@ use super::{
     error::RelationIndexError,
     protection::{NodePair, PairEvidence, ProtectionIndex, ProtectionMatrix},
 };
+use crate::math::narrow_f32;
 
 /// Instances per parallel emission chunk within one relation group.
 ///
@@ -363,29 +364,23 @@ fn emit_chunk(
     for instance in chunk {
         let confidence = instance.confidence.effective();
         let share = f64::from(instance.multiplicity.max(1)).recip();
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "the share is in (0, 1]; narrowing to working precision is the operation"
-        )]
-        let mass = confidence.value() * scale * share as f32;
+        let mass = confidence.value()
+            * scale
+            * narrow_f32(share).expect("a positive count's reciprocal is in (0, 1]");
         if mass < attraction.pruning_threshold() {
             evidence.pruned += 1;
             evidence.pruned_mass += f64::from(mass);
             continue;
         }
 
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "the factor is in (0, 1]; the final narrowing to working precision is the \
-                      operation"
-        )]
         let normalization = {
             // A row's degree spans both columns: it may source some
             // edges and receive others.
             let degree = |row: u64| sources.degree(row) + targets.degree(row);
             let source = degree(instance.source.get());
             let target = degree(instance.target.get());
-            (((1.0 + source) * (1.0 + target)).sqrt().recip() * share) as f32
+            narrow_f32(((1.0 + source) * (1.0 + target)).sqrt().recip() * share)
+                .expect("a product of factors in (0, 1] is in (0, 1]")
         };
 
         edges.push(AttractionEdge {

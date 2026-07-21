@@ -50,3 +50,24 @@ pub fn exp_f32x8(values: f32x8) -> f32x8 {
 pub fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
     super::pow_f32x4(base, exponent)
 }
+
+/// Fused-ladder probe of [`exp_f64x4`]; prices the FMA epoch.
+#[inline]
+#[must_use]
+pub fn exp_f64x4_fma_probe(values: f64x4) -> f64x4 {
+    super::sleef::fma_probe::exp_f64(values)
+}
+
+/// Fused-ladder probe of [`exp_f32x8`]; prices the FMA epoch.
+#[inline]
+#[must_use]
+pub fn exp_f32x8_fma_probe(values: f32x8) -> f32x8 {
+    super::sleef::fma_probe::exp_f32(values)
+}
+
+/// Fused-ladder probe of [`pow_f32x4`]; prices the FMA epoch.
+#[inline]
+#[must_use]
+pub fn pow_f32x4_fma_probe(base: f32x4, exponent: f32x4) -> f32x4 {
+    super::sleef::fma_probe::exp2_f32(exponent * super::sleef::fma_probe::log2_f32(base))
+}

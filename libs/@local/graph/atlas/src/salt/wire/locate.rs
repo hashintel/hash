@@ -8,7 +8,7 @@
 //! `EDGE_ROW_IDS`).
 //!
 //! The trailer carries detail for every delivered node and edge, and interns property names
-//! profile-natively (WIRE 6b): key 2 is the deduplicated, bytewise-sorted name table; each entry of
+//! profile-natively: key 2 is the deduplicated, bytewise-sorted name table; each entry of
 //! key 3 keys its map by uint index into that table, ascending. The document's consistency laws are
 //! producer contracts and panic when violated.
 #![expect(
@@ -186,7 +186,7 @@ impl LocateResponse<'_> {
 /// The locate detail trailer.
 ///
 /// Node detail in delivered order, link detail in edge order, and the property-name intern table
-/// between them (WIRE 6b key order).
+/// between them.
 #[derive(Debug)]
 pub(crate) struct LocateTrailer<'doc> {
     /// Trailer key 0: labels, delivered order.

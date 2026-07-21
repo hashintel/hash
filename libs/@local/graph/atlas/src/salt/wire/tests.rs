@@ -274,7 +274,10 @@ mod envelope {
 }
 
 proptest! {
-    /// The directory laws hold for every present/absent payload mix: sequential 8-aligned starts from the fixed payload origin, extents matching payload lengths, zero padding, and a total length of the last present end aligned to 8.
+    /// The directory laws hold for every present/absent payload mix.
+    ///
+    /// Sequential 8-aligned starts from the fixed payload origin, extents matching payload lengths,
+    /// zero padding, and a total length of the last present end aligned to 8.
     #[test]
     fn envelope_directory_laws(
         payloads in proptest::collection::vec(

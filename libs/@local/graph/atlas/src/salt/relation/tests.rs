@@ -638,7 +638,9 @@ fn assert_indexes_equal(one: &RelationIndexes, other: &RelationIndexes) {
 }
 
 prop_compose! {
-    /// Instances over three relations and eight rows, with unique edge rows and arbitrary optional scores.
+    /// Instances over three relations and eight rows.
+    ///
+    /// Edge rows are unique; optional scores are arbitrary.
     fn arbitrary_instances()(
         raw in proptest::collection::vec(
             (
@@ -673,7 +675,9 @@ prop_compose! {
 }
 
 proptest! {
-    /// The build is a function of the instance set, not its order, and its output orders are the documented invariants.
+    /// The build is a function of the instance set, not its order.
+    ///
+    /// The output orders are the documented invariants.
     #[test]
     fn build_is_order_independent_and_sorted(instances in arbitrary_instances()) {
         let policies = [

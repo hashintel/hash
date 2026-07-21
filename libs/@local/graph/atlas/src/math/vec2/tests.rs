@@ -312,19 +312,26 @@ fn vec2_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
 }
 
 proptest! {
-    /// The dot product commutes bit for bit: both orders multiply and add the same values. Coordinates are bounded to `-1e5..1e5`.
+    /// The dot product commutes bit for bit: both orders multiply and add the same values.
+    ///
+    /// Coordinates are bounded to `-1e5..1e5`.
     #[test]
     fn dot_is_commutative(left in vec2_strategy(), right in vec2_strategy()) {
         prop_assert_eq!(left.dot(right), right.dot(left));
     }
 
-    /// The perpendicular product is antisymmetric: swapping the operands negates the result exactly, because IEEE negation of a difference is exact. Coordinates are bounded to `-1e5..1e5`.
+    /// The perpendicular product is antisymmetric.
+    ///
+    /// Swapping the operands negates the result exactly, because IEEE negation of a difference is
+    /// exact. Coordinates are bounded to `-1e5..1e5`.
     #[test]
     fn perp_dot_is_antisymmetric(left in vec2_strategy(), right in vec2_strategy()) {
         prop_assert_eq!(left.perp_dot(right), -right.perp_dot(left));
     }
 
-    /// Distance is symmetric, and the distance from a point to itself is exactly zero. Coordinates are bounded to `-1e5..1e5`.
+    /// Distance is symmetric, and the distance from a point to itself is exactly zero.
+    ///
+    /// Coordinates are bounded to `-1e5..1e5`.
     #[test]
     fn distance_is_symmetric_with_zero_self_distance(
         left in vec2_strategy(),
@@ -334,7 +341,11 @@ proptest! {
         prop_assert_eq!(left.distance(left), 0.0);
     }
 
-    /// Lerp hits its endpoints: exactly at factor zero, and at factor one up to rounding scaled by the operands' magnitude (the interpolation computes `from + (to - from) * factor`, which rounds twice). Coordinates are bounded to `-1e5..1e5`.
+    /// Lerp hits its endpoints.
+    ///
+    /// Factor zero is exact; factor one holds up to rounding scaled by the operands' magnitude (the
+    /// interpolation computes `from + (to - from) * factor`, which rounds twice). Coordinates are
+    /// bounded to `-1e5..1e5`.
     #[test]
     fn lerp_hits_endpoints_on_arbitrary_vectors(
         from in vec2_strategy(),
@@ -358,7 +369,9 @@ proptest! {
         );
     }
 
-    /// Batch arithmetic operators match the scalar operators bit for bit in every lane: SIMD IEEE arithmetic is scalar arithmetic per lane. Coordinates are bounded to `-1e5..1e5`.
+    /// Batch arithmetic operators match the scalar operators bit for bit in every lane.
+    ///
+    /// SIMD IEEE arithmetic is scalar arithmetic per lane. Coordinates are bounded to `-1e5..1e5`.
     #[test]
     fn batch_operators_match_scalar_lanes_on_arbitrary_inputs(
         lhs in vec2_array_strategy(),
@@ -381,7 +394,10 @@ proptest! {
         }
     }
 
-    /// Batch reductions match the scalar reductions per lane up to FMA contraction, whose rounding scales with the products' magnitude rather than the (possibly cancelled) result. Coordinates are bounded to `-1e5..1e5`.
+    /// Batch reductions match the scalar reductions per lane up to FMA contraction.
+    ///
+    /// The contraction's rounding scales with the products' magnitude rather than the (possibly
+    /// cancelled) result. Coordinates are bounded to `-1e5..1e5`.
     #[test]
     fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
         lhs in vec2_array_strategy(),
@@ -417,7 +433,10 @@ proptest! {
         }
     }
 
-    /// Layout conversions round-trip bit for bit: `[Vec2; 4] -> Vec2x4 -> Vec2x4T -> Vec2x4 -> [Vec2; 4]` reproduces every coordinate's exact bits.
+    /// Layout conversions round-trip bit for bit.
+    ///
+    /// `[Vec2; 4] -> Vec2x4 -> Vec2x4T -> Vec2x4 -> [Vec2; 4]` reproduces every coordinate's exact
+    /// bits.
     #[test]
     fn layout_round_trips_are_bit_exact(points in vec2_array_strategy()) {
         let transposed = Vec2x4T::from(Vec2x4::from(points));

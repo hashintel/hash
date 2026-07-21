@@ -13,7 +13,7 @@
 //! exerts vanishing force on pairs far apart in a frame, so pooled pairs act only where they are
 //! genuinely close.
 //!
-//! The spatial index is exact (a balanced kd-tree), so a query returns THE nearest points: no
+//! The spatial index is exact (a balanced kd-tree), so a query returns the exact nearest points: no
 //! recall accounting, and no retry loop widening the search when exclusions thin the candidates. A
 //! node whose map neighbourhood is fully explained yields an honest short set - it has no false
 //! neighbours to repel.

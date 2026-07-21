@@ -60,15 +60,24 @@ const DEFAULT_PILOT: NonZero<usize> = NonZero::new(688).expect("the default pilo
 /// Pinned sampling and admission settings for one recall spot check.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpotCheckOptions {
-    /// Exact neighbours compared per sampled row; a corpus smaller than this compares every non-self row. This is the `k` of the measured recall@k, independent of the persisted table's neighbour count. Defaults to 50.
+    /// Exact neighbours compared per sampled row.
+    ///
+    /// A corpus smaller than this compares every non-self row. This is the `k` of the measured
+    /// recall@k, independent of the persisted table's neighbour count. Defaults to 50.
     pub neighbours: NonZero<usize> = DEFAULT_NEIGHBOURS,
     /// Minimum admitted aggregate recall over the sample, in `[0, 1]`. Defaults to 0.89.
     pub minimum_recall: f64 = DEFAULT_MINIMUM_RECALL,
-    /// The aggregate error the sample must resolve, in recall units. Defaults to 0.012, the smallest recall difference an admission decision turns on.
+    /// The aggregate error the sample must resolve, in recall units.
+    ///
+    /// Defaults to 0.012, the smallest recall difference an admission decision turns on.
     pub margin: f64 = DEFAULT_MARGIN,
-    /// One-sided confidence that the aggregate's sampling error stays inside the margin, strictly inside `(0, 1)`. Defaults to 0.99.
+    /// One-sided confidence that the aggregate's sampling error stays inside the margin.
+    ///
+    /// Strictly inside `(0, 1)`. Defaults to 0.99.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
-    /// Rows of the variance pilot; a corpus smaller than this compares every row exhaustively. Defaults to 688.
+    /// Rows of the variance pilot; a corpus smaller than this compares every row exhaustively.
+    ///
+    /// Defaults to 688.
     pub pilot: NonZero<usize> = DEFAULT_PILOT,
 }
 

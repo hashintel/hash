@@ -96,9 +96,9 @@ impl Ranking {
         row_of_rank.par_sort_unstable_by(|&left, &right| {
             let (left, right) = (left as usize, right as usize);
 
-            // Descending importance, descending priority: the reversed
-            // comparisons spell the negation SPEC's lexicographic key
-            // applies to the scores.
+            // Descending importance, then descending priority: the
+            // reversed comparisons spell the descending lexicographic
+            // key over the scores.
             inputs.importance[right]
                 .total_cmp(&inputs.importance[left])
                 .then_with(|| inputs.priority[right].total_cmp(&inputs.priority[left]))

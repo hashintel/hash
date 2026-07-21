@@ -19,6 +19,7 @@
     "@rust/hash-graph-types": "workspace:*"
   },
   "devDependencies": {
-    "@rust/darwin-kperf-criterion": "workspace:*"
+    "@rust/darwin-kperf-criterion": "workspace:*",
+    "@rust/darwin-kperf-events": "workspace:*"
   }
 }

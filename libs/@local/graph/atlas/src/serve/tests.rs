@@ -1302,7 +1302,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             "the resolved tile delivers its source",
         );
 
-        // The parent's cumulative schedule does not: zoom is FIRST.
+        // The parent's cumulative schedule does not: zoom is first.
         if source.zoom > 0 {
             let parent = TileRequest {
                 coordinate: TileCoordinate {
@@ -1472,7 +1472,7 @@ async fn locate_subgraph_edges_cap_by_rank_and_protect_the_source() {
     let all = atlas.locate_subgraph(source, u32::MAX, everything, &FULL);
 
     // Brute force: every edge row whose endpoints are both delivered
-    // (here: all of them), ascending WIRE edge row - the wire key
+    // (here: all of them), ascending wire edge row - the wire key
     // derived through an independently constructed codec.
     let (_, edge_codec) = test_codecs(&atlas);
     let wire_of = |row: u32| edge_codec.encode(row).get();
@@ -2282,7 +2282,7 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
 /// A locate source names one subject in one of two identity domains.
 ///
 /// A by-`row` request resolves through the wire codec's ingress - pure arithmetic, no store - to
-/// the SAME response bytes as the by-`entityId` request for that node, an out-of-universe wire
+/// the same response bytes as the by-`entityId` request for that node, an out-of-universe wire
 /// value collapses into `unknown-entity`, and a body carrying both or neither source field is
 /// rejected by name with its count.
 #[tokio::test]
@@ -2292,7 +2292,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     let caps = ServeCaps::default();
 
     // Row 7's wire id round-trips by construction (the codec is a
-    // bijection); the equivalence under test is the two REQUEST
+    // bijection); the equivalence under test is the two request
     // paths, whose agreement is the whole contract in one assertion.
     let (node_codec, _) = test_codecs(&atlas);
     let wire = node_codec.encode(7).get();

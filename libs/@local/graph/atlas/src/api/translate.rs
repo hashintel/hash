@@ -29,7 +29,7 @@ Row ids are opaque per-generation values: consistent across every endpoint of on
                            generations - re-translate after a generation change.
 
 The response is two maps keyed by the requested id string echoed verbatim, so kind is carried by \
-                           which map answers. An id that resolves to nothing is an ABSENT key - \
+                           which map answers. An id that resolves to nothing is an absent key - \
                            never an error, never a null entry: nonexistent ids, draft-suffixed \
                            ids, and entities the principal cannot see are indistinguishable.
 

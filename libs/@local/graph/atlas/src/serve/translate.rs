@@ -3,13 +3,13 @@
 //! Upstream entity ids to atlas identity, the correlation seam between entities the client fetched
 //! through the graph API and dots already on screen.
 //!
-//! The response is two maps keyed by the REQUESTED id string echoed verbatim - byte-for-byte, no
+//! The response is two maps keyed by the requested id string echoed verbatim - byte-for-byte, no
 //! normalization - so client-side map lookups are literal and kind is carried by which map answers.
 //! A node answers its row id plus the wire-frame position (the same `f32` domain as the `POSITIONS`
 //! column, so a translated entity lands pixel-identical to its tile-delivered dot); an edge answers
 //! its row id alone - edges carry no position by nature.
 //!
-//! An id that resolves to nothing is an ABSENT key, never an error and never a null entry:
+//! An id that resolves to nothing is an absent key, never an error and never a null entry:
 //! nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
 //! visibility proof hides are indistinguishable by doctrine (missing = denied). A node answers only
 //! when its row is visible; an edge only when both its endpoints are - edge visibility derives,

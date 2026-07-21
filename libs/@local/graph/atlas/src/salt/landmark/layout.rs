@@ -164,7 +164,9 @@ impl From<RepulsionStrength> for f32 {
 pub(crate) struct LayoutOptions {
     /// Optimization epochs. Defaults to 500.
     pub epochs: NonZero<u32> = const { NonZero::new(500).unwrap() },
-    /// Learning rate at epoch zero; it decays linearly to zero across the epoch budget. Defaults to 1.
+    /// Learning rate at epoch zero; it decays linearly to zero across the epoch budget.
+    ///
+    /// Defaults to 1.
     pub initial_learning_rate: LearningRate = const { LearningRate::new(1.0).unwrap() },
     /// Weight of repulsive updates. Defaults to 1.
     pub repulsion_strength: RepulsionStrength = const { RepulsionStrength::new(1.0).unwrap() },

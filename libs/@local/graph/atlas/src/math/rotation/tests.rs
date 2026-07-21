@@ -84,7 +84,9 @@ fn vec2_strategy() -> impl Strategy<Value = Vec2> {
 }
 
 proptest! {
-    /// Rotation preserves length: `|apply(v)| == |v|` up to rounding scaled by the vector's magnitude.
+    /// Rotation preserves length.
+    ///
+    /// `|apply(v)| == |v|` up to rounding scaled by the vector's magnitude.
     #[test]
     fn apply_preserves_length(radians in angle(), vec in vec2_strategy()) {
         let rotated = Rotation::from_radians(radians).apply(vec);
@@ -96,7 +98,9 @@ proptest! {
         );
     }
 
-    /// Composition distributes over application: `a.then(b).apply(v) == b.apply(a.apply(v))` up to rounding scaled by the vector's magnitude.
+    /// Composition distributes over application.
+    ///
+    /// `a.then(b).apply(v) == b.apply(a.apply(v))` up to rounding scaled by the vector's magnitude.
     #[test]
     fn then_matches_sequential_application(
         first_radians in angle(),
@@ -117,7 +121,9 @@ proptest! {
         );
     }
 
-    /// The inverse undoes the rotation: `inverse().apply(apply(v)) == v` up to rounding scaled by the vector's magnitude.
+    /// The inverse undoes the rotation.
+    ///
+    /// `inverse().apply(apply(v)) == v` up to rounding scaled by the vector's magnitude.
     #[test]
     fn inverse_undoes_apply(radians in angle(), vec in vec2_strategy()) {
         let rotation = Rotation::from_radians(radians);
@@ -132,7 +138,10 @@ proptest! {
         );
     }
 
-    /// Renormalizing preserves the angle: the cosine and sine keep their direction (compared componentwise rather than through `atan2`, which wraps at pi), even after enough compositions to accumulate drift.
+    /// Renormalizing preserves the angle.
+    ///
+    /// The cosine and sine keep their direction (compared componentwise rather than through
+    /// `atan2`, which wraps at pi), even after enough compositions to accumulate drift.
     #[test]
     fn renormalize_preserves_the_angle(radians in angle(), compositions in 1_usize..64) {
         let step = Rotation::from_radians(radians);

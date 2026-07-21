@@ -76,7 +76,9 @@ fn intersection_matches_set_semantics() {
 }
 
 proptest! {
-    /// The packed words agree with a reference set on membership, count, and iteration order at every capacity shape.
+    /// The packed words agree with a reference set on membership, count, and iteration order.
+    ///
+    /// Every capacity shape is exercised.
     #[test]
     fn agrees_with_a_reference_set(
         len in 1_usize..300,

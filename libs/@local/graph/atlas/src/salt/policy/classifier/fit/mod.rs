@@ -283,7 +283,9 @@ impl<'training> TrainingSet<'training> {
 /// [`FitEvidence`] judge them.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
-    /// L2 penalty `lambda` multiplying `squared_norm(W) / 2`; intercepts are never regularized. Positive. Defaults to 1.0.
+    /// L2 penalty `lambda` multiplying `squared_norm(W) / 2`; intercepts are never regularized.
+    ///
+    /// Positive. Defaults to 1.0.
     pub regularization: f64 = 1.0,
     /// Iteration bound per model fit. Positive. Defaults to 500.
     pub maximum_iterations: u64 = 500,

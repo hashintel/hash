@@ -40,15 +40,24 @@ const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
 pub struct RunOptions {
     /// The fit seed; equal seeds replay every stage's random draws.
     pub seed: u64 = 0,
-    /// The landmark capacity `M`. The default is the capacity the legacy pipeline profiled at the million-row scale.
+    /// The landmark capacity `M`. The default is the capacity profiled at the million-row scale.
     pub landmarks: NonZero<u32> = const { NonZero::new(4_096).unwrap() },
-    /// Reuse the root's active generation as the prior: card rows by text hash, landmarks competing for the retained share.
+    /// Reuse the root's active generation as the prior.
+    ///
+    /// Card rows by text hash, landmarks competing for the retained share.
     pub reuse_current: bool = false,
-    /// Path of a reviewed-verdicts document to supply to the fit; the staged role and its manifest binding then exercise the same path production takes.
+    /// Path of a reviewed-verdicts document to supply to the fit.
+    ///
+    /// The staged role and its manifest binding then exercise the same path production takes.
     pub verdicts: Option<String> = None,
-    /// Override the trained placement's step count, keeping the reference options and the midpoint boundary. Absent, the configuration default (the reference schedule) trains.
+    /// Override the trained placement's step count.
+    ///
+    /// Keeps the reference options and the midpoint boundary. Absent, the configuration default
+    /// (the reference schedule) trains.
     pub projector_steps: Option<NonZero<usize>> = None,
-    /// Place at the landmark baseline instead of training: the fallback placer, for measuring the pipeline without the training stage.
+    /// Place at the landmark baseline instead of training.
+    ///
+    /// The fallback placer, for measuring the pipeline without the training stage.
     pub baseline: bool = false,
 }
 

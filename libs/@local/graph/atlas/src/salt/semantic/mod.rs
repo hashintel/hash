@@ -43,9 +43,14 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 /// The defaults are the established UMAP fuzzy-set kernel constants.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SmoothingOptions {
-    /// Absolute tolerance on the membership-sum equation at which the bisection stops early. Defaults to `1e-5`.
+    /// Absolute tolerance on the membership-sum equation at which the bisection stops early.
+    ///
+    /// Defaults to `1e-5`.
     pub tolerance: f64 = 1.0e-5,
-    /// Scale factor of the `sigma` floor: `sigma` never falls below this fraction of the row's mean distance (the corpus mean for rows without a positive distance). Defaults to `1e-3`.
+    /// Scale factor of the `sigma` floor.
+    ///
+    /// `sigma` never falls below this fraction of the row's mean distance (the corpus mean for rows
+    /// without a positive distance). Defaults to `1e-3`.
     pub bandwidth_floor: f32 = 1.0e-3,
     /// Bisection iterations per row when the tolerance is not met earlier. Defaults to 64.
     pub bisection_iterations: usize = 64,

@@ -483,7 +483,7 @@ fn g3_total_tile() -> Golden {
 /// G4.
 ///
 /// The empty root - zero delivered, present-empty columns at one shared offset, `TYPE_MASK` absent,
-/// zero children, and the required global map with `visibleAtZoom = 0` and bounds ABSENT - the
+/// zero children, and the required global map with `visibleAtZoom = 0` and bounds absent - the
 /// bounds-absent-iff-empty rule, pinned.
 fn g4_empty_root() -> Golden {
     let response = TileResponse {
@@ -652,7 +652,7 @@ fn g6_edges() -> Golden {
 /// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), and
 /// the full detail trailer: labels and icons with nulls and non-ASCII, the interned property-name
 /// table shared across nodes, per-node maps covering every simple value shape (text, positive and
-/// NEGATIVE integers, doubles, booleans, explicit null), a `null` unresolved entry, an empty
+/// negative integers, doubles, booleans, explicit null), a `null` unresolved entry, an empty
 /// resolved map, and the four link arrays.
 fn g7_locate() -> Golden {
     let positions: Vec<Vec2> = (0_u16..8)

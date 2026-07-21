@@ -43,7 +43,7 @@ fn complete_table(rows: usize, distances: impl Fn(usize) -> Vec<f32>) -> Knn {
 /// Selection follows stored distance, not storage order.
 ///
 /// Seventeen rows make row 0's table sixteen entries wide, one more than the scale uses. Row 1 -
-/// FIRST in storage order - carries the LARGEST stored distance, so the nearest fifteen are rows
+/// first in storage order - carries the largest stored distance, so the nearest fifteen are rows
 /// 2..=16. With row `j` placed at `(j, 0)`, the correct median over 2D distances `{2..=16}` is 9;
 /// selecting the first fifteen by storage order would include row 1 and yield 8.
 #[test]

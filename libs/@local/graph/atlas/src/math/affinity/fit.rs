@@ -38,11 +38,15 @@ use crate::math::scalar::narrow_f32;
 pub struct AffinityFitConfig {
     /// Number of evenly spaced sample distances for the least-squares target.
     ///
-    /// More samples resolve the target falloff more finely, in particular around the `minimum_distance` breakpoint, at proportionally more work per solver pass. At least [`MIN_SAMPLES`](Self::MIN_SAMPLES).
+    /// More samples resolve the target falloff more finely, in particular around the
+    /// `minimum_distance` breakpoint, at proportionally more work per solver pass. At least
+    /// [`MIN_SAMPLES`](Self::MIN_SAMPLES).
     pub samples: u16 = 300,
     /// The sampled range extends this many spreads from zero.
     ///
-    /// A wider range weights the tail of the falloff more: far samples gain votes in the least-squares balance, sharpening the fitted tail exponent `b` at the cost of fidelity near the breakpoint. Finite and strictly positive.
+    /// A wider range weights the tail of the falloff more: far samples gain votes in the
+    /// least-squares balance, sharpening the fitted tail exponent `b` at the cost of fidelity near
+    /// the breakpoint. Finite and strictly positive.
     pub range_in_spreads: f32 = 3.0,
 }
 
@@ -222,8 +226,8 @@ impl NormalEquations {
 /// fitted `(a, b)`, or [`None`] when the initial evaluation is non-finite, when every damping retry
 /// of an iteration fails, or when the iteration cap passes without convergence.
 pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option<(f64, f64)> {
-    // Same starting point as scipy's `curve_fit`, which the reference
-    // implementation relied on: both parameters at 1.
+    // Both parameters start at 1, the neutral point of the curve's
+    // O(1) parametrization; the damping retries absorb a rough start.
     let (mut a, mut b) = (1.0_f64, 1.0_f64);
     let mut equations = evaluate(grid, &target, a, b)?;
     let mut damping = INITIAL_DAMPING;

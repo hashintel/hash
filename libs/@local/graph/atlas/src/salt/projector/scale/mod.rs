@@ -179,7 +179,7 @@ pub(crate) const fn sorted_median(distances: &[f32]) -> f32 {
 ///
 /// A row whose own coordinate is non-finite yields a non-finite median: every distance it
 /// participates in is non-finite. A poisoned selected neighbour only sometimes reaches the median
-/// (NaN sorts last under the total order), so per-row detection of NEIGHBOUR divergence is
+/// (NaN sorts last under the total order), so per-row detection of neighbour divergence is
 /// deliberately not promised - corpus-level detection is complete regardless, because the diverged
 /// row itself always flags.
 fn row_scale(coordinates: &[Vec2], knn: &KnnView<'_>, row: usize) -> f32 {

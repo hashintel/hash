@@ -661,7 +661,11 @@ fn similarity_strategy() -> impl Strategy<Value = Similarity> {
 }
 
 proptest! {
-    /// A similarity scales all distances uniformly: for any two points separated by at least one unit, the distance ratio equals the scale up to a relative tolerance. Coordinates are bounded to `-1e3..1e3` and the separation floor keeps the subtraction's cancellation error small relative to the distance.
+    /// A similarity scales all distances uniformly.
+    ///
+    /// For any two points separated by at least one unit, the distance ratio equals the scale up to
+    /// a relative tolerance. Coordinates are bounded to `-1e3..1e3` and the separation floor keeps
+    /// the subtraction's cancellation error small relative to the distance.
     #[test]
     fn apply_scales_distances_uniformly(
         similarity in similarity_strategy(),
@@ -681,7 +685,10 @@ proptest! {
         );
     }
 
-    /// Fitting an exact similarity image of non-collinear points recovers the similarity's coefficients. The sources are four well-spread base points jittered by at most `0.5`, far less than the base triangle's extent, so the points can never become collinear.
+    /// Fitting an exact similarity image of non-collinear points recovers the similarity's coefficients.
+    ///
+    /// The sources are four well-spread base points jittered by at most `0.5`, far less than the
+    /// base triangle's extent, so the points can never become collinear.
     #[test]
     fn fit_recovers_a_random_similarity(
         similarity in similarity_strategy(),

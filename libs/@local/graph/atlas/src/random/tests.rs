@@ -149,7 +149,11 @@ fn acceptance_sample_size_rejects_degenerate_parameters() {
 }
 
 proptest! {
-    /// The returned count is sufficient and minimal: `n` all-pass samples push the false-acceptance probability to the target or below, and `n - 1` samples do not. This is the function's entire contract, certified over the whole meaningful parameter space.
+    /// The returned count is sufficient and minimal.
+    ///
+    /// `n` all-pass samples push the false-acceptance probability to the target or below, and `n -
+    /// 1` samples do not. This is the function's entire contract, certified over the whole
+    /// meaningful parameter space.
     #[test]
     fn acceptance_sample_size_is_sufficient_and_minimal(
         defect_rate in 1e-6_f64..0.5,

@@ -188,7 +188,10 @@ fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
 }
 
 proptest! {
-    /// A well-conditioned transform's inverse round-trips points: `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100) condition of the linear part.
+    /// A well-conditioned transform's inverse round-trips points.
+    ///
+    /// `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100)
+    /// condition of the linear part.
     #[test]
     fn inverse_round_trips_arbitrary_points(
         transform in transform_strategy(),
@@ -204,7 +207,10 @@ proptest! {
         assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
     }
 
-    /// Composition distributes over application: `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled by the intermediate coordinates' magnitude.
+    /// Composition distributes over application.
+    ///
+    /// `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled by the intermediate
+    /// coordinates' magnitude.
     #[test]
     fn then_matches_sequential_application_on_arbitrary_transforms(
         first in transform_strategy(),

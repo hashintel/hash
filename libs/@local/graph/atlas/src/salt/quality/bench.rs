@@ -119,7 +119,10 @@ pub fn sweep(path: impl AsRef<Path>, epsilons: &[f32]) -> Result<Sweep, SweepErr
 pub struct AssessOptions {
     /// The probe seed; equal seeds replay the sampling.
     pub seed: u64 = 0,
-    /// Sampled anchor rows. The suite default is 256; a live run over a million rows affords more for sharper subgroup cells.
+    /// Sampled anchor rows.
+    ///
+    /// The suite default is 256; a live run over a million rows affords more for sharper subgroup
+    /// cells.
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Sampled comparison rows.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },

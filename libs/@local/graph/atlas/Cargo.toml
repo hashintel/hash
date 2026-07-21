@@ -62,6 +62,7 @@ unidecode            = { workspace = true }
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+darwin-kperf-events       = { workspace = true }
 proptest                  = { workspace = true }
 sleef                     = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }

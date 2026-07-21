@@ -39,9 +39,13 @@ const DEFAULT_CONFIDENCE: f64 = 0.999;
 pub(crate) struct SpotCheckOptions {
     /// Admitted deviation of a row's squared norm from one, two-sided. Defaults to 1e-4.
     pub tolerance: f64 = DEFAULT_TOLERANCE,
-    /// Defect rate the sample size certifies, strictly inside `(0, 1)`; see [`acceptance_sample_size`]. Smaller rates grow the sample. Defaults to 0.01.
+    /// Defect rate the sample size certifies, strictly inside `(0, 1)`.
+    ///
+    /// See [`acceptance_sample_size`]. Smaller rates grow the sample. Defaults to 0.01.
     pub defect_rate: f64 = DEFAULT_DEFECT_RATE,
-    /// Confidence of the certification, strictly inside `(0, 1)`; see [`acceptance_sample_size`]. Higher confidence grows the sample. Defaults to 0.999.
+    /// Confidence of the certification, strictly inside `(0, 1)`; see [`acceptance_sample_size`].
+    ///
+    /// Higher confidence grows the sample. Defaults to 0.999.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
 }
 

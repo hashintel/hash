@@ -13,7 +13,11 @@ use crate::{
 /// Configuration of the postings representation split.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsConfig {
-    /// A type's membership goes dense when its member count exceeds `N >> dense_threshold_log2`. The default 5 (one in 32) is the size-equality point - one list entry costs 32 bitmap bits - so a dense run is never larger than the list it replaces; the word-parallel OR already wins work at half that density. At exact equality the list wins: it reads without bit decoding.
+    /// A type's membership goes dense when its member count exceeds `N >> dense_threshold_log2`.
+    ///
+    /// The default 5 (one in 32) is the size-equality point - one list entry costs 32 bitmap bits -
+    /// so a dense run is never larger than the list it replaces; the word-parallel OR already wins
+    /// work at half that density. At exact equality the list wins: it reads without bit decoding.
     pub dense_threshold_log2: u8 = 5,
 }
 

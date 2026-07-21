@@ -23,7 +23,7 @@ mod tests;
 /// rotation is reversed.
 ///
 /// Note that long chains of [`then`](Self::then) accumulate rounding in the stored vector, letting
-/// it drift off the unit circle by a few units in the last place per composition. Call
+/// it drift off the unit circle by roughly one unit in the last place per composition. Call
 /// [`renormalize`](Self::renormalize) periodically when composing rotations incrementally; the
 /// angle is unaffected, only the vector's length is corrected.
 ///

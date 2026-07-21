@@ -91,10 +91,15 @@ const CARD_LANGUAGE: &str = "en";
 /// Assembly settings.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct AssemblyConfig {
-    /// The cosine-distance threshold under which two rendered cards count as near-duplicates and share a validation group, on the `1 - cos` scale in `[0, 2]`. Positive. Defaults to `2e-3`, the near-tie threshold established for this embedding family.
+    /// The cosine-distance threshold under which two rendered cards count as near-duplicates.
+    ///
+    /// Near-duplicates share a validation group. On the `1 - cos` scale in `[0, 2]`; positive.
+    /// Defaults to `2e-3`, the near-tie threshold established for this embedding family.
     pub near_duplicate_epsilon: f64 = 2.0e-3,
 
-    /// The largest fraction of the trained rows one validation group may hold before subdivision relaxes its weakest axes, in `(0, 1]`. Defaults to `0.1`.
+    /// The largest fraction of the trained rows one validation group may hold, in `(0, 1]`.
+    ///
+    /// Beyond it, subdivision relaxes the group's weakest axes. Defaults to `0.1`.
     pub maximum_group_fraction: f64 = 0.1,
 }
 

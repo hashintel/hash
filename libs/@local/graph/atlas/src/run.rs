@@ -124,23 +124,42 @@ pub struct Options {
     pub landmarks: NonZero<u32> = const { NonZero::new(4_096).unwrap() },
     /// Run without a prior even when the root holds an active generation.
     pub fresh: bool = false,
-    /// Assert the Proximal radius instead of measuring it: the trainer freezes this value where a calibration pass would have measured one. Finite, above the Coincident radius.
+    /// Assert the Proximal radius instead of measuring it.
+    ///
+    /// The trainer freezes this value where a calibration pass would have measured one. Finite,
+    /// above the Coincident radius.
     pub asserted_proximal_radius: Option<f32> = None,
-    /// Withhold the relation evidence from the trained placement: every other objective term trains and no reviewed verdicts are demanded. For corpora without reviewed-Proximal coverage that still want the full trained placement.
+    /// Withhold the relation evidence from the trained placement.
+    ///
+    /// Every other objective term trains and no reviewed verdicts are demanded. For corpora without
+    /// reviewed-Proximal coverage that still want the full trained placement.
     pub vacuous_placement: bool = false,
     /// Sampled anchor rows of the admission probe.
     pub anchors: NonZero<usize> = const { NonZero::new(1_024).unwrap() },
     /// Sampled comparison rows of the admission probe.
     pub comparisons: NonZero<usize> = const { NonZero::new(4_096).unwrap() },
-    /// Path of a reviewed-verdicts document to supply to the run. The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs, so a corpus whose relations carry Proximal force needs one (or an asserted radius) to train.
+    /// Path of a reviewed-verdicts document to supply to the run.
+    ///
+    /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
+    /// so a corpus whose relations carry Proximal force needs one (or an asserted radius) to train.
     pub verdicts: Option<String> = None,
-    /// Path of an annotation-corpus document: the classifier's training supply. The run assembles it, fits the relation classifier, and stages the corpus, the embedding table, and the model. Exactly one of `annotations` and `classifier` must be supplied.
+    /// Path of an annotation-corpus document: the classifier's training supply.
+    ///
+    /// The run assembles it, fits the relation classifier, and stages the corpus, the embedding
+    /// table, and the model. Exactly one of `annotations` and `classifier` must be supplied.
     pub annotations: Option<String> = None,
-    /// Path of a fitted classifier artifact (`.clsf`) to supply in place of fitting one. Exactly one of `annotations` and `classifier` must be supplied.
+    /// Path of a fitted classifier artifact (`.clsf`) to supply in place of fitting one.
+    ///
+    /// Exactly one of `annotations` and `classifier` must be supplied.
     pub classifier: Option<String> = None,
-    /// Override the trained placement's step count, keeping the ratified options and the midpoint boundary. Absent, the configuration default trains.
+    /// Override the trained placement's step count.
+    ///
+    /// Keeps the ratified options and the midpoint boundary. Absent, the configuration default
+    /// trains.
     pub projector_steps: Option<NonZero<usize>> = None,
-    /// Place at the landmark baseline instead of training: the fallback placer, for running without the training stage.
+    /// Place at the landmark baseline instead of training.
+    ///
+    /// The fallback placer, for running without the training stage.
     pub baseline: bool = false,
 }
 
