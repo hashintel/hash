@@ -167,6 +167,31 @@ Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once
 startup completes and terminates the CLI's isolated process group on timeout,
 failure, or client disconnect.
 
+## Observability
+
+The service is instrumented with OpenTelemetry. When `HASH_OTLP_ENDPOINT` is
+set it exports traces, metrics, and logs over OTLP/gRPC to that collector — the
+same variable and `otel-collector:4317` target the rest of the HASH stack uses.
+When the variable is unset (a plain `uv run` with no collector) telemetry is
+skipped and the service runs normally, matching the Node workers.
+
+- Traces: incoming HTTP requests are auto-instrumented, and each Optuna trial is
+  recorded as an `optimization.trial` span with the trial number, value, and any
+  pruning exception.
+- Metrics and logs: the FastAPI/Optuna default metrics and stdlib log records are
+  exported to the collector (Mimir/Loki in the stack).
+
+Configuration:
+
+- `HASH_OTLP_ENDPOINT` — collector URL, e.g. `http://otel-collector:4317`. A
+  `http://` scheme selects a plaintext (insecure) gRPC channel.
+- `OTEL_SERVICE_NAME` — service name shown in Tempo/Grafana. Defaults to
+  `Petrinaut Optimizer`.
+
+Bootstrap lives in `src/telemetry.py` and runs once when the app is created. A
+misconfigured collector is logged and swallowed so it never stops the API from
+serving.
+
 ## Development
 
 From `apps/petrinaut-opt`:
