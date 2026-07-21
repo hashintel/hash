@@ -19,6 +19,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.petrinaut_client import PetrinautModel
 from src.petrinaut_optimizer import PetrinautOptimizer
+from src.telemetry import setup_telemetry
 from src.utils import Phase, RunStatus, StatusStore, set_status
 
 
@@ -112,6 +113,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Petrinaut optimization Python API", lifespan=lifespan)
 app.add_middleware(RequestBodyLimitMiddleware)
+setup_telemetry(app)
 
 
 def create_model(optimization_manifest: dict[str, Any]) -> PetrinautModel:
