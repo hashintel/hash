@@ -1,4 +1,4 @@
-import { Box, Stack, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
@@ -14,6 +14,7 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { Button } from "../../shared/ui";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
 import {
@@ -251,6 +252,22 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+
+  const {
+    availableEntityTypes,
+    propertyFilterData,
+    loading: availableTypesLoading,
+    typeUniverse,
+    typeUniverseError,
+    refetchTypeUniverse,
+  } = useAvailableTypes({
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+  });
+
   const entitiesData = useEntitiesVisualizerData({
     conversions: activeConversionsWithoutTitle
       ? typedEntries(activeConversionsWithoutTitle).map(
@@ -268,6 +285,8 @@ export const EntitiesVisualizer: FunctionComponent<{
     internalWebs,
     limit: 500,
     sort: graphSort,
+    typeUniverse,
+    typeUniverseError,
     view,
   });
 
@@ -345,19 +364,6 @@ export const EntitiesVisualizer: FunctionComponent<{
       setVisualizerData(entitiesData);
     }
   }, [entitiesData]);
-
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
-
-  const {
-    availableEntityTypes,
-    propertyFilterData,
-    loading: availableTypesLoading,
-  } = useAvailableTypes({
-    filterState,
-    internalWebs,
-    entityTypeBaseUrl,
-    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-  });
 
   useEffect(() => {
     if (availableTypesLoading) {
@@ -612,7 +618,30 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
-      {showLoading ? (
+      {typeUniverseError ? (
+        <Stack
+          gap={2}
+          sx={[
+            {
+              alignItems: "center",
+              justifyContent: "center",
+              height: tableHeight,
+              width: "100%",
+            },
+            tableContentSx,
+          ]}
+        >
+          <Typography>Something went wrong loading entities.</Typography>
+          <Button
+            onClick={() => {
+              void refetchTypeUniverse();
+            }}
+            size="small"
+          >
+            Try again
+          </Button>
+        </Stack>
+      ) : showLoading ? (
         <Stack
           sx={[
             {
