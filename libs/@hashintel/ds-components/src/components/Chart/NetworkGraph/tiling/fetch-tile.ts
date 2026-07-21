@@ -426,9 +426,10 @@ export const clearAtlasSessionCache = (baseUrl?: string): void => {
  * list of matched {@link FetchTileOptions.coloredTypeIds} indices. `stride` is
  * the per-point byte count (`ceil(count / 8)`); bit `k` of byte `b` names the
  * queried type at index `b * 8 + k`. `count` caps the scan so padding bits in
- * the final byte are never read as types.
+ * the final byte are never read as types. Shared with the locate transport
+ * (`fetch-locate.ts`), whose TYPE_MASK column is laid out identically.
  */
-const typeIndicesAt = (
+export const typeIndicesAt = (
   typeMask: Uint8Array,
   index: number,
   stride: number,

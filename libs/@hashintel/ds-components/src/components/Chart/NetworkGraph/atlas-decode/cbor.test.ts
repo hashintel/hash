@@ -81,6 +81,14 @@ describe("decodeCbor", () => {
     expect(value.get(2)).toBe(1.5);
   });
 
+  it("decodes f64 doubles (locate property values)", () => {
+    // 0.1 has no exact f32 form, so a single-precision read would drift.
+    expect(
+      decodeCbor(bytes(0xfb, 0x3f, 0xb9, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a)),
+    ).toBe(0.1);
+    expect(decodeCbor(bytes(0xfb, 0xc0, 0x04, 0, 0, 0, 0, 0, 0))).toBe(-2.5);
+  });
+
   it("rejects map keys that are unsorted, duplicated, or not uints", () => {
     expect(failure(bytes(0xa2, 0x01, 0x00, 0x00, 0x00))).toMatch(
       /ascending order/u,
@@ -99,10 +107,7 @@ describe("decodeCbor", () => {
     expect(failure(bytes(0x5f))).toMatch(/indefinite/u);
     expect(failure(bytes(0x9f))).toMatch(/indefinite/u);
     expect(failure(bytes(0xbf))).toMatch(/indefinite/u);
-    expect(failure(bytes(0xf9, 0x3c, 0x00))).toMatch(/single precision/u);
-    expect(failure(bytes(0xfb, 0x3f, 0xf8, 0, 0, 0, 0, 0, 0))).toMatch(
-      /single precision/u,
-    );
+    expect(failure(bytes(0xf9, 0x3c, 0x00))).toMatch(/half-precision/u);
     expect(failure(bytes(0xf7))).toMatch(/simple value 23/u);
     expect(failure(bytes(0x1c))).toMatch(/reserved additional info/u);
   });

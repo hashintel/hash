@@ -5,10 +5,24 @@ import { css } from "@hashintel/ds-helpers/css";
 import { LoadingSpinner } from "../../Loading/loading-spinner";
 import { iconNameFromEntityIcon } from "./fixtures/entity-icon-name";
 import {
+  LocatedEntityPopover,
+  type LocatedEntityDetail,
+  type LocatedEntityPopoverAnchor,
+} from "./located-entity-popover";
+import {
   NetworkGraph,
   type NetworkGraphEdge,
+  type NetworkGraphEdgeInteraction,
+  type NetworkGraphHandle,
+  type NetworkGraphInteraction,
   type NetworkGraphPoint,
+  type NetworkGraphSelection,
 } from "./network-graph";
+import {
+  fetchLocate,
+  type LocatedEntity,
+  type SaltilePropertyValue,
+} from "./tiling/fetch-locate";
 import {
   tileZoomForViewport,
   useGetViewportNodes,
@@ -120,6 +134,19 @@ const shortTypeName = (url: string): string => {
   const match = /entity-type\/([^/]+)\/v\/(\d+)/u.exec(url);
   return match ? `${match[1]} v${match[2]}` : url;
 };
+
+/**
+ * Last meaningful path segment of a property base URL, for the popover — e.g.
+ * `https://hash.ai/@h/types/property-type/name/` reads as `name`.
+ */
+const shortPropName = (url: string): string => {
+  const segments = url.split("/").filter(Boolean);
+  return segments[segments.length - 1] ?? url;
+};
+
+/** A located property value rendered for the popover; `null` reads as an em dash. */
+const formatPropValue = (value: SaltilePropertyValue): string =>
+  value === null ? "—" : String(value);
 
 interface Camera {
   readonly zoom: number | null;
@@ -357,6 +384,26 @@ const legendSwatchStyles = css({
 
 type Status = "loading" | "idle" | "error";
 
+/** The located item the popover shows, plus the world point "Go to entity" flies to. */
+interface Selection {
+  readonly detail: LocatedEntityDetail;
+  readonly focus: readonly [number, number];
+}
+
+/** The type chip for a node's first matched type, or `undefined` when untyped. */
+const typeChipForIndices = (
+  typeIndices: readonly number[] | undefined,
+): LocatedEntityDetail["type"] => {
+  const index = typeIndices?.[0];
+  if (index === undefined) {
+    return undefined;
+  }
+  return {
+    label: shortTypeName(COLORED_TYPE_IDS[index] ?? String(index)),
+    color: TYPE_PALETTE[index % TYPE_PALETTE.length] ?? UNTYPED_COLOR,
+  };
+};
+
 /**
  * Drives the tiling pipeline from the graph's live camera: every pan/zoom (and
  * resize) recomputes the viewport and hands it to {@link useGetViewportNodes},
@@ -367,6 +414,7 @@ type Status = "loading" | "idle" | "error";
  */
 const AtlasTilingStory = () => {
   const frameRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<NetworkGraphHandle>(null);
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const boundsRef = useRef<Bounds | null>(null);
@@ -375,6 +423,16 @@ const AtlasTilingStory = () => {
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+
+  // What's highlighted: a node (overlaid with its located neighbourhood) or an
+  // edge. `anchor` is the selection's live on-screen point (re-reported on
+  // zoom/pan, null while off screen); `selection` is the located detail the
+  // popover shows plus the world point "Go to entity" reveals.
+  const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
+  const [anchor, setAnchor] = useState<LocatedEntityPopoverAnchor | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  // Bumped on every click/clear so a slow earlier locate can't land over a newer one.
+  const locateSeqRef = useRef(0);
 
   const { data, isFetching, isError, error, tileCount } = useGetViewportNodes(
     viewport,
@@ -470,6 +528,127 @@ const AtlasTilingStory = () => {
     };
   }, [schedule]);
 
+  // Drop the selection and its popover (empty-space click, or popover dismiss).
+  // Bumping the sequence discards any locate still in flight.
+  const clearSelection = useCallback(() => {
+    locateSeqRef.current += 1;
+    setSelected(null);
+    setSelection(null);
+  }, []);
+
+  // Locate `atlasId`, then apply `onLocated` to the decoded subgraph — but only
+  // if this is still the latest click (guards against out-of-order responses).
+  const locate = useCallback(
+    (atlasId: number, onLocated: (entity: LocatedEntity) => void) => {
+      locateSeqRef.current += 1;
+      const seq = locateSeqRef.current;
+      void fetchLocate(atlasId, {
+        baseUrl: ATLAS_PROXY_BASE,
+        coloredTypeIds: COLORED_TYPE_IDS,
+      })
+        .then((entity) => {
+          if (seq === locateSeqRef.current) {
+            onLocated(entity);
+          }
+        })
+        .catch((locateError: unknown) => {
+          if (seq === locateSeqRef.current) {
+            // eslint-disable-next-line no-console
+            console.error("Atlas locate failed", locateError);
+          }
+        });
+    },
+    [],
+  );
+
+  // Click a node → locate it and overlay its located neighbourhood, so the node,
+  // its edges, and its neighbours are all highlighted (whether or not tiling has
+  // them loaded). Clicking empty space clears the selection.
+  const handleNodeClick = useCallback(
+    (interaction: NetworkGraphInteraction) => {
+      if (!interaction.point) {
+        clearSelection();
+        return;
+      }
+      locate(Number(interaction.point.id), (entity) => {
+        const [source, ...neighbours] = entity.nodes;
+        if (!source) {
+          return;
+        }
+        setSelected({
+          node: {
+            point: toPoint(source),
+            edges: entity.edges.map(toEdge),
+            neighbours: neighbours.map(toPoint),
+          },
+        });
+        const type = typeChipForIndices(source.typeIndices);
+        setSelection({
+          detail: {
+            kind: "node",
+            title: source.label ?? `Node ${source.id}`,
+            ...(source.icon !== undefined ? { icon: source.icon } : {}),
+            ...(type !== undefined ? { type } : {}),
+            properties: Object.entries(source.properties ?? {}).map(
+              ([key, value]) => ({
+                key: shortPropName(key),
+                value: formatPropValue(value),
+              }),
+            ),
+          },
+          focus: [source.x, source.y],
+        });
+      });
+    },
+    [clearSelection, locate],
+  );
+
+  // Click an edge → select it (its selection outlines both endpoints — an edge's
+  // only neighbours). Locate is node-based, so we locate one endpoint node and
+  // read the clicked edge's link detail out of that subgraph for the popover.
+  const handleEdgeClick = useCallback(
+    (interaction: NetworkGraphEdgeInteraction) => {
+      const edge = interaction.edge;
+      if (!edge) {
+        clearSelection();
+        return;
+      }
+      setSelected({ edge: edge.id });
+      const edgeId = Number(edge.id);
+      locate(Number(edge.fromId), (entity) => {
+        // The source (index 0) is the endpoint we located the edge through.
+        const source = entity.nodes[0];
+        if (!source) {
+          return;
+        }
+        const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        setSelection({
+          detail: {
+            kind: "edge",
+            title: locatedEdge?.label ?? `Edge ${edge.id}`,
+            ...(locatedEdge?.icon !== undefined
+              ? { icon: locatedEdge.icon }
+              : {}),
+            ...(locatedEdge?.typeLabel !== undefined
+              ? { type: { label: locatedEdge.typeLabel, color: UNTYPED_COLOR } }
+              : {}),
+            properties: [],
+          },
+          focus: [source.x, source.y],
+        });
+      });
+    },
+    [clearSelection, locate],
+  );
+
+  // "Go to entity" reveals the located point — bringing it on screen if it
+  // isn't (a no-op when it already is, e.g. the node you just clicked).
+  const handleGoTo = useCallback(() => {
+    if (selection) {
+      graphRef.current?.revealPoint([selection.focus[0], selection.focus[1]]);
+    }
+  }, [selection]);
+
   const status: Status = isError ? "error" : isFetching ? "loading" : "idle";
   const errorMessage = error?.message ?? null;
   const depth = viewport ? tileZoomForViewport(viewport.zoom) : 1;
@@ -478,12 +657,27 @@ const AtlasTilingStory = () => {
     <div ref={frameRef} className={frameStyles}>
       {bounds ? (
         <NetworkGraph
+          ref={graphRef}
           points={points}
           edges={edges}
           graphBounds={bounds}
           maxZoom={MAX_ZOOM}
+          selected={selected}
+          onNodeClick={handleNodeClick}
+          onEdgeClick={handleEdgeClick}
+          onSelectedPositionChange={setAnchor}
           onZoom={handleZoom}
           onPan={handlePan}
+        />
+      ) : null}
+
+      {selection && anchor ? (
+        <LocatedEntityPopover
+          triggerRef={frameRef}
+          anchor={anchor}
+          detail={selection.detail}
+          onClose={clearSelection}
+          onGoTo={handleGoTo}
         />
       ) : null}
 
@@ -525,7 +719,9 @@ const AtlasTilingStory = () => {
           <span>status</span>
           <span>{status}</span>
         </div>
-        <div className={panelHintStyles}>Scroll to zoom, drag to pan.</div>
+        <div className={panelHintStyles}>
+          Scroll to zoom, drag to pan, click a node or edge to locate it.
+        </div>
         <div className={legendStyles}>
           {COLORED_TYPE_IDS.map((url, index) => (
             <div key={url} className={legendRowStyles}>

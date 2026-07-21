@@ -20,13 +20,23 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import {
+  fetchLocate,
   iconNameFromEntityIcon,
+  LocatedEntityPopover,
   NetworkGraph,
+  PortalContainerContext,
   useGetViewportNodes,
   WORLD_SIZE,
+  type LocatedEntity,
+  type LocatedEntityDetail,
+  type LocatedEntityPopoverAnchor,
   type NetworkGraphEdge,
+  type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
+  type NetworkGraphInteraction,
   type NetworkGraphPoint,
+  type NetworkGraphSelection,
+  type SaltilePropertyValue,
   type Viewport,
   type ViewportEdge,
   type ViewportNode,
@@ -199,6 +209,25 @@ const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
 });
 
 /**
+ * Last meaningful path segment of a property base URL, for the popover — e.g.
+ * `https://hash.ai/@h/types/property-type/name/` reads as `name`.
+ */
+const shortPropName = (url: string): string => {
+  const segments = url.split("/").filter(Boolean);
+  return segments[segments.length - 1] ?? url;
+};
+
+/** A located property value rendered for the popover; `null` reads as an em dash. */
+const formatPropValue = (value: SaltilePropertyValue): string =>
+  value === null ? "—" : String(value);
+
+/** The located item the popover shows, plus the world point "Go to entity" reveals. */
+interface Selection {
+  readonly detail: LocatedEntityDetail;
+  readonly focus: readonly [number, number];
+}
+
+/**
  * Drives the tiling pipeline from the graph's live camera: every pan/zoom (and
  * resize) recomputes the viewport and hands it to {@link useGetViewportNodes},
  * which fetches its tiles through a persistent cache and returns the merged nodes
@@ -276,6 +305,37 @@ export const NetworkGraphView = ({
     [coloredTypeColors],
   );
 
+  // Type title per entity type id, for the located-entity popover's type chip.
+  const typeTitleById = useMemo(() => {
+    const map = new Map<VersionedUrl, string>();
+    for (const type of availableEntityTypes) {
+      map.set(type.entityTypeId, type.title);
+    }
+    return map;
+  }, [availableEntityTypes]);
+
+  // The popover type chip for a node: its first matched type's title + colour,
+  // or `undefined` when the node matches none of the coloured types.
+  const typeChipForIndices = useCallback(
+    (
+      typeIndices: readonly number[] | undefined,
+    ): LocatedEntityDetail["type"] => {
+      const index = typeIndices?.[0];
+      if (index === undefined) {
+        return undefined;
+      }
+      const entityTypeId = coloredTypeIds[index];
+      if (entityTypeId === undefined) {
+        return undefined;
+      }
+      return {
+        label: typeTitleById.get(entityTypeId) ?? entityTypeId,
+        color: coloredTypeColors[index] ?? unassignedTypeColor,
+      };
+    },
+    [coloredTypeIds, coloredTypeColors, typeTitleById],
+  );
+
   const frameRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<NetworkGraphHandle>(null);
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
@@ -292,6 +352,15 @@ export const NetworkGraphView = ({
   const [isFullScreen, setIsFullScreen] = useState(false);
   // The graph opens fully framed out, so zoom-out starts at its limit.
   const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
+
+  // What's highlighted (a searched pin, a clicked node's located neighbourhood,
+  // or a clicked edge), the selection's live on-screen anchor (re-reported on
+  // zoom/pan), and the located detail the popover shows plus its fly-to point.
+  const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
+  const [anchor, setAnchor] = useState<LocatedEntityPopoverAnchor | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  // Bumped on every click/clear so a slow earlier locate can't land over a newer one.
+  const locateSeqRef = useRef(0);
 
   // Full-screen the frame element itself (not the document) so the graph fills
   // the screen while its overlaid controls come along. The ResizeObserver below
@@ -405,8 +474,144 @@ export const NetworkGraphView = ({
       color: unassignedTypeColor,
       label: result.label,
     });
+    setSelected({ node: result.entityId });
+    setSelection(null);
+    locateSeqRef.current += 1;
     graphRef.current?.revealPoint([x, y]);
   }, []);
+
+  // Drop the selection and its popover (empty-space click, or popover dismiss).
+  // Bumping the sequence discards any locate still in flight.
+  const clearSelection = useCallback(() => {
+    locateSeqRef.current += 1;
+    setSelected(null);
+    setSelection(null);
+  }, []);
+
+  // Locate `atlasId` (a node row id), then apply `onLocated` — but only if this
+  // is still the latest click (guards against out-of-order responses). A failed
+  // locate just leaves the item selected without a popover.
+  const locate = useCallback(
+    (atlasId: number, onLocated: (entity: LocatedEntity) => void) => {
+      locateSeqRef.current += 1;
+      const seq = locateSeqRef.current;
+      void fetchLocate(atlasId, { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds })
+        .then((entity) => {
+          if (seq === locateSeqRef.current) {
+            onLocated(entity);
+          }
+        })
+        .catch(() => {});
+    },
+    [coloredTypeIds],
+  );
+
+  // Click a node → highlight it immediately, then locate it and overlay its
+  // located neighbourhood (node, edges, neighbours) with a detail popover.
+  // Clicking empty space clears the selection.
+  const handleNodeClick = useCallback(
+    (interaction: NetworkGraphInteraction) => {
+      if (!interaction.point) {
+        clearSelection();
+        return;
+      }
+      setSelected({ node: interaction.point.id });
+      setSelection(null);
+      // A searched pin carries an entity id, not an atlas row id, so it can't be
+      // located; only real tile nodes (numeric ids) go to the locate API.
+      const atlasId = Number(interaction.point.id);
+      if (!Number.isFinite(atlasId)) {
+        return;
+      }
+      locate(atlasId, (entity) => {
+        const [source, ...neighbours] = entity.nodes;
+        if (!source) {
+          return;
+        }
+        setSelected({
+          node: {
+            point: toPoint(source, colorForTypeIndices(source.typeIndices)),
+            edges: entity.edges.map(toEdge),
+            neighbours: neighbours.map((neighbour) =>
+              toPoint(neighbour, colorForTypeIndices(neighbour.typeIndices)),
+            ),
+          },
+        });
+        const type = typeChipForIndices(source.typeIndices);
+        setSelection({
+          detail: {
+            kind: "node",
+            title: source.label ?? `Node ${source.id}`,
+            ...(source.icon !== undefined ? { icon: source.icon } : {}),
+            ...(type !== undefined ? { type } : {}),
+            properties: Object.entries(source.properties ?? {}).map(
+              ([key, value]) => ({
+                key: shortPropName(key),
+                value: formatPropValue(value),
+              }),
+            ),
+          },
+          focus: [source.x, source.y],
+        });
+      });
+    },
+    [clearSelection, locate, colorForTypeIndices, typeChipForIndices],
+  );
+
+  // Click an edge → select it (its selection outlines both endpoints — an edge's
+  // only neighbours). Locate is node-based, so we locate one endpoint node and
+  // read the clicked edge's link detail out of that subgraph for the popover.
+  const handleEdgeClick = useCallback(
+    (interaction: NetworkGraphEdgeInteraction) => {
+      const edge = interaction.edge;
+      if (!edge) {
+        clearSelection();
+        return;
+      }
+      setSelected({ edge: edge.id });
+      setSelection(null);
+      const edgeId = Number(edge.id);
+      const fromId = Number(edge.fromId);
+      if (!Number.isFinite(fromId)) {
+        return;
+      }
+      locate(fromId, (entity) => {
+        const source = entity.nodes[0];
+        if (!source) {
+          return;
+        }
+        const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        setSelection({
+          detail: {
+            kind: "edge",
+            title: locatedEdge?.label ?? `Edge ${edge.id}`,
+            ...(locatedEdge?.icon !== undefined
+              ? { icon: locatedEdge.icon }
+              : {}),
+            ...(locatedEdge?.typeLabel !== undefined
+              ? {
+                  type: {
+                    label: locatedEdge.typeLabel,
+                    color: unassignedTypeColor,
+                  },
+                }
+              : {}),
+            properties: [],
+          },
+          focus: [source.x, source.y],
+        });
+      });
+    },
+    [clearSelection, locate],
+  );
+
+  // "Go to entity" reveals the located point — bringing it on screen if it isn't
+  // (a no-op when it already is, e.g. the node you just clicked).
+  const handleGoTo = useCallback(() => {
+    if (selection) {
+      graphRef.current?.revealPoint([selection.focus[0], selection.focus[1]]);
+    }
+  }, [selection]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -441,91 +646,108 @@ export const NetworkGraphView = ({
     // `.hash-ds-root` scopes the `@hashintel/ds-components` Panda design tokens
     // (e.g. `--sizes-full`) that `NetworkGraph`'s styles reference. Without it the
     // graph container's `height: var(--sizes-full)` resolves to nothing and
-    // collapses to 0, so deck.gl never initialises.
-    <Box
-      ref={frameRef}
-      className="hash-ds-root"
-      sx={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        backgroundColor: "white",
-      }}
-    >
-      {bounds ? (
-        <>
-          <NetworkGraph
-            ref={graphRef}
-            points={points}
-            edges={edges}
-            graphBounds={bounds}
-            maxZoom={MAX_ZOOM}
-            selected={searchedPoint ? { node: searchedPoint.id } : null}
-            onZoom={handleZoom}
-            onPan={handlePan}
-          />
-          <NetworkGraphSearch
-            onSelect={handleSearchSelect}
-            popperContainer={frameRef.current}
-          />
-          <Stack
-            direction="column"
-            gap={1}
-            sx={{ position: "absolute", bottom: 8, right: 8 }}
-          >
-            {document.fullscreenEnabled ? (
-              <GrayToBlueIconButton
-                aria-label={isFullScreen ? "Exit full screen" : "Full screen"}
-                onClick={toggleFullScreen}
-              >
-                {isFullScreen ? (
-                  <ArrowDownLeftAndArrowUpRightToCenterIcon />
-                ) : (
-                  <ArrowUpRightAndArrowDownLeftFromCenterIcon />
-                )}
-              </GrayToBlueIconButton>
+    // collapses to 0, so deck.gl never initialises. The same element is supplied
+    // as the `PortalContainerContext` so the located-entity popover (which
+    // portals its content) renders inside that token scope rather than at
+    // `document.body`, where the scoped colour tokens wouldn't resolve.
+    <PortalContainerContext.Provider value={frameRef}>
+      <Box
+        ref={frameRef}
+        className="hash-ds-root"
+        sx={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          backgroundColor: "white",
+        }}
+      >
+        {bounds ? (
+          <>
+            <NetworkGraph
+              ref={graphRef}
+              points={points}
+              edges={edges}
+              graphBounds={bounds}
+              maxZoom={MAX_ZOOM}
+              selected={selected}
+              onNodeClick={handleNodeClick}
+              onEdgeClick={handleEdgeClick}
+              onSelectedPositionChange={setAnchor}
+              onZoom={handleZoom}
+              onPan={handlePan}
+            />
+            {selection && anchor ? (
+              <LocatedEntityPopover
+                triggerRef={frameRef}
+                anchor={anchor}
+                detail={selection.detail}
+                onClose={clearSelection}
+                onGoTo={handleGoTo}
+              />
             ) : null}
-            <GrayToBlueIconButton
-              aria-label="Zoom in"
-              disabled={zoomLimits.atMax}
-              onClick={() => graphRef.current?.zoomIn()}
-              sx={zoomButtonSx}
+            <NetworkGraphSearch
+              onSelect={handleSearchSelect}
+              popperContainer={frameRef.current}
+            />
+            <Stack
+              direction="column"
+              gap={1}
+              sx={{ position: "absolute", bottom: 8, right: 8 }}
             >
-              <PlusRegularIcon />
-            </GrayToBlueIconButton>
-            <GrayToBlueIconButton
-              aria-label="Zoom out"
-              disabled={zoomLimits.atMin}
-              onClick={() => graphRef.current?.zoomOut()}
-              sx={zoomButtonSx}
-            >
-              <MinusRegularIcon />
-            </GrayToBlueIconButton>
+              {document.fullscreenEnabled ? (
+                <GrayToBlueIconButton
+                  aria-label={isFullScreen ? "Exit full screen" : "Full screen"}
+                  onClick={toggleFullScreen}
+                >
+                  {isFullScreen ? (
+                    <ArrowDownLeftAndArrowUpRightToCenterIcon />
+                  ) : (
+                    <ArrowUpRightAndArrowDownLeftFromCenterIcon />
+                  )}
+                </GrayToBlueIconButton>
+              ) : null}
+              <GrayToBlueIconButton
+                aria-label="Zoom in"
+                disabled={zoomLimits.atMax}
+                onClick={() => graphRef.current?.zoomIn()}
+                sx={zoomButtonSx}
+              >
+                <PlusRegularIcon />
+              </GrayToBlueIconButton>
+              <GrayToBlueIconButton
+                aria-label="Zoom out"
+                disabled={zoomLimits.atMin}
+                onClick={() => graphRef.current?.zoomOut()}
+                sx={zoomButtonSx}
+              >
+                <MinusRegularIcon />
+              </GrayToBlueIconButton>
+            </Stack>
+          </>
+        ) : (
+          <Stack
+            sx={{
+              position: "absolute",
+              inset: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              px: 6,
+              textAlign: "center",
+            }}
+          >
+            {isError ? (
+              <Typography variant="smallTextParagraphs" color="gray.70">
+                Couldn’t reach the Atlas server. Start it, then reload — tiles
+                are fetched via the <code>/atlas-api</code> proxy.
+                {error?.message ? ` (${error.message})` : null}
+              </Typography>
+            ) : (
+              <LoadingSpinner size={42} color={theme.palette.blue[60]} />
+            )}
           </Stack>
-        </>
-      ) : (
-        <Stack
-          sx={{
-            position: "absolute",
-            inset: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-            px: 6,
-            textAlign: "center",
-          }}
-        >
-          {isError ? (
-            <Typography variant="smallTextParagraphs" color="gray.70">
-              Couldn’t reach the Atlas server. Start it, then reload — tiles are
-              fetched via the <code>/atlas-api</code> proxy.
-              {error?.message ? ` (${error.message})` : null}
-            </Typography>
-          ) : (
-            <LoadingSpinner size={42} color={theme.palette.blue[60]} />
-          )}
-        </Stack>
-      )}
-    </Box>
+        )}
+      </Box>
+    </PortalContainerContext.Provider>
   );
 };
