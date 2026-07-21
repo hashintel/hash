@@ -47,10 +47,10 @@ export const useAvailableTypes = ({
    */
   typeUniverse: VersionedUrl[] | null;
   /**
-   * Set when the type universe cannot be provided — the summary query failed,
-   * or its response was missing the requested type ids. The main entities query
-   * stays gated in that case, so callers should surface this instead of an
-   * endless loading state.
+   * Set when no type universe can be provided — the summary query failed with
+   * no cached universe to fall back on, or its response was missing the
+   * requested type ids. The main entities query stays gated in that case, so
+   * callers should surface this instead of an endless loading state.
    */
   typeUniverseError?: Error;
   refetchTypeUniverse: () => Promise<unknown>;
@@ -191,7 +191,14 @@ export const useAvailableTypes = ({
     return Object.keys(data.summarizeEntities.typeIds) as VersionedUrl[];
   }, [data]);
 
+  // Only fatal when it leaves us without a universe — a failed background
+  // refresh with a cached universe still renders (slightly stale) results,
+  // which beats flipping a working page into an error state.
   const typeUniverseError = useMemo<Error | undefined>(() => {
+    if (typeUniverse !== null) {
+      return undefined;
+    }
+
     if (error) {
       return error;
     }
@@ -203,7 +210,7 @@ export const useAvailableTypes = ({
     }
 
     return undefined;
-  }, [data, error]);
+  }, [data, error, typeUniverse]);
 
   return {
     availableEntityTypes,
