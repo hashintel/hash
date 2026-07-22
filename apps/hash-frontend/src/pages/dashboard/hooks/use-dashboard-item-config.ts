@@ -972,7 +972,6 @@ export const useDashboardItemConfig = ({
           throw new Error("Chart config must contain at least one series with a valid type");
         }
 
-
         const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
