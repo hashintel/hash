@@ -1,7 +1,10 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
+import {
+  getPrimaryChartType,
+  normalizeStructuralQuery,
+} from "@local/hash-isomorphic-utils/dashboard-types";
 import {
   configureDashboardItemFlowDefinition,
   refineDashboardItemFlowDefinition,
@@ -65,6 +68,18 @@ const initialState: ConfigState = {
   isLoading: false,
   error: null,
   flowRunId: null,
+};
+
+const configurationReadyPatch: PropertyPatchOperation = {
+  op: "add",
+  path: [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl],
+  property: {
+    value: "ready",
+    metadata: {
+      dataTypeId:
+        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    },
+  },
 };
 
 export type DashboardItemInitialValues = {
@@ -153,6 +168,15 @@ export const useDashboardItemConfig = ({
   });
 
   const [state, setState] = useState<ConfigState>(seededStateRef.current);
+  const persistedConfigurationRef = useRef({
+    structuralQuery: seededStateRef.current.structuralQuery,
+    pythonScript: seededStateRef.current.pythonScript,
+    chartType:
+      (seededStateRef.current.chartConfig &&
+        getPrimaryChartType(seededStateRef.current.chartConfig)) ??
+      seededStateRef.current.chartType,
+    chartConfig: seededStateRef.current.chartConfig,
+  });
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const generationActiveRef = useRef(false);
   const generationFinalizingRef = useRef(false);
@@ -842,6 +866,7 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
+        const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
             entityUpdate: {
@@ -860,11 +885,17 @@ export const useDashboardItemConfig = ({
                     },
                   },
                 } as unknown as PropertyPatchOperation,
+                ...(persistedConfiguration.pythonScript !== null &&
+                persistedConfiguration.chartType &&
+                persistedConfiguration.chartConfig
+                  ? [configurationReadyPatch]
+                  : []),
               ],
             },
           },
         });
 
+        persistedConfiguration.structuralQuery = structuralQuery;
         setState((prev) => ({ ...prev, structuralQuery, isLoading: false }));
       } catch (err) {
         const error =
@@ -886,6 +917,7 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
+        const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
             entityUpdate: {
@@ -902,11 +934,17 @@ export const useDashboardItemConfig = ({
                     },
                   },
                 },
+                ...(persistedConfiguration.structuralQuery &&
+                persistedConfiguration.chartType &&
+                persistedConfiguration.chartConfig
+                  ? [configurationReadyPatch]
+                  : []),
               ],
             },
           },
         });
 
+        persistedConfiguration.pythonScript = pythonScript;
         setState((prev) => ({ ...prev, pythonScript, isLoading: false }));
       } catch (err) {
         const error =
@@ -928,11 +966,28 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
+        const chartType = getPrimaryChartType(chartConfig);
+        if (!chartType) {
+          throw new Error("Chart config must contain at least one series");
+        }
+
+        const persistedConfiguration = persistedConfigurationRef.current;
         await updateEntity({
           variables: {
             entityUpdate: {
               entityId: await ensureEntityId(),
               propertyPatches: [
+                {
+                  op: "add" as const,
+                  path: [systemPropertyTypes.chartType.propertyTypeBaseUrl],
+                  property: {
+                    value: chartType,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                },
                 {
                   op: "add" as const,
                   path: [
@@ -946,12 +1001,23 @@ export const useDashboardItemConfig = ({
                     },
                   },
                 },
+                ...(persistedConfiguration.structuralQuery &&
+                persistedConfiguration.pythonScript !== null
+                  ? [configurationReadyPatch]
+                  : []),
               ],
             },
           },
         });
 
-        setState((prev) => ({ ...prev, chartConfig, isLoading: false }));
+        persistedConfiguration.chartType = chartType;
+        persistedConfiguration.chartConfig = chartConfig;
+        setState((prev) => ({
+          ...prev,
+          chartType,
+          chartConfig,
+          isLoading: false,
+        }));
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error("Failed to save chart config");
