@@ -113,37 +113,30 @@ impl Bounds2 {
     /// Computes the tight bounding box of a point slice with SIMD folds.
     ///
     /// The contract is identical to [`from_points`](Self::from_points): [`None`] for an empty slice
-    /// or any non-finite coordinate. Points are folded four at a time, with the trailing `len % 4`
-    /// points handled scalar.
+    /// or any non-finite coordinate. The batch-aligned middle of the slice folds four points per
+    /// step; the unaligned edges fold scalar.
     #[must_use]
     pub fn from_slice(points: &[Vec2]) -> Option<Self> {
         if points.is_empty() {
             return None;
         }
 
-        let (batches, remainder) = points.as_chunks::<4>();
+        let (prefix, batches, suffix) = Vec2x4::from_slice(points);
 
         let mut valid = true;
-        let mut min = Simd::splat(f32::INFINITY);
-        let mut max = Simd::splat(f32::NEG_INFINITY);
-        for batch in batches {
-            let lanes = Vec2x4::from(*batch).to_simd();
-
-            valid &= lanes.is_finite().all();
-            min = min.simd_min(lanes);
-            max = max.simd_max(lanes);
+        let mut min = Vec2x4::splat(Vec2::splat(f32::INFINITY));
+        let mut max = Vec2x4::splat(Vec2::splat(f32::NEG_INFINITY));
+        for &batch in batches {
+            valid &= batch.is_finite();
+            min = min.min(batch);
+            max = max.max(batch);
         }
 
-        // The accumulators hold interleaved coordinates (the natural batch
-        // order), so lanes 0, 2, 4, 6 fold into `x` and 1, 3, 5, 7 into
-        // `y`. The infinite initial values are harmless: any real point
+        // The infinite accumulator values are harmless: any real point
         // replaces them, and validity is tracked from the data alone.
-        let (mut min, mut max) = (
-            fold_interleaved(min, f32::min),
-            fold_interleaved(max, f32::max),
-        );
+        let (mut min, mut max) = (min.reduce_min(), max.reduce_max());
 
-        for &point in remainder {
+        for &point in prefix.iter().chain(suffix) {
             valid &= point.is_finite();
             min = min.min(point);
             max = max.max(point);
@@ -451,7 +444,8 @@ impl AxisMap {
     /// Maps four coordinates onto their target axis.
     ///
     /// Rounds each lane exactly as [`apply`](Self::apply) rounds one value.
-    fn apply_x4(self, values: Simd<f32, 4>) -> Simd<f32, 4> {
+    #[inline]
+    fn apply_x4(self, values: &Simd<f32, 4>) -> Simd<f32, 4> {
         if self.extent == 0.0 {
             #[expect(
                 clippy::cast_possible_truncation,
@@ -468,22 +462,4 @@ impl AxisMap {
         )
         .cast::<f32>()
     }
-}
-
-/// Folds an interleaved `x y x y ...` lane group into a single vector.
-///
-/// Combines the four values of each axis with `combine`.
-#[expect(
-    clippy::inline_always,
-    reason = "SIMD values cross non-inlined call boundaries through memory; inlining into the \
-              surrounding kernel must be guaranteed, not hinted"
-)]
-#[inline(always)]
-fn fold_interleaved(lanes: Simd<f32, 8>, combine: fn(f32, f32) -> f32) -> Vec2 {
-    let [x0, y0, x1, y1, x2, y2, x3, y3] = lanes.to_array();
-
-    Vec2::new(
-        combine(combine(x0, x1), combine(x2, x3)),
-        combine(combine(y0, y1), combine(y2, y3)),
-    )
 }

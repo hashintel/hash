@@ -9,6 +9,7 @@
     "lint:clippy": "just clippy",
     "start": "cargo run -p hash-graph-atlas --bin hash-graph-atlas --",
     "test:integration": "cargo nextest run --package hash-graph-atlas --test postgres",
+    "test:miri": "cargo miri nextest run -- vec2::tests::from_slice_reinterprets_in_place vec2::tests::natural_from_slice_splits_and_rejoins vec2::tests::layout_conversions_round_trip vec2::tests::simd_conversions_round_trip vec2::tests::from_lanes_inverts_lane_extraction vec2::tests::into_lanes_extracts_axis_groups vec2::tests::natural_from_lanes_interleaves vec2::tests::batch_getters_agree_across_layouts vec2::tests::natural_min_max_and_reductions bounds::tests::from_slice_matches_from_points bounds::tests::from_slice_rejects_non_finite",
     "test:unit": "mise run test:unit @rust/hash-graph-atlas"
   },
   "dependencies": {

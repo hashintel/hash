@@ -115,6 +115,23 @@ fn from_slice_matches_from_points_for_every_remainder_length() {
 }
 
 #[test]
+fn from_slice_matches_from_points_at_every_alignment_offset() {
+    // Slide the slice start across a full batch stride so the split lands
+    // every possible prefix length.
+    let points = scattered_points(64);
+
+    for offset in 0..8 {
+        let window = &points[offset..];
+
+        assert_eq!(
+            Bounds2::from_slice(window),
+            Bounds2::from_points(window.iter().copied()),
+            "offset {offset}",
+        );
+    }
+}
+
+#[test]
 fn from_slice_rejects_non_finite_in_batch_and_remainder() {
     // Position 2 falls in the SIMD-folded body, position 9 in the scalar
     // remainder of an 11-point slice.
