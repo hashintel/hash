@@ -322,12 +322,18 @@ export const EmbedContent = () => {
      * crumb, keeping rename-in-place — `titleStyle` tints it to match.
      */
     const breadcrumbs = (
-      <div
-        style={{
+      <Box
+        sx={{
           alignItems: "center",
           color: BREADCRUMB_COLOR,
           display: "flex",
-          gap: 4,
+          gap: 0.5,
+          /**
+           * The ds Button recipe sets its own text color; this unlayered
+           * emotion rule reliably wins over the layer-polyfilled Panda
+           * styles the editor ships (see FE-1228).
+           */
+          "& > button": { color: "inherit" },
         }}
       >
         <Button
@@ -335,12 +341,11 @@ export const EmbedContent = () => {
           variant="ghost"
           onClick={handleNavigateBack}
           prefix={<ChartNetworkRegularIcon sx={{ fontSize: 14 }} />}
-          style={{ color: BREADCRUMB_COLOR }}
         >
           Processes
         </Button>
         <Icon name="chevronRight" size="xs" />
-      </div>
+      </Box>
     );
 
     const titleStyle = { color: BREADCRUMB_COLOR };
