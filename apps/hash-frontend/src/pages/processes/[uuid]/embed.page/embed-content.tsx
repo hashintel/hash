@@ -12,6 +12,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
 import { setIframeErrorReporterMode } from "../../shared/iframe-error-reporter";
 import {
   type HostNetMode,
@@ -33,6 +34,13 @@ import { VersionPicker } from "./version-picker";
  * remounts when switching nets).
  */
 const aiChatTransport = createBridgeAiChatTransport();
+
+/**
+ * The gray HASH uses for breadcrumb text and icons elsewhere in the app.
+ * Neither the MUI theme (closest: `palette.gray[50]`, #91A5BA) nor the
+ * ds-components palette has an exact token for it, so it's pinned here.
+ */
+const BREADCRUMB_COLOR = "#95a5b8";
 
 const noNetSwitchingError = () => {
   throw new Error(
@@ -311,19 +319,34 @@ export const EmbedContent = () => {
      * HASH-style breadcrumbs, integrated into Petrinaut's top bar via the
      * `topBarStart` slot so the embed shows a single bar. The editor's own
      * editable title renders directly after this slot and acts as the final
-     * crumb, keeping rename-in-place.
+     * crumb, keeping rename-in-place — `titleStyle` tints it to match.
      */
     const breadcrumbs = (
-      <>
-        <Button size="sm" variant="ghost" onClick={handleNavigateBack}>
+      <div
+        style={{
+          alignItems: "center",
+          color: BREADCRUMB_COLOR,
+          display: "flex",
+          gap: 4,
+        }}
+      >
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleNavigateBack}
+          prefix={<ChartNetworkRegularIcon sx={{ fontSize: 14 }} />}
+          style={{ color: BREADCRUMB_COLOR }}
+        >
           Processes
         </Button>
-        <Icon name="chevronRight" size="sm" />
-      </>
+        <Icon name="chevronRight" size="xs" />
+      </div>
     );
 
+    const titleStyle = { color: BREADCRUMB_COLOR };
+
     if (!state || state.readonly) {
-      return { topBarStart: breadcrumbs };
+      return { topBarStart: breadcrumbs, titleStyle };
     }
 
     const isSaved = state.mode.kind === "saved";
@@ -331,6 +354,7 @@ export const EmbedContent = () => {
 
     return {
       topBarStart: breadcrumbs,
+      titleStyle,
       topBarEnd: (
         <>
           <VersionPicker

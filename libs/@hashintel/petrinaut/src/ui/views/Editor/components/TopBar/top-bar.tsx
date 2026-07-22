@@ -124,6 +124,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             placeholder="Process"
             className={titleStyles}
             size="sm"
+            style={slots?.titleStyle}
           />
         )}
       </div>
