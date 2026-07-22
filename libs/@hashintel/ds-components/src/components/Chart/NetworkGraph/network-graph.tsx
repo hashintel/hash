@@ -448,95 +448,185 @@ const useEasedValue = (
 
 /** Duration (ms) over which a newly-added node grows from radius 0 to full. */
 const NODE_ENTRANCE_MS = 400;
+/** Duration (ms) over which a removed node shrinks to radius 0 before it's dropped. */
+const NODE_EXIT_MS = 300;
+
+/** An in-flight per-node radius transition. */
+interface NodeTransition {
+  /** Growing in (`enter` → scale 1) or shrinking out (`exit` → scale 0). */
+  dir: "enter" | "exit";
+  /** Start time (ms), stamped on the first frame so progress begins at 0. */
+  start: number | null;
+  /** Scale when the transition began, so an interrupted node eases from where it is. */
+  from: number;
+  /** Last computed scale, read when a transition is interrupted and reversed. */
+  value: number;
+  /**
+   * The node's render data, retained so an exiting node keeps drawing after it has
+   * left `points`. For an entering node it's just the current object.
+   */
+  point: NetworkGraphPoint;
+}
 
 /**
- * Grows nodes added *after* the initial load in from a radius of 0. The first
- * non-empty `points` — the initial load — is shown at full size; every node id
- * that first appears in a later update eases its radius up from 0 over {@link
- * NODE_ENTRANCE_MS}. Ids are tracked across the graph's lifetime, so a node that
- * leaves and later returns (e.g. a tiling swap) isn't re-animated.
+ * Animates node radii as nodes are added to and removed from `points`. The first
+ * non-empty `points` — the initial load — appears at full size; afterwards:
  *
- * Returns the per-id scale multiplier for the nodes currently easing in (an id not
- * present is at full size, `1`) and an `epoch` that changes each animation frame,
- * fed to the crowd points' `getRadius` `updateTriggers` so it re-evaluates while an
- * entrance is in flight and settles once every node has finished.
+ * - a node absent last update grows in from radius 0 over {@link NODE_ENTRANCE_MS};
+ * - a node present last update but now gone shrinks to radius 0 over {@link
+ *   NODE_EXIT_MS} and is kept drawn until it finishes, then dropped;
+ * - a transition interrupted by the opposite change reverses from its current scale.
+ *
+ * Returns `scaleById` (per-id radius multiplier; an id not present is at full size,
+ * `1`), `exitingPoints` (nodes still shrinking out, to merge into the crowd's data so
+ * they keep rendering after leaving `points`), and an `epoch` that changes each
+ * animation frame, fed to the crowd points' `getRadius` `updateTriggers`.
  */
-const useNodeEntranceScales = (
+const useNodeRadiusTransitions = (
   points: NetworkGraphPoint[],
-): { scaleById: Map<NetworkGraphId, number>; epoch: number } => {
-  // Every id ever seen, so a node animates only the first time it appears.
-  const seenRef = useRef<Set<NetworkGraphId>>(new Set());
+): {
+  scaleById: Map<NetworkGraphId, number>;
+  exitingPoints: NetworkGraphPoint[];
+  epoch: number;
+} => {
   // Whether the first non-empty `points` (shown at full size) has arrived.
   const loadedRef = useRef(false);
-  // id → entrance start time (ms), or `null` until the next frame stamps it.
-  const startsRef = useRef<Map<NetworkGraphId, number | null>>(new Map());
+  // Nodes present at the last processed update, for diffing adds against removals.
+  const prevByIdRef = useRef<Map<NetworkGraphId, NetworkGraphPoint>>(new Map());
+  // In-flight transitions by id.
+  const activeRef = useRef<Map<NetworkGraphId, NodeTransition>>(new Map());
   const rafRef = useRef<number | undefined>(undefined);
   const [scaleById, setScaleById] = useState<Map<NetworkGraphId, number>>(
     () => new Map(),
   );
+  const [exitingPoints, setExitingPoints] = useState<NetworkGraphPoint[]>([]);
   const [epoch, setEpoch] = useState(0);
 
-  // Layout effect, not passive, so the just-added nodes are seeded at scale 0 in the
-  // same commit they first render — otherwise they'd paint once at full size before
-  // the animation's first frame shrank them back.
+  // Layout effect, not passive, so the just-changed nodes are seeded at the right
+  // scale in the same commit they render — an added node at 0 and a removed node at
+  // its current scale — otherwise they'd pop for a frame before the animation ran.
   useLayoutEffect(() => {
     if (!loadedRef.current) {
       // Initial load: adopt the first non-empty set at full size, no animation.
       if (points.length > 0) {
         loadedRef.current = true;
         for (const point of points) {
-          seenRef.current.add(point.id);
+          prevByIdRef.current.set(point.id, point);
         }
       }
       return;
     }
     if (typeof requestAnimationFrame === "undefined") {
-      // No rAF (e.g. SSR/tests): show newly-added nodes at full size.
-      for (const point of points) {
-        seenRef.current.add(point.id);
-      }
+      // No rAF (e.g. SSR/tests): adopt adds and drop removals immediately.
+      prevByIdRef.current = new Map(points.map((point) => [point.id, point]));
       return;
     }
-    let added = false;
+
+    const active = activeRef.current;
+    const prev = prevByIdRef.current;
+    const currentIds = new Set<NetworkGraphId>();
     for (const point of points) {
-      if (!seenRef.current.has(point.id)) {
-        seenRef.current.add(point.id);
-        startsRef.current.set(point.id, null);
-        added = true;
-      }
+      currentIds.add(point.id);
     }
-    if (!added) {
+
+    let changed = false;
+    let exitingChanged = false;
+    // Added: present now, absent last update → grow in (reversing any in-flight exit).
+    for (const point of points) {
+      if (prev.has(point.id)) {
+        continue;
+      }
+      const existing = active.get(point.id);
+      if (existing?.dir === "exit") {
+        exitingChanged = true;
+      }
+      active.set(point.id, {
+        dir: "enter",
+        start: null,
+        from: existing?.value ?? 0,
+        value: existing?.value ?? 0,
+        point,
+      });
+      changed = true;
+    }
+    // Removed: present last update, absent now → shrink out, keeping the node drawn.
+    for (const [id, point] of prev) {
+      if (currentIds.has(id)) {
+        continue;
+      }
+      const existing = active.get(id);
+      active.set(id, {
+        dir: "exit",
+        start: null,
+        from: existing?.value ?? 1,
+        value: existing?.value ?? 1,
+        point: existing?.point ?? point,
+      });
+      changed = true;
+      exitingChanged = true;
+    }
+
+    prevByIdRef.current = new Map(points.map((point) => [point.id, point]));
+
+    if (!changed) {
       return;
+    }
+
+    // Rebuild the retained exiting set (only when its membership changed, so the
+    // merged crowd data stays reference-stable between frames of one animation).
+    function syncExiting() {
+      const list: NetworkGraphPoint[] = [];
+      for (const transition of active.values()) {
+        if (transition.dir === "exit") {
+          list.push(transition.point);
+        }
+      }
+      setExitingPoints(list);
     }
     // A function declaration (not an arrow) so the recursive rAF can reference it,
-    // mirroring `useEasedValue`'s `step`. Reads the live starts from a ref, so a
-    // batch arriving mid-animation is folded into the same loop.
+    // mirroring `useEasedValue`'s `step`. Reads live transitions from a ref, so a
+    // change arriving mid-animation is folded into the same loop.
     function frame(now: number) {
-      const starts = startsRef.current;
       const next = new Map<NetworkGraphId, number>();
-      for (const [id, start] of starts) {
+      let exitFinished = false;
+      for (const [id, transition] of active) {
         // Stamp the start on the first frame so progress begins at 0, avoiding a
         // clock mismatch between this effect and the rAF timeline.
-        const from = start ?? now;
-        if (start === null) {
-          starts.set(id, from);
-        }
-        const progress = Math.min(1, (now - from) / NODE_ENTRANCE_MS);
+        transition.start ??= now;
+        const start = transition.start;
+        const duration =
+          transition.dir === "enter" ? NODE_ENTRANCE_MS : NODE_EXIT_MS;
+        const progress = Math.min(1, (now - start) / duration);
+        // Ease-out cubic, matching `useEasedValue`.
+        const eased = 1 - (1 - progress) ** 3;
+        const target = transition.dir === "enter" ? 1 : 0;
+        const value = transition.from + (target - transition.from) * eased;
+        transition.value = value;
         if (progress >= 1) {
-          starts.delete(id);
+          active.delete(id);
+          // A finished exit drops the node from the retained set; a finished enter
+          // just settles (an absent id reads as full size).
+          if (transition.dir === "exit") {
+            exitFinished = true;
+          }
           continue;
         }
-        // Ease-out cubic, matching `useEasedValue`.
-        next.set(id, 1 - (1 - progress) ** 3);
+        next.set(id, value);
       }
       setScaleById(next);
       setEpoch((value) => value + 1);
+      if (exitFinished) {
+        syncExiting();
+      }
       rafRef.current =
-        starts.size > 0 ? requestAnimationFrame(frame) : undefined;
+        active.size > 0 ? requestAnimationFrame(frame) : undefined;
+    }
+
+    if (exitingChanged) {
+      syncExiting();
     }
     // Run one frame synchronously — this is a layout effect, so before paint — to
-    // seed the just-added nodes at scale 0; otherwise they'd paint once at full size
-    // before the first animation frame. Cancel any in-flight frame first so a batch
+    // seed the just-changed nodes. Cancel any in-flight frame first so a change
     // arriving mid-animation doesn't leave two loops running.
     if (rafRef.current !== undefined) {
       cancelAnimationFrame(rafRef.current);
@@ -555,7 +645,7 @@ const useNodeEntranceScales = (
     [],
   );
 
-  return { scaleById, epoch };
+  return { scaleById, exitingPoints, epoch };
 };
 
 /**
@@ -643,6 +733,24 @@ export const NetworkGraph = ({
     }
     return map;
   }, [edges]);
+
+  // Per-id radius scale animating nodes in (0→1) as they're added and out (1→0) as
+  // they're removed; the initial load and settled nodes are at full size.
+  // `exitingPoints` are nodes still shrinking out after leaving `points`, merged back
+  // into the crowd's data (and colour map) below so they keep drawing. `nodeScaleEpoch`
+  // re-triggers the crowd points' radius each frame while a transition animates.
+  const {
+    scaleById: nodeScaleById,
+    exitingPoints,
+    epoch: nodeScaleEpoch,
+  } = useNodeRadiusTransitions(points);
+
+  // The crowd's node data: the current `points` plus any nodes still shrinking out, so
+  // a removed node keeps rendering (at its shrinking radius) until its exit completes.
+  const compactData = useMemo(
+    () => (exitingPoints.length > 0 ? [...points, ...exitingPoints] : points),
+    [points, exitingPoints],
+  );
 
   // `selected` and `hoveredByExternal` share the same shape; decompose each into
   // the node/edge parts (and overlays) the rest of the component consumes.
@@ -766,19 +874,20 @@ export const NetworkGraph = ({
     }
   }, [hovered, resolvePoint]);
 
-  // {@link colorByHex} extended with any overlay points' colours.
+  // {@link colorByHex} extended with any overlay points' and exiting nodes' colours —
+  // an exiting node has left `points` (so isn't in `colorByHex`) but still renders.
   const colorByHexWithOverlay = useMemo(() => {
-    if (overlayPoints.length === 0) {
+    if (overlayPoints.length === 0 && exitingPoints.length === 0) {
       return colorByHex;
     }
     const map = new Map(colorByHex);
-    for (const point of overlayPoints) {
+    for (const point of [...overlayPoints, ...exitingPoints]) {
       if (!map.has(point.color)) {
         map.set(point.color, hexToRgb(point.color));
       }
     }
     return map;
-  }, [colorByHex, overlayPoints]);
+  }, [colorByHex, overlayPoints, exitingPoints]);
 
   // Adjacency list: node id → edges touching it.
   const adjacency = useMemo(() => {
@@ -1162,12 +1271,6 @@ export const NetworkGraph = ({
   );
   const pointOpacity =
     useEasedValue(targetOpacity, DENSITY_EASE_MS) ?? targetOpacity;
-
-  // Per-id entrance scale (0→1) growing newly-added nodes in; the initial load and
-  // settled nodes are at full size. `entranceEpoch` re-triggers the crowd points'
-  // radius each frame while an entrance animates.
-  const { scaleById: entranceScaleById, epoch: entranceEpoch } =
-    useNodeEntranceScales(points);
 
   // The crowd radius tracks on-screen inter-node spacing (`getRadius · radiusScale`,
   // with `getRadius = POINT_RADIUS`). Falls back to the zoom-derived scale until the
@@ -2086,7 +2189,8 @@ export const NetworkGraph = ({
       // Resolves picking when shown; the detailed nodes do so in detail zoom (its
       // points are hidden there).
       pickable: true,
-      data: points,
+      // Current nodes plus any still shrinking out (see `compactData`).
+      data: compactData,
       // The active node's incident edges as straight lines (detail draws bundled
       // curves via `highlightEdgePaths` instead). Trimmed at the target to open the gap.
       edges: trimmedHighlightLines,
@@ -2106,9 +2210,9 @@ export const NetworkGraph = ({
       colorByHex: colorByHexWithOverlay,
       radiusScale: effectiveRadiusScale,
       pointOpacity,
-      // Grow newly-added crowd points in from radius 0.
-      entranceScaleById,
-      entranceEpoch,
+      // Animate crowd points in from / out to radius 0 as nodes are added/removed.
+      nodeScaleById,
+      nodeScaleEpoch,
       dimmed: highlight !== null,
       // In detail the grow highlights give way to the detailed layer's outline.
       showGrowHighlights: !isDetailZoom,
@@ -2235,7 +2339,7 @@ export const NetworkGraph = ({
     }
     return nodeLayers;
   }, [
-    points,
+    compactData,
     highlight,
     trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
@@ -2250,8 +2354,8 @@ export const NetworkGraph = ({
     colorByHexWithOverlay,
     effectiveRadiusScale,
     pointOpacity,
-    entranceScaleById,
-    entranceEpoch,
+    nodeScaleById,
+    nodeScaleEpoch,
     isDetailZoom,
     detailPoints,
     iconAtlas,

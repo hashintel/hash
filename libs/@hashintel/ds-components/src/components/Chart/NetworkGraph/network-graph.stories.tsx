@@ -666,18 +666,51 @@ export const OneThousandNodes: Story<NetworkGraphProps> = () => (
   <NetworkGraphStory datasets={[ONE_THOUSAND_DATASET]} />
 );
 
-/** How many nodes the streaming story shows on first load, then adds each tick. */
+/** How many nodes the stream stories show on first load, then add/remove each tick. */
 const STREAM_INITIAL = 150;
-const STREAM_BATCH = 30;
-const STREAM_TOTAL = 900;
+const STREAM_BATCH = 50;
+const STREAM_TOTAL = 650;
 const STREAM_INTERVAL_MS = 500;
+
+/**
+ * Frames a stream story over its eventual node set (`targetPoints`) so the view
+ * doesn't reframe as nodes stream in and out. Both are stable across ticks.
+ */
+const useStreamFraming = (
+  targetPoints: NetworkGraphPoint[],
+): {
+  graphBounds: NetworkGraphProps["graphBounds"];
+  maxZoom: number | null;
+} => {
+  const graphBounds = useMemo(() => {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const point of targetPoints) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+    return Number.isFinite(minX)
+      ? { minX, maxX, minY, maxY }
+      : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  }, [targetPoints]);
+
+  const maxZoom = useMemo(
+    () => maxZoomForNodeMinDistance(minDistance(targetPoints)),
+    [targetPoints],
+  );
+
+  return { graphBounds, maxZoom };
+};
 
 /**
  * Streams nodes in over time to exercise the entrance animation: the first {@link
  * STREAM_INITIAL} nodes appear at full size (the initial load), then every {@link
  * STREAM_INTERVAL_MS} another {@link STREAM_BATCH} is appended and each new node
- * grows in from radius 0. The view is framed over the eventual node set so it
- * doesn't reframe as nodes arrive.
+ * grows in from radius 0.
  */
 export const StreamingNodes: Story<NetworkGraphProps> = () => {
   const fullData = useFullGraphData();
@@ -706,26 +739,72 @@ export const StreamingNodes: Story<NetworkGraphProps> = () => {
     [targetPoints, count],
   );
 
-  const graphBounds = useMemo(() => {
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-    for (const point of targetPoints) {
-      minX = Math.min(minX, point.x);
-      maxX = Math.max(maxX, point.x);
-      minY = Math.min(minY, point.y);
-      maxY = Math.max(maxY, point.y);
-    }
-    return Number.isFinite(minX)
-      ? { minX, maxX, minY, maxY }
-      : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
-  }, [targetPoints]);
+  const { graphBounds, maxZoom } = useStreamFraming(targetPoints);
 
-  const maxZoom = useMemo(
-    () => maxZoomForNodeMinDistance(minDistance(targetPoints)),
-    [targetPoints],
+  return (
+    <div className={frameStyles}>
+      {fullData ? (
+        <NetworkGraph
+          points={points}
+          edges={[]}
+          graphBounds={graphBounds}
+          maxZoom={maxZoom}
+        />
+      ) : (
+        <span className={centreStyles}>
+          <LoadingSpinner size="md" />
+          Loading nodes…
+        </span>
+      )}
+    </div>
   );
+};
+
+/** Half-cycle length (ticks) of the churn oscillation. */
+const CHURN_STEPS = Math.round((STREAM_TOTAL - STREAM_INITIAL) / STREAM_BATCH);
+
+/**
+ * Oscillates the node count between {@link STREAM_INITIAL} and {@link STREAM_TOTAL}
+ * to exercise both transitions at once: while the count grows, appended nodes grow in
+ * from radius 0; while it shrinks, the trailing nodes shrink to radius 0 and are then
+ * dropped. Runs on a loop so both directions are always visible.
+ */
+export const ChurningNodes: Story<NetworkGraphProps> = () => {
+  const fullData = useFullGraphData();
+  const [tick, setTick] = useState(0);
+
+  const targetPoints = useMemo(
+    () => fullData?.points.slice(0, STREAM_TOTAL) ?? [],
+    [fullData],
+  );
+
+  useEffect(() => {
+    if (targetPoints.length === 0) {
+      return undefined;
+    }
+    const timer = setTimeout(
+      () => setTick((value) => value + 1),
+      STREAM_INTERVAL_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [targetPoints, tick]);
+
+  // Triangle wave over the tick counter: rise for CHURN_STEPS ticks, then fall.
+  const count = useMemo(() => {
+    const phase = tick % (2 * CHURN_STEPS);
+    const rising = phase <= CHURN_STEPS ? phase : 2 * CHURN_STEPS - phase;
+    return Math.min(
+      targetPoints.length,
+      STREAM_INITIAL + rising * STREAM_BATCH,
+    );
+  }, [tick, targetPoints]);
+
+  const points = useMemo(
+    () => targetPoints.slice(0, count),
+    [targetPoints, count],
+  );
+
+  const { graphBounds, maxZoom } = useStreamFraming(targetPoints);
 
   return (
     <div className={frameStyles}>

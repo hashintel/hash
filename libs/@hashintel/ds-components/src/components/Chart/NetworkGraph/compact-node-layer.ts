@@ -71,13 +71,13 @@ type _CompactNodeLayerProps = {
   /** Whether the coloured node points render. Hidden in the detail variation so the compact crowd doesn't show through the translucent detailed nodes; the detailed layer then resolves picking. */
   showPoints: boolean;
   /**
-   * Per-id entrance scale (0→1) for nodes easing in from radius 0; an id not present
+   * Per-id radius scale for nodes animating in (0→1) or out (1→0); an id not present
    * is at full size (`1`). Multiplied into the crowd points' base radius so a
-   * newly-added node grows in from nothing.
+   * newly-added node grows in from nothing and a removed node shrinks away.
    */
-  entranceScaleById: Map<NetworkGraphId, number>;
-  /** Bumped each entrance-animation frame so the crowd points' `getRadius` re-evaluates. */
-  entranceEpoch: number;
+  nodeScaleById: Map<NetworkGraphId, number>;
+  /** Bumped each transition-animation frame so the crowd points' `getRadius` re-evaluates. */
+  nodeScaleEpoch: number;
 };
 
 export type CompactNodeLayerProps = _CompactNodeLayerProps &
@@ -100,8 +100,8 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   showPoints: true,
   dimmedSelectedNode: null,
   selectedPointId: null,
-  entranceScaleById: new Map<NetworkGraphId, number>(),
-  entranceEpoch: 0,
+  nodeScaleById: new Map<NetworkGraphId, number>(),
+  nodeScaleEpoch: 0,
 };
 
 /**
@@ -139,8 +139,8 @@ export class CompactNodeLayer extends CompositeLayer<
       dimmed,
       showGrowHighlights,
       showPoints,
-      entranceScaleById,
-      entranceEpoch,
+      nodeScaleById,
+      nodeScaleEpoch,
     } = this.props;
     const points = (data ?? []) as NetworkGraphPoint[];
     const colorFor = (point: NetworkGraphPoint): RgbColor =>
@@ -285,10 +285,10 @@ export class CompactNodeLayer extends CompositeLayer<
               // different node is hovered. It stays pickable regardless of fill alpha.
               getFillColor: (point): Color =>
                 point.id === selectedPointId ? [0, 0, 0, 0] : colorFor(point),
-              // Scaled by the node's entrance progress so a newly-added node grows
-              // in from radius 0 (settled nodes are at full size).
+              // Scaled by the node's transition progress so a newly-added node grows
+              // in from radius 0 and a removed one shrinks to it (settled nodes full).
               getRadius: (point) =>
-                POINT_RADIUS * (entranceScaleById.get(point.id) ?? 1),
+                POINT_RADIUS * (nodeScaleById.get(point.id) ?? 1),
               radiusScale,
               radiusUnits: "pixels",
               radiusMinPixels: POINT_RADIUS,
@@ -300,7 +300,7 @@ export class CompactNodeLayer extends CompositeLayer<
                 : pointOpacity,
               updateTriggers: {
                 getFillColor: selectedPointId,
-                getRadius: entranceEpoch,
+                getRadius: nodeScaleEpoch,
               },
             }),
           ]
