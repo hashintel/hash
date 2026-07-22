@@ -25,8 +25,10 @@
 //! Round keys derive from `HKDF-SHA256` over the server secret, salted by the generation identity
 //! and expanded under a per-universe label, when a generation opens for serving. Equal `(secret,
 //! generation, label)` give equal mappings, so responses stay byte-deterministic across restarts;
-//! a different generation changes every wire id, and the label separates the node and edge
-//! universes cryptographically. The fit pipeline is untouched: no artifact stores a wire id.
+//! a different generation changes every wire id, and the label names the mapping's universe -
+//! one universe crosses the wire today, the node rows. Edges carry their link entity's identity
+//! instead of a wire id of their own. The fit pipeline is untouched: no artifact stores a wire
+//! id.
 
 use core::hash::Hasher as _;
 
@@ -51,9 +53,6 @@ const HALF_MASK: u32 = 0xFFFF;
 
 /// The HKDF expansion label of the node-row universe.
 pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
-
-/// The HKDF expansion label of the edge-row universe.
-pub(crate) const EDGE_LABEL: &[u8] = b"atlas.wire.edge.v1";
 
 /// A row id as it crosses the wire.
 ///

@@ -4,7 +4,7 @@ use sprs::CsMatI;
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    ArrayShape, Dim, FileHeader, IndexVariant, StorageVariant, ValueTag,
+    ArrayShape, Dim, FileHeader, IndexVariant, SprsValue, StorageVariant, ValueTag,
     read::{OpenSprsError, SprsFile, SprsMatrixError},
     write::{WriteSprsError, write_matrix},
 };
@@ -466,4 +466,11 @@ fn a_structure_only_matrix_reopens_with_conjured_units() {
         matrix.indices(),
     );
     assert_matches!(file.indices::<u64>(), Err(SprsMatrixError::Elements { .. }),);
+}
+
+#[test]
+fn unit_values_conjure_from_no_bytes() {
+    let units = <() as SprsValue>::view_region(&[], 7);
+
+    assert_eq!(units.len(), 7);
 }

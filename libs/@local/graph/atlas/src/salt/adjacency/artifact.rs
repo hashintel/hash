@@ -77,6 +77,7 @@ impl core::error::Error for InvalidAdjacencyFile {
 /// The index width an adjacency's edge row ids read at.
 #[derive(Debug, Copy, Clone)]
 enum Width {
+    U16,
     U32,
     U64,
 }
@@ -105,14 +106,14 @@ impl AdjacencyArchive {
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidAdjacencyFile> {
         let (width, (nodes, edges)) = match file.index() {
+            IndexVariant::U16 => (Width::U16, validate::<u16>(&file)?),
             IndexVariant::U32 => (Width::U32, validate::<u32>(&file)?),
-            // Every index type but the writer's two fails the element
-            // check inside, reported over the described types.
-            IndexVariant::U16
-            | IndexVariant::U64
-            | IndexVariant::I16
-            | IndexVariant::I32
-            | IndexVariant::I64 => (Width::U64, validate::<u64>(&file)?),
+            // The writer's widths are unsigned: the signed index types
+            // fail the element check inside, reported over the
+            // described types.
+            IndexVariant::U64 | IndexVariant::I16 | IndexVariant::I32 | IndexVariant::I64 => {
+                (Width::U64, validate::<u64>(&file)?)
+            }
         };
 
         Ok(Self {
@@ -148,6 +149,7 @@ impl AdjacencyArchive {
     fn values(&self) -> EdgeValues<'_> {
         let expect = "construction validated the element types";
         match self.width {
+            Width::U16 => EdgeValues::U16(self.file.indices().expect(expect)),
             Width::U32 => EdgeValues::U32(self.file.indices().expect(expect)),
             Width::U64 => EdgeValues::U64(self.file.indices().expect(expect)),
         }
@@ -278,6 +280,8 @@ where
 /// Value-level accessors widen to `u64`, so consumers stay width-agnostic.
 #[derive(Debug, Copy, Clone)]
 enum EdgeValues<'map> {
+    /// Two-byte edge row ids.
+    U16(&'map [u16]),
     /// Four-byte edge row ids.
     U32(&'map [u32]),
     /// Eight-byte edge row ids.
@@ -290,6 +294,7 @@ impl EdgeValues<'_> {
     #[must_use]
     const fn len(&self) -> usize {
         match self {
+            Self::U16(values) => values.len(),
             Self::U32(values) => values.len(),
             Self::U64(values) => values.len(),
         }
@@ -311,6 +316,7 @@ impl EdgeValues<'_> {
     #[must_use]
     const fn get(&self, index: usize) -> u64 {
         match self {
+            Self::U16(values) => values[index] as u64,
             Self::U32(values) => values[index] as u64,
             Self::U64(values) => values[index],
         }
@@ -325,6 +331,7 @@ impl EdgeValues<'_> {
     #[must_use]
     const fn slice(&self, range: Range<usize>) -> Self {
         match self {
+            Self::U16(values) => Self::U16(&values[range]),
             Self::U32(values) => Self::U32(&values[range]),
             Self::U64(values) => Self::U64(&values[range]),
         }

@@ -173,3 +173,32 @@ proptest! {
         prop_assert!((narrow_dot - wide_dot).abs() <= tolerance);
     }
 }
+
+#[test]
+fn dvec2x4t_from_lanes_inverts_lane_extraction() {
+    let batch = DVec2x4T::from(Vec2x4T::from([
+        Vec2::new(1.0, 5.0),
+        Vec2::new(2.0, 6.0),
+        Vec2::new(3.0, 7.0),
+        Vec2::new(4.0, 8.0),
+    ]));
+
+    assert_eq!(DVec2x4T::from_lanes(*batch.xs(), *batch.ys()), batch);
+}
+
+#[test]
+fn dvec2x4t_into_lanes_extracts_axis_groups() {
+    let batch = DVec2x4T::from(Vec2x4T::from([
+        Vec2::new(1.0, 5.0),
+        Vec2::new(2.0, 6.0),
+        Vec2::new(3.0, 7.0),
+        Vec2::new(4.0, 8.0),
+    ]));
+    let (xs, ys) = batch.into_lanes();
+
+    assert_eq!(xs.to_array(), [1.0, 2.0, 3.0, 4.0]);
+    assert_eq!(ys.to_array(), [5.0, 6.0, 7.0, 8.0]);
+    assert_eq!(xs, *batch.xs());
+    assert_eq!(ys, *batch.ys());
+    assert_eq!(DVec2x4T::from_lanes(xs, ys), batch);
+}

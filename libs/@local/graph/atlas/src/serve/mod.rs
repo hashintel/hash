@@ -33,8 +33,8 @@
 pub use self::{
     codec::WireRow,
     detail::{
-        DeliveredEntities, DetailError, LinkDetails, LocateNodeDetails, NodeDetails,
-        PostgresDetails, SimpleValue,
+        DeliveredEntities, DetailError, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails,
+        NodeDetails, PostgresDetails, SimpleValue,
     },
     edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
     error::OpenAtlasError,
@@ -172,9 +172,9 @@ pub struct Atlas {
     /// The edge identity table, joining edge rows to link-entity identities.
     edge_ids: IdentityTableArchive<ArchivedEntityId>,
     /// The node universe's wire row-id codec, derived at open.
+    ///
+    /// The one wire-id domain: edges cross the wire as link-entity identities.
     node_codec: codec::RowCodec,
-    /// The edge universe's wire row-id codec, derived at open.
-    edge_codec: codec::RowCodec,
     /// The wire row-id column in base order.
     ///
     /// The row column mapped through the node codec once at open, so position-driven gathers
@@ -237,6 +237,18 @@ impl Atlas {
         self.position_of_row
             .u32_elements()
             .expect("open validated the position-column shape")
+    }
+
+    /// Returns an edge row's link-entity identity in its wire form.
+    ///
+    /// The `bstr(32)` record `EDGE_IDS` columns carry: the web uuid then the entity uuid,
+    /// generation-frozen.
+    fn edge_identity(&self, row: u32) -> [u8; 32] {
+        translate::identity_bytes(
+            self.edge_ids
+                .id(u64::from(row))
+                .expect("open validated the identity rows against the adjacency's edges"),
+        )
     }
 }
 

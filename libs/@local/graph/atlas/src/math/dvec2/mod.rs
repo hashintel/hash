@@ -233,8 +233,20 @@ impl DVec2x4T {
     /// Lane `i` holds the `x` component of vector `i`.
     #[inline]
     #[must_use]
-    pub const fn xs(self) -> Simd<f64, 4> {
-        Simd::from_slice(&self.0[..4])
+    #[expect(
+        clippy::cast_ptr_alignment,
+        reason = "the pointer derives from `&Self` with 64-byte alignment, which satisfies \
+                  `Simd<f64, 4>`'s alignment at offset 0"
+    )]
+    pub const fn xs(&self) -> &Simd<f64, 4> {
+        let this = &raw const *self;
+        let this = this.cast::<f64>();
+
+        // SAFETY: `Self` is `repr(C)` over `[f64; 8]` whose first four elements are the `x`
+        // lane group, `Simd<f64, 4>` is layout-compatible with `[f64; 4]`, and `Self`'s
+        // 64-byte alignment satisfies `Simd<f64, 4>`'s (const-asserted below); the borrow
+        // covers bytes owned by `self` and inherits its lifetime.
+        unsafe { &*this.cast::<Simd<f64, 4>>() }
     }
 
     /// Returns the four `y` components as SIMD lanes.
@@ -242,8 +254,40 @@ impl DVec2x4T {
     /// Lane `i` holds the `y` component of vector `i`.
     #[inline]
     #[must_use]
-    pub const fn ys(self) -> Simd<f64, 4> {
-        Simd::from_slice(&self.0[4..])
+    #[expect(
+        clippy::cast_ptr_alignment,
+        reason = "the pointer derives from `&Self` with 64-byte alignment, which satisfies \
+                  `Simd<f64, 4>`'s alignment at the 32-byte `y` group offset"
+    )]
+    pub const fn ys(&self) -> &Simd<f64, 4> {
+        let this = &raw const *self;
+        let this = this.cast::<f64>();
+
+        // SAFETY: elements `4..8` of `Self`'s `repr(C)` `[f64; 8]` storage are the `y` lane
+        // group; the 32-byte offset from the 64-byte-aligned base satisfies `Simd<f64, 4>`'s
+        // alignment (const-asserted below), and the borrow covers bytes owned by `self` and
+        // inherits its lifetime.
+        unsafe { &*this.add(4).cast::<Simd<f64, 4>>() }
+    }
+
+    /// Splits the batch into one SIMD lane group per axis.
+    ///
+    /// The first group holds the `x` components, the second the `y` components; lane `i` of each
+    /// corresponds to vector `i`. This is the inverse of [`from_lanes`](Self::from_lanes) and the
+    /// by-value counterpart of [`xs`](Self::xs) and [`ys`](Self::ys).
+    #[inline]
+    #[must_use]
+    #[expect(
+        clippy::tuple_array_conversions,
+        reason = "the suggested `From` conversion is not const-callable"
+    )]
+    pub const fn into_lanes(self) -> (Simd<f64, 4>, Simd<f64, 4>) {
+        // SAFETY: `Self` is `repr(C)` over `[f64; 8]`, the `x` lane group followed by the `y`
+        // lane group, exactly `[Simd<f64, 4>; 2]`'s memory order; sizes match and every bit
+        // pattern is a valid `f64`.
+        let [xs, ys] = unsafe { core::mem::transmute::<Self, [Simd<f64, 4>; 2]>(self) };
+
+        (xs, ys)
     }
 
     /// Assembles a batch from one SIMD lane group per axis.
@@ -252,10 +296,11 @@ impl DVec2x4T {
     #[inline]
     #[must_use]
     pub const fn from_lanes(xs: Simd<f64, 4>, ys: Simd<f64, 4>) -> Self {
-        let [x0, x1, x2, x3] = xs.to_array();
-        let [y0, y1, y2, y3] = ys.to_array();
-
-        Self([x0, x1, x2, x3, y0, y1, y2, y3])
+        let this = [xs, ys];
+        // SAFETY: `[Simd<f64, 4>; 2]` lays out the `x` lane group followed by the `y` lane
+        // group, exactly `Self`'s `repr(C)` `[f64; 8]` memory order; sizes match and every
+        // bit pattern is a valid `f64`.
+        unsafe { core::mem::transmute::<[Simd<f64, 4>; 2], Self>(this) }
     }
 
     /// Returns all eight components as a single SIMD vector.
@@ -265,7 +310,10 @@ impl DVec2x4T {
     #[inline]
     #[must_use]
     pub const fn to_simd(self) -> Simd<f64, 8> {
-        Simd::from_array(self.0)
+        // SAFETY: `Self` is `repr(C)` over `[f64; 8]`, which is layout-compatible with
+        // `Simd<f64, 8>` (sizes const-asserted below); every bit pattern is a valid `f64`, so
+        // the reinterpretation is total.
+        unsafe { core::mem::transmute::<Self, Simd<f64, 8>>(self) }
     }
 
     /// Returns the four pairwise dot products as SIMD lanes.
@@ -276,7 +324,7 @@ impl DVec2x4T {
     #[inline]
     #[must_use]
     pub fn dot(self, other: Self) -> Simd<f64, 4> {
-        mul_add_f64x4(self.xs(), other.xs(), self.ys() * other.ys())
+        mul_add_f64x4(*self.xs(), *other.xs(), self.ys() * other.ys())
     }
 
     /// Returns the four pairwise perpendicular dot products as SIMD lanes.
@@ -286,7 +334,7 @@ impl DVec2x4T {
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f64, 4> {
-        mul_add_f64x4(self.xs(), other.ys(), -(self.ys() * other.xs()))
+        mul_add_f64x4(*self.xs(), *other.ys(), -(self.ys() * other.xs()))
     }
 
     /// Returns the four squared lengths as SIMD lanes.
@@ -305,10 +353,17 @@ impl DVec2x4T {
     /// exact, so the fused and separate forms agree bit for bit.
     #[inline]
     #[must_use]
+    #[expect(
+        clippy::similar_names,
+        reason = "the lane groups pair by axis: each `xs` binding has its `ys` sibling"
+    )]
     pub fn mul_add(self, factor: Simd<f64, 4>, accumulator: Self) -> Self {
+        let (xs, ys) = self.into_lanes();
+        let (acc_xs, acc_ys) = accumulator.into_lanes();
+
         Self::from_lanes(
-            mul_add_f64x4(self.xs(), factor, accumulator.xs()),
-            mul_add_f64x4(self.ys(), factor, accumulator.ys()),
+            mul_add_f64x4(xs, factor, acc_xs),
+            mul_add_f64x4(ys, factor, acc_ys),
         )
     }
 
@@ -334,7 +389,7 @@ impl Add for DVec2x4T {
 
     #[inline]
     fn add(self, rhs: Self) -> Self {
-        Self((self.to_simd() + rhs.to_simd()).to_array())
+        Self::from(self.to_simd() + rhs.to_simd())
     }
 }
 
@@ -345,5 +400,27 @@ impl AddAssign for DVec2x4T {
     }
 }
 
+const impl From<Simd<f64, 8>> for DVec2x4T {
+    /// Reinterprets eight lanes in `x0 x1 x2 x3 y0 y1 y2 y3` order.
+    #[inline]
+    fn from(lanes: Simd<f64, 8>) -> Self {
+        // SAFETY: `Simd<f64, 8>` is layout-compatible with `[f64; 8]`, `Self`'s `repr(C)`
+        // storage (sizes const-asserted below); every bit pattern is a valid `f64`, so the
+        // reinterpretation is total.
+        unsafe { core::mem::transmute::<Simd<f64, 8>, DVec2x4T>(lanes) }
+    }
+}
+
+const impl From<DVec2x4T> for Simd<f64, 8> {
+    #[inline]
+    fn from(batch: DVec2x4T) -> Self {
+        batch.to_simd()
+    }
+}
+
+// The batch must back `Simd<f64, 8>` (identical size, at least its alignment), and the lane
+// views borrow `Simd<f64, 4>` groups at offsets 0 and 32, so the half-width alignment must
+// not exceed the offset.
 const _: () = assert!(size_of::<DVec2x4T>() == size_of::<Simd<f64, 8>>());
 const _: () = assert!(align_of::<DVec2x4T>() >= align_of::<Simd<f64, 8>>());
+const _: () = assert!(align_of::<Simd<f64, 4>>() <= 32);

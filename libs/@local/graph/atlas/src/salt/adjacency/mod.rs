@@ -29,9 +29,10 @@ mod artifact;
 #[cfg(test)]
 mod tests;
 
+use core::ops::Deref;
 use std::io;
 
-use sprs::CsMatViewI;
+use sprs::{CsMatBase, SpIndex};
 
 #[cfg(test)]
 pub(crate) use self::artifact::EdgeList;
@@ -44,20 +45,64 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
+/// Places edge row `edge` into its source's outgoing and its target's incoming slot.
+///
+/// `cursors` holds each run's next free slot; a placement advances its run's cursor, so filling
+/// in edge-row order lands ascending edge rows ascending in place.
+fn insert_edge<I: Copy>(cursors: &mut [u64], values: &mut [I], edge: I, source: u64, target: u64) {
+    let source = usize::try_from(source).expect("node rows fit the address space");
+    let target = usize::try_from(target).expect("node rows fit the address space");
+
+    let out_slot = &mut cursors[2 * source];
+    values[usize::try_from(*out_slot).expect("slots fit the address space")] = edge;
+    *out_slot += 1;
+
+    let in_slot = &mut cursors[2 * target + 1];
+    values[usize::try_from(*in_slot).expect("slots fit the address space")] = edge;
+    *in_slot += 1;
+}
+
+/// A unit-value array carried as its length alone.
+///
+/// Sparse-matrix storage wants one value slot per structural entry; a structure-only matrix
+/// holds units, so the array is fully described by its length and dereferences to a conjured
+/// `&[()]` without owning storage.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct UnitSlice {
+    length: usize,
+}
+
+impl Deref for UnitSlice {
+    type Target = [()];
+
+    fn deref(&self) -> &[()] {
+        // SAFETY: `()` is zero-sized, so the slice covers no bytes at any length: the pointer
+        // to `self` is non-null and trivially aligned for `()`, zero bytes are valid for reads
+        // at any address, and no element count of a zero-sized type overflows `isize` in bytes.
+        unsafe { core::slice::from_raw_parts(core::ptr::from_ref(self).cast::<()>(), self.length) }
+    }
+}
+
+/// A structure-only CSR adjacency matrix with owned columns at index width `I`.
+type AdjacencySparseGraph<I, Iptr> = CsMatBase<(), I, Vec<Iptr>, Vec<I>, UnitSlice, Iptr>;
+
+/// The adjacency matrix at the narrowest index width covering its column bound.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AdjacencyGraph {
+    /// Two-byte edge row ids.
+    U16(AdjacencySparseGraph<u16, u64>),
+    /// Four-byte edge row ids.
+    U32(AdjacencySparseGraph<u32, u64>),
+    /// Eight-byte edge row ids.
+    U64(AdjacencySparseGraph<u64, u64>),
+}
+
 /// The incident-edge adjacency of one generation, in writable form.
 ///
 /// Construction orders every run; the fencepost and value columns are exactly the file's pointer
 /// and index regions.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Adjacency {
-    /// `2N + 1` fenceposts.
-    ///
-    /// Node row `i` owns the outgoing run `fenceposts[2i] .. fenceposts[2i + 1]` and the incoming
-    /// run `fenceposts[2i + 1] .. fenceposts[2i + 2]`.
-    fenceposts: Vec<u64>,
-    /// `2E` edge row ids, strictly ascending within each run.
-    values: Vec<u64>,
-}
+pub(crate) struct Adjacency(AdjacencyGraph);
 
 impl Adjacency {
     /// Builds the adjacency over the endpoint column.
@@ -89,22 +134,63 @@ impl Adjacency {
 
         // Fill in edge-row order: each run's cursor starts at its
         // fencepost, and ascending edge rows land ascending in place.
-        let mut cursors = fenceposts[..fenceposts.len() - 1].to_vec();
-        let mut values = vec![0_u64; endpoints.len() * 2];
-        for (edge, &[source, target]) in endpoints.iter().enumerate() {
-            let source = usize::try_from(source).expect("node rows fit the address space");
-            let target = usize::try_from(target).expect("node rows fit the address space");
+        let cursors = fenceposts[..fenceposts.len() - 1].to_vec();
 
-            let out_slot = &mut cursors[2 * source];
-            values[usize::try_from(*out_slot).expect("slots fit the address space")] = edge as u64;
-            *out_slot += 1;
-
-            let in_slot = &mut cursors[2 * target + 1];
-            values[usize::try_from(*in_slot).expect("slots fit the address space")] = edge as u64;
-            *in_slot += 1;
+        // The narrowest covering width shrinks the value column and the
+        // on-disk index region alike; `bound` stands in for the column
+        // dimension so an edgeless adjacency keeps a nonzero domain.
+        let bound = endpoints.len().max(1);
+        if u16::try_from(bound).is_ok() {
+            Self(AdjacencyGraph::U16(assemble(
+                bound, fenceposts, cursors, endpoints,
+            )))
+        } else if u32::try_from(bound).is_ok() {
+            Self(AdjacencyGraph::U32(assemble(
+                bound, fenceposts, cursors, endpoints,
+            )))
+        } else {
+            Self(AdjacencyGraph::U64(assemble(
+                bound, fenceposts, cursors, endpoints,
+            )))
         }
+    }
+}
 
-        Self { fenceposts, values }
+/// Fills the value column at index width `I` and assembles the CSR adjacency.
+///
+/// `fenceposts` are the finished prefix sums over the `2N` runs; `cursors` start at each run's
+/// fencepost. The matrix's row dimension is the run count, not the node count.
+fn assemble<I>(
+    bound: usize,
+    fenceposts: Vec<u64>,
+    mut cursors: Vec<u64>,
+    endpoints: &[[u64; 2]],
+) -> AdjacencySparseGraph<I, u64>
+where
+    I: SpIndex + TryFrom<usize>,
+    <I as TryFrom<usize>>::Error: core::fmt::Debug,
+{
+    let zero = I::try_from(0).expect("zero fits every index width");
+    let mut values = vec![zero; endpoints.len() * 2];
+    for (edge, &[source, target]) in endpoints.iter().enumerate() {
+        let edge = I::try_from(edge).expect("edge rows lie below the checked width bound");
+        insert_edge(&mut cursors, &mut values, edge, source, target);
+    }
+
+    let runs = fenceposts.len() - 1;
+    let length = values.len();
+    // SAFETY: the counting build establishes the compressed structure: the fenceposts are a
+    // prefix sum starting at zero and ending at the slot count, one entry past the run count,
+    // the fill placed ascending edge rows ascending within each run, every value lies below
+    // `bound`, and the unit storage length equals the value count.
+    unsafe {
+        CsMatBase::new_unchecked(
+            sprs::CompressedStorage::CSR,
+            (runs, bound),
+            fenceposts,
+            values,
+            UnitSlice { length },
+        )
     }
 }
 
@@ -122,48 +208,16 @@ impl WriteInto for Adjacency {
     ///
     /// Returns an error when the underlying writer fails, or when the adjacency spans no node rows:
     /// the corpus contract places at least one node, and an empty row domain has no on-disk form.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the value array holds exactly two slots per edge by construction"
-    )]
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
         };
 
-        let rows = self.fenceposts.len() - 1;
-        let edges = self.values.len() / 2;
-        let bound = edges.max(1);
-        let units = vec![(); self.values.len()];
-
-        // The narrowest covering width halves the on-disk index region
-        // for every corpus below 2^32 edges; the narrow column is an
-        // E-scale transient.
-        if let Ok(bound32) = u32::try_from(bound) {
-            let narrow: Vec<u32> = self
-                .values
-                .iter()
-                .map(|&value| u32::try_from(value).expect("edge rows lie below the checked bound"))
-                .collect();
-            let matrix = CsMatViewI::<'_, (), u32, u64>::try_new(
-                (rows, bound32 as usize),
-                &self.fenceposts,
-                &narrow,
-                &units,
-            )
-            .expect("the counting build establishes the compressed structure");
-            write_matrix(&matrix, &mut writer)?;
-        } else {
-            let matrix = CsMatViewI::<'_, (), u64, u64>::try_new(
-                (rows, bound),
-                &self.fenceposts,
-                &self.values,
-                &units,
-            )
-            .expect("the counting build establishes the compressed structure");
-            write_matrix(&matrix, &mut writer)?;
+        match &self.0 {
+            AdjacencyGraph::U16(matrix) => write_matrix(matrix, &mut writer)?,
+            AdjacencyGraph::U32(matrix) => write_matrix(matrix, &mut writer)?,
+            AdjacencyGraph::U64(matrix) => write_matrix(matrix, &mut writer)?,
         }
 
         Ok(writer.accumulator.finalize())

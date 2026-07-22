@@ -591,15 +591,15 @@ fn g5_trailer_tile() -> Golden {
 
 /// G6: an edges response - three columns.
 ///
-/// `complete = false` (the cap flag is the point), the four-array detail trailer with nulls. Edge
-/// rows ascend per the delivery-order pin - goldens conform to ratified contracts, not just
-/// structure.
+/// `complete = false` (the cap flag is the point), `EDGE_IDS` as raw identity records ascending
+/// per the delivery-order pin - goldens conform to ratified contracts, not just structure - and
+/// the interned detail trailer: the type table, labels with nulls, and first-type references
+/// including a store-absent `null`.
 fn g6_edges() -> Golden {
     let link_labels = [Some("\u{153}uvre"), Some("created by"), None];
-    let link_icons = [Some("\u{1f517}"), None, None];
-    let link_type_labels = [None, Some("authored"), Some("authored")];
-    let link_type_icons = [None, None, None];
-    let link_entity_ids = [
+    let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"];
+    let link_type_ids = [Some(1_u32), Some(0), None];
+    let edge_ids = [
         identity_of(0xA0, 0xA1),
         identity_of(0xB0, 0xB1),
         identity_of(0xC0, 0xC1),
@@ -611,13 +611,11 @@ fn g6_edges() -> Golden {
         complete: false,
         sources: &[4, 4, 9],
         targets: &[11, 7, 2],
-        edge_rows: &[3, 100, 205],
+        edge_ids: &edge_ids,
         trailer: Some(EdgesTrailer {
+            type_table: &type_table,
             link_labels: &link_labels,
-            link_icons: &link_icons,
-            link_type_labels: &link_type_labels,
-            link_type_icons: &link_type_icons,
-            link_entity_ids: &link_entity_ids,
+            link_type_ids: &link_type_ids,
         }),
     };
     let bytes = response.encode();
@@ -636,13 +634,11 @@ fn g6_edges() -> Golden {
         },
         "sources": response.sources,
         "targets": response.targets,
-        "edgeRowIds": response.edge_rows,
+        "edgeIds": identities_sidecar(&edge_ids),
         "trailer": {
+            "typeTable": type_table,
             "linkLabels": details_sidecar(&link_labels),
-            "linkIcons": details_sidecar(&link_icons),
-            "linkTypeLabels": details_sidecar(&link_type_labels),
-            "linkTypeIcons": details_sidecar(&link_type_icons),
-            "linkEntityIds": identities_sidecar(&link_entity_ids),
+            "linkTypeIds": link_type_ids,
         },
     });
 
@@ -656,11 +652,17 @@ fn g6_edges() -> Golden {
 /// G7.
 ///
 /// A locate response - the source first over an arbitrary delivered list (nothing contiguous),
-/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), and
-/// the full detail trailer: labels and icons with nulls and non-ASCII, the interned property-name
-/// table shared across nodes, per-node maps covering every simple value shape (text, positive and
-/// negative integers, doubles, booleans, explicit null), a `null` unresolved entry, an empty
-/// resolved map, and the five link columns.
+/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), both
+/// source completeness flags exercised in opposite states, and the full detail trailer: both
+/// intern tables, labels with nulls and non-ASCII, node first-type references including a `null`,
+/// the source map covering every simple value shape (text, positive and negative integers,
+/// doubles, booleans, explicit null), link type lists in non-ascending canonical order with an
+/// empty entry, link property maps covering map, `null`, and empty shapes, and both completeness
+/// bitmasks.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the golden pins every wire shape in one hand-built document"
+)]
 fn g7_locate() -> Golden {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
@@ -682,6 +684,11 @@ fn g7_locate() -> Golden {
     let t1_dense = [1_u32 << 4];
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
+    let type_table = [
+        "https://t.test/authored/v/1",
+        "https://t.test/person/v/3",
+        "https://t.test/work/v/2",
+    ];
     let names = [
         "https://x.test/age/",
         "https://x.test/name/",
@@ -694,21 +701,23 @@ fn g7_locate() -> Golden {
         (2, PropertyValue::Boolean(true)),
         (3, PropertyValue::Float(0.5)),
     ];
-    let last_map = [
+    let link_map = [
         (0, PropertyValue::Integer(977)),
         (1, PropertyValue::Null),
         (3, PropertyValue::Float(-2.5)),
     ];
-    let properties: [Option<&[(u32, PropertyValue<'_>)]>; 4] =
-        [Some(&source_map), None, Some(&[]), Some(&last_map)];
 
     let labels = [Some("Caf\u{e9}"), None, Some("\u{1d50a}"), Some("e\u{301}")];
-    let icons = [Some("\u{1f980}"), None, None, Some("\u{2192}")];
+    let type_ids = [Some(1_u32), None, Some(2), Some(0)];
     let link_labels = [Some("\u{153}uvre"), None, Some("cites")];
-    let link_icons = [None, Some("\u{1f517}"), None];
-    let link_type_labels = [Some("authored"), Some("authored"), None];
-    let link_type_icons = [None, None, Some("\u{6c34}")];
-    let link_entity_ids = [
+    // Canonical direct-type order is the store's, never sorted: the
+    // first list pins a descending pair on purpose.
+    let link_type_ids = [vec![1_u32, 0], vec![0], Vec::new()];
+    let link_type_ids_complete = [true, false, false];
+    let link_properties: [Option<&[(u32, PropertyValue<'_>)]>; 3] =
+        [Some(&link_map), None, Some(&[])];
+    let link_properties_complete = [true, false, true];
+    let edge_ids = [
         identity_of(0xD0, 0xD1),
         identity_of(0xE0, 0xE1),
         identity_of(0xF0, 0xF1),
@@ -719,25 +728,28 @@ fn g7_locate() -> Golden {
         variant: 0,
         cell: TileCoordinate { z: 3, x: 5, y: 2 },
         complete: false,
+        entity_id: identity_of(0x42, 0x24),
+        type_ids_complete: true,
+        properties_complete: false,
         delivered: &delivered,
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),
         sources: &[61, 41, 21],
         targets: &[11, 61, 41],
-        edge_rows: &[9, 57, 300],
-        entity_id: identity_of(0x42, 0x24),
-        trailer: Some(LocateTrailer {
+        edge_ids: &edge_ids,
+        trailer: LocateTrailer {
+            type_table: &type_table,
+            property_table: &names,
             labels: &labels,
-            icons: &icons,
-            property_names: &names,
-            properties: &properties,
+            type_ids: &type_ids,
+            properties: Some(&source_map),
             link_labels: &link_labels,
-            link_icons: &link_icons,
-            link_type_labels: &link_type_labels,
-            link_type_icons: &link_type_icons,
-            link_entity_ids: &link_entity_ids,
-        }),
+            link_type_ids: &link_type_ids,
+            link_type_ids_complete: &link_type_ids_complete,
+            link_properties: &link_properties,
+            link_properties_complete: &link_properties_complete,
+        },
     };
     let bytes = response.encode();
 
@@ -751,20 +763,20 @@ fn g7_locate() -> Golden {
     // Property values ride the sidecar as plain JSON: every pinned
     // double is exactly representable, and none renders integral, so
     // the number forms stay unambiguous (serde_json round-trips f64).
-    let properties_sidecar = json!([
-        {
-            "https://x.test/age/": -3,
-            "https://x.test/name/": "Ada",
-            "https://x.test/ok/": true,
-            "https://x.test/score/": 0.5,
-        },
-        Value::Null,
-        {},
+    let properties_sidecar = json!({
+        "https://x.test/age/": -3,
+        "https://x.test/name/": "Ada",
+        "https://x.test/ok/": true,
+        "https://x.test/score/": 0.5,
+    });
+    let link_properties_sidecar = json!([
         {
             "https://x.test/age/": 977,
             "https://x.test/name/": Value::Null,
             "https://x.test/score/": -2.5,
         },
+        Value::Null,
+        {},
     ]);
 
     let sidecar = locate_sidecar(
@@ -773,6 +785,7 @@ fn g7_locate() -> Golden {
         &bytes,
         &expected_mask,
         &properties_sidecar,
+        &link_properties_sidecar,
     );
     Golden {
         name: "g7-locate",
@@ -783,15 +796,16 @@ fn g7_locate() -> Golden {
 
 /// Renders a locate golden's sidecar.
 ///
-/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. `properties`
-/// arrives pre-rendered because its JSON forms are pinned alongside the wire values in the golden
-/// itself.
+/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. The property
+/// maps arrive pre-rendered because their JSON forms are pinned alongside the wire values in the
+/// golden itself; the completeness bitmasks render as their logical boolean lists.
 fn locate_sidecar(
     name: &str,
     response: &LocateResponse<'_>,
     bytes: &[u8],
     type_mask: &[u8],
     properties: &Value,
+    link_properties: &Value,
 ) -> Value {
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
@@ -802,7 +816,7 @@ fn locate_sidecar(
         row_ids.push(response.rows[position as usize]);
     }
 
-    let trailer = response.trailer.as_ref().expect("G7 pins the trailer");
+    let trailer = &response.trailer;
     json!({
         "golden": name,
         "layer": "locate",
@@ -816,25 +830,27 @@ fn locate_sidecar(
             "cell": [response.cell.z, response.cell.x, response.cell.y],
             "edges": response.sources.len(),
             "complete": response.complete,
-            "trailer": true,
             "entityId": identities_sidecar(&[response.entity_id]).remove(0),
+            "typeIdsComplete": response.type_ids_complete,
+            "propertiesComplete": response.properties_complete,
         },
         "positions": positions_bits,
         "rowIds": row_ids,
         "typeMask": type_mask,
         "sources": response.sources,
         "targets": response.targets,
-        "edgeRowIds": response.edge_rows,
+        "edgeIds": identities_sidecar(response.edge_ids),
         "trailer": {
+            "typeTable": trailer.type_table,
+            "propertyTable": trailer.property_table,
             "labels": details_sidecar(trailer.labels),
-            "icons": details_sidecar(trailer.icons),
-            "propertyNames": trailer.property_names,
+            "typeIds": trailer.type_ids,
             "properties": properties,
             "linkLabels": details_sidecar(trailer.link_labels),
-            "linkIcons": details_sidecar(trailer.link_icons),
-            "linkTypeLabels": details_sidecar(trailer.link_type_labels),
-            "linkTypeIcons": details_sidecar(trailer.link_type_icons),
-            "linkEntityIds": identities_sidecar(trailer.link_entity_ids),
+            "linkTypeIds": trailer.link_type_ids,
+            "linkTypeIdsComplete": trailer.link_type_ids_complete,
+            "linkProperties": link_properties,
+            "linkPropertiesComplete": trailer.link_properties_complete,
         },
     })
 }
@@ -852,8 +868,15 @@ const fn identity_of(web: u8, entity: u8) -> [u8; 32] {
 
 /// Renders one identity column as lowercase hex strings.
 fn identities_sidecar(ids: &[[u8; 32]]) -> Vec<String> {
+    use core::fmt::Write as _;
+
     ids.iter()
-        .map(|id| id.iter().map(|byte| format!("{byte:02x}")).collect())
+        .map(|id| {
+            id.iter().fold(String::with_capacity(64), |mut hex, byte| {
+                write!(hex, "{byte:02x}").expect("writing to a string cannot fail");
+                hex
+            })
+        })
         .collect()
 }
 

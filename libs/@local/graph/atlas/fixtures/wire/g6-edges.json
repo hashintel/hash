@@ -3,9 +3,13 @@
     [48, 92],
     [96, 108],
     [112, 124],
-    [128, 140]
+    [128, 224]
   ],
-  "edgeRowIds": [3, 100, 205],
+  "edgeIds": [
+    "a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+    "c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"
+  ],
   "golden": "g6-edges",
   "head": {
     "complete": false,
@@ -25,14 +29,8 @@
   "sources": [4, 4, 9],
   "targets": [11, 7, 2],
   "trailer": {
-    "linkEntityIds": [
-      "a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
-      "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
-      "c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"
-    ],
-    "linkIcons": ["🔗", null, null],
     "linkLabels": ["œuvre", "created by", null],
-    "linkTypeIcons": [null, null, null],
-    "linkTypeLabels": [null, "authored", "authored"]
+    "linkTypeIds": [1, 0, null],
+    "typeTable": ["https://t.test/authored/v/1", "https://t.test/cites/v/2"]
   }
 }

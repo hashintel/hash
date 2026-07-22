@@ -172,9 +172,17 @@ struct CapsArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_EDGES")]
     locate_edges: Option<u32>,
 
-    /// Most properties one located entity ships in its trailer map.
+    /// Most properties one located source ships in its trailer map.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_PROPERTIES")]
     locate_properties: Option<u32>,
+
+    /// Most direct types one locate edge ships.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_LINK_TYPE_IDS")]
+    locate_link_type_ids: Option<u32>,
+
+    /// Most properties one locate edge ships.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_LINK_PROPERTIES")]
+    locate_link_properties: Option<u32>,
 
     /// The sealed-blob asynchronous-refresh horizon, seconds.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_SEAL_SOFT_SECONDS")]
@@ -206,6 +214,12 @@ impl CapsArgs {
         }
         if let Some(value) = self.locate_properties {
             caps.locate.properties = value;
+        }
+        if let Some(value) = self.locate_link_type_ids {
+            caps.locate.link_type_ids = value;
+        }
+        if let Some(value) = self.locate_link_properties {
+            caps.locate.link_properties = value;
         }
         if let Some(value) = self.seal_soft_seconds {
             caps.seal.soft = core::time::Duration::from_secs(value);

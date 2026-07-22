@@ -31,16 +31,19 @@ The union spans ALL listed tiles, so list the whole viewport in one request: an 
      level-of-detail cut, and it appears once the viewport or zoom reaches that endpoint.
 
 The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list. The response is \
-     a `SALTILEE` envelope whose three columns (sources, targets, edge row ids) ride ascending by \
-     edge row id, independent of the tile list - identical requests yield identical bytes.
+     a `SALTILEE` envelope whose three columns (sources, targets, and `EDGE_IDS` - each edge's \
+     link entity id as 32 raw bytes, web uuid then entity uuid, generation-frozen) ride ascending \
+     by identity bytes, independent of the tile list - identical requests yield identical bytes, \
+     and the order is verifiable from the `EDGE_IDS` column alone. Edges carry no wire id of \
+     their own.
 
 When the edge cap truncates the set, the rank-ordered truncation keeps the edges whose worse \
      endpoint ranks best, and the HEAD's `complete` key reads `false`.
 
-`includeDetailedData` rides the trailer with five per-edge detail arrays - the link entity's label \
-     and icon plus its entity-type's title and icon, hydrated LIVE from the store at request \
-     time, and the link's 32-byte entity id (web uuid then entity uuid), generation-frozen and \
-     never null.
+`includeDetailedData` rides the trailer with the interned type-URL table and two per-edge arrays - \
+     the link entity's label, hydrated LIVE from the store at request time, and its first direct \
+     type as a uint index into the table; the client resolves display through its own type \
+     metadata.
 
 Version 0 rejects `filter` with an `unsupported-feature` problem.";
 
@@ -165,8 +168,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
             operation
         })
         .response_with::<200, Saltile, _>(|response| {
-            response
-                .description("a `SALTILEE` envelope: the qualifying edges, ascending by edge row")
+            response.description(
+                "a `SALTILEE` envelope: the qualifying edges, ascending by link-entity identity",
+            )
         })
         .response_with::<400, Problem<'static>, _>(|response| {
             response.description("`too-many-tiles`, `missing-body`, or `invalid-coordinate`")

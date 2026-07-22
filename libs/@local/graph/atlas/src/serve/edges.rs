@@ -1,13 +1,13 @@
 //! Edges delivery.
 //!
 //! The edges among the listed tiles' delivered rows, answered as `SALTILEE` envelope bytes in
-//! ascending edge-row order.
+//! ascending link-entity identity order.
 
 use core::{error::Error, fmt};
 
 use super::{
     Atlas, Filter, TileCoordinate, cell_of, depth_of,
-    detail::{DeliveredEntities, LinkDetails},
+    detail::{DeliveredEntities, EdgeLinkDetails},
     narrow,
     visibility::VisibilityProof,
 };
@@ -138,8 +138,9 @@ pub struct EdgesDocument {
     complete: bool,
     sources: Vec<u32>,
     targets: Vec<u32>,
-    edge_rows: Vec<u32>,
-    /// The internal edge rows behind `edge_rows`, delivered order.
+    /// The delivered edges' link-entity identities, delivered order.
+    edge_ids: Vec<[u8; 32]>,
+    /// The internal edge rows behind `edge_ids`, delivered order.
     ///
     /// The hydration key the identity table speaks.
     internal_rows: Vec<u32>,
@@ -177,12 +178,12 @@ impl Atlas {
     ///
     /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// Delivery order is ascending edge row id, independent of the tiles listed and of truncation,
-    /// so identical requests yield identical bytes. Every id on the wire is the generation's keyed
-    /// wire id, so the order carries no internal-order information. Beyond `caps.edges` the
-    /// rank-ordered cap keeps the edges whose worse endpoint ranks best - an edge is only as
-    /// prominent as its less-prominent endpoint - with ties broken by wire edge row id, and `HEAD`
-    /// reports `complete: false`.
+    /// Delivery order is ascending link-entity identity bytes, independent of the tiles listed
+    /// and of truncation, so identical requests yield identical bytes - and the order is
+    /// client-verifiable from the `EDGE_IDS` column alone, carrying no internal-order
+    /// information. Beyond `caps.edges` the rank-ordered cap keeps the edges whose worse endpoint
+    /// ranks best - an edge is only as prominent as its less-prominent endpoint - with ties
+    /// broken by identity bytes, and `HEAD` reports `complete: false`.
     ///
     /// The edge set inherits the visibility mask through its endpoints: the delivered row sets
     /// intersect the proof before edges qualify, so an edge with a hidden endpoint is never
@@ -215,28 +216,28 @@ impl Atlas {
 
         let mut delivered = self.delivered_rows(&request.tiles)?;
         proof.intersect(&mut delivered);
-        // The wire edge id rides selection: truncation ties and the
-        // delivery sort both compare wire values, so nothing the
+        // The link identity rides selection: truncation ties and the
+        // delivery sort both compare identity bytes, so nothing the
         // response exposes orders by internal id.
-        let mut edges: Vec<(DeliveredEdge, u32)> = self
+        let mut edges: Vec<(DeliveredEdge, [u8; 32])> = self
             .qualifying_edges(&delivered)
             .into_iter()
-            .map(|edge| (edge, self.edge_codec.encode(edge.row).get()))
+            .map(|edge| (edge, self.edge_identity(edge.row)))
             .collect();
         let complete = edges.len() <= caps.edges as usize;
         if !complete {
             self.truncate_by_rank(&mut edges, caps.edges as usize);
         }
-        edges.sort_unstable_by_key(|&(_, wire)| wire);
+        edges.sort_unstable_by_key(|&(_, id)| id);
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
-        let mut edge_rows = Vec::with_capacity(edges.len());
+        let mut edge_ids = Vec::with_capacity(edges.len());
         let mut internal_rows = Vec::with_capacity(edges.len());
-        for &(edge, wire) in &edges {
+        for &(edge, id) in &edges {
             sources.push(self.node_codec.encode(edge.source).get());
             targets.push(self.node_codec.encode(edge.target).get());
-            edge_rows.push(wire);
+            edge_ids.push(id);
             internal_rows.push(edge.row);
         }
 
@@ -244,7 +245,7 @@ impl Atlas {
             complete,
             sources,
             targets,
-            edge_rows,
+            edge_ids,
             internal_rows,
         })
     }
@@ -277,43 +278,30 @@ impl Atlas {
     /// `SALTILEE` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
     /// detail trailer riding iff `details` is supplied.
     ///
+    /// The trailer interns type URLs at encode time: the table is the bytewise-sorted union of
+    /// every edge's first direct type, and each reference keys by index into it.
+    ///
     /// # Panics
     ///
     /// Panics when supplied details do not cover the document's delivered edges - a transport bug,
     /// never request data.
     #[must_use]
-    pub fn encode_edges(&self, document: &EdgesDocument, details: Option<&LinkDetails>) -> Vec<u8> {
-        // Link identities read the generation-frozen table, no store;
-        // they ride the detail trailer with the hydrated link columns.
-        let link_ids: Option<Vec<[u8; 32]>> =
-            details.is_some().then(|| {
-                document
-                    .internal_rows
-                    .iter()
-                    .map(|&row| {
-                        super::translate::identity_bytes(self.edge_ids.id(u64::from(row)).expect(
-                            "open validated the identity rows against the adjacency's edges",
-                        ))
-                    })
-                    .collect()
-            });
+    pub fn encode_edges(
+        &self,
+        document: &EdgesDocument,
+        details: Option<&EdgeLinkDetails>,
+    ) -> Vec<u8> {
         let columns = details.map(|details| {
-            (
-                borrow(details.labels()),
-                borrow(details.icons()),
-                borrow(details.type_labels()),
-                borrow(details.type_icons()),
-            )
+            let (type_table, link_type_ids) = intern_first_types(details.first_type_urls());
+            (borrow(details.labels()), type_table, link_type_ids)
         });
-        let trailer = columns.as_ref().zip(link_ids.as_deref()).map(
-            |((labels, icons, type_labels, type_icons), link_entity_ids)| EdgesTrailer {
+        let trailer = columns
+            .as_ref()
+            .map(|(labels, type_table, link_type_ids)| EdgesTrailer {
+                type_table,
                 link_labels: labels,
-                link_icons: icons,
-                link_type_labels: type_labels,
-                link_type_icons: type_icons,
-                link_entity_ids,
-            },
-        );
+                link_type_ids,
+            });
 
         EdgesResponse {
             generation: self.generation.id().digest(),
@@ -321,7 +309,7 @@ impl Atlas {
             complete: document.complete,
             sources: &document.sources,
             targets: &document.targets,
-            edge_rows: &document.edge_rows,
+            edge_ids: &document.edge_ids,
             trailer,
         }
         .encode()
@@ -395,20 +383,21 @@ impl Atlas {
 
     /// Keeps the `cap` edges the rank-ordered cap selects.
     ///
-    /// Ascending by worse-endpoint rank, ties by wire edge row id.
-    fn truncate_by_rank(&self, edges: &mut Vec<(DeliveredEdge, u32)>, cap: usize) {
+    /// Ascending by worse-endpoint rank, ties by link-entity identity bytes.
+    fn truncate_by_rank(&self, edges: &mut Vec<(DeliveredEdge, [u8; 32])>, cap: usize) {
         if cap == 0 {
             edges.clear();
             return;
         }
 
-        let mut ranked: Vec<(u32, (DeliveredEdge, u32))> = edges
+        let mut ranked: Vec<(u32, (DeliveredEdge, [u8; 32]))> = edges
             .drain(..)
             .map(|entry| (self.worse_rank(entry.0), entry))
             .collect();
         // Partitioning at `cap - 1` places the cap smallest keys - a
-        // total order, since wire edge ids are distinct - in the head.
-        ranked.select_nth_unstable_by_key(cap - 1, |&(rank, (_, wire))| (rank, wire));
+        // total order, since link identities are distinct - in the
+        // head.
+        ranked.select_nth_unstable_by_key(cap - 1, |&(rank, (_, id))| (rank, id));
         ranked.truncate(cap);
         edges.extend(ranked.into_iter().map(|(_, entry)| entry));
     }
@@ -431,4 +420,28 @@ impl Atlas {
 /// Borrows one owned detail column as the encoder's `&str` view.
 pub(super) fn borrow(entries: &[Option<String>]) -> Vec<Option<&str>> {
     entries.iter().map(Option::as_deref).collect()
+}
+
+/// Builds the type intern table and the per-edge first-type references into it.
+///
+/// The table is the bytewise-sorted, deduplicated union of every edge's first direct type; a
+/// `None` entry - a link the store no longer serves or without a recorded type - stays `None`.
+fn intern_first_types(urls: &[Option<String>]) -> (Vec<&str>, Vec<Option<u32>>) {
+    let mut table: Vec<&str> = urls.iter().flatten().map(String::as_str).collect();
+    table.sort_unstable();
+    table.dedup();
+
+    let link_type_ids = urls
+        .iter()
+        .map(|url| {
+            url.as_deref().map(|url| {
+                let index = table
+                    .binary_search(&url)
+                    .expect("every referenced type is interned");
+                u32::try_from(index).expect("the table is far below u32::MAX types")
+            })
+        })
+        .collect();
+
+    (table, link_type_ids)
 }

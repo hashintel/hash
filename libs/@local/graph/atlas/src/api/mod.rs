@@ -58,8 +58,14 @@ const API_DESCRIPTION: &str = "The read API over one published atlas generation:
 - Every error is an RFC 9457 problem document (`application/problem+json`) whose `type` member \
                                carries a stable slug. An `unknown-generation` problem always \
                                means: re-bootstrap through `current`.
-- The envelope byte layout is pinned in the atlas crate's `SPEC-ADDENDUM-WIRE.md`; the TypeScript \
-                               decoder lives in the frontend's `NetworkGraph/atlas` module.";
+- The binary envelope's normative contract is the `Atlas wire format` section below - this \
+                               document is self-contained; a decoder implements against it.";
+
+/// The wire-format contract, exported verbatim from `docs/wire.md`.
+///
+/// The binary envelope is observable from the outside, so its normative text ships inside the
+/// OpenAPI document rather than pointing at a repository file.
+const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 
 /// The shared route state.
 ///
@@ -106,7 +112,7 @@ pub fn router(
     let mut api = OpenApi {
         info: Info {
             title: "HASH Atlas API".to_owned(),
-            description: Some(API_DESCRIPTION.to_owned()),
+            description: Some(format!("{API_DESCRIPTION}\n\n---\n\n{WIRE_FORMAT}")),
             version: env!("CARGO_PKG_VERSION").to_owned(),
             ..Info::default()
         },

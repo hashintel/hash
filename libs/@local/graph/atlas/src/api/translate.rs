@@ -19,23 +19,25 @@ use super::{
 use crate::serve::{GenerationId, TranslateError, TranslateRequest, TranslateResponse};
 
 /// The operation's description.
-const DESCRIPTION: &str = "Translates upstream entity ids (`webId~entityUuid`) to atlas identity: \
-                           the row ids every binary response speaks (`ROW_IDS` / `EDGE_ROW_IDS`) \
-                           plus, for nodes, the wire-frame position - the correlation seam \
-                           between separately fetched entities and dots already on screen.
+const DESCRIPTION: &str =
+    "Translates upstream entity ids (`webId~entityUuid`) to atlas identity: a node answers the \
+     row id every binary response speaks (`ROW_IDS`) plus its wire-frame position; an edge \
+     answers its endpoints' node row ids (edges carry no wire id of their own - binary responses \
+     identify them by link entity id, which the requester already holds). The correlation seam \
+     between separately fetched entities and dots already on screen.
 
 Row ids are opaque per-generation values, sparse in the full u32 range: consistent across every \
-                           endpoint of one generation, carrying no ordering, adjacency, or count \
-                           information, never bounded by the generation's row count, and not \
-                           stable across generations - re-translate after a generation change.
+     endpoint of one generation, carrying no ordering, adjacency, or count information, never \
+     bounded by the generation's row count, and not stable across generations - re-translate \
+     after a generation change.
 
 The response is two maps keyed by the requested id string echoed verbatim, so kind is carried by \
-                           which map answers. An id that resolves to nothing is an absent key - \
-                           never an error, never a null entry: nonexistent ids, draft-suffixed \
-                           ids, and entities the principal cannot see are indistinguishable.
+     which map answers. An id that resolves to nothing is an absent key - never an error, never a \
+     null entry: nonexistent ids, draft-suffixed ids, and entities the principal cannot see are \
+     indistinguishable.
 
 The JSON body is required; the manifest's `limits.translateEntityIds` caps the id list. Duplicates \
-                           are legal and collapse.";
+     are legal and collapse.";
 
 /// The generation/variant pair addressing one fitted layout.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]

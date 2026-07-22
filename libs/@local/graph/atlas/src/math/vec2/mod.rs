@@ -944,6 +944,9 @@ impl Index<usize> for Vec2x4 {
 // identical size, and at least its alignment. `Simd`'s alignment is
 // target-dependent (it can be below 32 on targets without 256-bit vectors),
 // so the alignment check is a lower bound rather than an equality.
+// The lane views borrow `Simd<f32, 4>` groups at offsets 0 and 16, so the half-width
+// alignment must not exceed the offset.
+const _: () = assert!(align_of::<Simd<f32, 4>>() <= 16);
 const _: () = assert!(size_of::<Vec2x4T>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(size_of::<Vec2x4>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(align_of::<Vec2x4T>() >= align_of::<Simd<f32, 8>>());
