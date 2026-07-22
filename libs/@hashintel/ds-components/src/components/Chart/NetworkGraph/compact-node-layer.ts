@@ -70,6 +70,14 @@ type _CompactNodeLayerProps = {
   showGrowHighlights: boolean;
   /** Whether the coloured node points render. Hidden in the detail variation so the compact crowd doesn't show through the translucent detailed nodes; the detailed layer then resolves picking. */
   showPoints: boolean;
+  /**
+   * Per-id entrance scale (0→1) for nodes easing in from radius 0; an id not present
+   * is at full size (`1`). Multiplied into the crowd points' base radius so a
+   * newly-added node grows in from nothing.
+   */
+  entranceScaleById: Map<NetworkGraphId, number>;
+  /** Bumped each entrance-animation frame so the crowd points' `getRadius` re-evaluates. */
+  entranceEpoch: number;
 };
 
 export type CompactNodeLayerProps = _CompactNodeLayerProps &
@@ -92,6 +100,8 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   showPoints: true,
   dimmedSelectedNode: null,
   selectedPointId: null,
+  entranceScaleById: new Map<NetworkGraphId, number>(),
+  entranceEpoch: 0,
 };
 
 /**
@@ -129,6 +139,8 @@ export class CompactNodeLayer extends CompositeLayer<
       dimmed,
       showGrowHighlights,
       showPoints,
+      entranceScaleById,
+      entranceEpoch,
     } = this.props;
     const points = (data ?? []) as NetworkGraphPoint[];
     const colorFor = (point: NetworkGraphPoint): RgbColor =>
@@ -273,7 +285,10 @@ export class CompactNodeLayer extends CompositeLayer<
               // different node is hovered. It stays pickable regardless of fill alpha.
               getFillColor: (point): Color =>
                 point.id === selectedPointId ? [0, 0, 0, 0] : colorFor(point),
-              getRadius: POINT_RADIUS,
+              // Scaled by the node's entrance progress so a newly-added node grows
+              // in from radius 0 (settled nodes are at full size).
+              getRadius: (point) =>
+                POINT_RADIUS * (entranceScaleById.get(point.id) ?? 1),
               radiusScale,
               radiusUnits: "pixels",
               radiusMinPixels: POINT_RADIUS,
@@ -283,7 +298,10 @@ export class CompactNodeLayer extends CompositeLayer<
               opacity: dimmed
                 ? Math.min(pointOpacity, POINT_DIMMED_OPACITY)
                 : pointOpacity,
-              updateTriggers: { getFillColor: selectedPointId },
+              updateTriggers: {
+                getFillColor: selectedPointId,
+                getRadius: entranceEpoch,
+              },
             }),
           ]
         : []),

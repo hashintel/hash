@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -443,6 +444,118 @@ const useEasedValue = (
     };
   }, [target, durationMs]);
   return eased;
+};
+
+/** Duration (ms) over which a newly-added node grows from radius 0 to full. */
+const NODE_ENTRANCE_MS = 400;
+
+/**
+ * Grows nodes added *after* the initial load in from a radius of 0. The first
+ * non-empty `points` — the initial load — is shown at full size; every node id
+ * that first appears in a later update eases its radius up from 0 over {@link
+ * NODE_ENTRANCE_MS}. Ids are tracked across the graph's lifetime, so a node that
+ * leaves and later returns (e.g. a tiling swap) isn't re-animated.
+ *
+ * Returns the per-id scale multiplier for the nodes currently easing in (an id not
+ * present is at full size, `1`) and an `epoch` that changes each animation frame,
+ * fed to the crowd points' `getRadius` `updateTriggers` so it re-evaluates while an
+ * entrance is in flight and settles once every node has finished.
+ */
+const useNodeEntranceScales = (
+  points: NetworkGraphPoint[],
+): { scaleById: Map<NetworkGraphId, number>; epoch: number } => {
+  // Every id ever seen, so a node animates only the first time it appears.
+  const seenRef = useRef<Set<NetworkGraphId>>(new Set());
+  // Whether the first non-empty `points` (shown at full size) has arrived.
+  const loadedRef = useRef(false);
+  // id → entrance start time (ms), or `null` until the next frame stamps it.
+  const startsRef = useRef<Map<NetworkGraphId, number | null>>(new Map());
+  const rafRef = useRef<number | undefined>(undefined);
+  const [scaleById, setScaleById] = useState<Map<NetworkGraphId, number>>(
+    () => new Map(),
+  );
+  const [epoch, setEpoch] = useState(0);
+
+  // Layout effect, not passive, so the just-added nodes are seeded at scale 0 in the
+  // same commit they first render — otherwise they'd paint once at full size before
+  // the animation's first frame shrank them back.
+  useLayoutEffect(() => {
+    if (!loadedRef.current) {
+      // Initial load: adopt the first non-empty set at full size, no animation.
+      if (points.length > 0) {
+        loadedRef.current = true;
+        for (const point of points) {
+          seenRef.current.add(point.id);
+        }
+      }
+      return;
+    }
+    if (typeof requestAnimationFrame === "undefined") {
+      // No rAF (e.g. SSR/tests): show newly-added nodes at full size.
+      for (const point of points) {
+        seenRef.current.add(point.id);
+      }
+      return;
+    }
+    let added = false;
+    for (const point of points) {
+      if (!seenRef.current.has(point.id)) {
+        seenRef.current.add(point.id);
+        startsRef.current.set(point.id, null);
+        added = true;
+      }
+    }
+    if (!added) {
+      return;
+    }
+    // A function declaration (not an arrow) so the recursive rAF can reference it,
+    // mirroring `useEasedValue`'s `step`. Reads the live starts from a ref, so a
+    // batch arriving mid-animation is folded into the same loop.
+    function frame(now: number) {
+      const starts = startsRef.current;
+      const next = new Map<NetworkGraphId, number>();
+      for (const [id, start] of starts) {
+        // Stamp the start on the first frame so progress begins at 0, avoiding a
+        // clock mismatch between this effect and the rAF timeline.
+        const from = start ?? now;
+        if (start === null) {
+          starts.set(id, from);
+        }
+        const progress = Math.min(1, (now - from) / NODE_ENTRANCE_MS);
+        if (progress >= 1) {
+          starts.delete(id);
+          continue;
+        }
+        // Ease-out cubic, matching `useEasedValue`.
+        next.set(id, 1 - (1 - progress) ** 3);
+      }
+      setScaleById(next);
+      setEpoch((value) => value + 1);
+      rafRef.current =
+        starts.size > 0 ? requestAnimationFrame(frame) : undefined;
+    }
+    // Run one frame synchronously — this is a layout effect, so before paint — to
+    // seed the just-added nodes at scale 0; otherwise they'd paint once at full size
+    // before the first animation frame. Cancel any in-flight frame first so a batch
+    // arriving mid-animation doesn't leave two loops running.
+    if (rafRef.current !== undefined) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = undefined;
+    }
+    frame(performance.now());
+  }, [points]);
+
+  // Stop the animation loop on unmount.
+  useEffect(
+    () => () => {
+      if (rafRef.current !== undefined) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    },
+    [],
+  );
+
+  return { scaleById, epoch };
 };
 
 /**
@@ -1049,6 +1162,12 @@ export const NetworkGraph = ({
   );
   const pointOpacity =
     useEasedValue(targetOpacity, DENSITY_EASE_MS) ?? targetOpacity;
+
+  // Per-id entrance scale (0→1) growing newly-added nodes in; the initial load and
+  // settled nodes are at full size. `entranceEpoch` re-triggers the crowd points'
+  // radius each frame while an entrance animates.
+  const { scaleById: entranceScaleById, epoch: entranceEpoch } =
+    useNodeEntranceScales(points);
 
   // The crowd radius tracks on-screen inter-node spacing (`getRadius · radiusScale`,
   // with `getRadius = POINT_RADIUS`). Falls back to the zoom-derived scale until the
@@ -1987,6 +2106,9 @@ export const NetworkGraph = ({
       colorByHex: colorByHexWithOverlay,
       radiusScale: effectiveRadiusScale,
       pointOpacity,
+      // Grow newly-added crowd points in from radius 0.
+      entranceScaleById,
+      entranceEpoch,
       dimmed: highlight !== null,
       // In detail the grow highlights give way to the detailed layer's outline.
       showGrowHighlights: !isDetailZoom,
@@ -2128,6 +2250,8 @@ export const NetworkGraph = ({
     colorByHexWithOverlay,
     effectiveRadiusScale,
     pointOpacity,
+    entranceScaleById,
+    entranceEpoch,
     isDetailZoom,
     detailPoints,
     iconAtlas,

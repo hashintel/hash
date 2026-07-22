@@ -665,3 +665,83 @@ export const TenNodes: Story<NetworkGraphProps> = () => (
 export const OneThousandNodes: Story<NetworkGraphProps> = () => (
   <NetworkGraphStory datasets={[ONE_THOUSAND_DATASET]} />
 );
+
+/** How many nodes the streaming story shows on first load, then adds each tick. */
+const STREAM_INITIAL = 150;
+const STREAM_BATCH = 30;
+const STREAM_TOTAL = 900;
+const STREAM_INTERVAL_MS = 500;
+
+/**
+ * Streams nodes in over time to exercise the entrance animation: the first {@link
+ * STREAM_INITIAL} nodes appear at full size (the initial load), then every {@link
+ * STREAM_INTERVAL_MS} another {@link STREAM_BATCH} is appended and each new node
+ * grows in from radius 0. The view is framed over the eventual node set so it
+ * doesn't reframe as nodes arrive.
+ */
+export const StreamingNodes: Story<NetworkGraphProps> = () => {
+  const fullData = useFullGraphData();
+  const [count, setCount] = useState(STREAM_INITIAL);
+
+  // The eventual node set, fixed across ticks so bounds and max zoom stay stable.
+  const targetPoints = useMemo(
+    () => fullData?.points.slice(0, STREAM_TOTAL) ?? [],
+    [fullData],
+  );
+
+  useEffect(() => {
+    if (targetPoints.length === 0 || count >= targetPoints.length) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      setCount((current) =>
+        Math.min(targetPoints.length, current + STREAM_BATCH),
+      );
+    }, STREAM_INTERVAL_MS);
+    return () => clearTimeout(timer);
+  }, [targetPoints, count]);
+
+  const points = useMemo(
+    () => targetPoints.slice(0, count),
+    [targetPoints, count],
+  );
+
+  const graphBounds = useMemo(() => {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const point of targetPoints) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+    return Number.isFinite(minX)
+      ? { minX, maxX, minY, maxY }
+      : { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+  }, [targetPoints]);
+
+  const maxZoom = useMemo(
+    () => maxZoomForNodeMinDistance(minDistance(targetPoints)),
+    [targetPoints],
+  );
+
+  return (
+    <div className={frameStyles}>
+      {fullData ? (
+        <NetworkGraph
+          points={points}
+          edges={[]}
+          graphBounds={graphBounds}
+          maxZoom={maxZoom}
+        />
+      ) : (
+        <span className={centreStyles}>
+          <LoadingSpinner size="md" />
+          Loading nodes…
+        </span>
+      )}
+    </div>
+  );
+};
