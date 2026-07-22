@@ -62,6 +62,11 @@ export interface LocatedEntityPopoverProps {
   readonly onClose: () => void;
   /** "Go to entity" handler; the button is omitted when absent. */
   readonly onGoTo?: () => void;
+  /**
+   * Called when the card is focused or clicked, so a consumer can bring it to
+   * the front over other overlays (e.g. the network graph's search widget).
+   */
+  readonly onActivate?: () => void;
 }
 
 const cardStyles = css({
@@ -72,7 +77,7 @@ const cardStyles = css({
   maxWidth: "[260px]",
   padding: "3",
   backgroundColor: "white",
-  borderRadius: "lg",
+  borderRadius: "md",
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "neutral.s40",
@@ -164,6 +169,7 @@ export const LocatedEntityPopover = ({
   detail,
   onClose,
   onGoTo,
+  onActivate,
 }: LocatedEntityPopoverProps) => {
   const gaps = gapsFor(anchor);
   return (
@@ -175,7 +181,11 @@ export const LocatedEntityPopover = ({
       gapX={gaps.x}
       gapY={gaps.y}
     >
-      <div className={cardStyles}>
+      <div
+        className={cardStyles}
+        onPointerDown={onActivate}
+        onFocus={onActivate}
+      >
         <div className={titleStyles}>
           {detail.icon ? (
             <span className={titleIconStyles}>{detail.icon}</span>

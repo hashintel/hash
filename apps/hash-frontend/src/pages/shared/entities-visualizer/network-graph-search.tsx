@@ -62,6 +62,19 @@ const PANEL_WIDTH = 340;
 const PANEL_HEIGHT = 82;
 
 /**
+ * The open widget layers relative to the selection popover's fixed ds `popover`
+ * z-index. Which sits on top follows the last thing the user actioned (see the
+ * `elevated` prop): focusing the widget raises it above the popover; selecting
+ * an item drops it below so the popover shows on top. The results dropdown
+ * always sits one step above the panel so it isn't clipped behind it. Collapsed,
+ * the button stays below the popover regardless (its z-index is a plain `1`).
+ */
+const PANEL_Z_ABOVE_POPOVER = "calc(var(--z-index-popover) + 1)";
+const PANEL_Z_BELOW_POPOVER = "calc(var(--z-index-popover) - 2)";
+const RESULTS_Z_ABOVE_POPOVER = "calc(var(--z-index-popover) + 2)";
+const RESULTS_Z_BELOW_POPOVER = "calc(var(--z-index-popover) - 1)";
+
+/**
  * The properties {@link generateEntityLabel} most commonly derives a label from —
  * covering CRM/generic entities (`name`), documents (`title`) and users
  * (`display-name`). We search these server-side; the label refine then keeps only
@@ -102,6 +115,8 @@ export const NetworkGraphSearch = ({
   onSelect,
   onResultsChange,
   popperContainer,
+  elevated = true,
+  onActivate,
 }: {
   onSelect: (result: NetworkGraphSearchResult) => void;
   /**
@@ -116,6 +131,17 @@ export const NetworkGraphSearch = ({
    * be hidden behind the full-screen element).
    */
   popperContainer?: HTMLElement | null;
+  /**
+   * Whether the open widget sits above the selection popover. The parent flips
+   * this by recency: true when the widget was last focused/opened, false once an
+   * item is selected (so its popover shows on top). Ignored while collapsed.
+   */
+  elevated?: boolean;
+  /**
+   * Fired when the user focuses or clicks the widget, so the parent can bring it
+   * back above the selection popover (by setting `elevated`).
+   */
+  onActivate?: () => void;
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -237,19 +263,31 @@ export const NetworkGraphSearch = ({
     return options;
   }, [options, selected]);
 
+  const openPanelZIndex = elevated
+    ? PANEL_Z_ABOVE_POPOVER
+    : PANEL_Z_BELOW_POPOVER;
+  const resultsZIndex = elevated
+    ? RESULTS_Z_ABOVE_POPOVER
+    : RESULTS_Z_BELOW_POPOVER;
+
   return (
     // A single floating element pinned at the graph's top-left gap: it reads as
     // the collapsed search button and grows in place into the search panel.
     <Box
       ref={panelRef}
+      // Any pointer/keyboard focus on the widget brings it back to the front
+      // (the results popup portals elsewhere, so picking a result doesn't fire
+      // this — the parent lowers the widget on select instead).
+      onMouseDown={() => onActivate?.()}
+      onFocus={() => onActivate?.()}
       sx={({ palette, boxShadows, transitions }) => ({
         position: "absolute",
         top: 8,
         left: 8,
-        // Collapsed, the button stays below the selection popover; expanded, it
-        // rises just above it. The popover uses the ds `popover` layer, whose
-        // token var resolves here since this sits inside `.hash-ds-root`.
-        zIndex: open ? "calc(var(--z-index-popover) + 1)" : 1,
+        // Collapsed, the button stays below the selection popover; open, it
+        // layers above or below it by recency (see `elevated`). The token
+        // resolves here as it's emitted at `:root`.
+        zIndex: open ? openPanelZIndex : 1,
         overflow: "hidden",
         background: palette.white,
         border: `1px solid ${palette.gray[30]}`,
@@ -330,9 +368,9 @@ export const NetworkGraphSearch = ({
               popper: {
                 container: popperContainer ?? undefined,
                 sx: {
-                  // Above the expanded search bar (which sits one step above the
-                  // selection popover), so the results aren't hidden behind it.
-                  zIndex: "calc(var(--z-index-popover) + 2)",
+                  // One step above the panel (which layers around the selection
+                  // popover by recency), so results aren't hidden behind it.
+                  zIndex: resultsZIndex,
                   "& > div:first-of-type": {
                     boxShadow: "none",
                   },
