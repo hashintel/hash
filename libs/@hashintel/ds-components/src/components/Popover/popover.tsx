@@ -146,20 +146,23 @@ export type PopoverProps = {
 };
 
 /**
- * Nudges Ark to reposition a trigger-anchored popover when a gap changes.
+ * Nudges Ark to reposition when a gap changes.
  *
  * Zag reads the positioning options (including `offset`) whenever it computes a
  * placement, but it never repositions on its own when those options change - the
- * only prop it watches is `open`. A trigger-anchored popover recomputes only on
- * scroll/resize, so without a nudge a gap change wouldn't show until one of those
- * fired. `reposition` recomputes now, reading the latest `offset` prop (computed
- * inline from the current gaps in `PopoverRoot`), so the new gap is applied
- * immediately - and, because it also reads that same fresh `offset`, subsequent
- * scroll/resize recomputes keep it rather than reverting.
+ * only prop it watches is `open`. The main-axis gap rides Ark's flip-aware
+ * `offset` middleware (so it lands on whichever side a flip resolves to), and
+ * that value is only re-read when a reposition runs: a trigger-anchored popover
+ * recomputes on scroll/resize, and a point-anchored one every frame, but each
+ * running loop reuses the `offset` captured at its last setup - so neither picks
+ * up a gap change on its own. `reposition` recomputes now, reading the latest
+ * `offset` prop (computed inline from the current gaps in `PopoverRoot`), so the
+ * new gap is applied immediately - and, because subsequent recomputes reuse that
+ * same fresh `offset`, they keep it rather than reverting.
  *
- * `reposition` is exposed only through context, hence this child component. Point
- * anchors don't use it: their per-frame loop recomputes as soon as a gap change
- * (baked into `getAnchorRect`) moves the anchor rect.
+ * `reposition` is exposed only through context, hence this child component. A
+ * point anchor's cross-axis gap doesn't need it: that gap is baked into
+ * `getAnchorRect`, whose closure the per-frame loop re-invokes with fresh gaps.
  */
 const RepositionOnGapChange = ({
   gapX,
@@ -209,12 +212,13 @@ const PopoverRoot = ({
   // re-reads a prop mid-flight: its running loop (per frame for a point anchor
   // via `animationFrame` below; on scroll/resize for a trigger anchor) keeps
   // calling the *original* `getAnchorRect` closure captured when the popover
-  // opened. So point-anchor values that can change while open - the point itself
-  // and the gaps, both baked into that anchor rect - are routed through refs the
+  // opened. So point-anchor values that can change while open and feed that rect
+  // - the point itself and the cross-axis gap - are routed through refs the
   // closure reads, keeping the loop current (e.g. an overlay tracking a node as a
-  // chart is panned or zoomed). The trigger-anchor gap instead rides `offset`
-  // below (computed inline from the current gaps) and is applied by nudging a
-  // reposition - see `RepositionOnGapChange`.
+  // chart is panned or zoomed). The main-axis gap instead rides `offset` below
+  // (computed inline from the current gaps) for both anchor kinds, so it stays
+  // flip-aware; a change to it is applied by nudging a reposition - see
+  // `RepositionOnGapChange`.
   const pointRef = useRef(positionFromPoint);
   const gapRef = useRef({ x: gapX, y: gapY });
   // Synced before paint so the frame loop never reads stale values.
@@ -315,14 +319,18 @@ const PopoverRoot = ({
       }}
       positioning={{
         placement: position,
-        // The gap along the placement direction (the main axis). A trigger anchor
-        // rides Ark's offset middleware (which stays flip-aware); computed inline
-        // from the current gaps so a change is in the prop Ark reads. A point
-        // anchor bakes both gaps into the anchor rect below instead (see
-        // `getAnchorRect`), so no offset is set for it.
-        offset: hasPoint ? undefined : { mainAxis: isVertical ? gapY : gapX },
-        slide: hasPoint ? false : undefined,
-        flip: hasPoint ? false : undefined,
+        // The gap along the placement direction (the main axis), for both anchor
+        // kinds. It rides Ark's offset middleware, which stays flip-aware, so the
+        // gap lands on whichever side a flip resolves to. Computed inline from the
+        // current gaps so a change is in the prop Ark reads on its next reposition
+        // (see `RepositionOnGapChange`); a point anchor's cross-axis gap is baked
+        // into the anchor rect instead (see `getAnchorRect`).
+        offset: { mainAxis: isVertical ? gapY : gapX },
+        // Flip to the opposite side, and slide along the cross axis, to stay on
+        // screen when the preferred placement doesn't fit - for every anchor kind
+        // (these are also Ark's defaults).
+        flip: true,
+        slide: true,
         // When anchored to a point, the trigger element itself doesn't move as
         // the point changes, so floating-ui's default scroll/resize listeners
         // never fire and the popover would stay put. Poll on each animation
@@ -337,28 +345,20 @@ const PopoverRoot = ({
           const point = pointRef.current;
 
           if (point) {
-            // Point anchors disable flip, so the resolved placement equals
-            // `position`: bake both gaps straight into the zero-size anchor rect.
-            // The main-axis gap shifts the point along the placement direction
-            // (away from the popover); the cross-axis gap shifts it across
-            // (flipped for `end` alignment). Read from `gapRef` so the running
-            // loop tracks changes - a shifted rect makes it recompute on its own.
+            // Bake only the cross-axis gap into the zero-size anchor rect: it
+            // shifts the point across the placement direction (flipped for `end`
+            // alignment) and, keyed to alignment rather than side, survives a flip
+            // unchanged. The main-axis gap rides the flip-aware `offset`
+            // middleware above instead, so it lands on the correct side after a
+            // flip. Read the cross gap from `gapRef` so the running loop tracks a
+            // change - a shifted rect makes it recompute on its own.
             const { x: gapXNow, y: gapYNow } = gapRef.current;
-            const mainGap = isVertical ? gapYNow : gapXNow;
-            const mainSign =
-              direction === "top" || direction === "left" ? -1 : 1;
             const crossGap = isVertical ? gapXNow : gapYNow;
             const crossOffset = alignment === "end" ? -crossGap : crossGap;
 
             return {
-              x:
-                (rect?.left ?? 0) +
-                point.x +
-                (isVertical ? crossOffset : mainSign * mainGap),
-              y:
-                (rect?.top ?? 0) +
-                point.y +
-                (isVertical ? mainSign * mainGap : crossOffset),
+              x: (rect?.left ?? 0) + point.x + (isVertical ? crossOffset : 0),
+              y: (rect?.top ?? 0) + point.y + (isVertical ? 0 : crossOffset),
               width: 0,
               height: 0,
             };
@@ -375,13 +375,8 @@ const PopoverRoot = ({
         },
       }}
     >
-      {hasPoint ? null : (
-        <RepositionOnGapChange
-          gapX={gapX}
-          gapY={gapY}
-          isVertical={isVertical}
-        />
-      )}
+      <RepositionOnGapChange gapX={gapX} gapY={gapY} isVertical={isVertical} />
+
       <Portal container={portalContainerRef}>
         <ArkPopover.Positioner className={positionerStyles}>
           <ArkPopover.Content
