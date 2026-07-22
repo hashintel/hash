@@ -3,11 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   arealSpacingWorld,
   blendSpacing,
+  COMPACT_OPACITY_DENSE,
+  COMPACT_OPACITY_SPARSE,
   countPointsInRect,
+  DENSITY_DENSE_SPACING_PX,
   DENSITY_MAX_RADIUS_PX,
   DENSITY_MIN_RADIUS_PX,
   DENSITY_SPACING_FRACTION,
+  DENSITY_SPARSE_SPACING_PX,
   densityPointRadiusPx,
+  maxDensityOpacity,
   medianNearestNeighbourWorld,
 } from "./node-density";
 
@@ -82,6 +87,51 @@ describe("densityPointRadiusPx", () => {
     expect(densityPointRadiusPx(spacing, scale)).toBeCloseTo(expected);
     // Zooming in (larger scale) grows the radius proportionally.
     expect(densityPointRadiusPx(spacing, scale * 2)).toBeCloseTo(expected * 2);
+  });
+});
+
+describe("maxDensityOpacity", () => {
+  it("sits at the sparse opacity for low max density (wide spacing)", () => {
+    expect(maxDensityOpacity(DENSITY_SPARSE_SPACING_PX, 1)).toBeCloseTo(
+      COMPACT_OPACITY_SPARSE,
+    );
+    expect(maxDensityOpacity(1_000, 1)).toBeCloseTo(COMPACT_OPACITY_SPARSE);
+  });
+
+  it("bottoms out at the dense opacity for high max density (tight spacing)", () => {
+    expect(maxDensityOpacity(DENSITY_DENSE_SPACING_PX, 1)).toBeCloseTo(
+      COMPACT_OPACITY_DENSE,
+    );
+    expect(maxDensityOpacity(0, 1)).toBeCloseTo(COMPACT_OPACITY_DENSE);
+  });
+
+  it("falls back to the sparse opacity when the measure is unavailable", () => {
+    expect(maxDensityOpacity(null, 1)).toBe(COMPACT_OPACITY_SPARSE);
+  });
+
+  it("interpolates linearly at the midpoint of the band", () => {
+    const midSpacing =
+      (DENSITY_DENSE_SPACING_PX + DENSITY_SPARSE_SPACING_PX) / 2;
+    expect(maxDensityOpacity(midSpacing, 1)).toBeCloseTo(
+      (COMPACT_OPACITY_DENSE + COMPACT_OPACITY_SPARSE) / 2,
+    );
+  });
+
+  it("moves monotonically toward the sparse opacity as spacing widens (density drops)", () => {
+    const opacities = [4, 8, 12, 16, 20, 24].map((spacing) =>
+      maxDensityOpacity(spacing, 1),
+    );
+    for (let index = 1; index < opacities.length; index += 1) {
+      expect(opacities[index]!).toBeGreaterThan(opacities[index - 1]!);
+    }
+  });
+
+  it("responds to on-screen spacing, so a smaller scale reads as denser", () => {
+    // Halving the world→pixel scale halves the on-screen spacing (denser), so a layout
+    // at the sparse spacing drops below the sparse opacity once zoomed out.
+    expect(maxDensityOpacity(DENSITY_SPARSE_SPACING_PX, 0.5)).toBeLessThan(
+      COMPACT_OPACITY_SPARSE,
+    );
   });
 });
 

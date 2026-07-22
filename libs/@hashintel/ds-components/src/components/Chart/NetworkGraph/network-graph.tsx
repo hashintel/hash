@@ -33,10 +33,12 @@ import {
 import {
   arealSpacingWorld,
   blendSpacing,
+  COMPACT_OPACITY_SPARSE,
   countPointsInRect,
   DENSITY_AREAL_WEIGHT,
   DENSITY_EASE_MS,
   densityPointRadiusPx,
+  maxDensityOpacity,
   medianNearestNeighbourWorld,
 } from "./node-density";
 import {
@@ -390,6 +392,58 @@ const labelCanvasStyles = css({
   height: "full",
   pointerEvents: "none",
 });
+
+/**
+ * Eases a scalar toward `target` with an ease-out cubic over `durationMs`, so a
+ * stepped input drifts rather than pops. Snaps on the first value (and where rAF is
+ * unavailable), and `null` clears straight to `null`. The live value is kept in a ref
+ * so each new target tweens from where the animation currently is without the effect
+ * re-running every frame; the returned state drives re-renders.
+ */
+const useEasedValue = (
+  target: number | null,
+  durationMs: number,
+): number | null => {
+  const currentRef = useRef<number | null>(null);
+  const [eased, setEased] = useState<number | null>(null);
+  const rafRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (target === null) {
+      currentRef.current = null;
+      setEased(null);
+      return undefined;
+    }
+    const from = currentRef.current;
+    if (from === null || typeof requestAnimationFrame === "undefined") {
+      currentRef.current = target;
+      setEased(target);
+      return undefined;
+    }
+    if (from === target) {
+      return undefined;
+    }
+    let start: number | null = null;
+    const step = (now: number) => {
+      start ??= now;
+      const progress = Math.min(1, (now - start) / durationMs);
+      // Ease-out cubic.
+      const amount = 1 - (1 - progress) ** 3;
+      const value = from + (target - from) * amount;
+      currentRef.current = value;
+      setEased(value);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(step);
+      }
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current !== undefined) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [target, durationMs]);
+  return eased;
+};
 
 /**
  * A GPU-accelerated scatterplot of a node/edge graph, rendered with deck.gl.
@@ -924,7 +978,7 @@ export const NetworkGraph = ({
   const framingBaseZoom = viewState?.minZoom ?? null;
 
   // Everything the view derives from the current zoom, computed together by {@link deriveZoomAttributes}.
-  const { radiusScale, pointOpacity, arrowGapPx, isDetailZoom } = useMemo(
+  const { radiusScale, arrowGapPx, isDetailZoom } = useMemo(
     () =>
       deriveZoomAttributes(
         currentZoom != null && framingBaseZoom != null
@@ -978,48 +1032,23 @@ export const NetworkGraph = ({
     DENSITY_AREAL_WEIGHT,
   );
 
-  // The eased density spacing, tweened toward `targetSpacing` over DENSITY_EASE_MS
-  // so a tile-depth swap drifts the node size rather than popping it. Held in a ref
-  // for the animation frame; mirrored to state to drive re-renders.
-  const easedSpacingRef = useRef<number | null>(null);
-  const [easedSpacing, setEasedSpacing] = useState<number | null>(null);
-  const spacingRafRef = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    if (targetSpacing === null) {
-      easedSpacingRef.current = null;
-      setEasedSpacing(null);
-      return undefined;
-    }
-    const from = easedSpacingRef.current;
-    // No prior value (or no rAF): snap, so the first measurement isn't animated in.
-    if (from === null || typeof requestAnimationFrame === "undefined") {
-      easedSpacingRef.current = targetSpacing;
-      setEasedSpacing(targetSpacing);
-      return undefined;
-    }
-    if (from === targetSpacing) {
-      return undefined;
-    }
-    let start: number | null = null;
-    const step = (now: number) => {
-      start ??= now;
-      const progress = Math.min(1, (now - start) / DENSITY_EASE_MS);
-      // Ease-out cubic.
-      const amount = 1 - (1 - progress) ** 3;
-      const value = from + (targetSpacing - from) * amount;
-      easedSpacingRef.current = value;
-      setEasedSpacing(value);
-      if (progress < 1) {
-        spacingRafRef.current = requestAnimationFrame(step);
-      }
-    };
-    spacingRafRef.current = requestAnimationFrame(step);
-    return () => {
-      if (spacingRafRef.current !== undefined) {
-        cancelAnimationFrame(spacingRafRef.current);
-      }
-    };
-  }, [targetSpacing]);
+  // The eased density spacing, tweened toward `targetSpacing` over DENSITY_EASE_MS so
+  // a tile-depth swap drifts the node size rather than popping it.
+  const easedSpacing = useEasedValue(targetSpacing, DENSITY_EASE_MS);
+
+  // Compact crowd opacity from the max local density — the tightest (nearest-neighbour)
+  // packing, on screen: denser packing pulls toward the lower opacity, sparser toward
+  // the upper (see maxDensityOpacity). Eased over the same duration as the spacing so it
+  // drifts rather than pops when the estimate steps.
+  const targetOpacity = useMemo(
+    () =>
+      currentZoom === null
+        ? COMPACT_OPACITY_SPARSE
+        : maxDensityOpacity(nearestNeighbourSpacing, 2 ** currentZoom),
+    [nearestNeighbourSpacing, currentZoom],
+  );
+  const pointOpacity =
+    useEasedValue(targetOpacity, DENSITY_EASE_MS) ?? targetOpacity;
 
   // The crowd radius tracks on-screen inter-node spacing (`getRadius · radiusScale`,
   // with `getRadius = POINT_RADIUS`). Falls back to the zoom-derived scale until the
