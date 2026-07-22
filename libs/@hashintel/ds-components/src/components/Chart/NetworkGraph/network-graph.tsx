@@ -138,6 +138,48 @@ export type NetworkGraphSelection =
   | { edge: NetworkGraphId | NetworkGraphEdgeNeighbourhood };
 
 /**
+ * A {@link NetworkGraphSelection} broken into the parts the component consumes.
+ * Shared by the `selected` and `hoveredByExternal` props, which take the same
+ * shape.
+ */
+interface SelectionParts {
+  /** The chosen node (id or an overlaid neighbourhood), or null for an edge/nothing. */
+  node: NetworkGraphId | NetworkGraphNeighbourhood | null;
+  /** The node overlay when the node was given as a neighbourhood, else null. */
+  nodeOverlay: NetworkGraphNeighbourhood | null;
+  /** The chosen edge's id, or null for a node/nothing. */
+  edgeId: NetworkGraphId | null;
+  /** The edge overlay when the edge was given with its endpoints, else null. */
+  edgeOverlay: NetworkGraphEdgeNeighbourhood | null;
+}
+
+/** Decompose a selection (or the absence of one) into its {@link SelectionParts}. */
+const selectionParts = (
+  selection: NetworkGraphSelection | null | undefined,
+): SelectionParts => {
+  if (selection != null && "node" in selection) {
+    const { node } = selection;
+    return {
+      node,
+      nodeOverlay: typeof node === "object" ? node : null,
+      edgeId: null,
+      edgeOverlay: null,
+    };
+  }
+  if (selection != null && "edge" in selection) {
+    const { edge } = selection;
+    const isOverlay = typeof edge === "object";
+    return {
+      node: null,
+      nodeOverlay: null,
+      edgeId: isOverlay ? edge.edge.id : edge,
+      edgeOverlay: isOverlay ? edge : null,
+    };
+  }
+  return { node: null, nodeOverlay: null, edgeId: null, edgeOverlay: null };
+};
+
+/**
  * The imperative API exposed via {@link NetworkGraphProps.ref}, letting a consumer
  * drive the zoom without the view state becoming controlled. Clamped to the
  * graph's own zoom limits.
@@ -186,6 +228,16 @@ export interface NetworkGraphProps {
    * active hover takes precedence.
    */
   selected?: NetworkGraphSelection | null;
+  /**
+   * A node or edge to highlight with the **hover** treatment, driven from outside
+   * the graph — e.g. hovering a search result elsewhere in the UI. Takes the same
+   * shape as {@link NetworkGraphProps.selected} (see {@link NetworkGraphSelection});
+   * like it, the nodes/edges may or may not already be in the graph — ones that
+   * aren't are overlaid. It behaves exactly as an internal hover would: a live
+   * pointer hover inside the graph takes precedence over it, and while it owns the
+   * highlight a different `selected` node is backgrounded with a dimmed ring.
+   */
+  hoveredByExternal?: NetworkGraphSelection | null;
   /**
    * Called with the selection's on-screen anchor (CSS px from the chart's top-left)
    * whenever it changes — including on zoom/pan — or `null` when nothing is selected
@@ -359,6 +411,7 @@ export const NetworkGraph = ({
   maxZoom: maxZoomProp,
   className,
   selected,
+  hoveredByExternal,
   onSelectedPositionChange,
   onNodeHover,
   onNodeClick,
@@ -424,49 +477,38 @@ export const NetworkGraph = ({
     return map;
   }, [edges]);
 
-  // The selected node (a node id or an overlay neighbourhood) when a node is
-  // selected, else null (nothing selected, or an edge is).
-  const selectedNode = useMemo(
-    () => (selected != null && "node" in selected ? selected.node : null),
-    [selected],
+  // `selected` and `hoveredByExternal` share the same shape; decompose each into
+  // the node/edge parts (and overlays) the rest of the component consumes.
+  const selectedParts = useMemo(() => selectionParts(selected), [selected]);
+  const externalHover = useMemo(
+    () => selectionParts(hoveredByExternal),
+    [hoveredByExternal],
   );
 
-  // The selected edge's id when an edge is selected, else null — taken from the
-  // bare id or the overlay's edge.
-  const selectedEdge = useMemo<NetworkGraphId | null>(() => {
-    if (selected == null || !("edge" in selected)) {
-      return null;
-    }
-    return typeof selected.edge === "object"
-      ? selected.edge.edge.id
-      : selected.edge;
-  }, [selected]);
-
-  // The overlay carried by an edge selection (the edge + its two endpoints), else
-  // null. Folded into the overlay maps below so a selected edge and its endpoints
-  // resolve even when the graph's own `points`/`edges` don't include them.
-  const edgeOverlay = useMemo<NetworkGraphEdgeNeighbourhood | null>(() => {
-    if (selected == null || !("edge" in selected)) {
-      return null;
-    }
-    return typeof selected.edge === "object" ? selected.edge : null;
-  }, [selected]);
-
-  // The overlay neighbourhood when the selected node is one (not a bare id), else null.
-  const overlaySelection = useMemo<NetworkGraphNeighbourhood | null>(
+  // The node/edge overlays carried by either prop: their point/neighbours/endpoints
+  // are drawn (and their ids resolvable) even when the graph's own `points`/`edges`
+  // don't include them.
+  const nodeOverlays = useMemo<NetworkGraphNeighbourhood[]>(
     () =>
-      selectedNode != null && typeof selectedNode === "object"
-        ? selectedNode
-        : null,
-    [selectedNode],
+      [selectedParts.nodeOverlay, externalHover.nodeOverlay].filter(
+        (overlay): overlay is NetworkGraphNeighbourhood => overlay != null,
+      ),
+    [selectedParts.nodeOverlay, externalHover.nodeOverlay],
+  );
+  const edgeOverlays = useMemo<NetworkGraphEdgeNeighbourhood[]>(
+    () =>
+      [selectedParts.edgeOverlay, externalHover.edgeOverlay].filter(
+        (overlay): overlay is NetworkGraphEdgeNeighbourhood => overlay != null,
+      ),
+    [selectedParts.edgeOverlay, externalHover.edgeOverlay],
   );
 
   /**
-   * The overlay selection's point + neighbours **not** already in the graph — the
-   * items to add. Existing items are omitted here so they aren't drawn twice.
+   * Every overlay's point + neighbours + endpoints **not** already in the graph —
+   * the items to add. Existing items are omitted here so they aren't drawn twice.
    */
   const overlayPoints = useMemo<NetworkGraphPoint[]>(() => {
-    if (!overlaySelection && !edgeOverlay) {
+    if (nodeOverlays.length === 0 && edgeOverlays.length === 0) {
       return [];
     }
     const result: NetworkGraphPoint[] = [];
@@ -478,49 +520,49 @@ export const NetworkGraph = ({
       seen.add(point.id);
       result.push(point);
     };
-    if (overlaySelection) {
-      add(overlaySelection.point);
-      for (const neighbour of overlaySelection.neighbours) {
+    for (const overlay of nodeOverlays) {
+      add(overlay.point);
+      for (const neighbour of overlay.neighbours) {
         add(neighbour);
       }
     }
-    if (edgeOverlay) {
-      for (const endpoint of edgeOverlay.endpoints) {
+    for (const overlay of edgeOverlays) {
+      for (const endpoint of overlay.endpoints) {
         add(endpoint);
       }
     }
     return result;
-  }, [overlaySelection, edgeOverlay, pointById]);
+  }, [nodeOverlays, edgeOverlays, pointById]);
 
-  // The node overlay's point + neighbours and the edge overlay's endpoints, keyed by id.
+  // Every node overlay's point + neighbours and every edge overlay's endpoints, keyed by id.
   const overlayPointById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphPoint>();
-    if (overlaySelection) {
-      map.set(overlaySelection.point.id, overlaySelection.point);
-      for (const neighbour of overlaySelection.neighbours) {
+    for (const overlay of nodeOverlays) {
+      map.set(overlay.point.id, overlay.point);
+      for (const neighbour of overlay.neighbours) {
         map.set(neighbour.id, neighbour);
       }
     }
-    if (edgeOverlay) {
-      for (const endpoint of edgeOverlay.endpoints) {
+    for (const overlay of edgeOverlays) {
+      for (const endpoint of overlay.endpoints) {
         map.set(endpoint.id, endpoint);
       }
     }
     return map;
-  }, [overlaySelection, edgeOverlay]);
+  }, [nodeOverlays, edgeOverlays]);
 
   const overlayEdgeById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphEdge>();
-    if (overlaySelection) {
-      for (const edge of overlaySelection.edges) {
+    for (const overlay of nodeOverlays) {
+      for (const edge of overlay.edges) {
         map.set(edge.id, edge);
       }
     }
-    if (edgeOverlay) {
-      map.set(edgeOverlay.edge.id, edgeOverlay.edge);
+    for (const overlay of edgeOverlays) {
+      map.set(overlay.edge.id, overlay.edge);
     }
     return map;
-  }, [overlaySelection, edgeOverlay]);
+  }, [nodeOverlays, edgeOverlays]);
 
   // Resolve a node/edge by id, preferring the graph item, falling back to an overlaid one.
   const resolvePoint = useCallback(
@@ -590,37 +632,77 @@ export const NetworkGraph = ({
   }, [edges]);
 
   /**
-   * The externally selected node: by id, or an overlay selection's `point`
-   * (preferring the graph's copy when that id exists). Null when nothing, or an edge,
-   * is selected.
+   * Resolve a selection's node (by id, or an overlay's `point`, preferring the
+   * graph's copy when that id exists) to its point. Null for an id not in the graph,
+   * or when the selection is an edge / nothing.
    */
-  const selectedPoint = useMemo(() => {
-    if (selectedNode == null) {
-      return null;
-    }
-    if (typeof selectedNode === "object") {
-      return pointById.get(selectedNode.point.id) ?? selectedNode.point;
-    }
-    return pointById.get(selectedNode) ?? null;
-  }, [selectedNode, pointById]);
-
-  // The node whose neighbourhood is highlighted: hovered, else externally selected.
-  const activeNode = useMemo(
-    () => hovered ?? selectedPoint,
-    [hovered, selectedPoint],
+  const resolveNodePoint = useCallback(
+    (
+      node: NetworkGraphId | NetworkGraphNeighbourhood | null,
+    ): NetworkGraphPoint | null => {
+      if (node == null) {
+        return null;
+      }
+      if (typeof node === "object") {
+        return pointById.get(node.point.id) ?? node.point;
+      }
+      return pointById.get(node) ?? null;
+    },
+    [pointById],
   );
 
+  // The `selected` node as a point, and the `hoveredByExternal` node as a point.
+  const selectedPoint = useMemo(
+    () => resolveNodePoint(selectedParts.node),
+    [resolveNodePoint, selectedParts.node],
+  );
+  const externalHoveredPoint = useMemo(
+    () => resolveNodePoint(externalHover.node),
+    [resolveNodePoint, externalHover.node],
+  );
+
+  // A live pointer hover inside the graph (a node or an edge) suppresses the
+  // external hover entirely, so an internal hover always takes precedence.
+  const internalHoverActive = hovered != null || hoveredEdge != null;
+
+  // The node driving the active hover highlight: the internal pointer hover, else —
+  // when nothing is hovered inside the graph — the externally-hovered node.
+  const activeHoveredNode =
+    hovered ?? (internalHoverActive ? null : externalHoveredPoint);
+
+  // The node whose neighbourhood is highlighted: hovered (internal or external),
+  // else selected.
+  const activeNode = useMemo(
+    () => activeHoveredNode ?? selectedPoint,
+    [activeHoveredNode, selectedPoint],
+  );
+
+  // The neighbourhood overlay (from either prop) whose point is the active node, so
+  // its provided edges/neighbours drive the highlight rather than the graph's own
+  // adjacency. Null when the active node isn't an overlaid one.
+  const activeNodeOverlay = useMemo<NetworkGraphNeighbourhood | null>(() => {
+    if (!activeNode) {
+      return null;
+    }
+    return (
+      nodeOverlays.find((overlay) => overlay.point.id === activeNode.id) ?? null
+    );
+  }, [activeNode, nodeOverlays]);
+
   /**
-   * The selected node while a *different* node is hovered: backgrounded, so it keeps
-   * a dimmed selected ring while the hovered node owns the active highlight (edges +
-   * neighbours). Null when nothing's hovered, or the hover is the selection itself.
+   * The selected node while a *different* node owns the active hover (internal or
+   * external): backgrounded, so it keeps a dimmed selected ring while the hovered
+   * node owns the active highlight (edges + neighbours). Null when nothing's
+   * hovered, or the hover is the selection itself.
    */
   const dimmedSelectedNode = useMemo(
     () =>
-      hovered && selectedPoint && hovered.id !== selectedPoint.id
+      activeHoveredNode &&
+      selectedPoint &&
+      activeHoveredNode.id !== selectedPoint.id
         ? selectedPoint
         : null,
-    [hovered, selectedPoint],
+    [activeHoveredNode, selectedPoint],
   );
 
   /**
@@ -632,10 +714,8 @@ export const NetworkGraph = ({
     if (!activeNode) {
       return null;
     }
-    const useOverlay =
-      overlaySelection != null && activeNode.id === overlaySelection.point.id;
-    const incident = useOverlay
-      ? overlaySelection.edges
+    const incident = activeNodeOverlay
+      ? activeNodeOverlay.edges
       : (adjacency.get(activeNode.id) ?? []);
     const lines: HoverLine[] = [];
     const neighbourIds = new Set<NetworkGraphId>();
@@ -653,9 +733,9 @@ export const NetworkGraph = ({
       neighbourIds.add(edge.fromId === activeNode.id ? edge.toId : edge.fromId);
     }
     const neighbours: NetworkGraphPoint[] = [];
-    if (useOverlay) {
+    if (activeNodeOverlay) {
       // Use the explicitly-provided neighbours, resolved to their graph copy.
-      for (const neighbour of overlaySelection.neighbours) {
+      for (const neighbour of activeNodeOverlay.neighbours) {
         const point = resolvePoint(neighbour.id);
         if (point) {
           neighbours.push(point);
@@ -670,7 +750,7 @@ export const NetworkGraph = ({
       }
     }
     return { lines, neighbours };
-  }, [activeNode, overlaySelection, adjacency, resolvePoint]);
+  }, [activeNode, activeNodeOverlay, adjacency, resolvePoint]);
 
   /** Frame the graph to fit the container on mount and on resize. */
   useEffect(() => {
@@ -1247,32 +1327,45 @@ export const NetworkGraph = ({
   const bundleHierarchy = useMemo(() => buildBundleHierarchy(points), [points]);
 
   /**
-   * The externally selected edge as a {@link HoverableEdge}, so it can get the same
-   * emphasis as a hovered edge. Its `path` matches how the edge is drawn in the
-   * current view (bundled curve in detail, straight line in compact) so the label
-   * lands on the edge.
+   * Build an edge id into a {@link HoverableEdge} so it can get the same emphasis as
+   * a hovered edge. Its `path` matches how the edge is drawn in the current view
+   * (bundled curve in detail, straight line in compact) so the label lands on the
+   * edge. Null when the edge or an endpoint can't be resolved.
    */
-  const selectedEdgeHoverable = useMemo<HoverableEdge | null>(() => {
-    if (selectedEdge == null) {
-      return null;
-    }
-    const edge = resolveEdge(selectedEdge);
-    if (!edge) {
-      return null;
-    }
-    const from = resolvePoint(edge.fromId);
-    const to = resolvePoint(edge.toId);
-    if (!from || !to) {
-      return null;
-    }
-    const path: [number, number][] = isDetailZoom
-      ? bundleEdgePath(from, to, bundleHierarchy)
-      : [
-          [from.x, from.y],
-          [to.x, to.y],
-        ];
-    return { edgeId: edge.id, path, endpoints: [from, to] };
-  }, [selectedEdge, resolveEdge, resolvePoint, isDetailZoom, bundleHierarchy]);
+  const buildEdgeHoverable = useCallback(
+    (edgeId: NetworkGraphId | null): HoverableEdge | null => {
+      if (edgeId == null) {
+        return null;
+      }
+      const edge = resolveEdge(edgeId);
+      if (!edge) {
+        return null;
+      }
+      const from = resolvePoint(edge.fromId);
+      const to = resolvePoint(edge.toId);
+      if (!from || !to) {
+        return null;
+      }
+      const path: [number, number][] = isDetailZoom
+        ? bundleEdgePath(from, to, bundleHierarchy)
+        : [
+            [from.x, from.y],
+            [to.x, to.y],
+          ];
+      return { edgeId: edge.id, path, endpoints: [from, to] };
+    },
+    [resolveEdge, resolvePoint, isDetailZoom, bundleHierarchy],
+  );
+
+  // The `selected` edge and the `hoveredByExternal` edge as hoverable edges.
+  const selectedEdgeHoverable = useMemo(
+    () => buildEdgeHoverable(selectedParts.edgeId),
+    [buildEdgeHoverable, selectedParts.edgeId],
+  );
+  const externalHoveredEdgeHoverable = useMemo(
+    () => buildEdgeHoverable(externalHover.edgeId),
+    [buildEdgeHoverable, externalHover.edgeId],
+  );
 
   /**
    * Report the selection's on-screen anchor, re-projecting on every view change so a
@@ -1348,12 +1441,21 @@ export const NetworkGraph = ({
   ]);
 
   /**
-   * The edge shown with edge-hover emphasis: hovered, else externally selected.
-   * Mirrors {@link activeNode} for edges.
+   * The edge shown with edge-hover emphasis: the internal pointer hover, else the
+   * external hover (suppressed while any internal hover is active, so the pointer
+   * wins), else the selection. Mirrors {@link activeNode} for edges.
    */
   const activeEdge = useMemo(
-    () => hoveredEdge ?? selectedEdgeHoverable,
-    [hoveredEdge, selectedEdgeHoverable],
+    () =>
+      hoveredEdge ??
+      (internalHoverActive ? null : externalHoveredEdgeHoverable) ??
+      selectedEdgeHoverable,
+    [
+      hoveredEdge,
+      internalHoverActive,
+      externalHoveredEdgeHoverable,
+      selectedEdgeHoverable,
+    ],
   );
 
   /**
@@ -1582,10 +1684,8 @@ export const NetworkGraph = ({
     if (!isDetailZoom || !activeNode) {
       return [];
     }
-    const useOverlay =
-      overlaySelection != null && activeNode.id === overlaySelection.point.id;
-    const incident = useOverlay
-      ? overlaySelection.edges
+    const incident = activeNodeOverlay
+      ? activeNodeOverlay.edges
       : (adjacency.get(activeNode.id) ?? []);
     const paths: BundledEdge[] = [];
     for (const edge of incident) {
@@ -1602,7 +1702,7 @@ export const NetworkGraph = ({
   }, [
     isDetailZoom,
     activeNode,
-    overlaySelection,
+    activeNodeOverlay,
     adjacency,
     resolvePoint,
     bundleHierarchy,

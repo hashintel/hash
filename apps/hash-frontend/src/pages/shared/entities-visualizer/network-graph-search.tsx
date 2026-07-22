@@ -113,12 +113,19 @@ export interface NetworkGraphSearchResult {
 
 export const NetworkGraphSearch = ({
   onSelect,
+  onHover,
   onResultsChange,
   popperContainer,
   elevated = true,
   onActivate,
 }: {
   onSelect: (result: NetworkGraphSearchResult) => void;
+  /**
+   * Called with the result the user is currently highlighting in the dropdown (by
+   * hover or keyboard), or `null` when none is. Lets the parent preview a result —
+   * e.g. lighting up its node in the graph — before it's picked.
+   */
+  onHover?: (result: NetworkGraphSearchResult | null) => void;
   /**
    * Called with the current result set whenever it changes (empty when the query
    * clears). Lets the parent prefetch each result's locate ego-graph so a later
@@ -406,7 +413,13 @@ export const NetworkGraphSearch = ({
             isOptionEqualToValue={(option, value) =>
               option.entityId === value.entityId
             }
-            ListboxProps={{ sx: { maxHeight: 240 } }}
+            ListboxProps={{
+              sx: { maxHeight: 240 },
+              // `onHighlightChange` only clears (fires `null`) when the popup
+              // closes or another option is highlighted, not when the pointer
+              // leaves the list while it stays open — so clear the preview here.
+              onMouseLeave: () => onHover?.(null),
+            }}
             loading={loading}
             onChange={(_event, option) => {
               setSelected(option);
@@ -414,6 +427,7 @@ export const NetworkGraphSearch = ({
                 onSelect(option);
               }
             }}
+            onHighlightChange={(_event, option) => onHover?.(option)}
             onInputChange={(_event, value, reason) => {
               setInputValue(value);
               if (reason === "input") {

@@ -405,6 +405,13 @@ export const NetworkGraphView = ({
   const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
   const [anchor, setAnchor] = useState<LocatedEntityPopoverAnchor | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // A search result the user is hovering (not yet picked): its located ego-graph,
+  // handed to the graph as `hoveredByExternal` so the matching node lights up with
+  // the hover treatment. Cleared when the hover ends or a pick is made.
+  const [hoveredByExternal, setHoveredByExternal] =
+    useState<NetworkGraphSelection | null>(null);
+  // Bumped on every hover change so a slow earlier locate can't land over a newer one.
+  const hoverSeqRef = useRef(0);
   // Which overlay wins the z-order when both the search widget and a selection
   // popover are visible: whichever the user actioned last. Selecting an item
   // drops the widget below the popover; focusing/opening the widget raises it
@@ -538,17 +545,16 @@ export const NetworkGraphView = ({
     [coloredTypeIds],
   );
 
-  // Overlay a located ego-graph (its source node, incident edges, and
-  // neighbours) as the selection and populate the detail popover — shared by
-  // node clicks and search-result picks. Returns the source's world point (a
-  // fly-to target) or null when the response carried no source.
-  const showLocatedEntity = useCallback(
-    (entity: LocatedEntity): readonly [number, number] | null => {
+  // Build a located ego-graph (its source node, incident edges, and neighbours)
+  // as a graph selection overlay — shared by the click/pick selection and the
+  // search-hover preview. Null when the response carried no source node.
+  const locatedNodeSelection = useCallback(
+    (entity: LocatedEntity): NetworkGraphSelection | null => {
       const [source, ...neighbours] = entity.nodes;
       if (!source) {
         return null;
       }
-      setSelected({
+      return {
         node: {
           point: toPoint(
             source,
@@ -562,7 +568,22 @@ export const NetworkGraphView = ({
             ),
           ),
         },
-      });
+      };
+    },
+    [colorForTypeIndices],
+  );
+
+  // Overlay a located ego-graph as the selection and populate the detail popover
+  // — shared by node clicks and search-result picks. Returns the source's world
+  // point (a fly-to target) or null when the response carried no source.
+  const showLocatedEntity = useCallback(
+    (entity: LocatedEntity): readonly [number, number] | null => {
+      const nodeSelection = locatedNodeSelection(entity);
+      const source = entity.nodes[0];
+      if (!nodeSelection || !source) {
+        return null;
+      }
+      setSelected(nodeSelection);
       const type = typeChipForIndices(source.typeIndices, source.id);
       setSelection({
         detail: {
@@ -581,7 +602,7 @@ export const NetworkGraphView = ({
       });
       return [source.x, source.y];
     },
-    [colorForTypeIndices, typeChipForIndices],
+    [locatedNodeSelection, typeChipForIndices],
   );
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity
@@ -659,6 +680,9 @@ export const NetworkGraphView = ({
       const seq = locateSeqRef.current;
       setSelected(null);
       setSelection(null);
+      // Picking supersedes the hover preview; drop it (and any in-flight hover locate).
+      hoverSeqRef.current += 1;
+      setHoveredByExternal(null);
       setSearchOnTop(false);
       void locateEntity(result.entityId)
         .then((entity) => {
@@ -673,6 +697,29 @@ export const NetworkGraphView = ({
         .catch(() => {});
     },
     [locateEntity, showLocatedEntity],
+  );
+
+  // Hover a search result → resolve its prefetched (usually already resolved)
+  // locate and light up its ego-graph as an external hover — no popover, no camera
+  // move. Leaving the results (null) clears it. The sequence guard drops a stale
+  // locate so an earlier hover can't land over a newer one.
+  const handleSearchHover = useCallback(
+    (result: NetworkGraphSearchResult | null) => {
+      hoverSeqRef.current += 1;
+      if (!result) {
+        setHoveredByExternal(null);
+        return;
+      }
+      const seq = hoverSeqRef.current;
+      void locateEntity(result.entityId)
+        .then((entity) => {
+          if (seq === hoverSeqRef.current) {
+            setHoveredByExternal(locatedNodeSelection(entity));
+          }
+        })
+        .catch(() => {});
+    },
+    [locateEntity, locatedNodeSelection],
   );
 
   // Click a node → highlight it immediately, then locate it and overlay its
@@ -836,6 +883,7 @@ export const NetworkGraphView = ({
               graphBounds={bounds}
               maxZoom={MAX_ZOOM}
               selected={selected}
+              hoveredByExternal={hoveredByExternal}
               onNodeClick={handleNodeClick}
               onEdgeClick={handleEdgeClick}
               onSelectedPositionChange={setAnchor}
@@ -856,6 +904,7 @@ export const NetworkGraphView = ({
               elevated={searchOnTop}
               onActivate={() => setSearchOnTop(true)}
               onSelect={handleSearchSelect}
+              onHover={handleSearchHover}
               onResultsChange={handleSearchResults}
               popperContainer={frameRef.current}
             />
