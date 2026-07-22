@@ -9,6 +9,7 @@ export {
   type LocatedEntityPopoverAnchor,
   type LocatedEntityPopoverProps,
   type LocatedEntityProperty,
+  type LocatedEntityValuePart,
 } from "./components/Chart/NetworkGraph/located-entity-popover";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {

@@ -634,6 +634,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           <NetworkGraphView
             availableEntityTypes={availableEntityTypes}
             typeColorOverrides={typeColorOverrides}
+            onOpenEntity={handleEntityClick}
           />
         </Box>
       ) : showLoading ? (

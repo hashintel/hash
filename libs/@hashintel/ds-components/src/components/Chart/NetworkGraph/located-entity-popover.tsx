@@ -33,10 +33,23 @@ export type LocatedEntityPopoverAnchor =
     }
   | { type: "edge"; x: number; y: number };
 
-/** One property row of the card: a shortened key and its formatted value. */
+/**
+ * One coloured run of a styled property value — the shape the entity drawer's
+ * property table emits for a value (a plain `{ text, color }`, matching its
+ * formatted-value parts), so the card can render the same coloured runs.
+ */
+export interface LocatedEntityValuePart {
+  readonly text: string;
+  readonly color: string;
+}
+
+/**
+ * One property row of the card: a shortened key and its value — either a plain
+ * string, or the styled coloured runs the property table renders.
+ */
 export interface LocatedEntityProperty {
   readonly key: string;
-  readonly value: string;
+  readonly value: string | readonly LocatedEntityValuePart[];
 }
 
 /** The presentational detail the card renders for a located node or edge. */
@@ -227,7 +240,16 @@ export const LocatedEntityPopover = ({
             {detail.properties.map((property) => (
               <div key={property.key} className={propertyRowStyles}>
                 <span className={propertyKeyStyles}>{property.key}</span>
-                <span className={propertyValueStyles}>{property.value}</span>
+                <span className={propertyValueStyles}>
+                  {typeof property.value === "string"
+                    ? property.value
+                    : property.value.map((part, index) => (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <span key={index} style={{ color: part.color }}>
+                          {part.text}
+                        </span>
+                      ))}
+                </span>
               </div>
             ))}
           </div>

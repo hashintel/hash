@@ -45,6 +45,11 @@ import {
   type ViewportEdge,
   type ViewportNode,
 } from "@hashintel/ds-components";
+import {
+  formatDataValue,
+  type FormattedValuePart,
+  type MergedDataTypeSingleSchema,
+} from "@local/hash-isomorphic-utils/data-types";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { MinusRegularIcon } from "../../../shared/icons/minus-regular";
@@ -241,9 +246,24 @@ const shortPropName = (url: string): string => {
   return segments[segments.length - 1] ?? url;
 };
 
-/** A located property value rendered for the popover; `null` reads as an em dash. */
-const formatPropValue = (value: SaltilePropertyValue): string =>
-  value === null ? "—" : String(value);
+/**
+ * A located property value styled as the entity drawer's property table renders
+ * it: {@link formatDataValue} produces the same coloured runs (booleans as
+ * `True`/`False`, `null` as `Null`). The Atlas wire carries no data-type
+ * metadata, so the schema is synthesised from the value's primitive type — no
+ * unit labels resolve, but the styling matches.
+ */
+const formatPropValue = (value: SaltilePropertyValue): FormattedValuePart[] => {
+  const schema: MergedDataTypeSingleSchema =
+    value === null
+      ? { type: "null", description: "" }
+      : typeof value === "boolean"
+        ? { type: "boolean", description: "" }
+        : typeof value === "number"
+          ? { type: "number", description: "" }
+          : { type: "string", description: "" };
+  return formatDataValue(value, schema);
+};
 
 /**
  * A stable, non-negative hash of a node id. Used to seed the per-node colour
@@ -285,10 +305,11 @@ const pickTypeIndex = (
   return pool[hashSeed(seed) % pool.length];
 };
 
-/** The located item the popover shows, plus the world point "Go to entity" reveals. */
+/** The located item the popover shows, plus the entity "Go to entity" opens. */
 interface Selection {
   readonly detail: LocatedEntityDetail;
-  readonly focus: readonly [number, number];
+  /** The upstream entity id (a link entity's, for an edge) the drawer opens. */
+  readonly entityId: EntityId;
 }
 
 /**
@@ -310,11 +331,14 @@ interface Selection {
 export const NetworkGraphView = ({
   availableEntityTypes,
   typeColorOverrides,
+  onOpenEntity,
 }: {
   /** Types shown in the filter dropdown; position drives the default palette. */
   availableEntityTypes: AvailableType[];
   /** The user's per-type colour choices from the filter dropdown. */
   typeColorOverrides: TypeColorOverrides;
+  /** Opens the entity drawer for an entity — the popover's "Go to entity". */
+  onOpenEntity?: (entityId: EntityId) => void;
 }) => {
   const theme = useTheme();
 
@@ -774,7 +798,7 @@ export const NetworkGraphView = ({
           ...(type !== undefined ? { type } : {}),
           properties: propertyRows(source.properties),
         },
-        focus: [source.x, source.y],
+        entityId: entity.entityId,
       });
       return [source.x, source.y];
     },
@@ -1009,7 +1033,8 @@ export const NetworkGraphView = ({
               : {}),
             properties: propertyRows(locatedEdge?.properties),
           },
-          focus: [source.x, source.y],
+          // An edge is a link entity; its id is that link entity's identity.
+          entityId: locatedEdge?.id ?? (String(edge.id) as EntityId),
         });
       });
     },
@@ -1025,13 +1050,13 @@ export const NetworkGraphView = ({
     ],
   );
 
-  // "Go to entity" reveals the located point — bringing it on screen if it isn't
-  // (a no-op when it already is, e.g. the node you just clicked).
+  // "Go to entity" opens the drawer for the selected node's entity (or the edge's
+  // link entity), via the consumer-supplied `onOpenEntity`.
   const handleGoTo = useCallback(() => {
     if (selection) {
-      graphRef.current?.revealPoint([selection.focus[0], selection.focus[1]]);
+      onOpenEntity?.(selection.entityId);
     }
-  }, [selection]);
+  }, [selection, onOpenEntity]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -1103,7 +1128,7 @@ export const NetworkGraphView = ({
                 anchor={anchor}
                 detail={selection.detail}
                 onClose={clearSelection}
-                onGoTo={handleGoTo}
+                onGoTo={onOpenEntity ? handleGoTo : undefined}
                 onActivate={() => setSearchOnTop(false)}
               />
             ) : null}
