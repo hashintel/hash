@@ -13,7 +13,12 @@
     reason = "column integers are pinned little-endian by the wire contract"
 )]
 
-use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
+use super::{
+    Kind,
+    cbor::CborWriter,
+    envelope::EnvelopeWriter,
+    tile::{encode_details, encode_identities},
+};
 use crate::integrity::Sha256Digest;
 
 /// One edges response in writable form.
@@ -93,7 +98,8 @@ impl EdgesResponse<'_> {
 
 /// The edges detail trailer.
 ///
-/// Four per-edge detail arrays, edge order, `null` marking an edge whose entry did not resolve.
+/// Per-edge detail arrays, edge order; `null` marks an edge whose store entry did not resolve.
+/// The link entity ids derive from the generation-frozen identity table and are never null.
 #[expect(
     clippy::struct_field_names,
     reason = "the fields mirror the wire trailer key names verbatim"
@@ -108,6 +114,10 @@ pub(crate) struct EdgesTrailer<'doc> {
     pub link_type_labels: &'doc [Option<&'doc str>],
     /// Trailer key 3.
     pub link_type_icons: &'doc [Option<&'doc str>],
+    /// Trailer key 4.
+    ///
+    /// Per-edge link entity ids, edge order: `bstr(32)` each, the web uuid then the entity uuid.
+    pub link_entity_ids: &'doc [[u8; 32]],
 }
 
 impl EdgesTrailer<'_> {
@@ -125,12 +135,17 @@ impl EdgesTrailer<'_> {
                 "the trailer link {name} must cover exactly the delivered edges",
             );
         }
+        assert_eq!(
+            self.link_entity_ids.len(),
+            count,
+            "the trailer link entity ids must cover exactly the delivered edges",
+        );
     }
 
     /// Encodes the trailer tail as one self-delimiting CBOR map.
     fn encode(&self) -> Vec<u8> {
         let mut cbor = CborWriter::new();
-        cbor.map(4);
+        cbor.map(5);
 
         cbor.uint(0);
         encode_details(&mut cbor, self.link_labels);
@@ -140,6 +155,8 @@ impl EdgesTrailer<'_> {
         encode_details(&mut cbor, self.link_type_labels);
         cbor.uint(3);
         encode_details(&mut cbor, self.link_type_icons);
+        cbor.uint(4);
+        encode_identities(&mut cbor, self.link_entity_ids);
 
         cbor.into_bytes()
     }

@@ -35,12 +35,15 @@ The edge set caps at `limits.locateEdges`; truncation keeps the edges whose part
      the source, the HEAD's `complete` key reads `false`, and a partner whose every edge \
      truncated is not delivered.
 
-The HEAD carries the source's first visible zoom and its tile there - the client's fly-to target. \
-     `coloredTypeIds` rides `TYPE_MASK` exactly as on tiles.
+The HEAD carries the source's first visible zoom and its tile there - the client's fly-to target - \
+     and the source's upstream entity id as 32 raw bytes (web uuid then entity uuid), so the \
+     by-row flow resolves identity without a detour. `coloredTypeIds` rides `TYPE_MASK` exactly \
+     as on tiles.
 
 `includeDetailedData` DEFAULTS TRUE - locate is a detail view. The trailer hydrates LIVE from the \
      store for every delivered node (label, icon, capped simple-value properties keyed into the \
-     interned name table) and every delivered edge (the four link detail arrays).
+     interned name table) and every delivered edge (the link detail arrays plus the link's \
+     32-byte entity id, generation-frozen and never null).
 
 A source that does not name a visible node answers `unknown-entity` (404): nonexistent, denied, \
      unparsable, and out-of-universe `row` values are identical - missing = denied.

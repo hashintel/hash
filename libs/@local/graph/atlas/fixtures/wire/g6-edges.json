@@ -25,6 +25,11 @@
   "sources": [4, 4, 9],
   "targets": [11, 7, 2],
   "trailer": {
+    "linkEntityIds": [
+      "a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1",
+      "c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"
+    ],
     "linkIcons": ["🔗", null, null],
     "linkLabels": ["œuvre", "created by", null],
     "linkTypeIcons": [null, null, null],

@@ -72,6 +72,7 @@ export interface DecodedSaltileTile {
   readonly children: number;
   /** f32 xy pairs in the wire frame, length `delivered * 2`. */
   readonly positions: Float32Array;
+  /** Row ids are opaque map keys; they may be any u32 value. */
   readonly rowIds: Uint32Array;
   /**
    * Per-point type bitmask rows, `ceil(coloredTypeIdCount / 8)` bytes

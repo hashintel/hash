@@ -661,13 +661,15 @@ mod edges {
     }
 
     #[test]
-    fn the_trailer_carries_four_arrays() {
+    fn the_trailer_carries_the_link_columns() {
+        let ids = [[0x11_u8; 32], [0x22; 32], [0x33; 32]];
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             link_labels: &[Some("a"), None, None],
             link_icons: &[None, None, None],
             link_type_labels: &[None, Some("b"), None],
             link_type_icons: &[None, None, None],
+            link_entity_ids: &ids,
         });
         let bytes = response.encode();
 
@@ -676,15 +678,17 @@ mod edges {
 
         let last = super::directory(&bytes, 3).1 as usize;
         let tail = &bytes[last.next_multiple_of(8)..];
-        // map(4): 0 ["a", null, null] | 1 [null x3] |
-        // 2 [null, "b", null] | 3 [null x3].
-        assert_eq!(
-            tail,
-            [
-                0xA4, 0x00, 0x83, 0x61, 0x61, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x83,
-                0xF6, 0x61, 0x62, 0xF6, 0x03, 0x83, 0xF6, 0xF6, 0xF6,
-            ]
-        );
+        // map(5): 0 ["a", null, null] | 1 [null x3] |
+        // 2 [null, "b", null] | 3 [null x3] | 4 [bstr(32) x3].
+        let mut expected = vec![
+            0xA5, 0x00, 0x83, 0x61, 0x61, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x83,
+            0xF6, 0x61, 0x62, 0xF6, 0x03, 0x83, 0xF6, 0xF6, 0xF6, 0x04, 0x83,
+        ];
+        for id in &ids {
+            expected.extend_from_slice(&[0x58, 0x20]);
+            expected.extend_from_slice(id);
+        }
+        assert_eq!(tail, expected);
     }
 
     #[test]
@@ -719,6 +723,21 @@ mod edges {
             link_icons: &[None, None, None],
             link_type_labels: &[None],
             link_type_icons: &[None, None, None],
+            link_entity_ids: &[[0; 32]; 3],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "link entity ids must cover")]
+    fn short_link_id_columns_are_rejected() {
+        let mut response = minimal();
+        response.trailer = Some(EdgesTrailer {
+            link_labels: &[None, None, None],
+            link_icons: &[None, None, None],
+            link_type_labels: &[None, None, None],
+            link_type_icons: &[None, None, None],
+            link_entity_ids: &[[0; 32]],
         });
         let _bytes = response.encode();
     }
@@ -756,6 +775,7 @@ mod locate {
             sources: &[10, 12],
             targets: &[12, 13],
             edge_rows: &[5, 8],
+            entity_id: [0xEE; 32],
             trailer: None,
         }
     }
@@ -766,14 +786,15 @@ mod locate {
         let bytes = minimal(&positions).encode();
         assert_eq!(bytes[0..8], *b"SALTILEL");
 
-        // map(8): 0 bstr(32) | 1 uint 0 | 2 uint 3 | 3 uint 2 |
-        // 4 [2, 1, 3] | 5 uint 2 | 6 true | 7 false.
-        let mut expected = vec![0xA8, 0x00, 0x58, 0x20];
+        // map(9): 0 bstr(32) | 1 uint 0 | 2 uint 3 | 3 uint 2 |
+        // 4 [2, 1, 3] | 5 uint 2 | 6 true | 7 false | 8 bstr(32).
+        let mut expected = vec![0xA9, 0x00, 0x58, 0x20];
         expected.extend_from_slice(&[0xAB; 32]);
         expected.extend_from_slice(&[
             0x01, 0x00, 0x02, 0x03, 0x03, 0x02, 0x04, 0x83, 0x02, 0x01, 0x03, 0x05, 0x02, 0x06,
-            0xF5, 0x07, 0xF4,
+            0xF5, 0x07, 0xF4, 0x08, 0x58, 0x20,
         ]);
+        expected.extend_from_slice(&[0xEE; 32]);
         assert_eq!(section(&bytes, 0).expect("HEAD is present"), expected);
     }
 
@@ -837,6 +858,7 @@ mod locate {
 
     #[test]
     fn the_trailer_interns_property_names() {
+        let ids = [[0x44_u8; 32], [0x55; 32]];
         let positions = points();
         let mut response = minimal(&positions);
         response.trailer = Some(LocateTrailer {
@@ -855,27 +877,34 @@ mod locate {
             link_icons: &[None, None],
             link_type_labels: &[None, Some("t")],
             link_type_icons: &[None, None],
+            link_entity_ids: &ids,
         });
         let bytes = response.encode();
 
+        // The trailer flag sits ahead of HEAD's closing entity id:
+        // key 8's bstr(32) spans the final 35 bytes.
         let head = section(&bytes, 0).expect("HEAD is present");
-        assert_eq!(head[head.len() - 2..], [0x07, 0xF5]);
+        let flag = head.len() - 37;
+        assert_eq!(head[flag..flag + 2], [0x07, 0xF5]);
 
         let last = super::directory(&bytes, 6).1 as usize;
         let tail = &bytes[last.next_multiple_of(8)..];
-        // map(8): 0 ["n", null, null] | 1 [null x3] | 2 ["a", "b"] |
+        // map(9): 0 ["n", null, null] | 1 [null x3] | 2 ["a", "b"] |
         // 3 [{0: "x", 1: -2}, {0: true, 1: null}, {1: 0.5f64}] |
-        // 4 ["l", null] | 5 [null x2] | 6 [null, "t"] | 7 [null x2].
-        assert_eq!(
-            tail,
-            [
-                0xA8, 0x00, 0x83, 0x61, 0x6E, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x82,
-                0x61, 0x61, 0x61, 0x62, 0x03, 0x83, 0xA2, 0x00, 0x61, 0x78, 0x01, 0x21, 0xA2, 0x00,
-                0xF5, 0x01, 0xF6, 0xA1, 0x01, 0xFB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x04, 0x82, 0x61, 0x6C, 0xF6, 0x05, 0x82, 0xF6, 0xF6, 0x06, 0x82, 0xF6, 0x61, 0x74,
-                0x07, 0x82, 0xF6, 0xF6,
-            ]
-        );
+        // 4 ["l", null] | 5 [null x2] | 6 [null, "t"] | 7 [null x2] |
+        // 8 [bstr(32) x2].
+        let mut expected = vec![
+            0xA9, 0x00, 0x83, 0x61, 0x6E, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x82,
+            0x61, 0x61, 0x61, 0x62, 0x03, 0x83, 0xA2, 0x00, 0x61, 0x78, 0x01, 0x21, 0xA2, 0x00,
+            0xF5, 0x01, 0xF6, 0xA1, 0x01, 0xFB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x04, 0x82, 0x61, 0x6C, 0xF6, 0x05, 0x82, 0xF6, 0xF6, 0x06, 0x82, 0xF6, 0x61, 0x74,
+            0x07, 0x82, 0xF6, 0xF6, 0x08, 0x82,
+        ];
+        for id in &ids {
+            expected.extend_from_slice(&[0x58, 0x20]);
+            expected.extend_from_slice(id);
+        }
+        assert_eq!(tail, expected);
     }
 
     #[test]
@@ -918,6 +947,26 @@ mod locate {
             link_icons: &[None, None],
             link_type_labels: &[None, None],
             link_type_icons: &[None, None],
+            link_entity_ids: &[[0; 32]; 2],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "link entity ids must cover")]
+    fn short_link_id_columns_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer = Some(LocateTrailer {
+            labels: &[None, None, None],
+            icons: &[None, None, None],
+            property_names: &[],
+            properties: &[None, None, None],
+            link_labels: &[None, None],
+            link_icons: &[None, None],
+            link_type_labels: &[None, None],
+            link_type_icons: &[None, None],
+            link_entity_ids: &[],
         });
         let _bytes = response.encode();
     }
@@ -936,6 +985,7 @@ mod locate {
             link_icons: &[None, None],
             link_type_labels: &[None, None],
             link_type_icons: &[None, None],
+            link_entity_ids: &[[0; 32]; 2],
         });
         let _bytes = response.encode();
     }
@@ -954,6 +1004,7 @@ mod locate {
             link_icons: &[None, None],
             link_type_labels: &[None, None],
             link_type_icons: &[None, None],
+            link_entity_ids: &[[0; 32]; 2],
         });
         let _bytes = response.encode();
     }
@@ -976,6 +1027,7 @@ mod locate {
             link_icons: &[None, None],
             link_type_labels: &[None, None],
             link_type_icons: &[None, None],
+            link_entity_ids: &[[0; 32]; 2],
         });
         let _bytes = response.encode();
     }

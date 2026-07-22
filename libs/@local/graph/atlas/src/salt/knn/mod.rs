@@ -41,6 +41,7 @@ use crate::{
 pub(crate) mod artifact;
 #[cfg(feature = "bench")]
 pub mod bench;
+pub(crate) mod brute;
 pub(crate) mod construction;
 pub(crate) mod descent;
 pub(crate) mod error;

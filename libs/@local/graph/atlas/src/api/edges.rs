@@ -37,9 +37,10 @@ The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list
 When the edge cap truncates the set, the rank-ordered truncation keeps the edges whose worse \
      endpoint ranks best, and the HEAD's `complete` key reads `false`.
 
-`includeDetailedData` rides the trailer with four per-edge detail arrays - the link entity's label \
-     and icon plus its entity-type's title and icon - hydrated LIVE from the store at request \
-     time.
+`includeDetailedData` rides the trailer with five per-edge detail arrays - the link entity's label \
+     and icon plus its entity-type's title and icon, hydrated LIVE from the store at request \
+     time, and the link's 32-byte entity id (web uuid then entity uuid), generation-frozen and \
+     never null.
 
 Version 0 rejects `filter` with an `unsupported-feature` problem.";
 

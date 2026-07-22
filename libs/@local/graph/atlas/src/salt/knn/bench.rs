@@ -23,6 +23,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex as _,
+    brute::{BruteForce, BruteForceOptions},
     construction::KnnConstruction as _,
     descent::{NnDescent, NnDescentOptions},
     hannoy::{HannoyIndex, HannoyIndexOptions},
@@ -333,6 +334,119 @@ pub fn descent(root: &str, seeds: &[u64], candidates: &[usize]) -> DescentAudit 
         neighbours: reference.neighbours_per_row(),
         reference_wall,
         readings,
+    }
+}
+
+/// One finished brute-force audit: the corpus identity and the reading.
+#[derive(Debug, Clone)]
+pub struct BruteAudit {
+    /// The assessed generation's identity, in directory-name form.
+    pub generation: String,
+    /// The corpus row count.
+    pub rows: usize,
+    /// Sampled query rows of the reference.
+    pub sampled_rows: usize,
+    /// Exact neighbours compared per query: the `k` of recall@k.
+    pub neighbours: usize,
+    /// Wall clock of the brute-force reference (parallel, CPU).
+    pub reference_wall: Duration,
+    /// Wall clock of the tiled-product construction.
+    pub construct_wall: Duration,
+    /// Aggregate recall@50 against the exact reference.
+    pub recall: f64,
+}
+
+// The audit's tensor backend: the unfused CubeCL Metal runtime behind
+// `bench-gpu` (the fused alias trips burn-fusion's stream ordering on
+// dynamic shapes), the CPU tensor backend otherwise.
+#[cfg(feature = "bench-gpu")]
+type BruteBackend =
+    burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
+#[cfg(not(feature = "bench-gpu"))]
+type BruteBackend = burn::backend::NdArray;
+
+#[cfg(feature = "bench-gpu")]
+fn brute_device() -> burn::backend::wgpu::WgpuDevice {
+    burn::backend::wgpu::WgpuDevice::default()
+}
+
+#[cfg(not(feature = "bench-gpu"))]
+fn brute_device() -> burn::backend::ndarray::NdArrayDevice {
+    burn::backend::ndarray::NdArrayDevice::default()
+}
+
+/// Audits the exact brute-force construction over the active generation's representations.
+///
+/// One construction at the production width — the wider of the spot check's depth and the stored
+/// count — scored against one exact CPU reference. The construction is deterministic, so no seed
+/// grid exists; the reference measures f32-accumulation drift at near-ties, not approximation.
+/// The tensor backend is the Metal-backed `CubeCL` runtime behind `bench-gpu`, the CPU backend
+/// otherwise.
+///
+/// # Panics
+///
+/// Panics when the root, pointer, generation, or representation matrix cannot be opened; a
+/// measurement target reports its failures by failing.
+pub fn brute(root: &str, rows_limit: Option<usize>) -> BruteAudit {
+    let root =
+        GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");
+    let id = root
+        .current()
+        .expect("the current pointer should read")
+        .expect("an audit requires an activated generation");
+    let generation = root.open(id).expect("the active generation should open");
+
+    let file =
+        ArrayFile::open(generation.path_of(&generation.repository().files.representations.name))
+            .expect("the representation artifact should open");
+    let embeddings = file
+        .vectors::<PROJECTOR_DIMENSIONS>()
+        .expect("the representation artifact holds f32 rows of the projector width");
+    // A probe bound audits the corpus prefix: both the rows and the
+    // candidate columns shrink, so full-corpus wall extrapolates
+    // quadratically from a bounded reading.
+    let embeddings = rows_limit.map_or(embeddings, |limit| {
+        &embeddings[..limit.min(embeddings.len())]
+    });
+
+    let check = SpotCheckOptions::default();
+    let width = check.neighbours.max(DEFAULT_NEIGHBOURS);
+
+    let started = Instant::now();
+    let reference = ExactReference::new::<!>(
+        embeddings,
+        check.neighbours,
+        REFERENCE_ROWS,
+        stage_rng(0, Stage::RecallCheck),
+    )
+    .expect("the corpus holds at least two rows");
+    let reference_wall = started.elapsed();
+    tracing::info!(
+        wall_s = reference_wall.as_secs_f64(),
+        "exact reference computed"
+    );
+
+    let started = Instant::now();
+    let lists = BruteForce::<BruteBackend>::new(brute_device(), BruteForceOptions::default())
+        .construct(embeddings, width, stage_rng(0, Stage::KnnLink))
+        .expect("the corpus satisfies the construction preconditions");
+    let construct_wall = started.elapsed();
+
+    let reading = reference.score_lists(&lists);
+    tracing::info!(
+        wall_s = construct_wall.as_secs_f64(),
+        recall = reading.recall(),
+        "construction read"
+    );
+
+    BruteAudit {
+        generation: id.to_string(),
+        rows: embeddings.len(),
+        sampled_rows: reference.sampled_rows(),
+        neighbours: reference.neighbours_per_row(),
+        reference_wall,
+        construct_wall,
+        recall: reading.recall(),
     }
 }
 

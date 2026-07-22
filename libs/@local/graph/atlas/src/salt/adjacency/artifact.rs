@@ -1,22 +1,14 @@
 //! The adjacency's published form: the writable builder, its matrix file, and the mapped reader.
 
 use core::ops::Range;
-use std::io;
-
-use sprs::CsMatViewI;
 
 use crate::{
     bitset::BitSet,
     dataset::{EdgeRowId, NodeRowId},
-    file::{
-        WriteInto,
-        sprs::{
-            IndexVariant, SprsIndex,
-            read::{SprsFile, SprsMatrixError},
-            write::{WriteSprsError, write_matrix},
-        },
+    file::sprs::{
+        IndexVariant, SprsIndex,
+        read::{SprsFile, SprsMatrixError},
     },
-    integrity::{Sha256, Sha256Digest, Writer},
 };
 
 /// An opened sparse matrix file does not hold a valid adjacency.

@@ -103,6 +103,14 @@ name              = "generation_live"
 required-features = ["bench"]
 
 [[example]]
+name              = "knn_brute"
+required-features = ["bench"]
+
+[[example]]
+name              = "knn_descent"
+required-features = ["bench"]
+
+[[example]]
 name              = "knn_sweep"
 required-features = ["bench"]
 

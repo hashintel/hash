@@ -11,6 +11,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{
     DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex, Neighbour,
     artifact::{InvalidKnnFile, KnnArchive},
+    brute::{BruteForce, BruteForceOptions},
     construction::{IndexConstruction, KnnConstruction as _, NeighbourLists},
     descent::{NnDescent, NnDescentOptions},
     error::KnnError,
@@ -580,6 +581,77 @@ fn descent_passes_the_admission_gate() {
         check.meets_minimum(),
         "recall {} misses the admission minimum",
         check.recall(),
+    );
+}
+
+#[test]
+fn brute_force_matches_the_exact_reference() {
+    let rows = fan_fixture(64, 0.02);
+    let matrix = Matrix::new(&rows);
+    let embeddings = matrix.view();
+    let width = NonZero::new(4).expect("four is nonzero");
+
+    // Tiny tiles force multiple ragged bands and running merges, the
+    // shapes the defaults never exercise on fixture corpora.
+    let mut construction = BruteForce::<burn::backend::NdArray>::new(
+        burn::backend::ndarray::NdArrayDevice::default(),
+        BruteForceOptions {
+            row_tile: 7,
+            column_chunk: 13,
+        },
+    );
+    let lists = construction
+        .construct(embeddings, width, test_rng())
+        .expect("the fixture is well-formed");
+    assert_eq!(lists.rows(), 64);
+    assert_eq!(lists.width(), 4);
+
+    // The fan is symmetric, so a row's two sides tie exactly and the
+    // two arithmetics may order a tie differently; the neighbour SET
+    // is the exact claim, and per-id distances pin the values.
+    let exact = ExactIndex::from_rows(&rows);
+    for row in 0..64 {
+        let entries = lists.row(row);
+        let reference: Vec<Neighbour> = exact
+            .ranked_by_id(NodeRowId::new(row as u64))
+            .into_iter()
+            .take(4)
+            .collect();
+
+        let mut ids: Vec<u64> = entries.iter().map(|neighbour| neighbour.id.get()).collect();
+        let mut expected: Vec<u64> = reference
+            .iter()
+            .map(|neighbour| neighbour.id.get())
+            .collect();
+        ids.sort_unstable();
+        expected.sort_unstable();
+        assert_eq!(ids, expected, "row {row}: the exact neighbour set");
+
+        for entry in entries {
+            let matched = reference
+                .iter()
+                .find(|neighbour| neighbour.id == entry.id)
+                .expect("the set assertion admitted the id");
+            assert!(
+                (entry.distance - matched.distance).abs() < 1e-5,
+                "row {row}: tensor accumulation stays within rounding of the scalar kernel"
+            );
+        }
+    }
+}
+
+#[test]
+fn brute_force_rejects_degenerate_corpora() {
+    let rows = plane_fixture();
+    let matrix = Matrix::new(&rows);
+
+    assert_matches!(
+        BruteForce::<burn::backend::NdArray>::new(
+            burn::backend::ndarray::NdArrayDevice::default(),
+            BruteForceOptions::default(),
+        )
+        .construct(&matrix.view()[..1], two_neighbours(), test_rng()),
+        Err(super::brute::BruteForceError::InsufficientRows { rows: 1 }),
     );
 }
 

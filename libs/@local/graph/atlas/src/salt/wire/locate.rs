@@ -21,7 +21,7 @@ use super::{
     cbor::CborWriter,
     edges::column,
     envelope::EnvelopeWriter,
-    tile::{TileCoordinate, encode_details},
+    tile::{TileCoordinate, encode_details, encode_identities},
 };
 use crate::{integrity::Sha256Digest, math::Vec2, salt::postings::mapped::Membership};
 
@@ -39,6 +39,12 @@ pub(crate) struct LocateResponse<'doc> {
     pub cell: TileCoordinate,
     /// `HEAD` key 6: `false` when the locate edge cap truncated the subgraph.
     pub complete: bool,
+    /// `HEAD` key 8: the source's upstream entity id, `bstr(32)`.
+    ///
+    /// The web uuid then the entity uuid, sixteen raw bytes each - the generation digest's
+    /// untagged byte-string shape. The by-row flow's identity answer: a client that named the
+    /// source by wire row id learns which entity it spotlighted.
+    pub entity_id: [u8; 32],
     /// The delivered set: base positions in delivered order, source first.
     pub delivered: &'doc [u32],
     /// The generation's wire-coordinate column, base order, in full.
@@ -105,10 +111,10 @@ impl LocateResponse<'_> {
         }
     }
 
-    /// Encodes the `HEAD` map: keys 0 through 7.
+    /// Encodes the `HEAD` map: keys 0 through 8.
     fn encode_head(&self, edges: u64) -> Vec<u8> {
         let mut cbor = CborWriter::new();
-        cbor.map(8);
+        cbor.map(9);
 
         cbor.uint(0);
         cbor.bytes(&self.generation.to_bytes());
@@ -129,6 +135,8 @@ impl LocateResponse<'_> {
         cbor.boolean(self.complete);
         cbor.uint(7);
         cbor.boolean(self.trailer.is_some());
+        cbor.uint(8);
+        cbor.bytes(&self.entity_id);
 
         cbor.into_bytes()
     }
@@ -208,6 +216,12 @@ pub(crate) struct LocateTrailer<'doc> {
     pub link_type_labels: &'doc [Option<&'doc str>],
     /// Trailer key 7.
     pub link_type_icons: &'doc [Option<&'doc str>],
+    /// Trailer key 8.
+    ///
+    /// Per-edge link entity ids, edge order: `bstr(32)` each, the web uuid then the entity uuid.
+    /// Identity is generation-frozen, so every delivered edge carries one - entries are never
+    /// null, unlike the store-hydrated columns.
+    pub link_entity_ids: &'doc [[u8; 32]],
 }
 
 impl LocateTrailer<'_> {
@@ -241,6 +255,11 @@ impl LocateTrailer<'_> {
                 "the trailer link {name} must cover exactly the delivered edges",
             );
         }
+        assert_eq!(
+            self.link_entity_ids.len(),
+            edges,
+            "the trailer link entity ids must cover exactly the delivered edges",
+        );
 
         assert!(
             self.property_names
@@ -264,7 +283,7 @@ impl LocateTrailer<'_> {
     /// Encodes the trailer tail as one self-delimiting CBOR map.
     fn encode(&self) -> Vec<u8> {
         let mut cbor = CborWriter::new();
-        cbor.map(8);
+        cbor.map(9);
 
         cbor.uint(0);
         encode_details(&mut cbor, self.labels);
@@ -297,6 +316,8 @@ impl LocateTrailer<'_> {
         encode_details(&mut cbor, self.link_type_labels);
         cbor.uint(7);
         encode_details(&mut cbor, self.link_type_icons);
+        cbor.uint(8);
+        encode_identities(&mut cbor, self.link_entity_ids);
 
         cbor.into_bytes()
     }

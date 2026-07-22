@@ -623,6 +623,27 @@ impl Atlas {
             .as_ref()
             .map(|set| set.memberships(&self.postings));
 
+        // The source's identity always rides HEAD; the per-edge link
+        // identities ride the detail trailer with the other link
+        // columns. Both read the generation-frozen tables, no store.
+        let entity_id = super::translate::identity_bytes(
+            self.node_ids
+                .id(u64::from(document.rows[0]))
+                .expect("open validated the identity rows against the code column"),
+        );
+        let link_ids: Option<Vec<[u8; 32]>> =
+            details.is_some().then(|| {
+                document
+                    .internal_rows
+                    .iter()
+                    .map(|&row| {
+                        super::translate::identity_bytes(self.edge_ids.id(u64::from(row)).expect(
+                            "open validated the identity rows against the adjacency's edges",
+                        ))
+                    })
+                    .collect()
+            });
+
         let hydrated = details.map(|(nodes, links)| {
             let (names, properties) = intern_properties(nodes.properties());
             HydratedColumns {
@@ -642,7 +663,8 @@ impl Atlas {
         let trailer = hydrated
             .as_ref()
             .zip(property_maps.as_ref())
-            .map(|(columns, properties)| LocateTrailer {
+            .zip(link_ids.as_deref())
+            .map(|((columns, properties), link_entity_ids)| LocateTrailer {
                 labels: &columns.labels,
                 icons: &columns.icons,
                 property_names: &columns.names,
@@ -651,6 +673,7 @@ impl Atlas {
                 link_icons: &columns.link_icons,
                 link_type_labels: &columns.link_type_labels,
                 link_type_icons: &columns.link_type_icons,
+                link_entity_ids,
             });
 
         LocateResponse {
@@ -658,6 +681,7 @@ impl Atlas {
             variant: 0,
             cell: document.source.cell,
             complete: document.complete,
+            entity_id,
             delivered: &document.delivered,
             positions: self.positions(),
             rows: self.wire_rows(),

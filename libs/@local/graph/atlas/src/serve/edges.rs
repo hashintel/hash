@@ -283,6 +283,20 @@ impl Atlas {
     /// never request data.
     #[must_use]
     pub fn encode_edges(&self, document: &EdgesDocument, details: Option<&LinkDetails>) -> Vec<u8> {
+        // Link identities read the generation-frozen table, no store;
+        // they ride the detail trailer with the hydrated link columns.
+        let link_ids: Option<Vec<[u8; 32]>> =
+            details.is_some().then(|| {
+                document
+                    .internal_rows
+                    .iter()
+                    .map(|&row| {
+                        super::translate::identity_bytes(self.edge_ids.id(u64::from(row)).expect(
+                            "open validated the identity rows against the adjacency's edges",
+                        ))
+                    })
+                    .collect()
+            });
         let columns = details.map(|details| {
             (
                 borrow(details.labels()),
@@ -291,14 +305,15 @@ impl Atlas {
                 borrow(details.type_icons()),
             )
         });
-        let trailer = columns
-            .as_ref()
-            .map(|(labels, icons, type_labels, type_icons)| EdgesTrailer {
+        let trailer = columns.as_ref().zip(link_ids.as_deref()).map(
+            |((labels, icons, type_labels, type_icons), link_entity_ids)| EdgesTrailer {
                 link_labels: labels,
                 link_icons: icons,
                 link_type_labels: type_labels,
                 link_type_icons: type_icons,
-            });
+                link_entity_ids,
+            },
+        );
 
         EdgesResponse {
             generation: self.generation.id().digest(),

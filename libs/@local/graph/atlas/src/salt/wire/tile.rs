@@ -364,3 +364,14 @@ pub(super) fn encode_details(cbor: &mut CborWriter, entries: &[Option<&str>]) {
         }
     }
 }
+
+/// Encodes one always-present identity column as a CBOR array of 32-byte strings.
+///
+/// The shape of columns whose entries derive from generation-frozen identity tables rather than
+/// the store: every delivered element carries a value, so no entry is null.
+pub(super) fn encode_identities(cbor: &mut CborWriter, entries: &[[u8; 32]]) {
+    cbor.array(entries.len() as u64);
+    for entry in entries {
+        cbor.bytes(entry);
+    }
+}

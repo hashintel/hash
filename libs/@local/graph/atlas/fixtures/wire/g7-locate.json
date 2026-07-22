@@ -1,12 +1,12 @@
 {
   "directory": [
-    [72, 125],
-    [128, 160],
-    [160, 176],
-    [176, 180],
-    [184, 196],
-    [200, 212],
-    [216, 228]
+    [72, 160],
+    [160, 192],
+    [192, 208],
+    [208, 212],
+    [216, 228],
+    [232, 244],
+    [248, 260]
   ],
   "edgeRowIds": [9, 57, 300],
   "golden": "g7-locate",
@@ -15,6 +15,7 @@
     "complete": false,
     "count": 4,
     "edges": 3,
+    "entityId": "4242424242424242424242424242424224242424242424242424242424242424",
     "generation": "7777777777777777777777777777777777777777777777777777777777777777",
     "trailer": true,
     "variant": 0,
@@ -38,6 +39,11 @@
   "trailer": {
     "icons": ["🦀", null, null, "→"],
     "labels": ["Café", null, "𝔊", "é"],
+    "linkEntityIds": [
+      "d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+      "e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+      "f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1"
+    ],
     "linkIcons": [null, "🔗", null],
     "linkLabels": ["œuvre", null, "cites"],
     "linkTypeIcons": [null, null, "水"],

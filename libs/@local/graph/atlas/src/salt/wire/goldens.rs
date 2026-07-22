@@ -599,6 +599,11 @@ fn g6_edges() -> Golden {
     let link_icons = [Some("\u{1f517}"), None, None];
     let link_type_labels = [None, Some("authored"), Some("authored")];
     let link_type_icons = [None, None, None];
+    let link_entity_ids = [
+        identity_of(0xA0, 0xA1),
+        identity_of(0xB0, 0xB1),
+        identity_of(0xC0, 0xC1),
+    ];
 
     let response = EdgesResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x66; 32]),
@@ -612,6 +617,7 @@ fn g6_edges() -> Golden {
             link_icons: &link_icons,
             link_type_labels: &link_type_labels,
             link_type_icons: &link_type_icons,
+            link_entity_ids: &link_entity_ids,
         }),
     };
     let bytes = response.encode();
@@ -636,6 +642,7 @@ fn g6_edges() -> Golden {
             "linkIcons": details_sidecar(&link_icons),
             "linkTypeLabels": details_sidecar(&link_type_labels),
             "linkTypeIcons": details_sidecar(&link_type_icons),
+            "linkEntityIds": identities_sidecar(&link_entity_ids),
         },
     });
 
@@ -653,7 +660,7 @@ fn g6_edges() -> Golden {
 /// the full detail trailer: labels and icons with nulls and non-ASCII, the interned property-name
 /// table shared across nodes, per-node maps covering every simple value shape (text, positive and
 /// negative integers, doubles, booleans, explicit null), a `null` unresolved entry, an empty
-/// resolved map, and the four link arrays.
+/// resolved map, and the five link columns.
 fn g7_locate() -> Golden {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
@@ -701,6 +708,11 @@ fn g7_locate() -> Golden {
     let link_icons = [None, Some("\u{1f517}"), None];
     let link_type_labels = [Some("authored"), Some("authored"), None];
     let link_type_icons = [None, None, Some("\u{6c34}")];
+    let link_entity_ids = [
+        identity_of(0xD0, 0xD1),
+        identity_of(0xE0, 0xE1),
+        identity_of(0xF0, 0xF1),
+    ];
 
     let response = LocateResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x77; 32]),
@@ -714,6 +726,7 @@ fn g7_locate() -> Golden {
         sources: &[61, 41, 21],
         targets: &[11, 61, 41],
         edge_rows: &[9, 57, 300],
+        entity_id: identity_of(0x42, 0x24),
         trailer: Some(LocateTrailer {
             labels: &labels,
             icons: &icons,
@@ -723,6 +736,7 @@ fn g7_locate() -> Golden {
             link_icons: &link_icons,
             link_type_labels: &link_type_labels,
             link_type_icons: &link_type_icons,
+            link_entity_ids: &link_entity_ids,
         }),
     };
     let bytes = response.encode();
@@ -803,6 +817,7 @@ fn locate_sidecar(
             "edges": response.sources.len(),
             "complete": response.complete,
             "trailer": true,
+            "entityId": identities_sidecar(&[response.entity_id]).remove(0),
         },
         "positions": positions_bits,
         "rowIds": row_ids,
@@ -819,8 +834,27 @@ fn locate_sidecar(
             "linkIcons": details_sidecar(trailer.link_icons),
             "linkTypeLabels": details_sidecar(trailer.link_type_labels),
             "linkTypeIcons": details_sidecar(trailer.link_type_icons),
+            "linkEntityIds": identities_sidecar(trailer.link_entity_ids),
         },
     })
+}
+
+/// Builds one hand-pinned identity: sixteen web bytes then sixteen entity bytes.
+const fn identity_of(web: u8, entity: u8) -> [u8; 32] {
+    let mut id = [web; 32];
+    let mut index = 16;
+    while index < 32 {
+        id[index] = entity;
+        index += 1;
+    }
+    id
+}
+
+/// Renders one identity column as lowercase hex strings.
+fn identities_sidecar(ids: &[[u8; 32]]) -> Vec<String> {
+    ids.iter()
+        .map(|id| id.iter().map(|byte| format!("{byte:02x}")).collect())
+        .collect()
 }
 
 /// G8: the evolution scenario proven in advance - a slot count one past the v1 tile table.

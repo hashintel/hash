@@ -1227,8 +1227,21 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
         .sum();
     let head = usize::try_from(head).expect("fixture counts fit usize");
     let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
-    let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
-    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
+    let (sources, targets, internal_edges) = qualifying_columns(endpoints, &delivered);
+
+    // Link identities in delivered (ascending wire edge id) order,
+    // derived from the fixture's seeding rule, not the serve path.
+    let (_, edge_codec) = test_codecs(&atlas);
+    let mut ordered_edges = internal_edges.clone();
+    ordered_edges.sort_unstable_by_key(|&row| edge_codec.encode(row).get());
+    let link_ids: Vec<[u8; 32]> = ordered_edges
+        .iter()
+        .map(|&row| {
+            identity_bytes_of(EDGE_SEED + u8::try_from(row).expect("fixture edge rows fit u8"))
+        })
+        .collect();
+
+    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &internal_edges);
 
     let entities = atlas.delivered_edge_entities(&document);
     assert_eq!(entities.count(), edge_rows.len());
@@ -1249,6 +1262,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
             link_icons: &nothing,
             link_type_labels: &nothing,
             link_type_icons: &nothing,
+            link_entity_ids: &link_ids,
         }),
     }
     .encode();
@@ -1844,6 +1858,13 @@ fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
     }
 }
 
+/// The wire `bstr(32)` form of [`entity_id_of`]'s identity: the web uuid then the entity uuid.
+fn identity_bytes_of(seed: u8) -> [u8; 32] {
+    let mut bytes = [seed; 32];
+    bytes[16..].fill(seed ^ 0xFF);
+    bytes
+}
+
 /// The `webId~entityUuid` string form of [`entity_id_of`]'s identity.
 ///
 /// Narrows a fixture-sized index into the wire's `u32` row domain.
@@ -2344,6 +2365,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             sources: &sources,
             targets: &targets,
             edge_rows: &edge_rows,
+            entity_id: identity_bytes_of(0),
             trailer: None,
         }
         .encode()
@@ -2462,6 +2484,16 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
     let wire_rows: Vec<u32> = atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     assert_eq!(links.count(), edge_rows.len());
 
+    // Link identities from the fixture's seeding rule: the subgraph's
+    // internal edge rows in delivered order, not the serve path.
+    let link_ids: Vec<[u8; 32]> = subgraph
+        .edges
+        .iter()
+        .map(|&(edge, _)| {
+            identity_bytes_of(EDGE_SEED + u8::try_from(edge.row).expect("fixture edge rows fit u8"))
+        })
+        .collect();
+
     let no_nodes: Vec<Option<&str>> = vec![None; nodes.count()];
     let no_edges: Vec<Option<&str>> = vec![None; edge_rows.len()];
     let no_maps: Vec<Option<&[(u32, PropertyValue<'_>)]>> = vec![None; nodes.count()];
@@ -2477,6 +2509,7 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
         sources: &sources,
         targets: &targets,
         edge_rows: &edge_rows,
+        entity_id: identity_bytes_of(0),
         trailer: Some(LocateTrailer {
             labels: &no_nodes,
             icons: &no_nodes,
@@ -2486,6 +2519,7 @@ async fn detailed_locate_encodes_the_hydrated_trailer() {
             link_icons: &no_edges,
             link_type_labels: &no_edges,
             link_type_icons: &no_edges,
+            link_entity_ids: &link_ids,
         }),
     }
     .encode();

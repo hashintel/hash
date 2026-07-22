@@ -237,3 +237,11 @@ pub(super) fn parse(id: &str) -> Option<ArchivedEntityId> {
         entity_uuid: entity_uuid.into(),
     })
 }
+
+/// Returns one identity-table key's wire form: the web uuid then the entity uuid, raw bytes.
+///
+/// The `bstr(32)` shape entity ids take on the binary wire - the generation digest's untagged
+/// byte-string precedent, typed by its HEAD or trailer key rather than a CBOR tag.
+pub(super) fn identity_bytes(id: ArchivedEntityId) -> [u8; 32] {
+    zerocopy::transmute!(id)
+}
