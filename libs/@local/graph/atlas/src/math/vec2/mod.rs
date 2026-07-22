@@ -534,7 +534,7 @@ impl Mul<f32> for Vec2x4T {
     }
 }
 
-impl From<[Vec2; 4]> for Vec2x4T {
+const impl From<[Vec2; 4]> for Vec2x4T {
     /// Deinterleaves four vectors into structure-of-arrays order.
     #[inline]
     fn from(vecs: [Vec2; 4]) -> Self {
@@ -549,7 +549,7 @@ impl From<[Vec2; 4]> for Vec2x4T {
     }
 }
 
-impl From<Simd<f32, 8>> for Vec2x4T {
+const impl From<Simd<f32, 8>> for Vec2x4T {
     /// Reinterprets eight lanes in `x0 x1 x2 x3 y0 y1 y2 y3` order.
     #[inline]
     fn from(lanes: Simd<f32, 8>) -> Self {
@@ -557,7 +557,7 @@ impl From<Simd<f32, 8>> for Vec2x4T {
     }
 }
 
-impl From<Vec2x4T> for Simd<f32, 8> {
+const impl From<Vec2x4T> for Simd<f32, 8> {
     #[inline]
     fn from(batch: Vec2x4T) -> Self {
         batch.to_simd()
@@ -628,9 +628,13 @@ impl Vec2x4 {
 
         Simd::from_array([x0, y0, x1, y1, x2, y2, x3, y3])
     }
+
+    fn from_slice(slice: &[Vec2]) -> (&[Vec2], &[Self], &[Vec2]) {
+        unsafe { slice.align_to::<Self>() }
+    }
 }
 
-impl From<[Vec2; 4]> for Vec2x4 {
+const impl From<[Vec2; 4]> for Vec2x4 {
     /// Packs four vectors in their natural interleaved order.
     #[inline]
     fn from(vecs: [Vec2; 4]) -> Self {
@@ -638,14 +642,14 @@ impl From<[Vec2; 4]> for Vec2x4 {
     }
 }
 
-impl From<Vec2x4> for [Vec2; 4] {
+const impl From<Vec2x4> for [Vec2; 4] {
     #[inline]
     fn from(batch: Vec2x4) -> Self {
         batch.0
     }
 }
 
-impl From<Simd<f32, 8>> for Vec2x4 {
+const impl From<Simd<f32, 8>> for Vec2x4 {
     /// Reinterprets eight lanes in `x0 y0 x1 y1 x2 y2 x3 y3` order.
     #[inline]
     fn from(lanes: Simd<f32, 8>) -> Self {
@@ -660,14 +664,14 @@ impl From<Simd<f32, 8>> for Vec2x4 {
     }
 }
 
-impl From<Vec2x4> for Simd<f32, 8> {
+const impl From<Vec2x4> for Simd<f32, 8> {
     #[inline]
     fn from(batch: Vec2x4) -> Self {
         batch.to_simd()
     }
 }
 
-impl From<Vec2x4> for Vec2x4T {
+const impl From<Vec2x4> for Vec2x4T {
     /// Deinterleaves an array-of-structures batch by axis.
     #[inline]
     fn from(batch: Vec2x4) -> Self {
@@ -675,7 +679,7 @@ impl From<Vec2x4> for Vec2x4T {
     }
 }
 
-impl From<Vec2x4T> for Vec2x4 {
+const impl From<Vec2x4T> for Vec2x4 {
     /// Interleaves a structure-of-arrays batch back into whole vectors.
     #[inline]
     fn from(batch: Vec2x4T) -> Self {
