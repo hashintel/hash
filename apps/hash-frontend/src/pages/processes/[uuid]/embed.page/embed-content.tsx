@@ -2,7 +2,7 @@ import "@hashintel/petrinaut/dist/main.css";
 import { Box } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import {
   createJsonDocHandle,
   isSDCPNEqual,
@@ -290,6 +290,10 @@ export const EmbedContent = () => {
     });
   }, [bridge, pendingSaveRequestId, state]);
 
+  const handleNavigateBack = useCallback(() => {
+    bridge.send({ kind: "requestNavigateBack" });
+  }, [bridge]);
+
   const handleLoadRevision = useCallback(
     (revision: RevisionSummary) => {
       bridge.send({
@@ -304,18 +308,29 @@ export const EmbedContent = () => {
 
   const slots = useMemo<PetrinautSlots>(() => {
     /**
-     * Navigation back to the process list lives in the host's breadcrumb
-     * bar (rendered by `process-editor.tsx` above this iframe), so the
-     * editor's own top bar carries no back affordance.
+     * HASH-style breadcrumbs, integrated into Petrinaut's top bar via the
+     * `topBarStart` slot so the embed shows a single bar. The editor's own
+     * editable title renders directly after this slot and acts as the final
+     * crumb, keeping rename-in-place.
      */
+    const breadcrumbs = (
+      <>
+        <Button size="sm" variant="ghost" onClick={handleNavigateBack}>
+          Processes
+        </Button>
+        <Icon name="chevronRight" size="sm" />
+      </>
+    );
+
     if (!state || state.readonly) {
-      return {};
+      return { topBarStart: breadcrumbs };
     }
 
     const isSaved = state.mode.kind === "saved";
     const saveLabel = isSaved ? (isDirty ? "Save" : "Saved") : "Create";
 
     return {
+      topBarStart: breadcrumbs,
       topBarEnd: (
         <>
           <VersionPicker
@@ -340,6 +355,7 @@ export const EmbedContent = () => {
     };
   }, [
     handleLoadRevision,
+    handleNavigateBack,
     handleSaveClick,
     isDirty,
     persistPending,

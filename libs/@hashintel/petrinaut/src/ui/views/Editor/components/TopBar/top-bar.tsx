@@ -87,8 +87,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
-        {slots?.topBarStart}
-
         <Button
           size="sm"
           variant="ghost"
@@ -115,6 +113,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           }
           items={menuItems}
         />
+
+        {slots?.topBarStart}
 
         {hideNetManagementControls !== "all" && (
           <TextInput

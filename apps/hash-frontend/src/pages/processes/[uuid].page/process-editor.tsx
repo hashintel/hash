@@ -9,8 +9,6 @@ import { type SDCPN } from "@hashintel/petrinaut";
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
-import { ChartNetworkRegularIcon } from "../../../shared/icons/chart-network-regular-icon";
-import { TopContextBar } from "../../shared/top-context-bar";
 import {
   type HostNetMode,
   type PetrinautAiMessage,
@@ -152,9 +150,9 @@ const buildRevisionSummaries = (
 
 /**
  * Loading-state overlay rendered above the still-warming iframe. Mirrors
- * Petrinaut's broad layout (top bar with title / version-picker / save,
- * plus a left rail and the canvas) so the transition into the real
- * editor doesn't cause a visible reflow.
+ * Petrinaut's broad layout (top bar with menu buttons / breadcrumb / title /
+ * version-picker / save, plus a left rail and the canvas) so the transition
+ * into the real editor doesn't cause a visible reflow.
  */
 const ProcessEditorLoadingSkeleton = () => (
   <Stack
@@ -167,12 +165,13 @@ const ProcessEditorLoadingSkeleton = () => (
     })}
     aria-hidden
   >
-    {/* Top bar: title + version picker + save button */}
+    {/* Top bar: menu buttons + breadcrumb + title + version picker + save */}
     <Stack
       direction="row"
       sx={{ height: 36, gap: 1, flexShrink: 0 }}
       alignItems="center"
     >
+      <Skeleton variant="rounded" width={32} height={32} animation="wave" />
       <Skeleton
         variant="rounded"
         width={180}
@@ -280,13 +279,6 @@ export const ProcessEditor = ({
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
   /**
-   * Live process title, mirrored from the iframe's `titleChanged` events (and
-   * seeded from the resolved view on load) so the breadcrumb bar stays in
-   * sync with in-editor renames.
-   */
-  const [processTitle, setProcessTitle] = useState("");
-
-  /**
    * Cached dirty flag mirrored from the iframe's `dirtyChanged` events. The
    * host doesn't compute this — only stores it for the discard modal +
    * `beforeunload` guard.
@@ -387,7 +379,9 @@ export const ProcessEditor = ({
     iframeRef,
     handlers: {
       onDirtyChanged: setIsDirty,
-      onTitleChanged: setProcessTitle,
+      onRequestNavigateBack: () => {
+        void router.push("/processes");
+      },
       onRequestRevision: (decisionTime) => {
         const revision = revisions.find(
           (rev) => rev.decisionTime === decisionTime,
@@ -683,7 +677,6 @@ export const ProcessEditor = ({
         setSelectedNetId(null);
         setUserEditable(true);
       }
-      setProcessTitle(resolved.title);
       setLoadedView(resolved.loadedView);
     },
     [loadPersistedNet, persistedNets, setUserEditable],
@@ -912,28 +905,7 @@ export const ProcessEditor = ({
         />
       )}
 
-      <TopContextBar
-        defaultCrumbIcon={null}
-        crumbs={[
-          {
-            id: "processes",
-            title: "Processes",
-            href: "/processes",
-            icon: <ChartNetworkRegularIcon sx={{ fontSize: 14 }} />,
-          },
-          {
-            id: "process",
-            title: processTitle,
-            icon: null,
-          },
-        ]}
-        sx={({ palette }) => ({
-          background: palette.gray[5],
-          borderBottom: `1px solid ${palette.gray[20]}`,
-        })}
-      />
-
-      <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+      <Box sx={{ height: "100%", position: "relative" }}>
         <Box
           component="iframe"
           ref={iframeRef}
