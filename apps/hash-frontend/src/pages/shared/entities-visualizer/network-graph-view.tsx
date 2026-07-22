@@ -221,6 +221,46 @@ const shortPropName = (url: string): string => {
 const formatPropValue = (value: SaltilePropertyValue): string =>
   value === null ? "—" : String(value);
 
+/**
+ * A stable, non-negative hash of a node id. Used to seed the per-node colour
+ * pick so a node keeps the same sampled colour across re-renders (tiles refetch
+ * and re-render constantly on pan/zoom) rather than flickering each frame.
+ */
+const hashSeed = (seed: number | string): number => {
+  const text = String(seed);
+  let hash = 0;
+  // Modulo a large prime keeps the accumulator bounded (and non-negative)
+  // without bitwise ops.
+  for (let index = 0; index < text.length; index++) {
+    hash = (hash * 31 + text.charCodeAt(index)) % 2147483647;
+  }
+  return hash;
+};
+
+/**
+ * Picks which of a node's matched queried types drives its colour. Rather than
+ * always taking the first (most-common) match, it samples one at random —
+ * deterministically seeded by the node id via {@link hashSeed} so the choice is
+ * stable per node. Types that resolve to grey ({@link unassignedTypeColor}) are
+ * de-prioritised: a grey type is only ever chosen when the node has no
+ * coloured match. Returns the index into `colors` (aligned to `coloredTypeIds`),
+ * or `undefined` when the node matches none of the queried types.
+ */
+const pickTypeIndex = (
+  typeIndices: readonly number[] | undefined,
+  seed: number | string,
+  colors: readonly string[],
+): number | undefined => {
+  if (typeIndices === undefined || typeIndices.length === 0) {
+    return undefined;
+  }
+  const coloured = typeIndices.filter(
+    (index) => (colors[index] ?? unassignedTypeColor) !== unassignedTypeColor,
+  );
+  const pool = coloured.length > 0 ? coloured : typeIndices;
+  return pool[hashSeed(seed) % pool.length];
+};
+
 /** The located item the popover shows, plus the world point "Go to entity" reveals. */
 interface Selection {
   readonly detail: LocatedEntityDetail;
@@ -238,8 +278,10 @@ interface Selection {
  * Nodes are coloured by entity type using the same palette as the type filter
  * dropdown: the types that resolve to a distinct colour there (by default the
  * most common types by entity count, plus any the user has overridden) are sent
- * to the tile API as `coloredTypeIds`, and each node's returned type membership
- * selects its colour. Types without a colour of their own render grey.
+ * to the tile API as `coloredTypeIds`. A node that matches several of them is
+ * coloured by one picked at random (seeded by its id so the choice is stable —
+ * see `pickTypeIndex`), preferring a coloured match over a greyed-out one. Types
+ * without a colour of their own render grey.
  */
 export const NetworkGraphView = ({
   availableEntityTypes,
@@ -292,15 +334,20 @@ export const NetworkGraphView = ({
     [coloredTypes],
   );
 
-  // A node carries the queried types it matches (ascending); colour it by the
-  // first, falling back to grey when it matches none of the coloured types.
+  // A node carries the queried types it matches; colour it by one sampled at
+  // random (seeded by the node id, so it's stable per node — see
+  // `pickTypeIndex`), preferring a coloured match over grey. Falls back to grey
+  // when it matches none of the coloured types.
   const colorForTypeIndices = useCallback(
-    (typeIndices: readonly number[] | undefined): string => {
-      const first = typeIndices?.[0];
-      if (first === undefined) {
+    (
+      typeIndices: readonly number[] | undefined,
+      seed: number | string,
+    ): string => {
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
+      if (index === undefined) {
         return unassignedTypeColor;
       }
-      return coloredTypeColors[first] ?? unassignedTypeColor;
+      return coloredTypeColors[index] ?? unassignedTypeColor;
     },
     [coloredTypeColors],
   );
@@ -314,13 +361,15 @@ export const NetworkGraphView = ({
     return map;
   }, [availableEntityTypes]);
 
-  // The popover type chip for a node: its first matched type's title + colour,
-  // or `undefined` when the node matches none of the coloured types.
+  // The popover type chip for a node: the title + colour of the same type its
+  // node colour was sampled from (so chip and node agree), or `undefined` when
+  // the node matches none of the coloured types.
   const typeChipForIndices = useCallback(
     (
       typeIndices: readonly number[] | undefined,
+      seed: number | string,
     ): LocatedEntityDetail["type"] => {
-      const index = typeIndices?.[0];
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
       if (index === undefined) {
         return undefined;
       }
@@ -398,7 +447,7 @@ export const NetworkGraphView = ({
   const points = useMemo(
     () =>
       (data?.nodes ?? []).map((node) =>
-        toPoint(node, colorForTypeIndices(node.typeIndices)),
+        toPoint(node, colorForTypeIndices(node.typeIndices, node.id)),
       ),
     [data, colorForTypeIndices],
   );
@@ -501,14 +550,20 @@ export const NetworkGraphView = ({
       }
       setSelected({
         node: {
-          point: toPoint(source, colorForTypeIndices(source.typeIndices)),
+          point: toPoint(
+            source,
+            colorForTypeIndices(source.typeIndices, source.id),
+          ),
           edges: entity.edges.map(toEdge),
           neighbours: neighbours.map((neighbour) =>
-            toPoint(neighbour, colorForTypeIndices(neighbour.typeIndices)),
+            toPoint(
+              neighbour,
+              colorForTypeIndices(neighbour.typeIndices, neighbour.id),
+            ),
           ),
         },
       });
-      const type = typeChipForIndices(source.typeIndices);
+      const type = typeChipForIndices(source.typeIndices, source.id);
       setSelection({
         detail: {
           kind: "node",
@@ -680,8 +735,14 @@ export const NetworkGraphView = ({
             edge: {
               edge,
               endpoints: [
-                toPoint(fromNode, colorForTypeIndices(fromNode.typeIndices)),
-                toPoint(toNode, colorForTypeIndices(toNode.typeIndices)),
+                toPoint(
+                  fromNode,
+                  colorForTypeIndices(fromNode.typeIndices, fromNode.id),
+                ),
+                toPoint(
+                  toNode,
+                  colorForTypeIndices(toNode.typeIndices, toNode.id),
+                ),
               ],
             },
           });
