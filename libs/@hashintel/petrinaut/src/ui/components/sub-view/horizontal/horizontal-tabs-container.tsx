@@ -8,19 +8,22 @@ const tabsContainerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
+  minWidth: "[0]",
+  overflow: "hidden",
 });
 
 const tabButtonStyle = cva({
   base: {
     fontSize: "[11px]",
     fontWeight: "medium",
-    padding: "[4px 10px]",
+    padding: "[4px 0 4px 10px]",
     textTransform: "uppercase",
     borderRadius: "xs",
     border: "none",
     cursor: "pointer",
     transition: "[all 0.3s ease]",
     background: "[transparent]",
+    minWidth: "[0]",
   },
   variants: {
     active: {
@@ -40,6 +43,22 @@ const tabButtonStyle = cva({
       },
     },
   },
+});
+
+/**
+ * When a tab is too narrow for its label, the text is clipped (no wrap, no
+ * ellipsis) and fades out on the right via a mask, so it blends into whatever
+ * background is behind it (panel glass or the active-tab pill). The trailing
+ * padding replaces the button's own right padding: labels that fit never
+ * reach the faded zone.
+ */
+const tabButtonLabelStyle = css({
+  display: "block",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  paddingRight: "[10px]",
+  maskImage:
+    "[linear-gradient(to right, black calc(100% - 10px), transparent)]",
 });
 
 const contentStyle = cva({
@@ -83,8 +102,10 @@ const TabButton: React.FC<TabButtonProps> = ({
       aria-controls={tabpanelId}
       role="tab"
     >
-      {subView.title}
-      {subView.tooltip && <InfoIconTooltip tooltip={subView.tooltip} />}
+      <span className={tabButtonLabelStyle}>
+        {subView.title}
+        {subView.tooltip && <InfoIconTooltip tooltip={subView.tooltip} />}
+      </span>
     </button>
   );
 };

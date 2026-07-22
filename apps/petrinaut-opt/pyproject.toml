@@ -1,7 +1,7 @@
 [project]
 name = "petrinaut-optimization"
 version = "0.1.0"
-description = "Petrinaut parameter and initial state optimisation using optuna"
+description = "Scenario-parameter optimization for Petrinaut using Optuna"
 readme = "README.md"
 requires-python = ">=3.10.20"
 dependencies = [
@@ -10,3 +10,13 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "uvicorn[standard]>=0.39.0",
 ]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28",
+    "pytest>=8.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths  = ["tests"]

@@ -118,15 +118,58 @@ type ActionOutputs = AiActionStepOutput<"generateChartConfig">[];
 export const generateChartConfigAction: AiFlowActionActivity<
   "generateChartConfig"
 > = async ({ inputs }) => {
-  const { chartData, chartType, userGoal } = getSimplifiedAiFlowActionInputs({
+  const {
+    chartData,
+    chartType,
+    userGoal,
+    refinementInstruction,
+    existingChartConfig,
+    refinementScope,
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "generateChartConfig",
   }) as {
-    [K in InputNameForAiFlowAction<"generateChartConfig">]: string;
+    [K in InputNameForAiFlowAction<"generateChartConfig">]: string | undefined;
   };
 
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
+
+  if (refinementScope === "none") {
+    if (!existingChartConfig) {
+      return {
+        code: StatusCode.InvalidArgument,
+        message: "Existing chart config is required for refinement",
+        contents: [],
+      };
+    }
+    const outputs: ActionOutputs = [
+      {
+        outputName: "chartConfig",
+        payload: { kind: "Text", value: existingChartConfig },
+      },
+      {
+        outputName: "explanation",
+        payload: {
+          kind: "Text",
+          value: "Existing chart configuration preserved",
+        },
+      },
+    ];
+    return {
+      code: StatusCode.Ok,
+      message: "Existing chart configuration preserved",
+      contents: [{ outputs }],
+    };
+  }
+
+  if (!chartData || !chartType || !userGoal) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: "chartData, chartType, and userGoal are required",
+      contents: [],
+    };
+  }
 
   // Parse chartData from JSON string
   let parsedChartData: unknown[];
@@ -263,6 +306,19 @@ export const generateChartConfigAction: AiFlowActionActivity<
               type: "text",
               text: dedent(`
                 User's goal: "${userGoal}"
+                ${
+                  refinementInstruction && existingChartConfig
+                    ? dedent(`
+                        Refinement instruction: "${refinementInstruction}"
+
+                        Existing chart configuration:
+                        ${existingChartConfig}
+
+                        Refine the existing chart configuration only as required. Preserve any
+                        settings that remain appropriate.
+                      `)
+                    : ""
+                }
                 Chart type: ${chartType}
 
                 Chart data (first 20 items):

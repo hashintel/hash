@@ -69,9 +69,8 @@ export const siteOverviewSection: DocSectionDef = {
           </P>
           <P>
             Sort and filter the table from its column headers: <Term>Type</Term>{" "}
-            filters by opportunity kind (hiding a kind removes its whole
-            section), <Term>Opportunity</Term> sorts by title and filters by
-            product, and <Term>Status</Term> sorts and filters by the
+            filters by step type, <Term>Opportunity</Term> sorts by title and
+            filters by product, and <Term>Status</Term> sorts and filters by the
             investigation state.
           </P>
           <H4>Investigation workflow</H4>
@@ -232,6 +231,12 @@ export const siteOverviewSection: DocSectionDef = {
             alongside one site-wide control.
           </Lead>
           <UL>
+            <LI>
+              <Term>Site search</Term> &mdash; type in the search box below the
+              settings and help buttons to filter opportunities and every detail
+              tab by step, product, material, location or supplier. Section and
+              tab counts update with the results.
+            </LI>
             <LI>
               <Term>Column sort</Term> &mdash; click a sortable column header to
               sort by it, and click again to reverse the direction.

@@ -11,6 +11,7 @@ import { inferEntitiesFromContentAction } from "./flow-activities/infer-entities
 import { inferMetadataFromDocumentAction } from "./flow-activities/infer-metadata-from-document-action.js";
 import { persistEntitiesAction } from "./flow-activities/persist-entities-action.js";
 import { persistEntityAction } from "./flow-activities/persist-entity-action.js";
+import { planDashboardRefinementAction } from "./flow-activities/plan-dashboard-refinement-action.js";
 import { processAutomaticBrowsingSettingsAction } from "./flow-activities/process-automatic-browsing-settings-action.js";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action.js";
 import { webSearchAction } from "./flow-activities/web-search-action.js";
@@ -27,6 +28,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   generateStructuralQueryAction,
   answerQuestionAction,
   generateChartConfigAction,
+  planDashboardRefinementAction,
   generateWebQueriesAction,
   getFileFromUrlAction,
   getWebPageByUrlAction,

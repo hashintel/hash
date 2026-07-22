@@ -1,5 +1,7 @@
 import { createWorkerThreadRuntime } from "../../../environment";
 import { SDCPNItemError } from "../../../errors";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
+import { resolveNetParameterValues } from "../../../parameter-values";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
@@ -147,6 +149,11 @@ function initialize(message: MonteCarloInitMessage): void {
     ? createMonteCarloUserDefinedMetricConfigsFromSpecs(
         metricSpecs,
         message.sdcpn,
+        resolveNetParameterValues(
+          message.sdcpn.parameters,
+          message.parameterValues,
+          (message.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS).parameters,
+        ),
       ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig))
     : [];
   simulator = createMonteCarloSimulator({

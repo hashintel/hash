@@ -46,6 +46,10 @@
       "types": "./dist/hir-runtime.d.d.ts",
       "import": "./dist/hir-runtime.js"
     },
+    "./optimization": {
+      "types": "./dist/optimization.d.d.ts",
+      "import": "./dist/optimization.js"
+    },
     "./workers/lsp": {
       "types": "./dist/workers/lsp.d.d.ts",
       "import": "./dist/workers/lsp.js"

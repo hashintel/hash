@@ -39,6 +39,7 @@ const VERSION = "2026-06-15";
 const manifest = {
   datasetVersion: VERSION,
   products: ["democat-x100-extr"],
+  productionSchedules: ["democat-x100-extr"],
   sites: ["demo-plant"],
   steps: { "democat-x100-extr": ["prod_to_qa_pla"] },
 };
@@ -113,6 +114,34 @@ describe("resolveInvocation (supply-chain analyses)", () => {
     expect(result.artifacts![0]!.url).toContain(
       "democat-x100-extr/steps/prod_to_qa_pla.json",
     );
+  });
+
+  it("resolves a production schedule explicitly listed in the manifest", async () => {
+    const result = await resolve("productionSchedule", {
+      productId: "democat-x100-extr",
+    });
+    expect(result.status).toBe("ready");
+    expect(result.artifacts![0]!.name).toBe("schedule");
+    expect(result.artifacts![0]!.url).toContain(
+      "democat-x100-extr/production_schedule.json",
+    );
+  });
+
+  it("fails closed when a product has no production schedule", async () => {
+    const original =
+      storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`]!;
+    storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
+      JSON.stringify({ ...manifest, productionSchedules: undefined });
+    try {
+      const result = await resolve("productionSchedule", {
+        productId: "democat-x100-extr",
+      });
+      expect(result.status).toBe("error");
+      expect(result.error).toMatch(/schedule unavailable/i);
+    } finally {
+      storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
+        original;
+    }
   });
 
   it("errors for an unknown product", async () => {

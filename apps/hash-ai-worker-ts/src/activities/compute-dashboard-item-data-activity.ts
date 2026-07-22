@@ -1,9 +1,11 @@
 import { Context } from "@temporalio/activity";
 
+import { queryAllEntitySubgraphPages } from "@local/hash-backend-utils/query-all-entity-subgraph-pages";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
+  type DashboardItemDataGenerationMetadata,
   normalizeStructuralQuery,
+  type StructuralQueryDefinition,
   toApiTraversalPaths,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import {
@@ -20,7 +22,6 @@ import type {
 } from "@local/hash-backend-utils/dashboards";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { StructuralQueryDefinition } from "@local/hash-isomorphic-utils/dashboard-types";
 
 const SECONDS_BETWEEN_HEARTBEATS = 10;
 
@@ -37,8 +38,15 @@ export const computeDashboardItemDataActivity = async (
   }: { graphApiClient: GraphApi; storageProvider: FileStorageProvider },
   params: ComputeDashboardItemDataWorkflowParams,
 ): Promise<ComputeDashboardItemDataWorkflowResult> => {
-  const { authentication, webId, structuralQuery, pythonScript, storageKey } =
-    params;
+  const {
+    authentication,
+    webId,
+    structuralQuery,
+    pythonScript,
+    storageKey,
+    metadataStorageKey,
+  } = params;
+  const generationStartedAt = Date.now();
 
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat();
@@ -55,7 +63,7 @@ export const computeDashboardItemDataActivity = async (
       throw new Error("structuralQuery is not a filter or query definition");
     }
 
-    const { subgraph } = await queryEntitySubgraph(
+    const subgraph = await queryAllEntitySubgraphPages(
       { graphApi: graphApiClient },
       authentication,
       {
@@ -104,9 +112,27 @@ export const computeDashboardItemDataActivity = async (
       );
     }
 
+    const chartDataJson = JSON.stringify(chartData);
+    const generatedAt = new Date();
+
+    const metadata: DashboardItemDataGenerationMetadata = {
+      generatedAt: generatedAt.toISOString(),
+      generationDurationMs: generatedAt.getTime() - generationStartedAt,
+    };
+    const metadataJson: string = JSON.stringify(metadata);
+    await storageProvider.uploadDirect({
+      key: metadataStorageKey,
+      body: metadataJson,
+      contentType: "application/json",
+    });
+
+    /**
+     * Write chart data last: its LastModified timestamp acts as the completion
+     * marker observed by the analysis gateway.
+     */
     await storageProvider.uploadDirect({
       key: storageKey,
-      body: JSON.stringify(chartData),
+      body: chartDataJson,
       contentType: "application/json",
     });
 

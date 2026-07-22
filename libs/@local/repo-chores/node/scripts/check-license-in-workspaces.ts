@@ -28,6 +28,7 @@ const script = async () => {
       "**/runner_venv/**",
       "**/target/**",
       "**/venv/**",
+      "**/.venv/**",
     ],
   });
 

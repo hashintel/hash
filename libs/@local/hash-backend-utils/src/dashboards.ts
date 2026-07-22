@@ -98,6 +98,13 @@ export const getDashboardItemDataStorageKey = (params: {
   configHash: string;
 }): string => `analysis/${params.webId}/dashboards/${params.configHash}.json`;
 
+/** Storage key for freshness/timing metadata associated with chart data. */
+export const getDashboardItemDataMetadataStorageKey = (params: {
+  webId: WebId;
+  configHash: string;
+}): string =>
+  `analysis/${params.webId}/dashboards/${params.configHash}.metadata.json`;
+
 /** Name of the Temporal workflow (on the "ai" task queue) that computes dashboard item data. */
 export const COMPUTE_DASHBOARD_ITEM_DATA_WORKFLOW = "computeDashboardItemData";
 
@@ -113,6 +120,8 @@ export type ComputeDashboardItemDataWorkflowParams = {
   pythonScript: string;
   /** The (analysis-scoped) storage key to write the resulting artifact to */
   storageKey: string;
+  /** Storage key for the artifact's freshness and duration metadata. */
+  metadataStorageKey: string;
 };
 
 export type ComputeDashboardItemDataWorkflowResult = {

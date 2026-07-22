@@ -27,6 +27,12 @@ import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
 import { summarizeMetricLspErrors } from "../metrics/metric-lsp";
 import {
+  createMetricKindGroups,
+  getMetricKindIcon,
+  MODEL_METRIC_VALUE_PREFIX,
+  type MetricKindGroup,
+} from "../metrics/metric-picker-options";
+import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
   getExperimentMetricDiagnosticError,
@@ -225,7 +231,7 @@ const DEFAULT_EXPERIMENT_NAME = "Experiment";
 const NO_SCENARIO_VALUE = "__none__";
 const DEFAULT_RUN_COUNT = "1000";
 const DEFAULT_SEED = "1";
-const DEFAULT_DT = "1";
+const DEFAULT_DT = "0.1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = `/**
 * Custom metric code that will be run on each frame.
@@ -297,8 +303,6 @@ type ExperimentMetricDraft = {
   lspDiagnostics: MetricLspDiagnosticSummary;
 };
 
-const MODEL_METRIC_VALUE_PREFIX = "model:";
-
 const transitionModeOptions: { value: TransitionFiringMode; text: string }[] = [
   { value: "firedInThisFrame", text: "Per frame" },
   { value: "cumulative", text: "Cumulative" },
@@ -363,60 +367,6 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
     getDefaultMetricLabel("expression", sdcpn),
     ...(sdcpn.metrics ?? []).map((metric) => metric.name),
   ]).has(trimmed);
-}
-
-type MetricKindGroup = {
-  id: string;
-  label: string;
-  items: SelectItem<string>[];
-};
-
-function createMetricKindGroups(sdcpn: SDCPN): MetricKindGroup[] {
-  const groups: MetricKindGroup[] = [
-    {
-      id: "built-in",
-      label: "Built-in",
-      items: [
-        { value: "placeTokenCountMean", text: "Place tokens" },
-        { value: "transitionFiringCount", text: "Transition firing" },
-      ],
-    },
-  ];
-
-  const modelMetrics = sdcpn.metrics ?? [];
-  if (modelMetrics.length > 0) {
-    groups.push({
-      id: "model",
-      label: "Model metrics",
-      items: modelMetrics.map((metric) => ({
-        value: `${MODEL_METRIC_VALUE_PREFIX}${metric.id}`,
-        text: metric.name,
-      })),
-    });
-  }
-
-  groups.push({
-    id: "custom",
-    label: "Custom",
-    items: [{ value: "expression", text: "Custom code" }],
-  });
-
-  return groups;
-}
-
-const METRIC_KIND_ICONS: Record<string, "circle" | "lightning" | "code"> = {
-  placeTokenCountMean: "circle",
-  transitionFiringCount: "lightning",
-  expression: "code",
-};
-
-function getMetricKindIcon(
-  value: string,
-): "circle" | "lightning" | "code" | "function" | undefined {
-  if (value.startsWith(MODEL_METRIC_VALUE_PREFIX)) {
-    return "function";
-  }
-  return METRIC_KIND_ICONS[value];
 }
 
 function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {

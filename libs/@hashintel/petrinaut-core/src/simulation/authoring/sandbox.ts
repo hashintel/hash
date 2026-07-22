@@ -19,12 +19,31 @@ export const SHADOWED_GLOBALS = [
   "document",
   "globalThis",
   "self",
+  "navigator",
   "fetch",
+  "WebSocket",
   "XMLHttpRequest",
   "importScripts",
+  "localStorage",
+  "sessionStorage",
+  "performance",
+  "crypto",
+  "process",
+  "Buffer",
+  "require",
+  "module",
+  "exports",
+  "__filename",
+  "__dirname",
+  "Deno",
+  "Bun",
+  "console",
   "Function",
+  "Promise",
   "setTimeout",
   "setInterval",
+  "setImmediate",
+  "clearImmediate",
   "queueMicrotask",
 ].join(",");
 
@@ -39,14 +58,25 @@ export const SHADOWED_GLOBALS = [
  * objects only protects them, not freshly-created literals inside the
  * expression body.
  *
- * To close that gap we temporarily replace the `.constructor` getter on
- * every built-in prototype a literal could reach. JS is single-threaded so
- * this is safe within a synchronous call: the descriptors are restored in
- * `finally` before any queued microtasks or other code runs. The rightful
- * fix is a Worker/iframe realm — this is defense-in-depth for the
- * same-realm case.
+ * To make the common form of that escape fail we temporarily replace the
+ * `.constructor` getter on the built-in prototypes below. The descriptors are
+ * restored in `finally` before any queued microtasks or other code runs.
+ *
+ * This is defense-in-depth, not an isolation boundary: hostile JavaScript has
+ * more reflective and asynchronous escape routes. Server-side callers must
+ * still execute user-authored models in a separately constrained process and
+ * container. A restricted compiler/interpreter is the durable fix.
  */
 export function runSandboxed<T>(action: () => T): T {
+  const generatorPrototype = Reflect.getPrototypeOf(
+    function* sandboxGenerator() {},
+  );
+  const asyncFunctionPrototype = Reflect.getPrototypeOf(
+    async function sandboxAsyncFunction() {},
+  );
+  const asyncGeneratorPrototype = Reflect.getPrototypeOf(
+    async function* sandboxAsyncGenerator() {},
+  );
   const prototypes: object[] = [
     Object.prototype,
     Array.prototype,
@@ -54,6 +84,35 @@ export function runSandboxed<T>(action: () => T): T {
     String.prototype,
     Number.prototype,
     Boolean.prototype,
+    BigInt.prototype,
+    Symbol.prototype,
+    RegExp.prototype,
+    Date.prototype,
+    Error.prototype,
+    Map.prototype,
+    Set.prototype,
+    WeakMap.prototype,
+    WeakSet.prototype,
+    Promise.prototype,
+    ArrayBuffer.prototype,
+    ...(typeof SharedArrayBuffer === "undefined"
+      ? []
+      : [SharedArrayBuffer.prototype]),
+    DataView.prototype,
+    Int8Array.prototype,
+    Uint8Array.prototype,
+    Uint8ClampedArray.prototype,
+    Int16Array.prototype,
+    Uint16Array.prototype,
+    Int32Array.prototype,
+    Uint32Array.prototype,
+    Float32Array.prototype,
+    Float64Array.prototype,
+    BigInt64Array.prototype,
+    BigUint64Array.prototype,
+    ...(generatorPrototype ? [generatorPrototype] : []),
+    ...(asyncFunctionPrototype ? [asyncFunctionPrototype] : []),
+    ...(asyncGeneratorPrototype ? [asyncGeneratorPrototype] : []),
   ];
   const saved = prototypes.map((p) =>
     Object.getOwnPropertyDescriptor(p, "constructor"),

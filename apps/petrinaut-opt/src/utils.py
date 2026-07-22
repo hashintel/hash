@@ -7,6 +7,10 @@ from pydantic import BaseModel
 
 from fastapi import FastAPI
 
+
+MAX_STATUS_HISTORY = 100
+
+
 # ── Helper classes and functions for API status ─────────────────────────────────────────────────────────────────
 class Phase(str, Enum):
     idle = "idle"
@@ -14,31 +18,47 @@ class Phase(str, Enum):
     done = "done"
     error = "error"
 
+
 class AppStatus(BaseModel):
-    run_id: str
     phase: Phase = Phase.idle
     detail: str | None = None
     updated_at: datetime | None = None
 
+
+class RunStatus(AppStatus):
+    run_id: str
+
+
 class StatusStore:
-    """Thread-safe registry of statuses for optimization runs."""
+    """Compatibility registry for the run-scoped status API on the base branch."""
 
-    def __init__(self) -> None:
-        self._statuses: dict[str, AppStatus] = {}
+    def __init__(self, max_history: int = MAX_STATUS_HISTORY) -> None:
+        if max_history < 1:
+            raise ValueError("status history limit must be positive")
+        self._statuses: dict[str, RunStatus] = {}
         self._lock = Lock()
+        self._max_history = max_history
 
-    def create(self) -> AppStatus:
-        """Create and register an idle status for a new optimization run."""
-        status = AppStatus(
+    def create(self) -> RunStatus:
+        status = RunStatus(
             run_id=str(uuid4()),
             updated_at=datetime.now(timezone.utc),
         )
         with self._lock:
+            while len(self._statuses) >= self._max_history:
+                oldest_run_id = next(
+                    (
+                        run_id
+                        for run_id, current in self._statuses.items()
+                        if current.phase is not Phase.running
+                    ),
+                    next(iter(self._statuses)),
+                )
+                del self._statuses[oldest_run_id]
             self._statuses[status.run_id] = status
         return status
 
-    def update(self, run_id: str, **changes) -> AppStatus:
-        """Atomically update and return one optimization run's status."""
+    def update(self, run_id: str, **changes: object) -> RunStatus:
         with self._lock:
             current = self._statuses[run_id]
             updated = current.model_copy(
@@ -47,26 +67,21 @@ class StatusStore:
             self._statuses[run_id] = updated
             return updated
 
-    def get(self, run_id: str) -> AppStatus | None:
-        """Return one run's status, if it exists."""
+    def get(self, run_id: str) -> RunStatus | None:
         with self._lock:
             return self._statuses.get(run_id)
 
-    def all(self) -> list[AppStatus]:
-        """Return a snapshot of all run statuses in creation order."""
+    def all(self) -> list[RunStatus]:
         with self._lock:
             return list(self._statuses.values())
 
 
-def set_status(app: FastAPI, run_id: str, **changes) -> AppStatus:
-    """Update one run's status, stamping the update time.
+def set_status(app: FastAPI, run_id: str | None = None, **changes: object) -> AppStatus:
+    if run_id is not None:
+        return app.state.statuses.update(run_id, **changes)
 
-    Args:
-        app (FastAPI): The app whose `state.statuses` registry is updated.
-        run_id (str): Identifier of the optimization run to update.
-        **changes: Fields to overwrite on the current `AppStatus` (e.g. `phase`, `detail`).
-
-    Returns:
-        AppStatus: The updated status.
-    """
-    return app.state.statuses.update(run_id, **changes)
+    current = app.state.status
+    app.state.status = current.model_copy(
+        update={**changes, "updated_at": datetime.now(timezone.utc)}
+    )
+    return app.state.status

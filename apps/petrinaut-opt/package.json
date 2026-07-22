@@ -2,12 +2,13 @@
   "name": "@apps/petrinaut-opt",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Petrinaut parameter and initial state optimisation using Optuna",
+  "description": "Scenario-parameter optimization for Petrinaut using Optuna",
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
+    "codegen": "uv run python -m scripts.generate_openapi",
     "install:deps": "uv sync",
-    "optimize": "uv run python -m src.petrinaut_optimizer",
     "start": "uv run uvicorn src.optimization_api:app",
-    "start:dev": "uv run uvicorn src.optimization_api:app --reload"
+    "start:dev": "uv run uvicorn src.optimization_api:app --reload",
+    "test:unit": "uv run pytest && yarn codegen && git diff --exit-code -- openapi/openapi.json"
   }
 }

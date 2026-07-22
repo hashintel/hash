@@ -17,6 +17,7 @@ type DashboardItemContentProps = {
   dataLoading: boolean;
   /** Error from fetching/computing chart data */
   dataError: string | null;
+  generationLabel?: string;
   onRetryDataClick?: () => void;
   onConfigureClick?: () => void;
   onEntityClick?: (entityId: EntityId) => void;
@@ -60,6 +61,7 @@ export const DashboardItemContent = ({
   chartData,
   dataLoading,
   dataError,
+  generationLabel,
   onRetryDataClick,
   onConfigureClick,
   onEntityClick,
@@ -97,7 +99,7 @@ export const DashboardItemContent = ({
             variant="smallTextParagraphs"
             sx={{ color: ({ palette }) => palette.gray[70] }}
           >
-            Generating new item...
+            {generationLabel ?? "Generating new item…"}
           </Typography>
         </CenteredMessage>
       );
@@ -135,7 +137,7 @@ export const DashboardItemContent = ({
               variant="smallTextParagraphs"
               sx={{ color: ({ palette }) => palette.gray[60] }}
             >
-              Computing chart data...
+              Preparing chart data…
             </Typography>
           </CenteredMessage>
         );

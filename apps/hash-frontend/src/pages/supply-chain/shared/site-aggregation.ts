@@ -8,6 +8,7 @@ import {
   NODE_CARRY_CATEGORIES,
 } from "./cost";
 import { type BaseMeasure, selectStat } from "./measure-context";
+import { summarizeProcurementPlanning } from "./procurement-planning";
 import { computeStats } from "./stats";
 
 import type {
@@ -113,6 +114,15 @@ function dwellDedupKey(node: GraphNode, productId: string): string {
 function dedupKey(node: GraphNode, productId: string): string {
   if (DWELL_TYPES.includes(node.type)) {
     return dwellDedupKey(node, productId);
+  }
+  if (node.type === "procurement" && node.material) {
+    return [
+      "procurement-profile",
+      node.material,
+      node.plant,
+      node.supplier_id ?? "unknown",
+      node.receipt_basis ?? "unknown",
+    ].join("|");
   }
   if (SHARED_STEP_TYPES.has(node.type) && node.material) {
     return ["shared", node.material, node.plant, node.type].join("|");
@@ -348,6 +358,19 @@ function planningDeviation(
   node: SiteNode,
   measure: BaseMeasure,
 ): number | null {
+  if (node.type === "procurement") {
+    const summary = summarizeProcurementPlanning(node.observations, node.plan);
+    if (measure === "mean") {
+      return summary.meanVariancePct;
+    }
+    if (measure === "median") {
+      return summary.medianVariancePct;
+    }
+    const plan = node.plan;
+    return plan != null && plan > 0
+      ? (((selectStat(node.stats, measure) ?? 0) - plan) / plan) * 100
+      : null;
+  }
   if (node.plan == null || node.plan <= 0) {
     return null;
   }
@@ -362,7 +385,9 @@ export function topPlanningMismatches(
   measure: BaseMeasure = "median",
 ): Array<SiteNode & { deviationPct: number }> {
   return nodes
-    .filter((node) => node.plan != null && node.plan > 0 && node.stats.n > 0)
+    .filter(
+      (node) => planningDeviation(node, measure) != null && node.stats.n > 0,
+    )
     .map((node) => ({
       ...node,
       deviationPct: planningDeviation(node, measure) as number,

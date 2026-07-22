@@ -53,6 +53,24 @@ export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
             from: { transform: "rotate(0deg)" },
             to: { transform: "rotate(360deg)" },
           },
+          optimizationGlow: {
+            "0%, 100%": {
+              boxShadow:
+                "-2px 0 6px rgba(0, 220, 255, 0.03), 2px 0 6px rgba(255, 0, 128, 0.045)",
+            },
+            "25%": {
+              boxShadow:
+                "0 -2px 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)",
+            },
+            "50%": {
+              boxShadow:
+                "2px 0 6px rgba(0, 220, 255, 0.03), -2px 0 6px rgba(255, 0, 128, 0.045)",
+            },
+            "75%": {
+              boxShadow:
+                "0 2px 6px rgba(0, 220, 255, 0.03), 0 -2px 6px rgba(255, 0, 128, 0.045)",
+            },
+          },
           expand: {
             from: { height: "0", opacity: "0" },
             to: { height: "var(--height)", opacity: "1" },

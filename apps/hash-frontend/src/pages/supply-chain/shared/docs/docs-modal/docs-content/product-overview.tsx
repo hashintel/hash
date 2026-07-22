@@ -149,6 +149,32 @@ export const productOverviewSection: DocSectionDef = {
       ),
     },
     {
+      id: "schedule-view",
+      title: "Production timeline",
+      render: () => (
+        <>
+          <Lead>
+            The Timeline view shows actual production windows on one shared date
+            axis, with upstream intermediate lanes ordered by BOM depth and the
+            finished good highlighted last.
+          </Lead>
+          <P>
+            Intermediate batch colour describes its recorded next use. Blue
+            means the batch was only used by materials in the view. Purple means
+            some or all of the batch was also used for other products. Grey
+            means there is no recorded consumption.
+          </P>
+          <P>
+            Use Range to choose the production period and the zoom controls to
+            fit or inspect the timeline. Hover or focus a batch to see its
+            output quantity, direct consuming materials and any quantity with no
+            recorded consumption. Consumers outside the visible hierarchy are
+            identified explicitly.
+          </P>
+        </>
+      ),
+    },
+    {
       id: "e2e-pipeline",
       title: "End-to-end pipeline",
       render: () => (

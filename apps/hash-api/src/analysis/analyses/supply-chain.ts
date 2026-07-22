@@ -12,6 +12,7 @@ import type { NamedAnalysis } from "../shared/analysis-registry";
  *   products.json
  *   sites.json
  *   {productId}/graph.json
+ *   {productId}/production_schedule.json
  *   {productId}/steps/{stepId}.json
  *   _global/supplier_performance.json
  *   _global/supplier-lines.json
@@ -53,6 +54,32 @@ const productGraph: NamedAnalysis = {
     return {
       status: "ready",
       artifacts: [{ name: "graph", key: `${base}/${productId}/graph.json` }],
+    };
+  },
+};
+
+const productionSchedule: NamedAnalysis = {
+  name: "productionSchedule",
+  resolve: async (ctx) => {
+    const productId = requireSlugArg(ctx.args, "productId");
+    const { base, manifest } = await resolveDataset(ctx);
+
+    // Fail closed for old/partial datasets: product membership alone is not
+    // evidence that the optional schedule artifact was published.
+    if (!(manifest.productionSchedules ?? []).includes(productId)) {
+      throw new AnalysisNotFoundError(
+        `Production schedule unavailable for product "${productId}"`,
+      );
+    }
+
+    return {
+      status: "ready",
+      artifacts: [
+        {
+          name: "schedule",
+          key: `${base}/${productId}/production_schedule.json`,
+        },
+      ],
     };
   },
 };
@@ -122,6 +149,7 @@ export const supplyChainAnalyses: readonly NamedAnalysis[] = [
   listProducts,
   listSites,
   productGraph,
+  productionSchedule,
   stepDetail,
   supplierPerformance,
   siteSummary,

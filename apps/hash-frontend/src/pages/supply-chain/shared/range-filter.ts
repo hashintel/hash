@@ -33,6 +33,16 @@ function pctExceeding(
   );
 }
 
+function pctExceedingForObservations(
+  observations: Observation[],
+  plan: number | null,
+): number | null {
+  return pctExceeding(
+    observations.map((observation) => observation.value),
+    plan,
+  );
+}
+
 function buildMonthlyFromObservations(obs: Observation[]): MonthlyBucket[] {
   const byMonth = new Map<string, number[]>();
   for (const observation of obs) {
@@ -281,7 +291,10 @@ export function applyProcurementBasisToStep(
     observations: comp.observations,
     monthly: comp.monthly,
     stats: comp.stats,
-    pct_exceeding_plan: pctExceeding(values, step.plan),
+    pct_exceeding_plan: pctExceedingForObservations(
+      comp.observations,
+      step.plan,
+    ),
     complete_timing: first,
   };
 }
@@ -342,7 +355,10 @@ function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
     monthly: filteredMonthly,
     stats,
     cost: selectedStep.cost,
-    pct_exceeding_plan: pctExceeding(values, selectedStep.plan),
+    pct_exceeding_plan: pctExceedingForObservations(
+      filtered,
+      selectedStep.plan,
+    ),
     yield_data: filteredYield,
     consumption_data: filteredConsumption,
     complete_timing: filteredCompleteTiming,
@@ -430,7 +446,7 @@ export function applyProcurementBasisToNode(
     observations,
     monthly: buildMonthlyFromObservations(observations),
     stats: computeStats(values),
-    pct_exceeding_plan: pctExceeding(values, node.plan),
+    pct_exceeding_plan: pctExceedingForObservations(observations, node.plan),
   };
 }
 
@@ -473,7 +489,10 @@ export function windowGraphNodeToRange(
     observations: filtered,
     monthly: filteredMonthly,
     cost: selectedNode.cost,
-    pct_exceeding_plan: pctExceeding(values, selectedNode.plan),
+    pct_exceeding_plan: pctExceedingForObservations(
+      filtered,
+      selectedNode.plan,
+    ),
     ...(yieldSummary !== undefined ? { yield_summary: yieldSummary } : {}),
     ...(consumptionSummary !== undefined
       ? { consumption_summary: consumptionSummary }

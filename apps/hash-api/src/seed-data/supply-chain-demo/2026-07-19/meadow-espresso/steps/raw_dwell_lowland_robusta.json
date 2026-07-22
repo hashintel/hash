@@ -1,0 +1,1260 @@
+{
+  "id": "raw_dwell_lowland_robusta",
+  "label": "Raw Material Dwell: Lowland Robusta",
+  "type": "raw_material_dwell",
+  "durations": [
+    37.8, 60.8, 16.2, 83.7, 44.6, 105.3, 27.0, 74.2, 10.8, 56.7, 87.8, 51.3,
+    20.2, 97.2, 33.8, 64.8, 4.1, 114.8, 40.5, 74.2, 29.7, 54.0, 132.3, 24.3,
+    52.7, 55.4, 60.8, 40.5, 45.9, 51.3, 55.4, 36.5, 40.5, 43.2, 51.3, 31.1,
+    36.5, 39.2, 43.2, 37.8, 43.2, 45.9, 50.0, 54.0, 37.8, 41.9, 44.6, 48.6,
+    52.7, 48.6, 52.7, 55.4, 60.8, 40.5, 47.2, 51.3, 55.4, 36.5, 40.5, 45.9,
+    51.3, 31.1, 36.5, 39.2, 58.1, 37.8, 43.2, 45.9, 50.0
+  ],
+  "observations": [
+    {
+      "date": "2022-05-02",
+      "value": 37.8
+    },
+    {
+      "date": "2022-05-10",
+      "value": 60.8
+    },
+    {
+      "date": "2022-05-18",
+      "value": 16.2
+    },
+    {
+      "date": "2022-05-25",
+      "value": 83.7
+    },
+    {
+      "date": "2023-02-06",
+      "value": 44.6
+    },
+    {
+      "date": "2023-02-14",
+      "value": 105.3
+    },
+    {
+      "date": "2023-02-22",
+      "value": 27.0
+    },
+    {
+      "date": "2023-02-28",
+      "value": 74.2
+    },
+    {
+      "date": "2023-09-05",
+      "value": 10.8
+    },
+    {
+      "date": "2023-09-15",
+      "value": 56.7
+    },
+    {
+      "date": "2023-09-25",
+      "value": 87.8
+    },
+    {
+      "date": "2024-04-03",
+      "value": 51.3
+    },
+    {
+      "date": "2024-04-10",
+      "value": 20.2
+    },
+    {
+      "date": "2024-04-17",
+      "value": 97.2
+    },
+    {
+      "date": "2024-04-24",
+      "value": 33.8
+    },
+    {
+      "date": "2024-10-02",
+      "value": 64.8
+    },
+    {
+      "date": "2024-10-09",
+      "value": 4.1
+    },
+    {
+      "date": "2024-10-16",
+      "value": 114.8
+    },
+    {
+      "date": "2024-10-23",
+      "value": 40.5
+    },
+    {
+      "date": "2024-10-30",
+      "value": 74.2
+    },
+    {
+      "date": "2025-04-07",
+      "value": 29.7
+    },
+    {
+      "date": "2025-04-14",
+      "value": 54.0
+    },
+    {
+      "date": "2025-04-21",
+      "value": 132.3
+    },
+    {
+      "date": "2025-04-28",
+      "value": 24.3
+    },
+    {
+      "date": "2025-09-04",
+      "value": 52.7
+    },
+    {
+      "date": "2025-09-10",
+      "value": 55.4
+    },
+    {
+      "date": "2025-09-16",
+      "value": 60.8
+    },
+    {
+      "date": "2025-09-22",
+      "value": 40.5
+    },
+    {
+      "date": "2025-09-28",
+      "value": 45.9
+    },
+    {
+      "date": "2025-10-05",
+      "value": 51.3
+    },
+    {
+      "date": "2025-10-11",
+      "value": 55.4
+    },
+    {
+      "date": "2025-10-17",
+      "value": 36.5
+    },
+    {
+      "date": "2025-10-23",
+      "value": 40.5
+    },
+    {
+      "date": "2025-10-29",
+      "value": 43.2
+    },
+    {
+      "date": "2025-11-06",
+      "value": 51.3
+    },
+    {
+      "date": "2025-11-12",
+      "value": 31.1
+    },
+    {
+      "date": "2025-11-18",
+      "value": 36.5
+    },
+    {
+      "date": "2025-11-24",
+      "value": 39.2
+    },
+    {
+      "date": "2025-11-30",
+      "value": 43.2
+    },
+    {
+      "date": "2025-12-04",
+      "value": 37.8
+    },
+    {
+      "date": "2025-12-10",
+      "value": 43.2
+    },
+    {
+      "date": "2025-12-16",
+      "value": 45.9
+    },
+    {
+      "date": "2025-12-22",
+      "value": 50.0
+    },
+    {
+      "date": "2025-12-28",
+      "value": 54.0
+    },
+    {
+      "date": "2026-01-05",
+      "value": 37.8
+    },
+    {
+      "date": "2026-01-11",
+      "value": 41.9
+    },
+    {
+      "date": "2026-01-17",
+      "value": 44.6
+    },
+    {
+      "date": "2026-01-23",
+      "value": 48.6
+    },
+    {
+      "date": "2026-01-29",
+      "value": 52.7
+    },
+    {
+      "date": "2026-02-06",
+      "value": 48.6
+    },
+    {
+      "date": "2026-02-12",
+      "value": 52.7
+    },
+    {
+      "date": "2026-02-18",
+      "value": 55.4
+    },
+    {
+      "date": "2026-02-24",
+      "value": 60.8
+    },
+    {
+      "date": "2026-02-30",
+      "value": 40.5
+    },
+    {
+      "date": "2026-03-04",
+      "value": 47.2
+    },
+    {
+      "date": "2026-03-10",
+      "value": 51.3
+    },
+    {
+      "date": "2026-03-16",
+      "value": 55.4
+    },
+    {
+      "date": "2026-03-22",
+      "value": 36.5
+    },
+    {
+      "date": "2026-03-28",
+      "value": 40.5
+    },
+    {
+      "date": "2026-04-05",
+      "value": 45.9
+    },
+    {
+      "date": "2026-04-11",
+      "value": 51.3
+    },
+    {
+      "date": "2026-04-17",
+      "value": 31.1
+    },
+    {
+      "date": "2026-04-23",
+      "value": 36.5
+    },
+    {
+      "date": "2026-04-29",
+      "value": 39.2
+    },
+    {
+      "date": "2026-05-06",
+      "value": 58.1
+    },
+    {
+      "date": "2026-05-12",
+      "value": 37.8
+    },
+    {
+      "date": "2026-05-18",
+      "value": 43.2
+    },
+    {
+      "date": "2026-05-24",
+      "value": 45.9
+    },
+    {
+      "date": "2026-05-30",
+      "value": 50.0
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2022-05",
+      "mean": 49.7,
+      "median": 49.3,
+      "p10": 22.7,
+      "p25": 32.4,
+      "p75": 66.6,
+      "p90": 76.8,
+      "n": 4,
+      "total_kg_days": 955500.0
+    },
+    {
+      "month": "2023-02",
+      "mean": 62.8,
+      "median": 59.4,
+      "p10": 32.3,
+      "p25": 40.2,
+      "p75": 82.1,
+      "p90": 96.0,
+      "n": 4,
+      "total_kg_days": 1209000.0
+    },
+    {
+      "month": "2023-09",
+      "mean": 51.7,
+      "median": 56.7,
+      "p10": 20.0,
+      "p25": 33.8,
+      "p75": 72.2,
+      "p90": 81.5,
+      "n": 3,
+      "total_kg_days": 747500.0
+    },
+    {
+      "month": "2024-04",
+      "mean": 50.6,
+      "median": 42.5,
+      "p10": 24.3,
+      "p25": 30.4,
+      "p75": 62.8,
+      "p90": 83.4,
+      "n": 4,
+      "total_kg_days": 975000.0
+    },
+    {
+      "month": "2024-10",
+      "mean": 59.7,
+      "median": 64.8,
+      "p10": 18.6,
+      "p25": 40.5,
+      "p75": 74.2,
+      "p90": 98.6,
+      "n": 5,
+      "total_kg_days": 1436500.0
+    },
+    {
+      "month": "2025-04",
+      "mean": 60.1,
+      "median": 41.9,
+      "p10": 25.9,
+      "p25": 28.4,
+      "p75": 73.6,
+      "p90": 108.8,
+      "n": 4,
+      "total_kg_days": 1157000.0
+    },
+    {
+      "month": "2025-09",
+      "mean": 51.0,
+      "median": 52.7,
+      "p10": 42.7,
+      "p25": 45.9,
+      "p75": 55.4,
+      "p90": 58.6,
+      "n": 5,
+      "total_kg_days": 1228500.0
+    },
+    {
+      "month": "2025-10",
+      "mean": 45.4,
+      "median": 43.2,
+      "p10": 38.1,
+      "p25": 40.5,
+      "p75": 51.3,
+      "p90": 53.7,
+      "n": 5,
+      "total_kg_days": 1092000.0
+    },
+    {
+      "month": "2025-11",
+      "mean": 40.2,
+      "median": 39.2,
+      "p10": 33.2,
+      "p25": 36.5,
+      "p75": 43.2,
+      "p90": 48.1,
+      "n": 5,
+      "total_kg_days": 968500.0
+    },
+    {
+      "month": "2025-12",
+      "mean": 46.2,
+      "median": 45.9,
+      "p10": 40.0,
+      "p25": 43.2,
+      "p75": 50.0,
+      "p90": 52.4,
+      "n": 5,
+      "total_kg_days": 1111500.0
+    },
+    {
+      "month": "2026-01",
+      "mean": 45.1,
+      "median": 44.6,
+      "p10": 39.4,
+      "p25": 41.9,
+      "p75": 48.6,
+      "p90": 51.0,
+      "n": 5,
+      "total_kg_days": 1085500.0
+    },
+    {
+      "month": "2026-02",
+      "mean": 51.6,
+      "median": 52.7,
+      "p10": 43.7,
+      "p25": 48.6,
+      "p75": 55.4,
+      "p90": 58.6,
+      "n": 5,
+      "total_kg_days": 1241500.0
+    },
+    {
+      "month": "2026-03",
+      "mean": 46.2,
+      "median": 47.2,
+      "p10": 38.1,
+      "p25": 40.5,
+      "p75": 51.3,
+      "p90": 53.7,
+      "n": 5,
+      "total_kg_days": 1111500.0
+    },
+    {
+      "month": "2026-04",
+      "mean": 40.8,
+      "median": 39.2,
+      "p10": 33.2,
+      "p25": 36.5,
+      "p75": 45.9,
+      "p90": 49.1,
+      "n": 5,
+      "total_kg_days": 981500.0
+    },
+    {
+      "month": "2026-05",
+      "mean": 47.0,
+      "median": 45.9,
+      "p10": 40.0,
+      "p25": 43.2,
+      "p75": 50.0,
+      "p90": 54.8,
+      "n": 5,
+      "total_kg_days": 1131000.0
+    }
+  ],
+  "stats": {
+    "n": 69,
+    "mean": 49.5,
+    "median": 45.9,
+    "std": 15.8,
+    "min": 4.1,
+    "max": 132.3,
+    "p25": 37.8,
+    "p75": 55.4,
+    "p85": 60.8,
+    "p95": 87.8
+  },
+  "plan": 21,
+  "plan_note": null,
+  "pct_exceeding_plan": 91.3,
+  "annotations": [],
+  "cost": {
+    "unit_price": 2.43,
+    "currency": "CHF",
+    "mean_qty": 6500.0,
+    "monthly": [
+      {
+        "month": "2022-05",
+        "n_events": 4,
+        "total_kg_days": 955500.0
+      },
+      {
+        "month": "2023-02",
+        "n_events": 4,
+        "total_kg_days": 1209000.0
+      },
+      {
+        "month": "2023-09",
+        "n_events": 3,
+        "total_kg_days": 747500.0
+      },
+      {
+        "month": "2024-04",
+        "n_events": 4,
+        "total_kg_days": 975000.0
+      },
+      {
+        "month": "2024-10",
+        "n_events": 5,
+        "total_kg_days": 1436500.0
+      },
+      {
+        "month": "2025-04",
+        "n_events": 4,
+        "total_kg_days": 1157000.0
+      },
+      {
+        "month": "2025-09",
+        "n_events": 5,
+        "total_kg_days": 1228500.0
+      },
+      {
+        "month": "2025-10",
+        "n_events": 5,
+        "total_kg_days": 1092000.0
+      },
+      {
+        "month": "2025-11",
+        "n_events": 5,
+        "total_kg_days": 968500.0
+      },
+      {
+        "month": "2025-12",
+        "n_events": 5,
+        "total_kg_days": 1111500.0
+      },
+      {
+        "month": "2026-01",
+        "n_events": 5,
+        "total_kg_days": 1085500.0
+      },
+      {
+        "month": "2026-02",
+        "n_events": 5,
+        "total_kg_days": 1241500.0
+      },
+      {
+        "month": "2026-03",
+        "n_events": 5,
+        "total_kg_days": 1111500.0
+      },
+      {
+        "month": "2026-04",
+        "n_events": 5,
+        "total_kg_days": 981500.0
+      },
+      {
+        "month": "2026-05",
+        "n_events": 5,
+        "total_kg_days": 1131000.0
+      }
+    ]
+  },
+  "detail_rows": {
+    "columns": [
+      {
+        "key": "batch",
+        "source_field": "CHARG",
+        "source_table": "MSEG",
+        "label": "Batch"
+      },
+      {
+        "key": "consumption_date",
+        "source_field": "BUDAT",
+        "source_table": "MKPF",
+        "label": "Consumption Date"
+      },
+      {
+        "key": "dwell_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Dwell Days",
+        "unit": "d"
+      },
+      {
+        "key": "kg_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Inventory kg-days",
+        "unit": "kg·d"
+      },
+      {
+        "key": "cons_matnr",
+        "source_field": "MATNR",
+        "source_table": "MSEG",
+        "label": "Consuming Material"
+      },
+      {
+        "key": "cons_material_name",
+        "source_field": "MAKTX",
+        "source_table": "MAKT",
+        "label": "Consuming Material Name"
+      },
+      {
+        "key": "cons_in_current_recipe",
+        "source_field": null,
+        "source_table": null,
+        "label": "In Current Recipe"
+      }
+    ],
+    "rows": [
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-001",
+        "consumption_date": "2022-05-02",
+        "dwell_days": 28,
+        "kg_days": 238875,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-002",
+        "consumption_date": "2022-05-10",
+        "dwell_days": 45,
+        "kg_days": 238875,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-003",
+        "consumption_date": "2022-05-18",
+        "dwell_days": 12,
+        "kg_days": 238875,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-004",
+        "consumption_date": "2022-05-25",
+        "dwell_days": 62,
+        "kg_days": 238875,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-005",
+        "consumption_date": "2023-02-06",
+        "dwell_days": 33,
+        "kg_days": 302250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-006",
+        "consumption_date": "2023-02-14",
+        "dwell_days": 78,
+        "kg_days": 302250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-007",
+        "consumption_date": "2023-02-22",
+        "dwell_days": 20,
+        "kg_days": 302250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-008",
+        "consumption_date": "2023-02-28",
+        "dwell_days": 55,
+        "kg_days": 302250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-009",
+        "consumption_date": "2023-09-05",
+        "dwell_days": 8,
+        "kg_days": 249166.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-010",
+        "consumption_date": "2023-09-15",
+        "dwell_days": 42,
+        "kg_days": 249166.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-011",
+        "consumption_date": "2023-09-25",
+        "dwell_days": 65,
+        "kg_days": 249166.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-012",
+        "consumption_date": "2024-04-03",
+        "dwell_days": 38,
+        "kg_days": 243750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-013",
+        "consumption_date": "2024-04-10",
+        "dwell_days": 15,
+        "kg_days": 243750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-014",
+        "consumption_date": "2024-04-17",
+        "dwell_days": 72,
+        "kg_days": 243750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-015",
+        "consumption_date": "2024-04-24",
+        "dwell_days": 25,
+        "kg_days": 243750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-016",
+        "consumption_date": "2024-10-02",
+        "dwell_days": 48,
+        "kg_days": 287300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-017",
+        "consumption_date": "2024-10-09",
+        "dwell_days": 3,
+        "kg_days": 287300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-018",
+        "consumption_date": "2024-10-16",
+        "dwell_days": 85,
+        "kg_days": 287300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-019",
+        "consumption_date": "2024-10-23",
+        "dwell_days": 30,
+        "kg_days": 287300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-020",
+        "consumption_date": "2024-10-30",
+        "dwell_days": 55,
+        "kg_days": 287300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-021",
+        "consumption_date": "2025-04-07",
+        "dwell_days": 22,
+        "kg_days": 289250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-022",
+        "consumption_date": "2025-04-14",
+        "dwell_days": 40,
+        "kg_days": 289250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-023",
+        "consumption_date": "2025-04-21",
+        "dwell_days": 98,
+        "kg_days": 289250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-024",
+        "consumption_date": "2025-04-28",
+        "dwell_days": 18,
+        "kg_days": 289250,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-025",
+        "consumption_date": "2025-09-04",
+        "dwell_days": 39,
+        "kg_days": 245700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-026",
+        "consumption_date": "2025-09-10",
+        "dwell_days": 41,
+        "kg_days": 245700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-027",
+        "consumption_date": "2025-09-16",
+        "dwell_days": 45,
+        "kg_days": 245700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-028",
+        "consumption_date": "2025-09-22",
+        "dwell_days": 30,
+        "kg_days": 245700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-029",
+        "consumption_date": "2025-09-28",
+        "dwell_days": 34,
+        "kg_days": 245700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-030",
+        "consumption_date": "2025-10-05",
+        "dwell_days": 38,
+        "kg_days": 218400,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-031",
+        "consumption_date": "2025-10-11",
+        "dwell_days": 41,
+        "kg_days": 218400,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-032",
+        "consumption_date": "2025-10-17",
+        "dwell_days": 27,
+        "kg_days": 218400,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-033",
+        "consumption_date": "2025-10-23",
+        "dwell_days": 30,
+        "kg_days": 218400,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-034",
+        "consumption_date": "2025-10-29",
+        "dwell_days": 32,
+        "kg_days": 218400,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-035",
+        "consumption_date": "2025-11-06",
+        "dwell_days": 38,
+        "kg_days": 193700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-036",
+        "consumption_date": "2025-11-12",
+        "dwell_days": 23,
+        "kg_days": 193700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-037",
+        "consumption_date": "2025-11-18",
+        "dwell_days": 27,
+        "kg_days": 193700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-038",
+        "consumption_date": "2025-11-24",
+        "dwell_days": 29,
+        "kg_days": 193700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-039",
+        "consumption_date": "2025-11-30",
+        "dwell_days": 32,
+        "kg_days": 193700,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-040",
+        "consumption_date": "2025-12-04",
+        "dwell_days": 28,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-041",
+        "consumption_date": "2025-12-10",
+        "dwell_days": 32,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-042",
+        "consumption_date": "2025-12-16",
+        "dwell_days": 34,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-043",
+        "consumption_date": "2025-12-22",
+        "dwell_days": 37,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-044",
+        "consumption_date": "2025-12-28",
+        "dwell_days": 40,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-045",
+        "consumption_date": "2026-01-05",
+        "dwell_days": 28,
+        "kg_days": 217100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-046",
+        "consumption_date": "2026-01-11",
+        "dwell_days": 31,
+        "kg_days": 217100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-047",
+        "consumption_date": "2026-01-17",
+        "dwell_days": 33,
+        "kg_days": 217100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-048",
+        "consumption_date": "2026-01-23",
+        "dwell_days": 36,
+        "kg_days": 217100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-049",
+        "consumption_date": "2026-01-29",
+        "dwell_days": 39,
+        "kg_days": 217100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-050",
+        "consumption_date": "2026-02-06",
+        "dwell_days": 36,
+        "kg_days": 248300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-051",
+        "consumption_date": "2026-02-12",
+        "dwell_days": 39,
+        "kg_days": 248300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-052",
+        "consumption_date": "2026-02-18",
+        "dwell_days": 41,
+        "kg_days": 248300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-053",
+        "consumption_date": "2026-02-24",
+        "dwell_days": 45,
+        "kg_days": 248300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-054",
+        "consumption_date": "2026-02-30",
+        "dwell_days": 30,
+        "kg_days": 248300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-055",
+        "consumption_date": "2026-03-04",
+        "dwell_days": 35,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-056",
+        "consumption_date": "2026-03-10",
+        "dwell_days": 38,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-057",
+        "consumption_date": "2026-03-16",
+        "dwell_days": 41,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-058",
+        "consumption_date": "2026-03-22",
+        "dwell_days": 27,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-059",
+        "consumption_date": "2026-03-28",
+        "dwell_days": 30,
+        "kg_days": 222300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-060",
+        "consumption_date": "2026-04-05",
+        "dwell_days": 34,
+        "kg_days": 196300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-061",
+        "consumption_date": "2026-04-11",
+        "dwell_days": 38,
+        "kg_days": 196300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-062",
+        "consumption_date": "2026-04-17",
+        "dwell_days": 23,
+        "kg_days": 196300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-063",
+        "consumption_date": "2026-04-23",
+        "dwell_days": 27,
+        "kg_days": 196300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-064",
+        "consumption_date": "2026-04-29",
+        "dwell_days": 29,
+        "kg_days": 196300,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-065",
+        "consumption_date": "2026-05-06",
+        "dwell_days": 43,
+        "kg_days": 226200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-066",
+        "consumption_date": "2026-05-12",
+        "dwell_days": 28,
+        "kg_days": 226200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-067",
+        "consumption_date": "2026-05-18",
+        "dwell_days": 32,
+        "kg_days": 226200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-068",
+        "consumption_date": "2026-05-24",
+        "dwell_days": 34,
+        "kg_days": 226200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-069",
+        "consumption_date": "2026-05-30",
+        "dwell_days": 37,
+        "kg_days": 226200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-OTHER-01",
+        "consumption_date": "2026-05-18",
+        "dwell_days": 36.8,
+        "kg_days": 40000,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-OTHER-02",
+        "consumption_date": "2026-05-24",
+        "dwell_days": 39.1,
+        "kg_days": 42500,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      },
+      {
+        "batch": "RAW_DWELL_LOWLAND_ROBUSTA-OTHER-03",
+        "consumption_date": "2026-05-30",
+        "dwell_days": 42.6,
+        "kg_days": 46250,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      }
+    ]
+  },
+  "ref_date_col": null,
+  "n_batches": null,
+  "n_movements": 42,
+  "yield_data": null,
+  "consumption_data": null,
+  "schema_version": "1.1"
+}

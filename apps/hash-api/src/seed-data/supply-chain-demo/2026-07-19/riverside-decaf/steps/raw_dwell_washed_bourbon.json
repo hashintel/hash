@@ -1,0 +1,1273 @@
+{
+  "id": "raw_dwell_washed_bourbon",
+  "label": "Raw Material Dwell: Washed Bourbon",
+  "type": "raw_material_dwell",
+  "durations": [
+    32.8, 18.0, 55.8, 3.3, 45.1, 94.3, 24.6, 50.8, 14.8, 69.7, 28.7, 59.0, 8.2,
+    39.4, 77.9, 23.0, 42.6, 12.3, 64.0, 34.4, 6.6, 53.3, 27.1, 82.0, 16.4, 33.6,
+    36.9, 39.4, 42.6, 27.9, 32.8, 36.1, 39.4, 24.6, 27.9, 41.0, 44.3, 29.5,
+    33.6, 36.1, 41.0, 26.2, 29.5, 32.0, 35.3, 23.0, 26.2, 28.7, 31.2, 34.4,
+    32.0, 33.6, 36.9, 39.4, 42.6, 30.3, 32.8, 36.1, 39.4, 24.6, 38.5, 41.0,
+    44.3, 29.5, 33.6, 37.7, 41.0, 26.2, 29.5, 32.0
+  ],
+  "observations": [
+    {
+      "date": "2022-06-05",
+      "value": 32.8
+    },
+    {
+      "date": "2022-06-15",
+      "value": 18.0
+    },
+    {
+      "date": "2022-06-25",
+      "value": 55.8
+    },
+    {
+      "date": "2023-03-08",
+      "value": 3.3
+    },
+    {
+      "date": "2023-03-15",
+      "value": 45.1
+    },
+    {
+      "date": "2023-03-22",
+      "value": 94.3
+    },
+    {
+      "date": "2023-03-29",
+      "value": 24.6
+    },
+    {
+      "date": "2023-11-06",
+      "value": 50.8
+    },
+    {
+      "date": "2023-11-13",
+      "value": 14.8
+    },
+    {
+      "date": "2023-11-20",
+      "value": 69.7
+    },
+    {
+      "date": "2024-06-03",
+      "value": 28.7
+    },
+    {
+      "date": "2024-06-10",
+      "value": 59.0
+    },
+    {
+      "date": "2024-06-17",
+      "value": 8.2
+    },
+    {
+      "date": "2024-06-24",
+      "value": 39.4
+    },
+    {
+      "date": "2024-06-30",
+      "value": 77.9
+    },
+    {
+      "date": "2025-01-07",
+      "value": 23.0
+    },
+    {
+      "date": "2025-01-14",
+      "value": 42.6
+    },
+    {
+      "date": "2025-01-21",
+      "value": 12.3
+    },
+    {
+      "date": "2025-01-28",
+      "value": 64.0
+    },
+    {
+      "date": "2025-08-04",
+      "value": 34.4
+    },
+    {
+      "date": "2025-08-08",
+      "value": 6.6
+    },
+    {
+      "date": "2025-08-12",
+      "value": 53.3
+    },
+    {
+      "date": "2025-08-16",
+      "value": 27.1
+    },
+    {
+      "date": "2025-08-20",
+      "value": 82.0
+    },
+    {
+      "date": "2025-08-24",
+      "value": 16.4
+    },
+    {
+      "date": "2025-09-06",
+      "value": 33.6
+    },
+    {
+      "date": "2025-09-12",
+      "value": 36.9
+    },
+    {
+      "date": "2025-09-18",
+      "value": 39.4
+    },
+    {
+      "date": "2025-09-24",
+      "value": 42.6
+    },
+    {
+      "date": "2025-09-30",
+      "value": 27.9
+    },
+    {
+      "date": "2025-10-04",
+      "value": 32.8
+    },
+    {
+      "date": "2025-10-10",
+      "value": 36.1
+    },
+    {
+      "date": "2025-10-16",
+      "value": 39.4
+    },
+    {
+      "date": "2025-10-22",
+      "value": 24.6
+    },
+    {
+      "date": "2025-10-28",
+      "value": 27.9
+    },
+    {
+      "date": "2025-11-05",
+      "value": 41.0
+    },
+    {
+      "date": "2025-11-11",
+      "value": 44.3
+    },
+    {
+      "date": "2025-11-17",
+      "value": 29.5
+    },
+    {
+      "date": "2025-11-23",
+      "value": 33.6
+    },
+    {
+      "date": "2025-11-29",
+      "value": 36.1
+    },
+    {
+      "date": "2025-12-06",
+      "value": 41.0
+    },
+    {
+      "date": "2025-12-12",
+      "value": 26.2
+    },
+    {
+      "date": "2025-12-18",
+      "value": 29.5
+    },
+    {
+      "date": "2025-12-24",
+      "value": 32.0
+    },
+    {
+      "date": "2025-12-30",
+      "value": 35.3
+    },
+    {
+      "date": "2026-01-04",
+      "value": 23.0
+    },
+    {
+      "date": "2026-01-10",
+      "value": 26.2
+    },
+    {
+      "date": "2026-01-16",
+      "value": 28.7
+    },
+    {
+      "date": "2026-01-22",
+      "value": 31.2
+    },
+    {
+      "date": "2026-01-28",
+      "value": 34.4
+    },
+    {
+      "date": "2026-02-05",
+      "value": 32.0
+    },
+    {
+      "date": "2026-02-11",
+      "value": 33.6
+    },
+    {
+      "date": "2026-02-17",
+      "value": 36.9
+    },
+    {
+      "date": "2026-02-23",
+      "value": 39.4
+    },
+    {
+      "date": "2026-02-29",
+      "value": 42.6
+    },
+    {
+      "date": "2026-03-06",
+      "value": 30.3
+    },
+    {
+      "date": "2026-03-12",
+      "value": 32.8
+    },
+    {
+      "date": "2026-03-18",
+      "value": 36.1
+    },
+    {
+      "date": "2026-03-24",
+      "value": 39.4
+    },
+    {
+      "date": "2026-03-30",
+      "value": 24.6
+    },
+    {
+      "date": "2026-04-04",
+      "value": 38.5
+    },
+    {
+      "date": "2026-04-10",
+      "value": 41.0
+    },
+    {
+      "date": "2026-04-16",
+      "value": 44.3
+    },
+    {
+      "date": "2026-04-22",
+      "value": 29.5
+    },
+    {
+      "date": "2026-04-28",
+      "value": 33.6
+    },
+    {
+      "date": "2026-05-05",
+      "value": 37.7
+    },
+    {
+      "date": "2026-05-11",
+      "value": 41.0
+    },
+    {
+      "date": "2026-05-17",
+      "value": 26.2
+    },
+    {
+      "date": "2026-05-23",
+      "value": 29.5
+    },
+    {
+      "date": "2026-05-29",
+      "value": 32.0
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2022-06",
+      "mean": 35.5,
+      "median": 32.8,
+      "p10": 21.0,
+      "p25": 25.4,
+      "p75": 44.3,
+      "p90": 51.2,
+      "n": 3,
+      "total_kg_days": 364000.0
+    },
+    {
+      "month": "2023-03",
+      "mean": 41.8,
+      "median": 34.9,
+      "p10": 9.7,
+      "p25": 19.3,
+      "p75": 57.4,
+      "p90": 79.5,
+      "n": 4,
+      "total_kg_days": 571200.0
+    },
+    {
+      "month": "2023-11",
+      "mean": 45.1,
+      "median": 50.8,
+      "p10": 22.0,
+      "p25": 32.8,
+      "p75": 60.3,
+      "p90": 65.9,
+      "n": 3,
+      "total_kg_days": 462000.0
+    },
+    {
+      "month": "2024-06",
+      "mean": 42.6,
+      "median": 39.4,
+      "p10": 16.4,
+      "p25": 28.7,
+      "p75": 59.0,
+      "p90": 70.4,
+      "n": 5,
+      "total_kg_days": 728000.0
+    },
+    {
+      "month": "2025-01",
+      "mean": 35.5,
+      "median": 32.8,
+      "p10": 15.5,
+      "p25": 20.3,
+      "p75": 48.0,
+      "p90": 57.6,
+      "n": 4,
+      "total_kg_days": 484400.0
+    },
+    {
+      "month": "2025-08",
+      "mean": 36.7,
+      "median": 30.7,
+      "p10": 11.5,
+      "p25": 19.1,
+      "p75": 48.6,
+      "p90": 67.6,
+      "n": 6,
+      "total_kg_days": 750400.0
+    },
+    {
+      "month": "2025-09",
+      "mean": 36.1,
+      "median": 36.9,
+      "p10": 30.2,
+      "p25": 33.6,
+      "p75": 39.4,
+      "p90": 41.3,
+      "n": 5,
+      "total_kg_days": 616000.0
+    },
+    {
+      "month": "2025-10",
+      "mean": 32.1,
+      "median": 32.8,
+      "p10": 25.9,
+      "p25": 27.9,
+      "p75": 36.1,
+      "p90": 38.0,
+      "n": 5,
+      "total_kg_days": 548800.0
+    },
+    {
+      "month": "2025-11",
+      "mean": 36.9,
+      "median": 36.1,
+      "p10": 31.2,
+      "p25": 33.6,
+      "p75": 41.0,
+      "p90": 43.0,
+      "n": 5,
+      "total_kg_days": 630000.0
+    },
+    {
+      "month": "2025-12",
+      "mean": 32.8,
+      "median": 32.0,
+      "p10": 27.6,
+      "p25": 29.5,
+      "p75": 35.3,
+      "p90": 38.7,
+      "n": 5,
+      "total_kg_days": 560000.0
+    },
+    {
+      "month": "2026-01",
+      "mean": 28.7,
+      "median": 28.7,
+      "p10": 24.3,
+      "p25": 26.2,
+      "p75": 31.2,
+      "p90": 33.1,
+      "n": 5,
+      "total_kg_days": 490000.0
+    },
+    {
+      "month": "2026-02",
+      "mean": 36.9,
+      "median": 36.9,
+      "p10": 32.6,
+      "p25": 33.6,
+      "p75": 39.4,
+      "p90": 41.3,
+      "n": 5,
+      "total_kg_days": 630000.0
+    },
+    {
+      "month": "2026-03",
+      "mean": 32.6,
+      "median": 32.8,
+      "p10": 26.9,
+      "p25": 30.3,
+      "p75": 36.1,
+      "p90": 38.0,
+      "n": 5,
+      "total_kg_days": 557200.0
+    },
+    {
+      "month": "2026-04",
+      "mean": 37.4,
+      "median": 38.5,
+      "p10": 31.2,
+      "p25": 33.6,
+      "p75": 41.0,
+      "p90": 43.0,
+      "n": 5,
+      "total_kg_days": 638400.0
+    },
+    {
+      "month": "2026-05",
+      "mean": 33.3,
+      "median": 32.0,
+      "p10": 27.6,
+      "p25": 29.5,
+      "p75": 37.7,
+      "p90": 39.7,
+      "n": 5,
+      "total_kg_days": 568400.0
+    }
+  ],
+  "stats": {
+    "n": 70,
+    "mean": 36.0,
+    "median": 33.6,
+    "std": 19.1,
+    "min": 3.3,
+    "max": 94.3,
+    "p25": 27.9,
+    "p75": 41.0,
+    "p85": 44.3,
+    "p95": 64.0
+  },
+  "plan": 14,
+  "plan_note": null,
+  "pct_exceeding_plan": 95.7,
+  "annotations": [],
+  "cost": {
+    "unit_price": 4.51,
+    "currency": "CHF",
+    "mean_qty": 2800.0,
+    "monthly": [
+      {
+        "month": "2022-06",
+        "n_events": 3,
+        "total_kg_days": 364000.0
+      },
+      {
+        "month": "2023-03",
+        "n_events": 4,
+        "total_kg_days": 571200.0
+      },
+      {
+        "month": "2023-11",
+        "n_events": 3,
+        "total_kg_days": 462000.0
+      },
+      {
+        "month": "2024-06",
+        "n_events": 5,
+        "total_kg_days": 728000.0
+      },
+      {
+        "month": "2025-01",
+        "n_events": 4,
+        "total_kg_days": 484400.0
+      },
+      {
+        "month": "2025-08",
+        "n_events": 6,
+        "total_kg_days": 750400.0
+      },
+      {
+        "month": "2025-09",
+        "n_events": 5,
+        "total_kg_days": 616000.0
+      },
+      {
+        "month": "2025-10",
+        "n_events": 5,
+        "total_kg_days": 548800.0
+      },
+      {
+        "month": "2025-11",
+        "n_events": 5,
+        "total_kg_days": 630000.0
+      },
+      {
+        "month": "2025-12",
+        "n_events": 5,
+        "total_kg_days": 560000.0
+      },
+      {
+        "month": "2026-01",
+        "n_events": 5,
+        "total_kg_days": 490000.0
+      },
+      {
+        "month": "2026-02",
+        "n_events": 5,
+        "total_kg_days": 630000.0
+      },
+      {
+        "month": "2026-03",
+        "n_events": 5,
+        "total_kg_days": 557200.0
+      },
+      {
+        "month": "2026-04",
+        "n_events": 5,
+        "total_kg_days": 638400.0
+      },
+      {
+        "month": "2026-05",
+        "n_events": 5,
+        "total_kg_days": 568400.0
+      }
+    ]
+  },
+  "detail_rows": {
+    "columns": [
+      {
+        "key": "batch",
+        "source_field": "CHARG",
+        "source_table": "MSEG",
+        "label": "Batch"
+      },
+      {
+        "key": "consumption_date",
+        "source_field": "BUDAT",
+        "source_table": "MKPF",
+        "label": "Consumption Date"
+      },
+      {
+        "key": "dwell_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Dwell Days",
+        "unit": "d"
+      },
+      {
+        "key": "kg_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Inventory kg-days",
+        "unit": "kg·d"
+      },
+      {
+        "key": "cons_matnr",
+        "source_field": "MATNR",
+        "source_table": "MSEG",
+        "label": "Consuming Material"
+      },
+      {
+        "key": "cons_material_name",
+        "source_field": "MAKTX",
+        "source_table": "MAKT",
+        "label": "Consuming Material Name"
+      },
+      {
+        "key": "cons_in_current_recipe",
+        "source_field": null,
+        "source_table": null,
+        "label": "In Current Recipe"
+      }
+    ],
+    "rows": [
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-001",
+        "consumption_date": "2022-06-05",
+        "dwell_days": 40,
+        "kg_days": 121333.3,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-002",
+        "consumption_date": "2022-06-15",
+        "dwell_days": 22,
+        "kg_days": 121333.3,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-003",
+        "consumption_date": "2022-06-25",
+        "dwell_days": 68,
+        "kg_days": 121333.3,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-004",
+        "consumption_date": "2023-03-08",
+        "dwell_days": 4,
+        "kg_days": 142800,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-005",
+        "consumption_date": "2023-03-15",
+        "dwell_days": 55,
+        "kg_days": 142800,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-006",
+        "consumption_date": "2023-03-22",
+        "dwell_days": 115,
+        "kg_days": 142800,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-007",
+        "consumption_date": "2023-03-29",
+        "dwell_days": 30,
+        "kg_days": 142800,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-008",
+        "consumption_date": "2023-11-06",
+        "dwell_days": 62,
+        "kg_days": 154000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-009",
+        "consumption_date": "2023-11-13",
+        "dwell_days": 18,
+        "kg_days": 154000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-010",
+        "consumption_date": "2023-11-20",
+        "dwell_days": 85,
+        "kg_days": 154000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-011",
+        "consumption_date": "2024-06-03",
+        "dwell_days": 35,
+        "kg_days": 145600,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-012",
+        "consumption_date": "2024-06-10",
+        "dwell_days": 72,
+        "kg_days": 145600,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-013",
+        "consumption_date": "2024-06-17",
+        "dwell_days": 10,
+        "kg_days": 145600,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-014",
+        "consumption_date": "2024-06-24",
+        "dwell_days": 48,
+        "kg_days": 145600,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-015",
+        "consumption_date": "2024-06-30",
+        "dwell_days": 95,
+        "kg_days": 145600,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-016",
+        "consumption_date": "2025-01-07",
+        "dwell_days": 28,
+        "kg_days": 121100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-017",
+        "consumption_date": "2025-01-14",
+        "dwell_days": 52,
+        "kg_days": 121100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-018",
+        "consumption_date": "2025-01-21",
+        "dwell_days": 15,
+        "kg_days": 121100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-019",
+        "consumption_date": "2025-01-28",
+        "dwell_days": 78,
+        "kg_days": 121100,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-020",
+        "consumption_date": "2025-08-04",
+        "dwell_days": 42,
+        "kg_days": 125066.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-021",
+        "consumption_date": "2025-08-08",
+        "dwell_days": 8,
+        "kg_days": 125066.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-022",
+        "consumption_date": "2025-08-12",
+        "dwell_days": 65,
+        "kg_days": 125066.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-023",
+        "consumption_date": "2025-08-16",
+        "dwell_days": 33,
+        "kg_days": 125066.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-024",
+        "consumption_date": "2025-08-20",
+        "dwell_days": 100,
+        "kg_days": 125066.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-025",
+        "consumption_date": "2025-08-24",
+        "dwell_days": 20,
+        "kg_days": 125066.7,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-026",
+        "consumption_date": "2025-09-06",
+        "dwell_days": 41,
+        "kg_days": 123200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-027",
+        "consumption_date": "2025-09-12",
+        "dwell_days": 45,
+        "kg_days": 123200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-028",
+        "consumption_date": "2025-09-18",
+        "dwell_days": 48,
+        "kg_days": 123200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-029",
+        "consumption_date": "2025-09-24",
+        "dwell_days": 52,
+        "kg_days": 123200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-030",
+        "consumption_date": "2025-09-30",
+        "dwell_days": 34,
+        "kg_days": 123200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-031",
+        "consumption_date": "2025-10-04",
+        "dwell_days": 40,
+        "kg_days": 109760,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-032",
+        "consumption_date": "2025-10-10",
+        "dwell_days": 44,
+        "kg_days": 109760,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-033",
+        "consumption_date": "2025-10-16",
+        "dwell_days": 48,
+        "kg_days": 109760,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-034",
+        "consumption_date": "2025-10-22",
+        "dwell_days": 30,
+        "kg_days": 109760,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-035",
+        "consumption_date": "2025-10-28",
+        "dwell_days": 34,
+        "kg_days": 109760,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-036",
+        "consumption_date": "2025-11-05",
+        "dwell_days": 50,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-037",
+        "consumption_date": "2025-11-11",
+        "dwell_days": 54,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-038",
+        "consumption_date": "2025-11-17",
+        "dwell_days": 36,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-039",
+        "consumption_date": "2025-11-23",
+        "dwell_days": 41,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-040",
+        "consumption_date": "2025-11-29",
+        "dwell_days": 44,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-041",
+        "consumption_date": "2025-12-06",
+        "dwell_days": 50,
+        "kg_days": 112000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-042",
+        "consumption_date": "2025-12-12",
+        "dwell_days": 32,
+        "kg_days": 112000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-043",
+        "consumption_date": "2025-12-18",
+        "dwell_days": 36,
+        "kg_days": 112000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-044",
+        "consumption_date": "2025-12-24",
+        "dwell_days": 39,
+        "kg_days": 112000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-045",
+        "consumption_date": "2025-12-30",
+        "dwell_days": 43,
+        "kg_days": 112000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-046",
+        "consumption_date": "2026-01-04",
+        "dwell_days": 28,
+        "kg_days": 98000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-047",
+        "consumption_date": "2026-01-10",
+        "dwell_days": 32,
+        "kg_days": 98000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-048",
+        "consumption_date": "2026-01-16",
+        "dwell_days": 35,
+        "kg_days": 98000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-049",
+        "consumption_date": "2026-01-22",
+        "dwell_days": 38,
+        "kg_days": 98000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-050",
+        "consumption_date": "2026-01-28",
+        "dwell_days": 42,
+        "kg_days": 98000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-051",
+        "consumption_date": "2026-02-05",
+        "dwell_days": 39,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-052",
+        "consumption_date": "2026-02-11",
+        "dwell_days": 41,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-053",
+        "consumption_date": "2026-02-17",
+        "dwell_days": 45,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-054",
+        "consumption_date": "2026-02-23",
+        "dwell_days": 48,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-055",
+        "consumption_date": "2026-02-29",
+        "dwell_days": 52,
+        "kg_days": 126000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-056",
+        "consumption_date": "2026-03-06",
+        "dwell_days": 37,
+        "kg_days": 111440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-057",
+        "consumption_date": "2026-03-12",
+        "dwell_days": 40,
+        "kg_days": 111440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-058",
+        "consumption_date": "2026-03-18",
+        "dwell_days": 44,
+        "kg_days": 111440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-059",
+        "consumption_date": "2026-03-24",
+        "dwell_days": 48,
+        "kg_days": 111440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-060",
+        "consumption_date": "2026-03-30",
+        "dwell_days": 30,
+        "kg_days": 111440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-061",
+        "consumption_date": "2026-04-04",
+        "dwell_days": 47,
+        "kg_days": 127680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-062",
+        "consumption_date": "2026-04-10",
+        "dwell_days": 50,
+        "kg_days": 127680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-063",
+        "consumption_date": "2026-04-16",
+        "dwell_days": 54,
+        "kg_days": 127680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-064",
+        "consumption_date": "2026-04-22",
+        "dwell_days": 36,
+        "kg_days": 127680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-065",
+        "consumption_date": "2026-04-28",
+        "dwell_days": 41,
+        "kg_days": 127680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-066",
+        "consumption_date": "2026-05-05",
+        "dwell_days": 46,
+        "kg_days": 113680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-067",
+        "consumption_date": "2026-05-11",
+        "dwell_days": 50,
+        "kg_days": 113680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-068",
+        "consumption_date": "2026-05-17",
+        "dwell_days": 32,
+        "kg_days": 113680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-069",
+        "consumption_date": "2026-05-23",
+        "dwell_days": 36,
+        "kg_days": 113680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-070",
+        "consumption_date": "2026-05-29",
+        "dwell_days": 39,
+        "kg_days": 113680,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-OTHER-01",
+        "consumption_date": "2026-05-17",
+        "dwell_days": 36.8,
+        "kg_days": 40000,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-OTHER-02",
+        "consumption_date": "2026-05-23",
+        "dwell_days": 41.4,
+        "kg_days": 45000,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      },
+      {
+        "batch": "RAW_DWELL_WASHED_BOURBON-OTHER-03",
+        "consumption_date": "2026-05-29",
+        "dwell_days": 44.8,
+        "kg_days": 48750,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      }
+    ]
+  },
+  "ref_date_col": null,
+  "n_batches": null,
+  "n_movements": 25,
+  "yield_data": null,
+  "consumption_data": null,
+  "schema_version": "1.1"
+}

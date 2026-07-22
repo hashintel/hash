@@ -14,6 +14,9 @@ preflight have succeeded, including every metric advertised by `metadata`.
 See [Using Petrinaut CLI from Python](./PYTHON_INTEGRATION.md) for a compact
 stdio wrapper and Optuna example.
 
+See [Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md)
+for the contract between the Optimization form, Optuna, and the CLI.
+
 ## Transports
 
 With no transport flag, JSON lines are read from stdin and written to stdout:
@@ -21,6 +24,30 @@ With no transport flag, JSON lines are read from stdin and written to stdout:
 ```bash
 petrinaut serve --model ./model.json
 ```
+
+For callers that already hold the current model snapshot, `--model-stdin`
+reads a compact legacy Petrinaut model object (`{ ...definition, title }`) from
+the first stdin line. The CLI validates and compiles that model before writing
+its readiness message to stderr; subsequent lines use the normal protocol:
+
+```bash
+petrinaut serve --model-stdin --stdio
+```
+
+The bootstrap line is capped at 8 MiB. This mode avoids a temporary model file
+and is available only with the stdio transport.
+
+Optimization studies use a self-contained manifest instead of a bare model:
+
+```bash
+petrinaut serve --optimization ./optimize.json --stdio
+# or write the manifest as the first stdin line:
+petrinaut serve --optimization-stdin --stdio
+```
+
+See [Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md)
+for the manifest and protocol contract. Both optimization sources are stdio
+only.
 
 The explicit equivalent is `--stdio`. To use a Unix socket instead, pass
 `--socket <path>`:
@@ -129,6 +156,11 @@ Methods:
 - `healthz`: returns `{ "ok": true }`.
 - `metadata`: returns parameters, places and metrics.
 - `run`: runs one simulation. Pass the run config in `params`.
+- `optimization.describe`: returns the Optuna direction, study configuration,
+  and flat descriptors for only the parameters Optuna should suggest.
+- `optimization.evaluate`: evaluates one complete set of suggested parameter
+  values and returns `{ "objective": number }`. These two methods require an
+  optimization manifest source.
 
 ## Run Request
 
@@ -164,6 +196,12 @@ Run config fields:
 - `initialState`: initial markings. Keys may be place id or display name.
   Exact ids take priority; duplicate display names use the model's last entry.
   Uncolored token counts must be integers from `0` through `4,294,967,295`.
+- `scenario`: alternatively, select a model scenario with
+  `{ "id": "...", "parameterValues": { ... } }`. Scenario parameters are a
+  flat map of finite numbers and booleans. The CLI validates their declared
+  types and uses Petrinaut Core's scenario compiler to materialize concrete net
+  parameters and initial markings. `scenario` cannot be combined with direct
+  `parameters` or `initialState` fields.
 - `metrics`: metric names/ids evaluated on the final frame.
 - `maxSteps`: optional maximum number of simulation steps.
 - `maxTime`: optional maximum simulation time. At least one of `maxSteps` or
@@ -201,9 +239,10 @@ Metrics are evaluated only on the final frame and returned as scalar values:
 }
 ```
 
-`metrics` may contain multiple names. Each requested metric is evaluated on the
-final frame and returned as a scalar under `result.metrics`. For an optimizer
-that needs one objective value, read the one metric key it requested.
+`metrics` may contain multiple names or stable ids. Each requested metric is
+evaluated on the final frame and returned as a scalar under the same selector
+used by the caller. For an optimizer that needs one objective value, read the
+one metric key it requested.
 Metric display names must be unique because result values are keyed by name.
 
 `finalPlaceTokenCounts` contains the root places advertised by `metadata`.

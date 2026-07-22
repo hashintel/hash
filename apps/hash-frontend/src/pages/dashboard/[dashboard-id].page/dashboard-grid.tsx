@@ -16,6 +16,7 @@ import {
   DRAG_HANDLE_CLASS,
 } from "./dashboard-grid/dashboard-item";
 
+import type { DashboardItemGeneration } from "../hooks/use-dashboard-item-generations";
 import type { DashboardData, DashboardItemData } from "../shared/types";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { GridPosition } from "@local/hash-isomorphic-utils/dashboard-types";
@@ -26,6 +27,7 @@ type DashboardGridProps = {
   onLayoutChange: (layout: GridPosition[]) => void;
   onItemConfigureClick: (item: DashboardItemData) => void;
   onItemDeleteClick: (item: DashboardItemData) => void;
+  generations: Record<EntityId, DashboardItemGeneration>;
   onEntityClick?: (entityId: EntityId) => void;
   /** Dashboard-wide hovered entity; used to highlight matching rows/markers across items. */
   hoveredEntityId?: EntityId | null;
@@ -50,6 +52,7 @@ export const DashboardGrid = ({
   onLayoutChange,
   onItemConfigureClick,
   onItemDeleteClick,
+  generations,
   onEntityClick,
   hoveredEntityId,
   onHoveredEntityChange,
@@ -202,6 +205,7 @@ export const DashboardGrid = ({
               <div key={itemId}>
                 <DashboardItem
                   item={item}
+                  generation={generations[item.entityId]}
                   isEditing={isEditing}
                   isMinimized={isMinimized}
                   onMinimizeToggle={() =>

@@ -61,6 +61,100 @@ export interface StepSource {
   filter?: string | null;
 }
 
+export interface PlanningWarning {
+  code: string;
+  level: "info" | "warning";
+  text: string;
+}
+
+export interface ProcurementPlanningSource {
+  label: string;
+  system: string;
+  table: string;
+  source_id: string | null;
+  material: string;
+  site: string;
+  supplier_id: string | null;
+  basis: string | null;
+  plan_days: number | null;
+  dock_to_stock_days: number | null;
+  match_level: string;
+  priority?: number | null;
+  effective_in_date?: string | null;
+  effective_out_date?: string | null;
+  contract_valid_to?: string | null;
+}
+
+export interface InventoryPolicySource {
+  system: string;
+  table: string;
+  field?: string;
+  minimum_field?: string;
+  multiple_field?: string;
+}
+
+export interface InventoryPolicy {
+  material: string;
+  plant: string;
+  minimum_order_qty: number | null;
+  order_multiple_qty: number | null;
+  order_uom: string | null;
+  minimum_order_source: InventoryPolicySource | null;
+  safety_stock_qty: number | null;
+  safety_stock_uom: string | null;
+  safety_stock_source: InventoryPolicySource | null;
+  warnings: PlanningWarning[];
+}
+
+export type ProcurementPlanningAlternative = Record<string, unknown> & {
+  label: string;
+  plan_days: number | null;
+};
+
+export type ProcurementReceiptBasis =
+  | "ordinary"
+  | "consignment"
+  | "subcontract"
+  | "mixed"
+  | "unknown";
+
+export type ProcurementPlanMatchStatus =
+  | "matched"
+  | "matched_wrong_basis"
+  | "missing_profile"
+  | "missing_supplier"
+  | "mixed_basis"
+  | "ambiguous";
+
+export interface ProcurementPlanningCandidate {
+  candidate_id: string;
+  supplier_id: string | null;
+  basis: string | null;
+  plan_days: number | null;
+  dock_to_stock_days?: number | null;
+  priority?: number | null;
+  effective_in_date?: string | null;
+  effective_out_date?: string | null;
+}
+
+export interface ProcurementPlanningProfile {
+  id: string;
+  material: string;
+  plant: string;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  receipt_basis: ProcurementReceiptBasis;
+  plan_days: number | null;
+  /** Retained for future use but intentionally not presented as a UI metric. */
+  dock_to_stock_days?: number | null;
+  provenance: "profile" | "fallback";
+  match_status: ProcurementPlanMatchStatus;
+  planning_warnings?: PlanningWarning[];
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  candidate_ids?: string[];
+}
+
 /**
  * Batch-normalisation metadata for production steps. The step's duration
  * observations/stats are reported as `normalized_days` — each batch's raw
@@ -135,6 +229,22 @@ export interface GraphNode {
    * future batches.
    */
   in_current_recipe?: boolean | null;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+  receipt_basis?: ProcurementReceiptBasis | null;
+  planning_profile_id?: string | null;
+  plan_match_status?: ProcurementPlanMatchStatus | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  inventory_policy?: InventoryPolicy | null;
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
+  planning_profile?: ProcurementPlanningProfile | null;
+  planning_profiles?: ProcurementPlanningCandidate[];
+  /** Retained for a future receiving-process comparison; not rendered directly. */
+  dock_to_stock_days?: number | null;
 }
 
 export interface GraphEdge {
@@ -286,8 +396,8 @@ export interface BindingScore {
 }
 
 export interface GraphData {
-  /** Data contract version (e.g. "1.0"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.1";
   analysis_settings?: AnalysisSettings | null;
   product_id: string;
   product_name: string;
@@ -485,8 +595,8 @@ export interface SiteData {
 }
 
 export interface StepDetail {
-  /** Data contract version (e.g. "1.0"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.1";
   id: string;
   label: string;
   type: StepType;
@@ -534,6 +644,22 @@ export interface StepDetail {
    * `normalized_days` value column is scaled to. Null/absent otherwise.
    */
   normalization?: StepNormalization | null;
+  supplier_id?: string | null;
+  supplier_name?: string | null;
+  receipt_basis?: ProcurementReceiptBasis | null;
+  planning_profile_id?: string | null;
+  plan_match_status?: ProcurementPlanMatchStatus | null;
+  planning_source?: ProcurementPlanningSource | null;
+  planning_alternatives?: ProcurementPlanningAlternative[];
+  planning_warnings?: PlanningWarning[];
+  inventory_policy?: InventoryPolicy | null;
+  observation_grain?: string | null;
+  po_item_count?: number | null;
+  po_item_ids?: string[];
+  planning_profile?: ProcurementPlanningProfile | null;
+  planning_profiles?: ProcurementPlanningCandidate[];
+  /** Retained for a future receiving-process comparison; not rendered directly. */
+  dock_to_stock_days?: number | null;
 }
 
 /**
@@ -649,8 +775,8 @@ export interface ProcurementSupplierBlock {
  * every plant. Drives the SiteOverview leaderboard and vendor slideover.
  */
 export interface SiteSupplierPerformance {
-  /** Data contract version (e.g. "1.0"). */
-  schema_version?: string;
+  /** Procurement planning data contract version. */
+  schema_version?: "1.1";
   generated_at: string;
   overall: {
     n_lines: number;
@@ -704,7 +830,7 @@ export interface SiteSummaryRollups {
 
 /** `site/{siteId}/summary.json` — the precomputed site overview artifact. */
 export interface SiteSummary {
-  schema_version?: string;
+  schema_version?: "1.1";
   analysis_settings?: AnalysisSettings | null;
   site_id: string;
   generated_at: string;

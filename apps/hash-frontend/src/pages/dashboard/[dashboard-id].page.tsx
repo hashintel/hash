@@ -41,6 +41,7 @@ import { useActiveWorkspace } from "../shared/workspace-context";
 import { DashboardGrid } from "./[dashboard-id].page/dashboard-grid";
 import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
 import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
+import { useDashboardItemGenerations } from "./hooks/use-dashboard-item-generations";
 
 import type {
   ArchiveEntitiesMutation,
@@ -108,6 +109,8 @@ const DashboardPage: NextPageWithLayout = () => {
   const [selectedItem, setSelectedItem] = useState<DashboardItemData | null>(
     null,
   );
+  const [configModalItemEntityId, setConfigModalItemEntityId] =
+    useState<EntityId | null>(null);
   /** Whether the config modal is open for a not-yet-created item */
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -118,6 +121,7 @@ const DashboardPage: NextPageWithLayout = () => {
     setIsEditing(false);
     setConfigModalOpen(false);
     setSelectedItem(null);
+    setConfigModalItemEntityId(null);
     setIsAddingNewItem(false);
     setHoveredEntityId(null);
   }, [dashboardUuid]);
@@ -192,6 +196,14 @@ const DashboardPage: NextPageWithLayout = () => {
       fetchPolicy: "cache-and-network",
     },
   );
+
+  const handleGenerationSettled = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  const { generations, registerGeneration } = useDashboardItemGenerations({
+    onSettled: handleGenerationSettled,
+  });
 
   const dashboard = useMemo<DashboardData | null>(() => {
     if (!dashboardData) {
@@ -356,6 +368,7 @@ const DashboardPage: NextPageWithLayout = () => {
 
   const handleItemConfigureClick = useCallback((item: DashboardItemData) => {
     setSelectedItem(item);
+    setConfigModalItemEntityId(item.entityId);
     setConfigModalOpen(true);
   }, []);
 
@@ -371,6 +384,23 @@ const DashboardPage: NextPageWithLayout = () => {
     },
     [archiveEntities, refetch],
   );
+
+  const handleDashboardArchive = useCallback(async () => {
+    if (!dashboard) {
+      throw new Error("Dashboard not loaded");
+    }
+
+    const entityIds = new Set<EntityId>([dashboard.entityId]);
+    for (const item of dashboard.items) {
+      entityIds.add(item.entityId);
+      entityIds.add(item.linkEntityId);
+    }
+
+    await archiveEntities({
+      variables: { entityIds: [...entityIds] },
+    });
+    await router.push("/dashboards");
+  }, [archiveEntities, dashboard, router]);
 
   const handleTitleOrDescriptionChange = useCallback(
     async (title: string, description: string) => {
@@ -419,6 +449,7 @@ const DashboardPage: NextPageWithLayout = () => {
   /** Open the config modal immediately; the entity is created lazily */
   const handleAddItem = useCallback(() => {
     setSelectedItem(null);
+    setConfigModalItemEntityId(null);
     setIsAddingNewItem(true);
     setConfigModalOpen(true);
   }, []);
@@ -483,13 +514,19 @@ const DashboardPage: NextPageWithLayout = () => {
   const handleCloseConfigModal = useCallback(() => {
     setConfigModalOpen(false);
     setSelectedItem(null);
+    setConfigModalItemEntityId(null);
     setIsAddingNewItem(false);
     void refetch();
   }, [refetch]);
 
-  const handleItemGenerationStarted = useCallback(() => {
-    void refetch();
-  }, [refetch]);
+  const handleItemGenerationStarted = useCallback(
+    (generation: { itemEntityId: EntityId; flowRunId: string }) => {
+      setConfigModalItemEntityId(generation.itemEntityId);
+      registerGeneration(generation);
+      void refetch();
+    },
+    [refetch, registerGeneration],
+  );
 
   if (loading && !dashboard) {
     return (
@@ -544,6 +581,7 @@ const DashboardPage: NextPageWithLayout = () => {
         onEditToggle={() => setIsEditing(!isEditing)}
         onFullscreenToggle={handleFullscreenToggle}
         onAddItem={handleAddItem}
+        onArchive={handleDashboardArchive}
         onTitleOrDescriptionChange={handleTitleOrDescriptionChange}
       />
 
@@ -553,6 +591,7 @@ const DashboardPage: NextPageWithLayout = () => {
         onLayoutChange={handleLayoutChange}
         onItemConfigureClick={handleItemConfigureClick}
         onItemDeleteClick={handleItemDeleteClick}
+        generations={generations}
         onEntityClick={handleEntityClick}
         hoveredEntityId={hoveredEntityId}
         onHoveredEntityChange={setHoveredEntityId}
@@ -566,6 +605,11 @@ const DashboardPage: NextPageWithLayout = () => {
           open={configModalOpen}
           onClose={handleCloseConfigModal}
           onGenerationStarted={handleItemGenerationStarted}
+          generation={
+            configModalItemEntityId
+              ? generations[configModalItemEntityId]
+              : undefined
+          }
           itemEntityId={selectedItem?.entityId ?? null}
           createItemEntity={createItemEntity}
           webId={activeWorkspaceWebId}

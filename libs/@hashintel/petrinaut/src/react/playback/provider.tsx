@@ -3,6 +3,7 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   createPlayback,
   getPlayModeBackpressure,
+  PETRINAUT_DEFAULT_SEED,
   type ComputePlayMode,
   type Playback,
   type PlaybackSpeed,
@@ -247,7 +248,9 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       }
       const initialization = (async () => {
         await initialize({
-          seed: Date.now(),
+          // Fixed seed shared with optimization runs so an interactive run
+          // reproduces an optimization trial given the same configuration.
+          seed: PETRINAUT_DEFAULT_SEED,
           dt: dtRef.current,
           maxFramesAhead: cfg.maxFramesAhead,
           batchSize: cfg.batchSize,

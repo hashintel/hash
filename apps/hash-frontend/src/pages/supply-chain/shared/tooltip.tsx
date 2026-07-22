@@ -31,6 +31,9 @@ const pillStyles = css({
   whiteSpace: "nowrap",
 });
 
+const TOOLTIP_VIEWPORT_PADDING_PX = 8;
+const TOOLTIP_TRIGGER_OFFSET_PX = 6;
+
 interface TooltipProps {
   content: ReactNode;
   children: ReactNode;
@@ -83,6 +86,7 @@ export const Tooltip = ({
   const [visible, setVisible] = useState(false);
   const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const portalContainerRef = usePortalContainerRef();
 
@@ -114,6 +118,28 @@ export const Tooltip = ({
     }
   }, [visible, side]);
 
+  useLayoutEffect(() => {
+    if (!visible || !triggerRef.current || !tooltipRef.current) {
+      return;
+    }
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const tooltipWidth = tooltipRef.current.getBoundingClientRect().width;
+    const minimumCenter = TOOLTIP_VIEWPORT_PADDING_PX + tooltipWidth / 2;
+    const maximumCenter =
+      window.innerWidth - TOOLTIP_VIEWPORT_PADDING_PX - tooltipWidth / 2;
+    const triggerCenter = triggerRect.left + triggerRect.width / 2;
+    const x =
+      minimumCenter > maximumCenter
+        ? window.innerWidth / 2
+        : Math.min(Math.max(minimumCenter, triggerCenter), maximumCenter);
+
+    setCoords((currentCoords) =>
+      currentCoords && currentCoords.x === x
+        ? currentCoords
+        : { x, y: side === "top" ? triggerRect.top : triggerRect.bottom },
+    );
+  }, [visible, side, coords]);
+
   return (
     <span
       ref={triggerRef}
@@ -121,16 +147,22 @@ export const Tooltip = ({
       style={wrapperStyle}
       onMouseEnter={show}
       onMouseLeave={hide}
+      onFocusCapture={show}
+      onBlurCapture={hide}
     >
       {children}
       {visible &&
         coords &&
         createPortal(
           <span
+            ref={tooltipRef}
             className={portalLayer}
             style={{
               left: coords.x,
-              top: side === "top" ? coords.y - 6 : coords.y + 6,
+              top:
+                side === "top"
+                  ? coords.y - TOOLTIP_TRIGGER_OFFSET_PX
+                  : coords.y + TOOLTIP_TRIGGER_OFFSET_PX,
               transform: `translateX(-50%) ${side === "top" ? "translateY(-100%)" : ""}`,
             }}
           >

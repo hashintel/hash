@@ -6,10 +6,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { type SDCPN } from "@hashintel/petrinaut";
+import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import {
   type HostNetMode,
   type PetrinautAiMessage,
+  type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../shared/messages";
@@ -19,6 +22,7 @@ import {
   readAiMessages,
   writeAiMessages,
 } from "./process-editor/ai-messages-storage";
+import { getPetrinautHostCapabilities } from "./process-editor/get-petrinaut-host-capabilities";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 
@@ -52,6 +56,12 @@ const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
  * behalf — it only forwards the (still server-validated) request body.
  */
 const PETRINAUT_AI_CHAT_API = "/api/petrinaut-ai-chat";
+
+/** Authenticated NodeAPI endpoint that proxies the optimizer container. */
+const PETRINAUT_OPTIMIZATION_API = `${apiOrigin}/api/petrinaut-optimizer/optimize`;
+
+/** Authenticated NodeAPI endpoint reporting deployment configuration only. */
+const PETRINAUT_CAPABILITIES_API = `${apiOrigin}/api/petrinaut-optimizer/capabilities`;
 
 /**
  * URL-derived view that the editor renders. The host page resolves this from
@@ -229,6 +239,42 @@ export const ProcessEditor = ({
    * generated. Lets `aiChatAbort` cancel the matching fetch.
    */
   const aiChatAbortControllersRef = useRef(new Map<string, AbortController>());
+
+  /** In-flight optimizer streams, keyed by the iframe request id. */
+  const optimizationAbortControllersRef = useRef(
+    new Map<string, AbortController>(),
+  );
+
+  const [petrinautHostCapabilities, setPetrinautHostCapabilities] =
+    useState<PetrinautHostCapabilities | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void getPetrinautHostCapabilities({
+      endpoint: PETRINAUT_CAPABILITIES_API,
+      signal: controller.signal,
+    }).then((capabilities) => {
+      if (!controller.signal.aborted) {
+        setPetrinautHostCapabilities(capabilities);
+      }
+    });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(
+    () => () => {
+      for (const controller of aiChatAbortControllersRef.current.values()) {
+        controller.abort();
+      }
+      aiChatAbortControllersRef.current.clear();
+      for (const controller of optimizationAbortControllersRef.current.values()) {
+        controller.abort();
+      }
+      optimizationAbortControllersRef.current.clear();
+    },
+    [],
+  );
 
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
@@ -448,6 +494,89 @@ export const ProcessEditor = ({
         controller?.abort();
         aiChatAbortControllersRef.current.delete(requestId);
       },
+      onOptimizationRequest: ({ requestId, input }) => {
+        const parsedInput = petrinautOptimizationInputSchema.safeParse(input);
+        if (!parsedInput.success) {
+          bridge.send({
+            kind: "optimizationError",
+            requestId,
+            message: "The optimization request is invalid",
+          });
+          return;
+        }
+        if (optimizationAbortControllersRef.current.has(requestId)) {
+          bridge.send({
+            kind: "optimizationError",
+            requestId,
+            message: "An optimization with this request id is already running",
+          });
+          return;
+        }
+
+        const controller = new AbortController();
+        optimizationAbortControllersRef.current.set(requestId, controller);
+
+        /**
+         * The sandboxed iframe has no credentials or network access. Validate
+         * its structured-cloned request, call the one hard-coded NodeAPI route
+         * with HASH's session, then relay the NDJSON response byte-for-byte.
+         */
+        void (async () => {
+          try {
+            const response = await fetch(PETRINAUT_OPTIMIZATION_API, {
+              method: "POST",
+              credentials: "include",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(parsedInput.data),
+              signal: controller.signal,
+            });
+
+            bridge.send({
+              kind: "optimizationResponseStart",
+              requestId,
+              ok: response.ok,
+              status: response.status,
+              statusText: response.statusText,
+            });
+
+            if (response.body) {
+              const reader = response.body.getReader();
+              let result = await reader.read();
+              while (!result.done) {
+                bridge.send({
+                  kind: "optimizationChunk",
+                  requestId,
+                  bytes: result.value,
+                });
+                result = await reader.read();
+              }
+            }
+
+            bridge.send({ kind: "optimizationEnd", requestId });
+          } catch (error) {
+            // An iframe-initiated abort is expected control flow.
+            if (!controller.signal.aborted) {
+              bridge.send({
+                kind: "optimizationError",
+                requestId,
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+          } finally {
+            if (
+              optimizationAbortControllersRef.current.get(requestId) ===
+              controller
+            ) {
+              optimizationAbortControllersRef.current.delete(requestId);
+            }
+          }
+        })();
+      },
+      onOptimizationAbort: ({ requestId }) => {
+        const controller =
+          optimizationAbortControllersRef.current.get(requestId);
+        controller?.abort();
+      },
       onAiMessagesChanged: ({ messages }) => {
         if (!loadedView) {
           return;
@@ -518,6 +647,16 @@ export const ProcessEditor = ({
       },
     },
   });
+
+  useEffect(() => {
+    if (!bridge.isReady || petrinautHostCapabilities === null) {
+      return;
+    }
+    bridge.send({
+      kind: "setCapabilities",
+      capabilities: petrinautHostCapabilities,
+    });
+  }, [bridge, petrinautHostCapabilities]);
 
   /**
    * Apply a resolved view: mirror local host state used by the save flow,

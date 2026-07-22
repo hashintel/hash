@@ -1,5 +1,8 @@
+import { z } from "zod";
+
 import type { EntityId } from "@blockprotocol/type-system";
 import type { PetrinautProps, SDCPN } from "@hashintel/petrinaut";
+import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
 
 export type PetrinautAiMessage = NonNullable<
   NonNullable<PetrinautProps["aiAssistant"]>["messages"]
@@ -34,6 +37,19 @@ export type SavedSnapshot = {
   /** Decision-time of the snapshot, used to drive the version picker. */
   decisionTime: string | null;
 } | null;
+
+/**
+ * Host features that depend on HASH deployment configuration rather than on
+ * the contents of the active net. The authenticated host resolves these and
+ * sends them into the sandboxed iframe explicitly.
+ */
+export const petrinautHostCapabilitiesSchema = z.strictObject({
+  optimization: z.boolean(),
+});
+
+export type PetrinautHostCapabilities = z.infer<
+  typeof petrinautHostCapabilitiesSchema
+>;
 
 /**
  * Messages sent by the host (process-editor) into the iframe.
@@ -94,6 +110,15 @@ export type HostToIframeMessage =
       readonly: boolean;
     }
   | {
+      /**
+       * Update deployment-backed Petrinaut capabilities. This is separate
+       * from service health: a configured optimizer remains available in the
+       * UI when its container is temporarily unreachable.
+       */
+      kind: "setCapabilities";
+      capabilities: PetrinautHostCapabilities;
+    }
+  | {
       /** Push the latest revision list to the version picker. */
       kind: "revisionsList";
       revisions: RevisionSummary[];
@@ -150,6 +175,31 @@ export type HostToIframeMessage =
        * carries an HTTP error body the iframe still reads as a stream.
        */
       kind: "aiChatError";
+      requestId: string;
+      message: string;
+    }
+  | {
+      /** First reply to an `optimizationRequest`. */
+      kind: "optimizationResponseStart";
+      requestId: string;
+      ok: boolean;
+      status: number;
+      statusText: string;
+    }
+  | {
+      /** A verbatim chunk of the optimizer's NDJSON response body. */
+      kind: "optimizationChunk";
+      requestId: string;
+      bytes: Uint8Array;
+    }
+  | {
+      /** The proxied optimization response completed normally. */
+      kind: "optimizationEnd";
+      requestId: string;
+    }
+  | {
+      /** The optimization fetch failed before or while streaming. */
+      kind: "optimizationError";
       requestId: string;
       message: string;
     };
@@ -253,6 +303,20 @@ export type IframeToHostMessage =
     }
   | {
       /**
+       * Ask the authenticated host to start a Petrinaut optimization. The
+       * host validates this public request before forwarding it to NodeAPI.
+       */
+      kind: "optimizationRequest";
+      requestId: string;
+      input: PetrinautOptimizationInput;
+    }
+  | {
+      /** Abort the matching in-flight optimization all the way upstream. */
+      kind: "optimizationAbort";
+      requestId: string;
+    }
+  | {
+      /**
        * The AI-assistant conversation changed (a turn finished, or the
        * conversation was cleared). The host persists `messages` to
        * `localStorage` keyed by the currently-loaded net, so reopening the
@@ -269,12 +333,44 @@ export type IframeToHostMessage =
       kind: "aiMessagesCleared";
     };
 
+const hostToIframeMessageKinds: ReadonlySet<string> = new Set<
+  HostToIframeMessage["kind"]
+>([
+  "init",
+  "load",
+  "setReadonly",
+  "setCapabilities",
+  "revisionsList",
+  "saveResult",
+  "aiChatResponseStart",
+  "aiChatChunk",
+  "aiChatEnd",
+  "aiChatError",
+  "optimizationResponseStart",
+  "optimizationChunk",
+  "optimizationEnd",
+  "optimizationError",
+]);
+
 export const isHostToIframeMessage = (
   data: unknown,
-): data is HostToIframeMessage =>
-  typeof data === "object" &&
-  data !== null &&
-  typeof (data as { kind?: unknown }).kind === "string";
+): data is HostToIframeMessage => {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+
+  const record = data as Record<string, unknown>;
+  if (typeof record.kind !== "string") {
+    return false;
+  }
+
+  if (record.kind === "setCapabilities") {
+    return petrinautHostCapabilitiesSchema.safeParse(record.capabilities)
+      .success;
+  }
+
+  return hostToIframeMessageKinds.has(record.kind);
+};
 
 export const isIframeToHostMessage = (
   data: unknown,

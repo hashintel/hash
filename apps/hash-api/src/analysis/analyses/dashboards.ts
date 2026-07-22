@@ -6,6 +6,7 @@ import {
 import {
   COMPUTE_DASHBOARD_ITEM_DATA_WORKFLOW,
   generateDashboardItemConfigHash,
+  getDashboardItemDataMetadataStorageKey,
   getDashboardItemDataStorageKey,
 } from "@local/hash-backend-utils/dashboards";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
@@ -28,7 +29,9 @@ import type {
   AnalysisResolutionContext,
   NamedAnalysis,
 } from "../shared/analysis-registry";
+import type { JsonObject } from "@blockprotocol/core";
 import type { ComputeDashboardItemDataWorkflowParams } from "@local/hash-backend-utils/dashboards";
+import type { DashboardItemDataGenerationMetadata } from "@local/hash-isomorphic-utils/dashboard-types";
 
 /**
  * How long a computed chart data artifact is considered fresh. Older
@@ -55,6 +58,57 @@ const getRootErrorMessage = (error: unknown): string => {
   return rootCause instanceof Error ? rootCause.message : String(rootCause);
 };
 
+const loadGenerationMetadata = async (
+  ctx: AnalysisResolutionContext,
+  metadataStorageKey: string,
+): Promise<DashboardItemDataGenerationMetadata | null> => {
+  const artifact = await ctx.loadArtifact(metadataStorageKey);
+  if (!artifact) {
+    return null;
+  }
+
+  try {
+    const value = JSON.parse(
+      artifact.toString("utf8"),
+    ) as DashboardItemDataGenerationMetadata;
+    return {
+      ...(typeof value.generatedAt === "string"
+        ? { generatedAt: value.generatedAt }
+        : {}),
+      ...(typeof value.generationDurationMs === "number" &&
+      value.generationDurationMs >= 0
+        ? { generationDurationMs: value.generationDurationMs }
+        : {}),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const createAnalysisMetadata = ({
+  generationMetadata,
+  lastModified,
+  isRefreshing,
+  refreshAfter,
+}: {
+  generationMetadata: DashboardItemDataGenerationMetadata | null;
+  lastModified: Date | null;
+  isRefreshing: boolean;
+  refreshAfter?: string;
+}): JsonObject => ({
+  ...(generationMetadata?.generatedAt || lastModified
+    ? {
+        generatedAt:
+          generationMetadata?.generatedAt ?? lastModified!.toISOString(),
+      }
+    : {}),
+  ...(generationMetadata?.generationDurationMs !== undefined
+    ? { generationDurationMs: generationMetadata.generationDurationMs }
+    : {}),
+  isRefreshing,
+  ...(refreshAfter ? { refreshAfter } : {}),
+});
+
 /**
  * Start the (idempotent) compute workflow for a dashboard item configuration.
  * The workflow id is derived from the config hash and source artifact version,
@@ -69,6 +123,7 @@ const startComputeWorkflow = async (params: {
   structuralQuery: unknown;
   pythonScript: string;
   storageKey: string;
+  metadataStorageKey: string;
 }): Promise<ComputeWorkflowState> => {
   const {
     ctx,
@@ -77,6 +132,7 @@ const startComputeWorkflow = async (params: {
     structuralQuery,
     pythonScript,
     storageKey,
+    metadataStorageKey,
   } = params;
 
   const webMachineId = await getWebMachineId(
@@ -104,6 +160,7 @@ const startComputeWorkflow = async (params: {
             structuralQuery: JSON.stringify(structuralQuery),
             pythonScript,
             storageKey,
+            metadataStorageKey,
           } satisfies ComputeDashboardItemDataWorkflowParams,
         ],
         workflowId,
@@ -161,6 +218,15 @@ const dashboardItemData: NamedAnalysis = {
       );
     }
     const force = ctx.args.force === true;
+    const refreshAfter =
+      typeof ctx.args.refreshAfter === "string"
+        ? new Date(ctx.args.refreshAfter)
+        : null;
+    if (refreshAfter && Number.isNaN(refreshAfter.getTime())) {
+      throw new AnalysisArgError(
+        "Argument 'refreshAfter' must be a valid ISO timestamp",
+      );
+    }
 
     const { entities } = await queryEntities(
       { graphApi: ctx.graphApi },
@@ -234,17 +300,31 @@ const dashboardItemData: NamedAnalysis = {
       webId: ctx.webId,
       configHash,
     });
+    const metadataStorageKey = getDashboardItemDataMetadataStorageKey({
+      webId: ctx.webId,
+      configHash,
+    });
 
     const lastModified = await ctx.getArtifactLastModified(storageKey);
+    const generationMetadata = await loadGenerationMetadata(
+      ctx,
+      metadataStorageKey,
+    );
 
-    if (!lastModified || force) {
+    const waitingForForcedRefresh =
+      refreshAfter !== null &&
+      (!lastModified || lastModified.getTime() <= refreshAfter.getTime());
+
+    if (!lastModified || force || waitingForForcedRefresh) {
+      const sourceArtifactLastModified = refreshAfter ?? lastModified;
       const workflowState = await startComputeWorkflow({
         ctx,
         configHash,
-        sourceArtifactLastModified: lastModified,
+        sourceArtifactLastModified,
         structuralQuery,
         pythonScript,
         storageKey,
+        metadataStorageKey,
       });
 
       if (workflowState === "completed") {
@@ -256,17 +336,37 @@ const dashboardItemData: NamedAnalysis = {
             "Dashboard item computation completed without producing a chart data artifact",
           );
         }
+        const completedGenerationMetadata = await loadGenerationMetadata(
+          ctx,
+          metadataStorageKey,
+        );
 
         return {
           status: "ready",
           artifacts: [{ name: "chartData", key: storageKey }],
+          metadata: createAnalysisMetadata({
+            generationMetadata: completedGenerationMetadata,
+            lastModified: completedArtifactLastModified,
+            isRefreshing: false,
+          }),
         };
       }
 
-      return { status: "computing", retryAfterMs: COMPUTING_RETRY_AFTER_MS };
+      return {
+        status: "computing",
+        retryAfterMs: COMPUTING_RETRY_AFTER_MS,
+        metadata: createAnalysisMetadata({
+          generationMetadata,
+          lastModified,
+          isRefreshing: true,
+          refreshAfter: sourceArtifactLastModified?.toISOString(),
+        }),
+      };
     }
 
-    if (Date.now() - lastModified.getTime() > DASHBOARD_ITEM_DATA_TTL_MS) {
+    const isStale =
+      Date.now() - lastModified.getTime() > DASHBOARD_ITEM_DATA_TTL_MS;
+    if (isStale) {
       // Stale: serve the cached artifact but refresh it in the background.
       startComputeWorkflow({
         ctx,
@@ -275,6 +375,7 @@ const dashboardItemData: NamedAnalysis = {
         structuralQuery,
         pythonScript,
         storageKey,
+        metadataStorageKey,
       }).catch((error: unknown) => {
         logger.warn(
           `Failed to start background dashboard item recompute [itemUuid=${itemUuid}]: ${
@@ -287,6 +388,11 @@ const dashboardItemData: NamedAnalysis = {
     return {
       status: "ready",
       artifacts: [{ name: "chartData", key: storageKey }],
+      metadata: createAnalysisMetadata({
+        generationMetadata,
+        lastModified,
+        isRefreshing: isStale,
+      }),
     };
   },
 };

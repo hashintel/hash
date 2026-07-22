@@ -25,6 +25,7 @@ import {
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
+import { chartTypes } from "@local/hash-isomorphic-utils/dashboard-types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -40,6 +41,10 @@ import {
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Button } from "../shared/ui/button";
 import { Modal } from "../shared/ui/modal";
+import {
+  DashboardPreview,
+  type DashboardPreviewItem,
+} from "./dashboards.page/dashboard-preview";
 import { useActiveWorkspace } from "./shared/workspace-context";
 
 import type {
@@ -51,15 +56,21 @@ import type {
 import type { NextPageWithLayout } from "../shared/layout";
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
+  ChartType,
+  GridPosition,
+} from "@local/hash-isomorphic-utils/dashboard-types";
+import type {
   Dashboard,
   DashboardProperties,
 } from "@local/hash-isomorphic-utils/system-types/dashboard";
+import type { DashboardItem } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
 
 type DashboardListItem = {
   entityId: EntityId;
   title: string;
   description?: string;
   itemCount: number;
+  previewItems: DashboardPreviewItem[];
   webShortname?: string;
 };
 
@@ -124,23 +135,53 @@ const DashboardsPage: NextPageWithLayout = () => {
     return dashboardEntities.map((entity) => {
       const { name, description } = simplifyProperties(entity.properties);
 
-      // Count linked items
       const outgoingLinks = getOutgoingLinkAndTargetEntities(
         subgraph,
         entity.metadata.recordId.entityId,
       );
 
-      const itemCount = outgoingLinks.filter(({ linkEntity }) =>
-        linkEntity[0]?.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.has.linkEntityTypeId,
-        ),
-      ).length;
+      const previewItems: DashboardPreviewItem[] = [];
+      for (const { linkEntity, rightEntity } of outgoingLinks) {
+        const link = linkEntity[0];
+        if (
+          !link?.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.has.linkEntityTypeId,
+          )
+        ) {
+          continue;
+        }
+
+        const itemEntity = rightEntity[0] as
+          | HashEntity<DashboardItem>
+          | undefined;
+        if (!itemEntity) {
+          continue;
+        }
+
+        const itemProperties = simplifyProperties(itemEntity.properties);
+        const chartType = itemProperties.chartType as ChartType | undefined;
+        previewItems.push({
+          entityId: itemEntity.metadata.recordId.entityId,
+          chartType:
+            chartType && chartTypes.includes(chartType) ? chartType : null,
+          gridPosition: (itemProperties.gridPosition as
+            | GridPosition
+            | undefined) ?? {
+            i: itemEntity.metadata.recordId.entityId,
+            x: 0,
+            y: Number.POSITIVE_INFINITY,
+            w: 6,
+            h: 8,
+          },
+        });
+      }
 
       return {
         entityId: entity.metadata.recordId.entityId,
         title: name,
         description,
-        itemCount,
+        itemCount: previewItems.length,
+        previewItems,
         webShortname:
           getOwnerForEntity({
             entityId: entity.metadata.recordId.entityId,
@@ -237,19 +278,46 @@ const DashboardsPage: NextPageWithLayout = () => {
       ) : (
         <Grid container spacing={3}>
           {dashboards.map((dashboard) => (
-            <Grid item xs={12} sm={6} md={4} key={dashboard.entityId}>
-              <Card>
+            <Grid
+              item
+              xs={12}
+              sm={6}
+              md={4}
+              key={dashboard.entityId}
+              sx={{ display: "flex" }}
+            >
+              <Card sx={{ width: "100%", height: "100%" }}>
                 <CardActionArea
                   onClick={() => handleDashboardClick(dashboard.entityId)}
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "stretch",
+                  }}
                 >
-                  <CardContent sx={{ minHeight: 140 }}>
+                  <DashboardPreview items={dashboard.previewItems} />
+                  <CardContent
+                    sx={{
+                      minHeight: 140,
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
                     <Typography variant="h5" gutterBottom>
                       {dashboard.title}
                     </Typography>
                     {dashboard.description && (
                       <Typography
                         variant="smallTextParagraphs"
-                        sx={{ color: ({ palette }) => palette.gray[70] }}
+                        sx={{
+                          display: "-webkit-box",
+                          overflow: "hidden",
+                          color: ({ palette }) => palette.gray[70],
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: 3,
+                        }}
                       >
                         {dashboard.description}
                       </Typography>
@@ -257,14 +325,17 @@ const DashboardsPage: NextPageWithLayout = () => {
                     <Typography
                       variant="microText"
                       sx={{
-                        mt: 2,
+                        mt: "auto",
+                        pt: 2,
                         display: "block",
                         color: ({ palette }) => palette.gray[70],
                       }}
                     >
-                      {dashboard.webShortname
-                        ? `@${dashboard.webShortname} · `
-                        : ""}
+                      <Box component="span" sx={{ fontWeight: 600 }}>
+                        {dashboard.webShortname
+                          ? `@${dashboard.webShortname} · `
+                          : ""}
+                      </Box>
                       {dashboard.itemCount} item
                       {dashboard.itemCount !== 1 ? "s" : ""}
                     </Typography>

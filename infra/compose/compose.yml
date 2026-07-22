@@ -632,6 +632,36 @@ services:
       timeout: 2s
       retries: 10
 
+  atlas:
+    profiles:
+      - hash
+    init: true
+    depends_on:
+      otel-collector-healthcheck:
+        condition: service_completed_successfully
+    image: ghcr.io/hashintel/hash/graph
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - logs:/logs
+    command: atlas
+    environment:
+      HASH_ATLAS_HOST: "0.0.0.0"
+      HASH_ATLAS_PORT: "4003"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL:-info}"
+      HASH_GRAPH_LOG_CONSOLE_FORMAT: "${HASH_GRAPH_LOG_CONSOLE_FORMAT:-full}"
+      HASH_GRAPH_LOG_FOLDER: "/logs/atlas"
+      HASH_OTLP_ENDPOINT: "http://otel-collector:4317"
+      RUST_BACKTRACE: 1
+    ports:
+      - "${HASH_ATLAS_PORT:-4003}:4003"
+    healthcheck:
+      test: ["CMD", "/hash-graph", "atlas", "--healthcheck"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
   api-migrate:
     profiles:
       - hash
@@ -673,6 +703,8 @@ services:
 
       HASH_GRAPH_HTTP_HOST: "graph"
       HASH_GRAPH_HTTP_PORT: "4000"
+      HASH_ATLAS_HOST: "atlas"
+      HASH_ATLAS_PORT: "4003"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"
