@@ -14,7 +14,7 @@ export const PETRINAUT_OPTIMIZER_OPTIMIZE_PATH =
 type PetrinautOptimizerHandlerOptions = {
   origin: URL | null;
   fetchImpl?: PetrinautOptimizerFetch;
-  logger: Pick<Logger, "child" | "info" | "warn">;
+  logger: Pick<Logger, "info" | "warn">;
 };
 
 /** Bound expensive optimization attempts per authenticated account or IP. */

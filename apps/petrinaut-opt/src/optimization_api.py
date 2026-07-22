@@ -7,7 +7,7 @@ import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
@@ -137,7 +137,7 @@ def initialize_optimizer(
 async def _acquire_optimization_slot(
     app: FastAPI,
     *,
-    correlation: Mapping[str, str | None] | None = None,
+    request_id: str | None = None,
 ) -> None:
     async with app.state.optimization_admission_lock:
         if app.state.active_optimizations >= MAX_ACTIVE_OPTIMIZATIONS:
@@ -147,7 +147,7 @@ async def _acquire_optimization_slot(
                     "event": "capacity_rejected",
                     "active_optimizations": app.state.active_optimizations,
                     "max_active_optimizations": MAX_ACTIVE_OPTIMIZATIONS,
-                    **(correlation or {}),
+                    "request_id": request_id,
                 },
             )
             raise HTTPException(
@@ -243,26 +243,12 @@ async def _stream_with_cleanup(
         await asyncio.shield(cleanup())
 
 
-def _initialization_error_category(error: Exception) -> str:
-    """Classify an initialization failure without logging its raw message."""
-    message = str(error)
-    if message.startswith("Petrinaut failed to load the optimization manifest"):
-        return "manifest_rejected"
-    if message.startswith("failed to start the Petrinaut CLI"):
-        return "spawn_failed"
-    if "timed out" in message:
-        return "timeout"
-    if message.startswith("failed to bootstrap"):
-        return "bootstrap_failed"
-    return "other"
-
-
 def _initialization_error(
     app: FastAPI,
     run_id: str,
     error: Exception,
     *,
-    correlation: Mapping[str, str | None] | None = None,
+    request_id: str | None = None,
 ) -> HTTPException:
     set_status(
         app,
@@ -279,8 +265,7 @@ def _initialization_error(
             "event": "initialization_failed",
             "run_id": run_id,
             "error_type": type(error).__name__,
-            "error_category": _initialization_error_category(error),
-            **(correlation or {}),
+            "request_id": request_id,
         },
     )
     return HTTPException(
@@ -300,8 +285,8 @@ async def post_optimize_all(
     optimization_manifest: dict[str, Any],
 ) -> StreamingResponse:
     """Stream one SSE data frame for every completed Optuna trial."""
-    correlation = {"request_id": request.headers.get("x-hash-request-id")}
-    await _acquire_optimization_slot(request.app, correlation=correlation)
+    request_id = request.headers.get("x-hash-request-id")
+    await _acquire_optimization_slot(request.app, request_id=request_id)
     try:
         run_id = request.app.state.statuses.create().run_id
     except BaseException:
@@ -324,7 +309,7 @@ async def post_optimize_all(
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(
-            request.app, run_id, error, correlation=correlation
+            request.app, run_id, error, request_id=request_id
         ) from error
 
     cleanup = _create_admitted_run_cleanup(request.app, optimizer)
@@ -353,8 +338,8 @@ async def post_optimize_best(
     optimization_manifest: dict[str, Any],
 ) -> StreamingResponse:
     """Stream the best-so-far SSE data frame after every completed trial."""
-    correlation = {"request_id": request.headers.get("x-hash-request-id")}
-    await _acquire_optimization_slot(request.app, correlation=correlation)
+    request_id = request.headers.get("x-hash-request-id")
+    await _acquire_optimization_slot(request.app, request_id=request_id)
     try:
         run_id = request.app.state.statuses.create().run_id
     except BaseException:
@@ -377,7 +362,7 @@ async def post_optimize_best(
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(
-            request.app, run_id, error, correlation=correlation
+            request.app, run_id, error, request_id=request_id
         ) from error
 
     cleanup = _create_admitted_run_cleanup(request.app, optimizer)

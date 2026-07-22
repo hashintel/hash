@@ -178,7 +178,7 @@ def test_initialization_failure_log_omits_the_raw_error_message(
 
     monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
 
-    with caplog.at_level("ERROR", logger="pn_optimize"):
+    with caplog.at_level("ERROR", logger="pn_api"):
         with TestClient(optimization_api.app) as client:
             response = client.post("/optimize/all", json=optimization_manifest)
 
@@ -186,7 +186,7 @@ def test_initialization_failure_log_omits_the_raw_error_message(
     assert failures
     record = failures[0]
     assert record.error_type == "RuntimeError"
-    assert record.error_category == "manifest_rejected"
+    assert not hasattr(record, "error_category")
     assert not hasattr(record, "error")
     assert "user_secret_xyz" not in record.getMessage()
     # The full message still reaches the requester in the response detail.

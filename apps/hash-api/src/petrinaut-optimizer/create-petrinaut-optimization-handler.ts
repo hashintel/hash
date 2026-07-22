@@ -227,7 +227,7 @@ export const createPetrinautOptimizationHandler = ({
   origin,
 }: {
   fetchImpl: PetrinautOptimizerFetch;
-  logger: Pick<Logger, "child" | "info" | "warn">;
+  logger: Pick<Logger, "info" | "warn">;
   origin: URL | null;
 }): RequestHandler => {
   let activeOptimizationCount = 0;
@@ -236,7 +236,7 @@ export const createPetrinautOptimizationHandler = ({
   return async (request, response) => {
     const startedAt = Date.now();
     const requestId = response.get("x-hash-request-id") ?? "";
-    const requestLogger = logger.child({ requestId });
+    const logContext = requestId ? { requestId } : {};
 
     if (!request.user) {
       response.status(401).json({ error: "Authentication required" });
@@ -251,7 +251,8 @@ export const createPetrinautOptimizationHandler = ({
 
     const userId = request.user.accountId;
     if (activeUserIds.has(userId)) {
-      requestLogger.warn("Petrinaut optimization rejected: account busy", {
+      logger.warn("Petrinaut optimization rejected: account busy", {
+        ...logContext,
         activeOptimizationCount,
       });
       response.status(429).json({
@@ -260,7 +261,8 @@ export const createPetrinautOptimizationHandler = ({
       return;
     }
     if (activeOptimizationCount >= MAX_CONCURRENT_OPTIMIZATIONS) {
-      requestLogger.warn("Petrinaut optimization rejected: at capacity", {
+      logger.warn("Petrinaut optimization rejected: at capacity", {
+        ...logContext,
         activeOptimizationCount,
         maxConcurrentOptimizations: MAX_CONCURRENT_OPTIMIZATIONS,
       });
@@ -309,7 +311,8 @@ export const createPetrinautOptimizationHandler = ({
         signal: lifecycle.signal,
       });
       optimizationRunId = upstream.optimizationRunId;
-      requestLogger.info("Petrinaut optimization stream opened", {
+      logger.info("Petrinaut optimization stream opened", {
+        ...logContext,
         optimizationRunId,
       });
 
@@ -334,14 +337,15 @@ export const createPetrinautOptimizationHandler = ({
       );
       response.end();
       const terminalMetadata = {
+        ...logContext,
         durationMs: Date.now() - startedAt,
         optimizationRunId,
         outcome,
       };
       if (outcome === "completed") {
-        requestLogger.info("Petrinaut optimization finished", terminalMetadata);
+        logger.info("Petrinaut optimization finished", terminalMetadata);
       } else {
-        requestLogger.warn("Petrinaut optimization failed", terminalMetadata);
+        logger.warn("Petrinaut optimization failed", terminalMetadata);
       }
     } catch (error) {
       const durationMs = Date.now() - startedAt;
@@ -354,14 +358,16 @@ export const createPetrinautOptimizationHandler = ({
         optimizationRunId = error.optimizationRunId;
       }
       if (lifecycle.state.clientDisconnected || response.destroyed) {
-        requestLogger.info("Petrinaut optimization finished", {
+        logger.info("Petrinaut optimization finished", {
+          ...logContext,
           durationMs,
           optimizationRunId,
           outcome: "client-disconnected",
         });
         return;
       }
-      requestLogger.warn("Petrinaut optimization failed", {
+      logger.warn("Petrinaut optimization failed", {
+        ...logContext,
         durationMs,
         errorType: error instanceof Error ? error.name : typeof error,
         optimizationRunId,
@@ -406,9 +412,10 @@ export const createPetrinautOptimizationHandler = ({
             retryable: true,
           } satisfies PetrinautOptimizationEvent);
         } catch (writeError) {
-          requestLogger.warn(
+          logger.warn(
             "Could not report Petrinaut optimization failure",
             {
+              ...logContext,
               error: writeError,
               optimizationRunId,
             },
