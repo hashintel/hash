@@ -6,7 +6,7 @@
 //! pure function of the coordinates, the rank inputs, the seed, and the configuration, so equal
 //! generations produce byte-equal columns.
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
 use super::{
     cascade, key,

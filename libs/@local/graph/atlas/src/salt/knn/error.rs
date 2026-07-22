@@ -15,6 +15,8 @@ pub(crate) enum KnnError<E> {
     TooManyEntries { rows: usize, neighbours: usize },
     /// A sampling budget cannot size a sample.
     SampleBudget { margin: f64, confidence: f64 },
+    /// Constructed lists are narrower than the table's stored width.
+    ListsWidth { width: usize, neighbours: usize },
     /// A search returned a different neighbour count than the table stores per row.
     SearchCount {
         row: usize,
@@ -54,6 +56,10 @@ impl<E: fmt::Display> fmt::Display for KnnError<E> {
                 "a margin of {margin} at confidence {confidence} does not size a sample; the \
                  margin must be positive and finite and the confidence strictly inside (0, 1)",
             ),
+            Self::ListsWidth { width, neighbours } => write!(
+                fmt,
+                "{width}-wide neighbour lists cannot fill a table storing {neighbours} per row",
+            ),
             Self::SearchCount {
                 row,
                 expected,
@@ -88,6 +94,7 @@ impl<E: Error + 'static> Error for KnnError<E> {
             Self::TooManyRows { .. }
             | Self::TooManyEntries { .. }
             | Self::SampleBudget { .. }
+            | Self::ListsWidth { .. }
             | Self::SearchCount { .. }
             | Self::DuplicateNeighbour { .. }
             | Self::NeighbourOutOfBounds { .. } => None,

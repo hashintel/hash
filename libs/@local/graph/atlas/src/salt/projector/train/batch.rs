@@ -10,8 +10,17 @@
 //! Draws consume the caller's random stream in a fixed family order (semantic, ordinary, hard,
 //! relation, landmark, anchor); a family whose draw is skipped consumes nothing. Equal artifacts,
 //! plans, stream types, and seeds therefore reproduce a batch exactly.
+//!
+//! The drawing and assembly paths allocate per step, so both expose `_in` variants in the
+//! standard library's allocator pattern: [`BatchSampler::draw_in`] and [`Batch::assemble_in`]
+//! place every population and batch vector in the caller's allocator, and the plain methods are
+//! defaulting wrappers over the global one. The allocator covers the batch spine; the structures
+//! nested inside draws (the relation draws' and [`BatchRelationEdges`]' edge vectors, the
+//! gathered [`LocalScales`]) and the tensor buffers of [`Batch::input`] - consumed by the
+//! backend - stay global.
 
-use core::num::NonZero;
+use core::{alloc::Allocator, num::NonZero};
+use std::alloc::Global;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 use rand::Rng;
@@ -73,32 +82,35 @@ pub(crate) struct SupportAnchor {
 /// Each family carries its estimator scale: the factor that makes the family's batch sum an
 /// unbiased estimate of its full objective (see the module documentation of [`super`]). An empty
 /// family carries a zero scale; its term contributes nothing.
+///
+/// The population vectors live in the draw's allocator; the relation draws' nested edge vectors
+/// stay global (see the module documentation).
 #[derive(Debug)]
-pub(crate) struct Populations<'index> {
+pub(crate) struct Populations<'index, A: Allocator = Global> {
     /// Semantic positive pairs.
     ///
     /// Unit weights, the proportional draw already accounts for the edge weight.
-    pub semantic: Vec<NodePair>,
+    pub semantic: Vec<NodePair, A>,
     /// `W / m`: total positive edge weight over drawn pairs.
     pub semantic_scale: f32,
     /// Ordinary negative pairs; unit weights.
-    pub ordinary: Vec<NodePair>,
+    pub ordinary: Vec<NodePair, A>,
     /// `W / m`: the commensurate-mass repulsion scale.
     pub ordinary_scale: f32,
     /// Mined hard-negative pairs with their bounded rank weights.
-    pub hard: Vec<(NodePair, f32)>,
+    pub hard: Vec<(NodePair, f32), A>,
     /// `N / m`: corpus rows over drawn query rows.
     pub hard_scale: f32,
     /// Per-type capped relation attraction draws.
-    pub relation: Vec<SampledRelationEdges<'index>>,
+    pub relation: Vec<SampledRelationEdges<'index>, A>,
     /// `G / g`: total relation groups over drawn groups.
     pub relation_scale: f32,
     /// Landmark anchors, rows in corpus space.
-    pub landmarks: Vec<SupportAnchor>,
+    pub landmarks: Vec<SupportAnchor, A>,
     /// Landmark pool size over drawn anchors.
     pub landmark_scale: f32,
     /// Temporal anchors, rows in corpus space.
-    pub anchors: Vec<SupportAnchor>,
+    pub anchors: Vec<SupportAnchor, A>,
     /// Anchor pool size over drawn anchors.
     pub anchor_scale: f32,
     /// The step's relation-lens rung.
@@ -173,29 +185,50 @@ impl<'view> BatchSampler<'view> {
         anchors: &[SupportAnchor],
         rng: &mut (impl Rng + ?Sized),
     ) -> Populations<'view> {
+        self.draw_in(eta, mined, landmarks, anchors, rng, Global)
+    }
+
+    /// Draws one step's populations at the given lens rung, allocating them in `alloc`.
+    ///
+    /// The population vectors land in `alloc`; sampler-internal scratch stays global. Contract
+    /// and panics as in [`BatchSampler::draw`].
+    pub(crate) fn draw_in<A: Allocator + Clone>(
+        &self,
+        eta: f32,
+        mined: Option<&MinedFrame>,
+        landmarks: &[SupportAnchor],
+        anchors: &[SupportAnchor],
+        rng: &mut (impl Rng + ?Sized),
+        alloc: A,
+    ) -> Populations<'view, A> {
         assert!(
             eta.is_finite() && eta >= 0.0,
             "the relation lens rung should be finite and non-negative"
         );
 
-        let semantic = self
-            .semantic
-            .sample(self.plan.semantic_pairs.get(), &mut *rng);
+        let semantic =
+            self.semantic
+                .sample_in(self.plan.semantic_pairs.get(), &mut *rng, alloc.clone());
         let semantic_scale = self.semantic.total_weight() / count(semantic.len());
 
-        let ordinary = self.ordinary.sample(self.plan.ordinary_pairs, &mut *rng);
+        let ordinary = self
+            .ordinary
+            .sample_in(self.plan.ordinary_pairs, &mut *rng, alloc.clone());
         let ordinary_scale = if ordinary.is_empty() {
             0.0
         } else {
             self.semantic.total_weight() / count(ordinary.len())
         };
 
-        let (hard, hard_scale) = self.draw_hard(mined, &mut *rng);
+        let (hard, hard_scale) = self.draw_hard_in(mined, &mut *rng, alloc.clone());
 
         let (relation, relation_scale) = if eta > 0.0 && self.plan.relation_types != 0 {
-            let drawn =
-                self.relation
-                    .sample(self.plan.relation_types, self.plan.relation_cap, &mut *rng);
+            let drawn = self.relation.sample_in(
+                self.plan.relation_types,
+                self.plan.relation_cap,
+                &mut *rng,
+                alloc.clone(),
+            );
             if drawn.is_empty() {
                 (drawn, 0.0)
             } else {
@@ -203,12 +236,17 @@ impl<'view> BatchSampler<'view> {
                 (drawn, scale)
             }
         } else {
-            (Vec::new(), 0.0)
+            (Vec::new_in(alloc.clone()), 0.0)
         };
 
-        let (landmarks, landmark_scale) =
-            draw_support(landmarks, self.plan.landmark_anchors, &mut *rng);
-        let (anchors, anchor_scale) = draw_support(anchors, self.plan.temporal_anchors, &mut *rng);
+        let (landmarks, landmark_scale) = draw_support_in(
+            landmarks,
+            self.plan.landmark_anchors,
+            &mut *rng,
+            alloc.clone(),
+        );
+        let (anchors, anchor_scale) =
+            draw_support_in(anchors, self.plan.temporal_anchors, &mut *rng, alloc);
 
         Populations {
             semantic,
@@ -227,18 +265,19 @@ impl<'view> BatchSampler<'view> {
         }
     }
 
-    /// Draws query rows and collects their pooled mined pairs.
-    fn draw_hard(
+    /// Draws query rows and collects their pooled mined pairs in `alloc`.
+    fn draw_hard_in<A: Allocator>(
         &self,
         mined: Option<&MinedFrame>,
         rng: &mut (impl Rng + ?Sized),
-    ) -> (Vec<(NodePair, f32)>, f32) {
+        alloc: A,
+    ) -> (Vec<(NodePair, f32), A>, f32) {
         let Some(frame) = mined else {
-            return (Vec::new(), 0.0);
+            return (Vec::new_in(alloc), 0.0);
         };
 
         if self.plan.hard_queries == 0 {
-            return (Vec::new(), 0.0);
+            return (Vec::new_in(alloc), 0.0);
         }
 
         assert_eq!(
@@ -249,7 +288,7 @@ impl<'view> BatchSampler<'view> {
 
         let queries = self.plan.hard_queries.min(self.rows);
 
-        let mut pairs = Vec::new();
+        let mut pairs = Vec::new_in(alloc);
         for query in sample_indices_vec(&mut *rng, self.rows, queries) {
             pairs.extend(frame.row(query));
         }
@@ -258,22 +297,25 @@ impl<'view> BatchSampler<'view> {
     }
 }
 
-/// Draws a uniform support subset with its pool-over-drawn scale.
-fn draw_support(
+/// Draws a uniform support subset in `alloc`, with its pool-over-drawn scale.
+fn draw_support_in<A: Allocator>(
     pool: &[SupportAnchor],
     requested: usize,
     rng: &mut (impl Rng + ?Sized),
-) -> (Vec<SupportAnchor>, f32) {
+    alloc: A,
+) -> (Vec<SupportAnchor, A>, f32) {
     let take = requested.min(pool.len());
     if take == 0 {
-        return (Vec::new(), 0.0);
+        return (Vec::new_in(alloc), 0.0);
     }
 
-    let drawn = sample_indices_vec(&mut *rng, pool.len(), take)
-        .into_vec()
-        .into_iter()
-        .map(|index| pool[index])
-        .collect();
+    let mut drawn = Vec::with_capacity_in(take, alloc);
+    drawn.extend(
+        sample_indices_vec(&mut *rng, pool.len(), take)
+            .into_vec()
+            .into_iter()
+            .map(|index| pool[index]),
+    );
     (drawn, count(pool.len()) / count(take))
 }
 
@@ -304,32 +346,35 @@ pub(crate) struct NodeColumns<'corpus> {
 /// `rows` lists the participating corpus rows in ascending order; a population's [`BatchRowId`]
 /// position `i` refers to `rows[i]`. The corpus-to-local map is monotone, so canonical pair
 /// ordering survives re-indexing.
+///
+/// The batch vectors live in the assembly's allocator; the relation entries' nested edge vectors
+/// and the gathered scales stay global (see the module documentation).
 #[derive(Debug)]
-pub(crate) struct Batch {
+pub(crate) struct Batch<A: Allocator = Global> {
     /// The participating corpus rows, ascending and distinct.
-    pub rows: Box<[NodeRowId]>,
+    pub rows: Box<[NodeRowId], A>,
     /// Semantic positive pairs, batch-local.
-    pub semantic: Vec<BatchPair>,
+    pub semantic: Vec<BatchPair, A>,
     /// See [`Populations::semantic_scale`].
     pub semantic_scale: f32,
     /// Ordinary negative pairs, batch-local.
-    pub ordinary: Vec<BatchPair>,
+    pub ordinary: Vec<BatchPair, A>,
     /// See [`Populations::ordinary_scale`].
     pub ordinary_scale: f32,
     /// Hard-negative pairs with rank weights, batch-local.
-    pub hard: Vec<(BatchPair, f32)>,
+    pub hard: Vec<(BatchPair, f32), A>,
     /// See [`Populations::hard_scale`].
     pub hard_scale: f32,
     /// Relation draws with batch-local endpoints.
-    pub relation: Vec<BatchRelationEdges>,
+    pub relation: Vec<BatchRelationEdges, A>,
     /// See [`Populations::relation_scale`].
     pub relation_scale: f32,
     /// Landmark anchors, batch-local.
-    pub landmarks: Vec<BatchAnchor>,
+    pub landmarks: Vec<BatchAnchor, A>,
     /// See [`Populations::landmark_scale`].
     pub landmark_scale: f32,
     /// Temporal anchors, batch-local.
-    pub anchors: Vec<BatchAnchor>,
+    pub anchors: Vec<BatchAnchor, A>,
     /// See [`Populations::anchor_scale`].
     pub anchor_scale: f32,
     /// The participating rows' local scales, gathered from the corpus table.
@@ -354,12 +399,30 @@ impl Batch {
     /// wiring defect.
     #[must_use]
     pub(crate) fn assemble(populations: Populations<'_>, scales: Option<&LocalScales>) -> Self {
+        Self::assemble_in(populations, scales, Global)
+    }
+}
+
+impl<A: Allocator> Batch<A> {
+    /// Re-indexes drawn populations into the batch-local row domain, allocating in `alloc`.
+    ///
+    /// The populations may carry any allocator: re-indexing consumes their values, not their
+    /// storage. Contract and panics as in [`Batch::assemble`].
+    #[must_use]
+    pub(crate) fn assemble_in(
+        populations: Populations<'_, impl Allocator>,
+        scales: Option<&LocalScales>,
+        alloc: A,
+    ) -> Self
+    where
+        A: Clone,
+    {
         assert!(
             populations.relation.is_empty() || scales.is_some(),
             "relation edges need the rung's local scales"
         );
 
-        let mut rows: Vec<NodeRowId> = Vec::new();
+        let mut rows: Vec<NodeRowId, A> = Vec::new_in(alloc.clone());
         for pair in populations.semantic.iter().chain(&populations.ordinary) {
             rows.extend([pair.first(), pair.second()]);
         }
@@ -384,30 +447,30 @@ impl Batch {
             BatchRowId::new(u32::try_from(position).expect("batch positions fit the u32 encoding"))
         };
 
-        let semantic = populations
-            .semantic
-            .iter()
-            .map(|pair| BatchPair::new(local(pair.first()), local(pair.second())))
-            .collect();
-        let ordinary = populations
-            .ordinary
-            .iter()
-            .map(|pair| BatchPair::new(local(pair.first()), local(pair.second())))
-            .collect();
-        let hard = populations
-            .hard
-            .iter()
-            .map(|&(pair, weight)| {
-                (
-                    BatchPair::new(local(pair.first()), local(pair.second())),
-                    weight,
-                )
-            })
-            .collect();
-        let relation = populations
-            .relation
-            .into_iter()
-            .map(|sampled| BatchRelationEdges {
+        let mut semantic = Vec::with_capacity_in(populations.semantic.len(), alloc.clone());
+        semantic.extend(
+            populations
+                .semantic
+                .iter()
+                .map(|pair| BatchPair::new(local(pair.first()), local(pair.second()))),
+        );
+        let mut ordinary = Vec::with_capacity_in(populations.ordinary.len(), alloc.clone());
+        ordinary.extend(
+            populations
+                .ordinary
+                .iter()
+                .map(|pair| BatchPair::new(local(pair.first()), local(pair.second()))),
+        );
+        let mut hard = Vec::with_capacity_in(populations.hard.len(), alloc.clone());
+        hard.extend(populations.hard.iter().map(|&(pair, weight)| {
+            (
+                BatchPair::new(local(pair.first()), local(pair.second())),
+                weight,
+            )
+        }));
+        let mut relation = Vec::with_capacity_in(populations.relation.len(), alloc.clone());
+        relation.extend(populations.relation.into_iter().map(|sampled| {
+            BatchRelationEdges {
                 relation: sampled.group.relation(),
                 weights: sampled.group.weights(),
                 edges: sampled
@@ -420,8 +483,8 @@ impl Batch {
                         normalization: edge.normalization,
                     })
                     .collect(),
-            })
-            .collect();
+            }
+        }));
 
         let localize = |anchor: &SupportAnchor| BatchAnchor {
             row: local(anchor.row),
@@ -429,8 +492,10 @@ impl Batch {
             radius: anchor.radius,
             weight: anchor.weight,
         };
-        let landmarks = populations.landmarks.iter().map(localize).collect();
-        let anchors = populations.anchors.iter().map(localize).collect();
+        let mut landmarks = Vec::with_capacity_in(populations.landmarks.len(), alloc.clone());
+        landmarks.extend(populations.landmarks.iter().map(localize));
+        let mut anchors = Vec::with_capacity_in(populations.anchors.len(), alloc);
+        anchors.extend(populations.anchors.iter().map(localize));
 
         let scales = scales.map(|table| {
             let gathered = rows

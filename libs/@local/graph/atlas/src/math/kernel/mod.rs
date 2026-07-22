@@ -17,6 +17,8 @@ use core::simd::{f32x4, f32x8, f64x4, f64x8};
 
 #[cfg(feature = "bench")]
 pub mod bench;
+#[cfg(any(test, feature = "bench"))]
+mod exp_table;
 mod sleef;
 #[cfg(test)]
 mod ulp_sweep;

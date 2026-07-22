@@ -1,6 +1,6 @@
 use alloc::collections::BTreeSet;
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert_eq, proptest};
 
 use super::BitSet;
 
@@ -82,7 +82,7 @@ proptest! {
     #[test]
     fn agrees_with_a_reference_set(
         len in 1_usize..300,
-        picks in prop::collection::vec(any::<prop::sample::Index>(), 0..64),
+        picks in proptest::collection::vec(any::<proptest::sample::Index>(), 0..64),
     ) {
         let mut set = BitSet::new(len);
         let mut reference = BTreeSet::new();

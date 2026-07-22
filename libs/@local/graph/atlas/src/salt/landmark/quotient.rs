@@ -17,7 +17,7 @@
 use core::{error::Error, fmt, num::NonZero};
 use std::collections::HashMap;
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
 use crate::salt::semantic::{

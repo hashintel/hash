@@ -34,6 +34,37 @@ pub fn exp_f32x8(values: f32x8) -> f32x8 {
     super::exp_f32x8(values)
 }
 
+/// Base-e exponential of each `f32` lane, table-based alternative in its portable gather form.
+///
+/// Not a production wrapper: this entry keeps the 16-entry hi/lo-table candidate measured
+/// against [`exp_f32x8`].
+#[expect(
+    clippy::inline_always,
+    reason = "the seam must measure the candidate as a production wrapper would call it: \
+              transparently inlined, with only the kernel's call remaining"
+)]
+#[inline(always)]
+#[must_use]
+pub fn exp_f32x8_table_gather(values: f32x8) -> f32x8 {
+    super::exp_table::exp_f32(values)
+}
+
+/// Base-e exponential of each `f32` lane, table-based alternative through paired `TBL4` lookups.
+///
+/// Not a production wrapper: this entry keeps the aarch64 lookup form of the table candidate
+/// measured against [`exp_f32x8`].
+#[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+#[expect(
+    clippy::inline_always,
+    reason = "the seam must measure the candidate as a production wrapper would call it: \
+              transparently inlined, with only the kernel's call remaining"
+)]
+#[inline(always)]
+#[must_use]
+pub fn exp_f32x8_table_tbl4(values: f32x8) -> f32x8 {
+    super::exp_table::exp_f32x8(values)
+}
+
 /// Lanewise power for strictly positive bases.
 ///
 /// As the production wrapper computes it.

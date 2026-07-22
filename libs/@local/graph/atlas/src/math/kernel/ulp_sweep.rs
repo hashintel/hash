@@ -24,7 +24,10 @@
 use core::simd::prelude::*;
 use std::thread;
 
-use super::sleef::{exp_f32, exp2_f32, log2_f32};
+use super::{
+    exp_table,
+    sleef::{exp_f32, exp2_f32, log2_f32},
+};
 
 const LANES: usize = 8;
 
@@ -178,6 +181,51 @@ fn exp_f32_is_faithfully_rounded_over_its_domain() {
         f64::exp,
     );
     accumulated.report("exp_f32");
+    assert_eq!(accumulated.misclassified, 0);
+    assert!(
+        accumulated.max_ulp < 1.0,
+        "faithful rounding expected, got {} ulp",
+        accumulated.max_ulp
+    );
+}
+
+#[test]
+#[ignore = "exhaustive: ~2.2e9 inputs; run in release mode"]
+fn exp_f32_table_is_faithfully_rounded_over_its_domain() {
+    let accumulated = sweep(
+        &[
+            (1, 110_f32.to_bits()),
+            (0x8000_0001, (-110_f32).to_bits()),
+            (0, 0),
+            (0x8000_0000, 0x8000_0000),
+        ],
+        exp_table::exp_f32::<LANES>,
+        f64::exp,
+    );
+    accumulated.report("exp_f32_table");
+    assert_eq!(accumulated.misclassified, 0);
+    assert!(
+        accumulated.max_ulp < 1.0,
+        "faithful rounding expected, got {} ulp",
+        accumulated.max_ulp
+    );
+}
+
+#[cfg(all(target_arch = "aarch64", target_endian = "little"))]
+#[test]
+#[ignore = "exhaustive: ~2.2e9 inputs; run in release mode"]
+fn exp_f32_table_tbl4_form_is_faithfully_rounded_over_its_domain() {
+    let accumulated = sweep(
+        &[
+            (1, 110_f32.to_bits()),
+            (0x8000_0001, (-110_f32).to_bits()),
+            (0, 0),
+            (0x8000_0000, 0x8000_0000),
+        ],
+        exp_table::exp_f32x8,
+        f64::exp,
+    );
+    accumulated.report("exp_f32_table_tbl4");
     assert_eq!(accumulated.misclassified, 0);
     assert!(
         accumulated.max_ulp < 1.0,

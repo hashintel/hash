@@ -69,8 +69,8 @@ impl Sha256Digest {
 
 impl fmt::Display for Sha256Digest {
     #[inline]
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, formatter)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
@@ -85,7 +85,7 @@ impl FromStr for Sha256Digest {
 
 /// A streaming SHA-256 hasher.
 ///
-/// The hasher absorbs bytes incrementally through [`Update::update`](super::Update::update) (or any
+/// The hasher absorbs bytes incrementally through [`Update::update`] (or any
 /// stream via [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with
 /// [`Sha256::finalize`]. The digest is determined by the concatenated byte stream alone, never by
 /// how it was chunked.

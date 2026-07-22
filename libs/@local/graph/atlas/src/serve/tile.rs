@@ -79,25 +79,22 @@ pub enum TileError {
 }
 
 impl fmt::Display for TileError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Types { count, maximum } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request carries {count} colored type ids where the cap admits {maximum}"
                 )
             }
             Self::Depth { z, maximum } => {
-                write!(
-                    formatter,
-                    "zoom {z} exceeds the deepest served tile {maximum}"
-                )
+                write!(fmt, "zoom {z} exceeds the deepest served tile {maximum}")
             }
             Self::Grid { z, x, y } => {
-                write!(formatter, "({x}, {y}) lies outside the 2^{z} tile grid")
+                write!(fmt, "({x}, {y}) lies outside the 2^{z} tile grid")
             }
             Self::Unsupported(feature) => {
-                write!(formatter, "this build does not serve {feature} requests")
+                write!(fmt, "this build does not serve {feature} requests")
             }
         }
     }

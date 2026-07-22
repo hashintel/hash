@@ -8,7 +8,7 @@
     reason = "test data generation folds indices into range by modulus"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, prop_assume, proptest, strategy::Strategy};
 
 use crate::math::{
     Bounds2, Vec2, Vec2x4T,
@@ -249,7 +249,7 @@ fn point_strategy() -> impl Strategy<Value = Vec2> {
 ///
 /// Short enough to keep case counts sane.
 fn points_strategy() -> impl Strategy<Value = Vec<Vec2>> {
-    prop::collection::vec(point_strategy(), 0..64)
+    proptest::collection::vec(point_strategy(), 0..64)
 }
 
 /// A well-conditioned box.

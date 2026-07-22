@@ -25,9 +25,12 @@ use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, default::Default, num::NonZero};
 
 use rand::Rng;
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
-use super::{NearestNeighboursIndex, error::KnnError, table::KnnValidationError};
+use super::{
+    NearestNeighboursIndex, construction::NeighbourLists, error::KnnError,
+    table::KnnValidationError,
+};
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
     math::AlignedVecN,
@@ -269,6 +272,56 @@ impl ExactReference {
         })
     }
 
+    /// Scores constructed lists against the reference rankings.
+    ///
+    /// Sampled rows read their list prefix at the reference depth and compare in parallel; lists
+    /// narrower than the reference depth score what they hold. The reading carries raw counts and
+    /// the per-row spread; admission criteria live with the caller.
+    pub(crate) fn score_lists(&self, lists: &NeighbourLists) -> Scoring {
+        let depth = self.neighbours_per_row.min(lists.width());
+        let (matched, squares) = self
+            .queries
+            .par_iter()
+            .map(|(id, exact)| {
+                let mut approximate: Vec<NodeRowId> = lists.row(id.usize())[..depth]
+                    .iter()
+                    .map(|neighbour| neighbour.id)
+                    .collect();
+                approximate.sort_unstable();
+
+                let matches = exact
+                    .iter()
+                    .filter(|exact| approximate.binary_search(exact).is_ok())
+                    .count();
+
+                #[expect(
+                    clippy::cast_precision_loss,
+                    reason = "per-row match counts stay below the comparison depth"
+                )]
+                let row_recall = matches as f64 / self.neighbours_per_row as f64;
+
+                (matches as u64, row_recall * row_recall)
+            })
+            .reduce(
+                || (0, 0.0),
+                |(matched, squares), (row_matched, row_square)| {
+                    (matched + row_matched, squares + row_square)
+                },
+            );
+
+        let sampled_rows = self.queries.len() as u64;
+        let neighbours_per_row = self.neighbours_per_row as u64;
+        let expected = sampled_rows * neighbours_per_row;
+
+        Scoring {
+            sampled_rows,
+            neighbours_per_row,
+            matched,
+            expected,
+            deviation: deviation(self.queries.len(), matched, expected, squares),
+        }
+    }
+
     /// Scores a backend's queries against the reference rankings.
     ///
     /// Sampled rows are queried through [`search_by_id`](NearestNeighboursIndex::search_by_id) and
@@ -384,6 +437,57 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
     let variance = (count * mean).mul_add(-mean, squares).max(0.0) / (count - 1.0);
 
     variance.sqrt()
+}
+
+/// Measures recall of constructed lists against exact cosine rankings, sizing the sample in two
+/// stages.
+///
+/// The sizing mirrors [`spot_check`]: a pilot sample measures the per-row spread, the derived
+/// count resolves the configured margin at the configured confidence, and a fresh sample of that
+/// size delivers the verdict when the pilot is too small. Scoring reads the lists in place, so
+/// the resample pays only its exact rankings.
+///
+/// # Errors
+///
+/// Returns an error when the corpus holds fewer than two rows or the margin or confidence is
+/// degenerate ([`SampleBudget`](KnnError::SampleBudget)).
+pub(crate) fn spot_check_lists<E>(
+    lists: &NeighbourLists,
+    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    options: SpotCheckOptions,
+    mut rng: impl Rng,
+) -> Result<RecallSpotCheck, KnnError<E>> {
+    let rows = embeddings.len();
+    let pilot = ExactReference::new(embeddings, options.neighbours, options.pilot, &mut rng)?;
+    let piloted = pilot.score_lists(lists);
+
+    let required = mean_sample_size(piloted.deviation, options.margin, options.confidence).ok_or(
+        KnnError::SampleBudget {
+            margin: options.margin,
+            confidence: options.confidence,
+        },
+    )?;
+
+    let scored = match NonZero::new(required) {
+        // The pilot resolves the margin (or already covers the whole
+        // corpus, which no resample can improve).
+        Some(required) if required.get() > pilot.sampled_rows() && pilot.sampled_rows() < rows => {
+            ExactReference::new::<E>(embeddings, options.neighbours, required, &mut rng)?
+                .score_lists(lists)
+        }
+        _ => piloted,
+    };
+
+    Ok(RecallSpotCheck {
+        sampled_rows: scored.sampled_rows,
+        neighbours_per_row: scored.neighbours_per_row,
+        matched: scored.matched,
+        expected: scored.expected,
+        deviation: scored.deviation,
+        minimum_recall: options.minimum_recall,
+        margin: options.margin,
+        confidence: options.confidence,
+    })
 }
 
 /// Measures recall of `index` against exact cosine rankings, sizing the sample in two stages.

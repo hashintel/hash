@@ -328,6 +328,110 @@ fn draws_are_deterministic_at_a_fixed_seed() {
     );
 }
 
+/// The allocator seam is bit-inert: `_in` through a different allocator draws and assembles
+/// identically.
+///
+/// Equal seeds through `draw`/`assemble` (global) and `draw_in`/`assemble_in` (system) produce
+/// equal populations and batches, family by family - the allocator parameter places storage and
+/// decides nothing else.
+#[test]
+fn the_allocator_seam_draws_and_assembles_identically() {
+    let graph = semantic_graph(6, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
+    let indexes = relation_indexes(
+        6,
+        &[proximal_policy(7), proximal_policy(9)],
+        vec![instance(0, 7, 0, 1), instance(1, 9, 4, 5)],
+    );
+    let plan = BatchPlan {
+        semantic_pairs: NonZero::new(8).expect("eight is non-zero"),
+        ordinary_pairs: 4,
+        relation_types: 1,
+        relation_cap: NonZero::new(4).expect("four is non-zero"),
+        hard_queries: 0,
+        landmark_anchors: 1,
+        temporal_anchors: 1,
+    };
+    let sampler = BatchSampler::new(
+        graph.view(),
+        indexes.protection.view(),
+        ProtectionConfig::default(),
+        &indexes.attraction,
+        plan,
+    )
+    .expect("the fixture graph has weight");
+    let support = [
+        SupportAnchor {
+            row: NodeRowId::new(3),
+            target: Vec2::new(0.5, -0.25),
+            radius: 1.0,
+            weight: 1.0,
+        },
+        SupportAnchor {
+            row: NodeRowId::new(1),
+            target: Vec2::new(-0.5, 0.75),
+            radius: 2.0,
+            weight: 0.5,
+        },
+    ];
+
+    let global = sampler.draw(1.0, None, &support, &support[..1], &mut rng(17));
+    let system = sampler.draw_in(
+        1.0,
+        None,
+        &support,
+        &support[..1],
+        &mut rng(17),
+        std::alloc::System,
+    );
+
+    assert_eq!(global.semantic, system.semantic);
+    assert_eq!(global.ordinary, system.ordinary);
+    assert_eq!(global.hard, system.hard);
+    assert_eq!(
+        global
+            .relation
+            .iter()
+            .map(|sampled| (sampled.group.relation().get(), sampled.edges.clone()))
+            .collect::<Vec<_>>(),
+        system
+            .relation
+            .iter()
+            .map(|sampled| (sampled.group.relation().get(), sampled.edges.clone()))
+            .collect::<Vec<_>>(),
+    );
+    assert_eq!(global.landmarks, system.landmarks);
+    assert_eq!(global.anchors, system.anchors);
+    assert_eq!(
+        (global.semantic_scale, global.ordinary_scale, global.eta),
+        (system.semantic_scale, system.ordinary_scale, system.eta),
+    );
+
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "fixture rows are tiny exact integers"
+    )]
+    let table = LocalScales::new((0..6).map(|row| row as f32 * 0.5).collect())
+        .expect("the fixture scales are finite");
+    let assembled = Batch::assemble(global, Some(&table));
+    let assembled_in = Batch::assemble_in(system, Some(&table), std::alloc::System);
+
+    assert_eq!(&*assembled.rows, &*assembled_in.rows);
+    assert_eq!(assembled.semantic, assembled_in.semantic);
+    assert_eq!(assembled.ordinary, assembled_in.ordinary);
+    assert_eq!(assembled.hard, assembled_in.hard);
+    assert_eq!(assembled.relation, assembled_in.relation);
+    assert_eq!(assembled.landmarks, assembled_in.landmarks);
+    assert_eq!(assembled.anchors, assembled_in.anchors);
+    assert_eq!(
+        assembled.scales.expect("the table was supplied").as_slice(),
+        assembled_in
+            .scales
+            .expect("the table was supplied")
+            .as_slice(),
+    );
+    assert_eq!(assembled.eta, assembled_in.eta);
+}
+
 #[test]
 fn draw_skips_the_relation_family_at_a_zero_rung() {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);

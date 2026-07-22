@@ -20,7 +20,10 @@
 
 use core::{error::Error, fmt};
 
-use rayon::prelude::*;
+use rayon::{
+    iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
+    slice::{ParallelSlice as _, ParallelSliceMut as _},
+};
 use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 use super::knn::table::KnnView;

@@ -133,14 +133,14 @@ pub(crate) enum PostgresDatasetError {
 }
 
 impl fmt::Display for PostgresDatasetError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Query(_) => formatter.write_str("graph store query failed"),
+            Self::Query(_) => fmt.write_str("graph store query failed"),
             Self::Ordinal { value } => {
-                write!(formatter, "type ordinal {value} is not a valid row")
+                write!(fmt, "type ordinal {value} is not a valid row")
             }
             Self::MissingCanonicalEmbeddings { missing } => write!(
-                formatter,
+                fmt,
                 "{missing} requested canonical embeddings are absent from the store"
             ),
         }
@@ -225,15 +225,15 @@ enum VectorDecodeError {
 }
 
 impl fmt::Display for VectorDecodeError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Header => formatter.write_str("pgvector header is truncated"),
+            Self::Header => fmt.write_str("pgvector header is truncated"),
             Self::Shape {
                 expected,
                 dimensions,
                 bytes,
             } => write!(
-                formatter,
+                fmt,
                 "expected a {expected}-dimensional pgvector, got {dimensions} dimensions and \
                  {bytes} payload bytes"
             ),

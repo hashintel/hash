@@ -39,6 +39,10 @@ fn default_root() -> String {
 #[command(group = clap::ArgGroup::new("classifier_input")
     .required(true)
     .args(["annotations", "classifier"]))]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the flags are independent operator switches"
+)]
 pub struct FitArgs {
     /// The generation root directory.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ROOT", default_value_t = default_root())]
@@ -108,6 +112,12 @@ pub struct FitArgs {
         conflicts_with = "assert_proximal_radius"
     )]
     vacuous_placement: bool,
+
+    /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
+    ///
+    /// Either construction answers to the same recall admission.
+    #[arg(long)]
+    nn_descent: bool,
 
     /// Where the admission report JSON lands.
     #[arg(long, default_value = "admission-report.json")]
@@ -313,6 +323,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         classifier: args.classifier,
         projector_steps: args.projector_steps,
         baseline: args.baseline,
+        nn_descent: args.nn_descent,
     };
     tracing::info!(
         root = args.root,
@@ -326,6 +337,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         classifier = options.classifier.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),
         baseline = options.baseline,
+        nn_descent = options.nn_descent,
         asserted_proximal_radius = ?options.asserted_proximal_radius,
         vacuous_placement = options.vacuous_placement,
         "starting the production run"

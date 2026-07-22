@@ -13,7 +13,7 @@ use core::{
     simd::{Simd, f32x8, num::SimdFloat as _},
 };
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, prop_assume, proptest, strategy::Strategy};
 
 use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
 
@@ -465,7 +465,7 @@ fn from_slice_rejects_what_would_break_the_invariant() {
 /// Two full 8-lane chunks plus a remainder of three, crossing the SIMD chunk boundary in both the
 /// batched body and the scalar tail.
 fn components_strategy() -> impl Strategy<Value = [f32; 19]> {
-    prop::array::uniform19(-1e3_f32..1e3)
+    proptest::array::uniform19(-1e3_f32..1e3)
 }
 
 proptest! {

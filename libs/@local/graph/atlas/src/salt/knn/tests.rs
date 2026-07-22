@@ -11,6 +11,8 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{
     DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex, Neighbour,
     artifact::{InvalidKnnFile, KnnArchive},
+    construction::{IndexConstruction, KnnConstruction as _, NeighbourLists},
+    descent::{NnDescent, NnDescentOptions},
     error::KnnError,
     hannoy::{HannoyIndex, HannoyIndexOptions},
     recall,
@@ -321,6 +323,23 @@ fn two_neighbours() -> NonZero<usize> {
     NonZero::new(2).expect("two is nonzero")
 }
 
+fn test_rng() -> Xoshiro256PlusPlus {
+    Xoshiro256PlusPlus::seed_from_u64(0x0A75)
+}
+
+/// Constructs lists over `embeddings` through an initially empty backend.
+fn lists_via<I>(
+    index: I,
+    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    width: NonZero<usize>,
+) -> Result<NeighbourLists, KnnError<I::Error>>
+where
+    I: NearestNeighboursIndex + Sync,
+    I::Error: Send,
+{
+    IndexConstruction::new(index).construct(embeddings, width, test_rng())
+}
+
 #[test]
 #[cfg_attr(
     miri,
@@ -328,13 +347,14 @@ fn two_neighbours() -> NonZero<usize> {
 )]
 fn build_matches_hand_computed_neighbours() {
     let rows = plane_fixture();
-    let index = ExactIndex::from_rows(&rows);
-    let knn = Knn::build(&index, rows.len(), two_neighbours()).expect("the fixture is well-formed");
+    let matrix = Matrix::new(&rows);
+    let lists = lists_via(ExactIndex::from_rows(&[]), matrix.view(), two_neighbours())
+        .expect("the fixture is well-formed");
+    let knn = Knn::from_lists::<!>(&lists, two_neighbours()).expect("the fixture is well-formed");
 
     assert_eq!(knn.rows(), 4);
     assert_eq!(knn.neighbours(), 2);
 
-    let matrix = Matrix::new(&rows);
     let embeddings = matrix.view();
     let distance = |left: usize, right: usize| embeddings[left].cosine_distance(&embeddings[right]);
     let diagonal = distance(0, 2);
@@ -358,22 +378,51 @@ fn build_matches_hand_computed_neighbours() {
 }
 
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
 fn build_rejects_unsatisfiable_shapes() {
     let rows = plane_fixture();
-    let index = ExactIndex::from_rows(&rows);
+    let matrix = Matrix::new(&rows);
 
     assert_matches!(
-        Knn::build(&index, 1, two_neighbours()),
+        lists_via(
+            ExactIndex::from_rows(&[]),
+            &matrix.view()[..1],
+            two_neighbours()
+        ),
         Err(KnnError::Invalid(KnnValidationError::InsufficientRows {
             rows: 1
         })),
     );
+
+    // Construction clamps the width to the corpus; the table's stored
+    // count still must stay below the row domain.
+    let lists = lists_via(
+        ExactIndex::from_rows(&[]),
+        matrix.view(),
+        NonZero::new(4).expect("four is nonzero"),
+    )
+    .expect("the clamped construction succeeds");
+    assert_eq!(lists.width(), 3);
     assert_matches!(
-        Knn::build(&index, 4, NonZero::new(4).expect("four is nonzero")),
+        Knn::from_lists::<!>(&lists, NonZero::new(4).expect("four is nonzero")),
         Err(KnnError::Invalid(KnnValidationError::NeighbourBounds {
             neighbours: 4,
             rows: 4,
         })),
+    );
+
+    // Lists narrower than the stored width cannot fill the table.
+    let narrow = lists_via(ExactIndex::from_rows(&[]), matrix.view(), two_neighbours())
+        .expect("the fixture is well-formed");
+    assert_matches!(
+        Knn::from_lists::<!>(&narrow, NonZero::new(3).expect("three is nonzero")),
+        Err(KnnError::ListsWidth {
+            width: 2,
+            neighbours: 3,
+        }),
     );
 }
 
@@ -384,10 +433,14 @@ fn build_rejects_unsatisfiable_shapes() {
 )]
 fn build_rejects_malformed_backend_responses() {
     let rows = plane_fixture();
+    let matrix = Matrix::new(&rows);
 
-    let short = ShortIndex(ExactIndex::from_rows(&rows));
     assert_matches!(
-        Knn::build(&short, rows.len(), two_neighbours()),
+        lists_via(
+            ShortIndex(ExactIndex::from_rows(&[])),
+            matrix.view(),
+            two_neighbours()
+        ),
         Err(KnnError::SearchCount {
             expected: 2,
             actual: 1,
@@ -395,17 +448,173 @@ fn build_rejects_malformed_backend_responses() {
         }),
     );
 
-    let doubled = DoubledIndex(ExactIndex::from_rows(&rows));
     assert_matches!(
-        Knn::build(&doubled, rows.len(), two_neighbours()),
+        lists_via(
+            DoubledIndex(ExactIndex::from_rows(&[])),
+            matrix.view(),
+            two_neighbours()
+        ),
         Err(KnnError::DuplicateNeighbour { .. }),
     );
 
-    let escaping = EscapingIndex(ExactIndex::from_rows(&rows));
     assert_matches!(
-        Knn::build(&escaping, rows.len(), two_neighbours()),
+        lists_via(
+            EscapingIndex(ExactIndex::from_rows(&[])),
+            matrix.view(),
+            two_neighbours()
+        ),
         Err(KnnError::NeighbourOutOfBounds { rows: 4, .. }),
     );
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn descent_converges_on_known_geometry() {
+    let rows = fan_fixture(64, 0.02);
+    let matrix = Matrix::new(&rows);
+    let embeddings = matrix.view();
+    let width = NonZero::new(4).expect("four is nonzero");
+
+    let lists = NnDescent::new(NnDescentOptions::default())
+        .construct(embeddings, width, test_rng())
+        .expect("the fixture is well-formed");
+    assert_eq!(lists.rows(), 64);
+    assert_eq!(lists.width(), 4);
+
+    let exact = ExactIndex::from_rows(&rows);
+    let mut matched = 0;
+    for row in 0..64 {
+        let entries = lists.row(row);
+        assert!(
+            entries.is_sorted_by(|left, right| {
+                (left.distance, left.id.get()) <= (right.distance, right.id.get())
+            }),
+            "rows arrive in ascending (distance, id) order",
+        );
+        let mut ids: Vec<u64> = entries.iter().map(|neighbour| neighbour.id.get()).collect();
+        assert!(!ids.contains(&(row as u64)), "no row references itself");
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), 4, "neighbours within a row are unique");
+        for neighbour in entries {
+            assert!((0.0..=2.0).contains(&neighbour.distance));
+        }
+
+        let reference: Vec<u64> = exact
+            .ranked_by_id(NodeRowId::new(row as u64))
+            .into_iter()
+            .take(4)
+            .map(|neighbour| neighbour.id.get())
+            .collect();
+        matched += ids.iter().filter(|id| reference.contains(id)).count();
+    }
+
+    // The join's update application is parallel and unordered, so the
+    // converged lists are not replayable; on this smooth fan geometry
+    // the join converges to (near-)exact lists under any order, and
+    // the bound leaves room for the residual variance.
+    assert!(
+        matched >= 230,
+        "descent matched {matched}/256 exact neighbours",
+    );
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn descent_passes_the_admission_gate() {
+    // l2-normalized, honouring the construction's input contract: the
+    // production pipeline admits representations through the norm spot
+    // check before any construction sees them.
+    let rows: Vec<[f32; PROJECTOR_DIMENSIONS]> = {
+        let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
+        core::iter::repeat_with(|| {
+            let mut row = [0.0; PROJECTOR_DIMENSIONS];
+            for component in &mut row {
+                *component = rng.random::<f32>().mul_add(2.0, -1.0);
+            }
+            let norm = row
+                .iter()
+                .map(|&component| component * component)
+                .sum::<f32>()
+                .sqrt();
+            for component in &mut row {
+                *component /= norm;
+            }
+            row
+        })
+        .take(128)
+        .collect()
+    };
+    let matrix = Matrix::new(&rows);
+    let embeddings = matrix.view();
+
+    // The production width: the wider of the spot check's depth and
+    // the stored count, so the admitted lists and the persisted table
+    // are the same lists.
+    let width = recall::SpotCheckOptions::default()
+        .neighbours
+        .max(DEFAULT_NEIGHBOURS);
+    let lists = NnDescent::new(NnDescentOptions::default())
+        .construct(embeddings, width, test_rng())
+        .expect("the fixture is well-formed");
+
+    let knn = Knn::from_lists::<!>(&lists, DEFAULT_NEIGHBOURS)
+        .expect("the table assembles and validates");
+    assert_eq!(knn.rows(), 128);
+    assert_eq!(knn.neighbours(), 30);
+
+    let check = recall::spot_check_lists::<!>(
+        &lists,
+        embeddings,
+        recall::SpotCheckOptions { .. },
+        Xoshiro256PlusPlus::seed_from_u64(9),
+    )
+    .expect("the spot check completes");
+    assert!(
+        check.meets_minimum(),
+        "recall {} misses the admission minimum",
+        check.recall(),
+    );
+}
+
+#[test]
+fn descent_rejects_degenerate_corpora() {
+    let rows = plane_fixture();
+    let matrix = Matrix::new(&rows);
+
+    assert_matches!(
+        NnDescent::new(NnDescentOptions::default()).construct(
+            &matrix.view()[..1],
+            two_neighbours(),
+            test_rng()
+        ),
+        Err(super::descent::NnDescentError::InsufficientRows { rows: 1 }),
+    );
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn descent_clamps_the_width_to_the_corpus() {
+    let rows = plane_fixture();
+    let matrix = Matrix::new(&rows);
+
+    let lists = NnDescent::new(NnDescentOptions::default())
+        .construct(
+            matrix.view(),
+            NonZero::new(16).expect("sixteen is nonzero"),
+            test_rng(),
+        )
+        .expect("the clamped construction succeeds");
+    assert_eq!(lists.width(), 3, "the width clamps to every non-self row");
 }
 
 #[test]
@@ -685,8 +894,10 @@ fn published_table_reopens_mapped() {
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
 
     let rows = plane_fixture();
-    let index = ExactIndex::from_rows(&rows);
-    let knn = Knn::build(&index, rows.len(), two_neighbours()).expect("the fixture is well-formed");
+    let matrix = Matrix::new(&rows);
+    let lists = lists_via(ExactIndex::from_rows(&[]), matrix.view(), two_neighbours())
+        .expect("the fixture is well-formed");
+    let knn = Knn::from_lists::<!>(&lists, two_neighbours()).expect("the fixture is well-formed");
 
     let mut bytes = Vec::new();
     knn.write_into(&mut bytes)
@@ -765,6 +976,10 @@ fn published_table_reopens_mapped() {
 
 #[test]
 #[cfg_attr(miri, ignore = "LMDB maps files through FFI Miri cannot execute")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the seam contract and the production construction path share one live environment"
+)]
 fn hannoy_honours_the_seam_contract() {
     let dir = std::env::temp_dir().join(format!("hash-graph-atlas-knn-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
@@ -850,13 +1065,41 @@ fn hannoy_honours_the_seam_contract() {
         "a stored vector matches itself"
     );
 
-    let knn = Knn::build(&index, rows.len(), DEFAULT_NEIGHBOURS)
+    // The production path: a fresh backend behind the construction
+    // wrapper, the lists admitted by exact recall, the table sliced
+    // from the same lists.
+    let construction_base = base.join("construction");
+    std::fs::create_dir_all(&construction_base).expect("the temp directory is writable");
+    let lists = IndexConstruction::new(
+        HannoyIndex::new(
+            &construction_base,
+            HannoyIndexOptions {
+                map_size: 64 << 20,
+                ..
+            },
+        )
+        .expect("the environment opens on a fresh directory"),
+    )
+    .construct(
+        embeddings,
+        // The production width: the wider of the spot check's depth
+        // and the stored count.
+        recall::SpotCheckOptions::default()
+            .neighbours
+            .max(DEFAULT_NEIGHBOURS),
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the construction succeeds");
+    assert_eq!(lists.rows(), 128);
+    assert_eq!(lists.width(), 50);
+
+    let knn = Knn::from_lists::<!>(&lists, DEFAULT_NEIGHBOURS)
         .expect("the table assembles and validates");
     assert_eq!(knn.rows(), 128);
     assert_eq!(knn.neighbours(), 30);
 
-    let check = recall::spot_check(
-        &index,
+    let check = recall::spot_check_lists::<!>(
+        &lists,
         embeddings,
         recall::SpotCheckOptions { .. },
         Xoshiro256PlusPlus::seed_from_u64(9),

@@ -9,7 +9,9 @@
 use core::{error::Error, fmt};
 
 use rand::{Rng, SeedableRng};
-use rayon::prelude::*;
+use rayon::iter::{
+    IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
+};
 
 use super::select::{LandmarkOrdinal, LandmarkSelection};
 use crate::{

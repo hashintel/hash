@@ -1,6 +1,6 @@
 //! Morton keys over the generation's frame.
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
 use crate::{
     math::{Bounds2, Vec2},

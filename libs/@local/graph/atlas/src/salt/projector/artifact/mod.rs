@@ -51,21 +51,18 @@ pub(crate) enum CheckpointError {
 }
 
 impl core::fmt::Display for CheckpointError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Io(error) => write!(formatter, "could not access the checkpoint: {error}"),
+            Self::Io(error) => write!(fmt, "could not access the checkpoint: {error}"),
             Self::Record(error) => {
-                write!(
-                    formatter,
-                    "could not encode or decode the checkpoint: {error}"
-                )
+                write!(fmt, "could not encode or decode the checkpoint: {error}")
             }
-            Self::Architecture(error) => error.fmt(formatter),
-            Self::InvalidSchedule => formatter.write_str(
+            Self::Architecture(error) => error.fmt(fmt),
+            Self::InvalidSchedule => fmt.write_str(
                 "the checkpoint's schedule fields do not form a valid training schedule",
             ),
             Self::SchedulerPosition { position, boundary } => write!(
-                formatter,
+                fmt,
                 "the checkpoint's scheduler position {position} does not sit at its schedule's \
                  boundary {boundary}",
             ),

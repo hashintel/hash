@@ -3,7 +3,7 @@
     reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assume, proptest, strategy::Strategy};
 
 use super::Similarity;
 use crate::math::{
@@ -692,7 +692,7 @@ proptest! {
     #[test]
     fn fit_recovers_a_random_similarity(
         similarity in similarity_strategy(),
-        jitter in prop::array::uniform8(-0.5_f32..0.5),
+        jitter in proptest::array::uniform8(-0.5_f32..0.5),
     ) {
         let source = [
             Vec2::new(jitter[0], jitter[1]),

@@ -47,20 +47,20 @@ pub(crate) enum RefreshError {
 }
 
 impl fmt::Display for RefreshError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Diverged { row, eta } => write!(
-                formatter,
+                fmt,
                 "training diverged: row {} projected to a non-finite coordinate at rung {eta}",
                 row.get(),
             ),
             Self::NonFiniteScale { row, eta } => write!(
-                formatter,
+                fmt,
                 "training diverged: row {} measured a non-finite local scale at rung {eta}",
                 row.get(),
             ),
             Self::RowsExceedIndexDomain { rows } => write!(
-                formatter,
+                fmt,
                 "{rows} corpus rows exceed the spatial index's u32 item encoding"
             ),
         }

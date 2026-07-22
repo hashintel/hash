@@ -1,7 +1,7 @@
 //! The neighbour and semantic graph stages.
 use super::{
     super::{
-        Stage,
+        KnnConstructionChoice, Stage,
         error::StageError,
         role::{Role, Staged, stage},
         stage_rng,
@@ -9,43 +9,57 @@ use super::{
     Context,
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
     file::sprs::read::SprsFile,
     math::AlignedVecN,
     salt::{
         knn::{
-            Embedding, NearestNeighboursIndex as _, artifact::KnnArchive, hannoy::HannoyIndex,
-            recall, table::Knn,
+            artifact::KnnArchive,
+            construction::{IndexConstruction, KnnConstruction as _, NeighbourLists},
+            descent::NnDescent,
+            hannoy::{HannoyIndex, HannoyIndexError},
+            recall,
+            table::Knn,
         },
         semantic::{SemanticGraph, artifact::SemanticGraphArchive},
     },
 };
 
 impl Context<'_> {
-    /// Builds the search backend over the mapped representations.
+    /// Constructs the neighbour lists over the mapped representations.
     ///
-    /// Admits it by exact recall, and stages the derived k-NN table, mapping it back for the stages
-    /// that consume it.
+    /// Admits them by exact recall, and stages the derived k-NN table, mapping it back for the
+    /// stages that consume it. One construction runs at the wider of the spot check's depth and
+    /// the stored width, so the admitted lists and the persisted table are the same lists.
     pub(super) fn build_neighbour_table(
         &self,
         rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     ) -> Result<Staged<KnnArchive, recall::RecallSpotCheck>, StageError> {
         let _span = tracing::info_span!("knn").entered();
 
-        let mut index = HannoyIndex::new(self.scratch.directory("knn")?, self.config.index)?;
-        {
+        let width = self
+            .config
+            .recall_check
+            .neighbours
+            .max(self.config.neighbours);
+        let lists: NeighbourLists = {
             let _span = tracing::info_span!("knn-link").entered();
-            index.insert_many(rows.iter().enumerate().map(|(row, components)| Embedding {
-                id: NodeRowId::new(row as u64),
-                components,
-            }))?;
-
-            index.build(stage_rng(self.config.seed, Stage::KnnLink))?;
-        }
+            let rng = stage_rng(self.config.seed, Stage::KnnLink);
+            match self.config.construction {
+                KnnConstructionChoice::Index => IndexConstruction::new(HannoyIndex::new(
+                    self.scratch.directory("knn")?,
+                    self.config.index,
+                )?)
+                .construct(rows, width, rng)?,
+                KnnConstructionChoice::Descent(options) => {
+                    NnDescent::new(options).construct(rows, width, rng)?
+                }
+            }
+        };
 
         let recall = tracing::info_span!("recall-check").in_scope(|| {
-            recall::spot_check(
-                &index,
+            recall::spot_check_lists::<HannoyIndexError>(
+                &lists,
                 rows,
                 self.config.recall_check,
                 stage_rng(self.config.seed, Stage::RecallCheck),
@@ -58,7 +72,7 @@ impl Context<'_> {
 
         let file = {
             let _span = tracing::info_span!("knn-table").entered();
-            let table = Knn::build(&index, rows.len(), self.config.neighbours)?;
+            let table = Knn::from_lists::<HannoyIndexError>(&lists, self.config.neighbours)?;
 
             stage(self.staging, Role::Knn, &table)?
         };

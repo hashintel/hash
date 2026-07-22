@@ -2,10 +2,13 @@
 
 use core::{error::Error, fmt, num::NonZero};
 
-use rayon::prelude::*;
+use rayon::{
+    iter::{IndexedParallelIterator as _, ParallelIterator as _},
+    slice::ParallelSliceMut as _,
+};
 use sprs::{CsMatI, CsMatViewI};
 
-use super::{NearestNeighboursIndex, Neighbour, error::KnnError};
+use super::{Neighbour, construction::NeighbourLists, error::KnnError};
 use crate::dataset::NodeRowId;
 
 /// A neighbour matrix violated a [`Knn`] invariant.
@@ -184,32 +187,34 @@ impl Knn {
         Ok(Self(matrix))
     }
 
-    /// Queries every node row of `index` and assembles the validated table.
+    /// Slices each row's stored prefix from constructed lists and assembles the validated table.
     ///
-    /// The backend must hold exactly the rows `0..rows`, already built. Rows are queried in
-    /// parallel; the assembled table is deterministic for a deterministic backend because each
-    /// row's results are written to that row's slot regardless of completion order.
+    /// Each row keeps its `neighbours` nearest entries — the lists' leading prefix — rekeyed into
+    /// the matrix's ascending-column order.
     ///
     /// # Errors
     ///
-    /// Returns an error when the backend fails, returns a malformed or short result, or the
-    /// assembled table violates a [`Knn`] invariant.
-    pub(crate) fn build<I>(
-        index: &I,
-        rows: usize,
+    /// Returns an error when the lists are narrower than the stored width or the assembled table
+    /// violates a [`Knn`] invariant.
+    pub(crate) fn from_lists<E: Send>(
+        lists: &NeighbourLists,
         neighbours: NonZero<usize>,
-    ) -> Result<Self, KnnError<I::Error>>
-    where
-        I: NearestNeighboursIndex + Sync,
-        I::Error: Send,
-    {
+    ) -> Result<Self, KnnError<E>> {
         let neighbours = neighbours.get();
+        let rows = lists.rows();
         if rows < 2 {
             return Err(KnnValidationError::InsufficientRows { rows }.into());
         }
 
         if neighbours >= rows {
             return Err(KnnValidationError::NeighbourBounds { neighbours, rows }.into());
+        }
+
+        if lists.width() < neighbours {
+            return Err(KnnError::ListsWidth {
+                width: lists.width(),
+                neighbours,
+            });
         }
 
         // Columns encode as u32; the largest possible column is the
@@ -228,22 +233,9 @@ impl Knn {
             .zip(distances.par_chunks_mut(neighbours))
             .enumerate()
             .try_for_each(|(row, (row_indices, row_distances))| {
-                let id = NodeRowId::new(row as u64);
-                let mut found: Vec<Neighbour> = index
-                    .search_by_id(id, neighbours)
-                    .map_err(KnnError::Backend)?
-                    .into_iter()
-                    .collect();
-                if found.len() != neighbours {
-                    return Err(KnnError::SearchCount {
-                        row,
-                        expected: neighbours,
-                        actual: found.len(),
-                    });
-                }
-
-                // CSR keys rows by ascending neighbour; the backend's
+                // CSR keys rows by ascending neighbour; the lists'
                 // distance ordering is recomputable from the values.
+                let mut found: Vec<Neighbour> = lists.row(row)[..neighbours].to_vec();
                 found.sort_unstable_by_key(|neighbour| neighbour.id.get());
 
                 for (slot, neighbour) in row_indices.iter_mut().zip(&found) {

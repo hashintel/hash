@@ -13,7 +13,7 @@
     reason = "a delta tile's delivered set really is one contiguous range"
 )]
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert, prop_assert_eq, proptest};
 
 use super::{
     Kind, Mode,

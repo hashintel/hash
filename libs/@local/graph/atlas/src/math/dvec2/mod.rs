@@ -118,7 +118,7 @@ impl DVec2 {
     /// Narrows both components to the working precision.
     ///
     /// Returns [`None`] when either component leaves the finite `f32` range, following
-    /// [`narrow_f32`](super::narrow_f32).
+    /// [`narrow_f32`].
     #[inline]
     #[must_use]
     pub const fn narrow(self) -> Option<Vec2> {

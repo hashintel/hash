@@ -1,6 +1,6 @@
 use core::num::NonZero;
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert, proptest};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 

@@ -6,7 +6,7 @@
 
 use core::simd::Simd;
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, proptest, strategy::Strategy};
 
 use crate::math::{Vec2, Vec2x4, Vec2x4T, tests::POINTS};
 
@@ -308,7 +308,7 @@ fn vec2_strategy() -> impl Strategy<Value = Vec2> {
 
 /// Four arbitrary in-range vectors, one per batch lane.
 fn vec2_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
-    prop::array::uniform4(vec2_strategy())
+    proptest::array::uniform4(vec2_strategy())
 }
 
 proptest! {

@@ -378,8 +378,8 @@ impl LinkDetails {
 pub struct DetailError(tokio_postgres::Error);
 
 impl core::fmt::Display for DetailError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "the detail hydration failed: {}", self.0)
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(fmt, "the detail hydration failed: {}", self.0)
     }
 }
 

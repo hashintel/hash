@@ -3,7 +3,7 @@
     reason = "exactness assertions are the point: inverse negation is a bit-precise contract"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, proptest, strategy::Strategy};
 
 use crate::math::{
     Rotation, Vec2, Vec2x4T,

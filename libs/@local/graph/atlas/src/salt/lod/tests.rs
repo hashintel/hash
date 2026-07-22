@@ -1,4 +1,4 @@
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert, prop_assert_eq, proptest};
 use smallvec::{SmallVec, smallvec};
 use uuid::Uuid;
 
@@ -228,7 +228,7 @@ proptest! {
     /// prefix.
     #[test]
     fn cascade_coverage_is_total(
-        bits in prop::collection::vec(any::<u64>(), 1..48),
+        bits in proptest::collection::vec(any::<u64>(), 1..48),
         deepest in 0_u8..=6,
         seed: u64,
     ) {
@@ -244,7 +244,7 @@ proptest! {
     /// Below the catch-all, a bucket holds at most one point per cell of its own grid.
     #[test]
     fn buckets_claim_cells_once(
-        bits in prop::collection::vec(any::<u64>(), 1..48),
+        bits in proptest::collection::vec(any::<u64>(), 1..48),
         deepest in 0_u8..=6,
         seed: u64,
     ) {
@@ -280,7 +280,7 @@ proptest! {
     /// Its permutations invert each other.
     #[test]
     fn base_order_is_the_unique_total_sort(
-        bits in prop::collection::vec(any::<u64>(), 1..48),
+        bits in proptest::collection::vec(any::<u64>(), 1..48),
         deepest in 0_u8..=6,
         seed: u64,
     ) {
@@ -592,7 +592,7 @@ proptest! {
     /// The result upholds the serving contract's structural laws.
     #[test]
     fn built_columns_uphold_the_contract_laws(
-        rows in prop::collection::vec(
+        rows in proptest::collection::vec(
             (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0),
             1..48,
         ),
@@ -894,7 +894,7 @@ proptest! {
     /// Certified against linear-scan references.
     #[test]
     fn quad_trees_uphold_the_contract_laws(
-        rows in prop::collection::vec(
+        rows in proptest::collection::vec(
             (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0, 0_u64..6),
             1..48,
         ),

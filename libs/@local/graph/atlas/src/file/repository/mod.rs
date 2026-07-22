@@ -57,8 +57,8 @@ impl TryFrom<u32> for RepositoryVersion {
 pub(crate) struct UnknownRepositoryVersion(u32);
 
 impl core::fmt::Display for UnknownRepositoryVersion {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "unknown repository version {}", self.0)
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(fmt, "unknown repository version {}", self.0)
     }
 }
 
@@ -129,8 +129,8 @@ impl FileName {
 }
 
 impl core::fmt::Display for FileName {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        formatter.write_str(&self.0)
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str(&self.0)
     }
 }
 
@@ -154,8 +154,8 @@ impl TryFrom<String> for FileName {
 pub(crate) struct InvalidFileName;
 
 impl core::fmt::Display for InvalidFileName {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        formatter.write_str(
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str(
             "a repository file name is nonempty, contains no path separator or NUL byte, and does \
              not start with a dot",
         )

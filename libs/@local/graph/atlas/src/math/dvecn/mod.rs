@@ -1,6 +1,6 @@
 //! Double-precision `N`-dimensional vectors and their reductions.
 //!
-//! [`DVecN`] is the `f64` twin of [`VecN`](super::VecN), for the few consumers whose algorithms
+//! [`DVecN`] is the `f64` twin of [`VecN`], for the few consumers whose algorithms
 //! demand double precision throughout, such as classifier logits feeding a quasi-Newton optimizer.
 //! Its reductions ([`softmax`](DVecN::softmax), [`log_sum_exp`](DVecN::log_sum_exp)) shift,
 //! exponentiate, and fold four lanes at a time; the exponential goes through

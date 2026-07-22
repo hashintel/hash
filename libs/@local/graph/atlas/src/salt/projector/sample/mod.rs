@@ -19,8 +19,8 @@
 #[cfg(test)]
 mod tests;
 
-use core::num::NonZero;
-use std::collections::HashSet;
+use core::{alloc::Allocator, num::NonZero};
+use std::{alloc::Global, collections::HashSet};
 
 use rand::{Rng, RngExt as _};
 
@@ -95,44 +95,57 @@ impl<'graph> SemanticEdgeSampler<'graph> {
     }
 
     /// Draws `count` edges proportional to their weight.
-    pub(crate) fn sample(&self, count: usize, mut rng: impl Rng) -> Vec<NodePair> {
+    pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair> {
+        self.sample_in(count, rng, Global)
+    }
+
+    /// Draws `count` edges proportional to their weight, allocating the pairs in `alloc`.
+    pub(crate) fn sample_in<A: Allocator>(
+        &self,
+        count: usize,
+        mut rng: impl Rng,
+        alloc: A,
+    ) -> Vec<NodePair, A> {
         let total = self.cumulative[self.cumulative.len() - 1];
-        core::iter::repeat_with(|| {
-            // Redrawing pins `target < total` structurally rather than
-            // leaning on the sampler's bit width: today's 53-bit
-            // uniform times `total` never rounds up to `total`, but
-            // that is an implementation detail of the rand version.
-            let target = loop {
-                let candidate = rng.random::<f64>() * total;
-                if candidate < total {
-                    break candidate;
-                }
-            };
+        let mut pairs = Vec::with_capacity_in(count, alloc);
+        pairs.extend(
+            core::iter::repeat_with(|| {
+                // Redrawing pins `target < total` structurally rather than
+                // leaning on the sampler's bit width: today's 53-bit
+                // uniform times `total` never rounds up to `total`, but
+                // that is an implementation detail of the rand version.
+                let target = loop {
+                    let candidate = rng.random::<f64>() * total;
+                    if candidate < total {
+                        break candidate;
+                    }
+                };
 
-            // The last cumulative entry therefore exceeds every
-            // target, so the partition point lands in `1..=rows`; rows
-            // without weight repeat their predecessor's total and are
-            // never selected.
-            let row = self.cumulative.partition_point(|&sum| sum <= target) - 1;
-            let mut sum = self.cumulative[row];
-            let mut chosen = None;
-            for edge in self.graph.row(row) {
-                sum += f64::from(edge.weight);
-                if target < sum {
-                    chosen = Some(edge.id);
-                    break;
+                // The last cumulative entry therefore exceeds every
+                // target, so the partition point lands in `1..=rows`; rows
+                // without weight repeat their predecessor's total and are
+                // never selected.
+                let row = self.cumulative.partition_point(|&sum| sum <= target) - 1;
+                let mut sum = self.cumulative[row];
+                let mut chosen = None;
+                for edge in self.graph.row(row) {
+                    sum += f64::from(edge.weight);
+                    if target < sum {
+                        chosen = Some(edge.id);
+                        break;
+                    }
                 }
-            }
 
-            // The walk rebuilds the constructor's partial sums (same
-            // values, same order), so it reaches the row's total and
-            // the target lies strictly below it.
-            let id = chosen.expect("the row's rebuilt weight sums cover every drawn target");
-            let row = u64::try_from(row).expect("graph rows fit the row-id encoding");
-            NodePair::new(NodeRowId::new(row), id)
-        })
-        .take(count)
-        .collect()
+                // The walk rebuilds the constructor's partial sums (same
+                // values, same order), so it reaches the row's total and
+                // the target lies strictly below it.
+                let id = chosen.expect("the row's rebuilt weight sums cover every drawn target");
+                let row = u64::try_from(row).expect("graph rows fit the row-id encoding");
+                NodePair::new(NodeRowId::new(row), id)
+            })
+            .take(count),
+        );
+        pairs
     }
 }
 
@@ -175,11 +188,25 @@ impl<'index> RelationEdgeSampler<'index> {
         &self,
         types: usize,
         cap: NonZero<usize>,
-        mut rng: impl Rng,
+        rng: impl Rng,
     ) -> Vec<SampledRelationEdges<'index>> {
+        self.sample_in(types, cap, rng, Global)
+    }
+
+    /// Draws up to `types` relation types, allocating the draw list in `alloc`.
+    ///
+    /// The per-group edge vectors stay on the global allocator: they belong to
+    /// [`SampledRelationEdges`], whose layout does not vary with the caller's arena.
+    pub(crate) fn sample_in<A: Allocator>(
+        &self,
+        types: usize,
+        cap: NonZero<usize>,
+        mut rng: impl Rng,
+        alloc: A,
+    ) -> Vec<SampledRelationEdges<'index>, A> {
         let count = types.min(self.groups.len());
         if count == 0 {
-            return Vec::new();
+            return Vec::new_in(alloc);
         }
 
         let mut selected = sample_indices_vec(&mut rng, self.groups.len(), count).into_vec();
@@ -188,21 +215,19 @@ impl<'index> RelationEdgeSampler<'index> {
         // stream the per-group draws consume - independent of the
         // selection's internal ordering.
         selected.sort_unstable();
-        selected
-            .into_iter()
-            .map(|index| {
-                let group = &self.groups[index];
-                let edges = group.edges();
-                let mut offsets =
-                    sample_indices_vec(&mut rng, edges.len(), cap.get().min(edges.len()))
-                        .into_vec();
-                offsets.sort_unstable();
-                SampledRelationEdges {
-                    group,
-                    edges: offsets.into_iter().map(|offset| edges[offset]).collect(),
-                }
-            })
-            .collect()
+        let mut sampled = Vec::with_capacity_in(count, alloc);
+        sampled.extend(selected.into_iter().map(|index| {
+            let group = &self.groups[index];
+            let edges = group.edges();
+            let mut offsets =
+                sample_indices_vec(&mut rng, edges.len(), cap.get().min(edges.len())).into_vec();
+            offsets.sort_unstable();
+            SampledRelationEdges {
+                group,
+                edges: offsets.into_iter().map(|offset| edges[offset]).collect(),
+            }
+        }));
+        sampled
     }
 }
 
@@ -248,10 +273,22 @@ impl<'view> OrdinaryNegativeSampler<'view> {
     /// smaller than the request (dense tiny corpora, aggressive protection), where the honest
     /// outcome is a shorter batch. At corpus scale the vetoed fraction of all pairs is vanishing
     /// and the budget never binds.
-    pub(crate) fn sample(&self, count: usize, mut rng: impl Rng) -> Vec<NodePair> {
+    pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair> {
+        self.sample_in(count, rng, Global)
+    }
+
+    /// Draws up to `count` distinct admissible pairs, allocating them in `alloc`.
+    ///
+    /// The rejection bookkeeping is scratch and stays on the global allocator.
+    pub(crate) fn sample_in<A: Allocator>(
+        &self,
+        count: usize,
+        mut rng: impl Rng,
+        alloc: A,
+    ) -> Vec<NodePair, A> {
         let rows = self.semantic.rows();
         if rows < 2 {
-            return Vec::new();
+            return Vec::new_in(alloc);
         }
 
         let bound = NonZero::new(u64::try_from(rows).expect("graph rows fit the row-id encoding"))
@@ -259,7 +296,7 @@ impl<'view> OrdinaryNegativeSampler<'view> {
 
         let budget = count.saturating_mul(64).saturating_add(128);
         let mut seen = HashSet::with_capacity(count);
-        let mut sampled = Vec::with_capacity(count);
+        let mut sampled = Vec::with_capacity_in(count, alloc);
 
         for _ in 0..budget {
             if sampled.len() == count {

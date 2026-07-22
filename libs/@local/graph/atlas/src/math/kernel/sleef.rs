@@ -110,7 +110,10 @@ fn pow2_f64<const N: usize>(exponent: Simd<i32, N>) -> Simd<f64, N> {
 /// intermediate results, so the scaling is exact except for the single rounding when the final
 /// value lands in the subnormal range.
 #[inline]
-fn scale_by_pow2_f32<const N: usize>(values: Simd<f32, N>, exponent: Simd<i32, N>) -> Simd<f32, N> {
+pub(super) fn scale_by_pow2_f32<const N: usize>(
+    values: Simd<f32, N>,
+    exponent: Simd<i32, N>,
+) -> Simd<f32, N> {
     let half = exponent >> Simd::splat(1);
     values * pow2_f32(half) * pow2_f32(exponent - half)
 }

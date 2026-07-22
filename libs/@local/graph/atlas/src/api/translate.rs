@@ -24,9 +24,10 @@ const DESCRIPTION: &str = "Translates upstream entity ids (`webId~entityUuid`) t
                            plus, for nodes, the wire-frame position - the correlation seam \
                            between separately fetched entities and dots already on screen.
 
-Row ids are opaque per-generation values: consistent across every endpoint of one generation, \
-                           carrying no ordering or adjacency information, and not stable across \
-                           generations - re-translate after a generation change.
+Row ids are opaque per-generation values, sparse in the full u32 range: consistent across every \
+                           endpoint of one generation, carrying no ordering, adjacency, or count \
+                           information, never bounded by the generation's row count, and not \
+                           stable across generations - re-translate after a generation change.
 
 The response is two maps keyed by the requested id string echoed verbatim, so kind is carried by \
                            which map answers. An id that resolves to nothing is an absent key - \

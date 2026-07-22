@@ -17,12 +17,12 @@
 
 use core::num::NonZero;
 
-use super::{FitConfig, PlacementOptions, PolicyOptions, prepare::norm};
+use super::{FitConfig, KnnConstructionChoice, PlacementOptions, PolicyOptions, prepare::norm};
 use crate::{
     math::{AffinityCurve, UnitFraction},
     salt::{
         importance::RankingConfig,
-        knn::{hannoy::HannoyIndexOptions, recall},
+        knn::{descent::NnDescentOptions, hannoy::HannoyIndexOptions, recall},
         landmark::{
             layout::{LayoutOptions, LearningRate, RepulsionStrength},
             quotient::QuotientOptions,
@@ -628,6 +628,23 @@ struct HannoyIndexOptionsDef {
     ef_search: usize,
 }
 
+/// serde shadow of [`KnnConstructionChoice`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "KnnConstructionChoice")]
+enum KnnConstructionChoiceDef {
+    Index,
+    Descent(#[serde(with = "NnDescentOptionsDef")] NnDescentOptions),
+}
+
+/// serde shadow of [`NnDescentOptions`].
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "NnDescentOptions")]
+struct NnDescentOptionsDef {
+    maximum_candidates: usize,
+    maximum_iterations: usize,
+    termination: f64,
+}
+
 /// serde shadow of [`recall::SpotCheckOptions`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "recall::SpotCheckOptions")]
@@ -838,6 +855,8 @@ pub(crate) struct FitConfigDef {
     #[serde(with = "NormCheckOptionsDef")]
     norm_check: norm::SpotCheckOptions,
     neighbours: NonZero<usize>,
+    #[serde(with = "KnnConstructionChoiceDef", default)]
+    construction: KnnConstructionChoice,
     #[serde(with = "HannoyIndexOptionsDef")]
     index: HannoyIndexOptions,
     #[serde(with = "RecallCheckOptionsDef")]

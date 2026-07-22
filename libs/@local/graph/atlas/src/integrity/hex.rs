@@ -23,23 +23,23 @@ pub enum ParseHexError {
 }
 
 impl fmt::Display for ParseHexError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Length { expected, actual } => write!(
-                formatter,
+                fmt,
                 "hexadecimal value contains {actual} characters; expected {expected}"
             ),
             Self::Character { index, byte } => {
                 if byte.is_ascii_graphic() {
                     write!(
-                        formatter,
+                        fmt,
                         "hexadecimal value contains non-lowercase-hex character '{}' at offset \
                          {index}",
                         char::from(*byte)
                     )
                 } else {
                     write!(
-                        formatter,
+                        fmt,
                         "hexadecimal value contains byte 0x{byte:02x} at offset {index}"
                     )
                 }
@@ -97,15 +97,15 @@ impl<const N: usize> HexBytes<N> {
 }
 
 impl<const N: usize> fmt::Debug for HexBytes<N> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "\"{self}\"")
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "\"{self}\"")
     }
 }
 
 impl<const N: usize> fmt::Display for HexBytes<N> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         for byte in self.0 {
-            write!(formatter, "{byte:02x}")?;
+            write!(fmt, "{byte:02x}")?;
         }
         Ok(())
     }
@@ -157,8 +157,8 @@ impl<'de, const N: usize> serde::Deserialize<'de> for HexBytes<N> {
         impl<const N: usize> serde::de::Visitor<'_> for HexVisitor<N> {
             type Value = HexBytes<N>;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(formatter, "{} lowercase hexadecimal characters", N * 2)
+            fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(fmt, "{} lowercase hexadecimal characters", N * 2)
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>

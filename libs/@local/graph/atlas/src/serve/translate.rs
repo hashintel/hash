@@ -62,11 +62,11 @@ pub enum TranslateError {
 }
 
 impl fmt::Display for TranslateError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Ids { count, maximum } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request lists {count} entity ids where the cap admits {maximum}"
                 )
             }

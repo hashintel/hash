@@ -2,7 +2,10 @@
 
 use core::ops::Range;
 
-use rayon::prelude::*;
+use rayon::{
+    iter::{IntoParallelIterator as _, ParallelIterator as _},
+    slice::{ParallelSlice as _, ParallelSliceMut as _},
+};
 
 use super::{
     BuildEvidence, Policies, RelationIndexes, RelationInstance, RelationPolicy,

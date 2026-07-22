@@ -1,6 +1,6 @@
 //! The base delivery order.
 
-use rayon::prelude::*;
+use rayon::{self, slice::ParallelSliceMut as _};
 
 use super::rank::Ranking;
 use crate::morton::{Depth, MortonKey};

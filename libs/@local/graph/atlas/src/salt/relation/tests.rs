@@ -4,7 +4,7 @@
               asserted products and square roots are exact contracts"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, prop_compose, proptest};
 
 use super::{
     ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,

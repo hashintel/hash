@@ -30,7 +30,7 @@
 
 use core::fmt;
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use sprs::{CsMatI, CsMatViewI};
 
 use crate::{

@@ -58,7 +58,7 @@ use crate::{
     salt::{
         embedding::CardEmbedder,
         importance::RankingConfig,
-        knn::{self, hannoy::HannoyIndexOptions, recall},
+        knn::{self, descent::NnDescentOptions, hannoy::HannoyIndexOptions, recall},
         ladder::LadderOptions,
         landmark::{layout::LayoutOptions, quotient::QuotientOptions, select::SelectionOptions},
         lod::stage::LodConfig,
@@ -306,6 +306,21 @@ pub(crate) enum PlacementOptions {
     Projector(ProjectorOptions),
 }
 
+/// How one fit constructs its k-NN lists.
+///
+/// The search-backend wrapper is the default; NN-Descent derives the lists directly, with no
+/// search structure. Either construction answers to the same recall spot check, and neither
+/// outlives the fit: the wrapper's index lives in the fit's scratch directory, which removes
+/// itself when the run ends.
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+pub(crate) enum KnnConstructionChoice {
+    /// Construct through the HNSW backend pinned by [`FitConfig::index`].
+    #[default]
+    Index,
+    /// Construct by NN-Descent local joins.
+    Descent(NnDescentOptions),
+}
+
 /// Every setting of one fit, valid by construction.
 ///
 /// Stage options keep their own documented defaults; the fields without defaults are the choices no
@@ -322,7 +337,10 @@ pub(crate) struct FitConfig {
     pub norm_check: norm::SpotCheckOptions = norm::SpotCheckOptions::default(),
     /// Stored neighbours per row of the k-NN table.
     pub neighbours: NonZero<usize> = knn::DEFAULT_NEIGHBOURS,
-    /// The HNSW backend serving the k-NN and assignment searches.
+    /// The k-NN list constructor.
+    pub construction: KnnConstructionChoice = KnnConstructionChoice::Index,
+    /// The HNSW backend serving the assignment search, and the k-NN construction when
+    /// [`construction`](Self::construction) routes through it.
     pub index: HannoyIndexOptions = HannoyIndexOptions::default(),
     /// The exact-recall spot check admitting the backend.
     pub recall_check: recall::SpotCheckOptions = recall::SpotCheckOptions::default(),

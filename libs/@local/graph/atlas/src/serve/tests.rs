@@ -2211,9 +2211,9 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
 /// A locate source names one subject in one of two identity domains.
 ///
 /// A by-`row` request resolves through the wire codec's ingress - pure arithmetic, no store - to
-/// the same response bytes as the by-`entityId` request for that node, an out-of-universe wire
-/// value collapses into `unknown-entity`, and a body carrying both or neither source field is
-/// rejected by name with its count.
+/// the same response bytes as the by-`entityId` request for that node, a wire value outside the
+/// encoded image collapses into `unknown-entity`, and a body carrying both or neither source field
+/// is rejected by name with its count.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_by_wire_row_matches_by_entity() {
@@ -2243,9 +2243,15 @@ async fn locate_by_wire_row_matches_by_entity() {
         "one node, two source domains, identical bytes",
     );
 
-    // 48 nodes occupy wire values [0, 48); 48 is the smallest
-    // out-of-universe value, and u32::MAX is any garbage. Both
-    // collapse into the entity path's own rejection.
+    // Wire ids are sparse in the u32 range: a value outside the
+    // encoded image collapses into the entity path's own rejection.
+    // Neither probe collides with the 48-value image under the
+    // fixture key - pinned here, not left to runtime luck.
+    let image: HashSet<u32> = (0..48).map(|row| node_codec.encode(row).get()).collect();
+    assert!(
+        !image.contains(&48) && !image.contains(&u32::MAX),
+        "the probes lie outside the image",
+    );
     for garbage in [48, u32::MAX] {
         by_row.row = Some(garbage);
         assert_eq!(
@@ -2543,13 +2549,13 @@ fn codec_generation() -> GenerationId {
 }
 
 #[test]
-fn codec_bijects_every_small_universe() {
+fn codec_round_trips_every_small_universe() {
     for universe in [
         1_u32, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 48, 100, 257, 1000,
     ] {
         let codec = codec::RowCodec::derive(b"secret", codec_generation(), b"test", universe);
 
-        let mut image: Vec<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+        let image: Vec<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
         for (row, &wire) in (0..universe).zip(&image) {
             assert_eq!(
                 codec.decode(wire),
@@ -2557,10 +2563,15 @@ fn codec_bijects_every_small_universe() {
                 "decode inverts encode at N={universe}",
             );
         }
-        image.sort_unstable();
+        let distinct: HashSet<u32> = image.iter().copied().collect();
+        assert_eq!(
+            u32::try_from(distinct.len()).expect("the universe fits u32"),
+            universe,
+            "encoded ids stay distinct at N={universe}",
+        );
         assert!(
-            image.into_iter().eq(0..universe),
-            "the image is exactly [0, {universe})",
+            image.iter().any(|&wire| wire >= universe),
+            "the image escapes [0, {universe}): ids no longer bound the universe",
         );
     }
 }
@@ -2573,30 +2584,50 @@ fn codec_round_trips_a_large_universe_sample() {
     let mut seen = HashSet::new();
     for row in (0..universe).step_by(631) {
         let wire = codec.encode(row).get();
-        assert!(wire < universe, "wire values stay in the universe");
         assert!(seen.insert(wire), "sampled wire values stay distinct");
         assert_eq!(codec.decode(wire), Some(row));
     }
 }
 
 #[test]
-fn codec_answers_none_outside_the_universe() {
-    let codec = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 48);
+fn codec_decodes_only_the_encoded_image() {
+    let universe = 48_u32;
+    let codec = codec::RowCodec::derive(b"secret", codec_generation(), b"test", universe);
+    let image: HashSet<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
 
-    assert_eq!(codec.decode(48), None);
-    assert_eq!(codec.decode(49), None);
-    assert_eq!(codec.decode(u32::MAX), None);
+    // A probe sweep outside the image answers None - including the
+    // low dense range the retired [0, N) codec would have occupied.
+    for wire in (0..10_000).chain([1 << 31, u32::MAX - 1, u32::MAX]) {
+        match codec.decode(wire) {
+            Some(row) => {
+                assert!(row < universe, "decoded rows lie in the universe");
+                assert_eq!(
+                    codec.encode(row).get(),
+                    wire,
+                    "a decoding wire value is its row's encoding",
+                );
+                assert!(image.contains(&wire), "decoding values lie in the image");
+            }
+            None => assert!(!image.contains(&wire), "image values decode"),
+        }
+    }
 }
 
 #[test]
-fn codec_degenerate_universes_take_the_identity() {
+fn codec_degenerate_universes_stay_closed() {
     let empty = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 0);
-    assert_eq!(empty.decode(0), None);
+    for wire in [0, 1, u32::MAX] {
+        assert_eq!(
+            empty.decode(wire),
+            None,
+            "an empty universe decodes nothing"
+        );
+    }
 
     let single = codec::RowCodec::derive(b"secret", codec_generation(), b"test", 1);
-    assert_eq!(single.encode(0).get(), 0);
-    assert_eq!(single.decode(0), Some(0));
-    assert_eq!(single.decode(1), None);
+    let wire = single.encode(0);
+    assert_eq!(single.decode(wire.get()), Some(0));
+    assert_eq!(single.decode(wire.get().wrapping_add(1)), None);
 }
 
 #[test]
@@ -2647,13 +2678,12 @@ fn codec_derivation_is_deterministic() {
     }
 }
 
-/// The D8 codec written a second time.
+/// The full-range codec written a second time.
 ///
 /// From the documented construction and pinned parameter picks rather than from `serve::codec`.
 ///
 /// Agreement between the two freezes the wire mapping itself - a refactor that changes any derived
-/// bit fails loudly - and the reference counts its cycle-walk applications, the observability the
-/// serving codec deliberately does not expose.
+/// bit fails loudly.
 mod codec_reference {
     use core::hash::Hasher as _;
 
@@ -2670,8 +2700,6 @@ mod codec_reference {
     pub(super) struct Reference {
         /// The universe size `N`.
         universe: u32,
-        /// The Feistel width `b = ceil(log2 N)`; zero is the identity.
-        bits: u32,
         /// The per-round SipHash-2-4 keys.
         keys: [[u8; 16]; ROUNDS],
     }
@@ -2695,66 +2723,29 @@ mod codec_reference {
                 *key = *chunk;
             }
 
-            let bits = match universe {
-                0 | 1 => 0,
-                _ => u32::BITS - (universe - 1).leading_zeros(),
-            };
-
-            Self {
-                universe,
-                bits,
-                keys,
-            }
+            Self { universe, keys }
         }
 
         /// Encodes `row`.
-        ///
-        /// Returns the wire value and the number of network applications the cycle walk took.
-        pub(super) fn encode_counting(&self, row: u32) -> (u32, u32) {
+        pub(super) fn encode(&self, row: u32) -> u32 {
             assert!(
                 row < self.universe,
                 "the reference shares the producer contract"
             );
-            if self.bits == 0 {
-                return (row, 0);
-            }
-
-            let mut walks = 1_u32;
-            let mut value = self.permute(row);
-            while value >= self.universe {
-                walks += 1;
-                value = self.permute(value);
-            }
-
-            (value, walks)
+            self.permute(row)
         }
 
         /// Applies the network once.
         ///
-        /// Round `i` maps `(L, R)` to `(R, L xor F_i(R))`, half widths alternating ceil/floor.
+        /// Round `i` maps `(L, R)` to `(R, L xor F_i(R))` over two 16-bit halves.
         fn permute(&self, mut state: u32) -> u32 {
-            for (index, key) in self.keys.iter().enumerate() {
-                let left_bits = if index.is_multiple_of(2) {
-                    self.bits.div_ceil(2)
-                } else {
-                    self.bits >> 1_u32
-                };
-                let right_bits = self.bits - left_bits;
-                let left = state >> right_bits;
-                let right = state & mask(right_bits);
-                state = (right << left_bits) | (left ^ (round(key, right) & mask(left_bits)));
+            for key in &self.keys {
+                let left = state >> 16;
+                let right = state & 0xFFFF;
+                state = (right << 16) | (left ^ (round(key, right) & 0xFFFF));
             }
 
             state
-        }
-    }
-
-    /// Returns the low-`bits` mask.
-    const fn mask(bits: u32) -> u32 {
-        if bits == 0 {
-            0
-        } else {
-            u32::MAX >> (32 - bits)
         }
     }
 
@@ -2783,61 +2774,45 @@ fn codec_agrees_with_the_spec_reference() {
         );
 
         for row in 0..universe {
-            let (wire, _) = model.encode_counting(row);
             assert_eq!(
                 codec.encode(row).get(),
-                wire,
-                "both expressions of D8 agree at N={universe}, row {row}",
+                model.encode(row),
+                "both expressions of the codec agree at N={universe}, row {row}",
             );
         }
     }
 }
 
 #[test]
-fn codec_cycle_walks_stay_short() {
-    // Universes one past a power of two maximize 2^b / N, the walk
-    // bound's worst case: the expected walk approaches two there.
-    for universe in [5_u32, 9, (1 << 10) + 1, (1 << 16) + 1, 300_000] {
-        let model = codec_reference::Reference::derive(
-            b"secret",
-            codec_generation(),
-            codec::NODE_LABEL,
-            universe,
-        );
+fn codec_mappings_survive_universe_growth() {
+    // The permutation is universe-independent: growing the universe
+    // leaves every existing wire id fixed, so rows appended within a
+    // generation never move ids already on the wire.
+    let small = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, 1_000);
+    let grown = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, 500_000);
 
-        let mut total = 0_u64;
-        let mut longest = 0_u32;
-        for row in 0..universe {
-            let (_, walks) = model.encode_counting(row);
-            total += u64::from(walks);
-            longest = longest.max(walks);
-        }
-
-        // Mean below 2.5 in integers: a width off by one bit doubles
-        // the mean to about four, well past the gate.
-        assert!(
-            2 * total < 5 * u64::from(universe),
-            "the mean walk stays near the theorem's bound at N={universe}: {total} total",
-        );
-        assert!(longest < 64, "no walk runs away at N={universe}: {longest}");
+    for row in 0..1_000 {
+        let wire = small.encode(row);
+        assert_eq!(wire, grown.encode(row), "row {row} is stable under growth");
+        assert_eq!(grown.decode(wire.get()), Some(row));
     }
 }
 
 #[test]
-fn codec_image_is_the_universe_at_scale() {
+fn codec_stays_injective_at_scale() {
     let universe = 300_000;
     let codec = codec::RowCodec::derive(b"secret", codec_generation(), codec::NODE_LABEL, universe);
 
-    let mut image: Vec<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
-    image.sort_unstable();
-    assert!(
-        image.into_iter().eq(0..universe),
-        "the image is exactly [0, {universe})",
+    let image: HashSet<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+    assert_eq!(
+        u32::try_from(image.len()).expect("the universe fits u32"),
+        universe,
+        "encoded ids stay distinct at scale",
     );
 }
 
 #[test]
-fn codec_wire_ids_disclose_only_the_universe_size() {
+fn codec_wire_ids_disclose_nothing_of_the_universe() {
     let universe = 10_000_u32;
     let sample = 100_u32;
     let trials = 128_u32;
@@ -2864,18 +2839,18 @@ fn codec_wire_ids_disclose_only_the_universe_size() {
     }
 
     // Averaged over trials, the German-tank estimate m(1 + 1/k) - 1
-    // recovers N from a uniform k-subset; the small additive
-    // constants wash into the tolerance. Comparisons stay in the
-    // scale of N * k * trials - multiplied out, never divided. Both
-    // selections estimating one N is the codec's contract: wire ids
-    // answer "how many rows", never "which rows".
+    // applied to full-range ids recovers the u32 range - never N.
+    // Comparisons stay in the scale of 2^32 * k * trials -
+    // multiplied out, never divided. Both selections estimating the
+    // range, and only the range, is the codec's contract: wire ids
+    // answer nothing, not even "how many rows".
     let scaled = |total: u64| total * u64::from(sample + 1);
-    let target = u64::from(universe) * u64::from(sample) * u64::from(trials);
-    let tolerance = 300 * u64::from(sample) * u64::from(trials);
+    let target = (1_u64 << 32) * u64::from(sample) * u64::from(trials);
+    let tolerance = (1_u64 << 32) * u64::from(trials) * 4;
     for (name, total) in [("block", block_total), ("spread", spread_total)] {
         assert!(
             scaled(total).abs_diff(target) < tolerance,
-            "the {name} selection estimates the universe: {total} total",
+            "the {name} selection estimates the full range: {total} total",
         );
     }
     assert!(

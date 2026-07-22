@@ -4,7 +4,7 @@
               operators are single IEEE operations per component"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, proptest};
 
 use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
 

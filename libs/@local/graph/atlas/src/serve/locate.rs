@@ -397,26 +397,24 @@ pub enum LocateError {
 }
 
 impl core::fmt::Display for LocateError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::UnknownEntity => {
-                formatter.write_str("the entity id does not name a visible node")
-            }
+            Self::UnknownEntity => fmt.write_str("the entity id does not name a visible node"),
             Self::Source { carried } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request carries {carried} source fields where exactly one of entityId \
                      and row names the subject"
                 )
             }
             Self::Types { count, maximum } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request carries {count} coloredTypeIds where the cap admits {maximum}"
                 )
             }
             Self::Unsupported(feature) => {
-                write!(formatter, "this build does not serve {feature} requests")
+                write!(fmt, "this build does not serve {feature} requests")
             }
         }
     }

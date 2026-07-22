@@ -22,7 +22,9 @@ use camino::{Utf8Path, Utf8PathBuf};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    Embedding, NearestNeighboursIndex as _,
+    DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex as _,
+    construction::KnnConstruction as _,
+    descent::{NnDescent, NnDescentOptions},
     hannoy::{HannoyIndex, HannoyIndexOptions},
     recall::{ExactReference, SpotCheckOptions},
 };
@@ -219,6 +221,118 @@ pub fn sweep(root: &str, options: &SweepOptions) -> BackendSweep {
         neighbours,
         references: reference_costs,
         builds,
+    }
+}
+
+/// One NN-Descent construction reading.
+#[derive(Debug, Copy, Clone)]
+pub struct DescentReading {
+    /// The fit seed whose `knn-link` stream drove the construction.
+    pub seed: u64,
+    /// The candidate cap the construction ran at.
+    pub maximum_candidates: usize,
+    /// Wall clock of the construction.
+    pub construct_wall: Duration,
+    /// Aggregate recall@50 against the exact reference.
+    pub recall: f64,
+}
+
+/// One finished NN-Descent audit: the corpus identity and every reading.
+#[derive(Debug, Clone)]
+pub struct DescentAudit {
+    /// The assessed generation's identity, in directory-name form.
+    pub generation: String,
+    /// The corpus row count.
+    pub rows: usize,
+    /// Sampled query rows of the reference.
+    pub sampled_rows: usize,
+    /// Exact neighbours compared per query: the `k` of recall@k.
+    pub neighbours: usize,
+    /// Wall clock of the brute-force reference (parallel).
+    pub reference_wall: Duration,
+    /// One entry per (seed, candidate cap), in grid order.
+    pub readings: Vec<DescentReading>,
+}
+
+/// Audits NN-Descent constructions over the active generation's representations.
+///
+/// Constructions run at the production width — the wider of the spot check's depth and the
+/// stored count — replaying the production fit's `knn-link` stream per seed; a repeated seed
+/// measures construction nondeterminism. One exact reference scores every reading.
+///
+/// # Panics
+///
+/// Panics when the root, pointer, generation, or representation matrix cannot be opened; a
+/// measurement target reports its failures by failing.
+pub fn descent(root: &str, seeds: &[u64], candidates: &[usize]) -> DescentAudit {
+    let root =
+        GenerationRoot::new(Utf8PathBuf::from(root)).expect("the generation root should open");
+    let id = root
+        .current()
+        .expect("the current pointer should read")
+        .expect("an audit requires an activated generation");
+    let generation = root.open(id).expect("the active generation should open");
+
+    let file =
+        ArrayFile::open(generation.path_of(&generation.repository().files.representations.name))
+            .expect("the representation artifact should open");
+    let embeddings = file
+        .vectors::<PROJECTOR_DIMENSIONS>()
+        .expect("the representation artifact holds f32 rows of the projector width");
+
+    let check = SpotCheckOptions::default();
+    let width = check.neighbours.max(DEFAULT_NEIGHBOURS);
+
+    let started = Instant::now();
+    let reference = ExactReference::new::<!>(
+        embeddings,
+        check.neighbours,
+        REFERENCE_ROWS,
+        stage_rng(seeds.first().copied().unwrap_or(0), Stage::RecallCheck),
+    )
+    .expect("the corpus holds at least two rows");
+    let reference_wall = started.elapsed();
+    tracing::info!(
+        wall_s = reference_wall.as_secs_f64(),
+        "exact reference computed"
+    );
+
+    let mut readings = Vec::new();
+    for &seed in seeds {
+        for &maximum_candidates in candidates {
+            let started = Instant::now();
+            let lists = NnDescent::new(NnDescentOptions {
+                maximum_candidates,
+                ..
+            })
+            .construct(embeddings, width, stage_rng(seed, Stage::KnnLink))
+            .expect("the corpus satisfies the construction preconditions");
+            let construct_wall = started.elapsed();
+
+            let reading = reference.score_lists(&lists);
+            tracing::info!(
+                seed,
+                maximum_candidates,
+                wall_s = construct_wall.as_secs_f64(),
+                recall = reading.recall(),
+                "construction read"
+            );
+            readings.push(DescentReading {
+                seed,
+                maximum_candidates,
+                construct_wall,
+                recall: reading.recall(),
+            });
+        }
+    }
+
+    DescentAudit {
+        generation: id.to_string(),
+        rows: embeddings.len(),
+        sampled_rows: reference.sampled_rows(),
+        neighbours: reference.neighbours_per_row(),
+        reference_wall,
+        readings,
     }
 }
 

@@ -23,7 +23,7 @@
 use core::{error::Error, fmt};
 use std::collections::HashMap;
 
-use rayon::prelude::*;
+use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use self::objective::Parameters;
 use super::Classifier;

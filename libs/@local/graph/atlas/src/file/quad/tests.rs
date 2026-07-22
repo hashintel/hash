@@ -6,7 +6,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert_eq, proptest};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
@@ -325,10 +325,10 @@ proptest! {
     fn written_tables_roundtrip(
         // Children generated strictly deeper, so the pre-order rule
         // holds by construction; the format admits shared children.
-        seeds in prop::collection::vec(
+        seeds in proptest::collection::vec(
             (
                 any::<u64>(),
-                prop::array::uniform4(prop::option::of(any::<prop::sample::Index>())),
+                proptest::array::uniform4(proptest::option::of(any::<proptest::sample::Index>())),
                 0_u8..5,
             ),
             0..12,

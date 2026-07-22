@@ -4,7 +4,7 @@
               identities are exact contracts"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, proptest, strategy::Strategy};
 
 use crate::math::{BoxedDVecN, DVecN};
 
@@ -334,7 +334,7 @@ fn boxed_dvecn_zero_is_all_zeros() {
 ///
 /// The stability of the shifted form under huge logits is pinned by the example-based tests above.
 fn logits_strategy() -> impl Strategy<Value = [f64; 11]> {
-    prop::array::uniform11(-50.0_f64..50.0)
+    proptest::array::uniform11(-50.0_f64..50.0)
 }
 
 proptest! {
@@ -390,8 +390,8 @@ proptest! {
     /// `mul_add`. Components and the factor are bounded to `-1e3..1e3`.
     #[test]
     fn add_scaled_matches_a_scalar_reference_loop(
-        accumulator in prop::array::uniform11(-1e3_f64..1e3),
-        direction in prop::array::uniform11(-1e3_f32..1e3),
+        accumulator in proptest::array::uniform11(-1e3_f64..1e3),
+        direction in proptest::array::uniform11(-1e3_f32..1e3),
         factor in -1e3_f64..1e3,
     ) {
         let expected: [f64; 11] = core::array::from_fn(|index| {

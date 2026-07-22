@@ -58,3 +58,33 @@ fn cpu_flavors_run_and_agree() {
 fn metal_flavors_run_and_agree() {
     assert_flavors_agree(BackendKind::Metal);
 }
+
+/// The live fixture draws, assembles, and steps every phase to finite numbers.
+///
+/// A small corpus keeps the smoke fast; the phases exercised are exactly the ones the bench
+/// target times, so a fixture defect fails here instead of in a wall-time run.
+#[test]
+fn live_fixture_steps_every_phase() {
+    let fixture = super::live::Fixture::build(256, 11);
+    assert_eq!(fixture.rows(), 256);
+
+    let sampler = fixture.sampler();
+    let batch = fixture.assemble(sampler.draw(17));
+    assert!(batch.rows() > 0, "the ratified plan draws participants");
+
+    let mut stepper = super::live::Stepper::build(&fixture, BackendKind::Cpu, 42);
+    stepper.input(&batch);
+    assert!(stepper.forward(&batch).is_finite());
+    assert!(stepper.objective(&batch).is_finite());
+
+    let first = stepper.step(&batch);
+    let second = stepper.step(&batch);
+    assert!(first.is_finite() && second.is_finite());
+    #[expect(
+        clippy::float_cmp,
+        reason = "exact inequality is the point: the optimizer moved the parameters"
+    )]
+    {
+        assert_ne!(first, second, "the optimizer moved the parameters");
+    }
+}
