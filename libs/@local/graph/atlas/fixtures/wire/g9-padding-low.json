@@ -1,0 +1,40 @@
+{
+  "appended": null,
+  "directory": [
+    [56, 119],
+    [120, 160],
+    [160, 180],
+    [184, 189],
+    [0, 0]
+  ],
+  "golden": "g9-padding-low",
+  "head": {
+    "children": 3,
+    "coordinate": [10, 1000, 30],
+    "delivered": 5,
+    "firstBucket": 12,
+    "generation": "9999999999999999999999999999999999999999999999999999999999999999",
+    "global": null,
+    "mode": 0,
+    "runs": [5],
+    "trailer": false,
+    "variant": 0,
+    "visible": 1200
+  },
+  "layer": "tile",
+  "mass": null,
+  "positions": [
+    3191865344, 1049624576, 0, 1052770304, 1044381696, 1055916032, 1052770304,
+    1058013184, 1058013184, 1059586048
+  ],
+  "prefix": {
+    "flags": 0,
+    "magic": "SALTILET",
+    "reserved": 0,
+    "slotCount": 5,
+    "wireVersion": 1
+  },
+  "rowIds": [17, 22, 27, 32, 37],
+  "trailer": null,
+  "typeMask": [1, 2, 2, 3, 0]
+}

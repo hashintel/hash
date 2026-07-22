@@ -1,0 +1,148 @@
+# Schema-v4 production-grid configuration: judges.yaml at its frozen hash.
+#
+# Successor to the factorial pilot (config/eval/pilot.yaml). The admitted
+# configuration is frozen: bundle S1xF1 only, minimal effort set explicitly
+# per seat, temperature 0 / seed recorded where the provider offers them, no
+# shells, templates, effort variation, or dynamic escalation. Changing any
+# request pin voids the qualification and requires a new pilot; the
+# pilot-vote import enforces that mechanically (a drifted pin matches no
+# pilot vote, and a drifted prompt pack is a hard stop).
+#
+# Roster: five seats. deepseek/deepseek-v4-pro is recorded below as a MANUAL
+# PRUNE: it qualified at the gate and was removed for effort-instability
+# (holdout regression and 15.6% non-contested flips under deliberation), so
+# the qualification report and this roster disagree on the record,
+# deliberately. Resolution B's two-tier reserve topology stays a dormant
+# documented flag: the executor has no escalation feature.
+#
+# pilot_cost_per_vote_usd anchors the rolling cost tripwire (halt at 1.5x).
+# Values are pilot-measured, cache-corrected where the pilot ran cold
+# (Anthropic reads at 0.1x list); Sol kept as measured with partial cache,
+# for conservatism.
+schema_version: 4
+mode: grid
+rubric_version: rubric-v1
+
+panel:
+  version: 2
+  frozen: true
+  pruning_floor: >-
+    Qualification gate: >= 5/6 grid holdouts plus both probes (P1382, P2634).
+    DeepSeek manually pruned above the floor; see manual_prunes.
+  manual_prunes:
+    - model: deepseek/deepseek-v4-pro
+      reason: >-
+        Qualified at gate; removed for effort-instability: holdout regression
+        and 15.6% non-contested flips under deliberation.
+  reserve_topology: dormant
+
+baseline_effort: minimal
+# Envelope: $70 expected, $135 hard ceiling; the tripwires fire well before
+# it. max_cost_usd and concurrency are operational knobs (excluded from the
+# request contract, retunable between resumed sessions).
+max_cost_usd: null
+request_timeout: PT10M
+transient_retries:
+  # 429/5xx retried twice with backoff on the SAME pinned route.
+  maximum_attempts: 3
+  initial_delay: PT2S
+  maximum_delay: PT1M
+  backoff_multiplier: 2.0
+  retry_transport_errors: true
+  status_codes: [408, 425, 429, 500, 502, 503, 504, 520, 522, 524]
+concurrency:
+  # Families adapt independently: each begins at one, doubles after a full
+  # successful cohort, and returns to one on a direct or embedded 429.
+  initial: 5
+  maximum: 15
+  family_maximum: 5
+  ramp: doubling-v1
+
+guards:
+  cache_check_vote: 5
+  cost_window: 50
+  cost_multiplier: 1.5
+
+# Downstream stages (aggregation -> embeddings -> classifier -> report).
+embedding:
+  endpoint_url: https://openrouter.ai/api/v1/embeddings
+  model: openai/text-embedding-3-large
+  api_key_env: OPENROUTER_API_KEY
+  dimension: 3072
+  batch_size: 64
+  max_texts: 4096
+  request_timeout: PT2M
+
+classifier:
+  folds: 5
+  regularization: 1.0
+  max_iterations: 1000
+  seed: 0
+
+report:
+  coincident_precision_target: 0.98
+  confidence_level: 0.95
+  calibrated_threshold: 0.5
+  calibration_bins: 10
+  acceptance_cost_ceiling_usd: 135.0
+
+judges:
+  - provider_slug: amazon-bedrock
+    provider_name: Amazon Bedrock
+    openrouter_region: global
+    model: anthropic/claude-opus-4.8
+    temperature: null
+    seed: null
+    effort: minimal
+    pilot_cost_per_vote_usd: 0.014
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - provider_slug: amazon-bedrock
+    provider_name: Amazon Bedrock
+    openrouter_region: global
+    model: anthropic/claude-sonnet-5
+    temperature: null
+    seed: null
+    effort: minimal
+    pilot_cost_per_vote_usd: 0.006
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - provider_slug: azure
+    provider_name: Azure
+    openrouter_region: global
+    model: openai/gpt-5.6-sol
+    temperature: null
+    seed: 42
+    effort: minimal
+    pilot_cost_per_vote_usd: 0.0162
+    output_token_limit:
+      parameter: max_completion_tokens
+      tokens: 4096
+
+  - provider_slug: google-vertex
+    provider_name: Google
+    openrouter_region: global
+    model: google/gemini-3.5-flash
+    temperature: 0.0
+    seed: 42
+    effort: minimal
+    pilot_cost_per_vote_usd: 0.0035
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096
+
+  - provider_slug: z-ai
+    provider_name: Z.AI
+    openrouter_region: global
+    model: z-ai/glm-5.2
+    temperature: 0.0
+    seed: null
+    effort: minimal
+    pilot_cost_per_vote_usd: 0.0039
+    output_token_limit:
+      parameter: max_tokens
+      tokens: 4096

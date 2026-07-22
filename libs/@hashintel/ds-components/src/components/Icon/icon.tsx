@@ -80,6 +80,7 @@ import InputPipe from "./svgs/regular/input-pipe.svg";
 import Lambda from "./svgs/regular/lambda.svg";
 import Layer from "./svgs/regular/layer.svg";
 import LightbulbOn from "./svgs/regular/lightbulb-on.svg";
+import Link from "./svgs/regular/link.svg";
 import ListTree from "./svgs/regular/list-tree.svg";
 import List from "./svgs/regular/list.svg";
 import LockKeyhole from "./svgs/regular/lock-keyhole.svg";
@@ -116,6 +117,7 @@ import TriangleExclamation from "./svgs/regular/triangle-exclamation.svg";
 import Truck from "./svgs/regular/truck.svg";
 import UnlockKeyhole from "./svgs/regular/unlock-keyhole.svg";
 import UserPlus from "./svgs/regular/user-plus.svg";
+import User from "./svgs/regular/user.svg";
 import WandMagicSparkles from "./svgs/regular/wand-magic-sparkles.svg";
 import Xmark from "./svgs/regular/xmark.svg";
 import Bug from "./svgs/solid/bug.svg";
@@ -143,6 +145,7 @@ const IconMap = {
   arrowsLeftRight: ArrowRightArrowLeft,
   asterisk: Asterisk,
   at: At,
+  avatar: User,
   barcode: Barcode,
   bars: Bars,
   bell: Bell,
@@ -210,6 +213,7 @@ const IconMap = {
   layer: Layer,
   lightbulbOn: LightbulbOn,
   lightning: Bolt,
+  link: Link,
   list: List,
   listTree: ListTree,
   lockOpen: UnlockKeyhole,

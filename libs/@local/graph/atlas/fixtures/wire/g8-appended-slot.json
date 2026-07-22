@@ -1,0 +1,40 @@
+{
+  "appended": {
+    "5": [222, 173, 190, 239, 1]
+  },
+  "directory": [
+    [64, 122],
+    [128, 152],
+    [152, 164],
+    [0, 0],
+    [168, 180],
+    [184, 189]
+  ],
+  "golden": "g8-appended-slot",
+  "head": {
+    "children": 1,
+    "coordinate": [3, 5, 2],
+    "delivered": 3,
+    "firstBucket": 5,
+    "generation": "8888888888888888888888888888888888888888888888888888888888888888",
+    "global": null,
+    "mode": 0,
+    "runs": [3],
+    "trailer": false,
+    "variant": 0,
+    "visible": 6
+  },
+  "layer": "tile",
+  "mass": [7, 1, 9],
+  "positions": [0, 1048576000, 1048576000, 1052770304, 1056964608, 1056964608],
+  "prefix": {
+    "flags": 0,
+    "magic": "SALTILET",
+    "reserved": 0,
+    "slotCount": 6,
+    "wireVersion": 1
+  },
+  "rowIds": [5, 7, 9],
+  "trailer": null,
+  "typeMask": null
+}

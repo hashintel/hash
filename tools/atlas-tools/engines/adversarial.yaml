@@ -1,0 +1,27 @@
+# Adversarial toy engines used solely by the battery's acceptance tests
+# (tests/battery). They keep the anti-cheat criteria honest, end to end,
+# through the same subprocess interface real engines use:
+#
+# - shuffle:  PCA-2D, then permutes xy rows relative to row_id. Identity-
+#             blind statistics (merge-tree persistence) are unchanged, but
+#             every neighbor/structure gate has to fail.
+# - collapse: PCA-2D, then multiplies coordinates by 0.01. Gains no
+#             normalized persistence (raster over own extent + density-max
+#             normalization make contraction persistence-neutral).
+# - cheat:    manufactures clusters from edge data while ignoring
+#             embeddings; its no-edges variant is an unstructured scatter.
+#             Has to trip the no-structure-from-noise differential.
+# - cheat_noeval: same cheat, but consumes {edges} without declaring a
+#             command_no_edges; the differential fails it as
+#             "not evaluable" (fail closed).
+version: 1
+engines:
+  - name: shuffle
+    command: "{python} -m atlas_tools.battery.engines.shuffle_cli --embeddings {embeddings} --out {out} --seed {seed}"
+  - name: collapse
+    command: "{python} -m atlas_tools.battery.engines.collapse_cli --embeddings {embeddings} --out {out} --seed {seed} --scale 0.01"
+  - name: cheat
+    command: "{python} -m atlas_tools.battery.engines.cheat_cli --embeddings {embeddings} --edges {edges} --out {out} --seed {seed}"
+    command_no_edges: "{python} -m atlas_tools.battery.engines.cheat_cli --embeddings {embeddings} --out {out} --seed {seed}"
+  - name: cheat_noeval
+    command: "{python} -m atlas_tools.battery.engines.cheat_cli --embeddings {embeddings} --edges {edges} --out {out} --seed {seed}"

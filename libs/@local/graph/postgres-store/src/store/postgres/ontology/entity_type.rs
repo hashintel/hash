@@ -2111,7 +2111,7 @@ where
                 })
                 .collect()
         } else {
-            let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+            let temporal_axes = params.temporal_axes.resolve();
             let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
             let entity_type_uuids = params

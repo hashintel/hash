@@ -1,0 +1,121 @@
+{
+  "head": {
+    "vars": []
+  },
+  "results": {
+    "bindings": [
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9003002"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 082"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "2"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9003001"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Company 081"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "3"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        }
+      },
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9003004"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 084"
+        },
+        "objectSitelinks": {
+          "type": "literal",
+          "value": "1"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9003003"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Company 083"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "1"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        }
+      },
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9003005"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 085"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002001"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Person 001"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "5"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5"
+        }
+      },
+      {
+        "object": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9003006"
+        },
+        "objectLabel": {
+          "type": "literal",
+          "value": "Company 086"
+        },
+        "subject": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9002002"
+        },
+        "subjectLabel": {
+          "type": "literal",
+          "value": "Person 002"
+        },
+        "subjectSitelinks": {
+          "type": "literal",
+          "value": "2"
+        },
+        "subjectType": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5"
+        }
+      }
+    ]
+  }
+}

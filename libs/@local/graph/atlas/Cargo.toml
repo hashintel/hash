@@ -1,0 +1,133 @@
+[package]
+name              = "hash-graph-atlas"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+type-system = { workspace = true, public = true }
+
+# Public third-party dependencies
+argmin-math    = { workspace = true, features = ["primitives"], public = true }
+axum           = { workspace = true, public = true }
+camino         = { workspace = true, public = true }
+futures-sink   = { workspace = true, public = true }
+rand           = { workspace = true, public = true }
+rand_core      = { workspace = true, public = true }
+sprs           = { workspace = true, public = true }
+tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync"], public = true }
+tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
+uuid           = { workspace = true, public = true, features = ["std", "v7"] }
+zerocopy       = { workspace = true, features = ["derive"], public = true }
+
+# Private workspace dependencies
+error-stack                    = { workspace = true }
+hash-graph-embeddings          = { workspace = true }
+hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
+hash-graph-types               = { workspace = true }
+
+# Private third-party dependencies
+aide                 = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
+argmin               = { workspace = true }
+burn                 = { workspace = true, features = ["autodiff", "ndarray"] }
+chacha20poly1305     = { workspace = true }
+clap                 = { workspace = true, features = ["derive", "env"] }
+futures              = { workspace = true }
+hannoy               = { workspace = true }
+heed                 = { workspace = true }
+hkdf                 = { workspace = true }
+kiddo                = { workspace = true, features = ["rkyv_08"] }
+memchr               = { workspace = true }
+memmap2              = { workspace = true }
+pin-project-lite     = { workspace = true }
+rand_core_06         = { workspace = true }
+rand_xoshiro         = { workspace = true }
+rayon                = { workspace = true }
+regex                = { workspace = true }
+rkyv                 = { workspace = true }
+roaring              = { workspace = true, features = ["std"] }
+schemars             = { workspace = true }
+serde                = { workspace = true, features = ["derive"] }
+serde_json           = { workspace = true, features = ["float_roundtrip"] }
+sha2                 = { workspace = true }
+simple-mermaid       = { workspace = true }
+siphasher            = { workspace = true }
+smallvec             = { workspace = true }
+tiktoken-rs          = { workspace = true }
+tracing              = { workspace = true }
+unicode-segmentation = { workspace = true }
+unidecode            = { workspace = true }
+
+[dev-dependencies]
+codspeed-criterion-compat = { workspace = true }
+darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
+darwin-kperf-events       = { workspace = true }
+proptest                  = { workspace = true }
+tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
+uuid                      = { workspace = true, features = ["v5"] }
+
+[features]
+# Exposes `hash_graph_atlas::bench`, the measurement seams the
+# `[[bench]]` and `[[example]]` targets consume; not API for consumers
+# of the crate.
+bench = []
+# Adds the Metal-backed flavor to the projector measurement seam
+# (burn's CubeCL wgpu runtime compiling to MSL). Compiles anywhere;
+# running it requires an Apple GPU, so its tests are ignored by
+# default.
+bench-gpu = ["bench", "burn/metal"]
+# Trains the projector placement on the Metal GPU backend instead of
+# the CPU. Compiles anywhere; running a fit requires an Apple GPU.
+# The CPU backend stays the fixture/CI harness, so tests run without
+# this feature.
+gpu = ["burn/metal"]
+# The operator commands (`cli` module) and the read-API routes (`api`
+# module) build unconditionally: the `hash-graph` binary is the one
+# entry point. A future `cli` feature may rebuild a standalone
+# operator binary over the same modules.
+
+[[example]]
+name              = "clump_sweep"
+required-features = ["bench"]
+
+[[example]]
+name              = "fit_live"
+required-features = ["bench"]
+
+[[example]]
+name              = "generation_live"
+required-features = ["bench"]
+
+[[example]]
+name              = "knn_sweep"
+required-features = ["bench"]
+
+[[example]]
+name              = "quality_live"
+required-features = ["bench"]
+
+[[bench]]
+name    = "math_kernels"
+harness = false
+
+[[bench]]
+name              = "miner_index"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "projector_backend"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
+name              = "relation_build"
+harness           = false
+required-features = ["bench"]
+
+[lints]
+workspace = true

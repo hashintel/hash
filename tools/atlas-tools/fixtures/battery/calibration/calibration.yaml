@@ -1,0 +1,25 @@
+# Calibration reference for `battery calibrate` (see
+# atlas_tools/battery/calibrate.py for the manifest schema).
+#
+# This is a small committed synthetic reference: layout.npz holds 428
+# points in 4 well-separated truncated-gaussian blobs, generated
+# deterministically (numpy default_rng(42); centers (-6,-6), (6,-5),
+# (-5,6), (6.5,6.5); sizes 150/110/100/90 before radius-2.5-sigma
+# truncation; sigma 0.8; the recipe is also recorded in layout.meta.json).
+# The merge_tree block overrides the production raster defaults (grid
+# 1024, blur 4) with density-appropriate values for a ~400-point layout;
+# those defaults assume the operator's roughly 1M-point reference, which
+# drops in later through this same mechanism with its own recorded values
+# (leaves within 3%, normalized persistence within 5%).
+version: 1
+merge_tree:
+  grid_size: 128
+  bandwidth_px: 3.0
+  floor_frac: 0.005
+  persistence_frac: 0.05
+expected:
+  leaf_count: 4
+  normalized_persistence: 2.833748704209724
+tolerances:
+  leaf_count_frac: 0.03
+  normalized_persistence_frac: 0.05

@@ -1,0 +1,82 @@
+# The default full release-gate suite: the 7 planted shapes at n=20k, 3 seed reruns, and the
+# production merge-tree parameters (grid 1024, blur 4 px, floor 0.005, persistence 0.05). With
+# engines/default.yaml (pca2d + umap_tuned + umap_default) this is the "7 shapes x 3 engines
+# x 3 seeds" default; budget under 60 minutes on 8 cores (run with --jobs 8).
+#
+# Gate thresholds are versioned; this v1 set carries over the smoke-tuned
+# values (see suites/smoke.yaml for the tuning notes and scoping rationale)
+# and is expected to be re-tuned against the operator's calibrated
+# reference runs. Schema: atlas_tools/battery/gates.py.
+version: 1
+name: phase2
+seeds: [0, 1, 2]
+knn_ks: [15, 30, 50]
+tc_neighbors: 15
+tc_sample: 2000
+silhouette_sample: 5000
+merge_tree:
+  grid_size: 1024
+  bandwidth_px: 4.0
+  floor_frac: 0.005
+  persistence_frac: 0.05
+datasets:
+  - shape: bipartite_star
+    n: 20000
+    params: { items_per_doc: 8, n_topics: 10 }
+  - shape: clique_communities
+    n: 20000
+    params: { n_communities: 8 }
+  - shape: chains
+    n: 20000
+    params: { depth: 4 }
+  - shape: lattice_product
+    n: 20000
+    params: { factor_a: 6, factor_b: 8 }
+  - shape: noise_edges
+    n: 20000
+    params: { n_clusters: 8 }
+  - shape: isolates
+    n: 20000
+    params: { isolate_frac: 0.3 }
+  - shape: mixed
+    n: 20000
+gates:
+  - { metric: knn_recall_15, type: min, value: 0.08 }
+  - { metric: knn_recall_30, type: min, value: 0.12 }
+  - { metric: knn_recall_50, type: min, value: 0.15 }
+  - { metric: trustworthiness, type: min, value: 0.75 }
+  - { metric: continuity, type: min, value: 0.75 }
+  - {
+      metric: silhouette,
+      type: min,
+      value: 0.3,
+      shapes:
+        [
+          clique_communities,
+          chains,
+          lattice_product,
+          noise_edges,
+          isolates,
+          mixed,
+        ],
+    }
+  - {
+      metric: pendant_diffusion,
+      type: max,
+      value: 0.75,
+      shapes: [bipartite_star, mixed],
+    }
+  - {
+      metric: edge_binding,
+      type: max,
+      value: 0.85,
+      shapes:
+        [bipartite_star, clique_communities, isolates, lattice_product, mixed],
+    }
+  - {
+      metric: normalized_persistence,
+      type: baseline_margin,
+      baseline: pca2d,
+      margin: 2.0,
+      direction: higher,
+    }

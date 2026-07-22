@@ -1,0 +1,230 @@
+/**
+ * The selection popover for the Atlas network graph: a compact white entity card
+ * anchored to the selected node/edge, showing the located item's title, its
+ * type chip, its simple-value properties (nodes), and a "Go to entity" action.
+ * Used by the tiling Ladle story and the entities-visualizer network graph view.
+ *
+ * Purely presentational — the consumer decodes a {@link fetchLocate} response
+ * into {@link LocatedEntityDetail} and owns the
+ * {@link LocatedEntityPopoverProps.onGoTo} behaviour; this file only lays the
+ * card out (reusing the {@link Badge} and {@link Button} primitives) and
+ * positions it via {@link Popover}. Every text run is clamped so a long label or
+ * value can't stretch or overflow the card.
+ *
+ * The {@link Popover} portals its content, so a consumer that scopes the ds Panda
+ * tokens to a subtree (rather than globally) must supply a `PortalContainerContext`
+ * inside that scope, or the card's token-based colours won't resolve.
+ */
+
+import { css } from "@hashintel/ds-helpers/css";
+
+import { Badge } from "../../Badge/badge";
+import { Button } from "../../Button/button";
+import { Popover } from "../../Popover/popover";
+
+/** The selection's live on-screen anchor, as `NetworkGraph` reports it. */
+export type LocatedEntityPopoverAnchor =
+  | {
+      type: "node";
+      x: number;
+      y: number;
+      nodeRadius: number;
+      variant: "detailed" | "compact";
+    }
+  | { type: "edge"; x: number; y: number };
+
+/** One property row of the card: a shortened key and its formatted value. */
+export interface LocatedEntityProperty {
+  readonly key: string;
+  readonly value: string;
+}
+
+/** The presentational detail the card renders for a located node or edge. */
+export interface LocatedEntityDetail {
+  readonly kind: "node" | "edge";
+  /** Bold card title — the entity/edge label. */
+  readonly title: string;
+  /** Optional leading emoji icon. */
+  readonly icon?: string;
+  /** Type chip: a label and the colour of its dot. */
+  readonly type?: { readonly label: string; readonly color: string };
+  /** Property rows (nodes carry these; edges leave it empty). */
+  readonly properties: readonly LocatedEntityProperty[];
+}
+
+export interface LocatedEntityPopoverProps {
+  /** The element the popover is positioned within (the chart frame). */
+  readonly triggerRef: React.Ref<Element>;
+  /** The selected item's on-screen anchor; the popover tracks it on zoom/pan. */
+  readonly anchor: LocatedEntityPopoverAnchor;
+  readonly detail: LocatedEntityDetail;
+  /** Dismiss (Escape or a click outside). */
+  readonly onClose: () => void;
+  /** "Go to entity" handler; the button is omitted when absent. */
+  readonly onGoTo?: () => void;
+}
+
+const cardStyles = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  minWidth: "[200px]",
+  maxWidth: "[260px]",
+  padding: "3",
+  backgroundColor: "white",
+  borderRadius: "lg",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "neutral.s40",
+  boxShadow: "md",
+});
+
+const titleStyles = css({
+  fontSize: "base",
+  fontWeight: "[700]",
+  color: "neutral.s120",
+  lineHeight: "tight",
+  lineClamp: "2",
+});
+
+// A dedicated span keeps a gap after the emoji, which the line-clamp box
+// (`-webkit-box`) would otherwise trim from an inline trailing space.
+const titleIconStyles = css({
+  marginRight: "1.5",
+});
+
+/** Truncates a long type label inside the {@link Badge} chip, at readable contrast. */
+const chipLabelStyles = css({
+  truncate: true,
+  maxWidth: "[160px]",
+  color: "neutral.s110",
+});
+
+const typeDotStyles = css({
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "full",
+  flexShrink: "0",
+});
+
+const propertyListStyles = css({
+  display: "flex",
+  flexDirection: "column",
+});
+
+const propertyRowStyles = css({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "baseline",
+  gap: "3",
+  paddingY: "1.5",
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.s40",
+});
+
+const propertyKeyStyles = css({
+  minWidth: "0",
+  color: "neutral.s100",
+  fontSize: "sm",
+  truncate: true,
+});
+
+const propertyValueStyles = css({
+  minWidth: "0",
+  color: "neutral.s120",
+  fontSize: "sm",
+  fontWeight: "semibold",
+  textAlign: "right",
+  truncate: true,
+});
+
+const goToButtonStyles = css({
+  marginTop: "1",
+  width: "full",
+});
+
+/**
+ * Gaps that keep the card clear of its anchor: a node offsets by its drawn
+ * radius (larger in the detailed view); an edge anchor uses fixed gaps.
+ */
+const gapsFor = (
+  anchor: LocatedEntityPopoverAnchor,
+): { x: number; y: number } =>
+  anchor.type === "node"
+    ? {
+        x: anchor.nodeRadius + (anchor.variant === "compact" ? 5 : 3),
+        y: anchor.nodeRadius + (anchor.variant === "compact" ? 0 : 3),
+      }
+    : { x: 10, y: 12 };
+
+export const LocatedEntityPopover = ({
+  triggerRef,
+  anchor,
+  detail,
+  onClose,
+  onGoTo,
+}: LocatedEntityPopoverProps) => {
+  const gaps = gapsFor(anchor);
+  return (
+    <Popover
+      triggerRef={triggerRef}
+      position="bottom-start"
+      positionFromPoint={{ x: anchor.x, y: anchor.y }}
+      onClose={onClose}
+      gapX={gaps.x}
+      gapY={gaps.y}
+    >
+      <div className={cardStyles}>
+        <div className={titleStyles}>
+          {detail.icon ? (
+            <span className={titleIconStyles}>{detail.icon}</span>
+          ) : null}
+          {detail.title}
+        </div>
+
+        {detail.type ? (
+          // A block wrapper so the inline-flex Badge hugs its label rather than
+          // stretching to the card's width (the column's default cross-stretch).
+          <div>
+            <Badge
+              colorScheme="gray"
+              size="md"
+              iconLeft={
+                <span
+                  className={typeDotStyles}
+                  style={{ backgroundColor: detail.type.color }}
+                />
+              }
+            >
+              <span className={chipLabelStyles}>{detail.type.label}</span>
+            </Badge>
+          </div>
+        ) : null}
+
+        {detail.properties.length > 0 ? (
+          <div className={propertyListStyles}>
+            {detail.properties.map((property) => (
+              <div key={property.key} className={propertyRowStyles}>
+                <span className={propertyKeyStyles}>{property.key}</span>
+                <span className={propertyValueStyles}>{property.value}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {onGoTo ? (
+          <Button
+            variant="solid"
+            tone="brand"
+            size="sm"
+            className={goToButtonStyles}
+            onClick={onGoTo}
+          >
+            Go to entity
+          </Button>
+        ) : null}
+      </div>
+    </Popover>
+  );
+};

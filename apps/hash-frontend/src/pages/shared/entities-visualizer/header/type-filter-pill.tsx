@@ -6,9 +6,12 @@ import { MenuCheckboxItem, TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
+import { resolveTypeColor, typeColorRanks } from "../shared/type-colors";
 import { FilterPill } from "./filter-pill";
+import { triggerSwatchSize, TypeColorSelector } from "./type-color-selector";
 
 import type { EntitiesFilterState } from "../shared/filter-state";
+import type { TypeColorOverrides } from "../shared/type-colors";
 import type { AvailableType } from "../shared/use-available-types";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
@@ -20,6 +23,10 @@ type TypeFilterPillProps = {
   setTypeState: (
     updater: (prev: EntitiesFilterState["type"]) => EntitiesFilterState["type"],
   ) => void;
+  /** Show a per-type colour selector (network graph view only). */
+  showColors: boolean;
+  typeColorOverrides: TypeColorOverrides;
+  setTypeColor: (entityTypeId: VersionedUrl, color: string) => void;
 };
 
 const isAllSelected = ({
@@ -76,6 +83,8 @@ type TypeFilterMenuItemProps = {
   checked: boolean;
   onToggle: (entityTypeId: VersionedUrl) => void;
   onSelectOnly: (entityTypeId: VersionedUrl) => void;
+  color?: string;
+  onColorChange?: (color: string) => void;
 };
 
 const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
@@ -85,6 +94,8 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
   checked,
   onToggle,
   onSelectOnly,
+  color,
+  onColorChange,
 }) => (
   <MenuCheckboxItem
     selected={checked}
@@ -99,6 +110,28 @@ const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
       },
     }}
   >
+    {color !== undefined &&
+      onColorChange && (
+        // Always reserve the swatch's space (before the checkbox via `order: -1`)
+        // so rows stay aligned; only show the swatch when the type is selected.
+        <Box
+          sx={{
+            order: -1,
+            mr: 1,
+            display: "inline-flex",
+            flexShrink: 0,
+            width: `${triggerSwatchSize}px`,
+          }}
+        >
+          {checked && (
+            <TypeColorSelector
+              entityTypeId={entityTypeId}
+              color={color}
+              onChange={onColorChange}
+            />
+          )}
+        </Box>
+      )}
     <ListItemText
       primary={title}
       primaryTypographyProps={{
@@ -158,6 +191,9 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   loading,
   typeState,
   setTypeState,
+  showColors,
+  typeColorOverrides,
+  setTypeColor,
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -168,6 +204,14 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
 
   const allAvailableIds = useMemo(
     () => availableTypes.map((type) => type.entityTypeId),
+    [availableTypes],
+  );
+
+  // Default colour rank by entity count: the most common types get the distinct
+  // palette colours (regardless of the list's alphabetical order or any search
+  // filter), and the long tail falls through to grey.
+  const colorIndexByType = useMemo(
+    () => typeColorRanks(availableTypes),
     [availableTypes],
   );
 
@@ -305,6 +349,20 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
           checked={isChecked(entityTypeId)}
           onToggle={toggle}
           onSelectOnly={selectOnly}
+          color={
+            showColors
+              ? resolveTypeColor({
+                  entityTypeId,
+                  index: colorIndexByType.get(entityTypeId) ?? Infinity,
+                  overrides: typeColorOverrides,
+                })
+              : undefined
+          }
+          onColorChange={
+            showColors
+              ? (color) => setTypeColor(entityTypeId, color)
+              : undefined
+          }
         />
       )),
     ];

@@ -48,6 +48,7 @@ import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
+import { setupAtlasProxy } from "./atlas-proxy";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
@@ -63,6 +64,7 @@ import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
+import { clusterEntitiesHandler } from "./graph/knowledge/primitive/cluster-entities";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { otelSetup } from "./instrument.mjs";
@@ -599,6 +601,12 @@ const main = async () => {
     app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
   }
 
+  /**
+   * Proxy to the atlas server — saltile bodies stream through
+   * untouched, so this stays ahead of the body parsers.
+   */
+  setupAtlasProxy(app, logger);
+
   /** END PROXIES */
 
   /** Body parsing middleware */
@@ -859,6 +867,9 @@ const main = async () => {
     }
     next();
   });
+
+  // Entity clustering
+  app.post("/entities/embeddings/clusters", clusterEntitiesHandler);
 
   // Integrations
   app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);

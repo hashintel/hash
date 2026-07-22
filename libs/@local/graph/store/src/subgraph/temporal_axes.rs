@@ -276,6 +276,40 @@ impl QueryTemporalAxesUnresolved {
         }
     }
 
+    /// Fills every omitted bound with one shared timestamp while retaining the
+    /// unresolved wire representation.
+    ///
+    /// The returned axes can be cloned across several store calls without each
+    /// call resolving `now` independently.
+    #[must_use]
+    pub fn pin_with(mut self, timestamp: Timestamp<()>) -> Self {
+        match &mut self {
+            Self::DecisionTime { pinned, variable } => {
+                pinned
+                    .timestamp
+                    .get_or_insert_with(|| Timestamp::from_anonymous(timestamp));
+                variable.interval.start.get_or_insert_with(|| {
+                    TemporalBound::Inclusive(Timestamp::from_anonymous(timestamp))
+                });
+                variable.interval.end.get_or_insert_with(|| {
+                    LimitedTemporalBound::Inclusive(Timestamp::from_anonymous(timestamp))
+                });
+            }
+            Self::TransactionTime { pinned, variable } => {
+                pinned
+                    .timestamp
+                    .get_or_insert_with(|| Timestamp::from_anonymous(timestamp));
+                variable.interval.start.get_or_insert_with(|| {
+                    TemporalBound::Inclusive(Timestamp::from_anonymous(timestamp))
+                });
+                variable.interval.end.get_or_insert_with(|| {
+                    LimitedTemporalBound::Inclusive(Timestamp::from_anonymous(timestamp))
+                });
+            }
+        }
+        self
+    }
+
     /// Resolves temporal axes using the provided timestamp.
     ///
     /// Converts unresolved temporal axes into concrete temporal axes by resolving unset values
