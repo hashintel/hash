@@ -62,7 +62,7 @@ const ApplyAutoLayoutWidget = ({
   return (
     <div className={widgetStyle}>
       <span>
-        Petrinaut AI suggests running auto-layout on the net. This may
+        The assistant suggests running auto-layout on the net. This may
         reposition places and transitions.
       </span>
       <div className={buttonsStyle}>

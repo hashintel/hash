@@ -38,7 +38,7 @@ describe("AiAssistantContents", () => {
     );
 
     expect(
-      screen.getByText(/Ask Petrinaut AI to create a Petri net/u),
+      screen.getByText(/Ask AI to create a Petri net/u),
     ).not.toBeNull();
   });
 

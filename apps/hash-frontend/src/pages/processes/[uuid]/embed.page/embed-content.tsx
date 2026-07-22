@@ -290,10 +290,6 @@ export const EmbedContent = () => {
     });
   }, [bridge, pendingSaveRequestId, state]);
 
-  const handleNavigateBack = useCallback(() => {
-    bridge.send({ kind: "requestNavigateBack" });
-  }, [bridge]);
-
   const handleLoadRevision = useCallback(
     (revision: RevisionSummary) => {
       bridge.send({
@@ -307,26 +303,19 @@ export const EmbedContent = () => {
   const persistPending = pendingSaveRequestId !== null;
 
   const slots = useMemo<PetrinautSlots>(() => {
-    const backButton = (
-      <Button
-        size="sm"
-        variant="ghost"
-        iconName="arrowLeft"
-        aria-label="Back to processes"
-        tooltip="Back to processes"
-        onClick={handleNavigateBack}
-      />
-    );
-
+    /**
+     * Navigation back to the process list lives in the host's breadcrumb
+     * bar (rendered by `process-editor.tsx` above this iframe), so the
+     * editor's own top bar carries no back affordance.
+     */
     if (!state || state.readonly) {
-      return { topBarStart: backButton };
+      return {};
     }
 
     const isSaved = state.mode.kind === "saved";
     const saveLabel = isSaved ? (isDirty ? "Save" : "Saved") : "Create";
 
     return {
-      topBarStart: backButton,
       topBarEnd: (
         <>
           <VersionPicker
@@ -351,7 +340,6 @@ export const EmbedContent = () => {
     };
   }, [
     handleLoadRevision,
-    handleNavigateBack,
     handleSaveClick,
     isDirty,
     persistPending,

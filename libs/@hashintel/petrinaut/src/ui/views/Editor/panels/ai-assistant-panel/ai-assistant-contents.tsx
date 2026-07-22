@@ -521,7 +521,7 @@ export const AiAssistantContents = ({
       />
       <div className={cardStyle}>
         <div className={headerStyle}>
-          <div className={tabStyle({ active: true })}>Petrinaut AI</div>
+          <div className={tabStyle({ active: true })}>AI</div>
           <div style={{ flex: 1 }} />
           <Button
             size="xs"
@@ -550,8 +550,8 @@ export const AiAssistantContents = ({
             <div className={emptyStyle}>
               <AiAssistantIcon size={28} />
               <div>
-                Ask Petrinaut AI to create a Petri net, explain or revise the
-                current model.
+                Ask AI to create a Petri net, explain or revise the current
+                model.
               </div>
             </div>
           )}
@@ -617,7 +617,7 @@ export const AiAssistantContents = ({
                       ? "Get creating..."
                       : "Continue iterating..."
                 }
-                aria-label="Message Petrinaut AI"
+                aria-label="Message AI assistant"
               />
               <Button
                 type={isBusy ? "button" : "submit"}
