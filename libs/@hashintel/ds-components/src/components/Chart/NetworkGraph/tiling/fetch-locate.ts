@@ -24,13 +24,13 @@
  *
  * ## Source id
  *
- * The request names its source in one of two domains: `entityId` (an upstream
- * identity a search result or deep link carries) or `row` (the wire node/edge
- * row id a rendered tile put in the client's hand). This transport takes the
- * latter — the **atlas id** — since that is what a rendered node or edge holds,
- * so it sends the id in the `row` field. (Sending it as `entityId` would ask
- * the server to parse a row id as an upstream identity, which fails as
- * `unknown-entity`.)
+ * The request names its source in exactly one of two domains: `entityId` (an
+ * upstream identity a search result or deep link carries) or `row` (the wire
+ * node/edge row id a rendered tile put in the client's hand). {@link fetchLocate}
+ * takes either: a `number` is the **atlas id** and rides the `row` field (what a
+ * rendered node or edge holds), while a `{ entityId }` rides the `entityId` field
+ * (what a search result holds — it has no atlas row id to hand). The same source
+ * yields a byte-identical response through either domain.
  */
 
 import {
@@ -50,6 +50,13 @@ import {
 import { WORLD_SIZE } from "./tile-geometry";
 
 export type { SaltilePropertyValue } from "../atlas-decode/locate";
+
+/**
+ * Names a locate source in one of the endpoint's two domains: a wire node/edge
+ * row id (`number`, sent as `row`), or an upstream entity id (sent as
+ * `entityId`). A search result carries the latter, with no atlas row id to hand.
+ */
+export type LocateSource = number | { readonly entityId: string };
 
 /** One located node: a row id, world coordinates, and (detailed) hydration. */
 export interface LocateNode {
@@ -133,16 +140,18 @@ export interface FetchLocateOptions {
 const locateUrl = (session: SaltileSession, baseUrl: string): string =>
   `${baseUrl}/v1/atlas/locate/${session.generation}/${session.variant}`;
 
-/** The JSON body: the source id, plus the delivery knobs when non-default. */
+/** The JSON body: the source in its domain, plus the delivery knobs when non-default. */
 const locateBody = (
-  atlasId: number,
+  source: LocateSource,
   coloredTypeIds: readonly string[],
   includeDetailedData: boolean,
 ): string =>
   JSON.stringify({
-    // The atlas id is a wire row id, so it names the source via `row` (not
-    // `entityId`, which is for upstream identities).
-    row: atlasId,
+    // Exactly one source domain rides the body: a wire row id via `row`, or an
+    // upstream identity via `entityId`.
+    ...(typeof source === "number"
+      ? { row: source }
+      : { entityId: source.entityId }),
     ...(coloredTypeIds.length > 0 ? { coloredTypeIds } : {}),
     // Locate defaults detail on, so only the opt-out rides the body.
     ...(includeDetailedData ? {} : { includeDetailedData: false }),
@@ -150,7 +159,7 @@ const locateBody = (
 
 const fetchAndDecodeLocate = async (
   session: SaltileSession,
-  atlasId: number,
+  requestSource: LocateSource,
   baseUrl: string,
   signal: AbortSignal | undefined,
   retries: number | undefined,
@@ -163,7 +172,7 @@ const fetchAndDecodeLocate = async (
     signal,
     retries,
     undefined,
-    locateBody(atlasId, coloredTypeIds, includeDetailedData),
+    locateBody(requestSource, coloredTypeIds, includeDetailedData),
   );
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -252,10 +261,11 @@ const fetchAndDecodeLocate = async (
 };
 
 /**
- * Fetches the locate ego-graph for the entity named by `atlasId`: the source,
+ * Fetches the locate ego-graph for the entity named by `source`: the source,
  * the partners of its delivered edges, and every edge incident to it, each
  * hydrated with detail (unless {@link FetchLocateOptions.includeDetailedData}
- * opts out).
+ * opts out). `source` is either an atlas row id (`number`) or a `{ entityId }`
+ * — see the module's "Source id" section.
  *
  * @returns The delivered nodes (source first, partners ascending wire row id)
  *   and edges (ascending wire edge id), with wire positions mapped to world
@@ -267,7 +277,7 @@ const fetchAndDecodeLocate = async (
  *   belong to the active generation.
  */
 export const fetchLocate = async (
-  atlasId: number,
+  source: LocateSource,
   options: FetchLocateOptions = {},
 ): Promise<LocatedEntity> => {
   const {
@@ -282,7 +292,7 @@ export const fetchLocate = async (
   try {
     return await fetchAndDecodeLocate(
       session,
-      atlasId,
+      source,
       baseUrl,
       signal,
       retry,
@@ -298,7 +308,7 @@ export const fetchLocate = async (
       const refreshed = await getSaltileSession(baseUrl);
       return await fetchAndDecodeLocate(
         refreshed,
-        atlasId,
+        source,
         baseUrl,
         signal,
         retry,

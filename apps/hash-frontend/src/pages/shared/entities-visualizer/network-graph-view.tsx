@@ -55,7 +55,7 @@ import {
 import type { NetworkGraphSearchResult } from "./network-graph-search";
 import type { TypeColorOverrides } from "./shared/type-colors";
 import type { AvailableType } from "./shared/use-available-types";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Same-origin path the view fetches tiles from. The `/atlas-api` rewrite in
@@ -221,6 +221,46 @@ const shortPropName = (url: string): string => {
 const formatPropValue = (value: SaltilePropertyValue): string =>
   value === null ? "—" : String(value);
 
+/**
+ * A stable, non-negative hash of a node id. Used to seed the per-node colour
+ * pick so a node keeps the same sampled colour across re-renders (tiles refetch
+ * and re-render constantly on pan/zoom) rather than flickering each frame.
+ */
+const hashSeed = (seed: number | string): number => {
+  const text = String(seed);
+  let hash = 0;
+  // Modulo a large prime keeps the accumulator bounded (and non-negative)
+  // without bitwise ops.
+  for (let index = 0; index < text.length; index++) {
+    hash = (hash * 31 + text.charCodeAt(index)) % 2147483647;
+  }
+  return hash;
+};
+
+/**
+ * Picks which of a node's matched queried types drives its colour. Rather than
+ * always taking the first (most-common) match, it samples one at random —
+ * deterministically seeded by the node id via {@link hashSeed} so the choice is
+ * stable per node. Types that resolve to grey ({@link unassignedTypeColor}) are
+ * de-prioritised: a grey type is only ever chosen when the node has no
+ * coloured match. Returns the index into `colors` (aligned to `coloredTypeIds`),
+ * or `undefined` when the node matches none of the queried types.
+ */
+const pickTypeIndex = (
+  typeIndices: readonly number[] | undefined,
+  seed: number | string,
+  colors: readonly string[],
+): number | undefined => {
+  if (typeIndices === undefined || typeIndices.length === 0) {
+    return undefined;
+  }
+  const coloured = typeIndices.filter(
+    (index) => (colors[index] ?? unassignedTypeColor) !== unassignedTypeColor,
+  );
+  const pool = coloured.length > 0 ? coloured : typeIndices;
+  return pool[hashSeed(seed) % pool.length];
+};
+
 /** The located item the popover shows, plus the world point "Go to entity" reveals. */
 interface Selection {
   readonly detail: LocatedEntityDetail;
@@ -238,8 +278,10 @@ interface Selection {
  * Nodes are coloured by entity type using the same palette as the type filter
  * dropdown: the types that resolve to a distinct colour there (by default the
  * most common types by entity count, plus any the user has overridden) are sent
- * to the tile API as `coloredTypeIds`, and each node's returned type membership
- * selects its colour. Types without a colour of their own render grey.
+ * to the tile API as `coloredTypeIds`. A node that matches several of them is
+ * coloured by one picked at random (seeded by its id so the choice is stable —
+ * see `pickTypeIndex`), preferring a coloured match over a greyed-out one. Types
+ * without a colour of their own render grey.
  */
 export const NetworkGraphView = ({
   availableEntityTypes,
@@ -292,15 +334,20 @@ export const NetworkGraphView = ({
     [coloredTypes],
   );
 
-  // A node carries the queried types it matches (ascending); colour it by the
-  // first, falling back to grey when it matches none of the coloured types.
+  // A node carries the queried types it matches; colour it by one sampled at
+  // random (seeded by the node id, so it's stable per node — see
+  // `pickTypeIndex`), preferring a coloured match over grey. Falls back to grey
+  // when it matches none of the coloured types.
   const colorForTypeIndices = useCallback(
-    (typeIndices: readonly number[] | undefined): string => {
-      const first = typeIndices?.[0];
-      if (first === undefined) {
+    (
+      typeIndices: readonly number[] | undefined,
+      seed: number | string,
+    ): string => {
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
+      if (index === undefined) {
         return unassignedTypeColor;
       }
-      return coloredTypeColors[first] ?? unassignedTypeColor;
+      return coloredTypeColors[index] ?? unassignedTypeColor;
     },
     [coloredTypeColors],
   );
@@ -314,13 +361,15 @@ export const NetworkGraphView = ({
     return map;
   }, [availableEntityTypes]);
 
-  // The popover type chip for a node: its first matched type's title + colour,
-  // or `undefined` when the node matches none of the coloured types.
+  // The popover type chip for a node: the title + colour of the same type its
+  // node colour was sampled from (so chip and node agree), or `undefined` when
+  // the node matches none of the coloured types.
   const typeChipForIndices = useCallback(
     (
       typeIndices: readonly number[] | undefined,
+      seed: number | string,
     ): LocatedEntityDetail["type"] => {
-      const index = typeIndices?.[0];
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
       if (index === undefined) {
         return undefined;
       }
@@ -346,19 +395,21 @@ export const NetworkGraphView = ({
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const [searchedPoint, setSearchedPoint] = useState<NetworkGraphPoint | null>(
-    null,
-  );
   const [isFullScreen, setIsFullScreen] = useState(false);
   // The graph opens fully framed out, so zoom-out starts at its limit.
   const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
 
-  // What's highlighted (a searched pin, a clicked node's located neighbourhood,
-  // or a clicked edge), the selection's live on-screen anchor (re-reported on
+  // What's highlighted (a clicked or searched node's located neighbourhood, or a
+  // clicked edge), the selection's live on-screen anchor (re-reported on
   // zoom/pan), and the located detail the popover shows plus its fly-to point.
   const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
   const [anchor, setAnchor] = useState<LocatedEntityPopoverAnchor | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // Which overlay wins the z-order when both the search widget and a selection
+  // popover are visible: whichever the user actioned last. Selecting an item
+  // drops the widget below the popover; focusing/opening the widget raises it
+  // back above (see `NetworkGraphSearch`'s `elevated`/`onActivate`).
+  const [searchOnTop, setSearchOnTop] = useState(true);
   // Bumped on every click/clear so a slow earlier locate can't land over a newer one.
   const locateSeqRef = useRef(0);
 
@@ -393,12 +444,13 @@ export const NetworkGraphView = ({
     coloredTypeIds,
   });
 
-  const points = useMemo(() => {
-    const tilePoints = (data?.nodes ?? []).map((node) =>
-      toPoint(node, colorForTypeIndices(node.typeIndices)),
-    );
-    return searchedPoint ? [...tilePoints, searchedPoint] : tilePoints;
-  }, [data, searchedPoint, colorForTypeIndices]);
+  const points = useMemo(
+    () =>
+      (data?.nodes ?? []).map((node) =>
+        toPoint(node, colorForTypeIndices(node.typeIndices, node.id)),
+      ),
+    [data, colorForTypeIndices],
+  );
 
   const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data]);
 
@@ -460,26 +512,6 @@ export const NetworkGraphView = ({
     [schedule],
   );
 
-  // The search endpoint has no coordinates, so drop the picked node at a random
-  // spot within the graph bounds, select it, and reveal it in the camera.
-  const handleSearchSelect = useCallback((result: NetworkGraphSearchResult) => {
-    const region = boundsRef.current ?? GRAPH_WORLD;
-    const x = region.minX + Math.random() * (region.maxX - region.minX);
-    const y = region.minY + Math.random() * (region.maxY - region.minY);
-    // A searched pin has no tile type mask, so it takes the neutral colour.
-    setSearchedPoint({
-      id: result.entityId,
-      x,
-      y,
-      color: unassignedTypeColor,
-      label: result.label,
-    });
-    setSelected({ node: result.entityId });
-    setSelection(null);
-    locateSeqRef.current += 1;
-    graphRef.current?.revealPoint([x, y]);
-  }, []);
-
   // Drop the selection and its popover (empty-space click, or popover dismiss).
   // Bumping the sequence discards any locate still in flight.
   const clearSelection = useCallback(() => {
@@ -506,6 +538,143 @@ export const NetworkGraphView = ({
     [coloredTypeIds],
   );
 
+  // Overlay a located ego-graph (its source node, incident edges, and
+  // neighbours) as the selection and populate the detail popover — shared by
+  // node clicks and search-result picks. Returns the source's world point (a
+  // fly-to target) or null when the response carried no source.
+  const showLocatedEntity = useCallback(
+    (entity: LocatedEntity): readonly [number, number] | null => {
+      const [source, ...neighbours] = entity.nodes;
+      if (!source) {
+        return null;
+      }
+      setSelected({
+        node: {
+          point: toPoint(
+            source,
+            colorForTypeIndices(source.typeIndices, source.id),
+          ),
+          edges: entity.edges.map(toEdge),
+          neighbours: neighbours.map((neighbour) =>
+            toPoint(
+              neighbour,
+              colorForTypeIndices(neighbour.typeIndices, neighbour.id),
+            ),
+          ),
+        },
+      });
+      const type = typeChipForIndices(source.typeIndices, source.id);
+      setSelection({
+        detail: {
+          kind: "node",
+          title: source.label ?? `Node ${source.id}`,
+          ...(source.icon !== undefined ? { icon: source.icon } : {}),
+          ...(type !== undefined ? { type } : {}),
+          properties: Object.entries(source.properties ?? {}).map(
+            ([key, value]) => ({
+              key: shortPropName(key),
+              value: formatPropValue(value),
+            }),
+          ),
+        },
+        focus: [source.x, source.y],
+      });
+      return [source.x, source.y];
+    },
+    [colorForTypeIndices, typeChipForIndices],
+  );
+
+  // Prefetched locate ego-graphs for the current search results, keyed by entity
+  // id — a search result carries no atlas row id, so it locates by `entityId`.
+  // The cache is tagged with the queried type set it was built against: that set
+  // keys each node's type mask, so a change to it invalidates every entry.
+  // Colour-only changes keep `coloredTypeIdsSignature` stable and don't.
+  const locateCacheRef = useRef<{
+    signature: string;
+    entries: Map<EntityId, Promise<LocatedEntity>>;
+  }>({ signature: coloredTypeIdsSignature, entries: new Map() });
+
+  // The live cache for the current type set, reset lazily when that set changes.
+  const getLocateCache = useCallback(() => {
+    if (locateCacheRef.current.signature !== coloredTypeIdsSignature) {
+      locateCacheRef.current = {
+        signature: coloredTypeIdsSignature,
+        entries: new Map(),
+      };
+    }
+    return locateCacheRef.current.entries;
+  }, [coloredTypeIdsSignature]);
+
+  // Locate an entity by id, memoized in the cache (read-or-start) so a prefetch
+  // and a later pick share one request. A rejected locate is dropped so it can
+  // be retried.
+  const locateEntity = useCallback(
+    (entityId: EntityId): Promise<LocatedEntity> => {
+      const entries = getLocateCache();
+      const existing = entries.get(entityId);
+      if (existing) {
+        return existing;
+      }
+      const promise = fetchLocate(
+        { entityId },
+        { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds },
+      );
+      entries.set(entityId, promise);
+      void promise.catch(() => {
+        const current = getLocateCache();
+        if (current.get(entityId) === promise) {
+          current.delete(entityId);
+        }
+      });
+      return promise;
+    },
+    [coloredTypeIds, getLocateCache],
+  );
+
+  // Prefetch the whole result set so a pick renders without an on-demand round
+  // trip, and drop the entries no longer in the results.
+  const handleSearchResults = useCallback(
+    (results: NetworkGraphSearchResult[]) => {
+      const entries = getLocateCache();
+      const wanted = new Set(results.map(({ entityId }) => entityId));
+      for (const entityId of [...entries.keys()]) {
+        if (!wanted.has(entityId)) {
+          entries.delete(entityId);
+        }
+      }
+      for (const { entityId } of results) {
+        void locateEntity(entityId);
+      }
+    },
+    [getLocateCache, locateEntity],
+  );
+
+  // Pick a search result → resolve its prefetched (usually already resolved)
+  // locate, overlay its ego-graph with a popover, and reveal the source in the
+  // camera. The sequence guard drops a stale locate if a newer pick/click lands
+  // first; a failed locate leaves nothing selected.
+  const handleSearchSelect = useCallback(
+    (result: NetworkGraphSearchResult) => {
+      locateSeqRef.current += 1;
+      const seq = locateSeqRef.current;
+      setSelected(null);
+      setSelection(null);
+      setSearchOnTop(false);
+      void locateEntity(result.entityId)
+        .then((entity) => {
+          if (seq !== locateSeqRef.current) {
+            return;
+          }
+          const focus = showLocatedEntity(entity);
+          if (focus) {
+            graphRef.current?.revealPoint([focus[0], focus[1]]);
+          }
+        })
+        .catch(() => {});
+    },
+    [locateEntity, showLocatedEntity],
+  );
+
   // Click a node → highlight it immediately, then locate it and overlay its
   // located neighbourhood (node, edges, neighbours) with a detail popover.
   // Clicking empty space clears the selection.
@@ -517,45 +686,16 @@ export const NetworkGraphView = ({
       }
       setSelected({ node: interaction.point.id });
       setSelection(null);
-      // A searched pin carries an entity id, not an atlas row id, so it can't be
-      // located; only real tile nodes (numeric ids) go to the locate API.
+      setSearchOnTop(false);
+      // Every rendered node (tile or ego-graph) carries a numeric atlas row id;
+      // that is what the row-based locate takes. Guard against any other id.
       const atlasId = Number(interaction.point.id);
       if (!Number.isFinite(atlasId)) {
         return;
       }
-      locate(atlasId, (entity) => {
-        const [source, ...neighbours] = entity.nodes;
-        if (!source) {
-          return;
-        }
-        setSelected({
-          node: {
-            point: toPoint(source, colorForTypeIndices(source.typeIndices)),
-            edges: entity.edges.map(toEdge),
-            neighbours: neighbours.map((neighbour) =>
-              toPoint(neighbour, colorForTypeIndices(neighbour.typeIndices)),
-            ),
-          },
-        });
-        const type = typeChipForIndices(source.typeIndices);
-        setSelection({
-          detail: {
-            kind: "node",
-            title: source.label ?? `Node ${source.id}`,
-            ...(source.icon !== undefined ? { icon: source.icon } : {}),
-            ...(type !== undefined ? { type } : {}),
-            properties: Object.entries(source.properties ?? {}).map(
-              ([key, value]) => ({
-                key: shortPropName(key),
-                value: formatPropValue(value),
-              }),
-            ),
-          },
-          focus: [source.x, source.y],
-        });
-      });
+      locate(atlasId, showLocatedEntity);
     },
-    [clearSelection, locate, colorForTypeIndices, typeChipForIndices],
+    [clearSelection, locate, showLocatedEntity],
   );
 
   // Click an edge → select it (its selection outlines both endpoints — an edge's
@@ -570,6 +710,7 @@ export const NetworkGraphView = ({
       }
       setSelected({ edge: edge.id });
       setSelection(null);
+      setSearchOnTop(false);
       const edgeId = Number(edge.id);
       const fromId = Number(edge.fromId);
       if (!Number.isFinite(fromId)) {
@@ -581,6 +722,31 @@ export const NetworkGraphView = ({
           return;
         }
         const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        // Pin the edge's geometry to the selection so it stays drawn and anchored
+        // (its popover included) even in the compact view, whose sparse on-screen
+        // tiles usually don't contain this located edge or its endpoint nodes.
+        const nodeById = new Map(
+          entity.nodes.map((node) => [node.id, node] as const),
+        );
+        const fromNode = nodeById.get(Number(edge.fromId));
+        const toNode = nodeById.get(Number(edge.toId));
+        if (fromNode && toNode) {
+          setSelected({
+            edge: {
+              edge,
+              endpoints: [
+                toPoint(
+                  fromNode,
+                  colorForTypeIndices(fromNode.typeIndices, fromNode.id),
+                ),
+                toPoint(
+                  toNode,
+                  colorForTypeIndices(toNode.typeIndices, toNode.id),
+                ),
+              ],
+            },
+          });
+        }
         setSelection({
           detail: {
             kind: "edge",
@@ -602,7 +768,7 @@ export const NetworkGraphView = ({
         });
       });
     },
-    [clearSelection, locate],
+    [clearSelection, locate, colorForTypeIndices],
   );
 
   // "Go to entity" reveals the located point — bringing it on screen if it isn't
@@ -683,10 +849,14 @@ export const NetworkGraphView = ({
                 detail={selection.detail}
                 onClose={clearSelection}
                 onGoTo={handleGoTo}
+                onActivate={() => setSearchOnTop(false)}
               />
             ) : null}
             <NetworkGraphSearch
+              elevated={searchOnTop}
+              onActivate={() => setSearchOnTop(true)}
               onSelect={handleSearchSelect}
+              onResultsChange={handleSearchResults}
               popperContainer={frameRef.current}
             />
             <Stack

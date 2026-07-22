@@ -148,18 +148,23 @@ export interface DetailIconAtlas {
 const PAN_PADDING_PX = 10;
 
 /**
- * The inclusive range a pan `center` may take on one axis so the viewport shows
- * at most {@link PAN_PADDING_PX} beyond the network on either side. `scale` is the
- * world→pixel factor (`2 ** zoom`). The two per-side limits order as `[lo, hi]`
- * zoomed in but swap zoomed out — sorting covers both regimes.
+ * The inclusive range a pan `center` may take on one axis so the viewport shows a
+ * node at the network edge in full plus at most {@link PAN_PADDING_PX} beyond it.
+ * `scale` is the world→pixel factor (`2 ** zoom`). `marginPx` is the on-screen
+ * radius (px) of a node as drawn, added to the padding so the clamp keeps the node
+ * *discs* in view rather than the node *centres* the bounds cover — otherwise an
+ * edge node can only be panned until its centre reaches the viewport edge, leaving
+ * its outer radius clipped. The two per-side limits order as `[lo, hi]` zoomed in
+ * but swap zoomed out — sorting covers both regimes.
  */
 const panAxisLimits = (
   min: number,
   max: number,
   viewportPx: number,
   scale: number,
+  marginPx: number,
 ): [number, number] => {
-  const pad = PAN_PADDING_PX / scale;
+  const pad = (PAN_PADDING_PX + marginPx) / scale;
   const half = viewportPx / (2 * scale);
   const a = min - pad + half;
   const b = max + pad - half;
@@ -168,10 +173,11 @@ const panAxisLimits = (
 
 /**
  * Hard-clamp an orthographic pan `target` to the nearest in-range value so the
- * viewport never shows more than {@link PAN_PADDING_PX} beyond the network's
- * bounding box. Used where the target is computed afresh (`revealPoint`) and must
- * land inside the limits regardless of where the view previously sat.
- * `viewport{Width,Height}` are in CSS pixels.
+ * viewport never shows more than a node's drawn radius (`marginPx`) plus {@link
+ * PAN_PADDING_PX} beyond the network's bounding box. Used where the target is
+ * computed afresh (`revealPoint`) and must land inside the limits regardless of
+ * where the view previously sat. `viewport{Width,Height}` are in CSS pixels;
+ * `marginPx` is the drawn node radius (see {@link panAxisLimits}).
  */
 export const clampPanTarget = (
   target: number[],
@@ -179,18 +185,21 @@ export const clampPanTarget = (
   viewportWidth: number,
   viewportHeight: number,
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  marginPx: number,
 ): [number, number, number] => {
   const [loX, hiX] = panAxisLimits(
     bounds.minX,
     bounds.maxX,
     viewportWidth,
     scale,
+    marginPx,
   );
   const [loY, hiY] = panAxisLimits(
     bounds.minY,
     bounds.maxY,
     viewportHeight,
     scale,
+    marginPx,
   );
   return [
     Math.min(hiX, Math.max(loX, target[0] ?? 0)),
@@ -217,6 +226,7 @@ export const clampPanTargetBlocking = (
   viewportWidth: number,
   viewportHeight: number,
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  marginPx: number,
 ): [number, number, number] => {
   const clampAxis = (
     center: number,
@@ -225,7 +235,7 @@ export const clampPanTargetBlocking = (
     max: number,
     viewportPx: number,
   ) => {
-    const [lo, hi] = panAxisLimits(min, max, viewportPx, scale);
+    const [lo, hi] = panAxisLimits(min, max, viewportPx, scale, marginPx);
     // Relax whichever bound `prev` sits beyond, so the view is never pulled inward.
     return Math.min(Math.max(hi, prev), Math.max(Math.min(lo, prev), center));
   };

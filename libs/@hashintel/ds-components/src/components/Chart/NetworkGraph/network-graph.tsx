@@ -108,6 +108,20 @@ export interface NetworkGraphNeighbourhood {
 }
 
 /**
+ * An edge given with its two endpoint nodes rather than by id alone. The edge and
+ * its endpoints travel with the selection, so a selected edge stays drawn and
+ * anchored (its label pill and reported anchor included) even when the graph's
+ * current `points`/`edges` don't contain it — e.g. the sparse tiles of a
+ * zoomed-out tiling view, whose aggregated sample rarely includes a specific
+ * located edge. Endpoints already in the graph are reused; ones that aren't are
+ * overlaid.
+ */
+export interface NetworkGraphEdgeNeighbourhood {
+  edge: NetworkGraphEdge;
+  endpoints: [NetworkGraphPoint, NetworkGraphPoint];
+}
+
+/**
  * What is selected in the graph — a single node or a single edge; only one thing is
  * selectable at a time. The selection is highlighted with the same treatment as
  * hovering it, and an active hover takes precedence.
@@ -115,11 +129,13 @@ export interface NetworkGraphNeighbourhood {
  * - `{ node }` selects a node, given either the id of a node already in the graph or
  *   a {@link NetworkGraphNeighbourhood} to overlay (items already in the graph are
  *   reused).
- * - `{ edge }` selects an edge, given the id of an edge in the graph.
+ * - `{ edge }` selects an edge, given either the id of an edge in the graph or a
+ *   {@link NetworkGraphEdgeNeighbourhood} carrying the edge with its endpoints (so
+ *   it stays resolvable when the graph's own data doesn't include it).
  */
 export type NetworkGraphSelection =
   | { node: NetworkGraphId | NetworkGraphNeighbourhood }
-  | { edge: NetworkGraphId };
+  | { edge: NetworkGraphId | NetworkGraphEdgeNeighbourhood };
 
 /**
  * The imperative API exposed via {@link NetworkGraphProps.ref}, letting a consumer
@@ -277,6 +293,15 @@ const DETAIL_VIEWPORT_MARGIN_PX = 80;
  * deriveZoomAttributes}.)
  */
 const ARROW_SIZE_PX = 10;
+/**
+ * Node half-extent (px) the pan clamp reserves so an edge node can be panned fully
+ * into view rather than clipped at the viewport edge — the clamp works off the
+ * node-*centre* bounds, so a disc's radius spills past the edge without it. Fixed at
+ * the largest a node is ever drawn (the detail node's radius) so it covers every
+ * zoom without measuring the live node size; the compact crowd points are smaller,
+ * so they simply sit a little further in.
+ */
+const PAN_NODE_MARGIN_PX = DETAIL_NODE_DIAMETER / 2;
 
 /** One direction arrow: where its tip sits and how it's oriented. */
 interface EdgeArrow {
@@ -406,11 +431,26 @@ export const NetworkGraph = ({
     [selected],
   );
 
-  // The selected edge's id when an edge is selected, else null.
-  const selectedEdge = useMemo<NetworkGraphId | null>(
-    () => (selected != null && "edge" in selected ? selected.edge : null),
-    [selected],
-  );
+  // The selected edge's id when an edge is selected, else null — taken from the
+  // bare id or the overlay's edge.
+  const selectedEdge = useMemo<NetworkGraphId | null>(() => {
+    if (selected == null || !("edge" in selected)) {
+      return null;
+    }
+    return typeof selected.edge === "object"
+      ? selected.edge.edge.id
+      : selected.edge;
+  }, [selected]);
+
+  // The overlay carried by an edge selection (the edge + its two endpoints), else
+  // null. Folded into the overlay maps below so a selected edge and its endpoints
+  // resolve even when the graph's own `points`/`edges` don't include them.
+  const edgeOverlay = useMemo<NetworkGraphEdgeNeighbourhood | null>(() => {
+    if (selected == null || !("edge" in selected)) {
+      return null;
+    }
+    return typeof selected.edge === "object" ? selected.edge : null;
+  }, [selected]);
 
   // The overlay neighbourhood when the selected node is one (not a bare id), else null.
   const overlaySelection = useMemo<NetworkGraphNeighbourhood | null>(
@@ -426,7 +466,7 @@ export const NetworkGraph = ({
    * items to add. Existing items are omitted here so they aren't drawn twice.
    */
   const overlayPoints = useMemo<NetworkGraphPoint[]>(() => {
-    if (!overlaySelection) {
+    if (!overlaySelection && !edgeOverlay) {
       return [];
     }
     const result: NetworkGraphPoint[] = [];
@@ -438,14 +478,21 @@ export const NetworkGraph = ({
       seen.add(point.id);
       result.push(point);
     };
-    add(overlaySelection.point);
-    for (const neighbour of overlaySelection.neighbours) {
-      add(neighbour);
+    if (overlaySelection) {
+      add(overlaySelection.point);
+      for (const neighbour of overlaySelection.neighbours) {
+        add(neighbour);
+      }
+    }
+    if (edgeOverlay) {
+      for (const endpoint of edgeOverlay.endpoints) {
+        add(endpoint);
+      }
     }
     return result;
-  }, [overlaySelection, pointById]);
+  }, [overlaySelection, edgeOverlay, pointById]);
 
-  // The overlay selection's point + neighbours keyed by id.
+  // The node overlay's point + neighbours and the edge overlay's endpoints, keyed by id.
   const overlayPointById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphPoint>();
     if (overlaySelection) {
@@ -454,8 +501,13 @@ export const NetworkGraph = ({
         map.set(neighbour.id, neighbour);
       }
     }
+    if (edgeOverlay) {
+      for (const endpoint of edgeOverlay.endpoints) {
+        map.set(endpoint.id, endpoint);
+      }
+    }
     return map;
-  }, [overlaySelection]);
+  }, [overlaySelection, edgeOverlay]);
 
   const overlayEdgeById = useMemo(() => {
     const map = new Map<NetworkGraphId, NetworkGraphEdge>();
@@ -464,8 +516,11 @@ export const NetworkGraph = ({
         map.set(edge.id, edge);
       }
     }
+    if (edgeOverlay) {
+      map.set(edgeOverlay.edge.id, edgeOverlay.edge);
+    }
     return map;
-  }, [overlaySelection]);
+  }, [overlaySelection, edgeOverlay]);
 
   // Resolve a node/edge by id, preferring the graph item, falling back to an overlaid one.
   const resolvePoint = useCallback(
@@ -920,6 +975,53 @@ export const NetworkGraph = ({
     ? "detailed"
     : "compact";
 
+  // Bounding box of the nodes actually being rendered, or null when there are none.
+  const pointsBounds = useMemo(() => {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const point of points) {
+      if (point.x < minX) {
+        minX = point.x;
+      }
+      if (point.x > maxX) {
+        maxX = point.x;
+      }
+      if (point.y < minY) {
+        minY = point.y;
+      }
+      if (point.y > maxY) {
+        maxY = point.y;
+      }
+    }
+    return Number.isFinite(minX) ? { minX, maxX, minY, maxY } : null;
+  }, [points]);
+
+  /**
+   * The bounds the pan clamp uses: `graphBounds` widened to include any rendered node
+   * beyond it. A streaming/tiled caller's `graphBounds` can lag the true extent —
+   * e.g. frozen from a coarse overview sample — so nodes stream in outside it; without
+   * this widening the clamp would stop at the stale bounds and those edge nodes could
+   * never be panned into view. `graphBounds` alone still drives the initial framing
+   * (see the fit effect), so the opening view is unchanged.
+   */
+  const panBounds = useMemo(() => {
+    if (!pointsBounds) {
+      return graphBounds;
+    }
+    return {
+      minX: Math.min(graphBounds.minX, pointsBounds.minX),
+      maxX: Math.max(graphBounds.maxX, pointsBounds.maxX),
+      minY: Math.min(graphBounds.minY, pointsBounds.minY),
+      maxY: Math.max(graphBounds.maxY, pointsBounds.maxY),
+    };
+  }, [graphBounds, pointsBounds]);
+  // Mirror into a ref so the imperative zoom/reveal callbacks read the latest bounds
+  // without re-creating as points stream in.
+  const panBoundsRef = useRef(panBounds);
+  panBoundsRef.current = panBounds;
+
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
     pointerDownRef.current = { x: event.clientX, y: event.clientY };
   }, []);
@@ -1020,43 +1122,41 @@ export const NetworkGraph = ({
    * {@link clampPanTarget}) so the network stays framed — matching the wheel path.
    * Backs the imperative {@link NetworkGraphHandle}.
    */
-  const applyZoomDelta = useCallback(
-    (delta: number) => {
-      if (!delta) {
-        return;
+  const applyZoomDelta = useCallback((delta: number) => {
+    if (!delta) {
+      return;
+    }
+    setViewState((previous) => {
+      if (!previous) {
+        return previous;
       }
-      setViewState((previous) => {
-        if (!previous) {
-          return previous;
-        }
-        const current = Array.isArray(previous.zoom)
-          ? previous.zoom[0]
-          : (previous.zoom ?? 0);
-        const next = Math.max(
-          previous.minZoom ?? -Infinity,
-          Math.min(previous.maxZoom ?? Infinity, current + delta),
-        );
-        if (next === current) {
-          // Already at the limit — avoid a needless re-render.
-          return previous;
-        }
-        // Zooming out re-clamps the target to keep the network framed; zooming in doesn't.
-        const rect = containerRef.current?.getBoundingClientRect();
-        const target =
-          next < current && rect && previous.target
-            ? clampPanTarget(
-                previous.target as number[],
-                2 ** next,
-                rect.width,
-                rect.height,
-                graphBounds,
-              )
-            : previous.target;
-        return { ...previous, zoom: next, target };
-      });
-    },
-    [graphBounds],
-  );
+      const current = Array.isArray(previous.zoom)
+        ? previous.zoom[0]
+        : (previous.zoom ?? 0);
+      const next = Math.max(
+        previous.minZoom ?? -Infinity,
+        Math.min(previous.maxZoom ?? Infinity, current + delta),
+      );
+      if (next === current) {
+        // Already at the limit — avoid a needless re-render.
+        return previous;
+      }
+      // Zooming out re-clamps the target to keep the network framed; zooming in doesn't.
+      const rect = containerRef.current?.getBoundingClientRect();
+      const target =
+        next < current && rect && previous.target
+          ? clampPanTarget(
+              previous.target as number[],
+              2 ** next,
+              rect.width,
+              rect.height,
+              panBoundsRef.current,
+              PAN_NODE_MARGIN_PX,
+            )
+          : previous.target;
+      return { ...previous, zoom: next, target };
+    });
+  }, []);
 
   /**
    * Bring `point` into view alongside the current viewport centre: no-op if already
@@ -1120,12 +1220,13 @@ export const NetworkGraph = ({
           2 ** next,
           width,
           height,
-          graphBounds,
+          panBoundsRef.current,
+          PAN_NODE_MARGIN_PX,
         );
         return { ...previous, zoom: next, target: nextTarget };
       });
     },
-    [view, graphBounds],
+    [view],
   );
 
   useImperativeHandle(
@@ -2034,7 +2135,8 @@ export const NetworkGraph = ({
                         2 ** zoom,
                         rect.width,
                         rect.height,
-                        graphBounds,
+                        panBounds,
+                        PAN_NODE_MARGIN_PX,
                       )
                     : clampPanTargetBlocking(
                         raw.target as number[],
@@ -2043,7 +2145,8 @@ export const NetworkGraph = ({
                         2 ** zoom,
                         rect.width,
                         rect.height,
-                        graphBounds,
+                        panBounds,
+                        PAN_NODE_MARGIN_PX,
                       )
                   : (raw.target ?? base.target);
               const next: OrthographicViewState = {

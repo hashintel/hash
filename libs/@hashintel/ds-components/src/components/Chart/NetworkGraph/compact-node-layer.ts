@@ -257,32 +257,9 @@ export class CompactNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
-      // The active node's incident edges (compact view). Drawn before the points so
-      // a node's disc paints over the edges meeting at it, and so picking resolves
-      // the node rather than its edge at the node's centre.
-      ...(edges.length > 0
-        ? [
-            new LineLayer<HoverLine>({
-              id: `${id}-edges`,
-              data: edges,
-              pickable: highlightEdgesPickable,
-              parameters: BASE_LAYER_PARAMETERS,
-              getSourcePosition: (line) => line.source,
-              getTargetPosition: (line) => line.target,
-              // Already fully opaque, so a hovered edge only doubles its width.
-              getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
-              getWidth: (line) =>
-                line.id === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
-              widthUnits: "pixels",
-              widthMinPixels: EDGE_MIN_WIDTH,
-              updateTriggers: {
-                getWidth: hoveredEdgeId,
-              },
-            }),
-          ]
-        : []),
-      // Hidden in the detail variation so the crowd doesn't show through the
-      // translucent detailed nodes; the detailed layer resolves picking there.
+      // Every node as a plain coloured point. Hidden in the detail variation so the
+      // crowd doesn't show through the translucent detailed nodes; the detailed layer
+      // resolves picking there.
       ...(showPoints
         ? [
             new ScatterplotLayer<NetworkGraphPoint>({
@@ -310,20 +287,49 @@ export class CompactNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
-      // The neighbour, backgrounded-selection, and hovered grow rings. Suppressed
-      // in the detail variation, which highlights via a colour-matched outline.
+      // Neighbour grow rings, drawn below the edges: a neighbour is a plain node, so
+      // the edge reaching it reads on top. Suppressed in the detail variation, which
+      // highlights via a colour-matched outline.
+      ...(showGrowHighlights && neighbours.length > 0
+        ? [
+            growRing({
+              idSuffix: "highlight-neighbours",
+              data: neighbours,
+              radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
+              radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+            }),
+          ]
+        : []),
+      // The active node's incident edges (compact view). Drawn above the point crowd
+      // and the neighbour rings so a connection reads on top of the nodes it spans,
+      // but below the hovered/selected grow rings next, so the emphasised node still
+      // sits over its own edges. Detail draws them as bundled curves in a separate layer.
+      ...(edges.length > 0
+        ? [
+            new LineLayer<HoverLine>({
+              id: `${id}-edges`,
+              data: edges,
+              pickable: highlightEdgesPickable,
+              parameters: BASE_LAYER_PARAMETERS,
+              getSourcePosition: (line) => line.source,
+              getTargetPosition: (line) => line.target,
+              // Already fully opaque, so a hovered edge only doubles its width.
+              getColor: [...EDGE_COLOR, RGBA_OPAQUE] as Color,
+              getWidth: (line) =>
+                line.id === hoveredEdgeId ? EDGE_HOVER_WIDTH : EDGE_WIDTH,
+              widthUnits: "pixels",
+              widthMinPixels: EDGE_MIN_WIDTH,
+              updateTriggers: {
+                getWidth: hoveredEdgeId,
+              },
+            }),
+          ]
+        : []),
+      // The backgrounded-selection and hovered grow rings, drawn above the edges so a
+      // hovered or selected node sits over its own edges. Suppressed in the detail
+      // variation, which highlights via a colour-matched outline.
       ...(showGrowHighlights
         ? [
-            ...(neighbours.length > 0
-              ? [
-                  growRing({
-                    idSuffix: "highlight-neighbours",
-                    data: neighbours,
-                    radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
-                    radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
-                  }),
-                ]
-              : []),
             // Backgrounded selection: same grown ring as the active node but dimmed,
             // drawn before it so the hovered node's highlight reads on top.
             ...(dimmedSelectedNode

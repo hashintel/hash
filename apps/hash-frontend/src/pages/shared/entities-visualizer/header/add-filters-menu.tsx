@@ -10,7 +10,7 @@ import { Chip } from "@hashintel/design-system";
 
 import { PlusRegularIcon } from "../../../../shared/icons/plus-regular";
 import { MenuItem } from "../../../../shared/ui";
-import { dashedPillSx } from "./pill-styles";
+import { dashedPillSx, filterDropdownZIndex } from "./pill-styles";
 import { PropertyFilterPicker } from "./property-filter-picker";
 
 import type {
@@ -64,6 +64,7 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
         {...bindMenu(popupState)}
         anchorOrigin={{ vertical: 30, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
+        sx={{ zIndex: filterDropdownZIndex }}
         slotProps={{
           paper: {
             sx: {
