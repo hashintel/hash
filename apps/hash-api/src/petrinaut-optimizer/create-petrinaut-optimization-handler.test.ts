@@ -60,26 +60,22 @@ type RecordedLog = {
   metadata: Record<string, unknown>;
 };
 
-/** Build a logger fake that records request-scoped structured logs. */
+/** Build a logger fake that records structured logs. */
 const createRecordingLogger = () => {
   const entries: RecordedLog[] = [];
   const record =
-    (level: "info" | "warn", childMetadata: Record<string, unknown>) =>
+    (level: "info" | "warn") =>
     (message: string, metadata?: Record<string, unknown>) => {
       entries.push({
         level,
         message,
-        metadata: { ...childMetadata, ...metadata },
+        metadata: metadata ?? {},
       });
     };
   const logger = {
-    child: (childMetadata: Record<string, string>) => ({
-      info: record("info", childMetadata),
-      warn: record("warn", childMetadata),
-    }),
-    info: record("info", {}),
-    warn: record("warn", {}),
-  } as unknown as Pick<Logger, "child" | "info" | "warn">;
+    info: record("info"),
+    warn: record("warn"),
+  } as unknown as Pick<Logger, "info" | "warn">;
   return { entries, logger };
 };
 
@@ -105,7 +101,7 @@ const callHandler = async ({
   fetchImpl?: (input: string | URL, init?: RequestInit) => Promise<Response>;
   /** Reuse one handler across calls to observe its slot bookkeeping. */
   handler?: ReturnType<typeof createPetrinautOptimizationHandler>;
-  logger?: Pick<Logger, "child" | "info" | "warn">;
+  logger?: Pick<Logger, "info" | "warn">;
   onRequest?: (request: EventEmitter) => void;
   onResponse?: (response: FakeResponse) => void;
   /** Decide each write's backpressure result; defaults to no backpressure. */
@@ -667,6 +663,81 @@ describe("createPetrinautOptimizationHandler", () => {
       vi.useRealTimers();
     }
   });
+
+  it.each([
+    {
+      expectedLevel: "info" as const,
+      expectedMessage: "Petrinaut optimization finished",
+      expectedOutcome: "completed",
+      terminalType: "complete",
+      upstream: [
+        'data: {"step":0,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n',
+        "event: done\ndata: {}\n\n",
+      ].join(""),
+    },
+    {
+      expectedLevel: "warn" as const,
+      expectedMessage: "Petrinaut optimization failed",
+      expectedOutcome: "upstream-error",
+      terminalType: "error",
+      upstream: 'event: error\ndata: {"message":"failed"}\n\n',
+    },
+  ])(
+    "preserves $expectedOutcome when the client disconnects during terminal backpressure",
+    async ({
+      expectedLevel,
+      expectedMessage,
+      expectedOutcome,
+      terminalType,
+      upstream,
+    }) => {
+      const { entries, logger } = createRecordingLogger();
+      let activeResponse: FakeResponse | undefined;
+
+      const result = await callHandler({
+        body: validOptimizationInput,
+        fetchImpl: async () =>
+          new Response(upstream, {
+            headers: {
+              "content-type": "text/event-stream",
+              "x-optimization-run-id": "run-terminal-1",
+            },
+          }),
+        logger,
+        onResponse: (response) => {
+          activeResponse = response;
+        },
+        writeReturns: (value) => {
+          if (value.includes(`"type":"${terminalType}"`)) {
+            setImmediate(() => {
+              activeResponse!.destroyed = true;
+              activeResponse!.emit("close");
+            });
+            return false;
+          }
+          return true;
+        },
+      });
+
+      const terminalEvents = result.output.filter(
+        (frame) =>
+          frame.includes('"type":"complete"') ||
+          frame.includes('"type":"error"'),
+      );
+      expect(terminalEvents).toHaveLength(1);
+      expect(terminalEvents[0]).toContain(`"type":"${terminalType}"`);
+      expect(entries.at(-1)).toEqual({
+        level: expectedLevel,
+        message: expectedMessage,
+        metadata: {
+          durationMs: expect.any(Number),
+          optimizationRunId: "run-terminal-1",
+          outcome: expectedOutcome,
+          requestId: "request-id-1",
+        },
+      });
+    },
+  );
 
   it("aborts disconnected requests and releases the user slot", async () => {
     let abortObserved = false;
