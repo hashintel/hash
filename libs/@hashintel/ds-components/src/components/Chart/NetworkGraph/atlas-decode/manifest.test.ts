@@ -16,7 +16,14 @@ const manifestBody = {
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+m", maxZoom: 16 },
-  limits: { coloredTypeIds: 8, edgesTiles: 32 },
+  limits: {
+    coloredTypeIds: 8,
+    edgesTiles: 32,
+    locateEdges: 512,
+    locateProperties: 20,
+    locateLinkTypeIds: 5,
+    locateLinkProperties: 10,
+  },
   createdAt: "2026-07-19T16:00:00Z",
 };
 
@@ -56,6 +63,10 @@ describe("parseManifest", () => {
     expect(manifest.bucketSchedule.span).toBe(64);
     expect(manifest.bucketSchedule.maxZoom).toBe(16);
     expect(manifest.limits.coloredTypeIds).toBe(8);
+    expect(manifest.limits.locateEdges).toBe(512);
+    expect(manifest.limits.locateProperties).toBe(20);
+    expect(manifest.limits.locateLinkTypeIds).toBe(5);
+    expect(manifest.limits.locateLinkProperties).toBe(10);
   });
 
   it("requires the generation to echo the route", () => {

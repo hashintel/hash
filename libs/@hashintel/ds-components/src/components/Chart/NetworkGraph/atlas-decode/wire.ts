@@ -1,8 +1,9 @@
 /**
  * Envelope layer of the SALTILE binary wire, the atlas serving API's
  * response encoding. The normative contract is
- * `libs/@local/graph/atlas/SPEC-ADDENDUM-WIRE.md`; agreement with the
- * Rust encoder is proven by shared fixture bytes, never asserted.
+ * `libs/@local/graph/atlas/docs/wire.md` (also exported verbatim into
+ * the server's OpenAPI description); agreement with the Rust encoder
+ * is proven by shared fixture bytes, never asserted.
  *
  * A response is a 16-byte prefix, a fixed offset directory of
  * `slotCount` (start, end) pairs, payloads sequential in slot order,
@@ -54,7 +55,8 @@ export const EdgesSlot = {
   Head: 0,
   Sources: 1,
   Targets: 2,
-  RowIds: 3,
+  /** 32-byte link-entity identity records, delivery order. */
+  EdgeIds: 3,
 } as const;
 
 /** Locate slot table (v1). */
@@ -65,7 +67,8 @@ export const LocateSlot = {
   TypeMask: 3,
   EdgeSources: 4,
   EdgeTargets: 5,
-  EdgeRowIds: 6,
+  /** 32-byte link-entity identity records, edge order. */
+  EdgeIds: 6,
 } as const;
 
 /** Minimum slotCount per kind: the v1 table sizes. */

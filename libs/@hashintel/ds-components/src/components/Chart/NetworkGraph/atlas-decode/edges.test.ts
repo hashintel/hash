@@ -108,7 +108,28 @@ const response = (
 const generation = Array.from({ length: 32 }, (_, index) => index);
 const sources = [7, 11, 13];
 const targets = [11, 42, 7];
-const edgeRowIds = [100, 205, 350];
+
+/** Three 32-byte identity records in ascending byte order. */
+const edgeIdRecords = [
+  [
+    ...Array.from({ length: 16 }, () => 0xa0),
+    ...Array.from({ length: 16 }, () => 0xa1),
+  ],
+  [
+    ...Array.from({ length: 16 }, () => 0xb0),
+    ...Array.from({ length: 16 }, () => 0xb1),
+  ],
+  [
+    ...Array.from({ length: 16 }, () => 0xc0),
+    ...Array.from({ length: 16 }, () => 0xc1),
+  ],
+];
+const edgeIdColumn = edgeIdRecords.flat();
+const edgeIdStrings = [
+  "a0a0a0a0-a0a0-a0a0-a0a0-a0a0a0a0a0a0~a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1",
+  "b0b0b0b0-b0b0-b0b0-b0b0-b0b0b0b0b0b0~b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+  "c0c0c0c0-c0c0-c0c0-c0c0-c0c0c0c0c0c0~c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1",
+];
 
 const defaultHead = (
   overrides: Partial<Record<number, number[]>> = {},
@@ -149,7 +170,7 @@ const fixture = ({
     cborMap(head ?? defaultHead()),
     u32le(sources),
     u32le(targets),
-    u32le(edgeRowIds),
+    edgeIdColumn,
   ];
   return { buffer: response(slots, tail), request: fullRequest };
 };
@@ -168,7 +189,7 @@ const failure = (input: {
 };
 
 describe("decodeSaltileEdges", () => {
-  it("decodes an edges response into zero-copy views", () => {
+  it("decodes an edges response into zero-copy views and identity strings", () => {
     const { buffer, request } = fixture();
     const edges = decodeSaltileEdges(buffer, request);
 
@@ -176,10 +197,9 @@ describe("decodeSaltileEdges", () => {
     expect(edges.complete).toBe(true);
     expect([...edges.sources]).toEqual(sources);
     expect([...edges.targets]).toEqual(targets);
-    expect([...edges.rowIds]).toEqual(edgeRowIds);
+    expect(edges.edgeIds).toEqual(edgeIdStrings);
     expect(edges.sources.buffer).toBe(buffer);
     expect(edges.targets.buffer).toBe(buffer);
-    expect(edges.rowIds.buffer).toBe(buffer);
     expect(edges.detail).toBeNull();
   });
 
@@ -190,29 +210,81 @@ describe("decodeSaltileEdges", () => {
     expect(decodeSaltileEdges(buffer, request).complete).toBe(false);
   });
 
-  it("decodes the four trailer detail columns", () => {
+  it("rejects an EDGE_IDS column out of ascending identity order", () => {
+    const descending = [...edgeIdRecords].reverse().flat();
+    const { buffer, request } = fixture({
+      payloads: [
+        cborMap(defaultHead()),
+        u32le(sources),
+        u32le(targets),
+        descending,
+      ],
+    });
+    expect(failure({ buffer, request })).toMatch(
+      /EDGE_IDS record 1 is not in ascending identity order/u,
+    );
+  });
+
+  it("decodes the trailer detail columns and resolves the intern table", () => {
     const { buffer, request } = fixture({
       request: { includeDetailedData: true },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
-        [0, cborArray([cborTstr("employs"), cborNull(), cborTstr("owns")])],
-        [1, cborArray([cborNull(), cborNull(), cborTstr("link")])],
         [
-          2,
-          cborArray([cborTstr("Employment"), cborTstr("Kinship"), cborNull()]),
+          0,
+          cborArray([
+            cborTstr("https://t.test/authored/v/1"),
+            cborTstr("https://t.test/cites/v/2"),
+          ]),
         ],
-        [3, cborArray([cborNull(), cborTstr("family"), cborNull()])],
+        [1, cborArray([cborTstr("employs"), cborNull(), cborTstr("owns")])],
+        [2, cborArray([cborUint(1), cborUint(0), cborNull()])],
       ]),
     });
     const edges = decodeSaltileEdges(buffer, request);
+    expect(edges.detail?.typeTable).toEqual([
+      "https://t.test/authored/v/1",
+      "https://t.test/cites/v/2",
+    ]);
     expect(edges.detail?.linkLabels).toEqual(["employs", null, "owns"]);
-    expect(edges.detail?.linkIcons).toEqual([null, null, "link"]);
-    expect(edges.detail?.linkTypeLabels).toEqual([
-      "Employment",
-      "Kinship",
+    expect(edges.detail?.linkTypeIds).toEqual([
+      "https://t.test/cites/v/2",
+      "https://t.test/authored/v/1",
       null,
     ]);
-    expect(edges.detail?.linkTypeIcons).toEqual([null, "family", null]);
+  });
+
+  it("rejects an unsorted intern table", () => {
+    const { buffer, request } = fixture({
+      request: { includeDetailedData: true },
+      head: defaultHead({ 4: cborBool(true) }),
+      tail: cborMap([
+        [
+          0,
+          cborArray([cborTstr("https://z.test/"), cborTstr("https://a.test/")]),
+        ],
+        [1, cborArray([cborNull(), cborNull(), cborNull()])],
+        [2, cborArray([cborNull(), cborNull(), cborNull()])],
+      ]),
+    });
+    expect(failure({ buffer, request })).toMatch(
+      /typeTable must be bytewise-sorted/u,
+    );
+  });
+
+  it("rejects a type index outside the intern table", () => {
+    const { buffer, request } = fixture({
+      request: { includeDetailedData: true },
+      head: defaultHead({ 4: cborBool(true) }),
+      tail: cborMap([
+        [0, cborArray([cborTstr("https://t.test/only/v/1")])],
+        [1, cborArray([cborNull(), cborNull(), cborNull()])],
+        [2, cborArray([cborUint(1), cborNull(), cborNull()])],
+      ]),
+    });
+    expect(failure({ buffer, request })).toMatch(
+      /lies outside the intern table/u,
+    );
   });
 
   it("decodes the empty edges response", () => {
@@ -223,6 +295,7 @@ describe("decodeSaltileEdges", () => {
     const edges = decodeSaltileEdges(buffer, request);
     expect(edges.count).toBe(0);
     expect(edges.sources).toHaveLength(0);
+    expect(edges.edgeIds).toHaveLength(0);
   });
 
   it("names every schema and echo rejection", () => {
@@ -247,7 +320,7 @@ describe("decodeSaltileEdges", () => {
         cborMap(defaultHead()),
         u32le(sources.slice(0, 2)),
         u32le(targets),
-        u32le(edgeRowIds),
+        edgeIdColumn,
       ],
     });
     expect(failure(shortColumn)).toMatch(
@@ -255,16 +328,21 @@ describe("decodeSaltileEdges", () => {
     );
 
     const missingColumn = fixture({
-      payloads: [
-        cborMap(defaultHead()),
-        u32le(sources),
-        null,
-        u32le(edgeRowIds),
-      ],
+      payloads: [cborMap(defaultHead()), u32le(sources), null, edgeIdColumn],
     });
     expect(failure(missingColumn)).toMatch(
       /slot 2 \(EDGE_TARGETS\) is absent/u,
     );
+
+    const shortIds = fixture({
+      payloads: [
+        cborMap(defaultHead()),
+        u32le(sources),
+        u32le(targets),
+        edgeIdColumn.slice(0, 64),
+      ],
+    });
+    expect(failure(shortIds)).toMatch(/EDGE_IDS\) is 64 bytes; 96 required/u);
 
     expect(
       failure(
@@ -283,14 +361,13 @@ describe("decodeSaltileEdges", () => {
       request: { includeDetailedData: true },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
-        [0, cborArray([cborTstr("only-one")])],
+        [0, cborArray([cborTstr("https://t.test/only/v/1")])],
         [1, cborArray([cborNull()])],
         [2, cborArray([cborNull()])],
-        [3, cborArray([cborNull()])],
       ]),
     });
     expect(failure(shortTrailer)).toMatch(
-      /linkLabels must carry exactly 3 entries/u,
+      /linkLabels must carry exactly 3 strings or nulls/u,
     );
   });
 });

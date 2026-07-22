@@ -1,42 +1,55 @@
 /**
- * Locate-kind decoder for the SALTILE wire (normative schema:
- * `SPEC-ADDENDUM-WIRE.md` sections 3, 4, and 6b). Layers over the
- * envelope reader like {@link decodeSaltileTile}/{@link
- * decodeSaltileEdges}: validates the HEAD schema and its echo of the
- * request, exposes the node/edge columns as typed-array views over the
- * response buffer (never copied), and resolves the detail trailer.
+ * Locate-kind decoder for the SALTILE wire (normative contract:
+ * `libs/@local/graph/atlas/docs/wire.md` sections 3, 4, 5, and 8).
+ * Layers over the envelope reader like {@link decodeSaltileTile}/
+ * {@link decodeSaltileEdges}: validates the HEAD schema and its echo
+ * of the request, exposes the node/edge columns as typed-array views
+ * over the response buffer (never copied), and parses the trailer.
  *
  * A locate response answers one entity's ego-graph: the source is
  * delivered first, then the delivered edges' partners (both
  * directions, ascending wire row id), with every edge incident to the
- * source riding the edge columns (ascending wire edge id). The HEAD
- * also carries the source's first visible zoom and its tile there —
- * the client's fly-to target.
+ * source riding the edge columns in ascending `EDGE_IDS` bytes - the
+ * link entity's 32-byte identity IS the edge's identity; edges carry
+ * no wire id. The HEAD carries the source's upstream entity id (the
+ * by-row flow's identity answer), its first visible zoom and tile
+ * (the fly-to target), and the two completeness verdicts over the
+ * source's types and properties.
  *
- * Two shapes the tile/edges trailers never carry appear here (both
- * handled by the shared {@link decodeCbor}): negative integers, and
- * double-precision floats for property values. Property names are
- * interned (WIRE 6b) — the trailer's name table is bytewise-sorted and
- * deduplicated, and each per-node property map keys by uint index into
- * it; this decoder validates those laws and returns resolved
- * `Record<name, value>` objects.
+ * Locate is the detail view: the trailer is ALWAYS present. Its two
+ * intern tables (`typeTable`, `propertyTable`) come first, and every
+ * type or property reference in the node and link arrays is a uint
+ * index into its table; this decoder validates the intern laws
+ * (bytewise-sorted, deduplicated, indexes in range, property keys
+ * ascending) and returns resolved URL-keyed objects.
  */
 
 import { decodeCbor, type CborValue } from "./cbor";
 import {
+  ENTITY_ID_BYTES,
   expectEqual,
   fail,
+  formatEntityId,
   GENERATION_BYTES,
   isCborArray,
   isCborMap,
   isNullableStringArray,
   isUint,
+  readBitmask,
+  readEntityIdColumn,
+  readInternTable,
   requireBool,
   requireGenerationEcho,
   requireSlot,
   requireUint,
 } from "./schema";
 import { LocateSlot, readEnvelope } from "./wire";
+
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /** The request context a locate response must echo. */
 export interface SaltileLocateRequest {
@@ -45,35 +58,54 @@ export interface SaltileLocateRequest {
   readonly variant: number;
   /** Count of colored type ids sent; 0 means TYPE_MASK is absent. */
   readonly coloredTypeIdCount: number;
-  /** Locate DEFAULTS this to true — it is the detail view. */
-  readonly includeDetailedData: boolean;
 }
 
 /** One simple property value; nested shapes never ship. */
 export type SaltilePropertyValue = string | number | boolean | null;
 
-/** Per-node and per-edge detail from the trailer tail. */
+/** A property map resolved through the intern table, keyed by base URL. */
+export type SaltileProperties = Readonly<Record<BaseUrl, SaltilePropertyValue>>;
+
+/** Node and link detail from the always-present trailer tail. */
 export interface SaltileLocateDetail {
+  /** The type intern table: every referenced versioned type URL once. */
+  readonly typeTable: readonly VersionedUrl[];
+  /** The property intern table: every surviving property base URL once. */
+  readonly propertyTable: readonly BaseUrl[];
   /** Node labels, delivered order. */
   readonly labels: readonly (string | null)[];
-  /** Node icons, delivered order. */
-  readonly icons: readonly (string | null)[];
   /**
-   * Per-node simple properties, delivered order, intern indices resolved
-   * to property base URLs. `null` marks an entity the store no longer
-   * serves; an empty record one without simple properties.
+   * Each node's first direct type as a versioned URL, delivered order.
+   *
+   * `null` marks a node the store no longer serves or records no types
+   * for.
    */
-  readonly properties: readonly (Readonly<
-    Record<string, SaltilePropertyValue>
-  > | null)[];
+  readonly typeIds: readonly (VersionedUrl | null)[];
+  /**
+   * The source's capped simple properties.
+   *
+   * `null` marks a store-absent source. Neighbour nodes ship no
+   * properties; their detail is one locate away.
+   */
+  readonly properties: SaltileProperties | null;
   /** Link-entity labels, edge order. */
   readonly linkLabels: readonly (string | null)[];
-  readonly linkIcons: readonly (string | null)[];
-  readonly linkTypeLabels: readonly (string | null)[];
-  readonly linkTypeIcons: readonly (string | null)[];
+  /**
+   * Each link's direct types as versioned URLs, edge order.
+   *
+   * Canonical order is preserved and the list is capped; an empty list
+   * marks a store-absent link.
+   */
+  readonly linkTypeIds: readonly (readonly VersionedUrl[])[];
+  /** Bit e = edge e's type list is the link's whole direct set. */
+  readonly linkTypeIdsComplete: readonly boolean[];
+  /** Per-link capped simple properties; `null` = store-absent link. */
+  readonly linkProperties: readonly (SaltileProperties | null)[];
+  /** Bit e = edge e's property map is the link entity's whole set. */
+  readonly linkPropertiesComplete: readonly boolean[];
 }
 
-/** The source's first visible zoom and its tile there — the fly-to target. */
+/** The source's first visible zoom and its tile there - the fly-to target. */
 export interface SaltileLocateCell {
   readonly z: number;
   readonly x: number;
@@ -86,12 +118,18 @@ export interface DecodedSaltileLocate {
   readonly count: number;
   /** The source's first visible zoom. */
   readonly zoom: number;
-  /** The source's tile at that zoom — the fly-to target. */
+  /** The source's tile at that zoom - the fly-to target. */
   readonly cell: SaltileLocateCell;
   /** Delivered edge count. */
   readonly edgesCount: number;
   /** False when the locate edge cap truncated the subgraph. */
   readonly complete: boolean;
+  /** The source's upstream entity identity. */
+  readonly entityId: EntityId;
+  /** The request's coloredTypeIds cover every direct type of the source. */
+  readonly typeIdsComplete: boolean;
+  /** The trailer's source property map is the entity's whole set. */
+  readonly propertiesComplete: boolean;
   /** Wire-frame xy pairs, delivered order (source first). */
   readonly positions: Float32Array;
   /** Node row ids, delivered order (source first). */
@@ -105,12 +143,13 @@ export interface DecodedSaltileLocate {
   readonly sources: Uint32Array;
   /** Target node row ids, edge order. */
   readonly targets: Uint32Array;
-  /** Edge row ids, edge order. */
-  readonly edgeRowIds: Uint32Array;
-  readonly detail: SaltileLocateDetail | null;
+  /** Link-entity identities, edge order (ascending identity bytes). */
+  readonly edgeIds: readonly EntityId[];
+  /** Trailer detail; locate is the detail view, always present. */
+  readonly detail: SaltileLocateDetail;
 }
 
-/** HEAD keys of the locate schema (section 6b). */
+/** HEAD keys of the locate schema (wire.md section 8). */
 const locateHeadKeys = {
   generation: 0,
   variant: 1,
@@ -119,21 +158,25 @@ const locateHeadKeys = {
   cell: 4,
   edges: 5,
   complete: 6,
-  trailer: 7,
+  entityId: 7,
+  typeIdsComplete: 8,
+  propertiesComplete: 9,
 } as const;
 
 const knownHeadKeys = new Set<number>(Object.values(locateHeadKeys));
 
-/** TRAILER keys of the locate schema (section 6b). */
+/** TRAILER keys of the locate schema (wire.md section 8). */
 const trailerKeys = {
-  labels: 0,
-  icons: 1,
-  propertyNames: 2,
-  properties: 3,
-  linkLabels: 4,
-  linkIcons: 5,
-  linkTypeLabels: 6,
-  linkTypeIcons: 7,
+  typeTable: 0,
+  propertyTable: 1,
+  labels: 2,
+  typeIds: 3,
+  properties: 4,
+  linkLabels: 5,
+  linkTypeIds: 6,
+  linkTypeIdsComplete: 7,
+  linkProperties: 8,
+  linkPropertiesComplete: 9,
 } as const;
 
 const knownTrailerKeys = new Set<number>(Object.values(trailerKeys));
@@ -145,17 +188,6 @@ const isPropertyValue = (
   typeof value === "string" ||
   typeof value === "number" ||
   typeof value === "boolean";
-
-/** Strict bytewise less-than over two UTF-8 encodings. */
-const bytewiseLess = (left: Uint8Array, right: Uint8Array): boolean => {
-  const shared = Math.min(left.length, right.length);
-  for (let index = 0; index < shared; index += 1) {
-    if (left[index] !== right[index]) {
-      return left[index]! < right[index]!;
-    }
-  }
-  return left.length < right.length;
-};
 
 const nullableStrings = (
   map: ReadonlyMap<number, CborValue>,
@@ -175,64 +207,40 @@ const nullableStrings = (
 };
 
 /**
- * Reads the interned property-name table (bytewise-sorted, deduplicated
- * per WIRE 6b) and resolves each per-node property map's uint indices
- * back to the names they intern.
+ * Resolves one wire property map (propertyTable index -> simple value,
+ * keys ascending) into a base-URL-keyed object; `null` passes through.
  */
-const readProperties = (
-  map: ReadonlyMap<number, CborValue>,
-  nodes: number,
+const resolveProperties = (
+  entry: CborValue | undefined,
+  table: readonly BaseUrl[],
+  name: string,
   offset: number,
-): readonly (Readonly<Record<string, SaltilePropertyValue>> | null)[] => {
-  const table = map.get(trailerKeys.propertyNames);
-  if (!isCborArray(table) || !table.every((name) => typeof name === "string")) {
-    return fail("TRAILER propertyNames must be a text array", offset);
+): SaltileProperties | null => {
+  if (entry === null || entry === undefined) {
+    return null;
   }
-  const names = table;
-  // The law is bytewise UTF-8 order; comparing the encoded bytes is exact
-  // (a plain `<` on JS strings compares UTF-16 code units, which diverges
-  // above U+FFFF).
-  const encoder = new TextEncoder();
-  const encoded = names.map((name) => encoder.encode(name));
-  for (let index = 1; index < encoded.length; index += 1) {
-    if (!bytewiseLess(encoded[index - 1]!, encoded[index]!)) {
+  if (!isCborMap(entry)) {
+    return fail(`${name} must be a map or null`, offset);
+  }
+  const resolved: Record<BaseUrl, SaltilePropertyValue> = {};
+  let previous = -1;
+  for (const [index, value] of entry) {
+    if (!isUint(index) || index >= table.length) {
       return fail(
-        "TRAILER propertyNames must be bytewise-sorted and deduplicated",
+        `${name} index ${index} lies outside the intern table`,
         offset,
       );
     }
+    if (index <= previous) {
+      return fail(`${name} keys must ascend`, offset);
+    }
+    previous = index;
+    if (!isPropertyValue(value)) {
+      return fail(`${name} values are simple only`, offset);
+    }
+    resolved[table[index]!] = value;
   }
-
-  const raw = map.get(trailerKeys.properties);
-  if (!isCborArray(raw) || raw.length !== nodes) {
-    return fail(
-      `TRAILER properties must carry exactly ${nodes} entries`,
-      offset,
-    );
-  }
-  return raw.map((entry) => {
-    if (entry === null) {
-      return null;
-    }
-    if (!isCborMap(entry)) {
-      return fail("a properties entry must be a map or null", offset);
-    }
-    const resolved: Record<string, SaltilePropertyValue> = {};
-    for (const [index, value] of entry) {
-      const name = names[index];
-      if (name === undefined) {
-        return fail(
-          `property index ${index} lies outside the intern table`,
-          offset,
-        );
-      }
-      if (!isPropertyValue(value)) {
-        return fail("property values are simple only", offset);
-      }
-      resolved[name] = value;
-    }
-    return resolved;
-  });
+  return resolved;
 };
 
 const readDetail = (
@@ -251,10 +259,82 @@ const readDetail = (
     }
   }
 
+  // The wire contract pins typeTable entries as versioned type URLs and
+  // propertyTable entries as property base URLs.
+  const typeTable = readInternTable(
+    value.get(trailerKeys.typeTable),
+    "typeTable",
+    offset,
+  ) as readonly VersionedUrl[];
+  const propertyTable = readInternTable(
+    value.get(trailerKeys.propertyTable),
+    "propertyTable",
+    offset,
+  ) as readonly BaseUrl[];
+
+  const rawTypeIds = value.get(trailerKeys.typeIds);
+  if (!isCborArray(rawTypeIds) || rawTypeIds.length !== nodes) {
+    return fail(`TRAILER typeIds must carry exactly ${nodes} entries`, offset);
+  }
+  const typeIds = rawTypeIds.map((entry) => {
+    if (entry === null) {
+      return null;
+    }
+    if (!isUint(entry) || entry >= typeTable.length) {
+      return fail(
+        `typeIds entry ${String(entry)} lies outside the intern table`,
+        offset,
+      );
+    }
+    return typeTable[entry]!;
+  });
+
+  const rawLinkTypeIds = value.get(trailerKeys.linkTypeIds);
+  if (!isCborArray(rawLinkTypeIds) || rawLinkTypeIds.length !== edges) {
+    return fail(
+      `TRAILER linkTypeIds must carry exactly ${edges} entries`,
+      offset,
+    );
+  }
+  const linkTypeIds = rawLinkTypeIds.map((entry) => {
+    if (!isCborArray(entry)) {
+      return fail("a linkTypeIds entry must be an index array", offset);
+    }
+    return entry.map((index) => {
+      if (!isUint(index) || index >= typeTable.length) {
+        return fail(
+          `linkTypeIds index ${String(index)} lies outside the intern table`,
+          offset,
+        );
+      }
+      return typeTable[index]!;
+    });
+  });
+
+  const rawLinkProperties = value.get(trailerKeys.linkProperties);
+  if (!isCborArray(rawLinkProperties) || rawLinkProperties.length !== edges) {
+    return fail(
+      `TRAILER linkProperties must carry exactly ${edges} entries`,
+      offset,
+    );
+  }
+  const linkProperties = rawLinkProperties.map((entry) =>
+    resolveProperties(entry, propertyTable, "a linkProperties entry", offset),
+  );
+
   return {
+    typeTable,
+    propertyTable,
     labels: nullableStrings(value, trailerKeys.labels, "labels", nodes, offset),
-    icons: nullableStrings(value, trailerKeys.icons, "icons", nodes, offset),
-    properties: readProperties(value, nodes, offset),
+    typeIds,
+    properties: resolveProperties(
+      value.has(trailerKeys.properties)
+        ? value.get(trailerKeys.properties)
+        : fail("TRAILER properties (key 4) is required", offset),
+      propertyTable,
+      "properties",
+      offset,
+    ),
     linkLabels: nullableStrings(
       value,
       trailerKeys.linkLabels,
@@ -262,25 +342,18 @@ const readDetail = (
       edges,
       offset,
     ),
-    linkIcons: nullableStrings(
-      value,
-      trailerKeys.linkIcons,
-      "linkIcons",
+    linkTypeIds,
+    linkTypeIdsComplete: readBitmask(
+      value.get(trailerKeys.linkTypeIdsComplete),
       edges,
+      "linkTypeIdsComplete",
       offset,
     ),
-    linkTypeLabels: nullableStrings(
-      value,
-      trailerKeys.linkTypeLabels,
-      "linkTypeLabels",
+    linkProperties,
+    linkPropertiesComplete: readBitmask(
+      value.get(trailerKeys.linkPropertiesComplete),
       edges,
-      offset,
-    ),
-    linkTypeIcons: nullableStrings(
-      value,
-      trailerKeys.linkTypeIcons,
-      "linkTypeIcons",
-      edges,
+      "linkPropertiesComplete",
       offset,
     ),
   };
@@ -348,18 +421,29 @@ export const decodeSaltileLocate = (
     "complete",
     headOffset,
   );
-  const trailerDeclared = requireBool(
-    head,
-    locateHeadKeys.trailer,
-    "trailer",
-    headOffset,
-  );
-  if (trailerDeclared !== request.includeDetailedData) {
+
+  const rawEntityId = head.get(locateHeadKeys.entityId);
+  if (
+    !(rawEntityId instanceof Uint8Array) ||
+    rawEntityId.length !== ENTITY_ID_BYTES
+  ) {
     return fail(
-      `HEAD trailer is ${trailerDeclared}; the request expects ${request.includeDetailedData}`,
+      "HEAD entityId (key 7) must be a 32-byte identity record",
       headOffset,
     );
   }
+  const typeIdsComplete = requireBool(
+    head,
+    locateHeadKeys.typeIdsComplete,
+    "typeIdsComplete",
+    headOffset,
+  );
+  const propertiesComplete = requireBool(
+    head,
+    locateHeadKeys.propertiesComplete,
+    "propertiesComplete",
+    headOffset,
+  );
 
   const positionsSlot = requireSlot(
     envelope.slots,
@@ -405,34 +489,34 @@ export const decodeSaltileLocate = (
     edgesCount * 4,
     buffer.byteLength,
   );
-  const edgeRowsSlot = requireSlot(
+  const edgeIdsSlot = requireSlot(
     envelope.slots,
-    LocateSlot.EdgeRowIds,
-    "EDGE_ROW_IDS",
-    edgesCount * 4,
+    LocateSlot.EdgeIds,
+    "EDGE_IDS",
+    edgesCount * ENTITY_ID_BYTES,
     buffer.byteLength,
   );
+  const edgeIdRecords = readEntityIdColumn(
+    bytes.subarray(edgeIdsSlot.start, edgeIdsSlot.end),
+    edgesCount,
+    "EDGE_IDS",
+    edgeIdsSlot.start,
+  );
 
-  let detail: SaltileLocateDetail | null = null;
-  if (trailerDeclared) {
-    if (envelope.tailOffset >= buffer.byteLength) {
-      return fail(
-        "TRAILER is declared but the response carries no tail",
-        envelope.tailOffset,
-      );
-    }
-    detail = readDetail(
-      bytes.subarray(envelope.tailOffset),
-      count,
-      edgesCount,
-      envelope.tailOffset,
-    );
-  } else if (envelope.tailOffset !== buffer.byteLength) {
+  // Locate is the detail view: the trailer is always present (wire.md
+  // section 8) - no HEAD key declares it.
+  if (envelope.tailOffset >= buffer.byteLength) {
     return fail(
-      "response carries a tail but HEAD declares no trailer",
+      "locate requires a trailer tail; the response carries none",
       envelope.tailOffset,
     );
   }
+  const detail = readDetail(
+    bytes.subarray(envelope.tailOffset),
+    count,
+    edgesCount,
+    envelope.tailOffset,
+  );
 
   return {
     count,
@@ -440,12 +524,15 @@ export const decodeSaltileLocate = (
     cell: { z, x, y },
     edgesCount,
     complete,
+    entityId: formatEntityId(rawEntityId),
+    typeIdsComplete,
+    propertiesComplete,
     positions: new Float32Array(buffer, positionsSlot.start, count * 2),
     rowIds: new Uint32Array(buffer, rowIdsSlot.start, count),
     typeMask,
     sources: new Uint32Array(buffer, sourcesSlot.start, edgesCount),
     targets: new Uint32Array(buffer, targetsSlot.start, edgesCount),
-    edgeRowIds: new Uint32Array(buffer, edgeRowsSlot.start, edgesCount),
+    edgeIds: edgeIdRecords.map((record) => formatEntityId(record)),
     detail,
   };
 };

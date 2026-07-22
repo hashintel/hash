@@ -15,7 +15,7 @@ Responses carry `application/vnd.hash.saltile-v1`; the media-type version and th
 | prefix    | 16 B            | magic u64 (`"SALTILE"` + kind), `wireVersion` u16 = 1, `flags` u16 = 0, `slotCount` u16, `reserved` u16 = 0              |
 | directory | 8 B x slotCount | per slot: `start` u32, `end` u32 - absolute byte offsets, `end` exclusive and unpadded; `(0, 0)` marks an absent section |
 | payloads  | per directory   | sequential in slot order, each zero-padded to 8                                                                          |
-| trailer   | self-delimiting | optional CBOR tail, declared by HEAD                                                                                     |
+| trailer   | self-delimiting | optional CBOR tail: declared by HEAD (tile, edges) or mandated by kind (locate)                                          |
 
 The prefix, bit by bit:
 
@@ -48,7 +48,7 @@ The offset directory is the locating mechanism: a fixed lookup, no linear scan a
 - Prefix `flags` and `reserved` must be zero.
 - Payload order equals slot order, so identical bound state yields byte-identical responses - the property the client's application-layer cache keys on.
 
-Streaming contract: every column's extent is known before the first payload byte, so prefix + directory stream first and columns follow immediately; the trailer is the one late-arriving piece (live store hydration), so it lives outside the directory as a self-delimiting CBOR tail declared by a HEAD key - its start is `align8` of the last present column's end, its extent is its own CBOR structure. Chunked transfer works; a streaming client renders geometry before detail arrives.
+Streaming contract: every column's extent is known before the first payload byte, so prefix + directory stream first and columns follow immediately; the trailer is the one late-arriving piece (live store hydration), so it lives outside the directory as a self-delimiting CBOR tail - declared by a HEAD key on tile and edges, mandated by kind on locate - whose start is `align8` of the last present column's end and whose extent is its own CBOR structure. Chunked transfer works; a streaming client renders geometry before detail arrives.
 
 ## 3. Slot tables
 
@@ -85,7 +85,7 @@ Sections are named by (kind, slot); the names are labels, the slots are the wire
 | 5    | `EDGE_TARGETS` | u32 node row ids, edge order                                           |
 | 6    | `EDGE_IDS`     | bstr(32) link-entity identities, edge order, raw records (32 B/edge)   |
 
-TRAILER (all kinds): CBOR tail outside the directory, declared by HEAD (locate: always present).
+TRAILER (all kinds): CBOR tail outside the directory - declared by the HEAD `trailer` key on tile and edges, always present on locate.
 
 `POSITIONS` interleaves xy within one section (a vec2 vertex attribute, stride 8); SoA applies at attribute granularity, never within one attribute.
 
@@ -220,4 +220,4 @@ Per-point invariants - duplicate row ids, positions inside the tile extent - are
 
 ## 10. Golden fixtures
 
-Checked-in golden envelopes pin the contract bytes: the encoder writes small hand-built responses as fixtures, and every decoder implementation asserts field-for-field equality against their JSON sidecars (floats as bit patterns, never printed decimals). "Matches the server" is never asserted by eye. The fixtures live in the atlas crate under `fixtures/wire/`.
+Checked-in fixture envelopes pin the contract bytes: the encoder writes small hand-built responses as fixtures, and every decoder implementation asserts field-for-field equality against their JSON sidecars (floats as bit patterns, never printed decimals). "Matches the server" is never asserted by eye. The fixtures live in the atlas crate under `fixtures/wire/`.

@@ -102,6 +102,8 @@ import {
 } from "./tile-geometry";
 import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
+import type { EntityId } from "@blockprotocol/type-system";
+
 export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
 
 /**
@@ -182,7 +184,8 @@ export interface ViewportNode {
 
 /** One edge as returned to the renderer: its id and the node ids it connects. */
 export interface ViewportEdge {
-  readonly id: number;
+  /** The link entity's upstream identity. */
+  readonly id: EntityId;
   readonly source: number;
   readonly target: number;
 }

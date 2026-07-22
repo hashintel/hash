@@ -75,6 +75,7 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.37.2",
+    "@blockprotocol/type-system": "workspace:^",
     "@deck.gl/core": "9.3.6",
     "@deck.gl/layers": "9.3.6",
     "@deck.gl/react": "9.3.6",

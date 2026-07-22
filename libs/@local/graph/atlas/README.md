@@ -242,7 +242,7 @@ cargo clippy --all-features --package hash-graph-atlas
 
 Tests never require a GPU or a live store; fixture fits run the production
 pipeline end to end on synthetic corpora, and wire formats are pinned by
-golden fixtures under `fixtures/wire/`.
+the fixtures under `fixtures/wire/`.
 
 Cargo features (all disabled by default):
 

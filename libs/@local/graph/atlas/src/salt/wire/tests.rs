@@ -2,7 +2,7 @@
 //!
 //! CBOR expectations come from RFC 8949 appendix A where the profile covers them and are derived by
 //! hand at the byte level otherwise; envelope and response expectations are derived in comments
-//! before the assertions. The checked-in goldens (`goldens.rs`) carry the cross-language corpus;
+//! before the assertions. The checked-in fixtures (`fixtures.rs`) carry the cross-language corpus;
 //! these tests pin the layers separately so a failure names its layer.
 #![expect(
     clippy::little_endian_bytes,

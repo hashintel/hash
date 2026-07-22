@@ -25,9 +25,27 @@ const manifestBody = (generation: string, edgesTiles = 32): unknown => ({
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+m", maxZoom: 16 },
-  limits: { coloredTypeIds: 8, edgesTiles },
+  limits: {
+    coloredTypeIds: 8,
+    edgesTiles,
+    locateEdges: 512,
+    locateProperties: 20,
+    locateLinkTypeIds: 5,
+    locateLinkProperties: 10,
+  },
   createdAt: "2026-07-19T16:00:00Z",
 });
+
+/** A 32-byte identity record filled with `byte`, as its column bytes. */
+const idRecord = (byte: number): number[] =>
+  Array.from({ length: 32 }, () => byte);
+
+/** The `webUuid~entityUuid` string of a `byte`-filled identity record. */
+const idString = (byte: number): string => {
+  const hex = byte.toString(16).padStart(2, "0");
+  const uuid = `${hex.repeat(4)}-${hex.repeat(2)}-${hex.repeat(2)}-${hex.repeat(2)}-${hex.repeat(6)}`;
+  return `${uuid}~${uuid}`;
+};
 
 /** An edges response echoing a `generationByte`-filled identity, variant 0. */
 const edgesBytes = (
@@ -47,10 +65,10 @@ const edgesBytes = (
     ]),
     u32le(sources),
     u32le(targets),
-    u32le(ids),
+    ids.flatMap((byte) => idRecord(byte)),
   ]);
 
-/** An edges response carrying the per-edge detail trailer (four link columns). */
+/** An edges response carrying the per-edge detail trailer (v2 shape). */
 const detailedEdgesBytes = (
   generationByte: number,
   sources: number[],
@@ -70,16 +88,15 @@ const detailedEdgesBytes = (
       ]),
       u32le(sources),
       u32le(targets),
-      u32le(ids),
+      ids.flatMap((byte) => idRecord(byte)),
     ],
     cborMap([
+      [0, cborArray([])], // typeTable
       [
-        0,
+        1,
         cborArray(sources.map((_unused, index) => cborTstr(`link ${index}`))),
       ],
-      [1, cborArray(nulls)],
       [2, cborArray(nulls)],
-      [3, cborArray(nulls)],
     ]),
   );
 };
@@ -154,8 +171,8 @@ describe("fetchEdgesForTiles", () => {
 
     expect(complete).toBe(true);
     expect(edges).toEqual([
-      { id: 100, source: 7, target: 11 },
-      { id: 205, source: 11, target: 42 },
+      { id: idString(100), source: 7, target: 11 },
+      { id: idString(205), source: 11, target: 42 },
     ]);
 
     const edgesRequest = captured.find((entry) =>
@@ -179,7 +196,9 @@ describe("fetchEdgesForTiles", () => {
       includeDetailedData: true,
     });
 
-    expect(edges).toEqual([{ id: 100, source: 7, target: 11 }]);
+    expect(edges).toEqual([
+      { id: idString(100), source: 7, target: 11, label: "link 0" },
+    ]);
     const edgesRequest = captured.find((entry) =>
       entry.path.includes("/atlas/edges/"),
     );
@@ -258,7 +277,7 @@ describe("fetchEdgesForTiles", () => {
     active = newGeneration;
     const { edges } = await pending;
 
-    expect(edges).toEqual([{ id: 9, source: 1, target: 2 }]);
+    expect(edges).toEqual([{ id: idString(9), source: 1, target: 2 }]);
     const bootstraps = captured.filter((entry) =>
       entry.path.endsWith("/atlas/current"),
     ).length;
