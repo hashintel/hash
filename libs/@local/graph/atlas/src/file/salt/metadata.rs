@@ -14,9 +14,9 @@ use crate::{
     morton::Depth,
     salt::{
         AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
-        FitConfigDef, GeometryClass, HoldoutClass, LodEvidence, NormSpotCheck, PostingsEvidence,
-        QuadEvidence, RankingConfig, RecallSpotCheck, ladder::RungMeasurement,
-        projector::train::FrozenRadius,
+        FitConfigDef, GeometryClass, HoldoutClass, LodMeasurements, NormSpotCheck,
+        PostingsMeasurements, QuadMeasurements, RankingConfig, RecallSpotCheck,
+        ladder::RungMeasurement, projector::train::FrozenRadius,
     },
 };
 
@@ -142,14 +142,14 @@ pub(crate) struct Evidence {
     #[serde(with = "BuildEvidenceDef")]
     pub relations: BuildEvidence,
     /// The level-of-detail stage's publish measurements.
-    #[serde(with = "LodEvidenceDef")]
-    pub lod: LodEvidence,
+    #[serde(with = "LodMeasurementsDef")]
+    pub lod: LodMeasurements,
     /// The quadtree build's publish measurements.
-    #[serde(with = "QuadEvidenceDef")]
-    pub quad: QuadEvidence,
+    #[serde(with = "QuadMeasurementsDef")]
+    pub quad: QuadMeasurements,
     /// The postings build's publish measurements.
-    #[serde(with = "PostingsEvidenceDef")]
-    pub postings: PostingsEvidence,
+    #[serde(with = "PostingsMeasurementsDef")]
+    pub postings: PostingsMeasurements,
     /// The projector training and ladder measurements.
     ///
     /// Present exactly when the placement is [`Placement::Projector`].
@@ -381,10 +381,10 @@ mod bucket_histogram {
     }
 }
 
-/// serde shadow of [`LodEvidence`].
+/// serde shadow of [`LodMeasurements`].
 #[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "LodEvidence")]
-struct LodEvidenceDef {
+#[serde(remote = "LodMeasurements")]
+struct LodMeasurementsDef {
     #[serde(with = "bounds2")]
     world: Bounds2,
     #[serde(with = "bucket_histogram")]
@@ -444,10 +444,10 @@ mod depth {
     }
 }
 
-/// serde shadow of [`QuadEvidence`].
+/// serde shadow of [`QuadMeasurements`].
 #[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "QuadEvidence")]
-struct QuadEvidenceDef {
+#[serde(remote = "QuadMeasurements")]
+struct QuadMeasurementsDef {
     nodes: u64,
     leaves: u64,
     #[serde(with = "depth")]
@@ -455,10 +455,10 @@ struct QuadEvidenceDef {
     type_entries: u64,
 }
 
-/// serde shadow of [`PostingsEvidence`].
+/// serde shadow of [`PostingsMeasurements`].
 #[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "PostingsEvidence")]
-struct PostingsEvidenceDef {
+#[serde(remote = "PostingsMeasurements")]
+struct PostingsMeasurementsDef {
     types: u64,
     dense_types: u64,
     membership_entries: u64,

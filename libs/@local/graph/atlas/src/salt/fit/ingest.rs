@@ -23,13 +23,12 @@ use super::{
         instance::{InstanceRecord, InstanceSpool, InstanceSpoolWriter},
         norm,
     },
-    role::{Role, digest_file, write_staged},
+    role::{Role, digest_file, stage, write_staged},
     stage_rng,
 };
 use crate::{
     dataset::{Dataset, EdgeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
-        WriteInto as _,
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::RepositoryFile,
@@ -209,9 +208,7 @@ where
     writer.flush()?;
 
     let nodes = columns.ids.len();
-    let identities = write_staged(staging, Role::NodeIdentities, |writer| {
-        columns.ids.write_into(writer)
-    })?;
+    let identities = stage(staging, Role::NodeIdentities, &columns.ids)?;
 
     let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
 
@@ -354,9 +351,7 @@ where
     endpoints.finish()?;
     writer.flush()?;
 
-    let identities = write_staged(staging, Role::EdgeIdentities, |writer| {
-        ids.write_into(writer)
-    })?;
+    let identities = stage(staging, Role::EdgeIdentities, &ids)?;
     let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
     let instances = spool.finish()?;
 
@@ -444,9 +439,7 @@ where
     .await?;
 
     let types = cards.len() as u64;
-    let identities = write_staged(staging, Role::OntologyIdentities, |writer| {
-        ids.write_into(writer)
-    })?;
+    let identities = stage(staging, Role::OntologyIdentities, &ids)?;
 
     let prior_files = prior
         .map(|generation| -> Result<_, PriorError> {

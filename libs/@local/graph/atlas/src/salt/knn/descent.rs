@@ -3,8 +3,11 @@
 //! [`NnDescent`] derives every row's neighbour list directly, without a search structure: lists
 //! start random and improve by local joins — each row introduces its current neighbours to each
 //! other, and every introduction that beats a list's worst entry displaces it. The join converges
-//! because a neighbour of a neighbour is likely a neighbour; the audited cost on generic-similarity
-//! corpora is far below the brute-force quadratic.
+//! because similarity is locally transitive: when `a` and `b` are both near `x`, `a` and `b` are
+//! likely near each other, so a row's own list is a high-yield candidate source for its
+//! neighbours' lists. Random lists seed that feedback everywhere at once, and each accepted
+//! displacement sharpens the candidate source for the next round; the audited cost on
+//! generic-similarity corpora is far below the brute-force quadratic.
 //!
 //! # Shape of one iteration
 //!
@@ -17,7 +20,8 @@
 //!    list it. Reverse pools are sampled to the same cap: without the cap, rows that many others
 //!    list would join quadratically in their in-degree.
 //! 3. **Local join.** Per row, every sampled new candidate meets every other sampled candidate;
-//!    each pair's cosine distance is offered to both sides' lists.
+//!    each pair's cosine distance is offered to both sides' lists. The cap bounds one row's join at
+//!    O(cap²) distances regardless of degree skew.
 //!
 //! Iteration stops when an iteration's accepted updates fall to
 //! [`termination`](NnDescentOptions::termination) of the total entry count, or at
@@ -26,22 +30,22 @@
 //! # Determinism
 //!
 //! Sampling streams derive from the seed alone: initialization and every per-row draw use a
-//! generator keyed by `(seed, row, iteration)`. Update application is parallel and unordered,
-//! however, and a list's acceptances depend on the updates applied before it, so converged lists
-//! can differ between same-seed runs. The search backends share this property (their parallel
-//! linking is unordered the same way); the recall spot check downstream is the arbiter of every
-//! construction, and the persisted table's contract is carried by that check, never by replaying
-//! the construction.
+//! generator keyed by `(seed, row, iteration)` through [`keyed_rng`]. Update application is
+//! parallel and unordered, however, and a list's acceptances depend on the updates applied before
+//! it, so converged lists can differ between same-seed runs. The search backends share this
+//! property (their parallel linking is unordered the same way); the recall spot check downstream
+//! is the arbiter of every construction, and the persisted table's contract is carried by that
+//! check, never by replaying the construction.
 
 use core::{
     error::Error,
     fmt,
     num::NonZero,
-    sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering},
+    sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 use std::sync::Mutex;
 
-use rand::{Rng, RngExt as _, SeedableRng};
+use rand::{Rng, RngExt as _, SeedableRng, seq::IndexedRandom as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::{
     iter::{
@@ -58,10 +62,10 @@ use super::{
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
     math::AlignedVecN,
-    random::sample_indices_vec,
+    random::{keyed_rng, sample_indices_vec},
 };
 
-// The candidate cap bounds one row's join work per iteration at O(cap^2) distances regardless of
+// The candidate cap bounds one row's join work per iteration at O(cap²) distances regardless of
 // degree skew; 50 matches the widths this crate constructs at, where the audited corpus converged
 // to the admission floor with headroom in iterations to spare.
 const DEFAULT_MAXIMUM_CANDIDATES: usize = 50;
@@ -139,8 +143,11 @@ struct Entry {
 /// One row's bounded neighbour list, ascending by `(distance, id)`.
 ///
 /// The worst distance is mirrored into an atomic beside the lock so offers can reject without
-/// contending: the mirrored value only decreases, so a stale read is never below the live worst
-/// and a rejection against it is always sound.
+/// contending. The mirror is written only under the lock and only ever decreases, so a stale read
+/// is never below the live worst and a rejection against it is always sound; `Relaxed` suffices
+/// because the mirror guards no other memory — every admission re-checks under the lock, and the
+/// lock orders the entries. A `Release`/`Acquire` pairing would only buy ordering for data read
+/// outside the lock, and no such read exists.
 #[derive(Debug)]
 struct RowList {
     entries: Mutex<Vec<Entry>>,
@@ -155,24 +162,26 @@ impl RowList {
                 .then_with(|| lhs.id.cmp(&rhs.id))
         });
         let worst = entries.last().expect("lists initialize non-empty").distance;
+
         Self {
             entries: Mutex::new(entries),
             worst: AtomicU32::new(worst.to_bits()),
         }
     }
 
-    /// Offers a candidate; returns whether it displaced an entry.
+    /// Offers a candidate; returns whether it displaced the worst entry.
+    ///
+    /// The lock is held for the containment scan and the insertion together: membership and
+    /// placement must be decided against one list state, or two concurrent offers of the same id
+    /// could both pass the scan. The held section is O(width) over a width-bounded list.
     fn offer(&self, id: u32, distance: f32) -> bool {
         if distance >= f32::from_bits(self.worst.load(Ordering::Relaxed)) {
             return false;
         }
 
         let mut entries = self.entries.lock().expect("a list offer cannot panic");
-        let last = entries.len() - 1;
-        if distance >= entries[last].distance {
-            return false;
-        }
-        if entries.iter().any(|entry| entry.id == id) {
+        let worst = entries.last().expect("lists initialize non-empty");
+        if distance >= worst.distance || entries.iter().any(|entry| entry.id == id) {
             return false;
         }
 
@@ -186,140 +195,30 @@ impl RowList {
                 new: true,
             },
         );
+        let worst = entries.last().expect("displacement preserves the width");
         self.worst
-            .store(entries[last].distance.to_bits(), Ordering::Relaxed);
+            .store(worst.distance.to_bits(), Ordering::Relaxed);
         true
     }
 }
 
 /// A generator keyed by the construction seed, a row, and an iteration.
 ///
-/// `SplitMix64` finalization scrambles the key so per-row streams are independent; initialization
-/// uses the row alone with an iteration of `usize::MAX`, which no join iteration reaches.
+/// Initialization uses an iteration of `usize::MAX`, which no join iteration reaches, so the
+/// initial draw and every iteration's draw are independent streams.
 fn row_rng(seed: u64, row: usize, iteration: usize) -> Xoshiro256PlusPlus {
-    let mut key = seed ^ (row as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
-    key ^= (iteration as u64).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    key = (key ^ (key >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    key = (key ^ (key >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-    Xoshiro256PlusPlus::seed_from_u64(key ^ (key >> 31))
+    keyed_rng(seed, row as u64, iteration as u64)
 }
 
-/// Samples `count` of `pool` in place order; the whole pool when it fits.
-fn sample_pool(pool: &mut Vec<u32>, count: usize, rng: impl Rng) {
-    if pool.len() <= count {
-        return;
+/// Samples `count` of `pool` uniformly without replacement; the whole pool when it fits.
+///
+/// The pool is ascending afterwards on every path — the retirement scan in [`sample_forward`]
+/// binary-searches it.
+fn sample_pool(pool: &mut Vec<u32>, count: usize, mut rng: impl Rng) {
+    if pool.len() > count {
+        *pool = pool.choose_multiple(&mut rng, count).copied().collect();
     }
-    let keep = sample_indices_vec(rng, pool.len(), count);
-    let mut kept: Vec<u32> = keep.iter().map(|index| pool[index]).collect();
-    kept.sort_unstable();
-    *pool = kept;
-}
-
-impl KnnConstruction for NnDescent {
-    type Error = NnDescentError;
-
-    fn construct(
-        &mut self,
-        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-        width: NonZero<usize>,
-        mut rng: impl Rng + SeedableRng,
-    ) -> Result<NeighbourLists, Self::Error> {
-        let rows = embeddings.len();
-        if rows < 2 {
-            return Err(NnDescentError::InsufficientRows { rows });
-        }
-        if u32::try_from(rows - 1).is_err() {
-            return Err(NnDescentError::TooManyRows { rows });
-        }
-        let width = width.get().min(rows - 1);
-        let seed = rng.random::<u64>();
-        let cap = self.options.maximum_candidates.max(1);
-
-        // The trait admits l2-normalized representations only, so the
-        // cosine distance reduces to one minus the dot product — a third
-        // of the full kernel's multiply-adds; the clamp absorbs
-        // unit-norm rounding at the range's ends.
-        let distance = |lhs: u32, rhs: u32| -> f32 {
-            (1.0 - embeddings[lhs as usize].dot(&embeddings[rhs as usize])).clamp(0.0, 2.0)
-        };
-
-        let lists = initialize(rows, width, seed, &distance);
-
-        #[expect(
-            clippy::cast_precision_loss,
-            clippy::cast_possible_truncation,
-            clippy::cast_sign_loss,
-            reason = "the entry count is far below exact f64 integer precision and the threshold \
-                      only gates a loop"
-        )]
-        let threshold = (self.options.termination * (rows * width) as f64).ceil() as u64;
-
-        for iteration in 0..self.options.maximum_iterations {
-            let (forward_new, forward_old) = sample_forward(&lists, cap, seed, iteration);
-
-            // Reversal: transpose the sampled sets, then cap each pool.
-            let reverse_new = reverse(&forward_new, rows, cap, seed, iteration);
-            let reverse_old = reverse(&forward_old, rows, cap, seed, iteration);
-
-            // Local join: sampled new candidates meet every other
-            // sampled candidate; each distance is offered both ways.
-            let accepted = AtomicU64::new(0);
-            (0..rows).into_par_iter().for_each(|row| {
-                let mut new = [forward_new[row].as_slice(), reverse_new[row].as_slice()].concat();
-                new.sort_unstable();
-                new.dedup();
-                let mut old = [forward_old[row].as_slice(), reverse_old[row].as_slice()].concat();
-                old.sort_unstable();
-                old.dedup();
-
-                let mut updates = 0;
-                let mut offer = |lhs: u32, rhs: u32| {
-                    if lhs == rhs {
-                        return;
-                    }
-                    let separation = distance(lhs, rhs);
-                    updates += u64::from(lists[lhs as usize].offer(rhs, separation));
-                    updates += u64::from(lists[rhs as usize].offer(lhs, separation));
-                };
-                for (position, &lhs) in new.iter().enumerate() {
-                    for &rhs in &new[position + 1..] {
-                        offer(lhs, rhs);
-                    }
-                    for &rhs in &old {
-                        offer(lhs, rhs);
-                    }
-                }
-                accepted.fetch_add(updates, Ordering::Relaxed);
-            });
-
-            if accepted.load(Ordering::Relaxed) <= threshold {
-                break;
-            }
-        }
-
-        let placeholder = Neighbour {
-            id: NodeRowId::new(0),
-            distance: 0.0,
-        };
-        let mut entries = vec![placeholder; rows * width].into_boxed_slice();
-        entries
-            .par_chunks_mut(width)
-            .enumerate()
-            .for_each(|(row, slots)| {
-                let list = lists[row]
-                    .entries
-                    .lock()
-                    .expect("the join finished; no offer holds a lock");
-                for (slot, entry) in slots.iter_mut().zip(list.iter()) {
-                    *slot = Neighbour {
-                        id: NodeRowId::new(u64::from(entry.id)),
-                        distance: entry.distance,
-                    };
-                }
-            });
-
-        Ok(NeighbourLists::new(entries, width))
-    }
+    pool.sort_unstable();
 }
 
 /// Initializes every row's list with `width` distinct random non-self rows.
@@ -407,47 +306,36 @@ fn reverse(
     seed: u64,
     iteration: usize,
 ) -> Vec<Vec<u32>> {
-    // Counting transpose: in-degrees, offsets, then a parallel fill
-    // whose per-pool order is nondeterministic and irrelevant — the
-    // pools are sorted before sampling, so the draw sees one order.
-    let counts: Vec<AtomicUsize> = core::iter::repeat_with(|| AtomicUsize::new(0))
-        .take(rows)
-        .collect();
-    forward.par_iter().for_each(|targets| {
+    // A two-pass counting transpose, sequential on purpose: the fill
+    // is cap-bounded bookkeeping dwarfed by the join's distance
+    // kernels, and pushing sources in ascending order leaves every
+    // pool sorted and the pass deterministic.
+    let mut counts = vec![0_usize; rows];
+    for targets in forward {
         for &target in targets {
-            counts[target as usize].fetch_add(1, Ordering::Relaxed);
+            counts[target as usize] += 1;
         }
-    });
+    }
 
     let mut pools: Vec<Vec<u32>> = counts
-        .par_iter()
-        .map(|count| Vec::with_capacity(count.load(Ordering::Relaxed)))
+        .iter()
+        .map(|&count| Vec::with_capacity(count))
         .collect();
-    {
-        let slots: Vec<Mutex<&mut Vec<u32>>> = pools.iter_mut().map(Mutex::new).collect();
-        forward
-            .par_iter()
-            .enumerate()
-            .for_each(|(source, targets)| {
-                #[expect(
-                    clippy::cast_possible_truncation,
-                    reason = "the construction rejects row domains beyond u32 at entry"
-                )]
-                let source = source as u32;
-                for &target in targets {
-                    slots[target as usize]
-                        .lock()
-                        .expect("a transpose fill cannot panic")
-                        .push(source);
-                }
-            });
+    for (source, targets) in forward.iter().enumerate() {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "the construction rejects row domains beyond u32 at entry"
+        )]
+        let source = source as u32;
+        for &target in targets {
+            pools[target as usize].push(source);
+        }
     }
 
     pools
         .into_par_iter()
         .enumerate()
         .map(|(target, mut pool)| {
-            pool.sort_unstable();
             // The domain flip keeps the reverse draw independent of the
             // forward sampling pass, which keys the same (row, iteration).
             sample_pool(&mut pool, cap, row_rng(!seed, target, iteration));
@@ -456,11 +344,121 @@ fn reverse(
         .collect()
 }
 
+impl KnnConstruction for NnDescent {
+    type Error = NnDescentError;
+
+    fn construct(
+        &mut self,
+        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        width: NonZero<usize>,
+        mut rng: impl Rng + SeedableRng,
+    ) -> Result<NeighbourLists, Self::Error> {
+        let rows = embeddings.len();
+        if rows < 2 {
+            return Err(NnDescentError::InsufficientRows { rows });
+        }
+        if u32::try_from(rows - 1).is_err() {
+            return Err(NnDescentError::TooManyRows { rows });
+        }
+
+        let width = width.get().min(rows - 1);
+        let seed = rng.random::<u64>();
+        let cap = self.options.maximum_candidates.max(1);
+
+        // The trait admits l2-normalized representations only, so the
+        // cosine distance reduces to one minus the dot product — a third
+        // of the full kernel's multiply-adds; the clamp absorbs
+        // unit-norm rounding at the range's ends.
+        let distance = |lhs: u32, rhs: u32| -> f32 {
+            let dot = embeddings[lhs as usize].dot(&embeddings[rhs as usize]);
+            (1.0 - dot).clamp(0.0, 2.0)
+        };
+
+        let lists = initialize(rows, width, seed, &distance);
+
+        #[expect(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            reason = "the entry count is far below exact f64 integer precision and the threshold \
+                      only gates a loop"
+        )]
+        let threshold = (self.options.termination * (rows * width) as f64).ceil() as u64;
+
+        for iteration in 0..self.options.maximum_iterations {
+            let (forward_new, forward_old) = sample_forward(&lists, cap, seed, iteration);
+
+            // Reversal: transpose the sampled sets, then cap each pool.
+            let reverse_new = reverse(&forward_new, rows, cap, seed, iteration);
+            let reverse_old = reverse(&forward_old, rows, cap, seed, iteration);
+
+            // Local join: sampled new candidates meet every other
+            // sampled candidate; each distance is offered both ways.
+            let accepted = AtomicU64::new(0);
+            (0..rows).into_par_iter().for_each(|row| {
+                let mut new = [forward_new[row].as_slice(), reverse_new[row].as_slice()].concat();
+                new.sort_unstable();
+                new.dedup();
+                let mut old = [forward_old[row].as_slice(), reverse_old[row].as_slice()].concat();
+                old.sort_unstable();
+                old.dedup();
+
+                let mut updates = 0;
+                let mut offer = |lhs: u32, rhs: u32| {
+                    if lhs == rhs {
+                        return;
+                    }
+                    let separation = distance(lhs, rhs);
+                    updates += u64::from(lists[lhs as usize].offer(rhs, separation));
+                    updates += u64::from(lists[rhs as usize].offer(lhs, separation));
+                };
+                for (position, &lhs) in new.iter().enumerate() {
+                    for &rhs in &new[position + 1..] {
+                        offer(lhs, rhs);
+                    }
+                    for &rhs in &old {
+                        offer(lhs, rhs);
+                    }
+                }
+                accepted.fetch_add(updates, Ordering::Relaxed);
+            });
+
+            if accepted.load(Ordering::Relaxed) <= threshold {
+                break;
+            }
+        }
+
+        let placeholder = Neighbour {
+            id: NodeRowId::new(0),
+            distance: 0.0,
+        };
+        let mut entries = vec![placeholder; rows * width].into_boxed_slice();
+        entries
+            .par_chunks_mut(width)
+            .enumerate()
+            .for_each(|(row, slots)| {
+                let list = lists[row]
+                    .entries
+                    .lock()
+                    .expect("the join finished; no offer holds a lock");
+                for (slot, entry) in slots.iter_mut().zip(list.iter()) {
+                    *slot = Neighbour {
+                        id: NodeRowId::new(u64::from(entry.id)),
+                        distance: entry.distance,
+                    };
+                }
+            });
+
+        Ok(NeighbourLists::new(entries, width))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::sync::atomic::Ordering;
 
-    use super::{Entry, RowList};
+    use super::{Entry, RowList, sample_pool};
+    use crate::random::keyed_rng;
 
     fn list(pairs: &[(f32, u32)]) -> RowList {
         RowList::new(
@@ -501,5 +499,20 @@ mod tests {
 
         let entries = row.entries.lock().expect("the test holds the only handle");
         assert_eq!(entries.len(), 3);
+    }
+
+    #[test]
+    fn sample_pool_sorts_every_path() {
+        let mut small = vec![9_u32, 2, 5];
+        sample_pool(&mut small, 8, keyed_rng(1, 2, 3));
+        assert_eq!(small, [2, 5, 9], "an under-cap pool is kept whole, sorted");
+
+        let mut large: Vec<u32> = (0..100).rev().collect();
+        sample_pool(&mut large, 10, keyed_rng(1, 2, 3));
+        assert_eq!(large.len(), 10);
+        assert!(
+            large.is_sorted(),
+            "a sampled pool is sorted for the retirement scan's binary search"
+        );
     }
 }

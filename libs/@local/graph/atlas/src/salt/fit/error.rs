@@ -261,6 +261,8 @@ pub(crate) enum StageError {
     MapCards(OpenArrayError),
     /// The staged coordinate column failed to map back.
     MapCoordinates(OpenArrayError),
+    /// The staged coordinate column is not an f32 pair array.
+    CoordinateShape,
     /// The corpus exceeds the `u32` wire position encoding.
     WireEncoding { rows: u64 },
     /// The level-of-detail derivation rejected its input.
@@ -566,6 +568,9 @@ impl fmt::Display for StageError {
             }
             Self::MapCards(error) => map_back(fmt, "card-embedding matrix", error),
             Self::MapCoordinates(error) => map_back(fmt, "coordinate column", error),
+            Self::CoordinateShape => {
+                fmt.write_str("the staged coordinate column is not an f32 pair array")
+            }
             Self::WireEncoding { rows } => write!(
                 fmt,
                 "the corpus holds {rows} rows, beyond the u32 wire position encoding"
@@ -659,6 +664,7 @@ impl Error for StageError {
             Self::Seal(error) => Some(error),
             Self::RepresentationDefects(_)
             | Self::RecallBelowMinimum(_)
+            | Self::CoordinateShape
             | Self::WireEncoding { .. }
             | Self::Panicked { .. } => None,
         }

@@ -399,7 +399,7 @@ impl FileHeader {
     /// The node table sits between the header and this offset, zero padded to the boundary. Returns
     /// `None` when the geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn posts_offset(&self) -> Option<u64> {
+    pub(crate) const fn posts_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.nodes.get(), size_of::<Node>() as u64)?)
     }
 
@@ -409,7 +409,7 @@ impl FileHeader {
     /// boundary. Returns `None` when the geometry overflows `u64`, in which case no real file
     /// matches the header.
     #[must_use]
-    pub(crate) fn ids_offset(&self) -> Option<u64> {
+    pub(crate) const fn ids_offset(&self) -> Option<u64> {
         let posts = padded_size(self.nodes.get().checked_add(1)?, size_of::<u64>() as u64)?;
         self.posts_offset()?.checked_add(posts)
     }
@@ -419,7 +419,7 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let ids = self.type_ids.get().checked_mul(size_of::<u32>() as u64)?;
         self.ids_offset()?.checked_add(ids)
     }

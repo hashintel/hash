@@ -2,7 +2,7 @@ use alloc::collections::BTreeSet;
 
 use proptest::{arbitrary::any, prop_assert_eq, proptest};
 
-use super::BitSet;
+use super::{BitMatrix, BitSet};
 
 #[test]
 fn starts_empty() {
@@ -73,6 +73,100 @@ fn intersection_matches_set_semantics() {
 
     wide.intersect_with(&narrow);
     assert_eq!(wide.iter().collect::<Vec<_>>(), [0, 63, 69]);
+}
+
+#[test]
+fn matrix_starts_empty() {
+    let matrix = BitMatrix::new(3, 130);
+
+    assert_eq!(matrix.rows(), 3);
+    assert_eq!(matrix.columns(), 130);
+    assert_eq!(matrix.stride(), 3);
+    assert!((0..3).all(|row| matrix.row(row).iter().all(|&word| word == 0)));
+}
+
+#[test]
+fn inserted_cells_are_contained_in_their_row_alone() {
+    // Columns straddle word boundaries: 63/64 cross the first word,
+    // 129 lands in a partial third word.
+    let mut matrix = BitMatrix::new(2, 130);
+    for column in [97, 0, 63, 64, 129] {
+        matrix.insert(1, column);
+    }
+
+    assert!((0..130).all(|column| !matrix.contains(0, column)));
+    assert!(matrix.contains(1, 64));
+    assert!(!matrix.contains(1, 65));
+    assert_eq!(matrix.row(1)[0], (1 << 0) | (1 << 63));
+}
+
+#[test]
+fn or_row_into_folds_rows_in_both_split_directions() {
+    let mut matrix = BitMatrix::new(3, 70);
+    matrix.insert(0, 3);
+    matrix.insert(1, 64);
+    matrix.insert(2, 69);
+
+    // A later row folds into an earlier one, and an earlier into a
+    // later: both arms of the disjoint split.
+    matrix.or_row_into(2, 0);
+    matrix.or_row_into(0, 1);
+
+    assert!(matrix.contains(0, 3) && matrix.contains(0, 69));
+    assert!(matrix.contains(1, 3) && matrix.contains(1, 64) && matrix.contains(1, 69));
+    assert!(!matrix.contains(2, 3));
+
+    // Folding a row into itself changes nothing.
+    let before = matrix.clone();
+    matrix.or_row_into(1, 1);
+    assert_eq!(matrix, before);
+}
+
+#[test]
+#[should_panic(expected = "the row lies beyond the shape")]
+fn matrix_row_rejects_out_of_shape_rows() {
+    let matrix = BitMatrix::new(2, 10);
+    let _row = matrix.row(2);
+}
+
+#[test]
+#[should_panic(expected = "the column lies beyond the shape")]
+fn matrix_insert_rejects_out_of_shape_columns() {
+    // Word 0 exists for 10 columns, so only the explicit shape check
+    // can reject column 10.
+    let mut matrix = BitMatrix::new(2, 10);
+    matrix.insert(1, 10);
+}
+
+proptest! {
+    /// Cells and row folds agree with a reference matrix of sets.
+    #[test]
+    fn matrix_agrees_with_a_reference(
+        rows in 1_usize..8,
+        columns in 1_usize..150,
+        picks in proptest::collection::vec(any::<(proptest::sample::Index, proptest::sample::Index)>(), 0..48),
+        folds in proptest::collection::vec(any::<(proptest::sample::Index, proptest::sample::Index)>(), 0..8),
+    ) {
+        let mut matrix = BitMatrix::new(rows, columns);
+        let mut reference = vec![BTreeSet::new(); rows];
+        for (row, column) in picks {
+            let (row, column) = (row.index(rows), column.index(columns));
+            matrix.insert(row, column);
+            reference[row].insert(column);
+        }
+        for (source, target) in folds {
+            let (source, target) = (source.index(rows), target.index(rows));
+            matrix.or_row_into(source, target);
+            let folded: Vec<usize> = reference[source].iter().copied().collect();
+            reference[target].extend(folded);
+        }
+
+        for (row, columns_of_row) in reference.iter().enumerate() {
+            for column in 0..columns {
+                prop_assert_eq!(matrix.contains(row, column), columns_of_row.contains(&column));
+            }
+        }
+    }
 }
 
 proptest! {

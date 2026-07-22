@@ -251,7 +251,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn edges_offset(&self) -> Option<u64> {
+    pub(crate) const fn edges_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.groups(), size_of::<GroupRecord>() as u64)?)
     }
 
@@ -260,7 +260,7 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let edge_bytes = self.edges().checked_mul(size_of::<EdgeRecord>() as u64)?;
         self.edges_offset()?.checked_add(edge_bytes)
     }

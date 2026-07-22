@@ -209,7 +209,7 @@ impl FileHeader {
     /// `None` when the geometry overflows `u64` or the width is zero, in which case no real file
     /// matches the header.
     #[must_use]
-    pub(crate) fn index_offset(&self) -> Option<u64> {
+    pub(crate) const fn index_offset(&self) -> Option<u64> {
         if self.key_width() == 0 {
             return None;
         }
@@ -222,7 +222,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64` or the width or stride is zero, in which
     /// case no real file matches the header.
     #[must_use]
-    pub(crate) fn pairs_offset(&self) -> Option<u64> {
+    pub(crate) const fn pairs_offset(&self) -> Option<u64> {
         let index = padded_size(self.index_keys()?, u64::from(self.key_width()))?;
         self.index_offset()?.checked_add(index)
     }
@@ -233,7 +233,7 @@ impl FileHeader {
     /// overflows `u64` or the width or stride is zero, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let pair_bytes = self.rows().checked_mul(self.pair_size())?;
         self.pairs_offset()?.checked_add(pair_bytes)
     }

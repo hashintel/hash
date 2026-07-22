@@ -21,9 +21,9 @@ use crate::{
     morton::Depth,
     salt::{
         AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
-        GeometryClass, HoldoutClass, LodEvidence, NormSpotCheck, PolicyOptions, PolicyOverride,
-        PolicySource, Posterior, PostingsEvidence, QuadEvidence, RecallSpotCheck, Relaxation,
-        RepresentationDefect, SelectionOptions,
+        GeometryClass, HoldoutClass, LodMeasurements, NormSpotCheck, PolicyOptions, PolicyOverride,
+        PolicySource, Posterior, PostingsMeasurements, QuadMeasurements, RecallSpotCheck,
+        Relaxation, RepresentationDefect, SelectionOptions,
         fit::{PlacementOptions, ProjectorOptions},
         ladder::{Conditions, LadderOptions},
         projector::train::TrainingSchedule,
@@ -148,8 +148,8 @@ fn repository() -> SaltRepository {
     }
 }
 
-fn lod_evidence() -> LodEvidence {
-    LodEvidence {
+fn lod_measurements() -> LodMeasurements {
+    LodMeasurements {
         world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
             .expect("the fixture corners are finite and ordered"),
         bucket_histogram: {
@@ -246,14 +246,14 @@ fn evidence() -> Evidence {
             self_references: 1_024,
             multi_typed_edges: vec![8_799_998, 1],
         },
-        lod: lod_evidence(),
-        quad: QuadEvidence {
+        lod: lod_measurements(),
+        quad: QuadMeasurements {
             nodes: 21_845,
             leaves: 16_000,
             depth: Depth::new(7).expect("the fixture depth is within the key width"),
             type_entries: 65_000,
         },
-        postings: PostingsEvidence {
+        postings: PostingsMeasurements {
             types: 49,
             dense_types: 3,
             membership_entries: 1_100_000,

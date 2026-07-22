@@ -6,7 +6,7 @@ use super::{
     super::{
         error::StageError,
         prepare::identity::IdentityTableArchive,
-        role::{Role, stage, stage_sized_column, write_staged},
+        role::{Role, Staged, stage, stage_sized_column},
     },
     Context,
 };
@@ -15,21 +15,19 @@ use crate::{
     file::{
         array::{ArrayFile, ArrayVariant, Dim},
         identity::read::IdentityFile,
-        morton::write::{PAGE_STRIDE, write_regions},
-        quad,
+        region::ByteStable,
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
-    integrity::{Sha256, Writer},
     salt::{
         adjacency::AdjacencyArchive,
         importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
         lod::{
-            quad::{QuadEvidence, QuadTree},
+            quad::{QuadMeasurements, QuadTree},
             rank::RankInputs,
-            stage::{Lod, LodEvidence},
+            stage::{Lod, LodMeasurements, MortonColumn},
         },
-        postings::build::{Postings, PostingsEvidence},
+        postings::build::{Postings, PostingsMeasurements},
     },
 };
 
@@ -45,15 +43,35 @@ pub(super) struct LodArtifacts {
     pub row_of_position: RepositoryFile,
 }
 
-/// Everything the level-of-detail stage produced: the staged files and both evidence sections.
+/// Everything the level-of-detail stage produced: the staged files and every evidence section.
 pub(super) struct LodOutputs {
     pub files: LodArtifacts,
-    pub evidence: LodEvidence,
-    pub quad_evidence: QuadEvidence,
-    pub postings_evidence: PostingsEvidence,
+    pub evidence: LodMeasurements,
+    pub quad: QuadMeasurements,
+    pub postings: PostingsMeasurements,
 }
 
 impl Context<'_> {
+    /// Stages one resident column of rows under its role.
+    fn stage_column<T>(
+        &self,
+        role: Role,
+        variant: ArrayVariant,
+        dims: &[Dim],
+        rows: &[T],
+    ) -> Result<RepositoryFile, StageError>
+    where
+        T: zerocopy::IntoBytes + zerocopy::Immutable,
+    {
+        Ok(stage_sized_column(
+            self.staging,
+            role,
+            variant,
+            dims,
+            rows.iter().map(zerocopy::IntoBytes::as_bytes),
+        )?)
+    }
+
     /// Derives the level-of-detail structure over the staged coordinates.
     ///
     /// Stages every served column, and cuts the finished columns into the staged quadtree.
@@ -68,21 +86,13 @@ impl Context<'_> {
         parents: &[SmallVec<OntologyRowId, 2>],
     ) -> Result<LodOutputs, StageError>
     where
-        I: Copy
-            + Sync
-            + zerocopy::IntoBytes
-            + zerocopy::FromBytes
-            + zerocopy::Immutable
-            + zerocopy::Unaligned
-            + zerocopy::KnownLayout,
+        I: ByteStable,
     {
         let _span = tracing::info_span!("lod").entered();
 
         let coordinates = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
             .map_err(StageError::MapCoordinates)?;
-        let points = coordinates
-            .points()
-            .expect("the coordinate column was sealed as f32 pairs");
+        let points = coordinates.points().ok_or(StageError::CoordinateShape)?;
 
         let ids = IdentityTableArchive::<I>::new(IdentityFile::open(
             self.staging.path_of(&Role::NodeIdentities.file_name()),
@@ -98,8 +108,13 @@ impl Context<'_> {
                 DegreeImportance::new(&adjacency).derive(points.len())
             }
         };
-        // The constant priority column is the override lane; no
-        // product signal feeds it yet.
+
+        // The priority column is the rank inputs' product-override
+        // lane: a product-side boost (a pinned or promoted entity)
+        // will feed it the day one exists. Until then every row
+        // carries the neutral 0 and the column rides along so the
+        // rank contract and the wire shape hold still when the
+        // signal arrives.
         let priority = vec![0.0_f32; points.len()];
         let inputs = RankInputs::new(&importance, &priority, ids.ids())
             .ok_or_else(|| StageError::WireEncoding { rows: ids.len() })?;
@@ -108,82 +123,68 @@ impl Context<'_> {
         drop(importance);
         drop(priority);
 
-        let morton = write_staged(self.staging, Role::Morton, |writer| {
-            let mut writer = Writer {
-                accumulator: Sha256::new(),
-                writer,
-            };
-            write_regions(PAGE_STRIDE, &lod.fenceposts, &lod.codes, &mut writer)?;
-            Ok(writer.accumulator.finalize())
-        })?;
+        let morton = stage(
+            self.staging,
+            Role::Morton,
+            &MortonColumn {
+                fenceposts: &lod.fenceposts,
+                codes: &lod.codes,
+            },
+        )?;
 
-        let (quad_file, quad_evidence) = self.stage_quad(&lod, types)?;
-        let (postings_file, postings_evidence) =
-            self.stage_postings(types, parents, &lod.row_of_position)?;
+        let quad = self.stage_quad(&lod, types)?;
+        let postings = self.stage_postings(types, parents, &lod.row_of_position)?;
 
         let files = LodArtifacts {
             morton,
-            quad: quad_file,
-            postings: postings_file,
-            wire_coordinates: stage_sized_column(
-                self.staging,
+            quad: quad.file,
+            postings: postings.file,
+            wire_coordinates: self.stage_column(
                 Role::WireCoordinates,
                 ArrayVariant::F32,
                 &[Dim::new(lod.coordinates.len() as u64), Dim::new(2)],
-                lod.coordinates.iter().map(zerocopy::IntoBytes::as_bytes),
+                &lod.coordinates,
             )?,
-            rank_of_position: stage_sized_column(
-                self.staging,
+            rank_of_position: self.stage_column(
                 Role::RankOfPosition,
                 ArrayVariant::U32,
                 &[Dim::new(lod.rank_of_position.len() as u64)],
-                lod.rank_of_position
-                    .iter()
-                    .map(zerocopy::IntoBytes::as_bytes),
+                &lod.rank_of_position,
             )?,
-            position_of_rank: stage_sized_column(
-                self.staging,
+            position_of_rank: self.stage_column(
                 Role::PositionOfRank,
                 ArrayVariant::U32,
                 &[Dim::new(lod.position_of_rank.len() as u64)],
-                lod.position_of_rank
-                    .iter()
-                    .map(zerocopy::IntoBytes::as_bytes),
+                &lod.position_of_rank,
             )?,
-            position_of_row: stage_sized_column(
-                self.staging,
+            position_of_row: self.stage_column(
                 Role::PositionOfRow,
                 ArrayVariant::U32,
                 &[Dim::new(lod.position_of_row.len() as u64)],
-                lod.position_of_row
-                    .iter()
-                    .map(zerocopy::IntoBytes::as_bytes),
+                &lod.position_of_row,
             )?,
-            row_of_position: stage_sized_column(
-                self.staging,
+            row_of_position: self.stage_column(
                 Role::RowOfPosition,
                 ArrayVariant::U32,
                 &[Dim::new(lod.row_of_position.len() as u64)],
-                lod.row_of_position
-                    .iter()
-                    .map(zerocopy::IntoBytes::as_bytes),
+                &lod.row_of_position,
             )?,
         };
 
-        let evidence = lod.evidence(self.config.lod);
+        let evidence = lod.measurements(self.config.lod);
         tracing::info!(
             catch_all = evidence.catch_all_population,
             co_location_excess = evidence.co_location_excess,
-            quad_nodes = quad_evidence.nodes,
-            dense_types = postings_evidence.dense_types,
+            quad_nodes = quad.evidence.nodes,
+            dense_types = postings.evidence.dense_types,
             "staged the level-of-detail columns, the quadtree, and the postings"
         );
 
         Ok(LodOutputs {
             files,
             evidence,
-            quad_evidence,
-            postings_evidence,
+            quad: quad.evidence,
+            postings: postings.evidence,
         })
     }
 
@@ -194,20 +195,17 @@ impl Context<'_> {
         &self,
         lod: &Lod,
         types: &[SmallVec<OntologyRowId, 2>],
-    ) -> Result<(RepositoryFile, QuadEvidence), StageError> {
+    ) -> Result<Staged<(), QuadMeasurements>, StageError> {
         let _span = tracing::info_span!("quad").entered();
 
         let tree = QuadTree::build(lod, types, self.config.lod)?;
-        let file = write_staged(self.staging, Role::Quad, |writer| {
-            let mut writer = Writer {
-                accumulator: Sha256::new(),
-                writer,
-            };
-            quad::write::write_regions(&tree.nodes, &tree.sets, &mut writer)?;
-            Ok(writer.accumulator.finalize())
-        })?;
+        let file = stage(self.staging, Role::Quad, &tree)?;
 
-        Ok((file, tree.evidence()))
+        Ok(Staged {
+            file,
+            artifact: (),
+            evidence: tree.measurements(),
+        })
     }
 
     /// Builds the postings over the finished lod permutation and stages them beside the quadtree.
@@ -219,12 +217,16 @@ impl Context<'_> {
         types: &[SmallVec<OntologyRowId, 2>],
         parents: &[SmallVec<OntologyRowId, 2>],
         row_of_position: &[u32],
-    ) -> Result<(RepositoryFile, PostingsEvidence), StageError> {
+    ) -> Result<Staged<(), PostingsMeasurements>, StageError> {
         let _span = tracing::info_span!("postings").entered();
 
         let postings = Postings::build(types, row_of_position, parents, self.config.postings)?;
         let file = stage(self.staging, Role::Postings, &postings)?;
 
-        Ok((file, postings.evidence()))
+        Ok(Staged {
+            file,
+            artifact: (),
+            evidence: postings.measurements(),
+        })
     }
 }

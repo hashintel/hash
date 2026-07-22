@@ -156,8 +156,8 @@ impl QuadFile {
         if posts[0].get() != 0 {
             return Err(OpenQuadError::Posts { index: 0 });
         }
-        for (index, pair) in posts.windows(2).enumerate() {
-            if pair[1].get() < pair[0].get() {
+        for (index, [left, right]) in posts.array_windows::<2>().enumerate() {
+            if right.get() < left.get() {
                 return Err(OpenQuadError::Posts {
                     index: index as u64 + 1,
                 });

@@ -8,6 +8,8 @@
 //! - [`uniform_below`] draws one unbiased integer below a bound.
 //! - [`sample_indices`] draws distinct indices without replacement, in memory proportional to the
 //!   sample rather than the population.
+//! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, the seam for
+//!   deterministic parallel draws.
 /// - [`acceptance_sample_size`] sizes a statistical spot check: how many uniformly sampled
 ///   items must all pass to certify a defect-rate bound at a confidence level.
 /// - [`mean_sample_size`] sizes an aggregate spot check: how many uniformly sampled items
@@ -17,9 +19,10 @@
 use core::num::NonZero;
 
 use rand::{
-    Rng, RngExt as _,
+    Rng, RngExt as _, SeedableRng as _,
     seq::index::{IndexVec, sample, sample_array},
 };
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 pub(crate) use self::compat::Compat;
 
@@ -110,6 +113,46 @@ pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> O
 #[must_use]
 pub fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) -> IndexVec {
     sample(&mut rng, population, count)
+}
+
+/// The golden-ratio increment of `SplitMix64`: `2^64 / phi`, odd and therefore coprime to the
+/// word, so consecutive keys land maximally spread before mixing.
+const SPLITMIX64_GAMMA: u64 = 0x9E37_79B9_7F4A_7C15;
+
+/// The first `SplitMix64` finalizer multiplier (D. Stafford's "mix 13" variant).
+const SPLITMIX64_MIX_1: u64 = 0xBF58_476D_1CE4_E5B9;
+
+/// The second `SplitMix64` finalizer multiplier (D. Stafford's "mix 13" variant).
+const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
+
+/// Builds a generator keyed by a seed and two stream indexes.
+///
+/// The key mixes through the `SplitMix64` finalizer - the golden-ratio increment spreads `key`
+/// across the word, and the two multiply-xorshift rounds avalanche every input bit into the
+/// output - so generators with adjacent keys are statistically independent. Parallel work draws
+/// one generator per `(seed, key, stream)` instead of sharing a sequence, and a seeded run
+/// reproduces exactly at any thread count.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::random::keyed_rng;
+/// use rand::RngExt as _;
+///
+/// let mut draws = keyed_rng(42, 7, 0);
+/// let mut replay = keyed_rng(42, 7, 0);
+/// assert_eq!(draws.random::<u64>(), replay.random::<u64>());
+///
+/// let mut sibling = keyed_rng(42, 8, 0);
+/// assert_ne!(draws.random::<u64>(), sibling.random::<u64>());
+/// ```
+#[must_use]
+pub fn keyed_rng(seed: u64, key: u64, stream: u64) -> Xoshiro256PlusPlus {
+    let mut mixed = seed ^ key.wrapping_mul(SPLITMIX64_GAMMA);
+    mixed ^= stream.wrapping_mul(SPLITMIX64_MIX_1);
+    mixed = (mixed ^ (mixed >> 30)).wrapping_mul(SPLITMIX64_MIX_1);
+    mixed = (mixed ^ (mixed >> 27)).wrapping_mul(SPLITMIX64_MIX_2);
+    Xoshiro256PlusPlus::seed_from_u64(mixed ^ (mixed >> 31))
 }
 
 /// Computes the sample size certifying a defect-rate bound.

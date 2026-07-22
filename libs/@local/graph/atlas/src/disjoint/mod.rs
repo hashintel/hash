@@ -49,6 +49,7 @@ impl DisjointSet {
             u32::try_from(len).is_ok(),
             "the index domain is bound to a u32 encoding",
         );
+
         #[expect(
             clippy::cast_possible_truncation,
             reason = "the assert above bounds the domain to u32"

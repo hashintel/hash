@@ -180,7 +180,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn assignment_offset(&self) -> Option<u64> {
+    pub(crate) const fn assignment_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.landmarks(), size_of::<u64>() as u64)?)
     }
 
@@ -189,7 +189,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn coordinates_offset(&self) -> Option<u64> {
+    pub(crate) const fn coordinates_offset(&self) -> Option<u64> {
         let assignment = padded_size(self.rows(), size_of::<u32>() as u64)?;
         self.assignment_offset()?.checked_add(assignment)
     }
@@ -199,7 +199,7 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let coordinate_bytes = self.landmarks().checked_mul(2 * size_of::<f32>() as u64)?;
         self.coordinates_offset()?.checked_add(coordinate_bytes)
     }

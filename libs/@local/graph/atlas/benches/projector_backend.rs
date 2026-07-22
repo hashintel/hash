@@ -174,17 +174,52 @@ fn bench_live_step(criterion: &mut Criterion) {
             cold.elapsed()
         );
 
+        // Phase iterations run isolated (`PerIteration`), never in
+        // criterion's tight sample loops: an asynchronous backend's
+        // allocator pools per-call buffers, and a loop of corpus-shaped
+        // calls grows the pool faster than the device reclaims it.
         group.bench_function(format!("{}/input", kind.label()), |bencher| {
-            bencher.iter(|| stepper.input(black_box(&batch)));
+            bencher.iter_batched(
+                || (),
+                |()| stepper.input(black_box(&batch)),
+                BatchSize::PerIteration,
+            );
         });
-        group.bench_function(format!("{}/forward", kind.label()), |bencher| {
-            bencher.iter(|| black_box(stepper.forward(black_box(&batch))));
+        group.bench_function(format!("{}/refresh", kind.label()), |bencher| {
+            bencher.iter_batched(
+                || (),
+                |()| black_box(stepper.refresh(black_box(&batch))),
+                BatchSize::PerIteration,
+            );
         });
-        group.bench_function(format!("{}/objective", kind.label()), |bencher| {
-            bencher.iter(|| black_box(stepper.objective(black_box(&batch))));
-        });
+        // The decomposition phases record autodiff graphs no backward
+        // consumes. Orphan graphs pin device buffers until reclamation,
+        // which a sampling loop outruns on a pooled asynchronous device,
+        // so the decomposition stays a synchronous-backend instrument;
+        // `refresh` and `step` are the production motions every backend
+        // measures.
+        if matches!(kind, BackendKind::Cpu) {
+            group.bench_function(format!("{}/forward", kind.label()), |bencher| {
+                bencher.iter_batched(
+                    || (),
+                    |()| black_box(stepper.forward(black_box(&batch))),
+                    BatchSize::PerIteration,
+                );
+            });
+            group.bench_function(format!("{}/objective", kind.label()), |bencher| {
+                bencher.iter_batched(
+                    || (),
+                    |()| black_box(stepper.objective(black_box(&batch))),
+                    BatchSize::PerIteration,
+                );
+            });
+        }
         group.bench_function(format!("{}/step", kind.label()), |bencher| {
-            bencher.iter(|| black_box(stepper.step(black_box(&batch))));
+            bencher.iter_batched(
+                || (),
+                |()| black_box(stepper.step(black_box(&batch))),
+                BatchSize::PerIteration,
+            );
         });
     }
 

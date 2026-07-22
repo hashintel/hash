@@ -233,7 +233,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn membership_posts_offset(&self) -> Option<u64> {
+    pub(crate) const fn membership_posts_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.flags_words(), size_of::<u64>() as u64)?)
     }
 
@@ -242,7 +242,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn parent_posts_offset(&self) -> Option<u64> {
+    pub(crate) const fn parent_posts_offset(&self) -> Option<u64> {
         self.membership_posts_offset()?
             .checked_add(self.padded_posts_bytes()?)
     }
@@ -252,7 +252,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn parent_ids_offset(&self) -> Option<u64> {
+    pub(crate) const fn parent_ids_offset(&self) -> Option<u64> {
         self.parent_posts_offset()?
             .checked_add(self.padded_posts_bytes()?)
     }
@@ -262,7 +262,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn entries_offset(&self) -> Option<u64> {
+    pub(crate) const fn entries_offset(&self) -> Option<u64> {
         let ids = padded_size(self.parent_edges.get(), size_of::<u32>() as u64)?;
         self.parent_ids_offset()?.checked_add(ids)
     }
@@ -272,13 +272,13 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let entries = self.entries.get().checked_mul(size_of::<u32>() as u64)?;
         self.entries_offset()?.checked_add(entries)
     }
 
     /// Returns the padded byte size of one fencepost region.
-    fn padded_posts_bytes(&self) -> Option<u64> {
+    const fn padded_posts_bytes(&self) -> Option<u64> {
         padded_size(self.fencepost_count()?, size_of::<U64<LE>>() as u64)
     }
 }

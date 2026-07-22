@@ -56,14 +56,14 @@ mod relation;
 ///
 /// Resolved on the async side and carried across the thread boundary.
 pub(super) enum ClassifierPlan {
-    /// A fitted model supplied to the run.
-    Supplied {
+    /// Use a fitted model supplied to the run.
+    Use {
         /// The deployable model.
         classifier: Classifier,
         /// The SHA-256 of the supplied artifact's bytes.
         source: Sha256Digest,
     },
-    /// A model to fit from the assembled annotation corpus.
+    /// Fit a model from the assembled annotation corpus.
     Fit {
         /// The assembled training and holdout material, boxed to keep the variants near one size.
         corpus: Box<AssembledCorpus>,
@@ -255,8 +255,8 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 classifier: Some(computed.classifier.evidence),
                 relations: computed.relations.indexes.evidence,
                 lod: computed.lod.evidence,
-                quad: computed.lod.quad_evidence,
-                postings: computed.lod.postings_evidence,
+                quad: computed.lod.quad,
+                postings: computed.lod.postings,
                 projector: computed.placement.evidence,
             },
         },

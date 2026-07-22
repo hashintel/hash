@@ -608,6 +608,16 @@ struct SelectionOptionsDef {
     maximum_count: NonZero<u32>,
     #[serde(with = "unit_fraction")]
     retained_fraction: UnitFraction,
+    // Absent on documents published before the chunk was config;
+    // those runs drew under the compiled default, so echoing it
+    // records them faithfully.
+    #[serde(default = "default_parallel_chunk")]
+    parallel_chunk: NonZero<usize>,
+}
+
+/// The compiled default seeding chunk, echoed for documents that predate the field.
+const fn default_parallel_chunk() -> NonZero<usize> {
+    crate::salt::landmark::select::PARALLEL_CHUNK
 }
 
 /// serde shadow of [`norm::SpotCheckOptions`].

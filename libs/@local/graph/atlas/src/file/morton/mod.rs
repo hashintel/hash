@@ -121,6 +121,7 @@ impl Fenceposts {
             if posts[index] < posts[index - 1] {
                 return Err(FencepostViolation { index: index as u8 });
             }
+
             index += 1;
         }
 
@@ -336,7 +337,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn codes_offset(&self) -> Option<u64> {
+    pub(crate) const fn codes_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(self.index_keys()?, size_of::<u64>() as u64)?)
     }
 
@@ -345,7 +346,7 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let code_bytes = self.count().checked_mul(size_of::<u64>() as u64)?;
         self.codes_offset()?.checked_add(code_bytes)
     }

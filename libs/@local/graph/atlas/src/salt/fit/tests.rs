@@ -55,7 +55,7 @@ use crate::{
                 fit as fit_classifier,
             },
         },
-        postings::mapped::PostingsArchive,
+        postings::archive::PostingsArchive,
         projector::{
             artifact,
             loss::CoincidentEnergy,

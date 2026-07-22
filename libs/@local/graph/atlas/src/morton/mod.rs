@@ -9,8 +9,6 @@
 //! 32 pins both axes to a single key. A tile address `(z, x, y)` names the cell
 //! [`MortonCell::new(z, x, y)`](MortonCell::new); the cell containing an existing key is
 //! [`MortonKey::cell`]. Cells subdivide in key order via [`MortonCell::children`].
-//!
-//! This module owns only the arithmetic; the on-disk sorted-code format lives in the file layer.
 
 #[cfg(test)]
 mod tests;
@@ -218,9 +216,7 @@ impl MortonCell {
     /// children's ranges partition the parent's in that order. Returns [`None`] at [`Depth::MAX`].
     #[must_use]
     pub const fn children(self) -> Option<[Self; 4]> {
-        let Some(depth) = Depth::new(self.depth.get() + 1) else {
-            return None;
-        };
+        let depth = Depth::new(self.depth.get() + 1)?;
 
         let step = 1_u64 << (64 - 2 * (depth.get() as u32));
         Some([

@@ -1,9 +1,10 @@
-//! Fixed-capacity dense bit sets over row domains.
+//! Fixed-capacity dense bit sets and bit matrices over row domains.
 //!
 //! [`BitSet`] marks membership over a dense zero-based index domain in one bit per index - an
 //! eighth of a `Vec<bool>` - packed into `u64` words, so iteration skips absent runs sixty-four
-//! indices at a time. The capacity is fixed at construction: the set answers for exactly the
-//! indices below it and panics beyond, like a slice.
+//! indices at a time. [`BitMatrix`] stacks one such domain per row at a shared stride, so
+//! whole-row folds run word-parallel and a row borrows as a word slice. Capacities are fixed at
+//! construction: both answer for exactly the indices below them and panic beyond, like slices.
 
 #[cfg(test)]
 mod tests;
@@ -117,5 +118,149 @@ impl BitSet {
                 Some(base + bit)
             })
         })
+    }
+}
+
+/// A fixed-shape dense bit matrix, one bit per cell.
+///
+/// Rows pack into `u64` words LSB-first at a shared stride of `ceil(columns/64)` words, laid out
+/// row-major: a row borrows as a word slice and row-into-row folds run word-parallel. The shape is
+/// fixed at construction: the matrix answers for exactly the cells below it and panics beyond,
+/// like a slice.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::bitset::BitMatrix;
+///
+/// let mut reaches = BitMatrix::new(3, 3);
+/// reaches.insert(0, 1);
+/// reaches.insert(1, 2);
+///
+/// // Fold row 1 into row 0: everything row 1 reaches, row 0 now reaches.
+/// reaches.or_row_into(1, 0);
+///
+/// assert!(reaches.contains(0, 2));
+/// assert!(!reaches.contains(2, 0));
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BitMatrix {
+    /// `rows` rows of `stride` words.
+    words: Box<[u64]>,
+    rows: usize,
+    columns: usize,
+    /// Words per row: `ceil(columns / 64)`.
+    stride: usize,
+}
+
+impl BitMatrix {
+    /// Creates an empty matrix of `rows` by `columns` cells.
+    #[must_use]
+    pub fn new(rows: usize, columns: usize) -> Self {
+        let stride = columns.div_ceil(BitSet::WORD);
+        Self {
+            words: vec![0; rows * stride].into_boxed_slice(),
+            rows,
+            columns,
+            stride,
+        }
+    }
+
+    /// Returns the row count: the matrix answers for rows below it.
+    #[inline]
+    #[must_use]
+    pub const fn rows(&self) -> usize {
+        self.rows
+    }
+
+    /// Returns the column count: each row answers for columns below it.
+    #[inline]
+    #[must_use]
+    pub const fn columns(&self) -> usize {
+        self.columns
+    }
+
+    /// Returns the words per row: the length row-shaped scratch buffers allocate at.
+    #[inline]
+    #[must_use]
+    pub const fn stride(&self) -> usize {
+        self.stride
+    }
+
+    /// Returns whether the cell at `row`, `column` is set.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `row` or `column` lies at or beyond the shape.
+    #[inline]
+    #[must_use]
+    pub const fn contains(&self, row: usize, column: usize) -> bool {
+        assert!(column < self.columns, "the column lies beyond the shape");
+        let words = self.row(row);
+        words[column >> BitSet::WORD_SHIFT] & (1 << (column & BitSet::WORD_MASK)) != 0
+    }
+
+    /// Sets the cell at `row`, `column`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `row` or `column` lies at or beyond the shape.
+    #[inline]
+    pub const fn insert(&mut self, row: usize, column: usize) {
+        assert!(row < self.rows, "the row lies beyond the shape");
+        assert!(column < self.columns, "the column lies beyond the shape");
+        self.words[row * self.stride + (column >> BitSet::WORD_SHIFT)] |=
+            1 << (column & BitSet::WORD_MASK);
+    }
+
+    /// Borrows `row`'s words: `stride` words, LSB-first.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `row` lies at or beyond the shape.
+    #[inline]
+    #[must_use]
+    pub const fn row(&self, row: usize) -> &[u64] {
+        assert!(row < self.rows, "the row lies beyond the shape");
+        let start = row * self.stride;
+        // Manual re-slicing keeps the accessor const; split_at is not
+        // const over ranges.
+        let (_, tail) = self.words.split_at(start);
+        let (words, _) = tail.split_at(self.stride);
+        words
+    }
+
+    /// Folds `source`'s row into `target`'s: every column set in `source` becomes set in `target`.
+    ///
+    /// Folding a row into itself is a no-op: `OR` is idempotent.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `source` or `target` lies at or beyond the shape.
+    pub fn or_row_into(&mut self, source: usize, target: usize) {
+        assert!(source < self.rows, "the source row lies beyond the shape");
+        assert!(target < self.rows, "the target row lies beyond the shape");
+        if source == target {
+            return;
+        }
+
+        // The rows are distinct, so splitting at the later row's start
+        // borrows both disjointly.
+        let (source_words, target_words) = if source < target {
+            let (head, tail) = self.words.split_at_mut(target * self.stride);
+            (
+                &head[source * self.stride..][..self.stride],
+                &mut tail[..self.stride],
+            )
+        } else {
+            let (head, tail) = self.words.split_at_mut(source * self.stride);
+            (
+                &tail[..self.stride],
+                &mut head[target * self.stride..][..self.stride],
+            )
+        };
+        for (target_word, &source_word) in target_words.iter_mut().zip(source_words) {
+            *target_word |= source_word;
+        }
     }
 }

@@ -47,7 +47,8 @@
     variant_count,
     const_closures,
     const_array,
-    const_default
+    const_default,
+    const_try
 )]
 #![expect(
     dead_code,

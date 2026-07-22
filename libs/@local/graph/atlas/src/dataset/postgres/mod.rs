@@ -400,17 +400,6 @@ impl<'client> PostgresDataset<'client> {
             .start()
             .await?;
 
-        // The scope CTE feeds several parallel hash joins per corpus
-        // query, and every parallel hash lives in the workers' shared
-        // memory, which Postgres allocates as power-of-two DSM segments
-        // (a 64MB work_mem still requested a 256MB segment). The edge
-        // query overflowed the 1 GiB /dev/shm of the containerized dev
-        // store at 64MB and above; 32MB runs it in memory at the
-        // million-entity scale.
-        transaction
-            .batch_execute("SET LOCAL work_mem = '32MB'")
-            .await?;
-
         Ok(Self {
             transaction,
             axes,

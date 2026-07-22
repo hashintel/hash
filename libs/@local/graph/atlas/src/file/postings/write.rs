@@ -7,11 +7,26 @@ use zerocopy::{IntoBytes as _, LE, U32, U64};
 use super::FileHeader;
 use crate::file::region::write_padding;
 
-/// Streams the flags, fenceposts, parent edges, and membership entries as a postings file.
+/// The regions of one postings file, borrowed from a finished build.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct Regions<'build> {
+    /// The base-position domain the header records.
+    pub points: u64,
+    /// `ceil(types/64)` words, bit `t` set when type `t`'s membership run is a dense bitmap.
+    pub flags: &'build [u64],
+    /// `types + 1` fenceposts delimiting [`entries`](Self::entries).
+    pub membership_posts: &'build [u64],
+    /// The membership entries, type-major: sorted positions for list types, bitmap words for dense
+    /// types.
+    pub entries: &'build [u32],
+    /// `types + 1` fenceposts delimiting [`parent_ids`](Self::parent_ids).
+    pub parent_posts: &'build [u64],
+    /// The direct parent rows, type-major.
+    pub parent_ids: &'build [u32],
+}
+
+/// Streams the postings regions as a postings file.
 ///
-/// `flags` holds `ceil(types/64)` words with bit `t` set when type `t`'s membership run is a dense
-/// bitmap; `membership_posts` and `parent_posts` each hold `types + 1` entries delimiting the
-/// `entries` and `parent_ids` arrays; `points` is the base-position domain the header records.
 /// Regions stream in file order behind the header, so nothing is buffered here; wrap a raw
 /// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) - the per-entry writes are small.
 ///
@@ -21,23 +36,25 @@ use crate::file::region::write_padding;
 ///
 /// # Panics
 ///
-/// Panics when the slices contradict each other - a flags region not sized to the fencepost count,
-/// fencepost regions of differing lengths, or a final fencepost that is not its array's length -
-/// which violates the caller's construction contract; no file geometry can represent it. The
-/// membership and parent list rules (ascent, domains, dense run lengths) are `salt::postings`'s
-/// construction contract, asserted where the lists are built.
+/// Panics when the region slices contradict each other - a flags region not sized to the fencepost
+/// count, fencepost regions of differing lengths, or a final fencepost that is not its array's
+/// length - which violates the caller's construction contract; no file geometry can represent it.
+/// The membership and parent list rules (ascent, domains, dense run lengths) are
+/// `salt::postings`'s construction contract, asserted where the lists are built.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; contradictory slices are a caller contract \
               violation, documented under Panics"
 )]
 pub(crate) fn write_regions(
-    points: u64,
-    flags: &[u64],
-    membership_posts: &[u64],
-    entries: &[u32],
-    parent_posts: &[u64],
-    parent_ids: &[u32],
+    Regions {
+        points,
+        flags,
+        membership_posts,
+        entries,
+        parent_posts,
+        parent_ids,
+    }: Regions<'_>,
     mut write: impl io::Write,
 ) -> io::Result<()> {
     assert_eq!(
@@ -45,6 +62,7 @@ pub(crate) fn write_regions(
         parent_posts.len(),
         "both fencepost regions cover the one type domain",
     );
+
     let types = (membership_posts.len() - 1) as u64;
     assert_eq!(
         flags.len() as u64,

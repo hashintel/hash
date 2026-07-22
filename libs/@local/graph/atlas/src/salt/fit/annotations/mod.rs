@@ -58,7 +58,7 @@ impl Error for SupplyError {
 /// document that would fail admission is rejected before the fit spends anything.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SuppliedAnnotations {
-    bytes: Box<[u8]>,
+    bytes: Box<[u8]>, // NOTE: Why? Why carry the same bytes twice?!
     document: AnnotationCorpus,
     hash: Sha256Digest,
 }

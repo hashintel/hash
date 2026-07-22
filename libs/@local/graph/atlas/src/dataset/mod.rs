@@ -201,6 +201,23 @@ impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
     }
 }
 
+impl Deref for ArchivedOntologyTypeUuid {
+    type Target = OntologyTypeUuid;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        const {
+            assert!(size_of::<Self>() == size_of::<OntologyTypeUuid>());
+            assert!(align_of::<Self>() == align_of::<OntologyTypeUuid>());
+        }
+
+        let ptr = &raw const *self;
+        // SAFETY: as for `ArchivedEntityUuid`; the chain here is `OntologyTypeUuid(Uuid)`,
+        // `Uuid([u8; 16])`, transparent at every link.
+        unsafe { &*ptr.cast::<OntologyTypeUuid>() }
+    }
+}
+
 /// The identity-derivation contract of an ontology id type.
 ///
 /// Supplied inputs name types by canonical identity - reviewed verdicts carry versioned URLs -
@@ -227,23 +244,6 @@ impl OntologyIdentity for U64<LE> {
     #[inline]
     fn from_versioned_url(_url: &VersionedUrl) -> Option<Self> {
         None
-    }
-}
-
-impl Deref for ArchivedOntologyTypeUuid {
-    type Target = OntologyTypeUuid;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        const {
-            assert!(size_of::<Self>() == size_of::<OntologyTypeUuid>());
-            assert!(align_of::<Self>() == align_of::<OntologyTypeUuid>());
-        }
-
-        let ptr = &raw const *self;
-        // SAFETY: as for `ArchivedEntityUuid`; the chain here is `OntologyTypeUuid(Uuid)`,
-        // `Uuid([u8; 16])`, transparent at every link.
-        unsafe { &*ptr.cast::<OntologyTypeUuid>() }
     }
 }
 
@@ -358,6 +358,10 @@ impl EdgeRowId {
     Debug,
     Copy,
     Clone,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,
@@ -367,6 +371,7 @@ impl EdgeRowId {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
+#[serde(into = "u64", from = "u64")]
 pub(crate) struct OntologyRowId(U64<LE>);
 
 impl OntologyRowId {
@@ -394,42 +399,29 @@ impl OntologyRowId {
     pub(crate) const fn usize(self) -> usize {
         self.0.get() as usize
     }
-}
 
-// Ordered and serialized by row value; the little-endian bytes are a
-// storage detail, and byte equality coincides with value equality, so
-// the manual impls stay coherent with the byte-level derives.
-impl PartialOrd for OntologyRowId {
+    /// Returns the row as an index into a column of length `bound`.
+    ///
+    /// [`None`] when the row lies at or beyond the bound, so a caller folds its domain check into
+    /// the indexing step.
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
+    #[must_use]
+    pub(crate) fn index_below(self, bound: usize) -> Option<usize> {
+        usize::try_from(self.get()).ok().filter(|&row| row < bound)
     }
 }
 
-impl Ord for OntologyRowId {
+impl From<u64> for OntologyRowId {
     #[inline]
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.get().cmp(&other.get())
+    fn from(row: u64) -> Self {
+        Self::new(row)
     }
 }
 
-impl serde::Serialize for OntologyRowId {
+impl From<OntologyRowId> for u64 {
     #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_u64(self.get())
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for OntologyRowId {
-    #[inline]
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        u64::deserialize(deserializer).map(Self::new)
+    fn from(id: OntologyRowId) -> Self {
+        id.get()
     }
 }
 

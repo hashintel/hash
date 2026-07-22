@@ -190,7 +190,7 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let row_bytes = self.policies().checked_mul(size_of::<PolicyRow>() as u64)?;
         (Self::SIZE as u64).checked_add(row_bytes)
     }

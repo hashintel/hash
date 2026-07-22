@@ -567,7 +567,7 @@ where
     // passes through, and a supplied corpus stages verbatim and
     // assembles into the training set the compute-side fit consumes.
     let classifier = match classifier {
-        ClassifierInput::Supplied { classifier, source } => compute::ClassifierPlan::Supplied {
+        ClassifierInput::Supplied { classifier, source } => compute::ClassifierPlan::Use {
             classifier: classifier.clone(),
             source: *source,
         },

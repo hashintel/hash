@@ -13,12 +13,12 @@ use hash_graph_types::Embedding;
 use super::{EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits};
 use crate::{dataset::CANONICAL_DIMENSIONS, salt::embedding::CardEmbedder as _};
 
-fn contract() -> EmbeddingContract {
+fn contract() -> EmbeddingContract<'static> {
     EmbeddingContract {
-        provider: "openai".to_owned(),
-        endpoint: "https://api.openai.com/v1/embeddings".to_owned(),
-        model: "text-embedding-3-large".to_owned(),
-        encoding: "float".to_owned(),
+        provider: "openai",
+        endpoint: "https://api.openai.com/v1/embeddings",
+        model: "text-embedding-3-large",
+        encoding: "float",
     }
 }
 
@@ -98,10 +98,10 @@ fn fingerprints_commit_to_every_contract_field() {
     assert_eq!(base.fingerprint(), contract().fingerprint());
 
     for change in [
-        |contract: &mut EmbeddingContract| contract.provider = "azure".to_owned(),
-        |contract: &mut EmbeddingContract| contract.endpoint = "https://other".to_owned(),
-        |contract: &mut EmbeddingContract| contract.model = "text-embedding-3-small".to_owned(),
-        |contract: &mut EmbeddingContract| contract.encoding = "base64".to_owned(),
+        |contract: &mut EmbeddingContract| contract.provider = "azure",
+        |contract: &mut EmbeddingContract| contract.endpoint = "https://other",
+        |contract: &mut EmbeddingContract| contract.model = "text-embedding-3-small",
+        |contract: &mut EmbeddingContract| contract.encoding = "base64",
     ] {
         let mut changed = contract();
         change(&mut changed);
@@ -114,11 +114,11 @@ fn fingerprints_distinguish_field_boundaries() {
     // Both contracts concatenate to the same bytes; the length prefixes
     // must keep them apart.
     let mut left = contract();
-    left.provider = "ab".to_owned();
-    left.endpoint = "c".to_owned();
+    left.provider = "ab";
+    left.endpoint = "c";
     let mut right = contract();
-    right.provider = "a".to_owned();
-    right.endpoint = "bc".to_owned();
+    right.provider = "a";
+    right.endpoint = "bc";
 
     assert_ne!(left.fingerprint(), right.fingerprint());
 }

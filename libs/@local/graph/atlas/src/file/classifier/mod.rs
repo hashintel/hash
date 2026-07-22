@@ -225,7 +225,7 @@ impl FileHeader {
     /// boundary. Returns `None` when the geometry overflows `u64`, in which case no real file
     /// matches the header.
     #[must_use]
-    pub(crate) fn mean_offset(&self) -> Option<u64> {
+    pub(crate) const fn mean_offset(&self) -> Option<u64> {
         PAGE.checked_add(padded_size(CLASSES as u64, self.vector_bytes()?)?)
     }
 
@@ -234,7 +234,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn inverse_scales_offset(&self) -> Option<u64> {
+    pub(crate) const fn inverse_scales_offset(&self) -> Option<u64> {
         self.mean_offset()?
             .checked_add(padded_size(1, self.vector_bytes()?)?)
     }
@@ -244,7 +244,7 @@ impl FileHeader {
     /// Returns `None` when the geometry overflows `u64`, in which case no real file matches the
     /// header.
     #[must_use]
-    pub(crate) fn distances_offset(&self) -> Option<u64> {
+    pub(crate) const fn distances_offset(&self) -> Option<u64> {
         self.inverse_scales_offset()?
             .checked_add(padded_size(1, self.vector_bytes()?)?)
     }
@@ -254,7 +254,7 @@ impl FileHeader {
     /// A file whose length differs from this value is rejected. Returns `None` when the geometry
     /// overflows `u64`, in which case no real file matches the header.
     #[must_use]
-    pub(crate) fn expected_file_len(&self) -> Option<u64> {
+    pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let distance_bytes = self.distance_count().checked_mul(size_of::<f64>() as u64)?;
         self.distances_offset()?.checked_add(distance_bytes)
     }

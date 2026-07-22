@@ -10,7 +10,7 @@ use zerocopy::{IntoBytes as _, TryFromBytes as _};
 use super::{
     FileHeader,
     read::{OpenPostingsError, PostingsFile},
-    write::write_regions,
+    write::{Regions, write_regions},
 };
 
 /// A per-test scratch file path under the system temp directory.
@@ -43,12 +43,14 @@ const PARENT_IDS: [u32; 2] = [0, 1];
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
     write_regions(
-        POINTS,
-        &FLAGS,
-        &MEMBERSHIP_POSTS,
-        &ENTRIES,
-        &PARENT_POSTS,
-        &PARENT_IDS,
+        Regions {
+            points: POINTS,
+            flags: &FLAGS,
+            membership_posts: &MEMBERSHIP_POSTS,
+            entries: &ENTRIES,
+            parent_posts: &PARENT_POSTS,
+            parent_ids: &PARENT_IDS,
+        },
         &mut bytes,
     )
     .expect("writing into a vector cannot fail");
@@ -138,8 +140,7 @@ fn written_regions_reopen_verbatim() {
 fn empty_domain_reopens() {
     let path = scratch("empty.post");
     let mut bytes = Vec::new();
-    write_regions(0, &[], &[0], &[], &[0], &[], &mut bytes)
-        .expect("writing into a vector cannot fail");
+    write_regions(EMPTY_REGIONS, &mut bytes).expect("writing into a vector cannot fail");
     fs::write(&path, bytes).expect("the scratch file is writable");
 
     let file = PostingsFile::open(&path).expect("the empty file reopens");
@@ -189,30 +190,64 @@ fn open_rejects_foreign_and_torn_bytes() {
     );
 }
 
+/// The regions of an edgeless, typeless, pointless file: the smallest coherent write.
+const EMPTY_REGIONS: Regions<'static> = Regions {
+    points: 0,
+    flags: &[],
+    membership_posts: &[0],
+    entries: &[],
+    parent_posts: &[0],
+    parent_ids: &[],
+};
+
 #[test]
 #[should_panic(expected = "both fencepost regions cover the one type domain")]
 fn writer_rejects_mismatched_post_regions() {
     let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(0, &[], &[0, 0], &[], &[0], &[], &mut sink);
+    let _: std::io::Result<()> = write_regions(
+        Regions {
+            membership_posts: &[0, 0],
+            ..EMPTY_REGIONS
+        },
+        &mut sink,
+    );
 }
 
 #[test]
 #[should_panic(expected = "the flags region holds one bit per type")]
 fn writer_rejects_missized_flags() {
     let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(0, &[0, 0], &[0], &[], &[0], &[], &mut sink);
+    let _: std::io::Result<()> = write_regions(
+        Regions {
+            flags: &[0, 0],
+            ..EMPTY_REGIONS
+        },
+        &mut sink,
+    );
 }
 
 #[test]
 #[should_panic(expected = "the final membership fencepost closes the entries array")]
 fn writer_rejects_unclosed_membership_posts() {
     let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(0, &[], &[1], &[], &[0], &[], &mut sink);
+    let _: std::io::Result<()> = write_regions(
+        Regions {
+            membership_posts: &[1],
+            ..EMPTY_REGIONS
+        },
+        &mut sink,
+    );
 }
 
 #[test]
 #[should_panic(expected = "the final parent fencepost closes the parent id array")]
 fn writer_rejects_unclosed_parent_posts() {
     let mut sink = Vec::new();
-    let _: std::io::Result<()> = write_regions(0, &[], &[0], &[], &[1], &[], &mut sink);
+    let _: std::io::Result<()> = write_regions(
+        Regions {
+            parent_posts: &[1],
+            ..EMPTY_REGIONS
+        },
+        &mut sink,
+    );
 }

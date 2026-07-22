@@ -129,7 +129,7 @@ impl Context<'_> {
         plan: &ClassifierPlan,
     ) -> Result<(Classifier, ClassifierArtifacts), StageError> {
         match plan {
-            ClassifierPlan::Supplied { classifier, source } => Ok((
+            ClassifierPlan::Use { classifier, source } => Ok((
                 classifier.clone(),
                 ClassifierArtifacts {
                     evidence: ClassifierEvidence::Supplied { source: *source },

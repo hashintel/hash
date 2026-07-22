@@ -66,15 +66,6 @@ pub(crate) struct CardParameters {
     pub budgets: CardsConfig = CardsConfig { .. },
 }
 
-/// One type's store facts, owned by the rows the queries returned.
-pub(super) struct RelationFacts {
-    relation: OwnedType,
-    ancestors: Vec<OwnedType>,
-    associations: Vec<OwnedAssociation>,
-    examples: Vec<OwnedExample>,
-    forbidden: Vec<String>,
-}
-
 struct OwnedType {
     id: String,
     title: String,
@@ -101,6 +92,15 @@ struct OwnedExample {
     source_type_closure: Vec<String>,
     source_frequency: u64,
     target_frequency: u64,
+}
+
+/// One type's store facts, owned by the rows the queries returned.
+pub(super) struct RelationFacts {
+    relation: OwnedType,
+    ancestors: Vec<OwnedType>,
+    associations: Vec<OwnedAssociation>,
+    examples: Vec<OwnedExample>,
+    forbidden: Vec<String>,
 }
 
 impl RelationFacts {

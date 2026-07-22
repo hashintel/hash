@@ -55,7 +55,7 @@ const _: () = assert!(PAGE_BYTES as u64 == PAGE);
 /// A region's successor starts this many bytes after it in the file, which makes the sum of a
 /// header page and the padded sizes of the preceding regions an offset chain. Returns `None` when
 /// the size overflows `u64`.
-pub(crate) fn padded_size(count: u64, width: u64) -> Option<u64> {
+pub(crate) const fn padded_size(count: u64, width: u64) -> Option<u64> {
     count.checked_mul(width)?.checked_next_multiple_of(PAGE)
 }
 

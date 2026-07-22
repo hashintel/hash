@@ -27,8 +27,8 @@ use crate::{
     math::{AffinityCurve, Bounds2, Vec2},
     morton::Depth,
     salt::{
-        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodEvidence,
-        NormSpotCheck, PostingsEvidence, QuadEvidence, RecallSpotCheck, SelectionOptions,
+        BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodMeasurements,
+        NormSpotCheck, PostingsMeasurements, QuadMeasurements, RecallSpotCheck, SelectionOptions,
     },
 };
 
@@ -169,7 +169,7 @@ fn evidence() -> Evidence {
             self_references: 0,
             multi_typed_edges: vec![2],
         },
-        lod: LodEvidence {
+        lod: LodMeasurements {
             world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
                 .expect("the fixture corners are finite and ordered"),
             bucket_histogram: {
@@ -181,13 +181,13 @@ fn evidence() -> Evidence {
             co_location_excess: 0,
             max_tile_delta: 2,
         },
-        quad: QuadEvidence {
+        quad: QuadMeasurements {
             nodes: 1,
             leaves: 1,
             depth: Depth::new(0).expect("the root depth is within the key width"),
             type_entries: 3,
         },
-        postings: PostingsEvidence {
+        postings: PostingsMeasurements {
             types: 3,
             dense_types: 1,
             membership_entries: 4,
