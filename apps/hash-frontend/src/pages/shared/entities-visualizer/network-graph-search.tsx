@@ -14,7 +14,9 @@
  * `containsSegment` is case-sensitive, so we match a few case variants of the
  * query against the common label properties and then refine case-insensitively
  * on the generated label. The results carry no coordinates, so the parent view
- * places a selected result at a random point (see `network-graph-view.tsx`).
+ * locates each (by entity id) to place and reveal a picked result — it prefetches
+ * the whole result set via `onResultsChange` so a pick is instant (see
+ * `network-graph-view.tsx`).
  */
 
 import { useQuery } from "@apollo/client";
@@ -98,9 +100,16 @@ export interface NetworkGraphSearchResult {
 
 export const NetworkGraphSearch = ({
   onSelect,
+  onResultsChange,
   popperContainer,
 }: {
   onSelect: (result: NetworkGraphSearchResult) => void;
+  /**
+   * Called with the current result set whenever it changes (empty when the query
+   * clears). Lets the parent prefetch each result's locate ego-graph so a later
+   * pick renders without an on-demand round trip.
+   */
+  onResultsChange?: (results: NetworkGraphSearchResult[]) => void;
   /**
    * Element to portal the results popup into. The parent passes its frame so the
    * popup stays visible when the graph is taken full-screen (a body portal would
@@ -209,6 +218,12 @@ export const NetworkGraphSearch = ({
 
     return results;
   }, [data, trimmedQuery]);
+
+  // Hand the current matches to the parent so it can prefetch each result's
+  // locate ego-graph while the user is still choosing.
+  useEffect(() => {
+    onResultsChange?.(options);
+  }, [options, onResultsChange]);
 
   // Keep the controlled value present in the option list so MUI never warns that
   // the selection is missing once the query (and thus the results) moves on.

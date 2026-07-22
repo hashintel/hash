@@ -29,6 +29,7 @@ export {
   type LocatedEntity,
   type LocateEdge,
   type LocateNode,
+  type LocateSource,
   type SaltilePropertyValue,
 } from "./components/Chart/NetworkGraph/tiling/fetch-locate";
 export {
