@@ -374,12 +374,14 @@ export const createPetrinautOptimizationHandler = ({
       }
       requestLogger.warn("Petrinaut optimization failed", {
         durationMs,
-        error,
+        errorType: error instanceof Error ? error.name : typeof error,
         optimizationRunId,
         outcome: lifecycle.state.timeoutKind
           ? `timeout:${lifecycle.state.timeoutKind}`
           : "upstream-error",
         timeoutKind: lifecycle.state.timeoutKind,
+        upstreamStatus:
+          error instanceof PetrinautOptimizerHttpError ? error.status : null,
         userId,
       });
       if (!response.headersSent) {

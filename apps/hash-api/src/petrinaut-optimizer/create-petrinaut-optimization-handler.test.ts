@@ -430,9 +430,14 @@ describe("createPetrinautOptimizationHandler", () => {
       (entry) => entry.message === "Petrinaut optimization failed",
     );
     expect(failure?.metadata).toMatchObject({
+      errorType: "PetrinautOptimizerHttpError",
       optimizationRunId: "run-init-9",
       outcome: "upstream-error",
+      upstreamStatus: 500,
     });
+    expect(JSON.stringify(failure)).not.toContain(
+      "failed to initialise optimization",
+    );
   });
 
   it("cleans up backpressure listeners and survives a late close", async () => {
