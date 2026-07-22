@@ -15,6 +15,7 @@ export {
   NetworkGraph,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
+  type NetworkGraphEdgeNeighbourhood,
   type NetworkGraphHandle,
   type NetworkGraphId,
   type NetworkGraphInteraction,

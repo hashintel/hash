@@ -659,6 +659,25 @@ export const NetworkGraphView = ({
           return;
         }
         const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        // Pin the edge's geometry to the selection so it stays drawn and anchored
+        // (its popover included) even in the compact view, whose sparse on-screen
+        // tiles usually don't contain this located edge or its endpoint nodes.
+        const nodeById = new Map(
+          entity.nodes.map((node) => [node.id, node] as const),
+        );
+        const fromNode = nodeById.get(Number(edge.fromId));
+        const toNode = nodeById.get(Number(edge.toId));
+        if (fromNode && toNode) {
+          setSelected({
+            edge: {
+              edge,
+              endpoints: [
+                toPoint(fromNode, colorForTypeIndices(fromNode.typeIndices)),
+                toPoint(toNode, colorForTypeIndices(toNode.typeIndices)),
+              ],
+            },
+          });
+        }
         setSelection({
           detail: {
             kind: "edge",
@@ -680,7 +699,7 @@ export const NetworkGraphView = ({
         });
       });
     },
-    [clearSelection, locate],
+    [clearSelection, locate, colorForTypeIndices],
   );
 
   // "Go to entity" reveals the located point — bringing it on screen if it isn't
