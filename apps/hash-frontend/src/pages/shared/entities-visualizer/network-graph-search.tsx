@@ -330,6 +330,9 @@ export const NetworkGraphSearch = ({
               popper: {
                 container: popperContainer ?? undefined,
                 sx: {
+                  // Above the expanded search bar (which sits one step above the
+                  // selection popover), so the results aren't hidden behind it.
+                  zIndex: "calc(var(--z-index-popover) + 2)",
                   "& > div:first-of-type": {
                     boxShadow: "none",
                   },

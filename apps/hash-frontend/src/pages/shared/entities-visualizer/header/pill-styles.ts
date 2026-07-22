@@ -2,6 +2,22 @@ import { chipClasses } from "@mui/material";
 
 import type { SxProps, Theme } from "@mui/material";
 
+/**
+ * Filter dropdowns portal to `document.body` (outside `.hash-ds-root`) and must
+ * clear the network-graph overlays: the selection popover sits at the ds
+ * `popover` layer, and the search widget layers just above it (`+1` collapsed
+ * trigger aside, `+1`/`+2` when open). `+3` puts the filter dropdowns above all
+ * of them. The `--z-index-popover` token is emitted at `:root` (see the app's
+ * panda config) so it resolves out here too.
+ */
+export const filterDropdownZIndex = "calc(var(--z-index-popover) + 3)";
+
+/**
+ * A dropdown opened from inside a filter dropdown (e.g. the type colour picker),
+ * one step above its parent so it isn't hidden behind it.
+ */
+export const filterSubDropdownZIndex = "calc(var(--z-index-popover) + 4)";
+
 const basePillSx = {
   height: 26,
   borderRadius: "4px",
