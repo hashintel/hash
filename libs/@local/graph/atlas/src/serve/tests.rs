@@ -2735,6 +2735,12 @@ mod codec_reference {
             self.permute(row)
         }
 
+        /// Decodes `wire`: the inverse pass, then the bounds check against the universe.
+        pub(super) fn decode(&self, wire: u32) -> Option<u32> {
+            let row = self.unpermute(wire);
+            (row < self.universe).then_some(row)
+        }
+
         /// Applies the network once.
         ///
         /// Round `i` maps `(L, R)` to `(R, L xor F_i(R))` over two 16-bit halves.
@@ -2743,6 +2749,22 @@ mod codec_reference {
                 let left = state >> 16;
                 let right = state & 0xFFFF;
                 state = (right << 16) | (left ^ (round(key, right) & 0xFFFF));
+            }
+
+            state
+        }
+
+        /// Applies the inverse network once.
+        ///
+        /// Derived from the round's own algebra: the output `(L', R')` of round `i` determines
+        /// its input as `R = L'` and `L = R' xor F_i(L')`, so the inverse walks the keys in
+        /// reverse, recovering each round's input from its output.
+        fn unpermute(&self, mut state: u32) -> u32 {
+            for key in self.keys.iter().rev() {
+                let out_left = state >> 16;
+                let out_right = state & 0xFFFF;
+                let left = out_right ^ (round(key, out_left) & 0xFFFF);
+                state = (left << 16) | out_left;
             }
 
             state
@@ -2774,10 +2796,26 @@ fn codec_agrees_with_the_spec_reference() {
         );
 
         for row in 0..universe {
+            let wire = codec.encode(row).get();
             assert_eq!(
-                codec.encode(row).get(),
+                wire,
                 model.encode(row),
                 "both expressions of the codec agree at N={universe}, row {row}",
+            );
+            assert_eq!(
+                model.decode(wire),
+                Some(row),
+                "the reference inverts the production encoding at N={universe}, row {row}",
+            );
+        }
+
+        // Both expressions agree on the misses too: decode exactness
+        // holds across implementations, not merely within one.
+        for wire in (0..2_048).chain([1 << 31, u32::MAX]) {
+            assert_eq!(
+                codec.decode(wire),
+                model.decode(wire),
+                "both expressions agree on decode at N={universe}, wire {wire}",
             );
         }
     }
@@ -2844,17 +2882,42 @@ fn codec_wire_ids_disclose_nothing_of_the_universe() {
     // multiplied out, never divided. Both selections estimating the
     // range, and only the range, is the codec's contract: wire ids
     // answer nothing, not even "how many rows".
+    //
+    // The tolerance derives from the estimator's own spread. The
+    // maximum of k uniform draws on [0, M) has variance
+    // M^2 k / ((k+1)^2 (k+2)); the scaled per-trial statistic
+    // (k+1) * max has standard deviation M * sqrt(k / (k+2)), and
+    // the sum over t independent trials spreads by sqrt(t) of that.
+    // Twelve standard deviations never flakes and still binds the
+    // distribution two-sidedly - about four times tighter than the
+    // loose bound it replaces, and five orders of magnitude away
+    // from what the retired [0, N) codec would have produced.
     let scaled = |total: u64| total * u64::from(sample + 1);
     let target = (1_u64 << 32) * u64::from(sample) * u64::from(trials);
-    let tolerance = (1_u64 << 32) * u64::from(trials) * 4;
+    let deviation =
+        2.0_f64.powi(32) * (f64::from(trials) * f64::from(sample) / f64::from(sample + 2)).sqrt();
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the tolerance is a positive count far below u64::MAX"
+    )]
+    let tolerance = (12.0 * deviation) as u64;
     for (name, total) in [("block", block_total), ("spread", spread_total)] {
         assert!(
             scaled(total).abs_diff(target) < tolerance,
             "the {name} selection estimates the full range: {total} total",
         );
     }
+    // The difference of the two sums doubles the variance; its
+    // tolerance widens by sqrt(2).
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the tolerance is a positive count far below u64::MAX"
+    )]
+    let difference_tolerance = (12.0 * core::f64::consts::SQRT_2 * deviation) as u64;
     assert!(
-        scaled(block_total.abs_diff(spread_total)) < tolerance,
+        scaled(block_total.abs_diff(spread_total)) < difference_tolerance,
         "the selections are indistinguishable through wire ids: {block_total} vs {spread_total}",
     );
 }
