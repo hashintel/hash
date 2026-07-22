@@ -36,11 +36,14 @@ import { VersionPicker } from "./version-picker";
 const aiChatTransport = createBridgeAiChatTransport();
 
 /**
- * The gray HASH uses for breadcrumb text and icons elsewhere in the app.
- * Neither the MUI theme (closest: `palette.gray[50]`, #91A5BA) nor the
- * ds-components palette has an exact token for it, so it's pinned here.
+ * The grays HASH's breadcrumbs use elsewhere in the app: crumb text (and
+ * the crumb's icon / the process title) in the darker grey-blue, the
+ * chevron separators lighter. Neither the MUI theme (closest:
+ * `palette.gray[70]` #64778C / `palette.gray[50]` #91A5BA) nor the
+ * ds-components palette has exact tokens for these, so they're pinned here.
  */
-const BREADCRUMB_COLOR = "#95a5b8";
+const BREADCRUMB_TEXT_COLOR = "#677789";
+const BREADCRUMB_CHEVRON_COLOR = "#95a5b8";
 
 const noNetSwitchingError = () => {
   throw new Error(
@@ -325,30 +328,36 @@ export const EmbedContent = () => {
       <Box
         sx={{
           alignItems: "center",
-          color: BREADCRUMB_COLOR,
+          /** Inherited by the chevron separator's `currentColor` fill. */
+          color: BREADCRUMB_CHEVRON_COLOR,
           display: "flex",
           gap: 0.5,
-          /**
-           * The ds Button recipe sets its own text color; this unlayered
-           * emotion rule reliably wins over the layer-polyfilled Panda
-           * styles the editor ships (see FE-1228).
-           */
-          "& > button": { color: "inherit" },
         }}
       >
         <Button
           size="sm"
           variant="ghost"
           onClick={handleNavigateBack}
-          prefix={<ChartNetworkRegularIcon sx={{ fontSize: 14 }} />}
+          prefix={
+            <ChartNetworkRegularIcon
+              style={{ color: BREADCRUMB_TEXT_COLOR, fontSize: 14 }}
+            />
+          }
         >
-          Processes
+          {/*
+           * The ds Button recipe sets its own text color, and the editor's
+           * layer-polyfilled Panda bundle compiles that rule to a
+           * specificity that beats host emotion classes (FE-1228) — inline
+           * styles are the only reliable channel, hence the styled span
+           * and the inline-styled icon above.
+           */}
+          <span style={{ color: BREADCRUMB_TEXT_COLOR }}>Processes</span>
         </Button>
         <Icon name="chevronRight" size="xs" />
       </Box>
     );
 
-    const titleStyle = { color: BREADCRUMB_COLOR };
+    const titleStyle = { color: BREADCRUMB_TEXT_COLOR };
 
     if (!state || state.readonly) {
       return { topBarStart: breadcrumbs, titleStyle };
