@@ -271,9 +271,8 @@ impl FileHeader {
 // needs `Copy`. No equality on purpose: callers compare the observable
 // they mean.
 impl fmt::Debug for FileHeader {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("FileHeader")
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
             .field("groups", &self.groups)

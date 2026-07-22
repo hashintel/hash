@@ -4,11 +4,12 @@
 //!
 //! Locate answers the source's ego-graph: every edge incident to the source whose other endpoint
 //! is visible, and the partners those edges connect. Assembly is one adjacency probe plus column
-//! gathers - no spatial index stands behind it.
+//! gathers - no spatial index stands behind it. Locate IS the detail view: the trailer always
+//! rides, so serving locate requires a store connection for hydration.
 
 use super::{
     Atlas, Filter, TileCoordinate, depth_of,
-    detail::{DeliveredEntities, LinkDetails, LocateNodeDetails, SimpleValue},
+    detail::{DeliveredEntities, LocateLinkDetails, LocateNodeDetails, SimpleValue},
     edges::{DeliveredEdge, borrow},
     narrow,
     visibility::{VisibilityProof, VisibleRow},
@@ -28,12 +29,21 @@ pub struct LocateCaps {
     /// reports `complete: false`. Defaults to 512: every delivered edge also costs live link
     /// hydration, so the cap bounds the store round trip, not just wire bytes.
     pub edges: u32,
-    /// Most properties one delivered entity ships.
+    /// Most properties the source ships.
     ///
     /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
     /// property protected to the very end, so the label survives every cap that admits at least
     /// one property. Defaults to 20.
     pub properties: u32,
+    /// Most direct types one delivered edge ships.
+    ///
+    /// An over-cap link truncates its type list in canonical order and its completeness bit
+    /// reads unset. Defaults to 5.
+    pub link_type_ids: u32,
+    /// Most properties one delivered edge ships.
+    ///
+    /// The source's drop rule per link. Defaults to 10.
+    pub link_properties: u32,
 }
 
 impl Default for LocateCaps {
@@ -41,6 +51,8 @@ impl Default for LocateCaps {
         Self {
             edges: 512,
             properties: 20,
+            link_type_ids: 5,
+            link_properties: 10,
         }
     }
 }
@@ -166,7 +178,8 @@ impl Atlas {
     ///
     /// Delivered order is the wire's pin: the source first, then the delivered edges' partners
     /// ascending by wire row id. Partners derive from the post-cap edge set - a partner whose
-    /// every edge truncated is not delivered. Edges ride ascending by wire edge id after the cap.
+    /// every edge truncated is not delivered. Edges ride ascending by link-entity identity bytes
+    /// after the cap - the order is client-verifiable from the `EDGE_IDS` column alone.
     pub(super) fn locate_subgraph(
         &self,
         source: SourcePoint,
@@ -190,7 +203,7 @@ impl Atlas {
             let index = usize::try_from(edge.get()).expect("edge rows fit usize");
             endpoints[index][0] != source_row
         }));
-        let mut edges: Vec<(DeliveredEdge, u32)> = Vec::new();
+        let mut edges: Vec<(DeliveredEdge, [u8; 32])> = Vec::new();
         for edge in incident {
             let index = usize::try_from(edge.get()).expect("edge rows fit usize");
             let [edge_source, edge_target] = endpoints[index];
@@ -209,7 +222,7 @@ impl Atlas {
                     source: narrow(edge_source),
                     target: narrow(edge_target),
                 },
-                self.edge_codec.encode(row).get(),
+                self.edge_identity(row),
             ));
         }
 
@@ -217,7 +230,7 @@ impl Atlas {
         if !complete {
             self.truncate_nearest(&mut edges, caps.edges as usize, source);
         }
-        edges.sort_unstable_by_key(|&(_, wire)| wire);
+        edges.sort_unstable_by_key(|&(_, id)| id);
 
         // Partners derive from the delivered edge set. Distinct rows
         // carry distinct wire ids (the codec is a bijection), so
@@ -249,13 +262,13 @@ impl Atlas {
 
     /// Keeps the `cap` edges whose partners lie nearest the source.
     ///
-    /// Ascending (squared wire-frame distance to the partner, partner first-visible zoom, wire
-    /// edge id): equidistant partners cede to the earlier-visible one, and distinct wire ids make
-    /// the key a total order. The key only selects - presentation order stays ascending wire edge
-    /// id.
+    /// Ascending (squared wire-frame distance to the partner, partner first-visible zoom,
+    /// link-entity identity bytes): equidistant partners cede to the earlier-visible one, and
+    /// distinct identities make the key a total order. The key only selects - presentation order
+    /// stays ascending identity bytes.
     fn truncate_nearest(
         &self,
-        edges: &mut Vec<(DeliveredEdge, u32)>,
+        edges: &mut Vec<(DeliveredEdge, [u8; 32])>,
         cap: usize,
         source: SourcePoint,
     ) {
@@ -268,9 +281,9 @@ impl Atlas {
         let positions_of_row = self.positions_of_row();
         let origin = positions[source.position as usize];
 
-        let mut ranked: Vec<(NearestKey, (DeliveredEdge, u32))> = edges
+        let mut ranked: Vec<(NearestKey, (DeliveredEdge, [u8; 32]))> = edges
             .drain(..)
-            .map(|(edge, wire)| {
+            .map(|(edge, id)| {
                 let partner = if edge.source == source.row {
                     edge.target
                 } else {
@@ -291,13 +304,14 @@ impl Atlas {
                 let distance = (dx * dx + dy * dy).to_bits();
 
                 (
-                    (distance, self.first_visible_zoom(position), wire),
-                    (edge, wire),
+                    (distance, self.first_visible_zoom(position), id),
+                    (edge, id),
                 )
             })
             .collect();
         // Partitioning at `cap - 1` places the cap smallest keys - a
-        // total order, since wire edge ids are distinct - in the head.
+        // total order, since link identities are distinct - in the
+        // head.
         ranked.select_nth_unstable_by_key(cap - 1, |&(key, _)| key);
         ranked.truncate(cap);
         edges.extend(ranked.into_iter().map(|(_, entry)| entry));
@@ -307,8 +321,8 @@ impl Atlas {
 /// The nearest-partner truncation's sort key.
 ///
 /// Ascending squared distance to the partner, then the partner's first visible zoom, then the
-/// wire edge id.
-type NearestKey = (u32, u8, u32);
+/// link-entity identity bytes.
+type NearestKey = (u32, u8, [u8; 32]);
 
 /// One assembled locate ego-graph.
 ///
@@ -320,8 +334,8 @@ pub(super) struct LocateSubgraph {
     pub rows: Vec<u32>,
     /// The delivered base positions, parallel to `rows`.
     pub positions: Vec<u32>,
-    /// The delivered edges paired with their wire edge ids, ascending by wire edge id.
-    pub edges: Vec<(DeliveredEdge, u32)>,
+    /// The delivered edges paired with their link-entity identities, ascending by those bytes.
+    pub edges: Vec<(DeliveredEdge, [u8; 32])>,
     /// Whether every qualifying edge is delivered; `false` iff the cap truncated.
     pub complete: bool,
 }
@@ -346,21 +360,14 @@ pub struct LocateRequest {
     #[serde(default)]
     pub row: Option<u32>,
     /// The type ids whose membership masks ride `TYPE_MASK`; absent or empty omits the slot.
+    ///
+    /// Also the `typeIdsComplete` reference set: the flag reads `true` iff these ids cover the
+    /// source's direct types.
     #[serde(default)]
     pub colored_type_ids: Vec<String>,
     /// The visibility filter; absent means the trivial bitmap.
     #[serde(default)]
     pub filter: Option<Filter>,
-    /// Whether the detail trailer rides the response.
-    ///
-    /// Locate IS the detail view, so unlike every other endpoint it defaults TRUE.
-    #[serde(default = "detailed_by_default")]
-    pub include_detailed_data: bool,
-}
-
-/// Locate's `includeDetailedData` default: true.
-const fn detailed_by_default() -> bool {
-    true
 }
 
 /// A locate request the atlas rejects, by name.
@@ -397,26 +404,24 @@ pub enum LocateError {
 }
 
 impl core::fmt::Display for LocateError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::UnknownEntity => {
-                formatter.write_str("the entity id does not name a visible node")
-            }
+            Self::UnknownEntity => fmt.write_str("the entity id does not name a visible node"),
             Self::Source { carried } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request carries {carried} source fields where exactly one of entityId \
                      and row names the subject"
                 )
             }
             Self::Types { count, maximum } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request carries {count} coloredTypeIds where the cap admits {maximum}"
                 )
             }
             Self::Unsupported(feature) => {
-                write!(formatter, "this build does not serve {feature} requests")
+                write!(fmt, "this build does not serve {feature} requests")
             }
         }
     }
@@ -436,44 +441,19 @@ pub struct LocateDocument {
     rows: Vec<u32>,
     sources: Vec<u32>,
     targets: Vec<u32>,
-    edge_rows: Vec<u32>,
-    /// The internal edge rows behind `edge_rows`, delivered order.
+    /// The delivered edges' link-entity identities, delivered order.
+    edge_ids: Vec<[u8; 32]>,
+    /// The internal edge rows behind `edge_ids`, delivered order.
     ///
     /// The hydration key the identity table speaks.
     internal_rows: Vec<u32>,
     complete: bool,
     mask_set: Option<super::color::MaskSet>,
+    /// The request's `coloredTypeIds`, echoed for the `typeIdsComplete` coverage test.
+    colored_type_ids: Vec<String>,
 }
 
 impl Atlas {
-    /// Answers one locate request.
-    ///
-    /// `SALTILEL` envelope bytes spotlighting the source's ego-graph, ready to send under
-    /// `application/vnd.hash.saltile-v1`.
-    ///
-    /// A request that sets `includeDetailedData` - which locate DEFAULTS to - is rejected by name:
-    /// this path serves deployments without a store connection. A transport with one assembles,
-    /// hydrates, and encodes through [`Atlas::assemble_locate`], [`Atlas::locate_node_entities`],
-    /// [`Atlas::locate_link_entities`], and [`Atlas::encode_locate`].
-    ///
-    /// # Errors
-    ///
-    /// As [`Atlas::assemble_locate`], plus [`LocateError::Unsupported`] when the request sets (or
-    /// defaults) `includeDetailedData`.
-    pub fn locate(
-        &self,
-        request: &LocateRequest,
-        caps: super::ServeCaps,
-        proof: &VisibilityProof,
-    ) -> Result<Vec<u8>, LocateError> {
-        if request.include_detailed_data {
-            return Err(LocateError::Unsupported("includeDetailedData"));
-        }
-
-        let document = self.assemble_locate(request, caps, proof)?;
-        Ok(self.encode_locate(&document, None))
-    }
-
     /// Assembles one locate request into its owned document.
     ///
     /// Every rejection happens here, so encoding cannot fail.
@@ -529,12 +509,12 @@ impl Atlas {
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
-        let mut edge_rows = Vec::with_capacity(edges.len());
+        let mut edge_ids = Vec::with_capacity(edges.len());
         let mut internal_rows = Vec::with_capacity(edges.len());
-        for &(edge, wire) in &edges {
+        for &(edge, id) in &edges {
             sources.push(self.node_codec.encode(edge.source).get());
             targets.push(self.node_codec.encode(edge.target).get());
-            edge_rows.push(wire);
+            edge_ids.push(id);
             internal_rows.push(edge.row);
         }
 
@@ -547,10 +527,11 @@ impl Atlas {
             rows,
             sources,
             targets,
-            edge_rows,
+            edge_ids,
             internal_rows,
             complete,
             mask_set,
+            colored_type_ids: request.colored_type_ids.clone(),
         })
     }
 
@@ -600,15 +581,18 @@ impl Atlas {
         DeliveredEntities::new(ids)
     }
 
-    /// Encodes an assembled document.
+    /// Encodes an assembled document with its hydrated details.
     ///
-    /// `SALTILEL` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
-    /// detail trailer riding iff `details` is supplied.
+    /// `SALTILEL` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. Locate is
+    /// the detail view, so the trailer always rides and hydrated details are required.
     ///
-    /// The trailer interns property names at encode time: the table is the bytewise-sorted union of
-    /// every delivered node's surviving names, and each node's map keys by index into it - the
-    /// per-entity ascending-name order the hydration layer produces IS ascending index order, so
-    /// the wire laws hold by construction.
+    /// The trailer interns type and property URLs at encode time: each table is the
+    /// bytewise-sorted union of every reference the trailer makes, and every reference keys by
+    /// index into it - the per-entity ascending-name order the hydration layer produces IS
+    /// ascending index order, so the wire laws hold by construction. The source's `HEAD` flags
+    /// derive here: `typeIdsComplete` tests the source's direct types against the request's
+    /// `coloredTypeIds`, and `propertiesComplete` echoes the hydration layer's whole-set
+    /// attestation.
     ///
     /// # Panics
     ///
@@ -618,105 +602,150 @@ impl Atlas {
     pub fn encode_locate(
         &self,
         document: &LocateDocument,
-        details: Option<(&LocateNodeDetails, &LinkDetails)>,
+        nodes: &LocateNodeDetails,
+        links: &LocateLinkDetails,
     ) -> Vec<u8> {
         let masks = document
             .mask_set
             .as_ref()
             .map(|set| set.memberships(&self.postings));
 
-        let hydrated = details.map(|(nodes, links)| {
-            let (names, properties) = intern_properties(nodes.properties());
-            HydratedColumns {
-                labels: borrow(nodes.labels()),
-                icons: borrow(nodes.icons()),
-                names,
-                properties,
-                link_labels: borrow(links.labels()),
-                link_icons: borrow(links.icons()),
-                link_type_labels: borrow(links.type_labels()),
-                link_type_icons: borrow(links.type_icons()),
-            }
-        });
-        let property_maps: Option<Vec<PropertyMapView<'_>>> = hydrated
-            .as_ref()
-            .map(|columns| columns.properties.iter().map(Option::as_deref).collect());
-        let trailer = hydrated
-            .as_ref()
-            .zip(property_maps.as_ref())
-            .map(|(columns, properties)| LocateTrailer {
-                labels: &columns.labels,
-                icons: &columns.icons,
-                property_names: &columns.names,
-                properties,
-                link_labels: &columns.link_labels,
-                link_icons: &columns.link_icons,
-                link_type_labels: &columns.link_type_labels,
-                link_type_icons: &columns.link_type_icons,
-            });
+        // The source's identity always rides HEAD; the per-edge link
+        // identities are first-class columns. Both read the
+        // generation-frozen tables, no store.
+        let entity_id = super::translate::identity_bytes(
+            self.node_ids
+                .id(u64::from(document.rows[0]))
+                .expect("open validated the identity rows against the code column"),
+        );
+
+        let type_ids_complete = covers_source_types(
+            nodes.source_properties().is_some(),
+            &nodes.type_urls()[0],
+            &document.colored_type_ids,
+        );
+
+        let (type_table, type_ids, link_type_ids) =
+            intern_types(nodes.type_urls(), links.type_urls());
+        let (property_table, mut property_maps) =
+            intern_properties(nodes.source_properties(), links.properties());
+        let link_property_maps = property_maps.split_off(1);
+        let source_properties = property_maps
+            .pop()
+            .expect("the source's map is the intern order's first entry");
+        let link_properties: Vec<Option<&[(u32, PropertyValue<'_>)]>> =
+            link_property_maps.iter().map(Option::as_deref).collect();
 
         LocateResponse {
             generation: self.generation.id().digest(),
             variant: 0,
             cell: document.source.cell,
             complete: document.complete,
+            entity_id,
+            type_ids_complete,
+            properties_complete: nodes.source_properties_complete(),
             delivered: &document.delivered,
             positions: self.positions(),
             rows: self.wire_rows(),
             masks: masks.as_deref(),
             sources: &document.sources,
             targets: &document.targets,
-            edge_rows: &document.edge_rows,
-            trailer,
+            edge_ids: &document.edge_ids,
+            trailer: LocateTrailer {
+                type_table: &type_table,
+                property_table: &property_table,
+                labels: &borrow(nodes.labels()),
+                type_ids: &type_ids,
+                properties: source_properties.as_deref(),
+                link_labels: &borrow(links.labels()),
+                link_type_ids: &link_type_ids,
+                link_type_ids_complete: links.type_urls_complete(),
+                link_properties: &link_properties,
+                link_properties_complete: links.properties_complete(),
+            },
         }
         .encode()
     }
 }
 
-/// One node's wire property map.
+/// One entity's wire property map.
 ///
-/// Uint indexes into the intern table paired with borrowed values, ascending by index. `None` marks
-/// an entity the store no longer serves.
-type PropertyMap<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
+/// Uint indexes into the property table paired with borrowed values, ascending by index. `None`
+/// marks an entity the store no longer serves.
+type PropertyMapView<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 
-/// The encoder's borrowed view of one [`PropertyMap`].
-type PropertyMapView<'doc> = Option<&'doc [(u32, PropertyValue<'doc>)]>;
-
-/// The trailer's owned hydration columns.
+/// Returns whether a request's palette covers the source's direct types.
 ///
-/// Borrowed from the detail structs for the encoder's lifetime.
-#[derive(Debug)]
-struct HydratedColumns<'doc> {
-    labels: Vec<Option<&'doc str>>,
-    icons: Vec<Option<&'doc str>>,
-    names: Vec<&'doc str>,
-    properties: Vec<PropertyMap<'doc>>,
-    link_labels: Vec<Option<&'doc str>>,
-    link_icons: Vec<Option<&'doc str>>,
-    link_type_labels: Vec<Option<&'doc str>>,
-    link_type_icons: Vec<Option<&'doc str>>,
+/// The `typeIdsComplete` predicate: every direct type of the source lies in the requested
+/// `coloredTypeIds`. `false` when the store no longer serves the source (`present` reads false)
+/// or records no types for it - coverage of an unreadable set is never attested - and on an
+/// empty palette, which covers nothing.
+pub(super) fn covers_source_types(present: bool, types: &[String], colored: &[String]) -> bool {
+    present && !types.is_empty() && types.iter().all(|url| colored.contains(url))
 }
 
-/// Builds the property-name intern table and the per-node uint-index maps.
+/// Builds the type intern table and every type reference into it.
 ///
-/// The table is the bytewise-sorted, deduplicated union of every surviving name; each node's
-/// entries keep the hydration layer's ascending-name order, which maps to ascending indexes.
-pub(super) fn intern_properties(
-    entries: &[Option<Vec<(String, SimpleValue)>>],
-) -> (Vec<&str>, Vec<PropertyMap<'_>>) {
-    let mut names: Vec<&str> = entries
+/// The table is the bytewise-sorted, deduplicated union of each node's first direct type and
+/// each link's capped type list. Node references are the first-type indexes (`None` for a node
+/// without a recorded type); link references keep the hydration layer's canonical type order.
+pub(super) fn intern_types<'doc>(
+    nodes: &'doc [Vec<String>],
+    links: &'doc [Vec<String>],
+) -> (Vec<&'doc str>, Vec<Option<u32>>, Vec<Vec<u32>>) {
+    let mut table: Vec<&str> = nodes
+        .iter()
+        .filter_map(|urls| urls.first())
+        .map(String::as_str)
+        .chain(links.iter().flatten().map(String::as_str))
+        .collect();
+    table.sort_unstable();
+    table.dedup();
+
+    let index_of = |url: &str| {
+        let index = table
+            .binary_search(&url)
+            .expect("every referenced type is interned");
+        u32::try_from(index).expect("the table is far below u32::MAX types")
+    };
+
+    let type_ids = nodes
+        .iter()
+        .map(|urls| urls.first().map(|url| index_of(url)))
+        .collect();
+    let link_type_ids = links
+        .iter()
+        .map(|urls| urls.iter().map(|url| index_of(url)).collect())
+        .collect();
+
+    (table, type_ids, link_type_ids)
+}
+
+/// Builds the property intern table and the per-entity uint-index maps.
+///
+/// The table is the bytewise-sorted, deduplicated union of the source's and every link's
+/// surviving names; the returned maps lead with the source's, then the links' in edge order. Each
+/// map keeps the hydration layer's ascending-name order, which maps to ascending indexes.
+pub(super) fn intern_properties<'doc>(
+    source: Option<&'doc Vec<(String, SimpleValue)>>,
+    links: &'doc [Option<Vec<(String, SimpleValue)>>],
+) -> (Vec<&'doc str>, Vec<PropertyMapView<'doc>>) {
+    let sets: Vec<Option<&[(String, SimpleValue)]>> = core::iter::once(source.map(Vec::as_slice))
+        .chain(links.iter().map(|entry| entry.as_deref()))
+        .collect();
+
+    let mut names: Vec<&str> = sets
         .iter()
         .flatten()
-        .flatten()
-        .map(|(name, _)| name.as_str())
+        .flat_map(|entries| entries.iter().map(|(name, _)| name.as_str()))
         .collect();
     names.sort_unstable();
     names.dedup();
 
-    let maps = entries
+    let maps = sets
         .iter()
         .map(|entry| {
-            entry.as_ref().map(|survivors| {
+            entry.map(|survivors| {
                 survivors
                     .iter()
                     .map(|(name, value)| {

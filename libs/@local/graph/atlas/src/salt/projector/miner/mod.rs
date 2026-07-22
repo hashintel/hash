@@ -164,9 +164,8 @@ pub(crate) struct SpatialField<'frame> {
 }
 
 impl fmt::Debug for SpatialField<'_> {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("SpatialField")
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("SpatialField")
             .field("rows", &self.points.len())
             .finish_non_exhaustive()
     }

@@ -30,22 +30,19 @@ pub enum OpenError {
 }
 
 impl fmt::Display for OpenError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unpublished(id) => {
-                write!(formatter, "generation {id} is not published in this root")
+                write!(fmt, "generation {id} is not published in this root")
             }
             Self::Identity { id, actual } => write!(
-                formatter,
+                fmt,
                 "the metadata document of generation {id} hashes to {actual}",
             ),
             Self::Document(error) => {
-                write!(
-                    formatter,
-                    "the metadata document failed to deserialize: {error}"
-                )
+                write!(fmt, "the metadata document failed to deserialize: {error}")
             }
-            Self::Io(error) => write!(formatter, "the metadata document failed to read: {error}"),
+            Self::Io(error) => write!(fmt, "the metadata document failed to read: {error}"),
         }
     }
 }

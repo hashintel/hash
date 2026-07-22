@@ -1,4 +1,4 @@
-use proptest::prelude::*;
+use proptest::{proptest, strategy::Strategy};
 
 use crate::math::{
     Rotation, Transform, Translation, Vec2, Vec2x4T,
@@ -144,8 +144,8 @@ fn transform_strategy() -> impl Strategy<Value = Transform> {
     (
         0.1_f32..10.0,
         0.1_f32..10.0,
-        prop::bool::ANY,
-        prop::bool::ANY,
+        proptest::bool::ANY,
+        proptest::bool::ANY,
         -16.0_f32..16.0,
         -1e3_f32..1e3,
         -1e3_f32..1e3,

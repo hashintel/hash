@@ -36,20 +36,35 @@ import {
 } from "./fetch-tile";
 
 import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
-/** One decoded edge: its own row id and the row ids of the nodes it connects. */
+/** One decoded edge: its link-entity identity and the node rows it connects. */
 export interface TileEdge {
-  /** Durable edge row id. */
-  readonly id: number;
+  /**
+   * The link entity's upstream identity.
+   *
+   * The identity is the edge's identity on every binary surface and is
+   * stable across generations.
+   */
+  readonly id: EntityId;
   /** Source node row id — matches a {@link TileNode.id}. */
   readonly source: number;
   /** Target node row id — matches a {@link TileNode.id}. */
   readonly target: number;
+  /** Link-entity label, present with the detail trailer. */
+  readonly label?: string;
+  /**
+   * The link's first direct type as a versioned URL, present with the
+   * detail trailer.
+   *
+   * Label and icon rendering for a type is the client's own metadata.
+   */
+  readonly typeId?: VersionedUrl;
 }
 
 /** A decoded edges response: its edges plus the level-of-detail cap signal. */
 export interface FetchedEdges {
-  /** Edges among the requested tiles' delivered rows, ascending by edge row id. */
+  /** Edges among the requested tiles' delivered rows, ascending by identity bytes. */
   readonly edges: TileEdge[];
   /**
    * Whether every qualifying edge was delivered. When `false`, the server's
@@ -70,9 +85,8 @@ export interface FetchEdgesForTilesOptions {
   /** Network priority hint; see {@link FetchTileOptions.priority}. */
   readonly priority?: RequestPriority;
   /**
-   * Requests the per-edge detail trailer (link labels and icons). Defaults to
-   * `false`; the version-0 edges route rejects it, so callers keep it off until
-   * the server serves it. See {@link FetchTileOptions.includeDetailedData}.
+   * Requests the per-edge detail trailer (link labels and type references).
+   * Defaults to `false`. See {@link FetchTileOptions.includeDetailedData}.
    */
   readonly includeDetailedData?: boolean;
 }
@@ -128,10 +142,10 @@ const fetchAndDecodeEdges = async (
     throw new FetchTileError("failed to decode edges", { cause });
   }
 
-  const { count, sources, targets, rowIds } = decoded;
+  const { count, sources, targets, edgeIds, detail } = decoded;
   const edges: TileEdge[] = new Array<TileEdge>(count);
   for (let index = 0; index < count; index += 1) {
-    const id = rowIds[index];
+    const id = edgeIds[index];
     const source = sources[index];
     const target = targets[index];
     // Unreachable: `decodeSaltileEdges` guarantees these column lengths. The
@@ -139,7 +153,15 @@ const fetchAndDecodeEdges = async (
     if (id === undefined || source === undefined || target === undefined) {
       throw new FetchTileError(`edges record ${index} is truncated`);
     }
-    edges[index] = { id, source, target };
+    const label = detail?.linkLabels[index] ?? undefined;
+    const typeId = detail?.linkTypeIds[index] ?? undefined;
+    edges[index] = {
+      id,
+      source,
+      target,
+      ...(label !== undefined ? { label } : {}),
+      ...(typeId !== undefined ? { typeId } : {}),
+    };
   }
 
   return { edges, complete: decoded.complete };

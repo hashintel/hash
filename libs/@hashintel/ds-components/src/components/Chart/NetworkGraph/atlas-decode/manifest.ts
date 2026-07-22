@@ -22,6 +22,14 @@ export interface AtlasCurrent {
 export interface AtlasLimits {
   readonly coloredTypeIds: number;
   readonly edgesTiles: number;
+  /** Most ego-graph edges one locate response delivers. */
+  readonly locateEdges: number;
+  /** Most properties one located entity ships in its trailer map. */
+  readonly locateProperties: number;
+  /** Most type ids one located link lists. */
+  readonly locateLinkTypeIds: number;
+  /** Most properties one located link ships. */
+  readonly locateLinkProperties: number;
 }
 
 /** Immutable per-generation manifest. */
@@ -131,7 +139,18 @@ export const parseManifest = (
   }
   const coloredTypeIds = field(limits, "coloredTypeIds");
   const edgesTiles = field(limits, "edgesTiles");
-  if (!isUintValue(coloredTypeIds) || !isUintValue(edgesTiles)) {
+  const locateEdges = field(limits, "locateEdges");
+  const locateProperties = field(limits, "locateProperties");
+  const locateLinkTypeIds = field(limits, "locateLinkTypeIds");
+  const locateLinkProperties = field(limits, "locateLinkProperties");
+  if (
+    !isUintValue(coloredTypeIds) ||
+    !isUintValue(edgesTiles) ||
+    !isUintValue(locateEdges) ||
+    !isUintValue(locateProperties) ||
+    !isUintValue(locateLinkTypeIds) ||
+    !isUintValue(locateLinkProperties)
+  ) {
     return contractFail("manifest limits are malformed");
   }
   const createdAt = field(manifest, "createdAt");
@@ -143,7 +162,14 @@ export const parseManifest = (
     wireVersion,
     variants,
     bucketSchedule: { span, cut, maxZoom },
-    limits: { coloredTypeIds, edgesTiles },
+    limits: {
+      coloredTypeIds,
+      edgesTiles,
+      locateEdges,
+      locateProperties,
+      locateLinkTypeIds,
+      locateLinkProperties,
+    },
     createdAt,
   };
 };

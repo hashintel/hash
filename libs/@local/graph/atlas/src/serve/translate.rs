@@ -7,7 +7,8 @@
 //! normalization - so client-side map lookups are literal and kind is carried by which map answers.
 //! A node answers its row id plus the wire-frame position (the same `f32` domain as the `POSITIONS`
 //! column, so a translated entity lands pixel-identical to its tile-delivered dot); an edge answers
-//! its row id alone - edges carry no position by nature.
+//! its endpoints' node row ids - edges carry no wire id of their own (the requested entity id IS
+//! the edge's identity in every binary response), and no position by nature.
 //!
 //! An id that resolves to nothing is an absent key, never an error and never a null entry:
 //! nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
@@ -62,11 +63,11 @@ pub enum TranslateError {
 }
 
 impl fmt::Display for TranslateError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Ids { count, maximum } => {
                 write!(
-                    formatter,
+                    fmt,
                     "the request lists {count} entity ids where the cap admits {maximum}"
                 )
             }
@@ -99,11 +100,16 @@ pub struct TranslatedNode {
     pub y: f32,
 }
 
-/// An edge's atlas identity: the row id every binary response speaks.
+/// An edge's atlas identity: its endpoints' node row ids.
+///
+/// An edge carries no wire id of its own - binary responses identify it by its link entity id,
+/// which the requester already holds - so translation answers the two dots it joins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 pub struct TranslatedEdge {
-    /// The edge row id, the `EDGE_ROW_IDS` domain.
-    pub id: u32,
+    /// The source node row id, the `ROW_IDS` domain.
+    pub source: u32,
+    /// The target node row id, the `ROW_IDS` domain.
+    pub target: u32,
 }
 
 /// The translate response.
@@ -144,7 +150,7 @@ impl Atlas {
             self.positions(),
             self.positions_of_row(),
             self.endpoint_pairs(),
-            (&self.node_codec, &self.edge_codec),
+            &self.node_codec,
         )
     }
 }
@@ -165,7 +171,7 @@ pub(super) fn translate(
     positions: &[Vec2],
     position_of_row: &[u32],
     endpoints: &[[u64; 2]],
-    (node_codec, edge_codec): (&RowCodec, &RowCodec),
+    node_codec: &RowCodec,
 ) -> Result<TranslateResponse, TranslateError> {
     if request.entity_ids.len() > caps.entity_ids as usize {
         return Err(TranslateError::Ids {
@@ -206,9 +212,8 @@ pub(super) fn translate(
             edges.insert(
                 id_string.clone(),
                 TranslatedEdge {
-                    id: edge_codec
-                        .encode(u32::try_from(row).expect("edge rows share the u32 row-id domain"))
-                        .get(),
+                    source: node_codec.encode(narrow(source)).get(),
+                    target: node_codec.encode(narrow(target)).get(),
                 },
             );
         } else {
@@ -236,4 +241,12 @@ pub(super) fn parse(id: &str) -> Option<ArchivedEntityId> {
         web_id: web_id.into(),
         entity_uuid: entity_uuid.into(),
     })
+}
+
+/// Returns one identity-table key's wire form: the web uuid then the entity uuid, raw bytes.
+///
+/// The `bstr(32)` shape entity ids take on the binary wire - the generation digest's untagged
+/// byte-string precedent, typed by its HEAD or trailer key rather than a CBOR tag.
+pub(super) fn identity_bytes(id: ArchivedEntityId) -> [u8; 32] {
+    zerocopy::transmute!(id)
 }

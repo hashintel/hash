@@ -18,7 +18,7 @@ use burn::{
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Int, Tensor, TensorData, backend::AutodiffBackend},
 };
-use proptest::prelude::*;
+use proptest::{prop_assert, proptest};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 

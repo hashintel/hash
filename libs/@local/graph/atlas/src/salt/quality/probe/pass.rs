@@ -30,7 +30,9 @@
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, num::NonZero};
 
-use rayon::prelude::*;
+use rayon::iter::{
+    IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
+};
 
 use super::{
     super::{

@@ -1,31 +1,34 @@
 //! The wire row-id boundary.
 //!
-//! A keyed permutation of each dense row universe, applied where ids cross the wire.
+//! A keyed permutation of the full `u32` range, applied where ids cross the wire.
 //!
 //! Internal row ids are dense and assignment-ordered, so shipping them verbatim lets a principal
-//! bound hidden row counts between two visible ids (gap analysis). Ids therefore cross the wire
-//! through [`RowCodec`], a keyed bijection of the universe `[0, N)`: the wire ids one scope
-//! receives are distributed as a uniform subset of `[0, N)`, so every statistic of the received ids
-//! reduces to an estimate of `N` and order, adjacency, and creation time stay hidden.
+//! bound hidden row counts between two visible ids (gap analysis) and estimate the universe size
+//! from any received sample. Ids therefore cross the wire through [`RowCodec`], a keyed bijection
+//! of the full `u32` range: the wire ids one scope receives are distributed as a uniform subset of
+//! `[0, 2^32)` independent of the universe size, so order, adjacency, creation time, and the
+//! universe size itself stay hidden. Wire ids are opaque and sparse - a valid id is any `u32`
+//! value, and no relationship between wire values reflects a relationship between rows.
 //!
 //! # Model
 //!
-//! For a universe of `N > 1` rows let `b = ceil(log2 N)`. An eight-round Feistel network permutes
-//! `[0, 2^b)`: round `i` splits the `b`-bit state into a left half of `ceil(b/2)` bits and a right
-//! half of `floor(b/2)` bits - widths alternating per round, so odd `b` needs no rounding
-//! correction - and maps `(L, R)` to `(R, L xor F_i(R))` under the keyed round function `F_i`
-//! (SipHash-2-4 truncated to the half width). Cycle walking restricts the permutation to `[0, N)`:
-//! encoding reapplies the network until the value lands below `N`, and decoding walks the inverse
-//! network the same way. Because `2^b < 2N`, the expected walk length is below two applications. A
-//! universe of zero or one rows takes the identity codec.
+//! An eight-round balanced Feistel network permutes the `u32` range: round `i` splits the state
+//! into two 16-bit halves and maps `(L, R)` to `(R, L xor F_i(R))` under the keyed round function
+//! `F_i` (SipHash-2-4 truncated to 16 bits). The permutation does not depend on the universe
+//! size: appending rows to a universe leaves every existing mapping fixed, so wire ids are stable
+//! within a generation under row addition. Encoding applies the network to a row id; decoding
+//! applies the inverse network and bounds-checks the result against the universe, so exactly the
+//! `N` wire values in the image of `[0, N)` decode and every other value answers [`None`].
 //!
 //! # Keys
 //!
 //! Round keys derive from `HKDF-SHA256` over the server secret, salted by the generation identity
 //! and expanded under a per-universe label, when a generation opens for serving. Equal `(secret,
-//! generation, label, N)` give equal mappings, so responses stay byte-deterministic across
-//! restarts; a different generation changes every wire id, and the label separates the node and
-//! edge universes cryptographically. The fit pipeline is untouched: no artifact stores a wire id.
+//! generation, label)` give equal mappings, so responses stay byte-deterministic across restarts;
+//! a different generation changes every wire id, and the label names the mapping's universe -
+//! one universe crosses the wire today, the node rows. Edges carry their link entity's identity
+//! instead of a wire id of their own. The fit pipeline is untouched: no artifact stores a wire
+//! id.
 
 use core::hash::Hasher as _;
 
@@ -42,11 +45,14 @@ use crate::file::generation::GenerationId;
 // per id.
 const ROUNDS: usize = 8;
 
-/// The HKDF expansion label of the node-row universe.
-pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v0";
+/// The Feistel half width; the network splits the `u32` state into two 16-bit halves.
+const HALF_BITS: u32 = 16;
 
-/// The HKDF expansion label of the edge-row universe.
-pub(crate) const EDGE_LABEL: &[u8] = b"atlas.wire.edge.v0";
+/// The low-half mask.
+const HALF_MASK: u32 = 0xFFFF;
+
+/// The HKDF expansion label of the node-row universe.
+pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 
 /// A row id as it crosses the wire.
 ///
@@ -65,17 +71,16 @@ impl WireRow {
     }
 }
 
-/// The keyed bijection between one dense row universe and its wire ids.
+/// The keyed mapping between one dense row universe and its wire ids.
 ///
-/// One codec serves one universe of one generation; [`Self::derive`] is the constructor. Encoding
-/// and decoding are exact inverses over `[0, N)` (bijectivity holds for every key), and both are
-/// pure: the mapping never changes while the generation serves.
+/// One codec serves one universe of one generation; [`Self::derive`] is the constructor. The
+/// underlying permutation bijects the `u32` range for every key; encoding restricts it to the
+/// universe `[0, N)` and decoding inverts exactly the encoded image, answering [`None`]
+/// elsewhere. Both are pure: the mapping never changes while the generation serves.
 #[derive(Debug)]
 pub(crate) struct RowCodec {
-    /// The universe size `N`; rows and wire values live in `[0, N)`.
+    /// The universe size `N`; rows live in `[0, N)`, wire values in the full `u32` range.
     universe: u32,
-    /// The Feistel width `b = ceil(log2 N)`; zero takes the identity.
-    bits: u32,
     /// The per-round SipHash-2-4 keys.
     keys: [[u8; 16]; ROUNDS],
 }
@@ -102,16 +107,7 @@ impl RowCodec {
             *key = *chunk;
         }
 
-        let bits = match universe {
-            0 | 1 => 0,
-            _ => 32 - (universe - 1).leading_zeros(),
-        };
-
-        Self {
-            universe,
-            bits,
-            keys,
-        }
+        Self { universe, keys }
     }
 
     /// Encodes an internal row id as its wire id.
@@ -125,92 +121,44 @@ impl RowCodec {
             row < self.universe,
             "the codec encodes rows of its own universe",
         );
-        if self.bits == 0 {
-            return WireRow(row);
-        }
-
-        let mut value = self.permute(row);
-        while value >= self.universe {
-            value = self.permute(value);
-        }
-
-        WireRow(value)
+        WireRow(self.permute(row))
     }
 
-    /// Decodes a wire value back to its internal row id, [`None`] outside the universe.
+    /// Decodes a wire value back to its internal row id, [`None`] outside the encoded image.
     ///
-    /// [`None`] is the single out-of-universe answer; ingress resolution collapses it with every
+    /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every
     /// other lookup failure before a response can observe the cause.
     pub(crate) fn decode(&self, wire: u32) -> Option<u32> {
-        if wire >= self.universe {
-            return None;
-        }
-        if self.bits == 0 {
-            return Some(wire);
-        }
-
-        let mut value = self.unpermute(wire);
-        while value >= self.universe {
-            value = self.unpermute(value);
-        }
-
-        Some(value)
+        let row = self.unpermute(wire);
+        (row < self.universe).then_some(row)
     }
 
-    /// Applies the Feistel network once over `[0, 2^b)`.
+    /// Applies the Feistel network once over the `u32` range.
     fn permute(&self, mut state: u32) -> u32 {
-        for (index, key) in self.keys.iter().enumerate() {
-            let left_bits = self.left_bits(index);
-            let right_bits = self.bits - left_bits;
-            let left = state >> right_bits;
-            let right = state & mask(right_bits);
-            state = (right << left_bits) | (left ^ (round(key, right) & mask(left_bits)));
+        for key in &self.keys {
+            let left = state >> HALF_BITS;
+            let right = state & HALF_MASK;
+            state = (right << HALF_BITS) | (left ^ (round(key, right) & HALF_MASK));
         }
 
         state
     }
 
-    /// Applies the inverse network once over `[0, 2^b)`.
+    /// Applies the inverse network once over the `u32` range.
     fn unpermute(&self, mut state: u32) -> u32 {
-        for index in (0..ROUNDS).rev() {
-            let left_bits = self.left_bits(index);
-            let right_bits = self.bits - left_bits;
-            let right = state >> left_bits;
-            let left =
-                (state & mask(left_bits)) ^ (round(&self.keys[index], right) & mask(left_bits));
-            state = (left << right_bits) | right;
+        for key in self.keys.iter().rev() {
+            let right = state >> HALF_BITS;
+            let left = (state & HALF_MASK) ^ (round(key, right) & HALF_MASK);
+            state = (left << HALF_BITS) | right;
         }
 
         state
-    }
-
-    /// Returns round `index`'s left-half width.
-    //
-    // Even rounds take the ceiling half, odd rounds the floor half:
-    // a round emits its right half as the next state's high part, so
-    // alternation keeps each round's split aligned with the widths
-    // the previous round produced.
-    const fn left_bits(&self, index: usize) -> u32 {
-        if index.is_multiple_of(2) {
-            self.bits.div_ceil(2)
-        } else {
-            self.bits >> 1_u32
-        }
-    }
-}
-
-/// Returns the low-`bits` mask.
-const fn mask(bits: u32) -> u32 {
-    if bits == 0 {
-        0
-    } else {
-        u32::MAX >> (32 - bits)
     }
 }
 
 /// Evaluates one round function.
 ///
-/// Keyed SipHash-2-4 of the right half, truncated by the caller to the left-half width.
+/// Keyed SipHash-2-4 of the right half, truncated by the caller to the half width.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the caller masks to the half width; the narrowing keeps the used bits"

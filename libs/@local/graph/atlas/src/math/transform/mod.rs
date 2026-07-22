@@ -194,8 +194,7 @@ impl Transform {
     /// ```
     #[must_use]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
-        let xs = batch.xs();
-        let ys = batch.ys();
+        let (xs, ys) = batch.into_lanes();
 
         Vec2x4T::from_lanes(
             mul_add_f32x4(

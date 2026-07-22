@@ -1,29 +1,37 @@
 /**
- * Edges-kind decoder for the SALTILE wire (normative schema:
- * `SPEC-ADDENDUM-WIRE.md` sections 3 and 6a). Layers over the envelope
- * reader: validates the HEAD schema and its echo of the request, then
- * exposes the three edge columns as typed-array views over the
- * response buffer - edge data is never copied and never walked.
+ * Edges-kind decoder for the SALTILE wire (normative contract:
+ * `libs/@local/graph/atlas/docs/wire.md` sections 3, 5, and 7). Layers
+ * over the envelope reader: validates the HEAD schema and its echo of
+ * the request, exposes the endpoint columns as typed-array views over
+ * the response buffer, and reads `EDGE_IDS` - 32-byte link-entity
+ * identity records in ascending byte order, the edge's identity on
+ * every binary surface (edges carry no wire id of their own).
  *
  * Delivery-set membership (sources/targets referencing node rows the
- * client holds) and the auth conjunction
- * (`edgeBit AND nodeBit[src] AND nodeBit[tgt]`) are server-side
- * contracts, not decoder walks.
+ * client holds) is a server-side contract, not a decoder walk.
  */
 
 import { decodeCbor } from "./cbor";
 import {
+  ENTITY_ID_BYTES,
+  expectEqual,
   fail,
+  formatEntityId,
   GENERATION_BYTES,
+  isCborArray,
   isCborMap,
   isNullableStringArray,
+  isUint,
+  readEntityIdColumn,
+  readInternTable,
   requireBool,
   requireGenerationEcho,
   requireSlot,
   requireUint,
-  expectEqual,
 } from "./schema";
 import { EdgesSlot, readEnvelope } from "./wire";
+
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /** The request context an edges response must echo. */
 export interface SaltileEdgesRequest {
@@ -33,12 +41,25 @@ export interface SaltileEdgesRequest {
   readonly includeDetailedData: boolean;
 }
 
-/** Per-edge detail from the trailer tail, edge order. */
+/**
+ * Per-edge detail from the trailer tail, edge order.
+ *
+ * The trailer ships type references: `linkTypeIds` entries are
+ * versioned type URLs resolved through the trailer's intern table, and
+ * label and icon rendering for a type is the client's own metadata.
+ */
 export interface SaltileEdgesDetail {
+  /** The type intern table: every referenced versioned type URL once. */
+  readonly typeTable: readonly VersionedUrl[];
+  /** Link-entity labels, edge order. */
   readonly linkLabels: readonly (string | null)[];
-  readonly linkIcons: readonly (string | null)[];
-  readonly linkTypeLabels: readonly (string | null)[];
-  readonly linkTypeIcons: readonly (string | null)[];
+  /**
+   * Each link's first direct type as a versioned URL, edge order.
+   *
+   * `null` marks a link the store no longer serves or records no types
+   * for.
+   */
+  readonly linkTypeIds: readonly (VersionedUrl | null)[];
 }
 
 /** One decoded edges response; typed arrays are views, not copies. */
@@ -50,12 +71,12 @@ export interface DecodedSaltileEdges {
   readonly sources: Uint32Array;
   /** Target node row ids, edge order. */
   readonly targets: Uint32Array;
-  /** Edge row ids, edge order. */
-  readonly rowIds: Uint32Array;
+  /** Link-entity identities, edge order (ascending identity bytes). */
+  readonly edgeIds: readonly EntityId[];
   readonly detail: SaltileEdgesDetail | null;
 }
 
-/** HEAD keys of the edges schema (section 6a). */
+/** HEAD keys of the edges schema (wire.md section 7). */
 const edgesHeadKeys = {
   generation: 0,
   variant: 1,
@@ -66,12 +87,14 @@ const edgesHeadKeys = {
 
 const knownHeadKeys = new Set<number>(Object.values(edgesHeadKeys));
 
-const trailerColumns = [
-  [0, "linkLabels"],
-  [1, "linkIcons"],
-  [2, "linkTypeLabels"],
-  [3, "linkTypeIcons"],
-] as const;
+/** TRAILER keys of the edges schema (wire.md section 7). */
+const trailerKeys = {
+  typeTable: 0,
+  linkLabels: 1,
+  linkTypeIds: 2,
+} as const;
+
+const knownTrailerKeys = new Set<number>(Object.values(trailerKeys));
 
 const readDetail = (
   payload: Uint8Array,
@@ -83,30 +106,47 @@ const readDetail = (
     return fail("TRAILER must be a map", offset);
   }
   for (const key of value.keys()) {
-    if (key !== 0 && key !== 1 && key !== 2 && key !== 3) {
+    if (!knownTrailerKeys.has(key)) {
       return fail(`TRAILER carries unknown key ${key}`, offset);
     }
   }
-  const columns: (readonly (string | null)[])[] = [];
-  for (const [key, name] of trailerColumns) {
-    const entries = value.get(key);
-    if (!isNullableStringArray(entries)) {
-      return fail(`TRAILER ${name} entries must be strings or null`, offset);
+
+  // The wire contract pins the table entries as versioned type URLs.
+  const typeTable = readInternTable(
+    value.get(trailerKeys.typeTable),
+    "typeTable",
+    offset,
+  ) as readonly VersionedUrl[];
+
+  const linkLabels = value.get(trailerKeys.linkLabels);
+  if (!isNullableStringArray(linkLabels) || linkLabels.length !== count) {
+    return fail(
+      `TRAILER linkLabels must carry exactly ${count} strings or nulls`,
+      offset,
+    );
+  }
+
+  const rawTypeIds = value.get(trailerKeys.linkTypeIds);
+  if (!isCborArray(rawTypeIds) || rawTypeIds.length !== count) {
+    return fail(
+      `TRAILER linkTypeIds must carry exactly ${count} entries`,
+      offset,
+    );
+  }
+  const linkTypeIds = rawTypeIds.map((entry) => {
+    if (entry === null) {
+      return null;
     }
-    if (entries.length !== count) {
+    if (!isUint(entry) || entry >= typeTable.length) {
       return fail(
-        `TRAILER ${name} must carry exactly ${count} entries`,
+        `linkTypeIds entry ${String(entry)} lies outside the intern table`,
         offset,
       );
     }
-    columns.push(entries);
-  }
-  return {
-    linkLabels: columns[0]!,
-    linkIcons: columns[1]!,
-    linkTypeLabels: columns[2]!,
-    linkTypeIcons: columns[3]!,
-  };
+    return typeTable[entry]!;
+  });
+
+  return { typeTable, linkLabels, linkTypeIds };
 };
 
 /**
@@ -184,12 +224,18 @@ export const decodeSaltileEdges = (
     count * 4,
     buffer.byteLength,
   );
-  const rowIdsSlot = requireSlot(
+  const edgeIdsSlot = requireSlot(
     envelope.slots,
-    EdgesSlot.RowIds,
-    "EDGE_ROW_IDS",
-    count * 4,
+    EdgesSlot.EdgeIds,
+    "EDGE_IDS",
+    count * ENTITY_ID_BYTES,
     buffer.byteLength,
+  );
+  const edgeIdRecords = readEntityIdColumn(
+    bytes.subarray(edgeIdsSlot.start, edgeIdsSlot.end),
+    count,
+    "EDGE_IDS",
+    edgeIdsSlot.start,
   );
 
   let detail: SaltileEdgesDetail | null = null;
@@ -217,7 +263,7 @@ export const decodeSaltileEdges = (
     complete,
     sources: new Uint32Array(buffer, sourcesSlot.start, count),
     targets: new Uint32Array(buffer, targetsSlot.start, count),
-    rowIds: new Uint32Array(buffer, rowIdsSlot.start, count),
+    edgeIds: edgeIdRecords.map((record) => formatEntityId(record)),
     detail,
   };
 };

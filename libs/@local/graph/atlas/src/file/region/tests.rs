@@ -73,6 +73,30 @@ fn the_map_carves_regions() {
 }
 
 #[test]
+fn a_live_map_excludes_exclusive_lockers() {
+    let path = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-region-lock-{}",
+        std::process::id()
+    ));
+    fs::write(&path, [1, 2, 3]).expect("the fixture file should write");
+
+    let map = PageMap::open(&path).expect("the fixture file should map");
+
+    let writer = fs::File::open(&path).expect("the fixture file should reopen");
+    assert!(
+        matches!(writer.try_lock(), Err(fs::TryLockError::WouldBlock)),
+        "an exclusive lock must contend with a live mapping"
+    );
+
+    drop(map);
+    writer
+        .try_lock()
+        .expect("the exclusive lock must succeed once the mapping drops");
+
+    fs::remove_file(&path).expect("the fixture file should remove");
+}
+
+#[test]
 fn a_short_file_has_no_header_page() {
     let path = std::env::temp_dir().join(format!(
         "hash-graph-atlas-region-short-{}",

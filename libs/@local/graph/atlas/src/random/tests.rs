@@ -1,16 +1,34 @@
 use core::num::NonZero;
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert, proptest};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    acceptance_sample_size, mean_sample_size, normal_quantile, sample_indices, sample_indices_vec,
-    uniform_below,
+    Compat, acceptance_sample_size, mean_sample_size, normal_quantile, sample_indices,
+    sample_indices_vec, uniform_below,
 };
 
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
+}
+
+#[test]
+fn compat_ref_casts_view_the_rng_in_place() {
+    use rand_core::Rng as _;
+    use rand_core_06::RngCore as _;
+
+    let mut wrapped = rng(7);
+    let mut reference = rng(7);
+
+    assert!(core::ptr::eq(
+        core::ptr::from_ref(Compat::from_ref(&wrapped)).cast::<Xoshiro256PlusPlus>(),
+        &raw const wrapped,
+    ));
+    assert_eq!(
+        Compat::from_mut(&mut wrapped).next_u64(),
+        reference.next_u64()
+    );
 }
 
 #[test]

@@ -9,7 +9,7 @@
               independent of the FMA path under test"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assume, proptest, strategy::Strategy};
 
 use super::{
     AffinityFitConfig,
@@ -432,7 +432,7 @@ fn point_strategy() -> impl Strategy<Value = Vec2> {
 
 /// Four arbitrary in-range points, one per batch lane.
 fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
-    prop::array::uniform4(point_strategy())
+    proptest::array::uniform4(point_strategy())
 }
 
 /// Curve parameters bounded to `a` in `1e-3..1e3` and `b` in `0.1..5`.

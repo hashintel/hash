@@ -1,4 +1,4 @@
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, proptest};
 
 use super::{Depth, MortonCell, MortonKey};
 

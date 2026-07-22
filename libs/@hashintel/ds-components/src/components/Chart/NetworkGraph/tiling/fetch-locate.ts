@@ -6,13 +6,15 @@
  * its dot and answers its **ego-graph**: the source is delivered first,
  * followed by the delivered edges' partners (both directions, ascending wire
  * row id), with every edge incident to the source riding the edge columns
- * (ascending wire edge id, a self-loop exactly once). When the edge cap
+ * (ascending link-entity identity bytes, a self-loop exactly once). When the edge cap
  * truncates, edges whose partners lie nearest the source are kept and
  * `complete` reads `false`; zero edges with `complete: true` is the honest
- * answer for an unlinked source. It is the detail view, so
- * `includeDetailedData` defaults on: every delivered node
- * carries a label, icon, and its capped simple-value properties, and every
- * delivered edge carries the four link-detail fields.
+ * answer for an unlinked source. Locate IS the detail view: the trailer is
+ * always present, every delivered node carries a label and a type reference,
+ * the SOURCE carries its capped simple-value properties (neighbour detail is
+ * one locate away), and every delivered edge carries its link-entity
+ * identity, label, type references, and capped properties with per-edge
+ * completeness verdicts.
  *
  * The flow mirrors {@link fetchTile}: it shares the memoized
  * {@link getSaltileSession} (so locate binds to the same generation as the
@@ -35,7 +37,7 @@
 
 import {
   decodeSaltileLocate,
-  type SaltilePropertyValue,
+  type SaltileProperties,
 } from "../atlas-decode/locate";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
@@ -49,49 +51,70 @@ import {
 } from "./fetch-tile";
 import { WORLD_SIZE } from "./tile-geometry";
 
-export type { SaltilePropertyValue } from "../atlas-decode/locate";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+
+export type {
+  SaltileProperties,
+  SaltilePropertyValue,
+} from "../atlas-decode/locate";
 
 /**
  * Names a locate source in one of the endpoint's two domains: a wire node/edge
  * row id (`number`, sent as `row`), or an upstream entity id (sent as
  * `entityId`). A search result carries the latter, with no atlas row id to hand.
  */
-export type LocateSource = number | { readonly entityId: string };
+export type LocateSource = number | { readonly entityId: EntityId };
 
-/** One located node: a row id, world coordinates, and (detailed) hydration. */
+/** One located node: a row id, world coordinates, and detail hydration. */
 export interface LocateNode {
-  /** Durable node row id — matches a tile node's id. */
+  /** Node wire row id — matches a tile node's id within this generation. */
   readonly id: number;
   readonly x: number;
   readonly y: number;
-  /** Human-readable label, present with the detail trailer. */
+  /** Human-readable label; `undefined` when the label did not resolve. */
   readonly label?: string;
-  /** Entity icon (emoji or `/path`/`https` URL), present with the trailer. */
-  readonly icon?: string;
+  /**
+   * The node's first direct type as a versioned URL.
+   *
+   * `undefined` marks a node the store no longer serves or records no
+   * types for. Label and icon rendering for a type is the client's own
+   * metadata.
+   */
+  readonly typeId?: VersionedUrl;
   /** Matched {@link FetchLocateOptions.coloredTypeIds} indices; see {@link typeIndicesAt}. */
   readonly typeIndices?: readonly number[];
   /**
-   * The entity's capped simple-value properties keyed by property base URL,
-   * present with the detail trailer. `null` marks an entity the store no
-   * longer serves.
+   * The source's capped simple-value properties keyed by property base URL.
+   *
+   * `null` marks a store-absent source; `undefined` a neighbour
+   * (neighbour detail is one locate away).
    */
-  readonly properties?: Readonly<Record<string, SaltilePropertyValue>> | null;
+  readonly properties?: SaltileProperties | null;
 }
 
-/** One located edge: its row id, endpoints, and (detailed) link hydration. */
+/** One located edge: its link-entity identity, endpoints, and hydration. */
 export interface LocateEdge {
-  /** Durable edge row id. */
-  readonly id: number;
+  /**
+   * The link entity's upstream identity.
+   *
+   * The identity is the edge's identity on every binary surface and is
+   * stable across generations.
+   */
+  readonly id: EntityId;
   /** Source node row id — matches a {@link LocateNode.id}. */
   readonly source: number;
   /** Target node row id — matches a {@link LocateNode.id}. */
   readonly target: number;
-  /** Link-entity label, present with the detail trailer. */
+  /** Link-entity label; `undefined` when it did not resolve. */
   readonly label?: string;
-  readonly icon?: string;
-  /** Link *type* label/icon (e.g. the "Authored By" type), present with the trailer. */
-  readonly typeLabel?: string;
-  readonly typeIcon?: string;
+  /** The link's direct types as versioned URLs, canonical order, capped. */
+  readonly typeIds: readonly VersionedUrl[];
+  /** Whether {@link typeIds} is the link's whole direct set. */
+  readonly typeIdsComplete: boolean;
+  /** The link's capped simple properties; `null` marks a store-absent link. */
+  readonly properties: SaltileProperties | null;
+  /** Whether {@link properties} is the link entity's whole set. */
+  readonly propertiesComplete: boolean;
 }
 
 /**
@@ -103,15 +126,21 @@ export interface LocateEdge {
  * the **source's** fly-to target.
  */
 export interface LocatedEntity {
+  /** The source's upstream entity identity. */
+  readonly entityId: EntityId;
   /** The source (index 0) followed by its partners (ascending wire row id). */
   readonly nodes: LocateNode[];
-  /** The edges incident to the source (ascending wire edge id). */
+  /** The edges incident to the source (ascending identity bytes). */
   readonly edges: LocateEdge[];
   /** The source's first visible zoom and its tile there — a fly-to target. */
   readonly cell: { readonly z: number; readonly x: number; readonly y: number };
   readonly zoom: number;
   /** False when the locate edge cap truncated the subgraph. */
   readonly complete: boolean;
+  /** The request's coloredTypeIds cover every direct type of the source. */
+  readonly typeIdsComplete: boolean;
+  /** The source's property map is the entity's whole set. */
+  readonly propertiesComplete: boolean;
 }
 
 /** Optional per-call overrides for {@link fetchLocate}. */
@@ -127,13 +156,7 @@ export interface FetchLocateOptions {
    * carries {@link LocateNode.typeIndices}. Capped by `limits.coloredTypeIds`.
    * Defaults to none.
    */
-  readonly coloredTypeIds?: readonly string[];
-  /**
-   * Requests the detail trailer (labels, icons, properties, link detail).
-   * Locate defaults it **on** — it is the detail view — so pass `false` only to
-   * fetch geometry alone.
-   */
-  readonly includeDetailedData?: boolean;
+  readonly coloredTypeIds?: readonly VersionedUrl[];
 }
 
 /** The locate route for a session; the variant name addresses it, as for tiles. */
@@ -143,8 +166,7 @@ const locateUrl = (session: SaltileSession, baseUrl: string): string =>
 /** The JSON body: the source in its domain, plus the delivery knobs when non-default. */
 const locateBody = (
   source: LocateSource,
-  coloredTypeIds: readonly string[],
-  includeDetailedData: boolean,
+  coloredTypeIds: readonly VersionedUrl[],
 ): string =>
   JSON.stringify({
     // Exactly one source domain rides the body: a wire row id via `row`, or an
@@ -153,8 +175,6 @@ const locateBody = (
       ? { row: source }
       : { entityId: source.entityId }),
     ...(coloredTypeIds.length > 0 ? { coloredTypeIds } : {}),
-    // Locate defaults detail on, so only the opt-out rides the body.
-    ...(includeDetailedData ? {} : { includeDetailedData: false }),
   });
 
 const fetchAndDecodeLocate = async (
@@ -163,8 +183,7 @@ const fetchAndDecodeLocate = async (
   baseUrl: string,
   signal: AbortSignal | undefined,
   retries: number | undefined,
-  coloredTypeIds: readonly string[],
-  includeDetailedData: boolean,
+  coloredTypeIds: readonly VersionedUrl[],
 ): Promise<LocatedEntity> => {
   const response = await requestAtlas(
     locateUrl(session, baseUrl),
@@ -172,7 +191,7 @@ const fetchAndDecodeLocate = async (
     signal,
     retries,
     undefined,
-    locateBody(requestSource, coloredTypeIds, includeDetailedData),
+    locateBody(requestSource, coloredTypeIds),
   );
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -189,7 +208,6 @@ const fetchAndDecodeLocate = async (
       generation: session.generationBytes,
       variant: session.variantIndex,
       coloredTypeIdCount: coloredTypeIds.length,
-      includeDetailedData,
     });
   } catch (cause) {
     throw new FetchTileError("failed to decode locate", { cause });
@@ -210,9 +228,11 @@ const fetchAndDecodeLocate = async (
     if (id === undefined || wireX === undefined || wireY === undefined) {
       throw new FetchTileError(`locate node ${index} is truncated`);
     }
-    const label = detail?.labels[index] ?? undefined;
-    const icon = detail?.icons[index] ?? undefined;
-    const properties = detail ? detail.properties[index] : undefined;
+    const label = detail.labels[index] ?? undefined;
+    const typeId = detail.typeIds[index] ?? undefined;
+    // The trailer's property map belongs to the SOURCE alone; neighbours
+    // leave `properties` undefined (their detail is one locate away).
+    const properties = index === 0 ? detail.properties : undefined;
     const typeIndices = typeMask
       ? typeIndicesAt(typeMask, index, maskStride, coloredTypeIds.length)
       : undefined;
@@ -221,54 +241,55 @@ const fetchAndDecodeLocate = async (
       x: (wireX + 1) * scale,
       y: (wireY + 1) * scale,
       ...(label !== undefined ? { label } : {}),
-      ...(icon !== undefined ? { icon } : {}),
+      ...(typeId !== undefined ? { typeId } : {}),
       ...(typeIndices !== undefined ? { typeIndices } : {}),
       ...(properties !== undefined ? { properties } : {}),
     };
   }
 
-  const { edgesCount, sources, targets, edgeRowIds } = decoded;
+  const { edgesCount, sources, targets, edgeIds } = decoded;
   const edges: LocateEdge[] = new Array<LocateEdge>(edgesCount);
   for (let index = 0; index < edgesCount; index += 1) {
-    const id = edgeRowIds[index];
+    const id = edgeIds[index];
     const source = sources[index];
     const target = targets[index];
     if (id === undefined || source === undefined || target === undefined) {
       throw new FetchTileError(`locate edge ${index} is truncated`);
     }
-    const label = detail?.linkLabels[index] ?? undefined;
-    const icon = detail?.linkIcons[index] ?? undefined;
-    const typeLabel = detail?.linkTypeLabels[index] ?? undefined;
-    const typeIcon = detail?.linkTypeIcons[index] ?? undefined;
+    const label = detail.linkLabels[index] ?? undefined;
     edges[index] = {
       id,
       source,
       target,
       ...(label !== undefined ? { label } : {}),
-      ...(icon !== undefined ? { icon } : {}),
-      ...(typeLabel !== undefined ? { typeLabel } : {}),
-      ...(typeIcon !== undefined ? { typeIcon } : {}),
+      typeIds: detail.linkTypeIds[index] ?? [],
+      typeIdsComplete: detail.linkTypeIdsComplete[index] ?? false,
+      properties: detail.linkProperties[index] ?? null,
+      propertiesComplete: detail.linkPropertiesComplete[index] ?? false,
     };
   }
 
   return {
+    entityId: decoded.entityId,
     nodes,
     edges,
     cell: decoded.cell,
     zoom: decoded.zoom,
     complete: decoded.complete,
+    typeIdsComplete: decoded.typeIdsComplete,
+    propertiesComplete: decoded.propertiesComplete,
   };
 };
 
 /**
  * Fetches the locate ego-graph for the entity named by `source`: the source,
- * the partners of its delivered edges, and every edge incident to it, each
- * hydrated with detail (unless {@link FetchLocateOptions.includeDetailedData}
- * opts out). `source` is either an atlas row id (`number`) or a `{ entityId }`
- * — see the module's "Source id" section.
+ * the partners of its delivered edges, and every edge incident to it, always
+ * hydrated with detail (locate is the detail view). `source` is either an
+ * atlas row id (`number`) or a `{ entityId }` — see the module's "Source id"
+ * section.
  *
  * @returns The delivered nodes (source first, partners ascending wire row id)
- *   and edges (ascending wire edge id), with wire positions mapped to world
+ *   and edges (ascending link-entity identity bytes), with wire positions mapped to world
  *   coordinates, plus the source's fly-to target and a `complete` flag
  *   (`false` when the edge cap truncated; `edges: []` with `complete: true`
  *   is an unlinked source, not an error).
@@ -285,7 +306,6 @@ export const fetchLocate = async (
     signal,
     retry,
     coloredTypeIds = [],
-    includeDetailedData = true,
   } = options;
 
   const session = await getSaltileSession(baseUrl);
@@ -297,7 +317,6 @@ export const fetchLocate = async (
       signal,
       retry,
       coloredTypeIds,
-      includeDetailedData,
     );
   } catch (error) {
     // A 404 on a well-formed request usually means the pinned generation
@@ -313,7 +332,6 @@ export const fetchLocate = async (
         signal,
         retry,
         coloredTypeIds,
-        includeDetailedData,
       );
     }
     throw error;

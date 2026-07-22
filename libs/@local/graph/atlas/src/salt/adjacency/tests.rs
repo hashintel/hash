@@ -265,3 +265,16 @@ fn wide_indices_read_back() {
     assert_eq!(list(mapped.outgoing(NodeRowId::new(0))), [0]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [0]);
 }
+
+#[test]
+fn writing_to_memory_conjures_the_unit_region() {
+    let endpoints = [[0, 1], [1, 2], [0, 2]];
+    let adjacency = Adjacency::build(3, &endpoints);
+
+    let mut bytes = Vec::new();
+    let _digest = adjacency
+        .write_into(&mut bytes)
+        .expect("an in-memory write cannot fail");
+
+    assert!(!bytes.is_empty());
+}

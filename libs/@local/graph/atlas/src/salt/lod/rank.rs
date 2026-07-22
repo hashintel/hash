@@ -1,6 +1,9 @@
 //! The deterministic importance ranking.
 
-use rayon::prelude::*;
+use rayon::{
+    iter::{IntoParallelRefIterator as _, ParallelIterator as _},
+    slice::ParallelSliceMut as _,
+};
 use zerocopy::IntoBytes;
 
 use crate::integrity::{Sha256, Update as _};

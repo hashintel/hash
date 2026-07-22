@@ -89,33 +89,33 @@ pub(crate) enum TrainError {
 }
 
 impl fmt::Display for TrainError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::NoSemanticEvidence => {
-                formatter.write_str("the semantic graph carries no edge weight to train against")
+                fmt.write_str("the semantic graph carries no edge weight to train against")
             }
-            Self::UnbaselinedRadius => formatter.write_str(
+            Self::UnbaselinedRadius => fmt.write_str(
                 "the boundary sits at step zero, so the Proximal radius would be measured on an \
                  untrained map; give the opening segment steps or supply the configured radius \
                  assertion",
             ),
-            Self::MissingProximalReviews => formatter.write_str(
+            Self::MissingProximalReviews => fmt.write_str(
                 "the attraction index carries Proximal force but no reviewed-Proximal verdict \
                  covers any of it; confirm Proximal types in review or supply the configured \
                  radius assertion",
             ),
-            Self::CoincidentWithoutProximal => formatter.write_str(
+            Self::CoincidentWithoutProximal => fmt.write_str(
                 "the attraction index carries Coincident force but no Proximal force, so no \
                  measurement can set the Proximal radius; supply the configured radius assertion",
             ),
             Self::DegenerateRadius { radius, coincident } => write!(
-                formatter,
+                fmt,
                 "the frozen Proximal radius {radius} does not exceed the Coincident radius \
                  {coincident}",
             ),
-            Self::Refresh(error) => error.fmt(formatter),
-            Self::Step(error) => error.fmt(formatter),
-            Self::ScheduleChanged { .. } => formatter.write_str(
+            Self::Refresh(error) => error.fmt(fmt),
+            Self::Step(error) => error.fmt(fmt),
+            Self::ScheduleChanged { .. } => fmt.write_str(
                 "the resumed schedule differs from the one the opening segment ran under; resume \
                  with the schedule the checkpoint was trained under",
             ),

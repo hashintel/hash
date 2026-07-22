@@ -26,7 +26,10 @@ use crate::{
     salt::{
         adjacency::InvalidAdjacencyFile,
         embedding::CardEmbeddingError,
-        knn::{artifact::InvalidKnnFile, error::KnnError, hannoy::HannoyIndexError, recall},
+        knn::{
+            artifact::InvalidKnnFile, descent::NnDescentError, error::KnnError,
+            hannoy::HannoyIndexError, recall,
+        },
         ladder::{CanonicalError, LadderError},
         landmark::{
             artifact::InvalidLandmarkFile, assignment::AssignmentError, layout::EdgelessGraphError,
@@ -230,6 +233,8 @@ pub(crate) enum StageError {
     RecallBelowMinimum(recall::RecallSpotCheck),
     /// The k-NN table failed to assemble or admit.
     Knn(KnnError<HannoyIndexError>),
+    /// The NN-Descent construction failed.
+    Descent(NnDescentError),
     /// The assembled corpus violates the classifier's training-set contract.
     ClassifierTraining(TrainingSetError),
     /// The relation classifier failed to fit.
@@ -358,6 +363,12 @@ impl From<WriteSprsError> for StageError {
 impl From<KnnError<HannoyIndexError>> for StageError {
     fn from(error: KnnError<HannoyIndexError>) -> Self {
         Self::Knn(error)
+    }
+}
+
+impl From<NnDescentError> for StageError {
+    fn from(error: NnDescentError) -> Self {
+        Self::Descent(error)
     }
 }
 
@@ -522,6 +533,9 @@ impl fmt::Display for StageError {
                 check.recall(),
                 check.minimum_recall,
             ),
+            Self::Descent(error) => {
+                write!(fmt, "the NN-Descent construction failed: {error}")
+            }
             Self::Knn(error) => {
                 write!(fmt, "the k-NN table failed to assemble or admit: {error}")
             }
@@ -612,6 +626,7 @@ impl Error for StageError {
             Self::NormCheck(error) => Some(error),
             Self::Index(error) => Some(error),
             Self::Knn(error) => Some(error),
+            Self::Descent(error) => Some(error),
             Self::ClassifierTraining(error) => Some(error),
             Self::ClassifierFit(error) => Some(error),
             Self::Classify(error) => Some(error),

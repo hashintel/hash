@@ -21,6 +21,12 @@ pub struct ManifestLimits {
     pub edges_tiles: u32,
     /// Most ego-graph edges one locate response delivers before the nearest-partner truncation.
     pub locate_edges: u32,
+    /// Most properties a locate source ships.
+    pub locate_properties: u32,
+    /// Most direct types one locate edge ships.
+    pub locate_link_type_ids: u32,
+    /// Most properties one locate edge ships.
+    pub locate_link_properties: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
     /// The sealed-blob asynchronous-refresh horizon, seconds.
@@ -39,6 +45,9 @@ impl ServeCaps {
             colored_type_ids: self.tile.colored_type_ids,
             edges_tiles: self.edges.tiles,
             locate_edges: self.locate.edges,
+            locate_properties: self.locate.properties,
+            locate_link_type_ids: self.locate.link_type_ids,
+            locate_link_properties: self.locate.link_properties,
             translate_entity_ids: self.translate.entity_ids,
             seal_soft_seconds: self.seal.soft.as_secs(),
             seal_hard_seconds: self.seal.hard.as_secs(),

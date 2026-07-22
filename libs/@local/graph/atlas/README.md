@@ -73,10 +73,11 @@ Five terms carry the whole model:
 - A **variant** is one layout of a generation. Version 1 publishes exactly
   one, named `plain`.
 - A **row id** identifies a node or edge within one generation. On the
-  wire, row ids are opaque values: consistent across every endpoint of one
-  generation, carrying no ordering or adjacency information, and not
-  stable across generations - clients re-translate after a generation
-  change.
+  wire, row ids are opaque values, sparse in the full u32 range:
+  consistent across every endpoint of one generation, carrying no
+  ordering, adjacency, or count information, never bounded by the
+  generation's row count, and not stable across generations - clients
+  re-translate after a generation change.
 - **Tiles** quadtree the map. Each fitted point carries an importance
   bucket, and a tile at zoom `z` delivers exactly the points whose bucket
   clears the zoom's cut - deeper zooms deliver less important points. The
@@ -241,7 +242,7 @@ cargo clippy --all-features --package hash-graph-atlas
 
 Tests never require a GPU or a live store; fixture fits run the production
 pipeline end to end on synthetic corpora, and wire formats are pinned by
-golden fixtures under `fixtures/wire/`.
+the fixtures under `fixtures/wire/`.
 
 Cargo features (all disabled by default):
 

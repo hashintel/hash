@@ -30,11 +30,12 @@ use crate::{
     math::AffinityCurve,
     salt::{
         fit::{
-            ClassifierInput, ClassifierSupplyError, FitConfig, PlacementOptions, ProjectorOptions,
-            SuppliedAnnotations, SuppliedVerdicts,
+            ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
+            PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
             annotations::SupplyError as AnnotationSupplyError, stub::StubEmbedder,
             verdicts::SupplyError as VerdictSupplyError,
         },
+        knn::descent::NnDescentOptions,
         landmark::select::SelectionOptions,
         projector::train::{RelationLens, TrainingSchedule},
         runner::{Admission, PriorMode, RunnerError, RunnerOptions, run},
@@ -117,6 +118,10 @@ pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
 
 /// Options of one production run.
 #[derive(Debug, Clone)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the seam mirrors the binary's independent operator flags"
+)]
 pub struct Options {
     /// The fit seed; equal seeds replay every draw of the run, the admission probe's included.
     pub seed: u64 = 0,
@@ -161,6 +166,10 @@ pub struct Options {
     ///
     /// The fallback placer, for running without the training stage.
     pub baseline: bool = false,
+    /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
+    ///
+    /// Either construction answers to the same recall admission.
+    pub nn_descent: bool = false,
 }
 
 /// Plain-number summary of one production run.
@@ -392,6 +401,10 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
     };
     runner_options.quality.probe.anchors = options.anchors;
     runner_options.quality.probe.comparisons = options.comparisons;
+    if options.nn_descent {
+        runner_options.fit.construction =
+            KnnConstructionChoice::Descent(NnDescentOptions::default());
+    }
     match (options.baseline, options.projector_steps) {
         (true, _) => runner_options.fit.placement = PlacementOptions::LandmarkBaseline,
         (false, Some(steps)) => {

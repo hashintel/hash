@@ -8,15 +8,16 @@
 //! [`DEFAULT_NEIGHBOURS`]; the bound applies to semantic sampling and does not limit relation
 //! edges.
 //!
-//! [`NearestNeighboursIndex`] separates the table's semantics from the search backend.
-//! [`hannoy::HannoyIndex`] is the LMDB-backed HNSW production backend; a backend serves one
-//! generation by ingesting every node row through
-//! [`insert_many`](NearestNeighboursIndex::insert_many), linking the graph with
-//! [`build`](NearestNeighboursIndex::build), and answering searches from then on.
+//! [`construction::KnnConstruction`] separates the table's semantics from how neighbour lists
+//! are produced. Two constructors exist: [`construction::IndexConstruction`] wraps a
+//! [`NearestNeighboursIndex`] search backend — [`hannoy::HannoyIndex`] is the LMDB-backed HNSW
+//! production backend — and [`descent::NnDescent`] derives the lists directly by local joins,
+//! with no search structure. The landmark assignment keeps querying a backend by vector; the
+//! table build needs only the lists.
 //!
-//! A built backend is accepted by exact comparison: [`recall::spot_check`] intersects sampled
-//! approximate queries with brute-force [`AlignedVecN`] cosine rankings and judges aggregate recall
-//! against a configured minimum ([`recall::SpotCheckOptions`]).
+//! A construction is accepted by exact comparison: [`recall::spot_check_lists`] intersects
+//! sampled rows of the produced lists with brute-force [`AlignedVecN`] cosine rankings and judges
+//! aggregate recall against a configured minimum ([`recall::SpotCheckOptions`]).
 //!
 //! The validated table publishes as one sparse matrix file ([`crate::file::sprs`]) holding its
 //! matrix verbatim; [`artifact::KnnArchive`] reopens it over a whole-file mapping, so stages after
@@ -40,6 +41,9 @@ use crate::{
 pub(crate) mod artifact;
 #[cfg(feature = "bench")]
 pub mod bench;
+pub(crate) mod brute;
+pub(crate) mod construction;
+pub(crate) mod descent;
 pub(crate) mod error;
 pub(crate) mod hannoy;
 pub(crate) mod recall;

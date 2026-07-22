@@ -4,7 +4,7 @@
               exactly-representable values, and round-trip narrowing are exact contracts"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, proptest};
 
 use crate::math::scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus};
 

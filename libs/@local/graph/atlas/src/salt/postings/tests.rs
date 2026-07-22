@@ -2,7 +2,7 @@ use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
-use proptest::prelude::*;
+use proptest::{prop_assert_eq, proptest};
 use smallvec::{SmallVec, smallvec};
 
 use super::{
@@ -427,7 +427,7 @@ proptest! {
     /// knob can pick.
     #[test]
     fn built_postings_uphold_the_membership_contract(
-        seeds in prop::collection::vec(prop::collection::btree_set(0_u64..5, 0..3), 0..40),
+        seeds in proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..40),
         threshold_log2 in 0_u8..8,
     ) {
         let domain = 5_usize;

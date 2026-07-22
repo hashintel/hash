@@ -587,7 +587,6 @@ const AtlasTilingStory = () => {
           detail: {
             kind: "node",
             title: source.label ?? `Node ${source.id}`,
-            ...(source.icon !== undefined ? { icon: source.icon } : {}),
             ...(type !== undefined ? { type } : {}),
             properties: Object.entries(source.properties ?? {}).map(
               ([key, value]) => ({
@@ -614,25 +613,29 @@ const AtlasTilingStory = () => {
         return;
       }
       setSelected({ edge: edge.id });
-      const edgeId = Number(edge.id);
       locate(Number(edge.fromId), (entity) => {
         // The source (index 0) is the endpoint we located the edge through.
         const source = entity.nodes[0];
         if (!source) {
           return;
         }
-        const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        const locatedEdge = entity.edges.find((item) => item.id === edge.id);
+        const typeUrl = locatedEdge?.typeIds[0];
         setSelection({
           detail: {
             kind: "edge",
             title: locatedEdge?.label ?? `Edge ${edge.id}`,
-            ...(locatedEdge?.icon !== undefined
-              ? { icon: locatedEdge.icon }
+            ...(typeUrl !== undefined
+              ? {
+                  type: { label: shortTypeName(typeUrl), color: UNTYPED_COLOR },
+                }
               : {}),
-            ...(locatedEdge?.typeLabel !== undefined
-              ? { type: { label: locatedEdge.typeLabel, color: UNTYPED_COLOR } }
-              : {}),
-            properties: [],
+            properties: Object.entries(locatedEdge?.properties ?? {}).map(
+              ([key, value]) => ({
+                key: shortPropName(key),
+                value: formatPropValue(value),
+              }),
+            ),
           },
           focus: [source.x, source.y],
         });

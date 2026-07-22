@@ -1,17 +1,17 @@
-//! The cross-language golden corpus: `fixtures/wire/`.
+//! The cross-language fixture corpus: `fixtures/wire/`.
 //!
-//! Each golden is one encoded response checked in as fixture bytes plus a JSON sidecar of the
+//! Each fixture is one encoded response checked in as fixture bytes plus a JSON sidecar of the
 //! expected decoded values (floats as u32 bit patterns), the envelope prefix, and the directory -
 //! so the padding sweep is assertable client-side from the sidecar alone. The Rust side proves the
 //! encoder reproduces the pinned bytes; the TypeScript decoder consumes the same files and asserts
 //! field-for-field equality - "matches the Rust side" is never asserted by eye. The decoder
 //! derives its request echo context from the sidecar `HEAD`; a request field the `HEAD` does not
-//! echo joins the sidecar the day a golden needs one.
+//! echo joins the sidecar the day a fixture needs one.
 //!
-//! A golden is pinned only after its schema is ratified and its endpoint serves - pinning bytes
-//! before the schema exists would pin an invention. The end-to-end golden over a real published
+//! A fixture is pinned only after its schema is ratified and its endpoint serves - pinning bytes
+//! before the schema exists would pin an invention. The end-to-end fixture over a real published
 //! generation is separate: it pins a whole artifact tree, not an envelope. Every
-//! golden here uses `spanLog2 = 2`, so the cut rule reads `bucket = z + 2` and the root spans
+//! fixture here uses `spanLog2 = 2`, so the cut rule reads `bucket = z + 2` and the root spans
 //! buckets `0..=2`.
 //!
 //! Regenerate with `ATLAS_WIRE_BLESS=1` in the environment; the default run compares response bytes
@@ -20,7 +20,7 @@
 //! are not drift.
 #![expect(
     clippy::little_endian_bytes,
-    reason = "the goldens write the contract's little-endian wire integers"
+    reason = "the fixtures write the contract's little-endian wire integers"
 )]
 #![expect(
     clippy::single_range_in_vec_init,
@@ -46,28 +46,28 @@ use crate::{
     salt::postings::mapped::Membership,
 };
 
-/// One pinned golden: fixture name, response bytes, sidecar.
-struct Golden {
+/// One pinned fixture: fixture name, response bytes, sidecar.
+struct Fixture {
     name: &'static str,
     bytes: Vec<u8>,
     sidecar: Value,
 }
 
 #[test]
-fn goldens_match_the_checked_in_fixtures() {
+fn corpus_matches_the_checked_in_fixtures() {
     let dir = Utf8PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/wire");
     let bless = std::env::var_os("ATLAS_WIRE_BLESS").is_some();
 
-    for golden in corpus() {
-        let bytes_path = dir.join(format!("{}.saltile", golden.name));
-        let sidecar_path = dir.join(format!("{}.json", golden.name));
+    for fixture in corpus() {
+        let bytes_path = dir.join(format!("{}.saltile", fixture.name));
+        let sidecar_path = dir.join(format!("{}.json", fixture.name));
         let sidecar = format!(
             "{}\n",
-            serde_json::to_string_pretty(&golden.sidecar).expect("sidecars are plain JSON"),
+            serde_json::to_string_pretty(&fixture.sidecar).expect("sidecars are plain JSON"),
         );
 
         if bless {
-            fs::write(&bytes_path, &golden.bytes).expect("the fixture directory is writable");
+            fs::write(&bytes_path, &fixture.bytes).expect("the fixture directory is writable");
             fs::write(&sidecar_path, &sidecar).expect("the fixture directory is writable");
             continue;
         }
@@ -76,9 +76,9 @@ fn goldens_match_the_checked_in_fixtures() {
             panic!("{bytes_path} is missing; regenerate with ATLAS_WIRE_BLESS=1")
         });
         assert_eq!(
-            golden.bytes, pinned,
+            fixture.bytes, pinned,
             "{} bytes drifted from the pinned fixture",
-            golden.name,
+            fixture.name,
         );
 
         let pinned = fs::read_to_string(&sidecar_path).unwrap_or_else(|_| {
@@ -91,9 +91,9 @@ fn goldens_match_the_checked_in_fixtures() {
             )
         });
         assert_eq!(
-            golden.sidecar, pinned,
+            fixture.sidecar, pinned,
             "{} sidecar drifted from the pinned fixture",
-            golden.name,
+            fixture.name,
         );
     }
 }
@@ -105,14 +105,14 @@ fn goldens_match_the_checked_in_fixtures() {
 #[test]
 fn the_padding_sweep_covers_every_width() {
     let mut widths = [false; 8];
-    for golden in [g9_padding_low(), g10_padding_high()] {
+    for fixture in [g9_padding_low(), g10_padding_high()] {
         let slots = u16::from_le_bytes(
-            golden.bytes[12..14]
+            fixture.bytes[12..14]
                 .try_into()
                 .expect("the prefix carries the slot count"),
         );
         for slot in 0..slots as usize {
-            let (start, end) = directory(&golden.bytes, slot);
+            let (start, end) = directory(&fixture.bytes, slot);
             if (start, end) != (0, 0) {
                 widths[(end as usize).next_multiple_of(8) - end as usize] = true;
             }
@@ -127,7 +127,7 @@ fn the_padding_sweep_covers_every_width() {
 }
 
 /// The whole corpus in fixture order.
-fn corpus() -> Vec<Golden> {
+fn corpus() -> Vec<Fixture> {
     vec![
         g1_minimal_tile(),
         g2_root_tile(),
@@ -142,7 +142,7 @@ fn corpus() -> Vec<Golden> {
     ]
 }
 
-/// Renders a tile golden's sidecar.
+/// Renders a tile fixture's sidecar.
 ///
 /// Prefix, directory, decoded `HEAD`, gathered columns, and trailer.
 ///
@@ -268,7 +268,7 @@ fn details_sidecar(entries: &[Option<&str>]) -> Value {
 /// A non-root delta tile - one run, three points, all columns, `TYPE_MASK` over three requested
 /// types (stride 1, `n % 8 != 0`), a multi-bit point carrying types 0 and 2, an all-zero point, a
 /// single children bit.
-fn g1_minimal_tile() -> Golden {
+fn g1_minimal_tile() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..12)
         .map(|index| {
             Vec2::new(
@@ -329,7 +329,7 @@ fn g1_minimal_tile() -> Golden {
         None,
         &Value::Null,
     );
-    Golden {
+    Fixture {
         name: "g1-minimal-tile",
         bytes,
         sidecar,
@@ -341,7 +341,7 @@ fn g1_minimal_tile() -> Golden {
 /// The delta root - buckets `0..=2` with the middle run zero-length, one contiguous multi-segment
 /// range, no coloredTypeIds (`TYPE_MASK` absent), the required global map with bounds present, all
 /// four children.
-fn g2_root_tile() -> Golden {
+fn g2_root_tile() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..4)
         .map(|index| {
             Vec2::new(
@@ -388,7 +388,7 @@ fn g2_root_tile() -> Golden {
         None,
         &Value::Null,
     );
-    Golden {
+    Fixture {
         name: "g2-root-tile",
         bytes,
         sidecar,
@@ -399,7 +399,7 @@ fn g2_root_tile() -> Golden {
 ///
 /// A total tile - four runs from bucket 0 with a zero-length run interspersed, bucket-major
 /// concatenation, nine requested types (two-byte mask stride), zero children.
-fn g3_total_tile() -> Golden {
+fn g3_total_tile() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..10)
         .map(|index| {
             Vec2::new(
@@ -473,7 +473,7 @@ fn g3_total_tile() -> Golden {
         None,
         &Value::Null,
     );
-    Golden {
+    Fixture {
         name: "g3-total-tile",
         bytes,
         sidecar,
@@ -485,7 +485,7 @@ fn g3_total_tile() -> Golden {
 /// The empty root - zero delivered, present-empty columns at one shared offset, `TYPE_MASK` absent,
 /// zero children, and the required global map with `visibleAtZoom = 0` and bounds absent - the
 /// bounds-absent-iff-empty rule, pinned.
-fn g4_empty_root() -> Golden {
+fn g4_empty_root() -> Fixture {
     let response = TileResponse {
         head: TileHead {
             generation: Sha256Digest::from_bytes_unchecked([0x44; 32]),
@@ -519,7 +519,7 @@ fn g4_empty_root() -> Golden {
         None,
         &Value::Null,
     );
-    Golden {
+    Fixture {
         name: "g4-empty-root",
         bytes,
         sidecar,
@@ -530,7 +530,7 @@ fn g4_empty_root() -> Golden {
 ///
 /// A delta trailer tile - labels and icons with null entries and non-ASCII UTF-8 (multi-byte
 /// sequences and a combining mark), children bits 0 and 2.
-fn g5_trailer_tile() -> Golden {
+fn g5_trailer_tile() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
             Vec2::new(
@@ -582,7 +582,7 @@ fn g5_trailer_tile() -> Golden {
         None,
         &Value::Null,
     );
-    Golden {
+    Fixture {
         name: "g5-trailer-tile",
         bytes,
         sidecar,
@@ -591,14 +591,19 @@ fn g5_trailer_tile() -> Golden {
 
 /// G6: an edges response - three columns.
 ///
-/// `complete = false` (the cap flag is the point), the four-array detail trailer with nulls. Edge
-/// rows ascend per the delivery-order pin - goldens conform to ratified contracts, not just
-/// structure.
-fn g6_edges() -> Golden {
+/// `complete = false` (the cap flag is the point), `EDGE_IDS` as raw identity records ascending
+/// per the delivery-order pin - fixtures conform to ratified contracts, not just structure - and
+/// the interned detail trailer: the type table, labels with nulls, and first-type references
+/// including a store-absent `null`.
+fn g6_edges() -> Fixture {
     let link_labels = [Some("\u{153}uvre"), Some("created by"), None];
-    let link_icons = [Some("\u{1f517}"), None, None];
-    let link_type_labels = [None, Some("authored"), Some("authored")];
-    let link_type_icons = [None, None, None];
+    let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"];
+    let link_type_ids = [Some(1_u32), Some(0), None];
+    let edge_ids = [
+        identity_of(0xA0, 0xA1),
+        identity_of(0xB0, 0xB1),
+        identity_of(0xC0, 0xC1),
+    ];
 
     let response = EdgesResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x66; 32]),
@@ -606,12 +611,11 @@ fn g6_edges() -> Golden {
         complete: false,
         sources: &[4, 4, 9],
         targets: &[11, 7, 2],
-        edge_rows: &[3, 100, 205],
+        edge_ids: &edge_ids,
         trailer: Some(EdgesTrailer {
+            type_table: &type_table,
             link_labels: &link_labels,
-            link_icons: &link_icons,
-            link_type_labels: &link_type_labels,
-            link_type_icons: &link_type_icons,
+            link_type_ids: &link_type_ids,
         }),
     };
     let bytes = response.encode();
@@ -630,16 +634,15 @@ fn g6_edges() -> Golden {
         },
         "sources": response.sources,
         "targets": response.targets,
-        "edgeRowIds": response.edge_rows,
+        "edgeIds": identities_sidecar(&edge_ids),
         "trailer": {
+            "typeTable": type_table,
             "linkLabels": details_sidecar(&link_labels),
-            "linkIcons": details_sidecar(&link_icons),
-            "linkTypeLabels": details_sidecar(&link_type_labels),
-            "linkTypeIcons": details_sidecar(&link_type_icons),
+            "linkTypeIds": link_type_ids,
         },
     });
 
-    Golden {
+    Fixture {
         name: "g6-edges",
         bytes,
         sidecar,
@@ -649,12 +652,18 @@ fn g6_edges() -> Golden {
 /// G7.
 ///
 /// A locate response - the source first over an arbitrary delivered list (nothing contiguous),
-/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), and
-/// the full detail trailer: labels and icons with nulls and non-ASCII, the interned property-name
-/// table shared across nodes, per-node maps covering every simple value shape (text, positive and
-/// negative integers, doubles, booleans, explicit null), a `null` unresolved entry, an empty
-/// resolved map, and the four link arrays.
-fn g7_locate() -> Golden {
+/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), both
+/// source completeness flags exercised in opposite states, and the full detail trailer: both
+/// intern tables, labels with nulls and non-ASCII, node first-type references including a `null`,
+/// the source map covering every simple value shape (text, positive and negative integers,
+/// doubles, booleans, explicit null), link type lists in non-ascending canonical order with an
+/// empty entry, link property maps covering map, `null`, and empty shapes, and both completeness
+/// bitmasks.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the fixture pins every wire shape in one hand-built document"
+)]
+fn g7_locate() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
             Vec2::new(
@@ -664,17 +673,24 @@ fn g7_locate() -> Golden {
         })
         .collect();
     let rows: Vec<u32> = (0..8).map(|index| 10 * index + 1).collect();
-    // Source at base position 6, neighbours at 1, 4, 2: delivered
-    // rows 61, 11, 41, 21.
-    let delivered = [6_u32, 1, 4, 2];
+    // Source at base position 6, then partners ascending by wire
+    // row id per the delivery pin: rows 61, then 11 < 21 < 41 -
+    // the fixture conforms to the ratified order, not just the
+    // envelope structure.
+    let delivered = [6_u32, 1, 2, 4];
 
     // type 0: list members at 1 and 6; type 1: dense bit at 4 over
-    // N = 8 (one word). Delivered order 6, 1, 4, 2:
-    // t0 | t0 | t1 | none.
+    // N = 8 (one word). Delivered order 6, 1, 2, 4:
+    // t0 | t0 | none | t1.
     let t0 = [1_u32, 6];
     let t1_dense = [1_u32 << 4];
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
+    let type_table = [
+        "https://t.test/authored/v/1",
+        "https://t.test/person/v/3",
+        "https://t.test/work/v/2",
+    ];
     let names = [
         "https://x.test/age/",
         "https://x.test/name/",
@@ -687,47 +703,59 @@ fn g7_locate() -> Golden {
         (2, PropertyValue::Boolean(true)),
         (3, PropertyValue::Float(0.5)),
     ];
-    let last_map = [
+    let link_map = [
         (0, PropertyValue::Integer(977)),
         (1, PropertyValue::Null),
         (3, PropertyValue::Float(-2.5)),
     ];
-    let properties: [Option<&[(u32, PropertyValue<'_>)]>; 4] =
-        [Some(&source_map), None, Some(&[]), Some(&last_map)];
 
     let labels = [Some("Caf\u{e9}"), None, Some("\u{1d50a}"), Some("e\u{301}")];
-    let icons = [Some("\u{1f980}"), None, None, Some("\u{2192}")];
+    let type_ids = [Some(1_u32), None, Some(2), Some(0)];
     let link_labels = [Some("\u{153}uvre"), None, Some("cites")];
-    let link_icons = [None, Some("\u{1f517}"), None];
-    let link_type_labels = [Some("authored"), Some("authored"), None];
-    let link_type_icons = [None, None, Some("\u{6c34}")];
+    // Canonical direct-type order is the store's, never sorted: the
+    // first list pins a descending pair on purpose.
+    let link_type_ids = [vec![1_u32, 0], vec![0], Vec::new()];
+    let link_type_ids_complete = [true, false, false];
+    let link_properties: [Option<&[(u32, PropertyValue<'_>)]>; 3] =
+        [Some(&link_map), None, Some(&[])];
+    let link_properties_complete = [true, false, true];
+    let edge_ids = [
+        identity_of(0xD0, 0xD1),
+        identity_of(0xE0, 0xE1),
+        identity_of(0xF0, 0xF1),
+    ];
 
     let response = LocateResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x77; 32]),
         variant: 0,
         cell: TileCoordinate { z: 3, x: 5, y: 2 },
         complete: false,
+        entity_id: identity_of(0x42, 0x24),
+        type_ids_complete: true,
+        properties_complete: false,
         delivered: &delivered,
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),
         sources: &[61, 41, 21],
         targets: &[11, 61, 41],
-        edge_rows: &[9, 57, 300],
-        trailer: Some(LocateTrailer {
+        edge_ids: &edge_ids,
+        trailer: LocateTrailer {
+            type_table: &type_table,
+            property_table: &names,
             labels: &labels,
-            icons: &icons,
-            property_names: &names,
-            properties: &properties,
+            type_ids: &type_ids,
+            properties: Some(&source_map),
             link_labels: &link_labels,
-            link_icons: &link_icons,
-            link_type_labels: &link_type_labels,
-            link_type_icons: &link_type_icons,
-        }),
+            link_type_ids: &link_type_ids,
+            link_type_ids_complete: &link_type_ids_complete,
+            link_properties: &link_properties,
+            link_properties_complete: &link_properties_complete,
+        },
     };
     let bytes = response.encode();
 
-    let expected_mask = [0b01_u8, 0b01, 0b10, 0b00];
+    let expected_mask = [0b01_u8, 0b01, 0b00, 0b10];
     assert_eq!(
         section(&bytes, 3).expect("TYPE_MASK is present"),
         expected_mask,
@@ -737,20 +765,20 @@ fn g7_locate() -> Golden {
     // Property values ride the sidecar as plain JSON: every pinned
     // double is exactly representable, and none renders integral, so
     // the number forms stay unambiguous (serde_json round-trips f64).
-    let properties_sidecar = json!([
-        {
-            "https://x.test/age/": -3,
-            "https://x.test/name/": "Ada",
-            "https://x.test/ok/": true,
-            "https://x.test/score/": 0.5,
-        },
-        Value::Null,
-        {},
+    let properties_sidecar = json!({
+        "https://x.test/age/": -3,
+        "https://x.test/name/": "Ada",
+        "https://x.test/ok/": true,
+        "https://x.test/score/": 0.5,
+    });
+    let link_properties_sidecar = json!([
         {
             "https://x.test/age/": 977,
             "https://x.test/name/": Value::Null,
             "https://x.test/score/": -2.5,
         },
+        Value::Null,
+        {},
     ]);
 
     let sidecar = locate_sidecar(
@@ -759,25 +787,27 @@ fn g7_locate() -> Golden {
         &bytes,
         &expected_mask,
         &properties_sidecar,
+        &link_properties_sidecar,
     );
-    Golden {
+    Fixture {
         name: "g7-locate",
         bytes,
         sidecar,
     }
 }
 
-/// Renders a locate golden's sidecar.
+/// Renders a locate fixture's sidecar.
 ///
-/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. `properties`
-/// arrives pre-rendered because its JSON forms are pinned alongside the wire values in the golden
-/// itself.
+/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. The property
+/// maps arrive pre-rendered because their JSON forms are pinned alongside the wire values in the
+/// fixture itself; the completeness bitmasks render as their logical boolean lists.
 fn locate_sidecar(
     name: &str,
     response: &LocateResponse<'_>,
     bytes: &[u8],
     type_mask: &[u8],
     properties: &Value,
+    link_properties: &Value,
 ) -> Value {
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
@@ -788,7 +818,7 @@ fn locate_sidecar(
         row_ids.push(response.rows[position as usize]);
     }
 
-    let trailer = response.trailer.as_ref().expect("G7 pins the trailer");
+    let trailer = &response.trailer;
     json!({
         "golden": name,
         "layer": "locate",
@@ -802,32 +832,61 @@ fn locate_sidecar(
             "cell": [response.cell.z, response.cell.x, response.cell.y],
             "edges": response.sources.len(),
             "complete": response.complete,
-            "trailer": true,
+            "entityId": identities_sidecar(&[response.entity_id]).remove(0),
+            "typeIdsComplete": response.type_ids_complete,
+            "propertiesComplete": response.properties_complete,
         },
         "positions": positions_bits,
         "rowIds": row_ids,
         "typeMask": type_mask,
         "sources": response.sources,
         "targets": response.targets,
-        "edgeRowIds": response.edge_rows,
+        "edgeIds": identities_sidecar(response.edge_ids),
         "trailer": {
+            "typeTable": trailer.type_table,
+            "propertyTable": trailer.property_table,
             "labels": details_sidecar(trailer.labels),
-            "icons": details_sidecar(trailer.icons),
-            "propertyNames": trailer.property_names,
+            "typeIds": trailer.type_ids,
             "properties": properties,
             "linkLabels": details_sidecar(trailer.link_labels),
-            "linkIcons": details_sidecar(trailer.link_icons),
-            "linkTypeLabels": details_sidecar(trailer.link_type_labels),
-            "linkTypeIcons": details_sidecar(trailer.link_type_icons),
+            "linkTypeIds": trailer.link_type_ids,
+            "linkTypeIdsComplete": trailer.link_type_ids_complete,
+            "linkProperties": link_properties,
+            "linkPropertiesComplete": trailer.link_properties_complete,
         },
     })
+}
+
+/// Builds one hand-pinned identity: sixteen web bytes then sixteen entity bytes.
+const fn identity_of(web: u8, entity: u8) -> [u8; 32] {
+    let mut id = [web; 32];
+    let mut index = 16;
+    while index < 32 {
+        id[index] = entity;
+        index += 1;
+    }
+    id
+}
+
+/// Renders one identity column as lowercase hex strings.
+fn identities_sidecar(ids: &[[u8; 32]]) -> Vec<String> {
+    use core::fmt::Write as _;
+
+    ids.iter()
+        .map(|id| {
+            id.iter().fold(String::with_capacity(64), |mut hex, byte| {
+                write!(hex, "{byte:02x}").expect("writing to a string cannot fail");
+                hex
+            })
+        })
+        .collect()
 }
 
 /// G8: the evolution scenario proven in advance - a slot count one past the v1 tile table.
 ///
 /// A populated appended slot, and a populated `MASS` slot; a v1 decoder ignores both by contract,
 /// so the sidecar's expectations cover only the v1 surface.
-fn g8_appended_slot() -> Golden {
+fn g8_appended_slot() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..6)
         .map(|index| {
             Vec2::new(
@@ -886,7 +945,7 @@ fn g8_appended_slot() -> Golden {
         Some(&mass),
         &json!({ "5": appended }),
     );
-    Golden {
+    Fixture {
         name: "g8-appended-slot",
         bytes,
         sidecar,
@@ -897,7 +956,7 @@ fn g8_appended_slot() -> Golden {
 ///
 /// Padding sweep, low widths - `HEAD` sized for pad 1, `TYPE_MASK` for pad 3, `ROW_IDS` for pad 4
 /// (odd delivered).
-fn g9_padding_low() -> Golden {
+fn g9_padding_low() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..10)
         .map(|index| {
             Vec2::new(
@@ -963,7 +1022,7 @@ fn g9_padding_low() -> Golden {
         None,
         &Value::Null,
     );
-    Golden {
+    Fixture {
         name: "g9-padding-low",
         bytes,
         sidecar,
@@ -974,7 +1033,7 @@ fn g9_padding_low() -> Golden {
 ///
 /// Padding sweep, high widths - `HEAD` sized for pad 2, `TYPE_MASK` for pad 5, two appended opaque
 /// slots for pads 6 and 7.
-fn g10_padding_high() -> Golden {
+fn g10_padding_high() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..6)
         .map(|index| {
             Vec2::new(
@@ -1048,7 +1107,7 @@ fn g10_padding_high() -> Golden {
         None,
         &json!({ "5": six, "6": seven }),
     );
-    Golden {
+    Fixture {
         name: "g10-padding-high",
         bytes,
         sidecar,

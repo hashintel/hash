@@ -185,7 +185,7 @@ impl IndexVariant {
 /// scalar tags pin an exact type, so an `f32` region never reads back as `u32`.
 /// [`Opaque`](Self::Opaque) records no identity beyond the width: two opaque types of one width are
 /// interchangeable on the wire, and a type carries that tag exactly when it opts into being so. The
-/// scalar discriminants mirror [`ArrayVariant`](super::array::ArrayVariant), so the two formats
+/// scalar discriminants mirror [`ArrayVariant`], so the two formats
 /// speak one scalar vocabulary.
 #[derive(
     Debug,
@@ -563,9 +563,8 @@ impl FileHeader {
 // needs `Copy`. No equality on purpose: callers compare the observable
 // they mean.
 impl fmt::Debug for FileHeader {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("FileHeader")
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("FileHeader")
             .field("magic", &self.magic.get())
             .field("version", &self.version.get())
             .field("value", &self.value)

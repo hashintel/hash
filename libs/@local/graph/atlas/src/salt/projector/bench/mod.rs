@@ -21,6 +21,8 @@ use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::model::{Architecture, NodeRole, Projector, ProjectorInput};
 
+pub mod live;
+
 #[cfg(test)]
 mod tests;
 

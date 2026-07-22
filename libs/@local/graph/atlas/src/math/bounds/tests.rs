@@ -8,7 +8,7 @@
     reason = "test data generation folds indices into range by modulus"
 )]
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, prop_assume, proptest, strategy::Strategy};
 
 use crate::math::{
     Bounds2, Vec2, Vec2x4T,
@@ -110,6 +110,23 @@ fn from_slice_matches_from_points_for_every_remainder_length() {
             Bounds2::from_slice(&points),
             Bounds2::from_points(points.iter().copied()),
             "length {length}",
+        );
+    }
+}
+
+#[test]
+fn from_slice_matches_from_points_at_every_alignment_offset() {
+    // Slide the slice start across a full batch stride so the split lands
+    // every possible prefix length.
+    let points = scattered_points(64);
+
+    for offset in 0..8 {
+        let window = &points[offset..];
+
+        assert_eq!(
+            Bounds2::from_slice(window),
+            Bounds2::from_points(window.iter().copied()),
+            "offset {offset}",
         );
     }
 }
@@ -249,7 +266,7 @@ fn point_strategy() -> impl Strategy<Value = Vec2> {
 ///
 /// Short enough to keep case counts sane.
 fn points_strategy() -> impl Strategy<Value = Vec<Vec2>> {
-    prop::collection::vec(point_strategy(), 0..64)
+    proptest::collection::vec(point_strategy(), 0..64)
 }
 
 /// A well-conditioned box.

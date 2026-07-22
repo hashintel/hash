@@ -2,7 +2,7 @@
 //!
 //! CBOR expectations come from RFC 8949 appendix A where the profile covers them and are derived by
 //! hand at the byte level otherwise; envelope and response expectations are derived in comments
-//! before the assertions. The checked-in goldens (`goldens.rs`) carry the cross-language corpus;
+//! before the assertions. The checked-in fixtures (`fixtures.rs`) carry the cross-language corpus;
 //! these tests pin the layers separately so a failure names its layer.
 #![expect(
     clippy::little_endian_bytes,
@@ -13,7 +13,7 @@
     reason = "a delta tile's delivered set really is one contiguous range"
 )]
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert, prop_assert_eq, proptest};
 
 use super::{
     Kind, Mode,
@@ -619,7 +619,7 @@ mod edges {
             complete: false,
             sources: &[4, 9, 4],
             targets: &[7, 2, 11],
-            edge_rows: &[100, 205, 3],
+            edge_ids: &[[0x11; 32], [0x22; 32], [0x33; 32]],
             trailer: None,
         }
     }
@@ -650,24 +650,21 @@ mod edges {
             expected
         );
 
+        // EDGE_IDS: raw 32-byte identity records, concatenated.
         let mut expected = Vec::new();
-        for edge in [100_u32, 205, 3] {
-            expected.extend_from_slice(&edge.to_le_bytes());
+        for id in [[0x11_u8; 32], [0x22; 32], [0x33; 32]] {
+            expected.extend_from_slice(&id);
         }
-        assert_eq!(
-            section(&bytes, 3).expect("EDGE_ROW_IDS is present"),
-            expected
-        );
+        assert_eq!(section(&bytes, 3).expect("EDGE_IDS is present"), expected);
     }
 
     #[test]
-    fn the_trailer_carries_four_arrays() {
+    fn the_trailer_carries_the_link_columns() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
+            type_table: &["s", "t"],
             link_labels: &[Some("a"), None, None],
-            link_icons: &[None, None, None],
-            link_type_labels: &[None, Some("b"), None],
-            link_type_icons: &[None, None, None],
+            link_type_ids: &[Some(1), Some(0), None],
         });
         let bytes = response.encode();
 
@@ -676,15 +673,13 @@ mod edges {
 
         let last = super::directory(&bytes, 3).1 as usize;
         let tail = &bytes[last.next_multiple_of(8)..];
-        // map(4): 0 ["a", null, null] | 1 [null x3] |
-        // 2 [null, "b", null] | 3 [null x3].
-        assert_eq!(
-            tail,
-            [
-                0xA4, 0x00, 0x83, 0x61, 0x61, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x83,
-                0xF6, 0x61, 0x62, 0xF6, 0x03, 0x83, 0xF6, 0xF6, 0xF6,
-            ]
-        );
+        // map(3): 0 ["s", "t"] | 1 ["a", null, null] |
+        // 2 [1, 0, null].
+        let expected = [
+            0xA3, 0x00, 0x82, 0x61, 0x73, 0x61, 0x74, 0x01, 0x83, 0x61, 0x61, 0xF6, 0xF6, 0x02,
+            0x83, 0x01, 0x00, 0xF6,
+        ];
+        assert_eq!(tail, expected);
     }
 
     #[test]
@@ -692,7 +687,7 @@ mod edges {
         let mut response = minimal();
         response.sources = &[];
         response.targets = &[];
-        response.edge_rows = &[];
+        response.edge_ids = &[];
         let bytes = response.encode();
 
         for slot in 1..4 {
@@ -711,14 +706,45 @@ mod edges {
     }
 
     #[test]
-    #[should_panic(expected = "link type labels must cover")]
+    #[should_panic(expected = "edge-id columns must cover the same edges")]
+    fn ragged_id_columns_are_rejected() {
+        let mut response = minimal();
+        response.edge_ids = &[[0; 32]];
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "link type ids must cover")]
     fn short_trailers_are_rejected() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
+            type_table: &[],
             link_labels: &[None, None, None],
-            link_icons: &[None, None, None],
-            link_type_labels: &[None],
-            link_type_icons: &[None, None, None],
+            link_type_ids: &[None],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "intern table must be bytewise-sorted")]
+    fn unsorted_intern_tables_are_rejected() {
+        let mut response = minimal();
+        response.trailer = Some(EdgesTrailer {
+            type_table: &["t", "s"],
+            link_labels: &[None, None, None],
+            link_type_ids: &[None, None, None],
+        });
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "link type ids must index into the type table")]
+    fn out_of_table_type_ids_are_rejected() {
+        let mut response = minimal();
+        response.trailer = Some(EdgesTrailer {
+            type_table: &["s"],
+            link_labels: &[None, None, None],
+            link_type_ids: &[Some(1), None, None],
         });
         let _bytes = response.encode();
     }
@@ -740,23 +766,42 @@ mod locate {
         ]
     }
 
-    /// A three-node, two-edge response without a trailer.
+    /// The two-edge link-type lists behind the minimal trailer: both empty.
+    static NO_TYPES: [Vec<u32>; 2] = [Vec::new(), Vec::new()];
+
+    /// A three-node, two-edge response with an all-null trailer.
     ///
-    /// Delivered base positions 2, 0, 3 (source first) over a four-point base column.
+    /// Delivered base positions 2, 0, 3 (source first) over a four-point base column. The trailer
+    /// always rides - locate is the detail view - so the minimal document carries empty tables
+    /// and null columns.
     fn minimal(positions: &[Vec2]) -> LocateResponse<'_> {
         LocateResponse {
             generation: Sha256Digest::from_bytes_unchecked([0xAB; 32]),
             variant: 0,
             cell: TileCoordinate { z: 2, x: 1, y: 3 },
             complete: true,
+            entity_id: [0xEE; 32],
+            type_ids_complete: false,
+            properties_complete: true,
             delivered: &[2, 0, 3],
             positions,
             rows: &[10, 11, 12, 13],
             masks: None,
             sources: &[10, 12],
             targets: &[12, 13],
-            edge_rows: &[5, 8],
-            trailer: None,
+            edge_ids: &[[0x44; 32], [0x55; 32]],
+            trailer: LocateTrailer {
+                type_table: &[],
+                property_table: &[],
+                labels: &[None, None, None],
+                type_ids: &[None, None, None],
+                properties: None,
+                link_labels: &[None, None],
+                link_type_ids: &NO_TYPES,
+                link_type_ids_complete: &[false, false],
+                link_properties: &[None, None],
+                link_properties_complete: &[false, false],
+            },
         }
     }
 
@@ -766,14 +811,17 @@ mod locate {
         let bytes = minimal(&positions).encode();
         assert_eq!(bytes[0..8], *b"SALTILEL");
 
-        // map(8): 0 bstr(32) | 1 uint 0 | 2 uint 3 | 3 uint 2 |
-        // 4 [2, 1, 3] | 5 uint 2 | 6 true | 7 false.
-        let mut expected = vec![0xA8, 0x00, 0x58, 0x20];
+        // map(10): 0 bstr(32) | 1 uint 0 | 2 uint 3 | 3 uint 2 |
+        // 4 [2, 1, 3] | 5 uint 2 | 6 true | 7 bstr(32) | 8 false |
+        // 9 true.
+        let mut expected = vec![0xAA, 0x00, 0x58, 0x20];
         expected.extend_from_slice(&[0xAB; 32]);
         expected.extend_from_slice(&[
             0x01, 0x00, 0x02, 0x03, 0x03, 0x02, 0x04, 0x83, 0x02, 0x01, 0x03, 0x05, 0x02, 0x06,
-            0xF5, 0x07, 0xF4,
+            0xF5, 0x07, 0x58, 0x20,
         ]);
+        expected.extend_from_slice(&[0xEE; 32]);
+        expected.extend_from_slice(&[0x08, 0xF4, 0x09, 0xF5]);
         assert_eq!(section(&bytes, 0).expect("HEAD is present"), expected);
     }
 
@@ -800,8 +848,8 @@ mod locate {
         // No coloredTypeIds: TYPE_MASK is absent, not empty.
         assert!(section(&bytes, 3).is_none());
 
-        // Edge columns, edge order.
-        for (slot, column) in [(4_usize, [10_u32, 12]), (5, [12, 13]), (6, [5, 8])] {
+        // Endpoint columns, edge order.
+        for (slot, column) in [(4_usize, [10_u32, 12]), (5, [12, 13])] {
             let mut expected = Vec::new();
             for value in column {
                 expected.extend_from_slice(&value.to_le_bytes());
@@ -812,6 +860,13 @@ mod locate {
                 "slot {slot}",
             );
         }
+
+        // EDGE_IDS: raw 32-byte identity records, concatenated.
+        let mut expected = Vec::new();
+        for id in [[0x44_u8; 32], [0x55; 32]] {
+            expected.extend_from_slice(&id);
+        }
+        assert_eq!(section(&bytes, 6).expect("EDGE_IDS is present"), expected);
     }
 
     #[test]
@@ -836,46 +891,43 @@ mod locate {
     }
 
     #[test]
-    fn the_trailer_interns_property_names() {
+    fn the_trailer_encodes_by_hand() {
         let positions = points();
+        let lists = [vec![1_u32, 0], Vec::new()];
         let mut response = minimal(&positions);
-        response.trailer = Some(LocateTrailer {
+        response.trailer = LocateTrailer {
+            type_table: &["s", "t"],
+            property_table: &["a", "b"],
             labels: &[Some("n"), None, None],
-            icons: &[None, None, None],
-            property_names: &["a", "b"],
-            properties: &[
-                Some(&[
-                    (0, PropertyValue::Text("x")),
-                    (1, PropertyValue::Integer(-2)),
-                ]),
-                Some(&[(0, PropertyValue::Boolean(true)), (1, PropertyValue::Null)]),
-                Some(&[(1, PropertyValue::Float(0.5))]),
-            ],
+            type_ids: &[Some(1), None, Some(0)],
+            properties: Some(&[
+                (0, PropertyValue::Text("x")),
+                (1, PropertyValue::Integer(-2)),
+            ]),
             link_labels: &[Some("l"), None],
-            link_icons: &[None, None],
-            link_type_labels: &[None, Some("t")],
-            link_type_icons: &[None, None],
-        });
+            link_type_ids: &lists,
+            link_type_ids_complete: &[true, false],
+            link_properties: &[
+                Some(&[(0, PropertyValue::Boolean(true)), (1, PropertyValue::Null)]),
+                None,
+            ],
+            link_properties_complete: &[false, true],
+        };
         let bytes = response.encode();
-
-        let head = section(&bytes, 0).expect("HEAD is present");
-        assert_eq!(head[head.len() - 2..], [0x07, 0xF5]);
 
         let last = super::directory(&bytes, 6).1 as usize;
         let tail = &bytes[last.next_multiple_of(8)..];
-        // map(8): 0 ["n", null, null] | 1 [null x3] | 2 ["a", "b"] |
-        // 3 [{0: "x", 1: -2}, {0: true, 1: null}, {1: 0.5f64}] |
-        // 4 ["l", null] | 5 [null x2] | 6 [null, "t"] | 7 [null x2].
-        assert_eq!(
-            tail,
-            [
-                0xA8, 0x00, 0x83, 0x61, 0x6E, 0xF6, 0xF6, 0x01, 0x83, 0xF6, 0xF6, 0xF6, 0x02, 0x82,
-                0x61, 0x61, 0x61, 0x62, 0x03, 0x83, 0xA2, 0x00, 0x61, 0x78, 0x01, 0x21, 0xA2, 0x00,
-                0xF5, 0x01, 0xF6, 0xA1, 0x01, 0xFB, 0x3F, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x04, 0x82, 0x61, 0x6C, 0xF6, 0x05, 0x82, 0xF6, 0xF6, 0x06, 0x82, 0xF6, 0x61, 0x74,
-                0x07, 0x82, 0xF6, 0xF6,
-            ]
-        );
+        // map(10): 0 ["s", "t"] | 1 ["a", "b"] | 2 ["n", null x2] |
+        // 3 [1, null, 0] | 4 {0: "x", 1: -2} | 5 ["l", null] |
+        // 6 [[1, 0], []] | 7 bstr 0b01 | 8 [{0: true, 1: null},
+        // null] | 9 bstr 0b10.
+        let expected = [
+            0xAA, 0x00, 0x82, 0x61, 0x73, 0x61, 0x74, 0x01, 0x82, 0x61, 0x61, 0x61, 0x62, 0x02,
+            0x83, 0x61, 0x6E, 0xF6, 0xF6, 0x03, 0x83, 0x01, 0xF6, 0x00, 0x04, 0xA2, 0x00, 0x61,
+            0x78, 0x01, 0x21, 0x05, 0x82, 0x61, 0x6C, 0xF6, 0x06, 0x82, 0x82, 0x01, 0x00, 0x80,
+            0x07, 0x41, 0x01, 0x08, 0x82, 0xA2, 0x00, 0xF5, 0x01, 0xF6, 0xF6, 0x09, 0x41, 0x02,
+        ];
+        assert_eq!(tail, expected);
     }
 
     #[test]
@@ -885,7 +937,14 @@ mod locate {
         response.delivered = &[1];
         response.sources = &[];
         response.targets = &[];
-        response.edge_rows = &[];
+        response.edge_ids = &[];
+        response.trailer.labels = &[None];
+        response.trailer.type_ids = &[None];
+        response.trailer.link_labels = &[];
+        response.trailer.link_type_ids = &[];
+        response.trailer.link_type_ids_complete = &[];
+        response.trailer.link_properties = &[];
+        response.trailer.link_properties_complete = &[];
         let bytes = response.encode();
 
         for slot in [4_usize, 5, 6] {
@@ -905,20 +964,38 @@ mod locate {
     }
 
     #[test]
-    #[should_panic(expected = "properties must cover exactly the delivered nodes")]
+    #[should_panic(expected = "edge-id columns must cover the same edges")]
+    fn ragged_id_columns_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.edge_ids = &[[0; 32]];
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "labels must cover exactly the delivered nodes")]
     fn short_trailers_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer = Some(LocateTrailer {
-            labels: &[None, None, None],
-            icons: &[None, None, None],
-            property_names: &[],
-            properties: &[None],
-            link_labels: &[None, None],
-            link_icons: &[None, None],
-            link_type_labels: &[None, None],
-            link_type_icons: &[None, None],
-        });
+        response.trailer.labels = &[None];
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "type ids must cover exactly the delivered nodes")]
+    fn short_type_id_columns_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer.type_ids = &[None];
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "type completeness must cover exactly the delivered edges")]
+    fn short_bitmask_columns_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer.link_type_ids_complete = &[false];
         let _bytes = response.encode();
     }
 
@@ -927,34 +1004,36 @@ mod locate {
     fn unsorted_intern_tables_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer = Some(LocateTrailer {
-            labels: &[None, None, None],
-            icons: &[None, None, None],
-            property_names: &["b", "a"],
-            properties: &[None, None, None],
-            link_labels: &[None, None],
-            link_icons: &[None, None],
-            link_type_labels: &[None, None],
-            link_type_icons: &[None, None],
-        });
+        response.trailer.property_table = &["b", "a"];
         let _bytes = response.encode();
     }
 
     #[test]
-    #[should_panic(expected = "index into the intern table")]
+    #[should_panic(expected = "node type ids must index into the type table")]
+    fn out_of_table_node_type_ids_are_rejected() {
+        let positions = points();
+        let mut response = minimal(&positions);
+        response.trailer.type_ids = &[Some(0), None, None];
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "link type ids must index into the type table")]
+    fn out_of_table_link_type_ids_are_rejected() {
+        let positions = points();
+        let lists = [vec![0_u32], Vec::new()];
+        let mut response = minimal(&positions);
+        response.trailer.link_type_ids = &lists;
+        let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "property map keys must index into the property table")]
     fn out_of_table_property_keys_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer = Some(LocateTrailer {
-            labels: &[None, None, None],
-            icons: &[None, None, None],
-            property_names: &["a"],
-            properties: &[Some(&[(1, PropertyValue::Null)]), None, None],
-            link_labels: &[None, None],
-            link_icons: &[None, None],
-            link_type_labels: &[None, None],
-            link_type_icons: &[None, None],
-        });
+        response.trailer.property_table = &["a"];
+        response.trailer.properties = Some(&[(1, PropertyValue::Null)]);
         let _bytes = response.encode();
     }
 
@@ -963,20 +1042,11 @@ mod locate {
     fn descending_property_keys_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer = Some(LocateTrailer {
-            labels: &[None, None, None],
-            icons: &[None, None, None],
-            property_names: &["a", "b"],
-            properties: &[
-                Some(&[(1, PropertyValue::Null), (0, PropertyValue::Null)]),
-                None,
-                None,
-            ],
-            link_labels: &[None, None],
-            link_icons: &[None, None],
-            link_type_labels: &[None, None],
-            link_type_icons: &[None, None],
-        });
+        response.trailer.property_table = &["a", "b"];
+        response.trailer.link_properties = &[
+            Some(&[(1, PropertyValue::Null), (0, PropertyValue::Null)]),
+            None,
+        ];
         let _bytes = response.encode();
     }
 }

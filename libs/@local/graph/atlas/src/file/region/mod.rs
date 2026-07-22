@@ -14,7 +14,11 @@
 //! Each format keeps its own header type, geometry validation, and error vocabulary; this module is
 //! deliberately ignorant of what a region holds.
 
-use std::{fs::File, io, path::Path};
+use std::{
+    fs::{self, File},
+    io,
+    path::Path,
+};
 
 use memmap2::Mmap;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
@@ -83,27 +87,41 @@ pub(crate) fn write_padding(mut write: impl io::Write, len: u64) -> io::Result<(
 /// A memory-mapped artifact file.
 ///
 /// The mapping relies on the publish contract of [`crate::file`]: published artifact files are
-/// immutable, so the borrowed bytes cannot change beneath a reader. [`Self::region`] carves the
+/// immutable, so the borrowed bytes cannot change beneath a reader. The map holds the file and a
+/// shared advisory lock for its whole lifetime, so a cooperating writer that takes an exclusive
+/// lock cannot truncate or rewrite the inode beneath a live mapping. [`Self::region`] carves the
 /// page-aligned data regions out of the mapping once a format's own validation has accepted the
 /// geometry they come from.
 #[derive(Debug)]
 pub(crate) struct PageMap {
     map: Mmap,
+    /// Holds the shared advisory lock; dropped after `map`, releasing the lock at close.
+    _file: File,
 }
 
 impl PageMap {
-    /// Opens and maps the file at `path`.
+    /// Opens, locks, and maps the file at `path`.
     ///
     /// # Errors
     ///
-    /// Returns the error when the file cannot be opened or mapped.
+    /// Returns the error when the file cannot be opened, locked, or mapped. A published file
+    /// never carries an exclusive lock, so a lock that would block reports
+    /// [`io::ErrorKind::WouldBlock`] instead of waiting.
     pub(crate) fn open(path: impl AsRef<Path>) -> io::Result<Self> {
         let file = File::open(path)?;
+        file.try_lock_shared().map_err(|error| match error {
+            fs::TryLockError::Error(error) => error,
+            fs::TryLockError::WouldBlock => io::Error::new(
+                io::ErrorKind::WouldBlock,
+                "the artifact file is exclusively locked",
+            ),
+        })?;
         // SAFETY: published artifact files are immutable (the `crate::file` publish contract:
         // temporary path, rename into place, never rewritten), so the mapped bytes cannot change
-        // beneath the borrow.
+        // beneath the borrow. The shared advisory lock held for the mapping's lifetime makes a
+        // cooperating in-place writer fail loudly instead of invalidating the borrow.
         let map = unsafe { Mmap::map(&file) }?;
-        Ok(Self { map })
+        Ok(Self { map, _file: file })
     }
 
     /// The full mapping.

@@ -161,7 +161,7 @@ pub(crate) struct ArchitectureMismatch {
 }
 
 impl fmt::Display for ArchitectureMismatch {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self {
             layer,
             dimension,
@@ -172,13 +172,13 @@ impl fmt::Display for ArchitectureMismatch {
         let (layer, dimension) = (layer.name(), dimension.name());
         if let Some(block) = block {
             write!(
-                formatter,
+                fmt,
                 "the model's {layer} {dimension} in residual block {block} is {actual}, not the \
                  architecture's {expected}",
             )
         } else {
             write!(
-                formatter,
+                fmt,
                 "the model's {layer} {dimension} is {actual}, not the architecture's {expected}",
             )
         }

@@ -23,21 +23,35 @@
 //!   matrixmultiply's own pool (`MATMUL_NUM_THREADS`), so a flat response here is the expected
 //!   reading, kept as the guard on that fact.
 //!
+//! - `live/*`: one real training step at the ratified batch plan over a synthesized corpus, phase
+//!   by phase - `draw`, `assemble`, and per backend `input`, `forward`, `objective` (readback +
+//!   hand-rolled fields + surrogate), and `step` (the whole motion, optimizer included). The phase
+//!   split is the backend decision's decomposition: burn tensor work vs hand-rolled CPU work vs
+//!   batch pipeline. Each backend's cold first step prints separately before its timed phases; on
+//!   autotuning backends that number is the warmup story criterion's steady state hides.
+//!
 //! Set `PROJECTOR_BENCH_ROWS` to scale the largest forward batch
 //! (default 65536; the full corpus is ~1M rows, and forward cost is
 //! linear in rows past cache scale, so per-row numbers extrapolate).
-//! Wall time depends on the host; compare within one machine, not
-//! across.
+//! `PROJECTOR_BENCH_LIVE_ROWS` scales the live corpus (default
+//! 65536). Wall time depends on the host; compare within one
+//! machine, not across.
 #![expect(
     clippy::decimal_literal_representation,
     clippy::significant_drop_tightening,
-    reason = "batch sizes are row counts, and Criterion owns group drops"
+    clippy::print_stderr,
+    clippy::use_debug,
+    reason = "batch sizes are row counts, Criterion owns group drops, and the cold-step report \
+              prints wall time to stderr"
 )]
 
 use core::{hint::black_box, time::Duration};
+use std::time::Instant;
 
-use codspeed_criterion_compat::{Criterion, Throughput, criterion_group, criterion_main};
-use hash_graph_atlas::bench::projector::{BackendKind, Batch, Model, batch};
+use codspeed_criterion_compat::{
+    BatchSize, Criterion, Throughput, criterion_group, criterion_main,
+};
+use hash_graph_atlas::bench::projector::{BackendKind, Batch, Model, batch, live};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
@@ -121,6 +135,62 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
     group.finish();
 }
 
+/// One real training step at the ratified plan, phase by phase.
+fn bench_live_step(criterion: &mut Criterion) {
+    let rows = std::env::var("PROJECTOR_BENCH_LIVE_ROWS").map_or(65_536, |value| {
+        value
+            .parse()
+            .expect("PROJECTOR_BENCH_LIVE_ROWS should be a row count")
+    });
+    let fixture = live::Fixture::build(rows, SEED);
+    let sampler = fixture.sampler();
+    let batch = fixture.assemble(sampler.draw(SEED));
+
+    let mut group = criterion.benchmark_group("projector_backend/live");
+    group.sample_size(10);
+    group.throughput(Throughput::Elements(batch.rows() as u64));
+
+    group.bench_function("draw", |bencher| {
+        bencher.iter(|| black_box(sampler.draw(black_box(SEED))));
+    });
+    group.bench_function("assemble", |bencher| {
+        bencher.iter_batched(
+            || sampler.draw(SEED),
+            |drawn| black_box(fixture.assemble(drawn)),
+            BatchSize::LargeInput,
+        );
+    });
+
+    for &kind in BackendKind::ALL {
+        let mut stepper = live::Stepper::build(&fixture, kind, SEED);
+
+        // The cold first step carries one-time backend work (autotune,
+        // first allocations) that steady-state sampling hides.
+        let cold = Instant::now();
+        let _cold_loss: f32 = stepper.step(&batch);
+        eprintln!(
+            "projector_backend/live/{}: cold first step {:?}",
+            kind.label(),
+            cold.elapsed()
+        );
+
+        group.bench_function(format!("{}/input", kind.label()), |bencher| {
+            bencher.iter(|| stepper.input(black_box(&batch)));
+        });
+        group.bench_function(format!("{}/forward", kind.label()), |bencher| {
+            bencher.iter(|| black_box(stepper.forward(black_box(&batch))));
+        });
+        group.bench_function(format!("{}/objective", kind.label()), |bencher| {
+            bencher.iter(|| black_box(stepper.objective(black_box(&batch))));
+        });
+        group.bench_function(format!("{}/step", kind.label()), |bencher| {
+            bencher.iter(|| black_box(stepper.step(black_box(&batch))));
+        });
+    }
+
+    group.finish();
+}
+
 fn config() -> Criterion {
     Criterion::default()
         .warm_up_time(Duration::from_millis(500))
@@ -130,6 +200,6 @@ fn config() -> Criterion {
 criterion_group!(
     name = benches;
     config = config();
-    targets = bench_training_step, bench_forward, bench_thread_scaling
+    targets = bench_live_step, bench_training_step, bench_forward, bench_thread_scaling
 );
 criterion_main!(benches);

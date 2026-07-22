@@ -5,7 +5,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use proptest::prelude::*;
+use proptest::{arbitrary::any, prop_assert_eq, proptest};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
@@ -299,8 +299,8 @@ proptest! {
     /// `run` agrees with a linear scan of the segment for every code column, cell, and stride.
     #[test]
     fn runs_agree_with_a_linear_scan(
-        mut bits in prop::collection::vec(any::<u64>(), 0..64),
-        cuts in prop::collection::vec(any::<prop::sample::Index>(), 2),
+        mut bits in proptest::collection::vec(any::<u64>(), 0..64),
+        cuts in proptest::collection::vec(any::<proptest::sample::Index>(), 2),
         stride in 1_u32..8,
         probe: u64,
         probe_depth in 0_u8..=6,

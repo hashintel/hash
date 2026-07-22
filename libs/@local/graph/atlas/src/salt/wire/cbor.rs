@@ -7,11 +7,11 @@
 //! value-dependent shortest form. The writer emits exactly this subset and nothing else - tags in
 //! particular have no emitter, which is the profile's proof surface staying minimal.
 //!
-//! Two profile laws live with the caller, checked by the goldens rather than writer state: map keys
-//! are emitted in ascending numeric order (single-byte encodings below 24 make numeric order the
-//! required bytewise order), and a declared map or array length is followed by exactly that many
-//! items. Every emission site in this module's consumers writes its keys as literals in ascending
-//! source order.
+//! Two profile laws live with the caller, checked by the fixtures rather than writer state: map
+//! keys are emitted in ascending numeric order (single-byte encodings below 24 make numeric order
+//! the required bytewise order), and a declared map or array length is followed by exactly that
+//! many items. Every emission site in this module's consumers writes its keys as literals in
+//! ascending source order.
 //!
 //! Heads follow RFC 8949's shortest form: the argument rides inline below 24 and in the narrowest
 //! of 1, 2, 4, or 8 big-endian bytes otherwise. CBOR arguments are network byte order - the one

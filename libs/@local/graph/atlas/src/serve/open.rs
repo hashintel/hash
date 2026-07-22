@@ -5,7 +5,7 @@
 
 use super::{
     Atlas, OpenOptions,
-    codec::{EDGE_LABEL, NODE_LABEL, RowCodec},
+    codec::{NODE_LABEL, RowCodec},
     error::{ArrayKind, IdentityDomain, OpenAtlasError},
 };
 use crate::{
@@ -103,13 +103,12 @@ impl Atlas {
         let world = generation.repository().metadata.evidence.lod.world;
         let bounds = (morton.count() > 0).then(|| frame_extent(world));
 
-        // Both universes are validated row counts: the row column is
-        // the node universe's permutation and the endpoint column is
-        // edge-indexed, so their lengths are the `N` of each codec.
+        // The universe is a validated row count: the row column is
+        // the node universe's permutation, so its length is the
+        // codec's `N`. Edges cross the wire as link-entity
+        // identities and need no codec.
         let node_universe = narrow_count(rows.u32_elements().map_or(0, <[u32]>::len));
-        let edge_universe = narrow_count(endpoints.u64_pairs().map_or(0, <[[u64; 2]]>::len));
         let node_codec = RowCodec::derive(&options.wire_secret, id, NODE_LABEL, node_universe);
-        let edge_codec = RowCodec::derive(&options.wire_secret, id, EDGE_LABEL, edge_universe);
 
         let mut this = Self {
             generation,
@@ -128,7 +127,6 @@ impl Atlas {
             node_ids,
             edge_ids,
             node_codec,
-            edge_codec,
             wire_rows: Vec::new(),
             bounds,
         };

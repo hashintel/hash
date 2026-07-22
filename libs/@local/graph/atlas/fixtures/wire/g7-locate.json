@@ -1,29 +1,35 @@
 {
   "directory": [
-    [72, 125],
-    [128, 160],
-    [160, 176],
-    [176, 180],
-    [184, 196],
-    [200, 212],
-    [216, 228]
+    [72, 162],
+    [168, 200],
+    [200, 216],
+    [216, 220],
+    [224, 236],
+    [240, 252],
+    [256, 352]
   ],
-  "edgeRowIds": [9, 57, 300],
+  "edgeIds": [
+    "d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+    "e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+    "f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1"
+  ],
   "golden": "g7-locate",
   "head": {
     "cell": [3, 5, 2],
     "complete": false,
     "count": 4,
     "edges": 3,
+    "entityId": "4242424242424242424242424242424224242424242424242424242424242424",
     "generation": "7777777777777777777777777777777777777777777777777777777777777777",
-    "trailer": true,
+    "propertiesComplete": false,
+    "typeIdsComplete": true,
     "variant": 0,
     "zoom": 3
   },
   "layer": "locate",
   "positions": [
-    1059061760, 3196059648, 3206545408, 1052770304, 1040187392, 0, 3200253952,
-    1048576000
+    1059061760, 3196059648, 3206545408, 1052770304, 3200253952, 1048576000,
+    1040187392, 0
   ],
   "prefix": {
     "flags": 0,
@@ -32,37 +38,42 @@
     "slotCount": 7,
     "wireVersion": 1
   },
-  "rowIds": [61, 11, 41, 21],
+  "rowIds": [61, 11, 21, 41],
   "sources": [61, 41, 21],
   "targets": [11, 61, 41],
   "trailer": {
-    "icons": ["🦀", null, null, "→"],
     "labels": ["Café", null, "𝔊", "é"],
-    "linkIcons": [null, "🔗", null],
     "linkLabels": ["œuvre", null, "cites"],
-    "linkTypeIcons": [null, null, "水"],
-    "linkTypeLabels": ["authored", "authored", null],
-    "properties": [
-      {
-        "https://x.test/age/": -3,
-        "https://x.test/name/": "Ada",
-        "https://x.test/ok/": true,
-        "https://x.test/score/": 0.5
-      },
-      null,
-      {},
+    "linkProperties": [
       {
         "https://x.test/age/": 977,
         "https://x.test/name/": null,
         "https://x.test/score/": -2.5
-      }
+      },
+      null,
+      {}
     ],
-    "propertyNames": [
+    "linkPropertiesComplete": [true, false, true],
+    "linkTypeIds": [[1, 0], [0], []],
+    "linkTypeIdsComplete": [true, false, false],
+    "properties": {
+      "https://x.test/age/": -3,
+      "https://x.test/name/": "Ada",
+      "https://x.test/ok/": true,
+      "https://x.test/score/": 0.5
+    },
+    "propertyTable": [
       "https://x.test/age/",
       "https://x.test/name/",
       "https://x.test/ok/",
       "https://x.test/score/"
+    ],
+    "typeIds": [1, null, 2, 0],
+    "typeTable": [
+      "https://t.test/authored/v/1",
+      "https://t.test/person/v/3",
+      "https://t.test/work/v/2"
     ]
   },
-  "typeMask": [1, 1, 2, 0]
+  "typeMask": [1, 1, 0, 2]
 }

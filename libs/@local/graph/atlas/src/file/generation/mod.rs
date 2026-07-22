@@ -70,33 +70,30 @@ pub(crate) enum SealError {
 }
 
 impl fmt::Display for SealError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Duplicate { name } => {
-                write!(formatter, "the manifest lists {name} for two roles")
+                write!(fmt, "the manifest lists {name} for two roles")
             }
             Self::Reserved => write!(
-                formatter,
+                fmt,
                 "the manifest claims the metadata document's name {METADATA_FILE}",
             ),
             Self::Missing { name } => {
-                write!(formatter, "the manifest-listed file {name} is not staged")
+                write!(fmt, "the manifest-listed file {name} is not staged")
             }
             Self::Unlisted { name } => write!(
-                formatter,
+                fmt,
                 "the staged file {} is not listed in the manifest",
                 name.display(),
             ),
             Self::AlreadyPublished(id) => {
-                write!(formatter, "generation {id} is already published")
+                write!(fmt, "generation {id} is already published")
             }
             Self::Document(error) => {
-                write!(
-                    formatter,
-                    "the metadata document failed to serialize: {error}"
-                )
+                write!(fmt, "the metadata document failed to serialize: {error}")
             }
-            Self::Io(error) => write!(formatter, "the generation failed to persist: {error}"),
+            Self::Io(error) => write!(fmt, "the generation failed to persist: {error}"),
         }
     }
 }
@@ -125,14 +122,14 @@ pub enum CurrentError {
 }
 
 impl fmt::Display for CurrentError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Corrupt(error) => write!(
-                formatter,
+                fmt,
                 "the current-generation pointer does not name a generation: {error}",
             ),
             Self::Io(error) => write!(
-                formatter,
+                fmt,
                 "the current-generation pointer failed to read: {error}",
             ),
         }
@@ -158,13 +155,13 @@ pub(crate) enum ActivateError {
 }
 
 impl fmt::Display for ActivateError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unpublished(id) => {
-                write!(formatter, "generation {id} is not published in this root")
+                write!(fmt, "generation {id} is not published in this root")
             }
             Self::Io(error) => write!(
-                formatter,
+                fmt,
                 "the current-generation pointer failed to replace: {error}",
             ),
         }
@@ -212,8 +209,8 @@ impl GenerationId {
 
 impl fmt::Display for GenerationId {
     #[inline]
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0, formatter)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 

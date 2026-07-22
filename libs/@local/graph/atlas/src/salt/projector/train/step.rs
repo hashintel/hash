@@ -16,6 +16,8 @@
 //! whose accumulated relation gradient is exactly zero - contribute their semantic gradient
 //! unclipped and are not recorded into the budget metrics: there is nothing to budget.
 
+use core::alloc::Allocator;
+
 use burn::tensor::{
     Tensor, TensorData,
     backend::{AutodiffBackend, Backend},
@@ -113,10 +115,10 @@ impl Evaluation<'_> {
     ///
     /// Panics on wiring defects: input columns disagreeing with the batch rows, relation edges
     /// without a frozen relation energy, or scale tables missing where relation edges are present.
-    pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>>(
+    pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
         &self,
         model: &Projector<B>,
-        batch: &Batch,
+        batch: &Batch<A>,
         metrics: &mut BudgetBreakdown,
         device: &B::Device,
     ) -> Result<Objective<B>, StepError> {
@@ -146,9 +148,9 @@ impl Evaluation<'_> {
     clippy::panic_in_result_fn,
     reason = "a frame/batch row mismatch is a wiring defect contract, not a recoverable error"
 )]
-pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
+pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
     coordinates: Tensor<B, 2>,
-    batch: &Batch,
+    batch: &Batch<A>,
     options: &ObjectiveOptions,
     deciles: &DegreeDeciles,
     metrics: &mut BudgetBreakdown,
@@ -250,9 +252,9 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>>(
 /// Evaluates the relation term per type, clips per node, and records the budget metrics.
 ///
 /// Returns the relation loss value and the flattened combined field.
-fn relation_pass(
+fn relation_pass<A: Allocator>(
     frame: &[Vec2],
-    batch: &Batch,
+    batch: &Batch<A>,
     options: &ObjectiveOptions,
     semantic_field: &GradientField,
     deciles: &DegreeDeciles,

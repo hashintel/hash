@@ -13,6 +13,7 @@ import {
 import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
 import type { TileEdge } from "./fetch-edges-for-tiles";
 import type { FetchedTile, TileNode } from "./fetch-tile";
+import type { EntityId } from "@blockprotocol/type-system";
 
 /**
  * A fetcher returning three unique nodes per tile, tracking calls per tile.
@@ -368,9 +369,9 @@ describe("getViewportNodes edges", () => {
     // Null viewport delivers the root (ids 0..2) and four depth-1 tiles
     // ({ z:1 } base = 1_000_000 + tileIndex * 10).
     const edgesFetcher = stubEdges([
-      { id: 500, source: 0, target: 1 }, // within the root tile
-      { id: 501, source: 1_000_000, target: 1_000_001 }, // within tile z1/0
-      { id: 502, source: 1_000_000, target: 1_000_010 }, // z1/0 <-> z1/1
+      { id: "id-500" as EntityId, source: 0, target: 1 }, // within the root tile
+      { id: "id-501" as EntityId, source: 1_000_000, target: 1_000_001 }, // within tile z1/0
+      { id: "id-502" as EntityId, source: 1_000_000, target: 1_000_010 }, // z1/0 <-> z1/1
     ]);
     const cache = new TileCache({ fetcher, edgesFetcher });
 
@@ -379,8 +380,10 @@ describe("getViewportNodes edges", () => {
     // One request carried every delivered tile (root + four depth-1 tiles).
     expect(edgesFetcher.calls).toHaveLength(1);
     expect(edgesFetcher.calls[0]).toHaveLength(5);
-    expect(edges.map((edge) => edge.id).sort((a, b) => a - b)).toEqual([
-      500, 501, 502,
+    expect(edges.map((edge) => edge.id).sort()).toEqual([
+      "id-500",
+      "id-501",
+      "id-502",
     ]);
     // Two single-tile buckets plus one tile-pair bucket.
     expect(cache.edgeBucketCount).toBe(3);
@@ -389,7 +392,7 @@ describe("getViewportNodes edges", () => {
   it("serves a repeated viewport's edges from cache without refetching", async () => {
     const fetcher = countingFetcher();
     const edgesFetcher = stubEdges([
-      { id: 700, source: 1_000_000, target: 1_000_010 },
+      { id: "id-700" as EntityId, source: 1_000_000, target: 1_000_010 },
     ]);
     const cache = new TileCache({ fetcher, edgesFetcher });
 
@@ -524,7 +527,7 @@ describe("TileCache", () => {
     const tileA = { z: 5, x: 0, y: 0 }; // nodes 5_000_000..02
     const tileB = { z: 5, x: 1, y: 0 }; // tileIndex 1 → nodes 5_000_010..12
     const edgesFetcher = stubEdges([
-      { id: 900, source: 5_000_000, target: 5_000_010 }, // crosses A <-> B
+      { id: "id-900" as EntityId, source: 5_000_000, target: 5_000_010 }, // crosses A <-> B
     ]);
     // Budget for exactly the two node tiles plus the one pair bucket.
     const cache = new TileCache({

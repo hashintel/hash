@@ -6,7 +6,7 @@
 
 use core::simd::Simd;
 
-use proptest::prelude::*;
+use proptest::{prop_assert, prop_assert_eq, proptest, strategy::Strategy};
 
 use crate::math::{Vec2, Vec2x4, Vec2x4T, tests::POINTS};
 
@@ -268,6 +268,123 @@ fn natural_index_out_of_bounds() {
 }
 
 #[test]
+fn natural_splat_repeats_the_vector() {
+    let batch = Vec2x4::splat(Vec2::new(1.5, -2.0));
+
+    for index in 0..4 {
+        assert_eq!(batch.get(index), Vec2::new(1.5, -2.0));
+    }
+}
+
+#[test]
+fn natural_from_slice_splits_and_rejoins_at_every_offset() {
+    let points: Vec<Vec2> = (0..24_u8)
+        .map(|index| {
+            let value = f32::from(index);
+
+            Vec2::new(value, -value)
+        })
+        .collect();
+
+    for offset in 0..8 {
+        let window = &points[offset..];
+        let (prefix, batches, suffix) = Vec2x4::from_slice(window);
+
+        // Every point lands in exactly one part, in order.
+        assert_eq!(
+            prefix.len() + 4 * batches.len() + suffix.len(),
+            window.len(),
+            "offset {offset}",
+        );
+        let rejoined: Vec<Vec2> = prefix
+            .iter()
+            .copied()
+            .chain(batches.iter().flat_map(|batch| *batch.as_array()))
+            .chain(suffix.iter().copied())
+            .collect();
+        assert_eq!(rejoined, window, "offset {offset}");
+
+        // The middle is genuinely aligned and aliases the input storage.
+        assert!(batches.as_ptr().addr().is_multiple_of(align_of::<Vec2x4>()));
+        if !batches.is_empty() {
+            assert_eq!(
+                batches[0].as_array().as_ptr(),
+                window[prefix.len()..].as_ptr(),
+            );
+        }
+    }
+}
+
+#[test]
+fn natural_min_max_and_reductions_match_scalar() {
+    let other = [
+        Vec2::new(0.5, -1.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(-4.0, 0.25),
+        Vec2::new(8.0, -2.0),
+    ];
+
+    let lhs = Vec2x4::from(POINTS);
+    let rhs = Vec2x4::from(other);
+
+    let min = lhs.min(rhs);
+    let max = lhs.max(rhs);
+    for index in 0..4 {
+        assert_eq!(min.get(index), POINTS[index].min(other[index]));
+        assert_eq!(max.get(index), POINTS[index].max(other[index]));
+    }
+
+    assert_eq!(
+        rhs.reduce_min(),
+        other[0].min(other[1]).min(other[2].min(other[3])),
+    );
+    assert_eq!(
+        rhs.reduce_max(),
+        other[0].max(other[1]).max(other[2].max(other[3])),
+    );
+}
+
+#[test]
+fn natural_is_finite_rejects_nan_and_infinity() {
+    assert!(Vec2x4::from(POINTS).is_finite());
+    assert!(!Vec2x4::from([Vec2::new(f32::NAN, 0.0), POINTS[1], POINTS[2], POINTS[3]]).is_finite(),);
+    assert!(
+        !Vec2x4::from([
+            POINTS[0],
+            POINTS[1],
+            Vec2::new(1.0, f32::INFINITY),
+            POINTS[3]
+        ])
+        .is_finite(),
+    );
+}
+
+#[test]
+fn natural_operators_match_scalar_operators() {
+    let other = [
+        Vec2::new(0.5, -1.0),
+        Vec2::new(2.0, 3.0),
+        Vec2::new(-4.0, 0.25),
+        Vec2::new(8.0, -2.0),
+    ];
+
+    let lhs = Vec2x4::from(POINTS);
+    let rhs = Vec2x4::from(other);
+
+    let sum = lhs + rhs;
+    let difference = lhs - rhs;
+    let negated = -lhs;
+    let scaled = lhs * 3.0;
+
+    for index in 0..4 {
+        assert_eq!(sum.get(index), POINTS[index] + other[index]);
+        assert_eq!(difference.get(index), POINTS[index] - other[index]);
+        assert_eq!(negated.get(index), -POINTS[index]);
+        assert_eq!(scaled.get(index), POINTS[index] * 3.0);
+    }
+}
+
+#[test]
 fn layout_conversions_round_trip() {
     let natural = Vec2x4::from(POINTS);
     let transposed = Vec2x4T::from(POINTS);
@@ -290,7 +407,33 @@ fn simd_conversions_round_trip() {
 fn from_lanes_inverts_lane_extraction() {
     let batch = Vec2x4T::from(POINTS);
 
-    assert_eq!(Vec2x4T::from_lanes(batch.xs(), batch.ys()), batch);
+    assert_eq!(Vec2x4T::from_lanes(*batch.xs(), *batch.ys()), batch);
+}
+
+#[test]
+fn into_lanes_extracts_axis_groups() {
+    let batch = Vec2x4T::from(POINTS);
+    let (xs, ys) = batch.into_lanes();
+
+    assert_eq!(xs, *batch.xs());
+    assert_eq!(ys, *batch.ys());
+    assert_eq!(Vec2x4T::from_lanes(xs, ys), batch);
+}
+
+#[test]
+fn natural_from_lanes_interleaves_axis_groups() {
+    let xs = Simd::from_array([1.0, 2.0, 3.0, 4.0]);
+    let ys = Simd::from_array([5.0, 6.0, 7.0, 8.0]);
+
+    assert_eq!(
+        Vec2x4::from_lanes(xs, ys),
+        Vec2x4::from([
+            Vec2::new(1.0, 5.0),
+            Vec2::new(2.0, 6.0),
+            Vec2::new(3.0, 7.0),
+            Vec2::new(4.0, 8.0),
+        ])
+    );
 }
 
 /// A coordinate bounded to a well-conditioned range.
@@ -308,7 +451,7 @@ fn vec2_strategy() -> impl Strategy<Value = Vec2> {
 
 /// Four arbitrary in-range vectors, one per batch lane.
 fn vec2_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
-    prop::array::uniform4(vec2_strategy())
+    proptest::array::uniform4(vec2_strategy())
 }
 
 proptest! {

@@ -1,6 +1,6 @@
 //! The wire encoder: atlas responses as `SALTILE` envelope bytes.
 //!
-//! The envelope layout is a pinned public contract; the checked-in goldens under `fixtures/wire/`
+//! The envelope layout is a pinned public contract; the checked-in fixtures under `fixtures/wire/`
 //! are the cross-language proof the TypeScript decoder builds against. One
 //! envelope carries every binary response kind (tile, edges, and, with the locate endpoint, locate)
 //! as a 16-byte prefix, a fixed offset directory, 8-aligned payload sections, and an optional CBOR
@@ -24,7 +24,7 @@ pub(crate) mod locate;
 pub(crate) mod tile;
 
 #[cfg(test)]
-mod goldens;
+mod fixtures;
 // Crate-visible so the serving tests reuse the section-carving
 // helpers against served bytes.
 #[cfg(test)]

@@ -28,11 +28,11 @@
 //!   calibration measures its radius over.
 //! - Support terms scale by their pool size over the drawn count.
 
-mod batch;
+pub(crate) mod batch;
 mod fit;
-mod metrics;
+pub(crate) mod metrics;
 pub(crate) mod refresh;
-mod step;
+pub(crate) mod step;
 #[cfg(test)]
 mod tests;
 
@@ -76,10 +76,10 @@ pub(crate) enum StepError {
 }
 
 impl fmt::Display for StepError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Diverged { row } => write!(
-                formatter,
+                fmt,
                 "training diverged: row {} projected to a non-finite coordinate",
                 row.get()
             ),

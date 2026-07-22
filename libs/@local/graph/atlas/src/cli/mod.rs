@@ -39,6 +39,10 @@ fn default_root() -> String {
 #[command(group = clap::ArgGroup::new("classifier_input")
     .required(true)
     .args(["annotations", "classifier"]))]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the flags are independent operator switches"
+)]
 pub struct FitArgs {
     /// The generation root directory.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ROOT", default_value_t = default_root())]
@@ -109,6 +113,12 @@ pub struct FitArgs {
     )]
     vacuous_placement: bool,
 
+    /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
+    ///
+    /// Either construction answers to the same recall admission.
+    #[arg(long)]
+    nn_descent: bool,
+
     /// Where the admission report JSON lands.
     #[arg(long, default_value = "admission-report.json")]
     report: String,
@@ -162,9 +172,17 @@ struct CapsArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_EDGES")]
     locate_edges: Option<u32>,
 
-    /// Most properties one located entity ships in its trailer map.
+    /// Most properties one located source ships in its trailer map.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_PROPERTIES")]
     locate_properties: Option<u32>,
+
+    /// Most direct types one locate edge ships.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_LINK_TYPE_IDS")]
+    locate_link_type_ids: Option<u32>,
+
+    /// Most properties one locate edge ships.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_LINK_PROPERTIES")]
+    locate_link_properties: Option<u32>,
 
     /// The sealed-blob asynchronous-refresh horizon, seconds.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_SEAL_SOFT_SECONDS")]
@@ -196,6 +214,12 @@ impl CapsArgs {
         }
         if let Some(value) = self.locate_properties {
             caps.locate.properties = value;
+        }
+        if let Some(value) = self.locate_link_type_ids {
+            caps.locate.link_type_ids = value;
+        }
+        if let Some(value) = self.locate_link_properties {
+            caps.locate.link_properties = value;
         }
         if let Some(value) = self.seal_soft_seconds {
             caps.seal.soft = core::time::Duration::from_secs(value);
@@ -313,6 +337,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         classifier: args.classifier,
         projector_steps: args.projector_steps,
         baseline: args.baseline,
+        nn_descent: args.nn_descent,
     };
     tracing::info!(
         root = args.root,
@@ -326,6 +351,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         classifier = options.classifier.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),
         baseline = options.baseline,
+        nn_descent = options.nn_descent,
         asserted_proximal_radius = ?options.asserted_proximal_radius,
         vacuous_placement = options.vacuous_placement,
         "starting the production run"

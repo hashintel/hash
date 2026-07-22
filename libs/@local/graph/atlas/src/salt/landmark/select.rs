@@ -30,7 +30,10 @@ use core::{
 use std::collections::HashSet;
 
 use rand::{Rng, RngExt as _, SeedableRng};
-use rayon::prelude::*;
+use rayon::{
+    iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
+    slice::{ParallelSlice as _, ParallelSliceMut as _},
+};
 use zerocopy::{LE, U32};
 
 use crate::{bitset::BitSet, dataset::NodeRowId, math::UnitFraction};
