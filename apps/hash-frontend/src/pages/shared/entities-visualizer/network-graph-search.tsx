@@ -246,7 +246,10 @@ export const NetworkGraphSearch = ({
         position: "absolute",
         top: 8,
         left: 8,
-        zIndex: 1,
+        // Collapsed, the button stays below the selection popover; expanded, it
+        // rises just above it. The popover uses the ds `popover` layer, whose
+        // token var resolves here since this sits inside `.hash-ds-root`.
+        zIndex: open ? "calc(var(--z-index-popover) + 1)" : 1,
         overflow: "hidden",
         background: palette.white,
         border: `1px solid ${palette.gray[30]}`,
