@@ -356,6 +356,11 @@ export const NetworkGraphView = ({
   const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
   const [anchor, setAnchor] = useState<LocatedEntityPopoverAnchor | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // Which overlay wins the z-order when both the search widget and a selection
+  // popover are visible: whichever the user actioned last. Selecting an item
+  // drops the widget below the popover; focusing/opening the widget raises it
+  // back above (see `NetworkGraphSearch`'s `elevated`/`onActivate`).
+  const [searchOnTop, setSearchOnTop] = useState(true);
   // Bumped on every click/clear so a slow earlier locate can't land over a newer one.
   const locateSeqRef = useRef(0);
 
@@ -599,6 +604,7 @@ export const NetworkGraphView = ({
       const seq = locateSeqRef.current;
       setSelected(null);
       setSelection(null);
+      setSearchOnTop(false);
       void locateEntity(result.entityId)
         .then((entity) => {
           if (seq !== locateSeqRef.current) {
@@ -625,6 +631,7 @@ export const NetworkGraphView = ({
       }
       setSelected({ node: interaction.point.id });
       setSelection(null);
+      setSearchOnTop(false);
       // Every rendered node (tile or ego-graph) carries a numeric atlas row id;
       // that is what the row-based locate takes. Guard against any other id.
       const atlasId = Number(interaction.point.id);
@@ -648,6 +655,7 @@ export const NetworkGraphView = ({
       }
       setSelected({ edge: edge.id });
       setSelection(null);
+      setSearchOnTop(false);
       const edgeId = Number(edge.id);
       const fromId = Number(edge.fromId);
       if (!Number.isFinite(fromId)) {
@@ -780,9 +788,12 @@ export const NetworkGraphView = ({
                 detail={selection.detail}
                 onClose={clearSelection}
                 onGoTo={handleGoTo}
+                onActivate={() => setSearchOnTop(false)}
               />
             ) : null}
             <NetworkGraphSearch
+              elevated={searchOnTop}
+              onActivate={() => setSearchOnTop(true)}
               onSelect={handleSearchSelect}
               onResultsChange={handleSearchResults}
               popperContainer={frameRef.current}

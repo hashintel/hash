@@ -62,6 +62,11 @@ export interface LocatedEntityPopoverProps {
   readonly onClose: () => void;
   /** "Go to entity" handler; the button is omitted when absent. */
   readonly onGoTo?: () => void;
+  /**
+   * Called when the card is focused or clicked, so a consumer can bring it to
+   * the front over other overlays (e.g. the network graph's search widget).
+   */
+  readonly onActivate?: () => void;
 }
 
 const cardStyles = css({
@@ -72,11 +77,23 @@ const cardStyles = css({
   maxWidth: "[260px]",
   padding: "3",
   backgroundColor: "white",
-  borderRadius: "lg",
+  borderRadius: "md",
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "neutral.s40",
   boxShadow: "md",
+});
+
+// The title and type chip share one wrapping flex row so the chip "floats"
+// beside a short label and drops onto its own line under a long one — flex-wrap
+// packs by content width, so a short title keeps the chip alongside it while a
+// long (clamped) title claims the full row and pushes the chip below.
+const headerStyles = css({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  columnGap: "2",
+  rowGap: "1.5",
 });
 
 const titleStyles = css({
@@ -101,8 +118,8 @@ const chipLabelStyles = css({
 });
 
 const typeDotStyles = css({
-  width: "[8px]",
-  height: "[8px]",
+  width: "[6px]",
+  height: "[6px]",
   borderRadius: "full",
   flexShrink: "0",
 });
@@ -164,6 +181,7 @@ export const LocatedEntityPopover = ({
   detail,
   onClose,
   onGoTo,
+  onActivate,
 }: LocatedEntityPopoverProps) => {
   const gaps = gapsFor(anchor);
   return (
@@ -175,21 +193,23 @@ export const LocatedEntityPopover = ({
       gapX={gaps.x}
       gapY={gaps.y}
     >
-      <div className={cardStyles}>
-        <div className={titleStyles}>
-          {detail.icon ? (
-            <span className={titleIconStyles}>{detail.icon}</span>
-          ) : null}
-          {detail.title}
-        </div>
+      <div
+        className={cardStyles}
+        onPointerDown={onActivate}
+        onFocus={onActivate}
+      >
+        <div className={headerStyles}>
+          <div className={titleStyles}>
+            {detail.icon ? (
+              <span className={titleIconStyles}>{detail.icon}</span>
+            ) : null}
+            {detail.title}
+          </div>
 
-        {detail.type ? (
-          // A block wrapper so the inline-flex Badge hugs its label rather than
-          // stretching to the card's width (the column's default cross-stretch).
-          <div>
+          {detail.type ? (
             <Badge
               colorScheme="gray"
-              size="md"
+              size="sm"
               iconLeft={
                 <span
                   className={typeDotStyles}
@@ -199,8 +219,8 @@ export const LocatedEntityPopover = ({
             >
               <span className={chipLabelStyles}>{detail.type.label}</span>
             </Badge>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         {detail.properties.length > 0 ? (
           <div className={propertyListStyles}>
