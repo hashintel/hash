@@ -285,11 +285,20 @@ const toPoint = (node: ViewportNode): NetworkGraphPoint => {
   };
 };
 
-const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
-  id: edge.id,
-  fromId: edge.source,
-  toId: edge.target,
-});
+const toEdge = (edge: ViewportEdge): NetworkGraphEdge => {
+  // `label`/`typeId` arrive only for edges fetched with detailed data. A real
+  // consumer resolves the type's icon + label from its own metadata; the story
+  // has none, so it shows the link label or the short type name in the pill.
+  const label =
+    edge.label ??
+    (edge.typeId !== undefined ? shortTypeName(edge.typeId) : undefined);
+  return {
+    id: edge.id,
+    fromId: edge.source,
+    toId: edge.target,
+    ...(label !== undefined ? { label } : {}),
+  };
+};
 
 /** World coordinates are quantized to an integer grid; show them rounded. */
 const formatCoord = (value: number): string =>

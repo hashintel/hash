@@ -14,6 +14,7 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
@@ -27,6 +28,8 @@ import {
   PortalContainerContext,
   useGetViewportNodes,
   WORLD_SIZE,
+  type IconName,
+  type LocateEdge,
   type LocatedEntity,
   type LocatedEntityDetail,
   type LocatedEntityPopoverAnchor,
@@ -36,14 +39,17 @@ import {
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphSelection,
+  type SaltileProperties,
   type SaltilePropertyValue,
   type Viewport,
   type ViewportEdge,
   type ViewportNode,
 } from "@hashintel/ds-components";
 
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { MinusRegularIcon } from "../../../shared/icons/minus-regular";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
+import { usePropertyTypes } from "../../../shared/property-types-context";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
 import { NetworkGraphSearch } from "./network-graph-search";
 import {
@@ -55,7 +61,11 @@ import {
 import type { NetworkGraphSearchResult } from "./network-graph-search";
 import type { TypeColorOverrides } from "./shared/type-colors";
 import type { AvailableType } from "./shared/use-available-types";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * Same-origin path the view fetches tiles from. The `/atlas-api` rewrite in
@@ -186,12 +196,18 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
-const toPoint = (node: ViewportNode, color: string): NetworkGraphPoint => {
+const toPoint = (
+  node: ViewportNode,
+  color: string,
+  iconName?: IconName,
+): NetworkGraphPoint => {
   // `label`/`icon` arrive only for tiles fetched with detailed data (the
   // detailed view). The graph draws the label in a pill beneath the node and the
-  // icon inside it; the entity's icon value resolves to a ds icon name. `color`
-  // comes from the type filter's per-type palette, keyed by the node's type.
-  const icon = iconNameFromEntityIcon(node.icon);
+  // icon inside it. Located nodes carry no icon of their own, so the caller
+  // resolves one from the node's type and passes it as `iconName`; tile nodes
+  // fall back to their own icon value resolved to a ds icon name. `color` comes
+  // from the type filter's per-type palette, keyed by the node's type.
+  const icon = iconName ?? iconNameFromEntityIcon(node.icon);
   return {
     id: node.id,
     x: node.x,
@@ -202,11 +218,19 @@ const toPoint = (node: ViewportNode, color: string): NetworkGraphPoint => {
   };
 };
 
-const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
-  id: edge.id,
-  fromId: edge.source,
-  toId: edge.target,
-});
+/**
+ * An entity/type icon value the popover and edge-label pill render as text: the
+ * value as-is when it is an emoji, or `undefined` when it is a `/path`/`https`
+ * URL to an SVG (which those text surfaces can't draw — nodes resolve those to a
+ * ds icon via {@link iconNameFromEntityIcon} instead).
+ */
+const emojiFromEntityIcon = (icon: string | undefined): string | undefined =>
+  icon !== undefined &&
+  !icon.startsWith("/") &&
+  !icon.startsWith("http://") &&
+  !icon.startsWith("https://")
+    ? icon
+    : undefined;
 
 /**
  * Last meaningful path segment of a property base URL, for the popover — e.g.
@@ -294,6 +318,62 @@ export const NetworkGraphView = ({
 }) => {
   const theme = useTheme();
 
+  // In-memory type + property metadata (the entity and property types the app
+  // has already loaded). The locate/edges APIs now ship only type ids and
+  // property base URLs; the type label, type icon and property titles they used
+  // to carry pre-resolved are looked up here instead.
+  const { entityTypes } = useEntityTypesContextRequired();
+  const { propertyTypes } = usePropertyTypes();
+
+  // Entity type id → { title, icon }, indexed by versioned URL with a base-URL
+  // fallback so a type id at a slightly different version than the one held in
+  // memory still resolves. Link types are entity types too, so this also covers
+  // the types of edges.
+  const typeMetadata = useMemo(() => {
+    const byVersioned = new Map<
+      VersionedUrl,
+      { title: string; icon?: string }
+    >();
+    const byBase = new Map<BaseUrl, { title: string; icon?: string }>();
+    for (const { schema } of entityTypes ?? []) {
+      const meta = {
+        title: schema.title,
+        ...(schema.icon !== undefined ? { icon: schema.icon } : {}),
+      };
+      byVersioned.set(schema.$id, meta);
+      byBase.set(extractBaseUrl(schema.$id), meta);
+    }
+    return { byVersioned, byBase };
+  }, [entityTypes]);
+
+  const resolveTypeMeta = useCallback(
+    (
+      typeId: VersionedUrl | undefined,
+    ): { title: string; icon?: string } | undefined => {
+      if (typeId === undefined) {
+        return undefined;
+      }
+      return (
+        typeMetadata.byVersioned.get(typeId) ??
+        typeMetadata.byBase.get(extractBaseUrl(typeId))
+      );
+    },
+    [typeMetadata],
+  );
+
+  // Property base URL → title, for the popover's property rows (the wire keys a
+  // located entity's properties by base URL).
+  const propertyTitleByBaseUrl = useMemo(() => {
+    const map = new Map<BaseUrl, string>();
+    for (const propertyType of Object.values(propertyTypes ?? {})) {
+      map.set(
+        propertyType.metadata.recordId.baseUrl,
+        propertyType.schema.title,
+      );
+    }
+    return map;
+  }, [propertyTypes]);
+
   // The types with a distinct colour in the filter dropdown — the only types
   // worth sending to the tile API (the rest render grey). The default colour set
   // is the most common types by entity count (see `typeColorRanks`), plus any
@@ -352,18 +432,9 @@ export const NetworkGraphView = ({
     [coloredTypeColors],
   );
 
-  // Type title per entity type id, for the located-entity popover's type chip.
-  const typeTitleById = useMemo(() => {
-    const map = new Map<VersionedUrl, string>();
-    for (const type of availableEntityTypes) {
-      map.set(type.entityTypeId, type.title);
-    }
-    return map;
-  }, [availableEntityTypes]);
-
-  // The popover type chip for a node: the title + colour of the same type its
-  // node colour was sampled from (so chip and node agree), or `undefined` when
-  // the node matches none of the coloured types.
+  // The popover type chip for a node: the title (from memory) + colour of the
+  // same type its node colour was sampled from (so chip and node agree), or
+  // `undefined` when the node matches none of the coloured types.
   const typeChipForIndices = useCallback(
     (
       typeIndices: readonly number[] | undefined,
@@ -378,11 +449,118 @@ export const NetworkGraphView = ({
         return undefined;
       }
       return {
-        label: typeTitleById.get(entityTypeId) ?? entityTypeId,
+        label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
         color: coloredTypeColors[index] ?? unassignedTypeColor,
       };
     },
-    [coloredTypeIds, coloredTypeColors, typeTitleById],
+    [coloredTypeIds, coloredTypeColors, resolveTypeMeta],
+  );
+
+  // The type id whose icon represents a node: the same coloured type its chip
+  // and colour were sampled from (so icon, chip and node colour agree), falling
+  // back to the node's first direct type when it matches none of the coloured
+  // types.
+  const primaryTypeId = useCallback(
+    (
+      typeIndices: readonly number[] | undefined,
+      typeId: VersionedUrl | undefined,
+      seed: number | string,
+    ): VersionedUrl | undefined => {
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
+      return (
+        (index !== undefined ? coloredTypeIds[index] : undefined) ?? typeId
+      );
+    },
+    [coloredTypeIds, coloredTypeColors],
+  );
+
+  // The ds icon for a node, resolved from its type's icon in memory (the wire no
+  // longer ships a per-node icon). Drawn inside the node in the detailed view;
+  // only SVG-path type icons map to a ds glyph.
+  const nodeIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): IconName | undefined =>
+      iconNameFromEntityIcon(resolveTypeMeta(typeId)?.icon),
+    [resolveTypeMeta],
+  );
+
+  // The emoji leading a located item's popover, resolved from its type's icon.
+  const emojiIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): string | undefined =>
+      emojiFromEntityIcon(resolveTypeMeta(typeId)?.icon),
+    [resolveTypeMeta],
+  );
+
+  // The pill text drawn on an edge while hovered/selected: the link type's icon
+  // + label resolved from memory, falling back to the link entity's own label.
+  const edgeLabelFor = useCallback(
+    (
+      typeId: VersionedUrl | undefined,
+      fallback: string | undefined,
+    ): string | undefined => {
+      const meta = resolveTypeMeta(typeId);
+      if (meta === undefined) {
+        return fallback;
+      }
+      const emoji = emojiFromEntityIcon(meta.icon);
+      return emoji !== undefined ? `${emoji} ${meta.title}` : meta.title;
+    },
+    [resolveTypeMeta],
+  );
+
+  // Popover property rows: the property title (from memory, keyed by base URL)
+  // and its formatted value, falling back to the base URL's last segment.
+  const propertyRows = useCallback(
+    (
+      properties: SaltileProperties | null | undefined,
+    ): LocatedEntityDetail["properties"] =>
+      Object.entries(properties ?? {}).map(([baseUrl, value]) => ({
+        key:
+          propertyTitleByBaseUrl.get(baseUrl as BaseUrl) ??
+          shortPropName(baseUrl),
+        value: formatPropValue(value),
+      })),
+    [propertyTitleByBaseUrl],
+  );
+
+  // A tile edge → a renderable edge, carrying the type icon + label for its pill.
+  const toEdge = useCallback(
+    (edge: ViewportEdge): NetworkGraphEdge => {
+      const label = edgeLabelFor(edge.typeId, edge.label);
+      return {
+        id: edge.id,
+        fromId: edge.source,
+        toId: edge.target,
+        ...(label !== undefined ? { label } : {}),
+      };
+    },
+    [edgeLabelFor],
+  );
+
+  // A located edge → a renderable edge; its type comes from the located link's
+  // first type (locate ships a link's full type list).
+  const toLocatedEdge = useCallback(
+    (edge: LocateEdge): NetworkGraphEdge => {
+      const label = edgeLabelFor(edge.typeIds[0], edge.label);
+      return {
+        id: edge.id,
+        fromId: edge.source,
+        toId: edge.target,
+        ...(label !== undefined ? { label } : {}),
+      };
+    },
+    [edgeLabelFor],
+  );
+
+  // A located node → a renderable point, with its icon resolved from its type
+  // (located nodes carry no icon of their own).
+  const toLocatedPoint = useCallback(
+    (node: LocatedEntity["nodes"][number], color: string): NetworkGraphPoint =>
+      toPoint(
+        node,
+        color,
+        nodeIconFor(primaryTypeId(node.typeIndices, node.typeId, node.id)),
+      ),
+    [nodeIconFor, primaryTypeId],
   );
 
   const frameRef = useRef<HTMLDivElement>(null);
@@ -459,7 +637,7 @@ export const NetworkGraphView = ({
     [data, colorForTypeIndices],
   );
 
-  const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data]);
+  const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data, toEdge]);
 
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
@@ -556,13 +734,13 @@ export const NetworkGraphView = ({
       }
       return {
         node: {
-          point: toPoint(
+          point: toLocatedPoint(
             source,
             colorForTypeIndices(source.typeIndices, source.id),
           ),
-          edges: entity.edges.map(toEdge),
+          edges: entity.edges.map(toLocatedEdge),
           neighbours: neighbours.map((neighbour) =>
-            toPoint(
+            toLocatedPoint(
               neighbour,
               colorForTypeIndices(neighbour.typeIndices, neighbour.id),
             ),
@@ -570,7 +748,7 @@ export const NetworkGraphView = ({
         },
       };
     },
-    [colorForTypeIndices],
+    [colorForTypeIndices, toLocatedPoint, toLocatedEdge],
   );
 
   // Overlay a located ego-graph as the selection and populate the detail popover
@@ -585,24 +763,28 @@ export const NetworkGraphView = ({
       }
       setSelected(nodeSelection);
       const type = typeChipForIndices(source.typeIndices, source.id);
+      const icon = emojiIconFor(
+        primaryTypeId(source.typeIndices, source.typeId, source.id),
+      );
       setSelection({
         detail: {
           kind: "node",
           title: source.label ?? `Node ${source.id}`,
-          ...(source.icon !== undefined ? { icon: source.icon } : {}),
+          ...(icon !== undefined ? { icon } : {}),
           ...(type !== undefined ? { type } : {}),
-          properties: Object.entries(source.properties ?? {}).map(
-            ([key, value]) => ({
-              key: shortPropName(key),
-              value: formatPropValue(value),
-            }),
-          ),
+          properties: propertyRows(source.properties),
         },
         focus: [source.x, source.y],
       });
       return [source.x, source.y];
     },
-    [locatedNodeSelection, typeChipForIndices],
+    [
+      locatedNodeSelection,
+      typeChipForIndices,
+      emojiIconFor,
+      primaryTypeId,
+      propertyRows,
+    ],
   );
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity
@@ -758,7 +940,8 @@ export const NetworkGraphView = ({
       setSelected({ edge: edge.id });
       setSelection(null);
       setSearchOnTop(false);
-      const edgeId = Number(edge.id);
+      // An edge's id is the link entity's identity (a string), not a row id; the
+      // endpoints are row ids, so only those go through `Number`.
       const fromId = Number(edge.fromId);
       if (!Number.isFinite(fromId)) {
         return;
@@ -768,7 +951,7 @@ export const NetworkGraphView = ({
         if (!source) {
           return;
         }
-        const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        const locatedEdge = entity.edges.find((item) => item.id === edge.id);
         // Pin the edge's geometry to the selection so it stays drawn and anchored
         // (its popover included) even in the compact view, whose sparse on-screen
         // tiles usually don't contain this located edge or its endpoint nodes.
@@ -777,16 +960,28 @@ export const NetworkGraphView = ({
         );
         const fromNode = nodeById.get(Number(edge.fromId));
         const toNode = nodeById.get(Number(edge.toId));
+        // Carry the located link's type label onto the selected edge, so its pill
+        // shows even in the compact view (whose tile edges carry no detail).
+        const selectedEdgeLabel = edgeLabelFor(
+          locatedEdge?.typeIds[0],
+          locatedEdge?.label,
+        );
+        const selectedEdge: NetworkGraphEdge = {
+          ...edge,
+          ...(selectedEdgeLabel !== undefined
+            ? { label: selectedEdgeLabel }
+            : {}),
+        };
         if (fromNode && toNode) {
           setSelected({
             edge: {
-              edge,
+              edge: selectedEdge,
               endpoints: [
-                toPoint(
+                toLocatedPoint(
                   fromNode,
                   colorForTypeIndices(fromNode.typeIndices, fromNode.id),
                 ),
-                toPoint(
+                toLocatedPoint(
                   toNode,
                   colorForTypeIndices(toNode.typeIndices, toNode.id),
                 ),
@@ -794,28 +989,40 @@ export const NetworkGraphView = ({
             },
           });
         }
+        // The link's type drives the popover's chip and leading icon; locate
+        // ships the link's full direct type list, so its first type is used.
+        const edgeTypeId = locatedEdge?.typeIds[0];
+        const edgeType = resolveTypeMeta(edgeTypeId);
+        const edgeIcon = emojiIconFor(edgeTypeId);
         setSelection({
           detail: {
             kind: "edge",
             title: locatedEdge?.label ?? `Edge ${edge.id}`,
-            ...(locatedEdge?.icon !== undefined
-              ? { icon: locatedEdge.icon }
-              : {}),
-            ...(locatedEdge?.typeLabel !== undefined
+            ...(edgeIcon !== undefined ? { icon: edgeIcon } : {}),
+            ...(edgeType !== undefined
               ? {
                   type: {
-                    label: locatedEdge.typeLabel,
+                    label: edgeType.title,
                     color: unassignedTypeColor,
                   },
                 }
               : {}),
-            properties: [],
+            properties: propertyRows(locatedEdge?.properties),
           },
           focus: [source.x, source.y],
         });
       });
     },
-    [clearSelection, locate, colorForTypeIndices],
+    [
+      clearSelection,
+      locate,
+      colorForTypeIndices,
+      toLocatedPoint,
+      resolveTypeMeta,
+      emojiIconFor,
+      edgeLabelFor,
+      propertyRows,
+    ],
   );
 
   // "Go to entity" reveals the located point — bringing it on screen if it isn't

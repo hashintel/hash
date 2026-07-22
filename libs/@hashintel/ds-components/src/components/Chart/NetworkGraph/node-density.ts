@@ -299,10 +299,6 @@ export const maxDensityOpacity = (
     0,
     1,
   );
-  console.log(
-    COMPACT_OPACITY_DENSE +
-      (COMPACT_OPACITY_SPARSE - COMPACT_OPACITY_DENSE) * amount,
-  );
   return (
     COMPACT_OPACITY_DENSE +
     (COMPACT_OPACITY_SPARSE - COMPACT_OPACITY_DENSE) * amount

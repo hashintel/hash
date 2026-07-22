@@ -1826,8 +1826,20 @@ export const NetworkGraph = ({
     if (!anchor) {
       return;
     }
-    drawEdgeLabel(ctx, anchor, `Edge ${activeEdge.edgeId}`);
-  }, [activeEdge, activeEdgeShown, viewState, containerSize, view]);
+    // The consumer supplies the pill text (e.g. the link type's icon + label);
+    // draw nothing when the edge carries no label.
+    const label = resolveEdge(activeEdge.edgeId)?.label;
+    if (label) {
+      drawEdgeLabel(ctx, anchor, label);
+    }
+  }, [
+    activeEdge,
+    activeEdgeShown,
+    viewState,
+    containerSize,
+    view,
+    resolveEdge,
+  ]);
 
   /**
    * The points fed to the detail layers: those within the viewport (plus a margin).

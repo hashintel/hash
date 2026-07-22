@@ -102,7 +102,7 @@ import {
 } from "./tile-geometry";
 import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
 
@@ -188,6 +188,17 @@ export interface ViewportEdge {
   readonly id: EntityId;
   readonly source: number;
   readonly target: number;
+  /**
+   * Link-entity label, carried only for edges fetched with detailed data (see
+   * {@link UseGetViewportNodesOptions.includeDetailedData}). `undefined` otherwise.
+   */
+  readonly label?: string;
+  /**
+   * The link's first direct type as a versioned URL, carried alongside
+   * {@link label} for detailed edges. Label and icon rendering for the type is
+   * the client's own metadata. `undefined` otherwise.
+   */
+  readonly typeId?: VersionedUrl;
 }
 
 /** The renderable graph for a viewport: its nodes and the edges among them. */
@@ -550,9 +561,10 @@ export class TileCache {
    * carries it, which is how an edge is routed to its bucket. Pass them in
    * priority order — the transport trims the list to the served `edgesTiles` cap.
    *
-   * `includeDetailedData` is threaded to the transport but left `false` by the
-   * descent: the version-0 edges route rejects it, and the buckets carry no
-   * detail, so flipping it on later also needs the signature to fold in the flag.
+   * `includeDetailedData` requests the per-edge detail trailer (link labels and
+   * type references) and is folded into the cache signature, so entering (or
+   * leaving) the detailed view refetches rather than serving stale compact
+   * buckets — mirroring how {@link load} upgrades a compact node tile.
    */
   async loadEdges(
     tiles: readonly AtlasTileCoordinate[],
@@ -561,7 +573,9 @@ export class TileCache {
     if (tiles.length === 0) {
       return [];
     }
-    const signature = tiles.map(atlasTileKey).sort().join(",");
+    const signature =
+      (includeDetailedData ? "detailed:" : "compact:") +
+      tiles.map(atlasTileKey).sort().join(",");
 
     // Fast path: the same tile set as last time, with every backing bucket still
     // resident (none cascade- or distance-evicted since it was assembled).
@@ -1054,9 +1068,9 @@ export const getViewportNodes = async (
         tileDistance(a, rect, targetDepth) - tileDistance(b, rect, targetDepth),
     );
     try {
-      // Edges stay compact even in the detailed view: the version-0 edges route
-      // rejects detailed data (see {@link TileCache.loadEdges}).
-      edges = await cache.loadEdges(loadedTiles);
+      // In the detailed view, fetch edges with their detail trailer too, so each
+      // edge carries its link label and type reference for the hover label.
+      edges = await cache.loadEdges(loadedTiles, includeDetailedData);
     } catch {
       edges = [];
     }

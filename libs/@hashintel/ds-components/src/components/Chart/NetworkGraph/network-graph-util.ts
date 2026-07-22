@@ -23,6 +23,13 @@ export interface NetworkGraphEdge {
   id: NetworkGraphId;
   fromId: NetworkGraphId;
   toId: NetworkGraphId;
+  /**
+   * Text shown in the pill drawn on the edge while it is hovered or selected.
+   * The consumer supplies it already resolved (e.g. the link type's icon + label
+   * looked up from its own metadata); the graph just draws the string. Omit it
+   * to draw no pill.
+   */
+  label?: string;
 }
 
 export interface HoverLine {
