@@ -83,11 +83,6 @@ pub(super) struct Ingested {
 /// The stages run in the dataset's documented ingest order - nodes, edges, ontology, then the card
 /// render over the same type table - and the representation contract is certified before the card
 /// stream touches the embedding provider, so a defective corpus never spends provider budget.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 pub(super) async fn run<D, E>(
     dataset: &D,
     embedder: &E,
@@ -185,11 +180,6 @@ struct NodeArtifacts {
 ///
 /// The matrix digest streams over the finished file because the writer seals its header by seeking;
 /// the identity writer is forward-only and digests inline.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 async fn stage_representations<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
@@ -286,11 +276,6 @@ const fn narrow(confidence: f64) -> f32 {
 ///
 /// The endpoint digest streams over the finished file because the array writer seals its header by
 /// seeking; the identity writer is forward-only and digests inline.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 async fn stage_edges<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
@@ -369,11 +354,6 @@ where
 ///
 /// The column is type-scale and crosses to the compute side by value: the postings build restates
 /// it as the published type graph's parent regions.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 async fn collect_type_parents<D, E>(
     dataset: &D,
 ) -> Result<Vec<SmallVec<OntologyRowId, 2>>, FitError<D::Error, E>>
@@ -410,11 +390,6 @@ pub(super) struct CardArtifacts {
 /// A prior generation's card files map back as the reuse table: texts whose hash appears there keep
 /// their rows without touching the provider. Reuse is fingerprint-guarded inside [`embed_cards`],
 /// so a changed embedding contract re-embeds everything.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 async fn embed_card_table<D, E>(
     dataset: &D,
     embedder: &E,

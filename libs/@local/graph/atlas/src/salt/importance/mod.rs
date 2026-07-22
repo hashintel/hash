@@ -113,7 +113,7 @@ impl ImportanceSignal for DegreeImportance<'_> {
             .map(|row| {
                 let degree = self
                     .adjacency
-                    .degree(NodeRowId::new(row as u64))
+                    .degree(NodeRowId::from_index(row))
                     .expect("the domain was asserted above");
                 degree as f32
             })

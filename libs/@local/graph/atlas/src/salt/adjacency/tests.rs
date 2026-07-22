@@ -53,7 +53,7 @@ fn list(edges: Option<EdgeList<'_>>) -> Vec<u64> {
 }
 
 #[test]
-fn the_build_matches_the_hand_computed_lists() {
+fn build_matches_the_hand_computed_lists() {
     let dir = scratch("hand-computed");
     let adjacency = Adjacency::build(ROWS, &ENDPOINTS);
     let mapped = mapped(&dir, "fixture.sprs", &adjacency);
@@ -110,7 +110,7 @@ fn contains_agrees_with_a_linear_scan() {
 }
 
 #[test]
-fn an_edgeless_corpus_builds_empty_lists() {
+fn edgeless_corpus_builds_empty_lists() {
     let dir = scratch("edgeless");
     let adjacency = Adjacency::build(2, &[]);
     let mapped = mapped(&dir, "edgeless.sprs", &adjacency);
@@ -203,7 +203,7 @@ fn violated_list_invariants_are_rejected() {
     clippy::little_endian_bytes,
     reason = "the surgery edits the format's pinned little-endian fencepost region"
 )]
-fn a_shifted_fencepost_column_is_rejected() {
+fn shifted_fencepost_column_is_rejected() {
     let dir = scratch("shifted");
     let path = dir.join("shifted.sprs");
 
@@ -238,7 +238,7 @@ fn a_shifted_fencepost_column_is_rejected() {
 }
 
 #[test]
-fn the_build_is_independent_of_the_endpoint_values_within_a_row() {
+fn build_is_independent_of_the_endpoint_values_within_a_row() {
     // A permuted edge order is a different corpus (edge rows are
     // positional), but every list still comes out strictly ascending.
     let permuted: [[u64; 2]; 4] = [ENDPOINTS[3], ENDPOINTS[1], ENDPOINTS[0], ENDPOINTS[2]];

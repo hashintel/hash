@@ -138,7 +138,7 @@ where
                     .iter()
                     .enumerate()
                     .map(|(row, components)| Embedding {
-                        id: NodeRowId::new(row as u64),
+                        id: NodeRowId::from_index(row),
                         components,
                     }),
             )
@@ -156,7 +156,7 @@ where
             .try_for_each(|(row, slots)| {
                 let found: Vec<Neighbour> = self
                     .0
-                    .search_by_id(NodeRowId::new(row as u64), width)
+                    .search_by_id(NodeRowId::from_index(row), width)
                     .map_err(KnnError::Backend)?
                     .into_iter()
                     .collect();

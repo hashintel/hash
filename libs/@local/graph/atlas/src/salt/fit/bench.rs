@@ -22,7 +22,7 @@ use crate::{
     dataset::{CANONICAL_DIMENSIONS, TemporalAxes, postgres::PostgresDataset},
     file::generation::GenerationRoot,
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction},
     salt::{
         landmark::select::SelectionOptions,
         policy::classifier::{
@@ -190,8 +190,14 @@ pub async fn run(client: &mut Client, root: &str, options: RunOptions) -> FitSum
             // ladder evenly, mirroring the ratified schedule's shape.
             let boundary = steps.get().div_euclid(2);
             let mut projector = ProjectorOptions::ratified();
-            projector.schedule = TrainingSchedule::new(steps, boundary, REFRESH, 1.0e-3, 1.0e-5)
-                .expect("the ratified schedule domain admits any step count");
+            projector.schedule = TrainingSchedule::new(
+                steps,
+                boundary,
+                REFRESH,
+                UnitFraction::new(1.0e-3).expect("the ratified initial rate is a unit fraction"),
+                UnitFraction::new(1.0e-5).expect("the ratified minimum rate is a unit fraction"),
+            )
+            .expect("the ratified schedule domain admits any step count");
             config.placement = PlacementOptions::Projector(projector);
         }
         (false, None) => {}

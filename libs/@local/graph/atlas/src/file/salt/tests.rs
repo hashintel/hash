@@ -17,7 +17,7 @@ use crate::{
         repository::{FileName, RepositoryFile, RepositoryVersion},
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Bounds2, Rotation, Similarity, Vec2},
+    math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2},
     morton::Depth,
     salt::{
         AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
@@ -49,8 +49,8 @@ fn placement() -> PlacementOptions {
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
         NonZero::new(4).expect("the fixture cadence is nonzero"),
-        1.0e-3,
-        1.0e-5,
+        const { UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction") },
+        const { UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction") },
     )
     .expect("the fixture schedule is valid");
     options.ladder = LadderOptions {
@@ -333,7 +333,7 @@ fn absent_axes_round_trip() {
 }
 
 #[test]
-fn an_absent_verdicts_role_round_trips_as_explicit_null() {
+fn absent_verdicts_role_round_trips_as_explicit_null() {
     let mut repository = repository();
     repository.files.reviewed_verdicts = None;
 
@@ -351,7 +351,7 @@ fn an_absent_verdicts_role_round_trips_as_explicit_null() {
 }
 
 #[test]
-fn a_baseline_generation_records_projector_absence_as_explicit_null() {
+fn baseline_generation_records_projector_absence_as_explicit_null() {
     let mut repository = repository();
     repository.files.projector = None;
     repository.metadata.placement = Placement::LandmarkBaseline;
@@ -374,7 +374,7 @@ fn a_baseline_generation_records_projector_absence_as_explicit_null() {
 }
 
 #[test]
-fn a_tampered_configuration_echo_refuses_to_deserialize() {
+fn tampered_configuration_echo_refuses_to_deserialize() {
     // Each tampered value violates a construction invariant of its
     // field's type; the validating deserialization is what turns the
     // echo from a record into a contract.

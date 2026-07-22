@@ -19,7 +19,7 @@ use core::num::NonZero;
 
 use super::{FitConfig, KnnConstructionChoice, PlacementOptions, PolicyOptions, prepare::norm};
 use crate::{
-    math::{AffinityCurve, UnitFraction},
+    math::{AffinityCurve, Log2, UnitFraction},
     salt::{
         importance::RankingConfig,
         knn::{descent::NnDescentOptions, hannoy::HannoyIndexOptions, recall},
@@ -38,6 +38,38 @@ use crate::{
         semantic::SmoothingOptions,
     },
 };
+
+/// Serializes a [`Log2`] as its plain exponent.
+///
+/// Validates through [`Log2::new`] on deserialize.
+mod log2 {
+    use serde::{Deserialize as _, de::Error as _};
+
+    use crate::math::Log2;
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` contract passes the field by reference"
+    )]
+    pub(super) fn serialize<S>(exponent: &Log2, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u8(exponent.get())
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Log2, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+        Log2::new(value).ok_or_else(|| {
+            D::Error::custom(format_args!(
+                "the exponent {value} is not below the u64 shift width"
+            ))
+        })
+    }
+}
 
 /// Serializes a [`UnitFraction`] as its plain fraction.
 ///
@@ -264,16 +296,19 @@ mod placement {
     use serde::{Deserialize as _, Serialize as _};
 
     use super::super::{LandmarkSupport, PlacementOptions, ProjectorOptions};
-    use crate::salt::{
-        ladder::{Conditions, LadderOptions, MeasurementOptions},
-        projector::{
-            budget::BudgetOptions,
-            loss::{CoincidentEnergy, SupportOptions},
-            miner::MinerOptions,
-            model::Architecture,
-            train::{BatchPlan, Coefficients, RelationLens, TrainingSchedule},
+    use crate::{
+        math::{Positive, UnitFraction},
+        salt::{
+            ladder::{Conditions, LadderOptions, MeasurementOptions},
+            projector::{
+                budget::BudgetOptions,
+                loss::{CoincidentEnergy, SupportOptions},
+                miner::MinerOptions,
+                model::Architecture,
+                train::{BatchPlan, Coefficients, RelationLens, TrainingSchedule},
+            },
+            relation::protection::{ChannelConfig, ProtectionConfig},
         },
-        relation::protection::{ChannelConfig, ProtectionConfig},
     };
 
     /// The placement's wire form.
@@ -429,8 +464,8 @@ mod placement {
                 lens: LensRecord {
                     coincident_radius: options.lens.coincident().radius(),
                     coincident_threshold: options.lens.coincident().threshold(),
-                    temperature: options.lens.temperature(),
-                    epsilon: options.lens.epsilon(),
+                    temperature: options.lens.temperature().get(),
+                    epsilon: options.lens.epsilon().get(),
                     asserted_radius: options.lens.asserted_radius(),
                 },
                 protection: ProtectionRecord {
@@ -474,12 +509,19 @@ mod placement {
         /// Field by field through the constructors.
         fn into_options<E: serde::de::Error>(self) -> Result<ProjectorOptions, E> {
             let record = self;
+            let rate = |value: f64, name| {
+                UnitFraction::new(value).ok_or_else(|| {
+                    E::custom(format_args!(
+                        "the {name} learning rate is not a unit fraction"
+                    ))
+                })
+            };
             let schedule = TrainingSchedule::new(
                 record.schedule.steps,
                 record.schedule.boundary,
                 record.schedule.refresh_interval,
-                record.schedule.initial_learning_rate,
-                record.schedule.minimum_learning_rate,
+                rate(record.schedule.initial_learning_rate, "initial")?,
+                rate(record.schedule.minimum_learning_rate, "minimum")?,
             )
             .ok_or_else(|| E::custom("the schedule fields do not form a training schedule"))?;
 
@@ -509,10 +551,13 @@ mod placement {
             let miner = MinerOptions::new(
                 record.miner.neighbours,
                 record.miner.search_margin,
-                record.miner.maximum_weight,
-                record.miner.rank_exponent,
-            )
-            .ok_or_else(|| E::custom("the miner fields do not form a mining schedule"))?;
+                Positive::new(record.miner.maximum_weight).ok_or_else(|| {
+                    E::custom("the miner weight bound is not finite and strictly positive")
+                })?,
+                Positive::new(record.miner.rank_exponent).ok_or_else(|| {
+                    E::custom("the miner rank exponent is not finite and strictly positive")
+                })?,
+            );
 
             let lens = record.lens.into_lens()?;
             let protection = record.protection.into_config()?;
@@ -571,10 +616,17 @@ mod placement {
             let coincident =
                 CoincidentEnergy::new(self.coincident_radius, self.coincident_threshold)
                     .ok_or_else(|| E::custom("the lens fields do not form a Coincident energy"))?;
+            let constant = |value: f32, name| {
+                Positive::new(value).ok_or_else(|| {
+                    E::custom(format_args!(
+                        "the lens {name} is not finite and strictly positive"
+                    ))
+                })
+            };
             RelationLens::new(
                 coincident,
-                self.temperature,
-                self.epsilon,
+                constant(self.temperature, "temperature")?,
+                constant(self.epsilon, "scale guard")?,
                 self.asserted_radius,
             )
             .ok_or_else(|| E::custom("the lens fields do not form a relation lens"))
@@ -696,7 +748,10 @@ struct LayoutOptionsDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "LodConfig")]
 struct LodConfigDef {
-    span_log2: u8,
+    // The wire key predates the field's rename: the type now carries
+    // the log2-ness, published manifests keep the suffixed key.
+    #[serde(with = "log2", rename = "span_log2")]
+    span: Log2,
     max_tile_depth: u8,
 }
 
@@ -704,7 +759,10 @@ struct LodConfigDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "PostingsConfig")]
 struct PostingsConfigDef {
-    dense_threshold_log2: u8,
+    // The wire key predates the field's rename: the type now carries
+    // the log2-ness, published manifests keep the suffixed key.
+    #[serde(with = "log2", rename = "dense_threshold_log2")]
+    dense_threshold: Log2,
 }
 
 /// serde shadow of [`RankingConfig`].

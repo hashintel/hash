@@ -41,7 +41,7 @@ use crate::{
         sprs::read::SprsFile,
     },
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Similarity, Vec2, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN},
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -55,7 +55,7 @@ use crate::{
                 fit as fit_classifier,
             },
         },
-        postings::archive::PostingsArchive,
+        postings::artifact::PostingsArchive,
         projector::{
             artifact,
             loss::CoincidentEnergy,
@@ -175,16 +175,16 @@ impl CardEmbedder for HashEmbedder {
         EmbedderFingerprint::new(hasher.finalize())
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .map(|text| {
                 let mut hasher = Sha256::new();
-                hasher.update(text.as_ref().as_bytes());
+                hasher.update(text.as_bytes());
                 let bytes = hasher.finalize().to_bytes();
 
                 let mut vector = BoxedVecN::zero();
@@ -202,7 +202,7 @@ impl CardEmbedder for HashEmbedder {
 ///
 /// It deserializes to the compiled defaults, so generations from before the fields stay openable.
 #[test]
-fn a_config_echo_without_classifier_supply_settings_still_parses() {
+fn config_echo_without_classifier_supply_settings_still_parses() {
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
 
@@ -223,7 +223,7 @@ fn a_config_echo_without_classifier_supply_settings_still_parses() {
 ///
 /// It deserializes to the compiled default, and a tampered budget refuses to parse.
 #[test]
-fn a_config_echo_validates_the_group_budget() {
+fn config_echo_validates_the_group_budget() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
     struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
 
@@ -536,7 +536,7 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_policy_artifacts_publish_and_read_back() {
+async fn policy_artifacts_publish_and_read_back() {
     let root = GenerationRoot::new(scratch("policy")).expect("the root should open");
     let dataset = dataset();
     let classifier = fixture_classifier();
@@ -600,7 +600,7 @@ async fn the_policy_artifacts_publish_and_read_back() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_lod_columns_publish_in_base_order() {
+async fn lod_columns_publish_in_base_order() {
     let root = GenerationRoot::new(scratch("lod")).expect("the root should open");
     let dataset = dataset();
 
@@ -856,7 +856,7 @@ fn annotation_document() -> String {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_annotation_corpus_fits_and_stages_the_classifier() {
+async fn annotation_corpus_fits_and_stages_the_classifier() {
     let root = GenerationRoot::new(scratch("annotations")).expect("the root should open");
     let dataset = dataset();
 
@@ -975,7 +975,7 @@ async fn an_annotation_corpus_fits_and_stages_the_classifier() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_prior_generation_seeds_reuse_and_retention() {
+async fn prior_generation_seeds_reuse_and_retention() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
     let dataset = dataset();
     let classifier = fixture_input();
@@ -1036,7 +1036,7 @@ async fn a_prior_generation_seeds_reuse_and_retention() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_override_supersedes_the_classifier() {
+async fn override_supersedes_the_classifier() {
     let root = GenerationRoot::new(scratch("override")).expect("the root should open");
     let dataset = dataset();
 
@@ -1136,7 +1136,7 @@ async fn equal_seeds_publish_equal_generations() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_defective_corpus_publishes_nothing() {
+async fn defective_corpus_publishes_nothing() {
     let path = scratch("defective");
     let root = GenerationRoot::new(&path).expect("the root should open");
 
@@ -1200,8 +1200,8 @@ fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
         NonZero::new(4).expect("the fixture cadence is nonzero"),
-        1.0e-3,
-        1.0e-5,
+        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
+        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
     )
     .expect("the fixture schedule is valid");
     options.plan = BatchPlan {
@@ -1215,8 +1215,8 @@ fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
     };
     options.lens = RelationLens::new(
         CoincidentEnergy::new(0.5, 0.5).expect("the fixture energy is valid"),
-        0.25,
-        1.0e-8,
+        Positive::new(0.25).expect("the fixture temperature is positive"),
+        Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
         asserted_radius,
     )
     .expect("the fixture lens is valid");
@@ -1259,7 +1259,7 @@ fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<
 }
 
 #[test]
-fn the_default_placement_is_the_trained_projector() {
+fn default_placement_is_the_trained_projector() {
     // The conditioned projector is the pipeline's architecture; a bare
     // configuration trains it under the reference schedule. The
     // baseline is the configured fallback, never the default.
@@ -1284,7 +1284,7 @@ fn the_default_placement_is_the_trained_projector() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_forceless_projector_publishes_the_baseline_rung() {
+async fn forceless_projector_publishes_the_baseline_rung() {
     let root = GenerationRoot::new(scratch("projector-vacuous")).expect("the root should open");
     let dataset = dataset();
 
@@ -1365,7 +1365,7 @@ async fn a_forceless_projector_publishes_the_baseline_rung() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
+async fn trained_lens_publishes_the_canonical_rung_aligned() {
     let root = GenerationRoot::new(scratch("projector-ladder")).expect("the root should open");
     let dataset = dataset();
 
@@ -1470,7 +1470,7 @@ async fn a_trained_lens_publishes_the_canonical_rung_aligned() {
 /// and publishes with the relation evidence withheld.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_vacuous_placement_trains_without_reviews() {
+async fn vacuous_placement_trains_without_reviews() {
     let dataset = dataset();
     // The Proximal override gives the link type full force, and
     // nothing supplies reviewed pairs or a radius.
@@ -1579,7 +1579,7 @@ async fn a_vacuous_placement_trains_without_reviews() {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_canonical_condition_outside_the_schedule_publishes_nothing() {
+async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     let path = scratch("projector-unknown-rung");
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
@@ -1782,7 +1782,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn the_edge_artifacts_publish_and_read_back() {
+async fn edge_artifacts_publish_and_read_back() {
     let root = GenerationRoot::new(scratch("edge-artifacts")).expect("the root should open");
     let dataset = relation_dataset();
     let classifier = fixture_input();
@@ -1976,7 +1976,7 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
 }
 
 #[test]
-fn a_non_identity_corpus_resolves_no_verdict() {
+fn non_identity_corpus_resolves_no_verdict() {
     // A memory-corpus column keys rows by position, not store
     // identity: its id type offers no identity a verdict could name,
     // so every verdict records as unresolved by construction.

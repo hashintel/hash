@@ -208,7 +208,7 @@ fn measure_rejects_a_degenerate_field() {
 }
 
 #[test]
-fn a_pure_similarity_rung_is_indistinguishable() {
+fn pure_similarity_rung_is_indistinguishable() {
     let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let transform = Similarity::new(2.0, Rotation::from_radians(1.3), Vec2::new(5.0, -3.0))
@@ -268,7 +268,7 @@ fn a_pure_similarity_rung_is_indistinguishable() {
 }
 
 #[test]
-fn a_deformed_rung_is_distinguishable() {
+fn deformed_rung_is_distinguishable() {
     let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
@@ -493,7 +493,7 @@ fn canonical_selection_rejects_an_indistinguishable_rung() {
 }
 
 #[test]
-fn the_baseline_rung_measures_as_the_identity() {
+fn baseline_rung_measures_as_the_identity() {
     let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);

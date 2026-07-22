@@ -75,15 +75,11 @@ uuid                      = { workspace = true, features = ["v5"] }
 # `[[bench]]` and `[[example]]` targets consume; not API for consumers
 # of the crate.
 bench = []
-# Adds the Metal-backed flavor to the projector measurement seam
-# (burn's CubeCL wgpu runtime compiling to MSL). Compiles anywhere;
-# running it requires an Apple GPU, so its tests are ignored by
-# default.
-bench-gpu = ["bench", "burn/metal"]
 # Trains the projector placement on the Metal GPU backend instead of
-# the CPU. Compiles anywhere; running a fit requires an Apple GPU.
-# The CPU backend stays the fixture/CI harness, so tests run without
-# this feature.
+# the CPU, and - combined with `bench` - adds the Metal-backed flavor
+# to the measurement seams (burn's CubeCL wgpu runtime compiling to
+# MSL). Compiles anywhere; running on it requires an Apple GPU, so
+# the GPU-flavored tests are ignored by default.
 gpu = ["burn/metal"]
 # The operator commands (`cli` module) and the read-API routes (`api`
 # module) build unconditionally: the `hash-graph` binary is the one

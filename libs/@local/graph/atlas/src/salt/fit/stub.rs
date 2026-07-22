@@ -29,16 +29,16 @@ impl CardEmbedder for StubEmbedder {
         EmbedderFingerprint::new(hasher.finalize())
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .map(|text| {
                 let mut hasher = Sha256::new();
-                hasher.update(text.as_ref().as_bytes());
+                hasher.update(text.as_bytes());
                 let bytes = hasher.finalize().to_bytes();
 
                 let mut vector = BoxedVecN::zero();

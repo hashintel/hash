@@ -249,8 +249,9 @@ Cargo features (all disabled by default):
 - `gpu` - trains the projector on the Metal GPU backend. Compiles
   anywhere; running a fit with it requires an Apple GPU. Without it,
   fitting uses the CPU backend that CI exercises.
-- `bench`, `bench-gpu` - expose the measurement seams the bench and
-  example targets consume.
+- `bench` - exposes the measurement seams the bench and example
+  targets consume; combined with `gpu` those seams gain their
+  Metal-backed flavor.
 
 The operator commands (`cli` module) and the read API (`api` module)
 build unconditionally; the `hash-graph` binary's `atlas` subcommand is

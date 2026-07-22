@@ -6,7 +6,9 @@
 
 use proptest::{prop_assert, prop_assert_eq, proptest};
 
-use crate::math::scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus};
+use crate::math::scalar::{
+    Log2, UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus,
+};
 
 #[test]
 fn unit_fraction_accepts_exactly_the_closed_interval() {
@@ -220,5 +222,19 @@ proptest! {
             let rounded = narrow_f32(value).expect("an exactly representable value is finite");
             prop_assert_eq!(rounded.to_bits(), exact.to_bits());
         }
+    }
+}
+
+/// The whole `u8` domain, exhaustively: exactly the shiftable exponents construct.
+#[test]
+fn log2_admits_exactly_the_shift_domain() {
+    for value in 0_u8..64 {
+        let exponent = Log2::new(value).expect("values below the shift width construct");
+        assert_eq!(exponent.get(), value);
+        // The named guarantee: a shift by an exponent that exists cannot panic.
+        let _power = 1_u64 << exponent.get();
+    }
+    for value in 64_u8..=u8::MAX {
+        assert_eq!(Log2::new(value), None);
     }
 }

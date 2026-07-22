@@ -55,7 +55,7 @@ fn construction_exposes_the_validated_document() {
 }
 
 #[test]
-fn a_contract_violation_is_rejected_at_supply() {
+fn contract_violation_is_rejected_at_supply() {
     let foreign_schema = DOCUMENT.replace("atlas-reviewed-verdicts/1", "atlas-reviewed-verdicts/2");
 
     assert_matches!(

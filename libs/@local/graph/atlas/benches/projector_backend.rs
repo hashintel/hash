@@ -6,11 +6,10 @@
 //! out through the two motions measured here, at the real default
 //! architecture (512-wide stem, four residual blocks, `FiLM` from the
 //! width-1 `[eta]` condition), on every backend flavor the build
-//! carries - the CPU backend always, Metal behind the `bench-gpu`
-//! feature:
+//! carries - the CPU backend always, Metal behind `bench` + `gpu`:
 //!
 //! ```text
-//! cargo bench -p hash-graph-atlas --features bench-gpu --bench projector_backend
+//! cargo bench -p hash-graph-atlas --features bench,gpu --bench projector_backend
 //! ```
 //!
 //! - `step`: forward plus backward through the autodiff decorator at training minibatch sizes - the

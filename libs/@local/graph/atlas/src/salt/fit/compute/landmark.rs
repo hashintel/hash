@@ -108,7 +108,7 @@ impl Context<'_> {
             let _span = tracing::info_span!("landmark-selection").entered();
             let candidates: Vec<LandmarkCandidate> = (0..rows.len())
                 .map(|row| LandmarkCandidate {
-                    row: NodeRowId::new(row as u64),
+                    row: NodeRowId::from_index(row),
                     sampling_weight: SamplingWeight::UNIFORM,
                     axes: SubgroupAxes::default(),
                     prior_landmark: prior_marks.is_some_and(|marks| marks.contains(row)),

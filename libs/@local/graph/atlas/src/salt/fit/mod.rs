@@ -54,7 +54,7 @@ use crate::{
         generation::{Generation, GenerationRoot, PublishedGeneration},
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::AffinityCurve,
+    math::{AffinityCurve, Positive, UnitFraction},
     salt::{
         embedding::CardEmbedder,
         importance::RankingConfig,
@@ -240,8 +240,12 @@ impl ProjectorOptions {
                 NonZero::new(20_000).expect("the ratified step count is nonzero"),
                 5_000,
                 NonZero::new(250).expect("the ratified cadence is nonzero"),
-                1.0e-3,
-                1.0e-5,
+                const {
+                    UnitFraction::new(1.0e-3).expect("the ratified initial rate is a unit fraction")
+                },
+                const {
+                    UnitFraction::new(1.0e-5).expect("the ratified minimum rate is a unit fraction")
+                },
             )
             .expect("the ratified schedule is valid"),
             plan: BatchPlan {
@@ -263,14 +267,13 @@ impl ProjectorOptions {
             miner: MinerOptions::new(
                 NonZero::new(8).expect("the ratified quota is nonzero"),
                 NonZero::new(3).expect("the ratified margin is nonzero"),
-                1.0,
-                1.0,
-            )
-            .expect("the ratified miner options are valid"),
+                Positive::ONE,
+                Positive::ONE,
+            ),
             lens: RelationLens::new(
                 CoincidentEnergy::new(0.05, 1.0).expect("the ratified energy is valid"),
-                0.25,
-                1.0e-3,
+                const { Positive::new(0.25).expect("the ratified temperature is positive") },
+                const { Positive::new(1.0e-3).expect("the ratified scale guard is positive") },
                 None,
             )
             .expect("the ratified lens is valid"),
@@ -518,11 +521,6 @@ impl ClassifierInput {
 /// [`FitError::Cards`], [`FitError::Embedding`]), an ingest write fails, or any compute stage
 /// rejects its input, fails an admission check, or fails to write, map, or publish
 /// ([`FitError::Stage`]). Nothing is published on any error.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the staging and scratch directories move into the compute closure whole; nothing \

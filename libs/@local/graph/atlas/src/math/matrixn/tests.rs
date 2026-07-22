@@ -3,7 +3,7 @@ use core::simd::f32x8;
 use super::MatrixN;
 
 #[test]
-fn a_zeroed_matrix_reads_zero_everywhere() {
+fn zeroed_matrix_reads_zero_everywhere() {
     let matrix = MatrixN::<8>::zeroed(3);
 
     assert_eq!(matrix.len(), 3);
@@ -49,7 +49,7 @@ fn writes_through_rows_land_at_the_row_major_offsets() {
     clippy::float_cmp,
     reason = "the values are stored literals, not computed results"
 )]
-fn a_clone_is_equal_and_independent() {
+fn clone_is_equal_and_independent() {
     let mut matrix = MatrixN::<8>::zeroed(2);
     matrix.rows_mut()[0].as_array_mut()[3] = 4.0;
 
@@ -62,7 +62,7 @@ fn a_clone_is_equal_and_independent() {
 }
 
 #[test]
-fn the_empty_matrix_is_well_formed() {
+fn empty_matrix_is_well_formed() {
     let matrix = MatrixN::<8>::zeroed(0);
 
     assert!(matrix.is_empty());

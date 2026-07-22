@@ -73,6 +73,7 @@ impl Conditions {
                 count: values.len(),
             });
         }
+
         if values[0].to_bits() != 0.0_f32.to_bits() {
             return Err(ConditionsError::BaselineNotZero { value: values[0] });
         }
@@ -82,6 +83,7 @@ impl Conditions {
             if !value.is_finite() {
                 return Err(ConditionsError::NonFinite { index, value });
             }
+
             if let Some(previous) = previous
                 && value <= previous
             {
@@ -91,6 +93,7 @@ impl Conditions {
                     value,
                 });
             }
+
             previous = Some(value);
         }
 

@@ -576,9 +576,9 @@ fn quotient_contracts_cross_landmark_edges() {
         .expect("the fixture quotient has edges");
 
     // Directed inflows: L0 <- 0.5 (edge 1-2), L1 <- 0.5 + 0.25, L2 <-
-    // 0.25. Every row max-normalizes, then pairs take the maximum
-    // direction: (L0, L1) = max(0.5/0.5, 0.5/0.5) = 1.0 and (L1, L2) =
-    // max(0.25/0.5, 0.25/0.25) = 1.0.
+    // 0.25. Every row max-normalizes, then pairs combine by the
+    // probabilistic union: (L0, L1) = 1 + 1 - 1 = 1.0 and (L1, L2) =
+    // 0.5 + 1 - 0.5 = 1.0.
     let view = quotient.view();
     assert_eq!(view.rows(), 3);
     let row0: Vec<(u64, f32)> = view

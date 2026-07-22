@@ -163,7 +163,7 @@ where
         .par_iter()
         .enumerate()
         .map(|(row, components)| {
-            let row = NodeRowId::new(row as u64);
+            let row = NodeRowId::from_index(row);
             if let Some(ordinal) = selection.ordinal(row) {
                 return Ok(ordinal);
             }

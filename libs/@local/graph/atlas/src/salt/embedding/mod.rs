@@ -86,9 +86,9 @@ pub(crate) trait CardEmbedder {
     ///
     /// Returns a provider-defined error when embedding fails; the caller treats the whole workload
     /// as failed.
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send;
 }
 

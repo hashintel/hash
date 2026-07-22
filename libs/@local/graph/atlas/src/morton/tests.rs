@@ -47,7 +47,7 @@ fn depth_admits_the_documented_domain() {
 }
 
 #[test]
-fn the_root_cell_spans_every_key() {
+fn root_cell_spans_every_key() {
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("the origin lies in the one root cell");
 
     assert_eq!(root.min_key(), MortonKey::from_bits(0));
@@ -57,7 +57,7 @@ fn the_root_cell_spans_every_key() {
 }
 
 #[test]
-fn a_full_depth_cell_is_one_key() {
+fn full_depth_cell_is_one_key() {
     let key = MortonKey::new(7, 11);
     let cell = key.cell(Depth::MAX);
 

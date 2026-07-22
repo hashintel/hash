@@ -280,6 +280,18 @@ impl NodeRowId {
         Self(U64::new(row))
     }
 
+    /// Creates an id from a zero-based position in a row-aligned column.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the index exceeds the row-id encoding, which no supported target's address
+    /// space reaches.
+    #[inline]
+    #[must_use]
+    pub(crate) fn from_index(index: usize) -> Self {
+        Self::new(u64::try_from(index).expect("row indexes fit the row-id encoding"))
+    }
+
     /// Returns the referenced stream position.
     #[inline]
     #[must_use]

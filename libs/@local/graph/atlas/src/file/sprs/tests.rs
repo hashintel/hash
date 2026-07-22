@@ -55,7 +55,7 @@ fn regions_follow_the_layout_equations() {
 }
 
 #[test]
-fn the_compressed_dimension_spans_the_pointers() {
+fn compressed_dimension_spans_the_pointers() {
     // 2 x 1023: row-compressed needs 3 pointers, column-compressed
     // 1024 - exactly two pages of u64 pointers.
     let csr = FileHeader::new(
@@ -182,7 +182,7 @@ fn matrices_without_an_on_disk_form_are_rejected() {
     miri,
     ignore = "whole-file mappings go through FFI Miri cannot execute"
 )]
-fn a_written_matrix_reopens_as_the_same_view() {
+fn written_matrix_reopens_as_the_same_view() {
     let dir = std::env::temp_dir().join(format!("hash-graph-atlas-sprs-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
@@ -373,7 +373,7 @@ fn opaque_values_are_identified_by_width_alone() {
     miri,
     ignore = "whole-file mappings go through FFI Miri cannot execute"
 )]
-fn a_column_compressed_matrix_round_trips() {
+fn column_compressed_matrix_round_trips() {
     let dir =
         std::env::temp_dir().join(format!("hash-graph-atlas-sprs-csc-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
@@ -403,7 +403,7 @@ fn a_column_compressed_matrix_round_trips() {
 }
 
 #[test]
-fn a_structure_only_matrix_reopens_with_conjured_units() {
+fn structure_only_matrix_reopens_with_conjured_units() {
     let dir =
         std::env::temp_dir().join(format!("hash-graph-atlas-sprs-unit-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);

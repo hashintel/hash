@@ -164,9 +164,8 @@ impl LandmarkSkeletonArchive {
 
         let rows = file.selected_rows();
         if let Some(position) = rows
-            .iter()
-            .zip(rows.iter().skip(1))
-            .position(|(left, right)| left.get() >= right.get())
+            .array_windows::<2>()
+            .position(|[left, right]| left.get() >= right.get())
         {
             return Err(InvalidLandmarkFile::UnorderedRows {
                 ordinal: position + 1,

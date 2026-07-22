@@ -75,15 +75,12 @@ impl CardEmbedder for RecordingEmbedder {
         self.fingerprint
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str>> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
-        let texts: Vec<String> = texts
-            .into_iter()
-            .map(|text| text.as_ref().to_owned())
-            .collect();
+        let texts: Vec<String> = texts.into_iter().map(str::to_owned).collect();
         self.calls
             .lock()
             .expect("the fixture mutex should not be poisoned")
@@ -106,15 +103,15 @@ impl CardEmbedder for ShortEmbedder {
         fingerprint(b"short")
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str>> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .skip(1)
-            .map(|text| vector_for(text.as_ref(), 0.0))
+            .map(|text| vector_for(text, 0.0))
             .collect()))
     }
 }
@@ -129,9 +126,9 @@ impl CardEmbedder for NanEmbedder {
         fingerprint(b"nan")
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str>> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
@@ -324,7 +321,7 @@ async fn embeds_nothing_for_an_empty_card_list() {
 }
 
 #[test]
-fn a_view_exists_exactly_for_row_aligned_columns() {
+fn view_exists_exactly_for_row_aligned_columns() {
     let hashes = [text_digest("alpha"), text_digest("beta")];
     let components = vec![0.0_f32; 2 * CANONICAL_DIMENSIONS];
 

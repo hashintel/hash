@@ -175,7 +175,7 @@ fn exact_neighbours(
 
     let mut nearest = BinaryHeap::with_capacity(limit);
     for (row, embedding) in embeddings.iter().enumerate() {
-        let row = NodeRowId::new(row as u64);
+        let row = NodeRowId::from_index(row);
         if row == query {
             continue;
         }
@@ -256,7 +256,7 @@ impl ExactReference {
         let queries = sample
             .par_iter()
             .map(|&row| {
-                let id = NodeRowId::new(row as u64);
+                let id = NodeRowId::from_index(row);
                 let mut exact: Vec<NodeRowId> =
                     exact_neighbours(embeddings, id, neighbours_per_row)
                         .into_iter()

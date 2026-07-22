@@ -82,11 +82,6 @@ pub(crate) struct NodeColumns<I> {
 ///
 /// Returns an error when the dataset fails to deliver a node or the destination fails to accept
 /// bytes; either way the destination holds an unfinished file no reader accepts.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 pub(crate) async fn write_node_representations<D: Dataset>(
     dataset: &D,
     writer: impl Write + Seek,

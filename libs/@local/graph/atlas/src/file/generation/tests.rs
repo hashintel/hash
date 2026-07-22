@@ -208,7 +208,7 @@ fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
 }
 
 #[test]
-fn a_sealed_generation_is_complete_and_verifiable() {
+fn sealed_generation_is_complete_and_verifiable() {
     let root = GenerationRoot::new(scratch("publish")).expect("the root should open");
     let repository = repository();
 
@@ -284,7 +284,7 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
 }
 
 #[test]
-fn an_identical_document_publishes_once() {
+fn identical_document_publishes_once() {
     let root = GenerationRoot::new(scratch("identical")).expect("the root should open");
     let repository = repository();
 
@@ -357,7 +357,7 @@ fn activation_flips_the_pointer_and_supports_rollback() {
 }
 
 #[test]
-fn a_corrupt_pointer_is_rejected() {
+fn corrupt_pointer_is_rejected() {
     let root = GenerationRoot::new(scratch("corrupt")).expect("the root should open");
     fs::write(root.path.join("current"), "not a digest").expect("the pointer should write");
 
@@ -365,7 +365,7 @@ fn a_corrupt_pointer_is_rejected() {
 }
 
 #[test]
-fn an_activated_generation_opens_verified() {
+fn activated_generation_opens_verified() {
     let root = GenerationRoot::new(scratch("open")).expect("the root should open");
     let repository = repository();
 
@@ -434,7 +434,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 }
 
 #[test]
-fn a_dropped_staging_leaves_nothing_behind() {
+fn dropped_staging_leaves_nothing_behind() {
     let path = scratch("abandon");
     let root = GenerationRoot::new(&path).expect("the root should open");
 

@@ -168,7 +168,7 @@ pub(crate) fn spot_check(
 
     let mut defects = Vec::new();
     for row in sample {
-        let id = NodeRowId::new(row as u64);
+        let id = NodeRowId::from_index(row);
         let components = embeddings[row].as_array();
 
         // A non-finite component is one defect; its norm adds nothing.

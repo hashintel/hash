@@ -4,10 +4,11 @@
 //! against one exact CPU reference:
 //!
 //! ```text
-//! cargo run -p hash-graph-atlas --features bench-gpu --release --example knn_brute
+//! cargo run -p hash-graph-atlas --features bench,gpu --release --example knn_brute
 //! ```
 //!
-//! Under `bench-gpu` the products run on the Metal-backed CubeCL runtime; without it the CPU
+//! Under `bench` + `gpu` the products run on the Metal-backed `CubeCL` runtime; without them the
+//! CPU
 //! tensor backend runs the same arithmetic, at a wall time only fixture-sized corpora enjoy.
 //!
 //! Environment:

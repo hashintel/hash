@@ -7,7 +7,7 @@
 //! the document ceiling or the summed token ceiling; token counts are exact `cl100k_base` counts,
 //! the encoding of the embedding models this crate targets.
 
-use core::{error::Error, fmt, num::NonZero};
+use core::{error::Error, fmt, iter::Peekable, num::NonZero, ops::ControlFlow};
 
 use error_stack::Report;
 use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator};
@@ -30,18 +30,18 @@ mod tests;
 /// the generator's actual configuration poisons cross-generation reuse, so construct it beside the
 /// generator, from the same values.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct EmbeddingContract {
+pub(crate) struct EmbeddingContract<'text> {
     /// The provider organization, e.g. `openai`.
-    pub provider: String,
+    pub provider: &'text str,
     /// The endpoint the generator sends requests to.
-    pub endpoint: String,
+    pub endpoint: &'text str,
     /// The model identity, e.g. `text-embedding-3-large`.
-    pub model: String,
+    pub model: &'text str,
     /// The wire encoding of returned vectors, e.g. `float`.
-    pub encoding: String,
+    pub encoding: &'text str,
 }
 
-impl EmbeddingContract {
+impl EmbeddingContract<'_> {
     /// Returns the fingerprint of this contract.
     ///
     /// Every field is length-prefixed in the preimage, so fingerprints distinguish contracts that
@@ -72,15 +72,18 @@ impl EmbeddingContract {
     }
 }
 
+const DEFAULT_DOCUMENT_LIMIT: NonZero<usize> = const { NonZero::new(2_048).unwrap() };
+const DEFAULT_TOKEN_LIMIT: NonZero<usize> = const { NonZero::new(300_000).unwrap() };
+
 /// Ceilings one provider request must stay under.
 ///
 /// The defaults are the OpenAI embeddings API's published per-request ceilings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct RequestLimits {
     /// Maximum texts per request.
-    pub documents: NonZero<usize> = const { NonZero::new(2_048).unwrap() },
+    pub documents: NonZero<usize> = DEFAULT_DOCUMENT_LIMIT,
     /// Maximum summed tokens per request.
-    pub tokens: NonZero<usize> = const { NonZero::new(300_000).unwrap() },
+    pub tokens: NonZero<usize> = DEFAULT_TOKEN_LIMIT,
 }
 
 /// A [`CardEmbedder`] over an external [`EmbeddingGenerator`].
@@ -106,31 +109,54 @@ impl<G> ExternalEmbeddingProvider<G> {
         }
     }
 
-    /// Returns how many leading texts the next request may carry.
+    /// Admits the workload's next text into the request under assembly, or breaks.
     ///
-    /// At least one text is always admitted once it fits both ceilings alone; `offset` locates
-    /// `texts[0]` in the workload for error reports.
-    fn batch_len(&self, texts: &[&str], offset: usize) -> Result<usize, ExternalEmbeddingError> {
-        let mut tokens_left = self.limits.tokens.get();
-        for (position, &text) in texts.iter().take(self.limits.documents.get()).enumerate() {
-            let index = offset + position;
-            let tokens = Cl100kTokenizer.count_tokens(text).map_err(|error| {
-                ExternalEmbeddingError::ReservedToken {
-                    index,
-                    token: error.token,
-                }
-            })?;
-            if tokens > self.limits.tokens.get() {
-                return Err(ExternalEmbeddingError::OversizedText { index, tokens });
-            }
-            if tokens > tokens_left {
-                return Ok(position);
-            }
-
-            tokens_left -= tokens;
+    /// Breaks with `Ok` when the request is full - a further text would cross a ceiling, or the
+    /// workload is exhausted - and with the workload-stopping error when the next text cannot
+    /// embed at all. An empty request admits any text that fits the token ceiling alone, so a
+    /// break with texts on the iterator always leaves a non-empty request; `index` locates the
+    /// next text in the workload for error reports.
+    fn admit<'text>(
+        &self,
+        batch: &mut Vec<&'text str>,
+        token_count: &mut usize,
+        index: usize,
+        iter: &mut Peekable<impl Iterator<Item = &'text str>>,
+    ) -> ControlFlow<Result<(), ExternalEmbeddingError>> {
+        if batch.len() >= self.limits.documents.get() {
+            return ControlFlow::Break(Ok(()));
         }
 
-        Ok(texts.len().min(self.limits.documents.get()))
+        let Some(&next) = iter.peek() else {
+            return ControlFlow::Break(Ok(()));
+        };
+        let tokens = match Cl100kTokenizer.count_tokens(next) {
+            Ok(tokens) => tokens,
+            Err(error) => {
+                return ControlFlow::Break(Err(ExternalEmbeddingError::ReservedToken {
+                    index,
+                    token: error.token,
+                }));
+            }
+        };
+
+        if tokens > self.limits.tokens.get() {
+            return ControlFlow::Break(Err(ExternalEmbeddingError::OversizedText {
+                index,
+                tokens,
+            }));
+        }
+        if *token_count + tokens > self.limits.tokens.get() {
+            return ControlFlow::Break(Ok(()));
+        }
+
+        *token_count += tokens;
+        batch.push(
+            iter.next()
+                .unwrap_or_else(|| unreachable!("the peek just returned a text")),
+        );
+
+        ControlFlow::Continue(())
     }
 }
 
@@ -141,22 +167,34 @@ impl<G: EmbeddingGenerator + Sync> CardEmbedder for ExternalEmbeddingProvider<G>
         self.fingerprint
     }
 
-    async fn embed(
+    async fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error> {
-        let texts: Vec<_> = texts.into_iter().collect();
-        let texts: Vec<&str> = texts.iter().map(AsRef::as_ref).collect();
-
-        let mut embeddings = Vec::with_capacity(texts.len());
-        let mut remaining = texts.as_slice();
+        let mut iter = texts.into_iter().peekable();
+        let mut embeddings = Vec::new();
+        // One request buffer serves the whole workload, cleared between
+        // requests; the workload lifetime is shared, so reuse is free.
+        let mut batch: Vec<&str> = Vec::new();
         let mut offset = 0;
-        while !remaining.is_empty() {
-            let batch = &remaining[..self.batch_len(remaining, offset)?];
 
+        while iter.peek().is_some() {
+            batch.clear();
+            let mut token_count = 0;
+            loop {
+                let index = offset + batch.len();
+                match self.admit(&mut batch, &mut token_count, index, &mut iter) {
+                    ControlFlow::Continue(()) => {}
+                    ControlFlow::Break(Ok(())) => break,
+                    ControlFlow::Break(Err(error)) => return Err(error),
+                }
+            }
+
+            // Texts were on the iterator, so the admission contract
+            // guarantees a non-empty request here.
             let generated = self
                 .generator
-                .create_embeddings(batch)
+                .create_embeddings(&batch)
                 .await
                 .map_err(ExternalEmbeddingError::Provider)?;
             if generated.len() != batch.len() {
@@ -171,7 +209,6 @@ impl<G: EmbeddingGenerator + Sync> CardEmbedder for ExternalEmbeddingProvider<G>
             }
 
             offset += batch.len();
-            remaining = &remaining[batch.len()..];
         }
 
         Ok(embeddings)

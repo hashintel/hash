@@ -86,7 +86,10 @@ pub use self::{
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
     matrixn::MatrixN,
     rotation::Rotation,
-    scalar::{UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus},
+    scalar::{
+        Log2, NonNegative, Positive, UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid,
+        softplus,
+    },
     similarity::Similarity,
     transform::Transform,
     translation::Translation,

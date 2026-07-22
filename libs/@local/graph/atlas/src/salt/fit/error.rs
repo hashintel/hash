@@ -568,9 +568,7 @@ impl fmt::Display for StageError {
             }
             Self::MapCards(error) => map_back(fmt, "card-embedding matrix", error),
             Self::MapCoordinates(error) => map_back(fmt, "coordinate column", error),
-            Self::CoordinateShape => {
-                fmt.write_str("the staged coordinate column is not an f32 pair array")
-            }
+            Self::CoordinateShape => fmt.write_str("the staged coordinates are not f32 pairs"),
             Self::WireEncoding { rows } => write!(
                 fmt,
                 "the corpus holds {rows} rows, beyond the u32 wire position encoding"

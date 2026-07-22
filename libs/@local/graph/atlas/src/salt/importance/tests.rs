@@ -39,12 +39,12 @@ fn mapped_fixture(name: &str) -> AdjacencyArchive {
 }
 
 #[test]
-fn the_default_signal_is_incident_degree() {
+fn default_signal_is_incident_degree() {
     assert_eq!(RankingConfig::default(), RankingConfig::IncidentDegree);
 }
 
 #[test]
-fn the_constant_signal_weighs_every_row_equally() {
+fn constant_signal_weighs_every_row_equally() {
     let column = ConstantImportance.derive(4);
     assert_eq!(column, [0.0; 4]);
 }
@@ -62,7 +62,7 @@ fn degrees_match_a_hand_count_of_incident_slots() {
 
 #[test]
 #[should_panic(expected = "the adjacency spans the generation's node rows")]
-fn a_row_domain_mismatch_is_a_producer_bug() {
+fn row_domain_mismatch_is_a_producer_bug() {
     let adjacency = mapped_fixture("mismatch");
 
     let _column = DegreeImportance::new(&adjacency).derive(4);

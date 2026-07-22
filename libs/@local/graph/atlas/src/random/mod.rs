@@ -147,7 +147,7 @@ const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
 /// assert_ne!(draws.random::<u64>(), sibling.random::<u64>());
 /// ```
 #[must_use]
-pub fn keyed_rng(seed: u64, key: u64, stream: u64) -> Xoshiro256PlusPlus {
+pub fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
     let mut mixed = seed ^ key.wrapping_mul(SPLITMIX64_GAMMA);
     mixed ^= stream.wrapping_mul(SPLITMIX64_MIX_1);
     mixed = (mixed ^ (mixed >> 30)).wrapping_mul(SPLITMIX64_MIX_1);

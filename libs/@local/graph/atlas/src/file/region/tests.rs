@@ -50,7 +50,7 @@ fn streamed_regions_close_at_the_boundary() {
 }
 
 #[test]
-fn the_map_carves_regions() {
+fn map_carves_regions() {
     let path = std::env::temp_dir().join(format!(
         "hash-graph-atlas-region-map-{}",
         std::process::id()
@@ -73,7 +73,7 @@ fn the_map_carves_regions() {
 }
 
 #[test]
-fn a_live_map_excludes_exclusive_lockers() {
+fn live_map_excludes_exclusive_lockers() {
     let path = std::env::temp_dir().join(format!(
         "hash-graph-atlas-region-lock-{}",
         std::process::id()
@@ -97,7 +97,41 @@ fn a_live_map_excludes_exclusive_lockers() {
 }
 
 #[test]
-fn a_short_file_has_no_header_page() {
+fn open_fails_loud_on_an_exclusively_locked_file() {
+    let path = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-region-locked-{}",
+        std::process::id()
+    ));
+    fs::write(&path, [1, 2, 3]).expect("the fixture file should write");
+
+    let writer = fs::File::open(&path).expect("the fixture file should reopen");
+    writer.try_lock().expect("the exclusive lock is free");
+
+    let error = PageMap::open(&path).expect_err("an exclusively locked file must not map");
+    assert_eq!(error.kind(), std::io::ErrorKind::WouldBlock);
+
+    drop(writer);
+    let map = PageMap::open(&path).expect("the released file should map");
+    drop(map);
+
+    fs::remove_file(&path).expect("the fixture file should remove");
+}
+
+#[test]
+#[should_panic(expected = "out of range")]
+fn region_rejects_a_carve_beyond_the_mapping() {
+    let path = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-region-oob-{}",
+        std::process::id()
+    ));
+    fs::write(&path, [1, 2, 3]).expect("the fixture file should write");
+
+    let map = PageMap::open(&path).expect("the fixture file should map");
+    let _region = map.region(0, 4);
+}
+
+#[test]
+fn short_file_has_no_header_page() {
     let path = std::env::temp_dir().join(format!(
         "hash-graph-atlas-region-short-{}",
         std::process::id()

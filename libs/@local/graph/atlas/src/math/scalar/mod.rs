@@ -9,6 +9,92 @@
 #[cfg(test)]
 mod tests;
 
+/// A finite, strictly positive `f32`, valid by construction.
+///
+/// The shared definition of the finite-and-positive check that recurs across configuration and
+/// weight fields: a value that exists is valid, and the consuming site validates nothing.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::Positive;
+///
+/// assert_eq!(Positive::new(2.5).expect("2.5 is positive").get(), 2.5);
+/// assert_eq!(Positive::new(0.0), None);
+/// assert_eq!(Positive::new(f32::NAN), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct Positive(f32);
+
+impl Positive {
+    /// The value one.
+    pub const ONE: Self = Self(1.0);
+
+    /// Validates a strictly positive finite value.
+    ///
+    /// Returns [`None`] unless the value is finite and greater than zero.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f32) -> Option<Self> {
+        if !(value.is_finite() && value > 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f32 {
+        self.0
+    }
+}
+
+/// A finite, non-negative `f32`, valid by construction.
+///
+/// The shared definition of the finite-and-non-negative check: zero is admitted, so the type
+/// carries magnitudes and weights that may legitimately switch a term off.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::NonNegative;
+///
+/// assert_eq!(NonNegative::new(0.0).expect("zero is admitted").get(), 0.0);
+/// assert_eq!(NonNegative::new(-0.5), None);
+/// assert_eq!(NonNegative::new(f32::INFINITY), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct NonNegative(f32);
+
+impl NonNegative {
+    /// The value one.
+    pub const ONE: Self = Self(1.0);
+    /// The value zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Validates a non-negative finite value.
+    ///
+    /// Returns [`None`] unless the value is finite and at least zero.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f32) -> Option<Self> {
+        if !(value.is_finite() && value >= 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f32 {
+        self.0
+    }
+}
+
 /// A finite fraction in `[0, 1]`, valid by construction.
 ///
 /// Configuration fields whose domain is the closed unit interval carry this type instead of a raw
@@ -47,10 +133,79 @@ impl UnitFraction {
         Some(Self(value))
     }
 
+    /// Wraps a fraction the caller proves lies in `[0, 1]`.
+    ///
+    /// The check is a debug assertion: release builds trust the caller's proof.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::UnitFraction;
+    ///
+    /// let preserved = 3_u32;
+    /// let total = 4_u32;
+    /// // A count over its own total cannot leave [0, 1].
+    /// let fraction = UnitFraction::new_unchecked(f64::from(preserved) / f64::from(total));
+    /// assert_eq!(fraction.get(), 0.75);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn new_unchecked(value: f64) -> Self {
+        debug_assert!(
+            value >= 0.0 && value <= 1.0,
+            "the caller promised a value inside [0, 1]",
+        );
+        Self(value)
+    }
+
     /// Returns the fraction.
     #[inline]
     #[must_use]
     pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
+/// A power-of-two exponent below the `u64` shift width, valid by construction.
+///
+/// Configuration fields named `*_log2` carry this type instead of a raw `u8`: shifting a `u64` by
+/// 64 or more panics in debug builds and masks in release, so the bound is checked where the
+/// value is constructed and the shifting site validates nothing.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::Log2;
+///
+/// let span = Log2::new(6).expect("6 lies below the shift width");
+/// assert_eq!(span.get(), 6);
+/// assert_eq!(1_u64 << span.get(), 64);
+///
+/// // A hostile document's 200 refuses construction instead of panicking a later shift.
+/// assert_eq!(Log2::new(200), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Log2(u8);
+
+impl Log2 {
+    /// Validates a shift exponent.
+    ///
+    /// Returns [`None`] unless the value lies below the `u64` shift width: 64 and above have no
+    /// in-range power of two, and shifting by them panics in debug builds and masks in release.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: u8) -> Option<Self> {
+        if u32::from(value) >= u64::BITS {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the exponent.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> u8 {
         self.0
     }
 }

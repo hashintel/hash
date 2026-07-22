@@ -357,20 +357,20 @@ pub struct BruteAudit {
 }
 
 // The audit's tensor backend: the unfused CubeCL Metal runtime behind
-// `bench-gpu` (the fused alias trips burn-fusion's stream ordering on
-// dynamic shapes), the CPU tensor backend otherwise.
-#[cfg(feature = "bench-gpu")]
+// `bench` + `gpu` (the fused alias trips burn-fusion's stream ordering
+// on dynamic shapes), the CPU tensor backend otherwise.
+#[cfg(all(feature = "bench", feature = "gpu"))]
 type BruteBackend =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
-#[cfg(not(feature = "bench-gpu"))]
+#[cfg(not(all(feature = "bench", feature = "gpu")))]
 type BruteBackend = burn::backend::NdArray;
 
-#[cfg(feature = "bench-gpu")]
+#[cfg(all(feature = "bench", feature = "gpu"))]
 fn brute_device() -> burn::backend::wgpu::WgpuDevice {
     burn::backend::wgpu::WgpuDevice::default()
 }
 
-#[cfg(not(feature = "bench-gpu"))]
+#[cfg(not(all(feature = "bench", feature = "gpu")))]
 fn brute_device() -> burn::backend::ndarray::NdArrayDevice {
     burn::backend::ndarray::NdArrayDevice::default()
 }
@@ -380,8 +380,8 @@ fn brute_device() -> burn::backend::ndarray::NdArrayDevice {
 /// One construction at the production width — the wider of the spot check's depth and the stored
 /// count — scored against one exact CPU reference. The construction is deterministic, so no seed
 /// grid exists; the reference measures f32-accumulation drift at near-ties, not approximation.
-/// The tensor backend is the Metal-backed `CubeCL` runtime behind `bench-gpu`, the CPU backend
-/// otherwise.
+/// The tensor backend is the Metal-backed `CubeCL` runtime behind `bench` + `gpu`, the CPU
+/// backend otherwise.
 ///
 /// # Panics
 ///
@@ -473,7 +473,7 @@ fn build_index(
                 .iter()
                 .enumerate()
                 .map(|(row, components)| Embedding {
-                    id: NodeRowId::new(row as u64),
+                    id: NodeRowId::from_index(row),
                     components,
                 }),
         )

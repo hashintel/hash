@@ -102,7 +102,7 @@ fn construction_preserves_bytes_and_binds_their_digest() {
 }
 
 #[test]
-fn a_contract_violation_is_rejected_at_supply() {
+fn contract_violation_is_rejected_at_supply() {
     let foreign_schema =
         document().replace("atlas-annotation-corpus/1", "atlas-annotation-corpus/2");
 

@@ -285,8 +285,8 @@ impl Context<'_> {
         let device = device();
         let model = Projector::<TrainerBackend>::new(
             options.architecture,
-            stage_rng(self.config.seed, Stage::ProjectorInit),
             &device,
+            stage_rng(self.config.seed, Stage::ProjectorInit),
         );
         let fitted = train::fit(
             model,
@@ -312,7 +312,7 @@ impl Context<'_> {
             accumulator: Sha256::new(),
             writer: BufWriter::new(self.staging.create(&Role::Projector.file_name())?),
         };
-        artifact::write_model(model, &mut writer)?;
+        artifact::write_model(model.clone(), &mut writer)?;
         writer.writer.flush()?;
         tracing::info!("staged the projector checkpoint");
 
@@ -492,11 +492,15 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
         FrozenRadius::Measured { radius } | FrozenRadius::Asserted { radius } => radius,
         FrozenRadius::Vacuous => return None,
     };
-    let proximal = ProximalEnergy::new(radius, options.lens.temperature())
+    let proximal = ProximalEnergy::new(radius, options.lens.temperature().get())
         .expect("the trainer froze a finite, non-negative radius");
     Some(
-        RelationEnergy::new(options.lens.coincident(), proximal, options.lens.epsilon())
-            .expect("the trainer composed this energy at the boundary"),
+        RelationEnergy::new(
+            options.lens.coincident(),
+            proximal,
+            options.lens.epsilon().get(),
+        )
+        .expect("the trainer composed this energy at the boundary"),
     )
 }
 

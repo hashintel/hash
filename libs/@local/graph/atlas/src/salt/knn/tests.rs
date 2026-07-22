@@ -96,7 +96,7 @@ impl ExactIndex {
             .enumerate()
             .filter(|&(row, _)| Some(row) != exclude)
             .map(|(row, stored)| Neighbour {
-                id: NodeRowId::new(row as u64),
+                id: NodeRowId::from_index(row),
                 distance: query.cosine_distance(stored),
             })
             .collect();
@@ -505,7 +505,7 @@ fn descent_converges_on_known_geometry() {
         }
 
         let reference: Vec<u64> = exact
-            .ranked_by_id(NodeRowId::new(row as u64))
+            .ranked_by_id(NodeRowId::from_index(row))
             .into_iter()
             .take(4)
             .map(|neighbour| neighbour.id.get())
@@ -613,7 +613,7 @@ fn brute_force_matches_the_exact_reference() {
     for row in 0..64 {
         let entries = lists.row(row);
         let reference: Vec<Neighbour> = exact
-            .ranked_by_id(NodeRowId::new(row as u64))
+            .ranked_by_id(NodeRowId::from_index(row))
             .into_iter()
             .take(4)
             .collect();
@@ -1087,7 +1087,7 @@ fn hannoy_honours_the_seam_contract() {
                 .iter()
                 .enumerate()
                 .map(|(row, components)| Embedding {
-                    id: NodeRowId::new(row as u64),
+                    id: NodeRowId::from_index(row),
                     components,
                 }),
         )

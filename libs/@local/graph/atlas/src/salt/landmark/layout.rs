@@ -155,6 +155,12 @@ impl From<RepulsionStrength> for f32 {
     }
 }
 
+const DEFAULT_EPOCHS: NonZero<u32> = const { NonZero::new(500).unwrap() };
+const DEFAULT_INITIAL_LEARNING_RATE: LearningRate = const { LearningRate::new(1.0).unwrap() };
+const DEFAULT_REPULSION_STRENGTH: RepulsionStrength =
+    const { RepulsionStrength::new(1.0).unwrap() };
+const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwrap() };
+
 /// Schedule settings for one layout, valid by construction.
 // The defaults are the UMAP reference defaults, carried as unvalidated
 // starting points; the release evaluation's layout criteria
@@ -163,15 +169,15 @@ impl From<RepulsionStrength> for f32 {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LayoutOptions {
     /// Optimization epochs. Defaults to 500.
-    pub epochs: NonZero<u32> = const { NonZero::new(500).unwrap() },
+    pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
     /// Learning rate at epoch zero; it decays linearly to zero across the epoch budget.
     ///
     /// Defaults to 1.
-    pub initial_learning_rate: LearningRate = const { LearningRate::new(1.0).unwrap() },
+    pub initial_learning_rate: LearningRate = DEFAULT_INITIAL_LEARNING_RATE,
     /// Weight of repulsive updates. Defaults to 1.
-    pub repulsion_strength: RepulsionStrength = const { RepulsionStrength::new(1.0).unwrap() },
+    pub repulsion_strength: RepulsionStrength = DEFAULT_REPULSION_STRENGTH,
     /// Vertices repelled per sampled edge. Defaults to 5.
-    pub negative_sample_rate: NonZero<u32> = const { NonZero::new(5).unwrap() },
+    pub negative_sample_rate: NonZero<u32> = DEFAULT_NEGATIVE_SAMPLE_RATE,
 }
 
 const impl Default for LayoutOptions {
