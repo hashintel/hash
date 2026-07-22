@@ -31,45 +31,6 @@ After the manifest has been loaded, stdin and stdout are JSON Lines. The CLI
 writes diagnostics (including its ready message) to stderr. Keep the process
 alive and send one request per line; it handles requests serially.
 
-### stderr contract
-
-stdout is reserved for protocol responses; stderr carries diagnostics with a
-precise shape:
-
-1. **First line** — the human-readable ready handshake, e.g.
-   `Petrinaut stdio ready for optimization manifest <stdin>`. Parents may
-   treat a first line starting with `Petrinaut stdio ready` as bootstrap
-   success. This line's format is stable and will not change.
-2. **Every subsequent line** — one JSON object of structured diagnostics:
-
-   ```json
-   {
-     "time": "2026-07-19T12:00:00.000Z",
-     "level": "info",
-     "event": "request",
-     "optimizationRunId": "6f8b…",
-     "id": 2,
-     "method": "optimization.evaluate",
-     "durationMs": 41,
-     "outcome": "ok"
-   }
-   ```
-
-   `level` is `info`, `warn`, or `error`. Events include
-   `bootstrap_completed` (after the ready line), `request` (one per handled
-   request, with its bounded `id`, `method`, `durationMs`, and
-   `outcome: "ok" | "error"`), and `stdin_eof` (shutdown after stdin closes).
-   Diagnostics never contain model content, request params, or error
-   messages — those can embed user-authored code.
-
-   `optimizationRunId` echoes the `PETRINAUT_OPTIMIZATION_RUN_ID`
-   environment variable supplied by the parent at spawn time (`null` when
-   unset), so CLI diagnostics can be joined with the parent's own logs.
-
-Parents may parse these JSON lines or ignore them entirely, but must keep
-draining stderr so the pipe cannot fill and block the CLI. The production
-parent (`apps/petrinaut-opt`) forwards each line into its service logs.
-
 ### Supply-chain example
 
 The checked-in example defines a reproducible supply-chain profit study:

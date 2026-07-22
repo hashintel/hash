@@ -376,6 +376,7 @@ def test_stream_sends_comment_heartbeats_while_a_trial_is_running(
 def test_stream_error_is_terminal_and_is_not_followed_by_done(
     optimization_description: dict,
     stream_name: str,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     model = FailingModel(
         optimization_description, PetrinautClientError("transport failed")
@@ -395,7 +396,8 @@ def test_stream_error_is_terminal_and_is_not_followed_by_done(
             )
         ]
 
-    frames = asyncio.run(collect())
+    with caplog.at_level(logging.WARNING, logger="pn_optimize"):
+        frames = asyncio.run(collect())
     status = request.app.state.statuses.get(run_id)
 
     assert any(
@@ -409,6 +411,14 @@ def test_stream_error_is_terminal_and_is_not_followed_by_done(
     assert status.phase is Phase.error
     assert model.closed is True
     assert model.close_calls == [False]
+    failure = next(
+        record
+        for record in caplog.records
+        if getattr(record, "event", None) == "study_failed"
+    )
+    assert failure.run_id == run_id
+    assert "transport failed" not in failure.getMessage()
+    assert not hasattr(failure, "detail")
 
 
 def test_disconnect_closes_cli_before_a_bounded_worker_join(

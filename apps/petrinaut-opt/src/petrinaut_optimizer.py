@@ -235,10 +235,6 @@ class PetrinautOptimizer:
             "run_id": run_id,
         }
         if not self.lock.acquire(blocking=False):
-            log.warning(
-                "optimization study rejected: optimizer already running",
-                extra={"event": "study_already_running", **log_context},
-            )
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
 
@@ -339,7 +335,6 @@ class PetrinautOptimizer:
                         "optimization study failed",
                         extra={
                             "event": "study_failed",
-                            "detail": str(event.get("message"))[:500],
                             **log_context,
                         },
                     )
@@ -372,10 +367,6 @@ class PetrinautOptimizer:
             "run_id": run_id,
         }
         if not self.lock.acquire(blocking=False):
-            log.warning(
-                "optimization study rejected: optimizer already running",
-                extra={"event": "study_already_running", **log_context},
-            )
             yield 'event: error\ndata: {"message": "already running"}\n\n'
             return
 
@@ -481,7 +472,6 @@ class PetrinautOptimizer:
                         "optimization study failed",
                         extra={
                             "event": "study_failed",
-                            "detail": str(event.get("message"))[:500],
                             **log_context,
                         },
                     )

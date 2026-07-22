@@ -238,19 +238,9 @@ describe("createPetrinautOptimizationHandler", () => {
       error: "Invalid optimization request",
     });
 
-    // The failure is logged with only the issue count — never validation
-    // details or the manifest, which can embed user code and identifiers.
-    expect(entries).toEqual([
-      {
-        level: "warn",
-        message: "Petrinaut optimization request failed validation",
-        metadata: {
-          issueCount: 1,
-          requestId: "request-id-1",
-          userId: "user-1",
-        },
-      },
-    ]);
+    // HTTP tracing captures the 400; avoid duplicating validation data in
+    // application logs because the manifest can embed user-authored code.
+    expect(entries).toEqual([]);
     const loggedText = JSON.stringify(entries);
     expect(loggedText).not.toContain("return 1;");
     expect(loggedText).not.toContain("petrinaut-optimization");
@@ -363,21 +353,10 @@ describe("createPetrinautOptimizationHandler", () => {
     expect(entries).toEqual([
       {
         level: "info",
-        message: "Petrinaut optimization request accepted",
-        metadata: {
-          bodyBytes: expect.any(Number),
-          requestId: "request-id-1",
-          requestedTrials: 2,
-          userId: "user-1",
-        },
-      },
-      {
-        level: "info",
         message: "Petrinaut optimization stream opened",
         metadata: {
           optimizationRunId: "run-1",
           requestId: "request-id-1",
-          userId: "user-1",
         },
       },
       {
@@ -388,7 +367,6 @@ describe("createPetrinautOptimizationHandler", () => {
           optimizationRunId: "run-1",
           outcome: "completed",
           requestId: "request-id-1",
-          userId: "user-1",
         },
       },
     ]);
@@ -396,6 +374,34 @@ describe("createPetrinautOptimizationHandler", () => {
     const loggedText = JSON.stringify(entries);
     expect(loggedText).not.toContain("return 1;");
     expect(loggedText).not.toContain("petrinaut-optimization");
+  });
+
+  it("logs an upstream terminal error as failed", async () => {
+    const { entries, logger } = createRecordingLogger();
+    const result = await callHandler({
+      body: validOptimizationInput,
+      fetchImpl: async () =>
+        new Response('event: error\ndata: {"message":"failed"}\n\n', {
+          headers: {
+            "content-type": "text/event-stream",
+            "x-optimization-run-id": "run-failed-1",
+          },
+        }),
+      logger,
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(result.output.at(-1)).toContain('"type":"error"');
+    expect(entries.at(-1)).toEqual({
+      level: "warn",
+      message: "Petrinaut optimization failed",
+      metadata: {
+        durationMs: expect.any(Number),
+        optimizationRunId: "run-failed-1",
+        outcome: "upstream-error",
+        requestId: "request-id-1",
+      },
+    });
   });
 
   it("preserves an upstream busy response without a Retry-After header", async () => {
@@ -692,7 +698,6 @@ describe("createPetrinautOptimizationHandler", () => {
         optimizationRunId: null,
         outcome: "client-disconnected",
         requestId: "request-id-1",
-        userId: "user-1",
       },
     });
 
@@ -742,7 +747,6 @@ describe("createPetrinautOptimizationHandler", () => {
       metadata: {
         activeOptimizationCount: 1,
         requestId: "request-id-1",
-        userId: "user-1",
       },
     });
 

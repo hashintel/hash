@@ -2,7 +2,6 @@ import { parseArgs } from "node:util";
 
 import { serve } from "./commands/serve";
 import { serveStdio } from "./commands/stdio";
-import { optimizationRunIdFromEnvironment } from "./runtime/diagnostics";
 
 function printUsage(): void {
   process.stderr.write(`Usage:
@@ -85,10 +84,6 @@ async function main(): Promise<void> {
     );
   }
 
-  // Read the parent-supplied optimization run id once at startup; it is
-  // passed down explicitly so the serve loop never reads ambient state itself.
-  const optimizationRunId = optimizationRunIdFromEnvironment(process.env);
-
   if (parsed.values.socket !== undefined) {
     if (parsed.values.socket.trim() === "") {
       throw new Error("--socket requires a non-empty path");
@@ -101,13 +96,13 @@ async function main(): Promise<void> {
       socketPath: parsed.values.socket,
     });
   } else if (modelStdin) {
-    await serveStdio({ modelStdin: true, optimizationRunId });
+    await serveStdio({ modelStdin: true });
   } else if (modelPath) {
-    await serveStdio({ modelPath, optimizationRunId });
+    await serveStdio({ modelPath });
   } else if (optimizationStdin) {
-    await serveStdio({ optimizationStdin: true, optimizationRunId });
+    await serveStdio({ optimizationStdin: true });
   } else if (optimizationPath) {
-    await serveStdio({ optimizationPath, optimizationRunId });
+    await serveStdio({ optimizationPath });
   }
 }
 

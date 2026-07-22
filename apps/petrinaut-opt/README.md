@@ -60,27 +60,21 @@ Each response has an `X-Optimization-Run-ID` header for status queries:
 
 ### Correlation and logs
 
-One optimization can be followed across the service boundary and its spawned
-CLI:
+One optimization can be followed across the HTTP service boundary:
 
 1. NodeAPI forwards its request id in `x-hash-request-id`; Python attaches it
    to lifecycle log records as `request_id`.
-2. Python creates a `run_id`, returns it in `X-Optimization-Run-ID`, and passes
-   it to the CLI in `PETRINAUT_OPTIMIZATION_RUN_ID`.
-3. The CLI includes that value as `optimizationRunId` in its JSON stderr
-   diagnostics. Python forwards those diagnostics through the `pn_cli` stdlib
-   logger with the same `run_id`.
+2. Python creates a `run_id`, returns it in `X-Optimization-Run-ID`, and
+   attaches it to lifecycle log records.
 
 This service emits normal Python log records with bounded structured fields
 such as `event`, `request_id`, and `run_id`. Logging handlers, exporters, and
 trace context are configured by the deployment's observability layer rather
 than here.
 
-CLI stderr lines are truncated to 2,000 characters, the pending-line buffer is
-bounded, and at most 1,000 lines are forwarded per run. The pipe continues to
-be drained after that cap so the CLI cannot block. Lifecycle logs and CLI
-diagnostics never intentionally include optimization manifests, user-authored
-code, or raw request bodies.
+The CLI stderr pipe is drained so the child cannot block, but its content is
+not copied into service logs. Lifecycle logs never intentionally include
+optimization manifests, user-authored code, or raw request bodies.
 
 The process admits at most four active optimizations. Additional requests
 receive HTTP 429, and slots are released after initialization failures, stream

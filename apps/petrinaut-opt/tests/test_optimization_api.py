@@ -253,48 +253,6 @@ def test_capacity_rejection_is_logged_with_the_request_id(
     assert "manifest" not in rejection.getMessage()
 
 
-def test_admission_logs_carry_request_correlation(
-    optimization_manifest: dict,
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    received_optimization_run_ids: list[str | None] = []
-
-    def initialize(
-        _manifest: dict[str, Any], *, optimization_run_id: str | None = None
-    ) -> FakeOptimizer:
-        received_optimization_run_ids.append(optimization_run_id)
-        return FakeOptimizer()
-
-    monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
-
-    with caplog.at_level(logging.INFO):
-        with TestClient(optimization_api.app) as client:
-            response = client.post(
-                "/optimize/all",
-                json=optimization_manifest,
-                headers={"x-hash-request-id": "request-corr-1"},
-            )
-
-    assert response.status_code == 200
-    run_id = response.headers["x-optimization-run-id"]
-    # The optimizer receives the run id as the CLI spawn correlation id.
-    assert received_optimization_run_ids == [run_id]
-    events = {
-        getattr(record, "event", None): record
-        for record in caplog.records
-        if record.name == "pn_api"
-    }
-    for expected in ("study_admitted", "initialization_started"):
-        record = events[expected]
-        assert record.run_id == run_id
-        assert record.request_id == "request-corr-1"
-    # The opaque manifest must never be logged.
-    assert all(
-        "return 1;" not in record.getMessage() for record in caplog.records
-    )
-
-
 class RecordingModel:
     """Track how the CLI adapter is shut down."""
 

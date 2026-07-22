@@ -116,26 +116,16 @@ app = FastAPI(title="Petrinaut optimization Python API", lifespan=lifespan)
 app.add_middleware(RequestBodyLimitMiddleware)
 
 
-def create_model(
-    optimization_manifest: dict[str, Any],
-    *,
-    optimization_run_id: str | None = None,
-) -> PetrinautModel:
+def create_model(optimization_manifest: dict[str, Any]) -> PetrinautModel:
     """Create the CLI adapter; retained as a narrow seam for API tests."""
-    return PetrinautModel(
-        optimization_manifest, optimization_run_id=optimization_run_id
-    )
+    return PetrinautModel(optimization_manifest)
 
 
 def initialize_optimizer(
     optimization_manifest: dict[str, Any],
-    *,
-    optimization_run_id: str | None = None,
 ) -> PetrinautOptimizer:
     """Start Petrinaut and build an Optuna study from its description."""
-    model = create_model(
-        optimization_manifest, optimization_run_id=optimization_run_id
-    )
+    model = create_model(optimization_manifest)
     try:
         model.start()
         return PetrinautOptimizer(model)
@@ -176,18 +166,11 @@ async def _release_optimization_slot(app: FastAPI) -> None:
 
 
 async def _initialize_admitted_optimizer(
-    app: FastAPI,
-    optimization_manifest: dict[str, Any],
-    *,
-    run_id: str | None = None,
+    app: FastAPI, optimization_manifest: dict[str, Any]
 ) -> PetrinautOptimizer:
     """Initialize off-loop and clean up if the request task is cancelled."""
     initializer = asyncio.create_task(
-        asyncio.to_thread(
-            initialize_optimizer,
-            optimization_manifest,
-            optimization_run_id=run_id,
-        )
+        asyncio.to_thread(initialize_optimizer, optimization_manifest)
     )
     try:
         return await asyncio.shield(initializer)
@@ -222,8 +205,7 @@ async def _initialize_admitted_optimizer(
 
 
 def _create_admitted_run_cleanup(
-    app: FastAPI,
-    optimizer: PetrinautOptimizer,
+    app: FastAPI, optimizer: PetrinautOptimizer
 ) -> Callable[[], Awaitable[None]]:
     """Build the idempotent teardown for one admitted optimization run.
 
@@ -325,19 +307,10 @@ async def post_optimize_all(
     except BaseException:
         await asyncio.shield(_release_optimization_slot(request.app))
         raise
-    log_context = {**correlation, "run_id": run_id}
-    log.info(
-        "optimization study admitted",
-        extra={"event": "study_admitted", **log_context},
-    )
     optimizer: PetrinautOptimizer | None = None
     try:
-        log.info(
-            "optimization initialization started",
-            extra={"event": "initialization_started", **log_context},
-        )
         optimizer = await _initialize_admitted_optimizer(
-            request.app, optimization_manifest, run_id=run_id
+            request.app, optimization_manifest
         )
         set_status(
             request.app,
@@ -387,19 +360,10 @@ async def post_optimize_best(
     except BaseException:
         await asyncio.shield(_release_optimization_slot(request.app))
         raise
-    log_context = {**correlation, "run_id": run_id}
-    log.info(
-        "optimization study admitted",
-        extra={"event": "study_admitted", **log_context},
-    )
     optimizer: PetrinautOptimizer | None = None
     try:
-        log.info(
-            "optimization initialization started",
-            extra={"event": "initialization_started", **log_context},
-        )
         optimizer = await _initialize_admitted_optimizer(
-            request.app, optimization_manifest, run_id=run_id
+            request.app, optimization_manifest
         )
         set_status(
             request.app,
