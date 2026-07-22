@@ -253,7 +253,7 @@ def test_capacity_rejection_is_logged_with_the_request_id(
     assert "manifest" not in rejection.getMessage()
 
 
-def test_admission_logs_carry_request_and_trace_correlation(
+def test_admission_logs_carry_request_correlation(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
@@ -273,12 +273,7 @@ def test_admission_logs_carry_request_and_trace_correlation(
             response = client.post(
                 "/optimize/all",
                 json=optimization_manifest,
-                headers={
-                    "x-hash-request-id": "request-corr-1",
-                    "traceparent": (
-                        "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
-                    ),
-                },
+                headers={"x-hash-request-id": "request-corr-1"},
             )
 
     assert response.status_code == 200
@@ -294,8 +289,6 @@ def test_admission_logs_carry_request_and_trace_correlation(
         record = events[expected]
         assert record.run_id == run_id
         assert record.request_id == "request-corr-1"
-        assert record.trace_id == "0af7651916cd43dd8448eb211c80319c"
-    assert events["slot_released"].run_id == run_id
     # The opaque manifest must never be logged.
     assert all(
         "return 1;" not in record.getMessage() for record in caplog.records

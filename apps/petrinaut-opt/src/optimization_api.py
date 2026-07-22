@@ -18,7 +18,6 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from src.logging_config import configure_logging, request_correlation
 from src.petrinaut_client import PetrinautModel
 from src.petrinaut_optimizer import PetrinautOptimizer
 from src.utils import Phase, RunStatus, StatusStore, set_status
@@ -26,7 +25,6 @@ from src.utils import Phase, RunStatus, StatusStore, set_status
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(REPO_ROOT / ".env")
-configure_logging()
 log = logging.getLogger("pn_api")
 MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
@@ -172,20 +170,9 @@ async def _acquire_optimization_slot(
         app.state.active_optimizations += 1
 
 
-async def _release_optimization_slot(
-    app: FastAPI, *, run_id: str | None = None
-) -> None:
+async def _release_optimization_slot(app: FastAPI) -> None:
     async with app.state.optimization_admission_lock:
         app.state.active_optimizations -= 1
-        remaining = app.state.active_optimizations
-    log.info(
-        "optimization slot released",
-        extra={
-            "event": "slot_released",
-            "active_optimizations": remaining,
-            "run_id": run_id,
-        },
-    )
 
 
 async def _initialize_admitted_optimizer(
@@ -230,15 +217,13 @@ async def _initialize_admitted_optimizer(
                         optimizer.pn_model.close, graceful=False
                     )
         finally:
-            await asyncio.shield(_release_optimization_slot(app, run_id=run_id))
+            await asyncio.shield(_release_optimization_slot(app))
         raise
 
 
 def _create_admitted_run_cleanup(
     app: FastAPI,
     optimizer: PetrinautOptimizer,
-    *,
-    run_id: str | None = None,
 ) -> Callable[[], Awaitable[None]]:
     """Build the idempotent teardown for one admitted optimization run.
 
@@ -261,7 +246,7 @@ def _create_admitted_run_cleanup(
             with suppress(Exception):
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         finally:
-            await _release_optimization_slot(app, run_id=run_id)
+            await _release_optimization_slot(app)
 
     return cleanup
 
@@ -333,7 +318,7 @@ async def post_optimize_all(
     optimization_manifest: dict[str, Any],
 ) -> StreamingResponse:
     """Stream one SSE data frame for every completed Optuna trial."""
-    correlation = request_correlation(request)
+    correlation = {"request_id": request.headers.get("x-hash-request-id")}
     await _acquire_optimization_slot(request.app, correlation=correlation)
     try:
         run_id = request.app.state.statuses.create().run_id
@@ -364,12 +349,12 @@ async def post_optimize_all(
         if optimizer is not None:
             with suppress(Exception):
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
-        await asyncio.shield(_release_optimization_slot(request.app, run_id=run_id))
+        await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(
             request.app, run_id, error, correlation=correlation
         ) from error
 
-    cleanup = _create_admitted_run_cleanup(request.app, optimizer, run_id=run_id)
+    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
         _stream_with_cleanup(
             optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
@@ -395,7 +380,7 @@ async def post_optimize_best(
     optimization_manifest: dict[str, Any],
 ) -> StreamingResponse:
     """Stream the best-so-far SSE data frame after every completed trial."""
-    correlation = request_correlation(request)
+    correlation = {"request_id": request.headers.get("x-hash-request-id")}
     await _acquire_optimization_slot(request.app, correlation=correlation)
     try:
         run_id = request.app.state.statuses.create().run_id
@@ -426,12 +411,12 @@ async def post_optimize_best(
         if optimizer is not None:
             with suppress(Exception):
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
-        await asyncio.shield(_release_optimization_slot(request.app, run_id=run_id))
+        await asyncio.shield(_release_optimization_slot(request.app))
         raise _initialization_error(
             request.app, run_id, error, correlation=correlation
         ) from error
 
-    cleanup = _create_admitted_run_cleanup(request.app, optimizer, run_id=run_id)
+    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
         _stream_with_cleanup(
             optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),

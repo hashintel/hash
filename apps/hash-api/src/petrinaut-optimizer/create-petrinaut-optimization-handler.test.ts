@@ -238,16 +238,14 @@ describe("createPetrinautOptimizationHandler", () => {
       error: "Invalid optimization request",
     });
 
-    // The failure is logged with only issue counts and schema paths — never
-    // the validation messages or the manifest, which can embed user code.
+    // The failure is logged with only the issue count — never validation
+    // details or the manifest, which can embed user code and identifiers.
     expect(entries).toEqual([
       {
         level: "warn",
         message: "Petrinaut optimization request failed validation",
         metadata: {
           issueCount: 1,
-          issuePaths: ["scenario.parameterBindings.rate.domain.scale"],
-          issuePathsTruncated: false,
           requestId: "request-id-1",
           userId: "user-1",
         },

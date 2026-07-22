@@ -58,6 +58,30 @@ Each response has an `X-Optimization-Run-ID` header for status queries:
 - `GET /status/{run_id}` returns one run status.
 - `GET /` returns a welcome message.
 
+### Correlation and logs
+
+One optimization can be followed across the service boundary and its spawned
+CLI:
+
+1. NodeAPI forwards its request id in `x-hash-request-id`; Python attaches it
+   to lifecycle log records as `request_id`.
+2. Python creates a `run_id`, returns it in `X-Optimization-Run-ID`, and passes
+   it to the CLI in `PETRINAUT_OPTIMIZATION_RUN_ID`.
+3. The CLI includes that value as `optimizationRunId` in its JSON stderr
+   diagnostics. Python forwards those diagnostics through the `pn_cli` stdlib
+   logger with the same `run_id`.
+
+This service emits normal Python log records with bounded structured fields
+such as `event`, `request_id`, and `run_id`. Logging handlers, exporters, and
+trace context are configured by the deployment's observability layer rather
+than here.
+
+CLI stderr lines are truncated to 2,000 characters, the pending-line buffer is
+bounded, and at most 1,000 lines are forwarded per run. The pipe continues to
+be drained after that cap so the CLI cannot block. Lifecycle logs and CLI
+diagnostics never intentionally include optimization manifests, user-authored
+code, or raw request bodies.
+
 The process admits at most four active optimizations. Additional requests
 receive HTTP 429, and slots are released after initialization failures, stream
 failures, completion, or disconnect. `GET /status` retains the 100 most recent
@@ -146,58 +170,8 @@ optimization test.
 
 CLI startup is limited to 25 seconds and each protocol response to 240 seconds.
 Protocol lines are limited to 8 MiB. Python continuously drains CLI stderr once
-startup completes — forwarding each line into the service logs (see
-[Logging](#logging)) — and terminates the CLI's isolated process group on
-timeout, failure, or client disconnect.
-
-## Logging
-
-The service logs one JSON object per line to stdout:
-
-```json
-{
-  "timestamp": "2026-07-19T12:00:00.000Z",
-  "level": "INFO",
-  "logger": "pn_optimize",
-  "message": "optimization study started",
-  "service": "petrinaut-opt",
-  "event": "study_started",
-  "run_id": "6f8b…",
-  "request_id": "AbC123…",
-  "trace_id": "0af7651916cd43dd8448eb211c80319c"
-}
-```
-
-`HASH_PETRINAUT_OPT_LOG_LEVEL` sets the level (`DEBUG`, `INFO`, `WARNING`,
-`ERROR`, `CRITICAL`; default `INFO`; unknown values fall back to `INFO`).
-
-Correlation chain — one optimization is traceable end to end:
-
-1. NodeAPI mints a request id and forwards it as the `x-hash-request-id`
-   header; the service logs it as `request_id`. An inbound W3C `traceparent`
-   header is parsed (without an OTel dependency) into `trace_id` so logs join
-   with traces.
-2. The service mints a `run_id` per study (also returned as the
-   `X-Optimization-Run-ID` response header, which NodeAPI logs as
-   `optimizationRunId`).
-3. The `run_id` is passed to the spawned CLI as the
-   `PETRINAUT_OPTIMIZATION_RUN_ID` environment variable, and the CLI echoes
-   it as `optimizationRunId` in its stderr diagnostics.
-
-CLI stderr is not discarded: after the ready handshake, every stderr line
-(often itself a JSON diagnostic, see
-`libs/@hashintel/petrinaut-cli/OPTIMIZATION_INTEGRATION.md`) is forwarded into
-the service logs under the `pn_cli` logger with the run's correlation id.
-Lines are truncated to 2,000 characters and the pending-line buffer is
-bounded, so CLI output can neither bloat the logs nor service memory.
-
-Logged lifecycle events include: study admission, capacity rejection (429),
-initialization start/failure, study start, per-trial outcomes, study
-completion, client disconnect, worker join timeout, CLI termination path
-(graceful EOF / SIGTERM / SIGKILL escalation), and slot release. By design,
-logs never contain optimization manifests, user-authored code, or raw request
-bodies — only sizes, counts, identifiers, and optimizer-proposed scalar
-parameter values.
+startup completes and terminates the CLI's isolated process group on timeout,
+failure, or client disconnect.
 
 ## Development
 

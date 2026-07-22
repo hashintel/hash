@@ -16,7 +16,6 @@ from typing import Any, Literal, TypeAlias, cast
 import optuna
 from fastapi import Request
 
-from src.logging_config import request_correlation
 from src.petrinaut_client import PetrinautModel, PetrinautRunError
 from src.utils import Phase, set_status
 
@@ -29,7 +28,6 @@ SAMPLERS = {
     "random": optuna.samplers.RandomSampler,
 }
 DEFAULT_STUDY_NAME = "opt_study"
-TRIAL_ERROR_LOG_CHARACTERS = 500
 SSE_HEARTBEAT_SECONDS = 30
 _DISCONNECT_POLL_SECONDS = 0.1
 _WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
@@ -176,9 +174,6 @@ class PetrinautOptimizer:
             sampler=self.sampler,
         )
         self.pn_model = pn_model
-        # The CLI adapter carries the optimization run id; fall back to None
-        # for adapters (and test doubles) created without one.
-        self.optimization_run_id = getattr(pn_model, "optimization_run_id", None)
         self.lock = threading.Lock()
 
     def suggest(self, trial: optuna.Trial) -> dict[str, Scalar]:
@@ -210,26 +205,15 @@ class PetrinautOptimizer:
         return values
 
     def objective(self, trial: optuna.Trial) -> float:
-        """Propose one flat parameter set and ask Petrinaut to evaluate it.
-
-        The per-trial logs contain optimizer-proposed scalar values and a
-        truncated CLI error summary. The manifest and user-authored code are
-        never logged, but a CLI error string may quote a user identifier or
-        expression error, so it is bounded before it reaches the log.
-        """
+        """Propose one flat parameter set and ask Petrinaut to evaluate it."""
         parameter_values = self.suggest(trial)
         try:
             value = self.pn_model.objective(parameter_values)
         except PetrinautRunError as error:
             log.warning(
-                "trial %d failed — pruned",
+                "trial %d failed — pruned\nstderr: %s",
                 trial.number,
-                extra={
-                    "event": "trial_pruned",
-                    "run_id": self.optimization_run_id,
-                    "trial": trial.number,
-                    "error": str(error)[:TRIAL_ERROR_LOG_CHARACTERS],
-                },
+                str(error),
             )
             raise optuna.TrialPruned() from error
 
@@ -238,12 +222,6 @@ class PetrinautOptimizer:
             trial.number,
             value,
             parameter_values,
-            extra={
-                "event": "trial_completed",
-                "run_id": self.optimization_run_id,
-                "trial": trial.number,
-                "objective": value,
-            },
         )
         return value
 
@@ -252,7 +230,10 @@ class PetrinautOptimizer:
     ) -> AsyncIterator[str]:
         """Stream Yannis's per-trial SSE frames, followed by the done frame."""
         app = request.app
-        log_context = {**request_correlation(request), "run_id": run_id}
+        log_context = {
+            "request_id": request.headers.get("x-hash-request-id"),
+            "run_id": run_id,
+        }
         if not self.lock.acquire(blocking=False):
             log.warning(
                 "optimization study rejected: optimizer already running",
@@ -386,7 +367,10 @@ class PetrinautOptimizer:
     ) -> AsyncIterator[str]:
         """Stream Yannis's best-so-far SSE frames, followed by the done frame."""
         app = request.app
-        log_context = {**request_correlation(request), "run_id": run_id}
+        log_context = {
+            "request_id": request.headers.get("x-hash-request-id"),
+            "run_id": run_id,
+        }
         if not self.lock.acquire(blocking=False):
             log.warning(
                 "optimization study rejected: optimizer already running",

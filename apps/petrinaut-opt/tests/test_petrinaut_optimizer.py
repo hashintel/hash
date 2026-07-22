@@ -74,6 +74,7 @@ class ConnectedRequest:
     def __init__(self) -> None:
         self.app = FastAPI()
         self.app.state.statuses = StatusStore()
+        self.headers: dict[str, str] = {}
 
     async def is_disconnected(self) -> bool:
         return False
@@ -126,73 +127,6 @@ def test_objective_sends_only_flat_suggested_values(
 
     assert optimizer.objective(trial) == 10.25
     assert model.evaluations == [{"rate": 1.25, "count": 8, "enabled": True}]
-
-
-def test_trial_outcomes_are_logged_with_the_optimization_run_id(
-    optimization_description: dict,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    model = FakeModel(optimization_description)
-    model.optimization_run_id = "run-c1"  # type: ignore[attr-defined]
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
-
-    with caplog.at_level(logging.INFO, logger="pn_optimize"):
-        optimizer.objective(trial)
-
-    completed = next(
-        record
-        for record in caplog.records
-        if getattr(record, "event", None) == "trial_completed"
-    )
-    assert completed.run_id == "run-c1"
-    assert completed.trial == 0
-
-
-def test_pruned_trials_are_logged_with_the_optimization_run_id(
-    optimization_description: dict,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    model = FailingModel(optimization_description, PetrinautRunError("scenario failed"))
-    model.optimization_run_id = "run-c2"  # type: ignore[attr-defined]
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
-
-    with caplog.at_level(logging.WARNING, logger="pn_optimize"):
-        with pytest.raises(optuna.TrialPruned):
-            optimizer.objective(trial)
-
-    pruned = next(
-        record
-        for record in caplog.records
-        if getattr(record, "event", None) == "trial_pruned"
-    )
-    assert pruned.run_id == "run-c2"
-    assert pruned.trial == 0
-
-
-def test_pruned_trial_error_field_is_bounded(
-    optimization_description: dict,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """A CLI error may quote user content, so its logged copy is truncated."""
-    long_error = "e" * (petrinaut_optimizer.TRIAL_ERROR_LOG_CHARACTERS + 500)
-    model = FailingModel(optimization_description, PetrinautRunError(long_error))
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
-
-    with caplog.at_level(logging.WARNING, logger="pn_optimize"):
-        with pytest.raises(optuna.TrialPruned):
-            optimizer.objective(trial)
-
-    pruned = next(
-        record
-        for record in caplog.records
-        if getattr(record, "event", None) == "trial_pruned"
-    )
-    assert len(pruned.error) == petrinaut_optimizer.TRIAL_ERROR_LOG_CHARACTERS
-    # The raw error is not interpolated into the human-readable message.
-    assert long_error not in pruned.getMessage()
 
 
 def test_objective_prunes_only_evaluation_errors(

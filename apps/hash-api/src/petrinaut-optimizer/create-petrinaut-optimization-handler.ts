@@ -22,9 +22,6 @@ const OVERALL_TIMEOUT_MS = 15 * 60_000;
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024;
 const MAX_VALIDATION_ISSUES = 5;
 const MAX_VALIDATION_MESSAGE_LENGTH = 300;
-// Manifest keys (e.g. scenario parameter identifiers) are user-controlled and
-// unbounded, so cap each path segment before it reaches a response or a log.
-const MAX_VALIDATION_PATH_SEGMENT_LENGTH = 100;
 // A trial repeats optimized parameter identifiers from the accepted manifest,
 // so use the same bound rather than rejecting a valid large search space.
 const MAX_EVENT_BYTES = MAX_REQUEST_BYTES;
@@ -137,12 +134,7 @@ const summarizeValidationIssues = (
   issues: readonly { message: string; path: readonly PropertyKey[] }[],
 ) => ({
   issues: issues.slice(0, MAX_VALIDATION_ISSUES).map(({ message, path }) => ({
-    path:
-      path
-        .map((segment) =>
-          String(segment).slice(0, MAX_VALIDATION_PATH_SEGMENT_LENGTH),
-        )
-        .join(".") || "$",
+    path: path.map(String).join(".") || "$",
     message: message.slice(0, MAX_VALIDATION_MESSAGE_LENGTH),
   })),
   truncated: issues.length > MAX_VALIDATION_ISSUES,
@@ -295,12 +287,10 @@ export const createPetrinautOptimizationHandler = ({
     const input = petrinautOptimizationInputSchema.safeParse(request.body);
     if (!input.success) {
       const details = summarizeValidationIssues(input.error.issues);
-      // Log only issue counts and schema paths — never the validation
-      // messages or the manifest itself, which can embed user-authored code.
+      // Log only the issue count — never validation details or the manifest,
+      // which can embed user-authored code and identifiers.
       requestLogger.warn("Petrinaut optimization request failed validation", {
         issueCount: input.error.issues.length,
-        issuePaths: details.issues.map((issue) => issue.path),
-        issuePathsTruncated: details.truncated,
         userId,
       });
       response.status(400).json({
