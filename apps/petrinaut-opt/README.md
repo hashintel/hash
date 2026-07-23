@@ -175,9 +175,11 @@ same `otel-collector` target the rest of the HASH stack uses.
 When the variable is unset (a plain `uv run` with no collector) telemetry is
 skipped and the service runs normally, matching the Node workers.
 
-- Traces: incoming HTTP requests are auto-instrumented, and each Optuna trial is
-  recorded as an `optimization.trial` span with the trial number, value, and any
-  pruning exception.
+- Traces: incoming HTTP requests are auto-instrumented. Each study runs under an
+  `optimization.study` span (a child of the request span), and every Optuna trial
+  is an `optimization.trial` span beneath it, carrying the trial number, value,
+  and any pruning exception. The study runs on a worker thread that inherits the
+  request's trace context, so the request → study → trial hierarchy is preserved.
 - Metrics and logs: the FastAPI/Optuna default metrics and stdlib log records are
   exported to the collector (Mimir/Loki in the stack).
 

@@ -9,13 +9,14 @@ import logging
 import math
 import queue
 import threading
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Callable, Mapping
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, cast
 
 import optuna
 from fastapi import Request
-from opentelemetry import trace
+from opentelemetry import context as otel_context, trace
+from opentelemetry.trace import Span, Status, StatusCode
 
 from src.petrinaut_client import PetrinautModel, PetrinautRunError
 from src.utils import Phase, set_status
@@ -232,6 +233,53 @@ class PetrinautOptimizer:
             )
             return value
 
+    def _start_study_worker(
+        self,
+        *,
+        n_trials: int,
+        callback: Callable[[optuna.Study, optuna.trial.FrozenTrial], None],
+        events: asyncio.Queue[dict[str, Any] | object],
+        loop: asyncio.AbstractEventLoop,
+    ) -> tuple[threading.Thread, Span]:
+        """Run the study on a worker thread that inherits the request's context.
+
+        A raw ``threading.Thread`` does not inherit the caller's ``contextvars``,
+        so without re-attaching the captured context every ``optimization.trial``
+        span would start as a disconnected root instead of a child of the request
+        span. The returned ``optimization.study`` span is the parent of those
+        trial spans; the caller must ``end()`` it once the stream is torn down.
+        """
+        study_span = tracer.start_span("optimization.study")
+        study_span.set_attribute("optuna.study.trials", n_trials)
+        study_span.set_attribute("optuna.study.direction", self.direction)
+        run_ctx = trace.set_span_in_context(study_span)
+
+        def run() -> None:
+            # Optuna runs trials sequentially (n_jobs=1) on this single thread,
+            # so one attach covers every objective() call. If n_jobs ever exceeds
+            # 1, each Optuna worker thread would need the context attached too.
+            token = otel_context.attach(run_ctx)
+            try:
+                self.study.optimize(
+                    self.objective,
+                    n_trials=n_trials,
+                    callbacks=[callback],
+                )
+            except Exception as error:
+                study_span.record_exception(error)
+                study_span.set_status(Status(StatusCode.ERROR))
+                loop.call_soon_threadsafe(
+                    events.put_nowait,
+                    {"state": "ERROR", "message": str(error)},
+                )
+            finally:
+                otel_context.detach(token)
+                loop.call_soon_threadsafe(events.put_nowait, _SENTINEL)
+
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        return worker, study_span
+
     async def stream_all(
         self, request: Request, run_id: str, n_trials: int
     ) -> AsyncIterator[str]:
@@ -266,23 +314,9 @@ class PetrinautOptimizer:
             if stop_flag.is_set():
                 study.stop()
 
-        def run() -> None:
-            try:
-                self.study.optimize(
-                    self.objective,
-                    n_trials=n_trials,
-                    callbacks=[callback],
-                )
-            except Exception as error:
-                loop.call_soon_threadsafe(
-                    events.put_nowait,
-                    {"state": "ERROR", "message": str(error)},
-                )
-            finally:
-                loop.call_soon_threadsafe(events.put_nowait, _SENTINEL)
-
-        worker = threading.Thread(target=run, daemon=True)
-        worker.start()
+        worker, study_span = self._start_study_worker(
+            n_trials=n_trials, callback=callback, events=events, loop=loop
+        )
         next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
         completed = False
 
@@ -363,6 +397,15 @@ class PetrinautOptimizer:
                     )
             finally:
                 self.lock.release()
+                try:
+                    study_span.set_attribute(
+                        "optuna.study.best_value", self.study.best_value
+                    )
+                except ValueError:
+                    # No trial completed (immediate disconnect, or all pruned),
+                    # so there is no best value to record.
+                    pass
+                study_span.end()
 
     async def stream_best(
         self, request: Request, run_id: str, n_trials: int
@@ -403,23 +446,9 @@ class PetrinautOptimizer:
             if stop_flag.is_set():
                 study.stop()
 
-        def run() -> None:
-            try:
-                self.study.optimize(
-                    self.objective,
-                    n_trials=n_trials,
-                    callbacks=[callback],
-                )
-            except Exception as error:
-                loop.call_soon_threadsafe(
-                    events.put_nowait,
-                    {"state": "ERROR", "message": str(error)},
-                )
-            finally:
-                loop.call_soon_threadsafe(events.put_nowait, _SENTINEL)
-
-        worker = threading.Thread(target=run, daemon=True)
-        worker.start()
+        worker, study_span = self._start_study_worker(
+            n_trials=n_trials, callback=callback, events=events, loop=loop
+        )
         next_heartbeat = loop.time() + SSE_HEARTBEAT_SECONDS
         completed = False
 
@@ -500,6 +529,15 @@ class PetrinautOptimizer:
                     )
             finally:
                 self.lock.release()
+                try:
+                    study_span.set_attribute(
+                        "optuna.study.best_value", self.study.best_value
+                    )
+                except ValueError:
+                    # No trial completed (immediate disconnect, or all pruned),
+                    # so there is no best value to record.
+                    pass
+                study_span.end()
 
     def run_stream(self, study: optuna.Study, objective: Any, n_trials: int) -> Any:
         """Run a study synchronously, retaining the original local-test shape."""
