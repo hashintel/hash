@@ -1,0 +1,41 @@
+{
+  "appended": null,
+  "directory": [
+    [56, 116],
+    [120, 152],
+    [152, 168],
+    [0, 0],
+    [0, 0]
+  ],
+  "golden": "g11-backfilled-tile",
+  "head": {
+    "backfilled": 2,
+    "children": 2,
+    "coordinate": [1, 1, 0],
+    "delivered": 4,
+    "firstBucket": 3,
+    "generation": "2222222222222222222222222222222222222222222222222222222222222222",
+    "global": null,
+    "mode": 0,
+    "runs": [2],
+    "trailer": false,
+    "variant": 0,
+    "visible": 9
+  },
+  "layer": "tile",
+  "mass": null,
+  "positions": [
+    3200253952, 1048576000, 1040187392, 0, 1052770304, 3187671040, 1059061760,
+    3196059648
+  ],
+  "prefix": {
+    "flags": 0,
+    "magic": "SALTILET",
+    "reserved": 0,
+    "slotCount": 5,
+    "wireVersion": 1
+  },
+  "rowIds": [7, 17, 22, 27],
+  "trailer": null,
+  "typeMask": null
+}

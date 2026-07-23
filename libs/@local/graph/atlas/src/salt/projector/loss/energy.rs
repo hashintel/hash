@@ -96,9 +96,11 @@ impl AffinityEnergy {
 /// The Proximal class energy: a smooth one-sided pull toward a radius.
 ///
 /// `E(z) = temperature · softplus((z - radius) / temperature)` rises linearly once the normalized
-/// distance exceeds the radius and decays to zero below it; the temperature sets the width of the
-/// soft transition. The energy never pulls a pair tighter than its radius asks: the derivative
-/// fades smoothly to zero inside.
+/// distance exceeds the radius and decays exponentially toward zero below it; the temperature sets
+/// the width of the soft transition. The pull is `sigmoid((z - radius) / temperature)`: half
+/// strength exactly at the radius, positive at every finite distance, shrinking by a factor of `e`
+/// per temperature of depth inside the radius - at coincidence the residual is
+/// `sigmoid(-radius / temperature)`.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProximalEnergy {
     radius: f32,

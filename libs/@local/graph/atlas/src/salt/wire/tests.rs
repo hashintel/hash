@@ -350,6 +350,7 @@ mod tile {
                 runs: &[2],
                 global: None,
                 children: 0b0010,
+                backfilled: 0,
             },
             delivered: DeliveredSet::Ranges(ranges),
             positions,
@@ -574,7 +575,7 @@ mod tile {
     }
 
     #[test]
-    #[should_panic(expected = "must agree on the point count")]
+    #[should_panic(expected = "must count the HEAD runs plus the backfill tail")]
     fn disagreeing_runs_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<u32> = (0..12).collect();

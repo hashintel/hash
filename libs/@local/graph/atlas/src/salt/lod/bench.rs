@@ -314,8 +314,10 @@ impl WalkBench {
     /// Delivers one tile behind its recomputed ancestor chain: the chained variant.
     ///
     /// Every ancestor's delivery is re-derived against the same mask, top down, and the tile's own
-    /// fill skips everything the chain took. [`Selection::scanned`] sums the chain's scans; the
-    /// other counts describe the tile itself.
+    /// fill skips everything the chain took. An ancestor whose fill ends short of budget spent its
+    /// subtree's visible pool, so the chain stops there and the tile delivers nothing - every
+    /// descendant extent is a subset of the spent one. [`Selection::scanned`] sums the chain's
+    /// scans; the other counts describe the tile itself.
     ///
     /// # Panics
     ///
@@ -334,12 +336,39 @@ impl WalkBench {
             for &position in &delivered {
                 taken.insert(position as usize);
             }
+            if ancestor.natural + ancestor.tail < ancestor.budget {
+                return Selection {
+                    budget: self.budget_of(z, x, y),
+                    natural: 0,
+                    tail: 0,
+                    scanned,
+                };
+            }
         }
 
         delivered.clear();
         let mut own = self.walk(z, x, y, &taken, &mut delivered);
         own.scanned += scanned;
         own
+    }
+
+    /// Returns the tile's scheduled count before masking.
+    fn budget_of(&self, z: u8, x: u32, y: u32) -> usize {
+        let cell = MortonCell::new(
+            Depth::new(z).expect("tile zooms lie within the key width"),
+            x,
+            y,
+        )
+        .expect("the coordinate lies on the zoom's grid");
+        let ranges = if z == 0 {
+            self.segments.clone()
+        } else {
+            self.narrowed(cell)
+        };
+        let cut = usize::from(z + self.span);
+        let natural = if z == 0 { 0..=cut } else { cut..=cut };
+
+        ranges[natural].iter().map(ExactSizeIterator::len).sum()
     }
 
     /// Counts the independent variant's re-deliveries at one tile.

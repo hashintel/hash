@@ -139,6 +139,7 @@ fn corpus() -> Vec<Fixture> {
         g8_appended_slot(),
         g9_padding_low(),
         g10_padding_high(),
+        g11_backfilled_tile(),
     ]
 }
 
@@ -197,24 +198,29 @@ fn tile_sidecar(
         })
     });
 
+    let mut head_json = json!({
+        "generation": head.generation.to_string(),
+        "variant": head.variant,
+        "coordinate": [head.coordinate.z, head.coordinate.x, head.coordinate.y],
+        "mode": head.mode.code(),
+        "delivered": row_ids.len(),
+        "visible": head.visible,
+        "firstBucket": head.first_bucket,
+        "runs": head.runs,
+        "global": global,
+        "children": head.children,
+        "trailer": response.trailer.is_some(),
+    });
+    if head.backfilled > 0 {
+        head_json["backfilled"] = json!(head.backfilled);
+    }
+
     json!({
         "golden": name,
         "layer": "tile",
         "prefix": prefix_sidecar(bytes),
         "directory": directory_sidecar(bytes),
-        "head": {
-            "generation": head.generation.to_string(),
-            "variant": head.variant,
-            "coordinate": [head.coordinate.z, head.coordinate.x, head.coordinate.y],
-            "mode": head.mode.code(),
-            "delivered": row_ids.len(),
-            "visible": head.visible,
-            "firstBucket": head.first_bucket,
-            "runs": head.runs,
-            "global": global,
-            "children": head.children,
-            "trailer": response.trailer.is_some(),
-        },
+        "head": head_json,
         "positions": positions_bits,
         "rowIds": row_ids,
         "typeMask": type_mask.map_or(Value::Null, |mask| json!(mask)),
@@ -304,6 +310,7 @@ fn g1_minimal_tile() -> Fixture {
             runs: &[3],
             global: None,
             children: 0b0100,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -370,6 +377,7 @@ fn g2_root_tile() -> Fixture {
                 min_resolution: 5,
             }),
             children: 0b1111,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -444,6 +452,7 @@ fn g3_total_tile() -> Fixture {
             runs: &[1, 0, 3, 2],
             global: None,
             children: 0,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -501,6 +510,7 @@ fn g4_empty_root() -> Fixture {
                 min_resolution: 0,
             }),
             children: 0,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&[]),
         positions: &[],
@@ -561,6 +571,7 @@ fn g5_trailer_tile() -> Fixture {
             runs: &[4],
             global: None,
             children: 0b0101,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -909,6 +920,7 @@ fn g8_appended_slot() -> Fixture {
             runs: &[3],
             global: None,
             children: 0b0001,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -996,6 +1008,7 @@ fn g9_padding_low() -> Fixture {
             runs: &[5],
             global: None,
             children: 0b0011,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -1067,6 +1080,7 @@ fn g10_padding_high() -> Fixture {
             runs: &[3],
             global: None,
             children: 0b1000,
+            backfilled: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
         positions: &positions,
@@ -1109,6 +1123,77 @@ fn g10_padding_high() -> Fixture {
     );
     Fixture {
         name: "g10-padding-high",
+        bytes,
+        sidecar,
+    }
+}
+
+/// G11.
+///
+/// A masked delta tile with a backfill tail: two natural survivors (`runs = [2]`), two points
+/// pulled up from deeper buckets (`backfilled = 2` trailing the runs' extent), `HEAD` key 11
+/// present, no `TYPE_MASK`, no trailer.
+fn g11_backfilled_tile() -> Fixture {
+    let positions: Vec<Vec2> = (0_u16..6)
+        .map(|index| {
+            Vec2::new(
+                f32::from(index).mul_add(0.25, -0.625),
+                f32::from(index).mul_add(-0.125, 0.375),
+            )
+        })
+        .collect();
+    let rows: Vec<u32> = (0..6).map(|index| 5 * index + 2).collect();
+    // Natural survivors 1 and 3, then the fill from deeper buckets: 4 and 5.
+    let delivered = [1_u32, 3, 4, 5];
+
+    let response = TileResponse {
+        head: TileHead {
+            generation: Sha256Digest::from_bytes_unchecked([0x22; 32]),
+            variant: 0,
+            coordinate: TileCoordinate { z: 1, x: 1, y: 0 },
+            mode: Mode::Delta,
+            visible: 9,
+            first_bucket: 3,
+            runs: &[2],
+            global: None,
+            children: 0b0010,
+            backfilled: 2,
+        },
+        delivered: DeliveredSet::Positions(&delivered),
+        positions: &positions,
+        rows: &rows,
+        masks: None,
+        trailer: None,
+    };
+    let bytes = response.encode();
+
+    // Hand-derived HEAD: map(11) of keys 0-7 and 9-11 - 0xAB; generation 0x00 0x58 0x20 + 32
+    // bytes 0x22; variant 0x01 0x00; coordinate 0x02 0x83 0x01 0x01 0x00; mode 0x03 0x00;
+    // delivered 0x04 0x04; visible 0x05 0x09; firstBucket 0x06 0x03; runs 0x07 0x81 0x02;
+    // children 0x09 0x02; trailer 0x0A 0xF4; backfilled 0x0B 0x02.
+    let mut expected_head = vec![0xAB_u8, 0x00, 0x58, 0x20];
+    expected_head.extend_from_slice(&[0x22; 32]);
+    expected_head.extend_from_slice(&[
+        0x01, 0x00, 0x02, 0x83, 0x01, 0x01, 0x00, 0x03, 0x00, 0x04, 0x04, 0x05, 0x09, 0x06, 0x03,
+        0x07, 0x81, 0x02, 0x09, 0x02, 0x0A, 0xF4, 0x0B, 0x02,
+    ]);
+    assert_eq!(
+        section(&bytes, 0).expect("HEAD is present"),
+        expected_head,
+        "the hand-derived G11 HEAD must match the encoder",
+    );
+
+    let sidecar = tile_sidecar(
+        "g11-backfilled-tile",
+        &response,
+        &bytes,
+        0,
+        None,
+        None,
+        &Value::Null,
+    );
+    Fixture {
+        name: "g11-backfilled-tile",
         bytes,
         sidecar,
     }

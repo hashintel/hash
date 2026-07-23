@@ -56,13 +56,13 @@ Sections are named by (kind, slot); the names are labels, the slots are the wire
 
 `SALTILET` (tile), slotCount = 5:
 
-| Slot | Section     | Contents                                                                                    |
-| ---- | ----------- | ------------------------------------------------------------------------------------------- |
-| 0    | `HEAD`      | CBOR map (deterministic encoding)                                                           |
-| 1    | `POSITIONS` | f32 xy pairs, delivered order (8 B/point)                                                   |
-| 2    | `ROW_IDS`   | u32, delivered order (4 B/point)                                                            |
-| 3    | `TYPE_MASK` | per-point bitmasks, delivered order (ceil(n/8) B/point, n = request's coloredTypeIds count) |
-| 4    | `MASS`      | u32, delivered order - RESERVED, reads `(0, 0)`                                             |
+| Slot | Section     | Contents                                                                                                                                                                                            |
+| ---- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | `HEAD`      | CBOR map (deterministic encoding)                                                                                                                                                                   |
+| 1    | `POSITIONS` | f32 xy pairs, delivered order (8 B/point)                                                                                                                                                           |
+| 2    | `ROW_IDS`   | u32, delivered order (4 B/point)                                                                                                                                                                    |
+| 3    | `TYPE_MASK` | per-point bitmasks, delivered order (ceil(n/8) B/point, n = request's coloredTypeIds count)                                                                                                         |
+| 4    | `MASS`      | u32, delivered order - RESERVED: a wireVersion-1 server marks it absent `(0, 0)`; a populated `MASS` decodes by this declared type or is ignored, per the section 2 evolution rule - never rejected |
 
 `SALTILEE` (edges), slotCount = 4:
 
@@ -110,21 +110,24 @@ Edges carry NO wire id of their own: a link entity's id IS its identity in every
 
 HEAD keys:
 
-| Key | Name          | Type        | Meaning                                                                                          |
-| --- | ------------- | ----------- | ------------------------------------------------------------------------------------------------ |
-| 0   | `generation`  | `bstr(32)`  | sha256 identity, echoes the route                                                                |
-| 1   | `variant`     | `uint`      | echoes the route                                                                                 |
-| 2   | `coordinate`  | `[z, x, y]` | uints, echoes the route                                                                          |
-| 3   | `mode`        | `uint`      | 0 = delta, 1 = total                                                                             |
-| 4   | `delivered`   | `uint`      | point count in this response                                                                     |
-| 5   | `visible`     | `uint`      | visibleSubtreeCount for the extent                                                               |
-| 6   | `firstBucket` | `uint`      | b0 of the `runs` array                                                                           |
-| 7   | `runs`        | `[uint...]` | per-bucket delivered counts, buckets b0.. (note below)                                           |
-| 8   | `global`      | `map`       | post-intersection set metadata (note below)                                                      |
-| 9   | `children`    | `uint`      | occupied-child bitmask, bit i = Morton child i holds a point below this zoom's cut; 0 = complete |
-| 10  | `trailer`     | `bool`      | a CBOR trailer tail follows the last column (echoes includeDetailedData)                         |
+| Key | Name          | Type        | Meaning                                                                                                               |
+| --- | ------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| 0   | `generation`  | `bstr(32)`  | sha256 identity, echoes the route                                                                                     |
+| 1   | `variant`     | `uint`      | echoes the route                                                                                                      |
+| 2   | `coordinate`  | `[z, x, y]` | uints, echoes the route                                                                                               |
+| 3   | `mode`        | `uint`      | 0 = delta, 1 = total                                                                                                  |
+| 4   | `delivered`   | `uint`      | point count in this response                                                                                          |
+| 5   | `visible`     | `uint`      | visibleSubtreeCount for the extent                                                                                    |
+| 6   | `firstBucket` | `uint`      | b0 of the `runs` array                                                                                                |
+| 7   | `runs`        | `[uint...]` | per-bucket delivered counts, buckets b0.. (note below)                                                                |
+| 8   | `global`      | `map`       | post-intersection set metadata (note below)                                                                           |
+| 9   | `children`    | `uint`      | occupied-child bitmask, bit i = Morton child i holds an undelivered visible point below this zoom's cut; 0 = complete |
+| 10  | `trailer`     | `bool`      | a CBOR trailer tail follows the last column (echoes includeDetailedData)                                              |
+| 11  | `backfilled`  | `uint`      | points pulled up from deeper buckets, trailing the runs' extent; omitted when zero                                    |
 
 `runs`: delta responses carry one entry with b0 = z+m; total responses carry z+m+1 entries with b0 = 0. Zero-length entries keep their positional slot, so bucket = b0 + i always holds. The zoom-0 delta root is the one delta case with m+1 entries (buckets 0..=m, b0 = 0). `runs` is what a progressive renderer paints from (total responses are bucket-major, coarse structure first); bucket b0+i's rows sit at column offset `sum(runs[..i])`.
+
+Restricted views backfill: when authorization or filtering hides part of the schedule, a response fills its shortfall by pulling visible points up from deeper buckets - bucket order, so the pulled structure stays coarse-first - until the schedule's own count is met or the visible subtree is exhausted. The pulled points trail the natural runs in every column: the runs cover the leading `delivered - backfilled` points, the last `backfilled` points are the fill. The fill never repeats a point down the zoom ladder (each response accounts for what every shallower response delivered under the same view), so delta accumulation stays duplicate-free with no client-side bookkeeping, and a total response remains exactly the accumulated view of its extent - which under concentrated pull-ups may exceed the extent's unmasked count. Full-visibility responses carry no fill and omit the key.
 
 `global` sub-keys - REQUIRED on the root tile (z = 0, the bootstrap camera framing datum), permitted on every tile response:
 

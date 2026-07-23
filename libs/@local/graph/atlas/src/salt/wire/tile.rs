@@ -59,9 +59,11 @@ impl TileResponse<'_> {
         let delivered = self.delivered.count();
         let counted: u64 = self.head.runs.iter().map(|&count| u64::from(count)).sum();
         assert_eq!(
-            delivered, counted,
-            "the delivered ranges and the HEAD runs must agree on the point count",
+            delivered,
+            counted + self.head.backfilled,
+            "the delivered set must count the HEAD runs plus the backfill tail",
         );
+
         if let Some(trailer) = &self.trailer {
             assert_eq!(
                 trailer.labels.len() as u64,
@@ -201,7 +203,7 @@ impl DeliveredSet<'_> {
     }
 }
 
-/// The tile `HEAD` document, slot 0: keys 0 through 10.
+/// The tile `HEAD` document, slot 0: keys 0 through 11.
 #[derive(Debug)]
 pub(crate) struct TileHead<'doc> {
     /// Key 0: the generation identity, echoing the route.
@@ -227,6 +229,11 @@ pub(crate) struct TileHead<'doc> {
     /// Bit `i` = Morton child `i` holds a point below this zoom's cut. Bits beyond the low four
     /// are reserved zero.
     pub children: u8,
+    /// Key 11: points pulled up from deeper buckets, trailing the natural runs. Omitted when zero.
+    ///
+    /// The last `backfilled` delivered points sit after the runs' extent in every column; the
+    /// runs cover the leading `delivered - backfilled` points alone.
+    pub backfilled: u64,
 }
 
 impl TileHead<'_> {
@@ -240,7 +247,7 @@ impl TileHead<'_> {
         );
 
         let mut cbor = CborWriter::over(buf);
-        cbor.map(10 + u64::from(self.global.is_some()));
+        cbor.map(10 + u64::from(self.global.is_some()) + u64::from(self.backfilled > 0));
 
         cbor.uint(0);
         cbor.bytes(&self.generation.to_bytes());
@@ -272,6 +279,10 @@ impl TileHead<'_> {
         cbor.uint(u64::from(self.children));
         cbor.uint(10);
         cbor.boolean(trailer);
+        if self.backfilled > 0 {
+            cbor.uint(11);
+            cbor.uint(self.backfilled);
+        }
     }
 }
 

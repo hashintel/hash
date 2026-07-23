@@ -14,6 +14,7 @@ use super::{
     visibility::VisibilityProof,
 };
 use crate::{
+    bitset::BitSet,
     file::quad::Node,
     math::Bounds2,
     morton::{Depth, MortonCell},
@@ -144,9 +145,34 @@ pub struct TileDocument {
     first_bucket: u8,
     runs: Vec<u32>,
     delivered: DeliveredPoints,
+    backfilled: u32,
     children: u8,
     global: Option<GlobalHead>,
     mask_set: Option<MaskSet>,
+}
+
+/// One masked level's delivery outcome.
+#[derive(Debug, Copy, Clone)]
+struct LevelDelivery {
+    /// Points the fill pulled up from deeper buckets.
+    backfilled: u32,
+    /// The fill ended short of budget: the extent's deeper visible pool is spent.
+    exhausted: bool,
+}
+
+/// A masked delivery with the chain state the response's other derivations read.
+#[derive(Debug)]
+struct BackfilledDelivery {
+    /// The gathered positions, natural runs first, the fill tail after.
+    delivered: DeliveredPoints,
+    /// Per-bucket natural counts.
+    runs: Vec<u32>,
+    /// The tail's length.
+    backfilled: u32,
+    /// Every position any chain level delivered.
+    taken: BitSet,
+    /// An ancestor's fill spent the subtree: nothing below this tile is left to deliver.
+    dry: bool,
 }
 
 /// The document's delivered point set.
@@ -292,16 +318,25 @@ impl Atlas {
             (Mode::Total, _) => self.total(cut, cell),
         };
 
-        let (delivered, runs) = if proof.is_full() {
-            (DeliveredPoints::Ranges(ranges), runs)
+        let (delivered, runs, backfilled, children) = if proof.is_full() {
+            let children = node.map_or(0, occupied_children);
+            (DeliveredPoints::Ranges(ranges), runs, 0, children)
         } else {
-            self.gather_visible(&ranges, proof)
-        };
-
-        let children = if proof.is_full() {
-            node.map_or(0, occupied_children)
-        } else {
-            node.map_or(0, |node| self.visible_children(node, proof))
+            let delivery = self.gather_backfilled(coordinate, request.query.mode, proof);
+            let children = if delivery.dry {
+                // The subtree's visible points are all delivered; nothing below says descend.
+                0
+            } else {
+                node.map_or(0, |node| {
+                    self.visible_children(node, proof, &delivery.taken)
+                })
+            };
+            (
+                delivery.delivered,
+                delivery.runs,
+                delivery.backfilled,
+                children,
+            )
         };
 
         let visible = if coordinate.z == 0 {
@@ -324,60 +359,217 @@ impl Atlas {
             first_bucket,
             runs,
             delivered,
+            backfilled,
             children,
             global,
             mask_set,
         })
     }
 
-    /// Gathers the visible positions of each delivery range.
+    /// Gathers a masked delivery: the scheduled survivors plus the pull-up fill.
     ///
-    /// With the per-bucket runs recounted over the survivors.
-    fn gather_visible(
+    /// The cascade guarantees every occupied cell of a cut's grid a representative at or above
+    /// the cut, so an unmasked delivery is never empty for an occupied extent. A mask breaks that
+    /// guarantee for the scheduled points alone; the fill restores it from below: each level
+    /// delivers what the proof admits of its schedule, then pulls visible, undelivered points up
+    /// from deeper buckets until the schedule's own count is met - a masked view's tile is as
+    /// full as the visible world can make it, and its density mirrors the schedule's.
+    ///
+    /// Delivery is deterministic per `(generation, proof)` and never repeats a point down the
+    /// zoom ladder: [`Self::deliver_level`] re-derives every ancestor's delivery first, so this
+    /// level's fill starts where the chain left off. A delta response carries this level's
+    /// additions alone; a total response carries the whole chain's deliveries within the extent -
+    /// the natural runs first, the fill tail after, `backfilled` counting the tail.
+    fn gather_backfilled(
         &self,
-        ranges: &[Range<u32>],
+        coordinate: TileCoordinate,
+        mode: Mode,
         proof: &VisibilityProof,
-    ) -> (DeliveredPoints, Vec<u32>) {
-        // NOTE: doesn't this have the problem that we may deliver no points at all? even if points
-        // have been requested because the upper layer doesn't have them? if that's a case that's a
-        // major violation of what we're trying to do here. We pull up as much as possible, until we
-        // have reached the upper delivery limit. That way someone is never presented with an empty
-        // tile, even if at the current z level nothing is there.
-        // I guess the other parts do that in the function, if that is the case, I would like some
-        // additional comments/clarifications on this and the relationships between the functions,
-        // right now it is all very opaque.
-        let row_ids = self.row_ids();
-        let mut gathered = Vec::new();
-        let mut runs = Vec::with_capacity(ranges.len());
+    ) -> BackfilledDelivery {
+        let universe = usize::try_from(self.morton.count()).expect("base positions fit usize");
+        let mut taken = BitSet::new(universe);
+        let mut out = Vec::new();
+        let mut runs = Vec::new();
 
-        for range in ranges {
-            let before = gathered.len();
-            for position in range.clone() {
-                if proof.contains(row_ids[position as usize]) {
-                    gathered.push(position);
-                }
+        let mut dry = false;
+        for level in 0..coordinate.z {
+            let shift = coordinate.z - level;
+            let ancestor = TileCoordinate {
+                z: level,
+                x: coordinate.x >> shift,
+                y: coordinate.y >> shift,
+            };
+            out.clear();
+            runs.clear();
+            if self
+                .deliver_level(ancestor, proof, &mut taken, &mut out, &mut runs)
+                .exhausted
+            {
+                // Every descendant extent is a subset of this level's, whose deeper visible
+                // pool the fill spent: the rest of the chain and this tile deliver nothing new.
+                dry = true;
+                break;
             }
-
-            runs.push(narrow((gathered.len() - before) as u64));
         }
 
-        (DeliveredPoints::Positions(gathered), runs)
+        match mode {
+            Mode::Delta => {
+                out.clear();
+                runs.clear();
+                let backfilled = if dry {
+                    // The one delta run keeps its positional slot, empty.
+                    runs.push(0);
+                    0
+                } else {
+                    self.deliver_level(coordinate, proof, &mut taken, &mut out, &mut runs)
+                        .backfilled
+                };
+                BackfilledDelivery {
+                    delivered: DeliveredPoints::Positions(out),
+                    runs,
+                    backfilled,
+                    taken,
+                    dry,
+                }
+            }
+            Mode::Total => {
+                // The chain through this level settles which deeper points were pulled up; a
+                // dry chain already settled them all.
+                if !dry {
+                    out.clear();
+                    runs.clear();
+                    self.deliver_level(coordinate, proof, &mut taken, &mut out, &mut runs);
+                }
+
+                let cell = cell_of(coordinate).expect("assembly validated the coordinate");
+                let cut = coordinate.z + self.lod.span.get();
+                let row_ids = self.row_ids();
+
+                // Every visible scheduled point is delivered by its own level of the chain, so
+                // the cumulative natural segment is the schedule's visible survivors verbatim.
+                let mut cumulative = Vec::new();
+                let mut cumulative_runs = Vec::with_capacity(usize::from(cut) + 1);
+                for bucket in 0..=cut {
+                    let run = self.morton.run(depth_of(bucket), cell);
+                    let before = cumulative.len();
+                    for position in run {
+                        let position = narrow(position);
+                        if proof.contains(row_ids[position as usize]) {
+                            cumulative.push(position);
+                        }
+                    }
+                    cumulative_runs.push(narrow((cumulative.len() - before) as u64));
+                }
+
+                // The tail: deeper extent points some level of the chain pulled up. Taken
+                // positions are visible by construction.
+                let deepest = u8::try_from(self.deepest_occupied()).expect("buckets fit u8");
+                let mut backfilled = 0_u32;
+                for bucket in (cut + 1)..=deepest {
+                    let run = self.morton.run(depth_of(bucket), cell);
+                    for position in run {
+                        let position = narrow(position);
+                        if taken.contains(position as usize) {
+                            cumulative.push(position);
+                            backfilled += 1;
+                        }
+                    }
+                }
+
+                BackfilledDelivery {
+                    delivered: DeliveredPoints::Positions(cumulative),
+                    runs: cumulative_runs,
+                    backfilled,
+                    taken,
+                    dry,
+                }
+            }
+        }
+    }
+
+    /// Delivers one level's delta under the mask, filling to the schedule's budget.
+    ///
+    /// The level's schedule is bucket `z + span` within its cell - buckets `0..=span` whole for
+    /// the root - and its budget is the scheduled count before masking. Scheduled points the
+    /// proof admits and no earlier level took deliver first, recounted into `runs` per bucket;
+    /// the fill then walks deeper buckets in order, morton order within a bucket, pulling
+    /// visible, untaken points until the budget is met or the subtree is exhausted. Every
+    /// delivered position lands in `taken` and `out`.
+    fn deliver_level(
+        &self,
+        coordinate: TileCoordinate,
+        proof: &VisibilityProof,
+        taken: &mut BitSet,
+        out: &mut Vec<u32>,
+        runs: &mut Vec<u32>,
+    ) -> LevelDelivery {
+        let row_ids = self.row_ids();
+        let cell = cell_of(coordinate).expect("ancestors of a validated coordinate stay on grid");
+        let cut = coordinate.z + self.lod.span.get();
+
+        let first = if coordinate.z == 0 { 0 } else { cut };
+        let mut budget = 0_usize;
+        let mut delivered = 0_usize;
+        for bucket in first..=cut {
+            let run = self.morton.run(depth_of(bucket), cell);
+            budget += usize::try_from(run.end - run.start).expect("runs fit usize");
+            let before = out.len();
+            for position in run {
+                let position = narrow(position);
+                if proof.contains(row_ids[position as usize]) && !taken.contains(position as usize)
+                {
+                    taken.insert(position as usize);
+                    out.push(position);
+                }
+            }
+            runs.push(narrow((out.len() - before) as u64));
+            delivered += out.len() - before;
+        }
+
+        let mut backfilled = 0_u32;
+        if delivered < budget {
+            let deepest = u8::try_from(self.deepest_occupied()).expect("buckets fit u8");
+            'fill: for bucket in (cut + 1)..=deepest {
+                let run = self.morton.run(depth_of(bucket), cell);
+                for position in run {
+                    let position = narrow(position);
+                    if proof.contains(row_ids[position as usize])
+                        && !taken.contains(position as usize)
+                    {
+                        taken.insert(position as usize);
+                        out.push(position);
+                        backfilled += 1;
+                        if delivered + backfilled as usize == budget {
+                            break 'fill;
+                        }
+                    }
+                }
+            }
+        }
+
+        // A shortfall after the fill means the extent's deeper visible pool is spent.
+        LevelDelivery {
+            backfilled,
+            exhausted: delivered + (backfilled as usize) < budget,
+        }
     }
 
     /// Reads the occupied-child bitmask over the masked view.
     ///
-    /// Bit `i` set when Morton child `i` holds a visible point below this zoom's cut.
+    /// Bit `i` set when Morton child `i` holds a visible point below this zoom's cut that no
+    /// level of the delivery chain already pulled up.
     ///
-    /// The walk descends each child's quad subtree and scans every node's own-bucket run until a
-    /// visible row surfaces, so a child whose subtree the mask empties reads unoccupied - the
-    /// client never fetches a tile the mask made empty, and the bitmask carries no evidence that
+    /// The walk descends each child's quad subtree and scans every node's own-bucket run until an
+    /// undelivered visible row surfaces, so a child whose subtree the mask empties - or whose
+    /// visible points this response's fill already delivered - reads unoccupied: the client never
+    /// fetches a tile that has nothing left to say, and the bitmask carries no evidence that
     /// hidden points exist.
-    fn visible_children(&self, node: &Node, proof: &VisibilityProof) -> u8 {
+    fn visible_children(&self, node: &Node, proof: &VisibilityProof, taken: &BitSet) -> u8 {
         let mut bits = 0_u8;
 
         for (index, quadrant) in node.children().iter().enumerate() {
             let &Some(child) = quadrant else { continue };
-            let occupied = self.subtree_has_visible(child, proof);
+            let occupied = self.subtree_has_visible(child, proof, taken);
 
             bits |= u8::from(occupied) << index;
         }
@@ -385,8 +577,9 @@ impl Atlas {
         bits
     }
 
-    /// Returns whether any node in the quad subtree rooted at `index` delivers a visible row.
-    fn subtree_has_visible(&self, index: u32, proof: &VisibilityProof) -> bool {
+    /// Returns whether any node in the quad subtree rooted at `index` delivers a visible,
+    /// untaken row.
+    fn subtree_has_visible(&self, index: u32, proof: &VisibilityProof, taken: &BitSet) -> bool {
         let row_ids = self.row_ids();
         let nodes = self.quad.nodes();
 
@@ -395,7 +588,7 @@ impl Atlas {
             let node = &nodes[index as usize];
             for position in node.run() {
                 let position = usize::try_from(position).expect("base positions fit usize");
-                if proof.contains(row_ids[position]) {
+                if proof.contains(row_ids[position]) && !taken.contains(position) {
                     return true;
                 }
             }
@@ -550,6 +743,7 @@ impl Atlas {
                 runs: &document.runs,
                 global: document.global,
                 children: document.children,
+                backfilled: u64::from(document.backfilled),
             },
             delivered: document.delivered.as_wire(),
             positions: self.positions(),
