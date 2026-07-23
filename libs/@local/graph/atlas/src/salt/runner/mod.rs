@@ -4,8 +4,9 @@
 //! prior comes from the root's active generation, [`fit`] publishes a complete verified generation,
 //! the quality suite probes the published artifacts against the same snapshot, and a passing
 //! verdict activates the generation by the atomic pointer flip. A failing verdict returns an
-//! [`Outcome`] whose generation stays published as a candidate beside its report; activating it
-//! anyway is a human decision made outside the runner ([`GenerationRoot::activate`] by hand).
+//! [`Outcome`] whose generation stays published as a candidate beside its report; the remedy is
+//! to diagnose the report, correct data, configuration, or metric, and run again - a candidate
+//! never activates by hand.
 //!
 //! The whole run replays from the one fit seed: the admission probe's generator derives from it
 //! under a pinned name, exactly as the fit stages derive theirs, so equal configurations sample
@@ -157,7 +158,8 @@ where
             generation = %id,
             unresolved_flags = report.flags.len(),
             "quality admission refused: the generation stays published as an unactivated \
-             candidate; review the outcome's report before activating by hand"
+             candidate; diagnose the report, correct data, configuration, or metric, and run \
+             again"
         );
 
         return Ok(Outcome {

@@ -93,14 +93,15 @@ impl AffinityEnergy {
     }
 }
 
-/// The Proximal class energy: a smooth one-sided pull toward a radius.
+/// The Proximal class energy: a bounded pull softening inside its radius.
 ///
 /// `E(z) = temperature · softplus((z - radius) / temperature)` rises linearly once the normalized
 /// distance exceeds the radius and decays exponentially toward zero below it; the temperature sets
 /// the width of the soft transition. The pull is `sigmoid((z - radius) / temperature)`: half
-/// strength exactly at the radius, positive at every finite distance, shrinking by a factor of `e`
-/// per temperature of depth inside the radius - at coincidence the residual is
-/// `sigmoid(-radius / temperature)`.
+/// strength exactly at the radius, positive at every finite distance (asymptotically a factor of
+/// `e` per temperature of depth inside), residual `sigmoid(-radius / temperature)` at coincidence.
+/// The energy is strictly increasing, so coincidence is its unique minimum; a pair's equilibrium
+/// distance is set jointly by that residual and the competing terms.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProximalEnergy {
     radius: f32,

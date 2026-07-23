@@ -17,7 +17,10 @@
 //! mixed by type.
 //!
 //! Pairs at exactly zero distance contribute their value but no gradient: a coincident pair has no
-//! direction to move along, and every energy here is either at its minimum or plateaued there.
+//! direction to move along. Coincidence is the attraction and relation energies' minimum and the
+//! repulsion energy's maximum - a stationary point whose coordinate gradient vanishes as
+//! `d^(2b - 1)` under the curve's `b ≥ 1/2` construction bound, so the zero is the continuous
+//! limit and any separation restores the outward push.
 
 mod energy;
 #[cfg(test)]

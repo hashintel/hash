@@ -103,7 +103,9 @@ pub(crate) struct ProbeOptions {
     /// Comparison-point pairs sampled for the triplet readings.
     ///
     /// Every anchor reads the one shared pair sample, so the estimate's mean is unbiased while
-    /// pair-driven variance is shared across anchors. Zero disables the readings. Defaults to 64.
+    /// pair-driven variance is shared across anchors. Zero disables the readings - and with them
+    /// admission: the verdict demands the full battery, so a triplet-free probe is report-only by
+    /// construction. Defaults to 64.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 

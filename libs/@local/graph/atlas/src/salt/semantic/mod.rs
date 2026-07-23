@@ -11,8 +11,10 @@
 //! ```
 //!
 //! an absent direction contributing zero, so a one-sided edge keeps its directed membership. The
-//! union's support is the union of the directed supports: a row may carry up to `2k` edges, and
-//! every edge appears in both of its rows with bit-equal weight.
+//! union's support is the union of the directed supports: a row carries its `k` outgoing edges
+//! plus one edge for every other row that names it, so degrees start at `k` and are bounded only
+//! by the row domain - a hub named by many rows carries many edges. Every edge appears in both of
+//! its rows with bit-equal weight.
 //!
 //! The graph is the training-side attraction structure and is consumed from its published artifact
 //! by training and release evaluation alike, so backend variation in the k-NN build cannot confound
@@ -132,8 +134,9 @@ fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationErro
 ///
 /// Row `i` stores the weights of every semantic edge at node row `i`, keyed by the other endpoint
 /// in ascending row order. Weights are finite in `(0, 1]`, no row references itself, and every edge
-/// is stored in both of its rows with bit-equal weight. Rows carry between `k` and `2k` edges for a
-/// `k`-neighbour table: the union of the directed supports.
+/// is stored in both of its rows with bit-equal weight. A row's edges are the union of the
+/// directed supports: at least the `k` outgoing edges of a `k`-neighbour table, plus one for every
+/// other row naming it.
 #[derive(Debug, Clone)]
 pub(crate) struct SemanticGraph(SemanticMatrix);
 

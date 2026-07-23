@@ -1082,6 +1082,51 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
 }
 
 #[test]
+fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
+    // The narrowed conservation law: shares conserve the pre-ν mass
+    // exactly, while the realized coefficients (ν · s) of an unpruned
+    // k-typed edge sum to T with M ≤ T < 2M against the mean M of its
+    // single-typed counterfactuals. The isolated 2-typed edge realizes
+    // exactly 4/3 · M: each reading's ν is 1/(1 + 1/2) = 2/3 against
+    // the counterfactual 1/2, so T = 2 · (1/2 · 2/3) = 2/3 over
+    // M = 1/2.
+    let policies = [proximal_policy(0), proximal_policy(1)];
+    let mixed = build_default(
+        &policies,
+        vec![
+            multi(instance(0, 0, 1, 2), 2),
+            multi(instance(0, 1, 1, 2), 2),
+        ],
+    );
+    let separate = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 1, 1, 2)]);
+
+    let realized = |indexes: &RelationIndexes| -> f64 {
+        indexes
+            .attraction
+            .groups()
+            .iter()
+            .flat_map(|group| group.edges())
+            .map(|edge| f64::from(edge.normalization))
+            .sum()
+    };
+
+    let total = realized(&mixed);
+    let mean = realized(&separate) / 2.0;
+    assert_eq!(mean, 0.5);
+    assert!(total >= mean);
+    assert!(total < 2.0 * mean);
+
+    // The exact fixture ratio, through the same narrowing the build
+    // performs per reading.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the reference narrows to working precision exactly like the contract"
+    )]
+    let per_reading = f64::from((0.5 / (1.5_f64 * 1.5).sqrt()) as f32);
+    assert_eq!(total, 2.0 * per_reading);
+}
+
+#[test]
 fn protection_evidence_ignores_multiplicity() {
     // The same pair under one relation, single-typed versus 4-typed:
     // protection aggregates by maximum over undivided evidence, so a

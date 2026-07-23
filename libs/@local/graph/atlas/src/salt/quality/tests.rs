@@ -751,9 +751,34 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings {
             })
             .collect(),
         triplet_pairs: Box::new([]),
-        triplet_map_representation: vec![TripletAggregate::default(); hits.len()].into(),
-        triplet_map_canonical: vec![TripletAggregate::default(); hits.len()].into(),
-        triplet_representation_canonical: vec![TripletAggregate::default(); hits.len()].into(),
+        triplet_map_representation: vec![agreed(); hits.len()].into(),
+        triplet_map_canonical: vec![agreed(); hits.len()].into(),
+        triplet_representation_canonical: vec![agreed(); hits.len()].into(),
+    }
+}
+
+/// One preserved triplet observation.
+///
+/// The verdict demands present triplet evidence, so the fixture carries the minimum.
+fn agreed() -> TripletAggregate {
+    let mut aggregate = TripletAggregate::default();
+    aggregate.observe(true);
+    aggregate
+}
+
+/// Thresholds pinning the full battery at values any healthy fixture clears.
+///
+/// The verdict refuses unpinned controls, so composition tests pin everything satisfiable and
+/// vary only the control under test.
+fn admitting() -> QualityThresholds {
+    QualityThresholds {
+        minimum_recall: Some(0.0),
+        minimum_trustworthiness: Some(0.0),
+        minimum_continuity: Some(0.0),
+        maximum_intrusion_rate: Some(1.0),
+        maximum_density_spread: Some(1e9),
+        minimum_triplet_agreement: Some(0.0),
+        ..QualityThresholds::default()
     }
 }
 
@@ -775,7 +800,7 @@ fn assess_flags_degraded_subgroups() {
     let anchor_types = types_of(&[&[100, 300], &[100], &[100], &[100], &[200, 300], &[200]]);
     let thresholds = QualityThresholds {
         minimum_subgroup_anchors: 2,
-        ..QualityThresholds::default()
+        ..admitting()
     };
 
     let report = assess(&readings, &anchor_types, &thresholds);
@@ -816,7 +841,9 @@ fn assess_flags_degraded_subgroups() {
     // One minus the recall quotient, not fl(1/3): the report derives
     // degradation by subtraction.
     assert_eq!(flag.overall_degradation, 1.0 - 2.0 / 3.0);
-    assert!(!report.passes());
+    // Flags are report-only triage: the flagged report still admits
+    // when the pinned battery holds.
+    assert!(report.passes());
 
     // Raising the anchor floor above the subgroup's size silences the
     // flag but keeps the subgroup's rows in the report.
@@ -825,7 +852,7 @@ fn assess_flags_degraded_subgroups() {
         &anchor_types,
         &QualityThresholds {
             minimum_subgroup_anchors: 3,
-            ..QualityThresholds::default()
+            ..admitting()
         },
     );
     assert!(floored.flags.is_empty());
@@ -865,7 +892,7 @@ fn clump_resolution_triages_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
     let thresholds = QualityThresholds {
         minimum_subgroup_anchors: 2,
-        ..QualityThresholds::default()
+        ..admitting()
     };
 
     // Restored: the misses were clump siblings, so every collapsed
@@ -914,7 +941,9 @@ fn clump_resolution_triages_flags() {
     assert_eq!(flag.clump_degradation, Some(1.0));
     assert_eq!(flag.clump_overall_degradation, Some(1.0 - 4.0 / 6.0));
     assert!(!flag.clump_resolved);
-    assert!(!report.passes());
+    // Triage is report-only: the unresolved flag informs the human,
+    // never the admission.
+    assert!(report.passes());
 }
 
 /// Hand-computed density rows: log ratios, the median/MAD spread, and degenerate-radius exclusion.
@@ -965,7 +994,7 @@ fn assess_reads_density_from_radii() {
         &types_of(&[&[], &[], &[]]),
         &QualityThresholds {
             maximum_density_spread: Some(spread),
-            ..QualityThresholds::default()
+            ..admitting()
         },
     );
     assert!(lenient.passes());
@@ -974,7 +1003,7 @@ fn assess_reads_density_from_radii() {
         &types_of(&[&[], &[], &[]]),
         &QualityThresholds {
             maximum_density_spread: Some(spread / 2.0),
-            ..QualityThresholds::default()
+            ..admitting()
         },
     );
     assert!(!strict.passes());
@@ -1002,24 +1031,113 @@ fn assess_fails_pinned_thresholds_without_evidence() {
         &types,
         &QualityThresholds {
             maximum_density_spread: Some(1.0),
-            ..QualityThresholds::default()
+            ..admitting()
         },
     );
     assert_eq!(report.density[0].anchors, 0);
     assert_eq!(report.density[0].spread, None);
     assert!(!report.passes());
 
-    // Disabled triplet readings fail a pinned agreement floor.
-    let report = assess(
-        &readings,
-        &types,
-        &QualityThresholds {
-            minimum_triplet_agreement: Some(0.5),
-            ..QualityThresholds::default()
-        },
-    );
+    // Disabled triplet readings fail the verdict outright.
+    let mut readings = flag_fixture(&[true, true]);
+    readings.triplet_map_representation = vec![TripletAggregate::default(); 2].into();
+    let report = assess(&readings, &types, &admitting());
     assert_eq!(report.triplet_map_representation.triplets, 0);
     assert!(!report.passes());
+}
+
+/// A pinned neighbourhood threshold demands a nonempty grid.
+///
+/// `all` over an empty grid is vacuously true; the verdict must not be. `assess` cannot emit an
+/// empty grid today (it reads rung 0 unconditionally and panics), but the report is a
+/// serializable value whose verdict must hold under every construction - persisted reports get
+/// read back, and a pin over zero rungs is the same configuration contradiction as a pinned
+/// density ceiling over absent readings, failing the same way.
+#[test]
+fn pinned_neighbourhood_thresholds_demand_a_nonempty_grid() {
+    let readings = flag_fixture(&[true, true]);
+    let types = types_of(&[&[], &[]]);
+
+    let mut report = assess(&readings, &types, &admitting());
+    assert!(report.passes(), "the populated grid clears the floor");
+
+    report.map_representation.clear();
+    assert!(
+        !report.passes(),
+        "a pin without evidence fails, never vacuously passes",
+    );
+}
+
+/// Any unpinned absolute control refuses admission.
+///
+/// The gate is the sole activation authority (ruling 2026-07-23): missing calibration cannot
+/// auto-pass, so the verdict demands all six controls pinned, and the default configuration is
+/// report-only by construction.
+#[test]
+fn unpinned_controls_refuse_admission() {
+    let readings = flag_fixture(&[true, true]);
+    let types = types_of(&[&[], &[]]);
+
+    assert!(
+        assess(&readings, &types, &admitting()).passes(),
+        "the full battery admits the healthy fixture",
+    );
+    assert!(
+        !assess(&readings, &types, &QualityThresholds::default()).passes(),
+        "unpinned defaults are report-only, never admission",
+    );
+
+    let full = admitting();
+    let knockouts: [(&str, QualityThresholds); 6] = [
+        (
+            "recall",
+            QualityThresholds {
+                minimum_recall: None,
+                ..full
+            },
+        ),
+        (
+            "trustworthiness",
+            QualityThresholds {
+                minimum_trustworthiness: None,
+                ..full
+            },
+        ),
+        (
+            "continuity",
+            QualityThresholds {
+                minimum_continuity: None,
+                ..full
+            },
+        ),
+        (
+            "intrusion",
+            QualityThresholds {
+                maximum_intrusion_rate: None,
+                ..full
+            },
+        ),
+        (
+            "density",
+            QualityThresholds {
+                maximum_density_spread: None,
+                ..full
+            },
+        ),
+        (
+            "triplets",
+            QualityThresholds {
+                minimum_triplet_agreement: None,
+                ..full
+            },
+        ),
+    ];
+    for (name, thresholds) in knockouts {
+        assert!(
+            !assess(&readings, &types, &thresholds).passes(),
+            "an unpinned {name} control must refuse admission",
+        );
+    }
 }
 
 /// Pinned floors bind the overall corpus readings.
@@ -1028,14 +1146,13 @@ fn assess_applies_pinned_floors() {
     let readings = flag_fixture(&[true, true, false]);
     let anchor_types = types_of(&[&[], &[], &[]]);
 
-    // Overall recall 2/3: a floor above it fails, one below passes,
-    // and unpinned floors bind nothing.
+    // Overall recall 2/3: a floor above it fails, one below passes.
     let strict = assess(
         &readings,
         &anchor_types,
         &QualityThresholds {
             minimum_recall: Some(0.9),
-            ..QualityThresholds::default()
+            ..admitting()
         },
     );
     assert!(!strict.passes());
@@ -1046,13 +1163,10 @@ fn assess_applies_pinned_floors() {
         &QualityThresholds {
             minimum_recall: Some(0.5),
             maximum_intrusion_rate: Some(0.5),
-            ..QualityThresholds::default()
+            ..admitting()
         },
     );
     assert!(lenient.passes());
-
-    let unpinned = assess(&readings, &anchor_types, &QualityThresholds::default());
-    assert!(unpinned.passes());
 }
 
 /// The report wires from a live probe and survives serialization.
@@ -1085,6 +1199,7 @@ async fn assess_reads_a_probed_fixture() {
             minimum_trustworthiness: Some(1.0),
             minimum_continuity: Some(1.0),
             maximum_intrusion_rate: Some(0.0),
+            maximum_density_spread: Some(1e9),
             minimum_triplet_agreement: Some(1.0),
             minimum_subgroup_anchors: 5,
             ..QualityThresholds::default()
@@ -1485,8 +1600,9 @@ async fn runner_reports_a_published_generation() {
         }
     }
 
-    // Subgroups below the default anchor floor never flag, and every
-    // threshold defaults to unpinned.
+    // Subgroups below the default anchor floor never flag, and the
+    // unpinned default configuration is report-only: inspectable
+    // output, never an admission.
     assert!(report.flags.is_empty());
-    assert!(report.passes());
+    assert!(!report.passes());
 }

@@ -5,10 +5,13 @@
 //! Internal row ids are dense and assignment-ordered, so shipping them verbatim lets a principal
 //! bound hidden row counts between two visible ids (gap analysis) and estimate the universe size
 //! from any received sample. Ids therefore cross the wire through [`RowCodec`], a keyed bijection
-//! of the full `u32` range: the wire ids one scope receives are distributed as a uniform subset of
-//! `[0, 2^32)` independent of the universe size, so order, adjacency, creation time, and the
-//! universe size itself stay hidden. Wire ids are opaque and sparse - a valid id is any `u32`
-//! value, and no relationship between wire values reflects a relationship between rows.
+//! of the full `u32` range. Wire ids are opaque and sparse - a valid id is any `u32` value, and
+//! the mapping is independent of the universe size. To the extent the keyed permutation is
+//! indistinguishable from a random permutation of `[0, 2^32)` at the volume of ids an observer
+//! collects, the wire ids one scope receives are distributed as a uniform subset of the range and
+//! order, adjacency, creation time, and the universe size stay hidden. That indistinguishability
+//! is the construction's design target, not a proved bound: the codec is an obfuscation layer
+//! with exact decode guarantees, not a demonstrated security boundary.
 //!
 //! # Model
 //!
@@ -40,9 +43,10 @@ use crate::file::generation::GenerationId;
 
 /// The Feistel round count one codec applies.
 //
-// Four rounds is the classical strong-PRP threshold (Luby-Rackoff);
-// eight buys a second full pass of margin at sub-microsecond cost
-// per id.
+// Eight rounds at sub-microsecond cost per id. Four is the classical
+// Luby-Rackoff strong-PRP threshold, an asymptotic result: no concrete
+// indistinguishability bound is claimed at this domain size and round
+// function.
 const ROUNDS: usize = 8;
 
 /// The Feistel half width; the network splits the `u32` state into two 16-bit halves.

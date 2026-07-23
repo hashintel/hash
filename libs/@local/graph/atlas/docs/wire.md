@@ -46,9 +46,9 @@ The offset directory is the locating mechanism: a fixed lookup, no linear scan a
 - Directory rules: slot 0 (HEAD) is always present; present slots are strictly sequential (`start_next = align8(end_prev)`, the first present start = `16 + 8 x slotCount`); `end >= start`; `slotCount` at least the kind's table size. Present-but-empty (`start == end`, nonzero) is distinct from absent (`0, 0`): a zero-point tile carries present-empty columns, a request without `coloredTypeIds` gets an absent `TYPE_MASK`.
 - Offsets are u32: responses are bounded below 4 GiB by construction (the published caps keep real responses in the KB-MB range; a response that could exceed u32 is a `wireVersion` bump).
 - Prefix `flags` and `reserved` must be zero.
-- Payload order equals slot order, so identical bound state yields byte-identical responses - the property the client's application-layer cache keys on.
+- Payload order equals slot order, and prefix, directory, HEAD, and columns are pure functions of `(generation, request, visibility)` - identical requests under identical visibility yield byte-identical bytes there, the property the client's application-layer cache keys on. The DETAIL TRAILER is the one deliberate exception: it hydrates from the live store at request time (labels, icons, properties edited after publish show on snapshot geometry - by design), so trailer bytes may differ between identical requests and a detailed response is not a candidate for byte-keyed caching. Cache the geometry sections; refetch detail.
 
-Streaming contract: every column's extent is known before the first payload byte, so prefix + directory stream first and columns follow immediately; the trailer is the one late-arriving piece (live store hydration), so it lives outside the directory as a self-delimiting CBOR tail - declared by a HEAD key on tile and edges, mandated by kind on locate - whose start is `align8` of the last present column's end and whose extent is its own CBOR structure. Chunked transfer works; a streaming client renders geometry before detail arrives.
+Streaming contract: every column's extent is known before the first payload byte, so prefix + directory stream first and columns follow immediately; the trailer is the one late-arriving piece (live store hydration), so it lives outside the directory as a self-delimiting CBOR tail - declared by a HEAD key on tile and edges, mandated by kind on locate - whose start is `align8` of the last present column's end and whose extent is its own CBOR structure. The LAYOUT is the streaming contract; current servers assemble the whole body before the first byte, so a detailed response's first-byte latency includes hydration today. A streaming decoder is correct against both: geometry sections decode from a partial body, and on successful responses a future streaming server changes delivery timing, never bytes. If a streaming server's hydration fails after columns are sent, the trailer arrives VALID and EMPTY-SHAPED - the absent-detail vocabulary (null labels, completeness bits unset) - never a truncated body; problem documents cover only failures before the first body byte.
 
 ## 3. Slot tables
 
@@ -66,24 +66,24 @@ Sections are named by (kind, slot); the names are labels, the slots are the wire
 
 `SALTILEE` (edges), slotCount = 4:
 
-| Slot | Section        | Contents                                                                 |
-| ---- | -------------- | ------------------------------------------------------------------------ |
-| 0    | `HEAD`         | CBOR map                                                                 |
-| 1    | `EDGE_SOURCES` | u32 node row ids, delivery order                                         |
-| 2    | `EDGE_TARGETS` | u32 node row ids, delivery order                                         |
-| 3    | `EDGE_IDS`     | bstr(32) link-entity identities, delivery order, raw records (32 B/edge) |
+| Slot | Section        | Contents                                                                           |
+| ---- | -------------- | ---------------------------------------------------------------------------------- |
+| 0    | `HEAD`         | CBOR map                                                                           |
+| 1    | `EDGE_SOURCES` | u32 node row ids, delivery order                                                   |
+| 2    | `EDGE_TARGETS` | u32 node row ids, delivery order                                                   |
+| 3    | `EDGE_IDS`     | raw 32-byte link-entity identity records, delivery order (32 B/edge, no CBOR head) |
 
 `SALTILEL` (locate), slotCount = 7:
 
-| Slot | Section        | Contents                                                               |
-| ---- | -------------- | ---------------------------------------------------------------------- |
-| 0    | `HEAD`         | CBOR map                                                               |
-| 1    | `POSITIONS`    | f32 xy pairs, delivered order                                          |
-| 2    | `ROW_IDS`      | u32 node row ids, delivered order                                      |
-| 3    | `TYPE_MASK`    | per-point bitmasks (absent unless the request supplies coloredTypeIds) |
-| 4    | `EDGE_SOURCES` | u32 node row ids, edge order                                           |
-| 5    | `EDGE_TARGETS` | u32 node row ids, edge order                                           |
-| 6    | `EDGE_IDS`     | bstr(32) link-entity identities, edge order, raw records (32 B/edge)   |
+| Slot | Section        | Contents                                                                       |
+| ---- | -------------- | ------------------------------------------------------------------------------ |
+| 0    | `HEAD`         | CBOR map                                                                       |
+| 1    | `POSITIONS`    | f32 xy pairs, delivered order                                                  |
+| 2    | `ROW_IDS`      | u32 node row ids, delivered order                                              |
+| 3    | `TYPE_MASK`    | per-point bitmasks (absent unless the request supplies coloredTypeIds)         |
+| 4    | `EDGE_SOURCES` | u32 node row ids, edge order                                                   |
+| 5    | `EDGE_TARGETS` | u32 node row ids, edge order                                                   |
+| 6    | `EDGE_IDS`     | raw 32-byte link-entity identity records, edge order (32 B/edge, no CBOR head) |
 
 TRAILER (all kinds): CBOR tail outside the directory - declared by the HEAD `trailer` key on tile and edges, always present on locate.
 
@@ -95,13 +95,13 @@ The `coloredTypeIds` entries are user-facing VERSIONED type URLs. The server res
 
 ## 4. CBOR profile
 
-RFC 8949 section 4.2.1 deterministic encoding, restricted further: definite lengths only, integer map keys, no tags, no indefinite items, floats fixed-width by originating type - geometry and HEAD floats always IEEE 754 single (they originate as f32), property values double (store scalars are doubles; the value-dependent deterministic-core shortest form applies nowhere). The same profile canonicalizes request bodies for cache keys.
+RFC 8949 section 4.2.1 deterministic encoding with genuine restrictions - definite lengths only, integer map keys, no tags, no indefinite items - and ONE deliberate divergence from section 4.2.1's preferred serialization: floats are fixed-width by originating type, never shortened. Geometry and HEAD floats are always IEEE 754 single (they originate as f32, even where a half would preserve the value), property values always double (store scalars are doubles); the width carries the type, and byte shapes stay value-independent. The same profile canonicalizes request bodies for cache keys.
 
 ## 5. Identifiers
 
 Two identity domains cross the wire:
 
-- Node row ids (`ROW_IDS`, `EDGE_SOURCES`, `EDGE_TARGETS`, and the locate request's `row`) are OPAQUE SPARSE u32 values: consistent across every endpoint of one generation, carrying no ordering, adjacency, creation-time, or count information, never bounded by the generation's row count, and not stable across generations - re-translate after a generation change. Any u32 value is well-formed; values the generation never issued simply resolve to nothing.
+- Node row ids (`ROW_IDS`, `EDGE_SOURCES`, `EDGE_TARGETS`, and the locate request's `row`) are OPAQUE SPARSE u32 values: consistent across every endpoint of one generation, issued through a keyed permutation of the full u32 range, never bounded by the generation's row count, and not stable across generations - re-translate after a generation change. Any u32 value is well-formed; values the generation never issued simply resolve to nothing. The permutation's design target is that ids carry no ordering, adjacency, creation-time, or count information; that hiding is the construction's target, not a demonstrated boundary. Treat ids as meaningless handles either way.
 - Entity ids (`EDGE_IDS`, the locate HEAD's `entityId`) are 32 raw bytes: the web uuid then the entity uuid, sixteen bytes each, untagged. They are upstream identities - stable across generations - and every delivered edge carries one (identity is generation-frozen, never store hydration).
 
 Edges carry NO wire id of their own: a link entity's id IS its identity in every binary response, and edge delivery order is ascending `EDGE_IDS` bytes - client-verifiable from the column alone.
@@ -113,7 +113,7 @@ HEAD keys:
 | Key | Name          | Type        | Meaning                                                                                                               |
 | --- | ------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
 | 0   | `generation`  | `bstr(32)`  | sha256 identity, echoes the route                                                                                     |
-| 1   | `variant`     | `uint`      | echoes the route                                                                                                      |
+| 1   | `variant`     | `uint`      | the route's variant as its index in the manifest `variants` list                                                      |
 | 2   | `coordinate`  | `[z, x, y]` | uints, echoes the route                                                                                               |
 | 3   | `mode`        | `uint`      | 0 = delta, 1 = total                                                                                                  |
 | 4   | `delivered`   | `uint`      | point count in this response                                                                                          |
@@ -160,12 +160,12 @@ HEAD keys:
 | Key | Name         | Type       | Meaning                                                                                                     |
 | --- | ------------ | ---------- | ----------------------------------------------------------------------------------------------------------- |
 | 0   | `generation` | `bstr(32)` | sha256 identity, echoes the route                                                                           |
-| 1   | `variant`    | `uint`     | echoes the route                                                                                            |
+| 1   | `variant`    | `uint`     | the route's variant as its index in the manifest `variants` list                                            |
 | 2   | `count`      | `uint`     | edge count in this response                                                                                 |
 | 3   | `complete`   | `bool`     | false = the rank-ordered cap truncated the set (auth-invisible edges are NOT truncation - missing = denied) |
 | 4   | `trailer`    | `bool`     | a CBOR trailer tail follows the last column (echoes includeDetailedData)                                    |
 
-The request's `tiles` list is not echoed: it rides the POST body, responses are `private, no-store`, and the generation echo pins identity. Column extents are `4 x count` for the endpoint columns and `32 x count` for `EDGE_IDS`. Delivery order is ascending `EDGE_IDS` bytes, independent of the tiles listed and of truncation, so identical requests yield identical bytes. Every delivered edge has both endpoints in the listed tiles' delivered row sets; sources and targets reference node row ids the client already holds for those tiles.
+The request's `tiles` list is not echoed: it rides the POST body, responses are `private, no-store`, and the generation echo pins identity. Column extents are `4 x count` for the endpoint columns and `32 x count` for `EDGE_IDS`. Delivery order is ascending `EDGE_IDS` bytes, independent of the tiles listed and of truncation, so identical requests yield identical column bytes; a detail trailer reflects live store state at hydration and is exempt from that identity (section 2). Every delivered edge has both endpoints in the listed tiles' delivered row sets; sources and targets reference node row ids the client already holds for those tiles.
 
 Edges TRAILER, present iff `includeDetailedData` (edge order):
 
@@ -184,7 +184,7 @@ HEAD keys:
 | Key | Name                 | Type        | Meaning                                                                                                                                                                        |
 | --- | -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 0   | `generation`         | `bstr(32)`  | sha256 identity, echoes the route                                                                                                                                              |
-| 1   | `variant`            | `uint`      | echoes the route                                                                                                                                                               |
+| 1   | `variant`            | `uint`      | the route's variant as its index in the manifest `variants` list                                                                                                               |
 | 2   | `count`              | `uint`      | delivered node count (source included)                                                                                                                                         |
 | 3   | `zoom`               | `uint`      | the source's first visible zoom                                                                                                                                                |
 | 4   | `cell`               | `[z, x, y]` | the source's tile at that zoom - the client's fly-to target                                                                                                                    |
@@ -194,7 +194,7 @@ HEAD keys:
 | 8   | `typeIdsComplete`    | `bool`      | the request's coloredTypeIds cover every direct type of the source; false on an empty request set and for a source the store no longer serves                                  |
 | 9   | `propertiesComplete` | `bool`      | the trailer's source property map is the entity's whole set; false when the simple-value filter or the property cap dropped anything, or the store no longer serves the source |
 
-Delivered node order is SOURCE FIRST, then the delivered edges' partners ascending by wire row id. A partner whose every edge truncated is not delivered. The source's row id and position are `ROW_IDS[0]` / `POSITIONS[0]`; no HEAD key repeats them. `zoom` is the zoom at which the source's dot first appears; `cell` is its tile there. Identical requests yield identical bytes. The request's `entityId` is not echoed (POST body + `private, no-store` + the generation echo).
+Delivered node order is SOURCE FIRST, then the delivered edges' partners ascending by wire row id. A partner whose every edge truncated is not delivered. The source's row id and position are `ROW_IDS[0]` / `POSITIONS[0]`; no HEAD key repeats them. `zoom` is the zoom at which the source's dot first appears; `cell` is its tile there. Identical requests yield identical prefix, directory, HEAD, and column bytes; the trailer reflects live store state at hydration and is exempt (section 2). The request's `entityId` is not echoed (POST body + `private, no-store` + the generation echo).
 
 Edge columns carry the source's EGO-GRAPH: every edge incident to the source, both directions, a self-loop exactly once, its other endpoint visible - ascending `EDGE_IDS` bytes, capped by `limits.locateEdges`. Truncation keeps the edges whose partners lie nearest the source, ascending (squared wire-frame distance to the partner, partner first-visible zoom, `EDGE_IDS` bytes); the key only selects - presentation stays ascending `EDGE_IDS` bytes - and HEAD reports `complete: false`. `edges: 0` with `complete: true` is the honest answer for an unlinked source: the ego-graph of an isolated dot is the dot.
 
@@ -221,6 +221,6 @@ The decoder validates STRUCTURE: magic, version, zero flags, directory rules (sl
 
 Per-point invariants - duplicate row ids, positions inside the tile extent - are NOT decoder work: delivery is slice-serving of publish-verified arrays, and the publish pipeline records the verification. A zero-copy decoder that walks every point to re-check them is zero-copy theater.
 
-## 10. Golden fixtures
+## 10. Fixtures
 
 Checked-in fixture envelopes pin the contract bytes: the encoder writes small hand-built responses as fixtures, and every decoder implementation asserts field-for-field equality against their JSON sidecars (floats as bit patterns, never printed decimals). "Matches the server" is never asserted by eye. The fixtures live in the atlas crate under `fixtures/wire/`.

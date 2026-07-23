@@ -4401,7 +4401,7 @@ mod backfill_reference {
     use super::super::VisibilityProof;
     use crate::{
         file::morton::read::MortonFile,
-        morton::{Depth, MortonCell},
+        morton::{Depth, MortonCell, MortonKey},
     };
 
     /// One delivery as the law states it: positions in wire order plus the head counts.
@@ -4448,24 +4448,81 @@ mod backfill_reference {
         u8::try_from(last).expect("bucket indexes fit u8")
     }
 
+    /// One corpus as the reference walks it: extent scans, depth, schedule, and visibility.
+    ///
+    /// The law's replay below is corpus-agnostic: it reads extents, the deepest bucket, the
+    /// schedule's span, and per-position visibility through this surface, so the fixture's
+    /// opened artifacts and a plain-columns corpus replay through the same loops.
+    pub(super) struct Corpus<P, V> {
+        /// Returns the extent's positions inside a bucket, in base order.
+        pub positions: P,
+        /// The deepest bucket holding any point.
+        pub deepest: u8,
+        /// The schedule's span exponent.
+        pub span: u8,
+        /// Returns whether a position's row is visible.
+        pub visible: V,
+    }
+
+    /// The fixture corpus: independently opened artifacts under a serving-side proof.
+    pub(super) fn fixture<'c>(
+        morton: &'c MortonFile,
+        row_ids: &'c [u32],
+        proof: &'c VisibilityProof,
+    ) -> Corpus<impl Fn(u8, MortonCell) -> Vec<u64> + 'c, impl Fn(u64) -> bool + 'c> {
+        Corpus {
+            positions: move |bucket, cell| extent_positions(morton, bucket, cell),
+            deepest: deepest(morton),
+            span: super::FIXTURE_LOD.span.get(),
+            visible: move |position| {
+                let index = usize::try_from(position).expect("fixture positions fit usize");
+                proof.contains(row_ids[index])
+            },
+        }
+    }
+
+    /// A plain-columns corpus under a per-row visibility column.
+    ///
+    /// The mirror of the fixture shape for a corpus that exists only as columns; `span` names
+    /// the schedule the corpus was cascaded under.
+    pub(super) fn columns<'c>(
+        codes: &'c [u64],
+        segments: &'c [(usize, usize)],
+        rows: &'c [u32],
+        span: u8,
+        visible: &'c [bool],
+    ) -> Corpus<impl Fn(u8, MortonCell) -> Vec<u64> + 'c, impl Fn(u64) -> bool + 'c> {
+        let deepest = segments
+            .iter()
+            .rposition(|&(start, end)| end > start)
+            .expect("the corpus is nonempty");
+        Corpus {
+            positions: move |bucket: u8, cell: MortonCell| {
+                let (start, end) = segments[usize::from(bucket)];
+                (start..end)
+                    .filter(|&position| cell.contains(MortonKey::from_bits(codes[position])))
+                    .map(|position| u64::try_from(position).expect("positions fit u64"))
+                    .collect()
+            },
+            deepest: u8::try_from(deepest).expect("bucket indexes fit u8"),
+            span,
+            visible: move |position| {
+                let index = usize::try_from(position).expect("positions fit usize");
+                visible[usize::try_from(rows[index]).expect("row ids fit usize")]
+            },
+        }
+    }
+
     /// Delivers one level per the law: naturals per scheduled bucket, then the fill.
-    fn level(
-        morton: &MortonFile,
-        row_ids: &[u32],
-        proof: &VisibilityProof,
+    fn level<P: Fn(u8, MortonCell) -> Vec<u64>, V: Fn(u64) -> bool>(
+        corpus: &Corpus<P, V>,
         z: u8,
         x: u32,
         y: u32,
         taken: &mut HashSet<u64>,
     ) -> Delivery {
-        let visible = |position: u64| {
-            let index = usize::try_from(position).expect("fixture positions fit usize");
-            proof.contains(row_ids[index])
-        };
-
-        let span = super::FIXTURE_LOD.span.get();
         let cell = cell(z, x, y);
-        let cut = z + span;
+        let cut = z + corpus.span;
         let first = if z == 0 { 0 } else { cut };
 
         let mut delivery = Delivery {
@@ -4475,26 +4532,26 @@ mod backfill_reference {
             budget: 0,
         };
         for bucket in first..=cut {
-            let candidates = extent_positions(morton, bucket, cell);
-            delivery.budget += u64::try_from(candidates.len()).expect("fixture counts fit u64");
+            let candidates = (corpus.positions)(bucket, cell);
+            delivery.budget += u64::try_from(candidates.len()).expect("corpus counts fit u64");
             let before = delivery.positions.len();
             for position in candidates {
-                if visible(position) && taken.insert(position) {
+                if (corpus.visible)(position) && taken.insert(position) {
                     delivery.positions.push(position);
                 }
             }
             delivery.runs.push(
-                u64::try_from(delivery.positions.len() - before).expect("fixture counts fit u64"),
+                u64::try_from(delivery.positions.len() - before).expect("corpus counts fit u64"),
             );
         }
 
-        let mut count = u64::try_from(delivery.positions.len()).expect("fixture counts fit u64");
-        'fill: for bucket in (cut + 1)..=deepest(morton) {
+        let mut count = u64::try_from(delivery.positions.len()).expect("corpus counts fit u64");
+        'fill: for bucket in (cut + 1)..=corpus.deepest {
             if count == delivery.budget {
                 break;
             }
-            for position in extent_positions(morton, bucket, cell) {
-                if visible(position) && taken.insert(position) {
+            for position in (corpus.positions)(bucket, cell) {
+                if (corpus.visible)(position) && taken.insert(position) {
                     delivery.positions.push(position);
                     delivery.backfilled += 1;
                     count += 1;
@@ -4511,10 +4568,8 @@ mod backfill_reference {
     /// The delta response: every ancestor replayed top-down, then the level itself.
     ///
     /// Returns the delivery and the chain's whole taken set, the level included.
-    pub(super) fn delta(
-        morton: &MortonFile,
-        row_ids: &[u32],
-        proof: &VisibilityProof,
+    pub(super) fn delta<P: Fn(u8, MortonCell) -> Vec<u64>, V: Fn(u64) -> bool>(
+        corpus: &Corpus<P, V>,
         z: u8,
         x: u32,
         y: u32,
@@ -4523,39 +4578,24 @@ mod backfill_reference {
         for ancestor in 0..z {
             let shift = z - ancestor;
             // The ancestor's delivery matters only through `taken`.
-            level(
-                morton,
-                row_ids,
-                proof,
-                ancestor,
-                x >> shift,
-                y >> shift,
-                &mut taken,
-            );
+            level(corpus, ancestor, x >> shift, y >> shift, &mut taken);
         }
-        let own = level(morton, row_ids, proof, z, x, y, &mut taken);
+        let own = level(corpus, z, x, y, &mut taken);
 
         (own, taken)
     }
 
     /// The total response: the cumulative visible schedule, then the chain's pull-ups.
-    pub(super) fn total(
-        morton: &MortonFile,
-        row_ids: &[u32],
-        proof: &VisibilityProof,
+    pub(super) fn total<P: Fn(u8, MortonCell) -> Vec<u64>, V: Fn(u64) -> bool>(
+        corpus: &Corpus<P, V>,
         z: u8,
         x: u32,
         y: u32,
     ) -> Delivery {
-        let (_, taken) = delta(morton, row_ids, proof, z, x, y);
-        let visible = |position: u64| {
-            let index = usize::try_from(position).expect("fixture positions fit usize");
-            proof.contains(row_ids[index])
-        };
+        let (_, taken) = delta(corpus, z, x, y);
 
-        let span = super::FIXTURE_LOD.span.get();
         let cell = cell(z, x, y);
-        let cut = z + span;
+        let cut = z + corpus.span;
 
         let mut delivery = Delivery {
             positions: Vec::new(),
@@ -4566,22 +4606,22 @@ mod backfill_reference {
         // Every visible scheduled point is delivered by its own level of the chain, so the
         // cumulative natural segment is the schedule's visible survivors verbatim.
         for bucket in 0..=cut {
-            let candidates = extent_positions(morton, bucket, cell);
-            delivery.budget += u64::try_from(candidates.len()).expect("fixture counts fit u64");
+            let candidates = (corpus.positions)(bucket, cell);
+            delivery.budget += u64::try_from(candidates.len()).expect("corpus counts fit u64");
             let before = delivery.positions.len();
             for position in candidates {
-                if visible(position) {
+                if (corpus.visible)(position) {
                     delivery.positions.push(position);
                 }
             }
             delivery.runs.push(
-                u64::try_from(delivery.positions.len() - before).expect("fixture counts fit u64"),
+                u64::try_from(delivery.positions.len() - before).expect("corpus counts fit u64"),
             );
         }
         // The tail: deeper extent points some level of the chain pulled up, in bucket-major
         // base order.
-        for bucket in (cut + 1)..=deepest(morton) {
-            for position in extent_positions(morton, bucket, cell) {
+        for bucket in (cut + 1)..=corpus.deepest {
+            for position in (corpus.positions)(bucket, cell) {
                 if taken.contains(&position) {
                     delivery.positions.push(position);
                     delivery.backfilled += 1;
@@ -4590,6 +4630,37 @@ mod backfill_reference {
         }
 
         delivery
+    }
+
+    /// Replays a root-anchored descent path, returning each coordinate's delta delivery.
+    ///
+    /// Along a descent path every coordinate's ancestor chain is exactly the path's prefix, so
+    /// one shared taken set replays each tile's chain without re-walking it: entry `i` equals
+    /// [`delta`] at `path[i]`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the path is not root-anchored or skips a generation.
+    pub(super) fn path_deliveries<P: Fn(u8, MortonCell) -> Vec<u64>, V: Fn(u64) -> bool>(
+        corpus: &Corpus<P, V>,
+        path: &[(u8, u32, u32)],
+    ) -> Vec<Delivery> {
+        assert_eq!(
+            path.first(),
+            Some(&(0, 0, 0)),
+            "a chain replay is root-anchored"
+        );
+        for (&(z, x, y), &(below, cx, cy)) in path.iter().zip(&path[1..]) {
+            assert!(
+                below == z + 1 && cx >> 1 == x && cy >> 1 == y,
+                "the path descends one child at a time",
+            );
+        }
+
+        let mut taken = HashSet::new();
+        path.iter()
+            .map(|&(z, x, y)| level(corpus, z, x, y, &mut taken))
+            .collect()
     }
 }
 
@@ -4601,7 +4672,7 @@ fn backfill_battery(
     row_ids: &[u32],
 ) -> Vec<(&'static str, VisibilityProof)> {
     let universe = u32::try_from(row_ids.len()).expect("the fixture universe fits u32");
-    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xBACF_111);
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x0BAC_F111);
     let row_at = |position: u64| row_ids[usize::try_from(position).expect("positions fit usize")];
 
     let quarter: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
@@ -4645,7 +4716,9 @@ fn backfill_battery(
         .map(row_at)
         .collect();
 
-    let sparse: Vec<u32> = (0..universe).filter(|&row| row % 16 != 0).collect();
+    let sparse: Vec<u32> = (0..universe)
+        .filter(|&row| !row.is_multiple_of(16))
+        .collect();
 
     vec![
         ("operator", VisibilityProof::full_visibility()),
@@ -4690,6 +4763,7 @@ async fn masked_delivery_agrees_with_the_selection_reference() {
     let node_codec = test_codec(&atlas);
 
     for (name, proof) in backfill_battery(&atlas, &artifacts.morton, row_ids) {
+        let corpus = backfill_reference::fixture(&artifacts.morton, row_ids, &proof);
         for z in 0..=FIXTURE_LOD.max_tile_depth {
             let cells = 1_u32 << z;
             for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
@@ -4702,12 +4776,8 @@ async fn masked_delivery_agrees_with_the_selection_reference() {
                         head_counts(section(&bytes, HEAD).expect("HEAD is present"));
 
                     let expected = match mode {
-                        Mode::Delta => {
-                            backfill_reference::delta(&artifacts.morton, row_ids, &proof, z, x, y).0
-                        }
-                        Mode::Total => {
-                            backfill_reference::total(&artifacts.morton, row_ids, &proof, z, x, y)
-                        }
+                        Mode::Delta => backfill_reference::delta(&corpus, z, x, y).0,
+                        Mode::Total => backfill_reference::total(&corpus, z, x, y),
                     };
                     let expected_rows: Vec<u32> = expected
                         .positions
@@ -4824,17 +4894,15 @@ async fn a_short_fill_certifies_the_extent_exhausted() {
     assert!(shorts > 0, "the battery reaches the short-fill regime");
 }
 
-/// The delivered count saturates at the visible pool, and a partial fill is a base-order prefix.
+/// The fill saturates at the boundary, and a partial fill is a base-order prefix.
 ///
 /// At the root, proofs sized one below, at, and one above the schedule's budget pin
 /// `delivered = min(budget, pool)` at the boundary, and the surviving candidate order pins the
 /// morton tie-break: the one undelivered candidate at `budget + 1` is exactly the base-order
-/// last. Across the whole battery and every tile, the count law
-/// `delivered = min(budget, |visible ∩ extent| - |chain takes|)` holds with the chain read off
-/// the wire - the cardinality is a function of the masked view alone.
+/// last.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn delivered_counts_saturate_at_the_visible_pool_in_morton_order() {
+async fn the_fill_saturates_at_the_boundary_in_base_order() {
     let (generation, atlas) = publish("backfill-boundary").await;
     let artifacts = open_artifacts(&generation);
     let row_ids = artifacts
@@ -4863,7 +4931,7 @@ async fn delivered_counts_saturate_at_the_visible_pool_in_morton_order() {
         .map(|bucket| backfill_reference::extent_positions(&artifacts.morton, bucket, root).len())
         .sum();
     assert!(
-        budget + 1 <= candidates.len() - budget,
+        budget < candidates.len() - budget,
         "the fixture's deep pool covers the boundary sweep",
     );
 
@@ -4898,6 +4966,34 @@ async fn delivered_counts_saturate_at_the_visible_pool_in_morton_order() {
             );
         }
     }
+}
+
+/// The delivered count is a function of the masked view alone.
+///
+/// Across the whole battery and every tile, the count law
+/// `delivered = min(budget, |visible ∩ extent| - |chain takes|)` holds with the chain read off
+/// the wire: the budget is the schedule's public count and the pool is the raw code column's
+/// visible extent, so the cardinality discloses nothing a masked view does not already imply.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn delivered_count_is_a_function_of_the_masked_view_alone() {
+    let (generation, atlas) = publish("backfill-count-law").await;
+    let artifacts = open_artifacts(&generation);
+    let row_ids = artifacts
+        .rows
+        .u32_elements()
+        .expect("the row column is u32");
+    let node_codec = test_codec(&atlas);
+    let position_of: HashMap<u32, u64> = row_ids
+        .iter()
+        .enumerate()
+        .map(|(position, &row)| {
+            (
+                row,
+                u64::try_from(position).expect("fixture positions fit u64"),
+            )
+        })
+        .collect();
 
     // The count law across the battery: every tile, chain read off the wire.
     for (name, proof) in backfill_battery(&atlas, &artifacts.morton, row_ids) {
@@ -4950,4 +5046,168 @@ async fn delivered_counts_saturate_at_the_visible_pool_in_morton_order() {
             }
         }
     }
+}
+
+/// The wire and the walk instrument agree across the battery.
+///
+/// `WalkBench::from_parts` rebuilds the walk instrument over the fixture's independently opened
+/// artifacts, so a delta tile's wire rows and the instrument's chained walk are the two
+/// implementations crossing on one corpus: a disagreement is a walk defect on one side or
+/// artifact plumbing, never corpus mismatch. Rows must match in order; the head's counts must
+/// match the instrument's selection.
+#[cfg(feature = "bench")]
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn masked_delivery_agrees_with_the_walk_instrument() {
+    use crate::salt::lod::bench::WalkBench;
+
+    let (generation, atlas) = publish("backfill-crossing").await;
+    let artifacts = open_artifacts(&generation);
+    let row_ids = artifacts
+        .rows
+        .u32_elements()
+        .expect("the row column is u32");
+    let node_codec = test_codec(&atlas);
+
+    let code_bits: Vec<u64> = (0..u64::try_from(row_ids.len()).expect("fixture counts fit u64"))
+        .map(|position| artifacts.morton.code(position).to_bits())
+        .collect();
+    let lengths = artifacts.morton.fenceposts().lengths();
+    let mut bench = WalkBench::from_parts(
+        &code_bits,
+        &lengths,
+        row_ids.to_vec(),
+        FIXTURE_LOD.span.get(),
+        FIXTURE_LOD.max_tile_depth,
+    );
+
+    let universe = u32::try_from(row_ids.len()).expect("the fixture universe fits u32");
+    for (name, proof) in backfill_battery(&atlas, &artifacts.morton, row_ids) {
+        bench.mask_rows((0..universe).filter(|&row| proof.contains(row)));
+        for z in 0..=FIXTURE_LOD.max_tile_depth {
+            let cells = 1_u32 << z;
+            for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
+                let bytes = atlas
+                    .tile(&request(z, x, y, Mode::Delta), TileCaps::default(), &proof)
+                    .expect("the masked tile serves");
+                let rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
+                let (delivered, _, backfilled) =
+                    head_counts(section(&bytes, HEAD).expect("HEAD is present"));
+
+                let walked: Vec<u32> = bench
+                    .chained_delivery(z, x, y)
+                    .iter()
+                    .map(|&position| {
+                        let index = usize::try_from(position).expect("positions fit usize");
+                        node_codec.encode(row_ids[index]).get()
+                    })
+                    .collect();
+                let selection = bench.chained(z, x, y);
+
+                let at = format!("{name}: the delta tile {z}/{x}/{y}");
+                assert_eq!(rows, walked, "{at} delivers the instrument's rows in order");
+                assert_eq!(
+                    usize::try_from(delivered).expect("fixture counts fit usize"),
+                    selection.natural + selection.tail,
+                    "{at} heads the instrument's count",
+                );
+                assert_eq!(
+                    usize::try_from(backfilled).expect("fixture counts fit usize"),
+                    selection.tail,
+                    "{at} sizes the instrument's tail",
+                );
+            }
+        }
+    }
+}
+
+/// The reference and the walk instrument agree on the synthetic corpus at scale.
+///
+/// The 48-node fixture pins the law where extents are enumerable by hand; the clustered
+/// synthetic corpus pins it at depth. The law's replay visits the instrument's own corpus
+/// through its exported columns - the crossing in the opposite direction from the wire
+/// comparison - along the densest descent path, under the operator view, independent hiding,
+/// and a subtree on the path hidden whole. The sweep must reach the fill and the short-fill
+/// regimes for the pin to bind, and it asserts that it does.
+#[cfg(feature = "bench")]
+#[test]
+fn the_selection_reference_agrees_with_the_walk_instrument_at_scale() {
+    use crate::{morton::MortonKey, salt::lod::bench::WalkBench};
+
+    let mut bench = WalkBench::build(300_000, 0x0BAC_F111);
+    let (code_bits, rows, segments) = bench.columns();
+    let span = LodConfig::default().span.get();
+    let points = bench.points();
+
+    let path = bench.descent();
+    assert!(
+        path.len() > 10,
+        "the clustered corpus descends past zoom 10"
+    );
+    let (depth, x, y) = path[5];
+    assert_eq!(depth, 5, "the path's sixth entry sits at zoom 5");
+
+    let everyone = vec![true; points];
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x0BAC_F111);
+    let independent: Vec<bool> = core::iter::repeat_with(|| rng.random_ratio(3, 5))
+        .take(points)
+        .collect();
+    let hidden = backfill_reference::cell(5, x, y);
+    let mut subtree = vec![true; points];
+    for (position, &bits) in code_bits.iter().enumerate() {
+        if hidden.contains(MortonKey::from_bits(bits)) {
+            subtree[usize::try_from(rows[position]).expect("row ids fit usize")] = false;
+        }
+    }
+
+    let masks: [(&str, &[bool]); 3] = [
+        ("operator", &everyone),
+        ("independent-hiding", &independent),
+        ("subtree-hidden", &subtree),
+    ];
+
+    let mut backfills = 0_u64;
+    let mut shorts = 0_u32;
+    for (name, visible) in masks {
+        bench.mask_rows(
+            visible
+                .iter()
+                .enumerate()
+                .filter(|&(_, &visible)| visible)
+                .map(|(row, _)| u32::try_from(row).expect("the corpus fits the u32 row domain")),
+        );
+        let corpus = backfill_reference::columns(&code_bits, &segments, &rows, span, visible);
+
+        let deliveries = backfill_reference::path_deliveries(&corpus, &path);
+        for (&(z, x, y), delivery) in path.iter().zip(&deliveries) {
+            let walked: Vec<u64> = bench
+                .chained_delivery(z, x, y)
+                .iter()
+                .map(|&position| u64::from(position))
+                .collect();
+            let selection = bench.chained(z, x, y);
+
+            let at = format!("{name}: the tile {z}/{x}/{y}");
+            assert_eq!(
+                delivery.positions, walked,
+                "{at} delivers the law's positions in order",
+            );
+            assert_eq!(
+                delivery.budget,
+                u64::try_from(selection.budget).expect("corpus counts fit u64"),
+                "{at} agrees on the budget",
+            );
+            assert_eq!(
+                delivery.backfilled,
+                u64::try_from(selection.tail).expect("corpus counts fit u64"),
+                "{at} sizes the tail alike",
+            );
+
+            backfills += delivery.backfilled;
+            let delivered = u64::try_from(delivery.positions.len()).expect("corpus counts fit u64");
+            shorts += u32::from(delivered < delivery.budget);
+        }
+    }
+    assert!(backfills > 0, "the sweep reaches the fill regime");
+    assert!(shorts > 0, "the sweep reaches the short-fill regime");
 }

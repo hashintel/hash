@@ -160,8 +160,9 @@ pub(crate) struct SampledRelationEdges<'index> {
 /// Per-type-capped relation attraction sampler.
 ///
 /// Relation types are drawn uniformly without replacement, then each selected type contributes at
-/// most the per-type cap of distinct edges: the cap is what keeps a high-volume relation from
-/// owning a batch. Uniform type selection is the strongest anti-skew choice; a
+/// most the per-type cap of distinct edges: the cap is the relation objective's own semantic
+/// anti-domination factor - a high-volume type must not own the geometry by edge count - not a
+/// performance knob. Uniform type selection is the strongest anti-skew choice; a
 /// square-root-of-edge-count weighting is the sanctioned alternative if quality evidence shows the
 /// cap alone starves high-volume relations.
 #[derive(Debug)]

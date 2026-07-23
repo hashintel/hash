@@ -18,16 +18,28 @@ This is the battery's primary structure metric. Pipeline (defaults in parenthese
 3. A leaf born at ``B`` and merged or finalized at ``D`` has persistence ``P = B - D``.
    ``normalized_persistence`` is the sum of leaf persistences divided by the density maximum.
 
-Anti-cheat property: because the histogram is taken over the layout's own extent and persistence
-is normalized by the density maximum, uniformly contracting the layout (multiplying all
-coordinates by a constant) leaves the raster, and therefore leaf count and normalized
-persistence, exactly unchanged (up to float rounding of bin assignment). Inflating density
-contrast by collapsing points buys nothing.
+Anti-cheat property: because the histogram is taken over the layout's own per-axis extent and
+persistence is normalized by the density maximum, any positive per-axis affine map
+``(x, y) -> (a*x + c, b*y + d)`` with ``a, b > 0`` — uniform contraction included, but also
+anisotropic scaling and translation — leaves the raster bit-identical, and therefore leaf count
+and normalized persistence exactly unchanged (measured bit-identical at both the test and the
+production grid; adversarial bin-boundary values could in principle round differently).
+Inflating density contrast by collapsing points buys nothing, isotropically or anisotropically.
+The invariance holds for every positive scale (an axis shrunk by ``1e-9`` scores exactly like
+an unshrunk one) and breaks only at exactly zero, where the degenerate-extent widening below
+takes over — an intentional discontinuity, pinned in the tests.
+
+Frame caveat: the raster frame is the layout's own axis-aligned bounding box with square bins
+in index space; there is no common isotropic frame. The score is therefore NOT invariant under
+rigid rotation — rotating a layout can change leaf count and persistence — and the affine
+invariance means the metric cannot police aspect-ratio or per-axis density distortion.
 
 Blind spot (by design): the metric is a pure function of the *multiset* of layout positions and
-is blind to which node sits where. A row-shuffled layout scores identically to its unshuffled
-source, so persistence gates never stand alone; suites pair them with neighbor-identity metrics
-such as kNN recall and trustworthiness/continuity.
+is blind to which node sits where, and — per the affine invariance above — blind to per-axis
+distortion of where those positions sit. A row-shuffled or anisotropically squashed layout
+scores identically to its source, so persistence gates never stand alone; suites pair them with
+neighbor-identity metrics such as kNN recall and trustworthiness/continuity, which collapse
+under exactly the distortions this metric ignores.
 """
 
 from dataclasses import dataclass, field
@@ -86,8 +98,10 @@ def density_raster(
 
     The histogram spans exactly the layout's bounding box (a degenerate axis is widened by 0.5
     on each side) with ``grid_size`` bins per axis, then receives a gaussian blur of
-    ``bandwidth_px`` pixels sigma. Rasterizing over the layout's own extent makes the raster
-    invariant to uniform scaling. An empty layout yields an all-zero raster; raises
+    ``bandwidth_px`` pixels sigma. Rasterizing over the layout's own per-axis extent makes the
+    raster invariant to positive per-axis affine maps (scaling and translation, anisotropic
+    included) but not to rotation — see the module docstring for the full invariance class and
+    its limits. An empty layout yields an all-zero raster; raises
     :class:`ValueError` for non-(n, 2) input or ``grid_size < 2``.
     """
     xy = np.asarray(xy, dtype=np.float64)

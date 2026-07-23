@@ -80,7 +80,8 @@ pub(crate) struct SupportAnchor {
 /// One step's drawn populations, in corpus row space.
 ///
 /// Each family carries its estimator scale: the factor that makes the family's batch sum an
-/// unbiased estimate of its full objective (see the module documentation of [`super`]). An empty
+/// unbiased estimate of its family objective (see the module documentation of [`super`]; the
+/// relation family's is the capped-sampling objective, a per-type clipped total). An empty
 /// family carries a zero scale; its term contributes nothing.
 ///
 /// The population vectors live in the draw's allocator; the relation draws' nested edge vectors

@@ -163,6 +163,88 @@ impl WalkBench {
         }
     }
 
+    /// Builds the instrument over externally supplied cascade artifacts.
+    ///
+    /// `code_bits` is the bucket-segmented base-order key column as raw key bits; `lengths` the
+    /// per-bucket segment lengths in depth order (fewer entries than the bucket table reads as
+    /// trailing empty buckets); `row_of_position` the base permutation; `span` and `max_zoom`
+    /// the delivery schedule. The mask starts all-visible. Feeding one corpus's real artifacts
+    /// to both this instrument and the serving path is what a set-agreement comparison rides.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the lengths overrun the bucket table or disagree with the code count, or when
+    /// the columns disagree on length.
+    #[must_use]
+    pub fn from_parts(
+        code_bits: &[u64],
+        lengths: &[u64],
+        row_of_position: Vec<u32>,
+        span: u8,
+        max_zoom: u8,
+    ) -> Self {
+        assert!(
+            lengths.len() <= Fenceposts::SEGMENTS,
+            "the bucket table holds {} segments",
+            Fenceposts::SEGMENTS,
+        );
+        assert_eq!(
+            lengths.iter().sum::<u64>(),
+            code_bits.len() as u64,
+            "the segment lengths must cover the code column exactly",
+        );
+        assert_eq!(
+            code_bits.len(),
+            row_of_position.len(),
+            "the code and row columns are position-aligned",
+        );
+
+        let mut segments: Ranges = core::array::from_fn(|_| 0..0);
+        let mut at = 0_usize;
+        for (bucket, &length) in lengths.iter().enumerate() {
+            let length = usize::try_from(length).expect("resident columns fit the address space");
+            segments[bucket] = at..at + length;
+            at += length;
+        }
+        for segment in segments.iter_mut().skip(lengths.len()) {
+            *segment = at..at;
+        }
+
+        let rows = row_of_position.len();
+        let mut visible = BitSet::new(rows);
+        for row in 0..rows {
+            visible.insert(row);
+        }
+
+        Self {
+            codes: code_bits
+                .iter()
+                .map(|&bits| MortonKey::from_bits(bits))
+                .collect(),
+            row_of_position: row_of_position.into_boxed_slice(),
+            segments,
+            span,
+            max_zoom,
+            visible,
+        }
+    }
+
+    /// Returns the corpus columns as plain numbers: key bits, rows, and bucket segment bounds.
+    ///
+    /// The synthetic corpus becomes visitable by an external reference implementation - the
+    /// mirror of [`Self::from_parts`].
+    #[must_use]
+    pub fn columns(&self) -> (Vec<u64>, Vec<u32>, Vec<(usize, usize)>) {
+        (
+            self.codes.iter().map(|code| code.to_bits()).collect(),
+            self.row_of_position.to_vec(),
+            self.segments
+                .iter()
+                .map(|range| (range.start, range.end))
+                .collect(),
+        )
+    }
+
     /// Replaces the mask, hiding each row independently.
     ///
     /// Each row stays visible with probability `visible`; equal `(visible, seed)` pairs reproduce
@@ -235,6 +317,22 @@ impl WalkBench {
             if !hidden.contains(row) {
                 mask.insert(row);
             }
+        }
+        self.visible = mask;
+    }
+
+    /// Replaces the mask with an explicit visible row set.
+    ///
+    /// The set is what a serving-side visibility proof pins, so one masked view can drive this
+    /// instrument and the serving path at once.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a row lies beyond the corpus row domain.
+    pub fn mask_rows(&mut self, visible: impl IntoIterator<Item = u32>) {
+        let mut mask = BitSet::new(self.row_of_position.len());
+        for row in visible {
+            mask.insert(row as usize);
         }
         self.visible = mask;
     }
@@ -350,6 +448,50 @@ impl WalkBench {
         let mut own = self.walk(z, x, y, &taken, &mut delivered);
         own.scanned += scanned;
         own
+    }
+
+    /// Delivers one tile in isolation, returning the delivered positions in delivery order.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn independent_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
+        let taken = BitSet::new(0);
+        let mut delivered = Vec::new();
+        self.walk(z, x, y, &taken, &mut delivered);
+        delivered
+    }
+
+    /// Delivers one tile behind its recomputed ancestor chain, returning the delivered positions
+    /// in delivery order.
+    ///
+    /// The chain and its early exit follow [`Self::chained`] exactly; a spent chain returns the
+    /// empty delivery.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn chained_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
+        let mut taken = BitSet::new(self.codes.len());
+        let mut delivered = Vec::new();
+
+        for level in 0..z {
+            let shift = z - level;
+            delivered.clear();
+            let ancestor = self.walk(level, x >> shift, y >> shift, &taken, &mut delivered);
+            for &position in &delivered {
+                taken.insert(position as usize);
+            }
+            if ancestor.natural + ancestor.tail < ancestor.budget {
+                return Vec::new();
+            }
+        }
+
+        delivered.clear();
+        self.walk(z, x, y, &taken, &mut delivered);
+        delivered
     }
 
     /// Returns the tile's scheduled count before masking.

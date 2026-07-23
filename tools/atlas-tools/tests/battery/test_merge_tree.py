@@ -110,6 +110,49 @@ def test_contraction_does_not_increase_normalized_persistence() -> None:
     assert collapsed.normalized_persistence <= original.normalized_persistence + 1e-12
 
 
+def test_positive_per_axis_affine_invariance_is_exact() -> None:
+    """Pin the full anti-cheat invariance class: positive per-axis affine maps.
+
+    Rasterizing over the layout's own per-axis extent makes the raster bit-identical under
+    ``(x, y) -> (a*x + c, b*y + d)`` with ``a, b > 0`` — anisotropic near-collapse included —
+    so the metric cannot police aspect-ratio distortion (module docstring, frame caveat);
+    the suite's neighbor-identity metrics carry that duty.
+    """
+    xy = blobs(3)
+    original = merge_tree_persistence(xy, MT)
+    base_raster = density_raster(xy, grid_size=MT.grid_size, bandwidth_px=MT.bandwidth_px)
+    for a, b, c, d in [(1.0, 1e-9, 0.0, 0.0), (1e3, 1e-6, 1e6, -3.0), (3.7, 0.002, -12.0, 0.5)]:
+        mapped = xy * np.array([a, b]) + np.array([c, d])
+        mapped_raster = density_raster(
+            mapped, grid_size=MT.grid_size, bandwidth_px=MT.bandwidth_px
+        )
+        assert np.array_equal(base_raster, mapped_raster)
+        assert merge_tree_persistence(mapped, MT) == original
+
+
+def test_exact_axis_collapse_is_a_discontinuity() -> None:
+    """The affine invariance ends exactly at zero scale.
+
+    An axis shrunk by 1e-9 scores identically to the original; an exactly degenerate axis
+    switches to the 0.5-widening path and generally changes the result.
+    """
+    xy = blobs(3)
+    original = merge_tree_persistence(xy, MT)
+    assert merge_tree_persistence(xy * np.array([1.0, 1e-9]), MT) == original
+    flattened = merge_tree_persistence(xy * np.array([1.0, 0.0]), MT)
+    assert flattened.leaf_count != original.leaf_count
+
+
+def test_rotation_changes_the_score() -> None:
+    """No common isotropic frame: the axis-aligned extent makes rigid rotation score-relevant."""
+    xy = blobs(3)
+    original = merge_tree_persistence(xy, MT)
+    theta = np.radians(45.0)
+    rotation = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+    rotated = merge_tree_persistence(np.einsum("ij,kj->ki", rotation, xy), MT)
+    assert rotated.normalized_persistence != original.normalized_persistence
+
+
 def test_determinism() -> None:
     xy = blobs(3)
     a = merge_tree_persistence(xy, MT)

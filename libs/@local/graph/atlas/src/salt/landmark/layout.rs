@@ -1,15 +1,20 @@
-//! Stochastic gradient layout over a semantic graph.
+//! Semantic-graph layout by UMAP's negative-sampling update rule.
 //!
-//! [`layout_landmarks`] places one 2D point per graph row by descending the UMAP objective: the
-//! cross-entropy between the graph's fuzzy weights and the [`AffinityCurve`] over layout distances.
-//! Sampled edges pull their endpoints together, and uniformly sampled vertices push the sampled
-//! endpoint away.
+//! [`layout_landmarks`] places one 2D point per graph row: sampled edges pull their endpoints
+//! together and uniformly drawn vertices push the sampled endpoint away, each step the gradient of
+//! its own pair energy under the [`AffinityCurve`]. The expected update is a field with no scalar
+//! objective behind it (negatives move the anchor only); its expected per-pair repulsion is vertex
+//! degree times the negative rate over the vertex count, so the layout reproduces the graph's
+//! near-binary neighbourhood structure - the scaffold the skeleton stages consume - and the fuzzy
+//! weights act through the edge schedule rather than as calibrated similarity targets.
 //!
-//! Sampling follows the edge weights: an edge is due every `maximum_weight / weight` epochs, so the
-//! strongest edge is sampled every epoch and weaker edges proportionally less often. Edges whose
-//! period exceeds the epoch budget would never be due and are dropped up front. Every sampled edge
-//! additionally repels [`negative_sample_rate`](LayoutOptions::negative_sample_rate) uniformly
-//! drawn vertices, and the learning rate decays linearly to zero across the epoch budget.
+//! Sampling follows the edge weights: an edge is first due one full period of
+//! `maximum_weight / weight` epochs in, so the strongest edge applies every epoch after the first
+//! and weaker edges proportionally less often. Edges never due within the epoch budget are dropped
+//! up front. Every sampled edge additionally repels
+//! [`negative_sample_rate`](LayoutOptions::negative_sample_rate) uniformly drawn vertices, and the
+//! learning rate decays linearly toward zero across the epoch budget (the final epoch steps at
+//! `initial / epochs`).
 //!
 //! Due edges apply in [`Vec2x4T`] batches of four: gradients within one batch are evaluated at the
 //! batch's entry coordinates and the four negative-sample gradients of one chunk accumulate against
@@ -170,7 +175,7 @@ const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwra
 pub(crate) struct LayoutOptions {
     /// Optimization epochs. Defaults to 500.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
-    /// Learning rate at epoch zero; it decays linearly to zero across the epoch budget.
+    /// Learning rate at epoch zero; it decays linearly toward zero across the epoch budget.
     ///
     /// Defaults to 1.
     pub initial_learning_rate: LearningRate = DEFAULT_INITIAL_LEARNING_RATE,
@@ -299,7 +304,9 @@ impl EdgeSchedule {
         for (row, (&start, &end)) in indptr.iter().zip(&indptr[1..]).enumerate() {
             for entry in position(start)..position(end) {
                 let period = maximum / weights[entry];
-                if period > budget {
+                // Deadlines run to one below the budget, and an edge
+                // first applies at the deadline matching its period.
+                if period > budget - 1.0 {
                     continue;
                 }
 

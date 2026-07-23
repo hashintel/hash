@@ -26,11 +26,11 @@
 //!
 //! When the probe carries a clump grouping, the report adds the corpus reading collapsed onto clump
 //! ids and re-evaluates every flag at that granularity. A flag whose collapsed degradation
-//! satisfies the same factor rule is recorded as clump-resolved: its entities are placed by clump,
-//! and within-clump order is not a representable quantity, so the triage rule
-//! treats the group as restored rather than degraded. Clump-resolved flags keep their record in the
-//! report but no longer fail the verdict; without clump evidence every flag stays unresolved and
-//! fails, as before.
+//! satisfies the same factor rule is recorded as clump-resolved: the breach vanishes when recall
+//! is measured on component labels - a triage diagnostic and nothing stronger, since ε
+//! single-linkage components can chain to arbitrary diameter, so resolution certifies neither
+//! component compactness nor within-component placement. Subgroup flags and their resolution are
+//! report-only either way: they steer the human reading the report and never affect admission.
 //!
 //! Metric floors default to unpinned: no verified map-fidelity numbers exist, a floor pins at the
 //! first full-scale calibration, and an invented floor
@@ -59,7 +59,9 @@ const DEFAULT_MINIMUM_SUBGROUP_ANCHORS: usize = 8;
 /// Pinned thresholds for one assessment.
 ///
 /// Floors and ceilings apply to the corpus map-versus-representation grid at every neighbourhood
-/// size; [`None`] leaves a threshold unpinned and the corresponding reading report-only.
+/// size; [`None`] leaves a threshold unpinned and the corresponding reading report-only - and the
+/// whole report refuses admission: [`QualityReport::passes`] demands the full battery, so a
+/// partially pinned configuration is for inspection, never activation.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct QualityThresholds {
     /// Minimum recall, in `[0, 1]`. Defaults to unpinned.
@@ -249,9 +251,9 @@ pub(crate) struct BaselineRow {
 /// One subgroup's representation-baseline readings over the sampled universe.
 ///
 /// The stratification separates representation loss from near-tie reshuffling per the
-/// triage rule: a subgroup whose plain baseline recall trails the overall reading
-/// but whose collapsed recall restores to it is placed by clump in the representation itself,
-/// before any projection.
+/// triage rule: a subgroup whose plain baseline recall trails the overall reading but whose
+/// collapsed recall restores to it breaches only on component labels in the representation
+/// itself, before any projection - a triage signal, not a placement certification.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BaselineSubgroupReport {
     /// The subgroup's type, as its ontology row.
@@ -266,9 +268,10 @@ pub(crate) struct BaselineSubgroupReport {
 
 /// One breach of the subgroup degradation rule.
 ///
-/// A flag carries its own triage evidence: when clump readings exist, the breach is re-evaluated at
-/// clump granularity, and a breach the collapse restores is marked resolved - the subgroup's
-/// entities are placed by clump, and within-clump order is not a representable quantity.
+/// A flag carries its own triage evidence: when clump readings exist, the breach is re-evaluated
+/// at clump granularity, and a breach the collapse restores is marked resolved: component-label
+/// recall no longer breaches. The mark is triage evidence - not a certification of component
+/// compactness or within-component placement - and it never affects admission.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
@@ -352,44 +355,57 @@ pub(crate) struct QualityReport {
 }
 
 impl QualityReport {
-    /// Returns whether every pinned threshold holds and no unresolved subgroup flag remains.
+    /// Returns whether the full battery admits the generation.
     ///
-    /// A flagged subgroup fails the verdict unless its breach is clump-resolved - the
-    /// triage rule records such a group as placed by clump, not degraded. The
-    /// approved-exception path for unresolved flags stays a human decision recorded outside the
-    /// report.
+    /// True exactly when every absolute control is pinned (recall, trustworthiness, continuity,
+    /// intrusion, density spread, triplet agreement), every pinned control is backed by present
+    /// evidence, and every reading lies inside its bound. An unpinned control is missing
+    /// calibration, and missing calibration cannot auto-pass: the default report is inspectable
+    /// output, never an admission. Subgroup flags and their clump-resolution triage are
+    /// report-only fields: they inform the human reading the report and never affect admission.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
-        let thresholds_hold = self.map_representation.iter().all(|row| {
-            self.minimum_recall.is_none_or(|floor| row.recall >= floor)
-                && self
-                    .minimum_trustworthiness
-                    .is_none_or(|floor| row.trustworthiness >= floor)
-                && self
-                    .minimum_continuity
-                    .is_none_or(|floor| row.continuity >= floor)
-                && self
-                    .maximum_intrusion_rate
-                    .is_none_or(|ceiling| row.intrusion_rate <= ceiling)
-        });
-        // Pinned thresholds on absent readings fail: a pin demands the
-        // evidence it was pinned on.
-        let density_holds = self.maximum_density_spread.is_none_or(|ceiling| {
-            !self.density.is_empty()
-                && self
-                    .density
-                    .iter()
-                    .all(|row| row.spread.is_some_and(|spread| spread <= ceiling))
-        });
-        let triplets_hold = self.minimum_triplet_agreement.is_none_or(|floor| {
-            self.triplet_map_representation.triplets > 0
-                && self.triplet_map_representation.agreement >= floor
-        });
+        // The gate is the sole activation authority: every control
+        // pinned, or no move.
+        let (
+            Some(minimum_recall),
+            Some(minimum_trustworthiness),
+            Some(minimum_continuity),
+            Some(maximum_intrusion_rate),
+            Some(maximum_density_spread),
+            Some(minimum_triplet_agreement),
+        ) = (
+            self.minimum_recall,
+            self.minimum_trustworthiness,
+            self.minimum_continuity,
+            self.maximum_intrusion_rate,
+            self.maximum_density_spread,
+            self.minimum_triplet_agreement,
+        )
+        else {
+            return false;
+        };
 
-        thresholds_hold
-            && density_holds
-            && triplets_hold
-            && self.flags.iter().all(|flag| flag.clump_resolved)
+        // Pinned thresholds on absent readings fail: a pin demands the
+        // evidence it was pinned on. An empty grid, an all-degenerate
+        // density rung, and disabled triplet sampling all refuse - none
+        // vacuously passes.
+        let thresholds_hold = !self.map_representation.is_empty()
+            && self.map_representation.iter().all(|row| {
+                row.recall >= minimum_recall
+                    && row.trustworthiness >= minimum_trustworthiness
+                    && row.continuity >= minimum_continuity
+                    && row.intrusion_rate <= maximum_intrusion_rate
+            });
+        let density_holds = !self.density.is_empty()
+            && self.density.iter().all(|row| {
+                row.spread
+                    .is_some_and(|spread| spread <= maximum_density_spread)
+            });
+        let triplets_hold = self.triplet_map_representation.triplets > 0
+            && self.triplet_map_representation.agreement >= minimum_triplet_agreement;
+
+        thresholds_hold && density_holds && triplets_hold
     }
 }
 

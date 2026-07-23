@@ -14,13 +14,15 @@
 //! Σ_j p_j = target
 //! ```
 //!
-//! by bisection, `target` being `log2(k)` for a `k`-neighbour table; the row's memberships then sum
-//! to the same effective neighbour count everywhere, which is what makes dense and sparse regions
-//! comparable. Membership sums accumulate in double precision, so the bisection tolerance is
-//! measured against accumulation noise well below it. A floor proportional to the row's mean
-//! distance (the corpus mean when every distance ties at zero) keeps `σ` positive for rows the
-//! bisection drives degenerate, such as a row of exact duplicates whose membership sum is `k` for
-//! every `σ`.
+//! by bisection, `target` being `log2(k)` for a `k`-neighbour table, which is what makes dense and
+//! sparse regions comparable. Neighbours at `d_j ≤ ρ` hold full membership at every `σ`, so the
+//! achievable sum is bounded below by their count: a row where more than `target` distances tie at
+//! or below `ρ` has no solution (a row of exact duplicates, whose sum is `k` for every `σ`, is the
+//! extreme case). On such rows the bisection drives `σ` toward zero, the floor takes over, and the
+//! sum settles at the tie count above the target. Membership sums accumulate in double precision,
+//! so the bisection tolerance is measured against accumulation noise well below it. The floor is
+//! proportional to the row's mean distance (the corpus mean when every distance ties at zero) and
+//! keeps `σ` positive everywhere.
 
 use core::simd::{f32x8, f64x8, num::SimdFloat as _};
 use std::simd::Simd;

@@ -24,8 +24,9 @@
 //! - Hard-negative repulsion scales by `N / m`: corpus rows over drawn query rows, the unbiased
 //!   estimator of the pooled mined-frame total.
 //! - Relation attraction scales by `G / g`: total relation groups over drawn groups, the unbiased
-//!   estimator of the capped-sampling objective - the same force-mass population the boundary
-//!   calibration measures its radius over.
+//!   estimator of the capped relation objective (the specified per-type clipped total) - the same
+//!   force-mass population the boundary calibration measures its radius over. The two surfaces move
+//!   in lockstep by contract: changing the per-type factor re-derives both together.
 //! - Support terms scale by their pool size over the drawn count.
 
 pub(crate) mod batch;

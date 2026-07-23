@@ -36,7 +36,7 @@ use crate::disjoint::DisjointSet;
 /// Calibrated against a fitted development corpus (985,932 rows, 30 stored neighbours per row): the
 /// multi-row group count is flat at 131.5K within 0.1% across thresholds in `[0.0012,
 /// 0.0028]` while coverage grows from 49% to 61%, so every value on that plateau produces the same
-/// grouping structure. At 0.002 - cosine similarity 0.999 - the grouping reads 131,560 groups
+/// grouping structure. At 0.002 - cosine similarity 0.998 - the grouping reads 131,560 groups
 /// covering 55.8% of the corpus at mean size 4.2. Below the plateau exact duplicates stay split;
 /// above roughly 0.0045 the components percolate (group count falls while sizes grow without
 /// bound). An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a

@@ -18,7 +18,9 @@
 //! type from buying the radius with edge count; the degree factor keeps hub-heavy types from
 //! inflating it - a pair into a high-degree hub exerts proportionally little force on the layout
 //! and pulls the percentile just as weakly. Both factors are read from the built artifacts, so the
-//! measurement cannot drift from what training consumes.
+//! measurement cannot drift from what training consumes. The `min(cap, n) / n` factor is the
+//! relation objective's own per-type clip: this calibration and the training sampler move in
+//! lockstep by contract, so changing the factor re-derives both surfaces together.
 //!
 //! `z = d / √((ρ_i + ε)(ρ_j + ε))` is measured in the relation loss's own normalization
 //! convention, with the same local scales and the same scale guard the relation energy is

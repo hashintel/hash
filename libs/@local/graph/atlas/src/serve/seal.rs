@@ -15,8 +15,9 @@
 //! issue time travels in the clear so the opener can reconstruct the associated data and so a cache
 //! can judge staleness without decrypting; the tag binds it, so a forged clock fails
 //! authentication. The plaintext is the bitmap in roaring's portable serialization behind a `u32`
-//! length prefix, zero-padded to a power-of-two bucket (1 KiB floor): ciphertext length reveals the
-//! bucket index, never the cardinality.
+//! length prefix, zero-padded to a power-of-two bucket (1 KiB floor): ciphertext length discloses
+//! the padding bucket, a coarse channel correlated with the compressed bitmap's cardinality and
+//! container layout - quantization to bucket granularity, not length-hiding.
 //!
 //! # Keys
 //!

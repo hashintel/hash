@@ -223,10 +223,13 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             probe: ProbeOptions {
                 anchors: NonZero::new(8).expect("nonzero"),
                 comparisons: NonZero::new(16).expect("nonzero"),
-                neighbourhoods: Cow::Owned(vec![
-                    NonZero::new(2).expect("nonzero"),
-                    NonZero::new(4).expect("nonzero"),
-                ]),
+                // Rung 2 is all-degenerate on this 8-node landmark-baseline
+                // fixture (coincident map placements zero the radii), and the
+                // verdict fails closed on absent density evidence - the
+                // fail-closed arm itself is pinned in the quality tests. The
+                // runner fixtures probe the run protocol, so they read the
+                // rung where evidence exists.
+                neighbourhoods: Cow::Owned(vec![NonZero::new(4).expect("nonzero")]),
                 triplet_pairs: 8,
                 ..
             },
@@ -234,6 +237,22 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             ..
         },
         ..
+    }
+}
+
+/// Thresholds pinning the full battery at values the fixture clears.
+///
+/// The verdict refuses unpinned controls, so activation tests pin generously and vary only the
+/// control under test; unpinned defaults probe the report-only path.
+fn admitting() -> QualityThresholds {
+    QualityThresholds {
+        minimum_recall: Some(0.0),
+        minimum_trustworthiness: Some(0.0),
+        minimum_continuity: Some(0.0),
+        maximum_intrusion_rate: Some(1.0),
+        maximum_density_spread: Some(1e9),
+        minimum_triplet_agreement: Some(0.0),
+        ..QualityThresholds::default()
     }
 }
 
@@ -251,7 +270,7 @@ async fn passing_run_activates_the_generation() {
         &classifier,
         None,
         &root,
-        &options(7, QualityThresholds { .. }),
+        &options(7, admitting()),
     )
     .await
     .expect("the run should reach a verdict");
@@ -297,7 +316,7 @@ async fn refused_run_leaves_a_candidate() {
             7,
             QualityThresholds {
                 minimum_recall: Some(0.99),
-                ..
+                ..admitting()
             },
         ),
     )
@@ -331,7 +350,7 @@ async fn prior_modes_route_reuse() {
         &classifier,
         None,
         &root,
-        &options(7, QualityThresholds { .. }),
+        &options(7, admitting()),
     )
     .await
     .expect("the first run should reach a verdict");

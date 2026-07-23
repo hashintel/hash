@@ -10,7 +10,9 @@
 //! A trained checkpoint is a pure function from representation to coordinate, so freshly ingested
 //! nodes project into the existing frame without a refit. Rows project independently - the model
 //! reads one row's representation, role, and the global condition, never its neighbours - which
-//! is what makes placement idempotent and batch composition irrelevant to the result. The
+//! is what makes placement idempotent and batch composition irrelevant to the result. Equal
+//! inputs therefore place identically: rows sharing an exact representation and role are
+//! coincident in every published map, at every lens. The
 //! condition input is the relation lens η ∈ [0, 1]: one model covers the whole lens continuum,
 //! and the ladder publishes chosen rungs of it instead of one model per rung.
 //!
