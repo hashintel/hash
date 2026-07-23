@@ -7,13 +7,16 @@ import { iconNameFromEntityIcon } from "./fixtures/entity-icon-name";
 import {
   LocatedEntityPopover,
   type LocatedEntityDetail,
+  type LocatedEntityEndpoint,
   type LocatedEntityPopoverAnchor,
+  type LocatedEntityTypeChip,
 } from "./located-entity-popover";
 import {
   NetworkGraph,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
+  type NetworkGraphId,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphSelection,
@@ -21,6 +24,7 @@ import {
 import {
   fetchLocate,
   type LocatedEntity,
+  type LocateNode,
   type SaltilePropertyValue,
 } from "./tiling/fetch-locate";
 import {
@@ -402,7 +406,7 @@ interface Selection {
 /** The type chip for a node's first matched type, or `undefined` when untyped. */
 const typeChipForIndices = (
   typeIndices: readonly number[] | undefined,
-): LocatedEntityDetail["type"] => {
+): LocatedEntityTypeChip | undefined => {
   const index = typeIndices?.[0];
   if (index === undefined) {
     return undefined;
@@ -629,16 +633,27 @@ const AtlasTilingStory = () => {
           return;
         }
         const locatedEdge = entity.edges.find((item) => item.id === edge.id);
-        const typeUrl = locatedEdge?.typeIds[0];
+        // The link's from/to entities, in link direction; the story has no type
+        // metadata, so endpoints show labels only.
+        const nodeById = new Map(entity.nodes.map((node) => [node.id, node]));
+        const endpointFor = (
+          node: LocateNode | undefined,
+          fallbackId: NetworkGraphId,
+        ): LocatedEntityEndpoint => ({
+          label: node?.label ?? `Node ${node?.id ?? fallbackId}`,
+        });
         setSelection({
           detail: {
             kind: "edge",
             title: locatedEdge?.label ?? `Edge ${edge.id}`,
-            ...(typeUrl !== undefined
-              ? {
-                  type: { label: shortTypeName(typeUrl), color: UNTYPED_COLOR },
-                }
-              : {}),
+            types: (locatedEdge?.typeIds ?? []).map((typeId) => ({
+              label: shortTypeName(typeId),
+              color: UNTYPED_COLOR,
+            })),
+            endpoints: {
+              from: endpointFor(nodeById.get(Number(edge.fromId)), edge.fromId),
+              to: endpointFor(nodeById.get(Number(edge.toId)), edge.toId),
+            },
             properties: Object.entries(locatedEdge?.properties ?? {}).map(
               ([key, value]) => ({
                 key: shortPropName(key),

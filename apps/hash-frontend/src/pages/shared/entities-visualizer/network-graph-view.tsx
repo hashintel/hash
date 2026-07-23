@@ -32,7 +32,9 @@ import {
   type LocateEdge,
   type LocatedEntity,
   type LocatedEntityDetail,
+  type LocatedEntityEndpoint,
   type LocatedEntityPopoverAnchor,
+  type LocatedEntityTypeChip,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
@@ -463,7 +465,7 @@ export const NetworkGraphView = ({
     (
       typeIndices: readonly number[] | undefined,
       seed: number | string,
-    ): LocatedEntityDetail["type"] => {
+    ): LocatedEntityTypeChip | undefined => {
       const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
       if (index === undefined) {
         return undefined;
@@ -512,6 +514,33 @@ export const NetworkGraphView = ({
     (typeId: VersionedUrl | undefined): string | undefined =>
       emojiFromEntityIcon(resolveTypeMeta(typeId)?.icon),
     [resolveTypeMeta],
+  );
+
+  // A located endpoint node → the edge popover's from/to entry: the entity's
+  // label plus its primary type's icon (the same type its node colour and icon
+  // are sampled from) as an emoji or a ds glyph. Falls back to a label-only
+  // entry keyed by the endpoint's row id when the node isn't in the subgraph.
+  const endpointFor = useCallback(
+    (
+      node: LocatedEntity["nodes"][number] | undefined,
+      fallbackId: string | number,
+    ): LocatedEntityEndpoint => {
+      if (!node) {
+        return { label: `Node ${fallbackId}` };
+      }
+      const typeId = primaryTypeId(node.typeIndices, node.typeId, node.id);
+      const emoji = emojiIconFor(typeId);
+      const name = nodeIconFor(typeId);
+      const icon = {
+        ...(emoji !== undefined ? { emoji } : {}),
+        ...(name !== undefined ? { name } : {}),
+      };
+      return {
+        label: node.label ?? `Node ${node.id}`,
+        ...(emoji !== undefined || name !== undefined ? { icon } : {}),
+      };
+    },
+    [primaryTypeId, emojiIconFor, nodeIconFor],
   );
 
   // The pill text drawn on an edge while hovered/selected: the link type's icon
@@ -1013,24 +1042,28 @@ export const NetworkGraphView = ({
             },
           });
         }
-        // The link's type drives the popover's chip and leading icon; locate
-        // ships the link's full direct type list, so its first type is used.
-        const edgeTypeId = locatedEdge?.typeIds[0];
-        const edgeType = resolveTypeMeta(edgeTypeId);
-        const edgeIcon = emojiIconFor(edgeTypeId);
+        // Locate ships the link's full direct type list. Each becomes a chip
+        // floating beside the label (grey dots — link types aren't in the
+        // coloured type set), and the first type's emoji leads the title.
+        const edgeTypeIds = locatedEdge?.typeIds ?? [];
+        const edgeIcon = emojiIconFor(edgeTypeIds[0]);
+        const edgeTypes: LocatedEntityTypeChip[] = edgeTypeIds.map(
+          (typeId) => ({
+            label: resolveTypeMeta(typeId)?.title ?? typeId,
+            color: unassignedTypeColor,
+          }),
+        );
         setSelection({
           detail: {
             kind: "edge",
             title: locatedEdge?.label ?? `Edge ${edge.id}`,
             ...(edgeIcon !== undefined ? { icon: edgeIcon } : {}),
-            ...(edgeType !== undefined
-              ? {
-                  type: {
-                    label: edgeType.title,
-                    color: unassignedTypeColor,
-                  },
-                }
-              : {}),
+            types: edgeTypes,
+            // The entities the link connects, in link direction (source → target).
+            endpoints: {
+              from: endpointFor(fromNode, edge.fromId),
+              to: endpointFor(toNode, edge.toId),
+            },
             properties: propertyRows(locatedEdge?.properties),
           },
           // An edge is a link entity; its id is that link entity's identity.
@@ -1046,6 +1079,7 @@ export const NetworkGraphView = ({
       resolveTypeMeta,
       emojiIconFor,
       edgeLabelFor,
+      endpointFor,
       propertyRows,
     ],
   );

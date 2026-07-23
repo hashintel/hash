@@ -4,12 +4,17 @@ export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
 export { iconNameFromEntityIcon } from "./components/Chart/NetworkGraph/fixtures/entity-icon-name";
 export {
+  type LocatedEdgeDetail,
   type LocatedEntityDetail,
+  type LocatedEntityEndpoint,
+  type LocatedEntityIcon,
   LocatedEntityPopover,
   type LocatedEntityPopoverAnchor,
   type LocatedEntityPopoverProps,
   type LocatedEntityProperty,
+  type LocatedEntityTypeChip,
   type LocatedEntityValuePart,
+  type LocatedNodeDetail,
 } from "./components/Chart/NetworkGraph/located-entity-popover";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {

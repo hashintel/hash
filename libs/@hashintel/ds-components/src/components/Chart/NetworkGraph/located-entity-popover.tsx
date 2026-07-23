@@ -20,6 +20,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Badge } from "../../Badge/badge";
 import { Button } from "../../Button/button";
+import { Icon, type IconName } from "../../Icon/icon";
 import { Popover } from "../../Popover/popover";
 
 /**
@@ -62,18 +63,65 @@ export interface LocatedEntityProperty {
   readonly value: string | readonly LocatedEntityValuePart[];
 }
 
-/** The presentational detail the card renders for a located node or edge. */
-export interface LocatedEntityDetail {
-  readonly kind: "node" | "edge";
+/** A type chip: a label and the colour of its leading dot. */
+export interface LocatedEntityTypeChip {
+  readonly label: string;
+  readonly color: string;
+}
+
+/**
+ * A type icon the card renders: an emoji glyph drawn as text, or a
+ * design-system {@link IconName} drawn as an SVG (the shape an SVG type icon
+ * resolves to via `iconNameFromEntityIcon`, which text surfaces can't draw
+ * directly). At most one is set; `emoji` wins when both are.
+ */
+export interface LocatedEntityIcon {
+  readonly emoji?: string;
+  readonly name?: IconName;
+}
+
+/**
+ * One endpoint entity of a link, shown in the edge card's from→to row: the
+ * entity's label and its type icon.
+ */
+export interface LocatedEntityEndpoint {
+  readonly label: string;
+  readonly icon?: LocatedEntityIcon;
+}
+
+interface LocatedEntityDetailShared {
   /** Bold card title — the entity/edge label. */
   readonly title: string;
   /** Optional leading emoji icon. */
   readonly icon?: string;
-  /** Type chip: a label and the colour of its dot. */
-  readonly type?: { readonly label: string; readonly color: string };
-  /** Property rows (nodes carry these; edges leave it empty). */
+  /** Property rows shown in the card's property table. */
   readonly properties: readonly LocatedEntityProperty[];
 }
+
+/** A located node: one optional type chip floats beside the title. */
+export interface LocatedNodeDetail extends LocatedEntityDetailShared {
+  readonly kind: "node";
+  /** Type chip: a label and the colour of its dot. */
+  readonly type?: LocatedEntityTypeChip;
+}
+
+/**
+ * A located edge (a link entity): its link types float beside the title as
+ * chips, and its two endpoints are shown as a from→to row above the properties.
+ */
+export interface LocatedEdgeDetail extends LocatedEntityDetailShared {
+  readonly kind: "edge";
+  /** The link's types, shown as chips floating beside the title. */
+  readonly types: readonly LocatedEntityTypeChip[];
+  /** The entities the link connects, in link direction. */
+  readonly endpoints: {
+    readonly from: LocatedEntityEndpoint;
+    readonly to: LocatedEntityEndpoint;
+  };
+}
+
+/** The presentational detail the card renders for a located node or edge. */
+export type LocatedEntityDetail = LocatedNodeDetail | LocatedEdgeDetail;
 
 export interface LocatedEntityPopoverProps {
   /** The element the popover is positioned within (the chart frame). */
@@ -147,6 +195,45 @@ const typeDotStyles = css({
   flexShrink: "0",
 });
 
+// The link's from→to endpoints, on their own row beneath the header. Each
+// endpoint's label truncates so both share the row; the connecting arrow and
+// the type icons never shrink.
+const endpointsRowStyles = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  paddingTop: "2",
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.s40",
+});
+
+const endpointStyles = css({
+  display: "flex",
+  flex: "1",
+  minWidth: "0",
+  alignItems: "center",
+  gap: "1",
+});
+
+const endpointIconStyles = css({
+  flexShrink: "0",
+  fontSize: "sm",
+  color: "neutral.s100",
+});
+
+const endpointLabelStyles = css({
+  minWidth: "0",
+  color: "neutral.s110",
+  fontSize: "sm",
+  truncate: true,
+});
+
+const endpointArrowStyles = css({
+  flexShrink: "0",
+  color: "neutral.s70",
+});
+
 const propertyListStyles = css({
   display: "flex",
   flexDirection: "column",
@@ -198,6 +285,35 @@ const gapsFor = (
       }
     : { x: 10, y: 12 };
 
+/** The grey type chip with a coloured dot — shared by node and link types. */
+const TypeChip = ({ chip }: { chip: LocatedEntityTypeChip }) => (
+  <Badge
+    colorScheme="gray"
+    size="sm"
+    iconLeft={
+      <span className={typeDotStyles} style={{ backgroundColor: chip.color }} />
+    }
+  >
+    <span className={chipLabelStyles}>{chip.label}</span>
+  </Badge>
+);
+
+/** One from/to endpoint of a link: its type icon (emoji or ds glyph) + label. */
+const Endpoint = ({ endpoint }: { endpoint: LocatedEntityEndpoint }) => (
+  <div className={endpointStyles}>
+    {endpoint.icon?.emoji !== undefined ? (
+      <span className={endpointIconStyles}>{endpoint.icon.emoji}</span>
+    ) : endpoint.icon?.name !== undefined ? (
+      <Icon
+        name={endpoint.icon.name}
+        size="xs"
+        className={endpointIconStyles}
+      />
+    ) : null}
+    <span className={endpointLabelStyles}>{endpoint.label}</span>
+  </div>
+);
+
 export const LocatedEntityPopover = ({
   triggerRef,
   anchor,
@@ -207,6 +323,9 @@ export const LocatedEntityPopover = ({
   onActivate,
 }: LocatedEntityPopoverProps) => {
   const gaps = gapsFor(anchor);
+  // Node → its single optional type chip; edge → its link types.
+  const chips =
+    detail.kind === "edge" ? detail.types : detail.type ? [detail.type] : [];
   return (
     <Popover
       triggerRef={triggerRef}
@@ -230,21 +349,18 @@ export const LocatedEntityPopover = ({
             {detail.title}
           </div>
 
-          {detail.type ? (
-            <Badge
-              colorScheme="gray"
-              size="sm"
-              iconLeft={
-                <span
-                  className={typeDotStyles}
-                  style={{ backgroundColor: detail.type.color }}
-                />
-              }
-            >
-              <span className={chipLabelStyles}>{detail.type.label}</span>
-            </Badge>
-          ) : null}
+          {chips.map((chip) => (
+            <TypeChip key={chip.label} chip={chip} />
+          ))}
         </div>
+
+        {detail.kind === "edge" ? (
+          <div className={endpointsRowStyles}>
+            <Endpoint endpoint={detail.endpoints.from} />
+            <Icon name="arrowRight" size="xs" className={endpointArrowStyles} />
+            <Endpoint endpoint={detail.endpoints.to} />
+          </div>
+        ) : null}
 
         {detail.properties.length > 0 ? (
           <div className={propertyListStyles}>
