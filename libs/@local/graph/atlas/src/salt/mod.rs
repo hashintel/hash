@@ -26,12 +26,12 @@ pub(crate) use self::{
     fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
     importance::RankingConfig,
     knn::recall::RecallSpotCheck,
-    lod::{quad::QuadEvidence, stage::LodEvidence},
+    lod::{quad::QuadMeasurements, stage::LodMeasurements},
     policy::{
         GeometryClass,
         annotation::{HoldoutClass, assembly::AssemblyEvidence},
     },
-    postings::build::PostingsEvidence,
+    postings::build::PostingsMeasurements,
     relation::BuildEvidence,
 };
 

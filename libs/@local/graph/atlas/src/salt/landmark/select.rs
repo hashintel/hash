@@ -19,7 +19,6 @@
 //! any thread count.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use alloc::collections::BinaryHeap;
 use core::{
     cmp::Ordering,
     error::Error,
@@ -31,7 +30,10 @@ use std::collections::HashSet;
 
 use rand::{Rng, RngExt as _, SeedableRng};
 use rayon::{
-    iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
+    iter::{
+        IndexedParallelIterator as _, IntoParallelIterator as _, IntoParallelRefIterator as _,
+        ParallelIterator as _,
+    },
     slice::{ParallelSlice as _, ParallelSliceMut as _},
 };
 use zerocopy::{LE, U32};
@@ -198,6 +200,13 @@ pub(crate) struct SelectionOptions {
     // The default is an unvalidated starting point; the temporal-drift
     // and landmark rank-correlation criteria revise it from evidence.
     pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
+    /// Candidates per generator stream: the priority pass's seeding and parallel work unit.
+    ///
+    /// Which stream draws for which candidate is fixed by this value, so equal seeds reproduce
+    /// equal selections only under an equal chunk; the manifest echo records it beside the seed.
+    /// Defaults to 4096, which gives each task enough work that per-task overhead disappears
+    /// against the scans.
+    pub parallel_chunk: NonZero<usize> = PARALLEL_CHUNK,
 }
 
 /// A reference to a landmark by its position in a [`LandmarkSelection`].
@@ -341,12 +350,9 @@ impl Error for SelectionError {}
 
 /// Candidates per parallel work item.
 ///
-/// For priorities this is also the seeding unit: one generator stream serves this many candidates,
-/// so which stream draws for which candidate is fixed by this constant alone and results are
-/// independent of thread count. The constant is pinned rather than configurable because changing it
-/// changes selections for equal seeds. 4096 candidates give each task tens of microseconds of work,
-/// large enough that per-task overhead disappears against the scans.
-const PARALLEL_CHUNK: usize = 4096;
+/// 4096 candidates give each task tens of microseconds of work, large enough that per-task
+/// overhead disappears against the scans.
+pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unwrap() };
 
 /// Selects at most the configured capacity, honoring minimums and retention.
 ///
@@ -371,10 +377,10 @@ where
     validate(candidates, minimums)?;
 
     let capacity = (options.maximum_count.get() as usize).min(candidates.len());
-    let priorities = priorities::<R>(candidates, &mut rng);
+    let priorities = priorities(candidates, options.parallel_chunk, &mut rng);
 
     let mut selected = BitSet::new(candidates.len());
-    let mut selected_count = 0_usize;
+    let mut selected_count = 0_usize; // NOTE: ? why not just `selected.count()`
     let mut retained_count = 0_usize;
 
     let mut ordered_minimums = minimums.to_vec();
@@ -456,22 +462,25 @@ where
 
 /// Draws every candidate's exponential-clock priority, in parallel.
 ///
-/// One generator serves each [`PARALLEL_CHUNK`] of candidates, seeded from the caller's generator
-/// in chunk order.
-fn priorities<R>(candidates: &[LandmarkCandidate], rng: &mut R) -> Vec<f64>
+/// One generator serves each `chunk` of candidates, seeded from the caller's generator in chunk
+/// order.
+fn priorities<R>(candidates: &[LandmarkCandidate], chunk: NonZero<usize>, rng: &mut R) -> Vec<f64>
 where
     R: Rng + SeedableRng,
 {
     let seeds: Vec<u64> = core::iter::repeat_with(|| rng.random())
-        .take(candidates.len().div_ceil(PARALLEL_CHUNK))
+        .take(candidates.len().div_ceil(chunk.get()))
         .collect();
 
     let mut priorities = vec![0.0_f64; candidates.len()];
-    priorities
-        .par_chunks_mut(PARALLEL_CHUNK)
-        .zip(candidates.par_chunks(PARALLEL_CHUNK))
-        .zip(seeds)
-        .for_each(|((priorities, candidates), seed)| {
+
+    (
+        priorities.par_chunks_mut(chunk.get()),
+        candidates.par_chunks(chunk.get()),
+        seeds.into_par_iter(),
+    )
+        .into_par_iter()
+        .for_each(|(priorities, candidates, seed)| {
             let mut rng = R::seed_from_u64(seed);
             for (priority, candidate) in priorities.iter_mut().zip(candidates) {
                 // 1 - U maps the generator's [0, 1) onto (0, 1],
@@ -492,7 +501,7 @@ fn validate(
     }
 
     if let Some(position) = candidates
-        .par_windows(2)
+        .par_array_windows::<2>()
         .position_first(|pair| matches!(pair, [left, right] if left.row >= right.row))
     {
         return Err(SelectionError::UnorderedCandidates {
@@ -529,9 +538,8 @@ fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
 ///
 /// Only candidates satisfying `predicate` qualify; fewer return when the pool is smaller.
 ///
-/// Workers fold thread-local heaps of the `count` best candidates and the heaps merge pairwise: the
-/// result is the unique best set under the (priority, index) total order, independent of how the
-/// scan splits across threads.
+/// Workers filter in parallel and one exact selection cuts the (priority, index) total order at
+/// `count`: the result is the unique best set, independent of how the scan splits across threads.
 fn best_indices(
     candidates: &[LandmarkCandidate],
     priorities: &[f64],
@@ -543,45 +551,23 @@ fn best_indices(
         return Vec::new();
     }
 
-    candidates
+    let mut ranked: Vec<RankedCandidate> = candidates
         .par_iter()
         .enumerate()
-        .with_min_len(PARALLEL_CHUNK)
-        .fold(BinaryHeap::new, |mut heap, (index, &candidate)| {
-            if !selected.contains(index) && predicate(candidate) {
-                push_bounded(
-                    &mut heap,
-                    RankedCandidate {
-                        priority: priorities[index],
-                        index,
-                    },
-                    count,
-                );
-            }
-            heap
+        .with_min_len(PARALLEL_CHUNK.get())
+        .filter(|&(index, &candidate)| !selected.contains(index) && predicate(candidate))
+        .map(|(index, _)| RankedCandidate {
+            priority: priorities[index],
+            index,
         })
-        .reduce(BinaryHeap::new, |mut merged, heap| {
-            for ranked in heap {
-                push_bounded(&mut merged, ranked, count);
-            }
-            merged
-        })
-        .into_iter()
-        .map(|ranked| ranked.index)
-        .collect()
-}
+        .collect();
 
-/// Pushes into a max-heap keeping only the `bound` smallest entries.
-fn push_bounded(heap: &mut BinaryHeap<RankedCandidate>, ranked: RankedCandidate, bound: usize) {
-    if heap.len() < bound {
-        heap.push(ranked);
-        return;
+    if ranked.len() > count {
+        ranked.select_nth_unstable(count - 1);
+        ranked.truncate(count);
     }
 
-    if heap.peek().is_some_and(|worst| ranked < *worst) {
-        heap.pop();
-        heap.push(ranked);
-    }
+    ranked.into_iter().map(|ranked| ranked.index).collect()
 }
 
 /// Inserts the chosen indices and returns how many carried the prior landmark flag.

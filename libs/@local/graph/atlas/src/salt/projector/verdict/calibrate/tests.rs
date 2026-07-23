@@ -116,7 +116,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
 }
 
 #[test]
-fn the_radius_is_the_weighted_p75() {
+fn radius_is_the_weighted_p75() {
     // Four disjoint pairs (all nu = 0.5, weight 0.5) at z = 1, 2, 3, 4.
     let instances = (0..4)
         .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
@@ -153,7 +153,7 @@ fn the_radius_is_the_weighted_p75() {
 }
 
 #[test]
-fn the_cap_bounds_a_high_volume_type() {
+fn cap_bounds_a_high_volume_type() {
     // Type 5: eight disjoint pairs at z = 1. Type 9: two disjoint
     // pairs at z = 5. All nu = 0.5.
     let mut instances: Vec<_> = (0..8)

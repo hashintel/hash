@@ -2,10 +2,18 @@
 //!
 //! Each pass is a context binding its shared inputs once; running one ranks the anchors
 //! independently and in parallel under one total order - distances by [`f32::total_cmp`], ties by
-//! ascending row - and returns per-anchor cells cloned from a prevalidated template. The corpus
+//! ascending row - and yields per-anchor cells cloned from a prevalidated template. The corpus
 //! pass counts ranks against bounded threshold sets, so its per-thread memory follows the search
 //! depth, never the corpus; the sampled pass sorts whole comparison universes, whose size the probe
 //! design bounds.
+#![expect(
+    clippy::cast_possible_truncation,
+    reason = "the corpus row domain is checked against the crate's u32 row encoding at probe entry"
+)]
+#![expect(
+    clippy::min_ident_chars,
+    reason = "k is the canonical neighbourhood-size name across the metric literature"
+)]
 
 // PERF: at the default search depth (K = 50) the linear threshold-
 // counting loops in the corpus pass cost cycles comparable to the
@@ -18,21 +26,11 @@
 // than vectorizing compares whose order is lexicographic
 // (distance, row) rather than a plain float compare. Measure at live
 // shape (1M rows x 256 anchors) before acting.
-#![expect(
-    clippy::cast_possible_truncation,
-    reason = "the corpus row domain is checked against the crate's u32 row encoding at probe entry"
-)]
-#![expect(
-    clippy::min_ident_chars,
-    reason = "k is the canonical neighbourhood-size name across the metric literature"
-)]
 
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, num::NonZero};
 
-use rayon::iter::{
-    IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
-};
+use rayon::iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator};
 
 use super::{
     super::{
@@ -80,14 +78,16 @@ pub(super) struct CorpusPass<'pass> {
 }
 
 impl CorpusPass<'_> {
-    /// Ranks every anchor, returning each one's per-neighbourhood readings.
-    pub(super) fn run(&self, anchor_rows: &[usize]) -> Vec<AnchorReading> {
+    /// Ranks every anchor, yielding per-neighbourhood readings in anchor order.
+    pub(super) fn run<'call>(
+        &'call self,
+        anchor_rows: &'call [usize],
+    ) -> impl ParallelIterator<Item = AnchorReading> + 'call {
         anchor_rows
             .par_iter()
             .map_init(CorpusScratch::default, |scratch, &anchor| {
                 self.anchor(anchor, scratch)
             })
-            .collect()
     }
 
     /// Ranks one anchor against every non-anchor row in both spaces.
@@ -263,23 +263,22 @@ pub(super) struct SampledPass<'pass> {
 }
 
 impl SampledPass<'_> {
-    /// Ranks every anchor, returning each one's per-space-pair and clump-collapsed readings.
-    pub(super) fn run(&self, anchor_rows: &[usize]) -> Vec<SampledReading> {
-        anchor_rows
-            .par_iter()
-            .enumerate()
-            .map_init(
-                || SampledScratch::new(self.comparison_rows.len()),
-                |scratch, (index, &anchor)| {
-                    let (cells, triplets) = self.anchor(index, anchor, scratch);
-                    SampledReading {
-                        cells,
-                        triplets,
-                        baseline_clumps: self.clump_cells(scratch),
-                    }
-                },
-            )
-            .collect()
+    /// Ranks every anchor, yielding per-space-pair and clump-collapsed readings in anchor order.
+    pub(super) fn run<'call>(
+        &'call self,
+        anchor_rows: &'call [usize],
+    ) -> impl ParallelIterator<Item = SampledReading> + 'call {
+        anchor_rows.par_iter().enumerate().map_init(
+            || SampledScratch::new(self.comparison_rows.len()),
+            |scratch, (index, &anchor)| {
+                let (cells, triplets) = self.anchor(index, anchor, scratch);
+                SampledReading {
+                    cells,
+                    triplets,
+                    baseline_clumps: self.clump_cells(scratch),
+                }
+            },
+        )
     }
 
     /// Ranks one anchor's comparison universe in all three spaces.

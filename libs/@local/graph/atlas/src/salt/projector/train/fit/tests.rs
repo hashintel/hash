@@ -27,7 +27,7 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Positive, UnitFraction, Vec2},
     salt::{
         knn::table::{Knn, KnnMatrix},
         policy::ClassProbabilities,
@@ -68,6 +68,14 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
 
 fn nonzero(value: usize) -> NonZero<usize> {
     NonZero::new(value).expect("fixture values are non-zero")
+}
+
+fn positive(value: f32) -> Positive {
+    Positive::new(value).expect("fixture values are positive")
+}
+
+fn fraction(value: f64) -> UnitFraction {
+    UnitFraction::new(value).expect("fixture rates are unit fractions")
 }
 
 fn device() -> NdArrayDevice {
@@ -281,8 +289,8 @@ fn schedule(steps: usize, boundary: usize, refresh_interval: usize) -> TrainingS
         nonzero(steps),
         boundary,
         nonzero(refresh_interval),
-        0.05,
-        0.001,
+        fraction(0.05),
+        fraction(0.001),
     )
     .expect("the fixture schedule is valid")
 }
@@ -309,12 +317,11 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
             .expect("the fixture budget is valid"),
         coefficients: Coefficients::new(1.0, 0.5, 0.5, 1.0, 0.0, 1.0)
             .expect("the fixture coefficients are valid"),
-        miner: MinerOptions::new(nonzero(2), nonzero(2), 1.0, 1.0)
-            .expect("the fixture miner options are valid"),
+        miner: MinerOptions::new(nonzero(2), nonzero(2), positive(1.0), positive(1.0)),
         lens: RelationLens::new(
             CoincidentEnergy::new(0.0, 1.0).expect("the fixture coincident energy is valid"),
-            0.25,
-            0.5,
+            positive(0.25),
+            positive(0.5),
             asserted_radius,
         )
         .expect("the fixture lens is valid"),
@@ -333,7 +340,7 @@ fn architecture() -> Architecture {
 }
 
 fn model() -> Projector<TestBackend> {
-    Projector::new(architecture(), rng(7), &device())
+    Projector::new(architecture(), &device(), rng(7))
 }
 
 /// Forwards the trained corpus at a rung.
@@ -426,7 +433,7 @@ fn equal_seeds_train_equal_frames() {
 }
 
 #[test]
-fn the_boundary_freezes_a_measured_radius_and_opens_the_ladder() {
+fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let options = options(schedule(12, 6, 4), None);
     let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
@@ -473,7 +480,7 @@ fn the_boundary_freezes_a_measured_radius_and_opens_the_ladder() {
 }
 
 #[test]
-fn a_missing_reviewed_radius_names_both_fixes() {
+fn missing_reviewed_radius_names_both_fixes() {
     let corpus = proximal_corpus(Vec::new());
     let options = options(schedule(12, 6, 4), None);
     let error = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
@@ -486,7 +493,7 @@ fn a_missing_reviewed_radius_names_both_fixes() {
 }
 
 #[test]
-fn an_asserted_radius_supersedes_the_measurement() {
+fn asserted_radius_supersedes_the_measurement() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let options = options(schedule(8, 4, 4), Some(1.5));
     let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
@@ -505,7 +512,7 @@ fn an_asserted_radius_supersedes_the_measurement() {
 }
 
 #[test]
-fn a_forceless_corpus_trains_vacuously() {
+fn forceless_corpus_trains_vacuously() {
     let corpus = semantic_corpus();
     let options = options(schedule(9, 3, 4), None);
     let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(19), &device())
@@ -530,7 +537,7 @@ fn a_forceless_corpus_trains_vacuously() {
 }
 
 #[test]
-fn a_vacuous_run_trains_a_flat_ladder() {
+fn vacuous_run_trains_a_flat_ladder() {
     let corpus = semantic_corpus();
     // The ladder opens at step 3, but a forceless corpus pins the
     // zero rung through it: the condition weights never receive
@@ -562,7 +569,7 @@ fn a_vacuous_run_trains_a_flat_ladder() {
 }
 
 #[test]
-fn a_measured_radius_requires_an_opening_segment() {
+fn measured_radius_requires_an_opening_segment() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let error = fit(
         model(),
@@ -576,7 +583,7 @@ fn a_measured_radius_requires_an_opening_segment() {
 }
 
 #[test]
-fn an_asserted_radius_permits_a_zero_boundary() {
+fn asserted_radius_permits_a_zero_boundary() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let fitted = fit(
         model(),
@@ -673,7 +680,7 @@ fn phase_a_ticks_measure_a_frozen_lens() {
 }
 
 #[test]
-fn a_non_finite_representation_fails_the_first_tick() {
+fn non_finite_representation_fails_the_first_tick() {
     let mut corpus = semantic_corpus();
     corpus.storage.as_array_mut()[3 * PROJECTOR_DIMENSIONS + 9] = f32::INFINITY;
     let options = options(schedule(4, 4, 2), None);
@@ -714,35 +721,42 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
 }
 
 #[test]
-fn the_schedule_validates_its_domain() {
-    let valid = TrainingSchedule::new(nonzero(10), 5, nonzero(2), 0.05, 0.001);
+fn schedule_validates_its_domain() {
+    // Out-of-range rates (negative, above one, non-finite) are unconstructible as
+    // `UnitFraction`s; the residual domain here is positivity and ordering.
+    let valid = TrainingSchedule::new(nonzero(10), 5, nonzero(2), fraction(0.05), fraction(0.001));
     assert!(valid.is_some());
     assert!(
-        TrainingSchedule::new(nonzero(10), 11, nonzero(2), 0.05, 0.001).is_none(),
+        TrainingSchedule::new(nonzero(10), 11, nonzero(2), fraction(0.05), fraction(0.001))
+            .is_none(),
         "the boundary lies within the run"
     );
-    assert!(TrainingSchedule::new(nonzero(10), 5, nonzero(2), 0.0, 0.0).is_none());
-    assert!(TrainingSchedule::new(nonzero(10), 5, nonzero(2), 1.5, 0.0).is_none());
-    assert!(TrainingSchedule::new(nonzero(10), 5, nonzero(2), 0.05, 0.1).is_none());
-    assert!(TrainingSchedule::new(nonzero(10), 5, nonzero(2), f64::NAN, 0.0).is_none());
+    assert!(
+        TrainingSchedule::new(nonzero(10), 5, nonzero(2), fraction(0.0), fraction(0.0)).is_none(),
+        "the initial rate is strictly positive"
+    );
+    assert!(
+        TrainingSchedule::new(nonzero(10), 5, nonzero(2), fraction(0.05), fraction(0.1)).is_none(),
+        "the minimum does not exceed the initial rate"
+    );
 }
 
 #[test]
-fn the_lens_validates_its_domain() {
+fn lens_validates_its_domain() {
+    // Non-positive temperatures and scale guards are unconstructible as `Positive`s; the
+    // residual domain here is the radius ordering.
     let coincident = CoincidentEnergy::new(0.25, 1.0).expect("the fixture energy is valid");
-    assert!(RelationLens::new(coincident, 0.25, 0.5, None).is_some());
-    assert!(RelationLens::new(coincident, 0.0, 0.5, None).is_none());
-    assert!(RelationLens::new(coincident, 0.25, -1.0, None).is_none());
+    assert!(RelationLens::new(coincident, positive(0.25), positive(0.5), None).is_some());
     assert!(
-        RelationLens::new(coincident, 0.25, 0.5, Some(0.25)).is_none(),
+        RelationLens::new(coincident, positive(0.25), positive(0.5), Some(0.25)).is_none(),
         "an asserted radius must exceed the Coincident radius"
     );
-    assert!(RelationLens::new(coincident, 0.25, 0.5, Some(0.5)).is_some());
-    assert!(RelationLens::new(coincident, 0.25, 0.5, Some(f32::NAN)).is_none());
+    assert!(RelationLens::new(coincident, positive(0.25), positive(0.5), Some(0.5)).is_some());
+    assert!(RelationLens::new(coincident, positive(0.25), positive(0.5), Some(f32::NAN)).is_none());
 }
 
 #[test]
-fn a_checkpointed_resume_matches_the_straight_run() {
+fn checkpointed_resume_matches_the_straight_run() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let options = options(schedule(12, 6, 4), None);
 
@@ -819,7 +833,7 @@ fn forked_ladders_share_the_frozen_radius() {
 }
 
 #[test]
-fn a_resumed_ladder_rejects_a_changed_schedule() {
+fn resumed_ladder_rejects_a_changed_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let opening = options(schedule(12, 6, 4), None);
     let state = fit_to_boundary(model(), &corpus.inputs(), &opening, &mut rng(17), &device())

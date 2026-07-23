@@ -6,7 +6,7 @@
 //! pure function of the coordinates, the rank inputs, the seed, and the configuration, so equal
 //! generations produce byte-equal columns.
 
-use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
+use std::io;
 
 use super::{
     cascade, key,
@@ -14,8 +14,15 @@ use super::{
     rank::{RankInputs, Ranking},
 };
 use crate::{
-    file::morton::Fenceposts,
-    math::{Bounds2, Vec2},
+    file::{
+        WriteInto,
+        morton::{
+            Fenceposts,
+            write::{PAGE_STRIDE, write_regions},
+        },
+    },
+    integrity::{Sha256, Sha256Digest, Writer},
+    math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonKey},
 };
 
@@ -24,15 +31,15 @@ const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1
 
 /// Configuration of the level-of-detail schedule.
 ///
-/// Both values are unvalidated starting points, revised against the [`LodEvidence`] of real
+/// Both values are unvalidated starting points, revised against the [`LodMeasurements`] of real
 /// generations; the manifest records what a generation was built with.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
-    /// A tile at zoom `z` delivers buckets at or below `z + span_log2`. Defaults to 6 (a 64x64
+    /// A tile at zoom `z` delivers buckets at or below `z + span`. Defaults to 6 (a 64x64
     /// sample grid, at most 4096 points per incremental tile).
-    pub span_log2: u8 = 6,
+    pub span: Log2 = const { Log2::new(6).expect("6 lies below the shift width") }, // NOTE: please move out into a constant that you bind here, reason: r-a otherwise hates me >.><
     /// The deepest tile zoom the schedule serves.
     ///
     /// Defaults to 18, which with the default span puts the deepest cascade grid at depth 24 - the
@@ -49,16 +56,17 @@ const impl Default for LodConfig {
 impl LodConfig {
     /// Returns the deepest cascade grid.
     ///
-    /// `max_tile_depth + span_log2`, the catch-all bucket of the cut schedule.
+    /// `max_tile_depth + span`, the catch-all bucket of the cut schedule.
     ///
     /// Returns [`None`] when the sum exceeds the 32 subdivisions a 64-bit Morton key resolves - the
     /// key-width inequality `z_max + m <= 32` - in which case the configuration matches no
     /// buildable schedule.
     #[must_use]
     pub(crate) const fn deepest(self) -> Option<Depth> {
-        let Some(sum) = self.span_log2.checked_add(self.max_tile_depth) else {
+        let Some(sum) = self.span.get().checked_add(self.max_tile_depth) else {
             return None;
         };
+
         Depth::new(sum)
     }
 }
@@ -84,7 +92,7 @@ impl core::fmt::Display for LodError {
                 fmt,
                 "the schedule needs {} + {} subdivisions where a 64-bit Morton key resolves {}",
                 config.max_tile_depth,
-                config.span_log2,
+                config.span.get(),
                 Depth::MAX.get(),
             ),
             Self::Columns { coordinates } => write!(
@@ -105,7 +113,7 @@ impl core::error::Error for LodError {}
 ///
 /// This is the writable form of the serving artifacts: the wire coordinate column, the Morton code
 /// column with its bucket fenceposts, the rank column, and the row permutations. The
-/// [`evidence`](Self::evidence) is measured from the finished columns and belongs in the
+/// [`measurements`](Self::measurements) is measured from the finished columns and belongs in the
 /// generation's metadata document.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Lod {
@@ -175,30 +183,49 @@ impl Lod {
         let order = BaseOrder::new(&keys, &buckets, &ranking);
 
         // row_of_position is the gather order: walking it assembles any
-        // row-ordered column into base delivery order.
-        let coordinates: Vec<Vec2> = order
-            .row_of_position
-            .par_iter()
-            .map(|&row| wire[row as usize])
-            .collect();
-        let codes: Vec<MortonKey> = order
-            .row_of_position
-            .par_iter()
-            .map(|&row| keys[row as usize])
-            .collect();
-        let rank_of_position: Vec<u32> = order
-            .row_of_position
-            .par_iter()
-            .map(|&row| ranking.rank_of_row[row as usize])
-            .collect();
+        // row-ordered column into base delivery order. Each gather is an
+        // index swizzle whose element work is one copy, so parallelism
+        // pays per column, not per element; position_of_rank composes
+        // the permutations - a rank's row, then that row's base position.
 
-        // position_of_rank composes the permutations: a rank's row,
-        // then that row's base position.
-        let position_of_rank: Vec<u32> = ranking
-            .row_of_rank
-            .par_iter()
-            .map(|&row| order.position_of_row[row as usize])
-            .collect();
+        let mut coordinates: Vec<Vec2> = Vec::new();
+        let mut codes: Vec<MortonKey> = Vec::new();
+        let mut rank_of_position: Vec<u32> = Vec::new();
+        let mut position_of_rank: Vec<u32> = Vec::new();
+
+        rayon::scope(|scope| {
+            scope.spawn(|_scope| {
+                coordinates = order
+                    .row_of_position
+                    .iter()
+                    .map(|&row| wire[row as usize])
+                    .collect();
+            });
+
+            scope.spawn(|_scope| {
+                codes = order
+                    .row_of_position
+                    .iter()
+                    .map(|&row| keys[row as usize])
+                    .collect();
+            });
+
+            scope.spawn(|_scope| {
+                rank_of_position = order
+                    .row_of_position
+                    .iter()
+                    .map(|&row| ranking.rank_of_row[row as usize])
+                    .collect();
+            });
+
+            scope.spawn(|_scope| {
+                position_of_rank = ranking
+                    .row_of_rank
+                    .iter()
+                    .map(|&row| order.position_of_row[row as usize])
+                    .collect();
+            });
+        });
 
         let mut lengths = [0_u64; Fenceposts::SEGMENTS];
         for &bucket in &buckets {
@@ -219,7 +246,7 @@ impl Lod {
         })
     }
 
-    /// Measures the publish evidence over the finished columns.
+    /// Measures the finished columns for the generation metadata.
     ///
     /// The measurements the manifest records: the bucket histogram (whose tail calibrates
     /// `max_tile_depth`), the catch-all population and its co-location excess, and the observed
@@ -230,7 +257,7 @@ impl Lod {
     /// Panics when `config` is not the configuration the structure was built under, detected
     /// through its unbuildable schedule.
     #[must_use]
-    pub(crate) fn evidence(&self, config: LodConfig) -> LodEvidence {
+    pub(crate) fn measurements(&self, config: LodConfig) -> LodMeasurements {
         let deepest = config
             .deepest()
             .expect("the structure was built under this configuration");
@@ -243,19 +270,19 @@ impl Lod {
         let co_location_excess = catch_all_population - distinct_prefixes(catch_all, deepest);
 
         // Per bucket, the largest number of its points sharing one
-        // tile of the bucket's own zoom; the tile grid sits span_log2
-        // above the bucket's grid, and buckets at or below span_log2
+        // tile of the bucket's own zoom; the tile grid sits span
+        // above the bucket's grid, and buckets at or below span
         // belong to the zoom-0 root tile.
         let mut max_tile_delta = 0;
         for bucket in 0..=deepest.get() {
-            let tile = Depth::new(bucket.saturating_sub(config.span_log2))
+            let tile = Depth::new(bucket.saturating_sub(config.span.get()))
                 .expect("a tile depth never exceeds its bucket's own depth");
             let bucket = Depth::new(bucket).expect("buckets never exceed the deepest grid");
             let delta = largest_prefix_group(self.segment_codes(bucket), tile);
             max_tile_delta = max_tile_delta.max(delta);
         }
 
-        LodEvidence {
+        LodMeasurements {
             world: self.world,
             bucket_histogram: self.fenceposts.lengths(),
             catch_all_population,
@@ -272,11 +299,47 @@ impl Lod {
     }
 }
 
-/// The publish evidence of one lod build.
+/// The morton artifact of a built lod: the index, fencepost, and code regions.
 ///
-/// Measurements the manifest records so the configuration is revised from data, not taste.
+/// Borrows the finished columns; writing streams them as one morton file under the production
+/// page-filling index stride.
+pub(crate) struct MortonColumn<'lod> {
+    /// The bucket segmentation of the code column.
+    pub fenceposts: &'lod Fenceposts,
+    /// Morton codes in base order, segmented by `fenceposts`.
+    pub codes: &'lod [MortonKey],
+}
+
+impl WriteInto for MortonColumn<'_> {
+    type Error = io::Error;
+
+    /// Writes the columns as a morton file.
+    ///
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the underlying writer fails.
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: write,
+        };
+
+        write_regions(PAGE_STRIDE, self.fenceposts, self.codes, &mut writer)?;
+
+        Ok(writer.accumulator.finalize())
+    }
+}
+
+// NOTE: def always before use where feasible
+/// The measurements of one lod build.
+///
+/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
+/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct LodEvidence {
+pub(crate) struct LodMeasurements {
     /// The world frame the wire coordinates were normalized from.
     pub world: Bounds2,
     /// Points per bucket; the tail calibrates `max_tile_depth`.
@@ -291,7 +354,7 @@ pub(crate) struct LodEvidence {
     pub co_location_excess: u64,
     /// The largest own-bucket delta any tile of the schedule delivers.
     ///
-    /// Verified against the geometric cap `4^span_log2`; co-location can exceed the cap only in
+    /// Verified against the geometric cap `4^span`; co-location can exceed the cap only in
     /// the catch-all bucket.
     pub max_tile_delta: u64,
 }
@@ -326,6 +389,7 @@ fn largest_prefix_group(codes: &[MortonKey], depth: Depth) -> u64 {
             current = 1;
             previous = Some(prefix);
         }
+
         largest = largest.max(current);
     }
 

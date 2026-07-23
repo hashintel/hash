@@ -110,35 +110,34 @@ impl<'graph> SemanticEdgeSampler<'graph> {
         let mut pairs = Vec::with_capacity_in(count, alloc);
         pairs.extend(
             core::iter::repeat_with(|| {
-                // Redrawing pins `target < total` structurally rather than
-                // leaning on the sampler's bit width: today's 53-bit
-                // uniform times `total` never rounds up to `total`, but
+                // Redrawing pins `target < total` structurally rather than leaning on the sampler's
+                // bit width: today's 53-bit uniform times `total` never rounds up to `total`, but
                 // that is an implementation detail of the rand version.
                 let target = loop {
                     let candidate = rng.random::<f64>() * total;
+
                     if candidate < total {
                         break candidate;
                     }
                 };
 
-                // The last cumulative entry therefore exceeds every
-                // target, so the partition point lands in `1..=rows`; rows
-                // without weight repeat their predecessor's total and are
+                // The last cumulative entry therefore exceeds every target, so the partition point
+                // lands in `1..=rows`; rows without weight repeat their predecessor's total and are
                 // never selected.
                 let row = self.cumulative.partition_point(|&sum| sum <= target) - 1;
                 let mut sum = self.cumulative[row];
                 let mut chosen = None;
                 for edge in self.graph.row(row) {
                     sum += f64::from(edge.weight);
+
                     if target < sum {
                         chosen = Some(edge.id);
                         break;
                     }
                 }
 
-                // The walk rebuilds the constructor's partial sums (same
-                // values, same order), so it reaches the row's total and
-                // the target lies strictly below it.
+                // The walk rebuilds the constructor's partial sums (same values, same order), so it
+                // reaches the row's total and the target lies strictly below it.
                 let id = chosen.expect("the row's rebuilt weight sums cover every drawn target");
                 let row = u64::try_from(row).expect("graph rows fit the row-id encoding");
                 NodePair::new(NodeRowId::new(row), id)
@@ -222,6 +221,7 @@ impl<'index> RelationEdgeSampler<'index> {
             let mut offsets =
                 sample_indices_vec(&mut rng, edges.len(), cap.get().min(edges.len())).into_vec();
             offsets.sort_unstable();
+
             SampledRelationEdges {
                 group,
                 edges: offsets.into_iter().map(|offset| edges[offset]).collect(),
@@ -286,13 +286,11 @@ impl<'view> OrdinaryNegativeSampler<'view> {
         mut rng: impl Rng,
         alloc: A,
     ) -> Vec<NodePair, A> {
-        let rows = self.semantic.rows();
-        if rows < 2 {
+        let rows = u64::try_from(self.semantic.rows()).expect("graph rows fit the row-id encoding");
+        // Pairs need two distinct rows; the empty and singleton corpora sample nothing.
+        let Some(bound) = NonZero::new(rows).filter(|bound| bound.get() >= 2) else {
             return Vec::new_in(alloc);
-        }
-
-        let bound = NonZero::new(u64::try_from(rows).expect("graph rows fit the row-id encoding"))
-            .expect("two or more rows are nonzero");
+        };
 
         let budget = count.saturating_mul(64).saturating_add(128);
         let mut seen = HashSet::with_capacity(count);

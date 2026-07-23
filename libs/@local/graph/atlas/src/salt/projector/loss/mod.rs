@@ -12,8 +12,9 @@
 //! normalization (the semantic term's total-weight-over-batch-size factor, the relation term's lens
 //! factor). The terms speak the batch-local row domain: pairs, edges, and anchors carry
 //! [`BatchRowId`] positions into the coordinate slice they are evaluated against, a key
-//! deliberately distinct from the corpus's `NodeRowId` - the assembly that re-indexes corpus draws
-//! into a batch owns the conversion, and the two domains cannot be mixed by type.
+//! deliberately distinct from the corpus's [`NodeRowId`](crate::dataset::NodeRowId) - the assembly
+//! that re-indexes corpus draws into a batch owns the conversion, and the two domains cannot be
+//! mixed by type.
 //!
 //! Pairs at exactly zero distance contribute their value but no gradient: a coincident pair has no
 //! direction to move along, and every energy here is either at its minimum or plateaued there.

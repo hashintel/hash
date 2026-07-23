@@ -84,10 +84,11 @@ pub struct Manifest {
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BucketSchedule {
-    /// Cells per tile axis of the delivery cut: `2^span_log2`.
+    /// Cells per tile axis of the delivery cut: `2^span`.
     pub span: u32,
-    /// The cut rule as its human-readable formula, `z+<span_log2>`.
-    pub cut: String,
+    /// The cut rule as its human-readable formula, `z+<span>`.
+    pub cut: String, /* NOTE: why does this need to be a string? can't this just be a `Copy`
+                      * type that is Display? */
     /// The deepest tile zoom the schedule serves.
     pub max_zoom: u8,
 }
@@ -115,8 +116,8 @@ impl Atlas {
             wire_version: WIRE_VERSION,
             variants: VARIANTS,
             bucket_schedule: BucketSchedule {
-                span: 1 << self.lod.span_log2,
-                cut: format!("z+{}", self.lod.span_log2),
+                span: 1 << self.lod.span.get(),
+                cut: format!("z+{}", self.lod.span.get()),
                 max_zoom: self.lod.max_tile_depth,
             },
             limits,

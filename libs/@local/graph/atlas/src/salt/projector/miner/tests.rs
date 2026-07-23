@@ -14,7 +14,7 @@ use core::num::NonZero;
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField, SpatialFieldError};
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::Vec2,
+    math::{Positive, Vec2},
     salt::{
         policy::ClassProbabilities,
         relation::{
@@ -34,10 +34,9 @@ fn options(neighbours: usize, margin: usize, maximum_weight: f32, exponent: f32)
     MinerOptions::new(
         nonzero(neighbours),
         nonzero(margin),
-        maximum_weight,
-        exponent,
+        Positive::new(maximum_weight).expect("test weight bounds are positive"),
+        Positive::new(exponent).expect("test exponents are positive"),
     )
-    .expect("test options are valid")
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
@@ -171,7 +170,7 @@ fn reference_mine(
                     continue;
                 }
                 let pair = crate::salt::relation::protection::NodePair::new(
-                    NodeRowId::new(row as u64),
+                    NodeRowId::from_index(row),
                     candidate_id,
                 );
                 if protection.judge(pair, config).hard {
@@ -189,15 +188,6 @@ fn reference_mine(
             accepted
         })
         .collect()
-}
-
-#[test]
-fn options_reject_invalid_coefficients() {
-    assert!(MinerOptions::new(nonzero(4), nonzero(2), 0.0, 1.0).is_none());
-    assert!(MinerOptions::new(nonzero(4), nonzero(2), 1.0, 0.0).is_none());
-    assert!(MinerOptions::new(nonzero(4), nonzero(2), f32::NAN, 1.0).is_none());
-    assert!(MinerOptions::new(nonzero(4), nonzero(2), 1.0, f32::INFINITY).is_none());
-    assert!(MinerOptions::new(nonzero(4), nonzero(2), 1.0, 1.0).is_some());
 }
 
 #[test]

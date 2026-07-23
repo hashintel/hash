@@ -337,7 +337,7 @@ impl Atlas {
                 y: coordinate.y,
             })?;
 
-            let cut = depth_of(coordinate.z + self.lod.span_log2);
+            let cut = depth_of(coordinate.z + self.lod.span.get());
             for bucket in 0..=cut.get() {
                 let run = self.morton.run(depth_of(bucket), cell);
                 let start = usize::try_from(run.start).expect("base positions fit usize");
@@ -362,7 +362,7 @@ impl Atlas {
         for row in delivered.iter() {
             let outgoing = self
                 .adjacency
-                .outgoing(NodeRowId::new(row as u64))
+                .outgoing(NodeRowId::from_index(row))
                 .expect("delivered rows lie inside the adjacency's node domain");
             for edge in outgoing.iter() {
                 let index = usize::try_from(edge.get()).expect("edge rows fit usize");

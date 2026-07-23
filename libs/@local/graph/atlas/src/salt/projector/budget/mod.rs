@@ -17,7 +17,7 @@
 //! optimizer cannot differentiate through.
 //!
 //! With a single attractive relation branch, the trailing total-variation factor binds only when
-//! the positive factor also binds, and then shaves at most an `epsilon`-order amount; it is kept
+//! the positive factor also binds, and then shaves at most an ε-order amount; it is kept
 //! because its activation rate is a required training metric and a future signed branch would make
 //! it load-bearing.
 
@@ -58,6 +58,7 @@ impl BudgetOptions {
         if !(coefficients_valid && guards_valid) {
             return None;
         }
+
         Some(Self {
             positive,
             total,
@@ -231,40 +232,36 @@ impl BudgetSummary {
         self.mean(self.clipped_ratio)
     }
 
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "node counts stay far below the f64 integer bound"
+    )]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "narrowing the double-precision fraction is the accessor's contract"
+    )]
     fn fraction(&self, count: usize) -> Option<f32> {
         if self.nodes == 0 {
             return None;
         }
 
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "node counts stay far below the f64 integer bound"
-        )]
-        let fraction = count as f64 / self.nodes as f64;
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "narrowing the double-precision fraction is the accessor's contract"
-        )]
-        let fraction = fraction as f32;
-        Some(fraction)
+        Some((count as f64 / self.nodes as f64) as f32)
     }
 
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "node counts stay far below the f64 integer bound"
+    )]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "narrowing the double-precision mean is the accessor's contract"
+    )]
     fn mean(&self, total: f64) -> Option<f32> {
         if self.nodes == 0 {
             return None;
         }
 
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "node counts stay far below the f64 integer bound"
-        )]
-        let mean = total / self.nodes as f64;
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "narrowing the double-precision mean is the accessor's contract"
-        )]
-        let mean = mean as f32;
-        Some(mean)
+        Some((total / self.nodes as f64) as f32)
     }
 }
 

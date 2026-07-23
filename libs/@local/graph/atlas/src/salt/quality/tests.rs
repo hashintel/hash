@@ -11,7 +11,7 @@
 
 use alloc::borrow::Cow;
 use core::{assert_matches, future::ready, num::NonZero};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
 use rand::{RngExt as _, SeedableRng as _};
@@ -21,10 +21,10 @@ use zerocopy::{LE, U64};
 
 use super::{
     clump::{ClumpAggregate, Clumps},
-    metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate, rank_correlation},
+    metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
         ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair,
-        ReadingGrid, probe,
+        ReadingGrid, probe, sample_pairs,
     },
     report::{QualityThresholds, assess},
     runner::{QualityRunOptions, run},
@@ -169,7 +169,8 @@ fn clump_aggregate_counts_multiset_overlap() {
 #[test]
 fn identical_orderings_are_perfect() {
     let ordering: Vec<u32> = (0..10).collect();
-    let mut aggregate = NeighbourhoodAggregate::new(10, 3, 6).expect("3 <= 10 / 2 and 3 <= 6");
+    let mut aggregate = NeighbourhoodAggregate::new(10, NonZero::new(3).expect("nonzero"), 6)
+        .expect("3 <= 10 / 2 and 3 <= 6");
     let mut scratch = RankScratch::new(10);
 
     aggregate.observe(&ordering, &ordering, &mut scratch);
@@ -187,7 +188,8 @@ fn identical_orderings_are_perfect() {
 fn reversed_ordering_is_worst() {
     let reference: Vec<u32> = (0..8).collect();
     let map: Vec<u32> = (0..8).rev().collect();
-    let mut aggregate = NeighbourhoodAggregate::new(8, 2, 4).expect("2 <= 8 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(8, NonZero::new(2).expect("nonzero"), 4)
+        .expect("2 <= 8 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(8);
 
     aggregate.observe(&reference, &map, &mut scratch);
@@ -210,7 +212,8 @@ fn hand_computed_partial_agreement() {
     // k = 2: map top-2 = {0, 2}, reference top-2 = {0, 1}.
     let reference: Vec<u32> = (0..6).collect();
     let map = [0, 2, 1, 3, 4, 5];
-    let mut aggregate = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
+        .expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
 
     aggregate.observe(&reference, &map, &mut scratch);
@@ -234,7 +237,8 @@ fn horizon_splits_reshuffles_from_intruders() {
     // the horizon 4; point 1 is banished to map position 5 in return.
     let reference: Vec<u32> = (0..6).collect();
     let map = [0, 5, 2, 3, 4, 1];
-    let mut aggregate = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
+        .expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
 
     aggregate.observe(&reference, &map, &mut scratch);
@@ -251,7 +255,8 @@ fn horizon_splits_reshuffles_from_intruders() {
 #[test]
 fn aggregate_pools_queries() {
     let reference: Vec<u32> = (0..6).collect();
-    let mut aggregate = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
+        .expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
 
     aggregate.observe(&reference, &reference, &mut scratch);
@@ -267,25 +272,41 @@ fn aggregate_pools_queries() {
 /// The constructor rejects the domains the normalizer excludes.
 #[test]
 fn aggregate_rejects_invalid_shapes() {
-    assert!(NeighbourhoodAggregate::new(10, 0, 5).is_none());
-    assert!(NeighbourhoodAggregate::new(10, 6, 8).is_none());
-    assert!(NeighbourhoodAggregate::new(10, 3, 2).is_none());
-    assert!(NeighbourhoodAggregate::new(10, 3, 11).is_none());
-    assert!(NeighbourhoodAggregate::new(10, 5, 10).is_some());
+    let k = |value: usize| NonZero::new(value).expect("nonzero");
+
+    assert!(NeighbourhoodAggregate::new(10, k(6), 8).is_none());
+    assert!(NeighbourhoodAggregate::new(10, k(3), 2).is_none());
+    assert!(NeighbourhoodAggregate::new(10, k(3), 11).is_none());
+    assert!(NeighbourhoodAggregate::new(10, k(5), 10).is_some());
 }
 
+/// Sampled pairs are distinct and in bounds over every small universe.
 #[test]
-fn rank_correlation_bounds_and_signs() {
-    // Monotone agreement, exact reversal, and a hand-computed middle.
-    assert_eq!(rank_correlation(&[0.1, 0.5, 0.9], &[1.0, 2.0, 3.0]), 1.0);
-    assert_eq!(rank_correlation(&[0.1, 0.5, 0.9], &[3.0, 2.0, 1.0]), -1.0);
-    // Ranks 0,1,2,3 vs 1,0,2,3: sum d^2 = 2, rho = 1 - 12/60 = 0.8.
-    assert_eq!(
-        rank_correlation(&[1.0, 2.0, 3.0, 4.0], &[2.0, 1.0, 3.0, 4.0]),
-        0.8,
-    );
-    // Order information needs at least two points.
-    assert_eq!(rank_correlation(&[1.0], &[2.0]), 0.0);
+fn sampled_pairs_are_distinct_and_in_bounds() {
+    // A one-point universe holds no pairs.
+    assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(3), 1, 64).is_empty());
+
+    for comparisons in 2..=6_usize {
+        let bound = u32::try_from(comparisons).expect("the test universes are tiny");
+        let pairs = sample_pairs(
+            Xoshiro256PlusPlus::seed_from_u64(comparisons as u64),
+            comparisons,
+            512,
+        );
+
+        assert_eq!(pairs.len(), 512);
+        let mut seen = HashSet::new();
+        for &[first, second] in &pairs {
+            assert_ne!(first, second, "a pair never compares a point to itself");
+            assert!(first < bound, "the first index stays inside the universe");
+            assert!(second < bound, "the second index stays inside the universe");
+            seen.insert([first, second]);
+        }
+
+        // 512 seeded draws over at most 30 ordered pairs cover the whole
+        // support, pinning uniformity's reach alongside its bounds.
+        assert_eq!(seen.len(), comparisons * (comparisons - 1));
+    }
 }
 
 /// Rank-vector observation agrees with full-ordering observation.
@@ -296,15 +317,16 @@ fn observe_ranks_matches_observe() {
     let by_map = [2_u32, 4, 1, 5, 0, 6, 7, 3];
 
     let mut through_orderings =
-        NeighbourhoodAggregate::new(8, 3, 5).expect("3 <= 8 / 2 and 3 <= 5 <= 8");
+        NeighbourhoodAggregate::new(8, NonZero::new(3).expect("nonzero"), 5)
+            .expect("3 <= 8 / 2 and 3 <= 5 <= 8");
     let mut scratch = RankScratch::new(8);
     through_orderings.observe(&by_reference, &by_map, &mut scratch);
 
     // The same query as opposite-rank vectors, read off by hand: map
     // top-3 = {2, 4, 1} at reference positions 3, 0, 5; reference
     // top-3 = {4, 0, 6} at map positions 1, 4, 5.
-    let mut through_ranks =
-        NeighbourhoodAggregate::new(8, 3, 5).expect("3 <= 8 / 2 and 3 <= 5 <= 8");
+    let mut through_ranks = NeighbourhoodAggregate::new(8, NonZero::new(3).expect("nonzero"), 5)
+        .expect("3 <= 8 / 2 and 3 <= 5 <= 8");
     through_ranks.observe_ranks(&[3, 0, 5], &[1, 4, 5]);
 
     assert_eq!(through_orderings, through_ranks);
@@ -318,13 +340,14 @@ fn merged_aggregates_match_joint_observation() {
     let reversed: Vec<u32> = (0..6).rev().collect();
     let mut scratch = RankScratch::new(6);
 
-    let mut joint = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    let two = NonZero::new(2).expect("nonzero");
+    let mut joint = NeighbourhoodAggregate::new(6, two, 4).expect("2 <= 6 / 2 and 2 <= 4");
     joint.observe(&reference, &swapped, &mut scratch);
     joint.observe(&reference, &reversed, &mut scratch);
 
-    let mut first = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    let mut first = NeighbourhoodAggregate::new(6, two, 4).expect("2 <= 6 / 2 and 2 <= 4");
     first.observe(&reference, &swapped, &mut scratch);
-    let mut second = NeighbourhoodAggregate::new(6, 2, 4).expect("2 <= 6 / 2 and 2 <= 4");
+    let mut second = NeighbourhoodAggregate::new(6, two, 4).expect("2 <= 6 / 2 and 2 <= 4");
     second.observe(&reference, &reversed, &mut scratch);
     first.merge(&second);
 
@@ -482,11 +505,11 @@ async fn corpus_readings_match_a_sorting_reference() {
     map_angles[21] = map_angles[20];
     let fixture = ProbeFixture::new(&embedding_angles, &map_angles);
 
-    let k = 3_usize;
+    let k = NonZero::new(3_usize).expect("nonzero");
     let options = ProbeOptions {
         anchors: 6.try_into().expect("nonzero"),
         comparisons: 10.try_into().expect("nonzero"),
-        neighbourhoods: vec![k.try_into().expect("nonzero")].into(),
+        neighbourhoods: vec![k].into(),
         ..ProbeOptions::default()
     };
 
@@ -529,7 +552,7 @@ async fn corpus_readings_match_a_sorting_reference() {
             fixture.coordinates[anchor].distance_squared(fixture.coordinates[row])
         });
 
-        let mut expected = NeighbourhoodAggregate::new(universe.len(), k, 2 * k)
+        let mut expected = NeighbourhoodAggregate::new(universe.len(), k, 2 * k.get())
             .expect("the validated options build the same aggregate");
         expected.observe(&by_reference, &by_map, &mut scratch);
 
@@ -551,8 +574,8 @@ async fn corpus_readings_match_a_sorting_reference() {
         });
         let representation_distances =
             sorted_by(&|row: usize| representations[anchor].cosine_distance(&representations[row]));
-        assert_eq!(radii.map, map_distances[k - 1].sqrt());
-        assert_eq!(radii.representation, representation_distances[k - 1]);
+        assert_eq!(radii.map, map_distances[k.get() - 1].sqrt());
+        assert_eq!(radii.representation, representation_distances[k.get() - 1]);
 
         // Triplet replay over the shared pair sample: naive order
         // agreement between the map and the representation.
@@ -703,7 +726,8 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings {
         .iter()
         .map(|&hit| {
             let mut aggregate =
-                NeighbourhoodAggregate::new(8, 1, 2).expect("1 <= 8 / 2 and 1 <= 2 <= 8");
+                NeighbourhoodAggregate::new(8, NonZero::new(1).expect("nonzero"), 2)
+                    .expect("1 <= 8 / 2 and 1 <= 2 <= 8");
             let rank = if hit { [0] } else { [7] };
             aggregate.observe_ranks(&rank, &rank);
             vec![aggregate]
@@ -711,9 +735,7 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings {
         .collect();
 
     ProbeReadings {
-        anchors: (0..hits.len())
-            .map(|row| NodeRowId::new(row as u64))
-            .collect(),
+        anchors: (0..hits.len()).map(NodeRowId::from_index).collect(),
         comparisons: Box::new([]),
         neighbourhoods: Box::new([NonZero::new(1).expect("nonzero")]),
         map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
@@ -958,9 +980,9 @@ fn assess_reads_density_from_radii() {
     assert!(!strict.passes());
 }
 
-/// Pinned gates on absent evidence fail closed.
+/// Pinned thresholds on absent evidence fail closed.
 #[test]
-fn assess_fails_pinned_gates_without_evidence() {
+fn assess_fails_pinned_thresholds_without_evidence() {
     // Every radius degenerate: the density reading is absent.
     let mut readings = flag_fixture(&[true, true]);
     readings.radii = Box::new([
@@ -1000,14 +1022,14 @@ fn assess_fails_pinned_gates_without_evidence() {
     assert!(!report.passes());
 }
 
-/// Pinned floors gate the overall corpus readings.
+/// Pinned floors bind the overall corpus readings.
 #[test]
 fn assess_applies_pinned_floors() {
     let readings = flag_fixture(&[true, true, false]);
     let anchor_types = types_of(&[&[], &[], &[]]);
 
     // Overall recall 2/3: a floor above it fails, one below passes,
-    // and unpinned floors gate nothing.
+    // and unpinned floors bind nothing.
     let strict = assess(
         &readings,
         &anchor_types,
@@ -1258,16 +1280,16 @@ impl CardEmbedder for HashEmbedder {
         EmbedderFingerprint::new(hasher.finalize())
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .map(|text| {
                 let mut hasher = Sha256::new();
-                hasher.update(text.as_ref().as_bytes());
+                hasher.update(text.as_bytes());
                 let bytes = hasher.finalize().to_bytes();
 
                 let mut vector = BoxedVecN::zero();
@@ -1464,7 +1486,7 @@ async fn runner_reports_a_published_generation() {
     }
 
     // Subgroups below the default anchor floor never flag, and every
-    // gate defaults to unpinned.
+    // threshold defaults to unpinned.
     assert!(report.flags.is_empty());
     assert!(report.passes());
 }

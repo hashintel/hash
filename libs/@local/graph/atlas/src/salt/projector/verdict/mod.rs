@@ -182,6 +182,8 @@ struct Document {
 /// empty identity fields - so consumers read verdicts without re-checking.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ReviewedVerdicts {
+    // NOTE: same thing here: why is this JSON and not parquet so that we could borrow from it
+    // instead?
     type_verdicts: Vec<TypeVerdict>,
     pair_verdicts: Vec<PairVerdict>,
     sources: BTreeMap<Box<str>, Sha256Digest>,
@@ -204,6 +206,7 @@ impl ReviewedVerdicts {
         }
 
         for (index, verdict) in document.type_verdicts.iter().enumerate() {
+            // This silly validation would collapse
             for (field, value) in [
                 ("relation", &verdict.relation),
                 ("reviewer", &verdict.reviewer),

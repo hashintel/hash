@@ -57,6 +57,7 @@ pub(crate) use self::{
 };
 use crate::{
     dataset::NodeRowId,
+    math::NonNegative,
     salt::projector::{
         budget::BudgetOptions,
         loss::{AffinityEnergy, RelationEnergy, SupportOptions},
@@ -66,7 +67,17 @@ use crate::{
 /// The relation-lens rungs the trainer schedules, ascending.
 ///
 /// The first and last entries are the lens extremes.
-pub(crate) const RUNGS: [f32; 3] = [0.0, 0.5, 1.0];
+///
+/// This is the training curriculum, not the published schedule: the lens is a continuous
+/// conditioning input, and these three points (both extremes plus the midpoint) are where the
+/// trainer samples it. The configurable rung set lives on the ladder
+/// ([`LadderOptions`](crate::salt::ladder::LadderOptions)), which decides where the fitted model
+/// is *evaluated* for publication - any rung in `[0, 1]`, independent of the curriculum.
+pub(crate) const RUNGS: [NonNegative; 3] = [
+    NonNegative::ZERO,
+    NonNegative::new(0.5).expect("the midpoint rung is finite and non-negative"),
+    NonNegative::ONE,
+];
 
 /// A training step failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -121,8 +132,10 @@ impl Coefficients {
         anchor: f32,
         landmark: f32,
     ) -> Option<Self> {
+        // NOTE: why don't you just admit `NonNegative` in this case? If there is a reason please
+        // write it down, it's not obvious...
         const fn admissible(value: f32) -> bool {
-            value.is_finite() && value >= 0.0
+            NonNegative::new(value).is_some()
         }
         let non_negative = admissible(semantic)
             && admissible(ordinary)

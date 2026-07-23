@@ -38,6 +38,7 @@ use core::{error::Error, fmt, mem, num::NonZero, pin::pin};
 
 use futures::{Stream, TryStreamExt as _};
 use rand::Rng;
+use rayon::iter::ParallelIterator as _;
 
 use self::pass::{CorpusPass, SampledPass};
 pub(crate) use self::readings::{ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair};
@@ -268,11 +269,6 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 /// Returns an error when the corpus cannot host the probe design, a neighbourhood size violates an
 /// aggregate domain, the row count exceeds the crate's `u32` row encoding, or the canonical stream
 /// fails, misdelivers, or ends short.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 pub(crate) async fn probe<D: Dataset>(
     dataset: &D,
     corpus: ProbeCorpus<'_, D::NodeId>,
@@ -314,7 +310,8 @@ pub(crate) async fn probe<D: Dataset>(
         neighbourhoods: &options.neighbourhoods,
         clumps: corpus.clumps,
     }
-    .run(anchor_rows);
+    .run(anchor_rows)
+    .collect();
 
     let (corpus_cells, radii, clump_cells) = split_anchor_readings(anchor_readings);
     let sampled = split_sampled_readings(
@@ -329,7 +326,8 @@ pub(crate) async fn probe<D: Dataset>(
             pairs: &pairs,
             clumps: corpus.clumps,
         }
-        .run(anchor_rows),
+        .run(anchor_rows)
+        .collect(),
     );
 
     let rungs = options.neighbourhoods.len();
@@ -350,11 +348,11 @@ pub(crate) async fn probe<D: Dataset>(
     Ok(ProbeReadings {
         anchors: anchor_rows
             .iter()
-            .map(|&row| NodeRowId::new(row as u64))
+            .map(|&row| NodeRowId::from_index(row))
             .collect(),
         comparisons: comparison_rows
             .iter()
-            .map(|&row| NodeRowId::new(row as u64))
+            .map(|&row| NodeRowId::from_index(row))
             .collect(),
         neighbourhoods: options.neighbourhoods.iter().copied().collect(),
         map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),
@@ -435,6 +433,10 @@ fn split_sampled_readings(readings: Vec<pass::SampledReading>) -> SampledColumns
 /// The design holds when the row count fits the `u32` probe domain, at least one neighbourhood size
 /// is named, and the corpus can host the disjoint anchor and comparison samples.
 fn validate_design<E>(rows: usize, options: &ProbeOptions) -> Result<(), ProbeError<E>> {
+    // The corpus arrives as mapped slices, so its row count is a usize;
+    // the probe's own row ids, orderings, and pair samples all travel as
+    // u32. Checking the width once here makes every later narrowing cast
+    // lossless.
     if u32::try_from(rows).is_err() {
         return Err(ProbeError::RowsExceedProbeDomain { rows });
     }
@@ -464,10 +466,15 @@ fn aggregate_template<E>(
         .neighbourhoods
         .iter()
         .map(|&k| {
-            let k = k.get();
-            let horizon = k.saturating_mul(options.horizon_factor.get()).min(universe);
-            NeighbourhoodAggregate::new(universe, k, horizon)
-                .ok_or(ProbeError::Neighbourhood { k, universe })
+            let horizon = k
+                .get()
+                .saturating_mul(options.horizon_factor.get())
+                .min(universe);
+
+            NeighbourhoodAggregate::new(universe, k, horizon).ok_or(ProbeError::Neighbourhood {
+                k: k.get(),
+                universe,
+            })
         })
         .collect()
 }
@@ -476,7 +483,7 @@ fn aggregate_template<E>(
 ///
 /// A universe of one comparison point holds no pairs and yields none regardless of the requested
 /// count.
-fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u32; 2]]> {
+pub(super) fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u32; 2]]> {
     let Some(second_choices) = NonZero::new(comparisons as u64 - 1) else {
         return Box::new([]);
     };
@@ -485,9 +492,15 @@ fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u3
     core::iter::repeat_with(|| {
         let first = uniform_below(&mut rng, choices) as u32;
         let mut second = uniform_below(&mut rng, second_choices) as u32;
+        // Skip-over-self, in place of a rejection loop: `second` is drawn
+        // from a universe one smaller, and shifting the values at or above
+        // `first` up by one maps them onto everything except `first`. The
+        // largest shifted value is `comparisons - 1`, so the pair is
+        // distinct and in bounds by construction.
         if second >= first {
             second += 1;
         }
+
         [first, second]
     })
     .take(count)
@@ -500,11 +513,13 @@ fn transpose_triplets(
 ) -> [Vec<TripletAggregate>; SpacePair::COUNT] {
     let mut columns: [Vec<TripletAggregate>; SpacePair::COUNT] =
         core::array::from_fn(|_| Vec::with_capacity(triplets.len()));
+
     for anchor_triplets in triplets {
         for (column, aggregate) in columns.iter_mut().zip(anchor_triplets) {
             column.push(aggregate);
         }
     }
+
     columns
 }
 
@@ -514,11 +529,13 @@ fn transpose_pairs(
 ) -> [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] {
     let mut pairs: [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] =
         core::array::from_fn(|_| Vec::with_capacity(cells.len()));
+
     for anchor_cells in cells {
         for (pair, anchor_cell) in pairs.iter_mut().zip(anchor_cells) {
             pair.push(anchor_cell);
         }
     }
+
     pairs
 }
 
@@ -565,16 +582,13 @@ impl<E: Error + 'static> Error for DeliveryError<E> {
 /// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
 /// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
 /// once, nothing else - and the payloads return in request order.
-#[expect(
-    clippy::future_not_send,
-    reason = "the delivery stream owes no `Send`; the future's sendability follows the dataset's"
-)]
 pub(super) async fn match_deliveries<Id, T, E>(
     requests: &[Id],
     deliveries: impl Stream<Item = Result<(Id, T), E>>,
 ) -> Result<Vec<T>, DeliveryError<E>>
 where
-    Id: zerocopy::IntoBytes + zerocopy::Immutable,
+    Id: zerocopy::IntoBytes + zerocopy::Immutable, /* NOTE: Why not say `PartialOrd` here?
+                                                    * compare over bytes is... well... no */
 {
     let key = |slot: u32| requests[slot as usize].as_bytes();
 
@@ -614,17 +628,18 @@ where
 }
 
 /// Fetches the sampled rows' canonical embeddings, in sample order.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 async fn fetch_canonical<D: Dataset>(
     dataset: &D,
     node_ids: &[D::NodeId],
     sample: &[usize],
 ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, ProbeError<D::Error>> {
+    // NOTE: this is the wrong approach, why doesn't match_deliveries just take both slices and an
+    // iterator? why do we need to collect here?
+    // One buffer serves two consumers: the delivery
+    // matcher verifies completeness against the request list, and the dataset stream
+    // borrows the same ids through its lifetime-tied iterator contract.
     let requests: Vec<D::NodeId> = sample.iter().map(|&row| node_ids[row]).collect();
+
     match_deliveries(
         &requests,
         dataset.canonical_node_embeddings(requests.iter().copied()),

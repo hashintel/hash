@@ -93,7 +93,7 @@ fn even_neighbour_counts_use_the_midpoint() {
 /// (NaN sorts last), so rows 0..=2 stay finite here - the diverged row 3, whose every distance is
 /// non-finite, is what trips the error.
 #[test]
-fn a_diverged_row_flags_itself_even_when_observers_stay_finite() {
+fn diverged_row_flags_itself_even_when_observers_stay_finite() {
     let table = complete_table(4, |_| vec![0.25, 0.5, 0.75]);
     let coordinates = [
         Vec2::new(0.0, 0.0),

@@ -73,6 +73,7 @@ impl LossBreakdown {
             anchor,
             landmark,
         } = *self;
+
         semantic + ordinary + hard + relation + anchor + landmark
     }
 }
@@ -267,7 +268,7 @@ fn relation_pass<A: Allocator>(
         .scales
         .as_ref()
         .expect("a batch with relation edges was assembled with its scale table");
-    let scale = batch.eta * options.coefficients.relation * batch.relation_scale;
+    let scale = batch.eta.get() * options.coefficients.relation * batch.relation_scale;
     let rows = frame.len();
 
     // One scratch field serves every type; only rows a type touches
@@ -387,10 +388,12 @@ fn read_frame<B: Backend<FloatElem = f32>>(
 /// Flattens per-node gradients into the tensor's row-major layout.
 fn flatten(gradients: &[DVec2]) -> Vec<f32> {
     let mut flat = Vec::with_capacity(gradients.len() * 2);
+
     for gradient in gradients {
         let narrowed = narrow(*gradient);
         flat.extend([narrowed.x(), narrowed.y()]);
     }
+
     flat
 }
 

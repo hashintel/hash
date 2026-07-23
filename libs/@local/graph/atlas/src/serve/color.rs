@@ -19,7 +19,7 @@ use crate::{
     dataset::{ArchivedOntologyTypeUuid, OntologyRowId},
     salt::{
         fit::prepare::identity::IdentityTableArchive,
-        postings::{closure::ClosureMap, mapped::PostingsArchive},
+        postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };
 
@@ -28,7 +28,7 @@ use crate::{
 /// Materialized unions live here so the [`Membership`] views the encoder consumes can borrow them
 /// beside the mapped postings.
 ///
-/// [`Membership`]: crate::salt::postings::mapped::Membership
+/// [`Membership`]: crate::salt::postings::artifact::Membership
 #[derive(Debug)]
 pub(super) struct MaskSet {
     sources: Vec<MaskSource>,
@@ -52,8 +52,8 @@ impl MaskSet {
     pub(super) fn memberships<'doc>(
         &'doc self,
         postings: &'doc PostingsArchive,
-    ) -> Vec<crate::salt::postings::mapped::Membership<'doc>> {
-        use crate::salt::postings::mapped::Membership;
+    ) -> Vec<crate::salt::postings::artifact::Membership<'doc>> {
+        use crate::salt::postings::artifact::Membership;
 
         self.sources
             .iter()
@@ -127,7 +127,7 @@ fn resolve_mask(
 ///
 /// `ceil(N/32)` words, LSB-first over base positions.
 fn union_membership(postings: &PostingsArchive, descendants: &[u64]) -> Vec<u32> {
-    use crate::salt::postings::mapped::Membership;
+    use crate::salt::postings::artifact::Membership;
 
     let points = usize::try_from(postings.points()).expect("point domains fit usize");
     let mut bitmap = vec![0_u32; points.div_ceil(u32::BITS as usize)];

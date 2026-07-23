@@ -31,8 +31,9 @@ use crate::{
         embedding::CardEmbedder,
         fit::{ClassifierInput, FitConfig, FitError, SuppliedVerdicts, fit},
         quality::{
+            error::QualityRunError,
             report::QualityReport,
-            runner::{QualityRunError, QualityRunOptions, run as probe},
+            runner::{QualityRunOptions, run as probe},
         },
     },
 };
@@ -169,11 +170,6 @@ impl<D: Error + 'static, E: Error + 'static> Error for RunnerError<D, E> {
 /// [`RunnerError::Prior`]), the fit cannot publish ([`RunnerError::Fit`]), or - with the published
 /// generation's identity attached - when the generation cannot be reopened, the probe cannot
 /// produce a report, or the admitted generation cannot be activated.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 pub(crate) async fn run<D, E>(
     dataset: &D,
     embedder: &E,

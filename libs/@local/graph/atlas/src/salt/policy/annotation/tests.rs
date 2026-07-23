@@ -130,7 +130,7 @@ fn document(cards: &[Value]) -> String {
 }
 
 #[test]
-fn the_shipped_shape_parses() {
+fn shipped_shape_parses() {
     let json = document(&[wikidata_card(), hash_card()]);
 
     let corpus = AnnotationCorpus::from_slice(json.as_bytes())
@@ -193,7 +193,7 @@ fn vote_counts_fold_excludes_unclear_and_abstain() {
 }
 
 #[test]
-fn a_foreign_schema_is_rejected() {
+fn foreign_schema_is_rejected() {
     let json =
         document(&[hash_card()]).replace(ANNOTATION_CORPUS_SCHEMA, "atlas-annotation-corpus/2");
 
@@ -214,7 +214,7 @@ fn unordered_cards_are_rejected() {
 }
 
 #[test]
-fn a_duplicated_identity_is_rejected() {
+fn duplicated_identity_is_rejected() {
     let json = document(&[hash_card(), hash_card()]);
 
     assert_matches!(
@@ -224,7 +224,7 @@ fn a_duplicated_identity_is_rejected() {
 }
 
 #[test]
-fn a_base_url_hash_identity_is_rejected() {
+fn base_url_hash_identity_is_rejected() {
     let mut card = hash_card();
     card["identity"] = json!("https://hash.ai/@h/types/entity-type/employed-by/");
     let json = document(&[card]);
@@ -239,7 +239,7 @@ fn a_base_url_hash_identity_is_rejected() {
 }
 
 #[test]
-fn a_wikidata_identity_off_the_entity_namespace_is_rejected() {
+fn wikidata_identity_off_the_entity_namespace_is_rejected() {
     let mut card = wikidata_card();
     card["identity"] = json!("http://www.wikidata.org/wiki/P361");
     let json = document(&[card]);
@@ -254,7 +254,7 @@ fn a_wikidata_identity_off_the_entity_namespace_is_rejected() {
 }
 
 #[test]
-fn a_wikidata_card_without_pins_is_rejected() {
+fn wikidata_card_without_pins_is_rejected() {
     let mut card = wikidata_card();
     card["retrieved_at"] = json!(null);
     let json = document(&[card]);
@@ -279,7 +279,7 @@ fn a_wikidata_card_without_pins_is_rejected() {
 }
 
 #[test]
-fn a_hash_card_with_pins_is_rejected() {
+fn hash_card_with_pins_is_rejected() {
     let mut card = hash_card();
     card["retrieved_at"] = json!("2026-07-18T12:00:00Z");
     let json = document(&[card]);
@@ -294,7 +294,7 @@ fn a_hash_card_with_pins_is_rejected() {
 }
 
 #[test]
-fn a_url_scheme_in_prose_is_rejected() {
+fn url_scheme_in_prose_is_rejected() {
     let mut card = hash_card();
     card["content"]["title"] = json!("Employed By (https://hash.ai)");
     let json = document(&[card]);
@@ -309,7 +309,7 @@ fn a_url_scheme_in_prose_is_rejected() {
 }
 
 #[test]
-fn a_uuid_shaped_token_in_prose_is_rejected() {
+fn uuid_shaped_token_in_prose_is_rejected() {
     let mut card = hash_card();
     card["content"]["description"] = json!("See 6cf1a866-93da-441a-9c86-ed4dcf2bcdad for details.");
     let json = document(&[card]);
@@ -324,7 +324,7 @@ fn a_uuid_shaped_token_in_prose_is_rejected() {
 }
 
 #[test]
-fn a_null_description_admits() {
+fn null_description_admits() {
     let mut card = wikidata_card();
     card["content"]["description"] = json!(null);
     let json = document(&[card]);
@@ -335,7 +335,7 @@ fn a_null_description_admits() {
 }
 
 #[test]
-fn an_empty_required_field_is_rejected() {
+fn empty_required_field_is_rejected() {
     let mut card = hash_card();
     card["content"]["title"] = json!("");
     let json = document(&[card]);
@@ -350,7 +350,7 @@ fn an_empty_required_field_is_rejected() {
 }
 
 #[test]
-fn an_empty_axis_entry_is_rejected() {
+fn empty_axis_entry_is_rejected() {
     let mut card = hash_card();
     card["axes"]["inverse_of"] = json!([""]);
     let json = document(&[card]);
@@ -365,7 +365,7 @@ fn an_empty_axis_entry_is_rejected() {
 }
 
 #[test]
-fn a_shot_excluded_card_with_votes_is_rejected() {
+fn shot_excluded_card_with_votes_is_rejected() {
     let mut card = hash_card();
     card["flags"]["shot_excluded"] = json!(true);
     let json = document(&[card]);
@@ -377,7 +377,7 @@ fn a_shot_excluded_card_with_votes_is_rejected() {
 }
 
 #[test]
-fn a_shot_excluded_card_without_votes_admits() {
+fn shot_excluded_card_without_votes_admits() {
     let mut card = hash_card();
     card["flags"]["shot_excluded"] = json!(true);
     card["votes"] = json!([]);
@@ -389,7 +389,7 @@ fn a_shot_excluded_card_without_votes_admits() {
 }
 
 #[test]
-fn an_all_unclear_card_admits_with_zero_weight() {
+fn all_unclear_card_admits_with_zero_weight() {
     let mut card = hash_card();
     card["votes"] = json!([vote("unclear"), vote("unclear")]);
     let json = document(&[card]);
@@ -402,7 +402,7 @@ fn an_all_unclear_card_admits_with_zero_weight() {
 }
 
 #[test]
-fn an_abstain_only_card_is_rejected() {
+fn abstain_only_card_is_rejected() {
     let mut card = hash_card();
     card["votes"] = json!([vote("abstain")]);
     let json = document(&[card]);
@@ -414,7 +414,7 @@ fn an_abstain_only_card_is_rejected() {
 }
 
 #[test]
-fn a_voteless_card_without_flags_is_rejected() {
+fn voteless_card_without_flags_is_rejected() {
     let mut card = hash_card();
     card["votes"] = json!([]);
     let json = document(&[card]);
@@ -438,7 +438,7 @@ fn disagreeing_vote_card_hashes_are_rejected() {
 }
 
 #[test]
-fn a_holdout_card_admits_without_geometry_votes() {
+fn holdout_card_admits_without_geometry_votes() {
     let mut card = hash_card();
     card["flags"]["holdout"] = json!("proximal");
     card["votes"] = json!([]);
@@ -460,7 +460,7 @@ fn a_holdout_card_admits_without_geometry_votes() {
 }
 
 #[test]
-fn an_unclear_holdout_admits() {
+fn unclear_holdout_admits() {
     let mut card = hash_card();
     card["flags"]["holdout"] = json!("unclear");
     card["votes"] = json!([]);
@@ -494,7 +494,7 @@ fn inverted_endpoint_bounds_are_rejected() {
 }
 
 #[test]
-fn a_missing_tristate_key_is_rejected() {
+fn missing_tristate_key_is_rejected() {
     let mut card = hash_card();
     card["content"]["constraints"]
         .as_object_mut()
@@ -509,7 +509,7 @@ fn a_missing_tristate_key_is_rejected() {
 }
 
 #[test]
-fn an_unknown_field_is_rejected() {
+fn unknown_field_is_rejected() {
     let mut card = hash_card();
     card["embedding"] = json!([0.25, 0.25]);
     let json = document(&[card]);
@@ -521,7 +521,7 @@ fn an_unknown_field_is_rejected() {
 }
 
 #[test]
-fn an_empty_vote_provenance_field_is_rejected() {
+fn empty_vote_provenance_field_is_rejected() {
     let mut card = hash_card();
     card["votes"][0]["model_pinned"] = json!("");
     let json = document(&[card]);

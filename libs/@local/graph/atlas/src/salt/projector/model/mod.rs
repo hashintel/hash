@@ -10,12 +10,12 @@
 //! y  = W_head h_last + b_head
 //! ```
 //!
-//! `FiLM` predicts a delta from unit scale and a shift out of the condition vector: `FiLM(v, c) =
-//! (1 + dgamma(c)) * v + beta(c)`. Modulation sits between normalization and activation, so it
-//! gates normalized features directly; placed before the block's linear and normalization instead,
-//! the downstream LN would cancel the modulation's scale component (exactly so for a uniform
-//! gamma). The model does not know what the condition columns mean; the batch assembler names them,
-//! and their count is the [`Architecture`]'s `condition_dimensions`.
+//! `FiLM` predicts a delta from unit scale and a shift out of the condition vector:
+//! `FiLM(v, c) = (1 + Δγ(c)) · v + β(c)`. Modulation sits between normalization and activation, so
+//! it gates normalized features directly; placed before the block's linear and normalization
+//! instead, the downstream LN would cancel the modulation's scale component (exactly so for a
+//! uniform gamma). The model does not know what the condition columns mean; the batch assembler
+//! names them, and their count is the [`Architecture`]'s `condition_dimensions`.
 //!
 //! Two initialization contracts hold, and the unit tests certify both:
 //!
@@ -220,6 +220,9 @@ const DEFAULT_REPRESENTATION_DIMENSIONS: NonZero<usize> =
 const DEFAULT_ROLE_DIMENSIONS: NonZero<usize> = const { NonZero::new(16).unwrap() };
 const DEFAULT_CONDITION_DIMENSIONS: NonZero<usize> = const { NonZero::new(1).unwrap() };
 
+/// Output coordinates per row.
+const PROJECTED_DIMENSIONS: usize = 2;
+
 /// Shape of a [`Projector`]: every dimension the model is built from.
 ///
 /// All fields are construction-valid; building a model from an architecture cannot fail. Width and
@@ -241,6 +244,12 @@ pub(crate) struct Architecture {
     /// type-conditioned generation appends pooled type-context columns without touching the model
     /// code.
     pub condition_dimensions: NonZero<usize> = DEFAULT_CONDITION_DIMENSIONS,
+}
+
+const impl Default for Architecture {
+    fn default() -> Self {
+        Self { .. }
+    }
 }
 
 /// One projection batch.
@@ -350,7 +359,7 @@ impl<B: Backend> Projector<B> {
     /// Every parameter is drawn from `rng` in construction order, so equal architectures, stream
     /// types, and seeds produce identical models on every backend.
     #[must_use]
-    pub(crate) fn new<R: Rng>(architecture: Architecture, mut rng: R, device: &B::Device) -> Self {
+    pub(crate) fn new<R: Rng>(architecture: Architecture, device: &B::Device, mut rng: R) -> Self {
         let width = architecture.width.get();
         let condition_dimensions = architecture.condition_dimensions.get();
         let representation_dimensions = architecture.representation_dimensions.get();
@@ -392,6 +401,9 @@ impl<B: Backend> Projector<B> {
     /// disagree with the architecture and each other.
     #[must_use]
     pub(crate) fn forward(&self, input: ProjectorInput<B>) -> Tensor<B, 2> {
+        // The shape checks cost integer compares against host-side dim
+        // metadata, once per forward call - not per element, and no
+        // device sync - so they are free beside the matmuls they guard.
         let [rows, representation_dimensions] = input.representation.dims();
         assert_eq!(
             representation_dimensions, self.representation_dimensions,
@@ -449,11 +461,14 @@ impl<B: Backend> Projector<B> {
             record.blocks.len(),
         )?;
 
-        // The freshly drawn parameters are wholly replaced by the
-        // record; the throwaway stream is the price of reusing the
-        // one construction path.
-        let model = Self::new(architecture, Xoshiro256PlusPlus::seed_from_u64(0), device)
-            .load_record(record);
+        // Every parameter this construction draws is replaced by
+        // `load_record` on the next line, so the stream's seed is
+        // meaningless by design - a throwaway is the price of reusing
+        // the one construction path. The checkpoint's rng state is a
+        // different object: it resumes the *training* draw sequence,
+        // and threading it here would launder meaning into dead draws.
+        let throwaway = Xoshiro256PlusPlus::seed_from_u64(0);
+        let model = Self::new(architecture, device, throwaway).load_record(record);
         model.check_architecture(architecture)?;
         Ok(model)
     }
@@ -533,9 +548,6 @@ impl<B: Backend> Projector<B> {
         )
     }
 }
-
-/// Output coordinates per row.
-const PROJECTED_DIMENSIONS: usize = 2;
 
 /// One verified location in the model: a layer, positioned in the block stack when it lives there.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -635,12 +647,12 @@ enum LinearInit {
 /// Parameters receive sequential identifiers and values drawn from the stream in construction
 /// order, replacing whatever the layer configs would have initialized; the backend's global random
 /// state is never touched.
-struct Initialization<'rng, R> {
-    rng: &'rng mut R,
+struct Initialization<R> {
+    rng: R,
     next_parameter_id: u64,
 }
 
-impl<R: Rng> Initialization<'_, R> {
+impl<R: Rng> Initialization<R> {
     /// Builds a linear layer in one of the two model forms.
     fn linear<B: Backend>(
         &mut self,

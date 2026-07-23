@@ -19,136 +19,44 @@
 //! carries no force at all trains vacuously: the relation term stays absent and the run records
 //! why.
 
+mod error;
 mod session;
 #[cfg(test)]
 mod tests;
 
-use core::{error::Error, fmt, num::NonZero};
+use core::num::NonZero;
 
 use burn::{
     lr_scheduler::LrScheduler as _, optim::Optimizer as _, tensor::backend::AutodiffBackend,
 };
 use rand::Rng;
 
-pub(crate) use self::session::TrainerOptimizerRecord;
 use self::session::{Session, Training};
+pub(crate) use self::{error::TrainError, session::TrainerOptimizerRecord};
 use super::{
-    BatchPlan, Coefficients, StepError,
+    BatchPlan, Coefficients,
     batch::{NodeColumns, SupportAnchor},
     metrics::{BudgetBreakdown, DisplacementSummary},
-    refresh::RefreshError,
     step::LossBreakdown,
 };
-use crate::salt::{
-    knn::table::KnnView,
-    projector::{
-        budget::BudgetOptions,
-        loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
-        miner::MinerOptions,
-        model::Projector,
-        verdict::{ResolvedVerdict, calibrate::ProximalCalibration},
+use crate::{
+    math::{Positive, UnitFraction},
+    salt::{
+        knn::table::KnnView,
+        projector::{
+            budget::BudgetOptions,
+            loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
+            miner::MinerOptions,
+            model::Projector,
+            verdict::{ResolvedVerdict, calibrate::ProximalCalibration},
+        },
+        relation::{
+            attraction::AttractionIndex,
+            protection::{ProtectionConfig, ProtectionView},
+        },
+        semantic::SemanticGraphView,
     },
-    relation::{
-        attraction::AttractionIndex,
-        protection::{ProtectionConfig, ProtectionView},
-    },
-    semantic::SemanticGraphView,
 };
-
-/// A training run failed.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum TrainError {
-    /// The semantic graph carries no edge weight: there is no layout evidence to train against.
-    NoSemanticEvidence,
-    /// The schedule's boundary is step zero.
-    ///
-    /// So the Proximal radius would be measured on an untrained map instead of the semantic-only
-    /// baseline the measurement is defined over.
-    UnbaselinedRadius,
-    /// The attraction index carries Proximal force but no reviewed verdict covers any of it.
-    ///
-    /// So no radius can be measured.
-    MissingProximalReviews,
-    /// The attraction index carries Coincident force but no Proximal force.
-    ///
-    /// So no measurement can set the Proximal radius the relation energy composes with.
-    CoincidentWithoutProximal,
-    /// The frozen Proximal radius does not exceed the Coincident one.
-    DegenerateRadius { radius: f32, coincident: f32 },
-    /// A refresh tick or boundary measurement failed.
-    Refresh(RefreshError),
-    /// A training step failed.
-    Step(StepError),
-    /// A resumed ladder was handed a schedule differing from the one its opening segment ran under.
-    ///
-    /// So the scheduler position and the phase boundary no longer describe the same run.
-    ScheduleChanged {
-        opening: TrainingSchedule,
-        resumed: TrainingSchedule,
-    },
-}
-
-impl fmt::Display for TrainError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::NoSemanticEvidence => {
-                fmt.write_str("the semantic graph carries no edge weight to train against")
-            }
-            Self::UnbaselinedRadius => fmt.write_str(
-                "the boundary sits at step zero, so the Proximal radius would be measured on an \
-                 untrained map; give the opening segment steps or supply the configured radius \
-                 assertion",
-            ),
-            Self::MissingProximalReviews => fmt.write_str(
-                "the attraction index carries Proximal force but no reviewed-Proximal verdict \
-                 covers any of it; confirm Proximal types in review or supply the configured \
-                 radius assertion",
-            ),
-            Self::CoincidentWithoutProximal => fmt.write_str(
-                "the attraction index carries Coincident force but no Proximal force, so no \
-                 measurement can set the Proximal radius; supply the configured radius assertion",
-            ),
-            Self::DegenerateRadius { radius, coincident } => write!(
-                fmt,
-                "the frozen Proximal radius {radius} does not exceed the Coincident radius \
-                 {coincident}",
-            ),
-            Self::Refresh(error) => error.fmt(fmt),
-            Self::Step(error) => error.fmt(fmt),
-            Self::ScheduleChanged { .. } => fmt.write_str(
-                "the resumed schedule differs from the one the opening segment ran under; resume \
-                 with the schedule the checkpoint was trained under",
-            ),
-        }
-    }
-}
-
-impl Error for TrainError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Refresh(error) => Some(error),
-            Self::Step(error) => Some(error),
-            Self::NoSemanticEvidence
-            | Self::UnbaselinedRadius
-            | Self::MissingProximalReviews
-            | Self::CoincidentWithoutProximal
-            | Self::DegenerateRadius { .. }
-            | Self::ScheduleChanged { .. } => None,
-        }
-    }
-}
-
-impl From<RefreshError> for TrainError {
-    fn from(error: RefreshError) -> Self {
-        Self::Refresh(error)
-    }
-}
-
-impl From<StepError> for TrainError {
-    fn from(error: StepError) -> Self {
-        Self::Step(error)
-    }
-}
 
 /// A validated step schedule.
 ///
@@ -158,8 +66,8 @@ pub(crate) struct TrainingSchedule {
     steps: NonZero<usize>,
     boundary: usize,
     refresh_interval: NonZero<usize>,
-    initial_learning_rate: f64,
-    minimum_learning_rate: f64,
+    initial_learning_rate: UnitFraction,
+    minimum_learning_rate: UnitFraction,
 }
 
 impl TrainingSchedule {
@@ -170,20 +78,19 @@ impl TrainingSchedule {
     /// opens the ladder: the run is semantic-only and records no boundary evidence. Refresh ticks
     /// run at step zero and every `refresh_interval` steps after it.
     ///
-    /// Returns [`None`] unless the boundary lies within the run and the learning rates satisfy the
-    /// cosine schedule's domain: `0 < initial <= 1` and `0 <= minimum <= initial`.
+    /// Returns [`None`] unless the boundary lies within the run and the rates satisfy the cosine
+    /// schedule's domain: both are unit fractions by type, the initial rate is strictly positive,
+    /// and the minimum does not exceed it.
     #[must_use]
     pub(crate) const fn new(
         steps: NonZero<usize>,
         boundary: usize,
         refresh_interval: NonZero<usize>,
-        initial_learning_rate: f64,
-        minimum_learning_rate: f64,
+        initial_learning_rate: UnitFraction,
+        minimum_learning_rate: UnitFraction,
     ) -> Option<Self> {
-        let rates = initial_learning_rate > 0.0
-            && initial_learning_rate <= 1.0
-            && minimum_learning_rate >= 0.0
-            && minimum_learning_rate <= initial_learning_rate;
+        let rates = initial_learning_rate.get() > 0.0
+            && minimum_learning_rate.get() <= initial_learning_rate.get();
 
         if !(boundary <= steps.get() && rates) {
             return None;
@@ -222,14 +129,14 @@ impl TrainingSchedule {
     #[inline]
     #[must_use]
     pub(crate) const fn initial_learning_rate(self) -> f64 {
-        self.initial_learning_rate
+        self.initial_learning_rate.get()
     }
 
     /// Returns the cosine schedule's floor learning rate.
     #[inline]
     #[must_use]
     pub(crate) const fn minimum_learning_rate(self) -> f64 {
-        self.minimum_learning_rate
+        self.minimum_learning_rate.get()
     }
 }
 
@@ -243,32 +150,30 @@ impl TrainingSchedule {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationLens {
     coincident: CoincidentEnergy,
-    temperature: f32,
-    epsilon: f32,
+    temperature: Positive,
+    epsilon: Positive,
     asserted_radius: Option<f32>,
 }
 
 impl RelationLens {
     /// Validates the lens constants.
     ///
-    /// Returns [`None`] unless the temperature and the scale guard are finite and strictly
-    /// positive, and the asserted radius - when supplied - is finite and strictly above the
-    /// Coincident radius, the ordering the composed energy requires.
+    /// Returns [`None`] unless the asserted radius - when supplied - is finite and strictly above
+    /// the Coincident radius, the ordering the composed energy requires; the temperature and the
+    /// scale guard arrive valid by type.
     #[must_use]
     pub(crate) const fn new(
         coincident: CoincidentEnergy,
-        temperature: f32,
-        epsilon: f32,
+        temperature: Positive,
+        epsilon: Positive,
         asserted_radius: Option<f32>,
     ) -> Option<Self> {
-        let constants =
-            temperature.is_finite() && temperature > 0.0 && epsilon.is_finite() && epsilon > 0.0;
         let assertion = match asserted_radius {
             Some(radius) => radius.is_finite() && radius > coincident.radius(),
             None => true,
         };
 
-        if !(constants && assertion) {
+        if !assertion {
             return None;
         }
         Some(Self {
@@ -289,14 +194,14 @@ impl RelationLens {
     /// Returns the Proximal transition temperature.
     #[inline]
     #[must_use]
-    pub(crate) const fn temperature(self) -> f32 {
+    pub(crate) const fn temperature(self) -> Positive {
         self.temperature
     }
 
     /// Returns the local-scale guard.
     #[inline]
     #[must_use]
-    pub(crate) const fn epsilon(self) -> f32 {
+    pub(crate) const fn epsilon(self) -> Positive {
         self.epsilon
     }
 

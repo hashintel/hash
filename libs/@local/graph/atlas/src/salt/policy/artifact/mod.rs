@@ -99,9 +99,8 @@ pub(crate) fn write_policies(
 ) -> io::Result<Sha256Digest> {
     assert!(
         policies
-            .iter()
-            .zip(policies.iter().skip(1))
-            .all(|(left, right)| left.relation.get() < right.relation.get()),
+            .array_windows::<2>()
+            .all(|[left, right]| left.relation.get() < right.relation.get()),
         "the resolved table is strictly ascending by relation",
     );
 
@@ -139,9 +138,8 @@ impl PolicyTableArchive {
         let policies = table.policies();
 
         if let Some(position) = policies
-            .iter()
-            .zip(policies.iter().skip(1))
-            .position(|(left, right)| left.relation.get() >= right.relation.get())
+            .array_windows::<2>()
+            .position(|[left, right]| left.relation.get() >= right.relation.get())
         {
             return Err(InvalidPolicyFile::UnorderedRelations {
                 index: position + 1,
@@ -178,6 +176,7 @@ impl PolicyTableArchive {
         let index = policies
             .binary_search_by_key(&relation.get(), |policy| policy.relation.get())
             .ok()?;
+
         Some(policies[index])
     }
 }

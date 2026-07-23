@@ -166,8 +166,8 @@ fn forward_is_condition_invariant_at_initialization() {
         let architecture = tiny(condition_dimensions);
         let projector = Projector::<TestBackend>::new(
             architecture,
-            Xoshiro256PlusPlus::seed_from_u64(13),
             &device(),
+            Xoshiro256PlusPlus::seed_from_u64(13),
         );
 
         let project = |condition_value: f32| {
@@ -208,8 +208,8 @@ fn initialization_is_deterministic_in_the_seed() {
     let project = |seed: u64| {
         let projector = Projector::<TestBackend>::new(
             tiny(1),
-            Xoshiro256PlusPlus::seed_from_u64(seed),
             &device(),
+            Xoshiro256PlusPlus::seed_from_u64(seed),
         );
         to_values(projector.forward(input()))
     };
@@ -229,7 +229,7 @@ fn initialization_is_deterministic_in_the_seed() {
 #[test]
 fn roles_reach_the_output() {
     let projector =
-        Projector::<TestBackend>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(19), &device());
+        Projector::<TestBackend>::new(tiny(1), &device(), Xoshiro256PlusPlus::seed_from_u64(19));
 
     let project = |role: i64| {
         to_values(projector.forward(ProjectorInput {
@@ -251,7 +251,7 @@ fn roles_reach_the_output() {
 #[test]
 fn rows_project_independently() {
     let projector =
-        Projector::<TestBackend>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(23), &device());
+        Projector::<TestBackend>::new(tiny(1), &device(), Xoshiro256PlusPlus::seed_from_u64(23));
 
     let full = representation(2, 6);
     let batch = to_values(projector.forward(ProjectorInput {
@@ -282,7 +282,7 @@ fn rows_project_independently() {
 #[should_panic(expected = "condition width should match the architecture")]
 fn forward_rejects_a_mismatched_condition_width() {
     let projector =
-        Projector::<TestBackend>::new(tiny(1), Xoshiro256PlusPlus::seed_from_u64(29), &device());
+        Projector::<TestBackend>::new(tiny(1), &device(), Xoshiro256PlusPlus::seed_from_u64(29));
     drop(projector.forward(ProjectorInput {
         representation: representation(1, 6),
         roles: roles(vec![0]),

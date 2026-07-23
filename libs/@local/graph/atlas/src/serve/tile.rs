@@ -280,11 +280,11 @@ impl Atlas {
             y: coordinate.y,
         })?;
 
-        // The zoom's cut: buckets at or below z + span_log2 are
+        // The zoom's cut: buckets at or below z + span are
         // delivered by zoom z's cumulative schedule, and the tile's
         // own bucket is the cut itself. Bounded by the deepest grid,
         // which open validated against the key width.
-        let cut = depth_of(coordinate.z + self.lod.span_log2);
+        let cut = depth_of(coordinate.z + self.lod.span.get());
 
         let node = self.node_of(cell);
         let (first_bucket, runs, ranges) = match (request.query.mode, coordinate.z) {

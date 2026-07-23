@@ -6,7 +6,7 @@
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
 //! low megabytes while `T` stays in the low thousands.
 
-use crate::{dataset::OntologyRowId, salt::postings::mapped::PostingsArchive};
+use crate::{bitset::BitMatrix, dataset::OntologyRowId, salt::postings::artifact::PostingsArchive};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///
@@ -33,16 +33,11 @@ impl core::error::Error for ParentCycle {}
 /// Descendant bitsets over the type domain, one row per type.
 ///
 /// Row `t` marks every type whose instances a filter or coloring request naming `t` matches: `t`
-/// itself and every type reaching `t` through parent edges. Rows are `ceil(T/64)` words, LSB-first,
-/// laid out row-major so a request's expansion ORs whole rows word-wise.
+/// itself and every type reaching `t` through parent edges - a `T` by `T` [`BitMatrix`], so a
+/// request's expansion ORs whole rows word-wise.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ClosureMap {
-    /// The type domain `T`.
-    types: usize,
-    /// Words per row: `ceil(T/64)`.
-    stride: usize,
-    /// `T` rows of `stride` words.
-    bits: Box<[u64]>,
+    bits: BitMatrix,
 }
 
 impl ClosureMap {
@@ -59,39 +54,38 @@ impl ClosureMap {
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(postings: &PostingsArchive) -> Result<Self, ParentCycle> {
         let types = usize::try_from(postings.types()).expect("resident type domains fit usize");
-        let stride = types.div_ceil(u64::BITS as usize);
-        let mut bits = vec![0_u64; types * stride].into_boxed_slice();
+        let expect = "the loop iterates the postings' own domain"; // NOTE: why
+        let mut bits = BitMatrix::new(types, types);
 
         // Every type descends from itself: a request naming `t`
         // matches instances of `t` directly.
         for type_row in 0..types {
-            bits[type_row * stride + (type_row >> 6)] |= 1 << (type_row & 63);
+            bits.insert(type_row, type_row);
         }
 
         // Pending children per type; a type's row settles once every
         // child's row has been folded into it.
         let mut pending = vec![0_u64; types];
         for type_row in 0..types {
-            for &parent in parents(postings, type_row) {
+            let parents = postings
+                .parents(OntologyRowId::new(type_row as u64))
+                .expect(expect);
+            for &parent in parents {
                 pending[parent as usize] += 1;
             }
         }
 
         let mut ready: Vec<usize> = (0..types).filter(|&row| pending[row] == 0).collect();
         let mut settled = 0_u64;
-        let mut scratch = vec![0_u64; stride];
         while let Some(type_row) = ready.pop() {
             settled += 1;
 
-            // The settled row is copied out once so the fold below can
-            // borrow the matrix mutably at each parent.
-            scratch.copy_from_slice(&bits[type_row * stride..(type_row + 1) * stride]);
-            for &parent in parents(postings, type_row) {
+            let parents = postings
+                .parents(OntologyRowId::new(type_row as u64))
+                .expect(expect);
+            for &parent in parents {
                 let parent = parent as usize;
-                let row = &mut bits[parent * stride..(parent + 1) * stride];
-                for (word, &child_word) in row.iter_mut().zip(&scratch) {
-                    *word |= child_word;
-                }
+                bits.or_row_into(type_row, parent);
 
                 pending[parent] -= 1;
                 if pending[parent] == 0 {
@@ -106,25 +100,21 @@ impl ClosureMap {
             });
         }
 
-        Ok(Self {
-            types,
-            stride,
-            bits,
-        })
+        Ok(Self { bits })
     }
 
     /// Returns the type domain `T`.
     #[inline]
     #[must_use]
     pub(crate) const fn types(&self) -> usize {
-        self.types
+        self.bits.rows()
     }
 
     /// Returns the words per row: the length expansion scratch rows allocate at.
     #[inline]
     #[must_use]
     pub(crate) const fn stride(&self) -> usize {
-        self.stride
+        self.bits.stride()
     }
 
     /// Borrows `type_row`'s descendant row, when the row is in domain.
@@ -132,10 +122,9 @@ impl ClosureMap {
     /// `ceil(T/64)` words, LSB-first.
     #[must_use]
     pub(crate) fn descendants(&self, type_row: OntologyRowId) -> Option<&[u64]> {
-        let row = usize::try_from(type_row.get())
-            .ok()
-            .filter(|&row| row < self.types)?;
-        Some(&self.bits[row * self.stride..(row + 1) * self.stride])
+        let row = type_row.index_below(self.bits.rows())?;
+
+        Some(self.bits.row(row))
     }
 
     /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).
@@ -147,18 +136,9 @@ impl ClosureMap {
         ancestor: OntologyRowId,
         descendant: OntologyRowId,
     ) -> Option<bool> {
-        let row = self.descendants(ancestor)?;
-        let bit = usize::try_from(descendant.get())
-            .ok()
-            .filter(|&bit| bit < self.types)?;
+        let row = ancestor.index_below(self.bits.rows())?;
+        let column = descendant.index_below(self.bits.columns())?;
 
-        Some(row[bit >> 6] & (1 << (bit & 63)) != 0)
+        Some(self.bits.contains(row, column))
     }
-}
-
-/// Borrows `type_row`'s validated parent list.
-fn parents(postings: &PostingsArchive, type_row: usize) -> &[u32] {
-    postings
-        .parents(OntologyRowId::new(type_row as u64))
-        .expect("the loop iterates the postings' own domain")
 }

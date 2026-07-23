@@ -74,7 +74,7 @@ impl Corpus {
             partners.clear();
             partners.extend(
                 protection
-                    .row(NodeRowId::new(row as u64))
+                    .row(NodeRowId::from_index(row))
                     .map(|entry| entry.partner),
             );
             let chunk = candidates.len();
@@ -115,7 +115,7 @@ impl Corpus {
             .chunks_exact(probes.per_row.get())
             .enumerate()
         {
-            let row = NodeRowId::new(row as u64);
+            let row = NodeRowId::from_index(row);
             for &candidate in chunk {
                 if protection.judge(NodePair::new(row, candidate), config).hard {
                     protected += 1;
@@ -141,7 +141,7 @@ impl Corpus {
             .chunks_exact(probes.per_row.get())
             .enumerate()
         {
-            let mut partners = protection.row(NodeRowId::new(row as u64)).peekable();
+            let mut partners = protection.row(NodeRowId::from_index(row)).peekable();
             for &candidate in chunk {
                 while partners
                     .next_if(|entry| entry.partner.get() < candidate.get())

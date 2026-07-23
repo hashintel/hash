@@ -145,6 +145,7 @@ impl BitSet {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BitMatrix {
+    // NOTE: <A: Allocator = Global> (same with `BitSet`)
     /// `rows` rows of `stride` words.
     words: Box<[u64]>,
     rows: usize,

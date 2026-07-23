@@ -133,7 +133,7 @@ pub struct AssessOptions {
 pub struct Assessment {
     /// The assessed generation's identity, in directory-name form.
     pub generation: String,
-    /// Whether the report's gates hold.
+    /// Whether the report's thresholds hold.
     pub passes: bool,
     /// The full [`QualityReport`](super::report::QualityReport) as pretty-printed JSON.
     ///

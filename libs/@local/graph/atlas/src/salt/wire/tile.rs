@@ -23,7 +23,7 @@ use super::{Kind, Mode, cbor::CborWriter, envelope::EnvelopeWriter};
 use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
-    salt::postings::mapped::Membership,
+    salt::postings::artifact::Membership,
 };
 
 /// One tile response in writable form.

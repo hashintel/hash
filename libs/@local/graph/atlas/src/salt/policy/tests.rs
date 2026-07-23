@@ -50,6 +50,13 @@ fn posterior_accepts_a_distribution() {
 }
 
 #[test]
+fn posterior_accepts_negative_zero_components() {
+    let posterior =
+        Posterior::new([-0.0, 0.5, 0.5]).expect("negative zero compares equal to a legal zero");
+    assert_eq!(posterior.probability(GeometryClass::Coincident), 0.0);
+}
+
+#[test]
 fn posterior_rejects_non_distributions() {
     assert_eq!(Posterior::new([f64::NAN, 0.5, 0.5]), None);
     assert_eq!(Posterior::new([f64::INFINITY, 0.0, 0.0]), None);

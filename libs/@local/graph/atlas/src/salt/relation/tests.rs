@@ -565,7 +565,7 @@ fn option_constructors_reject_out_of_domain_settings() {
 }
 
 #[test]
-fn a_group_spanning_several_emission_chunks_matches_the_chain_reference() {
+fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
     // A chain 0 -> 1 -> ... -> n under one relation forces the group
     // through several fixed emission chunks: source runs cross chunk
     // boundaries, and every degree must still count the whole group.
@@ -589,7 +589,7 @@ fn a_group_spanning_several_emission_chunks_matches_the_chain_reference() {
     // Chain degrees: 1 at both ends, 2 everywhere else. Edge `k`
     // connects rows `k` and `k + 1`.
     for (position, edge) in edges.iter().enumerate() {
-        assert_eq!(edge.source, NodeRowId::new(position as u64));
+        assert_eq!(edge.source, NodeRowId::from_index(position));
         let left = if position == 0 { 2.0_f64 } else { 3.0 };
         let right = if position == nodes - 2 { 2.0_f64 } else { 3.0 };
         #[expect(
@@ -773,7 +773,7 @@ proptest! {
     miri,
     ignore = "whole-file mappings go through FFI Miri cannot execute"
 )]
-fn a_published_index_reopens_mapped() {
+fn published_index_reopens_mapped() {
     let dir =
         std::env::temp_dir().join(format!("hash-graph-atlas-relation-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
@@ -838,7 +838,7 @@ fn a_published_index_reopens_mapped() {
     miri,
     ignore = "whole-file mappings go through FFI Miri cannot execute"
 )]
-fn a_published_attraction_index_reopens_mapped() {
+fn published_attraction_index_reopens_mapped() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-attraction-{}",
         std::process::id(),
@@ -919,7 +919,7 @@ fn a_published_attraction_index_reopens_mapped() {
     clippy::little_endian_bytes,
     reason = "the corrupted fields are pinned to the format's canonical little-endian bytes"
 )]
-fn a_corrupted_attraction_file_names_its_broken_invariant() {
+fn corrupted_attraction_file_names_its_broken_invariant() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-attraction-corrupt-{}",
         std::process::id(),
@@ -1046,7 +1046,7 @@ fn multi(mut base: RelationInstance, multiplicity: u32) -> RelationInstance {
 }
 
 #[test]
-fn a_two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
+fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
     // One edge read under two relations at multiplicity 2 versus the
     // same two readings as independent single-typed edges: the mixture
     // halves each reading's mass, so the total is the mean. Every

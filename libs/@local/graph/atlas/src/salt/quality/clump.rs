@@ -8,8 +8,8 @@
 //!
 //! The kNN restriction is conservative: a group larger than the table's k connects only through
 //! chains of stored edges, so a true epsilon-ball component can split but never spuriously merge.
-//! For a release gate that is the safe direction - a split clump makes clump-granularity readings
-//! stricter.
+//! For a release verdict that is the safe direction - a split clump makes clump-granularity
+//! readings stricter.
 //!
 //! Epsilon is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it
 //! was pinned on, and the grouping is judged against measured corpus structure (group count,
@@ -66,6 +66,7 @@ impl Clumps {
     pub(crate) fn from_knn(table: &KnnView<'_>, epsilon: f32) -> Self {
         let rows = table.rows();
         let mut components = DisjointSet::new(rows);
+
         for row in 0..rows {
             for neighbour in table.row(row) {
                 if neighbour.distance <= epsilon {
@@ -83,6 +84,7 @@ impl Clumps {
         let mut labels = vec![0_u32; rows];
         let mut label_of = vec![u32::MAX; rows];
         let mut clumps = 0_u32;
+
         for (row, slot) in labels.iter_mut().enumerate() {
             #[expect(
                 clippy::cast_possible_truncation,
@@ -94,6 +96,7 @@ impl Clumps {
                 *label = clumps;
                 clumps += 1;
             }
+
             *slot = *label;
         }
 
@@ -109,6 +112,7 @@ impl Clumps {
         for &clump in &labels {
             sizes[clump as usize] += 1;
         }
+
         let groups = sizes.iter().filter(|&&size| size >= 2).count();
         let grouped_rows = sizes
             .iter()
@@ -139,6 +143,7 @@ impl Clumps {
                 label <= next,
                 "labels must be dense in first-row order: {label} appears before {next}",
             );
+
             if label == next {
                 next += 1;
             }

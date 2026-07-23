@@ -36,7 +36,7 @@ const LINK: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/l
 const YIELDS: &str = "https://hash.ai/@h/types/entity-type/yields/";
 
 #[test]
-fn the_shipped_shape_parses() {
+fn shipped_shape_parses() {
     let json = document(
         &[
             verdict("overlay", LINK, 1),
@@ -78,7 +78,7 @@ fn the_shipped_shape_parses() {
 }
 
 #[test]
-fn a_foreign_schema_is_rejected() {
+fn foreign_schema_is_rejected() {
     let json = document(&verdict("overlay", LINK, 1), "")
         .replace("atlas-reviewed-verdicts/1", "atlas-reviewed-verdicts/2");
 
@@ -162,7 +162,7 @@ fn unordered_and_duplicate_type_verdicts_are_rejected() {
 }
 
 #[test]
-fn a_repeated_versioned_url_is_rejected() {
+fn repeated_versioned_url_is_rejected() {
     // Distinct relation strings in ascending order, one reviewed
     // version: corpus corruption the ordering check cannot see.
     let json = document(
@@ -347,7 +347,7 @@ fn verdicts_without_a_store_identity_are_carried_as_evidence() {
 }
 
 #[test]
-fn an_empty_document_resolves_to_nothing() {
+fn empty_document_resolves_to_nothing() {
     let json = document("", "");
     let verdicts =
         ReviewedVerdicts::from_slice(json.as_bytes()).expect("an empty document conforms");

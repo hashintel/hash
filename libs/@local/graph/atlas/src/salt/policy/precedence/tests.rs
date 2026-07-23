@@ -34,7 +34,7 @@ fn relation(row: u64) -> OntologyRowId {
 }
 
 #[test]
-fn a_prediction_resolves_through_the_applicability_mix() {
+fn prediction_resolves_through_the_applicability_mix() {
     // Dyadic values: every product and narrowing below is exact.
     let policies = resolve(
         &[(
@@ -71,7 +71,7 @@ fn a_prediction_resolves_through_the_applicability_mix() {
 }
 
 #[test]
-fn an_unclassifiable_relation_falls_back_to_overlay() {
+fn unclassifiable_relation_falls_back_to_overlay() {
     let policies = resolve(
         &[(relation(3), Classification::Unclassified)],
         &[],

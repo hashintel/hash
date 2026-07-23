@@ -19,6 +19,7 @@
 
 use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
+    module::AutodiffModule as _,
     optim::{AdamConfig, GradientsParams, Optimizer as _},
     prelude::Backend,
 };
@@ -37,7 +38,7 @@ use crate::{
             model::{NodeRole, Projector},
             scale::LocalScales,
             train::{
-                BatchPlan, ObjectiveOptions,
+                BatchPlan, ObjectiveOptions, RUNGS,
                 batch::{Batch, BatchSampler, NodeColumns, Populations, SupportAnchor},
                 metrics::{BudgetBreakdown, DegreeDeciles},
                 step::Evaluation,
@@ -190,7 +191,7 @@ impl Sampler<'_> {
     pub fn draw(&self, seed: u64) -> Drawn<'_> {
         let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
         Drawn(self.sampler.draw(
-            1.0,
+            RUNGS[RUNGS.len() - 1],
             Some(&self.fixture.mined),
             &self.fixture.landmarks,
             &[],
@@ -211,7 +212,7 @@ pub struct Stepper<'fixture> {
 
 enum StepFlavor {
     Cpu(Box<Live<NdArray>>),
-    #[cfg(feature = "bench-gpu")]
+    #[cfg(all(feature = "bench", feature = "gpu"))]
     Metal(Box<Live<super::Gpu>>),
 }
 
@@ -234,7 +235,7 @@ impl<'fixture> Stepper<'fixture> {
             BackendKind::Cpu => {
                 StepFlavor::Cpu(Box::new(Live::build(NdArrayDevice::default(), seed)))
             }
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             BackendKind::Metal => StepFlavor::Metal(Box::new(Live::build(
                 burn::backend::wgpu::WgpuDevice::default(),
                 seed,
@@ -257,18 +258,36 @@ impl<'fixture> Stepper<'fixture> {
     pub fn input(&self, batch: &Assembled) {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.input(batch, &self.evaluation),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             StepFlavor::Metal(live) => live.input(batch, &self.evaluation),
         }
     }
 
     /// Runs the training-path forward (autodiff graph recorded), fenced by a scalar readback.
+    ///
+    /// The recorded graph is dropped unconsumed: no backward ever runs. On a pooled asynchronous
+    /// device a tight loop of these outruns buffer reclamation and exhausts memory, so the
+    /// decomposition phases are a synchronous-backend instrument; the production forward motion is
+    /// [`refresh`](Self::refresh).
     #[must_use]
     pub fn forward(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.forward(batch, &self.evaluation),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             StepFlavor::Metal(live) => live.forward(batch, &self.evaluation),
+        }
+    }
+
+    /// Runs the refresh forward on the plain backend, fenced by a scalar readback.
+    ///
+    /// No autodiff graph is recorded: this is the per-rung refresh motion as production performs
+    /// it, safe to loop on any backend.
+    #[must_use]
+    pub fn refresh(&self, batch: &Assembled) -> f32 {
+        match &self.flavor {
+            StepFlavor::Cpu(live) => live.refresh(batch, &self.evaluation),
+            #[cfg(all(feature = "bench", feature = "gpu"))]
+            StepFlavor::Metal(live) => live.refresh(batch, &self.evaluation),
         }
     }
 
@@ -280,7 +299,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn objective(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
             StepFlavor::Cpu(live) => live.objective(batch, &self.evaluation),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             StepFlavor::Metal(live) => live.objective(batch, &self.evaluation),
         }
     }
@@ -290,7 +309,7 @@ impl<'fixture> Stepper<'fixture> {
     pub fn step(&mut self, batch: &Assembled) -> f32 {
         match &mut self.flavor {
             StepFlavor::Cpu(live) => live.step(batch, &self.evaluation),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             StepFlavor::Metal(live) => live.step(batch, &self.evaluation),
         }
     }
@@ -301,8 +320,8 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         Self {
             model: Some(Projector::new(
                 ARCHITECTURE,
-                Xoshiro256PlusPlus::seed_from_u64(seed),
                 &device,
+                Xoshiro256PlusPlus::seed_from_u64(seed),
             )),
             optimizer: AdamConfig::new().with_epsilon(1.0e-8).init(),
             device,
@@ -322,6 +341,16 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         let input = batch
             .0
             .input::<Autodiff<B>>(evaluation.columns, &self.device);
+        model.forward(input).sum().into_scalar()
+    }
+
+    fn refresh(&self, batch: &Assembled, evaluation: &Evaluation<'_>) -> f32 {
+        let model = self
+            .model
+            .as_ref()
+            .expect("the model is always present")
+            .valid();
+        let input = batch.0.input::<B>(evaluation.columns, &self.device);
         model.forward(input).sum().into_scalar()
     }
 

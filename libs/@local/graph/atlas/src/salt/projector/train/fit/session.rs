@@ -71,7 +71,7 @@ pub(super) struct Training<B: AutodiffBackend<FloatElem = f32>> {
     pub evidence: TrainingEvidence,
 }
 
-/// Builds the trainer's optimizer.
+/// Builds a fresh trainer optimizer; every call constructs a new one, nothing is shared.
 ///
 /// One construction site keeps a resumed run's optimizer identical to the one the opening segment
 /// trained under.
@@ -81,10 +81,13 @@ pub(super) fn optimizer<B: AutodiffBackend<FloatElem = f32>>() -> TrainerOptimiz
 
 /// Builds the cosine scheduler a validated schedule describes.
 pub(super) fn scheduler(schedule: TrainingSchedule) -> CosineAnnealingLrScheduler {
-    CosineAnnealingLrSchedulerConfig::new(schedule.initial_learning_rate, schedule.steps.get())
-        .with_min_lr(schedule.minimum_learning_rate)
-        .init()
-        .expect("a validated schedule satisfies the scheduler's domain")
+    CosineAnnealingLrSchedulerConfig::new(
+        schedule.initial_learning_rate.get(),
+        schedule.steps.get(),
+    )
+    .with_min_lr(schedule.minimum_learning_rate.get())
+    .init()
+    .expect("a validated schedule satisfies the scheduler's domain")
 }
 
 /// The loop-invariant machinery of one run, derived from the inputs.
@@ -170,17 +173,16 @@ impl<'run> Session<'run> {
     /// the step index alone.
     pub(super) fn run<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
         &mut self,
-        training: Training<B>,
-        steps: Range<usize>,
-        rng: &mut R,
-        device: &B::Device,
-    ) -> Result<Training<B>, TrainError> {
-        let Training {
+        Training {
             mut model,
             mut optimizer,
             mut scheduler,
             mut evidence,
-        } = training;
+        }: Training<B>,
+        steps: Range<usize>,
+        rng: &mut R,
+        device: &B::Device,
+    ) -> Result<Training<B>, TrainError> {
         let schedule = self.options.schedule;
         let mut scales: Option<[LocalScales; RUNGS.len()]> = None;
         let mut mined: Option<MinedFrame> = None;
@@ -205,17 +207,18 @@ impl<'run> Session<'run> {
             )]
             if step_index == schedule.boundary || step_index % schedule.refresh_interval.get() == 0
             {
-                let with_scales = self.evaluation.options.relation.is_some();
                 let outcome = self.refresh.tick(
                     &model.valid(),
                     &self.evaluation.deciles,
-                    with_scales,
+                    self.evaluation.options.relation.is_some(),
                     device,
                 )?;
+
                 mined = Some(outcome.mined);
                 if let Some(tables) = outcome.scales {
                     scales = Some(tables);
                 }
+
                 evidence.telemetry.push(TickTelemetry {
                     step: step_index,
                     displacement: outcome.displacement,
@@ -292,10 +295,14 @@ fn draw_batch<R: Rng + ?Sized>(
         inputs.anchors,
         rng,
     );
+
     let batch_scales = if populations.relation.is_empty() {
         None
     } else {
-        Some(&scales.expect("relation draws happen only after a scale-bearing tick")[rung_index])
+        let scales = scales.unwrap_or_else(|| {
+            unreachable!("relation draws happen only after a scale-bearing tick")
+        });
+        Some(&scales[rung_index])
     };
 
     Batch::assemble(populations, batch_scales)
@@ -304,6 +311,9 @@ fn draw_batch<R: Rng + ?Sized>(
 /// Validates the corpus row domain and the boundary's structural admissibility.
 ///
 /// Returns whether the run is vacuous.
+///
+/// Runs once per training run, at session construction: the `O(rows)` domain scans sit before the
+/// step loop and no step re-enters admission.
 ///
 /// The decision whether the boundary can freeze a radius is structural: force, review coverage, and
 /// the presence of an opening segment to measure after are properties of the index, the verdicts,
@@ -342,9 +352,11 @@ fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, Tra
         if force.proximal && options.schedule.boundary == 0 {
             return Err(TrainError::UnbaselinedRadius);
         }
+
         if force.proximal && !reviewed_proximal_force(inputs.attraction, inputs.verdicts) {
             return Err(TrainError::MissingProximalReviews);
         }
+
         if force.coincident && !force.proximal {
             return Err(TrainError::CoincidentWithoutProximal);
         }
@@ -385,17 +397,17 @@ fn freeze_radius<B: AutodiffBackend<FloatElem = f32>>(
     let frame = refresh::forward(
         &model.valid(),
         inputs.columns,
-        RUNGS[0],
+        RUNGS[0].get(),
         options.forward_rows,
         device,
     )?;
-    let scales = refresh::scales(&frame, &inputs.knn, RUNGS[0])?;
+    let scales = refresh::scales(&frame, &inputs.knn, RUNGS[0].get())?;
     let calibration = calibrate(
         inputs.verdicts,
         inputs.attraction,
         &frame,
         &scales,
-        CalibrationOptions::new(options.plan.relation_cap, options.lens.epsilon)
+        CalibrationOptions::new(options.plan.relation_cap, options.lens.epsilon.get())
             .expect("a validated lens epsilon satisfies the calibration domain"),
     );
 
@@ -408,13 +420,17 @@ fn freeze_radius<B: AutodiffBackend<FloatElem = f32>>(
         (None, None) => return Err(TrainError::MissingProximalReviews),
     };
 
-    let proximal = ProximalEnergy::new(frozen, options.lens.temperature)
+    let proximal = ProximalEnergy::new(frozen, options.lens.temperature.get())
         .expect("a measured quantile of finite z values is finite and non-negative");
-    let energy = RelationEnergy::new(options.lens.coincident, proximal, options.lens.epsilon)
-        .ok_or_else(|| TrainError::DegenerateRadius {
-            radius: frozen,
-            coincident: options.lens.coincident.radius(),
-        })?;
+    let energy = RelationEnergy::new(
+        options.lens.coincident,
+        proximal,
+        options.lens.epsilon.get(),
+    )
+    .ok_or_else(|| TrainError::DegenerateRadius {
+        radius: frozen,
+        coincident: options.lens.coincident.radius(),
+    })?;
 
     Ok((
         Some(energy),
@@ -440,11 +456,13 @@ impl ForceClasses {
             proximal: false,
             coincident: false,
         };
+
         for group in index.groups().iter().filter(|group| exerts_force(group)) {
             let weights = group.weights();
             classes.proximal |= weights.proximal > 0.0;
             classes.coincident |= weights.coincident > 0.0;
         }
+
         classes
     }
 }

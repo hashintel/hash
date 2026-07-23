@@ -28,9 +28,12 @@ use burn::{
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use crate::salt::projector::{
-    model::{Architecture, ArchitectureMismatch, Projector, ProjectorRecord},
-    train::{BoundaryState, TrainerOptimizerRecord, TrainingSchedule},
+use crate::{
+    math::UnitFraction,
+    salt::projector::{
+        model::{Architecture, ArchitectureMismatch, Projector, ProjectorRecord},
+        train::{BoundaryState, TrainerOptimizerRecord, TrainingSchedule},
+    },
 };
 
 /// A checkpoint could not be written or opened.
@@ -117,23 +120,25 @@ struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
     refresh_interval: usize,
     initial_learning_rate: f64,
     minimum_learning_rate: f64,
-    // The generator's own state width: `state()` returns it and
-    // `from_seed` consumes it, so a wrong length is unrepresentable
-    // rather than a runtime rejection.
     generator: [u8; 32],
 }
 
 /// Writes the published model checkpoint.
 ///
+/// Consumes the model: recording moves the parameters into the record, so a caller keeping its
+/// model clones at the call site, where the copy is visible.
+///
 /// # Errors
 ///
 /// Returns an error when encoding or writing fails.
 pub(crate) fn write_model<B: Backend>(
-    model: &Projector<B>,
+    model: Projector<B>,
     writer: &mut impl io::Write,
 ) -> Result<(), CheckpointError> {
+    // Burn's "full" precision is f32 (as opposed to half); the model is f32 end to end, so the
+    // recorder round-trips the parameters exactly.
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let bytes = recorder.record(model.clone().into_record(), ())?;
+    let bytes = recorder.record(model.into_record(), ())?;
     writer.write_all(&bytes)?;
     Ok(())
 }
@@ -152,6 +157,7 @@ pub(crate) fn open_model<B: Backend>(
 ) -> Result<Projector<B>, CheckpointError> {
     let mut bytes = Vec::new();
     reader.read_to_end(&mut bytes)?;
+
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
     let record: ProjectorRecord<B> = recorder.load(bytes, device)?;
     Ok(Projector::from_record(architecture, record, device)?)
@@ -189,6 +195,7 @@ pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
     let bytes = recorder.record(record, ())?;
     writer.write_all(&bytes)?;
+
     Ok(())
 }
 
@@ -216,14 +223,12 @@ pub(crate) fn open_resume<B: AutodiffBackend<FloatElem = f32>>(
 
     let schedule = NonZero::new(record.steps)
         .zip(NonZero::new(record.refresh_interval))
-        .and_then(|(steps, refresh_interval)| {
-            TrainingSchedule::new(
-                steps,
-                record.boundary,
-                refresh_interval,
-                record.initial_learning_rate,
-                record.minimum_learning_rate,
-            )
+        .zip(
+            UnitFraction::new(record.initial_learning_rate)
+                .zip(UnitFraction::new(record.minimum_learning_rate)),
+        )
+        .and_then(|((steps, refresh_interval), (initial, minimum))| {
+            TrainingSchedule::new(steps, record.boundary, refresh_interval, initial, minimum)
         })
         .ok_or(CheckpointError::InvalidSchedule)?;
 

@@ -65,7 +65,17 @@ impl Positive {
 /// assert_eq!(NonNegative::new(-0.5), None);
 /// assert_eq!(NonNegative::new(f32::INFINITY), None);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    PartialOrd,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
 pub struct NonNegative(f32);
 
 impl NonNegative {
@@ -111,7 +121,17 @@ impl NonNegative {
 /// assert_eq!(UnitFraction::new(1.5), None);
 /// assert_eq!(UnitFraction::new(f64::NAN), None);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    PartialOrd,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
 pub struct UnitFraction(f64);
 
 impl UnitFraction {

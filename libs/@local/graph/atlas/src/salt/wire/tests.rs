@@ -26,7 +26,7 @@ use super::{
 use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
-    salt::postings::mapped::Membership,
+    salt::postings::artifact::Membership,
 };
 
 /// Reads slot `slot`'s directory entry from a finished response.
@@ -196,7 +196,7 @@ mod envelope {
     use super::{EnvelopeWriter, Kind, directory};
 
     #[test]
-    fn a_two_slot_envelope_lays_out_by_hand() {
+    fn two_slot_envelope_lays_out_by_hand() {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 2);
         envelope.present(&[0xAA, 0xBB, 0xCC]);
         envelope.absent();
@@ -236,7 +236,7 @@ mod envelope {
     }
 
     #[test]
-    fn the_trailer_follows_the_aligned_end_unpadded() {
+    fn trailer_follows_the_aligned_end_unpadded() {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 1);
         envelope.present(&[0x11, 0x22]);
         let bytes = envelope.finish_with_trailer(&[0xA0]);
@@ -355,7 +355,7 @@ mod tile {
     }
 
     #[test]
-    fn the_head_encodes_by_hand() {
+    fn head_encodes_by_hand() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<u32> = (0..12).collect();
         let ranges = [10_u32..12];
@@ -381,7 +381,7 @@ mod tile {
     }
 
     #[test]
-    fn the_global_map_encodes_by_hand() {
+    fn global_map_encodes_by_hand() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<u32> = (0..12).collect();
         let ranges = [10_u32..12];
@@ -522,7 +522,7 @@ mod tile {
     }
 
     #[test]
-    fn the_trailer_encodes_labels_and_icons() {
+    fn trailer_encodes_labels_and_icons() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<u32> = (0..12).collect();
         let ranges = [10_u32..12];
@@ -551,7 +551,7 @@ mod tile {
     }
 
     #[test]
-    fn a_zero_point_tile_is_present_empty() {
+    fn zero_point_tile_is_present_empty() {
         let positions: [Vec2; 0] = [];
         let rows: [u32; 0] = [];
         let ranges: [core::ops::Range<u32>; 0] = [];
@@ -625,7 +625,7 @@ mod edges {
     }
 
     #[test]
-    fn the_head_encodes_by_hand() {
+    fn head_encodes_by_hand() {
         let bytes = minimal().encode();
         assert_eq!(bytes[0..8], *b"SALTILEE");
 
@@ -659,7 +659,7 @@ mod edges {
     }
 
     #[test]
-    fn the_trailer_carries_the_link_columns() {
+    fn trailer_carries_the_link_columns() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: &["s", "t"],
@@ -683,7 +683,7 @@ mod edges {
     }
 
     #[test]
-    fn a_zero_edge_response_is_present_empty() {
+    fn zero_edge_response_is_present_empty() {
         let mut response = minimal();
         response.sources = &[];
         response.targets = &[];
@@ -806,7 +806,7 @@ mod locate {
     }
 
     #[test]
-    fn the_head_encodes_by_hand() {
+    fn head_encodes_by_hand() {
         let positions = points();
         let bytes = minimal(&positions).encode();
         assert_eq!(bytes[0..8], *b"SALTILEL");
@@ -891,7 +891,7 @@ mod locate {
     }
 
     #[test]
-    fn the_trailer_encodes_by_hand() {
+    fn trailer_encodes_by_hand() {
         let positions = points();
         let lists = [vec![1_u32, 0], Vec::new()];
         let mut response = minimal(&positions);
@@ -931,7 +931,7 @@ mod locate {
     }
 
     #[test]
-    fn a_source_only_response_is_present_empty_on_edges() {
+    fn source_only_response_is_present_empty_on_edges() {
         let positions = points();
         let mut response = minimal(&positions);
         response.delivered = &[1];

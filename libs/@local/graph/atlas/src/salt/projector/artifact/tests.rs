@@ -43,8 +43,8 @@ fn architecture() -> Architecture {
 fn model(seed: u64) -> Projector<TestBackend> {
     Projector::new(
         architecture(),
-        Xoshiro256PlusPlus::seed_from_u64(seed),
         &device(),
+        Xoshiro256PlusPlus::seed_from_u64(seed),
     )
 }
 
@@ -103,7 +103,7 @@ fn record_bytes(record: ResumeRecord<TestBackend>) -> Vec<u8> {
 fn model_checkpoint_round_trips_bit_exactly_across_backends() {
     let trained = model(7);
     let mut bytes = Vec::new();
-    write_model(&trained, &mut bytes).expect("the model checkpoint writes");
+    write_model(trained.clone(), &mut bytes).expect("the model checkpoint writes");
 
     let reopened = open_model::<NdArray>(bytes.as_slice(), architecture(), &device())
         .expect("the model checkpoint opens on the plain inference backend");
@@ -118,7 +118,7 @@ fn model_checkpoint_round_trips_bit_exactly_across_backends() {
 #[test]
 fn open_model_rejects_a_different_width() {
     let mut bytes = Vec::new();
-    write_model(&model(7), &mut bytes).expect("the model checkpoint writes");
+    write_model(model(7), &mut bytes).expect("the model checkpoint writes");
 
     let mut wider = architecture();
     wider.width = nonzero(16);
@@ -134,7 +134,7 @@ fn open_model_rejects_a_different_width() {
 #[test]
 fn open_model_rejects_a_different_depth_before_loading() {
     let mut bytes = Vec::new();
-    write_model(&model(7), &mut bytes).expect("the model checkpoint writes");
+    write_model(model(7), &mut bytes).expect("the model checkpoint writes");
 
     let mut deeper = architecture();
     deeper.residual_blocks = nonzero(3);
@@ -153,7 +153,7 @@ fn open_model_rejects_a_different_depth_before_loading() {
 #[test]
 fn open_model_rejects_truncated_bytes() {
     let mut bytes = Vec::new();
-    write_model(&model(7), &mut bytes).expect("the model checkpoint writes");
+    write_model(model(7), &mut bytes).expect("the model checkpoint writes");
     // A fixed prefix well inside the record: an incomplete file.
     bytes.truncate(100);
 

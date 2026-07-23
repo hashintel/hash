@@ -1,14 +1,14 @@
-//! The quality report: rendered probe evidence and release gates.
+//! The quality report: rendered probe evidence and its release verdict.
 //!
 //! [`assess`] turns one probe's readings into a flat, serializable record: every grid's overall
 //! metrics per neighbourhood size, per-subgroup readings on the primary grid, the subgroup flags
 //! the degradation rule raises, and the thresholds that were applied. The report is a rendering of
-//! [`ProbeReadings`] - regrouping or re-gating starts from the readings, never from the report.
+//! [`ProbeReadings`] - regrouping or re-assessment starts from the readings, never from the report.
 //!
 //! The primary fidelity surface is the corpus-exact map-versus-representation grid: it reads the
-//! projector's own placement without sampling noise, so gates bind there. The sampled grids provide
-//! context - the canonical triangle whose representation baseline the map's canonical reading is
-//! judged against - and are reported ungated.
+//! projector's own placement without sampling noise, so the pinned thresholds bind there. The
+//! sampled grids provide context - the canonical triangle whose representation baseline the map's
+//! canonical reading is judged against - and stay report-only.
 //!
 //! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
 //! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
@@ -34,7 +34,7 @@
 //!
 //! Metric floors default to unpinned: no verified map-fidelity numbers exist, a floor pins at the
 //! first full-scale calibration, and an invented floor
-//! would gate releases on fiction. A pinned floor is calibration evidence, and belongs in
+//! would rest release verdicts on fiction. A pinned floor is calibration evidence, and belongs in
 //! configuration next to the measurement that produced it.
 
 use alloc::collections::BTreeMap;
@@ -56,10 +56,10 @@ use crate::dataset::OntologyRowId;
 const DEFAULT_DEGRADATION_FACTOR: f64 = 2.0;
 const DEFAULT_MINIMUM_SUBGROUP_ANCHORS: usize = 8;
 
-/// Pinned gates for one assessment.
+/// Pinned thresholds for one assessment.
 ///
 /// Floors and ceilings apply to the corpus map-versus-representation grid at every neighbourhood
-/// size; [`None`] leaves a gate unpinned and the corresponding reading report-only.
+/// size; [`None`] leaves a threshold unpinned and the corresponding reading report-only.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct QualityThresholds {
     /// Minimum recall, in `[0, 1]`. Defaults to unpinned.
@@ -72,8 +72,8 @@ pub(crate) struct QualityThresholds {
     pub maximum_intrusion_rate: Option<f64> = None,
     /// Maximum density-distortion spread.
     ///
-    /// Defaults to unpinned. A pinned ceiling fails when the reading is absent - a gate on evidence
-    /// that was never produced is a configuration contradiction, surfaced at the verdict.
+    /// Defaults to unpinned. A pinned ceiling fails when the reading is absent - a demand for
+    /// evidence that was never produced is a configuration contradiction, surfaced at the verdict.
     pub maximum_density_spread: Option<f64> = None,
     /// Minimum map-versus-representation triplet agreement, in `[0, 1]`.
     ///
@@ -174,7 +174,7 @@ impl TripletRow {
         Self {
             triplets: merged.triplets(),
             preserved: merged.preserved(),
-            agreement: merged.agreement(),
+            agreement: merged.agreement().get(),
         }
     }
 }
@@ -305,7 +305,7 @@ pub(crate) struct QualityReport {
     pub comparisons: usize,
     /// Corpus map-versus-representation readings, per neighbourhood size.
     ///
-    /// The primary, gated surface.
+    /// The primary surface: the verdict binds here.
     pub map_representation: Vec<MetricRow>,
     /// The corpus reading collapsed onto clump ids and the grouping's shape.
     ///
@@ -319,7 +319,7 @@ pub(crate) struct QualityReport {
     pub sampled_representation_canonical: Vec<MetricRow>,
     /// Density-distortion readings, per neighbourhood size.
     pub density: Vec<DensityRow>,
-    /// Map-versus-representation triplet agreement: the gated pair.
+    /// Map-versus-representation triplet agreement: the verdict-bearing pair.
     pub triplet_map_representation: TripletRow,
     /// Map-versus-canonical triplet agreement.
     pub triplet_map_canonical: TripletRow,
@@ -352,7 +352,7 @@ pub(crate) struct QualityReport {
 }
 
 impl QualityReport {
-    /// Returns whether every pinned gate holds and no unresolved subgroup flag remains.
+    /// Returns whether every pinned threshold holds and no unresolved subgroup flag remains.
     ///
     /// A flagged subgroup fails the verdict unless its breach is clump-resolved - the
     /// triage rule records such a group as placed by clump, not degraded. The
@@ -360,7 +360,7 @@ impl QualityReport {
     /// report.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
-        let gates_hold = self.map_representation.iter().all(|row| {
+        let thresholds_hold = self.map_representation.iter().all(|row| {
             self.minimum_recall.is_none_or(|floor| row.recall >= floor)
                 && self
                     .minimum_trustworthiness
@@ -372,7 +372,7 @@ impl QualityReport {
                     .maximum_intrusion_rate
                     .is_none_or(|ceiling| row.intrusion_rate <= ceiling)
         });
-        // Pinned gates on absent readings fail: a gate demands the
+        // Pinned thresholds on absent readings fail: a pin demands the
         // evidence it was pinned on.
         let density_holds = self.maximum_density_spread.is_none_or(|ceiling| {
             !self.density.is_empty()
@@ -386,7 +386,7 @@ impl QualityReport {
                 && self.triplet_map_representation.agreement >= floor
         });
 
-        gates_hold
+        thresholds_hold
             && density_holds
             && triplets_hold
             && self.flags.iter().all(|flag| flag.clump_resolved)

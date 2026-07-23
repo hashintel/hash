@@ -6,19 +6,23 @@ use smallvec::SmallVec;
 
 use crate::{
     dataset::OntologyRowId,
-    file::{WriteInto, postings::write::write_regions},
+    file::{
+        WriteInto,
+        postings::write::{Regions, write_regions},
+    },
     integrity::{Sha256, Sha256Digest, Writer},
+    math::Log2,
 };
 
 /// Configuration of the postings representation split.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsConfig {
-    /// A type's membership goes dense when its member count exceeds `N >> dense_threshold_log2`.
+    /// A type's membership goes dense when its member count exceeds `N >> dense_threshold`.
     ///
     /// The default 5 (one in 32) is the size-equality point - one list entry costs 32 bitmap bits -
     /// so a dense run is never larger than the list it replaces; the word-parallel OR already wins
     /// work at half that density. At exact equality the list wins: it reads without bit decoding.
-    pub dense_threshold_log2: u8 = 5,
+    pub dense_threshold: Log2 = const { Log2::new(5).expect("5 lies below the shift width") }, // NOTE: please move into a constant that is bound, otherwise r-a gets fuzzy
 }
 
 const impl Default for PostingsConfig {
@@ -119,16 +123,18 @@ impl Postings {
         let mut counts = vec![0_u64; domain];
         for (row, list) in types.iter().enumerate() {
             for &id in list {
-                let type_row = in_domain(id, domain).ok_or_else(|| PostingsError::NodeType {
-                    row: u32::try_from(row).expect("the lod columns index rows by u32"),
-                    id: id.get(),
-                })?;
+                let type_row = id
+                    .index_below(domain)
+                    .ok_or_else(|| PostingsError::NodeType {
+                        row: u32::try_from(row).expect("the lod columns index rows by u32"),
+                        id: id.get(),
+                    })?;
                 counts[type_row] += 1;
             }
         }
 
         let dense_words = points.div_ceil(u64::from(u32::BITS));
-        let threshold = points >> config.dense_threshold_log2;
+        let threshold = points >> config.dense_threshold.get();
 
         let mut flags = vec![0_u64; domain.div_ceil(u64::BITS as usize)];
         let mut membership_posts = Vec::with_capacity(domain + 1);
@@ -141,6 +147,7 @@ impl Postings {
             } else {
                 total += count;
             }
+
             membership_posts.push(total);
         }
 
@@ -154,6 +161,7 @@ impl Postings {
             for &id in &types[row as usize] {
                 let type_row =
                     usize::try_from(id.get()).expect("the counting pass validated the domain");
+
                 if flags[type_row >> 6] & (1 << (type_row & 63)) != 0 {
                     let base = usize::try_from(membership_posts[type_row])
                         .expect("resident entries fit the address space");
@@ -180,13 +188,13 @@ impl Postings {
         })
     }
 
-    /// Measures the publish evidence over the finished regions.
+    /// Measures the finished regions for the generation metadata.
     ///
     /// The measurements the manifest records so the threshold knob is revised from data, not taste:
     /// how many types the split sent dense, and the region populations behind the artifact's size.
     #[must_use]
-    pub(crate) fn evidence(&self) -> PostingsEvidence {
-        PostingsEvidence {
+    pub(crate) fn measurements(&self) -> PostingsMeasurements {
+        PostingsMeasurements {
             types: self.membership_posts.len() as u64 - 1,
             dense_types: self
                 .flags
@@ -217,12 +225,14 @@ impl WriteInto for Postings {
         };
 
         write_regions(
-            self.points,
-            &self.flags,
-            &self.membership_posts,
-            &self.entries,
-            &self.parent_posts,
-            &self.parent_ids,
+            Regions {
+                points: self.points,
+                flags: &self.flags,
+                membership_posts: &self.membership_posts,
+                entries: &self.entries,
+                parent_posts: &self.parent_posts,
+                parent_ids: &self.parent_ids,
+            },
             &mut writer,
         )?;
 
@@ -230,11 +240,12 @@ impl WriteInto for Postings {
     }
 }
 
-/// The publish evidence of one postings build.
+/// The measurements of one postings build.
 ///
-/// Measurements the manifest records so the configuration is revised from data, not taste.
+/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
+/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct PostingsEvidence {
+pub(crate) struct PostingsMeasurements {
     /// Types in the domain.
     pub types: u64,
     /// Types whose membership went dense under the threshold.
@@ -259,19 +270,16 @@ fn parent_regions(
     let mut ids = Vec::new();
     for (type_row, list) in parents.iter().enumerate() {
         for &id in list {
-            let parent = in_domain(id, domain).ok_or_else(|| PostingsError::Parent {
-                type_row: u32::try_from(type_row).expect("type domains stay far below u32"),
-                id: id.get(),
-            })?;
+            let parent = id
+                .index_below(domain)
+                .ok_or_else(|| PostingsError::Parent {
+                    type_row: u32::try_from(type_row).expect("type domains stay far below u32"),
+                    id: id.get(),
+                })?;
             ids.push(u32::try_from(parent).expect("checked against the type domain"));
         }
         posts.push(ids.len() as u64);
     }
 
     Ok((posts, ids))
-}
-
-/// Returns `id` as a type-domain index, [`None`] when it lies outside the domain.
-fn in_domain(id: OntologyRowId, domain: usize) -> Option<usize> {
-    usize::try_from(id.get()).ok().filter(|&row| row < domain)
 }

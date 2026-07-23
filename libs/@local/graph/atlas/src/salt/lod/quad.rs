@@ -26,6 +26,7 @@
 
 use alloc::collections::BTreeSet;
 use core::ops::Range;
+use std::io;
 
 use smallvec::SmallVec;
 
@@ -33,9 +34,11 @@ use super::stage::{Lod, LodConfig};
 use crate::{
     dataset::OntologyRowId,
     file::{
+        WriteInto,
         morton::Fenceposts,
-        quad::{Node, TypeSets},
+        quad::{Node, TypeSets, write::write_regions},
     },
+    integrity::{Sha256, Sha256Digest, Writer},
     morton::{Depth, MortonCell, MortonKey},
 };
 
@@ -63,7 +66,7 @@ impl core::fmt::Display for QuadError {
                 fmt,
                 "the schedule needs {} + {} subdivisions where a 64-bit Morton key resolves {}",
                 config.max_tile_depth,
-                config.span_log2,
+                config.span.get(),
                 Depth::MAX.get(),
             ),
             Self::Columns { rows } => write!(
@@ -89,8 +92,8 @@ impl core::error::Error for QuadError {}
 /// The quadtree of one generation: the quad file's regions in writable form.
 ///
 /// Node 0 is the root; records are in depth-first pre-order with children in Morton child order, so
-/// every child index points deeper in the table. [`evidence`](Self::evidence) is measured from the
-/// finished tree and belongs in the generation's metadata document.
+/// every child index points deeper in the table. [`measurements`](Self::measurements) is measured
+/// from the finished tree and belongs in the generation's metadata document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct QuadTree {
     /// The node table in depth-first pre-order.
@@ -99,6 +102,30 @@ pub(crate) struct QuadTree {
     pub sets: TypeSets,
     /// The deepest node depth the tree reaches.
     pub depth: Depth,
+}
+
+impl WriteInto for QuadTree {
+    // NOTE: trait impl always after `impl T {` blocks
+    type Error = io::Error;
+
+    /// Writes the tree as a quad file.
+    ///
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the underlying writer fails.
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: write,
+        };
+
+        write_regions(&self.nodes, &self.sets, &mut writer)?;
+
+        Ok(writer.accumulator.finalize())
+    }
 }
 
 impl QuadTree {
@@ -154,7 +181,7 @@ impl QuadTree {
         let mut builder = Builder {
             codes: &lod.codes,
             position_types,
-            span_log2: config.span_log2,
+            span_log2: config.span.get(),
             deepest,
             nodes: Vec::new(),
             sets: Vec::new(),
@@ -171,10 +198,10 @@ impl QuadTree {
         })
     }
 
-    /// Measures the publish evidence over the finished tree.
+    /// Measures the finished tree for the generation metadata.
     #[must_use]
-    pub(crate) fn evidence(&self) -> QuadEvidence {
-        QuadEvidence {
+    pub(crate) fn measurements(&self) -> QuadMeasurements {
+        QuadMeasurements {
             nodes: self.nodes.len() as u64,
             leaves: self.nodes.iter().filter(|node| node.is_leaf()).count() as u64,
             depth: self.depth,
@@ -183,11 +210,12 @@ impl QuadTree {
     }
 }
 
-/// The publish evidence of one quadtree build.
+/// The measurements of one quadtree build.
 ///
-/// Measurements the manifest records so the configuration is revised from data, not taste.
+/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
+/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct QuadEvidence {
+pub(crate) struct QuadMeasurements {
     /// Nodes in the table.
     pub nodes: u64,
     /// Nodes without children.

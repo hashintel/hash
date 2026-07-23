@@ -163,10 +163,10 @@ pub(crate) fn resolve(
 ) -> Result<Vec<RelationPolicy>, ResolveError> {
     let mut ordered = classifications.to_vec();
     ordered.sort_unstable_by_key(|(relation, _)| relation.get());
-    if let Some(((duplicate, _), _)) = ordered
-        .iter()
-        .zip(ordered.iter().skip(1))
-        .find(|((left, _), (right, _))| left.get() == right.get())
+
+    if let Some([(duplicate, _), _]) = ordered
+        .array_windows::<2>()
+        .find(|[(left, _), (right, _)]| left.get() == right.get())
     {
         return Err(ResolveError::DuplicateRelation {
             relation: *duplicate,

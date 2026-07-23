@@ -14,7 +14,7 @@ use crate::{
     salt::{
         adjacency::InvalidAdjacencyFile,
         fit::prepare::identity::InvalidIdentityFile,
-        postings::{closure::ParentCycle, mapped::InvalidPostingsFile},
+        postings::{artifact::InvalidPostingsFile, closure::ParentCycle},
     },
 };
 

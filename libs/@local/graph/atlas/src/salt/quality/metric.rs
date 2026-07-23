@@ -24,10 +24,6 @@
 //! excesses are largest when the false neighbours occupy the ordering's final `k` positions. Over a
 //! universe of `m = n - 1` non-self points this reduces to the Venna-Kaski normalization `2 / (n k
 //! (2n - 3k - 1))`.
-//!
-//! [`rank_correlation`] is Spearman's rho between two distance profiles - the landmark
-//! rank-correlation reading - computed without tie correction, which is exact whenever the profiles
-//! carry no equal distances.
 #![expect(
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation,
@@ -38,6 +34,10 @@
     clippy::min_ident_chars,
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
+
+use core::num::NonZero;
+
+use crate::math::UnitFraction;
 
 /// Reusable inverse-rank buffers for one comparison universe.
 ///
@@ -84,7 +84,7 @@ impl NeighbourhoodAggregate {
     /// neighbourhood size; `horizon` the 1-based rank beyond which a false neighbour counts as an
     /// intrusion or extrusion rather than a reshuffle.
     ///
-    /// Returns [`None`] unless `0 < k <= universe / 2` (the trustworthiness normalizer is positive
+    /// Returns [`None`] unless `k <= universe / 2` (the trustworthiness normalizer is positive
     /// on this domain) and `k <= horizon <= universe`.
     #[expect(
         clippy::integer_division,
@@ -92,8 +92,9 @@ impl NeighbourhoodAggregate {
         reason = "the k bound is deliberately the floor of half the universe"
     )]
     #[must_use]
-    pub(crate) const fn new(universe: usize, k: usize, horizon: usize) -> Option<Self> {
-        if k == 0 || k > universe / 2 {
+    pub(crate) const fn new(universe: usize, k: NonZero<usize>, horizon: usize) -> Option<Self> {
+        let k = k.get();
+        if k > universe / 2 {
             return None;
         }
 
@@ -201,10 +202,12 @@ impl NeighbourhoodAggregate {
                 reference_position < self.universe,
                 "a rank must name a position inside the universe",
             );
+
             if reference_position < self.k {
                 self.shared += 1;
                 continue;
             }
+
             self.trust_penalty += (reference_position - self.k + 1) as u64;
             if reference_position >= self.horizon {
                 self.intrusions += 1;
@@ -385,65 +388,17 @@ impl TripletAggregate {
         self.preserved
     }
 
-    /// Returns the preserved fraction, in `[0, 1]`; an empty aggregate reads 1.
+    /// Returns the preserved fraction; an empty aggregate reads one.
     #[must_use]
-    pub(crate) fn agreement(&self) -> f64 {
+    pub(crate) fn agreement(&self) -> UnitFraction {
         if self.triplets == 0 {
-            return 1.0;
+            return UnitFraction::ONE;
         }
 
-        self.preserved as f64 / self.triplets as f64
+        // Preservation only ever counts a subset of the observed triplets,
+        // so the ratio lies in [0, 1] by construction.
+        // NOTE: doesn't this function need to be unsafe, considering that the type literally
+        // ensures this, I guess not because it's not strictly memory unsafe?
+        UnitFraction::new_unchecked(self.preserved as f64 / self.triplets as f64)
     }
-}
-
-/// Computes Spearman's rho between two distance profiles.
-///
-/// Both slices measure the same points from one query in two spaces; the result is the Pearson
-/// correlation of their rank sequences, in `[-1, 1]`. Ranks are assigned by sort order without tie
-/// averaging, exact whenever each profile's distances are pairwise distinct; profiles shorter than
-/// two points return 0, carrying no order information.
-///
-/// # Panics
-///
-/// Panics when the slices differ in length.
-#[must_use]
-pub(crate) fn rank_correlation(reference: &[f32], map: &[f32]) -> f64 {
-    assert_eq!(
-        reference.len(),
-        map.len(),
-        "the profiles must measure the same points",
-    );
-    let count = reference.len();
-    if count < 2 {
-        return 0.0;
-    }
-
-    let ranks = |distances: &[f32]| {
-        let mut order: Vec<u32> = (0..count as u32).collect();
-        order.sort_unstable_by(|&one, &other| {
-            distances[one as usize].total_cmp(&distances[other as usize])
-        });
-
-        let mut rank = vec![0_u32; count];
-        for (position, &point) in order.iter().enumerate() {
-            rank[point as usize] = position as u32;
-        }
-
-        rank
-    };
-    let reference_ranks = ranks(reference);
-    let map_ranks = ranks(map);
-
-    // Untied ranks make the Pearson form exact as the classic
-    // 1 - 6 sum(d^2) / (n (n^2 - 1)).
-    let squared_differences: u64 = reference_ranks
-        .iter()
-        .zip(&map_ranks)
-        .map(|(&one, &other)| {
-            let difference = (i64::from(one) - i64::from(other)).unsigned_abs();
-            difference * difference
-        })
-        .sum();
-    let count = count as u64;
-    1.0 - (6 * squared_differences) as f64 / (count * (count * count - 1)) as f64
 }

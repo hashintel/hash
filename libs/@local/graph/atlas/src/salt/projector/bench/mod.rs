@@ -27,7 +27,7 @@ pub mod live;
 mod tests;
 
 /// The default architecture every measurement runs at.
-const ARCHITECTURE: Architecture = Architecture { .. };
+const ARCHITECTURE: Architecture = Architecture::default();
 
 /// The CPU backend under measurement.
 type Cpu = NdArray;
@@ -36,7 +36,7 @@ type Cpu = NdArray;
 ///
 /// Burn's `CubeCL` `wgpu` runtime compiling to MSL, with fusion enabled - the configuration a GPU
 /// deployment would run.
-#[cfg(feature = "bench-gpu")]
+#[cfg(all(feature = "bench", feature = "gpu"))]
 type Gpu = burn::backend::Metal;
 
 /// One synthesized batch at the trainer's input shape.
@@ -55,8 +55,8 @@ pub struct Batch {
 pub enum BackendKind {
     /// The CPU backend, burn's ndarray.
     Cpu,
-    /// The Metal GPU backend, available behind the `bench-gpu` feature.
-    #[cfg(feature = "bench-gpu")]
+    /// The Metal GPU backend, available behind the `bench` and `gpu` features together.
+    #[cfg(all(feature = "bench", feature = "gpu"))]
     Metal,
 }
 
@@ -64,7 +64,7 @@ impl BackendKind {
     /// Every flavor this build can run.
     pub const ALL: &[Self] = &[
         Self::Cpu,
-        #[cfg(feature = "bench-gpu")]
+        #[cfg(all(feature = "bench", feature = "gpu"))]
         Self::Metal,
     ];
 
@@ -73,7 +73,7 @@ impl BackendKind {
     pub const fn label(self) -> &'static str {
         match self {
             Self::Cpu => "cpu",
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             Self::Metal => "metal",
         }
     }
@@ -90,7 +90,7 @@ pub struct Model(Flavor);
 // inline (megabytes), a GPU pair holds device handles.
 enum Flavor {
     Cpu(Box<Pair<Cpu>>),
-    #[cfg(feature = "bench-gpu")]
+    #[cfg(all(feature = "bench", feature = "gpu"))]
     Metal(Box<Pair<Gpu>>),
 }
 
@@ -175,7 +175,7 @@ impl Model {
                 NdArrayDevice::default(),
                 seed,
             )))),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             BackendKind::Metal => Self(Flavor::Metal(Box::new(Pair::build::<R>(
                 burn::backend::wgpu::WgpuDevice::default(),
                 seed,
@@ -191,7 +191,7 @@ impl Model {
     pub fn forward(&self, batch: &Batch) -> f32 {
         match &self.0 {
             Flavor::Cpu(pair) => pair.forward(batch),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             Flavor::Metal(pair) => pair.forward(batch),
         }
     }
@@ -205,7 +205,7 @@ impl Model {
     pub fn forward_backward(&self, batch: &Batch) -> f32 {
         match &self.0 {
             Flavor::Cpu(pair) => pair.forward_backward(batch),
-            #[cfg(feature = "bench-gpu")]
+            #[cfg(all(feature = "bench", feature = "gpu"))]
             Flavor::Metal(pair) => pair.forward_backward(batch),
         }
     }
@@ -217,8 +217,8 @@ impl<B: Backend<FloatElem = f32>> Pair<B> {
         R: Rng + SeedableRng,
     {
         Self {
-            projector: Projector::new(ARCHITECTURE, R::seed_from_u64(seed), &device),
-            trained: Projector::new(ARCHITECTURE, R::seed_from_u64(seed), &device),
+            projector: Projector::new(ARCHITECTURE, &device, R::seed_from_u64(seed)),
+            trained: Projector::new(ARCHITECTURE, &device, R::seed_from_u64(seed)),
             device,
         }
     }

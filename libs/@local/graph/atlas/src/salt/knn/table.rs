@@ -269,9 +269,21 @@ impl Knn {
             })?;
 
         let indptr: Vec<u64> = (0..=rows).map(|row| (row * neighbours) as u64).collect();
-        let matrix = KnnMatrix::try_new((rows, rows), indptr, indices, distances)
-            .map_err(|(_, _, _, error)| error)
-            .expect("per-row validation establishes the compressed structure");
+        // SAFETY: The compressed structure holds by construction. `indptr` is the uniform
+        // `row * neighbours` ramp - `rows + 1` entries, non-decreasing, ending at the index
+        // and distance lengths - and the per-row pass above wrote every row's indices
+        // strictly ascending (sorted by id, adjacent equals rejected as duplicates) and
+        // below `rows` (out-of-bounds rejected). These are exactly the properties
+        // `check_compressed_structure` verifies.
+        let matrix = unsafe {
+            KnnMatrix::new_unchecked(
+                sprs::CompressedStorage::CSR,
+                (rows, rows),
+                indptr,
+                indices,
+                distances,
+            )
+        };
 
         Ok(Self::new(matrix)?)
     }

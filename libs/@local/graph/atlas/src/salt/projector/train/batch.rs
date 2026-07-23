@@ -28,7 +28,7 @@ use rand::Rng;
 use super::BatchPlan;
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::{AlignedVecN, Vec2},
+    math::{AlignedVecN, NonNegative, Vec2},
     random::sample_indices_vec,
     salt::{
         projector::{
@@ -114,7 +114,7 @@ pub(crate) struct Populations<'index, A: Allocator = Global> {
     /// Anchor pool size over drawn anchors.
     pub anchor_scale: f32,
     /// The step's relation-lens rung.
-    pub eta: f32,
+    pub eta: NonNegative,
 }
 
 /// The per-step population sampler over the built artifacts.
@@ -175,11 +175,11 @@ impl<'view> BatchSampler<'view> {
     ///
     /// # Panics
     ///
-    /// Panics when `eta` is negative or non-finite, or when the mined frame's row domain disagrees
-    /// with the artifacts'; both come from one training run, so a mismatch is a wiring defect.
+    /// Panics when the mined frame's row domain disagrees with the artifacts'; both come from one
+    /// training run, so a mismatch is a wiring defect.
     pub(crate) fn draw(
         &self,
-        eta: f32,
+        eta: NonNegative,
         mined: Option<&MinedFrame>,
         landmarks: &[SupportAnchor],
         anchors: &[SupportAnchor],
@@ -192,24 +192,24 @@ impl<'view> BatchSampler<'view> {
     ///
     /// The population vectors land in `alloc`; sampler-internal scratch stays global. Contract
     /// and panics as in [`BatchSampler::draw`].
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "draw counts and pool sizes stay far below f32's exact-integer range for ratio \
+                  purposes"
+    )]
     pub(crate) fn draw_in<A: Allocator + Clone>(
         &self,
-        eta: f32,
+        eta: NonNegative,
         mined: Option<&MinedFrame>,
         landmarks: &[SupportAnchor],
         anchors: &[SupportAnchor],
         rng: &mut (impl Rng + ?Sized),
         alloc: A,
     ) -> Populations<'view, A> {
-        assert!(
-            eta.is_finite() && eta >= 0.0,
-            "the relation lens rung should be finite and non-negative"
-        );
-
         let semantic =
             self.semantic
                 .sample_in(self.plan.semantic_pairs.get(), &mut *rng, alloc.clone());
-        let semantic_scale = self.semantic.total_weight() / count(semantic.len());
+        let semantic_scale = self.semantic.total_weight() / semantic.len() as f32;
 
         let ordinary = self
             .ordinary
@@ -217,12 +217,12 @@ impl<'view> BatchSampler<'view> {
         let ordinary_scale = if ordinary.is_empty() {
             0.0
         } else {
-            self.semantic.total_weight() / count(ordinary.len())
+            self.semantic.total_weight() / ordinary.len() as f32
         };
 
         let (hard, hard_scale) = self.draw_hard_in(mined, &mut *rng, alloc.clone());
 
-        let (relation, relation_scale) = if eta > 0.0 && self.plan.relation_types != 0 {
+        let (relation, relation_scale) = if eta.get() > 0.0 && self.plan.relation_types != 0 {
             let drawn = self.relation.sample_in(
                 self.plan.relation_types,
                 self.plan.relation_cap,
@@ -232,7 +232,7 @@ impl<'view> BatchSampler<'view> {
             if drawn.is_empty() {
                 (drawn, 0.0)
             } else {
-                let scale = count(self.groups) / count(drawn.len());
+                let scale = self.groups as f32 / drawn.len() as f32;
                 (drawn, scale)
             }
         } else {
@@ -266,6 +266,10 @@ impl<'view> BatchSampler<'view> {
     }
 
     /// Draws query rows and collects their pooled mined pairs in `alloc`.
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "row and query counts stay far below f32's exact-integer range for ratio purposes"
+    )]
     fn draw_hard_in<A: Allocator>(
         &self,
         mined: Option<&MinedFrame>,
@@ -293,11 +297,15 @@ impl<'view> BatchSampler<'view> {
             pairs.extend(frame.row(query));
         }
 
-        (pairs, count(self.rows) / count(queries))
+        (pairs, self.rows as f32 / queries as f32)
     }
 }
 
 /// Draws a uniform support subset in `alloc`, with its pool-over-drawn scale.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "pool sizes stay far below f32's exact-integer range for ratio purposes"
+)]
 fn draw_support_in<A: Allocator>(
     pool: &[SupportAnchor],
     requested: usize,
@@ -316,17 +324,8 @@ fn draw_support_in<A: Allocator>(
             .into_iter()
             .map(|index| pool[index]),
     );
-    (drawn, count(pool.len()) / count(take))
-}
 
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "draw counts and row counts stay far below f32's exact-integer range for ratio \
-              purposes"
-)]
-#[inline]
-const fn count(value: usize) -> f32 {
-    value as f32
+    (drawn, pool.len() as f32 / take as f32)
 }
 
 /// The per-row model input columns of one corpus.
@@ -382,7 +381,7 @@ pub(crate) struct Batch<A: Allocator = Global> {
     /// Present exactly when relation edges are.
     pub scales: Option<LocalScales>,
     /// The step's relation-lens rung.
-    pub eta: f32,
+    pub eta: NonNegative,
 }
 
 impl Batch {
@@ -426,24 +425,28 @@ impl<A: Allocator> Batch<A> {
         for pair in populations.semantic.iter().chain(&populations.ordinary) {
             rows.extend([pair.first(), pair.second()]);
         }
+
         for (pair, _) in &populations.hard {
             rows.extend([pair.first(), pair.second()]);
         }
+
         for sampled in &populations.relation {
             for edge in &sampled.edges {
                 rows.extend([edge.source, edge.target]);
             }
         }
+
         for anchor in populations.landmarks.iter().chain(&populations.anchors) {
             rows.push(anchor.row);
         }
-        rows.sort_unstable_by_key(|row| row.get());
+        rows.sort_unstable();
         rows.dedup();
 
         let local = |id: NodeRowId| {
             let position = rows
-                .binary_search_by_key(&id.get(), |row| row.get())
+                .binary_search(&id)
                 .expect("every re-indexed row was collected above");
+
             BatchRowId::new(u32::try_from(position).expect("batch positions fit the u32 encoding"))
         };
 
@@ -454,6 +457,7 @@ impl<A: Allocator> Batch<A> {
                 .iter()
                 .map(|pair| BatchPair::new(local(pair.first()), local(pair.second()))),
         );
+
         let mut ordinary = Vec::with_capacity_in(populations.ordinary.len(), alloc.clone());
         ordinary.extend(
             populations
@@ -461,6 +465,7 @@ impl<A: Allocator> Batch<A> {
                 .iter()
                 .map(|pair| BatchPair::new(local(pair.first()), local(pair.second()))),
         );
+
         let mut hard = Vec::with_capacity_in(populations.hard.len(), alloc.clone());
         hard.extend(populations.hard.iter().map(|&(pair, weight)| {
             (
@@ -468,6 +473,7 @@ impl<A: Allocator> Batch<A> {
                 weight,
             )
         }));
+
         let mut relation = Vec::with_capacity_in(populations.relation.len(), alloc.clone());
         relation.extend(populations.relation.into_iter().map(|sampled| {
             BatchRelationEdges {
@@ -492,6 +498,7 @@ impl<A: Allocator> Batch<A> {
             radius: anchor.radius,
             weight: anchor.weight,
         };
+
         let mut landmarks = Vec::with_capacity_in(populations.landmarks.len(), alloc.clone());
         landmarks.extend(populations.landmarks.iter().map(localize));
         let mut anchors = Vec::with_capacity_in(populations.anchors.len(), alloc);
@@ -576,10 +583,12 @@ impl<A: Allocator> Batch<A> {
         let padded = rows.next_multiple_of(alignment.get());
         let mut representation = Vec::with_capacity(padded * PROJECTOR_DIMENSIONS);
         let mut role_values = Vec::with_capacity(padded);
+
         for row in &self.rows {
             representation.extend_from_slice(columns.representations[row.usize()].as_array());
             role_values.push(i64::from(columns.roles[row.usize()].index()));
         }
+
         if let Some(last) = self.rows.last() {
             let pattern = columns.representations[last.usize()].as_array();
             let role = i64::from(columns.roles[last.usize()].index());
@@ -596,7 +605,7 @@ impl<A: Allocator> Batch<A> {
             ),
             roles: Tensor::<B, 1, Int>::from_data(TensorData::new(role_values, [padded]), device),
             condition: Tensor::from_data(
-                TensorData::new(vec![self.eta; padded], [padded, 1]),
+                TensorData::new(vec![self.eta.get(); padded], [padded, 1]),
                 device,
             ),
         }

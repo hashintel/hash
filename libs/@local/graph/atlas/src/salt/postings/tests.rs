@@ -6,16 +6,20 @@ use proptest::{prop_assert_eq, proptest};
 use smallvec::{SmallVec, smallvec};
 
 use super::{
+    artifact::{InvalidPostingsFile, Membership, PostingsArchive},
     build::{Postings, PostingsConfig, PostingsError},
     closure::ClosureMap,
-    mapped::{InvalidPostingsFile, Membership, PostingsArchive},
 };
 use crate::{
     dataset::OntologyRowId,
     file::{
         WriteInto as _,
-        postings::{read::PostingsFile, write::write_regions},
+        postings::{
+            read::PostingsFile,
+            write::{Regions, write_regions},
+        },
     },
+    math::Log2,
 };
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -56,11 +60,11 @@ fn fixture_parents() -> Vec<SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
 
-/// The fixture's split at `dense_threshold_log2 = 2` (threshold 2).
+/// The fixture's split at `dense_threshold = 2` (threshold 2).
 ///
 /// Types 0 (count 4) and 2 (count 3) go dense, types 1 and 3 stay lists.
 const FIXTURE_CONFIG: PostingsConfig = PostingsConfig {
-    dense_threshold_log2: 2,
+    dense_threshold: const { Log2::new(2).expect("2 lies below the shift width") }, /* NOTE: move into constant, that is then assigned here (r-a) */
 };
 
 fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive {
@@ -80,7 +84,7 @@ fn collect(membership: &Membership<'_>, range: core::ops::Range<u32>) -> Vec<u32
 }
 
 #[test]
-fn the_build_matches_the_hand_computed_runs() {
+fn build_matches_the_hand_computed_runs() {
     let dir = scratch("hand-computed");
     let postings = Postings::build(
         &fixture_types(),
@@ -185,7 +189,7 @@ fn evidence_counts_the_split() {
     )
     .expect("the fixture stays in domain");
 
-    let evidence = postings.evidence();
+    let evidence = postings.measurements();
     assert_eq!(evidence.types, 4);
     assert_eq!(evidence.dense_types, 2, "types 0 and 2 went dense");
     // Two dense words plus the two list entries of type 1.
@@ -245,27 +249,10 @@ fn empty_domains_roundtrip() {
 }
 
 /// Writes raw regions and returns the error their opening surfaces.
-fn open_invalid(
-    path: impl AsRef<camino::Utf8Path>,
-    points: u64,
-    flags: &[u64],
-    membership_posts: &[u64],
-    entries: &[u32],
-    parent_posts: &[u64],
-    parent_ids: &[u32],
-) -> InvalidPostingsFile {
+fn open_invalid(path: impl AsRef<camino::Utf8Path>, regions: Regions<'_>) -> InvalidPostingsFile {
     let path = path.as_ref();
     let mut file = fs::File::create(path).expect("the fixture file should create");
-    write_regions(
-        points,
-        flags,
-        membership_posts,
-        entries,
-        parent_posts,
-        parent_ids,
-        &mut file,
-    )
-    .expect("the regions should write");
+    write_regions(regions, &mut file).expect("the regions should write");
     drop(file);
 
     PostingsArchive::new(PostingsFile::open(path).expect("the fixture file should open"))
@@ -276,7 +263,17 @@ fn open_invalid(
 fn open_rejects_membership_violations() {
     let dir = scratch("membership-rejections");
     let open = |name: &str, points: u64, flags: &[u64], posts: &[u64], entries: &[u32]| {
-        open_invalid(dir.join(name), points, flags, posts, entries, &[0, 0], &[])
+        open_invalid(
+            dir.join(name),
+            Regions {
+                points,
+                flags,
+                membership_posts: posts,
+                entries,
+                parent_posts: &[0, 0],
+                parent_ids: &[],
+            },
+        )
     };
 
     // A flags bit beyond the single type.
@@ -293,12 +290,14 @@ fn open_rejects_membership_violations() {
     assert_eq!(
         open_invalid(
             dir.join("posts-order.post"),
-            4,
-            &[0],
-            &[0, 2, 1],
-            &[0],
-            &[0, 0, 0],
-            &[],
+            Regions {
+                points: 4,
+                flags: &[0],
+                membership_posts: &[0, 2, 1],
+                entries: &[0],
+                parent_posts: &[0, 0, 0],
+                parent_ids: &[],
+            },
         ),
         InvalidPostingsFile::MembershipPosts { position: 2 },
     );
@@ -333,12 +332,14 @@ fn open_rejects_parent_violations() {
     let open = |name: &str, parent_posts: &[u64], parent_ids: &[u32]| {
         open_invalid(
             dir.join(name),
-            4,
-            &[0],
-            &[0, 0, 0],
-            &[],
-            parent_posts,
-            parent_ids,
+            Regions {
+                points: 4,
+                flags: &[0],
+                membership_posts: &[0, 0, 0],
+                entries: &[],
+                parent_posts,
+                parent_ids,
+            },
         )
     };
 
@@ -457,7 +458,10 @@ proptest! {
             &rows,
             &row_of_position,
             &parents,
-            PostingsConfig { dense_threshold_log2: threshold_log2 },
+            PostingsConfig {
+                dense_threshold: Log2::new(threshold_log2)
+                    .expect("the strategy draws below the shift width"),
+            },
         )
         .expect("generated rows stay in domain");
 

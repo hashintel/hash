@@ -589,6 +589,9 @@ struct Document {
 /// A validated annotation-corpus document.
 ///
 /// Construction checks the whole wire contract; see the module documentation for the clauses.
+/// The manifest pins the document by the SHA-256 of exactly the supplied bytes, whatever the
+/// format; JSON-vs-columnar for the corpus and verdict documents is an open format decision on
+/// the supply boundary, not a property of this type.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct AnnotationCorpus {
     cards: Vec<Card>,
@@ -877,11 +880,11 @@ fn validate_votes(index: usize, votes: &[Vote]) -> Result<(), InvalidAnnotationC
 
 /// Returns whether `text` carries a URL scheme or a UUID-shaped token.
 fn contains_identifier(text: &str) -> bool {
-    text.contains("://") || text.as_bytes().windows(36).any(is_uuid_shape)
+    text.contains("://") || text.as_bytes().array_windows::<36>().any(is_uuid_shape)
 }
 
 /// Returns whether a 36-byte window has the 8-4-4-4-12 hex shape.
-fn is_uuid_shape(window: &[u8]) -> bool {
+fn is_uuid_shape(window: &[u8; 36]) -> bool {
     window.iter().enumerate().all(|(position, &byte)| {
         if matches!(position, 8 | 13 | 18 | 23) {
             byte == b'-'

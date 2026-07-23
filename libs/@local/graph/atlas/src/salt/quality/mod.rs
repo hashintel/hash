@@ -24,6 +24,7 @@
 #[cfg(feature = "bench")]
 pub mod bench;
 pub(crate) mod clump;
+pub(crate) mod error;
 pub(crate) mod metric;
 pub(crate) mod probe;
 pub(crate) mod report;

@@ -36,6 +36,10 @@ pub(crate) fn buckets(keys: &[MortonKey], ranking: &Ranking, deepest: Depth) -> 
     let mut unassigned: Vec<u32> = ranking.row_of_rank.to_vec();
     let mut assigned: Vec<u32> = Vec::new();
 
+    // Hash sets, not bit sets: the elements are `prefix(depth)` keys, whose domain is `4^depth`
+    // cells - exponentially larger than the row count from depth ~10 on - while the populated
+    // cells stay bounded by the rows. A bitmap over the cell domain would allocate the exponent;
+    // the sets only pay for what the cascade touches.
     let mut represented = HashSet::new();
     let mut claimed = HashSet::new();
 

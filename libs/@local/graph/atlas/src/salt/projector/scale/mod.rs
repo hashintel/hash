@@ -17,7 +17,10 @@ use core::{error::Error, fmt};
 
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
-use crate::{math::Vec2, salt::knn::table::KnnView};
+use crate::{
+    math::{NonNegative, Vec2},
+    salt::knn::table::KnnView,
+};
 
 /// Neighbours contributing to one node's local scale.
 ///
@@ -58,9 +61,11 @@ impl LocalScales {
     /// Returns [`None`] when any value is non-finite or negative.
     #[must_use]
     pub(crate) fn new(scales: Box<[f32]>) -> Option<Self> {
+        // NOTE: why? Why not just use `NonNegative`, you can `transmute` between them using
+        // zerocopy if needed.
         scales
             .iter()
-            .all(|scale| scale.is_finite() && *scale >= 0.0)
+            .all(|scale| NonNegative::new(*scale).is_some())
             .then_some(Self(scales))
     }
 

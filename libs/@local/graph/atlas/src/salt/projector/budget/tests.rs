@@ -262,7 +262,7 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
         condition_dimensions: 1.try_into().expect("1 is nonzero"),
     };
     let model =
-        Projector::<TestBackend>::new(architecture, Xoshiro256PlusPlus::seed_from_u64(11), &device)
+        Projector::<TestBackend>::new(architecture, &device, Xoshiro256PlusPlus::seed_from_u64(11))
             .map(&mut Perturb);
 
     let representation = || {

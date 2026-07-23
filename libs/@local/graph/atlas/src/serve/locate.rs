@@ -129,7 +129,7 @@ impl Atlas {
     /// Returns the first zoom whose cumulative schedule delivers a base position.
     fn first_visible_zoom(&self, position: u32) -> u8 {
         // The position's fencepost segment is its morton bucket; the
-        // cumulative cut rule (bucket <= z + span_log2) then answers
+        // cumulative cut rule (bucket <= z + span) then answers
         // the first delivering zoom.
         let bucket = (0..=Depth::MAX.get())
             .find(|&bucket| {
@@ -140,7 +140,7 @@ impl Atlas {
             })
             .expect("every base position lies in exactly one bucket segment");
 
-        bucket.saturating_sub(self.lod.span_log2)
+        bucket.saturating_sub(self.lod.span.get())
     }
 
     /// Answers a proven-visible node row's identity in every domain a locate response speaks.

@@ -116,12 +116,15 @@ impl Posterior {
     /// Validates a distribution in class order.
     ///
     /// Returns [`None`] when a component is not finite, is negative, or the components do not sum
-    /// to one within the documented tolerance.
+    /// to one within the documented tolerance. Negative zero passes: it compares equal to zero, a
+    /// legal component, and rejecting it would make admission depend on the sign bit of a value
+    /// arithmetic treats as zero.
     #[must_use]
     pub(crate) fn new(components: [f64; GeometryClass::COUNT]) -> Option<Self> {
+        // NOTE: shouldn't we be using one of the scalar newtypes here?
         if components
             .iter()
-            .any(|value| !value.is_finite() || value.is_sign_negative())
+            .any(|value| !value.is_finite() || *value < 0.0)
         {
             return None;
         }

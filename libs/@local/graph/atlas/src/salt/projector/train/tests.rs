@@ -31,7 +31,7 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -187,6 +187,11 @@ fn loose_budget() -> BudgetOptions {
     BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid")
 }
 
+/// Wraps a test rung.
+fn rung(value: f32) -> NonNegative {
+    NonNegative::new(value).expect("test rungs are finite and non-negative")
+}
+
 /// Empty populations to splice fixture families into.
 fn empty_populations<'index>(eta: f32) -> Populations<'index> {
     Populations {
@@ -202,7 +207,7 @@ fn empty_populations<'index>(eta: f32) -> Populations<'index> {
         landmark_scale: 0.0,
         anchors: Vec::new(),
         anchor_scale: 0.0,
-        eta,
+        eta: rung(eta),
     }
 }
 
@@ -304,7 +309,7 @@ fn draws_are_deterministic_at_a_fixed_seed() {
     )
     .expect("the fixture graph has weight");
 
-    let draw = |seed: u64| sampler.draw(1.0, None, &[], &[], &mut rng(seed));
+    let draw = |seed: u64| sampler.draw(rung(1.0), None, &[], &[], &mut rng(seed));
     let (first, second) = (draw(17), draw(17));
 
     assert_eq!(first.semantic, second.semantic);
@@ -335,7 +340,7 @@ fn draws_are_deterministic_at_a_fixed_seed() {
 /// equal populations and batches, family by family - the allocator parameter places storage and
 /// decides nothing else.
 #[test]
-fn the_allocator_seam_draws_and_assembles_identically() {
+fn allocator_seam_draws_and_assembles_identically() {
     let graph = semantic_graph(6, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
     let indexes = relation_indexes(
         6,
@@ -374,9 +379,9 @@ fn the_allocator_seam_draws_and_assembles_identically() {
         },
     ];
 
-    let global = sampler.draw(1.0, None, &support, &support[..1], &mut rng(17));
+    let global = sampler.draw(rung(1.0), None, &support, &support[..1], &mut rng(17));
     let system = sampler.draw_in(
-        1.0,
+        rung(1.0),
         None,
         &support,
         &support[..1],
@@ -454,11 +459,11 @@ fn draw_skips_the_relation_family_at_a_zero_rung() {
     )
     .expect("the fixture graph has weight");
 
-    let at_zero = sampler.draw(0.0, None, &[], &[], &mut rng(3));
+    let at_zero = sampler.draw(rung(0.0), None, &[], &[], &mut rng(3));
     assert!(at_zero.relation.is_empty());
     assert_eq!(at_zero.relation_scale, 0.0);
 
-    let at_one = sampler.draw(1.0, None, &[], &[], &mut rng(3));
+    let at_one = sampler.draw(rung(1.0), None, &[], &[], &mut rng(3));
     assert_eq!(at_one.relation.len(), 1);
 }
 
@@ -510,7 +515,7 @@ fn draw_computes_the_estimator_scales() {
             weight: 1.0,
         },
     ];
-    let populations = sampler.draw(1.0, None, &landmarks, &[], &mut rng(5));
+    let populations = sampler.draw(rung(1.0), None, &landmarks, &[], &mut rng(5));
 
     // W / m = 3.5 / 8 exactly.
     assert_eq!(populations.semantic.len(), 8);
@@ -559,10 +564,9 @@ fn draw_collects_pooled_mined_pairs() {
         MinerOptions::new(
             NonZero::new(2).expect("two is non-zero"),
             NonZero::new(2).expect("two is non-zero"),
-            1.0,
-            1.0,
-        )
-        .expect("the fixture miner options are valid"),
+            Positive::ONE,
+            Positive::ONE,
+        ),
     );
     let frame = miner.mine(&field);
 
@@ -584,7 +588,7 @@ fn draw_collects_pooled_mined_pairs() {
     )
     .expect("the fixture graph has weight");
 
-    let populations = sampler.draw(0.0, Some(&frame), &[], &[], &mut rng(11));
+    let populations = sampler.draw(rung(0.0), Some(&frame), &[], &[], &mut rng(11));
 
     let mut expected: Vec<(u64, u64, u32)> = (0..frame.rows())
         .flat_map(|row| frame.row(row))
@@ -1174,7 +1178,7 @@ fn input_pads_the_gathered_rows_to_the_alignment() {
 }
 
 #[test]
-fn a_padded_frame_adds_zero_force() {
+fn padded_frame_adds_zero_force() {
     // The two-row semantic batch against a four-row frame whose tail
     // twins the last row: the loss matches the exact-cover frame and
     // the padded rows receive exactly zero coordinate gradient.
@@ -1294,7 +1298,7 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
         role_dimensions: NonZero::new(4).expect("the role width is non-zero"),
         condition_dimensions: NonZero::new(1).expect("the condition width is non-zero"),
     };
-    let model = Projector::<TestBackend>::new(architecture, rng(7), &device).map(&mut Perturb);
+    let model = Projector::<TestBackend>::new(architecture, &device, rng(7)).map(&mut Perturb);
 
     let deciles = DegreeDeciles::new(&indexes.attraction, PADDING_ROWS);
     let options = options(Some(relation_energy()), loose_budget());

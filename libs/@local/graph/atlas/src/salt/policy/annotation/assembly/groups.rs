@@ -1,0 +1,386 @@
+//! Validation-group derivation: leakage axes, near-duplication, and budgeted subdivision.
+//!
+//! Rows that could leak shared content across a train/validation split must share a group; the
+//! union runs over value-keyed leakage axes and near-duplicate pairs, and over-budget components
+//! subdivide by relaxing their weakest axes in information order. The target and weight arithmetic
+//! lives here beside the grouping because both read the same vote counts.
+
+use std::collections::{HashMap, HashSet, hash_map::Entry};
+
+use super::{
+    super::{Card, VoteCounts},
+    AssemblyConfig, AssemblyEvidence, DIRICHLET_ALPHA, Relaxation,
+};
+use crate::{
+    dataset::OntologyRowId,
+    disjoint::DisjointSet,
+    integrity::{Sha256, Sha256Digest, Update as _},
+    salt::{embedding::CardEmbeddingView, policy::GeometryClass},
+};
+
+/// Widens a count to the reals.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "vote counts are far below f64's 2^53 exact-integer range"
+)]
+const fn real(count: u64) -> f64 {
+    // NOTE: no to this single function bs, either it's a method on a type, or you own the cast, you
+    // don't hide behind this bs
+    count as f64
+}
+
+/// Returns the card's geometry-vote total as the row weight.
+pub(super) fn weight(counts: &VoteCounts) -> f64 {
+    real(counts.weight())
+}
+
+/// Returns the Dirichlet posterior-mean target over the geometry classes.
+pub(super) fn dirichlet_target(counts: &VoteCounts) -> [f64; GeometryClass::COUNT] {
+    let total = real(GeometryClass::COUNT as u64).mul_add(DIRICHLET_ALPHA, weight(counts));
+
+    counts
+        .geometry
+        .map(|count| (real(count) + DIRICHLET_ALPHA) / total)
+}
+
+/// One trained row's interned axis values.
+struct RowAxes {
+    /// The row's own identity and every inverse identity it names.
+    identity: Vec<u32>,
+    /// The relation family.
+    family: u32,
+    /// The base URL.
+    base: u32,
+}
+
+/// Which axis ranks a partition unites through.
+///
+/// Beside the identity axis and the near-duplicate pairs it always honours.
+#[derive(Copy, Clone)]
+struct Ranks {
+    family: bool,
+    base: bool,
+    /// The inclusive cosine-distance cut for near-duplicate pairs.
+    cut: f64,
+}
+
+/// Every axis at full strength.
+// NOTE: why isn't this an associated constant? e.g. `Ranks::ALL`?
+const RANKS_ALL: Ranks = Ranks {
+    family: true,
+    base: true,
+    cut: f64::INFINITY,
+};
+
+/// Unites a row subset through the admitted axis ranks and returns the resulting parts.
+///
+/// Members ascending, parts ordered by first member.
+fn partition(
+    subset: &[u32],
+    axes: &[RowAxes],
+    pairs: &[(u32, u32, f64)],
+    ranks: Ranks,
+) -> Vec<Vec<u32>> {
+    let mut local_of: HashMap<u32, u32> = HashMap::with_capacity(subset.len());
+    for (local, &row) in subset.iter().enumerate() {
+        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        local_of.insert(row, local);
+    }
+
+    let mut components = DisjointSet::new(subset.len());
+    let mut first_of_key: HashMap<u32, u32> = HashMap::new();
+    for (local, &row) in subset.iter().enumerate() {
+        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        let row_axes = &axes[row as usize];
+
+        let mut join = |key: u32| match first_of_key.entry(key) {
+            Entry::Occupied(first) => {
+                components.unite(local, *first.get());
+            }
+            Entry::Vacant(slot) => {
+                slot.insert(local);
+            }
+        };
+
+        for &key in &row_axes.identity {
+            join(key);
+        }
+        if ranks.family {
+            join(row_axes.family);
+        }
+        if ranks.base {
+            join(row_axes.base);
+        }
+    }
+
+    for (left, right, distance) in pairs {
+        if *distance <= ranks.cut
+            && let (Some(&left), Some(&right)) = (local_of.get(left), local_of.get(right))
+        {
+            components.unite(left, right);
+        }
+    }
+
+    let mut parts: Vec<Vec<u32>> = Vec::new();
+    let mut part_of_representative: HashMap<u32, usize> = HashMap::new();
+    for (local, &row) in subset.iter().enumerate() {
+        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        let representative = components.find(local);
+        let part = *part_of_representative
+            .entry(representative)
+            .or_insert_with(|| {
+                parts.push(Vec::new());
+                parts.len() - 1
+            });
+        parts[part].push(row);
+    }
+
+    parts
+}
+
+/// Cuts a component's near-duplicate edges farthest-first.
+///
+/// The kept cut is the largest distance under which every resulting part fits the budget, or the
+/// empty cut when none does.
+fn farthest_first_cut(
+    component: &[u32],
+    axes: &[RowAxes],
+    pairs: &[(u32, u32, f64)],
+    budget: f64,
+) -> Vec<Vec<u32>> {
+    // Candidate cuts are the distinct pair distances inside the
+    // component, ascending; a cut keeps every pair at or under it.
+    let mut distances: Vec<f64> = {
+        let members: HashSet<u32> = component.iter().copied().collect();
+        pairs
+            .iter()
+            .filter(|(left, right, _)| members.contains(left) && members.contains(right))
+            .map(|&(_, _, distance)| distance)
+            .collect()
+    };
+    distances.sort_unstable_by(f64::total_cmp);
+    distances.dedup();
+
+    let fits = |cut: f64| {
+        partition(
+            component,
+            axes,
+            pairs,
+            Ranks {
+                family: false,
+                base: false,
+                cut,
+            },
+        )
+        .iter()
+        .all(|part| real(part.len() as u64) <= budget)
+    };
+
+    // Component size is monotone in the cut, so the fitting prefix of
+    // the candidate list is contiguous and binary-searchable.
+    let (mut fitting, mut exceeded) = (None, distances.len());
+    let mut low = 0;
+    while low < exceeded {
+        let middle = usize::midpoint(low, exceeded);
+        if fits(distances[middle]) {
+            fitting = Some(distances[middle]);
+            low = middle + 1;
+        } else {
+            exceeded = middle;
+        }
+    }
+
+    // The empty cut keeps identity edges alone; the caller records
+    // any part still over budget.
+    partition(
+        component,
+        axes,
+        pairs,
+        Ranks {
+            family: false,
+            base: false,
+            cut: fitting.unwrap_or(f64::NEG_INFINITY),
+        },
+    )
+}
+
+/// Splits an over-budget component by relaxing its weakest remaining axis.
+///
+/// Recurses one rank deeper wherever a part stays over budget.
+///
+/// The relaxation order is family, then base URL, then near-duplicate edges farthest-first;
+/// identity edges never relax. A part the deepest relaxation cannot fit is accepted over budget and
+/// counted in the evidence.
+fn subdivide(
+    component: &[u32],
+    level: Relaxation,
+    axes: &[RowAxes],
+    pairs: &[(u32, u32, f64)],
+    budget: f64,
+    evidence: &mut AssemblyEvidence,
+) -> Vec<Vec<u32>> {
+    evidence.deepest_relaxation = evidence.deepest_relaxation.max(level);
+
+    let (parts, deeper) = match level {
+        Relaxation::None => unreachable!("subdivision engages at the family rank"),
+        Relaxation::Family => (
+            partition(
+                component,
+                axes,
+                pairs,
+                Ranks {
+                    family: false,
+                    ..RANKS_ALL
+                },
+            ),
+            Relaxation::Base,
+        ),
+        Relaxation::Base => (
+            partition(
+                component,
+                axes,
+                pairs,
+                Ranks {
+                    family: false,
+                    base: false,
+                    ..RANKS_ALL
+                },
+            ),
+            Relaxation::NearDuplicate,
+        ),
+        Relaxation::NearDuplicate => {
+            let parts = farthest_first_cut(component, axes, pairs, budget);
+            evidence.oversized_accepted += parts
+                .iter()
+                .filter(|part| real(part.len() as u64) > budget)
+                .count();
+
+            return parts;
+        }
+    };
+
+    let mut groups = Vec::with_capacity(parts.len());
+    for part in parts {
+        if real(part.len() as u64) <= budget {
+            groups.push(part);
+        } else {
+            groups.extend(subdivide(&part, deeper, axes, pairs, budget, evidence));
+        }
+    }
+
+    groups
+}
+
+/// Assigns every trained row its validation-group digest.
+///
+/// The returned digests align with `trained`; the evidence gains the group count and the
+/// near-duplicate pair count.
+pub(super) fn validation_groups(
+    trained: &[(usize, &Card, VoteCounts)],
+    view: CardEmbeddingView<'_>,
+    config: AssemblyConfig,
+    evidence: &mut AssemblyEvidence,
+) -> Vec<Sha256Digest> {
+    let rows = trained.len();
+
+    // Value-keyed axes join cards sharing an axis value; an inverse
+    // pair meets at the named identity's key whether or not that
+    // identity is itself on the corpus.
+    let mut keys: HashMap<String, u32> = HashMap::new();
+    let mut intern = |key: String| {
+        let next = u32::try_from(keys.len()).expect("the axis-value domain is bound to u32");
+        *keys.entry(key).or_insert(next)
+    };
+
+    let mut axes_by_row = Vec::with_capacity(rows);
+    for (_, corpus_card, _) in trained {
+        let axes = &corpus_card.axes;
+        let mut identity = vec![intern(format!(
+            "id:{}",
+            corpus_card.identity.canonical_url()
+        ))];
+        identity.extend(
+            axes.inverse_of
+                .iter()
+                .map(|inverse| intern(format!("id:{inverse}"))),
+        );
+
+        axes_by_row.push(RowAxes {
+            identity,
+            family: intern(format!("family:{}", axes.family)),
+            base: intern(format!("base:{}", axes.base_url)),
+        });
+    }
+
+    let mut pairs = Vec::new();
+    for left in 0..rows {
+        let embedding = view
+            .embedding(OntologyRowId::new(left as u64))
+            .expect("the table holds one row per trained card");
+
+        for right in (left + 1)..rows {
+            let other = view
+                .embedding(OntologyRowId::new(right as u64))
+                .expect("the table holds one row per trained card");
+
+            let distance = f64::from(embedding.cosine_distance(other));
+            if distance <= config.near_duplicate_epsilon {
+                let node =
+                    |value: usize| u32::try_from(value).expect("the row domain is bound to u32");
+                pairs.push((node(left), node(right), distance));
+            }
+        }
+    }
+    evidence.near_duplicate_pairs = pairs.len();
+
+    // A single row cannot leak against itself: the budget never
+    // falls under one row.
+    let budget = (config.maximum_group_fraction * real(rows as u64)).max(1.0);
+    let all: Vec<u32> = (0..rows)
+        .map(|row| u32::try_from(row).expect("the row domain is bound to u32"))
+        .collect();
+
+    let mut groups = Vec::new();
+    for component in partition(&all, &axes_by_row, &pairs, RANKS_ALL) {
+        if real(component.len() as u64) <= budget {
+            groups.push(component);
+            continue;
+        }
+
+        let produced = subdivide(
+            &component,
+            Relaxation::Family,
+            &axes_by_row,
+            &pairs,
+            budget,
+            evidence,
+        );
+        if produced.len() > 1 {
+            evidence.subdivided_groups += 1;
+        }
+        groups.extend(produced);
+    }
+    evidence.fold_groups = groups.len();
+
+    // Trained rows ascend by card identity (the corpus order), so each
+    // group's members are already in ascending byte order.
+    let mut assigned: Vec<Option<Sha256Digest>> = vec![None; rows];
+    for group in groups {
+        let mut hasher = Sha256::new();
+        for &row in &group {
+            let (_, corpus_card, _) = &trained[row as usize];
+            hasher.update(corpus_card.identity.canonical_url().as_bytes());
+            hasher.update(b"\n");
+        }
+
+        let digest = hasher.finalize();
+        for row in group {
+            assigned[row as usize] = Some(digest);
+        }
+    }
+
+    assigned
+        .into_iter()
+        .map(|digest| digest.expect("every trained row belongs to exactly one group"))
+        .collect()
+}

@@ -482,7 +482,7 @@ fn applicability_matches_hand_computed_values() {
 }
 
 #[test]
-fn a_constant_corpus_gets_unit_scales_and_zero_distances() {
+fn constant_corpus_gets_unit_scales_and_zero_distances() {
     let mut corpus = Corpus::new();
     corpus.push(&[0.5, 0.5], [0.2, 0.3, 0.5], 1.0, b"a");
     corpus.push(&[0.5, 0.5], [0.2, 0.3, 0.5], 1.0, b"b");
@@ -588,7 +588,7 @@ fn fit_recovers_the_generating_distributions() {
 }
 
 #[test]
-fn an_exhausted_iteration_bound_is_an_error() {
+fn exhausted_iteration_bound_is_an_error() {
     let corpus = soft_corpus();
     let error = fit(
         corpus.training(),

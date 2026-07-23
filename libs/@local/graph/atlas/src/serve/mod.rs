@@ -59,7 +59,7 @@ use crate::{
         adjacency::AdjacencyArchive,
         fit::prepare::identity::IdentityTableArchive,
         lod::stage::LodConfig,
-        postings::{closure::ClosureMap, mapped::PostingsArchive},
+        postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };
 pub use crate::{

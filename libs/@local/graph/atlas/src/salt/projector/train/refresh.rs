@@ -24,7 +24,7 @@ use super::{
 };
 use crate::{
     dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::Vec2,
+    math::{NonNegative, Vec2},
     salt::{
         knn::table::KnnView,
         projector::{
@@ -117,7 +117,12 @@ impl Refresh<'_> {
         with_scales: bool,
         device: &B::Device,
     ) -> Result<RefreshOutcome, RefreshError> {
-        let [low_eta, middle_eta, high_eta] = RUNGS;
+        // NOTE: ???
+        // let [low_eta, middle_eta, high_eta] = [RUNGS[0].get(), RUNGS[1].get(), RUNGS[2].get()];
+        // let [low_eta, middle_eta, high_eta] = zerocopy::transmute!(RUNGS); // NOTE: isn't this
+        // clearer? or even:
+        let [low_eta, middle_eta, high_eta] = RUNGS.map(NonNegative::get);
+
         let low = forward(model, self.columns, low_eta, self.forward_rows, device)?;
         let high = forward(model, self.columns, high_eta, self.forward_rows, device)?;
 
@@ -180,7 +185,7 @@ pub(crate) fn forward<B: Backend<FloatElem = f32>>(
         for (offset, point) in points.iter().enumerate() {
             if !point.is_finite() {
                 return Err(RefreshError::Diverged {
-                    row: row_id(start + offset),
+                    row: NodeRowId::from_index(start + offset),
                     eta,
                 });
             }
@@ -203,7 +208,7 @@ pub(crate) fn scales(
     eta: f32,
 ) -> Result<LocalScales, RefreshError> {
     LocalScales::compute(frame, knn).map_err(|error| RefreshError::NonFiniteScale {
-        row: row_id(error.row),
+        row: NodeRowId::from_index(error.row),
         eta,
     })
 }
@@ -213,7 +218,7 @@ fn field_error(error: SpatialFieldError, eta: f32) -> RefreshError {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
         SpatialFieldError::NonFinite { row } => RefreshError::Diverged {
-            row: row_id(row),
+            row: NodeRowId::from_index(row),
             eta,
         },
         SpatialFieldError::RowsExceedIndexDomain { rows } => {
@@ -245,9 +250,4 @@ fn slice_input<B: Backend>(
         roles: Tensor::<B, 1, Int>::from_data(TensorData::new(roles, [rows]), device),
         condition: Tensor::from_data(TensorData::new(vec![eta; rows], [rows, 1]), device),
     }
-}
-
-#[inline]
-fn row_id(index: usize) -> NodeRowId {
-    NodeRowId::new(u64::try_from(index).expect("row indexes fit the row-id encoding"))
 }

@@ -37,7 +37,7 @@ use crate::{
         quad::read::QuadFile, region::ByteStable,
     },
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, Log2, VecN},
     morton::{Depth, MortonCell, MortonKey},
     salt::{
         CardEmbedder, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions, TrainingRow,
@@ -58,9 +58,9 @@ const NODES: usize = 48;
 
 /// The fixture schedule.
 ///
-/// `span_log2 = 1`, so the cut rule reads `bucket = z + 1` and the root spans buckets `0..=1`.
+/// `span = 1`, so the cut rule reads `bucket = z + 1` and the root spans buckets `0..=1`.
 const FIXTURE_LOD: LodConfig = LodConfig {
-    span_log2: 1,
+    span: Log2::new(1).expect("1 lies below the shift width"),
     max_tile_depth: 3,
 };
 
@@ -187,16 +187,16 @@ impl CardEmbedder for HashEmbedder {
         EmbedderFingerprint::new(hasher.finalize())
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .map(|text| {
                 let mut hasher = Sha256::new();
-                hasher.update(text.as_ref().as_bytes());
+                hasher.update(text.as_bytes());
                 let bytes = hasher.finalize().to_bytes();
 
                 let mut vector = BoxedVecN::zero();
@@ -495,7 +495,7 @@ async fn serves_tiles_from_a_published_generation() {
         .expect("the root tile should serve");
     assert_eq!(&bytes[..8], b"SALTILET");
 
-    let delivered: u64 = morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+    let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
         .iter()
         .sum();
     assert!(delivered > 0, "the fixture root delivers points");
@@ -612,7 +612,7 @@ async fn serves_empty_and_deepest_cells() {
             coordinate,
             mode: Mode::Delta,
             visible: population(&morton, empty_cell),
-            first_bucket: coordinate.z + FIXTURE_LOD.span_log2,
+            first_bucket: coordinate.z + FIXTURE_LOD.span.get(),
             runs: &[0],
             global: None,
             children: 0,
@@ -742,7 +742,7 @@ fn tile_query_defaults_to_the_delta_contract() {
 }
 
 #[test]
-fn the_atlas_is_shared_across_requests() {
+fn atlas_is_shared_across_requests() {
     const fn shared<T: Send + Sync>() {}
     shared::<Atlas>();
 }
@@ -933,7 +933,7 @@ async fn edges_serve_the_root_visible_subgraph() {
         .expect("the endpoint column is u64 pairs");
 
     // The root delivers buckets 0..=m: the head of the base order.
-    let head: u64 = artifacts.morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+    let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
         .iter()
         .sum();
     let head = usize::try_from(head).expect("fixture counts fit usize");
@@ -1213,7 +1213,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
         .assemble_edges(&request, EdgesCaps::default(), &FULL)
         .expect("assembly ignores the trailer flag");
 
-    let head: u64 = artifacts.morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+    let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
         .iter()
         .sum();
     let head = usize::try_from(head).expect("fixture counts fit usize");
@@ -1626,9 +1626,9 @@ fn colored_masks_resolve_and_expand_descendants() {
         salt::{
             fit::prepare::identity::{IdentityTable, IdentityTableArchive},
             postings::{
+                artifact::PostingsArchive,
                 build::{Postings, PostingsConfig},
                 closure::ClosureMap,
-                mapped::PostingsArchive,
             },
         },
     };
@@ -1655,7 +1655,7 @@ fn colored_masks_resolve_and_expand_descendants() {
         &row_of_position,
         &parents,
         PostingsConfig {
-            dense_threshold_log2: 2,
+            dense_threshold: const { Log2::new(2).expect("2 lies below the shift width") },
         },
     )
     .expect("the fixture stays in domain");
@@ -1764,7 +1764,7 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
         .expect("assembly ignores the trailer flag");
     let entities = atlas.delivered_entities(&document);
 
-    let delivered: u64 = morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+    let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
         .iter()
         .sum();
     let delivered = usize::try_from(delivered).expect("fixture counts fit usize");
@@ -1786,7 +1786,7 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
             mode: Mode::Delta,
             visible: morton.count(),
             first_bucket: 0,
-            runs: &morton.fenceposts().lengths()[..=FIXTURE_LOD.span_log2 as usize]
+            runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
                 .iter()
                 .map(|&length| u32::try_from(length).expect("fixture counts fit u32"))
                 .collect::<Vec<_>>(),
@@ -2291,7 +2291,7 @@ async fn locate_by_wire_row_matches_by_entity() {
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_end_to_end_encodes_the_pinned_envelope() {
     use crate::salt::{
-        postings::mapped::Membership,
+        postings::artifact::Membership,
         wire::locate::{LocateResponse, LocateTrailer},
     };
 
@@ -3053,7 +3053,7 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
             coordinate,
             mode: Mode::Delta,
             visible: 0,
-            first_bucket: coordinate.z + FIXTURE_LOD.span_log2,
+            first_bucket: coordinate.z + FIXTURE_LOD.span.get(),
             runs: &[0],
             global: None,
             children: 0,

@@ -99,7 +99,7 @@ impl PairEvidence {
 /// leaves applicability undisturbed. The threshold is the mass at which the channel protects; 0
 /// protects every linked pair, the conservative reading of link evidence. Floors and thresholds
 /// jointly determine the protected set and are calibrated together from reviewed validation pairs.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ChannelConfig {
     floor: f32 = 0.0,
     threshold: f32 = 0.0,
@@ -143,6 +143,12 @@ impl ChannelConfig {
     }
 }
 
+const impl Default for ChannelConfig {
+    fn default() -> Self {
+        Self { .. }
+    }
+}
+
 /// Both channels' query-time protection settings, valid by construction.
 ///
 /// The channels satisfy `ordinary.floor <= hard.floor` and `hard.threshold <= ordinary.threshold`:
@@ -150,8 +156,8 @@ impl ChannelConfig {
 /// in the floor and no more evidence to trip in the threshold.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProtectionConfig {
-    hard: ChannelConfig = ChannelConfig { .. },
-    ordinary: ChannelConfig = ChannelConfig { .. },
+    hard: ChannelConfig = ChannelConfig::default(),
+    ordinary: ChannelConfig = ChannelConfig::default(),
     protect_ordinary: bool = true,
 }
 

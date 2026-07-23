@@ -10,37 +10,31 @@
 //! axes): the runner matches artifact rows to source identities through the identity artifact, and
 //! a dataset at other axes would resolve types for a different corpus.
 
-use core::{error::Error, fmt};
-
 use rand::Rng;
 use tracing::Instrument as _;
 
 use super::{
     clump::Clumps,
-    probe::{DeliveryError, ProbeCorpus, ProbeError, ProbeOptions, match_deliveries, probe},
+    error::QualityRunError,
+    probe::{ProbeCorpus, ProbeOptions, match_deliveries, probe},
     report::{QualityReport, QualityThresholds, assess},
 };
 use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS},
     file::{
-        array::{ArrayFile, OpenArrayError},
-        generation::Generation,
-        identity::read::{IdentityFile, OpenIdentityError},
-        sprs::read::{OpenSprsError, SprsFile},
+        array::ArrayFile, generation::Generation, identity::read::IdentityFile,
+        sprs::read::SprsFile,
     },
-    salt::{
-        fit::prepare::identity::{IdentityTableArchive, InvalidIdentityFile},
-        knn::artifact::{InvalidKnnFile, KnnArchive},
-    },
+    salt::{fit::prepare::identity::IdentityTableArchive, knn::artifact::KnnArchive},
 };
 
-/// Sampling, grouping, and gating settings for one quality run.
+/// Sampling, grouping, and threshold settings for one quality run.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct QualityRunOptions {
     /// The probe's sampling and neighbourhood settings.
-    pub probe: ProbeOptions = ProbeOptions { .. },
-    /// The report's gates.
-    pub thresholds: QualityThresholds = QualityThresholds { .. },
+    pub probe: ProbeOptions = ProbeOptions::default(),
+    /// The report's thresholds.
+    pub thresholds: QualityThresholds = QualityThresholds::default(),
     /// The clump grouping's distance threshold.
     pub epsilon: f32 = super::clump::DEFAULT_EPSILON,
 }
@@ -48,95 +42,6 @@ pub(crate) struct QualityRunOptions {
 const impl Default for QualityRunOptions {
     fn default() -> Self {
         Self { .. }
-    }
-}
-
-/// The quality run could not produce a report.
-#[derive(Debug)]
-pub(crate) enum QualityRunError<E> {
-    /// The k-NN artifact could not be opened.
-    OpenKnn(OpenSprsError),
-    /// The opened k-NN file does not hold a valid table.
-    InvalidKnn(InvalidKnnFile),
-    /// The representation artifact could not be opened.
-    OpenRepresentations(OpenArrayError),
-    /// The representation artifact is not a projector matrix.
-    InvalidRepresentations,
-    /// The coordinate artifact could not be opened.
-    OpenCoordinates(OpenArrayError),
-    /// The coordinate artifact is not a coordinate frame.
-    InvalidCoordinates,
-    /// The node-identity artifact could not be opened.
-    OpenIdentities(OpenIdentityError),
-    /// The node-identity artifact does not hold a valid table over the dataset's id type.
-    InvalidIdentities(InvalidIdentityFile),
-    /// The artifacts disagree about the corpus row count.
-    Rows {
-        identities: usize,
-        representations: usize,
-        coordinates: usize,
-        knn: usize,
-    },
-    /// The probe could not run.
-    Probe(ProbeError<E>),
-    /// The anchors' type lists could not be resolved.
-    Types(DeliveryError<E>),
-}
-
-impl<E> fmt::Display for QualityRunError<E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::OpenKnn(_) => fmt.write_str("the k-NN artifact could not be opened"),
-            Self::InvalidKnn(_) => {
-                fmt.write_str("the opened k-NN file does not hold a valid table")
-            }
-            Self::OpenRepresentations(_) => {
-                fmt.write_str("the representation artifact could not be opened")
-            }
-            Self::InvalidRepresentations => write!(
-                fmt,
-                "the representation artifact is not an f32 matrix of width {PROJECTOR_DIMENSIONS}",
-            ),
-            Self::OpenCoordinates(_) => {
-                fmt.write_str("the coordinate artifact could not be opened")
-            }
-            Self::InvalidCoordinates => {
-                fmt.write_str("the coordinate artifact is not an f32 matrix of width 2")
-            }
-            Self::OpenIdentities(_) => {
-                fmt.write_str("the node-identity artifact could not be opened")
-            }
-            Self::InvalidIdentities(_) => fmt.write_str(
-                "the node-identity artifact does not hold a valid table over the dataset's id type",
-            ),
-            Self::Rows {
-                identities,
-                representations,
-                coordinates,
-                knn,
-            } => write!(
-                fmt,
-                "the artifacts disagree about the corpus row count: {identities} identities, \
-                 {representations} representations, {coordinates} coordinates, {knn} k-NN rows",
-            ),
-            Self::Probe(_) => fmt.write_str("the probe could not run"),
-            Self::Types(_) => fmt.write_str("the anchors' type lists could not be resolved"),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for QualityRunError<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::OpenKnn(error) => Some(error),
-            Self::InvalidKnn(error) => Some(error),
-            Self::OpenRepresentations(error) | Self::OpenCoordinates(error) => Some(error),
-            Self::OpenIdentities(error) => Some(error),
-            Self::InvalidIdentities(error) => Some(error),
-            Self::Probe(error) => Some(error),
-            Self::Types(error) => Some(error),
-            Self::InvalidRepresentations | Self::InvalidCoordinates | Self::Rows { .. } => None,
-        }
     }
 }
 
@@ -152,11 +57,6 @@ impl<E: Error + 'static> Error for QualityRunError<E> {
 /// Returns an error when an artifact cannot be opened or does not hold its role's layout, the
 /// artifacts disagree about the corpus row count, the probe design cannot run over the corpus, or a
 /// dataset stream fails or misdelivers.
-#[expect(
-    clippy::future_not_send,
-    reason = "the `Dataset` trait does not promise `Send` streams; the future's sendability \
-              follows the dataset's"
-)]
 pub(crate) async fn run<D: Dataset>(
     dataset: &D,
     generation: &Generation,
@@ -173,23 +73,26 @@ pub(crate) async fn run<D: Dataset>(
         )
         .map_err(QualityRunError::InvalidKnn)?
     };
+
     let representations_file = ArrayFile::open(generation.path_of(&files.representations.name))
         .map_err(QualityRunError::OpenRepresentations)?;
     let representations = representations_file
         .vectors::<PROJECTOR_DIMENSIONS>()
         .ok_or(QualityRunError::InvalidRepresentations)?;
+
     let coordinates_file = ArrayFile::open(generation.path_of(&files.coordinates.name))
         .map_err(QualityRunError::OpenCoordinates)?;
     let coordinates = coordinates_file
         .points()
         .ok_or(QualityRunError::InvalidCoordinates)?;
+
     let identities = IdentityTableArchive::<D::NodeId>::new(
         IdentityFile::open(generation.path_of(&files.node_identities.name))
             .map_err(QualityRunError::OpenIdentities)?,
     )
     .map_err(QualityRunError::InvalidIdentities)?;
-
     let node_ids = identities.ids();
+
     let view = knn.view();
     #[expect(
         clippy::suspicious_operation_groupings,
@@ -229,6 +132,7 @@ pub(crate) async fn run<D: Dataset>(
             .iter()
             .map(|&row| node_ids[row.usize()])
             .collect();
+
         match_deliveries(&requests, dataset.node_types(requests.iter().copied()))
             .instrument(tracing::info_span!("types"))
             .await

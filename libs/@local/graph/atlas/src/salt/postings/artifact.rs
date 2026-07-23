@@ -1,4 +1,4 @@
-//! A published postings artifact opened over its mapped file.
+//! The postings archive and the membership views it serves.
 
 use core::ops::Range;
 

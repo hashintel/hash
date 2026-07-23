@@ -26,7 +26,7 @@ use super::{
     envelope::EnvelopeWriter,
     tile::{TileCoordinate, encode_details},
 };
-use crate::{integrity::Sha256Digest, math::Vec2, salt::postings::mapped::Membership};
+use crate::{integrity::Sha256Digest, math::Vec2, salt::postings::artifact::Membership};
 
 /// One locate response in writable form.
 #[derive(Debug)]

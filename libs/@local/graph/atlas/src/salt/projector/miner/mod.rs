@@ -1,11 +1,10 @@
 //! The 2D hard-negative miner over detached coordinate frames.
 //!
-//! At a configured cadence - never per optimizer step - training mines each node's closest
-//! projected points and admits the ones no other evidence explains: a mined pair must not be a
-//! semantic edge, must not be protected under the hard channel, and must not be the node itself.
-//! What survives is independent evidence of a false neighbour - two points close on the map that
-//! nothing says belong together - and is repelled by the same bounded negative energy as ordinary
-//! negatives, weighted by closeness rank.
+//! At a configured cadence training mines each node's closest projected points and admits the ones
+//! no other evidence explains: a mined pair must not be a semantic edge, must not be protected
+//! under the hard channel, and must not be the node itself. What survives is independent evidence
+//! of a false neighbour - two points close on the map that nothing says belong together - and is
+//! repelled by the same bounded negative energy as ordinary negatives, weighted by closeness rank.
 //!
 //! Under a conditioned model the current map is one map per lens value, so a refresh tick mines one
 //! [`SpatialField`] per lens extreme and pools the frames with [`MinedFrame::pool`]: a pair mined
@@ -23,13 +22,13 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
-use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
+use kiddo::{NearestNeighbour, SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use zerocopy::{FromBytes as _, IntoBytes as _};
 
 use crate::{
     dataset::NodeRowId,
-    math::Vec2,
+    math::{Positive, Vec2},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},
         semantic::SemanticGraphView,
@@ -48,36 +47,27 @@ use crate::{
 pub(crate) struct MinerOptions {
     neighbours: NonZero<usize>,
     search_margin: NonZero<usize>,
-    maximum_weight: f32,
-    rank_exponent: f32,
+    maximum_weight: Positive,
+    rank_exponent: Positive,
 }
 
 impl MinerOptions {
-    /// Validates a mining schedule.
+    /// Assembles a mining schedule.
     ///
-    /// Returns [`None`] unless the weight bound and the rank exponent are finite and strictly
-    /// positive.
+    /// Every field arrives valid by construction, so no state this type can hold is invalid.
     #[must_use]
     pub(crate) const fn new(
         neighbours: NonZero<usize>,
         search_margin: NonZero<usize>,
-        maximum_weight: f32,
-        rank_exponent: f32,
-    ) -> Option<Self> {
-        let valid = maximum_weight.is_finite()
-            && maximum_weight > 0.0
-            && rank_exponent.is_finite()
-            && rank_exponent > 0.0;
-
-        if !valid {
-            return None;
-        }
-        Some(Self {
+        maximum_weight: Positive,
+        rank_exponent: Positive,
+    ) -> Self {
+        Self {
             neighbours,
             search_margin,
             maximum_weight,
             rank_exponent,
-        })
+        }
     }
 
     /// Returns the per-row admission quota `h`.
@@ -98,14 +88,14 @@ impl MinerOptions {
     #[inline]
     #[must_use]
     pub(crate) const fn maximum_weight(self) -> f32 {
-        self.maximum_weight
+        self.maximum_weight.get()
     }
 
     /// Returns the rank-decay exponent.
     #[inline]
     #[must_use]
     pub(crate) const fn rank_exponent(self) -> f32 {
-        self.rank_exponent
+        self.rank_exponent.get()
     }
 
     /// Computes the weight of the candidate at closeness `rank`.
@@ -118,7 +108,7 @@ impl MinerOptions {
         )]
         let relative = rank as f32 / self.neighbours.get() as f32;
 
-        self.maximum_weight * (1.0 - relative).powf(self.rank_exponent)
+        self.maximum_weight.get() * (1.0 - relative).powf(self.rank_exponent.get())
     }
 
     /// Returns the per-row search size: quota times margin, plus the query point itself.
@@ -209,21 +199,23 @@ impl<'frame> SpatialField<'frame> {
     ///
     /// The query point is in the index, so `row` itself leads the result. The secondary row order
     /// pins ties: equal distances are returned in one order regardless of tree traversal.
-    fn nearest(&self, row: usize, count: usize) -> Vec<(f32, u32)> {
+    ///
+    /// Items are frame row indexes: `u32` is the tree's compact in-tree index type, and consumers
+    /// widen to [`NodeRowId`] at the point of use.
+    // NOTE: you could also just implement `Cast` over it or have it be a newtype like
+    // `CompactNodeRowId`, internally – correct me if I am wrong – it's stored as a usize anyway?
+    fn nearest(&self, row: usize, count: usize) -> Vec<NearestNeighbour<f32, u32>> {
         let count = NonZero::new(count.min(self.points.len()))
             .expect("search sizes are at least one by construction");
 
-        let mut nearest: Vec<(f32, u32)> = self
+        let mut nearest = self
             .tree
-            .nearest_n::<SquaredEuclidean>(&self.points[row], count)
-            .into_iter()
-            .map(|neighbour| (neighbour.distance, neighbour.item))
-            .collect();
+            .nearest_n::<SquaredEuclidean>(&self.points[row], count);
 
-        nearest.sort_unstable_by(|(left_distance, left_row), (right_distance, right_row)| {
-            left_distance
-                .total_cmp(right_distance)
-                .then(left_row.cmp(right_row))
+        nearest.sort_unstable_by(|left, right| {
+            left.distance
+                .total_cmp(&right.distance)
+                .then(left.item.cmp(&right.item))
         });
         nearest
     }
@@ -315,10 +307,11 @@ impl<'view> HardNegativeMiner<'view> {
     /// Mines one row's admissible candidates in closeness-rank order.
     fn mine_row(&self, field: &SpatialField<'_>, row: usize) -> Vec<(u32, f32)> {
         let quota = self.options.neighbours().get();
-        let row_id = NodeRowId::new(row as u64);
+        let row_id = NodeRowId::from_index(row);
 
         let mut accepted = Vec::with_capacity(quota);
-        for (_, candidate) in field.nearest(row, self.options.search_size()) {
+        for neighbour in field.nearest(row, self.options.search_size()) {
+            let candidate = neighbour.item;
             let candidate_id = NodeRowId::new(u64::from(candidate));
             if candidate_id == row_id {
                 continue;
@@ -385,7 +378,8 @@ impl MinedFrame {
     /// Panics when `row` is not below [`rows`](Self::rows).
     pub(crate) fn row(&self, row: usize) -> impl ExactSizeIterator<Item = (NodePair, f32)> + '_ {
         let span = self.offsets[row]..self.offsets[row + 1];
-        let anchor = NodeRowId::new(row as u64);
+        let anchor = NodeRowId::from_index(row); // NOTE: the same should all other newtypes have, and the codebase should be sweapt to adopt it
+        // NOTE: same with `from_u64`, and `from_u32`, thank you.
 
         self.targets[span.clone()]
             .iter()

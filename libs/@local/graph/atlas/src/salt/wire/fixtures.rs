@@ -43,7 +43,7 @@ use super::{
 use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
-    salt::postings::mapped::Membership,
+    salt::postings::artifact::Membership,
 };
 
 /// One pinned fixture: fixture name, response bytes, sidecar.
@@ -103,7 +103,7 @@ fn corpus_matches_the_checked_in_fixtures() {
 /// Every width 1 through 7 must occur across the pair, counting the tail padding of the last
 /// present slot.
 #[test]
-fn the_padding_sweep_covers_every_width() {
+fn padding_sweep_covers_every_width() {
     let mut widths = [false; 8];
     for fixture in [g9_padding_low(), g10_padding_high()] {
         let slots = u16::from_le_bytes(

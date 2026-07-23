@@ -13,7 +13,7 @@ use super::{
 use crate::{
     dataset::{ArchivedEntityId, OntologyRowId},
     file::quad::Node,
-    math::{Bounds2, Vec2},
+    math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
 };
 
@@ -45,6 +45,10 @@ fn depth(value: u8) -> Depth {
     Depth::new(value).expect("test depths lie within the documented domain")
 }
 
+fn log2(value: u8) -> Log2 {
+    Log2::new(value).expect("test spans lie below the shift width")
+}
+
 #[test]
 fn rank_orders_by_importance_then_priority_then_tiebreak() {
     // Rows: importance dominates, priority splits the first tie, the
@@ -74,7 +78,7 @@ fn rank_orders_by_importance_then_priority_then_tiebreak() {
 }
 
 #[test]
-fn the_seed_reshuffles_ties() {
+fn seed_reshuffles_ties() {
     // All scores tie, so the order is the seeded hash's alone.
     let importance = [1.0_f32; 8];
     let priority = [1.0_f32; 8];
@@ -151,7 +155,7 @@ fn hand_keys() -> [MortonKey; 4] {
 }
 
 #[test]
-fn the_cascade_assigns_the_hand_computed_buckets() {
+fn cascade_assigns_the_hand_computed_buckets() {
     let keys = hand_keys();
     let ranking = ranking_of(&[0, 1, 2, 3]);
 
@@ -165,7 +169,7 @@ fn the_cascade_assigns_the_hand_computed_buckets() {
 }
 
 #[test]
-fn the_cascade_follows_the_rank_order() {
+fn cascade_follows_the_rank_order() {
     let keys = hand_keys();
 
     // c outranks a: the claims flip and a becomes the co-resident
@@ -194,7 +198,7 @@ fn coverage_verification_reports_a_gap() {
 }
 
 #[test]
-fn the_base_order_sorts_buckets_then_keys_then_ranks() {
+fn base_order_sorts_buckets_then_keys_then_ranks() {
     let keys = hand_keys();
     let ranking = ranking_of(&[0, 1, 2, 3]);
     let buckets = cascade::buckets(&keys, &ranking, depth(2));
@@ -326,19 +330,19 @@ fn seeded_ranking(rows: usize, seed: u64) -> Ranking {
 fn lod_config_carries_the_key_width_bound() {
     // The default schedule reaches the f32 resolution depth.
     let config = LodConfig::default();
-    assert_eq!(config.span_log2, 6);
+    assert_eq!(config.span.get(), 6);
     assert_eq!(config.max_tile_depth, 18);
     assert_eq!(config.deepest(), Some(depth(24)));
 
     // The inequality z_max + m <= 32 binds exactly at the key width.
     let at_width = LodConfig {
-        span_log2: 6,
+        span: log2(6),
         max_tile_depth: 26,
     };
     assert_eq!(at_width.deepest(), Some(depth(32)));
 
     let beyond = LodConfig {
-        span_log2: 6,
+        span: log2(6),
         max_tile_depth: 27,
     };
     assert_eq!(beyond.deepest(), None);
@@ -359,7 +363,7 @@ fn lod_config_carries_the_key_width_bound() {
 ///
 /// Four points whose wire positions and cascade buckets are computed in the comments.
 ///
-/// World frame [0, 1] x [0, 1]; `span_log2` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and
+/// World frame [0, 1] x [0, 1]; `span` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and
 /// the catch-all is bucket 2.
 ///
 /// ```text
@@ -385,7 +389,7 @@ fn hand_stage() -> (Lod, LodConfig) {
     let priority = [0.0_f32; 4];
     let ids = identities(4);
     let config = LodConfig {
-        span_log2: 1,
+        span: log2(1),
         max_tile_depth: 1,
     };
 
@@ -450,7 +454,7 @@ fn build_produces_the_hand_computed_columns() {
 #[test]
 fn evidence_measures_the_hand_computed_columns() {
     let (lod, config) = hand_stage();
-    let evidence = lod.evidence(config);
+    let evidence = lod.measurements(config);
 
     assert_eq!(evidence.world, lod.world);
     assert_eq!(&evidence.bucket_histogram[..3], &[1, 1, 2]);
@@ -466,7 +470,7 @@ fn evidence_measures_the_hand_computed_columns() {
     assert_eq!(evidence.co_location_excess, 1);
 
     // The catch-all pair shares its zoom-1 tile (bucket 2 at
-    // span_log2 = 1), the largest delta of the schedule.
+    // span = 1), the largest delta of the schedule.
     assert_eq!(evidence.max_tile_delta, 2);
 }
 
@@ -506,7 +510,7 @@ fn normalization_is_exact_far_from_the_origin() {
 }
 
 #[test]
-fn a_degenerate_axis_maps_to_the_wire_centre() {
+fn degenerate_axis_maps_to_the_wire_centre() {
     // All points share one x: the flat axis maps to 0, the other
     // normalizes as usual.
     let coordinates = [Vec2::new(5.0, 0.0), Vec2::new(5.0, 2.0)];
@@ -562,7 +566,7 @@ fn build_rejects_what_no_columns_cover() {
 }
 
 #[test]
-fn the_columns_round_trip_through_the_morton_file() {
+fn columns_round_trip_through_the_morton_file() {
     use crate::file::morton::{read::MortonFile, write};
 
     let (lod, _) = hand_stage();
@@ -604,7 +608,10 @@ proptest! {
         let importance: Vec<f32> = rows.iter().map(|&(_, _, i)| i).collect();
         let priority = vec![0.0_f32; rows.len()];
         let ids = identities(rows.len() as u128);
-        let config = LodConfig { span_log2, max_tile_depth };
+        let config = LodConfig {
+            span: log2(span_log2),
+            max_tile_depth,
+        };
 
         let inputs = RankInputs::new(&importance, &priority, &ids)
             .expect("the fixture columns agree");
@@ -697,7 +704,7 @@ proptest! {
         }
 
         // Evidence is internally consistent.
-        let evidence = lod.evidence(config);
+        let evidence = lod.measurements(config);
         prop_assert_eq!(
             evidence.bucket_histogram.iter().sum::<u64>(),
             rows.len() as u64,
@@ -720,7 +727,7 @@ fn hand_types() -> Vec<SmallVec<OntologyRowId, 2>> {
 
 #[test]
 fn quad_build_produces_the_hand_computed_tree() {
-    // The hand-stage cut at span_log2 = 1: the root's cut is bucket 1,
+    // The hand-stage cut at span = 1: the root's cut is bucket 1,
     // so its run carries buckets 0..=1 (positions 0..2) and only
     // quadrant (0, 0) - holding the two bucket-2 points - gets a
     // child. That child's cut is the deepest grid: a leaf whose run
@@ -743,7 +750,7 @@ fn quad_build_produces_the_hand_computed_tree() {
     assert_eq!(tree.sets.set(1), &[2, 5, 9]);
 
     assert_eq!(tree.depth, depth(1));
-    let evidence = tree.evidence();
+    let evidence = tree.measurements();
     assert_eq!(evidence.nodes, 2);
     assert_eq!(evidence.leaves, 1);
     assert_eq!(evidence.depth, depth(1));
@@ -767,7 +774,7 @@ fn quad_build_gathers_types_through_the_base_order() {
     let priority = [0.0_f32; 4];
     let ids = identities(4);
     let config = LodConfig {
-        span_log2: 1,
+        span: log2(1),
         max_tile_depth: 1,
     };
     let lod = Lod::build(
@@ -810,14 +817,14 @@ fn quad_build_rejects_what_no_tree_covers() {
             &lod,
             &hand_types(),
             LodConfig {
-                span_log2: 32,
+                span: log2(32),
                 max_tile_depth: 1,
             },
         )
         .expect_err("a schedule beyond the key width must not build"),
         QuadError::Schedule {
             config: LodConfig {
-                span_log2: 32,
+                span: log2(32),
                 max_tile_depth: 1,
             },
         },
@@ -837,7 +844,7 @@ fn quad_build_rejects_what_no_tree_covers() {
             &lod,
             &hand_types(),
             LodConfig {
-                span_log2: 1,
+                span: log2(1),
                 max_tile_depth: 0,
             },
         )
@@ -910,7 +917,10 @@ proptest! {
             .iter()
             .map(|&(.., type_row)| smallvec![OntologyRowId::new(type_row)])
             .collect();
-        let config = LodConfig { span_log2, max_tile_depth };
+        let config = LodConfig {
+            span: log2(span_log2),
+            max_tile_depth,
+        };
 
         let inputs = RankInputs::new(&importance, &priority, &ids)
             .expect("the fixture columns agree");
@@ -1027,7 +1037,7 @@ proptest! {
         }
 
         // Evidence agrees with the table.
-        let evidence = tree.evidence();
+        let evidence = tree.measurements();
         prop_assert_eq!(evidence.nodes, tree.nodes.len() as u64);
         prop_assert!(evidence.leaves >= 1);
         prop_assert!(evidence.depth.get() <= max_tile_depth);

@@ -192,9 +192,8 @@ impl Classifier {
             }
         }
         if let Some(position) = distances
-            .iter()
-            .zip(distances.iter().skip(1))
-            .position(|(left, right)| left > right)
+            .array_windows::<2>()
+            .position(|[left, right]| left > right)
         {
             return Err(InvalidClassifierFile::UnorderedDistances {
                 index: position + 1,

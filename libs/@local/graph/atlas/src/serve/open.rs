@@ -24,7 +24,7 @@ use crate::{
     salt::{
         adjacency::AdjacencyArchive,
         fit::prepare::identity::IdentityTableArchive,
-        postings::{closure::ClosureMap, mapped::PostingsArchive},
+        postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };
 
@@ -95,7 +95,7 @@ impl Atlas {
         let lod = generation.repository().metadata.reproducibility.config.lod;
         if lod.deepest().is_none() {
             return Err(OpenAtlasError::Schedule {
-                span_log2: lod.span_log2,
+                span_log2: lod.span.get(),
                 max_tile_depth: lod.max_tile_depth,
             });
         }

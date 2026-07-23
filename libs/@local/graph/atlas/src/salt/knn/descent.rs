@@ -46,7 +46,6 @@ use core::{
 use std::sync::Mutex;
 
 use rand::{Rng, RngExt as _, SeedableRng, seq::IndexedRandom as _};
-use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::{
     iter::{
         IndexedParallelIterator as _, IntoParallelIterator as _, IntoParallelRefIterator as _,
@@ -143,11 +142,12 @@ struct Entry {
 /// One row's bounded neighbour list, ascending by `(distance, id)`.
 ///
 /// The worst distance is mirrored into an atomic beside the lock so offers can reject without
-/// contending. The mirror is written only under the lock and only ever decreases, so a stale read
-/// is never below the live worst and a rejection against it is always sound; `Relaxed` suffices
-/// because the mirror guards no other memory — every admission re-checks under the lock, and the
-/// lock orders the entries. A `Release`/`Acquire` pairing would only buy ordering for data read
-/// outside the lock, and no such read exists.
+/// contending. Every stored value is a worst read under the lock and the live worst only
+/// decreases, so however unlock-and-store pairs interleave, the mirror never falls below the live
+/// worst: a stale read is always at or above it, and a rejection against it is always sound.
+/// `Relaxed` suffices because the mirror guards no other memory — every admission re-checks under
+/// the lock, and the lock orders the entries. A `Release`/`Acquire` pairing would only buy
+/// ordering for data read outside the lock, and no such read exists.
 #[derive(Debug)]
 struct RowList {
     entries: Mutex<Vec<Entry>>,
@@ -180,8 +180,8 @@ impl RowList {
         }
 
         let mut entries = self.entries.lock().expect("a list offer cannot panic");
-        let worst = entries.last().expect("lists initialize non-empty");
-        if distance >= worst.distance || entries.iter().any(|entry| entry.id == id) {
+        let worst = entries.last().expect("lists initialize non-empty").distance;
+        if distance >= worst || entries.iter().any(|entry| entry.id == id) {
             return false;
         }
 
@@ -195,19 +195,15 @@ impl RowList {
                 new: true,
             },
         );
-        let worst = entries.last().expect("displacement preserves the width");
-        self.worst
-            .store(worst.distance.to_bits(), Ordering::Relaxed);
+        let worst = entries
+            .last()
+            .expect("displacement preserves the width")
+            .distance;
+        drop(entries);
+
+        self.worst.store(worst.to_bits(), Ordering::Relaxed);
         true
     }
-}
-
-/// A generator keyed by the construction seed, a row, and an iteration.
-///
-/// Initialization uses an iteration of `usize::MAX`, which no join iteration reaches, so the
-/// initial draw and every iteration's draw are independent streams.
-fn row_rng(seed: u64, row: usize, iteration: usize) -> Xoshiro256PlusPlus {
-    keyed_rng(seed, row as u64, iteration as u64)
 }
 
 /// Samples `count` of `pool` uniformly without replacement; the whole pool when it fits.
@@ -216,8 +212,9 @@ fn row_rng(seed: u64, row: usize, iteration: usize) -> Xoshiro256PlusPlus {
 /// binary-searches it.
 fn sample_pool(pool: &mut Vec<u32>, count: usize, mut rng: impl Rng) {
     if pool.len() > count {
-        *pool = pool.choose_multiple(&mut rng, count).copied().collect();
+        *pool = pool.sample(&mut rng, count).copied().collect();
     }
+
     pool.sort_unstable();
 }
 
@@ -238,7 +235,11 @@ fn initialize(
     (0..rows)
         .into_par_iter()
         .map(|row| {
-            let sampled = sample_indices_vec(row_rng(seed, row, usize::MAX), rows - 1, width);
+            // A stream index of `u64::MAX`, which no join iteration
+            // reaches, keeps the initial draw independent of every
+            // iteration's draw.
+            let sampled =
+                sample_indices_vec(keyed_rng(seed, row as u64, u64::MAX), rows - 1, width);
             RowList::new(
                 sampled
                     .iter()
@@ -272,7 +273,7 @@ fn sample_forward(
         .par_iter()
         .enumerate()
         .map(|(row, list)| {
-            let mut rng = row_rng(seed, row, iteration);
+            let mut rng = keyed_rng(seed, row as u64, iteration as u64);
             let mut entries = list.entries.lock().expect("a sampling pass cannot panic");
             let mut new: Vec<u32> = entries
                 .iter()
@@ -306,10 +307,13 @@ fn reverse(
     seed: u64,
     iteration: usize,
 ) -> Vec<Vec<u32>> {
-    // A two-pass counting transpose, sequential on purpose: the fill
-    // is cap-bounded bookkeeping dwarfed by the join's distance
-    // kernels, and pushing sources in ascending order leaves every
-    // pool sorted and the pass deterministic.
+    // A two-pass counting transpose, sequential on purpose: a
+    // bucketed par-iter (every worker scanning the full forward set,
+    // keeping its own target range) is the lock-free parallel shape,
+    // but it re-reads the lists once per worker, and either way the
+    // pass is cap-bounded bookkeeping dwarfed by the join's distance
+    // kernels. Pushing sources in ascending order leaves every pool
+    // sorted and the pass deterministic.
     let mut counts = vec![0_usize; rows];
     for targets in forward {
         for &target in targets {
@@ -317,10 +321,9 @@ fn reverse(
         }
     }
 
-    let mut pools: Vec<Vec<u32>> = counts
-        .iter()
-        .map(|&count| Vec::with_capacity(count))
-        .collect();
+    let mut pools: Vec<Vec<u32>> =
+        Vec::from_fn(counts.len(), |index| Vec::with_capacity(counts[index]));
+
     for (source, targets) in forward.iter().enumerate() {
         #[expect(
             clippy::cast_possible_truncation,
@@ -338,7 +341,11 @@ fn reverse(
         .map(|(target, mut pool)| {
             // The domain flip keeps the reverse draw independent of the
             // forward sampling pass, which keys the same (row, iteration).
-            sample_pool(&mut pool, cap, row_rng(!seed, target, iteration));
+            sample_pool(
+                &mut pool,
+                cap,
+                keyed_rng(!seed, target as u64, iteration as u64),
+            );
             pool
         })
         .collect()

@@ -129,16 +129,16 @@ impl CardEmbedder for HashEmbedder {
         EmbedderFingerprint::new(hasher.finalize())
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .map(|text| {
                 let mut hasher = Sha256::new();
-                hasher.update(text.as_ref().as_bytes());
+                hasher.update(text.as_bytes());
                 let bytes = hasher.finalize().to_bytes();
 
                 let mut vector = BoxedVecN::zero();
@@ -240,7 +240,7 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
 /// A run whose report passes activates what it publishes.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_passing_run_activates_the_generation() {
+async fn passing_run_activates_the_generation() {
     let root = GenerationRoot::new(scratch("activates")).expect("the root should open");
     let dataset = dataset();
     let classifier = classifier();
@@ -279,7 +279,7 @@ async fn a_passing_run_activates_the_generation() {
 /// A run whose report refuses admission publishes a candidate and leaves the pointer alone.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_refused_run_leaves_a_candidate() {
+async fn refused_run_leaves_a_candidate() {
     let root = GenerationRoot::new(scratch("candidate")).expect("the root should open");
     let dataset = dataset();
     let classifier = classifier();

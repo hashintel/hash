@@ -27,7 +27,7 @@ use crate::{
         postgres::{PostgresDataset, PostgresDatasetError},
     },
     file::generation::GenerationRoot,
-    math::AffinityCurve,
+    math::{AffinityCurve, UnitFraction},
     salt::{
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
@@ -346,6 +346,21 @@ impl CoreError for RunError {
 }
 
 /// Resolves the run's classifier input from the exactly-one path pair.
+/// Builds the ratified schedule shrunk to a requested step count.
+///
+/// The midpoint boundary splits the opening segment and the ladder evenly, mirroring the ratified
+/// schedule's shape; the learning-rate envelope stays the ratified one.
+const fn shortened_schedule(steps: NonZero<usize>) -> TrainingSchedule {
+    TrainingSchedule::new(
+        steps,
+        steps.get().div_euclid(2),
+        REFRESH,
+        const { UnitFraction::new(1.0e-3).expect("the ratified initial rate is a unit fraction") },
+        const { UnitFraction::new(1.0e-5).expect("the ratified minimum rate is a unit fraction") },
+    )
+    .expect("the ratified schedule domain admits any step count")
+}
+
 fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
     match (
         options.annotations.as_deref(),
@@ -408,12 +423,8 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
     match (options.baseline, options.projector_steps) {
         (true, _) => runner_options.fit.placement = PlacementOptions::LandmarkBaseline,
         (false, Some(steps)) => {
-            // The midpoint boundary splits the opening segment and the
-            // ladder evenly, mirroring the ratified schedule's shape.
-            let boundary = steps.get().div_euclid(2);
             let mut projector = ProjectorOptions::ratified();
-            projector.schedule = TrainingSchedule::new(steps, boundary, REFRESH, 1.0e-3, 1.0e-5)
-                .expect("the ratified schedule domain admits any step count");
+            projector.schedule = shortened_schedule(steps);
             runner_options.fit.placement = PlacementOptions::Projector(projector);
         }
         (false, None) => {}

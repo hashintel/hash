@@ -90,16 +90,15 @@ impl CardEmbedder for ProgrammedEmbedder {
         EmbedderFingerprint::new(hasher.finalize())
     }
 
-    fn embed(
+    fn embed<'text>(
         &self,
-        texts: impl IntoIterator<Item: AsRef<str> + Send> + Send,
+        texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error>> + Send
     {
         ready(Ok(texts
             .into_iter()
             .map(|text| {
                 let title = text
-                    .as_ref()
                     .lines()
                     .next()
                     .and_then(|line| line.strip_prefix("Relation: "))
@@ -312,7 +311,7 @@ fn group_digest(members: &[&str]) -> crate::integrity::Sha256Digest {
 }
 
 #[test]
-fn the_template_renders_the_python_card_text() {
+fn template_renders_the_python_card_text() {
     let corpus = fixture_corpus();
     let rendered = super::render_card::<!>(0, &corpus.cards()[0]).expect("the rich card renders");
 
@@ -352,7 +351,7 @@ fn the_template_renders_the_python_card_text() {
 }
 
 #[test]
-fn a_lone_simple_pair_hoists_into_the_independent_sections() {
+fn lone_simple_pair_hoists_into_the_independent_sections() {
     let corpus = fixture_corpus();
     let card = corpus
         .cards()
@@ -471,7 +470,7 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
 }
 
 #[tokio::test]
-async fn the_staged_table_and_rows_satisfy_the_training_contract() {
+async fn staged_table_and_rows_satisfy_the_training_contract() {
     let corpus = fixture_corpus();
     let assembled = assemble(&corpus, &ProgrammedEmbedder, AssemblyConfig::default())
         .await
@@ -496,7 +495,7 @@ async fn the_staged_table_and_rows_satisfy_the_training_contract() {
 }
 
 #[tokio::test]
-async fn a_corpus_with_no_admissible_card_is_an_empty_assembly() {
+async fn corpus_with_no_admissible_card_is_an_empty_assembly() {
     let mut shot = wikidata_card(SHOT, "shot", "f-800", &[]);
     shot["flags"]["shot_excluded"] = json!(true);
     let corpus = AnnotationCorpus::from_slice(document(&[shot]).as_bytes())
@@ -509,7 +508,7 @@ async fn a_corpus_with_no_admissible_card_is_an_empty_assembly() {
 }
 
 #[tokio::test]
-async fn a_language_the_template_does_not_render_is_rejected() {
+async fn language_the_template_does_not_render_is_rejected() {
     let mut card = wikidata_card(ALPHA, "alpha", "f-600", &[vote("overlay")]);
     card["content"]["language"] = json!("de");
     let corpus = AnnotationCorpus::from_slice(document(&[card]).as_bytes())
@@ -662,7 +661,7 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
 }
 
 #[tokio::test]
-async fn an_identity_web_is_accepted_over_budget() {
+async fn identity_web_is_accepted_over_budget() {
     // Two cards name a third as their inverse: identity edges alone
     // hold all three together, and identity never relaxes.
     let cards: Vec<Value> = [

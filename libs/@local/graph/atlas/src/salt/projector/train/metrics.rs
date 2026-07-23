@@ -16,6 +16,7 @@
 //! budget. The displacement is evidence only: it never steers training.
 
 use alloc::collections::BTreeMap;
+use core::mem;
 
 use crate::{
     dataset::OntologyRowId,
@@ -26,11 +27,66 @@ use crate::{
     },
 };
 
-/// Decile bucket count.
-pub(crate) const DECILES: usize = 10;
+// NOTE: this was before
+// /// Decile bucket count.
+// pub(crate) const DECILES: usize = 10;
 
-/// The decile marker for rows without attraction evidence.
-const NO_PARTICIPATION: u8 = u8::MAX;
+/// A degree decile, `D1` (lowest participating degrees) through `D10` (highest).
+///
+/// `Option<Decile>` is one row's participation state: rows without attraction evidence have no
+/// decile at all, so no sentinel value exists to misread as a bucket.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(u8)]
+enum Decile {
+    D1 = 1,
+    D2 = 2,
+    D3 = 3,
+    D4 = 4,
+    D5 = 5,
+    D6 = 6,
+    D7 = 7,
+    D8 = 8,
+    D9 = 9,
+    D10 = 10,
+}
+
+impl Decile {
+    // NOTE: add safety comment
+    const ALL: [Self; Self::COUNT] = core::array::from_fn(const |index| unsafe {
+        core::mem::transmute::<u8, Self>(index as u8 + 1)
+    });
+    // NOTE: This was before...
+    // /// The deciles ascending: the bucket order of every per-decile array.
+    // const ALL: [Self; DECILES] = [
+    //     Self::D1,
+    //     Self::D2,
+    //     Self::D3,
+    //     Self::D4,
+    //     Self::D5,
+    //     Self::D6,
+    //     Self::D7,
+    //     Self::D8,
+    //     Self::D9,
+    //     Self::D10,
+    // ];
+    const COUNT: usize = mem::variant_count::<Self>();
+
+    /// Returns the 0-based bucket position, [`D1`](Self::D1) at zero.
+    const fn bucket(self) -> usize {
+        // NOTE: fix
+        self as usize
+    }
+}
 
 /// Per-row relation-degree deciles over the attraction evidence.
 ///
@@ -40,7 +96,7 @@ const NO_PARTICIPATION: u8 = u8::MAX;
 /// evidence have no decile - they receive no relation gradient and appear in no decile bucket.
 #[derive(Debug)]
 pub(crate) struct DegreeDeciles {
-    deciles: Box<[u8]>,
+    deciles: Box<[Option<Decile>]>,
 }
 
 impl DegreeDeciles {
@@ -71,8 +127,9 @@ impl DegreeDeciles {
             .iter()
             .map(|&degree| {
                 if degree == 0 {
-                    return NO_PARTICIPATION;
+                    return None;
                 }
+
                 // Upper rank: the number of participating degrees at
                 // or below this one, at least one for a participant.
                 let rank = participating.partition_point(|&value| value <= degree);
@@ -81,8 +138,8 @@ impl DegreeDeciles {
                     clippy::integer_division_remainder_used,
                     reason = "the floored rank-to-bucket division is the decile definition"
                 )]
-                let decile = (rank - 1) * DECILES / participating.len();
-                u8::try_from(decile).expect("a decile index lies below ten")
+                let decile = (rank - 1) * Decile::COUNT / participating.len();
+                Some(Decile::ALL[decile])
             })
             .collect();
 
@@ -93,9 +150,7 @@ impl DegreeDeciles {
     #[inline]
     #[must_use]
     pub(crate) fn decile(&self, row: usize) -> Option<usize> {
-        let value = self.deciles[row];
-
-        (value != NO_PARTICIPATION).then(|| usize::from(value))
+        self.deciles[row].map(Decile::bucket)
     }
 }
 
@@ -108,7 +163,7 @@ impl DegreeDeciles {
 pub(crate) struct BudgetBreakdown {
     overall: BudgetSummary,
     by_type: BTreeMap<u64, BudgetSummary>,
-    by_decile: [BudgetSummary; DECILES],
+    by_decile: [BudgetSummary; Decile::COUNT],
 }
 
 impl BudgetBreakdown {
@@ -151,7 +206,7 @@ impl BudgetBreakdown {
     /// Returns the per-degree-decile summaries, ascending.
     #[inline]
     #[must_use]
-    pub(crate) const fn deciles(&self) -> &[BudgetSummary; DECILES] {
+    pub(crate) const fn deciles(&self) -> &[BudgetSummary; Decile::COUNT] {
         &self.by_decile
     }
 }
@@ -184,6 +239,7 @@ impl TypeParticipants {
                 (group.relation(), rows.into_boxed_slice())
             })
             .collect();
+
         Self { types }
     }
 
@@ -209,8 +265,9 @@ pub(crate) struct DisplacementMoments {
 impl DisplacementMoments {
     /// Records one displacement.
     pub(crate) fn record(&mut self, displacement: f32) {
-        self.count += 1;
         let value = f64::from(displacement);
+
+        self.count += 1;
         self.sum += value;
         self.sum_squares = value.mul_add(value, self.sum_squares);
         self.maximum = self.maximum.max(displacement);
@@ -309,7 +366,7 @@ impl DisplacementHistogram {
 pub(crate) struct DisplacementSummary {
     overall: DisplacementHistogram,
     by_type: BTreeMap<u64, DisplacementMoments>,
-    by_decile: [DisplacementHistogram; DECILES],
+    by_decile: [DisplacementHistogram; Decile::COUNT],
 }
 
 impl DisplacementSummary {
@@ -348,6 +405,7 @@ impl DisplacementSummary {
                 summary.by_decile[decile].record(displacement);
             }
         }
+
         for (relation, rows) in participants.iter() {
             let mut moments = DisplacementMoments::default();
             for &row in rows {
@@ -355,6 +413,7 @@ impl DisplacementSummary {
             }
             summary.by_type.insert(relation.get(), moments);
         }
+
         summary
     }
 
@@ -375,7 +434,7 @@ impl DisplacementSummary {
     /// Returns the per-degree-decile histograms, ascending.
     #[inline]
     #[must_use]
-    pub(crate) const fn deciles(&self) -> &[DisplacementHistogram; DECILES] {
+    pub(crate) const fn deciles(&self) -> &[DisplacementHistogram; Decile::COUNT] {
         &self.by_decile
     }
 }
