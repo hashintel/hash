@@ -928,12 +928,12 @@ fn g8_appended_slot() -> Fixture {
     let appended = [0xDE_u8, 0xAD, 0xBE, 0xEF, 0x01];
 
     let mut envelope = EnvelopeWriter::new(Kind::Tile, 6);
-    envelope.present(section(&encoded, 0).expect("HEAD is present"));
-    envelope.present(section(&encoded, 1).expect("POSITIONS is present"));
-    envelope.present(section(&encoded, 2).expect("ROW_IDS is present"));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 0).expect("HEAD is present")));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 1).expect("POSITIONS is present")));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 2).expect("ROW_IDS is present")));
     envelope.absent();
-    envelope.present(&mass_column);
-    envelope.present(&appended);
+    envelope.slot(|buf| buf.extend_from_slice(&mass_column));
+    envelope.slot(|buf| buf.extend_from_slice(&appended));
     let bytes = envelope.finish();
 
     let sidecar = tile_sidecar(
@@ -1089,13 +1089,13 @@ fn g10_padding_high() -> Fixture {
     let seven = [0x70_u8; 9];
 
     let mut envelope = EnvelopeWriter::new(Kind::Tile, 7);
-    envelope.present(section(&encoded, 0).expect("HEAD is present"));
-    envelope.present(section(&encoded, 1).expect("POSITIONS is present"));
-    envelope.present(section(&encoded, 2).expect("ROW_IDS is present"));
-    envelope.present(section(&encoded, 3).expect("TYPE_MASK is present"));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 0).expect("HEAD is present")));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 1).expect("POSITIONS is present")));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 2).expect("ROW_IDS is present")));
+    envelope.slot(|buf| buf.extend_from_slice(section(&encoded, 3).expect("TYPE_MASK is present")));
     envelope.absent();
-    envelope.present(&six);
-    envelope.present(&seven);
+    envelope.slot(|buf| buf.extend_from_slice(&six));
+    envelope.slot(|buf| buf.extend_from_slice(&seven));
     let bytes = envelope.finish();
 
     let sidecar = tile_sidecar(

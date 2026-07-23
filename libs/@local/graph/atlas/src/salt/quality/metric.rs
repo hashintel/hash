@@ -20,7 +20,7 @@
 //!
 //! [`NeighbourhoodAggregate`] accumulates these over queries and normalizes trustworthiness and
 //! continuity onto `[0, 1]` (1 is a perfect map, 0 the worst permutation) by the worst-case penalty
-//! `q * k * (2m - 3k + 1) / 2`: each of `q` queries can misplace at most `k` points, and their rank
+//! `q · k · (2m - 3k + 1) / 2`: each of `q` queries can misplace at most `k` points, and their rank
 //! excesses are largest when the false neighbours occupy the ordering's final `k` positions. Over a
 //! universe of `m = n - 1` non-self points this reduces to the Venna-Kaski normalization `2 / (n k
 //! (2n - 3k - 1))`.
@@ -84,8 +84,8 @@ impl NeighbourhoodAggregate {
     /// neighbourhood size; `horizon` the 1-based rank beyond which a false neighbour counts as an
     /// intrusion or extrusion rather than a reshuffle.
     ///
-    /// Returns [`None`] unless `k <= universe / 2` (the trustworthiness normalizer is positive
-    /// on this domain) and `k <= horizon <= universe`.
+    /// Returns [`None`] unless `k ≤ universe / 2` (the trustworthiness normalizer is positive
+    /// on this domain) and `k ≤ horizon ≤ universe`.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -340,7 +340,7 @@ impl NeighbourhoodAggregate {
             return 1.0;
         }
 
-        // The constructor bounds k <= universe / 2, so 2m - 3k + 1 > 0.
+        // The constructor bounds k ≤ universe / 2, so 2m - 3k + 1 > 0.
         let worst_per_query = self.k * (2 * self.universe - 3 * self.k + 1) / 2;
         1.0 - penalty as f64 / (self.queries * worst_per_query) as f64
     }
@@ -396,7 +396,7 @@ impl TripletAggregate {
         }
 
         // Preservation only ever counts a subset of the observed triplets,
-        // so the ratio lies in [0, 1] by construction.
+        // so the ratio lies ∈ [0, 1] by construction.
         UnitFraction::new_unchecked(self.preserved as f64 / self.triplets as f64)
     }
 }

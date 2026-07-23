@@ -1,6 +1,6 @@
 //! Measurement seams for the quality suite's live targets.
 //!
-//! [`sweep`] serves the clump-threshold calibration: the clump epsilon is a calibrated
+//! [`sweep`] serves the clump-threshold calibration: the clump ε is a calibrated
 //! configuration value whose default must carry measured corpus structure, not a guess, so the
 //! sweep opens a published k-NN table and reads the grouping's shape at each candidate threshold.
 //! [`assess_current`] runs the full quality probe against a generation root's active generation

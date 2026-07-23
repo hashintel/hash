@@ -62,7 +62,7 @@ impl LodConfig {
     /// `max_tile_depth + span`, the catch-all bucket of the cut schedule.
     ///
     /// Returns [`None`] when the sum exceeds the 32 subdivisions a 64-bit Morton key resolves - the
-    /// key-width inequality `z_max + m <= 32` - in which case the configuration matches no
+    /// key-width inequality `z_max + m ≤ 32` - in which case the configuration matches no
     /// buildable schedule.
     #[must_use]
     pub(crate) const fn deepest(self) -> Option<Depth> {

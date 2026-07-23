@@ -519,7 +519,7 @@ fn validate(
     Ok(())
 }
 
-/// Returns `ceil(capacity * retained_fraction)`.
+/// Returns `ceil(capacity · retained_fraction)`.
 #[expect(
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,

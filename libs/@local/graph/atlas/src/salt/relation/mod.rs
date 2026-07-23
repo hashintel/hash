@@ -30,7 +30,7 @@
 //! the effective confidence
 //!
 //! ```text
-//! c = c_link * sqrt(c_source * c_target),
+//! c = c_link · √(c_source · c_target),
 //! ```
 //!
 //! where a missing score contributes the neutral factor 1 and sets a retained provenance bit, the
@@ -45,13 +45,13 @@
 //! independent assertions at full strength - and the degree normalization
 //!
 //! ```text
-//! nu = 1 / sqrt((1 + degree_r(i)) * (1 + degree_r(j))),
+//! ν = 1 / √((1 + degree_r(i)) · (1 + degree_r(j))),
 //! ```
 //!
 //! where `degree_r` sums the shares of the relation's admitted instances at a row, so an edge
 //! contributes one unit of degree across its readings at each endpoint. Degrees always cover the
 //! complete admitted instance set: force pruning drops an edge from sampling without reweighting
-//! its neighbours. The persisted per-instance factor is the combined normalization `nu * s`.
+//! its neighbours. The persisted per-instance factor is the combined normalization `ν · s`.
 //!
 //! Protection is exempt from the share on purpose: evidence aggregates by maximum, and a fractional
 //! reading still fully asserts its relation - conservation for geometry, conjunction for safety.
@@ -59,7 +59,7 @@
 //! The per-relation group carries the class weights
 //!
 //! ```text
-//! coincident = kappa_C * p*_C,        proximal = p*_P,
+//! coincident = κ_C · p*_C,        proximal = p*_P,
 //! ```
 //!
 //! the shared Coincident coefficient applied to the effective attraction distribution `p*`;
@@ -69,10 +69,10 @@
 //! # Protection
 //!
 //! Protection evidence derives from the selected class distribution `p` and the calibrated
-//! applicability `a`: per instance, the applicability-discounted evidence `c * (p_C + p_P) * a` and
-//! the undiscounted evidence `c * (p_C + p_P)`, each aggregated by maximum over every instance of
+//! applicability `a`: per instance, the applicability-discounted evidence `c · (p_C + p_P) · a` and
+//! the undiscounted evidence `c · (p_C + p_P)`, each aggregated by maximum over every instance of
 //! an endpoint pair, including instances of different relations and parallel links. A channel's
-//! mass under an applicability floor `F` is then exactly `max(discounted, F * undiscounted)`,
+//! mass under an applicability floor `F` is then exactly `max(discounted, F · undiscounted)`,
 //! because the maximum distributes over the per-instance `max(a, F)` - so floors and admission
 //! thresholds are both query-time parameters ([`protection::ProtectionView::judge`]), and one built
 //! index serves every floor and threshold calibration, including the floor-ablation matrix,
@@ -80,7 +80,11 @@
 //! ([`protection::ProtectionIndex`]): row `i` lists every protected partner of node row `i`, the
 //! shape hard-negative mining vets one projected point's candidates against.
 
-pub(crate) use self::error::RelationIndexError;
+use self::protection::NodePair;
+pub(crate) use self::{
+    confidence::{EffectiveConfidence, RelationConfidence, Scored},
+    error::RelationIndexError,
+};
 use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 // The policy row vocabulary is `salt::policy`'s deliverable; the
 // certified `Policies` view over it stays here with its consumer.
@@ -95,139 +99,12 @@ pub(crate) mod attraction;
 #[cfg(feature = "bench")]
 pub mod bench;
 mod build;
+mod confidence;
 mod error;
 pub(crate) mod protection;
 
 #[cfg(test)]
 mod tests;
-
-/// Confidence scores attached to one link instance.
-///
-/// Each score lies in `0.0..=1.0`, the dataset stream's confidence contract; `None` is unscored,
-/// which [`effective`](Self::effective) treats as the neutral factor 1 while retaining the
-/// scored/unscored distinction.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub(crate) struct RelationConfidence {
-    /// The store's confidence in the link itself.
-    pub link: Option<f32>,
-    /// The store's confidence in the link's attachment to its source.
-    pub source: Option<f32>,
-    /// The store's confidence in the link's attachment to its target.
-    pub target: Option<f32>,
-}
-
-impl RelationConfidence {
-    /// Combines the three scores into one effective confidence.
-    ///
-    /// The value is `link * sqrt(source * target)` with missing scores contributing the neutral
-    /// factor 1; the provenance bits record which scores were present.
-    #[must_use]
-    pub(crate) fn effective(self) -> EffectiveConfidence {
-        let mut scored = 0;
-        if self.link.is_some() {
-            scored |= Scored::LINK;
-        }
-        if self.source.is_some() {
-            scored |= Scored::SOURCE;
-        }
-        if self.target.is_some() {
-            scored |= Scored::TARGET;
-        }
-
-        let link = self.link.unwrap_or(1.0);
-        let source = self.source.unwrap_or(1.0);
-        let target = self.target.unwrap_or(1.0);
-        EffectiveConfidence {
-            value: link * (source * target).sqrt(),
-            scored: Scored(scored),
-        }
-    }
-}
-
-/// Presence bits of the three scores behind one effective confidence.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct Scored(u8);
-
-impl Scored {
-    const LINK: u8 = 1 << 0;
-    const SOURCE: u8 = 1 << 1;
-    const TARGET: u8 = 1 << 2;
-
-    /// Creates presence bits from the three score flags.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(link: bool, source: bool, target: bool) -> Self {
-        let mut bits = 0;
-        if link {
-            bits |= Self::LINK;
-        }
-        if source {
-            bits |= Self::SOURCE;
-        }
-        if target {
-            bits |= Self::TARGET;
-        }
-        Self(bits)
-    }
-
-    /// Returns whether the link score was present.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn link(self) -> bool {
-        self.0 & Self::LINK != 0
-    }
-
-    /// Returns whether the source-attachment score was present.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn source(self) -> bool {
-        self.0 & Self::SOURCE != 0
-    }
-
-    /// Returns whether the target-attachment score was present.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn target(self) -> bool {
-        self.0 & Self::TARGET != 0
-    }
-}
-
-/// One link instance's combined confidence and its score provenance.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct EffectiveConfidence {
-    value: f32,
-    scored: Scored,
-}
-
-impl EffectiveConfidence {
-    /// Validates an externally produced confidence.
-    ///
-    /// Returns [`None`] unless the value is finite and lies in `[0, 1]`, the range
-    /// [`RelationConfidence::effective`] produces.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(value: f32, scored: Scored) -> Option<Self> {
-        if !(value >= 0.0 && value <= 1.0) {
-            return None;
-        }
-
-        Some(Self { value, scored })
-    }
-
-    /// Returns the combined confidence, in `0.0..=1.0`.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn value(self) -> f32 {
-        self.value
-    }
-
-    /// Returns the presence bits of the three source scores.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn scored(self) -> Scored {
-        self.scored
-    }
-}
 
 /// One admitted link instance: an edge row read under one of its relation types.
 ///
@@ -252,6 +129,15 @@ pub(crate) struct RelationInstance {
     pub multiplicity: u32,
 }
 
+impl RelationInstance {
+    /// Returns the instance's canonical endpoint pair.
+    #[inline]
+    #[must_use]
+    pub(super) const fn pair(self) -> NodePair {
+        NodePair::new(self.source, self.target)
+    }
+}
+
 /// A certified relation policy table.
 ///
 /// Construction checks the table once - strictly ascending by relation row, every value in its
@@ -269,22 +155,29 @@ impl<'policy> Policies<'policy> {
     pub(crate) fn new(
         policies: &'policy [RelationPolicy],
     ) -> Result<Self, error::RelationIndexError> {
-        for (position, policy) in policies.iter().enumerate() {
-            if position
-                .checked_sub(1)
-                .is_some_and(|previous| policies[previous].relation.get() >= policy.relation.get())
-            {
+        if let Some(first) = policies.first()
+            && !first.in_domain()
+        {
+            return Err(error::RelationIndexError::PolicyDomain {
+                relation: first.relation,
+            });
+        }
+
+        for (previous, [before, policy]) in policies.array_windows().enumerate() {
+            if before.relation >= policy.relation {
                 return Err(error::RelationIndexError::PolicyOrder {
-                    position,
+                    position: previous + 1,
                     relation: policy.relation,
                 });
             }
+
             if !policy.in_domain() {
                 return Err(error::RelationIndexError::PolicyDomain {
                     relation: policy.relation,
                 });
             }
         }
+
         Ok(Self(policies))
     }
 
@@ -305,14 +198,14 @@ impl<'policy> Policies<'policy> {
 ///
 /// The recorded threshold is the criterion the pruned/retained split was judged against.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct BuildEvidence {
+pub(crate) struct BuildMeasurements {
     /// The force-pruning threshold the build applied.
     pub pruning_threshold: f32,
     /// Attraction edges retained by the pruning predicate.
     pub retained_edges: usize,
     /// Attraction edges dropped by the pruning predicate.
     pub pruned_edges: usize,
-    /// The summed force mass `c * s+` of the retained edges, accumulated in double precision.
+    /// The summed force mass `c · s · s+` of the retained edges, accumulated in double precision.
     pub retained_mass: f64,
     /// The summed force mass of the pruned edges, accumulated in double precision.
     pub pruned_mass: f64,
@@ -324,7 +217,7 @@ pub(crate) struct BuildEvidence {
     pub multi_typed_edges: Vec<u64>,
 }
 
-impl BuildEvidence {
+impl BuildMeasurements {
     /// Returns the fraction of total force mass the pruning dropped.
     ///
     /// This is the quantity the pruning threshold is audited by: a threshold is admissible while
@@ -333,9 +226,11 @@ impl BuildEvidence {
     #[must_use]
     pub(crate) fn omitted_mass_fraction(&self) -> f64 {
         let total = self.retained_mass + self.pruned_mass;
+
         if total <= 0.0 {
             return 0.0;
         }
+
         self.pruned_mass / total
     }
 }
@@ -352,7 +247,7 @@ pub(crate) struct RelationIndexes {
     /// The symmetric per-row no-repel evidence matrix.
     pub protection: protection::ProtectionIndex,
     /// What the build dropped, and the threshold it judged pruning against.
-    pub evidence: BuildEvidence,
+    pub measurements: BuildMeasurements,
 }
 
 impl RelationIndexes {
@@ -361,15 +256,16 @@ impl RelationIndexes {
     /// `rows` is the node-row domain the protection matrix spans; every instance endpoint lies in
     /// it under the dataset row contract. The instances are reordered in place; both indexes are
     /// functions of the instance set alone, identical for any input order. Instances whose
-    /// endpoints are one row are dropped and counted in the evidence: they exert no force between
-    /// distinct points and protect nothing. Degrees and protection evidence cover the complete
-    /// remaining instance set regardless of pruning.
+    /// endpoints are one row are dropped and counted in the measurements: they exert no force
+    /// between distinct points and protect nothing. Degrees and protection evidence cover the
+    /// complete remaining instance set regardless of pruning.
     ///
     /// Sorting and emission are parallel at two levels: groups build concurrently, and a group's
     /// instances emit over fixed-position chunks, so one high-volume relation cannot serialize the
-    /// pass. The fixed boundaries keep the double-precision evidence sums a function of the
+    /// pass. The fixed boundaries keep the double-precision mass sums a function of the
     /// instance set alone. Time is `O(E log E)` in the instance count; beyond the returned indexes
-    /// the build allocates one two-column endpoint scratch per relation group.
+    /// the build allocates one two-column endpoint scratch per relation group and one per-instance
+    /// protection record buffer.
     ///
     /// # Errors
     ///

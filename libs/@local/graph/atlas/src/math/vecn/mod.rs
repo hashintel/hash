@@ -355,11 +355,11 @@ impl<const N: usize> AlignedVecN<N> {
 
     /// Wraps a borrowed slice in place as consecutive aligned vectors.
     ///
-    /// Vector `i` of the returned slice occupies components `N * i` through `N * i + N - 1`, so a
+    /// Vector `i` of the returned slice occupies components `N · i` through `N · i + N - 1`, so a
     /// row-major `f32[T, N]` matrix reads as its `T` rows with every SIMD kernel available on each.
     ///
     /// Returns [`None`] unless every vector satisfies the alignment invariant: `components` starts
-    /// at an address aligned to `align_of::<f32x8>()` bytes, one vector's `N * 4` bytes are a
+    /// at an address aligned to `align_of::<f32x8>()` bytes, one vector's `N · 4` bytes are a
     /// multiple of that alignment (`N % 8 == 0` at the widest, 32-byte alignment) so the base
     /// alignment carries to every row, and the length is a whole number of vectors. `N` must be
     /// nonzero.
@@ -436,7 +436,7 @@ impl<const N: usize> AlignedVecN<N> {
     /// Returns the components as aligned 8-lane SIMD groups plus a scalar remainder.
     ///
     /// The first slice reinterprets the storage in place as full [`f32x8`] groups, in order: group
-    /// `i` holds components `8 * i` through `8 * i + 7`. The second slice holds the trailing `N %
+    /// `i` holds components `8 · i` through `8 · i + 7`. The second slice holds the trailing `N %
     /// 8` components that do not fill a group; it is empty whenever the dimension is a multiple of
     /// 8, which embedding dimensions in practice are. The type's alignment invariant guarantees no
     /// misaligned prefix exists, so no components precede the groups.

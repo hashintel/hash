@@ -61,7 +61,7 @@ const fn decode_nibble(byte: u8, index: usize) -> Result<u8, ParseHexError> {
 /// A fixed-width byte string with a canonical lowercase hexadecimal text form.
 ///
 /// Every fixed-width integrity value (digests, signatures, public keys) is a newtype over this: the
-/// text, JSON, and [`fmt::Debug`] forms are `2 * N` lowercase hexadecimal characters, and parsing
+/// text, JSON, and [`fmt::Debug`] forms are `2 · N` lowercase hexadecimal characters, and parsing
 /// is the strict inverse. A string that parses is the unique encoding of its value, so text
 /// round-trips are byte-identical.
 #[derive(

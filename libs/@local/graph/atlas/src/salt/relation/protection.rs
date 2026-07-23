@@ -10,7 +10,7 @@
 //! pair's instances), and every channel's mass under a floor `F` is
 //!
 //! ```text
-//! m_F = max(discounted, F * undiscounted),
+//! m_F = max(discounted, F · undiscounted),
 //! ```
 //!
 //! exactly, because the maximum distributes over the per-instance `max(a, F)`: `max_i(c_i p_i
@@ -36,6 +36,7 @@ use sprs::{CsMatI, CsMatViewI};
 use crate::{
     dataset::NodeRowId,
     file::sprs::{SprsValue, ValueTag},
+    math::NonNegative,
 };
 
 /// The index's matrix layout: evidence values, `u32` partner columns, `u64` row pointers.
@@ -51,7 +52,7 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 /// weak ones accompany it. Per instance, the class evidence is the effective confidence times the
 /// selected Coincident and Proximal probability; `discounted` additionally multiplies the
 /// relation's calibrated applicability. The index validates both components finite, non-negative,
-/// and ordered `discounted <= undiscounted`.
+/// and ordered `discounted ≤ undiscounted`.
 // FromBytes on purpose: the components carry no construction invariant
 // of their own - the index validates its entries as a whole, exactly
 // like the semantic graph's mapped weights.
@@ -68,9 +69,9 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 )]
 #[repr(C)]
 pub(crate) struct PairEvidence {
-    /// The applicability-discounted evidence maximum, `max(c * (p_C + p_P) * a)`.
+    /// The applicability-discounted evidence maximum, `max(c · (p_C + p_P) · a)`.
     pub discounted: f32,
-    /// The undiscounted evidence maximum, `max(c * (p_C + p_P))`.
+    /// The undiscounted evidence maximum, `max(c · (p_C + p_P))`.
     pub undiscounted: f32,
 }
 
@@ -84,7 +85,7 @@ impl PairEvidence {
     /// Returns the pair's evidence mass under an applicability floor.
     ///
     /// This is the exact per-channel mass: the floor's `max(a, F)` distributes through the
-    /// per-instance maximum into `max(discounted, floor * undiscounted)`.
+    /// per-instance maximum into `max(discounted, floor · undiscounted)`.
     #[inline]
     #[must_use]
     pub(crate) fn mass(self, floor: f32) -> f32 {
@@ -151,7 +152,7 @@ const impl Default for ChannelConfig {
 
 /// Both channels' query-time protection settings, valid by construction.
 ///
-/// The channels satisfy `ordinary.floor <= hard.floor` and `hard.threshold <= ordinary.threshold`:
+/// The channels satisfy `ordinary.floor ≤ hard.floor` and `hard.threshold ≤ ordinary.threshold`:
 /// hard negatives are aimed at specific pairs, so their channel warrants at least as much caution
 /// in the floor and no more evidence to trip in the threshold.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -170,7 +171,7 @@ const impl Default for ProtectionConfig {
 impl ProtectionConfig {
     /// Creates a protection configuration from the two channels.
     ///
-    /// Returns [`None`] unless `ordinary.floor <= hard.floor` and `hard.threshold <=
+    /// Returns [`None`] unless `ordinary.floor ≤ hard.floor` and `hard.threshold ≤
     /// ordinary.threshold`. `protect_ordinary` disables the ordinary channel outright: every
     /// ordinary negative is admitted while hard-negative protection stands. The default is both
     /// channels at floor 0 and threshold 0 with both active.
@@ -183,6 +184,7 @@ impl ProtectionConfig {
         if ordinary.floor > hard.floor || hard.threshold > ordinary.threshold {
             return None;
         }
+
         Some(Self {
             hard,
             ordinary,
@@ -215,8 +217,8 @@ impl ProtectionConfig {
 /// An unordered pair of node rows in canonical order.
 ///
 /// The two rows are stored with [`first`](Self::first) at most [`second`](Self::second), so a pair
-/// equals itself however its rows arrive.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// equals itself however its rows arrive, and the derived order is total over pairs.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct NodePair {
     first: NodeRowId,
     second: NodeRowId,
@@ -252,12 +254,6 @@ impl NodePair {
     #[must_use]
     pub(crate) const fn second(self) -> NodeRowId {
         self.second
-    }
-
-    /// Returns the pair's total sort key.
-    #[inline]
-    pub(super) const fn key(self) -> (u64, u64) {
-        (self.first.get(), self.second.get())
     }
 }
 
@@ -354,7 +350,7 @@ pub(super) fn validate(matrix: ProtectionMatrixView<'_>) -> Result<(), Protectio
         return Err(ProtectionValidationError::ColumnCompressed);
     }
 
-    let (rows, columns) = (matrix.rows(), matrix.cols());
+    let (rows, columns) = matrix.shape();
     if rows != columns {
         return Err(ProtectionValidationError::NotSquare { rows, columns });
     }
@@ -379,10 +375,10 @@ fn validate_row(
             return Err(ProtectionValidationError::SelfEdge { row });
         }
 
-        let ordered = evidence.discounted >= 0.0
-            && evidence.undiscounted >= 0.0
-            && evidence.undiscounted.is_finite();
-        if !ordered {
+        let in_range = NonNegative::new(evidence.discounted).is_some()
+            && NonNegative::new(evidence.undiscounted).is_some();
+
+        if !in_range {
             return Err(ProtectionValidationError::EvidenceOutOfRange { row, column });
         }
 
@@ -476,17 +472,16 @@ impl<'view> ProtectionView<'view> {
     /// # Panics
     ///
     /// Panics when `row` is outside the matrix's row domain.
-    pub(crate) fn row(&self, row: NodeRowId) -> impl Iterator<Item = ProtectedPartner> + 'view {
-        let (indptr, columns, evidence) = self.0.into_raw_storage();
-        let position = |pointer: u64| {
-            usize::try_from(pointer).expect("a resident index's entries fit the address space")
-        };
+    pub(crate) fn row(&self, row: NodeRowId) -> impl Iterator<Item = ProtectedPartner> + '_ {
+        let (columns, evidence) = self
+            .0
+            .outer_view(row.usize())
+            .expect("the caller's row lies in the matrix's row domain")
+            .into_raw_storage();
 
-        let range = position(indptr[row.usize()])..position(indptr[row.usize() + 1]);
-
-        columns[range.clone()]
+        columns
             .iter()
-            .zip(&evidence[range])
+            .zip(evidence)
             .map(|(&column, &evidence)| ProtectedPartner {
                 partner: NodeRowId::from_u32(column),
                 evidence,
@@ -499,26 +494,9 @@ impl<'view> ProtectionView<'view> {
     /// the row domain. Time is one row resolution plus a binary search of that row's partners.
     #[must_use]
     pub(crate) fn get(&self, pair: NodePair) -> Option<PairEvidence> {
-        let (indptr, columns, evidence) = self.0.into_raw_storage();
-        if pair.second().usize() >= self.rows() {
-            return None;
-        }
-
-        let position = |pointer: u64| {
-            usize::try_from(pointer).expect("a resident index's entries fit the address space")
-        };
-        let range =
-            position(indptr[pair.first().usize()])..position(indptr[pair.first().usize() + 1]);
-
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "the validated square matrix bounds columns to the u32-encoded row domain"
-        )]
-        let partner = pair.second().get() as u32;
-        columns[range.clone()]
-            .binary_search(&partner)
-            .ok()
-            .map(|offset| evidence[range][offset])
+        self.0
+            .get(pair.first().usize(), pair.second().usize())
+            .copied()
     }
 
     /// Judges a pair's protection under the given configuration.
@@ -530,6 +508,7 @@ impl<'view> ProtectionView<'view> {
         let Some(evidence) = self.get(pair) else {
             return PairVerdict::UNPROTECTED;
         };
+
         PairVerdict {
             hard: config.hard().protects(evidence),
             ordinary: config.protect_ordinary() && config.ordinary().protects(evidence),

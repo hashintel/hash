@@ -28,7 +28,7 @@ use crate::{
 
 // HNSW connectivity, hannoy build-time const generics: M links per
 // node on the upper layers, M0 on the ground layer. M = 16 with
-// M0 = 2 * M follows the Malkov-Yashunin paper's defaults (reasonable
+// M0 = 2 · M follows the Malkov-Yashunin paper's defaults (reasonable
 // M range 5-48; higher values pay off only for extreme recall or
 // dimensionality); the recall spot check is the per-corpus arbiter.
 #[expect(
@@ -216,7 +216,7 @@ impl HannoyIndex {
 
         results.into_iter().map(|(id, distance)| Neighbour {
             id: NodeRowId::from_u32(id),
-            // hannoy's cosine distance is (1 - cos) / 2 in [0, 1];
+            // hannoy's cosine distance is (1 - cos) / 2 ∈ [0, 1];
             // doubling restores the crate's [0, 2] scale exactly,
             // because scaling by a power of two is lossless.
             distance: distance * 2.0,

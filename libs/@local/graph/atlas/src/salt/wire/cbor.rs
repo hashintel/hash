@@ -21,13 +21,16 @@
     reason = "CBOR arguments are network byte order (RFC 8949 section 3)"
 )]
 
-/// An emitter over one growing byte buffer.
-#[derive(Debug, Default)]
-pub(crate) struct CborWriter {
-    bytes: Vec<u8>,
+/// An emitter appending to a borrowed byte buffer.
+///
+/// Every emission writes its bytes directly into the lent buffer, so encoding a value allocates
+/// only when the buffer itself grows.
+#[derive(Debug)]
+pub(crate) struct CborWriter<'buf> {
+    bytes: &'buf mut Vec<u8>,
 }
 
-impl CborWriter {
+impl<'buf> CborWriter<'buf> {
     /// The head of a single-precision float.
     const HEAD_F32: u8 = 0xFA;
     /// The head of a double-precision float.
@@ -51,16 +54,10 @@ impl CborWriter {
     /// The simple value `true`.
     const SIMPLE_TRUE: u8 = 0xF5;
 
-    /// Creates an empty writer.
+    /// Opens a writer appending to `bytes`.
     #[must_use]
-    pub(crate) const fn new() -> Self {
-        Self { bytes: Vec::new() }
-    }
-
-    /// Returns the encoded bytes.
-    #[must_use]
-    pub(crate) fn into_bytes(self) -> Vec<u8> {
-        self.bytes
+    pub(crate) const fn over(bytes: &'buf mut Vec<u8>) -> Self {
+        Self { bytes }
     }
 
     /// Emits an unsigned integer.
@@ -117,6 +114,18 @@ impl CborWriter {
     pub(crate) fn bytes(&mut self, value: &[u8]) {
         self.head(Self::MAJOR_BYTES, value.len() as u64);
         self.bytes.extend_from_slice(value);
+    }
+
+    /// Emits a zero-filled byte string of `length` bytes and returns its content slice.
+    ///
+    /// The head and the zeroed content land in the buffer immediately; the returned slice is the
+    /// content region, ready to be written in place.
+    pub(crate) fn bytes_zeroed(&mut self, length: usize) -> &mut [u8] {
+        self.head(Self::MAJOR_BYTES, length as u64);
+        let start = self.bytes.len();
+        self.bytes.resize(start + length, 0);
+
+        &mut self.bytes[start..]
     }
 
     /// Emits a text string.

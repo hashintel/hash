@@ -50,8 +50,8 @@
 //!
 //! # Verification
 //!
-//! The tests at the bottom of this file sweep strided samples of the full input bit range — every
-//! exponent, both signs, zeros, infinities, subnormals, and NaN payloads — and bound each kernel's
+//! The tests at the bottom of this file sweep strided samples of the full input bit range - every
+//! exponent, both signs, zeros, infinities, subnormals, and NaN payloads - and bound each kernel's
 //! distance from a scalar libm reference evaluated in wider precision. The bounds are each
 //! kernel's accuracy tier plus the reference's own rounding step; the special points consumers
 //! lean on are asserted exactly in [`math::kernel`](super)'s tests.
@@ -63,7 +63,7 @@ use std::simd::StdFloat as _;
 // the correctly rounded remainder against the next-wider constant.
 // Multiplying the coarse part by `nearest` is exact through the
 // masked width (2^9 for f32, 2^12 for f64, beyond both exp kernels'
-// reduction ranges), so the range reduction `x - nearest * ln2`
+// reduction ranges), so the range reduction `x - nearest · ln 2`
 // loses no bits to the subtraction; the remainder repays the split's
 // truncation.
 const F32_MASK: u32 = 0x1FF;
@@ -152,17 +152,17 @@ fn binary_exponent_f32<const N: usize>(values: Simd<f32, N>) -> Simd<i32, N> {
 /// Base-e exponential of each lane, accurate to the u10 tier (1.0 ULP).
 ///
 /// Measured faithfully rounded: 0.988 ULP maximum over an exhaustive sweep of the non-trivial
-/// domain (2.24e9 inputs, `|x| <= 110`), zero misclassified specials, monotone across the
+/// domain (2.24e9 inputs, `|x| ≤ 110`), zero misclassified specials, monotone across the
 /// reduction boundaries.
 #[inline]
 pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
-    // Range reduction: with n = round(x / ln 2), exp(x) = 2^n * exp(r)
-    // for r = x - n * ln 2, accumulated in two exact steps against the
+    // Range reduction: with n = round(x / ln 2), exp(x) = 2^n · exp(r)
+    // for r = x - n · ln 2, accumulated in two exact steps against the
     // split constants.
     let nearest = (values * Simd::splat(core::f32::consts::LOG2_E)).round_ties_even();
     let exponent = nearest.cast::<i32>();
     // `nearest` is integral, and every lane the backstops leave alive
-    // holds it within +/-152, where it equals `exponent` exactly; the
+    // holds it within ±152, where it equals `exponent` exactly; the
     // reduction uses it directly instead of round-tripping the integer
     // back to float.
     let reduced = nearest.mul_add(-Simd::splat(LN2_HI_F32), values);
@@ -183,8 +183,8 @@ pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     let result = scale_by_pow2_f32(poly, exponent);
 
     // Backstops only: the natural path rounds correctly through the
-    // overflow boundary (ln(f32::MAX) ~ 88.72) and the underflow-to-
-    // zero boundary (~ -103.97); the clamps guard the region beyond,
+    // overflow boundary (ln(f32::MAX) ≈ 88.72) and the underflow-to-
+    // zero boundary (≈ -103.97); the clamps guard the region beyond,
     // where the saturating cast and the exponent-field scaling break
     // down.
     let result = values
@@ -198,12 +198,12 @@ pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
 /// Base-2 exponential of each lane, accurate to the u35 tier (3.5 ULP).
 ///
 /// Measured far inside the tier, faithfully rounded: 0.885 ULP maximum over an exhaustive sweep
-/// of the non-trivial domain (2.25e9 inputs, `|x| <= 160`). The reduction `x - round(x)` is
+/// of the non-trivial domain (2.25e9 inputs, `|x| ≤ 160`). The reduction `x - round(x)` is
 /// exact, so the polynomial fit dominates the error budget.
 #[inline]
 pub(crate) fn exp2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
-    // Range reduction is exact: 2^x = 2^n * 2^f for n = round(x) and
-    // f = x - n, |f| <= 1/2.
+    // Range reduction is exact: 2^x = 2^n · 2^f for n = round(x) and
+    // f = x - n, |f| ≤ 1/2.
     let nearest = values.round_ties_even();
     let exponent = nearest.cast::<i32>();
     let fraction = values - nearest;
@@ -211,7 +211,7 @@ pub(crate) fn exp2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     // Degree-6 minimax polynomial for 2^f, in Horner form: the Taylor
     // coefficients are ln(2)^k / k! (ln(2)^6/6! = 1.536e-4 down to
     // ln(2)^2/2! = 0.240), minimax-nudged in the low digits; the last
-    // two steps add the exact k = 1 and k = 0 terms, ln(2) * f and 1.
+    // two steps add the exact k = 1 and k = 0 terms, ln(2) · f and 1.
     let poly = Simd::splat(0.000_153_592_09)
         .mul_add(fraction, Simd::splat(0.001_339_262_7))
         .mul_add(fraction, Simd::splat(0.009_618_385))
@@ -261,7 +261,7 @@ pub(crate) fn log2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
 
     // The r^3, r^5, and r^7 coefficients, minimax-nudged from the
     // series' 2/(k ln 2); the final mul_add below adds the exact
-    // leading term 2/ln(2) * r and the integer exponent.
+    // leading term 2/ln(2) · r and the integer exponent.
     let poly = Simd::splat(0.437_408_83)
         .mul_add(ratio_squared, Simd::splat(0.576_484_4))
         .mul_add(ratio_squared, Simd::splat(0.961_802_4));
@@ -285,13 +285,13 @@ pub(crate) fn log2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
 /// Base-e exponential of each lane, accurate to the u10 tier (1.0 ULP).
 ///
 /// Measured faithfully rounded (1.0 ULP maximum) over 242e6 samples including every double
-/// adjacent to a reduction boundary `k * ln(2) / 2`, the overflow window around `ln(f64::MAX)`,
+/// adjacent to a reduction boundary `k · ln(2) / 2`, the overflow window around `ln(f64::MAX)`,
 /// and the subnormal-output region, where the two-step power-of-two scaling keeps the error at
 /// one rounding.
 #[inline]
 pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
-    // Range reduction: with n = round(x / ln 2), exp(x) = 2^n * exp(r)
-    // for r = x - n * ln 2, accumulated in two exact steps against the
+    // Range reduction: with n = round(x / ln 2), exp(x) = 2^n · exp(r)
+    // for r = x - n · ln 2, accumulated in two exact steps against the
     // split constants.
     let nearest = (values * Simd::splat(core::f64::consts::LOG2_E)).round_ties_even();
     let exponent = nearest.cast::<i32>();
@@ -341,11 +341,11 @@ pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
     let result = scale_by_pow2_f64(poly, exponent);
 
     // Backstops only: the natural path rounds correctly through the
-    // overflow boundary (ln(f64::MAX) ~ 709.7827) and far past the
-    // underflow-to-zero boundary (~ -745.13); the clamps guard the
+    // overflow boundary (ln(f64::MAX) ≈ 709.7827) and far past the
+    // underflow-to-zero boundary (≈ -745.13); the clamps guard the
     // region beyond, where the saturating cast and the exponent-field
     // scaling break down (near |x| = 1421 the biased half-exponent
-    // leaves the normal range). Any upper constant in [710, 1421) is
+    // leaves the normal range). Any upper constant ∈ [710, 1421) is
     // correct; one at or below ln(f64::MAX) misclassifies the finite
     // doubles just under the boundary as infinite.
     let result = values

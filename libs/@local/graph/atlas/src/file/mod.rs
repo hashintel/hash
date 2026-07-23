@@ -114,8 +114,8 @@
 //! |                                 | membership runs and the parent edges the     |        |
 //! |                                 | closure derives from, one type domain,       |        |
 //! |                                 | never read apart                             |        |
-//! | node/edge identities (`.idnt`)  | mmap, serving lookups both ways: `row -> id` | combined |
-//! |                                 | by indexing the id column, `id -> row` by    |        |
+//! | node/edge identities (`.idnt`)  | mmap, serving lookups both ways: `row → id`  | combined |
+//! |                                 | by indexing the id column, `id → row` by     |        |
 //! |                                 | binary search over sorted pairs behind an    |        |
 //! |                                 | index prelude                                |        |
 //! | relation edges                  | wide table (endpoints, class, probability,   | parquet |
@@ -138,7 +138,7 @@
 //   HDF5's monolithic container), numpy .npy (tiny header + raw buffer), OCI image layout, and git,
 //   which started with loose object files and added packfiles only when millions of tiny files
 //   measurably hurt. Revisit packing only if that materializes (candidate: quadtree point-cloud
-//   files; bucket leaves to >= 64 KiB first).
+//   files; bucket leaves to ≥ 64 KiB first).
 // - No checksums inside the files: temp+rename handles torn writes, the repository hash handles
 //   bitrot, and hashing at publish time is one streaming pass the pipeline already makes. CRC
 //   framing existed to protect a container's own directory structure; without a container there is

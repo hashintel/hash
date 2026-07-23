@@ -86,7 +86,7 @@ impl Vec2 {
 
     /// Wraps a borrowed slice in place as consecutive vectors.
     ///
-    /// Vector `i` of the returned slice occupies components `2 * i` and `2 * i + 1`, so a row-major
+    /// Vector `i` of the returned slice occupies components `2 · i` and `2 · i + 1`, so a row-major
     /// `f32[T, 2]` matrix reads as its `T` points without copying.
     ///
     /// Returns [`None`] unless the length is a whole number of vectors.
@@ -347,7 +347,7 @@ const impl Index<usize> for Vec2 {
     ///
     /// # Panics
     ///
-    /// Panics if `index >= 2`.
+    /// Panics if `index ≥ 2`.
     #[inline]
     fn index(&self, index: usize) -> &f32 {
         &self.0[index]
@@ -483,7 +483,7 @@ impl Vec2x4T {
     ///
     /// # Panics
     ///
-    /// Panics if `index >= 4`.
+    /// Panics if `index ≥ 4`.
     #[inline]
     #[must_use]
     pub const fn get(self, index: usize) -> Vec2 {
@@ -735,7 +735,7 @@ impl Vec2x4 {
     ///
     /// # Panics
     ///
-    /// Panics if `index >= 4`.
+    /// Panics if `index ≥ 4`.
     #[inline]
     #[must_use]
     pub const fn get(self, index: usize) -> Vec2 {
@@ -933,7 +933,7 @@ impl Index<usize> for Vec2x4 {
     ///
     /// # Panics
     ///
-    /// Panics if `index >= 4`.
+    /// Panics if `index ≥ 4`.
     #[inline]
     fn index(&self, index: usize) -> &Vec2 {
         &self.0[index]

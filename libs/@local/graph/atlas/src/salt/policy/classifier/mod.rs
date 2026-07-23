@@ -20,7 +20,7 @@
 //! the sorted training distances,
 //!
 //! ```text
-//! distance = sqrt(mean(((e - mean) * inverse_scale)^2))
+//! distance = √(mean(((e - mean) · inverse_scale)^2))
 //! applicability = 1 - lower_bound(training_distances, distance) / N.
 //! ```
 //!
@@ -170,7 +170,7 @@ impl Classifier {
 
 /// Standardized diagonal-Mahalanobis distance of an embedding from a fitted training distribution.
 ///
-/// Computes `sqrt(mean(((e - mean) * inverse_scale)^2))`, accumulated in double precision over two
+/// Computes `√(mean(((e - mean) · inverse_scale)^2))`, accumulated in double precision over two
 /// independent chains.
 fn standardized_distance(
     embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,

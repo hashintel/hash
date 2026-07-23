@@ -79,6 +79,8 @@ mod vecn;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use self::scalar::{non_negative, positive, unit_fraction};
 pub use self::{
     affinity::{AffinityCurve, AffinityFitConfig},
     bounds::Bounds2,

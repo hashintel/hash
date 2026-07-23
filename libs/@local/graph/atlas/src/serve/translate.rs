@@ -141,6 +141,7 @@ impl Atlas {
         caps: TranslateCaps,
         proof: &VisibilityProof,
     ) -> Result<TranslateResponse, TranslateError> {
+        // NOTE: what in the... how many arguments in that?!
         translate(
             request,
             caps,
@@ -182,6 +183,8 @@ pub(super) fn translate(
 
     let mut nodes = BTreeMap::new();
     let mut edges = BTreeMap::new();
+    // NOTE: why are we acting on strings in this one? if the archive types should just implement
+    // serialize, or their def proxy?
     for id_string in &request.entity_ids {
         let Some(key) = parse(id_string) else {
             continue;
@@ -193,6 +196,7 @@ pub(super) fn translate(
                 // Hidden: an absent key, indistinguishable from nonexistent.
                 continue;
             }
+
             let position = position_of_row[row as usize] as usize;
             let point = positions[position];
             nodes.insert(
@@ -209,6 +213,7 @@ pub(super) fn translate(
                 // A hidden endpoint hides the edge: an absent key.
                 continue;
             }
+
             edges.insert(
                 id_string.clone(),
                 TranslatedEdge {
@@ -248,5 +253,5 @@ pub(super) fn parse(id: &str) -> Option<ArchivedEntityId> {
 /// The `bstr(32)` shape entity ids take on the binary wire - the generation digest's untagged
 /// byte-string precedent, typed by its HEAD or trailer key rather than a CBOR tag.
 pub(super) fn identity_bytes(id: ArchivedEntityId) -> [u8; 32] {
-    zerocopy::transmute!(id)
+    zerocopy::transmute!(id) // NOTE: ??? why aren't you just using `ArchivedEntityId` on the wire?
 }

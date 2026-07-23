@@ -13,7 +13,7 @@ use crate::{
     math::{Bounds2, Similarity},
     morton::Depth,
     salt::{
-        AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
+        AssemblyEvidence, BuildMeasurements, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
         FitConfigDef, GeometryClass, HoldoutClass, LodMeasurements, NormSpotCheck,
         PostingsMeasurements, QuadMeasurements, RankingConfig, RecallSpotCheck,
         ladder::RungMeasurement, projector::train::FrozenRadius,
@@ -139,8 +139,8 @@ pub(crate) struct Evidence {
     /// published before the classifier input was recorded.
     pub classifier: Option<ClassifierEvidence>,
     /// The relation build's dropped-instance and pruned-mass account.
-    #[serde(with = "BuildEvidenceDef")]
-    pub relations: BuildEvidence,
+    #[serde(with = "BuildMeasurementsDef")]
+    pub relations: BuildMeasurements,
     /// The level-of-detail stage's publish measurements.
     #[serde(with = "LodMeasurementsDef")]
     pub lod: LodMeasurements,
@@ -394,10 +394,10 @@ struct LodMeasurementsDef {
     max_tile_delta: u64,
 }
 
-/// serde shadow of [`BuildEvidence`].
+/// serde shadow of [`BuildMeasurements`].
 #[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "BuildEvidence")]
-struct BuildEvidenceDef {
+#[serde(remote = "BuildMeasurements")]
+struct BuildMeasurementsDef {
     pruning_threshold: f32,
     retained_edges: usize,
     pruned_edges: usize,

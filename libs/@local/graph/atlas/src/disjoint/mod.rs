@@ -4,7 +4,7 @@
 //! starts alone, [`unite`](DisjointSet::unite) joins two indices' groups, and
 //! [`find`](DisjointSet::find) names any index's group by a representative index that stays stable
 //! until the group merges again. A sequence of `u` unions and `f` finds costs `O((u + f)
-//! alpha(len))` with the inverse-Ackermann factor below 5 for every physical input, so connected
+//! α(len))` with the inverse-Ackermann factor below 5 for every physical input, so connected
 //! components over an edge list cost one pass over the edges.
 //!
 //! # Examples

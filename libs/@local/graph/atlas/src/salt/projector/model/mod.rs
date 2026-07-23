@@ -265,7 +265,7 @@ pub(crate) struct ProjectorInput<B: Backend> {
 
 /// Feature-wise linear modulation from a condition vector.
 ///
-/// `forward(h, c) = (1 + dgamma(c)) * h + beta(c)`, where one linear map produces `[dgamma; beta]`.
+/// `forward(h, c) = (1 + Δγ(c)) · h + β(c)`, where one linear map produces `[dgamma; beta]`.
 /// The map and its bias initialize to zero, so modulation starts as the identity for every
 /// condition.
 #[derive(Module, Debug)]
@@ -636,7 +636,7 @@ fn check_normalization<B: Backend>(
 /// nothing until training moves them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum LinearInit {
-    /// Uniform weights bounded by `1/sqrt(input)`.
+    /// Uniform weights bounded by `1/√input`.
     Scaled,
     /// Zero weights.
     Zero,

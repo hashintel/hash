@@ -6,7 +6,9 @@ use std::sync::OnceLock;
 use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::super::{
-    Policies, RelationConfidence, RelationInstance, RelationPolicy, build,
+    Policies, RelationConfidence, RelationInstance, RelationPolicy,
+    attraction::AttractionOptions,
+    build::{self, ProtectionRecord},
     protection::ProtectionIndex,
 };
 use crate::{
@@ -79,7 +81,7 @@ pub struct Corpus {
     policies: Vec<RelationPolicy>,
     instances: Vec<RelationInstance>,
     grouped: OnceLock<Vec<RelationInstance>>,
-    paired: OnceLock<Vec<RelationInstance>>,
+    records: OnceLock<Vec<ProtectionRecord>>,
     protection: OnceLock<ProtectionIndex>,
 }
 
@@ -198,7 +200,7 @@ impl Corpus {
             policies,
             instances,
             grouped: OnceLock::new(),
-            paired: OnceLock::new(),
+            records: OnceLock::new(),
             protection: OnceLock::new(),
         }
     }
@@ -239,12 +241,21 @@ impl Corpus {
         })
     }
 
-    /// Borrows the pair-sorted proper instances, sorting on first use.
-    pub(super) fn paired(&self) -> &[RelationInstance] {
-        self.paired.get_or_init(|| {
-            let mut paired = self.grouped().to_vec();
-            build::sort_by_pair(&mut paired);
-            paired
+    /// Borrows the emitted protection records in emission order, emitting on first use.
+    pub(super) fn records(&self) -> &[ProtectionRecord] {
+        self.records.get_or_init(|| {
+            let grouped = self.grouped();
+            let ranges = build::resolve_groups(grouped, self.policies())
+                .expect("the synthesized corpus covers every relation");
+            let mut records = vec![ProtectionRecord::EMPTY; grouped.len()];
+            drop(build::build_groups(
+                grouped,
+                ranges,
+                &mut records,
+                AttractionOptions::default(),
+                build::EMISSION_CHUNK,
+            ));
+            records
         })
     }
 
@@ -255,7 +266,9 @@ impl Corpus {
 
     /// Borrows the assembled protection index, assembling on first use.
     pub(super) fn protection(&self) -> &ProtectionIndex {
-        self.protection
-            .get_or_init(|| build::assemble_protection(self.rows, self.paired(), self.policies()))
+        self.protection.get_or_init(|| {
+            let mut records = self.records().to_vec();
+            build::assemble_protection(self.rows, &mut records)
+        })
     }
 }

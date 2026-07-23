@@ -189,7 +189,7 @@ impl Knn {
 
     /// Slices each row's stored prefix from constructed lists and assembles the validated table.
     ///
-    /// Each row keeps its `neighbours` nearest entries — the lists' leading prefix — rekeyed into
+    /// Each row keeps its `neighbours` nearest entries - the lists' leading prefix - rekeyed into
     /// the matrix's ascending-column order.
     ///
     /// # Errors
@@ -270,7 +270,7 @@ impl Knn {
 
         let indptr: Vec<u64> = (0..=rows).map(|row| (row * neighbours) as u64).collect();
         // SAFETY: The compressed structure holds by construction. `indptr` is the uniform
-        // `row * neighbours` ramp - `rows + 1` entries, non-decreasing, ending at the index
+        // `row · neighbours` ramp - `rows + 1` entries, non-decreasing, ending at the index
         // and distance lengths - and the per-row pass above wrote every row's indices
         // strictly ascending (sorted by id, adjacent equals rejected as duplicates) and
         // below `rows` (out-of-bounds rejected). These are exactly the properties

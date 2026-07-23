@@ -2,7 +2,7 @@
 //!
 //! [`IdentityTable`] collects one domain's source ids in row order during the dataset drain and
 //! writes them as one identity file; [`IdentityTableArchive`] reopens a written file as the typed
-//! lookup surface: `row -> id` by indexing, `id -> row` by binary search over the file's sorted
+//! lookup surface: `row → id` by indexing, `id → row` by binary search over the file's sorted
 //! pairs behind its index prelude, faulting two pages on a cold lookup.
 //!
 //! The id type is the dataset's ([`Dataset::NodeId`] / [`Dataset::EdgeId`]): byte-level stable,

@@ -257,8 +257,8 @@ pub struct DescentAudit {
 
 /// Audits NN-Descent constructions over the active generation's representations.
 ///
-/// Constructions run at the production width — the wider of the spot check's depth and the
-/// stored count — replaying the production fit's `knn-link` stream per seed; a repeated seed
+/// Constructions run at the production width - the wider of the spot check's depth and the
+/// stored count - replaying the production fit's `knn-link` stream per seed; a repeated seed
 /// measures construction nondeterminism. One exact reference scores every reading.
 ///
 /// # Panics
@@ -377,8 +377,8 @@ fn brute_device() -> burn::backend::ndarray::NdArrayDevice {
 
 /// Audits the exact brute-force construction over the active generation's representations.
 ///
-/// One construction at the production width — the wider of the spot check's depth and the stored
-/// count — scored against one exact CPU reference. The construction is deterministic, so no seed
+/// One construction at the production width - the wider of the spot check's depth and the stored
+/// count - scored against one exact CPU reference. The construction is deterministic, so no seed
 /// grid exists; the reference measures f32-accumulation drift at near-ties, not approximation.
 /// The tensor backend is the Metal-backed `CubeCL` runtime behind `bench` + `gpu`, the CPU
 /// backend otherwise.

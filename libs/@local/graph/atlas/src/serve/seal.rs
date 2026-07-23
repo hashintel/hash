@@ -141,7 +141,9 @@ impl SealBindings {
     /// purpose code, 1 the scope fingerprint, 2 the generation digest, 3 the issue time, 4 the
     /// format version.
     fn associated_data(&self) -> Vec<u8> {
-        let mut cbor = CborWriter::new();
+        let mut bytes = Vec::new();
+        let mut cbor = CborWriter::over(&mut bytes);
+
         cbor.map(5);
         cbor.uint(0);
         cbor.uint(self.purpose.code());
@@ -154,7 +156,7 @@ impl SealBindings {
         cbor.uint(4);
         cbor.uint(u64::from(FORMAT_VERSION));
 
-        cbor.into_bytes()
+        bytes
     }
 }
 

@@ -1,31 +1,32 @@
 //! Per-row smooth-kNN bandwidth calibration.
 //!
-//! Each node row receives a local connectivity radius `rho` and a bandwidth `sigma` turning its
+//! Each node row receives a local connectivity radius `ρ` and a bandwidth `σ` turning its
 //! neighbour distances `d_j` into fuzzy memberships
 //!
 //! ```text
-//! p_j = exp(-max(d_j - rho, 0) / sigma).
+//! p_j = exp(-max(d_j - ρ, 0) / σ).
 //! ```
 //!
-//! `rho` is the smallest positive distance in the row, so the nearest distinct neighbour always
-//! holds full membership. `sigma` solves
+//! `ρ` is the smallest positive distance in the row, so the nearest distinct neighbour always
+//! holds full membership. `σ` solves
 //!
 //! ```text
-//! sum_j p_j = target
+//! Σ_j p_j = target
 //! ```
 //!
 //! by bisection, `target` being `log2(k)` for a `k`-neighbour table; the row's memberships then sum
 //! to the same effective neighbour count everywhere, which is what makes dense and sparse regions
 //! comparable. Membership sums accumulate in double precision, so the bisection tolerance is
 //! measured against accumulation noise well below it. A floor proportional to the row's mean
-//! distance (the corpus mean when every distance ties at zero) keeps `sigma` positive for rows the
+//! distance (the corpus mean when every distance ties at zero) keeps `σ` positive for rows the
 //! bisection drives degenerate, such as a row of exact duplicates whose membership sum is `k` for
-//! every `sigma`.
+//! every `σ`.
 
 use core::simd::{f32x8, f64x8, num::SimdFloat as _};
+use std::simd::Simd;
 
 use super::SmoothingOptions;
-use crate::math::kernel::exp_f32x8;
+use crate::math::{MatrixN, kernel::exp_f32x8};
 
 const LANES: usize = 8;
 
@@ -42,21 +43,21 @@ pub(super) struct Bandwidth {
 /// [`calibrate`](Self::calibrate) refills it per row. Padding lanes hold positive infinity, which
 /// the membership kernel maps to an exact zero, so partial trailing lanes need no masking.
 pub(super) struct RowSolver {
-    adjusted: Vec<f32>,
+    adjusted: MatrixN<8>,
 }
 
 impl RowSolver {
     /// Creates a solver for rows of `neighbours` distances.
     pub(super) fn new(neighbours: usize) -> Self {
         Self {
-            adjusted: vec![f32::INFINITY; neighbours.next_multiple_of(LANES)],
+            adjusted: MatrixN::zeroed(neighbours.div_ceil(LANES)),
         }
     }
 
     /// Calibrates one row's bandwidth against its neighbour distances.
     ///
     /// `target` is the membership sum to solve for and `fallback_scale` replaces the row's mean
-    /// distance in the `sigma` floor when the row has no positive distance to measure a scale from.
+    /// distance in the `σ` floor when the row has no positive distance to measure a scale from.
     pub(super) fn calibrate(
         &mut self,
         distances: &[f32],
@@ -64,17 +65,23 @@ impl RowSolver {
         fallback_scale: f32,
         options: &SmoothingOptions,
     ) -> Bandwidth {
+        const INF: Simd<f32, 8> = Simd::splat(f32::INFINITY);
+        const ZERO: Simd<f32, 8> = Simd::splat(0.0);
+
         let rho = distances
             .iter()
             .copied()
             .filter(|&distance| distance > 0.0)
             .fold(f32::INFINITY, f32::min);
         let rho = if rho.is_finite() { rho } else { 0.0 };
+        let rho_x8 = Simd::splat(rho);
 
-        for (slot, &distance) in self.adjusted.iter_mut().zip(distances) {
-            *slot = (distance - rho).max(0.0);
+        // Adjusted distances: max(d - ρ, 0) per lane, padding from the
+        // load's infinity fill.
+        let rows = self.adjusted.lanes_mut();
+        for (row, distance) in rows.iter_mut().zip(distances.chunks(LANES)) {
+            *row = (Simd::load_or(distance, INF) - rho_x8).simd_max(ZERO);
         }
-        self.adjusted[distances.len()..].fill(f32::INFINITY);
 
         let mut low = 0.0_f32;
         let mut high = None;
@@ -114,9 +121,9 @@ impl RowSolver {
     pub(super) fn memberships(&self, bandwidth: Bandwidth, out: &mut [f32]) {
         let sigma = f32x8::splat(bandwidth.sigma);
         let floor = f32x8::splat(f32::MIN_POSITIVE);
-        let (lanes, _) = self.adjusted.as_chunks::<LANES>();
-        for (lanes, slots) in lanes.iter().zip(out.chunks_mut(LANES)) {
-            let memberships = exp_f32x8(-(f32x8::from_array(*lanes) / sigma)).simd_max(floor);
+
+        for (lane, slots) in self.adjusted.lanes().iter().zip(out.chunks_mut(LANES)) {
+            let memberships = exp_f32x8(-(lane / sigma)).simd_max(floor);
             slots.copy_from_slice(&memberships.to_array()[..slots.len()]);
         }
     }
@@ -125,10 +132,9 @@ impl RowSolver {
     fn membership_sum(&self, sigma: f32) -> f64 {
         let sigma = f32x8::splat(sigma);
         let mut sum = f64x8::splat(0.0);
-        let (lanes, _) = self.adjusted.as_chunks::<LANES>();
 
-        for &lanes in lanes {
-            sum += exp_f32x8(-(f32x8::from_array(lanes) / sigma)).cast::<f64>();
+        for lane in self.adjusted.lanes() {
+            sum += exp_f32x8(-(lane / sigma)).cast::<f64>();
         }
 
         sum.reduce_sum()

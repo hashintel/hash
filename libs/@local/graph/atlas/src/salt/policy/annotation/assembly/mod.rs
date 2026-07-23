@@ -27,11 +27,11 @@
 //!
 //! # Targets and weights
 //!
-//! With `n_k` the card's votes for geometry class `k` (of `K = 3` classes) and `m = sum_k n_k` its
+//! With `n_k` the card's votes for geometry class `k` (of `K = 3` classes) and `m = Σ_k n_k` its
 //! geometry-vote total, the soft target is the Dirichlet posterior mean
 //!
 //! ```text
-//! q_k = (n_k + alpha) / (m + K * alpha),    alpha = 1/2,
+//! q_k = (n_k + α) / (m + K · α),    α = 1/2,
 //! ```
 //!
 //! the Jeffreys prior: a card's target stays a proper distribution at any vote count, and few-vote

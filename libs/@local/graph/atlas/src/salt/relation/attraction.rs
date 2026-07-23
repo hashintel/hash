@@ -12,14 +12,14 @@ use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
 
 /// Shared attraction settings of one generation, valid by construction.
 ///
-/// The Coincident coefficient `kappa_C` scales the Coincident energy relative to Proximal's unit
+/// The Coincident coefficient `κ_C` scales the Coincident energy relative to Proximal's unit
 /// scale. It stays 0 until the generation's Coincident release criterion is met; after that, tuning
 /// grids ratios in `2..=8` (the composite-objective tuning protocol), so enabling runs start there.
 ///
-/// The pruning threshold `eta_F` drops instances whose force mass `c * s+` cannot move the layout;
-/// 0 retains every instance. A threshold is audited by the omitted-mass fraction it produces
-/// ([`super::BuildEvidence::omitted_mass_fraction`]) and controls only attraction sampling:
-/// protection masses never pass through it.
+/// The pruning threshold `η_F` drops instances whose force mass `c · s · s+` cannot move the
+/// layout; 0 retains every instance. A threshold is audited by the omitted-mass fraction it
+/// produces ([`super::BuildMeasurements::omitted_mass_fraction`]) and controls only attraction
+/// sampling: protection masses never pass through it.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionOptions {
     coincident_coefficient: f32 = 0.0,
@@ -35,8 +35,8 @@ const impl Default for AttractionOptions {
 impl AttractionOptions {
     /// Creates settings from a Coincident coefficient and a pruning threshold.
     ///
-    /// Returns [`None`] unless both values are finite and non-negative. The default is `kappa_C =
-    /// 0` (the Coincident class exerts no pull until its release criterion is met) and `eta_F = 0`
+    /// Returns [`None`] unless both values are finite and non-negative. The default is `κ_C =
+    /// 0` (the Coincident class exerts no pull until its release criterion is met) and `η_F = 0`
     /// (every admitted instance is retained).
     #[must_use]
     pub(crate) const fn new(coincident_coefficient: f32, pruning_threshold: f32) -> Option<Self> {
@@ -53,14 +53,14 @@ impl AttractionOptions {
         })
     }
 
-    /// Returns the shared Coincident coefficient `kappa_C`.
+    /// Returns the shared Coincident coefficient `κ_C`.
     #[inline]
     #[must_use]
     pub(crate) const fn coincident_coefficient(self) -> f32 {
         self.coincident_coefficient
     }
 
-    /// Returns the force-pruning threshold `eta_F`.
+    /// Returns the force-pruning threshold `η_F`.
     #[inline]
     #[must_use]
     pub(crate) const fn pruning_threshold(self) -> f32 {
@@ -82,7 +82,7 @@ pub(crate) struct AttractionEdge {
     pub target: NodeRowId,
     /// The instance's effective confidence `c` with score provenance.
     pub confidence: EffectiveConfidence,
-    /// The degree normalization `nu`, in `(0, 1]`.
+    /// The degree normalization `ν`, in `(0, 1]`.
     ///
     /// Computed over the complete admitted instance set of the group's relation.
     pub normalization: f32,
@@ -90,12 +90,12 @@ pub(crate) struct AttractionEdge {
 
 /// The per-relation weight factors of one attraction group.
 ///
-/// `coincident` and `proximal` are the class weights `kappa_C * p*_C` and `p*_P`: each class
+/// `coincident` and `proximal` are the class weights `κ_C · p*_C` and `p*_P`: each class
 /// probability already carries its shared coefficient, Proximal's being the unit scale convention.
 /// `strength` is the relation's frozen multiplier, applied outside the class mixture.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionWeights {
-    /// The Coincident class weight `kappa_C * p*_C`.
+    /// The Coincident class weight `κ_C · p*_C`.
     pub coincident: f32,
     /// The Proximal class weight `p*_P`.
     pub proximal: f32,
@@ -106,8 +106,8 @@ pub(crate) struct AttractionWeights {
 impl AttractionWeights {
     /// Returns the positive force scale `s+`, the sum of the class weights.
     ///
-    /// An instance's force mass is its confidence times this scale; the pruning predicate compares
-    /// that mass against the threshold.
+    /// An instance's force mass is its confidence times its reading share times this scale; the
+    /// pruning predicate compares that mass against the threshold.
     #[inline]
     #[must_use]
     pub(crate) const fn scale(self) -> f32 {
@@ -193,7 +193,7 @@ impl AttractionIndex {
 
     /// Returns the retained instance count over all groups.
     #[must_use]
-    pub(crate) fn edges(&self) -> usize {
+    pub(crate) fn edge_count(&self) -> usize {
         self.groups.iter().map(|group| group.edges.len()).sum()
     }
 }

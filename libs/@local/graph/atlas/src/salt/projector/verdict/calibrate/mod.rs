@@ -7,20 +7,20 @@
 //! the training loop will actually apply to it,
 //!
 //! ```text
-//! w = min(cap, n) / n * c * nu * p_P * h
-//!     |-- sampler --|   |-- loss weight --|
+//! w = min(cap, n) / n · c · ν · p_P · h
+//!     |-- sampler --|   |-- loss weight -|
 //! ```
 //!
 //! where `min(cap, n) / n` is the pair's inclusion probability once the relation sampler draws its
 //! type (types are drawn uniformly, so the type-level factor is constant and drops out of the
-//! percentile), `c` is effective confidence, `nu` the degree normalization, and `p_P * h` the
+//! percentile), `c` is effective confidence, `ν` the degree normalization, and `p_P · h` the
 //! group's Proximal class weight and strength multiplier. The sampler factor keeps a high-volume
 //! type from buying the radius with edge count; the degree factor keeps hub-heavy types from
 //! inflating it - a pair into a high-degree hub exerts proportionally little force on the layout
 //! and pulls the percentile just as weakly. Both factors are read from the built artifacts, so the
 //! measurement cannot drift from what training consumes.
 //!
-//! `z = d / sqrt((rho_i + eps)(rho_j + eps))` is measured in the relation loss's own normalization
+//! `z = d / √((ρ_i + ε)(ρ_j + ε))` is measured in the relation loss's own normalization
 //! convention, with the same local scales and the same scale guard the relation energy is
 //! constructed with. The measured radius is what makes that energy's "act outside the radius"
 //! contract mean the same population at training time.

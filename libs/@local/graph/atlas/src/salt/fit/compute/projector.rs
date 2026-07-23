@@ -511,7 +511,7 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
 /// The radius is the median layout distance to the landmark's nearest skeleton neighbours - the
 /// same local-scale convention the relation loss normalizes by - so a landmark in a dense skeleton
 /// region holds its row tighter than one in a sparse region. A one-landmark skeleton has no ruler
-/// and anchors at radius zero; the support term's epsilon guards the division.
+/// and anchors at radius zero; the support term's ε guards the division.
 fn landmark_anchors(
     skeleton: &LandmarkSkeletonArchive,
     options: &ProjectorOptions,

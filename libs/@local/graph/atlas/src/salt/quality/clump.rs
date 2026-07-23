@@ -1,17 +1,17 @@
 //! Near-duplicate clumps over the 512-component neighbour table.
 //!
 //! A clump is a connected component of the k-nearest-neighbour graph restricted to edges at cosine
-//! distance at most epsilon: rows whose representations chain through near-identical neighbours are
+//! distance at most ε: rows whose representations chain through near-identical neighbours are
 //! placed by the group they form, and within-clump order is not a representable quantity.
 //! Collapsing neighbour orderings onto clump ids therefore separates genuine placement error from
 //! reshuffling among near-duplicate siblings.
 //!
 //! The kNN restriction is conservative: a group larger than the table's k connects only through
-//! chains of stored edges, so a true epsilon-ball component can split but never spuriously merge.
+//! chains of stored edges, so a true ε-ball component can split but never spuriously merge.
 //! For a release verdict that is the safe direction - a split clump makes clump-granularity
 //! readings stricter.
 //!
-//! Epsilon is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it
+//! ε is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it
 //! was pinned on, and the grouping is judged against measured corpus structure (group count,
 //! coverage, size distribution) and against the flagged subgroups it is expected to resolve. The
 //! `clump_sweep` example re-derives the calibration readings against any published k-NN table.
@@ -40,7 +40,7 @@ use crate::disjoint::DisjointSet;
 /// covering 55.8% of the corpus at mean size 4.2. Below the plateau exact duplicates stay split;
 /// above roughly 0.0045 the components percolate (group count falls while sizes grow without
 /// bound). An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a
-/// different grouping construction and is not reproducible by epsilon-connected components over the
+/// different grouping construction and is not reproducible by ε-connected components over the
 /// k-NN table at any threshold; it anchors the scale of this value, not the value itself.
 pub(crate) const DEFAULT_EPSILON: f32 = 0.002;
 

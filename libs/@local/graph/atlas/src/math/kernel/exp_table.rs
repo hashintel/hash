@@ -6,9 +6,9 @@
 //!
 //! # Design
 //!
-//! Reduction: `n = round(x * 16/ln2)`, split as `n = 16q + j`, so `e^x = 2^q * 2^(j/16) * e^r`
-//! with `|r| <= ln2/32 ~ 0.0217`. The table entry `T = 2^(j/16)` is stored as an f32 pair
-//! `(T_hi, T_lo)` with `T_lo = round(T - T_hi)`, and the product `T * e^r` is reconstructed as
+//! Reduction: `n = round(x · 16/ln 2)`, split as `n = 16q + j`, so `e^x = 2^q · 2^(j/16) · e^r`
+//! with `|r| ≤ ln(2)/32 ≈ 0.0217`. The table entry `T = 2^(j/16)` is stored as an f32 pair
+//! `(T_hi, T_lo)` with `T_lo = round(T - T_hi)`, and the product `T · e^r` is reconstructed as
 //!
 //! ```text
 //! T_hi + fma(T_hi, expm1(r), T_lo)
@@ -16,15 +16,15 @@
 //!
 //! which keeps the table's rounding error out of the result: the only half-ulp-scale rounding
 //! left is the final add. Error budget: 0.5 (final add) + 0.078 (tail fit, measured in exact
-//! arithmetic) + ~0.03 (small-scale roundings + reduction residual). The Cody-Waite split keeps
-//! `n * LN2_16_HI` exact for `n < 4096` (12-bit significand times `|n| <= 2402`), and both
+//! arithmetic) + ≈0.03 (small-scale roundings + reduction residual). The Cody-Waite split keeps
+//! `n · LN2_16_HI` exact for `n < 4096` (12-bit significand times `|n| ≤ 2402`), and both
 //! [`scale_by_pow2_f32`] multiplies stay exact powers of two as in `exp_f32`.
 //!
 //! # Lookup portability
 //!
 //! The arithmetic is target-independent; only the 16-entry lookup is not.
 //! [`Simd::gather_or_default`] is the portable form: on AVX2/AVX-512 it lowers to `vgatherdps`
-//! (fine), on NEON it scalarizes (poor). The `aarch64` path below instead uses `vqtbl4q_u8` — a
+//! (fine), on NEON it scalarizes (poor). The `aarch64` path below instead uses `vqtbl4q_u8` - a
 //! single-instruction 64-byte table lookup, which is exactly a 16-entry f32 table for four lanes.
 //! On x86 without fast gathers, the analogous trick is two `u8x32` `swizzle_dyn` calls per table
 //! with the second index offset by 32 and the results OR-ed (out-of-range indices yield zero),
@@ -38,8 +38,8 @@ use super::sleef::scale_by_pow2_f32;
 /// `16 / ln(2)` (= 23.083120346069336).
 const INVLN2_16: f32 = f32::from_bits(0x41B8_AA3B);
 
-/// `ln(2)/16` with the low 12 mantissa bits zeroed: 12 significant bits, so `n * LN2_16_HI` is
-/// exact for `|n| < 4096` (the reduction produces `|n| <= 2402`).
+/// `ln(2)/16` with the low 12 mantissa bits zeroed: 12 significant bits, so `n · LN2_16_HI` is
+/// exact for `|n| < 4096` (the reduction produces `|n| ≤ 2402`).
 const LN2_16_HI: f32 = {
     let base = core::f32::consts::LN_2 / 16.; // exact: power-of-two divide
     f32::from_bits(base.to_bits() & !0xFFF)
@@ -51,7 +51,7 @@ const LN2_16_HI: f32 = {
 )]
 const LN2_16_LO: f32 = (core::f64::consts::LN_2 / 16. - (LN2_16_HI as f64)) as f32;
 
-/// Degree-3 tail of `e^r - 1 = r + r^2 (C2 + C3 r)` over `|r| <= ln2/32`; near-minimax fit
+/// Degree-3 tail of `e^r - 1 = r + r^2 (C2 + C3 r)` over `|r| ≤ ln(2)/32`; near-minimax fit
 /// (Chebyshev projection, coefficients rounded jointly), 0.078 ulp intrinsic error.
 const C2: f32 = f32::from_bits(0x3F00_00A4); // 0.5000097751617432
 const C3: f32 = f32::from_bits(0x3E2A_AB2E); // 0.1666686236858368

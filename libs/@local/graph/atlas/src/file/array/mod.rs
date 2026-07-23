@@ -27,7 +27,7 @@
 //! speak.
 //!
 //! The single structural rule lives where it can be checked totally: the file length equals `4096 +
-//! element count * element width` ([`FileHeader::expected_file_len`]). A shape whose element count
+//! element count · element width` ([`FileHeader::expected_file_len`]). A shape whose element count
 //! or byte length overflows `u64` matches no real file and is rejected by that same rule.
 //!
 //! # Mapping and alignment

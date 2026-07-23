@@ -32,7 +32,7 @@
 //! no separate count to contradict. [`Fenceposts`] carries the two structural rules (anchored at
 //! zero, non-decreasing) as a validated type, so an open file always slices without checks.
 //!
-//! Key `i` of the index is code `i * stride`. A lookup clamps to one segment, binary-searches the
+//! Key `i` of the index is code `i · stride`. A lookup clamps to one segment, binary-searches the
 //! index keys sampled inside it to pick one stride of codes, and binary-searches within that
 //! stride: two faulted pages instead of `log2(N)` scattered ones. All region offsets derive from
 //! the stride and the last fencepost with checked arithmetic ([`FileHeader::codes_offset`],

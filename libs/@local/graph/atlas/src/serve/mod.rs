@@ -29,6 +29,10 @@
 //! [`visibility`](self) (the proof and the resolution seam), [`seal`](self) (the sealed bitmap
 //! blob the session transport carries), and the [`open`](self) pass that validates everything the
 //! others rely on.
+// NOTE: after reading it I came to the conclusion that this needs a rework/rewrite. This is
+// unmaintainable, and not really reviewable :/ and especially not up to our coding standards
+// established everywhere else. This feels quick and dirty, something that we avoid _everywhere
+// else_. This needs proper care. It feels like it's all alone and sad and idk >.>
 
 pub use self::{
     codec::WireRow,
@@ -248,22 +252,25 @@ impl Atlas {
             self.edge_ids
                 .id(u64::from(row))
                 .expect("open validated the identity rows against the adjacency's edges"),
-        )
+        ) // NOTE: why
     }
 }
 
 /// Returns the Morton cell a tile coordinate addresses, [`None`] outside the zoom's grid.
 const fn cell_of(coordinate: TileCoordinate) -> Option<MortonCell> {
+    // NOTE: bad function, should be on `TileCoordinate`
     let depth = depth_of(coordinate.z);
     MortonCell::new(depth, coordinate.x, coordinate.y)
 }
 
 /// Wraps a depth the schedule already bounds within the key width.
 const fn depth_of(depth: u8) -> Depth {
+    // NOTE: bad function
     Depth::new(depth).expect("the schedule bounds its depths within the key width")
 }
 
 /// Narrows a base position or count to the wire's `u32` domain.
 fn narrow(value: u64) -> u32 {
+    // NOTE: bad function
     u32::try_from(value).expect("base positions share the u32 row-id domain")
 }

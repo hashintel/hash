@@ -4,8 +4,8 @@
 //! L2-regularized coefficients and unregularized intercepts,
 //!
 //! ```text
-//! sum_i v_i * cross_entropy(q_i, softmax(W e_i + b))
-//!     + (lambda / 2) * squared_norm(W),
+//! Σ_i v_i · cross_entropy(q_i, softmax(W e_i + b))
+//!     + (λ / 2) · squared_norm(W),
 //! ```
 //!
 //! through L-BFGS with an Armijo backtracking line search ([`objective`]). Whole relation groups
@@ -283,7 +283,7 @@ impl<'training> TrainingSet<'training> {
 /// [`FitEvidence`] judge them.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
-    /// L2 penalty `lambda` multiplying `squared_norm(W) / 2`; intercepts are never regularized.
+    /// L2 penalty `λ` multiplying `squared_norm(W) / 2`; intercepts are never regularized.
     ///
     /// Positive. Defaults to 1.0.
     pub regularization: f64 = 1.0,

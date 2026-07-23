@@ -32,7 +32,7 @@ pub(crate) use self::{
         annotation::{HoldoutClass, assembly::AssemblyEvidence},
     },
     postings::build::PostingsMeasurements,
-    relation::BuildEvidence,
+    relation::BuildMeasurements,
 };
 
 pub(crate) mod adjacency;

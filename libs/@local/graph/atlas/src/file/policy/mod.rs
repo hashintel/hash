@@ -21,7 +21,7 @@
 //! Each 32-byte [`PolicyRow`] resolves one relation type: the relation's ontology row, the
 //! effective attraction and selected class distributions (Coincident and Proximal components;
 //! Overlay is the remainder), the calibrated applicability, and the strength multiplier. The file
-//! length is `4096 + 32 * P` with checked arithmetic ([`FileHeader::expected_file_len`]); a header
+//! length is `4096 + 32 · P` with checked arithmetic ([`FileHeader::expected_file_len`]); a header
 //! whose geometry overflows matches no real file. The region starts on a 4096-byte boundary, so the
 //! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
 //! and slice, never mmap at a file offset.

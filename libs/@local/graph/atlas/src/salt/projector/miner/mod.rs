@@ -37,10 +37,10 @@ use crate::{
 
 /// Validated mining schedule and rank-weight coefficients.
 ///
-/// Per row, the miner examines the nearest `neighbours * search_margin` projected points and admits
+/// Per row, the miner examines the nearest `neighbours · search_margin` projected points and admits
 /// up to `neighbours` of them past the exclusions; the margin is what keeps a row surrounded by its
 /// own semantic cluster from starving. An admitted candidate at closeness rank `r` weighs
-/// `maximum_weight * (1 - r / neighbours)^rank_exponent`: the nearest surviving false neighbour
+/// `maximum_weight · (1 - r / neighbours)^rank_exponent`: the nearest surviving false neighbour
 /// carries the full weight and the last admissible rank fades toward zero, satisfying the bounded
 /// rank-weight contract.
 #[derive(Debug, Copy, Clone, PartialEq)]

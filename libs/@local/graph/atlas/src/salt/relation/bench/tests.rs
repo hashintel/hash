@@ -108,9 +108,8 @@ fn full_build_matches_composed_stages() {
     assert_eq!(summary.retained_edges, proper);
 
     live.emit_groups(super::production_chunk());
-    let mut pairing = live.grouped_scratch();
-    pairing.sort_by_pair();
-    live.assemble_protection();
+    let mut records = live.records_scratch();
+    live.assemble_protection(&mut records);
 }
 
 #[test]

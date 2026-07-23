@@ -81,14 +81,12 @@ impl Atlas {
             generation.path_of(&files.postings.name),
         )?)?;
         let closure = ClosureMap::new(&postings)?;
-        // Identity tables fail loud, key width included: a
-        // generation whose ids are not store identities does not
-        // serve.
         let ontology_ids = open_identities(
             &generation,
             &files.ontology_identities,
             IdentityDomain::Ontology,
         )?;
+
         let node_ids = open_identities(&generation, &files.node_identities, IdentityDomain::Node)?;
         let edge_ids = open_identities(&generation, &files.edge_identities, IdentityDomain::Edge)?;
 
@@ -103,10 +101,9 @@ impl Atlas {
         let world = generation.repository().metadata.evidence.lod.world;
         let bounds = (morton.count() > 0).then(|| frame_extent(world));
 
-        // The universe is a validated row count: the row column is
-        // the node universe's permutation, so its length is the
-        // codec's `N`. Edges cross the wire as link-entity
-        // identities and need no codec.
+        // The universe is a validated row count: the row column is the node universe's permutation,
+        // so its length is the codec's `N`. Edges cross the wire as link-entity identities and need
+        // no codec.
         let node_universe = narrow_count(rows.u32_elements().map_or(0, <[u32]>::len));
         let node_codec = RowCodec::derive(&options.wire_secret, id, NODE_LABEL, node_universe);
 
@@ -133,8 +130,8 @@ impl Atlas {
 
         this.validate()?;
 
-        // The wire column maps the validated row column once, so
-        // every position-driven gather reads permuted ids for free.
+        // The wire column maps the validated row column once, so every position-driven gather reads
+        // permuted ids for free.
         this.wire_rows = this
             .row_ids()
             .iter()
@@ -282,6 +279,7 @@ fn frame_extent(world: Bounds2) -> Bounds2 {
             (-1.0, 1.0)
         }
     };
+
     let (min_x, max_x) = axis(world.min().x(), world.max().x());
     let (min_y, max_y) = axis(world.min().y(), world.max().y());
 

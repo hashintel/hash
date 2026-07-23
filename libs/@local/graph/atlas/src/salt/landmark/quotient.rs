@@ -4,7 +4,7 @@
 //! whose endpoints map to distinct landmarks contributes its weight to the directed landmark pair,
 //! in double precision. Each landmark row then normalizes by its largest inflow, keeps its
 //! strongest [`maximum_neighbours`](QuotientOptions::maximum_neighbours), and the two directions of
-//! a pair combine by the probabilistic union `a + b - a * b` - the same symmetrization the
+//! a pair combine by the probabilistic union `a + b - a · b` - the same symmetrization the
 //! corpus-scale [`SemanticGraph`](crate::salt::semantic) is built with - so the result is a
 //! symmetric graph over the landmark domain with weights in `(0, 1]` and optimization memory
 //! proportional to the landmark count.
@@ -41,7 +41,7 @@ pub(crate) struct QuotientOptions {
     /// Strongest directed edges each landmark row keeps before the symmetric union. Defaults to 64.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent). It bounds quotient
-    // memory at roughly `M * 64` directed edges before the union; the
+    // memory at roughly `M · 64` directed edges before the union; the
     // layout quality criteria (trustworthiness, landmark rank
     // correlation) revise it from evidence.
     pub maximum_neighbours: NonZero<usize> = MAXIMUM_NEIGHBOURS,

@@ -51,7 +51,7 @@ impl Error for NonFiniteScale {}
 /// Validated per-node local radii in node-row order.
 ///
 /// Every value is a [`NonNegative`]: finite and at least zero, so dividing by a scale plus a
-/// positive epsilon is total.
+/// positive ε is total.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LocalScales(Box<[NonNegative]>);
 
@@ -122,8 +122,8 @@ impl LocalScales {
 
     /// Returns the local normalization of a node pair's 2D distance.
     ///
-    /// The value is `sqrt((scale(source) + epsilon) * (scale(target) + epsilon))`: the geometric
-    /// mean of the pair's epsilon-shifted local scales. Dividing a pair's distance by it yields the
+    /// The value is `√((scale(source) + ε) · (scale(target) + ε))`: the geometric
+    /// mean of the pair's ε-shifted local scales. Dividing a pair's distance by it yields the
     /// locally normalized distance `z`, comparable between dense and sparse map regions; `epsilon`
     /// keeps the result positive where a scale is zero.
     ///

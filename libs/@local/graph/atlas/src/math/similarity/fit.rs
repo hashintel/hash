@@ -194,15 +194,15 @@ struct FitSums {
     valid: bool,
     /// The total weight `sum(w)`.
     weight: f64,
-    /// The weighted source sum `sum(w * source)`.
+    /// The weighted source sum `sum(w · source)`.
     source: DVec2,
-    /// The weighted target sum `sum(w * target)`.
+    /// The weighted target sum `sum(w · target)`.
     target: DVec2,
-    /// The weighted product moment `sum(w * dot(source, target))`.
+    /// The weighted product moment `sum(w · dot(source, target))`.
     dot: f64,
-    /// The weighted product moment `sum(w * perp_dot(source, target))`.
+    /// The weighted product moment `sum(w · perp_dot(source, target))`.
     perp_dot: f64,
-    /// The weighted source moment `sum(w * |source|^2)`.
+    /// The weighted source moment `sum(w · |source|^2)`.
     source_norm: f64,
 }
 

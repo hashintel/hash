@@ -27,7 +27,10 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, UnitFraction, Vec2},
+    math::{
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
+        unit_fraction,
+    },
     salt::{
         knn::table::{Knn, KnnMatrix},
         policy::ClassProbabilities,
@@ -68,26 +71,6 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
 
 fn nonzero(value: usize) -> NonZero<usize> {
     NonZero::new(value).expect("fixture values are non-zero")
-}
-
-fn positive(value: f32) -> Positive {
-    Positive::new(value).expect("fixture values are positive")
-}
-
-fn fraction(value: f64) -> UnitFraction {
-    UnitFraction::new(value).expect("fixture rates are unit fractions")
-}
-
-// NOTE: have this be a macro, that way it's a compile time error! (maybe it makes sense to have a
-// macros.rs in the repo with these for non-negative etc. and use them would be helpful.)
-// macro_rules! coefficient {
-//     ($value:expr) => {
-//         const { NonNegative::new(value).expect("fixture coefficients are finite and
-// non-negative") }     };
-// }
-
-fn coefficient(value: f32) -> NonNegative {
-    NonNegative::new(value).expect("fixture coefficients are finite and non-negative")
 }
 
 fn device() -> NdArrayDevice {
@@ -301,8 +284,8 @@ fn schedule(steps: usize, boundary: usize, refresh_interval: usize) -> TrainingS
         nonzero(steps),
         boundary,
         nonzero(refresh_interval),
-        fraction(0.05),
-        fraction(0.001),
+        unit_fraction!(0.05),
+        unit_fraction!(0.001),
     )
     .expect("the fixture schedule is valid")
 }
@@ -329,17 +312,17 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
             .expect("the fixture budget is valid"),
         coefficients: Coefficients::new(
             Positive::ONE,
-            coefficient(0.5),
-            coefficient(0.5),
+            non_negative!(0.5),
+            non_negative!(0.5),
             NonNegative::ONE,
             NonNegative::ZERO,
             NonNegative::ONE,
         ),
-        miner: MinerOptions::new(nonzero(2), nonzero(2), positive(1.0), positive(1.0)),
+        miner: MinerOptions::new(nonzero(2), nonzero(2), positive!(1.0), positive!(1.0)),
         lens: RelationLens::new(
             CoincidentEnergy::new(0.0, 1.0).expect("the fixture coincident energy is valid"),
-            positive(0.25),
-            positive(0.5),
+            positive!(0.25),
+            positive!(0.5),
             asserted_radius,
         )
         .expect("the fixture lens is valid"),
@@ -419,11 +402,11 @@ fn landmark_support_keeps_the_frame() {
     // A dominant landmark coefficient pins the anchored rows.
     options.coefficients = Coefficients::new(
         Positive::ONE,
-        coefficient(0.5),
-        coefficient(0.5),
+        non_negative!(0.5),
+        non_negative!(0.5),
         NonNegative::ONE,
         NonNegative::ZERO,
-        coefficient(8.0),
+        non_negative!(8.0),
     );
     let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(11), &device())
         .expect("the semantic fixture trains");
@@ -748,19 +731,45 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
 fn schedule_validates_its_domain() {
     // Out-of-range rates (negative, above one, non-finite) are unconstructible as
     // `UnitFraction`s; the residual domain here is positivity and ordering.
-    let valid = TrainingSchedule::new(nonzero(10), 5, nonzero(2), fraction(0.05), fraction(0.001));
+    let valid = TrainingSchedule::new(
+        nonzero(10),
+        5,
+        nonzero(2),
+        unit_fraction!(0.05),
+        unit_fraction!(0.001),
+    );
     assert!(valid.is_some());
     assert!(
-        TrainingSchedule::new(nonzero(10), 11, nonzero(2), fraction(0.05), fraction(0.001))
-            .is_none(),
+        TrainingSchedule::new(
+            nonzero(10),
+            11,
+            nonzero(2),
+            unit_fraction!(0.05),
+            unit_fraction!(0.001)
+        )
+        .is_none(),
         "the boundary lies within the run"
     );
     assert!(
-        TrainingSchedule::new(nonzero(10), 5, nonzero(2), fraction(0.0), fraction(0.0)).is_none(),
+        TrainingSchedule::new(
+            nonzero(10),
+            5,
+            nonzero(2),
+            unit_fraction!(0.0),
+            unit_fraction!(0.0)
+        )
+        .is_none(),
         "the initial rate is strictly positive"
     );
     assert!(
-        TrainingSchedule::new(nonzero(10), 5, nonzero(2), fraction(0.05), fraction(0.1)).is_none(),
+        TrainingSchedule::new(
+            nonzero(10),
+            5,
+            nonzero(2),
+            unit_fraction!(0.05),
+            unit_fraction!(0.1)
+        )
+        .is_none(),
         "the minimum does not exceed the initial rate"
     );
 }
@@ -770,13 +779,15 @@ fn lens_validates_its_domain() {
     // Non-positive temperatures and scale guards are unconstructible as `Positive`s; the
     // residual domain here is the radius ordering.
     let coincident = CoincidentEnergy::new(0.25, 1.0).expect("the fixture energy is valid");
-    assert!(RelationLens::new(coincident, positive(0.25), positive(0.5), None).is_some());
+    assert!(RelationLens::new(coincident, positive!(0.25), positive!(0.5), None).is_some());
     assert!(
-        RelationLens::new(coincident, positive(0.25), positive(0.5), Some(0.25)).is_none(),
+        RelationLens::new(coincident, positive!(0.25), positive!(0.5), Some(0.25)).is_none(),
         "an asserted radius must exceed the Coincident radius"
     );
-    assert!(RelationLens::new(coincident, positive(0.25), positive(0.5), Some(0.5)).is_some());
-    assert!(RelationLens::new(coincident, positive(0.25), positive(0.5), Some(f32::NAN)).is_none());
+    assert!(RelationLens::new(coincident, positive!(0.25), positive!(0.5), Some(0.5)).is_some());
+    assert!(
+        RelationLens::new(coincident, positive!(0.25), positive!(0.5), Some(f32::NAN)).is_none()
+    );
 }
 
 #[test]
@@ -831,16 +842,16 @@ fn forked_ladders_share_the_frozen_radius() {
     let mut bytes = Vec::new();
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
 
-    let fork = |relation: f32| {
+    let fork = |relation: NonNegative| {
         let (state, mut stream) =
             artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
                 .expect("the resume checkpoint opens");
         let mut cell = opening;
         cell.coefficients = Coefficients::new(
             Positive::ONE,
-            coefficient(0.5),
-            coefficient(0.5),
-            coefficient(relation),
+            non_negative!(0.5),
+            non_negative!(0.5),
+            relation,
             NonNegative::ZERO,
             NonNegative::ONE,
         );
@@ -848,8 +859,8 @@ fn forked_ladders_share_the_frozen_radius() {
             .expect("the forked ladder trains")
     };
 
-    let one = fork(1.0);
-    let two = fork(4.0);
+    let one = fork(non_negative!(1.0));
+    let two = fork(non_negative!(4.0));
 
     assert_eq!(
         one.evidence.boundary, two.evidence.boundary,

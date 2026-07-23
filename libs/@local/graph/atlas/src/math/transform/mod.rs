@@ -14,7 +14,7 @@ mod tests;
 
 /// An affine transformation of 2D space: scale, rotation, and translation.
 ///
-/// A transform maps a vector `p` to `x_axis * p.x + y_axis * p.y + translation`, where `x_axis` and
+/// A transform maps a vector `p` to `x_axis · p.x + y_axis · p.y + translation`, where `x_axis` and
 /// `y_axis` are the columns of a 2x2 linear part. This is the top of the usual 3x3 homogeneous
 /// matrix with its constant `[0 0 1]` bottom row omitted, so a transform stores six coefficients
 /// rather than nine. Perspective is intentionally out of scope; every representable transform keeps
@@ -78,7 +78,7 @@ impl Transform {
 
     /// Creates a transform from its two linear columns and translation.
     ///
-    /// The resulting transform maps `p` to `x_axis * p.x + y_axis * p.y + translation`.
+    /// The resulting transform maps `p` to `x_axis · p.x + y_axis · p.y + translation`.
     #[inline]
     #[must_use]
     pub const fn from_cols(x_axis: Vec2, y_axis: Vec2, translation: Vec2) -> Self {
@@ -121,7 +121,7 @@ impl Transform {
     /// Returns the transform equivalent to applying `self` first, then `next`.
     ///
     /// This reads in application order: `scale.then(translate)` scales before it translates. In
-    /// matrix notation the result is `next * self`.
+    /// matrix notation the result is `next · self`.
     ///
     /// `next` is anything convertible into a transform, so [`Rotation`] and [`Translation`] values
     /// compose directly without widening at the call site.

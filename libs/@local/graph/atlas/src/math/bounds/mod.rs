@@ -23,7 +23,7 @@ mod tests;
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
 /// A [`Bounds2`] is defined by its minimum and maximum corners. Every value upholds two invariants:
-/// both corners are finite, and `min <= max` holds per component. Constructors enforce this by
+/// both corners are finite, and `min ≤ max` holds per component. Constructors enforce this by
 /// returning [`None`] for invalid input, so downstream code can rely on the box being usable
 /// without re-validating.
 ///
@@ -76,7 +76,7 @@ impl Bounds2 {
 
     /// Creates a bounding box from its corners.
     ///
-    /// Returns [`None`] unless both corners are finite and `min <= max` holds per component. A
+    /// Returns [`None`] unless both corners are finite and `min ≤ max` holds per component. A
     /// degenerate box with `min == max` on an axis is allowed; widen it with
     /// [`with_minimum_extent`](Self::with_minimum_extent) if a positive extent is required.
     #[must_use]

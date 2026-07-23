@@ -31,14 +31,12 @@ pub struct TileCaps {
     ///
     /// The manifest publishes this value as `limits.coloredTypeIds`. Defaults to 32 - at that
     /// ceiling the `TYPE_MASK` stride is four bytes per point.
-    pub colored_type_ids: u32,
+    pub colored_type_ids: u32 = 32,
 }
 
 const impl Default for TileCaps {
     fn default() -> Self {
-        Self {
-            colored_type_ids: 32,
-        }
+        Self { .. }
     }
 }
 
@@ -258,6 +256,7 @@ impl Atlas {
         if request.query.filter.is_some() {
             return Err(TileError::Unsupported("filter"));
         }
+
         if request.query.colored_type_ids.len() > caps.colored_type_ids as usize {
             return Err(TileError::Types {
                 count: request.query.colored_type_ids.len(),
@@ -304,6 +303,7 @@ impl Atlas {
         } else {
             node.map_or(0, |node| self.visible_children(node, proof))
         };
+
         let visible = if coordinate.z == 0 {
             proof.visible_below(self.morton.count())
         } else if proof.is_full() {
@@ -311,6 +311,7 @@ impl Atlas {
         } else {
             self.visible_population(cell, proof)
         };
+
         let global = (coordinate.z == 0).then(|| self.global_head(cut, proof));
 
         let mask_set = (!request.query.colored_type_ids.is_empty())
@@ -337,9 +338,18 @@ impl Atlas {
         ranges: &[Range<u32>],
         proof: &VisibilityProof,
     ) -> (DeliveredPoints, Vec<u32>) {
+        // NOTE: doesn't this have the problem that we may deliver no points at all? even if points
+        // have been requested because the upper layer doesn't have them? if that's a case that's a
+        // major violation of what we're trying to do here. We pull up as much as possible, until we
+        // have reached the upper delivery limit. That way someone is never presented with an empty
+        // tile, even if at the current z level nothing is there.
+        // I guess the other parts do that in the function, if that is the case, I would like some
+        // additional comments/clarifications on this and the relationships between the functions,
+        // right now it is all very opaque.
         let row_ids = self.row_ids();
         let mut gathered = Vec::new();
         let mut runs = Vec::with_capacity(ranges.len());
+
         for range in ranges {
             let before = gathered.len();
             for position in range.clone() {
@@ -347,6 +357,7 @@ impl Atlas {
                     gathered.push(position);
                 }
             }
+
             runs.push(narrow((gathered.len() - before) as u64));
         }
 
@@ -362,18 +373,23 @@ impl Atlas {
     /// client never fetches a tile the mask made empty, and the bitmask carries no evidence that
     /// hidden points exist.
     fn visible_children(&self, node: &Node, proof: &VisibilityProof) -> u8 {
-        (0..4).fold(0_u8, |bits, quadrant| {
-            let occupied = node
-                .child(quadrant)
-                .is_some_and(|child| self.subtree_has_visible(child, proof));
-            bits | (u8::from(occupied) << quadrant)
-        })
+        let mut bits = 0_u8;
+
+        for (index, quadrant) in node.children().iter().enumerate() {
+            let &Some(child) = quadrant else { continue };
+            let occupied = self.subtree_has_visible(child, proof);
+
+            bits |= u8::from(occupied) << index;
+        }
+
+        bits
     }
 
     /// Returns whether any node in the quad subtree rooted at `index` delivers a visible row.
     fn subtree_has_visible(&self, index: u32, proof: &VisibilityProof) -> bool {
         let row_ids = self.row_ids();
         let nodes = self.quad.nodes();
+
         let mut stack = vec![index];
         while let Some(index) = stack.pop() {
             let node = &nodes[index as usize];
@@ -383,6 +399,7 @@ impl Atlas {
                     return true;
                 }
             }
+
             for quadrant in 0..4 {
                 if let Some(child) = node.child(quadrant) {
                     stack.push(child);
@@ -399,19 +416,26 @@ impl Atlas {
     fn visible_population(&self, cell: MortonCell, proof: &VisibilityProof) -> u64 {
         let row_ids = self.row_ids();
         let lengths = self.morton.fenceposts().lengths();
-        (0..=Depth::MAX.get())
-            .filter(|&bucket| lengths[bucket as usize] > 0)
-            .map(|bucket| {
-                self.morton
-                    .run(depth_of(bucket), cell)
-                    .filter(|&position| {
-                        proof.contains(
-                            row_ids[usize::try_from(position).expect("base positions fit usize")],
-                        )
-                    })
-                    .count() as u64
-            })
-            .sum()
+
+        let mut population = 0;
+
+        for depth in 0..=Depth::MAX.get() {
+            if lengths[depth as usize] == 0 {
+                continue;
+            }
+
+            population += self
+                .morton
+                .run(depth_of(depth), cell)
+                .filter(|&position| {
+                    proof.contains(
+                        row_ids[usize::try_from(position).expect("base positions fit usize")],
+                    )
+                })
+                .count() as u64;
+        }
+
+        population
     }
 
     /// Assembles the root's global metadata over the masked view.
@@ -436,6 +460,7 @@ impl Atlas {
                     .contains(row_ids[usize::try_from(position).expect("base positions fit usize")])
             })
             .count() as u64;
+
         let bounds = Bounds2::from_points(
             row_ids
                 .iter()
@@ -443,6 +468,7 @@ impl Atlas {
                 .filter(|&(&row, _)| proof.contains(row))
                 .map(|(_, &point)| point),
         );
+
         let min_resolution = (0..=Depth::MAX.get())
             .rev()
             .find(|&bucket| {
@@ -476,6 +502,7 @@ impl Atlas {
     pub fn delivered_entities(&self, document: &TileDocument) -> DeliveredEntities {
         let row_ids = self.row_ids();
         let mut ids = Vec::with_capacity(document.delivered.count());
+
         document.delivered.for_each(|position| {
             let row = row_ids[position as usize];
             ids.push(
@@ -566,6 +593,7 @@ impl Atlas {
     fn total(&self, cut: Depth, cell: MortonCell) -> (u8, Vec<u32>, Vec<Range<u32>>) {
         let mut runs = Vec::with_capacity(cut.get() as usize + 1);
         let mut ranges = Vec::with_capacity(cut.get() as usize + 1);
+
         for bucket in 0..=cut.get() {
             let run = self.morton.run(depth_of(bucket), cell);
             runs.push(narrow(run.end - run.start));
@@ -580,13 +608,18 @@ impl Atlas {
     /// The subtree count of a cell without a quad node.
     fn population(&self, cell: MortonCell) -> u64 {
         let lengths = self.morton.fenceposts().lengths();
-        (0..=Depth::MAX.get())
-            .filter(|&bucket| lengths[bucket as usize] > 0)
-            .map(|bucket| {
-                let run = self.morton.run(depth_of(bucket), cell);
-                run.end - run.start
-            })
-            .sum()
+
+        let mut population = 0;
+        for depth in 0..=Depth::MAX.get() {
+            if lengths[depth as usize] == 0 {
+                continue;
+            }
+
+            let run = self.morton.run(depth_of(depth), cell);
+            population += run.end - run.start;
+        }
+
+        population
     }
 
     /// Returns the deepest occupied bucket, zero when no point exists.

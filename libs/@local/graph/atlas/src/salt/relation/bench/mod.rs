@@ -24,7 +24,7 @@ pub use self::{
 use super::{
     RelationIndexes,
     attraction::AttractionOptions,
-    build::{self, EMISSION_CHUNK},
+    build::{self, EMISSION_CHUNK, ProtectionRecord},
 };
 
 mod fixture;
@@ -67,14 +67,14 @@ impl Scratch {
     pub fn sort_by_group(&mut self) -> usize {
         build::sort_by_group(&mut self.0)
     }
-
-    /// Runs the pair sort alone over a group-sorted buffer ([`Corpus::grouped_scratch`]).
-    ///
-    /// The production input state.
-    pub fn sort_by_pair(&mut self) {
-        build::sort_by_pair(&mut self.0);
-    }
 }
+
+/// An owned protection-record buffer for the assembly stage, in emission order.
+///
+/// The assembly reorders its input, so each timed run takes a fresh clone; clone in the benchmark
+/// harness's setup phase, outside the timed region.
+#[derive(Clone)]
+pub struct Records(Vec<ProtectionRecord>);
 
 impl Corpus {
     /// Clones the instances in synthesis order, the full build's and the group sort's input state.
@@ -83,10 +83,10 @@ impl Corpus {
         Scratch(self.instances().to_vec())
     }
 
-    /// Clones the group-sorted proper instances, the pair sort's input state.
+    /// Clones the emitted protection records in emission order, the assembly's input state.
     #[must_use]
-    pub fn grouped_scratch(&self) -> Scratch {
-        Scratch(self.grouped().to_vec())
+    pub fn records_scratch(&self) -> Records {
+        Records(self.records().to_vec())
     }
 
     /// Runs the full production build over `scratch`.
@@ -104,16 +104,17 @@ impl Corpus {
                 .expect("the synthesized corpus satisfies the build contract");
 
         BuildSummary {
-            retained_edges: indexes.evidence.retained_edges,
-            pruned_edges: indexes.evidence.pruned_edges,
-            omitted_mass_fraction: indexes.evidence.omitted_mass_fraction(),
+            retained_edges: indexes.measurements.retained_edges,
+            pruned_edges: indexes.measurements.pruned_edges,
+            omitted_mass_fraction: indexes.measurements.omitted_mass_fraction(),
             protection_entries: indexes.protection.matrix().nnz(),
         }
     }
 
     /// Runs the group emission alone at `chunk` granularity.
     ///
-    /// Reads the corpus's group-sorted instances.
+    /// Reads the corpus's group-sorted instances and allocates the protection record buffer it
+    /// fills, exactly as the production build does.
     ///
     /// # Panics
     ///
@@ -122,21 +123,19 @@ impl Corpus {
     pub fn emit_groups(&self, chunk: usize) {
         let ranges = build::resolve_groups(self.grouped(), self.policies())
             .expect("the synthesized corpus covers every relation");
+        let mut records = vec![ProtectionRecord::EMPTY; self.grouped().len()];
         drop(build::build_groups(
             self.grouped(),
             ranges,
+            &mut records,
             AttractionOptions::default(),
             chunk,
         ));
     }
 
-    /// Runs the protection assembly alone, reading the corpus's pair-sorted instances.
-    pub fn assemble_protection(&self) {
-        drop(build::assemble_protection(
-            self.rows(),
-            self.paired(),
-            self.policies(),
-        ));
+    /// Runs the protection assembly alone: the record sort, the aggregation, and the scatter.
+    pub fn assemble_protection(&self, records: &mut Records) {
+        drop(build::assemble_protection(self.rows(), &mut records.0));
     }
 
     /// Runs the protection index's validation alone, over the corpus's assembled index.

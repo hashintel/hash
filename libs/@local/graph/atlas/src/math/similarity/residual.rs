@@ -83,7 +83,7 @@ impl Similarity {
     /// non-finite coordinate propagates into the sum and is rejected by the callers' finishing
     /// step.
     fn squared_residuals(self, source: &[Vec2], target: &[Vec2]) -> f64 {
-        // `scale * R * p + t` with the scale folded into the rotation
+        // `scale · R · p + t` with the scale folded into the rotation
         // columns once, in double precision.
         let scale = f64::from(self.scale);
         let cos = scale * f64::from(self.rotation.cos());

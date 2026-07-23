@@ -18,9 +18,9 @@
 //! | 24     | 8      | edge count `E`, `u64`                         |
 //! | 32     | 8      | corpus row count `N`, `u64`                   |
 //! | 40     | 4056   | padding; writers emit zero, readers ignore    |
-//! | 4096   | G * 32 | groups: [`GroupRecord`] per relation group;   |
+//! | 4096   | G · 32 | groups: [`GroupRecord`] per relation group;   |
 //! |        |        | zero padding to the next 4096-byte boundary   |
-//! | ...    | E * 40 | edges: [`EdgeRecord`] in group-major order    |
+//! | ...    | E · 40 | edges: [`EdgeRecord`] in group-major order    |
 //! ```
 //!
 //! Group `i` owns the edge rows `first_edge[i] .. first_edge[i + 1]`, with the final group ending
@@ -142,7 +142,7 @@ pub(crate) struct GroupRecord {
     pub relation: U64<LE>,
     /// The position of the group's first edge record.
     pub first_edge: U64<LE>,
-    /// The Coincident class weight `kappa_C * p*_C`.
+    /// The Coincident class weight `κ_C · p*_C`.
     pub coincident: F32<LE>,
     /// The Proximal class weight `p*_P`.
     pub proximal: F32<LE>,
@@ -175,7 +175,7 @@ pub(crate) struct EdgeRecord {
     pub target: U64<LE>,
     /// The effective confidence `c`.
     pub confidence: F32<LE>,
-    /// The degree normalization `nu`.
+    /// The degree normalization `ν`.
     pub normalization: F32<LE>,
     /// Score provenance bits: link, source, and target presence in the three lowest bits.
     pub scored: U32<LE>,

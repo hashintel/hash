@@ -1,6 +1,6 @@
 //! k-nearest-neighbour list construction.
 //!
-//! [`KnnConstruction`] separates what the pipeline needs — every row's nearest-neighbour list —
+//! [`KnnConstruction`] separates what the pipeline needs - every row's nearest-neighbour list -
 //! from how a constructor produces it. [`NeighbourLists`] is the produced currency: the recall
 //! spot check reads sampled rows from it, and the persisted table slices its stored prefix from
 //! it, so one construction at one width feeds both consumers.

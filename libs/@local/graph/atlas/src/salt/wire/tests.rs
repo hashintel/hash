@@ -52,10 +52,10 @@ mod cbor {
     use super::CborWriter;
 
     /// Encodes one value through a fresh writer.
-    fn encoded(emit: impl FnOnce(&mut CborWriter)) -> Vec<u8> {
-        let mut writer = CborWriter::new();
-        emit(&mut writer);
-        writer.into_bytes()
+    fn encoded(emit: impl FnOnce(&mut CborWriter<'_>)) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        emit(&mut CborWriter::over(&mut bytes));
+        bytes
     }
 
     #[test]
@@ -92,10 +92,15 @@ mod cbor {
     }
 
     #[test]
+    #[expect(
+        clippy::redundant_closure_for_method_calls,
+        reason = "CborWriter::null as a fn item fails higher-ranked inference over the writer's \
+                  borrowed buffer; the closure is the working spelling"
+    )]
     fn simple_values_and_floats() {
         assert_eq!(encoded(|cbor| cbor.boolean(false)), [0xF4]);
         assert_eq!(encoded(|cbor| cbor.boolean(true)), [0xF5]);
-        assert_eq!(encoded(CborWriter::null), [0xF6]);
+        assert_eq!(encoded(|cbor| cbor.null()), [0xF6]);
 
         // RFC 8949 appendix A: 100000.0f32 = 0xFA_47C35000; the f32
         // maximum = 0xFA_7F7FFFFF. 1.0 and -0.5 derived by hand from
@@ -198,7 +203,7 @@ mod envelope {
     #[test]
     fn two_slot_envelope_lays_out_by_hand() {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 2);
-        envelope.present(&[0xAA, 0xBB, 0xCC]);
+        envelope.slot(|buf| buf.extend_from_slice(&[0xAA, 0xBB, 0xCC]));
         envelope.absent();
         let bytes = envelope.finish();
 
@@ -220,8 +225,8 @@ mod envelope {
     #[test]
     fn present_empty_is_distinct_from_absent() {
         let mut envelope = EnvelopeWriter::new(Kind::Edges, 3);
-        envelope.present(&[0x01]);
-        envelope.present(&[]);
+        envelope.slot(|buf| buf.extend_from_slice(&[0x01]));
+        envelope.slot(|buf| buf.extend_from_slice(&[]));
         envelope.absent();
         let bytes = envelope.finish();
 
@@ -238,8 +243,8 @@ mod envelope {
     #[test]
     fn trailer_follows_the_aligned_end_unpadded() {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 1);
-        envelope.present(&[0x11, 0x22]);
-        let bytes = envelope.finish_with_trailer(&[0xA0]);
+        envelope.slot(|buf| buf.extend_from_slice(&[0x11, 0x22]));
+        let bytes = envelope.finish_with_trailer(|buf| buf.extend_from_slice(&[0xA0]));
 
         // Payload region at 24; payload (24, 26) pads to 32; the
         // one-byte trailer tail follows unpadded.
@@ -260,15 +265,15 @@ mod envelope {
     #[should_panic(expected = "declares 1 slots, all recorded")]
     fn extra_slots_are_rejected() {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 1);
-        envelope.present(&[0x01]);
-        envelope.present(&[0x02]);
+        envelope.slot(|buf| buf.extend_from_slice(&[0x01]));
+        envelope.slot(|buf| buf.extend_from_slice(&[0x02]));
     }
 
     #[test]
     #[should_panic(expected = "declares 2 slots")]
     fn missing_slots_are_rejected() {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 2);
-        envelope.present(&[0x01]);
+        envelope.slot(|buf| buf.extend_from_slice(&[0x01]));
         let _bytes = envelope.finish();
     }
 }
@@ -295,7 +300,7 @@ proptest! {
         let mut envelope = EnvelopeWriter::new(Kind::Tile, slots);
         for payload in &payloads {
             match payload {
-                Some(bytes) => envelope.present(bytes),
+                Some(bytes) => envelope.slot(|buf| buf.extend_from_slice(bytes)),
                 None => envelope.absent(),
             }
         }

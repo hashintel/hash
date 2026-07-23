@@ -15,7 +15,7 @@
 //!   for like.
 //!
 //! A sampled reading's neighbourhood is coarser than a corpus reading's at equal `k`: the `k`
-//! nearest of a uniform sample of `m` rows sit at the corpus-scale depth of roughly `k * rows / m`
+//! nearest of a uniform sample of `m` rows sit at the corpus-scale depth of roughly `k · rows / m`
 //! neighbours. The two passes therefore answer different questions - fine placement against the
 //! representation, coarse placement against the canonical space - and [`ProbeReadings`] keeps them
 //! apart.
@@ -23,7 +23,7 @@
 //! Every ranking resolves distance ties by ascending row, so equal inputs produce equal readings.
 //! Readings are kept per anchor ([`ReadingGrid`]), so overall and per-subgroup roll-ups merge cells
 //! instead of re-ranking. Anchors rank independently and in parallel; the corpus pass performs
-//! `anchors * rows` representation-kernel evaluations and dominates the probe's runtime.
+//! `anchors · rows` representation-kernel evaluations and dominates the probe's runtime.
 #![expect(
     clippy::cast_possible_truncation,
     reason = "the corpus row domain is checked against the crate's u32 row encoding at entry"
@@ -62,7 +62,7 @@ mod readings;
 // defaults bound the canonical fetch (anchors + comparisons rows of
 // 3,072 f32 components, ~53 MB) while keeping subgroup cells at a few
 // dozen anchors and the sampled neighbourhoods well inside the
-// aggregate's k <= m/2 domain.
+// aggregate's k ≤ m/2 domain.
 const DEFAULT_ANCHORS: NonZero<usize> =
     NonZero::new(256).expect("the default anchor count is nonzero");
 const DEFAULT_COMPARISONS: NonZero<usize> =
@@ -97,7 +97,7 @@ pub(crate) struct ProbeOptions {
     /// Horizon multiplier for the intrusion and extrusion readings.
     ///
     /// A false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches
-    /// `factor * k` (clamped to the universe), separating genuinely foreign points from reshuffling
+    /// `factor · k` (clamped to the universe), separating genuinely foreign points from reshuffling
     /// near the neighbourhood boundary. Defaults to 2.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
     /// Comparison-point pairs sampled for the triplet readings.

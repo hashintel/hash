@@ -41,7 +41,7 @@ use core::{hint::black_box, time::Duration};
 use codspeed_criterion_compat::{
     BatchSize, Criterion, Throughput, criterion_group, criterion_main,
 };
-use hash_graph_atlas::bench::relation::{Corpus, Profile, Scratch, production_chunk};
+use hash_graph_atlas::bench::relation::{Corpus, Profile, production_chunk};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
@@ -98,20 +98,18 @@ fn bench_stages(criterion: &mut Criterion) {
             BatchSize::LargeInput,
         );
     });
-    // The emission and assembly runners read the corpus's cached sorted
-    // copies, so their iterations carry no per-round clone.
+    // The emission runner reads the corpus's cached group-sorted copy, so
+    // its iterations carry no per-round clone; the assembly reorders its
+    // record input, so each round takes a fresh clone outside the timing.
     group.bench_function("emit_groups", |bencher| {
         bencher.iter(|| corpus.emit_groups(black_box(chunk)));
     });
-    group.bench_function("sort_by_pair", |bencher| {
+    group.bench_function("assemble_protection", |bencher| {
         bencher.iter_batched_ref(
-            || corpus.grouped_scratch(),
-            Scratch::sort_by_pair,
+            || corpus.records_scratch(),
+            |records| corpus.assemble_protection(records),
             BatchSize::LargeInput,
         );
-    });
-    group.bench_function("assemble_protection", |bencher| {
-        bencher.iter(|| corpus.assemble_protection());
     });
     // Assembly constructs the invariants and then re-validates them;
     // this entry splits the stage's cost between scatter and check.

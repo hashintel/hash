@@ -168,10 +168,7 @@ impl AttractionIndex {
         });
         let edges = self.groups().iter().flat_map(|group| {
             group.edges().iter().map(|edge| {
-                let scored = edge.confidence.scored();
-                let bits = u32::from(scored.link())
-                    | (u32::from(scored.source()) << 1)
-                    | (u32::from(scored.target()) << 2);
+                let bits = u32::from(edge.confidence.scored().to_bits());
                 EdgeRecord {
                     edge: U64::new(edge.edge.get()),
                     source: U64::new(edge.source.get()),
@@ -183,7 +180,7 @@ impl AttractionIndex {
                 }
             })
         });
-        write_records(rows, groups, self.edges() as u64, edges, &mut writer)?;
+        write_records(rows, groups, self.edge_count() as u64, edges, &mut writer)?;
 
         Ok(writer.accumulator.finalize())
     }
@@ -334,7 +331,10 @@ impl AttractionArchive {
                 return Err(InvalidAttractionIndex::InvalidDegreeNormalization { edge: index });
             }
 
-            if edge.scored.get() > 0b111 {
+            let speakable = u8::try_from(edge.scored.get())
+                .ok()
+                .and_then(Scored::from_bits);
+            if speakable.is_none() {
                 return Err(InvalidAttractionIndex::UnknownScoredBits { edge: index });
             }
 
@@ -449,9 +449,13 @@ impl AttractionGroupView<'_> {
 }
 
 /// Decodes one validated edge record into the resident edge type.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "validation bounds the provenance bits well inside u8 at open"
+)]
 const fn decode(record: &EdgeRecord) -> AttractionEdge {
-    let bits = record.scored.get();
-    let scored = Scored::new(bits & 0b001 != 0, bits & 0b010 != 0, bits & 0b100 != 0);
+    let scored = Scored::from_bits(record.scored.get() as u8)
+        .expect("the mapped index validated every provenance bit at open");
 
     AttractionEdge {
         edge: EdgeRowId::new(record.edge.get()),

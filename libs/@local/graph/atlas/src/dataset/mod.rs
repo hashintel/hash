@@ -348,6 +348,8 @@ impl From<NodeRowId> for usize {
     Debug,
     Copy,
     Clone,
+    PartialOrd,
+    Ord,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,

@@ -9,6 +9,47 @@
 #[cfg(test)]
 mod tests;
 
+/// Validates a positive literal at compile time.
+///
+/// The expansion is a `const` block over [`Positive::new`], so a literal outside the domain fails
+/// the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! positive {
+    ($value:expr) => {
+        const { $crate::math::Positive::new($value).expect("the literal is finite and positive") }
+    };
+}
+#[cfg(test)]
+pub(crate) use positive;
+
+/// Validates a non-negative literal at compile time.
+///
+/// The expansion is a `const` block over [`NonNegative::new`], so a literal outside the domain
+/// fails the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! non_negative {
+    ($value:expr) => {
+        const {
+            $crate::math::NonNegative::new($value).expect("the literal is finite and non-negative")
+        }
+    };
+}
+#[cfg(test)]
+pub(crate) use non_negative;
+
+/// Validates a unit-fraction literal at compile time.
+///
+/// The expansion is a `const` block over [`UnitFraction::new`], so a literal outside the domain
+/// fails the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! unit_fraction {
+    ($value:expr) => {
+        const { $crate::math::UnitFraction::new($value).expect("the literal lies in [0, 1]") }
+    };
+}
+#[cfg(test)]
+pub(crate) use unit_fraction;
+
 /// A finite, strictly positive `f32`, valid by construction.
 ///
 /// The shared definition of the finite-and-positive check that recurs across configuration and
@@ -295,9 +336,9 @@ pub fn sigmoid(value: f32) -> f32 {
 
 /// Computes the Huber penalty: quadratic below the threshold, linear above.
 ///
-/// For `value <= threshold` the penalty is `value * value / 2`; above the threshold it continues
-/// along the tangent line `threshold * (value - threshold / 2)`. The two pieces meet at
-/// `threshold * threshold / 2` with matching first derivative `threshold`, so the penalty is
+/// For `value ≤ threshold` the penalty is `value · value / 2`; above the threshold it continues
+/// along the tangent line `threshold · (value - threshold / 2)`. The two pieces meet at
+/// `threshold · threshold / 2` with matching first derivative `threshold`, so the penalty is
 /// continuous with a continuous first derivative at the threshold. The comparison is signed;
 /// callers pass non-negative magnitudes such as norms or distances.
 ///
@@ -306,9 +347,9 @@ pub fn sigmoid(value: f32) -> f32 {
 /// ```
 /// use hash_graph_atlas::math::huber;
 ///
-/// // Quadratic regime: 0.5 * 0.5 * 0.5.
+/// // Quadratic regime: 0.5 · 0.5 · 0.5.
 /// assert_eq!(huber(0.5, 1.0), 0.125);
-/// // Linear regime: 1.0 * (3.0 - 0.5).
+/// // Linear regime: 1.0 · (3.0 - 0.5).
 /// assert_eq!(huber(3.0, 1.0), 2.5);
 /// ```
 #[inline]

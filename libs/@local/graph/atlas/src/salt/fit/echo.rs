@@ -503,6 +503,29 @@ mod placement {
         }
     }
 
+    /// Validates the wire coefficient array into the typed coefficients.
+    fn coefficients<E: serde::de::Error>(wire: [f32; 6]) -> Result<Coefficients, E> {
+        let [semantic, ordinary, hard, relation, anchor, landmark] = wire;
+        let semantic = Positive::new(semantic).ok_or_else(|| {
+            E::custom("the semantic coefficient is not finite and strictly positive")
+        })?;
+        let [
+            Some(ordinary),
+            Some(hard),
+            Some(relation),
+            Some(anchor),
+            Some(landmark),
+        ] = [ordinary, hard, relation, anchor, landmark].map(NonNegative::new)
+        else {
+            return Err(E::custom(
+                "a non-semantic coefficient is not finite and non-negative",
+            ));
+        };
+        Ok(Coefficients::new(
+            semantic, ordinary, hard, relation, anchor, landmark,
+        ))
+    }
+
     impl ProjectorRecord {
         /// Validates the wire fields into the real options.
         ///
@@ -541,24 +564,7 @@ mod placement {
             let budget = BudgetOptions::new(positive, total, floor, epsilon)
                 .ok_or_else(|| E::custom("the budget fields do not form a gradient budget"))?;
 
-            let [semantic, ordinary, hard, relation, anchor, landmark] = record.coefficients;
-            let semantic = Positive::new(semantic).ok_or_else(|| {
-                E::custom("the semantic coefficient is not finite and strictly positive")
-            })?;
-            let [
-                Some(ordinary),
-                Some(hard),
-                Some(relation),
-                Some(anchor),
-                Some(landmark),
-            ] = [ordinary, hard, relation, anchor, landmark].map(NonNegative::new)
-            else {
-                return Err(E::custom(
-                    "a non-semantic coefficient is not finite and non-negative",
-                ));
-            };
-            let coefficients =
-                Coefficients::new(semantic, ordinary, hard, relation, anchor, landmark);
+            let coefficients = coefficients(record.coefficients)?;
 
             let miner = MinerOptions::new(
                 record.miner.neighbours,

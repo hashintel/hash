@@ -100,20 +100,17 @@ pub struct EdgesCaps {
     /// Most tiles one request may list; the manifest publishes this value as `limits.edgesTiles`.
     ///
     /// Defaults to 256.
-    pub tiles: u32,
+    pub tiles: u32 = 256,
     /// Most edges one response delivers.
     ///
     /// Beyond it the rank-ordered cap truncates and `HEAD` reports `complete: false`. Defaults to
     /// `0x4000` - roughly 200 KiB of columns.
-    pub edges: u32,
+    pub edges: u32 = 0x4000,
 }
 
 const impl Default for EdgesCaps {
     fn default() -> Self {
-        Self {
-            tiles: 256,
-            edges: 0x4000,
-        }
+        Self { .. }
     }
 }
 

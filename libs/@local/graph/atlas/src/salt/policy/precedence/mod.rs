@@ -21,9 +21,9 @@
 //! `p*` additionally passes the applicability mix and Coincident admission:
 //!
 //! ```text
-//! p~ = a * p + (1 - a) * Overlay
-//! g  = 1[p~_C >= tau_C and a >= tau_A]      (when admission is enforced)
-//! p*_C = g * p~_C,   p*_P = p~_P,   p*_O = remainder
+//! p~ = a · p + (1 - a) · Overlay
+//! g  = 1[p~_C ≥ τ_C and a ≥ τ_A]      (when admission is enforced)
+//! p*_C = g · p~_C,   p*_P = p~_P,   p*_O = remainder
 //! ```
 //!
 //! A Coincident prediction that fails admission becomes Overlay, never Proximal. Only the
@@ -134,9 +134,9 @@ pub(crate) struct PolicyOverride {
 pub(crate) struct CoincidentAdmission {
     /// Whether admission is enforced. Defaults to unenforced.
     pub enforced: bool = false,
-    /// Minimum mixed Coincident probability `tau_C`. Defaults to 1.
+    /// Minimum mixed Coincident probability `τ_C`. Defaults to 1.
     pub class_probability_threshold: UnitFraction = UnitFraction::ONE,
-    /// Minimum applicability `tau_A`. Defaults to 1.
+    /// Minimum applicability `τ_A`. Defaults to 1.
     pub applicability_threshold: UnitFraction = UnitFraction::ONE,
 }
 

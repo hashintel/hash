@@ -3,7 +3,7 @@
 //! A UMAP-style layout keeps a low-dimensional affinity curve
 //!
 //! ```text
-//! q(d) = 1 / (1 + a * d^(2b))
+//! q(d) = 1 / (1 + a · d^(2b))
 //! ```
 //!
 //! over the 2D distance `d` between points, and descends its cross-entropy against the
@@ -43,7 +43,7 @@ pub use self::fit::AffinityFitConfig;
 #[cfg(test)]
 mod tests;
 
-/// The affinity curve `1 / (1 + a * d^(2b))` mapping layout distance to edge probability.
+/// The affinity curve `1 / (1 + a · d^(2b))` mapping layout distance to edge probability.
 ///
 /// The parameters come from fitting the curve against the desired membership falloff (spread and
 /// minimum distance) with [`fit`](Self::fit), as UMAP's `a` and `b`; `a` scales the curve and `b`
@@ -107,7 +107,7 @@ impl AffinityCurve {
         self.b
     }
 
-    /// Evaluates the affinity `1 / (1 + a * d^(2b))` at a squared distance.
+    /// Evaluates the affinity `1 / (1 + a · d^(2b))` at a squared distance.
     ///
     /// The affinity is `1` at distance zero and falls monotonically toward zero; it is the
     /// low-dimensional edge probability the layout optimizes toward.
@@ -124,7 +124,7 @@ impl AffinityCurve {
     ///
     /// Entry `i` is the gradient acting on `from[i]` for the edge toward `to[i]`: a negative
     /// multiple of the difference vector, clamped per axis, so it points from `from` toward `to`.
-    /// The symmetric update applies `+lr * gradient` to `from` and `-lr * gradient` to `to`.
+    /// The symmetric update applies `+lr · gradient` to `from` and `-lr · gradient` to `to`.
     ///
     /// Coincident pairs receive a zero gradient.
     #[must_use]

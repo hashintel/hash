@@ -262,8 +262,8 @@ impl MortonFile {
     fn partition_point(&self, range: Range<u64>, pred: impl Fn(u64) -> bool) -> u64 {
         let stride = u64::from(self.header().stride());
 
-        // Index keys sampled inside the range: positions `i * stride`
-        // with `range.start <= i * stride < range.end`.
+        // Index keys sampled inside the range: positions `i · stride`
+        // with `range.start ≤ i · stride < range.end`.
         let first = range.start.div_ceil(stride);
         let last = range.end.div_ceil(stride);
 

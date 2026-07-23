@@ -30,7 +30,8 @@ pub struct ManifestLimits {
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
     /// The sealed-blob asynchronous-refresh horizon, seconds.
-    pub seal_soft_seconds: u64,
+    pub seal_soft_seconds: u64, /* NOTE: isn't seal = security, isn't there a potential security
+                                 * issue in publishing this? */
     /// The sealed-blob rejection bound, seconds.
     pub seal_hard_seconds: u64,
 }

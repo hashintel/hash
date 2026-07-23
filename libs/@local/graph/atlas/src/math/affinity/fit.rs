@@ -65,7 +65,7 @@ impl AffinityCurve {
     ///
     /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
     /// minimum_distance) / spread)` beyond it. The falloff is sampled on the crate's default grid -
-    /// 300 evenly spaced distances over `[0, 3 * spread]` - and the curve is fitted to the samples
+    /// 300 evenly spaced distances over `[0, 3 · spread]` - and the curve is fitted to the samples
     /// by Levenberg-Marquardt least squares. The fit runs once at initialization, in double
     /// precision, and narrows the result to the working `f32` parameters.
     ///
@@ -216,7 +216,7 @@ impl NormalEquations {
     }
 }
 
-/// Fits the affinity curve `1 / (1 + a * d^(2b))` to a target sampled on a grid.
+/// Fits the affinity curve `1 / (1 + a · d^(2b))` to a target sampled on a grid.
 ///
 /// By Levenberg-Marquardt least squares.
 ///
@@ -294,7 +294,7 @@ pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option
 
 /// Accumulates one pass of the fit objective at the given parameters.
 ///
-/// Computes the residual `1 / (1 + a * d^(2b)) - target(d)` and its analytic partial derivatives at
+/// Computes the residual `1 / (1 + a · d^(2b)) - target(d)` and its analytic partial derivatives at
 /// every grid distance, folding the residual sum of squares and the normal-equation sums in a
 /// single pass, accumulated in double precision. `b` is strictly positive, so the zero-distance
 /// sample contributes `d^(2b) = 0` to its residual; its partials are zero in both parameters, and

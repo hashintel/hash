@@ -71,7 +71,7 @@ impl Rotation {
 
     /// Creates a rotation directly from its cosine and sine.
     ///
-    /// The pair must lie on the unit circle: `cos * cos + sin * sin == 1` up to rounding. This is
+    /// The pair must lie on the unit circle: `cos · cos + sin · sin = 1` up to rounding. This is
     /// useful when the pair is already available, for example from normalizing a direction vector,
     /// and avoids round-tripping through an angle.
     #[inline]

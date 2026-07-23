@@ -17,7 +17,7 @@ mod tests;
 
 /// An owned `T x N` matrix of `f32` components in one heap allocation aligned for [`f32x8`].
 ///
-/// The row width `N` must be a nonzero multiple of 8, so one row's `N * 4` bytes are a multiple of
+/// The row width `N` must be a nonzero multiple of 8, so one row's `N · 4` bytes are a multiple of
 /// `align_of::<f32x8>()` and the base alignment carries to every row: [`rows`](Self::rows) views
 /// the matrix as [`AlignedVecN`] rows whose alignment invariant holds by construction, the same
 /// guarantee [`BoxedVecN`](super::BoxedVecN) gives one vector. A width that is not a multiple of 8
@@ -59,7 +59,7 @@ impl<const N: usize> MatrixN<N> {
 impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// Create the layout of the allocation.
     ///
-    /// The allocation layout: `rows * N` components, padded to the alignment of [`f32x8`].
+    /// The allocation layout: `rows · N` components, padded to the alignment of [`f32x8`].
     /// Allocation and deallocation must agree on this.
     ///
     /// # Panics
@@ -119,11 +119,11 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
 
     /// Returns the components as one row-major slice.
     ///
-    /// Row `i` occupies components `N * i` through `N * i + N - 1`.
+    /// Row `i` occupies components `N · i` through `N · i + N - 1`.
     #[inline]
     #[must_use]
     pub const fn as_components(&self) -> &[f32] {
-        // SAFETY: `ptr` owns an initialized buffer of `rows * N` components for as long as `self`
+        // SAFETY: `ptr` owns an initialized buffer of `rows · N` components for as long as `self`
         // lives.
         unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.rows * N) }
     }
@@ -132,7 +132,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     #[inline]
     #[must_use]
     pub const fn as_components_mut(&mut self) -> &mut [f32] {
-        // SAFETY: `ptr` owns an initialized buffer of `rows * N` components for as long as `self`
+        // SAFETY: `ptr` owns an initialized buffer of `rows · N` components for as long as `self`
         // lives; the exclusive borrow of `self` guards the exclusive reference.
         unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.rows * N) }
     }
@@ -162,16 +162,52 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
         AlignedVecN::from_slice_mut(self.as_components_mut())
             .expect("the allocation is SIMD-aligned and holds whole rows by construction")
     }
+
+    /// Views the matrix as one flat slice of aligned 8-lane groups.
+    ///
+    /// The lanes run row-major over the whole storage: row `i` occupies the `N / 8` consecutive
+    /// lanes from `i · N / 8`, and no lane straddles two rows, so whole-matrix elementwise
+    /// kernels iterate one slice without per-row dispatch. No scalar remainder exists: the row
+    /// width is a multiple of the lane width by construction.
+    #[inline]
+    #[must_use]
+    pub fn lanes(&self) -> &[f32x8] {
+        let (prefix, lanes, suffix) = self.as_components().as_simd();
+        debug_assert!(
+            prefix.is_empty() && suffix.is_empty(),
+            "the allocation is SIMD-aligned and holds whole lanes by construction"
+        );
+
+        lanes
+    }
+
+    /// Views the matrix as one flat slice of aligned 8-lane groups, mutably.
+    ///
+    /// The split is the same as [`lanes`](Self::lanes); writes through the slice update the
+    /// matrix in place.
+    #[inline]
+    #[must_use]
+    pub fn lanes_mut(&mut self) -> &mut [f32x8] {
+        let (prefix, lanes, suffix) = self.as_components_mut().as_simd_mut();
+        debug_assert!(
+            prefix.is_empty() && suffix.is_empty(),
+            "the allocation is SIMD-aligned and holds whole lanes by construction"
+        );
+
+        lanes
+    }
 }
 
 impl<const N: usize, A: Allocator + Clone> Clone for MatrixN<N, A> {
     fn clone(&self) -> Self {
         let clone = Self::zeroed_in(self.rows, self.alloc.clone());
-        // SAFETY: both pointers own initialized buffers of `rows * N` components, and a fresh
+
+        // SAFETY: both pointers own initialized buffers of `rows · N` components, and a fresh
         // allocation cannot overlap its source.
         unsafe {
             ptr::copy_nonoverlapping(self.ptr.as_ptr(), clone.ptr.as_ptr(), self.rows * N);
         }
+
         clone
     }
 }

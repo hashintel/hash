@@ -7,7 +7,7 @@
 //! undirected weight by the probabilistic union
 //!
 //! ```text
-//! w(i, j) = p(i -> j) + p(j -> i) - p(i -> j) * p(j -> i),
+//! w(i, j) = p(i → j) + p(j → i) - p(i → j) · p(j → i),
 //! ```
 //!
 //! an absent direction contributing zero, so a one-sided edge keeps its directed membership. The
@@ -18,19 +18,19 @@
 //! by training and release evaluation alike, so backend variation in the k-NN build cannot confound
 //! model comparisons ([`artifact::SemanticGraphArchive`] reopens the published file).
 
-use core::{error::Error, fmt};
-
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
 };
 use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
+pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
 use crate::dataset::NodeRowId;
 
 pub(crate) mod artifact;
 mod bandwidth;
+mod error;
 
 #[cfg(test)]
 mod tests;
@@ -50,9 +50,9 @@ pub(crate) struct SmoothingOptions {
     ///
     /// Defaults to `1e-5`.
     pub tolerance: f64 = 1.0e-5,
-    /// Scale factor of the `sigma` floor.
+    /// Scale factor of the `σ` floor.
     ///
-    /// `sigma` never falls below this fraction of the row's mean distance (the corpus mean for rows
+    /// `σ` never falls below this fraction of the row's mean distance (the corpus mean for rows
     /// without a positive distance). Defaults to `1e-3`.
     pub bandwidth_floor: f32 = 1.0e-3,
     /// Bisection iterations per row when the tolerance is not met earlier. Defaults to 64.
@@ -65,88 +65,6 @@ const impl Default for SmoothingOptions {
     }
 }
 
-/// A matrix violated a [`SemanticGraph`] invariant.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum SemanticValidationError {
-    /// The matrix is compressed by column.
-    ColumnCompressed,
-    /// The matrix is not square over the row domain.
-    NotSquare { rows: usize, columns: usize },
-    /// The row domain holds fewer than two rows.
-    InsufficientRows { rows: usize },
-    /// A row references itself.
-    SelfEdge { row: usize },
-    /// A stored weight is not finite.
-    NonFiniteWeight {
-        row: usize,
-        column: usize,
-        weight: f32,
-    },
-    /// A stored weight lies outside `(0, 1]`.
-    WeightOutOfRange {
-        row: usize,
-        column: usize,
-        weight: f32,
-    },
-    /// An edge is stored in one direction only.
-    AsymmetricSupport { row: usize, column: usize },
-    /// An edge's two stored weights differ.
-    AsymmetricWeight {
-        row: usize,
-        column: usize,
-        forward: f32,
-        reverse: f32,
-    },
-}
-
-impl fmt::Display for SemanticValidationError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::ColumnCompressed => fmt.write_str("the weight matrix is compressed by column"),
-            Self::NotSquare { rows, columns } => write!(
-                fmt,
-                "the weight matrix spans {rows} rows by {columns} columns",
-            ),
-            Self::InsufficientRows { rows } => {
-                write!(fmt, "{rows} rows cannot carry a semantic graph")
-            }
-            Self::SelfEdge { row } => write!(fmt, "row {row} references itself"),
-            Self::NonFiniteWeight {
-                row,
-                column,
-                weight,
-            } => write!(
-                fmt,
-                "the weight {weight} from row {row} to row {column} is not finite",
-            ),
-            Self::WeightOutOfRange {
-                row,
-                column,
-                weight,
-            } => write!(
-                fmt,
-                "the weight {weight} from row {row} to row {column} lies outside (0, 1]",
-            ),
-            Self::AsymmetricSupport { row, column } => write!(
-                fmt,
-                "the edge from row {row} to row {column} has no reverse entry",
-            ),
-            Self::AsymmetricWeight {
-                row,
-                column,
-                forward,
-                reverse,
-            } => write!(
-                fmt,
-                "the edge between rows {row} and {column} stores {forward} forward but {reverse} \
-                 in reverse",
-            ),
-        }
-    }
-}
-
-impl Error for SemanticValidationError {}
-
 /// Checks every graph invariant over a borrowed matrix.
 #[expect(
     clippy::float_cmp,
@@ -158,7 +76,7 @@ fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationErro
         return Err(SemanticValidationError::ColumnCompressed);
     }
 
-    let (rows, columns) = (matrix.rows(), matrix.cols());
+    let (rows, columns) = matrix.shape();
     if rows != columns {
         return Err(SemanticValidationError::NotSquare { rows, columns });
     }
@@ -238,22 +156,18 @@ impl SemanticGraph {
     /// `log2(k)`; the directed memberships then combine by the probabilistic union. Rows calibrate
     /// in parallel and deterministically: every row's result lands in its own slot regardless of
     /// completion order.
+    #[expect(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        reason = "neighbour and entry counts stay far below exact f64 integer precision, and the \
+                  corpus mean is a bandwidth floor scale whose low f32 bits are irrelevant"
+    )]
     pub(crate) fn build(knn: &KnnView<'_>, options: SmoothingOptions) -> Self {
         let rows = knn.rows();
         let neighbours = knn.neighbours();
         let (_, indices, distances) = knn.matrix().into_raw_storage();
 
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "neighbour counts stay far below exact f32 integer precision"
-        )]
         let target = (neighbours as f64).log2();
-        #[expect(
-            clippy::cast_precision_loss,
-            clippy::cast_possible_truncation,
-            reason = "the mean is a bandwidth floor scale; entry counts far exceed f32 integer \
-                      precision only where the mean's low bits are irrelevant"
-        )]
         let corpus_mean = (distances
             .par_iter()
             .map(|&distance| f64::from(distance))
@@ -272,16 +186,15 @@ impl SemanticGraph {
                 },
             );
 
-        let indptr: Vec<u64> = (0..=rows)
-            .map(|row| u64::try_from(row * neighbours).expect("entry counts fit u64"))
-            .collect();
+        // usize to u64 never narrows on a supported target.
+        let indptr: Vec<u64> = (0..=rows).map(|row| (row * neighbours) as u64).collect();
         let directed = SemanticMatrix::try_new((rows, rows), indptr, indices.to_vec(), memberships)
             .map_err(|(_, _, _, error)| error)
             .expect("the validated k-NN table's structure carries over");
 
         let transposed = directed.transpose_view().to_csr();
 
-        // (a + b) - a * b: both operations are commutative, so the two directions of an edge
+        // (a + b) - a · b: both operations are commutative, so the two directions of an edge
         // compute bit-equal weights; the clamp discharges the one representable overshoot
         // (rounding can lift the expression a few ulps above one when both memberships
         // approach one).
@@ -364,17 +277,16 @@ impl<'view> SemanticGraphView<'view> {
     /// # Panics
     ///
     /// Panics when `row` is outside the graph's row domain.
-    pub(crate) fn row(&self, row: usize) -> impl Iterator<Item = SemanticEdge> + 'view {
-        let (indptr, columns, weights) = self.0.into_raw_storage();
-        let position = |pointer: u64| {
-            usize::try_from(pointer).expect("a resident graph's entries fit the address space")
-        };
+    pub(crate) fn row(&self, row: usize) -> impl Iterator<Item = SemanticEdge> + '_ {
+        let (columns, weights) = self
+            .0
+            .outer_view(row)
+            .expect("the caller's row lies in the graph's row domain")
+            .into_raw_storage();
 
-        let range = position(indptr[row])..position(indptr[row + 1]);
-
-        columns[range.clone()]
+        columns
             .iter()
-            .zip(&weights[range])
+            .zip(weights)
             .map(|(&column, &weight)| SemanticEdge {
                 id: NodeRowId::from_u32(column),
                 weight,

@@ -6,13 +6,13 @@
 //! evidence overpowering the semantic layout at its nodes? A node's clip outcome lands in the
 //! overall bucket and its relation-degree decile bucket as-is. Per relation type the recorded
 //! outcome is that type's own share: the clip factor is a scalar on the node's summed relation
-//! vector, so a type contributing the gradient `g` has exactly `factor * g` applied, and its bucket
+//! vector, so a type contributing the gradient `g` has exactly `factor · g` applied, and its bucket
 //! records that contribution against the node's baseline rather than double-counting the whole node
 //! into every type touching it.
 //!
 //! Displacement telemetry measures the relation lens's integrated effect at every refresh tick:
-//! with coordinates at both lens extremes in hand, the per-node displacement `Delta_i = ||y_i(1) -
-//! y_i(0)||` summarizes how far the lens moves each node, reported over the same axes as the
+//! with coordinates at both lens extremes in hand, the per-node displacement `Δ_i = ‖y_i(1) -
+//! y_i(0)‖` summarizes how far the lens moves each node, reported over the same axes as the
 //! budget. The displacement is evidence only: it never steers training.
 
 use alloc::collections::BTreeMap;
@@ -286,7 +286,7 @@ pub(crate) const EXPONENT_BUCKETS: usize = 256;
 /// A displacement histogram over the `f32` exponent grid.
 ///
 /// Bucket `b` counts displacements whose biased exponent is `b`: bucket 0 holds exact zeros and
-/// subnormals, and bucket `b` for `1 <= b <= 254` holds values in `[2^(b - 127), 2^(b - 126))`. The
+/// subnormals, and bucket `b` for `1 ≤ b ≤ 254` holds values in `[2^(b - 127), 2^(b - 126))`. The
 /// format's own grid needs no configured edges and resolves nine decades to within a factor of two,
 /// which is the resolution the telemetry questions ask at.
 #[derive(Debug, Clone, PartialEq)]

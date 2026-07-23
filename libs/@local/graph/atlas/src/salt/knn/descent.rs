@@ -1,7 +1,7 @@
 //! NN-Descent k-nearest-neighbour list construction.
 //!
 //! [`NnDescent`] derives every row's neighbour list directly, without a search structure: lists
-//! start random and improve by local joins — each row introduces its current neighbours to each
+//! start random and improve by local joins - each row introduces its current neighbours to each
 //! other, and every introduction that beats a list's worst entry displaces it. The join converges
 //! because similarity is locally transitive: when `a` and `b` are both near `x`, `a` and `b` are
 //! likely near each other, so a row's own list is a high-yield candidate source for its
@@ -11,8 +11,8 @@
 //!
 //! # Shape of one iteration
 //!
-//! 1. **Candidate sampling.** Each row splits its list by the *new* flag — set on entries that have
-//!    not yet participated in a join — and samples up to
+//! 1. **Candidate sampling.** Each row splits its list by the *new* flag - set on entries that have
+//!    not yet participated in a join - and samples up to
 //!    [`maximum_candidates`](NnDescentOptions::maximum_candidates) of each side. Sampled new
 //!    entries are marked old: without the flag protocol, every iteration would recompare the same
 //!    pairs.
@@ -145,7 +145,7 @@ struct Entry {
 /// contending. Every stored value is a worst read under the lock and the live worst only
 /// decreases, so however unlock-and-store pairs interleave, the mirror never falls below the live
 /// worst: a stale read is always at or above it, and a rejection against it is always sound.
-/// `Relaxed` suffices because the mirror guards no other memory — every admission re-checks under
+/// `Relaxed` suffices because the mirror guards no other memory - every admission re-checks under
 /// the lock, and the lock orders the entries. A `Release`/`Acquire` pairing would only buy
 /// ordering for data read outside the lock, and no such read exists.
 #[derive(Debug)]
@@ -208,7 +208,7 @@ impl RowList {
 
 /// Samples `count` of `pool` uniformly without replacement; the whole pool when it fits.
 ///
-/// The pool is ascending afterwards on every path — the retirement scan in [`sample_forward`]
+/// The pool is ascending afterwards on every path - the retirement scan in [`sample_forward`]
 /// binary-searches it.
 fn sample_pool(pool: &mut Vec<u32>, count: usize, mut rng: impl Rng) {
     if pool.len() > count {
@@ -373,7 +373,7 @@ impl KnnConstruction for NnDescent {
         let cap = self.options.maximum_candidates.max(1);
 
         // The trait admits l2-normalized representations only, so the
-        // cosine distance reduces to one minus the dot product — a third
+        // cosine distance reduces to one minus the dot product - a third
         // of the full kernel's multiply-adds; the clamp absorbs
         // unit-norm rounding at the range's ends.
         let distance = |lhs: u32, rhs: u32| -> f32 {

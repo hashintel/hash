@@ -14,7 +14,7 @@ const TEMPERATURE_MAXIMUM: f64 = 20.0;
 // iteration, reaching f64 resolution near iteration 74; 96 bounds it
 // with margin at negligible cost.
 const TEMPERATURE_ITERATIONS: usize = 96;
-// 1 / phi = phi - 1; the subtraction is exact (phi lies in [1, 2]).
+// 1 / φ = φ - 1; the subtraction is exact (φ ∈ [1, 2]).
 const GOLDEN_RATIO_CONJUGATE: f64 = core::f64::consts::GOLDEN_RATIO - 1.0;
 /// Probability floor inside the cross-entropy logarithm.
 const PROBABILITY_FLOOR: f64 = 1.0e-12;

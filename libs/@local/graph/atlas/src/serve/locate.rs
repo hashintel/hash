@@ -28,32 +28,27 @@ pub struct LocateCaps {
     /// A larger incident set keeps the edges whose partners lie nearest the source, and HEAD
     /// reports `complete: false`. Defaults to 512: every delivered edge also costs live link
     /// hydration, so the cap bounds the store round trip, not just wire bytes.
-    pub edges: u32,
+    pub edges: u32 = 512,
     /// Most properties the source ships.
     ///
     /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
     /// property protected to the very end, so the label survives every cap that admits at least
     /// one property. Defaults to 20.
-    pub properties: u32,
+    pub properties: u32 = 10,
     /// Most direct types one delivered edge ships.
     ///
     /// An over-cap link truncates its type list in canonical order and its completeness bit
     /// reads unset. Defaults to 5.
-    pub link_type_ids: u32,
+    pub link_type_ids: u32 = 5,
     /// Most properties one delivered edge ships.
     ///
     /// The source's drop rule per link. Defaults to 10.
-    pub link_properties: u32,
+    pub link_properties: u32 = 10,
 }
 
-impl Default for LocateCaps {
+const impl Default for LocateCaps {
     fn default() -> Self {
-        Self {
-            edges: 512,
-            properties: 20,
-            link_type_ids: 5,
-            link_properties: 10,
-        }
+        Self { .. }
     }
 }
 
@@ -69,13 +64,17 @@ pub struct OpenOptions {
     /// The default is a fixed development value: wire ids stay deterministic across restarts
     /// without configuration, and a production deployment supplies its own secret. The secret
     /// never rotates for a generation while it serves; rotation happens at generation boundaries.
-    pub wire_secret: Vec<u8>,
+    pub wire_secret: Vec<u8>, /* NOTE: Shouldn't this live under a `Secret` type and be fixed
+                               * size? so that it zeroes on drop? */
 }
 
 impl Default for OpenOptions {
     fn default() -> Self {
         Self {
-            wire_secret: b"atlas-dev-wire-secret".to_vec(),
+            wire_secret: b"atlas-dev-wire-secret".to_vec(), /* NODE: now that's a bit silly, fail
+                                                             * loud if secret not set, otherwise
+                                                             * this is a security hazard waiting
+                                                             * to trip */
         }
     }
 }
@@ -107,7 +106,8 @@ impl Atlas {
         entity_id: &str,
     ) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
-        let row = proof.verify(narrow(self.node_ids.row_of(id)?))?;
+        let row = proof.verify(narrow(self.node_ids.row_of(id)?))?; // NOTE: not readable
+
         Some(self.source_point(row))
     }
 
@@ -128,9 +128,8 @@ impl Atlas {
 
     /// Returns the first zoom whose cumulative schedule delivers a base position.
     fn first_visible_zoom(&self, position: u32) -> u8 {
-        // The position's fencepost segment is its morton bucket; the
-        // cumulative cut rule (bucket <= z + span) then answers
-        // the first delivering zoom.
+        // The position's fencepost segment is its morton bucket; the cumulative cut rule (bucket <=
+        // z + span) then answers the first delivering zoom.
         let bucket = (0..=Depth::MAX.get())
             .find(|&bucket| {
                 self.morton
@@ -153,6 +152,7 @@ impl Atlas {
 
         let key = MortonKey::from_bits(self.morton.codes()[position as usize].get());
         let [x, y] = key.coordinates();
+
         let cell = if zoom == 0 {
             TileCoordinate { z: 0, x: 0, y: 0 }
         } else {
@@ -193,12 +193,10 @@ impl Atlas {
         let outgoing = self.adjacency.outgoing(node).expect(expect);
         let incoming = self.adjacency.incoming(node).expect(expect);
 
-        // A self-loop occupies one slot in each direction's run; its
-        // incoming appearance is the duplicate and is skipped, so
-        // every incident edge is collected exactly once. Hidden
-        // partners drop BEFORE selection: the cap selects among
-        // visible edges alone, and a response's cardinality is a
-        // function of the masked view.
+        // A self-loop occupies one slot in each direction's run; its incoming appearance is the
+        // duplicate and is skipped, so every incident edge is collected exactly once.
+        // Hidden partners drop before selection: the cap selects among visible edges alone, and a
+        // response's cardinality is a function of the masked view.
         let incident = outgoing.iter().chain(incoming.iter().filter(|edge| {
             let index = usize::try_from(edge.get()).expect("edge rows fit usize");
             endpoints[index][0] != source_row
@@ -207,14 +205,17 @@ impl Atlas {
         for edge in incident {
             let index = usize::try_from(edge.get()).expect("edge rows fit usize");
             let [edge_source, edge_target] = endpoints[index];
+
             let partner = if edge_source == source_row {
                 edge_target
             } else {
                 edge_source
             };
+
             if !proof.contains(narrow(partner)) {
                 continue;
             }
+
             let row = narrow(edge.get());
             edges.push((
                 DeliveredEdge {
@@ -284,11 +285,13 @@ impl Atlas {
         let mut ranked: Vec<(NearestKey, (DeliveredEdge, [u8; 32]))> = edges
             .drain(..)
             .map(|(edge, id)| {
+                // NOTE: this feels like it belongs on an inherent method...
                 let partner = if edge.source == source.row {
                     edge.target
                 } else {
                     edge.source
                 };
+
                 let position = positions_of_row[partner as usize];
                 let point = positions[position as usize];
                 let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
@@ -322,7 +325,7 @@ impl Atlas {
 ///
 /// Ascending squared distance to the partner, then the partner's first visible zoom, then the
 /// link-entity identity bytes.
-type NearestKey = (u32, u8, [u8; 32]);
+type NearestKey = (u32, u8, [u8; 32]); // NOTE: WHAT THE ACTUAL FUCK WE HAVE TYPES FOR A REASON, THIS IS NOT ASSEMBLY
 
 /// One assembled locate ego-graph.
 ///
@@ -487,9 +490,9 @@ impl Atlas {
             });
         }
 
-        // The two source forms resolve through different ingress
-        // paths but land in the same SourcePoint domain, and every
-        // failure past this match is one rejection: unknown-entity.
+        // The two source forms resolve through different ingress  paths but land in the same
+        // SourcePoint domain, and every failure past this match is one rejection:
+        // unknown-entity.
         let source = match (request.entity_id.as_deref(), request.row) {
             (Some(id), None) => self.resolve_source(proof, id),
             (None, Some(wire)) => self.resolve_wire_source(proof, wire),
@@ -500,6 +503,7 @@ impl Atlas {
             }
         }
         .ok_or(LocateError::UnknownEntity)?;
+
         let LocateSubgraph {
             rows,
             positions,
@@ -617,7 +621,7 @@ impl Atlas {
             self.node_ids
                 .id(u64::from(document.rows[0]))
                 .expect("open validated the identity rows against the code column"),
-        );
+        ); // NOTE: I am going to lose it.
 
         let type_ids_complete = covers_source_types(
             nodes.source_properties().is_some(),
@@ -633,6 +637,7 @@ impl Atlas {
         let source_properties = property_maps
             .pop()
             .expect("the source's map is the intern order's first entry");
+
         let link_properties: Vec<Option<&[(u32, PropertyValue<'_>)]>> =
             link_property_maps.iter().map(Option::as_deref).collect();
 

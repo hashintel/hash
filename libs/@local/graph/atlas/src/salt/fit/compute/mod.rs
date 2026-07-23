@@ -253,7 +253,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
                 landmarks: computed.landmarks.evidence,
                 policy: computed.policy.evidence,
                 classifier: Some(computed.classifier.evidence),
-                relations: computed.relations.indexes.evidence,
+                relations: computed.relations.indexes.measurements,
                 lod: computed.lod.evidence,
                 quad: computed.lod.quad,
                 postings: computed.lod.postings,

@@ -40,26 +40,15 @@ pub(crate) const WIRE_VERSION: u16 = 1;
 ///
 /// The seven-byte family prefix `SALTILE` is constant; the kind byte selects the `HEAD` schema and
 /// slot table the decoder applies.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, zerocopy::IntoBytes, zerocopy::Immutable)]
+#[repr(u64)]
 pub(crate) enum Kind {
     /// A tile response, magic `SALTILET`.
-    Tile,
+    Tile = u64::from_le_bytes(*b"SALTILET"),
     /// An edges response, magic `SALTILEE`.
-    Edges,
+    Edges = u64::from_le_bytes(*b"SALTILEE"),
     /// A locate response, magic `SALTILEL`.
-    Locate,
-}
-
-impl Kind {
-    /// Returns the eight magic bytes opening this kind's responses.
-    #[must_use]
-    pub(crate) const fn magic(self) -> [u8; 8] {
-        match self {
-            Self::Tile => *b"SALTILET",
-            Self::Edges => *b"SALTILEE",
-            Self::Locate => *b"SALTILEL",
-        }
-    }
+    Locate = u64::from_le_bytes(*b"SALTILEL"),
 }
 
 /// A tile delivery mode, `HEAD` key 3.

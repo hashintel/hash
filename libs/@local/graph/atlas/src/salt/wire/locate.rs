@@ -22,7 +22,7 @@
 use super::{
     Kind,
     cbor::CborWriter,
-    edges::{column, identity_column},
+    edges::{write_column, write_identities},
     envelope::EnvelopeWriter,
     tile::{TileCoordinate, encode_details},
 };
@@ -108,23 +108,24 @@ impl LocateResponse<'_> {
         self.trailer.check_covers(self.delivered.len(), edges);
 
         let mut envelope = EnvelopeWriter::new(Kind::Locate, 7);
-        envelope.present(&self.encode_head(edges as u64));
-        envelope.present(&self.positions_column());
-        envelope.present(&self.rows_column());
+        envelope.reserve(self.delivered.len() * 12 + edges * 40);
+        envelope.slot(|buf| self.encode_head(buf, edges as u64));
+        envelope.slot(|buf| self.write_positions(buf));
+        envelope.slot(|buf| self.write_rows(buf));
         match self.masks {
-            Some(masks) => envelope.present(&self.mask_column(masks)),
+            Some(masks) => envelope.slot(|buf| self.write_masks(buf, masks)),
             None => envelope.absent(),
         }
-        envelope.present(&column(self.sources));
-        envelope.present(&column(self.targets));
-        envelope.present(&identity_column(self.edge_ids));
+        envelope.slot(|buf| write_column(buf, self.sources));
+        envelope.slot(|buf| write_column(buf, self.targets));
+        envelope.slot(|buf| write_identities(buf, self.edge_ids));
 
-        envelope.finish_with_trailer(&self.trailer.encode())
+        envelope.finish_with_trailer(|buf| self.trailer.encode(buf))
     }
 
     /// Encodes the `HEAD` map: keys 0 through 9.
-    fn encode_head(&self, edges: u64) -> Vec<u8> {
-        let mut cbor = CborWriter::new();
+    fn encode_head(&self, buf: &mut Vec<u8>, edges: u64) {
+        let mut cbor = CborWriter::over(buf);
         cbor.map(10);
 
         cbor.uint(0);
@@ -150,30 +151,24 @@ impl LocateResponse<'_> {
         cbor.boolean(self.type_ids_complete);
         cbor.uint(9);
         cbor.boolean(self.properties_complete);
-
-        cbor.into_bytes()
     }
 
-    /// Gathers the `POSITIONS` column: f32 xy pairs, delivered order.
-    fn positions_column(&self) -> Vec<u8> {
-        let mut column = Vec::with_capacity(self.delivered.len() * 8);
+    /// Writes the `POSITIONS` column: f32 xy pairs, delivered order.
+    fn write_positions(&self, column: &mut Vec<u8>) {
+        column.reserve(self.delivered.len() * 8);
         for &position in self.delivered {
             let point = self.positions[position as usize];
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
         }
-
-        column
     }
 
-    /// Gathers the `ROW_IDS` column: u32 row ids, delivered order.
-    fn rows_column(&self) -> Vec<u8> {
-        let mut column = Vec::with_capacity(self.delivered.len() * 4);
+    /// Writes the `ROW_IDS` column: u32 row ids, delivered order.
+    fn write_rows(&self, column: &mut Vec<u8>) {
+        column.reserve(self.delivered.len() * 4);
         for &position in self.delivered {
             column.extend_from_slice(&self.rows[position as usize].to_le_bytes());
         }
-
-        column
     }
 
     /// Assembles the `TYPE_MASK` column.
@@ -182,9 +177,11 @@ impl LocateResponse<'_> {
     /// request's type `i` - the tile column's shape over an arbitrary delivered list, probed point
     /// by point (the set is a spotlight, never a bulk slice). A mask read as its set-bit indexes
     /// is the point's colored-type index list; the source's list is the first mask's.
-    fn mask_column(&self, masks: &[Membership<'_>]) -> Vec<u8> {
+    fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let stride = masks.len().div_ceil(8);
-        let mut column = vec![0_u8; self.delivered.len() * stride];
+        let base = buf.len();
+        buf.resize(base + self.delivered.len() * stride, 0);
+        let column = &mut buf[base..];
 
         for (bit, membership) in masks.iter().enumerate() {
             let byte = bit >> 3;
@@ -200,8 +197,6 @@ impl LocateResponse<'_> {
                 }
             }
         }
-
-        column
     }
 }
 
@@ -330,8 +325,8 @@ impl LocateTrailer<'_> {
     }
 
     /// Encodes the trailer tail as one self-delimiting CBOR map.
-    fn encode(&self) -> Vec<u8> {
-        let mut cbor = CborWriter::new();
+    fn encode(&self, buf: &mut Vec<u8>) {
+        let mut cbor = CborWriter::over(buf);
         cbor.map(10);
 
         cbor.uint(0);
@@ -367,21 +362,19 @@ impl LocateTrailer<'_> {
             }
         }
         cbor.uint(7);
-        cbor.bytes(&bitmask(self.link_type_ids_complete));
+        bitmask(&mut cbor, self.link_type_ids_complete);
         cbor.uint(8);
         cbor.array(self.link_properties.len() as u64);
         for entries in self.link_properties {
             encode_property_map(&mut cbor, *entries);
         }
         cbor.uint(9);
-        cbor.bytes(&bitmask(self.link_properties_complete));
-
-        cbor.into_bytes()
+        bitmask(&mut cbor, self.link_properties_complete);
     }
 }
 
 /// Encodes one property map, `null` for an entity the store no longer serves.
-fn encode_property_map(cbor: &mut CborWriter, entries: Option<&[(u32, PropertyValue<'_>)]>) {
+fn encode_property_map(cbor: &mut CborWriter<'_>, entries: Option<&[(u32, PropertyValue<'_>)]>) {
     match entries {
         Some(entries) => {
             cbor.map(entries.len() as u64);
@@ -394,16 +387,15 @@ fn encode_property_map(cbor: &mut CborWriter, entries: Option<&[(u32, PropertyVa
     }
 }
 
-/// Packs per-edge flags as an LSB-first bitmask: bit `e` of byte `e / 8` is edge `e`'s flag.
-fn bitmask(flags: &[bool]) -> Vec<u8> {
-    let mut bytes = vec![0_u8; flags.len().div_ceil(8)];
+/// Emits per-edge flags as an LSB-first bitmask byte string: bit `e` of byte `e / 8` is edge
+/// `e`'s flag, packed in place.
+fn bitmask(cbor: &mut CborWriter<'_>, flags: &[bool]) {
+    let bytes = cbor.bytes_zeroed(flags.len().div_ceil(8));
     for (edge, &flag) in flags.iter().enumerate() {
         if flag {
             bytes[edge >> 3] |= 1 << (edge & 7);
         }
     }
-
-    bytes
 }
 
 /// One simple property value: the only shapes the wire ships.
@@ -425,7 +417,7 @@ pub(crate) enum PropertyValue<'doc> {
 
 impl PropertyValue<'_> {
     /// Emits the value in the profile's encoding.
-    fn encode(&self, cbor: &mut CborWriter) {
+    fn encode(&self, cbor: &mut CborWriter<'_>) {
         match *self {
             Self::Text(value) => cbor.text(value),
             Self::Integer(value) => cbor.int(value),

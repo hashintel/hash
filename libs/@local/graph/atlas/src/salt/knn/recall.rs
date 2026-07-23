@@ -37,7 +37,7 @@ use crate::{
     random::{mean_sample_size, sample_indices_vec},
 };
 
-// The defaults are the backend admission criterion, recall@50 >= 0.89:
+// The defaults are the backend admission criterion, recall@50 ≥ 0.89:
 // the criterion is aggregate recall over the sample, so a long per-row
 // tail cannot fail a backend whose aggregate holds.
 const DEFAULT_NEIGHBOURS: NonZero<usize> =

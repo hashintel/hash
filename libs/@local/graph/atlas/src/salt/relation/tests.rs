@@ -225,7 +225,7 @@ fn groups_ascend_and_edges_sort_within_them() {
         .map(|edge| (edge.source.get(), edge.target.get(), edge.edge.get()))
         .collect();
     assert_eq!(sorted, vec![(2, 1, 0), (2, 3, 1), (2, 3, 2)]);
-    assert_eq!(indexes.attraction.edges(), 4);
+    assert_eq!(indexes.attraction.edge_count(), 4);
 }
 
 #[test]
@@ -264,12 +264,12 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
     );
 
     // The mass exactly at the threshold is retained.
-    assert_eq!(indexes.evidence.retained_edges, 2);
-    assert_eq!(indexes.evidence.pruned_edges, 1);
-    assert_eq!(indexes.evidence.retained_mass, 0.75);
-    assert_eq!(indexes.evidence.pruned_mass, 0.125);
-    assert_eq!(indexes.evidence.omitted_mass_fraction(), 0.125 / 0.875);
-    assert_eq!(indexes.attraction.edges(), 2);
+    assert_eq!(indexes.measurements.retained_edges, 2);
+    assert_eq!(indexes.measurements.pruned_edges, 1);
+    assert_eq!(indexes.measurements.retained_mass, 0.75);
+    assert_eq!(indexes.measurements.pruned_mass, 0.125);
+    assert_eq!(indexes.measurements.omitted_mass_fraction(), 0.125 / 0.875);
+    assert_eq!(indexes.attraction.edge_count(), 2);
 }
 
 #[test]
@@ -292,7 +292,7 @@ fn pruned_instances_keep_their_degree_contributions() {
     let edges = indexes.attraction.groups()[0].edges();
     assert_eq!(edges.len(), 1);
     assert_eq!(edges[0].normalization, 0.25);
-    assert_eq!(indexes.evidence.pruned_edges, 4);
+    assert_eq!(indexes.measurements.pruned_edges, 4);
 }
 
 #[test]
@@ -305,7 +305,7 @@ fn pruning_never_reaches_protection() {
         AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
     );
 
-    assert_eq!(indexes.attraction.edges(), 0);
+    assert_eq!(indexes.attraction.edge_count(), 0);
     assert!(indexes.attraction.groups().is_empty());
     let evidence = indexes
         .protection
@@ -459,8 +459,8 @@ fn self_references_are_dropped_and_counted() {
         vec![instance(0, 0, 0, 0), instance(1, 0, 0, 1)],
     );
 
-    assert_eq!(indexes.evidence.self_references, 1);
-    assert_eq!(indexes.attraction.edges(), 1);
+    assert_eq!(indexes.measurements.self_references, 1);
+    assert_eq!(indexes.attraction.edge_count(), 1);
     assert_eq!(indexes.protection.view().entries(), 2);
     assert!(indexes.protection.view().get(pair(0, 0)).is_none());
 }
@@ -472,8 +472,8 @@ fn empty_instances_build_empty_indexes() {
     assert!(indexes.attraction.groups().is_empty());
     assert_eq!(indexes.protection.view().entries(), 0);
     assert_eq!(indexes.protection.view().rows(), ROWS);
-    assert_eq!(indexes.evidence.retained_edges, 0);
-    assert_eq!(indexes.evidence.omitted_mass_fraction(), 0.0);
+    assert_eq!(indexes.measurements.retained_edges, 0);
+    assert_eq!(indexes.measurements.omitted_mass_fraction(), 0.0);
 }
 
 #[test]
@@ -607,13 +607,13 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
         reason = "the fixture size sits far below f64 integer precision"
     )]
     let expected_mass = (nodes - 1) as f64;
-    assert_eq!(indexes.evidence.retained_mass, expected_mass);
-    assert_eq!(indexes.evidence.retained_edges, nodes - 1);
+    assert_eq!(indexes.measurements.retained_mass, expected_mass);
+    assert_eq!(indexes.measurements.retained_edges, nodes - 1);
 }
 
 /// Asserts two builds produced identical indexes, component by component.
 fn assert_indexes_equal(one: &RelationIndexes, other: &RelationIndexes) {
-    assert_eq!(one.evidence, other.evidence);
+    assert_eq!(one.measurements, other.measurements);
     let (one_protection, other_protection) = (one.protection.matrix(), other.protection.matrix());
     assert_eq!(
         one_protection.indptr().raw_storage(),
@@ -708,7 +708,7 @@ proptest! {
         let backward = build_default(&policies, reversed);
         assert_indexes_equal(&forward, &backward);
 
-        prop_assert_eq!(forward.evidence.self_references, self_references);
+        prop_assert_eq!(forward.measurements.self_references, self_references);
 
         let relations: Vec<u64> = forward
             .attraction
@@ -887,7 +887,7 @@ fn published_attraction_index_reopens_mapped() {
     // the resident index it was written from.
     assert_eq!(mapped.rows(), ROWS as u64);
     assert_eq!(mapped.group_count(), indexes.attraction.groups().len());
-    assert_eq!(mapped.edge_count(), indexes.attraction.edges());
+    assert_eq!(mapped.edge_count(), indexes.attraction.edge_count());
     for (index, resident) in indexes.attraction.groups().iter().enumerate() {
         let group = mapped.group(index);
         assert_eq!(group.relation(), resident.relation());
@@ -1062,8 +1062,8 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
     let separate = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 1, 1, 2)]);
 
     assert_eq!(
-        mixed.evidence.retained_mass,
-        separate.evidence.retained_mass / 2.0,
+        mixed.measurements.retained_mass,
+        separate.measurements.retained_mass / 2.0,
     );
 
     // Each group holds the reading at half a link's force: share 0.5
@@ -1118,5 +1118,5 @@ fn single_typed_builds_are_unchanged_by_the_share_machinery() {
     for edge in group.edges() {
         assert_eq!(edge.normalization, expected);
     }
-    assert_eq!(indexes.evidence.retained_mass, 2.0);
+    assert_eq!(indexes.measurements.retained_mass, 2.0);
 }

@@ -132,7 +132,7 @@ pub(crate) struct BatchRelationEdge {
     pub target: BatchRowId,
     /// The effective confidence `c`, in `(0, 1]`; validated where the corpus edge was scored.
     pub confidence: f32,
-    /// The degree normalization `nu`, in `(0, 1]`.
+    /// The degree normalization `ν`, in `(0, 1]`.
     pub normalization: f32,
 }
 
@@ -193,7 +193,7 @@ impl GradientField {
 
 /// Evaluates the semantic attraction term over weighted positive pairs.
 ///
-/// Adds `scale * weight * -ln(q(d^2) + epsilon)` per pair to the returned value and the matching
+/// Adds `scale · weight · -ln(q(d^2) + ε)` per pair to the returned value and the matching
 /// hand-derived gradients to `field`. Weight-proportional sampling emits unit weights; the weight
 /// slot exists for capped explicit weights.
 ///
@@ -215,7 +215,7 @@ pub(crate) fn attraction_term(
 
 /// Evaluates a repulsion term over weighted negative pairs.
 ///
-/// Adds `scale * weight * -ln(1 - q(d^2) + epsilon)` per pair to the returned value and the
+/// Adds `scale · weight · -ln(1 - q(d^2) + ε)` per pair to the returned value and the
 /// matching hand-derived gradients to `field`. Ordinary negatives carry unit weights; mined hard
 /// negatives carry their bounded rank weights.
 ///
@@ -254,7 +254,7 @@ fn affinity_term(
 
         total = f64::from(factor).mul_add(f64::from(value), total);
 
-        // d(d^2)/dy_left = 2 * (y_left - y_right); the pair energy's
+        // d(d^2)/dy_left = 2 · (y_left - y_right); the pair energy's
         // derivative is taken in the squared distance, so no division
         // by the distance appears and coincident pairs need no branch
         // beyond the energy's own zero-derivative contract.
@@ -273,9 +273,9 @@ fn affinity_term(
 
 /// Evaluates the relation attraction term over a sampled batch.
 ///
-/// Per instance the contribution is `scale * confidence * normalization * strength` times the
-/// weighted class mixture at the locally normalized distance `z = d / sqrt((rho_i + eps)(rho_j +
-/// eps))`. The local scales are detached measurements: the gradient flows through `d` only, so
+/// Per instance the contribution is `scale · confidence · normalization · strength` times the
+/// weighted class mixture at the locally normalized distance `z = d / √((ρ_i + ε)(ρ_j + ε))`.
+/// The local scales are detached measurements: the gradient flows through `d` only, so
 /// `dz/dd` is a per-pair constant.
 ///
 /// # Panics
@@ -319,7 +319,7 @@ pub(crate) fn relation_term(
                 continue;
             }
 
-            // dz/dy_source = (y_source - y_target) / (d * normalization).
+            // dz/dy_source = (y_source - y_target) / (d · normalization).
             let gradient = difference * (factor * derivative / (distance * normalization));
             field.accumulate(source, gradient);
             field.accumulate(target, -gradient);
@@ -448,9 +448,9 @@ impl<B: Backend> SupportTargets<B> {
 
 /// Evaluates a support term against anchored coordinates.
 ///
-/// The value is `scale * sum_i weight_i * huber(||y_i - target_i|| / (radius_i + epsilon),
-/// threshold)`, differentiable through `coordinates`. The Euclidean distance is smoothed as
-/// `sqrt(d^2 + epsilon^2) - epsilon`: exact at zero, within `epsilon` of the true distance
+/// The value is `scale · Σ_i weight_i · huber(‖y_i - target_i‖ / (radius_i + ε), threshold)`,
+/// differentiable through `coordinates`. The Euclidean distance is smoothed as
+/// `√(d^2 + ε^2) - ε`: exact at zero, within `ε` of the true distance
 /// everywhere, and with a well-defined zero gradient at coincidence - anchored nodes start exactly
 /// on their targets, so the unsmoothed square root would differentiate at its singular point on the
 /// very first step.

@@ -6,7 +6,7 @@
 //! format stabilizes.
 //!
 //! One file binds a row domain (nodes, edges, or ontology types) to its source identifiers, in both
-//! directions: `row -> id` is indexing into the id column, and `id -> row` is binary search over
+//! directions: `row → id` is indexing into the id column, and `id → row` is binary search over
 //! the sorted pairs, with an index prelude in front so a cold lookup faults two pages instead of
 //! `log2(N)` scattered ones. Ids are opaque `K`-byte strings; the pair order is the order of those
 //! bytes, since source identifiers carry no other one. This is a combined file: the pairs and the
@@ -30,7 +30,7 @@
 //! |        |      | by id bytes                                     |
 //! ```
 //!
-//! Key `i` of the index is the id of pair `i * stride`, so a lookup binary-searches the index to
+//! Key `i` of the index is the id of pair `i · stride`, so a lookup binary-searches the index to
 //! pick one stride of pairs and binary-searches within it. All region offsets derive from `K`, `N`,
 //! and the stride with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose
 //! geometry overflows, or whose width or stride is zero, matches no real file. Every region starts

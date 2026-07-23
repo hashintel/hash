@@ -20,7 +20,7 @@ use crate::{
     math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2},
     morton::Depth,
     salt::{
-        AssemblyEvidence, BuildEvidence, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
+        AssemblyEvidence, BuildMeasurements, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
         GeometryClass, HoldoutClass, LodMeasurements, NormSpotCheck, PolicyOptions, PolicyOverride,
         PolicySource, Posterior, PostingsMeasurements, QuadMeasurements, RecallSpotCheck,
         Relaxation, RepresentationDefect, SelectionOptions,
@@ -237,7 +237,7 @@ fn evidence() -> Evidence {
             overridden: 1,
         },
         classifier: Some(classifier_evidence()),
-        relations: BuildEvidence {
+        relations: BuildMeasurements {
             pruning_threshold: 0.001,
             retained_edges: 8_700_000,
             pruned_edges: 100_000,

@@ -31,7 +31,9 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2},
+    math::{
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
+    },
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -171,8 +173,8 @@ fn support_options() -> SupportOptions {
 /// 2` doubles the ordinary term so the two families are distinguishable in the combined field.
 fn coefficients() -> Coefficients {
     Coefficients::new(
-        Positive::new(0.5).expect("the fixture semantic coefficient is positive"),
-        coefficient(2.0),
+        positive!(0.5),
+        non_negative!(2.0),
         NonNegative::ONE,
         NonNegative::ONE,
         NonNegative::ONE,
@@ -194,18 +196,8 @@ fn loose_budget() -> BudgetOptions {
     BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid")
 }
 
-/// Wraps a test rung.
-fn rung(value: f32) -> NonNegative {
-    NonNegative::new(value).expect("test rungs are finite and non-negative")
-}
-
-/// Wraps a test coefficient.
-fn coefficient(value: f32) -> NonNegative {
-    NonNegative::new(value).expect("test coefficients are finite and non-negative")
-}
-
 /// Empty populations to splice fixture families into.
-fn empty_populations<'index>(eta: f32) -> Populations<'index> {
+fn empty_populations<'index>(eta: NonNegative) -> Populations<'index> {
     Populations {
         semantic: Vec::new(),
         semantic_scale: 0.0,
@@ -219,7 +211,7 @@ fn empty_populations<'index>(eta: f32) -> Populations<'index> {
         landmark_scale: 0.0,
         anchors: Vec::new(),
         anchor_scale: 0.0,
-        eta: rung(eta),
+        eta,
     }
 }
 
@@ -309,7 +301,7 @@ fn draws_are_deterministic_at_a_fixed_seed() {
     )
     .expect("the fixture graph has weight");
 
-    let draw = |seed: u64| sampler.draw(rung(1.0), None, &[], &[], &mut rng(seed));
+    let draw = |seed: u64| sampler.draw(non_negative!(1.0), None, &[], &[], &mut rng(seed));
     let (first, second) = (draw(17), draw(17));
 
     assert_eq!(first.semantic, second.semantic);
@@ -379,9 +371,15 @@ fn allocator_seam_draws_and_assembles_identically() {
         },
     ];
 
-    let global = sampler.draw(rung(1.0), None, &support, &support[..1], &mut rng(17));
+    let global = sampler.draw(
+        non_negative!(1.0),
+        None,
+        &support,
+        &support[..1],
+        &mut rng(17),
+    );
     let system = sampler.draw_in(
-        rung(1.0),
+        non_negative!(1.0),
         None,
         &support,
         &support[..1],
@@ -411,12 +409,15 @@ fn allocator_seam_draws_and_assembles_identically() {
         (system.semantic_scale, system.ordinary_scale, system.eta),
     );
 
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "fixture rows are tiny exact integers"
-    )]
-    let table = LocalScales::new((0..6).map(|row| row as f32 * 0.5).collect())
-        .expect("the fixture scales are finite");
+    // Row r holds r / 2.
+    let table = LocalScales::new(Box::new([
+        non_negative!(0.0),
+        non_negative!(0.5),
+        non_negative!(1.0),
+        non_negative!(1.5),
+        non_negative!(2.0),
+        non_negative!(2.5),
+    ]));
     let assembled = Batch::assemble(global, Some(&table));
     let assembled_in = Batch::assemble_in(system, Some(&table), std::alloc::System);
 
@@ -459,11 +460,11 @@ fn draw_skips_the_relation_family_at_a_zero_rung() {
     )
     .expect("the fixture graph has weight");
 
-    let at_zero = sampler.draw(rung(0.0), None, &[], &[], &mut rng(3));
+    let at_zero = sampler.draw(non_negative!(0.0), None, &[], &[], &mut rng(3));
     assert!(at_zero.relation.is_empty());
     assert_eq!(at_zero.relation_scale, 0.0);
 
-    let at_one = sampler.draw(rung(1.0), None, &[], &[], &mut rng(3));
+    let at_one = sampler.draw(non_negative!(1.0), None, &[], &[], &mut rng(3));
     assert_eq!(at_one.relation.len(), 1);
 }
 
@@ -515,7 +516,7 @@ fn draw_computes_the_estimator_scales() {
             weight: 1.0,
         },
     ];
-    let populations = sampler.draw(rung(1.0), None, &landmarks, &[], &mut rng(5));
+    let populations = sampler.draw(non_negative!(1.0), None, &landmarks, &[], &mut rng(5));
 
     // W / m = 3.5 / 8 exactly.
     assert_eq!(populations.semantic.len(), 8);
@@ -588,7 +589,7 @@ fn draw_collects_pooled_mined_pairs() {
     )
     .expect("the fixture graph has weight");
 
-    let populations = sampler.draw(rung(0.0), Some(&frame), &[], &[], &mut rng(11));
+    let populations = sampler.draw(non_negative!(0.0), Some(&frame), &[], &[], &mut rng(11));
 
     let mut expected: Vec<(u64, u64, u32)> = (0..frame.rows())
         .flat_map(|row| frame.row(row))
@@ -611,7 +612,7 @@ fn draw_collects_pooled_mined_pairs() {
 fn assemble_reindexes_into_the_local_domain() {
     // Corpus rows {2, 5, 9} participate; ascending order maps them to
     // locals {0, 1, 2}.
-    let mut populations = empty_populations(0.0);
+    let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(5, 9)];
     populations.semantic_scale = 1.0;
     populations.ordinary = vec![pair(2, 9)];
@@ -625,12 +626,18 @@ fn assemble_reindexes_into_the_local_domain() {
     populations.landmark_scale = 1.0;
 
     // Scale table over ten corpus rows, row r holding r / 2.
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "fixture rows are tiny exact integers"
-    )]
-    let table = LocalScales::new((0..10).map(|row| row as f32 * 0.5).collect())
-        .expect("the fixture scales are finite");
+    let table = LocalScales::new(Box::new([
+        non_negative!(0.0),
+        non_negative!(0.5),
+        non_negative!(1.0),
+        non_negative!(1.5),
+        non_negative!(2.0),
+        non_negative!(2.5),
+        non_negative!(3.0),
+        non_negative!(3.5),
+        non_negative!(4.0),
+        non_negative!(4.5),
+    ]));
 
     let batch = Batch::assemble(populations, Some(&table));
 
@@ -640,7 +647,14 @@ fn assemble_reindexes_into_the_local_domain() {
     assert_eq!(batch.ordinary, [local(0, 2)]);
     assert_eq!(batch.landmarks[0].row.get(), 1);
     let gathered = batch.scales.expect("the table was supplied");
-    assert_eq!(gathered.as_slice(), [1.0, 2.5, 4.5]);
+    assert_eq!(
+        gathered
+            .as_slice()
+            .iter()
+            .map(|scale| scale.get())
+            .collect::<Vec<_>>(),
+        [1.0, 2.5, 4.5]
+    );
 }
 
 #[test]
@@ -649,7 +663,7 @@ fn assemble_rejects_relation_edges_without_scales() {
     let indexes = relation_indexes(2, &[proximal_policy(7)], vec![instance(0, 7, 0, 1)]);
     let group = &indexes.attraction.groups()[0];
 
-    let mut populations = empty_populations(1.0);
+    let mut populations = empty_populations(non_negative!(1.0));
     populations.relation = vec![SampledRelationEdges {
         group,
         edges: group.edges().to_vec(),
@@ -671,7 +685,7 @@ fn objective_matches_the_hand_computed_semantic_field() {
     // gradient is (0, -1) * (2 * 2 * -0.25) = (0, 1) at row 2.
     //
     // Surrogate: <y1, g1> + <y3, g3> = 0.5 - 1 = -0.5 exactly.
-    let mut populations = empty_populations(0.0);
+    let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 2.0;
     populations.ordinary = vec![pair(2, 3)];
@@ -709,12 +723,11 @@ fn objective_matches_the_hand_computed_semantic_field() {
 /// factors are exactly `c = 1`, `nu = 0.5`, class weights `(0, 1)`, strength one.
 fn relation_fixture() -> (RelationIndexes, LocalScales) {
     let indexes = relation_indexes(2, &[proximal_policy(7)], vec![instance(0, 7, 0, 1)]);
-    let scales =
-        LocalScales::new(vec![0.5, 0.5].into_boxed_slice()).expect("the fixture scales are finite");
+    let scales = LocalScales::new(Box::new([non_negative!(0.5), non_negative!(0.5)]));
     (indexes, scales)
 }
 
-fn relation_batch(indexes: &RelationIndexes, scales: &LocalScales, eta: f32) -> Batch {
+fn relation_batch(indexes: &RelationIndexes, scales: &LocalScales, eta: NonNegative) -> Batch {
     let group = &indexes.attraction.groups()[0];
 
     // Pin the hand-derivation's fixture facts before using them.
@@ -752,7 +765,7 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
     // clipped norm 0.25, total factor exactly 1. Applied relation
     // gradient (-0.25, 0); combined (-0.75, 0).
     let (indexes, scales) = relation_fixture();
-    let batch = relation_batch(&indexes, &scales, 1.0);
+    let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
     let coordinates = [0.0, 0.0, 1.0, 0.0];
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
@@ -790,7 +803,7 @@ fn objective_reports_the_relation_loss_value() {
     // The relation value is factor * proximal weight * temperature *
     // softplus(0) = 1 * 1 * 0.5 * ln 2.
     let (indexes, scales) = relation_fixture();
-    let batch = relation_batch(&indexes, &scales, 1.0);
+    let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
     let options = options(Some(relation_energy()), loose_budget());
@@ -822,15 +835,15 @@ fn relation_gradients_are_linear_in_the_lens() {
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let options = options(Some(relation_energy()), loose_budget());
 
-    let gradient_at = |eta: f32| {
+    let gradient_at = |eta: NonNegative| {
         let batch = relation_batch(&indexes, &scales, eta);
         let mut metrics = BudgetBreakdown::new();
         leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics)
     };
 
-    assert_eq!(gradient_at(0.0), [-0.5, 0.0, 0.5, 0.0]);
-    assert_eq!(gradient_at(0.5), [-0.75, 0.0, 0.75, 0.0]);
-    assert_eq!(gradient_at(1.0), [-1.0, 0.0, 1.0, 0.0]);
+    assert_eq!(gradient_at(non_negative!(0.0)), [-0.5, 0.0, 0.5, 0.0]);
+    assert_eq!(gradient_at(non_negative!(0.5)), [-0.75, 0.0, 0.75, 0.0]);
+    assert_eq!(gradient_at(non_negative!(1.0)), [-1.0, 0.0, 1.0, 0.0]);
 }
 
 #[test]
@@ -840,7 +853,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     // radius 0.5 + epsilon 0.5 = 1, inside the unit Huber threshold.
     // Its gradient flows through autodiff; row 0 keeps exactly its
     // semantic gradient, certifying the seam separation.
-    let mut populations = empty_populations(0.0);
+    let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 2.0;
     populations.landmarks = vec![SupportAnchor {
@@ -884,7 +897,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
 
 #[test]
 fn evaluate_rejects_non_finite_coordinates() {
-    let mut populations = empty_populations(0.0);
+    let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 1.0;
     let batch = Batch::assemble(populations, None);
@@ -1123,7 +1136,7 @@ fn input_pads_the_gathered_rows_to_the_alignment() {
     // Rows {0, 1, 2, 5} participate: four rows pad to the alignment,
     // and the padded tail replicates corpus row 5 - representation,
     // role, and rung alike. Alignment one is the unpadded frame.
-    let mut populations = empty_populations(0.5);
+    let mut populations = empty_populations(non_negative!(0.5));
     populations.semantic = vec![pair(0, 2)];
     populations.semantic_scale = 2.0;
     populations.ordinary = vec![pair(1, 5)];
@@ -1182,7 +1195,7 @@ fn padded_frame_adds_zero_force() {
     // The two-row semantic batch against a four-row frame whose tail
     // twins the last row: the loss matches the exact-cover frame and
     // the padded rows receive exactly zero coordinate gradient.
-    let mut populations = empty_populations(0.0);
+    let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 2.0;
     let batch = Batch::assemble(populations, None);
@@ -1224,7 +1237,7 @@ fn padded_frame_adds_zero_force() {
 #[test]
 #[should_panic(expected = "cover the batch rows")]
 fn evaluate_rejects_a_frame_smaller_than_the_batch() {
-    let mut populations = empty_populations(0.0);
+    let mut populations = empty_populations(non_negative!(0.0));
     populations.semantic = vec![pair(0, 1)];
     populations.semantic_scale = 2.0;
     let batch = Batch::assemble(populations, None);
@@ -1261,11 +1274,10 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
         &[proximal_policy(7)],
         vec![instance(0, 7, 0, 1)],
     );
-    let scales = LocalScales::new(vec![0.5; PADDING_ROWS].into_boxed_slice())
-        .expect("the fixture scales are finite");
+    let scales = LocalScales::new(vec![non_negative!(0.5); PADDING_ROWS].into_boxed_slice());
     let group = &indexes.attraction.groups()[0];
 
-    let mut populations = empty_populations(1.0);
+    let mut populations = empty_populations(non_negative!(1.0));
     let semantic_pairs = u64::try_from(PADDING_ROWS).expect("fixture rows fit u64") >> 1_u32;
     populations.semantic = (0..semantic_pairs)
         .map(|index| pair(2 * index, 2 * index + 1))

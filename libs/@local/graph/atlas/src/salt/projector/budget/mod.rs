@@ -6,9 +6,9 @@
 //! algebra over detached values:
 //!
 //! ```text
-//! baseline = max(|semantic|, floor)
-//! clipped  = relation * min(1, positive * baseline / (|relation| + epsilon))
-//! final    = clipped  * min(1, total * baseline / (|clipped| + epsilon))
+//! baseline = max(‖semantic‖, floor)
+//! clipped  = relation · min(1, positive · baseline / (‖relation‖ + ε))
+//! final    = clipped  · min(1, total · baseline / (‖clipped‖ + ε))
 //! ```
 //!
 //! The budgeted gradients re-enter the parameter graph through
@@ -45,7 +45,7 @@ pub(crate) struct BudgetOptions {
 impl BudgetOptions {
     /// Validates budget coefficients.
     ///
-    /// Returns [`None`] unless every value is finite and strictly positive and `positive <= total`.
+    /// Returns [`None`] unless every value is finite and strictly positive and `positive ≤ total`.
     #[must_use]
     pub(crate) const fn new(positive: f32, total: f32, floor: f32, epsilon: f32) -> Option<Self> {
         let coefficients_valid = positive.is_finite()
@@ -100,7 +100,7 @@ impl BudgetOptions {
     /// Both inputs are coordinate-space gradients of the same node: `semantic` from the
     /// semantic-side terms, already scaled by their loss coefficients, and `relation` from the
     /// relation term likewise. The returned gradient satisfies both budget bounds: its norm stays
-    /// within `total * baseline`, and the intermediate positive step stays within `positive *
+    /// within `total · baseline`, and the intermediate positive step stays within `positive ·
     /// baseline`.
     #[must_use]
     pub(crate) fn clip(self, semantic: Vec2, relation: Vec2) -> ClippedRelation {
@@ -203,8 +203,8 @@ impl BudgetSummary {
     ///
     /// With equal positive and total coefficients this coincides with
     /// [`clipped_fraction`](Self::clipped_fraction) by arithmetic: a positively clipped gradient
-    /// lands within one epsilon of the shared budget, so the trailing factor dips just below one.
-    /// Read it against [`mean_cap_factor`](Self::mean_cap_factor), which separates that epsilon
+    /// lands within one ε of the shared budget, so the trailing factor dips just below one.
+    /// Read it against [`mean_cap_factor`](Self::mean_cap_factor), which separates that ε
     /// signature from real capping.
     #[must_use]
     pub(crate) fn capped_fraction(&self) -> Option<f32> {
@@ -214,7 +214,7 @@ impl BudgetSummary {
     /// Returns the mean total-variation cap factor.
     ///
     /// One minus this mean is the fraction of relation-gradient mass the cap actually removed: near
-    /// one, cap activations are the epsilon shave; materially below one, the cap is load-bearing.
+    /// one, cap activations are the ε shave; materially below one, the cap is load-bearing.
     #[must_use]
     pub(crate) fn mean_cap_factor(&self) -> Option<f32> {
         self.mean(self.cap_factor)
@@ -269,7 +269,7 @@ impl BudgetSummary {
 ///
 /// Its backward pass carries the budgeted coordinate gradients into the model parameters.
 ///
-/// The returned value is `sum_i <coordinates[i], gradient[i]>`: its gradient with respect to
+/// The returned value is `Σ_i ⟨coordinates[i], gradient[i]⟩`: its gradient with respect to
 /// `coordinates` is exactly `gradient`, so a single backward pass propagates the caller's per-node
 /// vectors through the projector's Jacobian. `gradient` lives on the inner backend and enters the
 /// graph as a constant - the model cannot differentiate through the budget's clip factors.

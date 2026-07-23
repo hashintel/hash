@@ -217,7 +217,7 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
 /// The number of uniformly sampled items whose mean reaches the one-sided confidence level, given
 /// the per-item standard deviation.
 ///
-/// The estimate's standard error is `deviation / sqrt(n)`, so `n = ceil((z * deviation /
+/// The estimate's standard error is `deviation / √n`, so `n = ceil((z · deviation /
 /// margin)^2)` with `z` the standard normal quantile of `confidence` keeps the probability of a
 /// sampling error beyond `margin` (in one direction) at most `1 - confidence`, by the central limit
 /// theorem. This sizes aggregate-mean criteria; an all-pass criterion is sized by

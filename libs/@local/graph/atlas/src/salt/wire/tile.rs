@@ -75,44 +75,38 @@ impl TileResponse<'_> {
             );
         }
 
-        let head = self.head.encode(delivered, self.trailer.is_some());
-
         let mut envelope = EnvelopeWriter::new(Kind::Tile, 5);
-        envelope.present(&head);
-        envelope.present(&self.positions_column());
-        envelope.present(&self.rows_column());
+        let points = usize::try_from(delivered).expect("delivered counts fit usize");
+        envelope.reserve(points * 12);
+        envelope.slot(|buf| self.head.encode(buf, delivered, self.trailer.is_some()));
+        envelope.slot(|buf| self.write_positions(buf));
+        envelope.slot(|buf| self.write_rows(buf));
         match self.masks {
-            Some(masks) => envelope.present(&self.mask_column(masks)),
+            Some(masks) => envelope.slot(|buf| self.write_masks(buf, masks)),
             None => envelope.absent(),
         }
         envelope.absent();
 
         match &self.trailer {
-            Some(trailer) => envelope.finish_with_trailer(&trailer.encode()),
+            Some(trailer) => envelope.finish_with_trailer(|buf| trailer.encode(buf)),
             None => envelope.finish(),
         }
     }
 
-    /// Gathers the `POSITIONS` column: f32 xy pairs, delivered order.
-    fn positions_column(&self) -> Vec<u8> {
-        let mut column = Vec::new();
+    /// Writes the `POSITIONS` column: f32 xy pairs, delivered order.
+    fn write_positions(&self, column: &mut Vec<u8>) {
         self.delivered.for_each(|position| {
             let point = self.positions[position as usize];
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
         });
-
-        column
     }
 
-    /// Gathers the `ROW_IDS` column: u32 row ids, delivered order.
-    fn rows_column(&self) -> Vec<u8> {
-        let mut column = Vec::new();
+    /// Writes the `ROW_IDS` column: u32 row ids, delivered order.
+    fn write_rows(&self, column: &mut Vec<u8>) {
         self.delivered.for_each(|position| {
             column.extend_from_slice(&self.rows[position as usize].to_le_bytes());
         });
-
-        column
     }
 
     /// Assembles the `TYPE_MASK` column.
@@ -123,11 +117,13 @@ impl TileResponse<'_> {
     /// Each membership contributes by a linear merge of its ascending positions against the
     /// delivered set, never a per-point containment probe. A point matching no requested type keeps
     /// the zero mask; no sentinel exists.
-    fn mask_column(&self, masks: &[Membership<'_>]) -> Vec<u8> {
+    fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let delivered =
             usize::try_from(self.delivered.count()).expect("delivered counts fit usize");
         let stride = masks.len().div_ceil(8);
-        let mut column = vec![0_u8; delivered * stride];
+        let base = buf.len();
+        buf.resize(base + delivered * stride, 0);
+        let column = &mut buf[base..];
 
         for (bit, membership) in masks.iter().enumerate() {
             let byte = bit >> 3;
@@ -163,8 +159,6 @@ impl TileResponse<'_> {
                 }
             }
         }
-
-        column
     }
 }
 
@@ -239,13 +233,13 @@ impl TileHead<'_> {
     /// Encodes the `HEAD` map.
     ///
     /// Key 4 (`delivered`) and key 10 (`trailer`) are derived from the response rather than stored.
-    fn encode(&self, delivered: u64, trailer: bool) -> Vec<u8> {
+    fn encode(&self, buf: &mut Vec<u8>, delivered: u64, trailer: bool) {
         assert!(
             self.children < 16,
             "children bits beyond the low four are reserved zero",
         );
 
-        let mut cbor = CborWriter::new();
+        let mut cbor = CborWriter::over(buf);
         cbor.map(10 + u64::from(self.global.is_some()));
 
         cbor.uint(0);
@@ -278,8 +272,6 @@ impl TileHead<'_> {
         cbor.uint(u64::from(self.children));
         cbor.uint(10);
         cbor.boolean(trailer);
-
-        cbor.into_bytes()
     }
 }
 
@@ -310,7 +302,7 @@ pub(crate) struct GlobalHead {
 
 impl GlobalHead {
     /// Encodes the global map as the value of `HEAD` key 8.
-    fn encode(&self, cbor: &mut CborWriter) {
+    fn encode(&self, cbor: &mut CborWriter<'_>) {
         cbor.map(2 + u64::from(self.bounds.is_some()));
 
         cbor.uint(0);
@@ -341,21 +333,19 @@ pub(crate) struct TileTrailer<'doc> {
 
 impl TileTrailer<'_> {
     /// Encodes the trailer tail as one self-delimiting CBOR map.
-    fn encode(&self) -> Vec<u8> {
-        let mut cbor = CborWriter::new();
+    fn encode(&self, buf: &mut Vec<u8>) {
+        let mut cbor = CborWriter::over(buf);
         cbor.map(2);
 
         cbor.uint(0);
         encode_details(&mut cbor, self.labels);
         cbor.uint(1);
         encode_details(&mut cbor, self.icons);
-
-        cbor.into_bytes()
     }
 }
 
 /// Emits one detail array: text entries with `null` for unresolved.
-pub(super) fn encode_details(cbor: &mut CborWriter, entries: &[Option<&str>]) {
+pub(super) fn encode_details(cbor: &mut CborWriter<'_>, entries: &[Option<&str>]) {
     cbor.array(entries.len() as u64);
     for entry in entries {
         match entry {

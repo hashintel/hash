@@ -121,7 +121,7 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 
 /// Raises each lane of `base` to the matching lane of `exponent`, for strictly positive bases.
 ///
-/// The power is evaluated as `exp2(exponent * log2(base))` from the vendored SLEEF 3.5-ulp stages.
+/// The power is evaluated as `exp2(exponent · log2(base))` from the vendored SLEEF 3.5-ulp stages.
 /// The relative error grows with the magnitude of the result's binary exponent: a few units in the
 /// last place for results near one, on the order of `1e-4` at the edges of the normal range.
 /// Gradient kernels tolerate far more; callers needing 1-ulp powers should take the scalar
@@ -137,7 +137,7 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 // slots while the scalar bodies compete for them. The tie also does
 // not generalize across machines: it needs an out-of-order engine
 // wide and deep enough to overlap four independent libm bodies (IPC
-// ~8.6 here) and Apple's branch-free `powf`; production Linux targets
+// ≈8.6 here) and Apple's branch-free `powf`; production Linux targets
 // have neither, and glibc's `powf` is a different, branchier function
 // with different rounding. The composition's cost travels with the
 // binary - same vendored code, bit-identical results on every

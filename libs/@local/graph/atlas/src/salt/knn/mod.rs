@@ -10,8 +10,8 @@
 //!
 //! [`construction::KnnConstruction`] separates the table's semantics from how neighbour lists
 //! are produced. Two constructors exist: [`construction::IndexConstruction`] wraps a
-//! [`NearestNeighboursIndex`] search backend — [`hannoy::HannoyIndex`] is the LMDB-backed HNSW
-//! production backend — and [`descent::NnDescent`] derives the lists directly by local joins,
+//! [`NearestNeighboursIndex`] search backend - [`hannoy::HannoyIndex`] is the LMDB-backed HNSW
+//! production backend - and [`descent::NnDescent`] derives the lists directly by local joins,
 //! with no search structure. The landmark assignment keeps querying a backend by vector; the
 //! table build needs only the lists.
 //!

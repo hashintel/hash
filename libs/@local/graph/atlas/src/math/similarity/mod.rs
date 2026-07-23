@@ -28,7 +28,7 @@ mod tests;
 
 /// An orientation-preserving similarity of 2D space: uniform scale, rotation, and translation.
 ///
-/// A similarity maps a vector `p` to `scale * R * p + translation`, where `R` is the rotation's
+/// A similarity maps a vector `p` to `scale · R · p + translation`, where `R` is the rotation's
 /// matrix. Lengths scale uniformly and angles are preserved, so shapes keep their proportions and
 /// their winding direction.
 ///

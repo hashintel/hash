@@ -52,6 +52,8 @@ impl EdgesResponse<'_> {
     /// the interning laws.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
+        const ROW_SIZE: usize = size_of::<u32>() + size_of::<u32>() + size_of::<[u8; 32]>();
+
         let count = self.sources.len();
         assert_eq!(
             self.targets.len(),
@@ -68,20 +70,22 @@ impl EdgesResponse<'_> {
         }
 
         let mut envelope = EnvelopeWriter::new(Kind::Edges, 4);
-        envelope.present(&self.encode_head(count as u64));
-        envelope.present(&column(self.sources));
-        envelope.present(&column(self.targets));
-        envelope.present(&identity_column(self.edge_ids));
+
+        envelope.reserve(count * ROW_SIZE); // NOTE: made the constant actually derived, feel free to adjust, might be too small because of header and trailer not being accounted for
+        envelope.slot(|buf| self.encode_head(buf, count as u64));
+        envelope.slot(|buf| write_column(buf, self.sources));
+        envelope.slot(|buf| write_column(buf, self.targets));
+        envelope.slot(|buf| write_identities(buf, self.edge_ids));
 
         match &self.trailer {
-            Some(trailer) => envelope.finish_with_trailer(&trailer.encode()),
+            Some(trailer) => envelope.finish_with_trailer(|buf| trailer.encode(buf)),
             None => envelope.finish(),
         }
     }
 
     /// Encodes the `HEAD` map: keys 0 through 4.
-    fn encode_head(&self, count: u64) -> Vec<u8> {
-        let mut cbor = CborWriter::new();
+    fn encode_head(&self, buf: &mut Vec<u8>, count: u64) {
+        let mut cbor = CborWriter::over(buf);
         cbor.map(5);
 
         cbor.uint(0);
@@ -94,8 +98,6 @@ impl EdgesResponse<'_> {
         cbor.boolean(self.complete);
         cbor.uint(4);
         cbor.boolean(self.trailer.is_some());
-
-        cbor.into_bytes()
     }
 }
 
@@ -146,8 +148,8 @@ impl EdgesTrailer<'_> {
     }
 
     /// Encodes the trailer tail as one self-delimiting CBOR map.
-    fn encode(&self) -> Vec<u8> {
-        let mut cbor = CborWriter::new();
+    fn encode(&self, buf: &mut Vec<u8>) {
+        let mut cbor = CborWriter::over(buf);
         cbor.map(3);
 
         cbor.uint(0);
@@ -155,8 +157,10 @@ impl EdgesTrailer<'_> {
         for &url in self.type_table {
             cbor.text(url);
         }
+
         cbor.uint(1);
         encode_details(&mut cbor, self.link_labels);
+
         cbor.uint(2);
         cbor.array(self.link_type_ids.len() as u64);
         for entry in self.link_type_ids {
@@ -165,27 +169,20 @@ impl EdgesTrailer<'_> {
                 None => cbor.null(),
             }
         }
-
-        cbor.into_bytes()
     }
 }
 
-/// Encodes one u32 column little-endian.
-pub(super) fn column(values: &[u32]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(values.len() * 4);
+/// Writes one u32 column little-endian.
+pub(super) fn write_column(bytes: &mut Vec<u8>, values: &[u32]) {
+    bytes.reserve(size_of_val(values));
     for &value in values {
         bytes.extend_from_slice(&value.to_le_bytes());
     }
-
-    bytes
 }
 
-/// Encodes one identity column: raw 32-byte records, concatenated.
-pub(super) fn identity_column(ids: &[[u8; 32]]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(ids.len() * 32);
-    for id in ids {
-        bytes.extend_from_slice(id);
-    }
-
-    bytes
+/// Writes one identity column: raw 32-byte records, concatenated.
+///
+/// The records are contiguous in memory, so the column is written as a single copy.
+pub(super) fn write_identities(bytes: &mut Vec<u8>, ids: &[[u8; 32]]) {
+    bytes.extend_from_slice(ids.as_flattened());
 }

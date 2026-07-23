@@ -410,7 +410,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         prior: if options.fresh {
             PriorMode::Fresh
         } else {
-            PriorMode::ReuseActive
+            PriorMode::FromActive
         },
         ..
     };

@@ -107,7 +107,7 @@ impl MortonKey {
 
     /// Returns the cell index at `depth`.
     ///
-    /// The leading `2 * depth` key bits, a value below `4^depth` that is dense over the depth's
+    /// The leading `2 · depth` key bits, a value below `4^depth` that is dense over the depth's
     /// grid.
     ///
     /// # Examples
@@ -240,7 +240,7 @@ impl MortonCell {
     }
 }
 
-/// Returns the key bits a cell at `depth` does not fix: the low `64 - 2 * depth` bits.
+/// Returns the key bits a cell at `depth` does not fix: the low `64 - 2 · depth` bits.
 const fn low_mask(depth: Depth) -> u64 {
     match depth.get() {
         0 => u64::MAX,

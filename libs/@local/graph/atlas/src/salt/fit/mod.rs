@@ -190,7 +190,7 @@ pub(crate) struct ProjectorOptions {
     ///
     /// The floor doubles as the relation budget of nodes whose semantic pairs are not co-drawn -
     /// in a sampled batch that is most of them - so it is sized to the typical per-draw semantic
-    /// gradient, not to epsilon.
+    /// gradient, not to ε.
     pub budget: BudgetOptions,
     /// The objective coefficients' mass bases.
     ///

@@ -4,7 +4,7 @@
               both are contracts, not coincidences"
 )]
 
-use core::assert_matches;
+use core::{assert_matches, simd::f32x8};
 use std::collections::HashMap;
 
 use rand::{RngExt as _, SeedableRng as _};
@@ -15,6 +15,7 @@ use super::{
 };
 use crate::{
     file::{WriteInto as _, sprs::read::SprsFile},
+    math::kernel::exp_f32x8,
     salt::knn::table::{Knn, KnnMatrix},
 };
 
@@ -221,6 +222,51 @@ fn duplicate_rows_saturate_at_full_membership() {
     let mut memberships = [0.0_f32; 4];
     solver.memberships(bandwidth, &mut memberships);
     assert_eq!(memberships, [1.0; 4]);
+}
+
+/// The SIMD row pipeline matches the membership definition lane for lane.
+///
+/// The scalar oracle routes through the same vendored kernel, so agreement is bit-exact: the pin
+/// covers the padded tail lanes (partial, exact, and full-plus-partial chunks), the rho
+/// subtraction with its zero clamp, the membership floor, and same-length solver reuse.
+#[test]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "the fixture lengths are far below exact f64 integer precision"
+)]
+fn simd_rows_match_the_scalar_definition_lane_for_lane() {
+    for neighbours in [1_usize, 3, 7, 8, 9, 15, 16, 17] {
+        let distances: Vec<f32> = (0..neighbours)
+            .map(|slot| {
+                if slot.is_multiple_of(3) {
+                    0.0
+                } else {
+                    0.05 * slot as f32
+                }
+            })
+            .collect();
+        let target = (neighbours as f64).log2().max(1.0);
+
+        let mut solver = RowSolver::new(neighbours);
+        // A first calibration over reversed distances, so the checked row
+        // reuses scratch another row has written.
+        let reversed: Vec<f32> = distances.iter().rev().copied().collect();
+        solver.calibrate(&reversed, target, 0.5, &options());
+
+        let bandwidth = solver.calibrate(&distances, target, 0.5, &options());
+        let mut memberships = vec![0.0_f32; neighbours];
+        solver.memberships(bandwidth, &mut memberships);
+
+        for (slot, (&distance, &membership)) in distances.iter().zip(&memberships).enumerate() {
+            let adjusted = (distance - bandwidth.rho).max(0.0);
+            let expected = exp_f32x8(f32x8::splat(-(adjusted / bandwidth.sigma))).to_array()[0]
+                .max(f32::MIN_POSITIVE);
+            assert_eq!(
+                membership, expected,
+                "lane {slot} of a {neighbours}-neighbour row",
+            );
+        }
+    }
 }
 
 #[test]

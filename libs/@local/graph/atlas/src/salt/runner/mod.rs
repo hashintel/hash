@@ -3,35 +3,29 @@
 //! [`run`] composes the pipeline's separate decisions into the one sequence production takes: the
 //! prior comes from the root's active generation, [`fit`] publishes a complete verified generation,
 //! the quality suite probes the published artifacts against the same snapshot, and a passing
-//! verdict activates the generation by the atomic pointer flip. A failing verdict is an
-//! [`Outcome`], not an error: the generation stays published as a candidate, its report is the
-//! evidence, and activating it anyway is a human decision made outside the runner
-//! ([`GenerationRoot::activate`] by hand).
+//! verdict activates the generation by the atomic pointer flip. A failing verdict returns an
+//! [`Outcome`] whose generation stays published as a candidate beside its report; activating it
+//! anyway is a human decision made outside the runner ([`GenerationRoot::activate`] by hand).
 //!
 //! The whole run replays from the one fit seed: the admission probe's generator derives from it
 //! under a pinned name, exactly as the fit stages derive theirs, so equal configurations sample
 //! equal anchors.
 //!
-//! Retiring old generations is not the runner's decision; pruning a root is offline tooling over
-//! published directories.
-
-use core::{error::Error, fmt};
+//! Retiring old generations is offline tooling over published directories.
 
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use tracing::Instrument as _;
 
+pub(crate) use self::error::RunnerError;
 use crate::{
     dataset::Dataset,
-    file::generation::{
-        ActivateError, CurrentError, Generation, GenerationId, GenerationRoot, OpenError,
-    },
+    file::generation::{Generation, GenerationRoot},
     integrity::{Sha256, Update as _},
     salt::{
         embedding::CardEmbedder,
-        fit::{ClassifierInput, FitConfig, FitError, SuppliedVerdicts, fit},
+        fit::{ClassifierInput, FitConfig, SuppliedVerdicts, fit},
         quality::{
-            error::QualityRunError,
             report::QualityReport,
             runner::{QualityRunOptions, run as probe},
         },
@@ -41,18 +35,20 @@ use crate::{
 #[cfg(feature = "bench")]
 pub mod bench;
 
+mod error;
+
 #[cfg(test)]
 mod tests;
 
 /// Where one run's prior generation comes from.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) enum PriorMode {
-    /// The root's active generation seeds reuse.
+    /// The root's active generation is the prior.
     ///
-    /// Card rows by text hash, landmarks competing for the retained share. A root without an
-    /// activation runs fresh.
+    /// Card rows reuse embeddings by text hash and landmarks compete for the retained share. A
+    /// root without an activation runs fresh.
     #[default]
-    ReuseActive,
+    FromActive,
     /// No prior: every card row embeds anew and the landmark selection starts cold.
     ///
     /// The clean slate for a changed embedding contract.
@@ -65,15 +61,15 @@ pub(crate) struct RunnerOptions {
     /// The fit's settings; its seed also derives the admission probe's sampling.
     pub fit: FitConfig,
     /// Where the prior generation comes from.
-    pub prior: PriorMode = PriorMode::ReuseActive,
-    /// The admission probe's sampling, grouping, and gates.
+    pub prior: PriorMode = PriorMode::FromActive,
+    /// The admission probe's sampling, grouping, and thresholds.
     pub quality: QualityRunOptions = QualityRunOptions::default(),
 }
 
 /// How one published generation left the runner.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Admission {
-    /// The report's gates held and the root's pointer names the generation.
+    /// The report's thresholds held and the root's pointer names the generation.
     Active,
     /// The report refused admission; the generation is published but not activated.
     ///
@@ -92,74 +88,13 @@ pub(crate) struct Outcome {
     pub admission: Admission,
 }
 
-/// The run could not reach a verdict.
-///
-/// Variants after the fit carry the published generation's identity: the artifacts are complete on
-/// disk, and the remedy - reopening, re-probing, or activating by hand - starts from that id rather
-/// than from another fit.
-#[derive(Debug)]
-pub(crate) enum RunnerError<D, E> {
-    /// The current-generation pointer could not be read.
-    Current(CurrentError),
-    /// The active generation could not be opened as the prior.
-    Prior(OpenError),
-    /// The fit could not publish; nothing is on disk.
-    Fit(FitError<D, E>),
-    /// The published generation could not be reopened.
-    Reopen { id: GenerationId, source: OpenError },
-    /// The admission probe could not produce a report.
-    Quality {
-        id: GenerationId,
-        source: QualityRunError<D>,
-    },
-    /// The admitted generation could not be activated.
-    Activate {
-        id: GenerationId,
-        source: ActivateError,
-    },
-}
-
-impl<D, E> fmt::Display for RunnerError<D, E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Current(_) => fmt.write_str("the current-generation pointer could not be read"),
-            Self::Prior(_) => {
-                fmt.write_str("the active generation could not be opened as the prior")
-            }
-            Self::Fit(_) => fmt.write_str("the fit could not publish"),
-            Self::Reopen { id, .. } => {
-                write!(fmt, "published generation {id} could not be reopened")
-            }
-            Self::Quality { id, .. } => write!(
-                fmt,
-                "the admission probe over published generation {id} could not produce a report",
-            ),
-            Self::Activate { id, .. } => {
-                write!(fmt, "admitted generation {id} could not be activated")
-            }
-        }
-    }
-}
-
-impl<D: Error + 'static, E: Error + 'static> Error for RunnerError<D, E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Current(error) => Some(error),
-            Self::Prior(error) | Self::Reopen { source: error, .. } => Some(error),
-            Self::Fit(error) => Some(error),
-            Self::Quality { source, .. } => Some(source),
-            Self::Activate { source, .. } => Some(source),
-        }
-    }
-}
-
 /// Runs one generation end to end and activates it on admission.
 ///
 /// The dataset serves both halves of the run - the fit's ingest streams and the admission probe's
 /// sampled lookups - so the probed corpus is the fitted corpus by construction. The classifier
 /// input is a supplied fitted artifact or an annotation corpus the fit assembles and fits inside
-/// the run ([`ClassifierInput`]), and the reviewed verdicts are a supplied input the fit stages for
-/// the trainer, absent when no review file accompanies the run.
+/// the run ([`ClassifierInput`]). The reviewed verdicts are a supplied input the fit stages for
+/// the trainer; [`None`] runs without a review file.
 ///
 /// A report that refuses admission returns [`Admission::Candidate`] with the generation published
 /// and unactivated; only failures that prevent a verdict are errors.
@@ -183,9 +118,8 @@ where
     E: CardEmbedder + Sync,
 {
     let prior = match options.prior {
-        PriorMode::ReuseActive => root
-            .current()
-            .map_err(RunnerError::Current)?
+        PriorMode::FromActive => root
+            .current()?
             .map(|id| root.open(id))
             .transpose()
             .map_err(RunnerError::Prior)?,
@@ -201,8 +135,7 @@ where
         prior.as_ref(),
         root,
     )
-    .await
-    .map_err(RunnerError::Fit)?;
+    .await?;
     let id = published.id();
 
     let generation = root
@@ -222,9 +155,11 @@ where
     if !report.passes() {
         tracing::warn!(
             generation = %id,
-            flags = report.flags.len(),
-            "the report refused admission; the generation stays a candidate"
+            unresolved_flags = report.flags.len(),
+            "quality admission refused: the generation stays published as an unactivated \
+             candidate; review the outcome's report before activating by hand"
         );
+
         return Ok(Outcome {
             generation,
             report,

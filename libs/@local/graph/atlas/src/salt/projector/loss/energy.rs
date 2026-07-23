@@ -10,8 +10,8 @@ use crate::math::{AffinityCurve, huber, sigmoid, softplus};
 /// The semantic edge energy over the low-dimensional affinity.
 ///
 /// For squared pair distance `u` and affinity `q(u) = 1 / (1 + a u^b)`, attraction penalizes
-/// improbable placement of a positive edge by `-ln(q + epsilon)` and repulsion penalizes probable
-/// placement of a negative pair by `-ln(1 - q + epsilon)`. The offset keeps both logarithms finite
+/// improbable placement of a positive edge by `-ln(q + ε)` and repulsion penalizes probable
+/// placement of a negative pair by `-ln(1 - q + ε)`. The offset keeps both logarithms finite
 /// over the affinity's whole range, and bounds the repulsion derivative as the pair approaches
 /// coincidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -24,7 +24,7 @@ impl AffinityEnergy {
     /// Binds an affinity curve to a logarithm offset.
     ///
     /// Returns [`None`] unless the offset is finite and strictly positive and the curve's exponent
-    /// satisfies `b >= 0.5`. The offset keeps the attraction value finite for far pairs and bounds
+    /// satisfies `b ≥ 0.5`. The offset keeps the attraction value finite for far pairs and bounds
     /// the repulsion gradient for near pairs; the exponent bound keeps the coordinate gradient
     /// finite at coincidence, where its magnitude scales as `d^(2b - 1)` (fitted curves land well
     /// inside the bound - rejecting the rest makes gradient boundedness a property of the type, not
@@ -44,7 +44,7 @@ impl AffinityEnergy {
 
     /// Evaluates the attraction energy and its derivative in the squared distance.
     ///
-    /// Returns `(-ln(q + epsilon), d/du of the same)`. The derivative is zero at `u == 0`: a
+    /// Returns `(-ln(q + ε), d/du of the same)`. The derivative is zero at `u = 0`: a
     /// coincident pair has no direction to pull along, and the value is already at its minimum
     /// there.
     #[must_use]
@@ -55,14 +55,14 @@ impl AffinityEnergy {
             return (value, 0.0);
         }
 
-        // d/du of -ln(q + eps) = a b u^(b - 1) q^2 / (q + eps).
+        // d/du of -ln(q + ε) = a b u^(b - 1) q^2 / (q + ε).
         let derivative = self.mass(distance_squared, affinity) / (affinity + self.epsilon);
         (value, derivative)
     }
 
     /// Evaluates the repulsion energy and its derivative in the squared distance.
     ///
-    /// Returns `(-ln(1 - q + epsilon), d/du of the same)`. The derivative is zero at `u == 0` for
+    /// Returns `(-ln(1 - q + ε), d/du of the same)`. The derivative is zero at `u = 0` for
     /// the same directional reason as [`attraction`](Self::attraction). Near coincidence the offset
     /// carries the boundedness: `1 - q` itself vanishes there, and without the offset the
     /// coordinate gradient would diverge for every exponent.
@@ -74,7 +74,7 @@ impl AffinityEnergy {
             return (value, 0.0);
         }
 
-        // d/du of -ln(1 - q + eps) = -a b u^(b - 1) q^2 / (1 - q + eps).
+        // d/du of -ln(1 - q + ε) = -a b u^(b - 1) q^2 / (1 - q + ε).
         let derivative = -self.mass(distance_squared, affinity) / (1.0 - affinity + self.epsilon);
         (value, derivative)
     }
@@ -95,7 +95,7 @@ impl AffinityEnergy {
 
 /// The Proximal class energy: a smooth one-sided pull toward a radius.
 ///
-/// `E(z) = temperature * softplus((z - radius) / temperature)` rises linearly once the normalized
+/// `E(z) = temperature · softplus((z - radius) / temperature)` rises linearly once the normalized
 /// distance exceeds the radius and decays to zero below it; the temperature sets the width of the
 /// soft transition. The energy never pulls a pair tighter than its radius asks: the derivative
 /// fades smoothly to zero inside.
@@ -194,7 +194,7 @@ impl CoincidentEnergy {
 ///
 /// The two radii satisfy `coincident < proximal`: the tight class must ask for a strictly closer
 /// placement than the loose one. `epsilon` guards the local scales in the normalization `z = d /
-/// sqrt((scale_i + epsilon) (scale_j + epsilon))`, keeping `z` finite where a diverged
+/// √((scale_i + ε)(scale_j + ε))`, keeping `z` finite where a diverged
 /// neighbourhood measured a zero radius.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationEnergy {

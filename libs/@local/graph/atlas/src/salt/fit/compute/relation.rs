@@ -79,8 +79,8 @@ impl Context<'_> {
             RelationIndexes::build(rows, policies, &mut instances, self.config.attraction)?;
         drop(instances);
         // The histogram is a drain fact the build cannot see; it joins
-        // the evidence here on its way to the manifest.
-        indexes.evidence.multi_typed_edges = multi_typed.to_vec();
+        // the build measurements here on its way to the manifest.
+        indexes.measurements.multi_typed_edges = multi_typed.to_vec();
 
         let attraction = write_staged(self.staging, Role::Attraction, |writer| {
             indexes.attraction.write_into(rows as u64, writer)
@@ -88,9 +88,9 @@ impl Context<'_> {
         let protection = stage(self.staging, Role::Protection, &indexes.protection)?;
 
         tracing::info!(
-            retained = indexes.evidence.retained_edges,
-            pruned = indexes.evidence.pruned_edges,
-            self_references = indexes.evidence.self_references,
+            retained = indexes.measurements.retained_edges,
+            pruned = indexes.measurements.pruned_edges,
+            self_references = indexes.measurements.self_references,
             "staged the attraction and protection indexes"
         );
 
