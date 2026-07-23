@@ -690,7 +690,7 @@ def test_pump_events_drains_a_queued_completion_after_the_deadline(
         _stop_flag: threading.Event,
         _n_trials: int,
         _payload_builder: Any,
-    ) -> threading.Thread:
+    ) -> tuple[threading.Thread, Any]:
         # The study "finished" before the pump's first deadline check: both
         # the trial payload and the sentinel are already queued.
         events.put_nowait(
@@ -705,7 +705,7 @@ def test_pump_events_drains_a_queued_completion_after_the_deadline(
         events.put_nowait(petrinaut_optimizer._SENTINEL)
         worker = threading.Thread(target=lambda: None, daemon=True)
         worker.start()
-        return worker
+        return worker, petrinaut_optimizer.tracer.start_span("test-study")
 
     monkeypatch.setattr(
         PetrinautOptimizer, "_start_study_worker", preloaded_worker

@@ -485,6 +485,10 @@ async def get_optimize_run_events(
             "http.route": "/optimize/runs/{run_id}/events",
             "http.target": f"/optimize/runs/{run_id}/events",
         },
+        # Status and attributes are set explicitly below; an expected 404
+        # must not surface as a recorded exception on the span.
+        record_exception=False,
+        set_status_on_exception=False,
         end_on_exit=True,
     ) as attach_span:
         run = request.app.state.optimization_runs.get(run_id)

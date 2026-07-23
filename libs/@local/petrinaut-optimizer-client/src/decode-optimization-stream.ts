@@ -200,6 +200,22 @@ const adaptSseEvent = (
       state: { ...state, terminal: true },
     };
   }
+  if (event.event === "superseded") {
+    // A newer attachment took over this run's stream. Terminal for THIS
+    // attachment only — the run lives on under the newer consumer — so the
+    // consumer must not treat it as a dropped connection and reconnect
+    // (that would supersede the newer attachment right back, forever).
+    return {
+      event: petrinautOptimizationEventSchema.parse({
+        type: "error",
+        code: "attachment_superseded",
+        message: "Another consumer attached to this optimization run",
+        retryable: false,
+        ...sequenceField,
+      }),
+      state: { ...state, terminal: true },
+    };
+  }
   if (event.event === "cancelled") {
     // A detached run's terminal cancellation frame (client DELETE, orphan
     // reaping, or optimizer shutdown). It is terminal and not retryable: the

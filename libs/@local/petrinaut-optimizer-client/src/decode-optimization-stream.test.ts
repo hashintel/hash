@@ -262,6 +262,22 @@ describe("decodePetrinautOptimizerStream", () => {
     });
   });
 
+  it("adapts a superseded frame to a terminal, non-retryable attachment error", async () => {
+    const events = await collect(
+      streamChunks("event: superseded\ndata: {}\n\n"),
+      { direction: null, emitSyntheticStarted: false },
+    );
+
+    expect(events).toEqual([
+      {
+        type: "error",
+        code: "attachment_superseded",
+        message: "Another consumer attached to this optimization run",
+        retryable: false,
+      },
+    ]);
+  });
+
   it("treats a cancelled frame as terminal", async () => {
     await expect(
       collect(

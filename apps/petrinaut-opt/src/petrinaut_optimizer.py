@@ -371,18 +371,9 @@ class PetrinautOptimizer:
         events: asyncio.Queue[dict[str, Any] | object] = asyncio.Queue()
         stop_flag = threading.Event()
 
-        def callback(study: optuna.Study, trial: optuna.trial.FrozenTrial) -> None:
-            loop.call_soon_threadsafe(events.put_nowait, self._trial_payload(study, trial))
-            if stop_flag.is_set():
-                study.stop()
-
-        started = self._start_study_worker(
+        worker, study_span = self._start_study_worker(
             loop, events, stop_flag, n_trials, self._trial_payload
         )
-        if isinstance(started, tuple):
-            worker, study_span = started
-        else:
-            worker, study_span = started, None
         max_study_seconds = max_study_seconds_from_environment()
         study_deadline = (
             loop.time() + max_study_seconds if max_study_seconds > 0 else None
@@ -400,7 +391,7 @@ class PetrinautOptimizer:
                     return "cancelled"
                 if study_deadline is not None and loop.time() >= study_deadline:
                     stop_flag.set()
-                    if events.empty():
+                    if events.empty() and worker.is_alive():
                         message = (
                             "optimization study exceeded its "
                             f"{max_study_seconds:g} second execution limit"
@@ -419,9 +410,10 @@ class PetrinautOptimizer:
                         on_event(f"data: {json.dumps(payload)}\n\n")
                         record_outcome("failed")
                         return "failed"
-                    # Items are still queued — possibly the completion
-                    # sentinel — so keep draining: a study that actually
-                    # finished within the limit is reported as completed.
+                    # Items are still queued — or the worker already
+                    # finished and its completion sentinel is in flight — so
+                    # keep draining: a study that actually finished within
+                    # the limit is reported as completed.
                 try:
                     item = await asyncio.wait_for(
                         events.get(), timeout=_DISCONNECT_POLL_SECONDS
@@ -466,14 +458,13 @@ class PetrinautOptimizer:
                     )
             finally:
                 self.lock.release()
-                if study_span is not None:
-                    try:
-                        study_span.set_attribute(
-                            "optuna.study.best_value", self.study.best_value
-                        )
-                    except ValueError:
-                        pass
-                    study_span.end()
+                try:
+                    study_span.set_attribute(
+                        "optuna.study.best_value", self.study.best_value
+                    )
+                except ValueError:
+                    pass
+                study_span.end()
 
     async def stream_all(
         self, request: Request, run_id: str, n_trials: int

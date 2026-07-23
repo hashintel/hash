@@ -66,10 +66,16 @@ export const forwardOptimizationEvents = async (
 ): Promise<void> => {
   for await (const event of events) {
     const backpressureWait = writeOptimizationEvent(response, event, signal);
-    if (event.type === "complete" || event.type === "error") {
+    if (
+      event.type === "complete" ||
+      (event.type === "error" && event.code !== "attachment_superseded")
+    ) {
       // The write is committed synchronously even when the buffer is full,
       // so the stream contains its terminal event regardless of how the
       // backpressure wait settles — an abort must not append a second one.
+      // A superseded attachment's error is terminal for the ATTACHMENT
+      // only: the run lives on under the newer consumer, so its ownership
+      // entry must not be released.
       markTerminalEvent();
     }
     await backpressureWait;

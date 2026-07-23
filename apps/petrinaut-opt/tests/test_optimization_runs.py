@@ -287,8 +287,13 @@ def test_a_second_attachment_supersedes_the_first() -> None:
         assert await anext(first_stream) == f"id: 1\n{FIRST_FRAME}"
 
         second_epoch = run.begin_attachment()
-        # Bounded so a supersession regression fails fast instead of
-        # stalling until the ~30s heartbeat.
+        # The superseded stream ends with the attachment-scoped sentinel (no
+        # id line), then closes. Bounded so a supersession regression fails
+        # fast instead of stalling until the ~30s heartbeat.
+        assert (
+            await asyncio.wait_for(anext(first_stream), timeout=1)
+            == "event: superseded\ndata: {}\n\n"
+        )
         with pytest.raises(StopAsyncIteration):
             await asyncio.wait_for(anext(first_stream), timeout=1)
         # The stale attachment must not clear the newer one's attached mark.

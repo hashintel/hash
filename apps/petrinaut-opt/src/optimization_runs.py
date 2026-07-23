@@ -199,6 +199,12 @@ async def attachment_event_stream(
                     "optimization run attachment superseded",
                     extra={"event": "run_attachment_superseded", **log_context},
                 )
+                # Terminal for this ATTACHMENT, not the run: without a
+                # sentinel the consumer's decoder would report a truncated
+                # stream and reconnect — superseding the newer attachment in
+                # turn, ping-ponging forever. No `id:` line on purpose; the
+                # frame is attachment-scoped, not part of the run's log.
+                yield "event: superseded\ndata: {}\n\n"
                 return
             if await request.is_disconnected():
                 return
@@ -368,37 +374,49 @@ class OptimizationRunRegistry:
             await asyncio.sleep(self._tick_seconds)
             now = asyncio.get_running_loop().time()
             for run in self.runs():
-                if run.state is RunState.running:
-                    if (
-                        self.detach_grace_seconds > 0
-                        and not run.attached
-                        and now - run.last_detached_at >= self.detach_grace_seconds
-                        and run.request_cancel(
-                            "no attached consumer within the detach grace period"
-                        )
-                    ):
-                        log.warning(
-                            "optimization run reaped: no attached consumer",
-                            extra={
-                                "event": "run_reaped",
-                                "run_id": run.run_id,
-                                "detach_grace_seconds": self.detach_grace_seconds,
-                                **run.correlation,
-                            },
-                        )
-                elif (
-                    run.terminal_at is not None
-                    and now - run.terminal_at >= self.retention_seconds
-                ):
-                    del self._runs[run.run_id]
-                    log.info(
-                        "optimization run log expired",
-                        extra={
-                            "event": "run_expired",
-                            "run_id": run.run_id,
-                            **run.correlation,
-                        },
+                try:
+                    self._reap_one(run, now)
+                except Exception:
+                    # One bad run must not stop the reaper: an unreaped
+                    # orphan would otherwise hold its slot forever (the loop
+                    # is only recreated by the next create_run).
+                    log.exception(
+                        "optimization run reaping failed",
+                        extra={"event": "run_reap_failed", "run_id": run.run_id},
                     )
+
+    def _reap_one(self, run: OptimizationRun, now: float) -> None:
+        if run.state is RunState.running:
+            if (
+                self.detach_grace_seconds > 0
+                and not run.attached
+                and now - run.last_detached_at >= self.detach_grace_seconds
+                and run.request_cancel(
+                    "no attached consumer within the detach grace period"
+                )
+            ):
+                log.warning(
+                    "optimization run reaped: no attached consumer",
+                    extra={
+                        "event": "run_reaped",
+                        "run_id": run.run_id,
+                        "detach_grace_seconds": self.detach_grace_seconds,
+                        **run.correlation,
+                    },
+                )
+        elif (
+            run.terminal_at is not None
+            and now - run.terminal_at >= self.retention_seconds
+        ):
+            del self._runs[run.run_id]
+            log.info(
+                "optimization run log expired",
+                extra={
+                    "event": "run_expired",
+                    "run_id": run.run_id,
+                    **run.correlation,
+                },
+            )
 
     async def shutdown(self) -> None:
         """Cancel the reaper and every pump; used by the app's lifespan."""

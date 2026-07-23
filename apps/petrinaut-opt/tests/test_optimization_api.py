@@ -755,9 +755,16 @@ def test_a_second_attachment_supersedes_the_first(
             assert first_frame.startswith("id: 1\n")
 
             second = await _attach(test_app, run_id)
-            # The superseded first stream ends without a terminal frame;
-            # bounded so a supersession regression fails fast instead of
-            # stalling until the ~30s heartbeat.
+            # The superseded first stream ends with the attachment-scoped
+            # sentinel (no id line: it is not part of the run's log), so its
+            # consumer sees a clean, terminal end instead of a truncated
+            # stream it would reconnect after; bounded so a supersession
+            # regression fails fast instead of stalling until the ~30s
+            # heartbeat.
+            assert (
+                await asyncio.wait_for(anext(first), timeout=1)
+                == "event: superseded\ndata: {}\n\n"
+            )
             with pytest.raises(StopAsyncIteration):
                 await asyncio.wait_for(anext(first), timeout=1)
             run = registry.get(run_id)

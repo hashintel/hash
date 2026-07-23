@@ -217,6 +217,28 @@ describe("createPetrinautOptimizationRunEventsHandler", () => {
     expect(runOwners.get("run-1")).toBeUndefined();
   });
 
+  it("forwards a superseded attachment's terminal event without releasing ownership", async () => {
+    const runOwners = ownersWithRun();
+    const result = await callOptimizationRunHandler({
+      handler: createHandler({
+        fetchImpl: async () =>
+          new Response("event: superseded\ndata: {}\n\n", {
+            headers: { "content-type": "text/event-stream" },
+          }),
+        runOwners,
+      }),
+      params: { runId: "run-1" },
+    });
+
+    expect(result.statusCode).toBe(200);
+    expect(result.output).toEqual([
+      '{"type":"error","code":"attachment_superseded","message":"Another consumer attached to this optimization run","retryable":false}\n',
+    ]);
+    // Terminal for the ATTACHMENT only: the run lives on under the newer
+    // consumer, so the account's ownership entry must survive.
+    expect(runOwners.get("run-1")).toMatchObject({ accountId: "user-1" });
+  });
+
   it("drops the stale ownership entry when the optimizer forgot the run", async () => {
     const runOwners = ownersWithRun();
     const result = await callOptimizationRunHandler({

@@ -8,7 +8,7 @@ import { createOptimizationRunOwners } from "./shared/optimization-run-owners";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
-import type { Express } from "express";
+import type { Express, Request } from "express";
 
 export const PETRINAUT_OPTIMIZER_CAPABILITIES_PATH =
   "/api/petrinaut-optimizer/capabilities";
@@ -25,15 +25,32 @@ type PetrinautOptimizerHandlerOptions = {
   logger: Pick<Logger, "child" | "info" | "warn">;
 };
 
+const rateLimitKeyGenerator = (request: Request) =>
+  request.user?.accountId ??
+  (request.ip ? ipKeyGenerator(request.ip) : "ip-unavailable");
+
 /** Bound expensive optimization attempts per authenticated account or IP. */
 const optimizationRateLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "test" ? 10 : 60_000,
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (request) =>
-    request.user?.accountId ??
-    (request.ip ? ipKeyGenerator(request.ip) : "ip-unavailable"),
+  keyGenerator: rateLimitKeyGenerator,
+  message: { error: "Too many optimization requests" },
+});
+
+/**
+ * Attaching does no expensive upstream work, and the auto-reconnect loop may
+ * legitimately re-attach many times behind a flaky connection — a shared
+ * bucket with creation would 429 an account off the event stream of its own
+ * live run.
+ */
+const attachmentRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 60_000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: rateLimitKeyGenerator,
   message: { error: "Too many optimization requests" },
 });
 
@@ -112,7 +129,7 @@ export const setupPetrinautOptimizerHandler = (
   );
   app.get(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
-    optimizationRateLimiter,
+    attachmentRateLimiter,
     createPetrinautOptimizationRunEventsHandler({
       fetchImpl,
       logger,
