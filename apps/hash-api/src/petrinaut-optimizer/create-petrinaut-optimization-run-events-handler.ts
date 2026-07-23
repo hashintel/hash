@@ -9,17 +9,18 @@ import {
 } from "./shared/forward-optimization-events";
 import { createOptimizationRequestLifecycle } from "./shared/optimization-request-lifecycle";
 import {
-  capPathSegment,
-  MAX_EVENT_BYTES,
-} from "./shared/validate-optimization-request";
+  requireOwnedRun,
+  resolveOptimizationRouteContext,
+  respondUpstreamFailure,
+  RUN_NOT_FOUND,
+} from "./shared/optimization-route-context";
+import { MAX_EVENT_BYTES } from "./shared/validate-optimization-request";
 
 import type { OptimizationRunOwners } from "./shared/optimization-run-owners";
 import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
 import type { RequestHandler } from "express";
-
-const RUN_NOT_FOUND = { error: "Optimization run not found" } as const;
 
 /** Parse the replay cursor; `undefined` means the query was invalid. */
 const parseCursor = (value: unknown): number | undefined => {
@@ -62,43 +63,31 @@ export const createPetrinautOptimizationRunEventsHandler = ({
   runOwners: OptimizationRunOwners;
 }): RequestHandler => {
   return async (request, response) => {
-    const startedAt = Date.now();
-    const requestId = response.get("x-hash-request-id") ?? "";
-    const requestLogger = logger.child({ requestId });
-
-    if (!request.user) {
-      response.status(401).json({ error: "Authentication required" });
+    const context = resolveOptimizationRouteContext(request, response, {
+      logger,
+      origin,
+    });
+    if (!context) {
       return;
     }
-    if (!origin) {
-      response
-        .status(503)
-        .json({ error: "Petrinaut optimizer is not configured" });
-      return;
-    }
+    const { requestId, requestLogger, startedAt, userId } = context;
 
-    const userId = request.user.accountId;
     const runId = request.params.runId ?? "";
-    // The run id is user-controlled until the ownership check passes.
-    const loggedRunId = capPathSegment(runId);
-
-    const owner = runOwners.get(runId);
-    if (!owner || owner.accountId !== userId) {
-      // 404 rather than 403: revealing that a run id exists but belongs to
-      // someone else would leak information to id-guessing clients.
-      requestLogger.warn("Petrinaut optimization run attach rejected", {
-        optimizationRunId: loggedRunId,
-        reason: owner ? "not-owner" : "unknown-run",
-        userId,
-      });
-      response.status(404).json(RUN_NOT_FOUND);
+    const owner = requireOwnedRun(response, {
+      action: "attach",
+      requestLogger,
+      runId,
+      runOwners,
+      userId,
+    });
+    if (!owner) {
       return;
     }
 
     const cursor = parseCursor(request.query.cursor);
     if (cursor === undefined) {
       requestLogger.warn("Petrinaut optimization run attach rejected", {
-        optimizationRunId: loggedRunId,
+        optimizationRunId: runId,
         reason: "invalid-cursor",
         userId,
       });
@@ -116,7 +105,7 @@ export const createPetrinautOptimizationRunEventsHandler = ({
 
     try {
       const upstream = await attachPetrinautOptimizationRunStream({
-        endpoint: origin,
+        endpoint: context.origin,
         runId,
         cursor,
         fetchImpl,
@@ -210,11 +199,10 @@ export const createPetrinautOptimizationRunEventsHandler = ({
         if (runGoneUpstream) {
           response.status(404).json(RUN_NOT_FOUND);
         } else {
-          response.status(lifecycle.state.timeoutKind ? 504 : 502).json({
-            error: lifecycle.state.timeoutKind
-              ? "Petrinaut optimization timed out"
-              : "Petrinaut optimization failed",
-          });
+          respondUpstreamFailure(
+            response,
+            Boolean(lifecycle.state.timeoutKind),
+          );
         }
         return;
       }

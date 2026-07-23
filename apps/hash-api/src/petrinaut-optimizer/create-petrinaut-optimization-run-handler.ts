@@ -6,6 +6,10 @@ import {
 } from "@local/petrinaut-optimizer-client";
 
 import { RESPONSE_START_TIMEOUT_MS } from "./shared/optimization-request-lifecycle";
+import {
+  resolveOptimizationRouteContext,
+  respondUpstreamFailure,
+} from "./shared/optimization-route-context";
 import { validateOptimizationRequest } from "./shared/validate-optimization-request";
 
 import type { OptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
@@ -81,22 +85,15 @@ export const createPetrinautOptimizationRunHandler = ({
   runOwners: OptimizationRunOwners;
 }): RequestHandler => {
   return async (request, response) => {
-    const startedAt = Date.now();
-    const requestId = response.get("x-hash-request-id") ?? "";
-    const requestLogger = logger.child({ requestId });
-
-    if (!request.user) {
-      response.status(401).json({ error: "Authentication required" });
+    const context = resolveOptimizationRouteContext(request, response, {
+      logger,
+      origin,
+    });
+    if (!context) {
       return;
     }
-    if (!origin) {
-      response
-        .status(503)
-        .json({ error: "Petrinaut optimizer is not configured" });
-      return;
-    }
+    const { requestId, requestLogger, startedAt, userId } = context;
 
-    const userId = request.user.accountId;
     // Another in-flight create can never be stale, so it rejects
     // immediately; run ownership is re-checked below where a liveness probe
     // can prove a remembered run gone.
@@ -135,7 +132,7 @@ export const createPetrinautOptimizationRunHandler = ({
       if (ownedRun) {
         const staleness = await checkOwnedRunGone({
           fetchImpl,
-          origin,
+          origin: context.origin,
           requestId,
           runId: ownedRun.runId,
         });
@@ -178,7 +175,7 @@ export const createPetrinautOptimizationRunHandler = ({
       });
 
       const { runId } = await createPetrinautOptimizationRun({
-        endpoint: origin,
+        endpoint: context.origin,
         fetchImpl,
         input,
         ...(requestId ? { requestId } : {}),
@@ -190,7 +187,7 @@ export const createPetrinautOptimizationRunHandler = ({
         // not blocked by a run no client knows about.
         try {
           await cancelPetrinautOptimizationRun({
-            endpoint: origin,
+            endpoint: context.origin,
             fetchImpl,
             ...(requestId ? { requestId } : {}),
             runId,
@@ -260,11 +257,7 @@ export const createPetrinautOptimizationRunHandler = ({
         }
         response.status(429).json({ error: "Petrinaut optimizer is busy" });
       } else {
-        response.status(outcome.timedOut ? 504 : 502).json({
-          error: outcome.timedOut
-            ? "Petrinaut optimization timed out"
-            : "Petrinaut optimization failed",
-        });
+        respondUpstreamFailure(response, outcome.timedOut);
       }
     } finally {
       clearTimeout(createTimeout);
