@@ -203,7 +203,7 @@ mod policy_overrides {
                     PolicySource::Reviewed => SourceRecord::Reviewed,
                     PolicySource::Synthetic => SourceRecord::Synthetic,
                 },
-                distribution: *record.distribution.as_array(),
+                distribution: record.distribution.to_array(),
             })
             .collect();
         records.serialize(serializer)
@@ -297,7 +297,7 @@ mod placement {
 
     use super::super::{LandmarkSupport, PlacementOptions, ProjectorOptions};
     use crate::{
-        math::{Positive, UnitFraction},
+        math::{NonNegative, Positive, UnitFraction},
         salt::{
             ladder::{Conditions, LadderOptions, MeasurementOptions},
             projector::{
@@ -448,12 +448,12 @@ mod placement {
                     options.budget.epsilon(),
                 ],
                 coefficients: [
-                    options.coefficients.semantic(),
-                    options.coefficients.ordinary(),
-                    options.coefficients.hard(),
-                    options.coefficients.relation(),
-                    options.coefficients.anchor(),
-                    options.coefficients.landmark(),
+                    options.coefficients.semantic().get(),
+                    options.coefficients.ordinary().get(),
+                    options.coefficients.hard().get(),
+                    options.coefficients.relation().get(),
+                    options.coefficients.anchor().get(),
+                    options.coefficients.landmark().get(),
                 ],
                 miner: MinerRecord {
                     neighbours: options.miner.neighbours(),
@@ -542,11 +542,23 @@ mod placement {
                 .ok_or_else(|| E::custom("the budget fields do not form a gradient budget"))?;
 
             let [semantic, ordinary, hard, relation, anchor, landmark] = record.coefficients;
+            let semantic = Positive::new(semantic).ok_or_else(|| {
+                E::custom("the semantic coefficient is not finite and strictly positive")
+            })?;
+            let [
+                Some(ordinary),
+                Some(hard),
+                Some(relation),
+                Some(anchor),
+                Some(landmark),
+            ] = [ordinary, hard, relation, anchor, landmark].map(NonNegative::new)
+            else {
+                return Err(E::custom(
+                    "a non-semantic coefficient is not finite and non-negative",
+                ));
+            };
             let coefficients =
-                Coefficients::new(semantic, ordinary, hard, relation, anchor, landmark)
-                    .ok_or_else(|| {
-                        E::custom("the coefficients are not finite, non-negative, and semantic-led")
-                    })?;
+                Coefficients::new(semantic, ordinary, hard, relation, anchor, landmark);
 
             let miner = MinerOptions::new(
                 record.miner.neighbours,
@@ -748,8 +760,8 @@ struct LayoutOptionsDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "LodConfig")]
 struct LodConfigDef {
-    // The wire key predates the field's rename: the type now carries
-    // the log2-ness, published manifests keep the suffixed key.
+    // Published manifests carry the suffixed key; the wire name is
+    // pinned independent of the field name.
     #[serde(with = "log2", rename = "span_log2")]
     span: Log2,
     max_tile_depth: u8,
@@ -759,8 +771,8 @@ struct LodConfigDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "PostingsConfig")]
 struct PostingsConfigDef {
-    // The wire key predates the field's rename: the type now carries
-    // the log2-ness, published manifests keep the suffixed key.
+    // Published manifests carry the suffixed key; the wire name is
+    // pinned independent of the field name.
     #[serde(with = "log2", rename = "dense_threshold_log2")]
     dense_threshold: Log2,
 }

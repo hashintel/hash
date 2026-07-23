@@ -130,7 +130,7 @@ fn fixture_dataset() -> MemoryDataset {
 
             CorpusNode {
                 id: U64::<LE>::new(row as u64),
-                ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+                ontology: smallvec![OntologyRowId::from_index(row & 1)],
                 embedding: BoxedVecN::new(&VecN::new(components)),
                 confidence: None,
             }

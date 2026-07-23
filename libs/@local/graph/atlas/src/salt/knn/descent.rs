@@ -450,7 +450,7 @@ impl KnnConstruction for NnDescent {
                     .expect("the join finished; no offer holds a lock");
                 for (slot, entry) in slots.iter_mut().zip(list.iter()) {
                     *slot = Neighbour {
-                        id: NodeRowId::new(u64::from(entry.id)),
+                        id: NodeRowId::from_u32(entry.id),
                         distance: entry.distance,
                     };
                 }

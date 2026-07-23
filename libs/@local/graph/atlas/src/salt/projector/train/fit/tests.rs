@@ -27,7 +27,7 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Positive, UnitFraction, Vec2},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, UnitFraction, Vec2},
     salt::{
         knn::table::{Knn, KnnMatrix},
         policy::ClassProbabilities,
@@ -76,6 +76,18 @@ fn positive(value: f32) -> Positive {
 
 fn fraction(value: f64) -> UnitFraction {
     UnitFraction::new(value).expect("fixture rates are unit fractions")
+}
+
+// NOTE: have this be a macro, that way it's a compile time error! (maybe it makes sense to have a
+// macros.rs in the repo with these for non-negative etc. and use them would be helpful.)
+// macro_rules! coefficient {
+//     ($value:expr) => {
+//         const { NonNegative::new(value).expect("fixture coefficients are finite and
+// non-negative") }     };
+// }
+
+fn coefficient(value: f32) -> NonNegative {
+    NonNegative::new(value).expect("fixture coefficients are finite and non-negative")
 }
 
 fn device() -> NdArrayDevice {
@@ -173,7 +185,7 @@ fn corpus_with(
                 weight: 1.0,
             },
             SupportAnchor {
-                row: NodeRowId::new(HALF as u64),
+                row: NodeRowId::from_index(HALF),
                 target: Vec2::new(1.0, 0.0),
                 radius: 1.0,
                 weight: 1.0,
@@ -315,8 +327,14 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
         support: SupportOptions::new(1.0, 0.5).expect("the fixture support options are valid"),
         budget: BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12)
             .expect("the fixture budget is valid"),
-        coefficients: Coefficients::new(1.0, 0.5, 0.5, 1.0, 0.0, 1.0)
-            .expect("the fixture coefficients are valid"),
+        coefficients: Coefficients::new(
+            Positive::ONE,
+            coefficient(0.5),
+            coefficient(0.5),
+            NonNegative::ONE,
+            NonNegative::ZERO,
+            NonNegative::ONE,
+        ),
         miner: MinerOptions::new(nonzero(2), nonzero(2), positive(1.0), positive(1.0)),
         lens: RelationLens::new(
             CoincidentEnergy::new(0.0, 1.0).expect("the fixture coincident energy is valid"),
@@ -399,8 +417,14 @@ fn landmark_support_keeps_the_frame() {
     let corpus = semantic_corpus();
     let mut options = options(schedule(300, 300, 50), None);
     // A dominant landmark coefficient pins the anchored rows.
-    options.coefficients = Coefficients::new(1.0, 0.5, 0.5, 1.0, 0.0, 8.0)
-        .expect("the fixture coefficients are valid");
+    options.coefficients = Coefficients::new(
+        Positive::ONE,
+        coefficient(0.5),
+        coefficient(0.5),
+        NonNegative::ONE,
+        NonNegative::ZERO,
+        coefficient(8.0),
+    );
     let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(11), &device())
         .expect("the semantic fixture trains");
 
@@ -812,8 +836,14 @@ fn forked_ladders_share_the_frozen_radius() {
             artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
                 .expect("the resume checkpoint opens");
         let mut cell = opening;
-        cell.coefficients = Coefficients::new(1.0, 0.5, 0.5, relation, 0.0, 1.0)
-            .expect("the fork coefficients are valid");
+        cell.coefficients = Coefficients::new(
+            Positive::ONE,
+            coefficient(0.5),
+            coefficient(0.5),
+            coefficient(relation),
+            NonNegative::ZERO,
+            NonNegative::ONE,
+        );
         fit_from_boundary(state, &corpus.inputs(), &cell, &mut stream, &device())
             .expect("the forked ladder trains")
     };

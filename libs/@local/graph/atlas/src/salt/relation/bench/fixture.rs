@@ -129,7 +129,7 @@ impl Corpus {
         let instance = |edge: u64, relation: usize, (source, target): (NodeRowId, NodeRowId)| {
             RelationInstance {
                 edge: EdgeRowId::new(edge),
-                relation: OntologyRowId::new(relation as u64),
+                relation: OntologyRowId::from_index(relation),
                 source,
                 target,
                 confidence: RelationConfidence::default(),
@@ -183,7 +183,7 @@ impl Corpus {
                     proximal: (step / 16.0).mul_add(-0.9375, 1.0),
                 };
                 RelationPolicy {
-                    relation: OntologyRowId::new(relation as u64),
+                    relation: OntologyRowId::from_index(relation),
                     attraction: distribution,
                     selected: distribution,
                     applicability: (step / 16.0).mul_add(-0.75, 1.0),

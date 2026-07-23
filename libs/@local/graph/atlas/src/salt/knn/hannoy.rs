@@ -215,7 +215,7 @@ impl HannoyIndex {
         });
 
         results.into_iter().map(|(id, distance)| Neighbour {
-            id: NodeRowId::new(u64::from(id)),
+            id: NodeRowId::from_u32(id),
             // hannoy's cosine distance is (1 - cos) / 2 in [0, 1];
             // doubling restores the crate's [0, 2] scale exactly,
             // because scaling by a power of two is lossless.

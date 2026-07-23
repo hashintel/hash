@@ -18,29 +18,26 @@ use crate::{
     salt::{embedding::CardEmbeddingView, policy::GeometryClass},
 };
 
-/// Widens a count to the reals.
+/// Returns the card's geometry-vote total as the row weight.
 #[expect(
     clippy::cast_precision_loss,
     reason = "vote counts are far below f64's 2^53 exact-integer range"
 )]
-const fn real(count: u64) -> f64 {
-    // NOTE: no to this single function bs, either it's a method on a type, or you own the cast, you
-    // don't hide behind this bs
-    count as f64
-}
-
-/// Returns the card's geometry-vote total as the row weight.
 pub(super) fn weight(counts: &VoteCounts) -> f64 {
-    real(counts.weight())
+    counts.weight() as f64
 }
 
 /// Returns the Dirichlet posterior-mean target over the geometry classes.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "vote counts and the class count are far below f64's 2^53 exact-integer range"
+)]
 pub(super) fn dirichlet_target(counts: &VoteCounts) -> [f64; GeometryClass::COUNT] {
-    let total = real(GeometryClass::COUNT as u64).mul_add(DIRICHLET_ALPHA, weight(counts));
+    let total = (GeometryClass::COUNT as f64).mul_add(DIRICHLET_ALPHA, weight(counts));
 
     counts
         .geometry
-        .map(|count| (real(count) + DIRICHLET_ALPHA) / total)
+        .map(|count| (count as f64 + DIRICHLET_ALPHA) / total)
 }
 
 /// One trained row's interned axis values.
@@ -64,13 +61,14 @@ struct Ranks {
     cut: f64,
 }
 
-/// Every axis at full strength.
-// NOTE: why isn't this an associated constant? e.g. `Ranks::ALL`?
-const RANKS_ALL: Ranks = Ranks {
-    family: true,
-    base: true,
-    cut: f64::INFINITY,
-};
+impl Ranks {
+    /// Every axis at full strength.
+    const ALL: Self = Self {
+        family: true,
+        base: true,
+        cut: f64::INFINITY,
+    };
+}
 
 /// Unites a row subset through the admitted axis ranks and returns the resulting parts.
 ///
@@ -142,6 +140,10 @@ fn partition(
 ///
 /// The kept cut is the largest distance under which every resulting part fits the budget, or the
 /// empty cut when none does.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "group sizes are far below f64's 2^53 exact-integer range"
+)]
 fn farthest_first_cut(
     component: &[u32],
     axes: &[RowAxes],
@@ -173,7 +175,7 @@ fn farthest_first_cut(
             },
         )
         .iter()
-        .all(|part| real(part.len() as u64) <= budget)
+        .all(|part| (part.len() as f64) <= budget)
     };
 
     // Component size is monotone in the cut, so the fitting prefix of
@@ -211,6 +213,10 @@ fn farthest_first_cut(
 /// The relaxation order is family, then base URL, then near-duplicate edges farthest-first;
 /// identity edges never relax. A part the deepest relaxation cannot fit is accepted over budget and
 /// counted in the evidence.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "group sizes are far below f64's 2^53 exact-integer range"
+)]
 fn subdivide(
     component: &[u32],
     level: Relaxation,
@@ -230,7 +236,7 @@ fn subdivide(
                 pairs,
                 Ranks {
                     family: false,
-                    ..RANKS_ALL
+                    ..Ranks::ALL
                 },
             ),
             Relaxation::Base,
@@ -243,7 +249,7 @@ fn subdivide(
                 Ranks {
                     family: false,
                     base: false,
-                    ..RANKS_ALL
+                    ..Ranks::ALL
                 },
             ),
             Relaxation::NearDuplicate,
@@ -252,7 +258,7 @@ fn subdivide(
             let parts = farthest_first_cut(component, axes, pairs, budget);
             evidence.oversized_accepted += parts
                 .iter()
-                .filter(|part| real(part.len() as u64) > budget)
+                .filter(|part| (part.len() as f64) > budget)
                 .count();
 
             return parts;
@@ -261,7 +267,7 @@ fn subdivide(
 
     let mut groups = Vec::with_capacity(parts.len());
     for part in parts {
-        if real(part.len() as u64) <= budget {
+        if (part.len() as f64) <= budget {
             groups.push(part);
         } else {
             groups.extend(subdivide(&part, deeper, axes, pairs, budget, evidence));
@@ -275,6 +281,10 @@ fn subdivide(
 ///
 /// The returned digests align with `trained`; the evidence gains the group count and the
 /// near-duplicate pair count.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "row and group counts are far below f64's 2^53 exact-integer range"
+)]
 pub(super) fn validation_groups(
     trained: &[(usize, &Card, VoteCounts)],
     view: CardEmbeddingView<'_>,
@@ -315,12 +325,12 @@ pub(super) fn validation_groups(
     let mut pairs = Vec::new();
     for left in 0..rows {
         let embedding = view
-            .embedding(OntologyRowId::new(left as u64))
+            .embedding(OntologyRowId::from_index(left))
             .expect("the table holds one row per trained card");
 
         for right in (left + 1)..rows {
             let other = view
-                .embedding(OntologyRowId::new(right as u64))
+                .embedding(OntologyRowId::from_index(right))
                 .expect("the table holds one row per trained card");
 
             let distance = f64::from(embedding.cosine_distance(other));
@@ -335,14 +345,14 @@ pub(super) fn validation_groups(
 
     // A single row cannot leak against itself: the budget never
     // falls under one row.
-    let budget = (config.maximum_group_fraction * real(rows as u64)).max(1.0);
+    let budget = (config.maximum_group_fraction * (rows as f64)).max(1.0);
     let all: Vec<u32> = (0..rows)
         .map(|row| u32::try_from(row).expect("the row domain is bound to u32"))
         .collect();
 
     let mut groups = Vec::new();
-    for component in partition(&all, &axes_by_row, &pairs, RANKS_ALL) {
-        if real(component.len() as u64) <= budget {
+    for component in partition(&all, &axes_by_row, &pairs, Ranks::ALL) {
+        if (component.len() as f64) <= budget {
             groups.push(component);
             continue;
         }

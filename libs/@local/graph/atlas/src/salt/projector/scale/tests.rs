@@ -67,7 +67,7 @@ fn selects_neighbours_by_stored_distance_not_storage_order() {
 
     let scales = LocalScales::compute(&coordinates, &table.view()).expect("the fixture is finite");
 
-    assert_eq!(scales.as_slice()[0], 9.0);
+    assert_eq!(scales.as_slice()[0].get(), 9.0);
     assert_eq!(scales.len(), rows);
 }
 
@@ -84,7 +84,7 @@ fn even_neighbour_counts_use_the_midpoint() {
     let scales = LocalScales::compute(&coordinates, &table.view()).expect("the fixture is finite");
 
     // Row 0's 2D distances are {3, 4}: median 3.5.
-    assert_eq!(scales.as_slice()[0], 3.5);
+    assert_eq!(scales.as_slice()[0].get(), 3.5);
 }
 
 /// Detection completes through the diverged row itself.

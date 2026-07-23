@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, DVec2, Vec2},
+    math::{AffinityCurve, DVec2, NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::scale::LocalScales,
@@ -74,7 +74,12 @@ fn pair(one: u32, other: u32) -> BatchPair {
 }
 
 fn scales(values: &[f32]) -> LocalScales {
-    LocalScales::new(values.into()).expect("test scales are finite and non-negative")
+    LocalScales::new(
+        values
+            .iter()
+            .map(|&value| NonNegative::new(value).expect("test scales are finite and non-negative"))
+            .collect(),
+    )
 }
 
 /// Central finite difference of `value` in one scalar argument.

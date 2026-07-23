@@ -13,7 +13,7 @@
 
 use core::{fmt, mem};
 
-use crate::dataset::OntologyRowId;
+use crate::{dataset::OntologyRowId, math::UnitFraction};
 
 pub(crate) mod annotation;
 pub(crate) mod artifact;
@@ -100,12 +100,12 @@ impl fmt::Display for GeometryClass {
 
 /// A distribution over the geometry classes.
 ///
-/// Components are stored in class order, are finite and nonnegative, and sum to one within
-/// floating-point rounding. Construction sites are the softmax (which satisfies the invariant by
-/// construction) and validated artifact reads.
-// The invariant excludes byte-level constructors: no zerocopy derives.
+/// Components are [`UnitFraction`]s stored in class order and sum to one within floating-point
+/// rounding. Construction sites are the softmax (which satisfies the invariant by construction)
+/// and validated artifact reads.
+// The sum invariant excludes byte-level constructors: no zerocopy derives.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct Posterior([f64; GeometryClass::COUNT]);
+pub(crate) struct Posterior([UnitFraction; GeometryClass::COUNT]);
 
 impl Posterior {
     /// Sum tolerance accepted by [`new`](Self::new), in units in the last place of 1.0.
@@ -115,18 +115,15 @@ impl Posterior {
 
     /// Validates a distribution in class order.
     ///
-    /// Returns [`None`] when a component is not finite, is negative, or the components do not sum
-    /// to one within the documented tolerance. Negative zero passes: it compares equal to zero, a
-    /// legal component, and rejecting it would make admission depend on the sign bit of a value
-    /// arithmetic treats as zero.
+    /// Returns [`None`] when a component lies outside the unit interval or the components do not
+    /// sum to one within the documented tolerance. Negative zero passes: it compares equal to
+    /// zero, a legal component, and rejecting it would make admission depend on the sign bit of a
+    /// value arithmetic treats as zero.
     #[must_use]
     pub(crate) fn new(components: [f64; GeometryClass::COUNT]) -> Option<Self> {
-        // NOTE: shouldn't we be using one of the scalar newtypes here?
-        if components
-            .iter()
-            .any(|value| !value.is_finite() || *value < 0.0)
-        {
-            return None;
+        let mut validated = [UnitFraction::ZERO; GeometryClass::COUNT];
+        for (slot, value) in validated.iter_mut().zip(components) {
+            *slot = UnitFraction::new(value)?;
         }
 
         let sum = components.iter().sum::<f64>();
@@ -134,28 +131,28 @@ impl Posterior {
             return None;
         }
 
-        Some(Self(components))
+        Some(Self(validated))
     }
 
     /// Adopts softmax output, whose invariant holds by construction.
     #[inline]
     #[must_use]
     pub(crate) const fn from_softmax_unchecked(components: [f64; GeometryClass::COUNT]) -> Self {
-        Self(components)
+        Self(components.map(UnitFraction::new_unchecked))
     }
 
     /// Returns the probability of `class`.
     #[inline]
     #[must_use]
     pub(crate) const fn probability(self, class: GeometryClass) -> f64 {
-        self.0[class.index()]
+        self.0[class.index()].get()
     }
 
     /// Returns the distribution as an array in class order.
     #[inline]
     #[must_use]
-    pub(crate) const fn as_array(&self) -> &[f64; GeometryClass::COUNT] {
-        &self.0
+    pub(crate) const fn to_array(self) -> [f64; GeometryClass::COUNT] {
+        self.0.map(UnitFraction::get)
     }
 }
 

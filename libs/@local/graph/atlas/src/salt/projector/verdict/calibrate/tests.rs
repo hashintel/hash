@@ -9,7 +9,7 @@ use core::num::NonZero;
 use super::{CalibrationOptions, ProximalCalibration, calibrate};
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::Vec2,
+    math::{NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -77,8 +77,12 @@ fn proximal_verdict(relation: u64) -> ResolvedVerdict {
 /// Scales of 0.75 with the guard 0.25 make every normalization exactly one.
 ///
 /// So measured `z` equals raw 2D distance.
+fn scale(value: f32) -> NonNegative {
+    NonNegative::new(value).expect("test scales are finite and non-negative")
+}
+
 fn unit_scales(rows: usize) -> LocalScales {
-    LocalScales::new(vec![0.75; rows].into_boxed_slice()).expect("0.75 is a valid scale")
+    LocalScales::new(vec![scale(0.75); rows].into_boxed_slice())
 }
 
 fn options(cap: usize) -> CalibrationOptions {
@@ -94,7 +98,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     // d = 5 (a 3-4-5 triangle); normalization = sqrt((0.75 + 0.25) *
     // (24.75 + 0.25)) = sqrt(25) = 5, so z = 1 exactly.
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
-    let scales = LocalScales::new(Box::new([0.75, 24.75])).expect("the fixture scales are valid");
+    let scales = LocalScales::new(Box::new([scale(0.75), scale(24.75)]));
 
     let outcome = calibrate(
         &[proximal_verdict(5)],

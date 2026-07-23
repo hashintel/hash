@@ -170,7 +170,14 @@ fn support_options() -> SupportOptions {
 /// `lambda_S = 0.5` pairs with a semantic scale of two for a unit semantic factor, and `lambda_N =
 /// 2` doubles the ordinary term so the two families are distinguishable in the combined field.
 fn coefficients() -> Coefficients {
-    Coefficients::new(0.5, 2.0, 1.0, 1.0, 1.0, 1.0).expect("the fixture coefficients are valid")
+    Coefficients::new(
+        Positive::new(0.5).expect("the fixture semantic coefficient is positive"),
+        coefficient(2.0),
+        NonNegative::ONE,
+        NonNegative::ONE,
+        NonNegative::ONE,
+        NonNegative::ONE,
+    )
 }
 
 fn options(relation: Option<RelationEnergy>, budget: BudgetOptions) -> ObjectiveOptions {
@@ -190,6 +197,11 @@ fn loose_budget() -> BudgetOptions {
 /// Wraps a test rung.
 fn rung(value: f32) -> NonNegative {
     NonNegative::new(value).expect("test rungs are finite and non-negative")
+}
+
+/// Wraps a test coefficient.
+fn coefficient(value: f32) -> NonNegative {
+    NonNegative::new(value).expect("test coefficients are finite and non-negative")
 }
 
 /// Empty populations to splice fixture families into.
@@ -243,18 +255,6 @@ fn leaf_gradient(
 fn unused_deciles() -> DegreeDeciles {
     let indexes = relation_indexes(2, &[proximal_policy(3)], vec![instance(0, 3, 0, 1)]);
     DegreeDeciles::new(&indexes.attraction, 2)
-}
-
-#[test]
-fn coefficients_reject_invalid_values() {
-    assert!(Coefficients::new(1.0, 0.0, 0.0, 0.0, 0.0, 0.0).is_some());
-    assert!(
-        Coefficients::new(0.0, 1.0, 1.0, 1.0, 1.0, 1.0).is_none(),
-        "a zero semantic coefficient leaves nothing to budget against"
-    );
-    assert!(Coefficients::new(1.0, -0.5, 0.0, 0.0, 0.0, 0.0).is_none());
-    assert!(Coefficients::new(1.0, f32::NAN, 0.0, 0.0, 0.0, 0.0).is_none());
-    assert!(Coefficients::new(f32::INFINITY, 0.0, 0.0, 0.0, 0.0, 0.0).is_none());
 }
 
 #[test]

@@ -380,7 +380,6 @@ where
     let priorities = priorities(candidates, options.parallel_chunk, &mut rng);
 
     let mut selected = BitSet::new(candidates.len());
-    let mut selected_count = 0_usize; // NOTE: ? why not just `selected.count()`
     let mut retained_count = 0_usize;
 
     let mut ordered_minimums = minimums.to_vec();
@@ -396,9 +395,10 @@ where
             .count
             .get()
             .saturating_sub(subgroup_counts[position]);
-        if selected_count + required > capacity {
+        let requested = selected.count() + required;
+        if requested > capacity {
             return Err(SelectionError::MinimumExceedsCapacity {
-                requested: selected_count + required,
+                requested,
                 capacity,
             });
         }
@@ -426,13 +426,12 @@ where
             }
         }
         retained_count += mark(&mut selected, candidates, &chosen);
-        selected_count += required;
     }
 
     let retained_target = retained_target(capacity, options.retained_fraction);
     let retained_needed = retained_target
         .saturating_sub(retained_count)
-        .min(capacity - selected_count);
+        .min(capacity - selected.count());
     let retained = best_indices(
         candidates,
         &priorities,
@@ -440,14 +439,13 @@ where
         retained_needed,
         |candidate| candidate.prior_landmark,
     );
-    selected_count += retained.len();
     retained_count += mark(&mut selected, candidates, &retained);
 
     let fill = best_indices(
         candidates,
         &priorities,
         &selected,
-        capacity - selected_count,
+        capacity - selected.count(),
         |_| true,
     );
     retained_count += mark(&mut selected, candidates, &fill);

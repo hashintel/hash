@@ -182,8 +182,8 @@ struct Document {
 /// empty identity fields - so consumers read verdicts without re-checking.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ReviewedVerdicts {
-    // NOTE: same thing here: why is this JSON and not parquet so that we could borrow from it
-    // instead?
+    // One parse per fit: construction validates the wire document into
+    // owned, normalized verdicts, and nothing downstream re-reads the bytes.
     type_verdicts: Vec<TypeVerdict>,
     pair_verdicts: Vec<PairVerdict>,
     sources: BTreeMap<Box<str>, Sha256Digest>,

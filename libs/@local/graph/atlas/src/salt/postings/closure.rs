@@ -54,7 +54,6 @@ impl ClosureMap {
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(postings: &PostingsArchive) -> Result<Self, ParentCycle> {
         let types = usize::try_from(postings.types()).expect("resident type domains fit usize");
-        let expect = "the loop iterates the postings' own domain"; // NOTE: why
         let mut bits = BitMatrix::new(types, types);
 
         // Every type descends from itself: a request naming `t`
@@ -68,8 +67,8 @@ impl ClosureMap {
         let mut pending = vec![0_u64; types];
         for type_row in 0..types {
             let parents = postings
-                .parents(OntologyRowId::new(type_row as u64))
-                .expect(expect);
+                .parents(OntologyRowId::from_index(type_row))
+                .expect("the loop iterates the postings' own domain");
             for &parent in parents {
                 pending[parent as usize] += 1;
             }
@@ -81,8 +80,8 @@ impl ClosureMap {
             settled += 1;
 
             let parents = postings
-                .parents(OntologyRowId::new(type_row as u64))
-                .expect(expect);
+                .parents(OntologyRowId::from_index(type_row))
+                .expect("the loop iterates the postings' own domain");
             for &parent in parents {
                 let parent = parent as usize;
                 bits.or_row_into(type_row, parent);

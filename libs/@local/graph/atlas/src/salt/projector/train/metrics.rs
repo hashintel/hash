@@ -27,25 +27,11 @@ use crate::{
     },
 };
 
-// NOTE: this was before
-// /// Decile bucket count.
-// pub(crate) const DECILES: usize = 10;
-
 /// A degree decile, `D1` (lowest participating degrees) through `D10` (highest).
 ///
 /// `Option<Decile>` is one row's participation state: rows without attraction evidence have no
 /// decile at all, so no sentinel value exists to misread as a bucket.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-    zerocopy::TryFromBytes,
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 enum Decile {
     D1 = 1,
@@ -61,30 +47,22 @@ enum Decile {
 }
 
 impl Decile {
-    // NOTE: add safety comment
-    const ALL: [Self; Self::COUNT] = core::array::from_fn(const |index| unsafe {
-        core::mem::transmute::<u8, Self>(index as u8 + 1)
+    /// The deciles ascending: the bucket order of every per-decile array.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the index ranges over the ten variants"
+    )]
+    const ALL: [Self; Self::COUNT] = core::array::from_fn(const |index| {
+        // SAFETY: `index` ranges over `0..COUNT`, so `index + 1` ranges over `1..=COUNT` -
+        // exactly the enum's `repr(u8)` discriminants `D1 = 1` through `D10 = COUNT`, which
+        // `variant_count` ties to the variant list itself.
+        unsafe { core::mem::transmute::<u8, Self>(index as u8 + 1) }
     });
-    // NOTE: This was before...
-    // /// The deciles ascending: the bucket order of every per-decile array.
-    // const ALL: [Self; DECILES] = [
-    //     Self::D1,
-    //     Self::D2,
-    //     Self::D3,
-    //     Self::D4,
-    //     Self::D5,
-    //     Self::D6,
-    //     Self::D7,
-    //     Self::D8,
-    //     Self::D9,
-    //     Self::D10,
-    // ];
     const COUNT: usize = mem::variant_count::<Self>();
 
     /// Returns the 0-based bucket position, [`D1`](Self::D1) at zero.
     const fn bucket(self) -> usize {
-        // NOTE: fix
-        self as usize
+        self as usize - 1
     }
 }
 

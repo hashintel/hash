@@ -5,7 +5,7 @@
 //! corpus wire shapes to the template's inputs.
 
 use super::{
-    super::{Card, CardIdentity, Content, Direction, Phrase},
+    super::{Card, CardIdentity, Content, Phrase},
     AssemblyError, CARD_LANGUAGE,
 };
 use crate::dataset::card;
@@ -130,11 +130,7 @@ pub(super) fn render_card<E>(
             transitive: content.constraints.transitive,
             singleton: content.constraints.single_value,
             distinct: content.constraints.distinct_values,
-            direction: match content.constraints.direction {
-                // NOTE: shouldn't this be a `From` impl?
-                Direction::Symmetric => card::Direction::Symmetric,
-                Direction::SourceToTarget => card::Direction::SourceToTarget,
-            },
+            direction: content.constraints.direction.into(),
         },
         examples: examples(content, &template),
         epilogue: card::Epilogue {

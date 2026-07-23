@@ -577,7 +577,7 @@ fn fit_recovers_the_generating_distributions() {
             .classifier
             .predict(&corpus.embeddings()[row])
             .expect("training embeddings predict");
-        for (probability, target) in prediction.raw.as_array().iter().zip(expected.target) {
+        for (probability, target) in prediction.raw.to_array().into_iter().zip(expected.target) {
             assert!(
                 (probability - target).abs() <= 0.05,
                 "row {row}: posterior {probability} strays from target {target}",

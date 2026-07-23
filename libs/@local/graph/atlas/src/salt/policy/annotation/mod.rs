@@ -41,7 +41,7 @@ use core::{error::Error, fmt};
 
 use type_system::ontology::id::VersionedUrl;
 
-use crate::{integrity::Sha256Digest, salt::policy::GeometryClass};
+use crate::{dataset::card, integrity::Sha256Digest, salt::policy::GeometryClass};
 
 pub(crate) mod assembly;
 
@@ -275,6 +275,15 @@ pub(crate) enum Direction {
     /// The relation reads from source to target.
     #[serde(rename = "source -> target")]
     SourceToTarget,
+}
+
+impl From<Direction> for card::Direction {
+    fn from(direction: Direction) -> Self {
+        match direction {
+            Direction::Symmetric => Self::Symmetric,
+            Direction::SourceToTarget => Self::SourceToTarget,
+        }
+    }
 }
 
 /// The relation-property assertions a card renders.

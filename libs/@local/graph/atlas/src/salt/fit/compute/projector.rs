@@ -42,7 +42,7 @@ use crate::{
         },
     },
     integrity::{Sha256, Sha256Digest, Writer},
-    math::{AlignedVecN, Vec2},
+    math::{AlignedVecN, NonNegative, Positive, Vec2},
     salt::{
         knn::artifact::KnnArchive,
         ladder::{Field, measure_ladder, select_canonical},
@@ -596,27 +596,28 @@ fn normalized_coefficients(
         return bases;
     }
 
-    let scaled = |base: f32, mass: f64| -> f32 {
+    let scaled = |base: NonNegative, mass: f64| -> NonNegative {
         if mass <= 0.0 {
-            return 0.0;
+            return NonNegative::ZERO;
         }
         #[expect(
             clippy::cast_possible_truncation,
             reason = "the normalized coefficient narrows back to the trainer's f32 contract"
         )]
-        let value = (f64::from(base) / mass) as f32;
-        value
+        let value = (f64::from(base.get()) / mass) as f32;
+        NonNegative::new(value)
+            .expect("a finite non-negative base over a positive mass stays in domain")
     };
 
     Coefficients::new(
-        scaled(bases.semantic(), weight),
+        Positive::new(scaled(bases.semantic().into(), weight).get())
+            .expect("a positive base over a positive finite weight stays positive"),
         scaled(bases.ordinary(), weight),
         scaled(bases.hard(), rows as f64),
         bases.relation(),
         scaled(bases.anchor(), 0.0),
         scaled(bases.landmark(), landmark_pool as f64),
     )
-    .expect("scaling finite non-negative bases by positive masses preserves the domain")
 }
 
 /// Returns one rung's scratch frame path.

@@ -29,6 +29,9 @@ use crate::{
 const WIRE_FRAME: Bounds2 = Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
     .expect("the wire frame corners are finite and ordered");
 
+/// The default [`LodConfig::span`].
+const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
+
 /// Configuration of the level-of-detail schedule.
 ///
 /// Both values are unvalidated starting points, revised against the [`LodMeasurements`] of real
@@ -39,7 +42,7 @@ pub(crate) struct LodConfig {
     ///
     /// A tile at zoom `z` delivers buckets at or below `z + span`. Defaults to 6 (a 64x64
     /// sample grid, at most 4096 points per incremental tile).
-    pub span: Log2 = const { Log2::new(6).expect("6 lies below the shift width") }, // NOTE: please move out into a constant that you bind here, reason: r-a otherwise hates me >.><
+    pub span: Log2 = DEFAULT_SPAN,
     /// The deepest tile zoom the schedule serves.
     ///
     /// Defaults to 18, which with the default span puts the deepest cascade grid at depth 24 - the
@@ -108,6 +111,31 @@ impl core::fmt::Display for LodError {
 }
 
 impl core::error::Error for LodError {}
+
+/// The measurements of one lod build.
+///
+/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
+/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct LodMeasurements {
+    /// The world frame the wire coordinates were normalized from.
+    pub world: Bounds2,
+    /// Points per bucket; the tail calibrates `max_tile_depth`.
+    pub bucket_histogram: [u64; Fenceposts::SEGMENTS],
+    /// Points in the deepest bucket.
+    ///
+    /// The co-located residue plus the deepest grid's regular claims.
+    pub catch_all_population: u64,
+    /// Catch-all points beyond one per distinct deepest-grid cell.
+    ///
+    /// The population no cut depth can thin.
+    pub co_location_excess: u64,
+    /// The largest own-bucket delta any tile of the schedule delivers.
+    ///
+    /// Verified against the geometric cap `4^span`; co-location can exceed the cap only in
+    /// the catch-all bucket.
+    pub max_tile_delta: u64,
+}
 
 /// The level-of-detail structure of one generation, every column in base delivery order.
 ///
@@ -331,32 +359,6 @@ impl WriteInto for MortonColumn<'_> {
 
         Ok(writer.accumulator.finalize())
     }
-}
-
-// NOTE: def always before use where feasible
-/// The measurements of one lod build.
-///
-/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
-/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct LodMeasurements {
-    /// The world frame the wire coordinates were normalized from.
-    pub world: Bounds2,
-    /// Points per bucket; the tail calibrates `max_tile_depth`.
-    pub bucket_histogram: [u64; Fenceposts::SEGMENTS],
-    /// Points in the deepest bucket.
-    ///
-    /// The co-located residue plus the deepest grid's regular claims.
-    pub catch_all_population: u64,
-    /// Catch-all points beyond one per distinct deepest-grid cell.
-    ///
-    /// The population no cut depth can thin.
-    pub co_location_excess: u64,
-    /// The largest own-bucket delta any tile of the schedule delivers.
-    ///
-    /// Verified against the geometric cap `4^span`; co-location can exceed the cap only in
-    /// the catch-all bucket.
-    pub max_tile_delta: u64,
 }
 
 /// Counts the distinct depth-`depth` prefixes of a segment-sorted code slice.

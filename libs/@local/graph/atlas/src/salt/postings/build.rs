@@ -14,6 +14,9 @@ use crate::{
     math::Log2,
 };
 
+/// The default [`PostingsConfig::dense_threshold`].
+const DEFAULT_DENSE_THRESHOLD: Log2 = Log2::new(5).expect("5 lies below the shift width");
+
 /// Configuration of the postings representation split.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsConfig {
@@ -22,7 +25,7 @@ pub(crate) struct PostingsConfig {
     /// The default 5 (one in 32) is the size-equality point - one list entry costs 32 bitmap bits -
     /// so a dense run is never larger than the list it replaces; the word-parallel OR already wins
     /// work at half that density. At exact equality the list wins: it reads without bit decoding.
-    pub dense_threshold: Log2 = const { Log2::new(5).expect("5 lies below the shift width") }, // NOTE: please move into a constant that is bound, otherwise r-a gets fuzzy
+    pub dense_threshold: Log2 = DEFAULT_DENSE_THRESHOLD,
 }
 
 const impl Default for PostingsConfig {

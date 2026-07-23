@@ -51,6 +51,14 @@ impl Positive {
     }
 }
 
+impl From<Positive> for NonNegative {
+    /// Widens into the enclosing domain: every positive value is non-negative.
+    #[inline]
+    fn from(value: Positive) -> Self {
+        Self(value.get())
+    }
+}
+
 /// A finite, non-negative `f32`, valid by construction.
 ///
 /// The shared definition of the finite-and-non-negative check: zero is admitted, so the type
@@ -168,6 +176,8 @@ impl UnitFraction {
     /// let fraction = UnitFraction::new_unchecked(f64::from(preserved) / f64::from(total));
     /// assert_eq!(fraction.get(), 0.75);
     /// ```
+    // Not `unsafe`: no unsafe code trusts the range, so a broken promise is a
+    // wrong fraction, not UB.
     #[inline]
     #[must_use]
     pub const fn new_unchecked(value: f64) -> Self {

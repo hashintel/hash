@@ -510,7 +510,6 @@ impl<A: Allocator> Batch<A> {
                 .map(|row| table.as_slice()[row.usize()])
                 .collect();
             LocalScales::new(gathered)
-                .expect("a validated scale table stays valid under row selection")
         });
 
         Self {

@@ -292,6 +292,13 @@ impl NodeRowId {
         Self::new(u64::try_from(index).expect("row indexes fit the row-id encoding"))
     }
 
+    /// Creates an id from a compact 32-bit row reference; the widening is lossless.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_u32(row: u32) -> Self {
+        Self::new(u64::from(row))
+    }
+
     /// Returns the referenced stream position.
     #[inline]
     #[must_use]
@@ -325,6 +332,13 @@ impl From<NodeRowId> for u64 {
     }
 }
 
+impl From<NodeRowId> for usize {
+    #[inline]
+    fn from(id: NodeRowId) -> Self {
+        id.usize()
+    }
+}
+
 /// A reference to an edge by its position in [`Dataset::edges`].
 ///
 /// Rows are dense and zero-based: the value is the position of the referenced edge in the stream.
@@ -351,6 +365,25 @@ impl EdgeRowId {
     #[must_use]
     pub(crate) const fn new(row: u64) -> Self {
         Self(U64::new(row))
+    }
+
+    /// Creates an id from a zero-based position in a row-aligned column.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the index exceeds the row-id encoding, which no supported target's address
+    /// space reaches.
+    #[inline]
+    #[must_use]
+    pub(crate) fn from_index(index: usize) -> Self {
+        Self::new(u64::try_from(index).expect("row indexes fit the row-id encoding"))
+    }
+
+    /// Creates an id from a compact 32-bit row reference; the widening is lossless.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_u32(row: u32) -> Self {
+        Self::new(u64::from(row))
     }
 
     /// Returns the referenced stream position.
@@ -392,6 +425,25 @@ impl OntologyRowId {
     #[must_use]
     pub(crate) const fn new(row: u64) -> Self {
         Self(U64::new(row))
+    }
+
+    /// Creates an id from a zero-based position in a row-aligned column.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the index exceeds the row-id encoding, which no supported target's address
+    /// space reaches.
+    #[inline]
+    #[must_use]
+    pub(crate) fn from_index(index: usize) -> Self {
+        Self::new(u64::try_from(index).expect("row indexes fit the row-id encoding"))
+    }
+
+    /// Creates an id from a compact 32-bit row reference; the widening is lossless.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_u32(row: u32) -> Self {
+        Self::new(u64::from(row))
     }
 
     /// Returns the referenced stream position.

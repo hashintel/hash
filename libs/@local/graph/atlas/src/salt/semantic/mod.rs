@@ -376,7 +376,7 @@ impl<'view> SemanticGraphView<'view> {
             .iter()
             .zip(&weights[range])
             .map(|(&column, &weight)| SemanticEdge {
-                id: NodeRowId::new(u64::from(column)),
+                id: NodeRowId::from_u32(column),
                 weight,
             })
     }

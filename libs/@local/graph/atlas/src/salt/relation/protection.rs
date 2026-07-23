@@ -488,7 +488,7 @@ impl<'view> ProtectionView<'view> {
             .iter()
             .zip(&evidence[range])
             .map(|(&column, &evidence)| ProtectedPartner {
-                partner: NodeRowId::new(u64::from(column)),
+                partner: NodeRowId::from_u32(column),
                 evidence,
             })
     }

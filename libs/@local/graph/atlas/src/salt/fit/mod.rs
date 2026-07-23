@@ -54,7 +54,7 @@ use crate::{
         generation::{Generation, GenerationRoot, PublishedGeneration},
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Positive, UnitFraction},
+    math::{AffinityCurve, NonNegative, Positive, UnitFraction},
     salt::{
         embedding::CardEmbedder,
         importance::RankingConfig,
@@ -262,8 +262,14 @@ impl ProjectorOptions {
                 .expect("the ratified support constants are valid"),
             budget: BudgetOptions::new(0.10, 0.10, 2.0e-4, 1.0e-12)
                 .expect("the ratified budget is valid"),
-            coefficients: Coefficients::new(1.0, 5.0, 1.0, 1.0, 0.0, 1.0)
-                .expect("the ratified coefficient bases are valid"),
+            coefficients: Coefficients::new(
+                Positive::ONE,
+                const { NonNegative::new(5.0).expect("the ratified repulsion is non-negative") },
+                NonNegative::ONE,
+                NonNegative::ONE,
+                NonNegative::ZERO,
+                NonNegative::ONE,
+            ),
             miner: MinerOptions::new(
                 NonZero::new(8).expect("the ratified quota is nonzero"),
                 NonZero::new(3).expect("the ratified margin is nonzero"),

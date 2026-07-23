@@ -117,10 +117,6 @@ impl Refresh<'_> {
         with_scales: bool,
         device: &B::Device,
     ) -> Result<RefreshOutcome, RefreshError> {
-        // NOTE: ???
-        // let [low_eta, middle_eta, high_eta] = [RUNGS[0].get(), RUNGS[1].get(), RUNGS[2].get()];
-        // let [low_eta, middle_eta, high_eta] = zerocopy::transmute!(RUNGS); // NOTE: isn't this
-        // clearer? or even:
         let [low_eta, middle_eta, high_eta] = RUNGS.map(NonNegative::get);
 
         let low = forward(model, self.columns, low_eta, self.forward_rows, device)?;

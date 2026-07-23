@@ -127,13 +127,9 @@ pub(crate) async fn run<D: Dataset>(
     .map_err(QualityRunError::Probe)?;
 
     let anchor_types = {
-        let requests: Vec<D::NodeId> = readings
-            .anchors
-            .iter()
-            .map(|&row| node_ids[row.usize()])
-            .collect();
+        let anchor_ids = readings.anchors.iter().map(|&row| node_ids[row.usize()]);
 
-        match_deliveries(&requests, dataset.node_types(requests.iter().copied()))
+        match_deliveries(node_ids, &readings.anchors, dataset.node_types(anchor_ids))
             .instrument(tracing::info_span!("types"))
             .await
             .map_err(QualityRunError::Types)?

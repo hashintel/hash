@@ -110,7 +110,7 @@ fn dataset() -> MemoryDataset {
     let nodes = (0..NODES)
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
-            ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+            ontology: smallvec![OntologyRowId::from_index(row & 1)],
             embedding: representation(&mut rng),
             confidence: None,
         })
@@ -508,7 +508,7 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
         .enumerate()
     {
         let membership = postings
-            .membership(OntologyRowId::new(u64::from(row) & 1))
+            .membership(OntologyRowId::from_u32(row & 1))
             .expect("the fixture types lie in the type domain");
         assert!(
             membership.contains(u32::try_from(position).expect("the fixture corpus is tiny")),
@@ -1644,7 +1644,7 @@ fn relation_dataset() -> MemoryDataset {
     let nodes = (0..NODES)
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
-            ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+            ontology: smallvec![OntologyRowId::from_index(row & 1)],
             embedding: representation(&mut rng),
             confidence: None,
         })

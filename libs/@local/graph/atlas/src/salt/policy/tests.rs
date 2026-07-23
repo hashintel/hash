@@ -46,7 +46,7 @@ fn posterior_accepts_a_distribution() {
     assert_eq!(posterior.probability(GeometryClass::Coincident), 0.5);
     assert_eq!(posterior.probability(GeometryClass::Proximal), 0.25);
     assert_eq!(posterior.probability(GeometryClass::Overlay), 0.25);
-    assert_eq!(posterior.as_array(), &[0.5, 0.25, 0.25]);
+    assert_eq!(posterior.to_array(), [0.5, 0.25, 0.25]);
 }
 
 #[test]

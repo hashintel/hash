@@ -397,8 +397,6 @@ impl TripletAggregate {
 
         // Preservation only ever counts a subset of the observed triplets,
         // so the ratio lies in [0, 1] by construction.
-        // NOTE: doesn't this function need to be unsafe, considering that the type literally
-        // ensures this, I guess not because it's not strictly memory unsafe?
         UnitFraction::new_unchecked(self.preserved as f64 / self.triplets as f64)
     }
 }

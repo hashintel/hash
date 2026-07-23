@@ -50,23 +50,17 @@ impl Error for NonFiniteScale {}
 
 /// Validated per-node local radii in node-row order.
 ///
-/// Every value is finite and non-negative; consumers divide by scales (plus their own epsilon)
-/// without re-checking.
+/// Every value is a [`NonNegative`]: finite and at least zero, so dividing by a scale plus a
+/// positive epsilon is total.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct LocalScales(Box<[f32]>);
+pub(crate) struct LocalScales(Box<[NonNegative]>);
 
 impl LocalScales {
-    /// Validates externally produced scales.
-    ///
-    /// Returns [`None`] when any value is non-finite or negative.
+    /// Adopts scales whose element type carries the domain.
+    #[inline]
     #[must_use]
-    pub(crate) fn new(scales: Box<[f32]>) -> Option<Self> {
-        // NOTE: why? Why not just use `NonNegative`, you can `transmute` between them using
-        // zerocopy if needed.
-        scales
-            .iter()
-            .all(|scale| NonNegative::new(*scale).is_some())
-            .then_some(Self(scales))
+    pub(crate) const fn new(scales: Box<[NonNegative]>) -> Self {
+        Self(scales)
     }
 
     /// Measures every node's local scale from current coordinates.
@@ -107,13 +101,22 @@ impl LocalScales {
             return Err(NonFiniteScale { row });
         }
 
-        Ok(Self(scales.into_boxed_slice()))
+        let scales = scales
+            .into_iter()
+            .map(|scale| {
+                NonNegative::new(scale).expect(
+                    "the scan above rejected non-finite scales, and a mean of distances is never \
+                     negative",
+                )
+            })
+            .collect();
+        Ok(Self(scales))
     }
 
     /// Borrows the scales in node-row order.
     #[inline]
     #[must_use]
-    pub(crate) fn as_slice(&self) -> &[f32] {
+    pub(crate) fn as_slice(&self) -> &[NonNegative] {
         &self.0
     }
 
@@ -130,7 +133,7 @@ impl LocalScales {
     #[inline]
     #[must_use]
     pub(crate) fn normalization(&self, source: usize, target: usize, epsilon: f32) -> f32 {
-        ((self.0[source] + epsilon) * (self.0[target] + epsilon)).sqrt()
+        ((self.0[source].get() + epsilon) * (self.0[target].get() + epsilon)).sqrt()
     }
 
     /// Returns the node-row count.

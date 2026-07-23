@@ -178,21 +178,21 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
         frame,
         batch.semantic.iter().map(|&pair| (pair, 1.0)),
         options.affinity,
-        coefficients.semantic * batch.semantic_scale,
+        coefficients.semantic.get() * batch.semantic_scale,
         &mut semantic_field,
     );
     let ordinary = repulsion_term(
         frame,
         batch.ordinary.iter().map(|&pair| (pair, 1.0)),
         options.affinity,
-        coefficients.ordinary * batch.ordinary_scale,
+        coefficients.ordinary.get() * batch.ordinary_scale,
         &mut semantic_field,
     );
     let hard = repulsion_term(
         frame,
         batch.hard.iter().copied(),
         options.affinity,
-        coefficients.hard * batch.hard_scale,
+        coefficients.hard.get() * batch.hard_scale,
         &mut semantic_field,
     );
 
@@ -208,7 +208,7 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
             &coordinates,
             &targets,
             options.support,
-            coefficients.landmark * batch.landmark_scale,
+            coefficients.landmark.get() * batch.landmark_scale,
         )
     });
     let anchor_term = SupportTargets::new(&batch.anchors, &device).map(|targets| {
@@ -216,7 +216,7 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
             &coordinates,
             &targets,
             options.support,
-            coefficients.anchor * batch.anchor_scale,
+            coefficients.anchor.get() * batch.anchor_scale,
         )
     });
 
@@ -268,7 +268,7 @@ fn relation_pass<A: Allocator>(
         .scales
         .as_ref()
         .expect("a batch with relation edges was assembled with its scale table");
-    let scale = batch.eta.get() * options.coefficients.relation * batch.relation_scale;
+    let scale = batch.eta.get() * options.coefficients.relation.get() * batch.relation_scale;
     let rows = frame.len();
 
     // One scratch field serves every type; only rows a type touches

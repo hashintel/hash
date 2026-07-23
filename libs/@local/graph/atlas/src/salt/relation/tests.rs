@@ -658,7 +658,7 @@ prop_compose! {
             .enumerate()
             .map(|(edge, (relation, source, target, link, source_score, target_score))| {
                 RelationInstance {
-                    edge: EdgeRowId::new(edge as u64),
+                    edge: EdgeRowId::from_index(edge),
                     relation: OntologyRowId::new(relation),
                     source: NodeRowId::new(source),
                     target: NodeRowId::new(target),

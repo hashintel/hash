@@ -5,9 +5,21 @@
 //! indices at a time. [`BitMatrix`] stacks one such domain per row at a shared stride, so
 //! whole-row folds run word-parallel and a row borrows as a word slice. Capacities are fixed at
 //! construction: both answer for exactly the indices below them and panic beyond, like slices.
+//!
+//! Both types carry an allocator parameter defaulting to [`Global`]: `new` allocates globally,
+//! `new_in` places the words in a caller-supplied allocator.
+
+use std::alloc::{Allocator, Global};
 
 #[cfg(test)]
 mod tests;
+
+/// Bits per storage word.
+const WORD: usize = u64::BITS as usize;
+/// Mask selecting an index's bit within its word.
+const WORD_MASK: usize = WORD - 1;
+/// Shift selecting an index's word: `index >> WORD_SHIFT`.
+const WORD_SHIFT: usize = (u64::BITS - 1).count_ones() as usize;
 
 /// A fixed-capacity set of dense indices, one bit per index.
 ///
@@ -24,25 +36,29 @@ mod tests;
 /// assert!(!selected.contains(4));
 /// assert_eq!(selected.iter().collect::<Vec<_>>(), [3, 97]);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BitSet {
-    words: Box<[u64]>,
+#[derive(Debug, Clone)]
+pub struct BitSet<A: Allocator = Global> {
+    words: Box<[u64], A>,
     len: usize,
 }
 
 impl BitSet {
-    /// Bits per storage word.
-    const WORD: usize = u64::BITS as usize;
-    /// Mask selecting an index's bit within its word.
-    const WORD_MASK: usize = Self::WORD - 1;
-    /// Shift selecting an index's word: `index >> WORD_SHIFT`.
-    const WORD_SHIFT: usize = (u64::BITS - 1).count_ones() as usize;
-
     /// Creates an empty set over the indices below `len`.
     #[must_use]
     pub fn new(len: usize) -> Self {
+        Self::new_in(len, Global)
+    }
+}
+
+impl<A: Allocator> BitSet<A> {
+    /// Creates an empty set over the indices below `len`, with its words in `alloc`.
+    #[must_use]
+    pub fn new_in(len: usize, alloc: A) -> Self {
+        let words = len.div_ceil(WORD);
+        let mut vec = Vec::with_capacity_in(words, alloc);
+        vec.resize(words, 0);
         Self {
-            words: vec![0; len.div_ceil(Self::WORD)].into_boxed_slice(),
+            words: vec.into_boxed_slice(),
             len,
         }
     }
@@ -70,7 +86,7 @@ impl BitSet {
     #[must_use]
     pub const fn contains(&self, index: usize) -> bool {
         assert!(index < self.len, "the index lies beyond the capacity");
-        self.words[index >> Self::WORD_SHIFT] & (1 << (index & Self::WORD_MASK)) != 0
+        self.words[index >> WORD_SHIFT] & (1 << (index & WORD_MASK)) != 0
     }
 
     /// Inserts `index` into the set.
@@ -81,14 +97,14 @@ impl BitSet {
     #[inline]
     pub const fn insert(&mut self, index: usize) {
         assert!(index < self.len, "the index lies beyond the capacity");
-        self.words[index >> Self::WORD_SHIFT] |= 1 << (index & Self::WORD_MASK);
+        self.words[index >> WORD_SHIFT] |= 1 << (index & WORD_MASK);
     }
 
     /// Removes every index absent from `other`, leaving the intersection.
     ///
     /// The capacities may differ: an index beyond `other`'s capacity is absent from it by
-    /// definition, so it is removed here.
-    pub fn intersect_with(&mut self, other: &Self) {
+    /// definition, so it is removed here. The allocators may differ likewise.
+    pub fn intersect_with<B: Allocator>(&mut self, other: &BitSet<B>) {
         for (index, word) in self.words.iter_mut().enumerate() {
             *word &= other.words.get(index).copied().unwrap_or(0);
         }
@@ -106,7 +122,7 @@ impl BitSet {
     /// Iterates the set's indices in ascending order.
     pub fn iter(&self) -> impl Iterator<Item = usize> + '_ {
         self.words.iter().enumerate().flat_map(|(position, &word)| {
-            let base = position * Self::WORD;
+            let base = position * WORD;
             let mut remaining = word;
             core::iter::from_fn(move || {
                 if remaining == 0 {
@@ -120,6 +136,14 @@ impl BitSet {
         })
     }
 }
+
+impl<A: Allocator> PartialEq for BitSet<A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.len == other.len && self.words == other.words
+    }
+}
+
+impl<A: Allocator> Eq for BitSet<A> {}
 
 /// A fixed-shape dense bit matrix, one bit per cell.
 ///
@@ -143,11 +167,10 @@ impl BitSet {
 /// assert!(reaches.contains(0, 2));
 /// assert!(!reaches.contains(2, 0));
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BitMatrix {
-    // NOTE: <A: Allocator = Global> (same with `BitSet`)
+#[derive(Debug, Clone)]
+pub struct BitMatrix<A: Allocator = Global> {
     /// `rows` rows of `stride` words.
-    words: Box<[u64]>,
+    words: Box<[u64], A>,
     rows: usize,
     columns: usize,
     /// Words per row: `ceil(columns / 64)`.
@@ -158,9 +181,20 @@ impl BitMatrix {
     /// Creates an empty matrix of `rows` by `columns` cells.
     #[must_use]
     pub fn new(rows: usize, columns: usize) -> Self {
-        let stride = columns.div_ceil(BitSet::WORD);
+        Self::new_in(rows, columns, Global)
+    }
+}
+
+impl<A: Allocator> BitMatrix<A> {
+    /// Creates an empty matrix of `rows` by `columns` cells, with its words in `alloc`.
+    #[must_use]
+    pub fn new_in(rows: usize, columns: usize, alloc: A) -> Self {
+        let stride = columns.div_ceil(WORD);
+        let words = rows * stride;
+        let mut vec = Vec::with_capacity_in(words, alloc);
+        vec.resize(words, 0);
         Self {
-            words: vec![0; rows * stride].into_boxed_slice(),
+            words: vec.into_boxed_slice(),
             rows,
             columns,
             stride,
@@ -198,7 +232,7 @@ impl BitMatrix {
     pub const fn contains(&self, row: usize, column: usize) -> bool {
         assert!(column < self.columns, "the column lies beyond the shape");
         let words = self.row(row);
-        words[column >> BitSet::WORD_SHIFT] & (1 << (column & BitSet::WORD_MASK)) != 0
+        words[column >> WORD_SHIFT] & (1 << (column & WORD_MASK)) != 0
     }
 
     /// Sets the cell at `row`, `column`.
@@ -210,8 +244,7 @@ impl BitMatrix {
     pub const fn insert(&mut self, row: usize, column: usize) {
         assert!(row < self.rows, "the row lies beyond the shape");
         assert!(column < self.columns, "the column lies beyond the shape");
-        self.words[row * self.stride + (column >> BitSet::WORD_SHIFT)] |=
-            1 << (column & BitSet::WORD_MASK);
+        self.words[row * self.stride + (column >> WORD_SHIFT)] |= 1 << (column & WORD_MASK);
     }
 
     /// Borrows `row`'s words: `stride` words, LSB-first.
@@ -265,3 +298,11 @@ impl BitMatrix {
         }
     }
 }
+
+impl<A: Allocator> PartialEq for BitMatrix<A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.rows == other.rows && self.columns == other.columns && self.words == other.words
+    }
+}
+
+impl<A: Allocator> Eq for BitMatrix<A> {}

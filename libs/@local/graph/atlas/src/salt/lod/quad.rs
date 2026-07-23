@@ -104,30 +104,6 @@ pub(crate) struct QuadTree {
     pub depth: Depth,
 }
 
-impl WriteInto for QuadTree {
-    // NOTE: trait impl always after `impl T {` blocks
-    type Error = io::Error;
-
-    /// Writes the tree as a quad file.
-    ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails.
-    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
-        let mut writer = Writer {
-            accumulator: Sha256::new(),
-            writer: write,
-        };
-
-        write_regions(&self.nodes, &self.sets, &mut writer)?;
-
-        Ok(writer.accumulator.finalize())
-    }
-}
-
 impl QuadTree {
     /// Builds the quadtree over the finished lod columns.
     ///
@@ -207,6 +183,29 @@ impl QuadTree {
             depth: self.depth,
             type_entries: self.sets.ids().len() as u64,
         }
+    }
+}
+
+impl WriteInto for QuadTree {
+    type Error = io::Error;
+
+    /// Writes the tree as a quad file.
+    ///
+    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
+    /// published file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the underlying writer fails.
+    fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
+        let mut writer = Writer {
+            accumulator: Sha256::new(),
+            writer: write,
+        };
+
+        write_regions(&self.nodes, &self.sets, &mut writer)?;
+
+        Ok(writer.accumulator.finalize())
     }
 }
 

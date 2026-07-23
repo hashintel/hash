@@ -1226,7 +1226,7 @@ fn runner_dataset() -> MemoryDataset {
 
             Node {
                 id: U64::<LE>::new(row as u64),
-                ontology: smallvec![OntologyRowId::new((row & 1) as u64)],
+                ontology: smallvec![OntologyRowId::from_index(row & 1)],
                 embedding: BoxedVecN::new(&VecN::new(components)),
                 confidence: None,
             }

@@ -200,10 +200,10 @@ impl<'frame> SpatialField<'frame> {
     /// The query point is in the index, so `row` itself leads the result. The secondary row order
     /// pins ties: equal distances are returned in one order regardless of tree traversal.
     ///
-    /// Items are frame row indexes: `u32` is the tree's compact in-tree index type, and consumers
-    /// widen to [`NodeRowId`] at the point of use.
-    // NOTE: you could also just implement `Cast` over it or have it be a newtype like
-    // `CompactNodeRowId`, internally – correct me if I am wrong – it's stored as a usize anyway?
+    /// Items are frame row indexes in the tree's compact `u32` domain; [`NodeRowId::from_u32`]
+    /// widens one losslessly.
+    // The tree stores one content id per point, so the u32 domain halves
+    // that storage against a 64-bit id.
     fn nearest(&self, row: usize, count: usize) -> Vec<NearestNeighbour<f32, u32>> {
         let count = NonZero::new(count.min(self.points.len()))
             .expect("search sizes are at least one by construction");
@@ -312,7 +312,7 @@ impl<'view> HardNegativeMiner<'view> {
         let mut accepted = Vec::with_capacity(quota);
         for neighbour in field.nearest(row, self.options.search_size()) {
             let candidate = neighbour.item;
-            let candidate_id = NodeRowId::new(u64::from(candidate));
+            let candidate_id = NodeRowId::from_u32(candidate);
             if candidate_id == row_id {
                 continue;
             }
@@ -378,17 +378,13 @@ impl MinedFrame {
     /// Panics when `row` is not below [`rows`](Self::rows).
     pub(crate) fn row(&self, row: usize) -> impl ExactSizeIterator<Item = (NodePair, f32)> + '_ {
         let span = self.offsets[row]..self.offsets[row + 1];
-        let anchor = NodeRowId::from_index(row); // NOTE: the same should all other newtypes have, and the codebase should be sweapt to adopt it
-        // NOTE: same with `from_u64`, and `from_u32`, thank you.
+        let anchor = NodeRowId::from_index(row);
 
         self.targets[span.clone()]
             .iter()
             .zip(&self.weights[span])
             .map(move |(&target, &weight)| {
-                (
-                    NodePair::new(anchor, NodeRowId::new(u64::from(target))),
-                    weight,
-                )
+                (NodePair::new(anchor, NodeRowId::from_u32(target)), weight)
             })
     }
 

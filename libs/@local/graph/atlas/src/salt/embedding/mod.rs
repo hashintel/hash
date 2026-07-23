@@ -356,7 +356,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
     let mut unique = HashMap::<Sha256Digest, UniqueCard<'_>>::with_capacity(cards.len());
 
     for (row, card) in cards.iter().enumerate() {
-        let row = OntologyRowId::new(row as u64);
+        let row = OntologyRowId::from_index(row);
         let hash = Sha256Digest::of(card.card_text());
         row_hashes.push(hash);
 

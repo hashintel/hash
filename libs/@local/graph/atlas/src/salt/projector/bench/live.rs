@@ -29,7 +29,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{ARCHITECTURE, BackendKind};
 use crate::{
     dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
-    math::{AffinityCurve, MatrixN, Vec2},
+    math::{AffinityCurve, MatrixN, NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -108,8 +108,14 @@ impl Fixture {
         let graph = semantic_graph(rows, &mut rng);
         let indexes = relation_indexes(rows);
         let (representations, roles) = columns(rows, &mut rng);
-        let scales = LocalScales::new((0..rows).map(scale_of).collect())
-            .expect("the synthetic scales are positive and finite");
+        let scales = LocalScales::new(
+            (0..rows)
+                .map(|row| {
+                    NonNegative::new(scale_of(row))
+                        .expect("the synthetic scales are positive and finite")
+                })
+                .collect(),
+        );
         let landmarks = landmark_pool(rows, &mut rng);
         let plan = crate::salt::fit::ProjectorOptions::ratified().plan;
 
@@ -470,10 +476,10 @@ fn relation_indexes(rows: usize) -> RelationIndexes {
                 target = (target + 1) % rows;
             }
             RelationInstance {
-                edge: EdgeRowId::new(index as u64),
+                edge: EdgeRowId::from_index(index),
                 relation: OntologyRowId::new(100 + (index % RELATION_TYPES) as u64),
-                source: NodeRowId::new(source as u64),
-                target: NodeRowId::new(target as u64),
+                source: NodeRowId::from_index(source),
+                target: NodeRowId::from_index(target),
                 confidence: RelationConfidence::default(),
                 multiplicity: 1,
             }

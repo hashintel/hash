@@ -57,7 +57,7 @@ pub(crate) use self::{
 };
 use crate::{
     dataset::NodeRowId,
-    math::NonNegative,
+    math::{NonNegative, Positive},
     salt::projector::{
         budget::BudgetOptions,
         loss::{AffinityEnergy, RelationEnergy, SupportOptions},
@@ -100,102 +100,84 @@ impl fmt::Display for StepError {
 
 impl Error for StepError {}
 
-/// Validated objective coefficients, one per loss family.
+/// Objective coefficients, one per loss family.
 ///
-/// Every coefficient is finite and non-negative, and the semantic attraction coefficient is
-/// strictly positive: the semantic layout is the frame every other force is budgeted against, and a
-/// run without it has no baseline to budget by.
+/// The semantic attraction coefficient is strictly positive - the semantic layout is the frame
+/// every other force is budgeted against, and a run without it has no baseline to budget by - and
+/// every other coefficient is finite and non-negative.
 ///
 /// The relation coefficient is the lens-independent factor; the training loop multiplies it by the
 /// step's rung, so a zero rung contributes nothing regardless of the configured value.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Coefficients {
-    semantic: f32,
-    ordinary: f32,
-    hard: f32,
-    relation: f32,
-    anchor: f32,
-    landmark: f32,
+    semantic: Positive,
+    ordinary: NonNegative,
+    hard: NonNegative,
+    relation: NonNegative,
+    anchor: NonNegative,
+    landmark: NonNegative,
 }
 
 impl Coefficients {
-    /// Validates objective coefficients.
-    ///
-    /// Returns [`None`] unless every coefficient is finite and non-negative and the semantic
-    /// coefficient is strictly positive.
+    /// Assembles objective coefficients.
     #[must_use]
     pub(crate) const fn new(
-        semantic: f32,
-        ordinary: f32,
-        hard: f32,
-        relation: f32,
-        anchor: f32,
-        landmark: f32,
-    ) -> Option<Self> {
-        // NOTE: why don't you just admit `NonNegative` in this case? If there is a reason please
-        // write it down, it's not obvious...
-        const fn admissible(value: f32) -> bool {
-            NonNegative::new(value).is_some()
-        }
-        let non_negative = admissible(semantic)
-            && admissible(ordinary)
-            && admissible(hard)
-            && admissible(relation)
-            && admissible(anchor)
-            && admissible(landmark);
-
-        if !(non_negative && semantic > 0.0) {
-            return None;
-        }
-        Some(Self {
+        semantic: Positive,
+        ordinary: NonNegative,
+        hard: NonNegative,
+        relation: NonNegative,
+        anchor: NonNegative,
+        landmark: NonNegative,
+    ) -> Self {
+        Self {
             semantic,
             ordinary,
             hard,
             relation,
             anchor,
             landmark,
-        })
+        }
     }
 
     /// Returns the semantic attraction coefficient.
     #[inline]
     #[must_use]
-    pub(crate) const fn semantic(self) -> f32 {
+    pub(crate) const fn semantic(self) -> Positive {
         self.semantic
     }
 
     /// Returns the ordinary repulsion coefficient.
     #[inline]
     #[must_use]
-    pub(crate) const fn ordinary(self) -> f32 {
+    pub(crate) const fn ordinary(self) -> NonNegative {
         self.ordinary
     }
 
     /// Returns the hard-negative repulsion coefficient.
     #[inline]
     #[must_use]
-    pub(crate) const fn hard(self) -> f32 {
+    pub(crate) const fn hard(self) -> NonNegative {
         self.hard
     }
 
     /// Returns the lens-independent relation coefficient.
     #[inline]
     #[must_use]
-    pub(crate) const fn relation(self) -> f32 {
+    pub(crate) const fn relation(self) -> NonNegative {
         self.relation
     }
 
     /// Returns the temporal-anchor support coefficient.
     #[inline]
     #[must_use]
-    pub(crate) const fn anchor(self) -> f32 {
+    pub(crate) const fn anchor(self) -> NonNegative {
         self.anchor
     }
 
     /// Returns the landmark support coefficient.
     #[inline]
     #[must_use]
-    pub(crate) const fn landmark(self) -> f32 {
+    pub(crate) const fn landmark(self) -> NonNegative {
         self.landmark
     }
 }

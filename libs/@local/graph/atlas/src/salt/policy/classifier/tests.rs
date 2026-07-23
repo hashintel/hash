@@ -113,14 +113,14 @@ fn predict_computes_logits_posteriors_and_applicability() {
     let prediction = model.predict(&input).expect("finite inputs should predict");
 
     assert_eq!(prediction.logits, [0.75, -0.5, 0.0]);
-    assert_eq!(*prediction.raw.as_array(), softmax([0.75, -0.5, 0.0], 1.0));
+    assert_eq!(prediction.raw.to_array(), softmax([0.75, -0.5, 0.0], 1.0));
     assert_eq!(
-        *prediction.calibrated.as_array(),
+        prediction.calibrated.to_array(),
         softmax([0.75, -0.5, 0.0], 2.0),
     );
     assert_eq!(
         prediction.raw.probability(GeometryClass::Coincident),
-        prediction.raw.as_array()[0],
+        prediction.raw.to_array()[0],
     );
     // The distance ties the middle training distance; lower-bound rank
     // semantics keep the tie applicable.

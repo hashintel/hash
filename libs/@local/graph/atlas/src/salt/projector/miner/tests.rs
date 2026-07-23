@@ -165,7 +165,7 @@ fn reference_mine(
                 if candidate == row {
                     continue;
                 }
-                let candidate_id = NodeRowId::new(candidate as u64);
+                let candidate_id = NodeRowId::from_index(candidate);
                 if semantic.view().row(row).any(|edge| edge.id == candidate_id) {
                     continue;
                 }

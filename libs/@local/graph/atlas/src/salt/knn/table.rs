@@ -387,7 +387,7 @@ impl<'view> KnnView<'view> {
             .iter()
             .zip(&distances[range])
             .map(|(&column, &distance)| Neighbour {
-                id: NodeRowId::new(u64::from(column)),
+                id: NodeRowId::from_u32(column),
                 distance,
             })
     }

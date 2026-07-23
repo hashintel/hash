@@ -577,25 +577,30 @@ impl<E: Error + 'static> Error for DeliveryError<E> {
     }
 }
 
-/// Matches an unordered delivery stream against its requests.
+/// Matches an unordered delivery stream against the requested rows' ids.
 ///
 /// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
 /// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
-/// once, nothing else - and the payloads return in request order.
-pub(super) async fn match_deliveries<Id, T, E>(
-    requests: &[Id],
+/// once, nothing else - and the payloads return in `rows` order. Requests are read straight off
+/// the `(node_ids, rows)` pair, so no caller materializes a request list.
+pub(super) async fn match_deliveries<Id, Row, T, E>(
+    node_ids: &[Id],
+    rows: &[Row],
     deliveries: impl Stream<Item = Result<(Id, T), E>>,
 ) -> Result<Vec<T>, DeliveryError<E>>
 where
-    Id: zerocopy::IntoBytes + zerocopy::Immutable, /* NOTE: Why not say `PartialOrd` here?
-                                                    * compare over bytes is... well... no */
+    // Matching is on byte identity, not semantic order: `IntoBytes` totally
+    // orders exactly the encoding the stream echoes back, where an ordering
+    // bound on the id type would owe neither totality nor byte fidelity.
+    Id: zerocopy::IntoBytes + zerocopy::Immutable,
+    Row: Copy + Into<usize>,
 {
-    let key = |slot: u32| requests[slot as usize].as_bytes();
+    let key = |slot: u32| node_ids[rows[slot as usize].into()].as_bytes();
 
-    let mut order: Vec<u32> = (0..requests.len() as u32).collect();
+    let mut order: Vec<u32> = (0..rows.len() as u32).collect();
     order.sort_unstable_by(|&one, &other| key(one).cmp(key(other)));
 
-    let mut received: Vec<Option<T>> = requests.iter().map(|_| None).collect();
+    let mut received: Vec<Option<T>> = rows.iter().map(|_| None).collect();
     let mut delivered = 0_usize;
 
     let mut deliveries = pin!(deliveries);
@@ -614,9 +619,9 @@ where
         }
     }
 
-    if delivered != requests.len() {
+    if delivered != rows.len() {
         return Err(DeliveryError::Missing {
-            requested: requests.len(),
+            requested: rows.len(),
             delivered,
         });
     }
@@ -633,16 +638,10 @@ async fn fetch_canonical<D: Dataset>(
     node_ids: &[D::NodeId],
     sample: &[usize],
 ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, ProbeError<D::Error>> {
-    // NOTE: this is the wrong approach, why doesn't match_deliveries just take both slices and an
-    // iterator? why do we need to collect here?
-    // One buffer serves two consumers: the delivery
-    // matcher verifies completeness against the request list, and the dataset stream
-    // borrows the same ids through its lifetime-tied iterator contract.
-    let requests: Vec<D::NodeId> = sample.iter().map(|&row| node_ids[row]).collect();
-
     match_deliveries(
-        &requests,
-        dataset.canonical_node_embeddings(requests.iter().copied()),
+        node_ids,
+        sample,
+        dataset.canonical_node_embeddings(sample.iter().map(|&row| node_ids[row])),
     )
     .await
     .map_err(|error| match error {
