@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
 import { createPetrinautOptimizationRunHandler } from "./create-petrinaut-optimization-run-handler";
 import { createOptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
 import { createOptimizationRunOwners } from "./shared/optimization-run-owners";
@@ -19,7 +18,7 @@ const createHandler = ({
   logger = createRecordingLogger().logger,
   origin = new URL("http://petrinaut-opt:4004"),
   runOwners = createOptimizationRunOwners(),
-  occupancy = createOptimizationAccountOccupancy(runOwners),
+  occupancy = createOptimizationAccountOccupancy(),
 }: {
   fetchImpl?: PetrinautOptimizerFetch;
   logger?: ReturnType<typeof createRecordingLogger>["logger"];
@@ -577,77 +576,6 @@ describe("createPetrinautOptimizationRunHandler", () => {
           requestId: "request-id-1",
           userId: "user-1",
         },
-      });
-    });
-  });
-
-  describe("cross-family single-flight", () => {
-    it("rejects a detached create while a legacy stream is active", async () => {
-      const runOwners = createOptimizationRunOwners();
-      const occupancy = createOptimizationAccountOccupancy(runOwners);
-      const logger = createRecordingLogger().logger;
-      let releaseLegacy: (() => void) | undefined;
-      const legacyHandler = createPetrinautOptimizationHandler({
-        fetchImpl: async (_input, init) =>
-          new Promise<Response>((_resolve, reject) => {
-            releaseLegacy = () =>
-              reject(new DOMException("Aborted", "AbortError"));
-            init?.signal?.addEventListener("abort", () => releaseLegacy?.(), {
-              once: true,
-            });
-          }),
-        logger,
-        occupancy,
-        origin: new URL("http://petrinaut-opt:4004"),
-      });
-      const runHandler = createHandler({ logger, occupancy, runOwners });
-
-      let legacyRequest: EventEmitter | undefined;
-      const legacyPromise = callOptimizationRunHandler({
-        body: validOptimizationInput,
-        handler: legacyHandler,
-        onRequest: (request) => {
-          legacyRequest = request;
-        },
-      });
-      // Let the legacy stream reach its pending upstream fetch.
-      await new Promise(setImmediate);
-
-      const result = await callOptimizationRunHandler({
-        body: validOptimizationInput,
-        handler: runHandler,
-      });
-      expect(result.statusCode).toBe(429);
-      expect(result.body).toEqual({
-        error: "An optimization is already running for this account",
-      });
-
-      legacyRequest!.emit("aborted");
-      await legacyPromise;
-    });
-
-    it("rejects a legacy stream while the account owns a detached run", async () => {
-      const runOwners = createOptimizationRunOwners();
-      const occupancy = createOptimizationAccountOccupancy(runOwners);
-      runOwners.register("run-1", {
-        accountId: "user-1",
-        requestedTrials: 2,
-      });
-      const legacyHandler = createPetrinautOptimizationHandler({
-        fetchImpl: unexpectedFetch,
-        logger: createRecordingLogger().logger,
-        occupancy,
-        origin: new URL("http://petrinaut-opt:4004"),
-      });
-
-      const result = await callOptimizationRunHandler({
-        body: validOptimizationInput,
-        handler: legacyHandler,
-      });
-
-      expect(result.statusCode).toBe(429);
-      expect(result.body).toEqual({
-        error: "An optimization is already running for this account",
       });
     });
   });

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   getPetrinautOptimizerOrigin,
   PETRINAUT_OPTIMIZER_CAPABILITIES_PATH,
-  PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
   PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
   PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
   PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH,
@@ -133,27 +132,7 @@ it("mounts every optimization endpoint behind the rate limiter", () => {
       method: "delete",
       path: PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
     },
-    {
-      handlerCount: 2,
-      method: "post",
-      path: PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
-    },
   ]);
-});
-
-it("registers the detached-run routes before the legacy optimize route", () => {
-  const { app, routes } = createRecordingApp();
-
-  setupPetrinautOptimizerHandler(app, { logger, origin: null });
-
-  const postPaths = routes
-    .filter((route) => route.method === "post")
-    .map((route) => route.path);
-  // `POST …/optimize/runs` is a path-prefix extension of `POST …/optimize`,
-  // so the more specific route must be registered first.
-  expect(
-    postPaths.indexOf(PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH),
-  ).toBeLessThan(postPaths.indexOf(PETRINAUT_OPTIMIZER_OPTIMIZE_PATH));
 });
 
 describe(PETRINAUT_OPTIMIZER_CAPABILITIES_PATH, () => {

@@ -1,7 +1,7 @@
 /**
  * Test-only fakes shared by the detached-run handler suites.
  *
- * They mirror the harness proven by the legacy streaming handler's tests: a
+ * The harness provides a
  * recording logger, an EventEmitter-based Express request/response pair with
  * caller-controlled backpressure, and a driver that runs one handler call.
  */

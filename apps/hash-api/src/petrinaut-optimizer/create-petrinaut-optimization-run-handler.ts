@@ -60,12 +60,11 @@ const checkOwnedRunGone = async ({
 /**
  * Create the authenticated endpoint that starts a detached optimization run.
  *
- * Unlike the legacy streaming route, the response carries no events: it
- * returns the run id immediately and the browser attaches to
- * `GET …/optimize/runs/:runId/events` — and re-attaches after a disconnect —
- * to consume them. The run's ownership is recorded so only its creator can
- * attach to or cancel it, and admission enforces the cross-family
- * single-flight rule shared with the legacy streaming route.
+ * The response carries no events: it returns the run id immediately and the
+ * browser attaches to `GET …/optimize/runs/:runId/events` — and re-attaches
+ * after a disconnect — to consume them. The run's ownership is recorded so
+ * only its creator can attach to or cancel it, and admission enforces the
+ * per-account single-flight rule.
  */
 export const createPetrinautOptimizationRunHandler = ({
   fetchImpl,
@@ -76,7 +75,7 @@ export const createPetrinautOptimizationRunHandler = ({
 }: {
   fetchImpl: PetrinautOptimizerFetch;
   logger: Pick<Logger, "child" | "info" | "warn">;
-  /** Cross-family single-flight state shared with the legacy route. */
+  /** Per-account single-flight state for in-flight creates. */
   occupancy: OptimizationAccountOccupancy;
   origin: URL | null;
   runOwners: OptimizationRunOwners;
@@ -98,9 +97,9 @@ export const createPetrinautOptimizationRunHandler = ({
     }
 
     const userId = request.user.accountId;
-    // A live legacy stream or another in-flight create can never be stale,
-    // so those reject immediately; run ownership is re-checked below where a
-    // liveness probe can prove a remembered run gone.
+    // Another in-flight create can never be stale, so it rejects
+    // immediately; run ownership is re-checked below where a liveness probe
+    // can prove a remembered run gone.
     if (occupancy.isAccountActive(userId)) {
       requestLogger.warn("Petrinaut optimization run rejected: account busy", {
         userId,
@@ -115,9 +114,9 @@ export const createPetrinautOptimizationRunHandler = ({
     // account cannot slip through while this one awaits the optimizer; the
     // ownership entry itself only exists once the optimizer has answered.
     occupancy.beginPendingRun(userId);
-    // Creation is a single round-trip: bound it like the legacy handler
-    // bounds its time to first upstream byte. The controller also fires when
-    // the HASH client disconnects while the round-trip is still in flight.
+    // Creation is a single round-trip: bound its time to the first upstream
+    // byte. The controller also fires when the HASH client disconnects while
+    // the round-trip is still in flight.
     const abortController = new AbortController();
     const outcome = { clientDisconnected: false, timedOut: false };
     const abortForClientDisconnect = () => {
