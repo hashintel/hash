@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import suppress
+from typing import Any
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
@@ -42,6 +44,10 @@ _DEFAULT_PROTOCOL = "grpc"
 log = logging.getLogger("pn_telemetry")
 
 _configured = False
+
+# Providers created by ``setup_telemetry``, retained so the app lifespan can
+# flush and shut them down on exit. Each exposes ``force_flush``/``shutdown``.
+_providers: list[Any] = []
 
 
 def _service_name() -> str:
@@ -153,6 +159,9 @@ def setup_telemetry(app: FastAPI) -> bool:
         log.exception("OpenTelemetry bootstrap failed; continuing without telemetry")
         return False
 
+    # Retain for an explicit flush on shutdown; batch processors otherwise drop
+    # whatever is still queued when the process exits.
+    _providers.extend([tracer_provider, meter_provider, logger_provider])
     _configured = True
     log.info(
         "OpenTelemetry exporting to %s as %r over %s",
@@ -161,3 +170,19 @@ def setup_telemetry(app: FastAPI) -> bool:
         protocol,
     )
     return True
+
+
+def shutdown_telemetry() -> None:
+    """Flush and shut down the OTLP providers.
+
+    Wired into the app lifespan's teardown so buffered spans, metrics, and log
+    records are exported during a graceful (SIGTERM) shutdown rather than left in
+    the batch processors' queues. Safe to call when telemetry was never
+    configured (a no-op) and idempotent if called more than once.
+    """
+    while _providers:
+        provider = _providers.pop()
+        with suppress(Exception):
+            provider.force_flush()
+        with suppress(Exception):
+            provider.shutdown()
