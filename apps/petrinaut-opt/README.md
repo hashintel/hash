@@ -169,9 +169,9 @@ failure, or client disconnect.
 
 ## Observability
 
-The service is instrumented with OpenTelemetry. When `HASH_OTLP_ENDPOINT` is
-set it exports traces, metrics, and logs over OTLP/gRPC to that collector — the
-same variable and `otel-collector:4317` target the rest of the HASH stack uses.
+The service is instrumented with OpenTelemetry. When `OTEL_EXPORTER_OTLP_ENDPOINT` is
+set it exports traces, metrics, and logs over OTLP to that collector — the
+same `otel-collector` target the rest of the HASH stack uses.
 When the variable is unset (a plain `uv run` with no collector) telemetry is
 skipped and the service runs normally, matching the Node workers.
 
@@ -181,10 +181,13 @@ skipped and the service runs normally, matching the Node workers.
 - Metrics and logs: the FastAPI/Optuna default metrics and stdlib log records are
   exported to the collector (Mimir/Loki in the stack).
 
-Configuration:
+Configuration (standard OTLP environment variables):
 
-- `HASH_OTLP_ENDPOINT` — collector URL, e.g. `http://otel-collector:4317`. A
-  `http://` scheme selects a plaintext (insecure) gRPC channel.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — collector URL, e.g.
+  `http://otel-collector:4317`. A `http://` scheme selects a plaintext
+  (insecure) channel.
+- `OTEL_EXPORTER_OTLP_PROTOCOL` — `grpc` (default, the collector's `:4317`
+  port) or `http/protobuf` (its `:4318` port).
 - `OTEL_SERVICE_NAME` — service name shown in Tempo/Grafana. Defaults to
   `Petrinaut Optimizer`.
 
