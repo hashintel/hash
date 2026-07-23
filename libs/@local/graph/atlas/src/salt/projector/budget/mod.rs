@@ -17,9 +17,8 @@
 //! optimizer cannot differentiate through.
 //!
 //! With a single attractive relation branch, the trailing total-variation factor binds only when
-//! the positive factor also binds, and then shaves at most an ε-order amount; it is kept
-//! because its activation rate is a required training metric and a future signed branch would make
-//! it load-bearing.
+//! the positive factor also binds, and then shaves at most an ε-order amount; it stays separately
+//! measured because its activation rate is a required training metric.
 
 #[cfg(test)]
 mod tests;

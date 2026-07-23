@@ -29,7 +29,7 @@
 //! and expanded under a per-universe label, when a generation opens for serving. Equal `(secret,
 //! generation, label)` give equal mappings, so responses stay byte-deterministic across restarts;
 //! a different generation changes every wire id, and the label names the mapping's universe -
-//! one universe crosses the wire today, the node rows. Edges carry their link entity's identity
+//! Surface v1 exposes one universe, the node rows. Edges carry their link entity's identity
 //! instead of a wire id of their own. The fit pipeline is untouched: no artifact stores a wire
 //! id.
 

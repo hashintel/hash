@@ -1,7 +1,9 @@
-//! The sealed visibility blob: one scope's bitmap as a self-authenticating value.
+//! The sealed visibility blob: a bitmap as a self-authenticating value.
 //!
-//! A visibility bitmap is expensive to evaluate and cheap to carry, so the transport hands it to
-//! the client sealed and readmits it on a cache miss without re-evaluating policy. The seal is
+//! [`seal`] and [`open`] authenticate a caller-supplied bitmap under explicit bindings, so a
+//! stored blob readmits without re-evaluating policy. No current API route transports these
+//! blobs; the primitive is implemented and test-exercised, consumed by no current route. The
+//! seal is
 //! XChaCha20-Poly1305 over the padded, serialized bitmap with the blob's bindings as associated
 //! data: purpose, scope, generation, issue time, and format version. Opening verifies before it
 //! trusts - a blob bound to another generation, another purpose, another scope, or an expired
@@ -63,13 +65,14 @@ const PAD_FLOOR: usize = 1024;
 
 /// The staleness caps of the sealed-blob clock rule.
 ///
-/// `soft` is the stale-while-revalidate horizon a cache refreshes behind; `hard` is the rejection
-/// bound: [`open`] refuses a blob older than it. The pair is the revocation window until the
-/// permission epoch replaces the clock, and the manifest publishes both from this struct, so the
-/// advertised window cannot disagree with enforcement.
+/// `hard` is the enforced bound: [`open`] refuses a blob older than it. `soft` is a published
+/// advisory horizon - nothing in this crate reads it beyond manifest publication, so a consumer
+/// refreshing behind it is stated intent, not mechanism. The pair bounds a blob's age, not the
+/// staleness of the policy evaluation behind it. The manifest publishes both from this struct,
+/// so advertised values equal configured values.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SealCaps {
-    /// The asynchronous-refresh horizon.
+    /// The advisory refresh horizon, published but unenforced.
     pub soft: Duration,
     /// The rejection bound.
     pub hard: Duration,

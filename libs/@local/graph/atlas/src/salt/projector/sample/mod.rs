@@ -111,8 +111,8 @@ impl<'graph> SemanticEdgeSampler<'graph> {
         pairs.extend(
             core::iter::repeat_with(|| {
                 // Redrawing pins `target < total` structurally rather than leaning on the sampler's
-                // bit width: today's 53-bit uniform times `total` never rounds up to `total`, but
-                // that is an implementation detail of the rand version.
+                // bit width: a 53-bit uniform times `total` never rounds up to `total`, but that is
+                // an implementation detail of the rand version.
                 let target = loop {
                     let candidate = rng.random::<f64>() * total;
 

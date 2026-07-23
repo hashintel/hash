@@ -94,8 +94,6 @@ impl Context<'_> {
     ///
     /// Candidates are uniform over the corpus; `prior_marks` names the rows competing for the
     /// retained share.
-    // TODO: candidates take stratification axes and subgroup minimums
-    //       once a stage computes them.
     pub(super) fn build_landmark_skeleton(
         &self,
         rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],

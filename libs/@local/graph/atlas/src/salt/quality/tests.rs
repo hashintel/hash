@@ -1047,10 +1047,10 @@ fn assess_fails_pinned_thresholds_without_evidence() {
 /// The neighbourhood controls demand a nonempty grid.
 ///
 /// `all` over an empty grid is vacuously true; the verdict must not be. `assess` cannot emit an
-/// empty grid today (it reads rung 0 unconditionally and panics), but the report is a
-/// serializable value whose verdict must hold under every construction - persisted reports get
-/// read back, and a control over zero rungs is the same evidence absence as a density ceiling
-/// over absent readings, failing the same way.
+/// empty grid (it reads rung 0 unconditionally and panics), but the report is a serializable
+/// value whose verdict must hold under every construction - persisted reports get read back, and
+/// a control over zero rungs is the same evidence absence as a density ceiling over absent
+/// readings, failing the same way.
 #[test]
 fn neighbourhood_controls_demand_a_nonempty_grid() {
     let readings = flag_fixture(&[true, true]);

@@ -1,10 +1,12 @@
 //! The visibility seam.
 //!
-//! The server-held proof of what one scope may see, and the single join point every row ingress
+//! The server-held proof of which rows are visible, and the single join point every row ingress
 //! factors through.
 //!
-//! [`VisibilityProof`] is the visible row set `V_u` as a value: the node rows one scope
-//! may see under one generation and permission epoch. The proof covers the node universe alone - an
+//! [`VisibilityProof`] is the visible row set `V_u` as a value: a caller-supplied node-row mask
+//! interpreted against the opened generation's row universe. The value carries the row set alone;
+//! generation, scope, and permission-epoch binding are its caller's contract, not fields of the
+//! type. The proof covers the node universe alone - an
 //! edge is visible exactly when both its endpoints are, so edge visibility derives wherever a node
 //! set is already masked. Every assembly path takes a proof by construction; no `Option` exists
 //! whose `None` means "everything", and the full-visibility value is a distinct, named constructor
@@ -20,15 +22,18 @@
 use super::Atlas;
 use crate::bitset::BitSet;
 
-/// The server-held visibility proof of one scope: the node rows the scope may see.
+/// The server-held visibility proof: the visible node-row set every assembly path masks by.
 ///
 /// A proof enters a handler by construction - the assembly signatures take one, so a missing proof
 /// is unrepresentable rather than defaulted. The two constructors mark the two legitimate origins:
 /// [`Self::full_visibility`] for operator serving without sessions, and [`Self::from_bitmap`] for a
-/// scope's evaluated visibility bitmap.
+/// server-held evaluated visibility bitmap.
 ///
-/// Membership is fail-closed: a row beyond the held bitmap's capacity is not visible, so a proof
-/// built against the wrong universe hides rows rather than revealing them.
+/// Membership is fail-closed at the capacity edge: a row beyond the held bitmap's capacity is not
+/// visible, so a proof built against a smaller universe hides the excess rather than revealing it.
+/// The value authenticates nothing: a same-capacity bitmap from the wrong universe masks the wrong
+/// rows undetected, so holding the proof to the generation it was evaluated for is the caller's
+/// contract.
 #[derive(Debug, Clone)]
 pub struct VisibilityProof {
     rows: Rows,
@@ -48,19 +53,21 @@ impl VisibilityProof {
     ///
     /// This is the operator constructor. A process that serves without scoped sessions - the
     /// standalone development server, operator tooling against a trusted port - constructs this
-    /// value explicitly at startup. It is never a default and never the answer to a missing or
-    /// failed session: a scope whose bitmap cannot be obtained is served nothing, not everything.
+    /// value explicitly at startup. Caller requirement: this value is never a default and never
+    /// the answer to a missing or failed session - the type performs no session resolution, so
+    /// only deliberate operator configuration may construct it.
     #[must_use]
     pub const fn full_visibility() -> Self {
         Self { rows: Rows::Full }
     }
 
-    /// Constructs a proof from one scope's visibility bitmap.
+    /// Constructs a proof from a server-held visibility bitmap.
     ///
     /// Bit `r` set means node row `r` is visible.
     ///
-    /// The bitmap is server-held state (a fresh visibility evaluation or a verified sealed blob),
-    /// never a client-supplied value. Rows at or beyond the bitmap's capacity read as hidden.
+    /// Caller requirement: the bitmap is server-held state (a fresh visibility evaluation or a
+    /// verified sealed blob), never a client-supplied value - the constructor accepts any
+    /// [`BitSet`] and verifies no origin. Rows at or beyond the bitmap's capacity read as hidden.
     #[must_use]
     pub const fn from_bitmap(bitmap: BitSet) -> Self {
         Self {

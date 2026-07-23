@@ -28,9 +28,9 @@ pub struct AtlasAddress {
 
 /// CLI arguments for the `atlas` subcommand.
 ///
-/// Without a subcommand, `atlas` serves the root's active generation
-/// - the deployment default (`command: atlas` in the compose stack).
-/// `atlas fit` runs one production generation over the live store.
+/// Without a subcommand, `atlas` serves the root's active generation - the deployment default
+/// (`command: atlas` in the compose stack). `atlas fit` runs one production generation over the
+/// live store.
 #[derive(Debug, Parser)]
 pub struct AtlasArgs {
     #[clap(flatten)]
@@ -66,8 +66,8 @@ pub(crate) async fn run_atlas(
 ) -> Result<(), Report<GraphError>> {
     // This process serves without scoped sessions: full visibility
     // is the operator's explicit choice here, never a default the
-    // library assumes. Scoped per-session proofs replace this value
-    // when the authorization era's session transport lands.
+    // library assumes. Every response exposes the whole generation,
+    // so the surrounding deployment must restrict access to operators.
     let proof = hash_graph_atlas::serve::VisibilityProof::full_visibility();
     let router = cli::open_router(serve, &dsn, proof)
         .await

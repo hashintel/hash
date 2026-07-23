@@ -16,11 +16,11 @@ use super::{
 use crate::serve::{GenerationId, Manifest};
 
 /// The operation's description.
-const DESCRIPTION: &str = "Immutable bootstrap configuration, derived from the generation alone: \
-                           the wire version the envelopes speak, the served variants, the bucket \
-                           schedule the tile grid follows, the per-request caps, and the \
-                           snapshot's decision-time point when the source carried temporal axes. \
-                           Cacheable for the generation's lifetime.";
+const DESCRIPTION: &str = "The immutable bootstrap document for one generation: the wire version \
+                           the envelopes speak, the served variants, the bucket schedule the tile \
+                           grid follows, the published serving limits, and the snapshot's \
+                           decision-time point when the source carried temporal axes. Cacheable \
+                           for the generation's lifetime.";
 
 /// The route's path parameters.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]

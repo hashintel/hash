@@ -90,16 +90,18 @@ mod tests;
 
 /// The variant names one generation serves, in variant-index order.
 ///
-/// Version 1 serves the canonical frame alone; the set grows with the ladder's conditions, at which
-/// point it moves from this constant to generation metadata.
+/// Surface v1 serves exactly `plain`; routes and manifests take variant names and indices from
+/// this constant.
 pub const VARIANTS: [&str; 1] = ["plain"];
 
-/// Every per-request serving cap in one configurable value.
+/// The serving controls in one configurable value: request-validation caps, response-shaping
+/// caps, and the seal windows.
 ///
-/// The transport constructs one - flags and environment over the defaults - the handlers enforce
-/// it, and the manifest publishes it through [`ServeCaps::limits`]: one source, so advertisement
-/// and enforcement cannot disagree. Defaults are documented on the per-endpoint caps types; none of
-/// them is a wire constant.
+/// The transport constructs one - flags and environment over the defaults - and the handlers
+/// enforce it. Every published manifest limit derives from the enforced field through
+/// [`ServeCaps::limits`], so advertisement and enforcement cannot disagree; not every control is
+/// published. Defaults are documented on the per-endpoint caps types; none of them is a wire
+/// constant.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct ServeCaps {
     /// The tile endpoint's caps.

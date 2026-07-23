@@ -211,8 +211,7 @@ impl Context<'_> {
             knn: inputs.knn.view(),
             columns,
             landmarks: &landmarks,
-            // TODO: prior-generation temporal anchors enter here once a
-            //       retained-anchor stage translates them.
+            // No stage supplies temporal anchors; the pool is empty.
             anchors: &[],
             verdicts: &inputs.resolution.resolved,
         };
@@ -545,8 +544,8 @@ fn landmark_anchors(
 // for serving) and take the fifteen nearest per landmark in
 // O(S log S) total. The median consumes distances only, so tied
 // neighbour choices cannot change the result - an exact index
-// reproduces today's output bit for bit. Measure at a raised
-// capacity before acting.
+// reproduces the brute-force output bit for bit. Measure at a
+// raised capacity before acting.
 fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
     let mut nearest = [f32::INFINITY; LOCAL_SCALE_NEIGHBOURS];
     let mut count = 0_usize;
@@ -580,8 +579,8 @@ fn semantic_weight(view: &SemanticGraphView<'_>) -> f64 {
 /// by the anchor pool size.
 ///
 /// The relation base passes through, and a pool of zero keeps its base inert rather than dividing
-/// by nothing - the temporal-anchor pool is empty until its seam lands. A weightless graph passes
-/// every base through unchanged.
+/// by nothing - the current pipeline supplies no temporal anchors, so that pool is empty. A
+/// weightless graph passes every base through unchanged.
 #[expect(
     clippy::cast_precision_loss,
     reason = "corpus and pool counts remain exactly representable in f64 far beyond any corpus"

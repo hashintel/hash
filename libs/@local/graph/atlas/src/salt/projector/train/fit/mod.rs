@@ -325,8 +325,8 @@ pub(crate) struct Fitted<B: AutodiffBackend> {
 /// The training state at entry of the boundary step.
 ///
 /// This is the fork point of a run: the opening segment produces it, the ladder consumes it, and
-/// the checkpoint artifact serializes it (with the caller's generator position) so a future ladder
-/// can resume from the same boundary. The state is opaque - it exists only as the output of
+/// the checkpoint artifact serializes it (with the caller's generator position) so a resumed ladder
+/// starts from the same boundary. The state is opaque - it exists only as the output of
 /// [`fit_to_boundary`] or of the checkpoint artifact's validated open path - so a ladder can never
 /// start from a state no opening segment produced.
 ///

@@ -22,8 +22,9 @@
 //! items are keyed by the returned identity, so order is pinned exactly where identity is
 //! positional and free where it is not.
 //!
-//! The corpus has one definition. [`SCOPE`] - non-draft, non-archived, holding a whole-entity
-//! embedding, current at both axes - is interpolated verbatim into every corpus query, so the
+//! The corpus has one definition. [`SCOPE`] - non-draft, non-archived, non-link, holding a
+//! whole-entity embedding, current at both axes - is interpolated verbatim into every corpus
+//! query, so the
 //! universe cannot drift between the type bootstrap, the node stream, and the link stream. The
 //! embedding join is the scope gate rather than an enrichment: an entity without a whole-entity
 //! embedding has no position to fit. One row per identity is the embedding table's unique index
@@ -81,9 +82,13 @@ mod card;
 /// `$1` is the transaction-time point and `$2` the decision-time point of the dataset's
 /// [`TemporalAxes`].
 ///
-/// `scope` is every non-draft, non-archived entity holding a whole-entity embedding whose edition
-/// is current at the dataset's temporal axes, with its dense row assigned by canonical `(web_id,
-/// entity_uuid)` order.
+/// `scope` is every non-draft, non-archived, non-link entity holding a whole-entity embedding whose
+/// edition is current at the dataset's temporal axes, with its dense row assigned by canonical
+/// `(web_id, entity_uuid)` order. Link entities render as edges only: an edition typed by the link
+/// entity type - resolved through the store's materialized type closure, anchored on the type's
+/// base URL rather than a version-pinned ontology id - is excluded from the point universe
+/// unconditionally. The exclusion keys on what the edition IS rather than what edges it has, so a
+/// link with a missing left attachment is still no point glyph.
 //
 // The embeddings table's own `draft_id` column is deliberately not
 // consulted: the unique index `(web_id, entity_uuid, property)` NULLS NOT
@@ -107,6 +112,13 @@ const SCOPE: &str = "
           ON edition.entity_edition_id = meta.entity_edition_id
          AND NOT edition.archived
         WHERE embedding.property IS NULL
+          AND NOT EXISTS (
+              SELECT FROM entity_is_of_type AS is_link
+              JOIN ontology_ids AS link_type
+                ON link_type.ontology_id = is_link.entity_type_ontology_id
+               AND link_type.base_url = 'https://blockprotocol.org/@blockprotocol/types/entity-type/link/'
+              WHERE is_link.entity_edition_id = meta.entity_edition_id
+          )
     )";
 
 /// The link universe, composed after [`SCOPE`].
@@ -413,10 +425,11 @@ fn render_card(
 
 /// A [`Dataset`] reading one frozen view of the HASH graph store.
 ///
-/// The dataset's scope is every non-draft, non-archived entity that holds a whole-entity embedding
-/// and is current at the dataset's [`TemporalAxes`], plus every link whose endpoints both fall
-/// inside that scope. Prefix truncation, l2 normalization, and endpoint densification all happen
-/// inside the store's queries; the connection ships dense rows and normalized prefixes only.
+/// The dataset's scope is every non-draft, non-archived, non-link entity that holds a whole-entity
+/// embedding and is current at the dataset's [`TemporalAxes`], plus every link whose endpoints
+/// both fall inside that scope; link entities render as edges only, never as points. Prefix
+/// truncation, l2 normalization, and endpoint densification all happen inside the store's queries;
+/// the connection ships dense rows and normalized prefixes only.
 pub(crate) struct PostgresDataset<'client> {
     transaction: Transaction<'client>,
     axes: TemporalAxes,

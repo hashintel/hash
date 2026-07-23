@@ -62,8 +62,13 @@ pub struct OpenOptions {
     /// The keyed permutation derives from it per generation at open.
     ///
     /// The default is a fixed development value: wire ids stay deterministic across restarts
-    /// without configuration, and a production deployment supplies its own secret. The secret
-    /// never rotates for a generation while it serves; rotation happens at generation boundaries.
+    /// without configuration, and a production deployment supplies its own secret.
+    ///
+    /// Operator contract, unenforced by any binding: the secret must not change for a generation
+    /// that has ever served. Nothing fingerprints the secret, so reopening the same generation
+    /// under a different value silently re-keys every wire id while client cache identity
+    /// (authorization context, generation, route, canonical query) stays constant. A secret
+    /// change therefore requires a generation rotation and application-cache invalidation.
     pub wire_secret: Vec<u8>, /* NOTE: Shouldn't this live under a `Secret` type and be fixed
                                * size? so that it zeroes on drop? */
 }

@@ -176,7 +176,8 @@ impl Atlas {
     /// Every rejection happens here, so encoding cannot fail.
     ///
     /// Delivery order is ascending link-entity identity bytes, independent of the tiles listed
-    /// and of truncation, so identical requests yield identical bytes - and the order is
+    /// and of truncation, so identical requests yield identical bytes under one bound serving
+    /// state (generation, visibility, secret, caps) - and the order is
     /// client-verifiable from the `EDGE_IDS` column alone, carrying no internal-order
     /// information. Beyond `caps.edges` the rank-ordered cap keeps the edges whose worse endpoint
     /// ranks best - an edge is only as prominent as its less-prominent endpoint - with ties

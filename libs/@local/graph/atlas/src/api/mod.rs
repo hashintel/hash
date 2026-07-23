@@ -47,7 +47,7 @@ const API_DESCRIPTION: &str =
 
 1. `GET /v1/atlas/current` - the generation this process serves; the one mutable read.
 2. `GET /v1/atlas/generation/{generation}/manifest` - the immutable per-generation bootstrap \
-     (configuration and snapshot provenance): the served variants, the per-request caps \
+     (configuration and snapshot provenance): the served variants, the published serving limits \
      (`limits`), and the bucket schedule the tile grid follows.
 3. `POST` the tile, edges, and locate routes for binary geometry; `POST` translate for JSON \
      identity resolution.

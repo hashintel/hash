@@ -240,9 +240,7 @@ pub(crate) struct Architecture {
     pub role_dimensions: NonZero<usize> = DEFAULT_ROLE_DIMENSIONS,
     /// Width of the condition vector consumed by every `FiLM` layer.
     ///
-    /// The initial generation feeds the single relation-lens column `[eta]`; a future
-    /// type-conditioned generation appends pooled type-context columns without touching the model
-    /// code.
+    /// The built pipeline feeds the single relation-lens column `[eta]`; the width is configurable and the model is parametric in it.
     pub condition_dimensions: NonZero<usize> = DEFAULT_CONDITION_DIMENSIONS,
 }
 

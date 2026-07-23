@@ -537,8 +537,7 @@ impl<A: Allocator> Batch<A> {
     /// With the row dimension padded to [`ROW_ALIGNMENT`].
     ///
     /// The condition vector is the relation lens: every row carries the batch's rung as its single
-    /// column. A future type-context generation appends its pooled columns here; the model is
-    /// already parametric in the condition width.
+    /// column; the model is parametric in the condition width.
     ///
     /// # Panics
     ///

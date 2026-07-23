@@ -1,15 +1,16 @@
 //! The manifest document.
 //!
-//! The immutable Surface v1 bootstrap, derived from the generation's configuration and snapshot
-//! provenance - no corpus-derived aggregates.
+//! The immutable Surface v1 bootstrap, derived from serving configuration and the generation's
+//! snapshot provenance - no corpus-derived aggregates.
 
 use super::{Atlas, GenerationId, ServeCaps, VARIANTS};
 use crate::salt::wire::WIRE_VERSION;
 
-/// The per-request caps of the manifest's `limits` block.
+/// The published serving limits of the manifest's `limits` block.
 ///
-/// Transport configuration published as data, so clients validate before sending instead of
-/// learning caps from rejections.
+/// Serving configuration published as data. Request-validation caps let clients validate before
+/// sending instead of learning them from rejections; response-shaping caps and the seal windows
+/// publish what delivery truncates and when sealed values expire.
 ///
 /// Never built freehand outside tests: [`ServeCaps::limits`] derives it from the caps the handlers
 /// actually enforce, so the published limits cannot disagree with enforcement.
@@ -72,7 +73,7 @@ pub struct Manifest {
     pub variants: [&'static str; 1],
     /// The bucket-cut schedule the tile grid follows.
     pub bucket_schedule: BucketSchedule,
-    /// The per-request caps.
+    /// The published serving limits.
     pub limits: ManifestLimits,
     /// The snapshot's decision-time point, ISO-8601.
     ///
