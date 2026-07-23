@@ -41,7 +41,7 @@ fn then_composes_in_application_order() {
 
     // Scale first, then translate: (6, 8) + (10, 0).
     assert_eq!(scale.then(translation).apply(vec), Vec2::new(16.0, 8.0));
-    // Translate first, then scale: (13, 4) * 2.
+    // Translate first, then scale: (13, 4) · 2.
     assert_eq!(translation.then(scale).apply(vec), Vec2::new(26.0, 8.0));
 }
 
@@ -201,7 +201,7 @@ proptest! {
             .inverse()
             .expect("scales bounded away from zero keep the determinant normal");
 
-        // The forward image reaches |p| * 10 + 1e3; the inverse multiplies
+        // The forward image reaches |p| · 10 + 1e3; the inverse multiplies
         // the rounding by up to another factor of 10.
         let magnitude = point.length().mul_add(100.0, 1e4);
         assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
@@ -220,7 +220,7 @@ proptest! {
         let composed = first.then(second).apply(point);
         let sequential = second.apply(first.apply(point));
 
-        // The first image reaches |p| * 10 + 1e3, the second another
+        // The first image reaches |p| · 10 + 1e3, the second another
         // factor of 10 plus 1e3.
         let magnitude = point.length().mul_add(100.0, 1.1e4);
         assert_close_at_magnitude(composed, sequential, magnitude);

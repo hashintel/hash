@@ -334,7 +334,7 @@ fn lod_config_carries_the_key_width_bound() {
     assert_eq!(config.max_tile_depth, 18);
     assert_eq!(config.deepest(), Some(depth(24)));
 
-    // The inequality z_max + m <= 32 binds exactly at the key width.
+    // The inequality z_max + m ≤ 32 binds exactly at the key width.
     let at_width = LodConfig {
         span: log2(6),
         max_tile_depth: 26,

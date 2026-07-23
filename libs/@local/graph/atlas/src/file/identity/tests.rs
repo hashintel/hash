@@ -143,7 +143,7 @@ fn empty_table_reopens() {
 #[test]
 fn index_keys_delimit_strides_across_pages() {
     // 8-byte ids stride at 256 pairs: 600 rows need 3 index keys, and
-    // key `i` is the id of pair `i * 256`. Big-endian bytes sort like
+    // key `i` is the id of pair `i · 256`. Big-endian bytes sort like
     // the numbers themselves, so the identity permutation is the
     // ascending order.
     let ids: Vec<[u8; 8]> = (0..600_u64).map(u64::to_be_bytes).collect();

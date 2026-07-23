@@ -487,7 +487,7 @@ proptest! {
     /// Lerp hits its endpoints.
     ///
     /// Factor zero is exact; factor one holds up to rounding scaled by the operands' magnitude (the
-    /// interpolation computes `from + (to - from) * factor`, which rounds twice). Coordinates are
+    /// interpolation computes `from + (to - from) · factor`, which rounds twice). Coordinates are
     /// bounded to `-1e5..1e5`.
     #[test]
     fn lerp_hits_endpoints_on_arbitrary_vectors(

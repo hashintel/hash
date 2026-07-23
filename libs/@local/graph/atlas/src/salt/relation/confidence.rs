@@ -2,7 +2,7 @@
 //!
 //! The dataset stream attaches up to three scores to one link instance ([`RelationConfidence`]);
 //! [`RelationConfidence::effective`] combines them into the per-instance factor
-//! `c = c_link · sqrt(c_source · c_target)` with missing scores contributing the neutral factor 1,
+//! `c = c_link · √(c_source · c_target)` with missing scores contributing the neutral factor 1,
 //! and [`Scored`] retains which scores were present, down to its artifact wire encoding.
 
 use crate::math::UnitFraction;

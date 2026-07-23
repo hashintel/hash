@@ -13,6 +13,8 @@
 //! Everything here is a pure function of its inputs: equal inputs give byte-equal columns, so a
 //! generation's spatial index is reproducible from its coordinates, rank inputs, and seed alone.
 
+#[cfg(feature = "bench")]
+pub mod bench;
 pub(crate) mod cascade;
 pub(crate) mod key;
 pub(crate) mod order;

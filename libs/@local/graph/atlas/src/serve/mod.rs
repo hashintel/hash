@@ -37,8 +37,8 @@
 pub use self::{
     codec::WireRow,
     detail::{
-        DeliveredEntities, DetailError, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails,
-        NodeDetails, PostgresDetails, SimpleValue,
+        DeliveredEntities, DetailError, EdgeLinkDetails, GraphDatabaseClient, LocateLinkDetails,
+        LocateNodeDetails, NodeDetails, SimpleValue,
     },
     edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
     error::OpenAtlasError,

@@ -27,7 +27,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 
 /// The five-node fixture with a parallel pair, a self-loop, and a zero-degree node.
 ///
-/// Edge rows: 0 and 3 both `0 -> 1` (parallel), 1 is `2 -> 3`, 2 is the self-loop `3 -> 3`. Node
+/// Edge rows: 0 and 3 both `0 → 1` (parallel), 1 is `2 → 3`, 2 is the self-loop `3 → 3`. Node
 /// row 4 touches nothing.
 const ENDPOINTS: [[u64; 2]; 4] = [[0, 1], [2, 3], [3, 3], [0, 1]];
 const ROWS: usize = 5;

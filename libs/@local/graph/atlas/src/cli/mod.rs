@@ -20,7 +20,7 @@ use crate::{
     api,
     run::{self, ConnectError, RunError},
     serve::{
-        Atlas, CurrentError, GenerationRoot, OpenAtlasError, OpenOptions, PostgresDetails,
+        Atlas, CurrentError, GenerationRoot, GraphDatabaseClient, OpenAtlasError, OpenOptions,
         ServeCaps, VisibilityProof,
     },
 };
@@ -424,7 +424,7 @@ pub async fn open_router(
     // The store rides every serve: detail trailers hydrate live.
     let client = run::connect(dsn).await.map_err(ServeError::Connect)?;
     tracing::info!("detail trailers hydrate from the store");
-    let details = Arc::new(PostgresDetails::new(client));
+    let details = Arc::new(GraphDatabaseClient::new(client));
 
     Ok(
         api::router(atlas, args.caps.resolve(), details, proof).route(

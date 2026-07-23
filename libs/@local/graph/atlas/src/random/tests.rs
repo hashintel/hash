@@ -53,7 +53,7 @@ fn uniform_below_covers_every_residue_evenly() {
         counts[usize::try_from(value).expect("a value below seven fits usize")] += 1;
     }
 
-    // Expected 10_000 per residue; +-10% is ~26 standard deviations, so a
+    // Expected 10_000 per residue; ±10% is ~26 standard deviations, so a
     // failure indicates bias rather than bad luck with the fixed seed.
     for (residue, &count) in counts.iter().enumerate() {
         assert!(
@@ -299,7 +299,7 @@ fn normal_quantile_rejects_out_of_domain_probabilities() {
 /// Tighter margins and higher confidence grow the sample, smaller deviations shrink it.
 #[test]
 fn mean_sample_size_follows_the_closed_form() {
-    // ceil((2.326348 * 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.
+    // ceil((2.326348 · 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.
     assert_eq!(mean_sample_size(0.32, 0.012, 0.99), Some(3849));
     // A deviation of zero needs no sample.
     assert_eq!(mean_sample_size(0.0, 0.01, 0.99), Some(0));

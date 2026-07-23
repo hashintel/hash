@@ -92,11 +92,11 @@ fn options(cap: usize) -> CalibrationOptions {
 
 #[test]
 fn z_is_measured_in_the_loss_normalization_by_hand() {
-    // One disjoint pair: degrees 1 each, so nu = 1/sqrt(2 * 2) = 0.5.
+    // One disjoint pair: degrees 1 each, so ν = 1/√(2 · 2) = 0.5.
     let index = attraction_index(2, &[proximal_policy(5)], vec![instance(0, 5, 0, 1)]);
 
-    // d = 5 (a 3-4-5 triangle); normalization = sqrt((0.75 + 0.25) *
-    // (24.75 + 0.25)) = sqrt(25) = 5, so z = 1 exactly.
+    // d = 5 (a 3-4-5 triangle); normalization = √((0.75 + 0.25) ·
+    // (24.75 + 0.25)) = √(25) = 5, so z = 1 exactly.
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
     let scales = LocalScales::new(Box::new([scale(0.75), scale(24.75)]));
 
@@ -108,7 +108,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
         options(4),
     );
 
-    // weight = sampling(1) * c(1) * nu(0.5) * p_P(1) * h(1) = 0.5.
+    // weight = sampling(1) · c(1) · ν(0.5) · p_P(1) · h(1) = 0.5.
     assert_eq!(outcome.radius, Some(1.0));
     assert_eq!(outcome.types.len(), 1);
     assert_eq!(outcome.types[0].relation.get(), 5);
@@ -121,7 +121,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
 
 #[test]
 fn radius_is_the_weighted_p75() {
-    // Four disjoint pairs (all nu = 0.5, weight 0.5) at z = 1, 2, 3, 4.
+    // Four disjoint pairs (all ν = 0.5, weight 0.5) at z = 1, 2, 3, 4.
     let instances = (0..4)
         .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
         .collect();
@@ -159,7 +159,7 @@ fn radius_is_the_weighted_p75() {
 #[test]
 fn cap_bounds_a_high_volume_type() {
     // Type 5: eight disjoint pairs at z = 1. Type 9: two disjoint
-    // pairs at z = 5. All nu = 0.5.
+    // pairs at z = 5. All ν = 0.5.
     let mut instances: Vec<_> = (0..8)
         .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
         .collect();
@@ -205,8 +205,8 @@ fn cap_bounds_a_high_volume_type() {
 #[test]
 fn hubs_are_discounted_by_degree() {
     // Type 5: one hub (node 0) linked to four leaves, z = 2 per pair;
-    // within the group the hub's degree is 4, so nu = 1/sqrt(5 * 2).
-    // Type 9: three disjoint pairs at z = 1 with nu = 1/2.
+    // within the group the hub's degree is 4, so ν = 1/√(5 · 2).
+    // Type 9: three disjoint pairs at z = 1 with ν = 1/2.
     let instances = vec![
         instance(0, 5, 0, 1),
         instance(1, 5, 0, 2),
@@ -241,7 +241,7 @@ fn hubs_are_discounted_by_degree() {
         options(4),
     );
 
-    // The hub type has MORE pairs yet LESS mass: 4/sqrt(10) < 3/2.
+    // The hub type has MORE pairs yet LESS mass: 4/√(10) < 3/2.
     let hub = &outcome.types[0];
     let peers = &outcome.types[1];
     assert!(hub.pairs > peers.pairs);

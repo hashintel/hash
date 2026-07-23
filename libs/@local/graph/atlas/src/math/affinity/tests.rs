@@ -19,14 +19,14 @@ use crate::math::{AffinityCurve, Vec2, Vec2x4T, tests::POINTS};
 
 /// The reference parameters for spread 1.0, minimum distance 0.1.
 // Provenance: umap-learn's `find_ab_params(spread=1.0, min_dist=0.1)`
-// yields a ~= 1.5769, b ~= 0.8951 over the same 300-sample grid.
+// yields a ≈ 1.5769, b ≈ 0.8951 over the same 300-sample grid.
 const CURVE_A: f32 = 1.577;
 const CURVE_B: f32 = 0.895;
 
 /// Independent f64 reference for the fit objective.
 ///
 /// The residual sum of squares of a candidate curve against the target falloff sampled on the
-/// crate's default grid, 300 samples over `[0, 3 * spread]`.
+/// crate's default grid, 300 samples over `[0, 3 · spread]`.
 ///
 /// The grid constants are written out by hand so the reference breaks loudly when the documented
 /// default contract changes.
@@ -179,8 +179,8 @@ fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
 #[test]
 fn fit_scales_equivariantly_with_distance() {
     // Scaling-law certificate: scaling all distances by `s` maps a
-    // solution `(a, b)` to `(a * s^(-2b), b)` exactly, and
-    // `fit(s * spread, s * minimum_distance)` samples the same target at
+    // solution `(a, b)` to `(a · s^(-2b), b)` exactly, and
+    // `fit(s · spread, s · minimum_distance)` samples the same target at
     // distances scaled by `s`.
     let base = AffinityCurve::fit(1.0, 0.1).expect("the reference inputs are well-conditioned");
 
@@ -397,8 +397,8 @@ fn coincident_pairs_receive_no_gradient() {
 fn near_coincident_repulsion_saturates_the_clip() {
     let curve = curve();
     // Close along x, but far enough that the coefficient (capped near
-    // 2 * gamma * b / 0.001 by the repulsion guard) times the difference
-    // still exceeds the clip: 0.01 * ~1600 is ~16, clamped to 4.
+    // 2 · γ · b / 0.001 by the repulsion guard) times the difference
+    // still exceeds the clip: 0.01 · ~1600 is ~16, clamped to 4.
     let from = Vec2::new(0.01, 0.0);
     let to = Vec2::ZERO;
 
@@ -437,7 +437,7 @@ fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
 
 /// Curve parameters bounded to `a` in `1e-3..1e3` and `b` in `0.1..5`.
 ///
-/// Where `a * d^(2b)` stays finite over the strategy's distances.
+/// Where `a · d^(2b)` stays finite over the strategy's distances.
 fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
     (1e-3_f32..1e3, 0.1_f32..5.0).prop_map(|(curve_a, curve_b)| {
         AffinityCurve::new(curve_a, curve_b).expect("the strategy's ranges are positive and finite")
@@ -467,7 +467,7 @@ proptest! {
     /// The affinity lies in `(0, 1]` and is monotone non-increasing in the squared distance.
     ///
     /// Monotonicity holds up to a few ulps of libm `powf` rounding. Squared distances are bounded
-    /// to `0..1e6`, where `a * d^(2b)` stays finite for every curve in the strategy.
+    /// to `0..1e6`, where `a · d^(2b)` stays finite for every curve in the strategy.
     #[test]
     fn affinity_is_a_monotone_probability(
         curve in curve_strategy(),

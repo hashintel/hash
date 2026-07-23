@@ -52,7 +52,15 @@ impl EdgesResponse<'_> {
     /// the interning laws.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
+        /// Bytes per delivered edge across the three columns: source, target, identity.
         const ROW_SIZE: usize = size_of::<u32>() + size_of::<u32>() + size_of::<[u8; 32]>();
+        /// Reserve allowance for the `HEAD` payload and the slot padding.
+        ///
+        /// `HEAD` is `map(5)` with one-byte uint keys: the 34-byte generation echo, two uints
+        /// of at most nine encoded bytes, and two one-byte booleans - 60 bytes at the ceiling -
+        /// and the four slots pad to 8-byte boundaries for at most 28 more. The trailer is not
+        /// counted: its extent is store-shaped text, unknowable before hydration.
+        const HEAD_AND_PADDING: usize = 96;
 
         let count = self.sources.len();
         assert_eq!(
@@ -71,7 +79,7 @@ impl EdgesResponse<'_> {
 
         let mut envelope = EnvelopeWriter::new(Kind::Edges, 4);
 
-        envelope.reserve(count * ROW_SIZE); // NOTE: made the constant actually derived, feel free to adjust, might be too small because of header and trailer not being accounted for
+        envelope.reserve(HEAD_AND_PADDING + count * ROW_SIZE);
         envelope.slot(|buf| self.encode_head(buf, count as u64));
         envelope.slot(|buf| write_column(buf, self.sources));
         envelope.slot(|buf| write_column(buf, self.targets));

@@ -115,6 +115,11 @@ name              = "quality_live"
 required-features = ["bench"]
 
 [[bench]]
+name              = "backfill_walk"
+harness           = false
+required-features = ["bench"]
+
+[[bench]]
 name    = "math_kernels"
 harness = false
 

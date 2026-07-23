@@ -123,7 +123,7 @@ pub(super) async fn handler(
     let details = match entities {
         Some(entities) => Some(
             state
-                .details
+                .remote
                 .labels_and_icons(&entities)
                 .in_current_span()
                 .await

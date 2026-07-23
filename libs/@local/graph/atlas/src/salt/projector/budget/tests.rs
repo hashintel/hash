@@ -56,9 +56,9 @@ fn options_reject_invalid_coefficients() {
 #[test]
 fn clip_matches_hand_computed_dyadic_values() {
     // baseline = |(0, 4)| = 4; relation norm = 63.75;
-    // positive factor = 1 * 4 / (63.75 + 0.25) = 0.0625 exactly;
-    // clipped = (0, 63.75 * 0.0625) = (0, 3.984375);
-    // total factor = min(1, 2 * 4 / (3.984375 + 0.25)) = 1 exactly.
+    // positive factor = 1 · 4 / (63.75 + 0.25) = 0.0625 exactly;
+    // clipped = (0, 63.75 · 0.0625) = (0, 3.984375);
+    // total factor = min(1, 2 · 4 / (3.984375 + 0.25)) = 1 exactly.
     let outcome = options(1.0, 2.0, 0.5, 0.25).clip(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75));
 
     assert_eq!(outcome.baseline, 4.0);
@@ -87,7 +87,7 @@ fn clip_floors_a_vanished_semantic_gradient() {
 
     assert_eq!(outcome.semantic_norm, 0.0);
     assert_eq!(outcome.baseline, 0.5);
-    // positive factor = 1 * 0.5 / (8 + 0.25) is below one: the floor,
+    // positive factor = 1 · 0.5 / (8 + 0.25) is below one: the floor,
     // not the vanished semantic norm, sets the budget.
     assert!(outcome.positive_factor < 1.0);
     assert!(outcome.gradient.length() <= 0.5);
@@ -131,15 +131,15 @@ fn summary_reports_hand_computed_fractions_and_ratios() {
 #[test]
 fn equal_coefficients_couple_the_cap_to_the_clip_by_an_epsilon() {
     // With positive == total, a positively clipped gradient lands
-    // within one epsilon of the shared budget, so the trailing factor
-    // dips just below one: activation is the epsilon signature, and
+    // within one ε of the shared budget, so the trailing factor
+    // dips just below one: activation is the ε signature, and
     // the mean cap factor is what separates it from real capping.
     let outcome = options(1.0, 1.0, 0.5, 0.25).clip(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75));
 
     assert!(outcome.positive_factor < 1.0);
     assert!(outcome.total_factor < 1.0);
-    // The shave is bounded by epsilon over the budget: factor >=
-    // budget / (budget + epsilon) = 4 / 4.25.
+    // The shave is bounded by ε over the budget: factor ≥
+    // budget / (budget + ε) = 4 / 4.25.
     assert!(outcome.total_factor >= 4.0 / 4.25);
 }
 
@@ -175,7 +175,7 @@ fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
         .expect("gradients should convert to f32 values");
 
     // The surrogate's coordinate gradient IS the requested field, bit
-    // for bit: each entry is produced by `1 * requested`, untouched by
+    // for bit: each entry is produced by `1 · requested`, untouched by
     // any arithmetic that could round.
     assert_eq!(deposited, requested);
 }
@@ -248,7 +248,7 @@ fn parameter_gradients(
 
 #[test]
 fn surrogate_matches_ordinary_autodiff_through_the_model() {
-    // Reference: L(y) = sum(y * y) has coordinate gradient 2 * y. Path
+    // Reference: L(y) = sum(y · y) has coordinate gradient 2 · y. Path
     // A backpropagates L through the model directly; path B evaluates
     // the same coordinate gradient detached and hands it to the
     // surrogate. Equal parameter gradients certify that one surrogate
@@ -326,7 +326,7 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
 proptest! {
     /// Both budget inequalities hold for every input.
     ///
-    /// The applied gradient's norm stays within `positive * baseline` and within `total *
+    /// The applied gradient's norm stays within `positive · baseline` and within `total ·
     /// baseline`, and both factors lie in `(0, 1]`.
     #[test]
     fn clip_satisfies_the_budget_inequalities(

@@ -83,6 +83,10 @@ pub(super) async fn handler(
     reject_generation(&state, &generation)?;
     reject_variant(&variant)?;
 
+    // NOTE: I feel like there's a better way to handle this here, instead of doing this `Option`
+    // dance, a custom extractor over `Path` and `Json` maybe that would turn the response into a
+    // problem? Because this is... well... not great ergonomics and defeats the purpose of using
+    // axum/aide.
     let Some(Json(request)) = body else {
         return Err(Problem::new(
             StatusCode::BAD_REQUEST,
@@ -151,13 +155,13 @@ pub(super) async fn handler(
         )
     };
     let node_details = state
-        .details
+        .remote
         .locate_details(&nodes, state.caps.locate.properties)
         .in_current_span()
         .await
         .map_err(internal)?;
     let link_details = state
-        .details
+        .remote
         .locate_link_details(
             &links,
             state.caps.locate.link_type_ids,
@@ -190,6 +194,7 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                         .to_owned(),
                 );
             }
+
             operation
         })
         .response_with::<200, Saltile, _>(|response| {

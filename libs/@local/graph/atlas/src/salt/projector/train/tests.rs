@@ -140,7 +140,7 @@ fn relation_indexes(
 
 /// The affinity energy of the dyadic fixtures.
 ///
-/// `a = 1, b = 1, epsilon = 0.5`, so at squared distance one both logarithm arguments are exactly
+/// `a = 1, b = 1, ε = 0.5`, so at squared distance one both logarithm arguments are exactly
 /// one (zero value) and the derivative mass is exactly `0.25`.
 fn affinity() -> AffinityEnergy {
     AffinityEnergy::new(
@@ -471,7 +471,7 @@ fn draw_skips_the_relation_family_at_a_zero_rung() {
 #[test]
 fn draw_computes_the_estimator_scales() {
     // The symmetric graph stores each undirected edge twice: total
-    // weight W = 2 * (0.5 + 0.25 + 1.0) = 3.5 exactly.
+    // weight W = 2 · (0.5 + 0.25 + 1.0) = 3.5 exactly.
     let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
     let indexes = relation_indexes(
         4,
@@ -679,10 +679,10 @@ fn objective_matches_the_hand_computed_semantic_field() {
     // both at unit distance. With the dyadic affinity the values are
     // exactly zero and the derivative mass is exactly 0.25 per pair.
     //
-    // Semantic factor: lambda_S * scale = 0.5 * 2 = 1, so the pair
-    // gradient is difference * (2 * 1 * 0.25) = (-0.5, 0) at row 0.
-    // Ordinary factor: lambda_N * scale = 2 * 1 = 2, so the pair
-    // gradient is (0, -1) * (2 * 2 * -0.25) = (0, 1) at row 2.
+    // Semantic factor: λ_S · scale = 0.5 · 2 = 1, so the pair
+    // gradient is difference · (2 · 1 · 0.25) = (-0.5, 0) at row 0.
+    // Ordinary factor: λ_N · scale = 2 · 1 = 2, so the pair
+    // gradient is (0, -1) · (2 · 2 · -0.25) = (0, 1) at row 2.
     //
     // Surrogate: <y1, g1> + <y3, g3> = 0.5 - 1 = -0.5 exactly.
     let mut populations = empty_populations(non_negative!(0.0));
@@ -720,7 +720,7 @@ fn objective_matches_the_hand_computed_semantic_field() {
 /// The relation fixture.
 ///
 /// Rows {0, 1} at unit distance, one semantic pair, and one single-edge Proximal group whose hand
-/// factors are exactly `c = 1`, `nu = 0.5`, class weights `(0, 1)`, strength one.
+/// factors are exactly `c = 1`, `ν = 0.5`, class weights `(0, 1)`, strength one.
 fn relation_fixture() -> (RelationIndexes, LocalScales) {
     let indexes = relation_indexes(2, &[proximal_policy(7)], vec![instance(0, 7, 0, 1)]);
     let scales = LocalScales::new(Box::new([non_negative!(0.5), non_negative!(0.5)]));
@@ -756,12 +756,12 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
     // give unit normalization, z = 1 on the Proximal radius.
     //
     // Semantic gradient at row 0: (-0.5, 0), norm 0.5 = baseline.
-    // Relation factor: eta * lambda_R * scale * c * nu * strength
-    // = 1 * 1 * 2 * 1 * 0.5 * 1 = 1; gradient = difference *
-    // (factor * sigmoid(0) / (d * norm)) = (-0.5, 0), norm 0.5.
+    // Relation factor: η · λ_R · scale · c · ν · strength
+    // = 1 · 1 · 2 · 1 · 0.5 · 1 = 1; gradient = difference ·
+    // (factor · sigmoid(0) / (d · norm)) = (-0.5, 0), norm 0.5.
     //
-    // Budget beta_+ = beta_R = 0.5, floor 0.25: positive factor
-    // = 0.5 * 0.5 / 0.5 = 0.5 exactly (the epsilon vanishes in f32),
+    // Budget β_+ = β_R = 0.5, floor 0.25: positive factor
+    // = 0.5 · 0.5 / 0.5 = 0.5 exactly (the ε vanishes in f32),
     // clipped norm 0.25, total factor exactly 1. Applied relation
     // gradient (-0.25, 0); combined (-0.75, 0).
     let (indexes, scales) = relation_fixture();
@@ -800,8 +800,8 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
 
 #[test]
 fn objective_reports_the_relation_loss_value() {
-    // The relation value is factor * proximal weight * temperature *
-    // softplus(0) = 1 * 1 * 0.5 * ln 2.
+    // The relation value is factor · proximal weight · temperature ·
+    // softplus(0) = 1 · 1 · 0.5 · ln 2.
     let (indexes, scales) = relation_fixture();
     let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
@@ -829,7 +829,7 @@ fn objective_reports_the_relation_loss_value() {
 #[test]
 fn relation_gradients_are_linear_in_the_lens() {
     // With the clip inactive, the relation share of the combined field
-    // is eta * (-0.5, 0) at row 0: exactly (-0.5 - eta/2, 0) combined.
+    // is η · (-0.5, 0) at row 0: exactly (-0.5 - η/2, 0) combined.
     let (indexes, scales) = relation_fixture();
     let coordinates = [0.0, 0.0, 1.0, 0.0];
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
@@ -849,8 +849,8 @@ fn relation_gradients_are_linear_in_the_lens() {
 #[test]
 fn support_terms_ride_autodiff_outside_the_budget() {
     // One landmark holding row 1 at (2, 0) while it sits at (1, 0):
-    // residual d = 1 smoothed to sqrt(1.25) - 0.5, normalized by
-    // radius 0.5 + epsilon 0.5 = 1, inside the unit Huber threshold.
+    // residual d = 1 smoothed to √(1.25) - 0.5, normalized by
+    // radius 0.5 + ε 0.5 = 1, inside the unit Huber threshold.
     // Its gradient flows through autodiff; row 0 keeps exactly its
     // semantic gradient, certifying the seam separation.
     let mut populations = empty_populations(non_negative!(0.0));
@@ -923,8 +923,8 @@ fn evaluate_rejects_non_finite_coordinates() {
 
 #[test]
 fn displacement_histogram_buckets_by_exponent() {
-    // Buckets are f32 biased exponents: 0.5 -> 126, 1.0 and 1.5 ->
-    // 127, 2.0 -> 128, exact zero -> 0. The moments are dyadic sums:
+    // Buckets are f32 biased exponents: 0.5 → 126, 1.0 and 1.5 →
+    // 127, 2.0 → 128, exact zero → 0. The moments are dyadic sums:
     // 0.25 + 1 + 2.25 + 4 = 7.5 for the squares.
     let mut histogram = DisplacementHistogram::default();
     for displacement in [0.0, 0.5, 1.0, 1.5, 2.0] {

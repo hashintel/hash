@@ -1,4 +1,56 @@
 //! A [`Dataset`] over the live HASH graph store.
+//!
+//! One transaction, one graph: [`PostgresDataset::new`] opens a read-only repeatable-read
+//! transaction - Postgres snapshot isolation - and every stream the trait serves queries through
+//! it, so the nodes, the links, the type table, and the cards all describe one committed state
+//! even though they are separate queries issued at separate times. The [`TemporalAxes`] select
+//! which graph that state describes: every entity and link is gated to the editions whose
+//! transaction time and decision time contain the axes, so axes in the past read the graph as it
+//! stood then, and the axes a fit records make its input addressable after the fact.
+//!
+//! Node row ids are positions, minted by the [`SCOPE`] CTE: `row_number()` over canonical
+//! `(web_id, entity_uuid)` order, zero-based. The ordering key is the entity's immutable identity,
+//! not its content, and under the frozen snapshot every query sees the same visible set - so every
+//! query that interpolates [`SCOPE`] re-derives the identical numbering. That agreement is
+//! load-bearing: [`LINKS`] densifies endpoints through `scope` in a different query execution than
+//! the node stream that delivers those rows, and the two coincide because of the snapshot, not by
+//! luck. Delivery order rides the same contract - the node stream orders by `scope.row`, so the
+//! consumer's arrival index is the row id; the link stream orders by link identity - already a
+//! total order, since the store admits exactly one attachment pair per link entity, and the
+//! endpoint-row keys ride behind it as inert tiebreakers. The
+//! request-shaped streams (canonical embeddings, node types) carry no `ORDER BY` at all: their
+//! items are keyed by the returned identity, so order is pinned exactly where identity is
+//! positional and free where it is not.
+//!
+//! The corpus has one definition. [`SCOPE`] - non-draft, non-archived, holding a whole-entity
+//! embedding, current at both axes - is interpolated verbatim into every corpus query, so the
+//! universe cannot drift between the type bootstrap, the node stream, and the link stream. The
+//! embedding join is the scope gate rather than an enrichment: an entity without a whole-entity
+//! embedding has no position to fit. One row per identity is the embedding table's unique index
+//! promise (`(web_id, entity_uuid, property)` `NULLS NOT DISTINCT`), so `row_number` cannot mint
+//! twice; the draft axis is decided by `entity_temporal_metadata.draft_id` alone.
+//!
+//! [`LINKS`] composes after [`SCOPE`]: a link entity's outgoing `has-left-entity` and
+//! `has-right-entity` edges self-join into the link's single `(source, target)` pair - the graph
+//! admits no hypergraphs - and both
+//! endpoints resolve through `scope` - densification and admission in one motion, so a link whose
+//! endpoint falls outside the corpus drops with its endpoint, and the delivered `source_row` and
+//! `target_row` are exactly the node stream's positions. The link entity itself passes the same
+//! temporal and archival gates as any node.
+//!
+//! The type table is the ontology universe: every type reachable from the corpus at any
+//! inheritance depth, in uuid byte order, its position being the ontology row id. The table
+//! round-trips into later queries as the `$3` array, where `unnest WITH ORDINALITY` re-derives the
+//! same numbering store-side - both ends share one map by construction rather than by convention.
+//! Per-edition type lists take `inheritance_depth = 0` (the direct types); ancestry re-enters once
+//! through the ontology stream's depth-0 `inherits_from` rows, which stay inside the table because
+//! the store materializes inheritance closures - a reachable type's parents are themselves
+//! reachable.
+//!
+//! The store also does the geometry's data preparation: `subvector` truncates each embedding to
+//! the projector's prefix and `l2_normalize` renormalizes it inside the query, so the connection
+//! carries dense rows and unit-norm prefixes and nothing wider. The canonical-embedding stream is
+//! the one full-width path - audit-time exactness over fit-time throughput.
 
 use core::{error::Error, fmt};
 use std::io;

@@ -369,7 +369,7 @@ proptest! {
 
     /// Log-sum-exp is bracketed by its algebraic bounds.
     ///
-    /// `max <= log_sum_exp <= max + ln(N)`, up to rounding.
+    /// `max ≤ log_sum_exp ≤ max + ln(N)`, up to rounding.
     #[test]
     fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(logits in logits_strategy()) {
         let vec = DVecN::new(logits);

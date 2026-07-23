@@ -351,9 +351,9 @@ proptest! {
     ) {
         let transform = source.fit(target).expect("extents in 1..1e3 are normal");
 
-        // The composed transform's intermediates reach `scale * |corner|`
-        // with `scale <= target extent / 1` and `|corner| / source extent
-        // <= 1e3`, so a handful of roundings amplify to a few times
+        // The composed transform's intermediates reach `scale · |corner|`
+        // with `scale ≤ target extent / 1` and `|corner| / source extent
+        // ≤ 1e3`, so a handful of roundings amplify to a few times
         // `1e-4` of the target box's magnitude.
         let magnitude = target.min().length() + target.size().length();
         let tolerance = 4e-3 * magnitude.max(1.0);

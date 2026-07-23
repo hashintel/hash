@@ -80,6 +80,7 @@ pub(super) async fn spawn<T: Send + 'static>(
         let _: Result<(), _> = sender.send(result);
     });
 
+    // NOTE: should we send the panic detail to the client on release?
     match receiver.await {
         Ok(Ok(value)) => Ok(value),
         Ok(Err(panic)) => {

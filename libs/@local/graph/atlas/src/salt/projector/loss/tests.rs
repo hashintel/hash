@@ -137,7 +137,7 @@ fn affinity_energy_rejects_an_invalid_epsilon() {
 
 #[test]
 fn affinity_energies_match_hand_computed_dyadic_values() {
-    // a = 1, b = 1, u = 1: q = 0.5 exactly. With epsilon = 0.5 both
+    // a = 1, b = 1, u = 1: q = 0.5 exactly. With ε = 0.5 both
     // logarithm arguments are exactly 1, so both values are exactly
     // zero and the derivative mass is a b q^2 = 0.25 exactly.
     let energy = affinity_energy(1.0, 1.0, 0.5);
@@ -204,7 +204,7 @@ fn affinity_derivatives_match_finite_differences() {
 #[test]
 fn proximal_energy_matches_hand_computed_values() {
     // At the radius the argument is exactly zero: the value is
-    // temperature * softplus(0) = 0.5 * ln 2 and the derivative is
+    // temperature · softplus(0) = 0.5 · ln 2 and the derivative is
     // sigmoid(0) = 0.5 exactly.
     let energy = proximal(1.0, 0.5);
 
@@ -239,7 +239,7 @@ fn coincident_energy_matches_hand_computed_regimes() {
     assert_eq!(energy.evaluate(0.5), (0.0, 0.0));
     // Quadratic regime: excess 0.5, huber 0.125, derivative the excess.
     assert_eq!(energy.evaluate(1.5), (0.125, 0.5));
-    // Linear regime: excess 2, value 1 * (2 - 0.5), derivative capped.
+    // Linear regime: excess 2, value 1 · (2 - 0.5), derivative capped.
     assert_eq!(energy.evaluate(3.0), (1.5, 1.0));
 }
 
@@ -305,7 +305,7 @@ fn gradient_field_accumulates_and_resets() {
 #[test]
 fn attraction_term_matches_hand_computed_gradient() {
     // One unit-distance pair under the dyadic energy: value exactly
-    // zero, per-endpoint gradient 2 * derivative * difference =
+    // zero, per-endpoint gradient 2 · derivative · difference =
     // (-0.5, 0) at the first node and its negation at the second.
     let energy = affinity_energy(1.0, 1.0, 0.5);
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
@@ -532,7 +532,7 @@ fn relation_term_matches_hand_computed_values() {
     // sits exactly on the Proximal radius: derivative sigmoid(0) = 0.5.
     // Degree normalization for two degree-one endpoints is 0.5, and
     // the unscored confidence is neutral 1, so the instance factor is
-    // 0.5. The gradient on the source is direction * (factor 0.5 *
+    // 0.5. The gradient on the source is direction · (factor 0.5 ·
     // derivative 0.5) with direction (-1, 0).
     let index = attraction_fixture();
     let batch = full_batch(&index);
@@ -558,7 +558,7 @@ fn relation_term_matches_hand_computed_values() {
         &mut field,
     );
 
-    // value = 0.5 (nu) * temperature (0.5) * softplus(0) = 0.25 ln 2.
+    // value = 0.5 (ν) · temperature (0.5) · softplus(0) = 0.25 ln 2.
     assert!(0.25_f32.mul_add(-core::f32::consts::LN_2, value).abs() < 1e-6);
     assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(-0.25, 0.0)));
     assert_eq!(field.as_slice()[2], DVec2::from(Vec2::new(0.25, 0.0)));
@@ -708,8 +708,8 @@ fn support_fixture(
 #[test]
 fn support_term_gradient_matches_the_analytic_formula() {
     // Independent reference: for each anchor, the hand-derived chain
-    // rule gives dL/dy = scale * weight * min(n, threshold) * (y - t) /
-    // (sqrt(d^2 + eps^2) * (r + eps)) with n the smoothed normalized
+    // rule gives dL/dy = scale · weight · min(n, threshold) · (y - t) /
+    // (√(d^2 + ε^2) · (r + ε)) with n the smoothed normalized
     // distance. The autodiff backward pass must agree.
     let device = device();
     let (coordinates, targets, options) = support_fixture(device);

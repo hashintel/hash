@@ -32,6 +32,7 @@ pub(super) async fn handler(State(state): State<AppState>) -> impl IntoApiRespon
 
 /// Documents the operation.
 pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
+    // NOTE: shouldn't we also document the headers we respond with? or is that not a thing?
     operation
         .id("current")
         .summary("The active generation")

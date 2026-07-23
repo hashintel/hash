@@ -33,7 +33,7 @@ pub struct LocateCaps {
     ///
     /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
     /// property protected to the very end, so the label survives every cap that admits at least
-    /// one property. Defaults to 20.
+    /// one property. Defaults to 10.
     pub properties: u32 = 10,
     /// Most direct types one delivered edge ships.
     ///

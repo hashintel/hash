@@ -22,7 +22,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 
 /// The five-node fixture.
 ///
-/// A parallel pair `0 -> 1`, one `2 -> 3`, a self-loop at 3, and node 4 untouched.
+/// A parallel pair `0 → 1`, one `2 → 3`, a self-loop at 3, and node 4 untouched.
 fn mapped_fixture(name: &str) -> AdjacencyArchive {
     let endpoints: [[u64; 2]; 4] = [[0, 1], [2, 3], [3, 3], [0, 1]];
     let path = scratch(name).join("fixture.sprs");

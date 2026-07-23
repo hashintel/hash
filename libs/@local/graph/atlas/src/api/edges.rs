@@ -129,7 +129,7 @@ pub(super) async fn handler(
     let details = match entities {
         Some(entities) => Some(
             state
-                .details
+                .remote
                 .link_details(&entities)
                 .in_current_span()
                 .await

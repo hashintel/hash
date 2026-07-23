@@ -933,7 +933,7 @@ fn spot_check_resizes_an_uncertain_pilot() {
     // per-row recall ramps 0.86..1.0 and any pilot mixing residues
     // measures real spread. Under the tight margin the requirement
     // far exceeds the corpus, capping at an exhaustive second sample:
-    // ids 0..59 sum their residues to 7 * 28 + 6 = 202 skipped rows.
+    // ids 0..59 sum their residues to 7 · 28 + 6 = 202 skipped rows.
     let check = recall::spot_check(
         &index,
         matrix.view(),

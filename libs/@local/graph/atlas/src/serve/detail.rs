@@ -469,15 +469,15 @@ impl core::error::Error for DetailError {
 /// The connection is dialed by the transport layer - the same `HASH_GRAPH_PG_*` configuration the
 /// graph binary speaks - and the hydration path issues one batched query per request.
 #[derive(Debug)]
-pub struct PostgresDetails {
-    client: Client,
+pub struct GraphDatabaseClient {
+    postgres: Client,
 }
 
-impl PostgresDetails {
+impl GraphDatabaseClient {
     /// Wraps an established store connection.
     #[must_use]
-    pub const fn new(client: Client) -> Self {
-        Self { client }
+    pub const fn new(postgres: Client) -> Self {
+        Self { postgres }
     }
 
     /// Hydrates labels and icons for the delivered entities, aligned to the delivered order.
@@ -503,7 +503,7 @@ impl PostgresDetails {
 
         let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
         let rows = self
-            .client
+            .postgres
             .query(DETAIL_QUERY, &[&web_ids, &entity_uuids, &ICON_PROPERTY])
             .await
             .map_err(DetailError)?;
@@ -548,7 +548,7 @@ impl PostgresDetails {
 
         let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
         let rows = self
-            .client
+            .postgres
             .query(LOCATE_DETAIL_QUERY, &[&web_ids, &entity_uuids])
             .await
             .map_err(DetailError)?;
@@ -597,7 +597,7 @@ impl PostgresDetails {
 
         let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
         let rows = self
-            .client
+            .postgres
             .query(LOCATE_LINK_QUERY, &[&web_ids, &entity_uuids])
             .await
             .map_err(DetailError)?;
@@ -644,7 +644,7 @@ impl PostgresDetails {
 
         let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
         let rows = self
-            .client
+            .postgres
             .query(EDGES_LINK_QUERY, &[&web_ids, &entity_uuids])
             .await
             .map_err(DetailError)?;

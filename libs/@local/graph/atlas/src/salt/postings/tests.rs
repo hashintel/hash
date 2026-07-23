@@ -60,11 +60,14 @@ fn fixture_parents() -> Vec<SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
 
+/// The fixture's [`PostingsConfig::dense_threshold`].
+const FIXTURE_DENSE_THRESHOLD: Log2 = Log2::new(2).expect("2 lies below the shift width");
+
 /// The fixture's split at `dense_threshold = 2` (threshold 2).
 ///
 /// Types 0 (count 4) and 2 (count 3) go dense, types 1 and 3 stay lists.
 const FIXTURE_CONFIG: PostingsConfig = PostingsConfig {
-    dense_threshold: const { Log2::new(2).expect("2 lies below the shift width") }, /* NOTE: move into constant, that is then assigned here (r-a) */
+    dense_threshold: FIXTURE_DENSE_THRESHOLD,
 };
 
 fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive {

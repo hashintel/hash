@@ -140,12 +140,12 @@ fn admission_reroutes_failing_coincident_mass() {
         applicability_threshold: UnitFraction::new(0.5).expect("0.5 lies inside [0, 1]"),
     };
     let classifications = [
-        // Mixed Coincident 0.5 * 0.5 = 0.25 >= 0.2, a >= 0.5: admitted.
+        // Mixed Coincident 0.5 · 0.5 = 0.25 ≥ 0.2, a ≥ 0.5: admitted.
         (
             relation(0),
             Classification::Predicted(prediction([0.5, 0.25, 0.25], 0.5)),
         ),
-        // Mixed Coincident 0.25 * 0.5 = 0.125 < 0.2: rerouted.
+        // Mixed Coincident 0.25 · 0.5 = 0.125 < 0.2: rerouted.
         (
             relation(1),
             Classification::Predicted(prediction([0.25, 0.5, 0.25], 0.5)),

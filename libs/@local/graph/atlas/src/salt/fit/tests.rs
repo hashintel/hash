@@ -1636,8 +1636,8 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
 ///
 /// Two relation types, a parallel pair, a self-loop, scored and unscored confidences.
 ///
-/// Edge rows: 0 and 3 both `0 -> 1` under relation 2 (row 0 scored), 1 is `2 -> 3` under relations
-/// 2 and 3, 2 is the self-loop `3 -> 3` under relation 3.
+/// Edge rows: 0 and 3 both `0 → 1` under relation 2 (row 0 scored), 1 is `2 → 3` under relations
+/// 2 and 3, 2 is the self-loop `3 → 3` under relation 3.
 fn relation_dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xED6E);
 
@@ -1756,7 +1756,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert_eq!(membership.len(), 1);
 
     // The group weights are the overridden distribution: the Proximal
-    // weight is p*_P = 1 * 0.5, and the Coincident weight vanishes
+    // weight is p*_P = 1 · 0.5, and the Coincident weight vanishes
     // under the default kappa_C = 0.
     let weights = employment.weights();
     assert_eq!(weights.proximal.to_bits(), 0.5_f32.to_bits());
@@ -1885,11 +1885,11 @@ async fn edge_artifacts_publish_and_read_back() {
     assert_eq!(repository.metadata.evidence.policy.relations, 2);
     assert_eq!(repository.metadata.evidence.policy.overridden, 2);
 
-    // Force masses by hand: each retained instance weighs c * s+ * s
+    // Force masses by hand: each retained instance weighs c · s+ · s
     // with s+ = 0.5 and the reading share s = 1/multiplicity. The
-    // scored single-typed edge gives 0.5 * 0.5, the two-typed edge's
-    // readings give two 1.0 * 0.5 * 0.5, and the unscored single-typed
-    // edge gives 1.0 * 0.5: total 1.25. Every factor is a power of
+    // scored single-typed edge gives 0.5 · 0.5, the two-typed edge's
+    // readings give two 1.0 · 0.5 · 0.5, and the unscored single-typed
+    // edge gives 1.0 · 0.5: total 1.25. Every factor is a power of
     // two, so the sum is exact.
     let relations = &repository.metadata.evidence.relations;
     assert_eq!(relations.retained_edges, 4);

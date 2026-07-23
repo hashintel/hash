@@ -712,7 +712,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 20, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "sealSoftSeconds": 600, "sealHardSeconds": 900 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "sealSoftSeconds": 600, "sealHardSeconds": 900 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );
@@ -1350,9 +1350,9 @@ async fn locate_subgraph_delivers_the_ego_graph() {
     let (_generation, atlas) = publish("locate-ego").await;
     let node_codec = test_codec(&atlas);
 
-    // The fixture edge list by row: 0 = (0 -> 1), 1 = (1 -> 2),
-    // 2 = (2 -> 2) self-loop, 3 = (5 -> 40), 4 = (40 -> 5),
-    // 5 = (3 -> 7). Hand-derived ego-graphs, (source, partners,
+    // The fixture edge list by row: 0 = (0 → 1), 1 = (1 → 2),
+    // 2 = (2 → 2) self-loop, 3 = (5 → 40), 4 = (40 → 5),
+    // 5 = (3 → 7). Hand-derived ego-graphs, (source, partners,
     // edge rows):
     //   ego(0) = partner 1 over edge 0;
     //   ego(1) = partners {0, 2} over edges {0, 1};
@@ -1633,6 +1633,9 @@ fn colored_masks_resolve_and_expand_descendants() {
         },
     };
 
+    /// The fixture's [`PostingsConfig::dense_threshold`].
+    const FIXTURE_DENSE_THRESHOLD: Log2 = Log2::new(2).expect("2 lies below the shift width");
+
     let dir = scratch("colored-masks");
     std::fs::create_dir_all(&dir).expect("the scratch directory creates");
 
@@ -1655,7 +1658,7 @@ fn colored_masks_resolve_and_expand_descendants() {
         &row_of_position,
         &parents,
         PostingsConfig {
-            dense_threshold: const { Log2::new(2).expect("2 lies below the shift width") },
+            dense_threshold: FIXTURE_DENSE_THRESHOLD,
         },
     )
     .expect("the fixture stays in domain");
@@ -2880,7 +2883,7 @@ fn codec_wire_ids_disclose_nothing_of_the_universe() {
 
     // Averaged over trials, the German-tank estimate m(1 + 1/k) - 1
     // applied to full-range ids recovers the u32 range - never N.
-    // Comparisons stay in the scale of 2^32 * k * trials -
+    // Comparisons stay in the scale of 2^32 · k · trials -
     // multiplied out, never divided. Both selections estimating the
     // range, and only the range, is the codec's contract: wire ids
     // answer nothing, not even "how many rows".
@@ -2888,8 +2891,8 @@ fn codec_wire_ids_disclose_nothing_of_the_universe() {
     // The tolerance derives from the estimator's own spread. The
     // maximum of k uniform draws on [0, M) has variance
     // M^2 k / ((k+1)^2 (k+2)); the scaled per-trial statistic
-    // (k+1) * max has standard deviation M * sqrt(k / (k+2)), and
-    // the sum over t independent trials spreads by sqrt(t) of that.
+    // (k+1) · max has standard deviation M · √(k / (k+2)), and
+    // the sum over t independent trials spreads by √(t) of that.
     // Twelve standard deviations never flakes and still binds the
     // distribution two-sidedly - about four times tighter than the
     // loose bound it replaces, and five orders of magnitude away
@@ -2911,7 +2914,7 @@ fn codec_wire_ids_disclose_nothing_of_the_universe() {
         );
     }
     // The difference of the two sums doubles the variance; its
-    // tolerance widens by sqrt(2).
+    // tolerance widens by √(2).
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
@@ -3754,7 +3757,7 @@ fn sealed_blob_refuses_every_foreign_binding() {
 
 /// The clock rule accepts through the hard cap and refuses beyond it, in both directions.
 ///
-/// Age equal to the cap is the last accepted instant (`now - issued_at <= T_hard`); one
+/// Age equal to the cap is the last accepted instant (`now - issued_at ≤ T_hard`); one
 /// second past refuses, and a future-dated blob refuses outright.
 #[test]
 fn sealed_blob_clock_accepts_through_the_hard_cap() {

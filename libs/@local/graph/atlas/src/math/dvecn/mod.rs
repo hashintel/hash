@@ -134,7 +134,7 @@ impl<const N: usize> DVecN<N> {
     ///
     /// The maximum component is subtracted before exponentiation, so the result is finite for any
     /// finite input, including components with magnitudes far beyond the range where a naive `exp`
-    /// overflows. Every output lies ∈ `[0, 1]`, the outputs sum to 1 up to rounding whenever `N ≥
+    /// overflows. Every output lies in `[0, 1]`, the outputs sum to 1 up to rounding whenever `N ≥
     /// 1`, and shifting all components by a common constant leaves the result unchanged up to
     /// rounding. For `N = 0` the result is the empty vector.
     ///

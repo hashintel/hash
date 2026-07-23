@@ -56,12 +56,12 @@ fn clump_fixture() -> Knn {
     let indptr: Vec<u64> = vec![0, 2, 4, 6, 8, 10, 12];
     let indices: Vec<u32> = vec![1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4];
     let distances: Vec<f32> = vec![
-        0.05, 0.08, // 0 -> 1, 2
-        0.05, 0.05, // 1 -> 0, 2
-        0.08, 0.05, // 2 -> 0, 1
-        0.0, 1.5, // 3 -> 4, 5
-        0.0, 1.4, // 4 -> 3, 5
-        1.5, 1.4, // 5 -> 3, 4
+        0.05, 0.08, // 0 → 1, 2
+        0.05, 0.05, // 1 → 0, 2
+        0.08, 0.05, // 2 → 0, 1
+        0.0, 1.5, // 3 → 4, 5
+        0.0, 1.4, // 4 → 3, 5
+        1.5, 1.4, // 5 → 3, 4
     ];
     let matrix = sprs::CsMatI::new((6, 6), indptr, indices, distances);
     Knn::new(matrix).expect("the fixture satisfies every table invariant")
@@ -220,10 +220,10 @@ fn hand_computed_partial_agreement() {
 
     // Shared: {0} of 2.
     assert_eq!(aggregate.recall(), 0.5);
-    // Trust penalty: point 2 at reference position 2 -> excess 1.
-    // Worst case: 2 * (12 - 6 + 1) / 2 = 7.
+    // Trust penalty: point 2 at reference position 2 → excess 1.
+    // Worst case: 2 · (12 - 6 + 1) / 2 = 7.
     assert_eq!(aggregate.trustworthiness(), 1.0 - 1.0 / 7.0);
-    // Continuity penalty: point 1 at map position 2 -> excess 1.
+    // Continuity penalty: point 1 at map position 2 → excess 1.
     assert_eq!(aggregate.continuity(), 1.0 - 1.0 / 7.0);
     // The swap is a near-boundary reshuffle, inside the horizon.
     assert_eq!(aggregate.intrusion_rate(), 0.0);
@@ -805,7 +805,7 @@ fn assess_flags_degraded_subgroups() {
         .collect();
     assert_eq!(by_row, vec![(100, 4, 1.0), (200, 2, 0.0), (300, 2, 0.5)],);
 
-    // Only type 200 breaches: degradation 1 > 2 * (1/3). Type 300's
+    // Only type 200 breaches: degradation 1 > 2 · (1/3). Type 300's
     // 1/2 stays inside 2/3; type 100 has no degradation at all.
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];

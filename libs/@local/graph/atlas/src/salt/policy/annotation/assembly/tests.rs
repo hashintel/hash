@@ -63,9 +63,9 @@ impl ProgrammedEmbedder {
     /// The polar angle of each card's programmed embedding.
     ///
     /// Alpha and beta lie `0.05` radians apart, within the default near-duplicate threshold (`1 -
-    /// cos(0.05) ~= 1.25e-3`); beta and delta lie `0.06` radians apart, also within it but farther
-    /// (`1 - cos(0.06) ~= 1.80e-3`); beta and gamma lie `0.10` radians apart, outside it (`1 -
-    /// cos(0.10) ~= 5.0e-3`).
+    /// cos(0.05) ≈ 1.25e-3`); beta and delta lie `0.06` radians apart, also within it but farther
+    /// (`1 - cos(0.06) ≈ 1.80e-3`); beta and gamma lie `0.10` radians apart, outside it (`1 -
+    /// cos(0.10) ≈ 5.0e-3`).
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,

@@ -597,7 +597,7 @@ fn quotient_contracts_cross_landmark_edges() {
 fn quotient_keeps_only_the_strongest_neighbours() {
     // A hub landmark connected to three others; a neighbour cap of one
     // keeps only the strongest quotient edge per row. Landmarks: rows
-    // 0/1 -> L0, 2/3 -> L1, 4/5 -> L2, 6/7 -> L3.
+    // 0/1 → L0, 2/3 → L1, 4/5 → L2, 6/7 → L3.
     let graph = semantic_from_edges(
         8,
         &[

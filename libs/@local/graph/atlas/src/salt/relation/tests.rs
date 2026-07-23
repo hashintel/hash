@@ -93,7 +93,7 @@ fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
 
 #[test]
 fn effective_confidence_combines_scores_exactly() {
-    // 0.5 * sqrt(0.25 * 0.25): every factor is a power of two, so the
+    // 0.5 · √(0.25 · 0.25): every factor is a power of two, so the
     // product 0.125 is exact.
     let confidence = RelationConfidence {
         link: Some(0.5),
@@ -130,7 +130,7 @@ fn unscored_confidences_are_neutral_with_provenance() {
 #[test]
 fn degree_normalization_counts_the_relations_complete_instance_set() {
     // Node 0 sources three instances and node 1 receives three, so the
-    // 0 -> 1 edge sees (1 + 3)(1 + 3) = 16 and nu = 0.25 exactly.
+    // 0 → 1 edge sees (1 + 3)(1 + 3) = 16 and ν = 0.25 exactly.
     let indexes = build_default(
         &[proximal_policy(0)],
         vec![
@@ -149,7 +149,7 @@ fn degree_normalization_counts_the_relations_complete_instance_set() {
     assert_eq!(edges[0].source, NodeRowId::new(0));
     assert_eq!(edges[0].target, NodeRowId::new(1));
     assert_eq!(edges[0].normalization, 0.25);
-    // The 0 -> 3 edge sees (1 + 3)(1 + 1) = 8.
+    // The 0 → 3 edge sees (1 + 3)(1 + 1) = 8.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the reference narrows to working precision exactly like the contract"
@@ -161,7 +161,7 @@ fn degree_normalization_counts_the_relations_complete_instance_set() {
 #[test]
 fn degrees_are_per_relation() {
     // The same endpoints under a second relation contribute nothing to
-    // the first relation's degrees: each relation's 0 -> 1 edge sees
+    // the first relation's degrees: each relation's 0 → 1 edge sees
     // (1 + 1)(1 + 1) = 4.
     let indexes = build_default(
         &[proximal_policy(0), proximal_policy(1)],
@@ -255,7 +255,7 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
         ROWS,
         &[policy],
         vec![
-            // Masses 1.0 * 0.5 = 0.5, 0.5 * 0.5 = 0.25, 0.25 * 0.5 = 0.125.
+            // Masses 1.0 · 0.5 = 0.5, 0.5 · 0.5 = 0.25, 0.25 · 0.5 = 0.125.
             scored(instance(0, 0, 0, 1), 1.0),
             scored(instance(1, 0, 0, 2), 0.5),
             scored(instance(2, 0, 0, 3), 0.25),
@@ -275,7 +275,7 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
 #[test]
 fn pruned_instances_keep_their_degree_contributions() {
     // Every instance but the first prunes at zero confidence, yet the
-    // retained 0 -> 1 edge still sees both endpoints at degree 3.
+    // retained 0 → 1 edge still sees both endpoints at degree 3.
     let indexes = build(
         ROWS,
         &[proximal_policy(0)],
@@ -319,9 +319,9 @@ fn pruning_never_reaches_protection() {
 #[test]
 fn evidence_components_aggregate_independently_by_maximum() {
     // Two parallel links: the high-applicability link wins the
-    // discounted component (0.75 * 0.5 = 0.375 against 0.25 * 1.0),
+    // discounted component (0.75 · 0.5 = 0.375 against 0.25 · 1.0),
     // the high-evidence link the undiscounted one (1.0 against 0.5).
-    // Under a 0.5 floor the mass is max(0.375, 0.5 * 1.0) = 0.5.
+    // Under a 0.5 floor the mass is max(0.375, 0.5 · 1.0) = 0.5.
     let policies = [
         RelationPolicy {
             selected: ClassProbabilities {
@@ -566,7 +566,7 @@ fn option_constructors_reject_out_of_domain_settings() {
 
 #[test]
 fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
-    // A chain 0 -> 1 -> ... -> n under one relation forces the group
+    // A chain 0 → 1 → ... → n under one relation forces the group
     // through several fixed emission chunks: source runs cross chunk
     // boundaries, and every degree must still count the whole group.
     let nodes = 3 * build::EMISSION_CHUNK + 7;
@@ -1068,7 +1068,7 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
 
     // Each group holds the reading at half a link's force: share 0.5
     // on the mass and share-weighted degrees 0.5 at both endpoints,
-    // so the persisted factor is 0.5 / sqrt(1.5 * 1.5).
+    // so the persisted factor is 0.5 / √(1.5 · 1.5).
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the reference narrows to working precision exactly like the contract"

@@ -26,7 +26,7 @@ use aide::{
 };
 use axum::{Extension, Router, body::Bytes};
 
-use crate::serve::{Atlas, PostgresDetails, ServeCaps, VisibilityProof};
+use crate::serve::{Atlas, GraphDatabaseClient, ServeCaps, VisibilityProof};
 
 mod current;
 mod edges;
@@ -38,6 +38,7 @@ mod saltile;
 mod tile;
 mod translate;
 
+// NOTE: please apply our conventions on rust docs to the API descriptions as well
 /// The OpenAPI document's top-level description.
 const API_DESCRIPTION: &str = "The read API over one published atlas generation: a zoomable map \
                                of the HASH graph, served as binary `SALTILE` envelopes.
@@ -75,8 +76,9 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
-    caps: ServeCaps,
-    details: Arc<PostgresDetails>,
+    caps: ServeCaps, /* NOTE: can we please use something that isn't an abbreviation (throught
+                      * the code *Caps isn't great) */
+    remote: Arc<GraphDatabaseClient>,
     proof: Arc<VisibilityProof>,
 }
 
@@ -95,13 +97,13 @@ struct AppState {
 pub fn router(
     atlas: Arc<Atlas>,
     caps: ServeCaps,
-    details: Arc<PostgresDetails>,
-    proof: VisibilityProof,
+    details: Arc<GraphDatabaseClient>,
+    proof: VisibilityProof, // NOTE: shouldn't the proof be per user?
 ) -> Router {
     let state = AppState {
         atlas,
         caps,
-        details,
+        remote: details,
         proof: Arc::new(proof),
     };
 

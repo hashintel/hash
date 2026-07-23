@@ -25,7 +25,7 @@ fn unit_fraction_accepts_exactly_the_closed_interval() {
 
 #[test]
 fn softplus_approaches_asymptotes() {
-    // ln_1p(exp(-50)) is far below f32 epsilon at 50, so the positive
+    // ln_1p(exp(-50)) is far below f32 ε at 50, so the positive
     // asymptote is exact.
     assert_eq!(softplus(50.0), 50.0);
     // The negative tail decays like exp(value): tiny at -50, exactly zero
@@ -69,7 +69,7 @@ fn sigmoid_matches_hand_computed_values() {
 #[test]
 fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
     // The complement form `1 - 1/(1 + exp(-|x|))` rounds to zero once
-    // exp(-|x|) drops below f32 epsilon; the direct ratio keeps the tail.
+    // exp(-|x|) drops below f32 ε; the direct ratio keeps the tail.
     let tail = sigmoid(-20.0);
     let expected = (-20.0_f32).exp();
     assert!(tail > 0.0);
@@ -78,12 +78,12 @@ fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
 
 #[test]
 fn huber_matches_hand_computed_regimes() {
-    // Quadratic regime: 0.5 * value^2, over exactly-representable inputs.
+    // Quadratic regime: 0.5 · value^2, over exactly-representable inputs.
     assert_eq!(huber(0.5, 1.0), 0.125);
     assert_eq!(huber(0.0, 1.0), 0.0);
-    // At the threshold both formulas give 0.5 * threshold^2.
+    // At the threshold both formulas give 0.5 · threshold^2.
     assert_eq!(huber(1.0, 1.0), 0.5);
-    // Linear regime: threshold * (value - 0.5 * threshold).
+    // Linear regime: threshold · (value - 0.5 · threshold).
     assert_eq!(huber(3.0, 1.0), 2.5);
     assert_eq!(huber(2.0, 0.5), 0.875);
 }
@@ -97,7 +97,7 @@ fn huber_is_continuous_at_the_threshold() {
     let above = huber(threshold + step, threshold);
 
     // The derivative at the threshold is the threshold itself, so values a
-    // step apart on either side differ by roughly 2 * step.
+    // step apart on either side differ by roughly 2 · step.
     assert!(below < above);
     assert!((above - below) < 1e-3);
 }

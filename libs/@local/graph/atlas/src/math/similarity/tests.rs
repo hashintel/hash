@@ -463,7 +463,7 @@ fn fit_uniform_par_matches_fit_uniform_on_large_input() {
 #[test]
 fn rms_residual_reduces_hand_computed_distances() {
     // Residual distances 3 and 4 under the identity: the RMS is
-    // sqrt((9 + 16) / 2) by hand.
+    // √((9 + 16) / 2) by hand.
     let source = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
     let target = [Vec2::new(0.0, 3.0), Vec2::new(14.0, 0.0)];
 

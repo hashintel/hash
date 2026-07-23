@@ -1,7 +1,7 @@
 //! Certificates for the projector model's initialization contracts.
 //!
 //! Identity assertions are bit-exact by design: the zero-initialized layers contribute exactly
-//! zero, `1 + 0 = 1` exactly, and `h * 1 + 0` reproduces `h` bit for bit, so any drift is a broken
+//! zero, `1 + 0 = 1` exactly, and `h · 1 + 0` reproduces `h` bit for bit, so any drift is a broken
 //! contract, not rounding.
 
 use core::num::NonZero;
@@ -115,9 +115,9 @@ fn film_modulates_by_hand_computed_values() {
     )));
 
     // Row 1: c = 2, dgamma = [1.125, -0.25], beta = [1.125, 3.5]:
-    //   [2 * 2.125 + 1.125, -1 * 0.75 + 3.5] = [5.375, 2.75].
+    //   [2 · 2.125 + 1.125, -1 · 0.75 + 3.5] = [5.375, 2.75].
     // Row 2: c = -2, dgamma = [-0.875, 0.75], beta = [-1.875, -2.5]:
-    //   [0.5 * 0.125 - 1.875, 4 * 1.75 - 2.5] = [-1.8125, 4.5].
+    //   [0.5 · 0.125 - 1.875, 4 · 1.75 - 2.5] = [-1.8125, 4.5].
     let output = film.forward(
         matrix(2, 2, vec![2.0, -1.0, 0.5, 4.0]),
         matrix(2, 1, vec![2.0, -2.0]),

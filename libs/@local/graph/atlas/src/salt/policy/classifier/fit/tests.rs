@@ -392,7 +392,7 @@ fn overconfident_logits_calibrate_above_one() {
     // softmax([6, 0, 0] / T) equals the target at exp(6 / T) = 3, an
     // interior optimum of the [0.05, 20] bracket. Near the optimum the
     // cross-entropy is flat below f64 resolution over a relative
-    // window of roughly sqrt(2 * eps / 0.24) ~ 3e-8 in ln T, so the
+    // window of roughly √(2 · ε / 0.24) ~ 3e-8 in ln T, so the
     // search cannot localize tighter than that.
     let expected = 6.0 / 3.0_f64.ln();
     assert!(temperature > 1.0);
@@ -439,7 +439,7 @@ fn metrics_match_hand_computed_values() {
 
     let metrics = calibration::metrics(&rows, &logits, 1.0);
 
-    // Uniform probabilities: CE = ln 3, Brier = (2/3)^2 + 2 * (1/3)^2.
+    // Uniform probabilities: CE = ln 3, Brier = (2/3)^2 + 2 · (1/3)^2.
     assert!((metrics.raw_cross_entropy - 3.0_f64.ln()).abs() <= 1.0e-15);
     assert!((metrics.raw_brier - 2.0 / 3.0).abs() <= 1.0e-15);
 }
@@ -473,7 +473,7 @@ fn applicability_matches_hand_computed_values() {
     assert!((scales[1] - expected_scales.1).abs() <= 1.0e-9 * expected_scales.1);
 
     // Both rows sit one leading unit from the mean, so their distances
-    // agree: sqrt(scale^2 / dimensions).
+    // agree: √(scale^2 / dimensions).
     let expected_distance = (expected_scales.0 * expected_scales.0 / 3072.0).sqrt();
     assert_eq!(fitted.distances.len(), 2);
     for distance in &fitted.distances {

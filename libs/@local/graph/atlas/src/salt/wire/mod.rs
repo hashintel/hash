@@ -16,6 +16,11 @@
 //!
 //! [`tile::TileResponse`] and [`edges::EdgesResponse`] are the two v1 documents; the locate
 //! document lands with its endpoint.
+#![expect(
+    clippy::little_endian_bytes,
+    reason = "the kind discriminants read the eight magic bytes little-endian so the envelope's \
+              IntoBytes write reproduces them verbatim, as the wire contract pins"
+)]
 
 pub(crate) mod cbor;
 pub(crate) mod edges;
