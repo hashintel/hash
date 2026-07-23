@@ -223,19 +223,13 @@ class PetrinautOptimizer:
                 # `with` block and are recorded as errors as usual.
                 span.set_attribute("optuna.trial.pruned", True)
                 log.warning(
-                    "trial %d failed — pruned\nstderr: %s",
+                    "trial %d failed — pruned",
                     trial.number,
-                    str(error),
+                    extra={"error_type": type(error).__name__},
                 )
                 prune_cause = error
             else:
                 span.set_attribute("optuna.trial.value", value)
-                log.info(
-                    "trial %d value=%.6g params=%s",
-                    trial.number,
-                    value,
-                    parameter_values,
-                )
                 return value
 
         raise optuna.TrialPruned() from prune_cause

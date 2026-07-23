@@ -68,9 +68,8 @@ One optimization can be followed across the HTTP service boundary:
    attaches it to lifecycle log records.
 
 This service emits normal Python log records with bounded structured fields
-such as `event`, `request_id`, and `run_id`. Logging handlers, exporters, and
-trace context are configured by the deployment's observability layer rather
-than here.
+such as `event`, `request_id`, and `run_id`. When OTLP is configured,
+`src/telemetry.py` exports those records and the service's traces and metrics.
 
 The CLI stderr pipe is drained so the child cannot block, but its content is
 not copied into service logs. Lifecycle logs never intentionally include
@@ -178,8 +177,9 @@ skipped and the service runs normally, matching the Node workers.
 - Traces: incoming HTTP requests are auto-instrumented. Each study runs under an
   `optimization.study` span (a child of the request span), and every Optuna trial
   is an `optimization.trial` span beneath it, carrying the trial number, value,
-  and any pruning exception. The study runs on a worker thread that inherits the
+  and whether it was pruned. The study runs on a worker thread that inherits the
   request's trace context, so the request → study → trial hierarchy is preserved.
+  The `/status` health probe is excluded from HTTP instrumentation.
 - Metrics and logs: the FastAPI/Optuna default metrics and stdlib log records are
   exported to the collector (Mimir/Loki in the stack).
 
@@ -188,6 +188,8 @@ Configuration (standard OTLP environment variables):
 - `OTEL_EXPORTER_OTLP_ENDPOINT` — collector URL, e.g.
   `http://otel-collector:4317`. A `http://` scheme selects a plaintext
   (insecure) channel.
+- Per-signal endpoint overrides and `OTEL_EXPORTER_OTLP_INSECURE` are read
+  directly by the standard OTLP exporters.
 - `OTEL_EXPORTER_OTLP_PROTOCOL` — `grpc` (default, the collector's `:4317`
   port) or `http/protobuf` (its `:4318` port).
 - `OTEL_SERVICE_NAME` — service name shown in Tempo/Grafana. Defaults to

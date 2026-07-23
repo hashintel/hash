@@ -131,13 +131,26 @@ def test_objective_sends_only_flat_suggested_values(
 
 def test_objective_prunes_only_evaluation_errors(
     optimization_description: dict,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    model = FailingModel(optimization_description, PetrinautRunError("scenario failed"))
+    sensitive_detail = "secret user-authored expression"
+    model = FailingModel(
+        optimization_description, PetrinautRunError(sensitive_detail)
+    )
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
 
-    with pytest.raises(optuna.TrialPruned):
+    with (
+        caplog.at_level(logging.WARNING, logger="pn_optimize"),
+        pytest.raises(optuna.TrialPruned),
+    ):
         optimizer.objective(trial)
+
+    record = next(
+        record for record in caplog.records if "pruned" in record.getMessage()
+    )
+    assert sensitive_detail not in record.getMessage()
+    assert record.error_type == "PetrinautRunError"
 
 
 def test_objective_propagates_transport_errors(
