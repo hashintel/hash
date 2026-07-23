@@ -209,29 +209,36 @@ class PetrinautOptimizer:
 
     def objective(self, trial: optuna.Trial) -> float:
         """Propose one flat parameter set and ask Petrinaut to evaluate it."""
+        prune_cause: PetrinautRunError | None = None
         with tracer.start_as_current_span("optimization.trial") as span:
             span.set_attribute("optuna.trial.number", trial.number)
             parameter_values = self.suggest(trial)
             try:
                 value = self.pn_model.objective(parameter_values)
             except PetrinautRunError as error:
+                # Pruning is expected Optuna control flow, not a span failure.
+                # Record it as an attribute and re-raise *after* the span closes
+                # so it does not trip the default ERROR status / exception event.
+                # Genuinely unexpected exceptions still propagate through the
+                # `with` block and are recorded as errors as usual.
                 span.set_attribute("optuna.trial.pruned", True)
-                span.record_exception(error)
                 log.warning(
                     "trial %d failed — pruned\nstderr: %s",
                     trial.number,
                     str(error),
                 )
-                raise optuna.TrialPruned() from error
+                prune_cause = error
+            else:
+                span.set_attribute("optuna.trial.value", value)
+                log.info(
+                    "trial %d value=%.6g params=%s",
+                    trial.number,
+                    value,
+                    parameter_values,
+                )
+                return value
 
-            span.set_attribute("optuna.trial.value", value)
-            log.info(
-                "trial %d value=%.6g params=%s",
-                trial.number,
-                value,
-                parameter_values,
-            )
-            return value
+        raise optuna.TrialPruned() from prune_cause
 
     def _start_study_worker(
         self,
