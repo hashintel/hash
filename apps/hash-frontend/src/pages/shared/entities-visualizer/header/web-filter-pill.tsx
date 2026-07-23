@@ -6,7 +6,6 @@ import { MenuCheckboxItem } from "@hashintel/design-system";
 
 import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
 import { FilterPill } from "./filter-pill";
-import { filterDropdownZIndex } from "./pill-styles";
 
 import type { EntitiesFilterState } from "../shared/filter-state";
 import type { WebId } from "@blockprotocol/type-system";
@@ -137,7 +136,6 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
         {...bindMenu(popupState)}
         anchorOrigin={{ vertical: 30, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
-        sx={{ zIndex: filterDropdownZIndex }}
       >
         {webItems.map(({ webId, label: itemLabel }) => (
           <MenuCheckboxItem

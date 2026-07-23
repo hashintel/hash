@@ -62,17 +62,22 @@ const PANEL_WIDTH = 340;
 const PANEL_HEIGHT = 82;
 
 /**
- * The open widget layers relative to the selection popover's fixed ds `popover`
- * z-index. Which sits on top follows the last thing the user actioned (see the
- * `elevated` prop): focusing the widget raises it above the popover; selecting
- * an item drops it below so the popover shows on top. The results dropdown
- * always sits one step above the panel so it isn't clipped behind it. Collapsed,
- * the button stays below the popover regardless (its z-index is a plain `1`).
+ * The open widget layers around the selection popover, which sits at a
+ * deliberately low base z-index (see `SELECTION_POPOVER_Z_INDEX`) so it — and
+ * this widget with it — stay below app overlays like the entity drawer. Which of
+ * the two is on top follows the last thing the user actioned (see the `elevated`
+ * prop): focusing the widget raises it above the popover; selecting an item
+ * drops it below so the popover shows on top. The results dropdown always sits
+ * one step above the panel so it isn't clipped behind it. Collapsed, the button
+ * stays below the popover regardless (its z-index is a plain `1`).
+ *
+ * Kept in step with the selection popover's z-index (`LocatedEntityPopover`).
  */
-const PANEL_Z_ABOVE_POPOVER = "calc(var(--z-index-popover) + 1)";
-const PANEL_Z_BELOW_POPOVER = "calc(var(--z-index-popover) - 2)";
-const RESULTS_Z_ABOVE_POPOVER = "calc(var(--z-index-popover) + 2)";
-const RESULTS_Z_BELOW_POPOVER = "calc(var(--z-index-popover) - 1)";
+const SELECTION_POPOVER_Z_INDEX = 50;
+const PANEL_Z_ABOVE_POPOVER = SELECTION_POPOVER_Z_INDEX + 1;
+const PANEL_Z_BELOW_POPOVER = SELECTION_POPOVER_Z_INDEX - 2;
+const RESULTS_Z_ABOVE_POPOVER = SELECTION_POPOVER_Z_INDEX + 2;
+const RESULTS_Z_BELOW_POPOVER = SELECTION_POPOVER_Z_INDEX - 1;
 
 /**
  * The properties {@link generateEntityLabel} most commonly derives a label from —
@@ -292,8 +297,7 @@ export const NetworkGraphSearch = ({
         top: 8,
         left: 8,
         // Collapsed, the button stays below the selection popover; open, it
-        // layers above or below it by recency (see `elevated`). The token
-        // resolves here as it's emitted at `:root`.
+        // layers above or below it by recency (see `elevated`).
         zIndex: open ? openPanelZIndex : 1,
         overflow: "hidden",
         background: palette.white,

@@ -22,6 +22,16 @@ import { Badge } from "../../Badge/badge";
 import { Button } from "../../Button/button";
 import { Popover } from "../../Popover/popover";
 
+/**
+ * Sits this popover — and the graph's search widget, which layers around it —
+ * below app overlays that open over the graph (notably the entity drawer).
+ * Passed as the `Popover`'s `positionerClassName` so it lands on the positioner,
+ * whose z-index reads the `--z-index-popover` token; overriding that variable
+ * here lowers only this popover's layer, not the ds default. Kept in step with
+ * the search widget's base (`network-graph-search.tsx`).
+ */
+const lowLayerStyles = css({ "--z-index-popover": "50" });
+
 /** The selection's live on-screen anchor, as `NetworkGraph` reports it. */
 export type LocatedEntityPopoverAnchor =
   | {
@@ -205,6 +215,7 @@ export const LocatedEntityPopover = ({
       onClose={onClose}
       gapX={gaps.x}
       gapY={gaps.y}
+      positionerClassName={lowLayerStyles}
     >
       <div
         className={cardStyles}

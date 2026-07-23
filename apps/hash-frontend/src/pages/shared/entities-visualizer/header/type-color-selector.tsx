@@ -6,7 +6,6 @@ import {
 } from "material-ui-popup-state/hooks";
 
 import { typeColorPalette, unassignedTypeColor } from "../shared/type-colors";
-import { filterSubDropdownZIndex } from "./pill-styles";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent, MouseEvent } from "react";
@@ -68,7 +67,6 @@ export const TypeColorSelector: FunctionComponent<TypeColorSelectorProps> = ({
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         onClick={(event) => event.stopPropagation()}
-        sx={{ zIndex: filterSubDropdownZIndex }}
         slotProps={{
           paper: {
             sx: {
