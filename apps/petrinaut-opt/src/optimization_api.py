@@ -15,6 +15,9 @@ from typing import Any
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
+from opentelemetry import trace
+from opentelemetry.propagate import extract
+from opentelemetry.trace import SpanKind, Status, StatusCode
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -28,6 +31,7 @@ from src.utils import Phase, RunStatus, StatusStore, set_status
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(REPO_ROOT / ".env")
 log = logging.getLogger("pn_api")
+tracer = trace.get_tracer("pn_api")
 MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
@@ -58,15 +62,28 @@ _CREATE_RUN_RESPONSES = {
 _RUN_EVENTS_RESPONSES = {
     200: {
         "description": (
-            "A replayable Server-Sent Events attachment. Terminal frames are "
-            "`event: done`, an ERROR data frame, or `event: cancelled`."
+            "Server-Sent Events attachment to a detached optimization run. "
+            "Every frame carries an `id: <seq>` line (seq starts at 1); "
+            "buffered frames with seq > cursor are replayed, then new frames "
+            "are live-tailed with `: heartbeat` comments roughly every 30 "
+            "seconds. The terminal frame is `event: done` (completed), an "
+            "ERROR data frame (study failure), or `event: cancelled` "
+            "(cancelled or reaped). If the run is already terminal the "
+            "response closes after the replay. Disconnecting does not affect "
+            "the run; a newer attachment supersedes this one."
         ),
         "content": {"text/event-stream": {"schema": {"type": "string"}}},
     },
     404: {"description": "No optimization run with this id is registered"},
 }
 _DELETE_RUN_RESPONSES = {
-    204: {"description": "The optimization run was cancelled"},
+    204: {
+        "description": (
+            "The run was cancelled (or had already reached a terminal "
+            "state); when this call stopped it, the event log's terminal "
+            "frame is `event: cancelled`"
+        ),
+    },
     404: {"description": "No optimization run with this id is registered"},
 }
 
@@ -448,13 +465,37 @@ async def get_optimize_run_events(
     request: Request,
     cursor: int | None = Query(default=None, ge=0),
 ) -> StreamingResponse:
-    """Attach to a detached run and replay events after the supplied cursor."""
-    run = request.app.state.optimization_runs.get(run_id)
-    if run is None:
-        raise HTTPException(404, f"optimization run not found: {run_id}")
-    if cursor is None:
-        cursor = _cursor_from_last_event_id(request)
-    epoch = run.begin_attachment()
+    """Attach to a detached run and replay events after the supplied cursor.
+
+    The route is excluded from ASGI auto-instrumentation (see
+    ``telemetry.py``): its response live-tails until the consumer detaches,
+    and a SERVER span that long would read as worst-case latency in the RED
+    SLIs and only export on disconnect. A short manual SERVER span covers
+    just the attach itself — run lookup, cursor resolution, and attachment
+    registration — and ends when the tail starts, so the latency SLI
+    measures "was attaching fast" while the client→optimizer service-graph
+    edge is preserved.
+    """
+    with tracer.start_as_current_span(
+        "GET /optimize/runs/{run_id}/events",
+        context=extract(dict(request.headers)),
+        kind=SpanKind.SERVER,
+        attributes={
+            "http.method": "GET",
+            "http.route": "/optimize/runs/{run_id}/events",
+            "http.target": f"/optimize/runs/{run_id}/events",
+        },
+        end_on_exit=True,
+    ) as attach_span:
+        run = request.app.state.optimization_runs.get(run_id)
+        if run is None:
+            attach_span.set_attribute("http.status_code", 404)
+            attach_span.set_status(Status(StatusCode.ERROR))
+            raise HTTPException(404, f"optimization run not found: {run_id}")
+        if cursor is None:
+            cursor = _cursor_from_last_event_id(request)
+        epoch = run.begin_attachment()
+        attach_span.set_attribute("http.status_code", 200)
 
     async def detach_if_never_started() -> None:
         # A consumer that aborts before the body iterator ever starts would

@@ -75,12 +75,7 @@ export interface paths {
     put?: never;
     /**
      * Post Optimize Runs
-     * @description Start a detached optimization run and return its run id immediately.
-     *
-     *     The run keeps optimizing with no consumer attached; its admission slot is
-     *     held until the run completes, fails, is cancelled via
-     *     ``DELETE /optimize/runs/{run_id}``, or is reaped after the detach grace
-     *     period without an attached consumer.
+     * @description Start a detached run that remains available for later SSE attachment.
      */
     post: operations["post_optimize_runs_optimize_runs_post"];
     delete?: never;
@@ -101,10 +96,7 @@ export interface paths {
     post?: never;
     /**
      * Delete Optimize Run
-     * @description Cancel a detached run; idempotent once the run is terminal.
-     *
-     *     Returns after the run's CLI is closed, its terminal frame is appended,
-     *     and its admission slot is released.
+     * @description Cancel a detached run and wait for its resources to be released.
      */
     delete: operations["delete_optimize_run_optimize_runs__run_id__delete"];
     options?: never;
@@ -121,10 +113,16 @@ export interface paths {
     };
     /**
      * Get Optimize Run Events
-     * @description Attach to a detached run's SSE log, replaying frames past the cursor.
+     * @description Attach to a detached run and replay events after the supplied cursor.
      *
-     *     ``cursor`` defaults to the ``Last-Event-ID`` header (the query parameter
-     *     wins), then to 0 — a full replay. Disconnecting never affects the run.
+     *     The route is excluded from ASGI auto-instrumentation (see
+     *     ``telemetry.py``): its response live-tails until the consumer detaches,
+     *     and a SERVER span that long would read as worst-case latency in the RED
+     *     SLIs and only export on disconnect. A short manual SERVER span covers
+     *     just the attach itself — run lookup, cursor resolution, and attachment
+     *     registration — and ends when the tail starts, so the latency SLI
+     *     measures "was attaching fast" while the client→optimizer service-graph
+     *     edge is preserved.
      */
     get: operations["get_optimize_run_events_optimize_runs__run_id__events_get"];
     put?: never;
@@ -375,7 +373,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description The detached optimization run was admitted and started in the background; consume its Server-Sent Events via GET /optimize/runs/{run_id}/events */
+      /** @description A detached optimization run was started */
       201: {
         headers: {
           [name: string]: unknown;

@@ -330,7 +330,7 @@
         ],
         "responses": {
           "204": {
-            "description": "The optimization run was cancelled"
+            "description": "The run was cancelled (or had already reached a terminal state); when this call stopped it, the event log's terminal frame is `event: cancelled`"
           },
           "404": {
             "description": "No optimization run with this id is registered"
@@ -351,7 +351,7 @@
     },
     "/optimize/runs/{run_id}/events": {
       "get": {
-        "description": "Attach to a detached run and replay events after the supplied cursor.",
+        "description": "Attach to a detached run and replay events after the supplied cursor.\n\nThe route is excluded from ASGI auto-instrumentation (see\n``telemetry.py``): its response live-tails until the consumer detaches,\nand a SERVER span that long would read as worst-case latency in the RED\nSLIs and only export on disconnect. A short manual SERVER span covers\njust the attach itself \u2014 run lookup, cursor resolution, and attachment\nregistration \u2014 and ends when the tail starts, so the latency SLI\nmeasures \"was attaching fast\" while the client\u2192optimizer service-graph\nedge is preserved.",
         "operationId": "get_optimize_run_events_optimize_runs__run_id__events_get",
         "parameters": [
           {
@@ -390,7 +390,7 @@
                 }
               }
             },
-            "description": "A replayable Server-Sent Events attachment. Terminal frames are `event: done`, an ERROR data frame, or `event: cancelled`."
+            "description": "Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one."
           },
           "404": {
             "description": "No optimization run with this id is registered"

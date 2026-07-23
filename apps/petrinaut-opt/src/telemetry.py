@@ -43,7 +43,13 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 _DEFAULT_SERVICE_NAME = "Petrinaut Optimizer"
 _DEFAULT_PROTOCOL = "grpc"
 _SERVICE_LOGGER_NAMES = ("pn_api", "pn_optimize", "pn_runs", "pn_telemetry")
-_FASTAPI_EXCLUDED_URLS = r"status$"
+# `/status*` is probe noise. The run events route is excluded because its
+# response live-tails for as long as the consumer stays attached: an
+# auto-instrumented SERVER span would last minutes (skewing the RED latency
+# SLIs and only exporting on disconnect). The route opens its own short
+# manual SERVER span over the attach itself instead — see
+# `get_optimize_run_events` in `optimization_api.py`.
+_FASTAPI_EXCLUDED_URLS = r"status$,/optimize/runs/[^/]+/events"
 
 log = logging.getLogger("pn_telemetry")
 
