@@ -9,7 +9,8 @@ use crate::serve::GenerationId;
 /// The operation's description.
 const DESCRIPTION: &str = "The generation this process serves, pinned at startup. Re-read it \
                            whenever any route answers an `unknown-generation` problem; every \
-                           other route is immutable per generation.";
+                           other route's geometry and configuration are pinned per generation, \
+                           while detailed trailers hydrate live from the store.";
 
 /// The `current` document: the one mutable read.
 #[derive(

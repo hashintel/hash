@@ -26,7 +26,7 @@ use super::{
         ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair,
         ReadingGrid, probe, sample_pairs,
     },
-    report::{QualityThresholds, assess},
+    report::{QualityThresholds, ThresholdOverrides, assess},
     runner::{QualityRunOptions, run},
 };
 use crate::{
@@ -36,7 +36,7 @@ use crate::{
     },
     file::generation::GenerationRoot,
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
@@ -766,20 +766,18 @@ fn agreed() -> TripletAggregate {
     aggregate
 }
 
-/// Thresholds pinning the full battery at values any healthy fixture clears.
-///
-/// The verdict refuses unpinned controls, so composition tests pin everything satisfiable and
-/// vary only the control under test.
-fn admitting() -> QualityThresholds {
-    QualityThresholds {
-        minimum_recall: Some(0.0),
-        minimum_trustworthiness: Some(0.0),
-        minimum_continuity: Some(0.0),
-        maximum_intrusion_rate: Some(1.0),
-        maximum_density_spread: Some(1e9),
-        minimum_triplet_agreement: Some(0.0),
-        ..QualityThresholds::default()
-    }
+/// A `[0, 1]` control value.
+fn fraction(value: f64) -> UnitFraction {
+    UnitFraction::new(value).expect("test fractions lie inside [0, 1]")
+}
+
+/// A density-spread ceiling.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "test ceilings are small round values the f32 range carries exactly enough"
+)]
+fn ceiling(value: f64) -> NonNegative {
+    NonNegative::new(value as f32).expect("test ceilings are finite and non-negative")
 }
 
 fn types_of(rows: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
@@ -800,7 +798,7 @@ fn assess_flags_degraded_subgroups() {
     let anchor_types = types_of(&[&[100, 300], &[100], &[100], &[100], &[200, 300], &[200]]);
     let thresholds = QualityThresholds {
         minimum_subgroup_anchors: 2,
-        ..admitting()
+        ..
     };
 
     let report = assess(&readings, &anchor_types, &thresholds);
@@ -852,7 +850,7 @@ fn assess_flags_degraded_subgroups() {
         &anchor_types,
         &QualityThresholds {
             minimum_subgroup_anchors: 3,
-            ..admitting()
+            ..
         },
     );
     assert!(floored.flags.is_empty());
@@ -892,7 +890,7 @@ fn clump_resolution_triages_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
     let thresholds = QualityThresholds {
         minimum_subgroup_anchors: 2,
-        ..admitting()
+        ..
     };
 
     // Restored: the misses were clump siblings, so every collapsed
@@ -993,8 +991,8 @@ fn assess_reads_density_from_radii() {
         &readings,
         &types_of(&[&[], &[], &[]]),
         &QualityThresholds {
-            maximum_density_spread: Some(spread),
-            ..admitting()
+            maximum_density_spread: ceiling(spread + 1e-3),
+            ..
         },
     );
     assert!(lenient.passes());
@@ -1002,8 +1000,8 @@ fn assess_reads_density_from_radii() {
         &readings,
         &types_of(&[&[], &[], &[]]),
         &QualityThresholds {
-            maximum_density_spread: Some(spread / 2.0),
-            ..admitting()
+            maximum_density_spread: ceiling(spread / 2.0),
+            ..
         },
     );
     assert!(!strict.passes());
@@ -1030,8 +1028,8 @@ fn assess_fails_pinned_thresholds_without_evidence() {
         &readings,
         &types,
         &QualityThresholds {
-            maximum_density_spread: Some(1.0),
-            ..admitting()
+            maximum_density_spread: ceiling(1.0),
+            ..
         },
     );
     assert_eq!(report.density[0].anchors, 0);
@@ -1041,106 +1039,114 @@ fn assess_fails_pinned_thresholds_without_evidence() {
     // Disabled triplet readings fail the verdict outright.
     let mut readings = flag_fixture(&[true, true]);
     readings.triplet_map_representation = vec![TripletAggregate::default(); 2].into();
-    let report = assess(&readings, &types, &admitting());
+    let report = assess(&readings, &types, &QualityThresholds::default());
     assert_eq!(report.triplet_map_representation.triplets, 0);
     assert!(!report.passes());
 }
 
-/// A pinned neighbourhood threshold demands a nonempty grid.
+/// The neighbourhood controls demand a nonempty grid.
 ///
 /// `all` over an empty grid is vacuously true; the verdict must not be. `assess` cannot emit an
 /// empty grid today (it reads rung 0 unconditionally and panics), but the report is a
 /// serializable value whose verdict must hold under every construction - persisted reports get
-/// read back, and a pin over zero rungs is the same configuration contradiction as a pinned
-/// density ceiling over absent readings, failing the same way.
+/// read back, and a control over zero rungs is the same evidence absence as a density ceiling
+/// over absent readings, failing the same way.
 #[test]
-fn pinned_neighbourhood_thresholds_demand_a_nonempty_grid() {
+fn neighbourhood_controls_demand_a_nonempty_grid() {
     let readings = flag_fixture(&[true, true]);
     let types = types_of(&[&[], &[]]);
 
-    let mut report = assess(&readings, &types, &admitting());
-    assert!(report.passes(), "the populated grid clears the floor");
+    let mut report = assess(&readings, &types, &QualityThresholds::default());
+    assert!(report.passes(), "the populated grid clears the defaults");
 
     report.map_representation.clear();
     assert!(
         !report.passes(),
-        "a pin without evidence fails, never vacuously passes",
+        "a control without evidence fails, never vacuously passes",
     );
 }
 
-/// Any unpinned absolute control refuses admission.
+/// Override documents validate at the boundary.
 ///
-/// The gate is the sole activation authority (ruling 2026-07-23): missing calibration cannot
-/// auto-pass, so the verdict demands all six controls pinned, and the default configuration is
-/// report-only by construction.
+/// A present field overrides its default after domain validation; an absent field keeps the
+/// default; an out-of-domain value names its field; an unknown field refuses the document.
 #[test]
-fn unpinned_controls_refuse_admission() {
-    let readings = flag_fixture(&[true, true]);
-    let types = types_of(&[&[], &[]]);
+fn threshold_overrides_validate_at_the_boundary() {
+    let overrides: ThresholdOverrides =
+        serde_json::from_str(r#"{"minimum_recall": 0.25}"#).expect("the partial document parses");
+    let merged = QualityThresholds::default()
+        .with_overrides(&overrides)
+        .expect("an in-domain override merges");
+    assert_eq!(merged.minimum_recall, fraction(0.25));
+    assert_eq!(merged.maximum_intrusion_rate, UnitFraction::ONE);
 
-    assert!(
-        assess(&readings, &types, &admitting()).passes(),
-        "the full battery admits the healthy fixture",
-    );
-    assert!(
-        !assess(&readings, &types, &QualityThresholds::default()).passes(),
-        "unpinned defaults are report-only, never admission",
-    );
-
-    let full = admitting();
-    let knockouts: [(&str, QualityThresholds); 6] = [
+    let refusals = [
+        (r#"{"minimum_recall": -0.1}"#, "minimum_recall"),
         (
-            "recall",
-            QualityThresholds {
-                minimum_recall: None,
-                ..full
-            },
+            r#"{"maximum_intrusion_rate": 1.5}"#,
+            "maximum_intrusion_rate",
         ),
         (
-            "trustworthiness",
-            QualityThresholds {
-                minimum_trustworthiness: None,
-                ..full
-            },
+            r#"{"maximum_density_spread": -1.0}"#,
+            "maximum_density_spread",
         ),
         (
-            "continuity",
-            QualityThresholds {
-                minimum_continuity: None,
-                ..full
-            },
-        ),
-        (
-            "intrusion",
-            QualityThresholds {
-                maximum_intrusion_rate: None,
-                ..full
-            },
-        ),
-        (
-            "density",
-            QualityThresholds {
-                maximum_density_spread: None,
-                ..full
-            },
-        ),
-        (
-            "triplets",
-            QualityThresholds {
-                minimum_triplet_agreement: None,
-                ..full
-            },
+            r#"{"maximum_density_spread": 1e300}"#,
+            "maximum_density_spread",
         ),
     ];
-    for (name, thresholds) in knockouts {
-        assert!(
-            !assess(&readings, &types, &thresholds).passes(),
-            "an unpinned {name} control must refuse admission",
-        );
+    for (document, field) in refusals {
+        let overrides: ThresholdOverrides =
+            serde_json::from_str(document).expect("the shape parses; the domain refuses");
+        let error = QualityThresholds::default()
+            .with_overrides(&overrides)
+            .expect_err("an out-of-domain override refuses");
+        assert_eq!(error.field, field);
     }
+
+    assert!(
+        serde_json::from_str::<ThresholdOverrides>(r#"{"minimum_recal": 0.5}"#).is_err(),
+        "an unknown field refuses the document",
+    );
+
+    // The f64 domain check precedes narrowing: a negative underflow
+    // would narrow to -0.0 and a value just above the f32 maximum
+    // would round down onto it - both refuse as written.
+    let underflow = ThresholdOverrides {
+        maximum_density_spread: Some(-f64::MIN_POSITIVE),
+        ..ThresholdOverrides::default()
+    };
+    assert_eq!(
+        QualityThresholds::default()
+            .with_overrides(&underflow)
+            .expect_err("a negative underflow refuses")
+            .field,
+        "maximum_density_spread",
+    );
+
+    let boundary = ThresholdOverrides {
+        maximum_density_spread: Some(f64::from(f32::MAX)),
+        ..ThresholdOverrides::default()
+    };
+    let merged = QualityThresholds::default()
+        .with_overrides(&boundary)
+        .expect("the f32 maximum is the upper boundary and admits");
+    assert_eq!(merged.maximum_density_spread.get(), f32::MAX);
+
+    let above = ThresholdOverrides {
+        maximum_density_spread: Some(f64::from(f32::MAX).next_up()),
+        ..ThresholdOverrides::default()
+    };
+    assert_eq!(
+        QualityThresholds::default()
+            .with_overrides(&above)
+            .expect_err("the value above the f32 maximum refuses, not rounds")
+            .field,
+        "maximum_density_spread",
+    );
 }
 
-/// Pinned floors bind the overall corpus readings.
+/// Floors bind the overall corpus readings.
 #[test]
 fn assess_applies_pinned_floors() {
     let readings = flag_fixture(&[true, true, false]);
@@ -1151,8 +1157,8 @@ fn assess_applies_pinned_floors() {
         &readings,
         &anchor_types,
         &QualityThresholds {
-            minimum_recall: Some(0.9),
-            ..admitting()
+            minimum_recall: fraction(0.9),
+            ..
         },
     );
     assert!(!strict.passes());
@@ -1161,9 +1167,9 @@ fn assess_applies_pinned_floors() {
         &readings,
         &anchor_types,
         &QualityThresholds {
-            minimum_recall: Some(0.5),
-            maximum_intrusion_rate: Some(0.5),
-            ..admitting()
+            minimum_recall: fraction(0.5),
+            maximum_intrusion_rate: fraction(0.5),
+            ..
         },
     );
     assert!(lenient.passes());
@@ -1195,14 +1201,13 @@ async fn assess_reads_a_probed_fixture() {
         &readings,
         &anchor_types,
         &QualityThresholds {
-            minimum_recall: Some(1.0),
-            minimum_trustworthiness: Some(1.0),
-            minimum_continuity: Some(1.0),
-            maximum_intrusion_rate: Some(0.0),
-            maximum_density_spread: Some(1e9),
-            minimum_triplet_agreement: Some(1.0),
+            minimum_recall: UnitFraction::ONE,
+            minimum_trustworthiness: UnitFraction::ONE,
+            minimum_continuity: UnitFraction::ONE,
+            maximum_intrusion_rate: UnitFraction::ZERO,
+            minimum_triplet_agreement: UnitFraction::ONE,
             minimum_subgroup_anchors: 5,
-            ..QualityThresholds::default()
+            ..
         },
     );
 
@@ -1600,9 +1605,14 @@ async fn runner_reports_a_published_generation() {
         }
     }
 
-    // Subgroups below the default anchor floor never flag, and the
-    // unpinned default configuration is report-only: inspectable
-    // output, never an admission.
+    // Subgroups below the default anchor floor never flag. The verdict
+    // still refuses: rung 2 of this landmark-baseline fixture reads
+    // all-degenerate radii, so the density evidence is absent there and
+    // the gate fails closed on absence, permissive ceilings included.
     assert!(report.flags.is_empty());
+    assert!(
+        report.density[0].spread.is_none(),
+        "the small rung's density evidence is absent on this fixture",
+    );
     assert!(!report.passes());
 }

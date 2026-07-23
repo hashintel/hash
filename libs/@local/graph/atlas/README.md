@@ -26,12 +26,32 @@ cargo build -p hash-graph
 ```
 
 Fit a generation from a running graph store and activate it (store
-flags default to the graph's `HASH_GRAPH_PG_*` environment):
+flags default to the graph's `HASH_GRAPH_PG_*` environment; exactly
+one of `--annotations` and `--classifier` supplies the relation
+classifier):
 
 ```sh
 cargo run -p hash-graph --features hash-graph-atlas/gpu -- \
-  atlas fit --root /var/lib/hash/atlas
+  atlas fit --root /var/lib/hash/atlas \
+  --annotations annotation-corpus.json
 ```
+
+Quality thresholds default to maximally permissive values (the gate
+demands evidence presence rather than fidelity); impose measured
+bounds with `--quality-thresholds thresholds.json`:
+
+```json
+{
+  "minimum_recall": 0.95,
+  "maximum_density_spread": 0.5
+}
+```
+
+The six fields are `minimum_recall`, `minimum_trustworthiness`,
+`minimum_continuity`, `maximum_intrusion_rate`,
+`minimum_triplet_agreement` (each in `[0, 1]`) and
+`maximum_density_spread` (finite, non-negative); out-of-domain
+values and unknown fields refuse the run before it starts.
 
 Success prints a receipt and writes an admission report:
 
@@ -72,25 +92,29 @@ Five terms carry the whole model:
   never change after publication; new data means a new generation.
 - A **variant** is one layout of a generation. Version 1 publishes exactly
   one, named `plain`.
-- A **row id** identifies a node or edge within one generation. On the
-  wire, row ids are opaque values, sparse in the full u32 range:
-  consistent across every endpoint of one generation, carrying no
-  ordering, adjacency, or count information, never bounded by the
-  generation's row count, and not stable across generations - clients
-  re-translate after a generation change.
+- A **row id** identifies a node row within one generation; edges carry
+  their link entity's raw 32-byte identity instead. On the
+  wire, row ids are opaque values issued through a keyed permutation of
+  the full u32 range: consistent across every endpoint of one
+  generation, never bounded by the generation's row count, and not
+  stable across generations - clients re-translate after a generation
+  change. The permutation's design target is that ids carry no
+  ordering, adjacency, or count information; that hiding is the
+  construction's target, not a demonstrated boundary. Treat ids as
+  meaningless handles either way.
 - **Tiles** quadtree the map. Each fitted point carries an importance
   bucket, and a tile at zoom `z` delivers exactly the points whose bucket
   clears the zoom's cut - deeper zooms deliver less important points. The
   manifest's `bucketSchedule` publishes the schedule, so delivery is a
   pure function of `(generation, z, x, y)`.
 - The **manifest** is the per-generation bootstrap read: wire version,
-  variant names, bucket schedule, and `limits` - the server's enforced
-  request caps, published as data. Everything a client needs before its
-  first tile.
+  variant names, bucket schedule, and `limits` - request caps published
+  as data, each read from the value its handler enforces. Everything a
+  client needs before its first tile.
 
 The serving read path is `current` (which generation?) then `manifest`
-(how does it speak?) then tiles, edges, locate, and translate, all
-immutable per generation.
+(how does it speak?) then tiles, edges, locate, and translate - geometry
+and configuration pinned per generation, detail trailers hydrated live.
 
 ## The serving surface
 
@@ -111,22 +135,30 @@ per-route contract; the notes below are the semantics that span routes.
 
 Binary responses ship `application/vnd.hash.saltile-v1` envelopes with
 `Cache-Control: private, no-store`: the client's application-layer cache
-is the cache, keyed by the immutable generation id. The manifest is
-cacheable for the generation's lifetime. Identical requests yield
-identical bytes, per generation and server secret.
+is the cache, keyed by authorization context, generation, route, and
+canonical query. The manifest is cacheable for the generation's
+lifetime. Identical requests yield identical geometry bytes, per
+generation and server secret; detailed responses hydrate their trailers
+live from the store and leave the immutable cache - cache the geometry
+surfaces, refetch detail.
 
-Rejections are RFC 9457 `application/problem+json` documents with stable
-type slugs (`unknown-generation`, `invalid-coordinate`, `too-many-tiles`,
-`missing-body`, ...). `unknown-generation` means the route names a
-generation this process does not serve: re-read `current` and retry.
+Rejections from the handlers are RFC 9457 `application/problem+json`
+documents whose `type` is a stable root-relative URI
+(`/problems/atlas/unknown-generation`, `/problems/atlas/invalid-coordinate`,
+...). Requests the framework's extractors reject - malformed bodies,
+unparsable paths - answer plain rejections instead. `unknown-generation`
+means the route names a generation this process does not serve: re-read
+`current` and retry.
 Entities that do not exist and entities the caller may not see answer
 byte-identically - existence is never disclosed through an error shape.
 
 ### Server configuration
 
 Flags with environment fallbacks; absent flags read documented defaults.
-The manifest publishes exactly the values the handlers enforce, so
-advertised and enforced limits cannot disagree:
+Each published manifest limit reads the value its handler enforces (one
+source, so an advertised limit never disagrees with enforcement); not
+every cap is published - the edge-count truncation cap (`--edges`)
+shapes responses without a manifest row:
 
 | Flag                                                                                                                | Environment               | Default                   | Meaning                                                    |
 | ------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------- | ---------------------------------------------------------- |
@@ -149,7 +181,7 @@ repository's `var/atlas-generations` directory (bind-mounted, gitignored)
 against the stack's `postgres`. Fitting stays outside the stack: run
 `hash-graph atlas fit --root var/atlas-generations ...` on the host and
 the service serves the activated generation from the shared directory.
-Serving and fitting never combine implicitly — a serve refuses an empty
+Serving and fitting never combine implicitly - a serve refuses an empty
 root rather than fitting one, and the service reports unhealthy until a
 generation exists. No other service waits on it.
 
@@ -183,27 +215,30 @@ in the surrounding service.
 What the crate does guarantee, independent of the surrounding service:
 
 - Row ids cross the wire through a keyed permutation derived from the
-  server secret (`HASH_GRAPH_ATLAS_SECRET`) per generation, so id values
-  and response orders carry no information about internal row assignment.
-  Set the secret from a deployment secret store; the unconfigured
-  development default keeps wire ids predictable to anyone with the crate.
+  server secret (`HASH_GRAPH_ATLAS_SECRET`) per generation. The
+  permutation's design target is that id values and response orders
+  carry no information about internal row assignment; that hiding is
+  the construction's target, not a demonstrated boundary. Set the
+  secret from a deployment secret store; the unconfigured development
+  default keeps wire ids predictable to anyone with the crate.
 - Missing and forbidden answer byte-identically on every id-bearing
   route.
-- Request caps are enforced at the handlers and published in the manifest
-  from the same value, by construction.
-- Every response is computed over a server-held visibility proof: row
+- Published manifest limits and their handler enforcement read the same
+  value, by construction.
+- Every corpus-bearing response (tile, edges, locate, translate) is
+  computed over a server-held visibility proof: row
   sets intersect it, edges inherit visibility from their endpoints, and
-  hidden rows are indistinguishable from nonexistent ones. This process
-  serves with the explicit full-visibility operator proof until a
-  session transport supplies per-scope proofs; the sealed-bitmap session
-  path is specified and under construction (`SPEC-ADDENDUM-AUTHZ.md`).
+  hidden rows are indistinguishable from nonexistent ones. Current
+  serving uses the explicit full-visibility operator proof: the
+  sealed-bitmap session path that would supply per-scope proofs is
+  specified but not built.
 
 ## Limitations
 
 - One generation per process: the server pins `current` at startup and
   never hot-swaps. Restart to serve a newly activated generation.
 - `filter` fields are rejected by name (`unsupported-feature`), not
-  silently ignored - the filter surface is specified but not yet served.
+  silently ignored - the filter surface is specified but not served.
 - Row ids do not survive a refit. Anything a client persists must be
   stored in entity-identity terms and re-translated per generation.
 - Incremental ingestion is not enabled: new entities enter through the

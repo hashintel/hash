@@ -75,6 +75,17 @@ pub struct FitArgs {
     #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS")]
     verdicts: Option<String>,
 
+    /// Path of a quality-thresholds document overriding the source defaults.
+    ///
+    /// A JSON object with any of `minimum_recall`, `minimum_trustworthiness`,
+    /// `minimum_continuity`, `maximum_intrusion_rate`, `minimum_triplet_agreement` (each in
+    /// `[0, 1]`) and `maximum_density_spread` (finite, non-negative, at most the `f32` maximum).
+    /// A present field overrides its default, an unknown field refuses the document, and an
+    /// out-of-domain value refuses the run before it starts. The source defaults are maximally
+    /// permissive, gating evidence presence rather than fidelity.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS")]
+    quality_thresholds: Option<String>,
+
     /// Path of an annotation-corpus document: the classifier's training supply.
     ///
     /// The run assembles it, fits the relation classifier, and stages the corpus, the embedding
@@ -333,6 +344,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         anchors: args.anchors,
         comparisons: args.comparisons,
         verdicts: args.verdicts,
+        quality_thresholds: args.quality_thresholds,
         annotations: args.annotations,
         classifier: args.classifier,
         projector_steps: args.projector_steps,
@@ -347,6 +359,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         anchors = options.anchors.get(),
         comparisons = options.comparisons.get(),
         verdicts = options.verdicts.as_deref().unwrap_or("<none>"),
+        quality_thresholds = options.quality_thresholds.as_deref().unwrap_or("<defaults>"),
         annotations = options.annotations.as_deref().unwrap_or("<none>"),
         classifier = options.classifier.as_deref().unwrap_or("<none>"),
         projector_steps = options.projector_steps.map_or(0, NonZero::get),

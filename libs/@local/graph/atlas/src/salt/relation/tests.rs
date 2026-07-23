@@ -10,7 +10,7 @@ use super::{
     ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,
     RelationPolicy,
     artifact::{AttractionArchive, InvalidAttractionIndex, ProtectionArchive},
-    attraction::AttractionOptions,
+    attraction::{AttractionGroup, AttractionOptions},
     build,
     error::RelationIndexError,
     protection::{ChannelConfig, NodePair, PairVerdict, ProtectionConfig},
@@ -1105,7 +1105,7 @@ fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
             .attraction
             .groups()
             .iter()
-            .flat_map(|group| group.edges())
+            .flat_map(AttractionGroup::edges)
             .map(|edge| f64::from(edge.normalization))
             .sum()
     };

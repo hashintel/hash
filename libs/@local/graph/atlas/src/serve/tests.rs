@@ -2858,7 +2858,7 @@ fn codec_stays_injective_at_scale() {
 }
 
 #[test]
-fn codec_wire_ids_disclose_nothing_of_the_universe() {
+fn codec_wire_ids_estimate_the_full_range_never_the_universe() {
     let universe = 10_000_u32;
     let sample = 100_u32;
     let trials = 128_u32;
@@ -2887,9 +2887,13 @@ fn codec_wire_ids_disclose_nothing_of_the_universe() {
     // Averaged over trials, the German-tank estimate m(1 + 1/k) - 1
     // applied to full-range ids recovers the u32 range - never N.
     // Comparisons stay in the scale of 2^32 · k · trials -
-    // multiplied out, never divided. Both selections estimating the
-    // range, and only the range, is the codec's contract: wire ids
-    // answer nothing, not even "how many rows".
+    // multiplied out, never divided. This is regression evidence
+    // against gross mapping bias - a codec issuing [0, N) or
+    // assignment-ordered ids fails both selections by orders of
+    // magnitude. A distribution smoke at 128 keys cannot establish
+    // indistinguishability from a random permutation or bound
+    // leakage at corpus observation volume; the stronger property
+    // stays a design target.
     //
     // The tolerance derives from the estimator's own spread. The
     // maximum of k uniform draws on [0, M) has variance
@@ -2926,7 +2930,7 @@ fn codec_wire_ids_disclose_nothing_of_the_universe() {
     let difference_tolerance = (12.0 * core::f64::consts::SQRT_2 * deviation) as u64;
     assert!(
         scaled(block_total.abs_diff(spread_total)) < difference_tolerance,
-        "the selections are indistinguishable through wire ids: {block_total} vs {spread_total}",
+        "the selections' range estimates agree: {block_total} vs {spread_total}",
     );
 }
 
@@ -4030,18 +4034,20 @@ fn sealed_blob_clock_accepts_through_the_hard_cap() {
     );
 }
 
-/// Ciphertext length reveals the bucket index, never the cardinality.
+/// Padding quantizes serialized-size leakage to a power-of-two bucket.
 ///
 /// Every bitmap in the floor bucket seals to the same 1074 bytes (34-byte header + 1 KiB padded
 /// plaintext + 16-byte tag), hiding one row of a larger set moves nothing, and
-/// every padded width is a power of two at or above the floor.
+/// every padded width is a power of two at or above the floor. Bucket transitions remain
+/// correlated with cardinality and container layout - the 502/503 boundary below is that
+/// correlation made exact - so the certificate is quantization, never length-hiding.
 ///
 /// The sets scatter their rows (step 3) so roaring stores array containers - contiguous ranges
 /// collapse to run containers a few bytes wide and would never leave the floor bucket. One
 /// scattered container serializes to `16 + 2n` bytes, so with the 4-byte length prefix the floor
 /// bucket holds exactly the cardinalities through 502.
 #[test]
-fn sealed_blob_length_is_the_bucket_never_the_cardinality() {
+fn sealed_blob_length_quantizes_to_the_padding_bucket() {
     let bindings = seal_bindings();
     let secret = b"test-secret";
 

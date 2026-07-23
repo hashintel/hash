@@ -5,11 +5,11 @@
 
 use aide::{OperationOutput, generate::GenContext, openapi};
 use axum::{
-    http::{StatusCode, header},
+    http::header,
     response::{IntoResponse, Response},
 };
 
-use super::problem::{Problem, ProblemType};
+use super::problem::Problem;
 
 /// The tile response media type: the `SALTILE` family, version 1.
 const SALTILE: &str = "application/vnd.hash.saltile-v1";
@@ -70,7 +70,8 @@ impl OperationOutput for Saltile {
 /// Runs CPU-bound response assembly on a rayon worker behind `catch_unwind`.
 ///
 /// Maps a vanished worker or a panic - a producer bug surfacing as 500, never an unwind across the
-/// runtime - to its problem document.
+/// runtime - to its problem document. The panic payload is server-log material; the document
+/// carries a static detail.
 pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + 'static,
 ) -> Result<T, Problem<'static>> {
@@ -80,25 +81,19 @@ pub(super) async fn spawn<T: Send + 'static>(
         let _: Result<(), _> = sender.send(result);
     });
 
-    // NOTE: should we send the panic detail to the client on release?
     match receiver.await {
         Ok(Ok(value)) => Ok(value),
         Ok(Err(panic)) => {
-            let detail = panic
+            let payload = panic
                 .downcast_ref::<&str>()
                 .map(|&message| message.to_owned())
                 .or_else(|| panic.downcast_ref::<String>().cloned())
-                .unwrap_or_else(|| "the response assembly panicked".to_owned());
+                .unwrap_or_else(|| "non-string panic payload".to_owned());
 
-            Err(Problem::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                ProblemType::InternalError,
-                detail,
-            ))
+            Err(Problem::internal(payload, "the response assembly panicked"))
         }
-        Err(_closed) => Err(Problem::new(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            ProblemType::InternalError,
+        Err(_closed) => Err(Problem::internal(
+            "the assembly worker dropped its channel",
             "the assembly worker vanished",
         )),
     }

@@ -65,7 +65,7 @@ unidecode            = { workspace = true }
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 darwin-kperf-events       = { workspace = true }
-proptest                  = { workspace = true }
+proptest                  = { workspace = true, features = ["attr-macro"] }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
 uuid                      = { workspace = true, features = ["v5"] }

@@ -4,7 +4,7 @@
               identities are exact contracts"
 )]
 
-use proptest::{prop_assert, prop_assert_eq, proptest, strategy::Strategy};
+use proptest::{prop_assert, prop_assert_eq, property_test, strategy::Strategy};
 
 use crate::math::{BoxedDVecN, DVecN};
 
@@ -337,70 +337,72 @@ fn logits_strategy() -> impl Strategy<Value = [f64; 11]> {
     proptest::array::uniform11(-50.0_f64..50.0)
 }
 
-proptest! {
-    /// Softmax outputs are probabilities: each lies in `[0, 1]` and they sum to one up to rounding.
-    #[test]
-    fn softmax_outputs_form_a_distribution(logits in logits_strategy()) {
-        let probabilities = DVecN::new(logits).softmax();
+/// Softmax outputs are probabilities: each lies in `[0, 1]` and they sum to one up to rounding.
+#[property_test]
+fn softmax_outputs_form_a_distribution(#[strategy = logits_strategy()] logits: [f64; 11]) {
+    let probabilities = DVecN::new(logits).softmax();
 
-        for &probability in probabilities.as_array() {
-            prop_assert!((0.0..=1.0).contains(&probability));
-        }
-        let total: f64 = probabilities.as_array().iter().sum();
-        prop_assert!((total - 1.0).abs() < 1e-12, "total {}", total);
+    for &probability in probabilities.as_array() {
+        prop_assert!((0.0..=1.0).contains(&probability));
     }
+    let total: f64 = probabilities.as_array().iter().sum();
+    prop_assert!((total - 1.0).abs() < 1e-12, "total {}", total);
+}
 
-    /// Softmax is shift-invariant.
-    ///
-    /// Adding a common constant to every logit leaves the distribution unchanged up to rounding.
-    /// The shift is bounded to `-1e2..1e2` so the shifted logits stay well-conditioned.
-    #[test]
-    fn softmax_is_shift_invariant_on_arbitrary_logits(
-        logits in logits_strategy(),
-        shift in -1e2_f64..1e2,
-    ) {
-        let base = DVecN::new(logits).softmax();
-        let moved = DVecN::new(logits.map(|logit| logit + shift)).softmax();
+/// Softmax is shift-invariant.
+///
+/// Adding a common constant to every logit leaves the distribution unchanged up to rounding.
+/// The shift is bounded to `-1e2..1e2` so the shifted logits stay well-conditioned.
+#[property_test]
+fn softmax_is_shift_invariant_on_arbitrary_logits(
+    #[strategy = logits_strategy()] logits: [f64; 11],
+    #[strategy = -1e2_f64..1e2] shift: f64,
+) {
+    let base = DVecN::new(logits).softmax();
+    let moved = DVecN::new(logits.map(|logit| logit + shift)).softmax();
 
-        for (base, moved) in base.as_array().iter().zip(moved.as_array()) {
-            prop_assert!((base - moved).abs() < 1e-10, "{} vs {}", base, moved);
-        }
+    for (base, moved) in base.as_array().iter().zip(moved.as_array()) {
+        prop_assert!((base - moved).abs() < 1e-10, "{} vs {}", base, moved);
     }
+}
 
-    /// Log-sum-exp is bracketed by its algebraic bounds.
-    ///
-    /// `max ≤ log_sum_exp ≤ max + ln(N)`, up to rounding.
-    #[test]
-    fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(logits in logits_strategy()) {
-        let vec = DVecN::new(logits);
+/// Log-sum-exp is bracketed by its algebraic bounds.
+///
+/// `max ≤ log_sum_exp ≤ max + ln(N)`, up to rounding.
+#[property_test]
+fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(
+    #[strategy = logits_strategy()] logits: [f64; 11],
+) {
+    let vec = DVecN::new(logits);
 
-        let result = vec.log_sum_exp();
-        let maximum = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let result = vec.log_sum_exp();
+    let maximum = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
 
-        prop_assert!(result >= maximum - 1e-9, "{} below max {}", result, maximum);
-        prop_assert!(
-            result <= maximum + 11.0_f64.ln() + 1e-9,
-            "{} above max {} + ln(11)", result, maximum,
-        );
-    }
+    prop_assert!(result >= maximum - 1e-9, "{} below max {}", result, maximum);
+    prop_assert!(
+        result <= maximum + 11.0_f64.ln() + 1e-9,
+        "{} above max {} + ln(11)",
+        result,
+        maximum,
+    );
+}
 
-    /// `add_scaled` matches the scalar fused reference loop bit for bit in every component.
-    ///
-    /// The SIMD path widens, multiplies, and adds with the same single rounding as scalar
-    /// `mul_add`. Components and the factor are bounded to `-1e3..1e3`.
-    #[test]
-    fn add_scaled_matches_a_scalar_reference_loop(
-        accumulator in proptest::array::uniform11(-1e3_f64..1e3),
-        direction in proptest::array::uniform11(-1e3_f32..1e3),
-        factor in -1e3_f64..1e3,
-    ) {
-        let expected: [f64; 11] = core::array::from_fn(|index| {
-            f64::from(direction[index]).mul_add(factor, accumulator[index])
-        });
+/// `add_scaled` matches the scalar fused reference loop bit for bit in every component.
+///
+/// The SIMD path widens, multiplies, and adds with the same single rounding as scalar
+/// `mul_add`. Components and the factor are bounded to `-1e3..1e3`.
+#[property_test]
+fn add_scaled_matches_a_scalar_reference_loop(
+    #[strategy = proptest::array::uniform11(-1e3_f64..1e3)] accumulator: [f64; 11],
+    #[strategy = proptest::array::uniform11(-1e3_f32..1e3)] direction: [f32; 11],
+    #[strategy = -1e3_f64..1e3] factor: f64,
+) {
+    let expected: [f64; 11] = core::array::from_fn(|index| {
+        f64::from(direction[index]).mul_add(factor, accumulator[index])
+    });
 
-        let mut actual = DVecN::new(accumulator);
-        actual.add_scaled(&crate::math::VecN::new(direction), factor);
+    let mut actual = DVecN::new(accumulator);
+    actual.add_scaled(&crate::math::VecN::new(direction), factor);
 
-        prop_assert_eq!(actual.as_array(), &expected);
-    }
+    prop_assert_eq!(actual.as_array(), &expected);
 }

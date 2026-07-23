@@ -38,6 +38,7 @@ use crate::{
         knn::descent::NnDescentOptions,
         landmark::select::SelectionOptions,
         projector::train::{RelationLens, TrainingSchedule},
+        quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
         runner::{Admission, PriorMode, RunnerError, RunnerOptions, run},
     },
 };
@@ -148,6 +149,14 @@ pub struct Options {
     /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
     /// so a corpus whose relations carry Proximal force needs one (or an asserted radius) to train.
     pub verdicts: Option<String> = None,
+    /// Path of a quality-thresholds document overriding the source defaults.
+    ///
+    /// Six optional fields (`minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`,
+    /// `maximum_intrusion_rate`, `maximum_density_spread`, `minimum_triplet_agreement`); a present
+    /// field overrides its default after domain validation, an absent field keeps it, an unknown
+    /// field refuses the document. The source defaults are maximally permissive, gating evidence
+    /// presence rather than fidelity.
+    pub quality_thresholds: Option<String> = None,
     /// Path of an annotation-corpus document: the classifier's training supply.
     ///
     /// The run assembles it, fits the relation classifier, and stages the corpus, the embedding
@@ -229,6 +238,55 @@ impl CoreError for VerdictsError {
     }
 }
 
+/// The thresholds step's fault: the quality-thresholds document was refused.
+#[derive(Debug)]
+pub struct ThresholdsError(ThresholdSupplyError);
+
+impl fmt::Display for ThresholdsError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+// NOTE: can we please... not call it `CoreError`, we never call our errors that should just be
+// `Error` or `core::error::Error`
+impl CoreError for ThresholdsError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        self.0.source()
+    }
+}
+
+/// The refusal grounds of a supplied quality-thresholds document.
+#[derive(Debug)]
+enum ThresholdSupplyError {
+    /// The document could not be read.
+    Io(io::Error),
+    /// The document does not parse as the override shape.
+    Parse(serde_json::Error),
+    /// An override lies outside its control's domain.
+    Domain(ThresholdDomainError),
+}
+
+impl fmt::Display for ThresholdSupplyError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(_) => fmt.write_str("the document could not be read"),
+            Self::Parse(_) => fmt.write_str("the document does not parse as the override shape"),
+            Self::Domain(error) => fmt::Display::fmt(error, fmt),
+        }
+    }
+}
+
+impl CoreError for ThresholdSupplyError {
+    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+        match self {
+            Self::Io(error) => Some(error),
+            Self::Parse(error) => Some(error),
+            Self::Domain(error) => Some(error),
+        }
+    }
+}
+
 /// The annotations step's fault: the annotation-corpus document was refused.
 #[derive(Debug)]
 pub struct AnnotationsError(AnnotationSupplyError);
@@ -291,6 +349,8 @@ pub enum RunError {
     Snapshot(SnapshotError),
     /// The supplied verdicts document was refused.
     Verdicts(VerdictsError),
+    /// The supplied quality-thresholds document was refused.
+    Thresholds(ThresholdsError),
     /// The supplied annotation-corpus document was refused.
     Annotations(AnnotationsError),
     /// The supplied classifier artifact was refused.
@@ -313,6 +373,9 @@ impl fmt::Display for RunError {
             Self::Root(_) => fmt.write_str("the generation root could not open"),
             Self::Snapshot(_) => fmt.write_str("the store could not open a snapshot transaction"),
             Self::Verdicts(_) => fmt.write_str("the supplied verdicts document was refused"),
+            Self::Thresholds(_) => {
+                fmt.write_str("the supplied quality-thresholds document was refused")
+            }
             Self::Annotations(_) => {
                 fmt.write_str("the supplied annotation-corpus document was refused")
             }
@@ -337,6 +400,7 @@ impl CoreError for RunError {
             Self::Root(error) => Some(error),
             Self::Snapshot(error) => Some(error),
             Self::Verdicts(error) => Some(error),
+            Self::Thresholds(error) => Some(error),
             Self::Annotations(error) => Some(error),
             Self::Classifier(error) => Some(error),
             Self::Run(error) => Some(error),
@@ -376,6 +440,28 @@ fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
     }
 }
 
+/// Applies a supplied quality-thresholds document over the source defaults.
+///
+/// # Errors
+///
+/// Returns a [`ThresholdsError`] when the document cannot be read, does not parse as the override
+/// shape, or carries an out-of-domain value.
+fn quality_thresholds(
+    defaults: QualityThresholds,
+    path: Option<&str>,
+) -> Result<QualityThresholds, ThresholdsError> {
+    let Some(path) = path else {
+        return Ok(defaults);
+    };
+    let text = std::fs::read_to_string(path)
+        .map_err(|error| ThresholdsError(ThresholdSupplyError::Io(error)))?;
+    let overrides: ThresholdOverrides = serde_json::from_str(&text)
+        .map_err(|error| ThresholdsError(ThresholdSupplyError::Parse(error)))?;
+    defaults
+        .with_overrides(&overrides)
+        .map_err(|error| ThresholdsError(ThresholdSupplyError::Domain(error)))
+}
+
 /// Runs one production generation over the store's current snapshot.
 ///
 /// The published generation lands in the generation root at `root`.
@@ -383,8 +469,8 @@ fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
 /// # Errors
 ///
 /// Returns a [`RunError`] naming the step that failed: opening the root, opening the snapshot
-/// transaction, admitting the supplied verdicts, annotation-corpus, or classifier documents,
-/// validating the asserted Proximal radius, or the run itself.
+/// transaction, admitting the supplied verdicts, quality-thresholds, annotation-corpus, or
+/// classifier documents, validating the asserted Proximal radius, or the run itself.
 ///
 /// # Panics
 ///
@@ -414,12 +500,20 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         },
         ..
     };
+
     runner_options.quality.probe.anchors = options.anchors;
     runner_options.quality.probe.comparisons = options.comparisons;
+    runner_options.quality.thresholds = quality_thresholds(
+        runner_options.quality.thresholds,
+        options.quality_thresholds.as_deref(),
+    )
+    .map_err(RunError::Thresholds)?;
+
     if options.nn_descent {
         runner_options.fit.construction =
             KnnConstructionChoice::Descent(NnDescentOptions::default());
     }
+
     match (options.baseline, options.projector_steps) {
         (true, _) => runner_options.fit.placement = PlacementOptions::LandmarkBaseline,
         (false, Some(steps)) => {
@@ -429,6 +523,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         }
         (false, None) => {}
     }
+
     if let Some(radius) = options.asserted_proximal_radius {
         let mut projector = match runner_options.fit.placement {
             PlacementOptions::Projector(projector) => projector,
@@ -446,6 +541,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         .ok_or(RunError::ProximalRadius(radius))?;
         runner_options.fit.placement = PlacementOptions::Projector(projector);
     }
+
     if options.vacuous_placement {
         let mut projector = match runner_options.fit.placement {
             PlacementOptions::Projector(projector) => projector,

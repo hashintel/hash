@@ -8,7 +8,7 @@
     reason = "test data generation folds indices into range by modulus"
 )]
 
-use proptest::{prop_assert, prop_assert_eq, prop_assume, proptest, strategy::Strategy};
+use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy::Strategy};
 
 use crate::math::{
     Bounds2, Vec2, Vec2x4T,
@@ -280,92 +280,94 @@ fn bounds_strategy() -> impl Strategy<Value = Bounds2> {
     })
 }
 
-proptest! {
-    /// The box computed from a point set contains every input point.
-    ///
-    /// The min/max folds are exact, so containment is boundary-inclusive with no tolerance.
-    #[test]
-    fn from_points_contains_every_input_point(points in points_strategy()) {
-        prop_assume!(!points.is_empty());
+/// The box computed from a point set contains every input point.
+///
+/// The min/max folds are exact, so containment is boundary-inclusive with no tolerance.
+#[property_test]
+fn from_points_contains_every_input_point(#[strategy = points_strategy()] points: Vec<Vec2>) {
+    prop_assume!(!points.is_empty());
 
-        let bounds = Bounds2::from_points(points.iter().copied())
-            .expect("in-range points are finite and non-empty");
+    let bounds = Bounds2::from_points(points.iter().copied())
+        .expect("in-range points are finite and non-empty");
 
-        for point in points {
-            prop_assert!(bounds.contains(point), "{:?} outside {:?}", point, bounds);
-        }
+    for point in points {
+        prop_assert!(bounds.contains(point), "{:?} outside {:?}", point, bounds);
     }
+}
 
-    /// The union contains both operands' corners, exactly: union folds min/max, which never rounds.
-    #[test]
-    fn union_contains_both_operands_corners(
-        left in bounds_strategy(),
-        right in bounds_strategy(),
-    ) {
-        let union = left.union(right);
+/// The union contains both operands' corners, exactly: union folds min/max, which never rounds.
+#[property_test]
+fn union_contains_both_operands_corners(
+    #[strategy = bounds_strategy()] left: Bounds2,
+    #[strategy = bounds_strategy()] right: Bounds2,
+) {
+    let union = left.union(right);
 
-        for bounds in [left, right] {
-            prop_assert!(union.contains(bounds.min()));
-            prop_assert!(union.contains(bounds.max()));
-        }
+    for bounds in [left, right] {
+        prop_assert!(union.contains(bounds.min()));
+        prop_assert!(union.contains(bounds.max()));
     }
+}
 
-    /// The SIMD fold agrees with the scalar fold on arbitrary point vectors, empty included.
-    ///
-    /// Both compute the same exact min/max corners (or the same rejection).
-    #[test]
-    fn from_slice_equals_from_points_on_arbitrary_points(points in points_strategy()) {
-        prop_assert_eq!(
-            Bounds2::from_slice(&points),
-            Bounds2::from_points(points.iter().copied()),
+// The SIMD fold agrees with the scalar fold on arbitrary point vectors, empty included.
+///
+/// Both compute the same exact min/max corners (or the same rejection).
+#[property_test]
+fn from_slice_equals_from_points_on_arbitrary_points(
+    #[strategy = points_strategy()] points: Vec<Vec2>,
+) {
+    prop_assert_eq!(
+        Bounds2::from_slice(&points),
+        Bounds2::from_points(points.iter().copied()),
+    );
+}
+
+/// The batched lanes and the scalar tail of `normalize_into` round identically.
+///
+/// Mapping a slice equals mapping every point alone (a single-point slice takes the scalar
+/// path), so the output is independent of how points fall into batches.
+#[property_test]
+fn normalize_into_agrees_between_batched_and_scalar_paths(
+    #[strategy = points_strategy()] points: Vec<Vec2>,
+    #[strategy = bounds_strategy()] world: Bounds2,
+    #[strategy = bounds_strategy()] frame: Bounds2,
+) {
+    let together = world.normalize_into(frame, &points);
+
+    for (point, expected) in points.iter().zip(&together) {
+        let alone = world.normalize_into(frame, core::slice::from_ref(point));
+        prop_assert_eq!(alone[0], *expected);
+    }
+}
+
+/// The fitted transform maps source corners onto target corners.
+///
+/// Rounding scales with the target box's magnitude: extents are bounded to `1..1e3`
+/// (well-conditioned scale factors), and the cancellation in `point - min` is amplified by at
+/// most the extent ratio.
+#[property_test]
+fn fit_maps_source_corners_onto_target_corners(
+    #[strategy = bounds_strategy()] source: Bounds2,
+    #[strategy = bounds_strategy()] target: Bounds2,
+) {
+    let transform = source.fit(target).expect("extents in 1..1e3 are normal");
+
+    // The composed transform's intermediates reach `scale · |corner|`
+    // with `scale ≤ target extent / 1` and `|corner| / source extent
+    // ≤ 1e3`, so a handful of roundings amplify to a few times
+    // `1e-4` of the target box's magnitude.
+    let magnitude = target.min().length() + target.size().length();
+    let tolerance = 4e-3 * magnitude.max(1.0);
+    for (mapped, expected) in [
+        (transform.apply(source.min()), target.min()),
+        (transform.apply(source.max()), target.max()),
+    ] {
+        prop_assert!(
+            (mapped.x() - expected.x()).abs() <= tolerance
+                && (mapped.y() - expected.y()).abs() <= tolerance,
+            "expected {:?}, got {:?}",
+            expected,
+            mapped,
         );
-    }
-
-    /// The batched lanes and the scalar tail of `normalize_into` round identically.
-    ///
-    /// Mapping a slice equals mapping every point alone (a single-point slice takes the scalar
-    /// path), so the output is independent of how points fall into batches.
-    #[test]
-    fn normalize_into_agrees_between_batched_and_scalar_paths(
-        points in points_strategy(),
-        world in bounds_strategy(),
-        frame in bounds_strategy(),
-    ) {
-        let together = world.normalize_into(frame, &points);
-
-        for (point, expected) in points.iter().zip(&together) {
-            let alone = world.normalize_into(frame, core::slice::from_ref(point));
-            prop_assert_eq!(alone[0], *expected);
-        }
-    }
-
-    /// The fitted transform maps source corners onto target corners.
-    ///
-    /// Rounding scales with the target box's magnitude: extents are bounded to `1..1e3`
-    /// (well-conditioned scale factors), and the cancellation in `point - min` is amplified by at
-    /// most the extent ratio.
-    #[test]
-    fn fit_maps_source_corners_onto_target_corners(
-        source in bounds_strategy(),
-        target in bounds_strategy(),
-    ) {
-        let transform = source.fit(target).expect("extents in 1..1e3 are normal");
-
-        // The composed transform's intermediates reach `scale · |corner|`
-        // with `scale ≤ target extent / 1` and `|corner| / source extent
-        // ≤ 1e3`, so a handful of roundings amplify to a few times
-        // `1e-4` of the target box's magnitude.
-        let magnitude = target.min().length() + target.size().length();
-        let tolerance = 4e-3 * magnitude.max(1.0);
-        for (mapped, expected) in [
-            (transform.apply(source.min()), target.min()),
-            (transform.apply(source.max()), target.max()),
-        ] {
-            prop_assert!(
-                (mapped.x() - expected.x()).abs() <= tolerance
-                    && (mapped.y() - expected.y()).abs() <= tolerance,
-                "expected {:?}, got {:?}", expected, mapped,
-            );
-        }
     }
 }

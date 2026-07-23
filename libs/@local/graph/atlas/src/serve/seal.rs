@@ -118,9 +118,8 @@ impl SealPurpose {
 /// The bindings a sealed blob authenticates.
 ///
 /// Every field participates in the associated data, so [`open`] accepts a blob only under the
-/// exact bindings it was sealed with. The scope fingerprint names the principal context per the
-/// serving specification; the issue time is the interim staleness clock and yields to the
-/// permission epoch when that stamp lands.
+/// exact bindings it was sealed with. The scope fingerprint names the principal context; the
+/// issue time is authenticated associated data driving the soft and hard age checks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct SealBindings {
     /// The value domain.

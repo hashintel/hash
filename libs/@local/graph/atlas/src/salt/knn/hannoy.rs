@@ -43,18 +43,14 @@ const INDEX: u16 = 0;
 
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
-// Sized by a full-scale sweep (985,932 rows, recall@50, exact
-// references replaying the fit's streams):
-// construction 128 -> 256 buys ~+0.009 population recall (~0.893 ->
-// ~0.902 against the 0.89 floor) for ~+90s build (155 -> 245s), and
-// same-seed rebuilds spread +-0.007 (hannoy links in parallel; the
-// seed pins the level stream, not the link order), so the margin must
-// clear that spread. Search breadth measured inert: 64 -> 256 bought
-// +0.002-0.005 on every build at 2.2x query cost, so 128 stays - it
-// is 2.5x the deepest query in this crate (the 50-neighbour recall
-// audit) and above hannoy's default of 100. Sweep harness:
-// `bench::knn::sweep` (`examples/knn_sweep.rs`); raise construction
-// before search on a failed recall check.
+// Sized by a full-scale sweep (985,932 rows, recall@50, exact references replaying the fit's
+// streams): construction 128 -> 256 buys ~+0.009 sampled aggregate recall (~0.893 -> ~0.902 against
+// the 0.89 floor) for ~+90s build (155 -> 245s), and same-seed rebuilds spread ±0.007 (hannoy links
+// in parallel; the seed pins the level stream, not the link order), so the margin must clear that
+// spread. Search breadth measured inert: 64 -> 256 bought +0.002-0.005 on every build at 2.2x query
+// cost, so 128 stays - it is 2.5x the deepest query in this crate (the 50-neighbour recall audit)
+// and above hannoy's default of 100. Sweep harness: `bench::knn::sweep` (`examples/knn_sweep.rs`);
+// raise construction before search on a failed recall check.
 const DEFAULT_EF_CONSTRUCTION: usize = 256;
 const DEFAULT_EF_SEARCH: usize = 128;
 

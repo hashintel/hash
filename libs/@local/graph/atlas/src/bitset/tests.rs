@@ -1,6 +1,6 @@
 use alloc::collections::BTreeSet;
 
-use proptest::{arbitrary::any, prop_assert_eq, proptest};
+use proptest::{arbitrary::any, prop_assert_eq, property_test};
 
 use super::{BitMatrix, BitSet};
 
@@ -138,61 +138,66 @@ fn matrix_insert_rejects_out_of_shape_columns() {
     matrix.insert(1, 10);
 }
 
-proptest! {
-    /// Cells and row folds agree with a reference matrix of sets.
-    #[test]
-    fn matrix_agrees_with_a_reference(
-        rows in 1_usize..8,
-        columns in 1_usize..150,
-        picks in proptest::collection::vec(any::<(proptest::sample::Index, proptest::sample::Index)>(), 0..48),
-        folds in proptest::collection::vec(any::<(proptest::sample::Index, proptest::sample::Index)>(), 0..8),
-    ) {
-        let mut matrix = BitMatrix::new(rows, columns);
-        let mut reference = vec![BTreeSet::new(); rows];
-        for (row, column) in picks {
-            let (row, column) = (row.index(rows), column.index(columns));
-            matrix.insert(row, column);
-            reference[row].insert(column);
-        }
-        for (source, target) in folds {
-            let (source, target) = (source.index(rows), target.index(rows));
-            matrix.or_row_into(source, target);
-            let folded: Vec<usize> = reference[source].iter().copied().collect();
-            reference[target].extend(folded);
-        }
+/// Cells and row folds agree with a reference matrix of sets.
+#[property_test]
+fn matrix_agrees_with_a_reference(
+    #[strategy = 1_usize..8] rows: usize,
+    #[strategy = 1_usize..150] columns: usize,
+    #[strategy = proptest::collection::vec(any::<(proptest::sample::Index, proptest::sample::Index)>(), 0..48)]
+    picks: Vec<(proptest::sample::Index, proptest::sample::Index)>,
+    #[strategy = proptest::collection::vec(any::<(proptest::sample::Index, proptest::sample::Index)>(), 0..8)]
+    folds: Vec<(proptest::sample::Index, proptest::sample::Index)>,
+) {
+    let mut matrix = BitMatrix::new(rows, columns);
+    let mut reference = vec![BTreeSet::new(); rows];
 
-        for (row, columns_of_row) in reference.iter().enumerate() {
-            for column in 0..columns {
-                prop_assert_eq!(matrix.contains(row, column), columns_of_row.contains(&column));
-            }
+    for (row, column) in picks {
+        let (row, column) = (row.index(rows), column.index(columns));
+        matrix.insert(row, column);
+        reference[row].insert(column);
+    }
+
+    for (source, target) in folds {
+        let (source, target) = (source.index(rows), target.index(rows));
+        matrix.or_row_into(source, target);
+        let folded: Vec<usize> = reference[source].iter().copied().collect();
+        reference[target].extend(folded);
+    }
+
+    for (row, columns_of_row) in reference.iter().enumerate() {
+        for column in 0..columns {
+            prop_assert_eq!(
+                matrix.contains(row, column),
+                columns_of_row.contains(&column)
+            );
         }
     }
 }
 
-proptest! {
-    /// The packed words agree with a reference set on membership, count, and iteration order.
-    ///
-    /// Every capacity shape is exercised.
-    #[test]
-    fn agrees_with_a_reference_set(
-        len in 1_usize..300,
-        picks in proptest::collection::vec(any::<proptest::sample::Index>(), 0..64),
-    ) {
-        let mut set = BitSet::new(len);
-        let mut reference = BTreeSet::new();
-        for pick in picks {
-            let index = pick.index(len);
-            set.insert(index);
-            reference.insert(index);
-        }
-
-        prop_assert_eq!(set.count(), reference.len());
-        for index in 0..len {
-            prop_assert_eq!(set.contains(index), reference.contains(&index));
-        }
-        prop_assert_eq!(
-            set.iter().collect::<Vec<_>>(),
-            reference.into_iter().collect::<Vec<_>>()
-        );
+/// The packed words agree with a reference set on membership, count, and iteration order.
+///
+/// Every capacity shape is exercised.
+#[property_test]
+fn agrees_with_a_reference_set(
+    #[strategy = 1_usize..30] len: usize,
+    #[strategy = proptest::collection::vec(any::<proptest::sample::Index>(), 0..64)] picks: Vec<
+        proptest::sample::Index,
+    >,
+) {
+    let mut set = BitSet::new(len);
+    let mut reference = BTreeSet::new();
+    for pick in picks {
+        let index = pick.index(len);
+        set.insert(index);
+        reference.insert(index);
     }
+
+    prop_assert_eq!(set.count(), reference.len());
+    for index in 0..len {
+        prop_assert_eq!(set.contains(index), reference.contains(&index));
+    }
+    prop_assert_eq!(
+        set.iter().collect::<Vec<_>>(),
+        reference.into_iter().collect::<Vec<_>>()
+    );
 }

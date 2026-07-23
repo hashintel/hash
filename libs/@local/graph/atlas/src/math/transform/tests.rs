@@ -1,4 +1,4 @@
-use proptest::{proptest, strategy::Strategy};
+use proptest::{property_test, strategy::Strategy};
 
 use crate::math::{
     Rotation, Transform, Translation, Vec2, Vec2x4T,
@@ -187,42 +187,40 @@ fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
     );
 }
 
-proptest! {
-    /// A well-conditioned transform's inverse round-trips points.
-    ///
-    /// `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100)
-    /// condition of the linear part.
-    #[test]
-    fn inverse_round_trips_arbitrary_points(
-        transform in transform_strategy(),
-        point in point_strategy(),
-    ) {
-        let inverse = transform
-            .inverse()
-            .expect("scales bounded away from zero keep the determinant normal");
+/// A well-conditioned transform's inverse round-trips points.
+///
+/// `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100)
+/// condition of the linear part.
+#[property_test]
+fn inverse_round_trips_arbitrary_points(
+    #[strategy = transform_strategy()] transform: Transform,
+    #[strategy = point_strategy()] point: Vec2,
+) {
+    let inverse = transform
+        .inverse()
+        .expect("scales bounded away from zero keep the determinant normal");
 
-        // The forward image reaches |p| · 10 + 1e3; the inverse multiplies
-        // the rounding by up to another factor of 10.
-        let magnitude = point.length().mul_add(100.0, 1e4);
-        assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
-    }
+    // The forward image reaches |p| · 10 + 1e3; the inverse multiplies
+    // the rounding by up to another factor of 10.
+    let magnitude = point.length().mul_add(100.0, 1e4);
+    assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
+}
 
-    /// Composition distributes over application.
-    ///
-    /// `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled by the intermediate
-    /// coordinates' magnitude.
-    #[test]
-    fn then_matches_sequential_application_on_arbitrary_transforms(
-        first in transform_strategy(),
-        second in transform_strategy(),
-        point in point_strategy(),
-    ) {
-        let composed = first.then(second).apply(point);
-        let sequential = second.apply(first.apply(point));
+/// Composition distributes over application.
+///
+/// `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled by the intermediate
+/// coordinates' magnitude.
+#[property_test]
+fn then_matches_sequential_application_on_arbitrary_transforms(
+    #[strategy = transform_strategy()] first: Transform,
+    #[strategy = transform_strategy()] second: Transform,
+    #[strategy = point_strategy()] point: Vec2,
+) {
+    let composed = first.then(second).apply(point);
+    let sequential = second.apply(first.apply(point));
 
-        // The first image reaches |p| · 10 + 1e3, the second another
-        // factor of 10 plus 1e3.
-        let magnitude = point.length().mul_add(100.0, 1.1e4);
-        assert_close_at_magnitude(composed, sequential, magnitude);
-    }
+    // The first image reaches |p| · 10 + 1e3, the second another
+    // factor of 10 plus 1e3.
+    let magnitude = point.length().mul_add(100.0, 1.1e4);
+    assert_close_at_magnitude(composed, sequential, magnitude);
 }

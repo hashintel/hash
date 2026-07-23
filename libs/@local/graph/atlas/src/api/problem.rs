@@ -1,8 +1,10 @@
-//! RFC 9457 problem documents: the error surface of every route.
+//! RFC 9457 problem documents: the error surface of every handler.
 //!
-//! The `type` member carries Surface v1's stable slugs, the body ships as
+//! The `type` member carries Surface v1's stable root-relative URIs, the body ships as
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
-//! live here beside the document they produce.
+//! live here beside the document they produce. Requests the framework's extractors reject before
+//! a handler runs - malformed bodies, unparsable paths, wrong content types - answer the
+//! framework's plain rejections instead.
 
 use alloc::borrow::Cow;
 
@@ -16,34 +18,43 @@ use axum::{
 use super::AppState;
 use crate::serve::{GenerationId, VARIANTS};
 
-/// The `type` member of one problem document: Surface v1's slugs.
+/// The `type` member of one problem document: Surface v1's stable root-relative URIs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
-#[serde(rename_all = "kebab-case")]
 pub(super) enum ProblemType {
     /// A producer bug surfacing as a 500: the assembly panicked or its worker vanished.
-    #[serde(rename = "internal")]
+    #[serde(rename = "/problems/atlas/internal")]
     InternalError,
     /// The route names a generation this process does not serve.
+    #[serde(rename = "/problems/atlas/unknown-generation")]
     UnknownGeneration,
     /// The route names a variant outside the manifest's list.
+    #[serde(rename = "/problems/atlas/unknown-variant")]
     UnknownVariant,
     /// A tile coordinate outside the zoom range or off its grid.
+    #[serde(rename = "/problems/atlas/invalid-coordinate")]
     InvalidCoordinate,
     /// A surface the contract pins but this build does not serve.
+    #[serde(rename = "/problems/atlas/unsupported-feature")]
     UnsupportedFeature,
     /// An edges body listing more tiles than the manifest's cap.
+    #[serde(rename = "/problems/atlas/too-many-tiles")]
     TooManyTiles,
     /// A tile body carrying more `coloredTypeIds` than the manifest's cap.
+    #[serde(rename = "/problems/atlas/too-many-types")]
     TooManyTypes,
     /// A translate body listing more entity ids than the manifest's cap.
+    #[serde(rename = "/problems/atlas/too-many-entity-ids")]
     TooManyEntityIds,
     /// A locate source id that does not name a visible node.
     ///
     /// Nonexistent, denied, and unparsable answer identically (missing = denied).
+    #[serde(rename = "/problems/atlas/unknown-entity")]
     UnknownEntity,
     /// A locate body that does not name exactly one source: `entityId` XOR `row`.
+    #[serde(rename = "/problems/atlas/invalid-source")]
     InvalidSource,
     /// A required request body that did not arrive.
+    #[serde(rename = "/problems/atlas/missing-body")]
     MissingBody,
 }
 
@@ -82,6 +93,20 @@ impl<'content> Problem<'content> {
             status,
             detail: detail.into(),
         }
+    }
+
+    /// A 500 whose source stays in the server log.
+    ///
+    /// The document carries only the static `detail`; `source` is recorded at
+    /// error level. Driver errors and panic payloads are log material and
+    /// never reach a client.
+    pub(super) fn internal(source: impl core::fmt::Display, detail: &'static str) -> Self {
+        tracing::error!(source = %source, "{detail}");
+        Self::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            ProblemType::InternalError,
+            detail,
+        )
     }
 }
 
@@ -167,4 +192,40 @@ pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
         ProblemType::UnknownVariant,
         format!("variant {variant} is not served; the manifest lists {VARIANTS:?}"),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::http::StatusCode;
+
+    use super::{Problem, ProblemType};
+
+    #[test]
+    fn the_type_member_is_a_root_relative_uri() {
+        let problem = Problem::new(
+            StatusCode::NOT_FOUND,
+            ProblemType::UnknownGeneration,
+            "re-bootstrap via /v1/atlas/current",
+        );
+        let document = serde_json::to_value(&problem).expect("problem documents serialize");
+
+        assert_eq!(document["type"], "/problems/atlas/unknown-generation");
+        assert_eq!(document["status"], 404);
+    }
+
+    #[test]
+    fn internal_problems_redact_their_source() {
+        let problem = Problem::internal(
+            "connection refused: db=secret host=10.0.0.7",
+            "the detail hydration failed",
+        );
+        let document = serde_json::to_value(&problem).expect("problem documents serialize");
+
+        assert_eq!(document["type"], "/problems/atlas/internal");
+        assert_eq!(document["detail"], "the detail hydration failed");
+        assert!(
+            !document.to_string().contains("10.0.0.7"),
+            "the source error must stay out of the document"
+        );
+    }
 }

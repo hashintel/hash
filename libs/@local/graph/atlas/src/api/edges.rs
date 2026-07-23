@@ -33,9 +33,10 @@ The union spans ALL listed tiles, so list the whole viewport in one request: an 
 The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list. The response is \
      a `SALTILEE` envelope whose three columns (sources, targets, and `EDGE_IDS` - each edge's \
      link entity id as 32 raw bytes, web uuid then entity uuid, generation-frozen) ride ascending \
-     by identity bytes, independent of the tile list - identical requests yield identical bytes, \
-     and the order is verifiable from the `EDGE_IDS` column alone. Edges carry no wire id of \
-     their own.
+     by identity bytes, independent of the tile list - identical requests yield identical prefix, \
+     directory, HEAD, and column bytes (a detail trailer hydrates live from the store and is \
+     exempt), and the order is verifiable from the `EDGE_IDS` column alone. Edges carry no wire \
+     id of their own.
 
 When the edge cap truncates the set, the rank-ordered truncation keeps the edges whose worse \
      endpoint ranks best, and the HEAD's `complete` key reads `false`.
@@ -133,13 +134,7 @@ pub(super) async fn handler(
                 .link_details(&entities)
                 .in_current_span()
                 .await
-                .map_err(|error| {
-                    Problem::new(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        ProblemType::InternalError,
-                        error.to_string(),
-                    )
-                })?,
+                .map_err(|error| Problem::internal(error, "the detail hydration failed"))?,
         ),
         None => None,
     };

@@ -40,8 +40,7 @@ const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
 pub(crate) struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
-    /// A tile at zoom `z` delivers buckets at or below `z + span`. Defaults to 6 (a 64x64
-    /// sample grid, at most 4096 points per incremental tile).
+    /// A tile at zoom `z` delivers buckets at or below `z + span`. Defaults to 6 (a 64x64 sample grid): regular buckets deliver at most `4^span` points per incremental tile, and the deepest catch-all may exceed the cap by its co-located residue, measured as [`LodMeasurements::co_location_excess`].
     pub span: Log2 = DEFAULT_SPAN,
     /// The deepest tile zoom the schedule serves.
     ///

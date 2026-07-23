@@ -379,7 +379,7 @@ impl SampledPass<'_> {
     /// Both orderings already exist in scratch after [`anchor`](Self::anchor), so the collapsed
     /// baseline costs two small sorts per neighbourhood size. The canonical ordering is the
     /// reference: the collapse reads how much of each exact canonical neighbourhood the
-    /// representation keeps once near-duplicate siblings are interchangeable.
+    /// representation keeps once rows are relabeled by their connected-component id.
     fn clump_cells(&self, scratch: &mut SampledScratch) -> Vec<ClumpAggregate> {
         let Some(clumps) = self.clumps else {
             return Vec::new();

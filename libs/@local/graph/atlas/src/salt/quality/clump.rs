@@ -1,15 +1,15 @@
 //! Near-duplicate clumps over the 512-component neighbour table.
 //!
 //! A clump is a connected component of the k-nearest-neighbour graph restricted to edges at cosine
-//! distance at most ε: rows whose representations chain through near-identical neighbours are
-//! placed by the group they form, and within-clump order is not a representable quantity.
-//! Collapsing neighbour orderings onto clump ids therefore separates genuine placement error from
-//! reshuffling among near-duplicate siblings.
+//! distance at most ε: rows whose representations chain through near-identical neighbours share a
+//! component label. Collapsing neighbour orderings onto clump ids relabels recall at component
+//! granularity - a triage diagnostic and nothing stronger: ε chains can reach arbitrary diameter,
+//! so a shared label certifies neither component compactness nor within-component placement, and
+//! the collapsed readings never affect admission.
 //!
-//! The kNN restriction is conservative: a group larger than the table's k connects only through
-//! chains of stored edges, so a true ε-ball component can split but never spuriously merge.
-//! For a release verdict that is the safe direction - a split clump makes clump-granularity
-//! readings stricter.
+//! The kNN restriction reads a subgraph of the full ε graph: a group larger than the table's k
+//! connects only through chains of stored edges, so a true ε-ball component can split but never
+//! spuriously merge - a split clump makes clump-granularity readings stricter, never looser.
 //!
 //! ε is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it
 //! was pinned on, and the grouping is judged against measured corpus structure (group count,
@@ -17,8 +17,9 @@
 //! `clump_sweep` example re-derives the calibration readings against any published k-NN table.
 //!
 //! [`ClumpAggregate`] is the collapsed counterpart of the plain recall reading: both neighbour
-//! lists relabel onto clump ids and overlap as multisets, so interchangeable siblings satisfy each
-//! other while a clump the map underrepresents earns only the credit it shows. Under singleton
+//! lists relabel onto clump ids and overlap as multisets, so same-component siblings satisfy each
+//! other under the relabeling while a clump the map underrepresents earns only the credit it
+//! shows. Under singleton
 //! labels the multiset overlap is exactly the shared-row count, so clump recall is always at least
 //! plain recall and equals it when nothing clumps.
 #![expect(

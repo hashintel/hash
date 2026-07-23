@@ -44,7 +44,7 @@ The offset directory is the locating mechanism: a fixed lookup, no linear scan a
 - Alignment by construction: the payload region starts at `16 + 8 x slotCount` (8-aligned), every `start` is 8-aligned, and `end` pads to the next 8 boundary with zero bytes (at most 7). JS typed-array views throw on misaligned offsets; alignment is a wire contract.
 - The magic's eighth byte is the response kind, ASCII initials: `T` tile, `E` edges, `L` locate (`SALTILET`, `SALTILEE`, `SALTILEL`). The seven-byte family prefix is constant; the decoder selects the expected HEAD schema and slot table by kind and rejects a kind that does not match the request. One `wireVersion` governs the whole family: kind discriminates grammar variant, version tracks evolution.
 - Directory rules: slot 0 (HEAD) is always present; present slots are strictly sequential (`start_next = align8(end_prev)`, the first present start = `16 + 8 x slotCount`); `end >= start`; `slotCount` at least the kind's table size. Present-but-empty (`start == end`, nonzero) is distinct from absent (`0, 0`): a zero-point tile carries present-empty columns, a request without `coloredTypeIds` gets an absent `TYPE_MASK`.
-- Offsets are u32: responses are bounded below 4 GiB by construction (the published caps keep real responses in the KB-MB range; a response that could exceed u32 is a `wireVersion` bump).
+- Offsets are u32: directory-addressed payloads end below 4 GiB, the format's representability boundary, enforced by the producer (section 8a). The trailer is directory-external and outside that ceiling; the deepest tile's catch-all geometry is the uncapped directory case.
 - Prefix `flags` and `reserved` must be zero.
 - Payload order equals slot order, and prefix, directory, HEAD, and columns are pure functions of `(generation, request, visibility)` - identical requests under identical visibility yield byte-identical bytes there, the property the client's application-layer cache keys on. The DETAIL TRAILER is the one deliberate exception: it hydrates from the live store at request time (labels, icons, properties edited after publish show on snapshot geometry - by design), so trailer bytes may differ between identical requests and a detailed response is not a candidate for byte-keyed caching. Cache the geometry sections; refetch detail.
 
@@ -151,7 +151,7 @@ Tile TRAILER, present iff the request set `includeDetailedData`:
 | 0   | `labels` | `[tstr or null ...]` | delivered order |
 | 1   | `icons`  | `[tstr or null ...]` | delivered order |
 
-Parsed, not viewed - one decode pass; label hydration latency never blocks geometry because the trailer is last. Null marks a row whose label did not resolve.
+Parsed, not viewed - one decode pass. The trailer-last layout permits geometry-first streaming, but current servers buffer the whole body, so hydration latency delays the first byte (section 2). Null marks a row whose label did not resolve.
 
 ## 7. Edges response
 
@@ -214,6 +214,12 @@ Locate TRAILER, ALWAYS present - locate is the detail view. The two intern table
 | 9   | `linkPropertiesComplete` | `bstr`               | LSB-first bitmask, bit e set = edge e's property map is the link entity's whole set                                                                                                                                 |
 
 Property values are SIMPLE ONLY: tstr / int / f64 / bool / null - nested objects and arrays never ship. A number ships as an integer when the store renders it integral and it fits i64, as a double otherwise. An over-cap entity drops properties reverse-lexicographically by base URL with its label property protected to the very end, so the label survives every cap that admits at least one property; survivors emit ascending by name, which is ascending index order. The intern tables are the unions of every surviving reference; an index costs less than the string it replaces every time a URL repeats.
+
+## 8a. Problem documents
+
+Routed requests that fail answer RFC 9457 `application/problem+json`; the `type` member is a stable root-relative URI (`/problems/atlas/<slug>`) and `detail` is prose, contractually free. Internal failures (500) carry a static `detail` - driver errors and panic payloads are server-log material and never reach a client. Requests that fail BEFORE handler mapping - malformed JSON bodies, unparsable paths, wrong content types, rejected by the framework's extractors - answer the framework's plain rejections, not problem documents.
+
+Two response classes carry no byte ceiling, honestly stated rather than capped. Trailer detail is live store text bounded by COUNT caps only: no byte bound applies per value or per response. A deepest-zoom tile's geometry is the second class: the deepest bucket is the catch-all for co-located rows, one cell may hold arbitrarily many, and no published or configured ceiling covers that observed excess - the wire format itself is the only bound (directory offsets are u32, so directory-addressed geometry ends below 4 GiB, enforced today as a caught producer panic rather than a manifest limit or preflight; trailers sit outside the directory and share no such ceiling) - the GEOMETRY COLUMNS of edges, locate, and tiles above the deepest zoom stay provable from the manifest's caps; a detailed response of any kind still carries the unbounded trailer. Streamed assembly and store-side query shaping are the staged directions for large-response delivery; neither bounds total bytes unless a future contract says so explicitly.
 
 ## 9. Validation contract
 

@@ -18,7 +18,7 @@ use burn::{
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Int, Tensor, TensorData, backend::AutodiffBackend},
 };
-use proptest::{prop_assert, proptest};
+use proptest::{prop_assert, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -323,43 +323,41 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
     }
 }
 
-proptest! {
-    /// Both budget inequalities hold for every input.
-    ///
-    /// The applied gradient's norm stays within `positive · baseline` and within `total ·
-    /// baseline`, and both factors lie in `(0, 1]`.
-    #[test]
-    fn clip_satisfies_the_budget_inequalities(
-        semantic_x in -1e3_f32..1e3,
-        semantic_y in -1e3_f32..1e3,
-        relation_x in -1e3_f32..1e3,
-        relation_y in -1e3_f32..1e3,
-    ) {
-        let options = options(0.5, 1.0, 0.125, 0.03125);
-        let outcome = options.clip(
-            Vec2::new(semantic_x, semantic_y),
-            Vec2::new(relation_x, relation_y),
-        );
+/// Both budget inequalities hold for every input.
+///
+/// The applied gradient's norm stays within `positive · baseline` and within `total ·
+/// baseline`, and both factors lie in `(0, 1]`.
+#[property_test]
+fn clip_satisfies_the_budget_inequalities(
+    #[strategy = -1e3_f32..1e3] semantic_x: f32,
+    #[strategy = -1e3_f32..1e3] semantic_y: f32,
+    #[strategy = -1e3_f32..1e3] relation_x: f32,
+    #[strategy = -1e3_f32..1e3] relation_y: f32,
+) {
+    let options = options(0.5, 1.0, 0.125, 0.03125);
+    let outcome = options.clip(
+        Vec2::new(semantic_x, semantic_y),
+        Vec2::new(relation_x, relation_y),
+    );
 
-        prop_assert!(outcome.positive_factor > 0.0 && outcome.positive_factor <= 1.0);
-        prop_assert!(outcome.total_factor > 0.0 && outcome.total_factor <= 1.0);
+    prop_assert!(outcome.positive_factor > 0.0 && outcome.positive_factor <= 1.0);
+    prop_assert!(outcome.total_factor > 0.0 && outcome.total_factor <= 1.0);
 
-        // A hair of tolerance covers the rounding of norm and product.
-        let bound = 1.0 + 1e-5;
-        let applied = outcome.gradient.length();
-        prop_assert!(
-            applied <= options.positive() * outcome.baseline * bound,
-            "applied norm {} exceeds the positive budget {}",
-            applied,
-            options.positive() * outcome.baseline,
-        );
-        prop_assert!(
-            applied <= options.total() * outcome.baseline * bound,
-            "applied norm {} exceeds the total budget {}",
-            applied,
-            options.total() * outcome.baseline,
-        );
-        // Clipping never grows a gradient.
-        prop_assert!(applied <= outcome.relation_norm * bound);
-    }
+    // A hair of tolerance covers the rounding of norm and product.
+    let bound = 1.0 + 1e-5;
+    let applied = outcome.gradient.length();
+    prop_assert!(
+        applied <= options.positive() * outcome.baseline * bound,
+        "applied norm {} exceeds the positive budget {}",
+        applied,
+        options.positive() * outcome.baseline,
+    );
+    prop_assert!(
+        applied <= options.total() * outcome.baseline * bound,
+        "applied norm {} exceeds the total budget {}",
+        applied,
+        options.total() * outcome.baseline,
+    );
+    // Clipping never grows a gradient.
+    prop_assert!(applied <= outcome.relation_norm * bound);
 }

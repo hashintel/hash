@@ -16,7 +16,7 @@ use crate::{
     },
     file::generation::GenerationRoot,
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, VecN},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions},
@@ -240,22 +240,6 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     }
 }
 
-/// Thresholds pinning the full battery at values the fixture clears.
-///
-/// The verdict refuses unpinned controls, so activation tests pin generously and vary only the
-/// control under test; unpinned defaults probe the report-only path.
-fn admitting() -> QualityThresholds {
-    QualityThresholds {
-        minimum_recall: Some(0.0),
-        minimum_trustworthiness: Some(0.0),
-        minimum_continuity: Some(0.0),
-        maximum_intrusion_rate: Some(1.0),
-        maximum_density_spread: Some(1e9),
-        minimum_triplet_agreement: Some(0.0),
-        ..QualityThresholds::default()
-    }
-}
-
 /// A run whose report passes activates what it publishes.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -270,7 +254,7 @@ async fn passing_run_activates_the_generation() {
         &classifier,
         None,
         &root,
-        &options(7, admitting()),
+        &options(7, QualityThresholds { .. }),
     )
     .await
     .expect("the run should reach a verdict");
@@ -315,8 +299,8 @@ async fn refused_run_leaves_a_candidate() {
         &options(
             7,
             QualityThresholds {
-                minimum_recall: Some(0.99),
-                ..admitting()
+                minimum_recall: UnitFraction::new(0.99).expect("0.99 lies inside [0, 1]"),
+                ..
             },
         ),
     )
@@ -350,7 +334,7 @@ async fn prior_modes_route_reuse() {
         &classifier,
         None,
         &root,
-        &options(7, admitting()),
+        &options(7, QualityThresholds { .. }),
     )
     .await
     .expect("the first run should reach a verdict");

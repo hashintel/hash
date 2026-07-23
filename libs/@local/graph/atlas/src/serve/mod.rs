@@ -25,10 +25,11 @@
 //! transport without scoped sessions constructs [`VisibilityProof::full_visibility`] explicitly.
 //!
 //! Each read surface lives in its own module - request vocabulary, rejections, and assembly
-//! together: [`tile`](self) delivery, [`edges`](self) delivery, the [`manifest`](self) document,
-//! [`visibility`](self) (the proof and the resolution seam), [`seal`](self) (the sealed bitmap
-//! blob the session transport carries), and the [`open`](self) pass that validates everything the
-//! others rely on.
+//! together: [`tile`](self), [`edges`](self), [`locate`](self), and [`translate`](self)
+//! delivery, the [`manifest`](self) document, [`detail`](self) hydration, [`visibility`](self)
+//! (the proof and the resolution seam), [`codec`](self) (row ids crossing the wire),
+//! [`seal`](self) (sealing and opening visibility bitmaps as self-authenticating values), and
+//! the [`open`](self) pass that validates everything the others rely on.
 // NOTE: after reading it I came to the conclusion that this needs a rework/rewrite. This is
 // unmaintainable, and not really reviewable :/ and especially not up to our coding standards
 // established everywhere else. This feels quick and dirty, something that we avoid _everywhere

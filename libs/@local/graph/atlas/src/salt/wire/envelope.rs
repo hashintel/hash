@@ -20,9 +20,10 @@
 //! directory entry is backfilled as the closure returns, so every payload reaches the response
 //! by exactly one write.
 //!
-//! Offsets are `u32`: responses are bounded below 4 GiB by the capacity caps, and a response that
-//! could exceed that is a wire version bump recorded in advance - the writer enforces the bound as
-//! the producer contract it is.
+//! Offsets are `u32`: directory-addressed payloads end below 4 GiB, the format's
+//! representability boundary. The writer enforces it with checked conversions - a payload
+//! crossing it is a producer panic (caught and answered as a 500), never a truncated or
+//! wrapped offset. The trailer sits outside the directory and shares no such ceiling.
 
 use zerocopy::{IntoBytes as _, LE, U16, U32};
 
@@ -194,10 +195,10 @@ impl EnvelopeWriter {
     fn record(&mut self, start: usize, end: usize) {
         let entry = Entry {
             start: U32::new(
-                u32::try_from(start).expect("responses stay below 4 GiB by the capacity caps"),
+                u32::try_from(start).expect("directory offsets fit u32: payloads end below 4 GiB"),
             ),
             end: U32::new(
-                u32::try_from(end).expect("responses stay below 4 GiB by the capacity caps"),
+                u32::try_from(end).expect("directory offsets fit u32: payloads end below 4 GiB"),
             ),
         };
 

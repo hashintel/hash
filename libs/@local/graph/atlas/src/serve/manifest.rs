@@ -1,6 +1,7 @@
 //! The manifest document.
 //!
-//! The immutable Surface v1 bootstrap, derived from the generation's configuration alone.
+//! The immutable Surface v1 bootstrap, derived from the generation's configuration and snapshot
+//! provenance - no corpus-derived aggregates.
 
 use super::{Atlas, GenerationId, ServeCaps, VARIANTS};
 use crate::salt::wire::WIRE_VERSION;
@@ -58,8 +59,8 @@ impl ServeCaps {
 
 /// The immutable per-generation manifest.
 ///
-/// The Surface v1 bootstrap document, derived from configuration alone so it can be shared across
-/// principals.
+/// The Surface v1 bootstrap document, derived from configuration and snapshot provenance - no
+/// corpus-derived aggregates - so it can be shared across principals.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {

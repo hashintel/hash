@@ -30,7 +30,8 @@ The JSON body is required and names the source in EXACTLY ONE of two domains: `e
      upstream id a search result or deep link carries) XOR `row` (the wire node row id a rendered \
      tile delivered in `ROW_IDS` - the natural click-to-spotlight loop, no translate detour). A \
      body carrying both or neither answers `invalid-source` (400). The same source yields \
-     byte-identical responses through either domain.
+     identical geometry sections through either domain; the detail trailer reflects live store \
+     state at hydration.
 
 The edge set caps at `limits.locateEdges`; truncation keeps the edges whose partners lie nearest \
      the source, the HEAD's `complete` key reads `false`, and a partner whose every edge \
@@ -147,13 +148,8 @@ pub(super) async fn handler(
     };
 
     let (nodes, links) = entities;
-    let internal = |error: crate::serve::DetailError| {
-        Problem::new(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            ProblemType::InternalError,
-            error.to_string(),
-        )
-    };
+    let internal =
+        |error: crate::serve::DetailError| Problem::internal(error, "the detail hydration failed");
     let node_details = state
         .remote
         .locate_details(&nodes, state.caps.locate.properties)

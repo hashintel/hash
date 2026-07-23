@@ -127,13 +127,7 @@ pub(super) async fn handler(
                 .labels_and_icons(&entities)
                 .in_current_span()
                 .await
-                .map_err(|error| {
-                    Problem::new(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        ProblemType::InternalError,
-                        error.to_string(),
-                    )
-                })?,
+                .map_err(|error| Problem::internal(error, "the detail hydration failed"))?,
         ),
         None => None,
     };

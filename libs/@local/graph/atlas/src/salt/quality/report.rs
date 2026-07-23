@@ -5,17 +5,20 @@
 //! the degradation rule raises, and the thresholds that were applied. The report is a rendering of
 //! [`ProbeReadings`] - regrouping or re-assessment starts from the readings, never from the report.
 //!
-//! The primary fidelity surface is the corpus-exact map-versus-representation grid: it reads the
-//! projector's own placement without sampling noise, so the pinned thresholds bind there. The
-//! sampled grids provide context - the canonical triangle whose representation baseline the map's
-//! canonical reading is judged against - and stay report-only.
+//! The primary fidelity surface is the corpus-exact map-versus-representation grid: each sampled
+//! anchor is ranked against the full corpus, so the comparison universe carries no subsampling -
+//! but the anchors themselves are sampled, so aggregate means retain anchor-sampling uncertainty.
+//! The thresholds bind there and gate the observed probe statistic, not a population guarantee or
+//! lower confidence bound. The sampled grids provide context - the canonical triangle whose
+//! representation baseline the map's canonical reading is judged against - and stay report-only.
 //!
 //! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
 //! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
 //! its degradation - one minus recall - exceeds the configured factor times the overall
 //! degradation - twice, by the normative default. Flags are raised per neighbourhood size,
-//! so the size trend that separates near-tie reshuffling (recall rising with the neighbourhood)
-//! from genuine placement loss is visible in the flags and in every subgroup's rows. Subgroups
+//! so the size trend - recall rising with the neighbourhood suggests near-tie reshuffling rather
+//! than genuine placement loss, evidence rather than a classifier - is visible in the flags and in
+//! every subgroup's rows. Subgroups
 //! below the configured anchor floor never flag - a handful of anchors cannot support a degradation
 //! ratio - but their rows are still reported.
 //!
@@ -32,12 +35,13 @@
 //! component compactness nor within-component placement. Subgroup flags and their resolution are
 //! report-only either way: they steer the human reading the report and never affect admission.
 //!
-//! Metric floors default to unpinned: no verified map-fidelity numbers exist, a floor pins at the
-//! first full-scale calibration, and an invented floor
-//! would rest release verdicts on fiction. A pinned floor is calibration evidence, and belongs in
-//! configuration next to the measurement that produced it.
+//! The thresholds default to maximally permissive values - floors at zero, ceilings at their
+//! domain edge - so the default verdict gates evidence presence rather than fidelity: an
+//! invented floor would rest release verdicts on fiction. Deployments impose measured bounds
+//! through the run's validated thresholds document.
 
 use alloc::collections::BTreeMap;
+use core::fmt;
 
 use smallvec::SmallVec;
 
@@ -46,7 +50,10 @@ use super::{
     metric::{NeighbourhoodAggregate, TripletAggregate},
     probe::{ProbeReadings, ReadingGrid},
 };
-use crate::dataset::OntologyRowId;
+use crate::{
+    dataset::OntologyRowId,
+    math::{NonNegative, UnitFraction, narrow_f32},
+};
 
 // The degradation factor is normative: no important subgroup may
 // suffer more than twice the overall degradation. The
@@ -56,31 +63,89 @@ use crate::dataset::OntologyRowId;
 const DEFAULT_DEGRADATION_FACTOR: f64 = 2.0;
 const DEFAULT_MINIMUM_SUBGROUP_ANCHORS: usize = 8;
 
-/// Pinned thresholds for one assessment.
+/// The maximally permissive density-spread ceiling.
 ///
-/// Floors and ceilings apply to the corpus map-versus-representation grid at every neighbourhood
-/// size; [`None`] leaves a threshold unpinned and the corresponding reading report-only - and the
-/// whole report refuses admission: [`QualityReport::passes`] demands the full battery, so a
-/// partially pinned configuration is for inspection, never activation.
+/// The spread of `ln` radius ratios over f32 radii is bounded by a few hundred, so the f32
+/// maximum is unbounded in practice while the type keeps the ceiling finite and non-negative by
+/// construction.
+const PERMISSIVE_DENSITY_SPREAD: NonNegative =
+    NonNegative::new(f32::MAX).expect("the f32 maximum is finite and non-negative");
+
+/// A quality-thresholds override document.
+///
+/// The optional-file shape of the six absolute controls: a present field overrides its source
+/// default after domain validation, an absent field keeps it, and an unknown field refuses the
+/// whole document.
+#[derive(Debug, Copy, Clone, Default, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub(crate) struct ThresholdOverrides {
+    /// Overriding recall floor, in `[0, 1]`.
+    pub minimum_recall: Option<f64>,
+    /// Overriding trustworthiness floor, in `[0, 1]`.
+    pub minimum_trustworthiness: Option<f64>,
+    /// Overriding continuity floor, in `[0, 1]`.
+    pub minimum_continuity: Option<f64>,
+    /// Overriding intrusion-rate ceiling, in `[0, 1]`.
+    pub maximum_intrusion_rate: Option<f64>,
+    /// Overriding density-spread ceiling, finite and non-negative.
+    pub maximum_density_spread: Option<f64>,
+    /// Overriding triplet-agreement floor, in `[0, 1]`.
+    pub minimum_triplet_agreement: Option<f64>,
+}
+
+/// An override value outside its control's domain.
+#[derive(Debug)]
+pub(crate) struct ThresholdDomainError {
+    /// The refused field.
+    pub field: &'static str,
+    /// The refused value.
+    pub value: f64,
+    /// The domain the field demands.
+    pub domain: &'static str,
+}
+
+impl fmt::Display for ThresholdDomainError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "the {} override {} lies outside {}",
+            self.field, self.value, self.domain,
+        )
+    }
+}
+
+impl core::error::Error for ThresholdDomainError {}
+
+/// The thresholds of one assessment.
+///
+/// Every control is a concrete validated value - floors and ceilings apply to the corpus
+/// map-versus-representation grid at every neighbourhood size, and there is no unpinned state:
+/// [`QualityReport::passes`] compares all six controls and demands their evidence.
+///
+/// The defaults are maximally permissive: every control sits at the edge of its domain, so the
+/// default verdict gates evidence presence rather than fidelity. Deployments impose measured
+/// bounds through an override document that replaces individual defaults after domain
+/// validation ([`ThresholdOverrides`]).
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct QualityThresholds {
-    /// Minimum recall, in `[0, 1]`. Defaults to unpinned.
-    pub minimum_recall: Option<f64> = None,
-    /// Minimum trustworthiness, in `[0, 1]`. Defaults to unpinned.
-    pub minimum_trustworthiness: Option<f64> = None,
-    /// Minimum continuity, in `[0, 1]`. Defaults to unpinned.
-    pub minimum_continuity: Option<f64> = None,
-    /// Maximum intrusion rate, in `[0, 1]`. Defaults to unpinned.
-    pub maximum_intrusion_rate: Option<f64> = None,
+    /// Minimum recall floor. Defaults to the permissive zero.
+    pub minimum_recall: UnitFraction = UnitFraction::ZERO,
+    /// Minimum trustworthiness floor. Defaults to the permissive zero.
+    pub minimum_trustworthiness: UnitFraction = UnitFraction::ZERO,
+    /// Minimum continuity floor. Defaults to the permissive zero.
+    pub minimum_continuity: UnitFraction = UnitFraction::ZERO,
+    /// Maximum intrusion-rate ceiling. Defaults to the permissive one.
+    pub maximum_intrusion_rate: UnitFraction = UnitFraction::ONE,
     /// Maximum density-distortion spread.
     ///
-    /// Defaults to unpinned. A pinned ceiling fails when the reading is absent - a demand for
-    /// evidence that was never produced is a configuration contradiction, surfaced at the verdict.
-    pub maximum_density_spread: Option<f64> = None,
-    /// Minimum map-versus-representation triplet agreement, in `[0, 1]`.
+    /// Defaults to the permissive f32 maximum. The ceiling fails when the reading is absent - a
+    /// demand for evidence that was never produced is a configuration contradiction, surfaced at
+    /// the verdict.
+    pub maximum_density_spread: NonNegative = PERMISSIVE_DENSITY_SPREAD,
+    /// Minimum map-versus-representation triplet agreement floor.
     ///
-    /// Defaults to unpinned; pinned, it fails when the triplet readings are disabled.
-    pub minimum_triplet_agreement: Option<f64> = None,
+    /// Defaults to the permissive zero; it fails when the triplet readings are disabled.
+    pub minimum_triplet_agreement: UnitFraction = UnitFraction::ZERO,
     /// A subgroup flags when its degradation exceeds this factor times the overall degradation.
     ///
     /// Defaults to 2, the normative subgroup rule: no important subgroup may suffer more than
@@ -88,6 +153,77 @@ pub(crate) struct QualityThresholds {
     pub subgroup_degradation_factor: f64 = DEFAULT_DEGRADATION_FACTOR,
     /// Subgroups with fewer anchors never flag. Defaults to 8.
     pub minimum_subgroup_anchors: usize = DEFAULT_MINIMUM_SUBGROUP_ANCHORS,
+}
+
+impl QualityThresholds {
+    /// Applies an override document over these thresholds.
+    ///
+    /// A present field replaces its default after domain validation; an absent field keeps it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first override whose value lies outside its control's domain.
+    pub(crate) fn with_overrides(
+        mut self,
+        overrides: &ThresholdOverrides,
+    ) -> Result<Self, ThresholdDomainError> {
+        fn fraction(
+            field: &'static str,
+            value: Option<f64>,
+            into: &mut UnitFraction,
+        ) -> Result<(), ThresholdDomainError> {
+            if let Some(value) = value {
+                *into = UnitFraction::new(value).ok_or(ThresholdDomainError {
+                    field,
+                    value,
+                    domain: "the closed unit interval",
+                })?;
+            }
+            Ok(())
+        }
+
+        fraction(
+            "minimum_recall",
+            overrides.minimum_recall,
+            &mut self.minimum_recall,
+        )?;
+        fraction(
+            "minimum_trustworthiness",
+            overrides.minimum_trustworthiness,
+            &mut self.minimum_trustworthiness,
+        )?;
+        fraction(
+            "minimum_continuity",
+            overrides.minimum_continuity,
+            &mut self.minimum_continuity,
+        )?;
+        fraction(
+            "maximum_intrusion_rate",
+            overrides.maximum_intrusion_rate,
+            &mut self.maximum_intrusion_rate,
+        )?;
+        fraction(
+            "minimum_triplet_agreement",
+            overrides.minimum_triplet_agreement,
+            &mut self.minimum_triplet_agreement,
+        )?;
+        if let Some(value) = overrides.maximum_density_spread {
+            // The f64 domain check precedes narrowing: a negative
+            // underflow narrows to -0.0 and a value just above the f32
+            // maximum rounds down onto it - both must refuse as
+            // written, not as rounded.
+            let admitted = (value.is_finite() && value >= 0.0 && value <= f64::from(f32::MAX))
+                .then(|| narrow_f32(value))
+                .flatten()
+                .and_then(NonNegative::new);
+            self.maximum_density_spread = admitted.ok_or(ThresholdDomainError {
+                field: "maximum_density_spread",
+                value,
+                domain: "the finite non-negative f32 range",
+            })?;
+        }
+        Ok(self)
+    }
 }
 
 const impl Default for QualityThresholds {
@@ -336,18 +472,18 @@ pub(crate) struct QualityReport {
     pub baseline_subgroups: Vec<BaselineSubgroupReport>,
     /// Degradation-rule breaches, in subgroup then neighbourhood order.
     pub flags: Vec<SubgroupFlag>,
-    /// The applied recall floor, when pinned.
-    pub minimum_recall: Option<f64>,
-    /// The applied trustworthiness floor, when pinned.
-    pub minimum_trustworthiness: Option<f64>,
-    /// The applied continuity floor, when pinned.
-    pub minimum_continuity: Option<f64>,
-    /// The applied intrusion ceiling, when pinned.
-    pub maximum_intrusion_rate: Option<f64>,
-    /// The applied density-spread ceiling, when pinned.
-    pub maximum_density_spread: Option<f64>,
-    /// The applied triplet-agreement floor, when pinned.
-    pub minimum_triplet_agreement: Option<f64>,
+    /// The applied recall floor.
+    pub minimum_recall: f64,
+    /// The applied trustworthiness floor.
+    pub minimum_trustworthiness: f64,
+    /// The applied continuity floor.
+    pub minimum_continuity: f64,
+    /// The applied intrusion ceiling.
+    pub maximum_intrusion_rate: f64,
+    /// The applied density-spread ceiling.
+    pub maximum_density_spread: f64,
+    /// The applied triplet-agreement floor.
+    pub minimum_triplet_agreement: f64,
     /// The applied degradation factor.
     pub subgroup_degradation_factor: f64,
     /// The applied subgroup anchor floor.
@@ -357,53 +493,32 @@ pub(crate) struct QualityReport {
 impl QualityReport {
     /// Returns whether the full battery admits the generation.
     ///
-    /// True exactly when every absolute control is pinned (recall, trustworthiness, continuity,
-    /// intrusion, density spread, triplet agreement), every pinned control is backed by present
-    /// evidence, and every reading lies inside its bound. An unpinned control is missing
-    /// calibration, and missing calibration cannot auto-pass: the default report is inspectable
-    /// output, never an admission. Subgroup flags and their clump-resolution triage are
-    /// report-only fields: they inform the human reading the report and never affect admission.
+    /// True exactly when every reading lies inside its control's bound and every control's
+    /// evidence is present. The controls are concrete validated values - maximally permissive by
+    /// default - so the verdict turns on evidence and readings, never on configuration shape.
+    /// Subgroup flags and their clump-resolution triage
+    /// are report-only fields: they inform the human reading the report and never affect
+    /// admission.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
-        // The gate is the sole activation authority: every control
-        // pinned, or no move.
-        let (
-            Some(minimum_recall),
-            Some(minimum_trustworthiness),
-            Some(minimum_continuity),
-            Some(maximum_intrusion_rate),
-            Some(maximum_density_spread),
-            Some(minimum_triplet_agreement),
-        ) = (
-            self.minimum_recall,
-            self.minimum_trustworthiness,
-            self.minimum_continuity,
-            self.maximum_intrusion_rate,
-            self.maximum_density_spread,
-            self.minimum_triplet_agreement,
-        )
-        else {
-            return false;
-        };
-
-        // Pinned thresholds on absent readings fail: a pin demands the
-        // evidence it was pinned on. An empty grid, an all-degenerate
-        // density rung, and disabled triplet sampling all refuse - none
-        // vacuously passes.
+        // Thresholds on absent readings fail: a control demands the
+        // evidence it is compared against. An empty grid, an
+        // all-degenerate density rung, and disabled triplet sampling
+        // all refuse - none vacuously passes.
         let thresholds_hold = !self.map_representation.is_empty()
             && self.map_representation.iter().all(|row| {
-                row.recall >= minimum_recall
-                    && row.trustworthiness >= minimum_trustworthiness
-                    && row.continuity >= minimum_continuity
-                    && row.intrusion_rate <= maximum_intrusion_rate
+                row.recall >= self.minimum_recall
+                    && row.trustworthiness >= self.minimum_trustworthiness
+                    && row.continuity >= self.minimum_continuity
+                    && row.intrusion_rate <= self.maximum_intrusion_rate
             });
         let density_holds = !self.density.is_empty()
             && self.density.iter().all(|row| {
                 row.spread
-                    .is_some_and(|spread| spread <= maximum_density_spread)
+                    .is_some_and(|spread| spread <= self.maximum_density_spread)
             });
         let triplets_hold = self.triplet_map_representation.triplets > 0
-            && self.triplet_map_representation.agreement >= minimum_triplet_agreement;
+            && self.triplet_map_representation.agreement >= self.minimum_triplet_agreement;
 
         thresholds_hold && density_holds && triplets_hold
     }
@@ -509,12 +624,12 @@ pub(crate) fn assess(
         subgroups,
         baseline_subgroups,
         flags,
-        minimum_recall: thresholds.minimum_recall,
-        minimum_trustworthiness: thresholds.minimum_trustworthiness,
-        minimum_continuity: thresholds.minimum_continuity,
-        maximum_intrusion_rate: thresholds.maximum_intrusion_rate,
-        maximum_density_spread: thresholds.maximum_density_spread,
-        minimum_triplet_agreement: thresholds.minimum_triplet_agreement,
+        minimum_recall: thresholds.minimum_recall.get(),
+        minimum_trustworthiness: thresholds.minimum_trustworthiness.get(),
+        minimum_continuity: thresholds.minimum_continuity.get(),
+        maximum_intrusion_rate: thresholds.maximum_intrusion_rate.get(),
+        maximum_density_spread: f64::from(thresholds.maximum_density_spread.get()),
+        minimum_triplet_agreement: thresholds.minimum_triplet_agreement.get(),
         subgroup_degradation_factor: thresholds.subgroup_degradation_factor,
         minimum_subgroup_anchors: thresholds.minimum_subgroup_anchors,
     }

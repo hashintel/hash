@@ -1,9 +1,8 @@
 //! The atlas read API: Surface v1 routes over one opened generation.
 //!
-//! Four routes serve the demo bootstrap: the mutable `current` pointer, the immutable
-//! per-generation manifest, the tile endpoint answering `SALTILET` bytes, and the edges endpoint
-//! answering `SALTILEE` bytes. The generation is pinned at startup; rotation reload is the serving
-//! track's step 11, not this shell.
+//! Six routes serve the surface: the mutable `current` pointer, the immutable per-generation
+//! manifest, the tile, edges, and locate endpoints answering binary `SALTILE` envelopes, and the
+//! JSON translate endpoint. The generation is pinned at startup and served until restart.
 //!
 //! Each route lives in its own module - handler, path parameters, and OpenAPI documentation
 //! together - so a new endpoint is a new module plus one line in [`router`]'s table. The shared
@@ -11,9 +10,10 @@
 //! their assembly worker), and [`mod@reference`] (the OpenAPI document and its reference page).
 //!
 //! Response assembly is synchronous and CPU-bound, so handlers schedule it on a rayon worker behind
-//! `catch_unwind` and never inline on the async runtime. Errors are RFC 9457 problem documents;
-//! binary responses ship `Cache-Control: private, no-store` because the client's application-layer
-//! cache is the cache.
+//! `catch_unwind` and never inline on the async runtime. Handler errors are RFC 9457 problem
+//! documents; requests the framework's extractors reject before a handler runs answer plain
+//! rejections instead. Binary responses ship `Cache-Control: private, no-store` because the
+//! client's application-layer cache is the cache.
 
 use alloc::sync::Arc;
 
@@ -38,29 +38,33 @@ mod saltile;
 mod tile;
 mod translate;
 
-// NOTE: please apply our conventions on rust docs to the API descriptions as well
 /// The OpenAPI document's top-level description.
-const API_DESCRIPTION: &str = "The read API over one published atlas generation: a zoomable map \
-                               of the HASH graph, served as binary `SALTILE` envelopes.
+const API_DESCRIPTION: &str =
+    "The read API over one published atlas generation: a zoomable map of the HASH graph, served \
+     as binary `SALTILE` envelopes.
 
 ## Bootstrap
 
 1. `GET /v1/atlas/current` - the generation this process serves; the one mutable read.
-2. `GET /v1/atlas/generation/{generation}/manifest` - immutable per-generation configuration: the \
-                               served variants, the per-request caps (`limits`), and the bucket \
-                               schedule the tile grid follows.
-3. `POST` the tile and edges routes for binary geometry.
+2. `GET /v1/atlas/generation/{generation}/manifest` - the immutable per-generation bootstrap \
+     (configuration and snapshot provenance): the served variants, the per-request caps \
+     (`limits`), and the bucket schedule the tile grid follows.
+3. `POST` the tile, edges, and locate routes for binary geometry; `POST` translate for JSON \
+     identity resolution.
 
 ## Conventions
 
 - Query-bearing endpoints are `POST` with a JSON body; the body is part of the client's cache key.
 - Binary responses ship `Cache-Control: private, no-store`: the client's application-layer cache \
-                               is the cache, keyed on (generation, route, canonical body).
-- Every error is an RFC 9457 problem document (`application/problem+json`) whose `type` member \
-                               carries a stable slug. An `unknown-generation` problem always \
-                               means: re-bootstrap through `current`.
+     is the cache, keyed on (authorization context, generation, route, canonical body). Detailed \
+     responses hydrate their trailers live from the store and leave the immutable cache - cache \
+     the geometry surfaces, refetch detail.
+- Handler errors are RFC 9457 problem documents (`application/problem+json`) whose `type` member \
+     is a stable root-relative URI (`/problems/atlas/<slug>`). Requests the framework's \
+     extractors reject - malformed bodies, unparsable paths - answer plain rejections instead. An \
+     `unknown-generation` problem always means: re-bootstrap through `current`.
 - The binary envelope's normative contract is the `Atlas wire format` section below - this \
-                               document is self-contained; a decoder implements against it.";
+     document is self-contained; a decoder implements against it.";
 
 /// The wire-format contract, exported verbatim from `docs/wire.md`.
 ///
@@ -86,9 +90,9 @@ struct AppState {
 ///
 /// With the OpenAPI document generated at startup and served beside the API.
 ///
-/// The visibility proof scopes every response the router serves: the hosting process names its
-/// authority explicitly - [`VisibilityProof::full_visibility`] for operator serving without
-/// sessions - and per-scope proofs replace it when sessions arrive.
+/// The visibility proof scopes every corpus-bearing response the router serves: the caller
+/// supplies it, naming the process's authority explicitly - the graph binary deliberately
+/// constructs [`VisibilityProof::full_visibility`] for operator serving.
 ///
 /// # Panics
 ///

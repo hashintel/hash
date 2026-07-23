@@ -1,6 +1,6 @@
 //! `GET /v1/atlas/generation/{generation}/manifest`.
 //!
-//! Immutable configuration-derived bootstrap data.
+//! Immutable bootstrap data: configuration and snapshot provenance, no corpus-derived aggregates.
 
 use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{
@@ -36,7 +36,7 @@ pub(super) struct GenerationPath {
 
 /// `GET /v1/atlas/generation/{generation}/manifest`.
 ///
-/// Immutable configuration-derived bootstrap data.
+/// Immutable bootstrap data: configuration and snapshot provenance, no corpus-derived aggregates.
 pub(super) async fn handler(
     State(state): State<AppState>,
     Path(GenerationPath { generation }): Path<GenerationPath>,
