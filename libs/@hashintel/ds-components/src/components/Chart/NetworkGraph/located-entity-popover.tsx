@@ -144,8 +144,11 @@ const cardStyles = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
+  // Size to the content, floored at the former fixed width and capped at twice
+  // it, so a sparse card stays compact while a dense one can grow.
+  width: "[fit-content]",
   minWidth: "[200px]",
-  maxWidth: "[260px]",
+  maxWidth: "[400px]",
   padding: "3",
   backgroundColor: "white",
   borderRadius: "md",
@@ -195,13 +198,17 @@ const typeDotStyles = css({
   flexShrink: "0",
 });
 
-// The link's from→to endpoints, on their own row beneath the header. Each
-// endpoint's label truncates so both share the row; the connecting arrow and
-// the type icons never shrink.
+// The link's from→to endpoints beneath the header: the `from` entity, then the
+// `to` entity prefixed with a rightward arrow. The row wraps, so the two sit on
+// one line when they fit and the arrow-led `to` drops onto its own line when
+// they don't (the arrow travels with `to` — see `endpointToLineStyles`). Each
+// endpoint's label truncates within its line's remaining width.
 const endpointsRowStyles = css({
   display: "flex",
+  flexWrap: "wrap",
   alignItems: "center",
-  gap: "1.5",
+  columnGap: "2",
+  rowGap: "1",
   paddingTop: "2",
   borderTopWidth: "1px",
   borderTopStyle: "solid",
@@ -210,7 +217,14 @@ const endpointsRowStyles = css({
 
 const endpointStyles = css({
   display: "flex",
-  flex: "1",
+  minWidth: "0",
+  alignItems: "center",
+  gap: "1",
+});
+
+// The `to` line: the arrow sits inline before the endpoint and never shrinks.
+const endpointToLineStyles = css({
+  display: "flex",
   minWidth: "0",
   alignItems: "center",
   gap: "1",
@@ -252,18 +266,22 @@ const propertyRowStyles = css({
 
 const propertyKeyStyles = css({
   minWidth: "0",
+  flex: "[1 1 auto]",
   color: "neutral.s100",
   fontSize: "sm",
-  truncate: true,
+  overflowWrap: "anywhere",
+  lineClamp: "2",
 });
 
 const propertyValueStyles = css({
   minWidth: "0",
+  flex: "[1 1 50%]",
   color: "neutral.s120",
   fontSize: "sm",
   fontWeight: "semibold",
   textAlign: "right",
-  truncate: true,
+  overflowWrap: "anywhere",
+  lineClamp: "2",
 });
 
 const goToButtonStyles = css({
@@ -357,8 +375,14 @@ export const LocatedEntityPopover = ({
         {detail.kind === "edge" ? (
           <div className={endpointsRowStyles}>
             <Endpoint endpoint={detail.endpoints.from} />
-            <Icon name="arrowRight" size="xs" className={endpointArrowStyles} />
-            <Endpoint endpoint={detail.endpoints.to} />
+            <div className={endpointToLineStyles}>
+              <Icon
+                name="arrowRight"
+                size="xs"
+                className={endpointArrowStyles}
+              />
+              <Endpoint endpoint={detail.endpoints.to} />
+            </div>
           </div>
         ) : null}
 
