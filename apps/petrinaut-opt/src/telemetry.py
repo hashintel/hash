@@ -48,6 +48,7 @@ _configured = False
 # Providers created by ``setup_telemetry``, retained so the app lifespan can
 # flush and shut them down on exit. Each exposes ``force_flush``/``shutdown``.
 _providers: list[Any] = []
+_logging_handlers: list[logging.Handler] = []
 
 
 def _service_name() -> str:
@@ -135,6 +136,7 @@ def setup_telemetry(app: FastAPI) -> bool:
         resource = Resource.create({"service.name": _service_name()})
 
         tracer_provider = TracerProvider(resource=resource)
+        _providers.append(tracer_provider)
         tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
         trace.set_tracer_provider(tracer_provider)
 
@@ -142,26 +144,28 @@ def setup_telemetry(app: FastAPI) -> bool:
             resource=resource,
             metric_readers=[PeriodicExportingMetricReader(metric_exporter)],
         )
+        _providers.append(meter_provider)
         metrics.set_meter_provider(meter_provider)
 
         logger_provider = LoggerProvider(resource=resource)
+        _providers.append(logger_provider)
         logger_provider.add_log_record_processor(
             BatchLogRecordProcessor(log_exporter)
         )
         # Bridge stdlib logging (`log.info(...)` across the service) to OTLP so
         # records reach Loki alongside the traces they belong to.
-        logging.getLogger().addHandler(
-            LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+        logging_handler = LoggingHandler(
+            level=logging.INFO, logger_provider=logger_provider
         )
+        _logging_handlers.append(logging_handler)
+        logging.getLogger().addHandler(logging_handler)
 
         FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
     except Exception:
         log.exception("OpenTelemetry bootstrap failed; continuing without telemetry")
+        shutdown_telemetry()
         return False
 
-    # Retain for an explicit flush on shutdown; batch processors otherwise drop
-    # whatever is still queued when the process exits.
-    _providers.extend([tracer_provider, meter_provider, logger_provider])
     _configured = True
     log.info(
         "OpenTelemetry exporting to %s as %r over %s",
@@ -180,6 +184,10 @@ def shutdown_telemetry() -> None:
     the batch processors' queues. Safe to call when telemetry was never
     configured (a no-op) and idempotent if called more than once.
     """
+    root_logger = logging.getLogger()
+    while _logging_handlers:
+        root_logger.removeHandler(_logging_handlers.pop())
+
     while _providers:
         provider = _providers.pop()
         with suppress(Exception):

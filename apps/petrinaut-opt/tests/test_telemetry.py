@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import logging
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -70,6 +71,35 @@ def test_setup_registers_providers_for_shutdown(monkeypatch) -> None:
 
     telemetry.shutdown_telemetry()
     assert telemetry._providers == []
+
+
+def test_setup_cleans_up_partial_configuration(monkeypatch) -> None:
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+    monkeypatch.setattr(telemetry, "_configured", False)
+    monkeypatch.setattr(telemetry, "_providers", [])
+    monkeypatch.setattr(telemetry, "_logging_handlers", [])
+    monkeypatch.setattr(
+        telemetry,
+        "_build_exporters",
+        lambda _endpoint, _protocol: (
+            InMemorySpanExporter(),
+            ConsoleMetricExporter(out=io.StringIO()),
+            InMemoryLogRecordExporter(),
+        ),
+    )
+
+    def fail_instrumentation(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("instrumentation failed")
+
+    monkeypatch.setattr(
+        telemetry.FastAPIInstrumentor, "instrument_app", fail_instrumentation
+    )
+    original_handlers = list(logging.getLogger().handlers)
+
+    assert telemetry.setup_telemetry(FastAPI()) is False
+    assert telemetry._providers == []
+    assert telemetry._logging_handlers == []
+    assert logging.getLogger().handlers == original_handlers
 
 
 def test_lifespan_shuts_down_telemetry_on_exit(monkeypatch) -> None:
