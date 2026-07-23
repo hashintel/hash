@@ -46,7 +46,7 @@ log = logging.getLogger("pn_telemetry")
 _configured = False
 
 # Providers created by ``setup_telemetry``, retained so the app lifespan can
-# flush and shut them down on exit. Each exposes ``force_flush``/``shutdown``.
+# flush them without shutting down process-global OTEL state.
 _providers: list[Any] = []
 _logging_handlers: list[logging.Handler] = []
 
@@ -176,21 +176,27 @@ def setup_telemetry(app: FastAPI) -> bool:
     return True
 
 
-def shutdown_telemetry() -> None:
-    """Flush and shut down the OTLP providers.
+def flush_telemetry() -> None:
+    """Flush buffered telemetry without shutting down the providers."""
+    for provider in reversed(_providers):
+        with suppress(Exception):
+            provider.force_flush()
 
-    Wired into the app lifespan's teardown so buffered spans, metrics, and log
-    records are exported during a graceful (SIGTERM) shutdown rather than left in
-    the batch processors' queues. Safe to call when telemetry was never
-    configured (a no-op) and idempotent if called more than once.
+
+def shutdown_telemetry() -> None:
+    """Flush and shut down the OTLP providers immediately.
+
+    Used to clean up a partially configured bootstrap. Successful providers use
+    the OTEL SDK's standard process-exit shutdown hooks. Safe to call when
+    telemetry was never configured (a no-op) and idempotent if called more than
+    once.
     """
     root_logger = logging.getLogger()
     while _logging_handlers:
         root_logger.removeHandler(_logging_handlers.pop())
 
+    flush_telemetry()
     while _providers:
         provider = _providers.pop()
-        with suppress(Exception):
-            provider.force_flush()
         with suppress(Exception):
             provider.shutdown()

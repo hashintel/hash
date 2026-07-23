@@ -20,7 +20,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.petrinaut_client import PetrinautModel
 from src.petrinaut_optimizer import PetrinautOptimizer
-from src.telemetry import setup_telemetry, shutdown_telemetry
+from src.telemetry import flush_telemetry, setup_telemetry
 from src.utils import Phase, RunStatus, StatusStore, set_status
 
 
@@ -116,7 +116,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Flush buffered spans/metrics/logs on graceful shutdown so a SIGTERM
         # (e.g. `docker stop`) does not drop whatever the batch processors have
         # queued.
-        shutdown_telemetry()
+        flush_telemetry()
 
 
 app = FastAPI(title="Petrinaut optimization Python API", lifespan=lifespan)

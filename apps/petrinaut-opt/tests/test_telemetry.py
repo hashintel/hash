@@ -39,9 +39,20 @@ def test_shutdown_flushes_then_shuts_down_and_clears_providers(monkeypatch) -> N
     assert all(spy.shut == 1 for spy in spies)
     assert telemetry._providers == []
 
-    # Idempotent: a second call (e.g. lifespan teardown then atexit) is a no-op.
+    # Idempotent: a second process-final cleanup is a no-op.
     telemetry.shutdown_telemetry()
     assert all(spy.shut == 1 for spy in spies)
+
+
+def test_flush_preserves_active_providers(monkeypatch) -> None:
+    spies = [_SpyProvider() for _ in range(3)]
+    monkeypatch.setattr(telemetry, "_providers", list(spies))
+
+    telemetry.flush_telemetry()
+
+    assert all(spy.flushed == 1 for spy in spies)
+    assert all(spy.shut == 0 for spy in spies)
+    assert telemetry._providers == spies
 
 
 def test_shutdown_is_a_no_op_when_telemetry_was_never_configured(monkeypatch) -> None:
@@ -102,15 +113,20 @@ def test_setup_cleans_up_partial_configuration(monkeypatch) -> None:
     assert logging.getLogger().handlers == original_handlers
 
 
-def test_lifespan_shuts_down_telemetry_on_exit(monkeypatch) -> None:
+def test_lifespan_flushes_telemetry_on_exit(monkeypatch) -> None:
     calls = {"count": 0}
 
     def _spy() -> None:
         calls["count"] += 1
 
-    monkeypatch.setattr(optimization_api, "shutdown_telemetry", _spy)
+    monkeypatch.setattr(optimization_api, "flush_telemetry", _spy)
 
     with TestClient(optimization_api.app):
         assert calls["count"] == 0  # not yet — only on teardown
 
     assert calls["count"] == 1
+
+    with TestClient(optimization_api.app):
+        assert calls["count"] == 1
+
+    assert calls["count"] == 2
