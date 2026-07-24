@@ -253,6 +253,8 @@ const endpointArrowStyles = css({
 const propertyListStyles = css({
   display: "flex",
   flexDirection: "column",
+  // Extra breathing room from the header/endpoints above and the button below.
+  marginY: "1.5",
 });
 
 const propertyRowStyles = css({
@@ -264,6 +266,11 @@ const propertyRowStyles = css({
   borderTopWidth: "1px",
   borderTopStyle: "solid",
   borderTopColor: "neutral.s40",
+  // Drop the first row's divider so the table has no outer top (or bottom)
+  // border, keeping only the dividers between rows.
+  "&:first-child": {
+    borderTopWidth: "0",
+  },
 });
 
 const propertyKeyStyles = css({
