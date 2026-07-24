@@ -505,7 +505,14 @@ export function generateScenarioSessionFiles(
 
   // Generate full code file for "Define as code" initial state — only when
   // that mode is active so we don't lint stale code from the inactive mode.
-  if (session.initialStateAsCode && session.initialStateCode !== undefined) {
+  // Skip empty code — the runtime compiler ignores it (no initial state), so
+  // there's nothing to lint; wrapping an empty body in `__check` would raise
+  // a cryptic TS2355 ("must return a value") the moment the mode is toggled.
+  if (
+    session.initialStateAsCode &&
+    session.initialStateCode !== undefined &&
+    session.initialStateCode.trim() !== ""
+  ) {
     // Build return type: { "PlaceName"?: TokenType[], ... }
     const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
     const initialStateTypeImports: string[] = [];
