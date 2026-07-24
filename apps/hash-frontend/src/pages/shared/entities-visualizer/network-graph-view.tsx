@@ -93,6 +93,11 @@ const MAX_DEPTH = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
+ * Delay (ms) after a node hover before prefetching its ego-graph, so a pointer
+ * skimming across nodes doesn't fire a locate per node.
+ */
+const HOVER_LOCATE_DELAY_MS = 300;
+/**
  * Camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world unit). A
  * cell is one world unit — a depth-16 tile, the finest the quadtree addresses. We
  * cap where one screen dimension shows `max(width, height) / 100` cells, which
@@ -102,14 +107,6 @@ const MAX_ZOOM = Math.log2(100);
 
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
-
-/**
- * Absolute camera zoom at/above which the graph switches to its detailed view
- * (icons + label pills), so the view requests detailed tile data to label those
- * nodes. `NetworkGraph` flips to detailed at `maxZoom − 0.5`; matching that here
- * lands the labelled data as the detailed rendering takes over.
- */
-const DETAIL_ZOOM = MAX_ZOOM - 0.5;
 
 const zoomButtonSx = {
   background: "rgba(107, 114, 128, 0.16)",
@@ -628,13 +625,23 @@ export const NetworkGraphView = ({
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const boundsRef = useRef<Bounds | null>(null);
   const timerRef = useRef<number | undefined>(undefined);
+  // The pending hover→locate delay timer, and a sequence bumped on every node
+  // hover so a stale locate can't clear the spinner for a newer (or ended) hover.
+  const hoverLocateTimerRef = useRef<number | undefined>(undefined);
+  const hoverLocateSeqRef = useRef(0);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
-  const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   // The graph opens fully framed out, so zoom-out starts at its limit.
   const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
+  // The label of the node currently under the pointer, shown in a subtle box in
+  // the top-right corner. Null when the pointer is over empty space or a node
+  // without a label.
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  // Whether the hovered node's ego-graph prefetch is in flight — drives a small
+  // spinner in the label box, from hover start until the locate settles.
+  const [hoverLocateLoading, setHoverLocateLoading] = useState(false);
 
   // What's highlighted (a clicked or searched node's located neighbourhood, or a
   // clicked edge), the selection's live on-screen anchor (re-reported on
@@ -682,9 +689,21 @@ export const NetworkGraphView = ({
     };
   }, []);
 
+  // Cancel any pending hover→locate delay when the view unmounts.
+  useEffect(
+    () => () => {
+      if (hoverLocateTimerRef.current !== undefined) {
+        window.clearTimeout(hoverLocateTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const { data, isError, error } = useGetViewportNodes(viewport, {
     baseUrl: ATLAS_PROXY_BASE,
-    includeDetailedData: detailed,
+    // Always fetch labelled (and icon-ed) tile data, so every visible node is
+    // labelled regardless of zoom rather than only in the detailed view.
+    includeDetailedData: true,
     coloredTypeIds,
   });
 
@@ -717,13 +736,9 @@ export const NetworkGraphView = ({
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      const camera = cameraRef.current;
-      setViewport(deriveViewport(camera, sizeRef.current, boundsRef.current));
-      // Cross into detailed data on the same threshold the graph uses to switch
-      // to its detailed rendering, so nodes are labelled (and icon-ed) as the
-      // detailed view takes over. The whole descent — target tiles and their
-      // in-view ancestors — refetches detailed so every visible node is labelled.
-      setDetailed(camera.zoom !== null && camera.zoom >= DETAIL_ZOOM);
+      setViewport(
+        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
+      );
     }, DEBOUNCE_MS);
   }, []);
 
@@ -963,6 +978,54 @@ export const NetworkGraphView = ({
     [locateEntity, locatedNodeSelection],
   );
 
+  // Hover a node → show its label (with a spinner) in the top-right box, then
+  // after a short delay — if the pointer is still on it — prefetch its ego-graph
+  // via the same locate call a click makes. Once it lands (and the node is still
+  // hovered), drop the spinner and light up the ego-graph via `hoveredByExternal`.
+  // The delay keeps a pointer skimming across nodes from firing a locate per
+  // node; the sequence guard drops a stale locate so it can't clear the spinner
+  // or highlight for a newer (or ended) hover. A changed/ended hover clears the
+  // label and the previous node's highlight (until the new locate lands).
+  const handleNodeHover = useCallback(
+    (interaction: NetworkGraphInteraction) => {
+      hoverLocateSeqRef.current += 1;
+      if (hoverLocateTimerRef.current !== undefined) {
+        window.clearTimeout(hoverLocateTimerRef.current);
+        hoverLocateTimerRef.current = undefined;
+      }
+      setHoveredByExternal(null);
+      const { point } = interaction;
+      const label = point?.label ?? null;
+      setHoveredLabel(label);
+      // Every rendered node carries a numeric atlas row id; that is what the
+      // row-based locate takes. Skip (no spinner, no fetch) for anything else.
+      const atlasId = point ? Number(point.id) : Number.NaN;
+      if (label === null || !Number.isFinite(atlasId)) {
+        setHoverLocateLoading(false);
+        return;
+      }
+      setHoverLocateLoading(true);
+      const seq = hoverLocateSeqRef.current;
+      hoverLocateTimerRef.current = window.setTimeout(() => {
+        void fetchLocate(atlasId, { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds })
+          .then((entity) => {
+            // A newer (or ended) hover has taken over — leave its state alone.
+            if (seq !== hoverLocateSeqRef.current) {
+              return;
+            }
+            setHoverLocateLoading(false);
+            setHoveredByExternal(locatedNodeSelection(entity));
+          })
+          .catch(() => {
+            if (seq === hoverLocateSeqRef.current) {
+              setHoverLocateLoading(false);
+            }
+          });
+      }, HOVER_LOCATE_DELAY_MS);
+    },
+    [coloredTypeIds, locatedNodeSelection],
+  );
+
   // Click a node → highlight it immediately, then locate it and overlay its
   // located neighbourhood (node, edges, neighbours) with a detail popover.
   // Clicking empty space clears the selection.
@@ -1156,6 +1219,7 @@ export const NetworkGraphView = ({
               maxZoom={MAX_ZOOM}
               selected={selected}
               hoveredByExternal={hoveredByExternal}
+              onNodeHover={handleNodeHover}
               onNodeClick={handleNodeClick}
               onEdgeClick={handleEdgeClick}
               onSelectedPositionChange={setAnchor}
@@ -1180,6 +1244,45 @@ export const NetworkGraphView = ({
               onResultsChange={handleSearchResults}
               popperContainer={frameRef.current}
             />
+            {hoveredLabel ? (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                  // Match the collapsed search button's height (top-left).
+                  height: 30,
+                  maxWidth: 320,
+                  px: 1.25,
+                  borderRadius: 1.5,
+                  border: "1px solid rgba(14, 17, 20, 0.12)",
+                  backgroundColor: "rgba(14, 17, 20, 0.53)",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 2px 8px rgba(14, 17, 20, 0.08)",
+                  pointerEvents: "none",
+                }}
+              >
+                {hoverLocateLoading ? (
+                  <LoadingSpinner size={14} thickness={5} color="white" />
+                ) : null}
+                <Typography
+                  variant="smallTextParagraphs"
+                  sx={{
+                    color: "white",
+                    fontWeight: 500,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {hoveredLabel}
+                </Typography>
+              </Box>
+            ) : null}
             <Stack
               direction="column"
               gap={1}
