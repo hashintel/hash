@@ -88,22 +88,30 @@ export interface LocatedEntityIcon {
 export interface LocatedEntityEndpoint {
   readonly label: string;
   readonly icon?: LocatedEntityIcon;
+  /**
+   * Selects this endpoint's node when its label is clicked — makes the label a
+   * link-style button. Omitted when the endpoint can't be resolved to a
+   * selectable node (the label then renders as plain text).
+   */
+  readonly onClick?: () => void;
 }
 
 interface LocatedEntityDetailShared {
   /** Bold card title — the entity/edge label. */
   readonly title: string;
-  /** Optional leading emoji icon. */
-  readonly icon?: string;
   /** Property rows shown in the card's property table. */
   readonly properties: readonly LocatedEntityProperty[];
 }
 
-/** A located node: one optional type chip floats beside the title. */
+/** A located node: its types float beside the title as chips. */
 export interface LocatedNodeDetail extends LocatedEntityDetailShared {
   readonly kind: "node";
-  /** Type chip: a label and the colour of its dot. */
-  readonly type?: LocatedEntityTypeChip;
+  /**
+   * The node's types, shown as chips floating beside the title — every type we
+   * have for the entity, whether or not it carries a distinct colour (uncoloured
+   * types render with a grey dot).
+   */
+  readonly types: readonly LocatedEntityTypeChip[];
 }
 
 /**
@@ -179,12 +187,6 @@ const titleStyles = css({
   lineClamp: "2",
 });
 
-// A dedicated span keeps a gap after the emoji, which the line-clamp box
-// (`-webkit-box`) would otherwise trim from an inline trailing space.
-const titleIconStyles = css({
-  marginRight: "1.5",
-});
-
 // A compact type lozenge: a subtle grey pill holding the type's icon, its label,
 // and a dot in the type's colour. The tight, even spacing keeps the icon, text,
 // and dot reading as one balanced unit. The left padding flexes on whether an
@@ -244,32 +246,80 @@ const typeDotStyles = css({
   marginLeft: "0.5",
 });
 
-// The link's from→to endpoints beneath the header: the `from` entity, then the
-// `to` entity prefixed with a rightward arrow. The row wraps, so the two sit on
-// one line when they fit and the arrow-led `to` drops onto its own line when
-// they don't (the arrow travels with `to` — see `endpointToLineStyles`). Each
-// endpoint's label truncates within its line's remaining width.
-const endpointsRowStyles = css({
+// The "connects" section beneath the header: the two entities the link joins,
+// drawn as a directed source→target rail. Each endpoint sits on its own
+// full-width row so a long label truncates identically on both (no lopsided
+// wrap), and a vertical rail down the left gutter — a dot at the source, a caret
+// at the target — reads top-to-bottom as the link's direction.
+const connectionSectionStyles = css({
   display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  columnGap: "2",
-  rowGap: "1",
+  flexDirection: "column",
+  gap: "1.5",
   paddingTop: "2",
   borderTopWidth: "1px",
   borderTopStyle: "solid",
   borderTopColor: "neutral.s40",
 });
 
-const endpointStyles = css({
+// The two endpoint rows, stacked with no gap so the gutters' rail segments meet
+// edge-to-edge and form one continuous line between the dot and the caret.
+const connectionRowsStyles = css({
   display: "flex",
-  minWidth: "0",
-  alignItems: "center",
-  gap: "1",
+  flexDirection: "column",
 });
 
-// The `to` line: the arrow sits inline before the endpoint and never shrinks.
-const endpointToLineStyles = css({
+// One endpoint row: a fixed rail gutter, then the entity (icon + label) in a
+// track that shrinks to zero so the label truncates.
+const endpointRowStyles = css({
+  display: "grid",
+  gridTemplateColumns: "[16px minmax(0, 1fr)]",
+  columnGap: "2",
+  alignItems: "stretch",
+});
+
+// The rail gutter: a fixed-width column stacking (spacer · marker · line) so the
+// marker centres on the row while its line segment fills to the row edge, where
+// it meets the neighbouring row's segment. Its min height sets the row height —
+// so the rail reads tall enough between its markers regardless of label length.
+const gutterStyles = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  minHeight: "[26px]",
+});
+
+// A rail line segment — a thin vertical line, centred in the gutter, growing to
+// fill the space between a marker and the row edge.
+const railLineStyles = css({
+  flexGrow: "[1]",
+  width: "[1.5px]",
+  backgroundColor: "neutral.s60",
+});
+
+// Balances a marker against its line segment so the marker centres in the row.
+const gutterSpacerStyles = css({
+  flexGrow: "[1]",
+});
+
+// The source marker: a small filled dot the rail leaves from.
+const sourceDotStyles = css({
+  flexShrink: "0",
+  width: "[7px]",
+  height: "[7px]",
+  borderRadius: "full",
+  backgroundColor: "neutral.s90",
+});
+
+// The target marker: a small downward triangle the rail points into (the link's
+// direction). A CSS border-triangle — not a ds icon — so the glyph has no
+// internal padding: it sits flush with the line above and centres on the same
+// axis as the line and the source dot. Its borders are set inline (below) since
+// the triangle's arbitrary border widths don't map cleanly to Panda utilities.
+const targetCaretStyles = css({
+  flexShrink: "0",
+});
+
+const endpointStyles = css({
   display: "flex",
   minWidth: "0",
   alignItems: "center",
@@ -289,9 +339,46 @@ const endpointLabelStyles = css({
   truncate: true,
 });
 
-const endpointArrowStyles = css({
+// The endpoint label as a link-style button when its node is selectable: a bare
+// text button (no chrome) that shifts to the brand tone on hover/focus. On
+// hover/focus its label underlines and a trailing arrow affordance fades in, so
+// it reads as selecting/focusing that node in the graph.
+const endpointButtonStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  minWidth: "0",
+  maxWidth: "full",
+  appearance: "none",
+  background: "[transparent]",
+  border: "none",
+  padding: "0",
+  cursor: "pointer",
+  color: "neutral.s110",
+  fontFamily: "[inherit]",
+  fontWeight: "[inherit]",
+  fontSize: "sm",
+  textAlign: "left",
+  _hover: { color: "blue.s90" },
+  _focusVisible: { color: "blue.s90", outline: "none" },
+  "&:hover [data-endpoint-affordance], &:focus-visible [data-endpoint-affordance]":
+    { opacity: "1" },
+});
+
+// The truncating label text inside the endpoint button.
+const endpointButtonLabelStyles = css({
+  minWidth: "0",
+  truncate: true,
+});
+
+// The trailing "focus this node" affordance: hidden until the button is
+// hovered/focused (revealed by `endpointButtonStyles`), tinted the brand tone.
+const endpointAffordanceStyles = css({
+  display: "inline-flex",
   flexShrink: "0",
-  color: "neutral.s70",
+  alignItems: "center",
+  color: "blue.s90",
+  opacity: "0",
 });
 
 const propertyListStyles = css({
@@ -374,7 +461,11 @@ const TypeChip = ({ chip }: { chip: LocatedEntityTypeChip }) => {
   );
 };
 
-/** One from/to endpoint of a link: its type icon (emoji or ds glyph) + label. */
+/**
+ * One from/to endpoint of a link: its type icon (emoji or ds glyph) + label.
+ * A selectable endpoint (`onClick` set) renders its label as a link-style
+ * button that jumps to that node; otherwise the label is plain text.
+ */
 const Endpoint = ({ endpoint }: { endpoint: LocatedEntityEndpoint }) => (
   <div className={endpointStyles}>
     {endpoint.icon?.emoji !== undefined ? (
@@ -386,7 +477,22 @@ const Endpoint = ({ endpoint }: { endpoint: LocatedEntityEndpoint }) => (
         className={endpointIconStyles}
       />
     ) : null}
-    <span className={endpointLabelStyles}>{endpoint.label}</span>
+    {endpoint.onClick ? (
+      <button
+        type="button"
+        className={endpointButtonStyles}
+        onClick={endpoint.onClick}
+      >
+        <span data-endpoint-label className={endpointButtonLabelStyles}>
+          {endpoint.label}
+        </span>
+        <span data-endpoint-affordance className={endpointAffordanceStyles}>
+          <Icon name="arrowRight" size="xs" />
+        </span>
+      </button>
+    ) : (
+      <span className={endpointLabelStyles}>{endpoint.label}</span>
+    )}
   </div>
 );
 
@@ -399,9 +505,8 @@ export const LocatedEntityPopover = ({
   onActivate,
 }: LocatedEntityPopoverProps) => {
   const gaps = gapsFor(anchor);
-  // Node → its single optional type chip; edge → its link types.
-  const chips =
-    detail.kind === "edge" ? detail.types : detail.type ? [detail.type] : [];
+  // Both a node's and an edge's types render as chips beside the title.
+  const chips = detail.types;
   return (
     <Popover
       triggerRef={triggerRef}
@@ -418,12 +523,7 @@ export const LocatedEntityPopover = ({
         onFocus={onActivate}
       >
         <div className={headerStyles}>
-          <div className={titleStyles}>
-            {detail.icon ? (
-              <span className={titleIconStyles}>{detail.icon}</span>
-            ) : null}
-            {detail.title}
-          </div>
+          <div className={titleStyles}>{detail.title}</div>
 
           {chips.map((chip) => (
             <TypeChip key={chip.label} chip={chip} />
@@ -431,15 +531,33 @@ export const LocatedEntityPopover = ({
         </div>
 
         {detail.kind === "edge" ? (
-          <div className={endpointsRowStyles}>
-            <Endpoint endpoint={detail.endpoints.from} />
-            <div className={endpointToLineStyles}>
-              <Icon
-                name="arrowRight"
-                size="xs"
-                className={endpointArrowStyles}
-              />
-              <Endpoint endpoint={detail.endpoints.to} />
+          <div className={connectionSectionStyles}>
+            <div className={connectionRowsStyles}>
+              <div className={endpointRowStyles}>
+                <div className={gutterStyles}>
+                  <span className={gutterSpacerStyles} />
+                  <span className={sourceDotStyles} />
+                  <span className={railLineStyles} />
+                </div>
+                <Endpoint endpoint={detail.endpoints.from} />
+              </div>
+              <div className={endpointRowStyles}>
+                <div className={gutterStyles}>
+                  <span className={railLineStyles} />
+                  <span
+                    className={targetCaretStyles}
+                    style={{
+                      width: 0,
+                      height: 0,
+                      borderLeft: "3.5px solid transparent",
+                      borderRight: "3.5px solid transparent",
+                      borderTop: "5px solid var(--colors-neutral-s90)",
+                    }}
+                  />
+                  <span className={gutterSpacerStyles} />
+                </div>
+                <Endpoint endpoint={detail.endpoints.to} />
+              </div>
             </div>
           </div>
         ) : null}

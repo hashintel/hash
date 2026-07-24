@@ -513,57 +513,49 @@ export const NetworkGraphView = ({
     [emojiIconFor, nodeIconFor],
   );
 
-  // The popover type chip for a node: the type's icon + title (from memory) +
-  // colour of the same type its node colour was sampled from (so chip and node
-  // agree), or `undefined` when the node matches none of the coloured types.
-  const typeChipForIndices = useCallback(
+  // Every popover type chip for a node: one per coloured queried type it matches
+  // (in that type's palette colour), plus its first direct type as a grey chip
+  // when that type isn't itself one of the coloured matches. Unlike the node's
+  // own colour — one coloured type sampled at random — the popover lists all the
+  // types we hold for the entity, including uncoloured ones (which render grey).
+  // Deduped by base URL so a type held at a slightly different version than a
+  // coloured id isn't shown twice; coloured matches come first so a coloured type
+  // always keeps its colour rather than being dropped in favour of a grey dupe.
+  const typeChipsForNode = useCallback(
     (
       typeIndices: readonly number[] | undefined,
-      seed: number | string,
-    ): LocatedEntityTypeChip | undefined => {
-      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
-      if (index === undefined) {
-        return undefined;
-      }
-      const entityTypeId = coloredTypeIds[index];
-      if (entityTypeId === undefined) {
-        return undefined;
-      }
-      const icon = typeIconFor(entityTypeId);
-      return {
-        label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
-        color: coloredTypeColors[index] ?? unassignedTypeColor,
-        ...(icon !== undefined ? { icon } : {}),
+      typeId: VersionedUrl | undefined,
+    ): LocatedEntityTypeChip[] => {
+      const chips: LocatedEntityTypeChip[] = [];
+      const seenBaseUrls = new Set<BaseUrl>();
+      const addChip = (entityTypeId: VersionedUrl, color: string) => {
+        const baseUrl = extractBaseUrl(entityTypeId);
+        if (seenBaseUrls.has(baseUrl)) {
+          return;
+        }
+        seenBaseUrls.add(baseUrl);
+        const icon = typeIconFor(entityTypeId);
+        chips.push({
+          label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
+          color,
+          ...(icon !== undefined ? { icon } : {}),
+        });
       };
+      for (const index of typeIndices ?? []) {
+        const entityTypeId = coloredTypeIds[index];
+        if (entityTypeId !== undefined) {
+          addChip(
+            entityTypeId,
+            coloredTypeColors[index] ?? unassignedTypeColor,
+          );
+        }
+      }
+      if (typeId !== undefined) {
+        addChip(typeId, unassignedTypeColor);
+      }
+      return chips;
     },
     [coloredTypeIds, coloredTypeColors, resolveTypeMeta, typeIconFor],
-  );
-
-  // A located endpoint node → the edge popover's from/to entry: the entity's
-  // label plus its primary type's icon (the same type its node colour and icon
-  // are sampled from) as an emoji or a ds glyph. Falls back to a label-only
-  // entry keyed by the endpoint's row id when the node isn't in the subgraph.
-  const endpointFor = useCallback(
-    (
-      node: LocatedEntity["nodes"][number] | undefined,
-      fallbackId: string | number,
-    ): LocatedEntityEndpoint => {
-      if (!node) {
-        return { label: `Node ${fallbackId}` };
-      }
-      const typeId = primaryTypeId(node.typeIndices, node.typeId, node.id);
-      const emoji = emojiIconFor(typeId);
-      const name = nodeIconFor(typeId);
-      const icon = {
-        ...(emoji !== undefined ? { emoji } : {}),
-        ...(name !== undefined ? { name } : {}),
-      };
-      return {
-        label: node.label ?? `Node ${node.id}`,
-        ...(emoji !== undefined || name !== undefined ? { icon } : {}),
-      };
-    },
-    [primaryTypeId, emojiIconFor, nodeIconFor],
   );
 
   // The pill text drawn on an edge while hovered/selected: the link type's icon
@@ -856,29 +848,76 @@ export const NetworkGraphView = ({
         return null;
       }
       setSelected(nodeSelection);
-      const type = typeChipForIndices(source.typeIndices, source.id);
-      const icon = emojiIconFor(
-        primaryTypeId(source.typeIndices, source.typeId, source.id),
-      );
+      const types = typeChipsForNode(source.typeIndices, source.typeId);
       setSelection({
         detail: {
           kind: "node",
           title: source.label ?? `Node ${source.id}`,
-          ...(icon !== undefined ? { icon } : {}),
-          ...(type !== undefined ? { type } : {}),
+          types,
           properties: propertyRows(source.properties),
         },
         entityId: entity.entityId,
       });
       return [source.x, source.y];
     },
-    [
-      locatedNodeSelection,
-      typeChipForIndices,
-      emojiIconFor,
-      primaryTypeId,
-      propertyRows,
-    ],
+    [locatedNodeSelection, typeChipsForNode, propertyRows],
+  );
+
+  // Select a node by its atlas row id — highlight it, then locate it and overlay
+  // its located neighbourhood (node, edges, neighbours) with a detail popover,
+  // exactly as a node click does. `reveal` flies the camera to the node once
+  // located, for selecting one that may be off-screen (an edge endpoint); a
+  // plain node click leaves the camera put.
+  const selectNode = useCallback(
+    (atlasId: number, { reveal = false }: { reveal?: boolean } = {}) => {
+      setSelected({ node: atlasId });
+      setSelection(null);
+      setSearchOnTop(false);
+      locate(atlasId, (entity) => {
+        const focus = showLocatedEntity(entity);
+        if (reveal && focus) {
+          graphRef.current?.revealPoint([focus[0], focus[1]]);
+        }
+      });
+    },
+    [locate, showLocatedEntity],
+  );
+
+  // A located endpoint node → the edge popover's from/to entry: the entity's
+  // label plus its primary type's icon (the same type its node colour and icon
+  // are sampled from) as an emoji or a ds glyph, and an `onClick` that selects
+  // (and reveals) the endpoint's node so the popover label jumps to it. Falls
+  // back to a label keyed by the endpoint's row id when the node isn't in the
+  // subgraph — still selectable, since that row id is itself a locate source.
+  const endpointFor = useCallback(
+    (
+      node: LocatedEntity["nodes"][number] | undefined,
+      fallbackId: string | number,
+    ): LocatedEntityEndpoint => {
+      const atlasId = node ? node.id : Number(fallbackId);
+      const onClick = Number.isFinite(atlasId)
+        ? () => selectNode(atlasId, { reveal: true })
+        : undefined;
+      if (!node) {
+        return {
+          label: `Node ${fallbackId}`,
+          ...(onClick !== undefined ? { onClick } : {}),
+        };
+      }
+      const typeId = primaryTypeId(node.typeIndices, node.typeId, node.id);
+      const emoji = emojiIconFor(typeId);
+      const name = nodeIconFor(typeId);
+      const icon = {
+        ...(emoji !== undefined ? { emoji } : {}),
+        ...(name !== undefined ? { name } : {}),
+      };
+      return {
+        label: node.label ?? `Node ${node.id}`,
+        ...(emoji !== undefined || name !== undefined ? { icon } : {}),
+        ...(onClick !== undefined ? { onClick } : {}),
+      };
+    },
+    [selectNode, primaryTypeId, emojiIconFor, nodeIconFor],
   );
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity
@@ -1051,22 +1090,24 @@ export const NetworkGraphView = ({
   // Clicking empty space clears the selection.
   const handleNodeClick = useCallback(
     (interaction: NetworkGraphInteraction) => {
-      if (!interaction.point) {
+      const point = interaction.point;
+      if (!point) {
         clearSelection();
         return;
       }
-      setSelected({ node: interaction.point.id });
-      setSelection(null);
-      setSearchOnTop(false);
       // Every rendered node (tile or ego-graph) carries a numeric atlas row id;
-      // that is what the row-based locate takes. Guard against any other id.
-      const atlasId = Number(interaction.point.id);
+      // that is what the row-based locate takes. Guard against any other id:
+      // still highlight it, but skip the locate.
+      const atlasId = Number(point.id);
       if (!Number.isFinite(atlasId)) {
+        setSelected({ node: point.id });
+        setSelection(null);
+        setSearchOnTop(false);
         return;
       }
-      locate(atlasId, showLocatedEntity);
+      selectNode(atlasId);
     },
-    [clearSelection, locate, showLocatedEntity],
+    [clearSelection, selectNode],
   );
 
   // Click an edge → select it (its selection outlines both endpoints — an edge's
@@ -1133,9 +1174,8 @@ export const NetworkGraphView = ({
         }
         // Locate ships the link's full direct type list. Each becomes a chip
         // floating beside the label (grey dots — link types aren't in the
-        // coloured type set), and the first type's emoji leads the title.
+        // coloured type set).
         const edgeTypeIds = locatedEdge?.typeIds ?? [];
-        const edgeIcon = emojiIconFor(edgeTypeIds[0]);
         const edgeTypes: LocatedEntityTypeChip[] = edgeTypeIds.map((typeId) => {
           const icon = typeIconFor(typeId);
           return {
@@ -1148,7 +1188,6 @@ export const NetworkGraphView = ({
           detail: {
             kind: "edge",
             title: locatedEdge?.label ?? `Edge ${edge.id}`,
-            ...(edgeIcon !== undefined ? { icon: edgeIcon } : {}),
             types: edgeTypes,
             // The entities the link connects, in link direction (source → target).
             endpoints: {
@@ -1168,7 +1207,6 @@ export const NetworkGraphView = ({
       colorForTypeIndices,
       toLocatedPoint,
       resolveTypeMeta,
-      emojiIconFor,
       typeIconFor,
       edgeLabelFor,
       endpointFor,
