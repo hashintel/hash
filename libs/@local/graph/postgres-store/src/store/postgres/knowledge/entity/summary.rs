@@ -24,6 +24,10 @@ use uuid::Uuid;
 use crate::store::postgres::query::SelectCompiler;
 
 /// Which summary dimensions to aggregate.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the flags mirror the wire contract's independent include switches"
+)]
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct EntitySummaryRequest {
     pub count: bool,

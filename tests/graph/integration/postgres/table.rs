@@ -273,6 +273,7 @@ async fn property_filters_narrow_the_page_but_not_the_type_summary() {
     );
 }
 
+#[expect(clippy::too_many_lines)]
 #[tokio::test]
 async fn label_sort_pages_alphabetically() {
     use hash_graph_store::entity_type::{CreateEntityTypeParams, EntityTypeStore as _};
@@ -516,8 +517,11 @@ async fn first_page_summarizes_and_pages_stay_consistent() {
 
     // Default sort is created-at, newest first — verified over the keyset pages.
     for pair in all_rows.windows(2) {
+        let [newer, older] = pair else {
+            unreachable!("windows(2) should yield pairs");
+        };
         assert!(
-            pair[0].created_at_decision_time >= pair[1].created_at_decision_time,
+            newer.created_at_decision_time >= older.created_at_decision_time,
             "rows are not sorted by creation time, newest first",
         );
     }
@@ -554,6 +558,7 @@ async fn explicit_type_filter_scopes_the_table() {
     }
 }
 
+#[expect(clippy::too_many_lines)]
 #[tokio::test]
 async fn conversions_convert_row_property_values() {
     use std::collections::HashMap;
@@ -941,6 +946,7 @@ async fn excluded_type_base_urls_leave_the_universe_and_the_summary() {
     assert_eq!(summary.entity_type_ids[&person_entity_type()], 3);
 }
 
+#[expect(clippy::too_many_lines)]
 #[tokio::test]
 async fn link_endpoints_hide_entities_the_actor_cannot_view() {
     let mut database = DatabaseTestWrapper::new().await;

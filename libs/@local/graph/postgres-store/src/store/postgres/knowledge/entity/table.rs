@@ -335,6 +335,7 @@ impl<C> PostgresStore<C, InTransaction>
 where
     C: AsClient,
 {
+    #[expect(clippy::too_many_lines)]
     #[tracing::instrument(level = "info", skip(self, params))]
     pub(crate) async fn query_entities_table_impl(
         &self,
@@ -1261,7 +1262,7 @@ mod tests {
                 .expect("the sorting should compile");
 
             let (statement, _parameters) = compiler.compile();
-            let keyset_order = statement
+            statement
                 .split("ORDER BY")
                 .nth(1)
                 .expect("the statement should have an ORDER BY")
@@ -1269,9 +1270,7 @@ mod tests {
                 .next()
                 .expect("the ORDER BY should precede the LIMIT")
                 .trim()
-                .to_owned();
-
-            keyset_order
+                .to_owned()
         });
 
         pretty_assertions::assert_eq!(

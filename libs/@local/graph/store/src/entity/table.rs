@@ -65,7 +65,7 @@ impl Default for EntityTableSorting {
 }
 
 /// A property value a table filter compares against.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum EntityTablePropertyValue {
@@ -79,7 +79,7 @@ pub enum EntityTablePropertyValue {
 /// The `type` tag selects the operator, `property` names the column, and each operator carries
 /// exactly the value fields it needs, so a value-less operator with a value (or the reverse) is
 /// unrepresentable.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum EntityTablePropertyFilter {
