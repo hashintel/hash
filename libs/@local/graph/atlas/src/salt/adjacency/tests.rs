@@ -29,7 +29,12 @@ fn scratch(name: &str) -> Utf8PathBuf {
 ///
 /// Edge rows: 0 and 3 both `0 → 1` (parallel), 1 is `2 → 3`, 2 is the self-loop `3 → 3`. Node
 /// row 4 touches nothing.
-const ENDPOINTS: [[u64; 2]; 4] = [[0, 1], [2, 3], [3, 3], [0, 1]];
+const ENDPOINTS: [[NodeRowId; 2]; 4] = [
+    [NodeRowId::new(0), NodeRowId::new(1)],
+    [NodeRowId::new(2), NodeRowId::new(3)],
+    [NodeRowId::new(3), NodeRowId::new(3)],
+    [NodeRowId::new(0), NodeRowId::new(1)],
+];
 const ROWS: usize = 5;
 
 fn mapped(dir: &Utf8PathBuf, name: &str, adjacency: &Adjacency) -> AdjacencyArchive {
@@ -207,7 +212,7 @@ fn shifted_fencepost_column_is_rejected() {
     let dir = scratch("shifted");
     let path = dir.join("shifted.sprs");
 
-    let adjacency = Adjacency::build(2, &[[0, 1]]);
+    let adjacency = Adjacency::build(2, &[[NodeRowId::new(0), NodeRowId::new(1)]]);
     let mut file = fs::File::create(&path).expect("the fixture file should create");
     adjacency
         .write_into(&mut file)
@@ -241,7 +246,7 @@ fn shifted_fencepost_column_is_rejected() {
 fn build_is_independent_of_the_endpoint_values_within_a_row() {
     // A permuted edge order is a different corpus (edge rows are
     // positional), but every list still comes out strictly ascending.
-    let permuted: [[u64; 2]; 4] = [ENDPOINTS[3], ENDPOINTS[1], ENDPOINTS[0], ENDPOINTS[2]];
+    let permuted: [[NodeRowId; 2]; 4] = [ENDPOINTS[3], ENDPOINTS[1], ENDPOINTS[0], ENDPOINTS[2]];
     let dir = scratch("permuted");
     let adjacency = Adjacency::build(ROWS, &permuted);
     let mapped = mapped(&dir, "permuted.sprs", &adjacency);
@@ -268,7 +273,11 @@ fn wide_indices_read_back() {
 
 #[test]
 fn writing_to_memory_conjures_the_unit_region() {
-    let endpoints = [[0, 1], [1, 2], [0, 2]];
+    let endpoints = [
+        [NodeRowId::new(0), NodeRowId::new(1)],
+        [NodeRowId::new(1), NodeRowId::new(2)],
+        [NodeRowId::new(0), NodeRowId::new(2)],
+    ];
     let adjacency = Adjacency::build(3, &endpoints);
 
     let mut bytes = Vec::new();

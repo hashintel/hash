@@ -57,7 +57,55 @@ fn header_wire_layout() {
     assert_eq!(bytes[12], 0x0D);
     assert_eq!(bytes[13..21], (1_u64 << 18).to_le_bytes());
     assert_eq!(bytes[21..29], 2_u64.to_le_bytes());
+    // The flags word: zero on a little-endian writer, so the whole
+    // tail is byte-identical to a pre-flags header.
+    assert_eq!(bytes[77..81], 0_u32.to_le_bytes());
     assert!(bytes[29..].iter().all(|&byte| byte == 0));
+}
+
+#[test]
+fn foreign_native_elements_fail_the_open() {
+    let mut bytes = Vec::new();
+    let mut writer =
+        SizedArrayWriter::new(Cursor::new(&mut bytes), ArrayVariant::U32, &[Dim::new(4)])
+            .expect("the writer should start");
+    writer
+        .write_rows(4, [1_u32, 2, 3, 4].as_bytes())
+        .expect("the rows should write");
+    let _digest = writer.finish().expect("the writer should finish");
+
+    // Flip the architecture bit: the same bytes now claim the other
+    // byte order wrote them, and native elements refuse the open.
+    bytes[77] ^= 0x01;
+    let file = TempFile::create(&bytes);
+    assert_matches!(
+        ArrayFile::open(&file.path),
+        Err(OpenArrayError::ForeignArchitecture { .. }),
+    );
+}
+
+#[test]
+fn le_pinned_elements_survive_a_foreign_writer() {
+    let mut bytes = Vec::new();
+    let mut writer = SizedArrayWriter::new(
+        Cursor::new(&mut bytes),
+        ArrayVariant::U64Le,
+        &[Dim::new(1), Dim::new(2)],
+    )
+    .expect("the writer should start");
+    writer
+        .write_rows(1, [7_u64.to_le_bytes(), 9_u64.to_le_bytes()].as_flattened())
+        .expect("the rows should write");
+    let _digest = writer.finish().expect("the writer should finish");
+
+    // The element type carries the byte order, so the writer's
+    // architecture is irrelevant to the reader.
+    bytes[77] ^= 0x01;
+    let file = TempFile::create(&bytes);
+    let mapped = ArrayFile::open(&file.path).expect("an le-pinned file opens on every host");
+    let pairs = mapped.u64_le_pairs().expect("the pairs view exists");
+    assert_eq!(pairs[0][0].get(), 7);
+    assert_eq!(pairs[0][1].get(), 9);
 }
 
 #[test]

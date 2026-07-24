@@ -908,8 +908,13 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
     let artifacts = open_edge_artifacts(&generation);
     let endpoints = artifacts
         .endpoints
-        .u64_pairs()
-        .expect("the endpoint column is u64 pairs");
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs");
+    let endpoints: Vec<[u64; 2]> = endpoints
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let endpoints = endpoints.as_slice();
 
     // The endpoint artifact follows the dataset stream order, which
     // the derivations below lean on.
@@ -959,8 +964,13 @@ async fn edges_serve_the_root_visible_subgraph() {
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
         .endpoints
-        .u64_pairs()
-        .expect("the endpoint column is u64 pairs");
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs");
+    let endpoints: Vec<[u64; 2]> = endpoints
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let endpoints = endpoints.as_slice();
 
     // The root delivers buckets 0..=m: the head of the base order.
     let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
@@ -1005,8 +1015,13 @@ async fn edges_exclude_partially_delivered_pairs() {
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
         .endpoints
-        .u64_pairs()
-        .expect("the endpoint column is u64 pairs");
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs");
+    let endpoints: Vec<[u64; 2]> = endpoints
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let endpoints = endpoints.as_slice();
     let positions = edge_artifacts
         .positions
         .u32_elements()
@@ -1062,8 +1077,13 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
         .endpoints
-        .u64_pairs()
-        .expect("the endpoint column is u64 pairs");
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs");
+    let endpoints: Vec<[u64; 2]> = endpoints
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let endpoints = endpoints.as_slice();
     let ranks = edge_artifacts
         .ranks
         .u32_elements()
@@ -1224,8 +1244,13 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
         .endpoints
-        .u64_pairs()
-        .expect("the endpoint column is u64 pairs");
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs");
+    let endpoints: Vec<[u64; 2]> = endpoints
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let endpoints = endpoints.as_slice();
 
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
     let mut request = edges_request(vec![root]);

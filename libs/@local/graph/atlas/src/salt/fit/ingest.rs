@@ -291,7 +291,7 @@ where
     let mut spool = InstanceSpoolWriter::create(scratch)?;
 
     let mut writer = BufWriter::new(staging.create(&Role::EdgeEndpoints.file_name())?);
-    let mut endpoints = ArrayWriter::new(&mut writer, ArrayVariant::U64, &[Dim::new(2)])?;
+    let mut endpoints = ArrayWriter::new(&mut writer, ArrayVariant::U64Le, &[Dim::new(2)])?;
 
     let mut stream = pin!(dataset.edges());
     while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {

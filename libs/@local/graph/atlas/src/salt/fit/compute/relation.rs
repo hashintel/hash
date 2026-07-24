@@ -10,6 +10,7 @@ use super::{
 };
 use crate::{
     file::{array::ArrayFile, policy::read::PolicyFile, repository::RepositoryFile},
+    identity::NodeRowId,
     salt::{
         adjacency::Adjacency,
         policy::artifact::PolicyTableArchive,
@@ -37,8 +38,11 @@ impl Context<'_> {
         let endpoints = ArrayFile::open(self.staging.path_of(&Role::EdgeEndpoints.file_name()))
             .map_err(StageError::MapEndpoints)?;
         let pairs = endpoints
-            .u64_pairs()
-            .expect("the endpoint column was sealed as u64 pairs");
+            .u64_le_pairs()
+            .expect("the endpoint column was sealed as little-endian u64 pairs");
+        // A row id is its little-endian encoding: the transmute
+        // relabels equal layouts, element by element.
+        let pairs: &[[NodeRowId; 2]] = zerocopy::transmute_ref!(pairs);
 
         let adjacency = Adjacency::build(rows, pairs);
         let file = stage(self.staging, Role::Adjacency, &adjacency)?;

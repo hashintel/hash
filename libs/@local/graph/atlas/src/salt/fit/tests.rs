@@ -1828,14 +1828,14 @@ async fn edge_artifacts_publish_and_read_back() {
     .expect("the fit should publish");
 
     // The endpoint column is the edge stream's (source, target) pairs
-    // in row order.
+    // in row order, little-endian by variant.
     let endpoints = ArrayFile::open(published.path().join("edge-endpoints.arr"))
         .expect("the endpoint column should map");
     assert_eq!(
         endpoints
-            .u64_pairs()
-            .expect("the endpoint column holds u64 pairs"),
-        [[0, 1], [2, 3], [3, 3], [0, 1]],
+            .u64_le_pairs()
+            .expect("the endpoint column holds little-endian u64 pairs"),
+        [[0, 1], [2, 3], [3, 3], [0, 1]].map(|pair| pair.map(U64::<LE>::new)),
     );
 
     assert_adjacency_reads_back(published.path());

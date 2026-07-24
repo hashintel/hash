@@ -42,6 +42,7 @@ use crate::{
         WriteInto,
         sprs::write::{WriteSprsError, write_matrix},
     },
+    identity::{Identity as _, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -49,9 +50,15 @@ use crate::{
 ///
 /// `cursors` holds each run's next free slot; a placement advances its run's cursor, so filling
 /// in edge-row order lands ascending edge rows ascending in place.
-fn insert_edge<I: Copy>(cursors: &mut [u64], values: &mut [I], edge: I, source: u64, target: u64) {
-    let source = usize::try_from(source).expect("node rows fit the address space");
-    let target = usize::try_from(target).expect("node rows fit the address space");
+fn insert_edge<I: Copy>(
+    cursors: &mut [u64],
+    values: &mut [I],
+    edge: I,
+    source: NodeRowId,
+    target: NodeRowId,
+) {
+    let source = source.usize();
+    let target = target.usize();
 
     let out_slot = &mut cursors[2 * source];
     values[usize::try_from(*out_slot).expect("slots fit the address space")] = edge;
@@ -116,15 +123,15 @@ impl Adjacency {
     /// Panics when an endpoint lies outside the `rows` domain, which the dataset row contract
     /// excludes.
     #[must_use]
-    pub(crate) fn build(rows: usize, endpoints: &[[u64; 2]]) -> Self {
+    pub(crate) fn build(rows: usize, endpoints: &[[NodeRowId; 2]]) -> Self {
         let mut fenceposts = vec![0_u64; 2 * rows + 1];
 
         // Degrees first: slot 2i + 1 counts node i's outgoing edges and
         // slot 2i + 2 its incoming, so the prefix sum below turns the
         // counts into the run fenceposts directly.
         for &[source, target] in endpoints {
-            let source = usize::try_from(source).expect("node rows fit the address space");
-            let target = usize::try_from(target).expect("node rows fit the address space");
+            let source = source.usize();
+            let target = target.usize();
             fenceposts[2 * source + 1] += 1;
             fenceposts[2 * target + 2] += 1;
         }
@@ -164,7 +171,7 @@ fn assemble<I>(
     bound: usize,
     fenceposts: Vec<u64>,
     mut cursors: Vec<u64>,
-    endpoints: &[[u64; 2]],
+    endpoints: &[[NodeRowId; 2]],
 ) -> AdjacencySparseGraph<I, u64>
 where
     I: SpIndex + TryFrom<usize>,

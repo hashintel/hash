@@ -82,10 +82,9 @@ impl<I> WireRow<I> {
 
 #[cfg(test)]
 impl<I> WireRow<I> {
-    /// Mints a pinned wire value: the fixture and test constructor.
+    /// Mints a wire value from its literal wire-domain representation.
     ///
-    /// Fixture bytes assert the encoder against hand-derived values, so their wire ids are
-    /// literals rather than codec output.
+    /// The value is taken as already being wire-form; nothing is encoded.
     pub(crate) const fn pinned(value: u32) -> Self {
         Self(value, PhantomData)
     }
@@ -99,8 +98,8 @@ impl<I> Clone for WireRow<I> {
     }
 }
 
-// Manual: a derive would serialize the phantom parameter (and bound
-// `I` on the serde traits), but only the wire value crosses the wire.
+// Manual impls: only the wire value crosses the wire, and the phantom
+// parameter stays out of the serde bounds.
 impl<I> serde::Serialize for WireRow<I> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

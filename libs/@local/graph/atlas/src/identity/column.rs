@@ -28,10 +28,9 @@ impl Element for u32 {
 
 impl Element for [NodeRowId; 2] {
     fn view(file: &ArrayFile) -> Option<&[Self]> {
-        // The u64 view and the id's little-endian layout describe the
-        // same bytes: no value is read through the intermediate view,
-        // so the reinterpretation holds on every host byte order.
-        let pairs = file.u64_pairs()?;
+        // A row id is its little-endian encoding: the transmute
+        // relabels equal layouts, element by element.
+        let pairs = file.u64_le_pairs()?;
         Some(zerocopy::transmute_ref!(pairs))
     }
 }
@@ -49,8 +48,7 @@ pub(crate) struct Column<T> {
 impl<T: Element> Column<T> {
     /// Proves `file` holds elements of type `T`.
     ///
-    /// [`None`] when the recorded element type or shape differs; the caller names the failure in
-    /// its own error domain.
+    /// Returns [`None`] when the recorded element type or shape differs.
     pub(crate) fn new(file: ArrayFile) -> Option<Self> {
         T::view(&file)?;
 

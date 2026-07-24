@@ -5,8 +5,8 @@
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
 //!
-//! An array file is a 4096-byte [`FileHeader`] followed by the array's elements, packed
-//! little-endian in row-major order with nothing between them:
+//! An array file is a 4096-byte [`FileHeader`] followed by the array's elements, packed in
+//! row-major order with nothing between them:
 //!
 //! ```text
 //! | offset | size | field                                          |
@@ -15,9 +15,24 @@
 //! | 8      | 4    | layout version, `u32` = 0                      |
 //! | 12     | 1    | element variant, `u8`                          |
 //! | 13     | 64   | shape, `[u64; 8]`                              |
-//! | 77     | 4019 | padding; writers emit zero, readers ignore     |
+//! | 77     | 4    | flags, `u32` little-endian                     |
+//! | 81     | 4015 | padding; writers emit zero, readers ignore     |
 //! | 4096   |      | data                                           |
 //! ```
+//!
+//! The flags field is carved from the padding region: writers emit zero padding, so an all-zero
+//! flags word and plain padding are byte-identical, and zero is therefore every flag's default.
+//! Unknown bits read as zero and are reserved.
+//!
+//! # Byte order
+//!
+//! Element bytes are the writer's native byte order, and the flags field records the writer's
+//! architecture: bit 0, clear = little-endian, set = big-endian. The open refuses a file whose
+//! multi-byte native elements were written by the other byte order, so every view a reader
+//! obtains is exact on its own host. Variants that pin a byte order in the element type itself -
+//! [`ArrayVariant::U64Le`] - are readable on every architecture and carry the pin in the view's
+//! type. The flags field itself is pinned little-endian, so it means the same bits on every
+//! host.
 //!
 //! The shape is the longest prefix of nonzero dimensions; the first zero terminates it and
 //! everything after is ignored. An empty shape (leading zero) is a zero-element array, and the
@@ -53,7 +68,7 @@
 
 use core::fmt;
 
-use zerocopy::{LE, U64, Unalign};
+use zerocopy::{LE, U32, U64, Unalign};
 
 mod read;
 #[cfg(test)]
@@ -130,6 +145,77 @@ pub(crate) enum Version {
     V0 = 0,
 }
 
+/// The header's flag word, pinned little-endian.
+///
+/// Bit 0 records the writer's byte order. The remaining bits are reserved and read as zero, and
+/// a flag's zero value is its default: an all-zero word is byte-identical to the padding it is
+/// carved from.
+// The little-endian pin keeps the word self-describing: a native flag
+// word would byte-swap the architecture bit it records.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::FromBytes,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::KnownLayout,
+    zerocopy::Unaligned,
+)]
+#[repr(transparent)]
+pub(crate) struct HeaderFlags(U32<LE>);
+
+impl HeaderFlags {
+    /// The big-endian-writer bit; clear means little-endian.
+    const BIG_ENDIAN: u32 = 1 << 0;
+    /// The flags this host writes.
+    pub(crate) const HOST: Self = Self(U32::new(if cfg!(target_endian = "big") {
+        Self::BIG_ENDIAN
+    } else {
+        0
+    }));
+
+    /// Returns the architecture that wrote the file.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn architecture(self) -> Architecture {
+        if self.0.get() & Self::BIG_ENDIAN == 0 {
+            Architecture::LittleEndian
+        } else {
+            Architecture::BigEndian
+        }
+    }
+}
+
+/// A writer byte order.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Architecture {
+    /// Least-significant byte first.
+    LittleEndian,
+    /// Most-significant byte first.
+    BigEndian,
+}
+
+impl Architecture {
+    /// This host's byte order.
+    pub(crate) const HOST: Self = if cfg!(target_endian = "big") {
+        Self::BigEndian
+    } else {
+        Self::LittleEndian
+    };
+}
+
+impl fmt::Display for Architecture {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(match self {
+            Self::LittleEndian => "little-endian",
+            Self::BigEndian => "big-endian",
+        })
+    }
+}
+
 /// The element type of an array file.
 #[derive(
     Debug,
@@ -161,6 +247,24 @@ pub(crate) enum ArrayVariant {
     F32 = 0x0D,
     F64 = 0x0E,
     F128 = 0x0F,
+    // The little-endian block mirrors the native block in order:
+    // these variants carry their byte order in the element type and
+    // read identically on every architecture.
+    U8Le = 0x10,
+    U16Le = 0x11,
+    U32Le = 0x12,
+    U64Le = 0x13,
+    U128Le = 0x14,
+    I8Le = 0x15,
+    I16Le = 0x16,
+    I32Le = 0x17,
+    I64Le = 0x18,
+    I128Le = 0x19,
+    F16Le = 0x1A,
+    BF16Le = 0x1B,
+    F32Le = 0x1C,
+    F64Le = 0x1D,
+    F128Le = 0x1E,
 }
 
 impl ArrayVariant {
@@ -169,12 +273,49 @@ impl ArrayVariant {
     #[must_use]
     pub(crate) const fn width(self) -> u64 {
         match self {
-            Self::U8 | Self::I8 => 1,
-            Self::U16 | Self::I16 | Self::F16 | Self::BF16 => 2,
-            Self::U32 | Self::I32 | Self::F32 => 4,
-            Self::U64 | Self::I64 | Self::F64 => 8,
-            Self::U128 | Self::I128 | Self::F128 => 16,
+            Self::U8 | Self::I8 | Self::U8Le | Self::I8Le => 1,
+            Self::U16
+            | Self::I16
+            | Self::F16
+            | Self::BF16
+            | Self::U16Le
+            | Self::I16Le
+            | Self::F16Le
+            | Self::BF16Le => 2,
+            Self::U32 | Self::I32 | Self::F32 | Self::U32Le | Self::I32Le | Self::F32Le => 4,
+            Self::U64 | Self::I64 | Self::F64 | Self::U64Le | Self::I64Le | Self::F64Le => 8,
+            Self::U128 | Self::I128 | Self::F128 | Self::U128Le | Self::I128Le | Self::F128Le => 16,
         }
+    }
+
+    /// Returns whether the variant pins its elements little-endian.
+    pub(crate) const fn little_endian(self) -> bool {
+        matches!(
+            self,
+            Self::U8Le
+                | Self::U16Le
+                | Self::U32Le
+                | Self::U64Le
+                | Self::U128Le
+                | Self::I8Le
+                | Self::I16Le
+                | Self::I32Le
+                | Self::I64Le
+                | Self::I128Le
+                | Self::F16Le
+                | Self::BF16Le
+                | Self::F32Le
+                | Self::F64Le
+                | Self::F128Le
+        )
+    }
+
+    /// Returns whether the element bytes mean different values under different byte orders.
+    ///
+    /// Single-byte elements and variants that pin their byte order in the element type read
+    /// identically everywhere; every other variant is native to the architecture that wrote it.
+    pub(crate) const fn byte_order_sensitive(self) -> bool {
+        self.width() > 1 && !self.little_endian()
     }
 }
 
@@ -301,15 +442,16 @@ pub(crate) struct FileHeader {
     pub version: Unalign<Version>,
     pub variant: ArrayVariant,
     pub shape: ArrayShape,
+    pub flags: HeaderFlags,
     pub padding: [u8; Self::PADDING],
 }
 
 impl FileHeader {
-    const PADDING: usize = 4019;
+    const PADDING: usize = 4015;
     /// Size of the header, and the offset of the data.
     pub(crate) const SIZE: usize = 4096;
 
-    /// Creates a header.
+    /// Creates a header recording this host as the writer architecture.
     #[must_use]
     pub(crate) const fn new(variant: ArrayVariant, shape: ArrayShape) -> Self {
         Self {
@@ -317,6 +459,7 @@ impl FileHeader {
             version: Unalign::new(Version::V0),
             variant,
             shape,
+            flags: HeaderFlags::HOST,
             padding: [0; Self::PADDING],
         }
     }
@@ -326,6 +469,13 @@ impl FileHeader {
     #[must_use]
     pub(crate) const fn variant(&self) -> ArrayVariant {
         self.variant
+    }
+
+    /// Returns the architecture that wrote the file.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn architecture(&self) -> Architecture {
+        self.flags.architecture()
     }
 
     /// Borrows the shape.

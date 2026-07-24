@@ -3,9 +3,9 @@
 use core::{error::Error, fmt};
 use std::{io, path::Path};
 
-use zerocopy::{FromBytes as _, TryFromBytes as _, error::ConvertError};
+use zerocopy::{FromBytes as _, LE, TryFromBytes as _, U64, error::ConvertError};
 
-use super::{ArrayShape, ArrayVariant, FileHeader};
+use super::{Architecture, ArrayShape, ArrayVariant, FileHeader};
 use crate::{
     file::region::PageMap,
     integrity::Sha256Digest,
@@ -29,6 +29,11 @@ pub enum OpenArrayError {
         expected: Option<u64>,
         actual: u64,
     },
+    /// The file's native elements were written by the other byte order.
+    ForeignArchitecture {
+        /// The architecture that wrote the file.
+        architecture: Architecture,
+    },
 }
 
 impl fmt::Display for OpenArrayError {
@@ -47,6 +52,11 @@ impl fmt::Display for OpenArrayError {
                      because the source bytes are not a valid value of the destination type."
                 )
             }
+            Self::ForeignArchitecture { architecture } => write!(
+                fmt,
+                "the file's elements are native to a {architecture} writer and unreadable on this \
+                 architecture",
+            ),
             Self::Length {
                 expected: Some(expected),
                 actual,
@@ -69,7 +79,10 @@ impl Error for OpenArrayError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
-            Self::Header | Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Header
+            | Self::Undersized { .. }
+            | Self::Length { .. }
+            | Self::ForeignArchitecture { .. } => None,
         }
     }
 }
@@ -113,6 +126,12 @@ impl ArrayFile {
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenArrayError::Length { expected, actual });
+        }
+
+        if header.variant().byte_order_sensitive() && header.architecture() != Architecture::HOST {
+            return Err(OpenArrayError::ForeignArchitecture {
+                architecture: header.architecture(),
+            });
         }
 
         Ok(Self { map })
@@ -195,7 +214,8 @@ impl ArrayFile {
 
     /// Views the data as packed `f32` elements in row-major file order.
     ///
-    /// The view exists exactly when the file holds `f32` elements, whatever its shape.
+    /// The view exists exactly when the file holds `f32` elements, whatever its shape. The
+    /// elements are native: the open only admits files this host's byte order wrote.
     #[must_use]
     pub(crate) fn f32_elements(&self) -> Option<&[f32]> {
         if self.header().variant() != ArrayVariant::F32 {
@@ -207,7 +227,8 @@ impl ArrayFile {
 
     /// Views the data as packed `u32` elements in row-major file order.
     ///
-    /// The view exists exactly when the file holds `u32` elements, whatever its shape.
+    /// The view exists exactly when the file holds `u32` elements, whatever its shape. The
+    /// elements are native: the open only admits files this host's byte order wrote.
     #[must_use]
     pub(crate) fn u32_elements(&self) -> Option<&[u32]> {
         if self.header().variant() != ArrayVariant::U32 {
@@ -221,7 +242,8 @@ impl ArrayFile {
     ///
     /// The view exists exactly when the file holds `u64` elements shaped `[T, 2]`; the returned
     /// slice holds the `T` pairs in order. A zero-element file is zero pairs, since its shape
-    /// records no row width.
+    /// records no row width. The elements are native: the open only admits files this host's
+    /// byte order wrote.
     #[must_use]
     pub(crate) fn u64_pairs(&self) -> Option<&[[u64; 2]]> {
         if self.header().variant() != ArrayVariant::U64 {
@@ -235,6 +257,27 @@ impl ArrayFile {
         }
 
         <[[u64; 2]]>::ref_from_bytes(self.data()).ok()
+    }
+
+    /// Views the data as little-endian `u64` pairs in row order.
+    ///
+    /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`;
+    /// the returned slice holds the `T` pairs in order. A zero-element file is zero pairs, since
+    /// its shape records no row width. The element type carries the byte order, so the view is
+    /// exact on every architecture.
+    #[must_use]
+    pub(crate) fn u64_le_pairs(&self) -> Option<&[[U64<LE>; 2]]> {
+        if self.header().variant() != ArrayVariant::U64Le {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] => {}
+            &[_, width] if width.get() == 2 => {}
+            _ => return None,
+        }
+
+        <[[U64<LE>; 2]]>::ref_from_bytes(self.data()).ok()
     }
 
     /// Views the data as SHA-256 digests in row order.
