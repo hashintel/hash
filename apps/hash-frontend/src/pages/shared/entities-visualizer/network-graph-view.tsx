@@ -860,6 +860,10 @@ export const NetworkGraphView = ({
           // properties are capped.
           typesComplete: entity.typeIdsComplete,
           propertiesComplete: entity.propertiesComplete,
+          // The ego-graph's edges are the node's connections; `complete` is false
+          // when the edge cap truncated them (rendered as a trailing "+").
+          connectionCount: entity.edges.length,
+          connectionsComplete: entity.complete,
         },
         entityId: entity.entityId,
       });

@@ -124,6 +124,10 @@ export interface LocatedNodeDetail extends LocatedEntityDetailShared {
    * types render with a grey dot).
    */
   readonly types: readonly LocatedEntityTypeChip[];
+  /** The node's edge/neighbour count, shown as a subtle caption under the header. */
+  readonly connectionCount: number;
+  /** Whether the ego-graph is whole; `false` suffixes the count with a "+". */
+  readonly connectionsComplete: boolean;
 }
 
 /**
@@ -188,7 +192,7 @@ const headerStyles = css({
   flexWrap: "wrap",
   alignItems: "center",
   columnGap: "2",
-  rowGap: "1.5",
+  rowGap: "1",
 });
 
 const titleStyles = css({
@@ -269,6 +273,26 @@ const moreTypesStyles = css({
   lineHeight: "none",
   color: "neutral.s90",
 });
+
+// The node's connection count, on its own line under the header as a tiny grey
+// caption. The negative top margin claws back most of the card's 8px inter-child
+// gap, leaving ~2px so the caption tucks under the header as part of that block
+// rather than reading as a separate section. Anchoring it to the header's bottom
+// (not the title) keeps that ~2px constant however tall the header grows — so
+// when the title wraps and the type chips drop onto their own taller row, the
+// caption still sits snug beneath the chips rather than drifting away.
+const connectionCountStyles = css({
+  marginTop: "[-2px]",
+  fontSize: "[11px]",
+  lineHeight: "none",
+  color: "neutral.s90",
+});
+
+/** "3 connections" / "1 connection", with a "+" when the ego-graph is capped. */
+const formatConnectionCount = (count: number, complete: boolean): string =>
+  `${count}${complete ? "" : "+"} ${
+    count === 1 && complete ? "connection" : "connections"
+  }`;
 
 // The "connects" section beneath the header: the two entities the link joins,
 // drawn as a directed source→target rail. Each endpoint sits on its own
@@ -579,6 +603,15 @@ export const LocatedEntityPopover = ({
             </span>
           ) : null}
         </div>
+
+        {detail.kind === "node" && detail.connectionCount > 0 ? (
+          <div className={connectionCountStyles}>
+            {formatConnectionCount(
+              detail.connectionCount,
+              detail.connectionsComplete,
+            )}
+          </div>
+        ) : null}
 
         {detail.kind === "edge" ? (
           <div className={connectionSectionStyles}>
