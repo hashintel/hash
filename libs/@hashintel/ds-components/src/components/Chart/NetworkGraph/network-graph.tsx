@@ -361,16 +361,25 @@ const COMPACT_DIMMED_EDGES_LAYER_ID = "compact-nodes-dimmed-selected-edges";
 const COMPACT_DIMMED_NEIGHBOURS_LAYER_ID =
   "compact-nodes-dimmed-selected-neighbours";
 /**
- * The compact sublayers whose picks are already a highlight element — an edge, a
- * neighbour ring, or the active node's ring. A primary pick on any of these is kept as
- * is; only a plain crowd-node (or empty) pick is a candidate for snapping to a nearby
- * highlight edge (see `applyPickPriority`).
+ * The compact sublayers carrying a node highlight — the active node's ring, a
+ * neighbour ring, or the backgrounded selection's neighbour ring. Resolved together as
+ * one nearest-wins pick so a node under the pointer wins over an edge crossing it and
+ * the hovered node stays stable when neighbours sit close (see `applyPickPriority`).
  */
-const COMPACT_HIGHLIGHT_LAYER_IDS = new Set<string>([
-  COMPACT_EDGES_LAYER_ID,
-  COMPACT_NEIGHBOURS_LAYER_ID,
+const COMPACT_HIGHLIGHT_NODE_LAYER_IDS = [
   COMPACT_ACTIVE_NODE_LAYER_ID,
-]);
+  COMPACT_NEIGHBOURS_LAYER_ID,
+  COMPACT_DIMMED_NEIGHBOURS_LAYER_ID,
+];
+/**
+ * The compact sublayers carrying a selection edge — the selection's own incident edges
+ * (while it owns the highlight) and its faded edges (while backgrounded by a hover).
+ * The fallback when no neighbourhood node is under the pointer (see `applyPickPriority`).
+ */
+const COMPACT_HIGHLIGHT_EDGE_LAYER_IDS = [
+  COMPACT_EDGES_LAYER_ID,
+  COMPACT_DIMMED_EDGES_LAYER_ID,
+];
 const DETAIL_MAX_NODES = 1500;
 const DETAIL_MAX_EDGES = 400;
 /** Extra viewport margin (px) within which nodes are still included, so one straddling the edge isn't culled. */
@@ -1444,31 +1453,23 @@ export const NetworkGraph = ({
     !isDetailZoom && (selectedPoint != null || selectedParts.edgeId != null);
 
   /**
-   * Whether the selected node owns the active highlight in the compact view — a node is
-   * selected and nothing else is hovered, so its edges are drawn and interactive. While
-   * this holds, a thin highlight edge takes pointer priority over the crowd (see
-   * `applyPickPriority`), matching when the edge layer is pickable.
-   */
-  const compactSelectionActive =
-    compactHasSelection && dimmedSelectedNode == null;
-
-  /**
-   * Give the selected node's neighbourhood priority when resolving a pointer pick in the
-   * compact view, so its edges and neighbours win over the crowd — and over a node
-   * hovered elsewhere. Two cases:
+   * Resolve a pointer pick in the compact view while a node is selected, giving the
+   * selection's neighbourhood priority over the crowd — and, within it, a node priority
+   * over an edge crossing it.
    *
-   * - The selection owns the active highlight (nothing else hovered): deck already draws
-   *   its edges and neighbour rings above the crowd, so a direct overlap resolves to
-   *   them; on top of that, when the primary pick lands on a plain crowd node (or empty
-   *   space) this snaps to a highlight edge within tolerance, so a thin edge wins over a
-   *   node beneath or beside it. A primary already on a highlight element is kept as is.
-   * - A different node is hovered, so the selection is backgrounded (dimmed): its faded
-   *   edges and neighbour rings sit *below* the hovered node's highlight, so z-order
-   *   alone wouldn't pick them. Here we prefer a pick on those (dimmed) layers over the
-   *   primary, so hovering the selection's neighbour/edge re-highlights it rather than
-   *   the hovered node overlapping it.
+   * Nodes are resolved first, with a single nearest-wins pick across the active node's
+   * ring, its neighbours' rings, and — while the selection is backgrounded by a hover —
+   * the backgrounded selection's neighbour rings. Because the active node is drawn
+   * topmost, the node directly under the pointer stays stably hovered even where two
+   * neighbours sit close together (the pick can't flip to a merely-nearby one), and it
+   * wins over an edge overlapping it.
    *
-   * Returns the primary pick unchanged unless a node is selected (compact).
+   * With no neighbourhood node under the pointer, it falls back to the selection's edges
+   * (its own while it owns the highlight, its faded ones while backgrounded — those sit
+   * below the hovered node's highlight, so z-order alone wouldn't pick them), so a thin
+   * connection still wins over the crowd beneath or beside it.
+   *
+   * Returns the primary pick unchanged unless there's a compact selection.
    */
   const applyPickPriority = useCallback(
     (
@@ -1497,34 +1498,30 @@ export const NetworkGraph = ({
         }
         return primary;
       }
-      if (compactSelectionActive) {
-        // A primary already on the selection's on-top highlight is kept; otherwise snap
-        // a near-miss to its thin edge.
-        const layerId = primary?.layer?.id;
-        if (layerId != null && COMPACT_HIGHLIGHT_LAYER_IDS.has(layerId)) {
-          return primary;
-        }
-        const edge = deckRef.current?.pickObject({
-          x,
-          y,
-          radius,
-          layerIds: [COMPACT_EDGES_LAYER_ID],
-        });
-        return edge?.object ? edge : primary;
-      }
-      // Backgrounded selection: prefer its dimmed neighbourhood over the hovered node.
-      const selection = deckRef.current?.pickObject({
+      // A node is selected. Resolve any neighbourhood node under the pointer first — the
+      // active node, a neighbour, or the backgrounded selection's neighbour — so a node
+      // beats an edge crossing it, and the hovered node stays stable amongst close
+      // neighbours (nearest-wins across all three layers, active drawn topmost).
+      const node = deckRef.current?.pickObject({
         x,
         y,
         radius,
-        layerIds: [
-          COMPACT_DIMMED_NEIGHBOURS_LAYER_ID,
-          COMPACT_DIMMED_EDGES_LAYER_ID,
-        ],
+        layerIds: COMPACT_HIGHLIGHT_NODE_LAYER_IDS,
       });
-      return selection?.object ? selection : primary;
+      if (node?.object) {
+        return node;
+      }
+      // No neighbourhood node under the pointer: fall back to the selection's edges, so
+      // a thin connection still wins over the crowd beneath or beside it.
+      const edge = deckRef.current?.pickObject({
+        x,
+        y,
+        radius,
+        layerIds: COMPACT_HIGHLIGHT_EDGE_LAYER_IDS,
+      });
+      return edge?.object ? edge : primary;
     },
-    [compactHasSelection, compactSelectionActive, selectedEdgeEndpointIds],
+    [compactHasSelection, selectedEdgeEndpointIds],
   );
 
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
