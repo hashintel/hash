@@ -5,6 +5,7 @@ import { extractBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
+  type EntityTableSummary,
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
@@ -29,7 +30,11 @@ import {
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
-import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
+import {
+  type SummarySource,
+  useAvailableTypes,
+} from "./entities-visualizer/shared/use-available-types";
+import { useEntitiesTableQuery } from "./entities-visualizer/use-entities-table-query";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
@@ -38,6 +43,7 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
+import type { ArchivableEntity } from "../../shared/is-archived";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
@@ -49,6 +55,7 @@ import type {
   BaseUrl,
   ClosedMultiEntityType,
   EntityId,
+  PropertyObject,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -58,6 +65,7 @@ import type {
   EntityQuerySortingPath,
   EntityQuerySortingRecord,
   EntityQuerySortingToken,
+  EntityTableSorting,
   NullOrdering,
   Ordering,
 } from "@local/hash-graph-client";
@@ -84,6 +92,17 @@ const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
 const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 );
+
+const tableSortKeyByColumnKey = {
+  entityLabel: "label",
+  lastEdited: "editionCreatedAtDecisionTime",
+  created: "createdAtDecisionTime",
+  entityTypes: "typeTitle",
+  archived: "archived",
+} as const satisfies Record<
+  SortableEntitiesTableColumnKey,
+  EntityTableSorting["key"]
+>;
 
 const generateGraphSort = (
   columnKey: SortableEntitiesTableColumnKey,
@@ -176,7 +195,13 @@ export const EntitiesVisualizer: FunctionComponent<{
     createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
   );
 
-  const [cursor, setCursor] = useState<EntityQueryCursor>();
+  const [subgraphCursor, setSubgraphCursor] = useState<EntityQueryCursor>();
+  const [tableCursor, setTableCursor] = useState<string>();
+
+  const resetCursors = useCallback(() => {
+    setSubgraphCursor(undefined);
+    setTableCursor(undefined);
+  }, []);
   const [activeConversionsWithoutTitle, _setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
   } | null>(null);
@@ -190,9 +215,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   >(
     (newConversionsOrUpdater) => {
       _setActiveConversions(newConversionsOrUpdater);
-      setCursor(undefined);
+      resetCursors();
     },
-    [setCursor],
+    [resetCursors],
   );
 
   const setFilterState = useCallback(
@@ -206,9 +231,9 @@ export const EntitiesVisualizer: FunctionComponent<{
           ? newFilterStateOrUpdater(prev)
           : newFilterStateOrUpdater,
       );
-      setCursor(undefined);
+      resetCursors();
     },
-    [setCursor],
+    [resetCursors],
   );
 
   const [view, _setView] = useState<VisualizerView>("Table");
@@ -216,9 +241,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   const setView = useCallback(
     (newView: VisualizerView) => {
       _setView(newView);
-      setCursor(undefined);
+      resetCursors();
     },
-    [setCursor],
+    [resetCursors],
   );
 
   const [sort, _setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>(
@@ -231,9 +256,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   const setSort = useCallback(
     (newSort: ColumnSort<SortableEntitiesTableColumnKey>) => {
       _setSort(newSort);
-      setCursor(undefined);
+      resetCursors();
     },
-    [setCursor],
+    [resetCursors],
   );
 
   const graphSort = useMemo(
@@ -241,10 +266,40 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
+  const tableSort = useMemo<EntityTableSorting>(
+    () => ({
+      key: tableSortKeyByColumnKey[sort.columnKey],
+      ordering: sort.direction === "asc" ? "ascending" : "descending",
+    }),
+    [sort],
+  );
+
   const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+
+  const usesTableEndpoint = view === "Table";
+
+  /**
+   * The table endpoint's first page carries the type summary. Mirroring it
+   * into state lets `useAvailableTypes` (called before the table query, which
+   * needs its resolved pins) derive the filter chips from it without a fetch
+   * of its own.
+   */
+  const [tableSummary, setTableSummary] = useState<EntityTableSummary | null>(
+    null,
+  );
+  const [tableSummaryError, setTableSummaryError] = useState<Error>();
+
+  const summarySource = useMemo<SummarySource>(
+    () =>
+      usesTableEndpoint && !isTypePinned
+        ? { mode: "external", summary: tableSummary, error: tableSummaryError }
+        : { mode: "fetch" },
+    [usesTableEndpoint, isTypePinned, tableSummary, tableSummaryError],
+  );
 
   const {
     availableEntityTypes,
+    pinnedEntityTypeIds,
     propertyFilterData,
     loading: availableTypesLoading,
     typeUniverse,
@@ -255,22 +310,42 @@ export const EntitiesVisualizer: FunctionComponent<{
     internalWebs,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    summarySource,
+  });
+
+  const conversions = useMemo(
+    () =>
+      activeConversionsWithoutTitle
+        ? typedEntries(activeConversionsWithoutTitle).map(
+            ([columnBaseUrl, dataTypeId]) => ({
+              path: [columnBaseUrl],
+              dataTypeId,
+            }),
+          )
+        : undefined,
+    [activeConversionsWithoutTitle],
+  );
+
+  const tableQuery = useEntitiesTableQuery({
+    conversions,
+    cursor: tableCursor,
+    enabled: usesTableEndpoint,
+    filterState,
+    hideArchivedColumn: !filterState.includeArchived,
+    hideColumns,
+    hasPinnedTypes: isTypePinned,
+    internalWebs,
+    limit: 500,
+    resolvedPinnedEntityTypeIds: pinnedEntityTypeIds,
+    sort: tableSort,
   });
 
   const entitiesData = useEntitiesVisualizerData({
-    conversions: activeConversionsWithoutTitle
-      ? typedEntries(activeConversionsWithoutTitle).map(
-          ([columnBaseUrl, dataTypeId]) => ({
-            path: [columnBaseUrl],
-            dataTypeId,
-          }),
-        )
-      : undefined,
-    cursor,
+    conversions,
+    cursor: subgraphCursor,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     filterState,
-    hideColumns,
     internalWebs,
     limit: 500,
     sort: graphSort,
@@ -278,6 +353,14 @@ export const EntitiesVisualizer: FunctionComponent<{
     typeUniverseError,
     view,
   });
+
+  useEffect(() => {
+    setTableSummary(tableQuery.summary);
+  }, [tableQuery.summary]);
+
+  useEffect(() => {
+    setTableSummaryError(tableQuery.error);
+  }, [tableQuery.error]);
 
   const [dataLoading, setDataLoading] = useState(entitiesData.loading);
   const [visualizerData, setVisualizerData] = useState(entitiesData);
@@ -291,34 +374,60 @@ export const EntitiesVisualizer: FunctionComponent<{
   } = visualizerData;
 
   const closedMultiEntityTypes = useMemo(() => {
-    if (!entities || !definitions || !closedMultiEntityTypesRootMap) {
+    const typesRootMap = usesTableEndpoint
+      ? tableQuery.closedMultiEntityTypes
+      : closedMultiEntityTypesRootMap;
+
+    if (!typesRootMap) {
       return [];
     }
 
+    const rowTypeIdLists = usesTableEndpoint
+      ? (tableQuery.tableData?.rows.map((row) =>
+          row.entityTypes.map((rowEntityType) => rowEntityType.entityTypeId),
+        ) ?? [])
+      : (entities?.map((entity) => entity.metadata.entityTypeIds) ?? []);
+
     const relevantEntityTypesMap = new Map<string, ClosedMultiEntityType>();
 
-    for (const { metadata } of entities) {
-      const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
-        closedMultiEntityTypesRootMap,
-        metadata.entityTypeIds,
-      );
+    for (const [firstTypeId, ...otherTypeIds] of rowTypeIdLists) {
+      if (!firstTypeId) {
+        continue;
+      }
 
-      const key = metadata.entityTypeIds.toSorted().join(",");
+      const entityTypeIds: [VersionedUrl, ...VersionedUrl[]] = [
+        firstTypeId,
+        ...otherTypeIds,
+      ];
+      const key = entityTypeIds.toSorted().join(",");
 
-      relevantEntityTypesMap.set(key, closedMultiEntityType);
+      if (!relevantEntityTypesMap.has(key)) {
+        relevantEntityTypesMap.set(
+          key,
+          getClosedMultiEntityTypeFromMap(typesRootMap, entityTypeIds),
+        );
+      }
     }
 
-    const relevantTypes = Array.from(relevantEntityTypesMap.values());
-
-    return relevantTypes;
-  }, [entities, definitions, closedMultiEntityTypesRootMap]);
+    return Array.from(relevantEntityTypesMap.values());
+  }, [
+    usesTableEndpoint,
+    tableQuery.closedMultiEntityTypes,
+    tableQuery.tableData,
+    entities,
+    closedMultiEntityTypesRootMap,
+  ]);
 
   const activeConversions = useMemo(() => {
+    const activeDefinitions = usesTableEndpoint
+      ? tableQuery.definitions
+      : definitions;
+
     return activeConversionsWithoutTitle
       ? Object.fromEntries(
           typedEntries(activeConversionsWithoutTitle).map(
             ([columnBaseUrl, dataTypeId]) => {
-              const dataType = definitions?.dataTypes[dataTypeId];
+              const dataType = activeDefinitions?.dataTypes[dataTypeId];
 
               if (!dataType) {
                 throw new Error(
@@ -337,14 +446,18 @@ export const EntitiesVisualizer: FunctionComponent<{
           ),
         )
       : null;
-  }, [activeConversionsWithoutTitle, definitions]);
+  }, [
+    activeConversionsWithoutTitle,
+    usesTableEndpoint,
+    tableQuery.definitions,
+    definitions,
+  ]);
 
   /**
-   * We don't want to clear the old table data when a new request is triggered,
-   * so we hold the visualizerData here rather than relying on the useEntitiesVisualizerData hook directly,
-   * as it will clear the data when a new request is triggered.
-   *
-   * An alternative would be to have an onComplete callback in the hook.
+   * The subgraph hook clears its data when a new request starts. Holding the
+   * last loaded state here keeps the Grid and Graph views' previous results on
+   * screen while the next ones load. The Table view does not need this — its
+   * query hook accumulates pages itself.
    */
   useEffect(() => {
     setDataLoading(entitiesData.loading);
@@ -542,27 +655,45 @@ export const EntitiesVisualizer: FunctionComponent<{
   >([]);
 
   const nextPage = useCallback(() => {
-    setCursor(nextCursor ?? undefined);
-  }, [nextCursor]);
+    if (usesTableEndpoint) {
+      setTableCursor(tableQuery.cursor ?? undefined);
+    } else {
+      setSubgraphCursor(nextCursor ?? undefined);
+    }
+  }, [usesTableEndpoint, tableQuery.cursor, nextCursor]);
 
-  const selectedEntities = useMemo(() => {
-    if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
+  const selectedEntities = useMemo<ArchivableEntity[]>(() => {
+    if (view !== "Table") {
       return [];
     }
 
-    const selectedEntityIds = new Set(
-      selectedTableRows.map(({ entityId }) => entityId),
-    );
-
-    return entities.filter((entity) =>
-      selectedEntityIds.has(entity.metadata.recordId.entityId),
-    );
-  }, [entities, selectedTableRows, view]);
+    return selectedTableRows.map((row) => ({
+      metadata: {
+        recordId: { entityId: row.entityId },
+        entityTypeIds: row.entityTypes.map(
+          (rowEntityType) => rowEntityType.entityTypeId,
+        ),
+        archived: row.archived,
+      },
+      properties: Object.fromEntries(
+        row.applicableProperties.map((baseUrl) => [
+          baseUrl,
+          row[baseUrl]?.value,
+        ]),
+      ) as PropertyObject,
+    }));
+  }, [selectedTableRows, view]);
 
   const handleBulkActionCompleted = useCallback(() => {
-    void entitiesData.refetch();
+    // A rejected refetch needs no handling here — the failure comes back
+    // through the hook's error state.
+    if (usesTableEndpoint) {
+      tableQuery.refetch().catch(() => {});
+    } else {
+      entitiesData.refetch().catch(() => {});
+    }
     setSelectedTableRows([]);
-  }, [entitiesData]);
+  }, [usesTableEndpoint, tableQuery, entitiesData]);
 
   // The universe only feeds the default view — with a pinned type or an
   // explicit selection the main query runs on its own type clause, so a failed
@@ -572,9 +703,32 @@ export const EntitiesVisualizer: FunctionComponent<{
     !isTypePinned &&
     filterState.type.selectedTypeIds === null;
 
-  const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
+  const activeError = usesTableEndpoint
+    ? tableQuery.error
+    : visualizerData.error;
 
-  const { totalResultCount } = visualizerData;
+  // A failed page query with nothing to show gets the error state. With data
+  // on screen the stale results stay visible alongside a retry banner instead.
+  const queryBlocksResults =
+    !!activeError && (usesTableEndpoint ? !tableQuery.tableData : !subgraph);
+
+  const blockingError = typeUniverseBlocksResults
+    ? typeUniverseError
+    : activeError;
+
+  // Unresolvable pins only clear when the pinned types change, so offering a
+  // retry would be a dead button.
+  const errorIsRetryable = !(usesTableEndpoint && tableQuery.unresolvablePins);
+
+  const showLoading = usesTableEndpoint
+    ? !tableQuery.tableData
+    : !subgraph || !closedMultiEntityTypesRootMap;
+
+  const resultsLoading = usesTableEndpoint ? tableQuery.loading : dataLoading;
+
+  const totalResultCount = usesTableEndpoint
+    ? tableQuery.totalResultCount
+    : visualizerData.totalResultCount;
 
   return (
     <Box>
@@ -599,7 +753,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
         right={
           <>
-            <QueryCount count={totalResultCount} loading={dataLoading} />
+            <QueryCount count={totalResultCount} loading={resultsLoading} />
             <TableHeaderToggle
               value={view}
               setValue={setView}
@@ -619,7 +773,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
-      {typeUniverseBlocksResults ? (
+      {typeUniverseBlocksResults || queryBlocksResults ? (
         <Stack
           gap={2}
           sx={[
@@ -633,14 +787,32 @@ export const EntitiesVisualizer: FunctionComponent<{
           ]}
         >
           <Typography>Something went wrong loading entities.</Typography>
-          <Button
-            onClick={() => {
-              void refetchTypeUniverse();
-            }}
-            size="small"
-          >
-            Try again
-          </Button>
+          {blockingError ? (
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{ color: ({ palette }) => palette.gray[70] }}
+            >
+              {blockingError.message}
+            </Typography>
+          ) : null}
+          {errorIsRetryable ? (
+            <Button
+              onClick={() => {
+                // A rejected refetch needs no handling here — the failure
+                // comes back through the hook's error state.
+                if (typeUniverseBlocksResults) {
+                  refetchTypeUniverse().catch(() => {});
+                } else if (usesTableEndpoint) {
+                  tableQuery.refetch().catch(() => {});
+                } else {
+                  entitiesData.refetch().catch(() => {});
+                }
+              }}
+              size="small"
+            >
+              Try again
+            </Button>
+          ) : null}
         </Stack>
       ) : showLoading ? (
         <Stack
@@ -673,29 +845,55 @@ export const EntitiesVisualizer: FunctionComponent<{
       ) : view === "Grid" ? (
         <GridView entities={entities} onEntityClick={handleEntityClick} />
       ) : (
-        <EntitiesTable
-          activeConversions={activeConversions}
-          csvFileTitle="Entities"
-          currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          handleEntityClick={handleEntityClick}
-          hasMoreRowsAvailable={nextCursor != null}
-          loading={dataLoading}
-          isViewingOnlyPages={isViewingOnlyPages}
-          maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
-          loadMoreRows={nextCursor ? nextPage : undefined}
-          setActiveConversions={setActiveConversions}
-          setSelectedEntityType={handleEntityTypeClick}
-          setSelectedRows={setSelectedTableRows}
-          selectedRows={selectedTableRows}
-          showSearch={showTableSearch}
-          setShowSearch={setShowTableSearch}
-          sort={sort}
-          setSort={setSort}
-          subgraph={subgraph}
-          tableData={visualizerData.tableData}
-          totalResultCount={totalResultCount}
-        />
+        <>
+          {activeError ? (
+            <Stack
+              direction="row"
+              gap={1.5}
+              sx={{ alignItems: "center", mb: 1 }}
+            >
+              <Typography variant="smallTextParagraphs">
+                {tableQuery.dataIsStale
+                  ? "Something went wrong refreshing entities — showing the previous results."
+                  : "Something went wrong loading more entities."}
+              </Typography>
+              {errorIsRetryable ? (
+                <Button
+                  onClick={() => {
+                    // A rejected refetch needs no handling here — the failure
+                    // comes back through the hook's error state.
+                    tableQuery.refetch().catch(() => {});
+                  }}
+                  size="xs"
+                >
+                  Try again
+                </Button>
+              ) : null}
+            </Stack>
+          ) : null}
+          <EntitiesTable
+            activeConversions={activeConversions}
+            csvFileTitle="Entities"
+            currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            handleEntityClick={handleEntityClick}
+            hasMoreRowsAvailable={tableQuery.cursor != null}
+            loading={resultsLoading}
+            isViewingOnlyPages={isViewingOnlyPages}
+            maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
+            loadMoreRows={tableQuery.cursor ? nextPage : undefined}
+            setActiveConversions={setActiveConversions}
+            setSelectedEntityType={handleEntityTypeClick}
+            setSelectedRows={setSelectedTableRows}
+            selectedRows={selectedTableRows}
+            showSearch={showTableSearch}
+            setShowSearch={setShowTableSearch}
+            sort={sort}
+            setSort={setSort}
+            tableData={tableQuery.tableData}
+            totalResultCount={totalResultCount}
+          />
+        </>
       )}
     </Box>
   );

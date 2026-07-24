@@ -1,4 +1,3 @@
-import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -11,13 +10,8 @@ import type {
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type {
-  SerializedEntity,
-  SerializedSubgraph,
-} from "@local/hash-graph-sdk/entity";
-import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
 
 export type EntitiesTableRowPropertyCell = {
@@ -85,16 +79,6 @@ export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;
 }
 
-export type GenerateEntitiesTableDataParams = {
-  closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
-  definitions: ClosedMultiEntityTypesDefinitions;
-  entities: SerializedEntity[];
-  subgraph: SerializedSubgraph;
-  hasSomeLinks?: boolean;
-  hideColumns?: (keyof EntitiesTableRow)[];
-  hideArchivedColumn?: boolean;
-};
-
 export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
@@ -126,13 +110,3 @@ export type EntitiesTableData = {
   rows: EntitiesTableRow[];
   visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
 };
-
-export type UpdateTableDataFn = (
-  params: Pick<
-    EntitiesVisualizerData,
-    "definitions" | "entities" | "subgraph"
-  > & {
-    appendRows: boolean;
-    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
-  },
-) => void;

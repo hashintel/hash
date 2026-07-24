@@ -54,7 +54,6 @@ import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
 } from "./entities-table-data";
-import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -97,40 +96,38 @@ const emptyTableData: EntitiesTableData = {
   visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
-export const EntitiesTable: FunctionComponent<
-  Pick<EntitiesVisualizerData, "subgraph"> & {
-    activeConversions: {
-      [columnBaseUrl: BaseUrl]: {
-        dataTypeId: VersionedUrl;
-        title: string;
-      };
-    } | null;
-    csvFileTitle: string;
-    currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
-    currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
-    disableTypeClick?: boolean;
-    handleEntityClick: (entityId: EntityId) => void;
-    loading: boolean;
-    isViewingOnlyPages: boolean;
-    maxHeight: string | number;
-    hasMoreRowsAvailable: boolean;
-    loadMoreRows?: () => void;
-    selectedRows: EntitiesTableRow[];
-    setActiveConversions: Dispatch<
-      SetStateAction<{
-        [columnBaseUrl: BaseUrl]: VersionedUrl;
-      } | null>
-    >;
-    setSelectedRows: (rows: EntitiesTableRow[]) => void;
-    setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
-    setShowSearch: (showSearch: boolean) => void;
-    showSearch: boolean;
-    sort: GridSort<SortableEntitiesTableColumnKey>;
-    setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
-    tableData: EntitiesTableData | null;
-    totalResultCount: number | null;
-  }
-> = ({
+export const EntitiesTable: FunctionComponent<{
+  activeConversions: {
+    [columnBaseUrl: BaseUrl]: {
+      dataTypeId: VersionedUrl;
+      title: string;
+    };
+  } | null;
+  csvFileTitle: string;
+  currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
+  currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
+  disableTypeClick?: boolean;
+  handleEntityClick: (entityId: EntityId) => void;
+  loading: boolean;
+  isViewingOnlyPages: boolean;
+  maxHeight: string | number;
+  hasMoreRowsAvailable: boolean;
+  loadMoreRows?: () => void;
+  selectedRows: EntitiesTableRow[];
+  setActiveConversions: Dispatch<
+    SetStateAction<{
+      [columnBaseUrl: BaseUrl]: VersionedUrl;
+    } | null>
+  >;
+  setSelectedRows: (rows: EntitiesTableRow[]) => void;
+  setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
+  setShowSearch: (showSearch: boolean) => void;
+  showSearch: boolean;
+  sort: GridSort<SortableEntitiesTableColumnKey>;
+  setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
+  tableData: EntitiesTableData | null;
+  totalResultCount: number | null;
+}> = ({
   activeConversions,
   csvFileTitle,
   currentlyDisplayedColumnsRef,
