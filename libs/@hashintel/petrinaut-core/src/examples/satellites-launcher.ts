@@ -15,7 +15,8 @@ import type { SDCPN } from "../types/sdcpn";
  * distance; "Crash" checks distance from the planet surface. A custom SVG
  * visualizer renders the planet, satellites, and velocity vectors. The Moon
  * Orbit and Earth Orbit scenarios preset gravity, planet radius, and launch
- * parameters.
+ * parameters. The Pre-deployed Constellation scenario builds its initial
+ * marking as code (`range(...).map(...)`) from scenario parameters.
  *
  * See `docs/examples.md` (Probabilistic Satellite Launcher).
  */
@@ -535,6 +536,34 @@ return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
             "scenario.satellite_initial_velocity",
         },
         initialState: { type: "per_place", content: {} },
+      },
+      {
+        id: "scenario__pre_deployed_constellation",
+        name: "Pre-deployed Constellation",
+        description:
+          "Starts with a configurable number of satellites already in orbit, evenly spaced in a ring around the planet. The initial state is defined as code from the scenario parameters.",
+        scenarioParameters: [
+          { type: "integer", identifier: "number_of_satellites", default: 8 },
+          { type: "real", identifier: "initial_altitude", default: 40 },
+        ],
+        parameterOverrides: {},
+        initialState: {
+          type: "code",
+          content: `const distanceToCenter =
+  parameters.planet_radius + scenario.initial_altitude;
+
+return {
+  Space: range(scenario.number_of_satellites).map((i) => {
+    const angle = Math.PI * 2 * (i / scenario.number_of_satellites);
+    return {
+      x: Math.cos(angle) * distanceToCenter,
+      y: Math.sin(angle) * distanceToCenter,
+      direction: angle,
+      velocity: 0,
+    };
+  }),
+};`,
+        },
       },
     ],
   },
