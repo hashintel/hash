@@ -1,12 +1,16 @@
 import { use, useState } from "react";
 
-import { Button, Drawer, Icon } from "@hashintel/ds-components";
+import { Button, Drawer, Icon, Slider, Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
+import {
+  mergeMetricFramesAcrossCells,
+  type ExperimentParameterAxis,
+} from "../../../../../../react/experiments/parameter-grid";
 import { Section, SectionList } from "../../../../../components/section";
 import {
   ExperimentMetricTimeline,
@@ -83,6 +87,57 @@ const metricItemLargeStyle = css({
   gridColumn: "[1 / -1]",
 });
 
+const navigatorListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+});
+
+const navigatorHintStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+});
+
+const navigatorRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[12px]",
+  minHeight: "[32px]",
+});
+
+const navigatorNameStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+  width: "[140px]",
+  flexShrink: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const navigatorSliderStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+});
+
+const navigatorValueStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+  width: "[110px]",
+  flexShrink: 0,
+  textAlign: "right",
+  fontVariantNumeric: "[tabular-nums]",
+});
+
+const navigatorCombinedStyle = css({
+  fontSize: "sm",
+  color: "neutral.s80",
+  flex: "1",
+  minWidth: "[0]",
+});
+
 type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 function formatNumber(value: number): string {
@@ -147,9 +202,22 @@ const ExperimentSummary = ({
           <span className={statValueStyle}>
             {progress
               ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
-              : experiment.runCount}
+              : experiment.runCount * Math.max(1, experiment.cells.length)}
           </span>
         </div>
+        {experiment.cells.length > 1 ? (
+          <div className={statStyle}>
+            <span className={statLabelStyle}>Combinations</span>
+            <span className={statValueStyle}>
+              {
+                experiment.cells.filter((cell) => cell.status === "complete")
+                  .length
+              }{" "}
+              / {experiment.cells.length} complete ({experiment.runCount} runs
+              each)
+            </span>
+          </div>
+        ) : null}
         <div className={statStyle}>
           <span className={statLabelStyle}>Errors</span>
           <span className={statValueStyle}>{progress?.erroredRuns ?? 0}</span>
@@ -179,13 +247,87 @@ const ExperimentSummary = ({
   );
 };
 
-const ExperimentMetrics = ({
-  experiment,
+function formatAxisValue(value: number | undefined): string {
+  return value === undefined ? "" : String(value);
+}
+
+/**
+ * One row per ranged parameter. Toggled off, the parameter is marginalized:
+ * the metrics below combine the runs of all its values. Toggled on, a slider
+ * pins it to a single value and the metrics show only matching combinations.
+ */
+const ExperimentParameterNavigator = ({
+  axes,
+  selection,
+  onSelectionChange,
 }: {
-  experiment: ExperimentRecord;
+  axes: readonly ExperimentParameterAxis[];
+  selection: Readonly<Record<string, number | null>>;
+  onSelectionChange: (identifier: string, valueIndex: number | null) => void;
+}) => (
+  <div className={navigatorListStyle}>
+    <span className={navigatorHintStyle}>
+      Toggle a parameter to pin it to a single value; parameters left off are
+      combined across all their values.
+    </span>
+    {axes.map((axis) => {
+      const selectedIndex = selection[axis.identifier] ?? null;
+      const isPinned = selectedIndex !== null;
+      const first = axis.values[0];
+      const last = axis.values.at(-1);
+
+      return (
+        <div key={axis.identifier} className={navigatorRowStyle}>
+          <Toggle
+            size="sm"
+            value={isPinned}
+            aria-label={`Pin ${axis.identifier} to a single value`}
+            onChange={(pinned) =>
+              onSelectionChange(axis.identifier, pinned ? 0 : null)
+            }
+          />
+          <span className={navigatorNameStyle}>{axis.identifier}</span>
+          {isPinned ? (
+            <>
+              {/* 1-based slider domain; the shared Slider treats value 0 as unset. */}
+              <Slider
+                className={navigatorSliderStyle}
+                min={1}
+                max={axis.values.length}
+                value={selectedIndex + 1}
+                onChange={(sliderValue) =>
+                  onSelectionChange(
+                    axis.identifier,
+                    Math.min(
+                      axis.values.length - 1,
+                      Math.max(0, Math.round(sliderValue) - 1),
+                    ),
+                  )
+                }
+              />
+              <span className={navigatorValueStyle}>
+                = {formatAxisValue(axis.values[selectedIndex])}
+              </span>
+            </>
+          ) : (
+            <span className={navigatorCombinedStyle}>
+              Combined across {axis.values.length} values (
+              {formatAxisValue(first)} – {formatAxisValue(last)})
+            </span>
+          )}
+        </div>
+      );
+    })}
+  </div>
+);
+
+const ExperimentMetricsGrid = ({
+  frames,
+}: {
+  frames: readonly MetricFrame[];
 }) => {
   const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
-  const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
+  const metricFrameGroups = groupMetricFramesByMetric(frames);
 
   if (metricFrameGroups.length === 0) {
     return null;
@@ -193,8 +335,8 @@ const ExperimentMetrics = ({
 
   return (
     <div className={metricGridStyle}>
-      {metricFrameGroups.map((frames) => {
-        const latestFrame = frames.at(-1)!;
+      {metricFrameGroups.map((metricFrames) => {
+        const latestFrame = metricFrames.at(-1)!;
         const size = sizes[latestFrame.metricId] ?? "small";
 
         return (
@@ -206,7 +348,7 @@ const ExperimentMetrics = ({
             )}
           >
             <ExperimentMetricTimeline
-              frames={frames}
+              frames={metricFrames}
               displaySize={size}
               onDisplaySizeChange={(nextSize) =>
                 setSizes((previous) => ({
@@ -219,6 +361,65 @@ const ExperimentMetrics = ({
         );
       })}
     </div>
+  );
+};
+
+/**
+ * Parameter navigator + metric charts. Grid experiments merge the metric
+ * distributions of every cell matching the current parameter selection at
+ * render time — merging histograms is cheap, so navigating the parameter
+ * space needs no recomputation of the runs themselves.
+ */
+const ExperimentResults = ({
+  experiment,
+}: {
+  experiment: ExperimentRecord;
+}) => {
+  const [selection, setSelection] = useState<
+    Readonly<Record<string, number | null>>
+  >({});
+  const axes = experiment.parameterAxes;
+
+  const displayFrames =
+    axes.length === 0
+      ? experiment.metricFrames
+      : mergeMetricFramesAcrossCells(
+          experiment.cells
+            .filter((cell) =>
+              axes.every((axis) => {
+                const pinnedIndex = selection[axis.identifier] ?? null;
+                return (
+                  pinnedIndex === null ||
+                  cell.parameterValues[axis.identifier] ===
+                    axis.values[pinnedIndex]
+                );
+              }),
+            )
+            .map((cell) => cell.metricFrames),
+        );
+
+  return (
+    <>
+      {axes.length > 0 ? (
+        <Section title="Parameters" collapsible defaultOpen>
+          <ExperimentParameterNavigator
+            axes={axes}
+            selection={selection}
+            onSelectionChange={(identifier, valueIndex) =>
+              setSelection((previous) => ({
+                ...previous,
+                [identifier]: valueIndex,
+              }))
+            }
+          />
+        </Section>
+      ) : null}
+      {displayFrames.length > 0 ? (
+        <Section title="Metrics" collapsible defaultOpen>
+          <ExperimentMetricsGrid frames={displayFrames} />
+        </Section>
+      ) : null}
+    </>
   );
 };
 
@@ -256,11 +457,8 @@ export const ViewExperimentDrawer = ({
           <Section title="Summary" collapsible defaultOpen>
             <ExperimentSummary experiment={experiment} />
           </Section>
-          {experiment.metricFrames.length > 0 ? (
-            <Section title="Metrics" collapsible defaultOpen>
-              <ExperimentMetrics experiment={experiment} />
-            </Section>
-          ) : null}
+          {/* Keyed so the parameter selection resets when switching experiments. */}
+          <ExperimentResults key={experiment.id} experiment={experiment} />
         </SectionList>
       </Drawer.Body>
       <Drawer.Footer

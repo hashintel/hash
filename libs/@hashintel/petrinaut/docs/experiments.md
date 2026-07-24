@@ -17,14 +17,42 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                         |
 | **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario. |
-| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start.                                                                                     |
-| **Runs**                | `1000`                            | Positive integer; how many independent simulations to run.                                                                                                                                                         |
+| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, each scenario parameter can be set to a **Fixed** value (evaluated once at start) or a **Range** to sweep -- see [Parameter ranges](#parameter-ranges-sweeps).                        |
+| **Runs**                | `1000`                            | Positive integer; how many independent simulations to run. With parameter ranges, this is the number of runs **per parameter combination**.                                                                        |
 | **Time step (dt)**      | `0.1`                             | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
 | **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
 
 The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
 
 > Currently, an experiment can only run against one scenario at a time. To compare scenarios, create one experiment per scenario.
+
+## Parameter ranges (sweeps)
+
+Each (non-boolean) scenario parameter in the Create Experiment drawer has a **Fixed / Range** selector:
+
+- **Fixed** -- one value for the whole experiment (the default; leave blank to use the parameter's own default).
+- **Range** -- a sweep defined by **Min**, **Max**, and **Values**: the number of evenly spaced values to generate, including both endpoints. For example min `0`, max `9`, values `10` produces `0, 1, 2, ..., 9`. Integer parameters have each generated value rounded to the nearest whole number.
+
+A preview of the generated values appears under the row as you type.
+
+### Combinations
+
+Every combination of ranged values becomes its own **parameter combination**: a full Monte Carlo batch with its own runs and metric distributions. Two ranged parameters with 5 and 4 values produce a 5 × 4 grid of 20 combinations. The drawer shows the resulting total (`20 combinations × 1000 runs = 20,000 total runs`) so the cost is visible before you press Run -- sweeps multiply quickly, so consider lowering **Runs** when sweeping many values. Experiments are capped at 200 combinations.
+
+Combinations run through a small pool of background workers (a few at a time), and all combinations share the experiment's random seed. Sharing the seed means every combination sees the same random-number streams (_common random numbers_), so differences between combinations reflect the parameters rather than sampling noise.
+
+If any combination fails, the experiment stops: remaining combinations are cancelled and the experiment is marked **Error**.
+
+### Exploring sweep results
+
+When an experiment has ranged parameters, its view drawer gains a **Parameters** section above the metric charts, with one row per ranged parameter:
+
+- **Toggled off** (default), the parameter is _combined_: the charts merge the runs of **all** of its values into one distribution.
+- **Toggled on**, a slider appears with one stop per value. The charts then show only the combinations matching the pinned value; drag the slider to move through the parameter's values and watch the distributions respond.
+
+Pin any subset of parameters -- whatever is left unpinned stays combined. Because metric results are stored as per-frame histograms, combining values is just adding histograms together, so navigating the parameter space is instant and never re-runs a simulation.
+
+The **Summary** section shows how many combinations have completed, and the **Runs** column of the experiments list shows `runs × combinations` for sweep experiments.
 
 ## Lifecycle and statuses
 

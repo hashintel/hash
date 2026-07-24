@@ -37,6 +37,36 @@ const EMPTY_SDCPN: SDCPN = {
   differentialEquations: [],
 };
 
+/**
+ * A net with one parameter driven by a scenario parameter, so ranged
+ * scenario-parameter values reach each cell's worker as distinct
+ * `parameterValues`.
+ */
+const RANGED_SDCPN: SDCPN = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [
+    {
+      id: "param-beta",
+      name: "Beta",
+      variableName: "beta",
+      type: "real",
+      defaultValue: "1",
+    },
+  ],
+  differentialEquations: [],
+  scenarios: [
+    {
+      id: "scenario-sweep",
+      name: "Sweep",
+      scenarioParameters: [{ type: "real", identifier: "x", default: 0 }],
+      parameterOverrides: { "param-beta": "scenario.x * 2" },
+      initialState: { type: "per_place", content: {} },
+    },
+  ],
+};
+
 const CONSTANT_METRIC_SPEC = [
   {
     id: "constant",
@@ -133,18 +163,22 @@ const flushWorkerSetup = async () => {
   await Promise.resolve();
 };
 
-const sdcpnContextValue: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
-  petriNetId: "test-net",
-  petriNetDefinition: EMPTY_SDCPN,
-  readonly: false,
-  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Test",
-  getItemType: () => null,
-};
+function makeSdcpnContextValue(sdcpn: SDCPN): SDCPNContextValue {
+  return {
+    createNewNet: () => {},
+    existingNets: [],
+    loadPetriNet: () => {},
+    petriNetId: "test-net",
+    petriNetDefinition: sdcpn,
+    readonly: false,
+    extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+    setTitle: () => {},
+    title: "Test",
+    getItemType: () => null,
+  };
+}
+
+const sdcpnContextValue = makeSdcpnContextValue(EMPTY_SDCPN);
 
 /**
  * Overrides the (no-op) default language client so experiment expression
@@ -185,12 +219,16 @@ const ExperimentsContextConsumer = ({
 const TestWrapper = ({
   addNotification,
   requestHirArtifacts,
-  worker,
+  createWorker,
+  sdcpn,
+  maxConcurrentCellWorkers,
   onContextValue,
 }: {
   addNotification?: (notification: AddNotificationInput) => string;
   requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
-  worker: FakeMonteCarloWorker;
+  createWorker: () => FakeMonteCarloWorker;
+  sdcpn?: SDCPN;
+  maxConcurrentCellWorkers?: number;
   onContextValue: (value: ExperimentsContextValue) => void;
 }) => (
   <NotificationsContext
@@ -199,15 +237,18 @@ const TestWrapper = ({
       dismissNotification: () => {},
     }}
   >
-    <SDCPNContext.Provider value={sdcpnContextValue}>
+    <SDCPNContext.Provider
+      value={sdcpn ? makeSdcpnContextValue(sdcpn) : sdcpnContextValue}
+    >
       <LanguageClientOverride requestHirArtifacts={requestHirArtifacts}>
         <ExperimentsProvider
           workerFactory={() =>
-            worker as WorkerLike<
+            createWorker() as WorkerLike<
               MonteCarloToWorkerMessage,
               MonteCarloToMainMessage
             >
           }
+          maxConcurrentCellWorkers={maxConcurrentCellWorkers}
         >
           <ExperimentsContextConsumer onContextValue={onContextValue} />
         </ExperimentsProvider>
@@ -217,10 +258,12 @@ const TestWrapper = ({
 );
 
 function renderExperimentsProvider(
-  worker: FakeMonteCarloWorker,
+  worker: FakeMonteCarloWorker | (() => FakeMonteCarloWorker),
   options: {
     addNotification?: (notification: AddNotificationInput) => string;
     requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
+    sdcpn?: SDCPN;
+    maxConcurrentCellWorkers?: number;
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
@@ -235,7 +278,9 @@ function renderExperimentsProvider(
     <TestWrapper
       addNotification={options.addNotification}
       requestHirArtifacts={options.requestHirArtifacts}
-      worker={worker}
+      createWorker={typeof worker === "function" ? worker : () => worker}
+      sdcpn={options.sdcpn}
+      maxConcurrentCellWorkers={options.maxConcurrentCellWorkers}
       onContextValue={captureValue}
     />,
   );
@@ -658,6 +703,205 @@ describe("ExperimentsProvider", () => {
           runSampleCount: 2,
         }),
       );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("expands ranged parameters into a grid of cells run through a worker pool", async () => {
+    const workers: FakeMonteCarloWorker[] = [];
+    const createWorker = () => {
+      const worker = new FakeMonteCarloWorker();
+      workers.push(worker);
+      return worker;
+    };
+    const addNotification = vi.fn(() => "notification-id");
+    const { getValue, renderResult } = renderExperimentsProvider(createWorker, {
+      addNotification,
+      sdcpn: RANGED_SDCPN,
+      maxConcurrentCellWorkers: 1,
+    });
+
+    const completeProgress = makeProgress({
+      activeRuns: 0,
+      advancedRuns: 0,
+      completedRuns: 2,
+      allFinished: true,
+      frameNumber: 10,
+      runCount: 2,
+      time: 10,
+    });
+
+    try {
+      await act(async () => {
+        await getValue().createExperiment({
+          name: "Sweep experiment",
+          scenarioId: "scenario-sweep",
+          scenarioParameterValues: {
+            x: { mode: "range", min: 0, max: 1, valueCount: 3 },
+          },
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      const experiment = getValue().selectedExperiment!;
+      expect(experiment.parameterAxes).toEqual([
+        { identifier: "x", values: [0, 0.5, 1] },
+      ]);
+      expect(experiment.cells.map((cell) => cell.parameterValues)).toEqual([
+        { x: 0 },
+        { x: 0.5 },
+        { x: 1 },
+      ]);
+      expect(experiment.cells.map((cell) => cell.status)).toEqual([
+        "initializing",
+        "pending",
+        "pending",
+      ]);
+
+      // Concurrency 1: only the first cell's worker exists so far, and its
+      // scenario compiled with x=0 (beta = x * 2).
+      expect(workers).toHaveLength(1);
+      expect(workers[0]!.sent[0]).toMatchObject({
+        type: "init",
+        runCount: 2,
+        parameterValues: { beta: "0" },
+      });
+
+      await act(async () => {
+        workers[0]!.emit({ type: "ready" });
+        await flushWorkerSetup();
+      });
+      expect(getValue().selectedExperiment?.status).toBe("running");
+
+      await act(async () => {
+        workers[0]!.emit({ type: "complete", progress: completeProgress });
+        await flushWorkerSetup();
+      });
+
+      // Completing a cell frees the slot for the next combination.
+      expect(workers).toHaveLength(2);
+      expect(workers[1]!.sent[0]).toMatchObject({
+        type: "init",
+        parameterValues: { beta: "1" },
+      });
+      expect(getValue().selectedExperiment?.status).toBe("running");
+      expect(addNotification).not.toHaveBeenCalled();
+
+      await act(async () => {
+        workers[1]!.emit({ type: "ready" });
+        await flushWorkerSetup();
+        workers[1]!.emit({ type: "complete", progress: completeProgress });
+        await flushWorkerSetup();
+      });
+
+      expect(workers).toHaveLength(3);
+      expect(workers[2]!.sent[0]).toMatchObject({
+        type: "init",
+        parameterValues: { beta: "2" },
+      });
+
+      const frame = makeMetricFrame();
+      await act(async () => {
+        workers[2]!.emit({ type: "ready" });
+        await flushWorkerSetup();
+        workers[2]!.emit({ type: "metricFrames", frames: [frame] });
+        workers[2]!.emit({ type: "complete", progress: completeProgress });
+        await flushWorkerSetup();
+      });
+
+      const finished = getValue().selectedExperiment!;
+      expect(finished.status).toBe("complete");
+      expect(finished.cells.map((cell) => cell.status)).toEqual([
+        "complete",
+        "complete",
+        "complete",
+      ]);
+      expect(finished.cells[2]!.metricFrames).toEqual([frame]);
+      // Grid experiments keep frames per cell instead of mirroring them at
+      // the record level.
+      expect(finished.metricFrames).toEqual([]);
+      expect(finished.progress).toMatchObject({
+        completedRuns: 6,
+        runCount: 6,
+        allFinished: true,
+        time: 10,
+      });
+      expect(addNotification).toHaveBeenCalledTimes(1);
+      expect(addNotification).toHaveBeenCalledWith({
+        message: "Sweep experiment complete",
+        tone: "success",
+      });
+      expect(workers.every((cellWorker) => cellWorker.terminated)).toBe(true);
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("cancels the remaining grid cells when a sweep is cancelled", async () => {
+    const workers: FakeMonteCarloWorker[] = [];
+    const createWorker = () => {
+      const worker = new FakeMonteCarloWorker();
+      workers.push(worker);
+      return worker;
+    };
+    const { getValue, renderResult } = renderExperimentsProvider(createWorker, {
+      sdcpn: RANGED_SDCPN,
+      maxConcurrentCellWorkers: 1,
+    });
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Cancelled sweep",
+          scenarioId: "scenario-sweep",
+          scenarioParameterValues: {
+            x: { mode: "range", min: 0, max: 1, valueCount: 3 },
+          },
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+        workers[0]!.emit({ type: "ready" });
+        await flushWorkerSetup();
+      });
+
+      await act(async () => {
+        getValue().cancelExperiment(experimentId);
+        await flushWorkerSetup();
+      });
+
+      expect(workers[0]!.sent.map((message) => message.type)).toContain(
+        "cancel",
+      );
+      // Queued cells are cancelled immediately; no further workers spawn.
+      expect(
+        getValue().selectedExperiment?.cells.map((cell) => cell.status),
+      ).toEqual(["running", "cancelled", "cancelled"]);
+
+      await act(async () => {
+        workers[0]!.emit({
+          type: "cancelled",
+          progress: makeProgress({ activeRuns: 0, advancedRuns: 0 }),
+        });
+        await flushWorkerSetup();
+      });
+
+      expect(workers).toHaveLength(1);
+      expect(workers[0]!.terminated).toBe(true);
+      expect(getValue().selectedExperiment?.status).toBe("cancelled");
+      expect(
+        getValue().selectedExperiment?.cells.map((cell) => cell.status),
+      ).toEqual(["cancelled", "cancelled", "cancelled"]);
     } finally {
       renderResult.unmount();
     }

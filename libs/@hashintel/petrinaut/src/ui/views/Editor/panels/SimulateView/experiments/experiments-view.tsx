@@ -74,7 +74,10 @@ const experimentColumns = [
     header: "Runs",
     width: 156,
     tone: "subtle",
-    render: (experiment) => experiment.runCount,
+    render: (experiment) =>
+      experiment.cells.length > 1
+        ? `${experiment.runCount.toLocaleString()} × ${experiment.cells.length}`
+        : experiment.runCount,
   },
   {
     id: "status",

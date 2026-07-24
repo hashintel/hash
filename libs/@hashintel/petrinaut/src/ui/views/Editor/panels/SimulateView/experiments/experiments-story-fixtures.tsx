@@ -1,14 +1,23 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 
-import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  type MonteCarloUserDefinedMetricDistributionBin,
+  type MonteCarloUserDefinedMetricFrame,
+} from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
+  type ExperimentCell,
   ExperimentsContext,
   type ExperimentRecord,
   type ExperimentsContextValue,
 } from "../../../../../../react/experiments/context";
+import {
+  buildParameterGridCombinations,
+  type ExperimentParameterAxis,
+} from "../../../../../../react/experiments/parameter-grid";
 import {
   EditorContext,
   initialEditorState,
@@ -71,6 +80,16 @@ export function makeExperiment(
   overrides: Partial<ExperimentRecord> = {},
 ): ExperimentRecord {
   const status = overrides.status ?? "running";
+  const progress =
+    status === "initializing"
+      ? null
+      : makeProgress({
+          activeRuns: status === "complete" ? 0 : 900,
+          completedRuns: status === "complete" ? 1_000 : 100,
+          allFinished: status === "complete",
+          time: status === "complete" ? 180 : 45,
+          frameNumber: status === "complete" ? 180 : 45,
+        });
 
   return {
     id: `experiment-${index}`,
@@ -85,19 +104,128 @@ export function makeExperiment(
     status,
     error: null,
     metricSpecs: [],
-    progress:
-      status === "initializing"
-        ? null
-        : makeProgress({
-            activeRuns: status === "complete" ? 0 : 900,
-            completedRuns: status === "complete" ? 1_000 : 100,
-            allFinished: status === "complete",
-            time: status === "complete" ? 180 : 45,
-            frameNumber: status === "complete" ? 180 : 45,
-          }),
+    parameterAxes: [],
+    cells: [
+      {
+        index: 0,
+        parameterValues: {},
+        status: status === "initializing" ? "pending" : status,
+        error: null,
+        progress,
+        metricFrames: overrides.metricFrames ?? [],
+      },
+    ],
+    progress,
     latestMetricFramesById: {},
     metricFrames: [],
     ...overrides,
+  };
+}
+
+/**
+ * Synthetic per-frame token-count histograms for one parameter combination:
+ * an epidemic-ish bump whose height scales with `infectionRate` and whose
+ * duration stretches with `recoveryDays`, so moving the navigator sliders
+ * visibly changes the charts.
+ */
+function makeSyntheticDistributionFrames(
+  combination: Readonly<Record<string, number>>,
+  runCount: number,
+): MonteCarloUserDefinedMetricFrame[] {
+  const infectionRate = combination.infectionRate ?? 0.3;
+  const recoveryDays = combination.recoveryDays ?? 10;
+  const frames: MonteCarloUserDefinedMetricFrame[] = [];
+
+  for (let frameNumber = 0; frameNumber <= 60; frameNumber++) {
+    const time = frameNumber * 3;
+    const peakTime = 60 + recoveryDays * 3;
+    const width = 25 + recoveryDays * 2;
+    const mean =
+      400 *
+      infectionRate *
+      Math.exp(-((time - peakTime) ** 2) / (2 * width ** 2));
+    const spread = Math.max(1, Math.round(mean * 0.25));
+
+    const bins: MonteCarloUserDefinedMetricDistributionBin[] = [];
+    let remaining = runCount;
+    for (let offset = -2; offset <= 2; offset++) {
+      const frequency =
+        offset === 2
+          ? remaining
+          : Math.round(runCount * [0.1, 0.2, 0.4, 0.2, 0.1][offset + 2]!);
+      remaining -= frequency;
+      bins.push([Math.max(0, Math.round(mean + offset * spread)), frequency]);
+    }
+
+    frames.push({
+      metricId: "infected",
+      label: "Infected tokens",
+      outputType: "distribution",
+      frameNumber,
+      time,
+      bins: [...new Map(bins).entries()].sort(
+        ([left], [right]) => left - right,
+      ),
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount: runCount,
+      timeSampleCount: runCount,
+    });
+  }
+
+  return frames;
+}
+
+/**
+ * A completed parameter sweep: 5 × 2 grid over `infectionRate` and
+ * `recoveryDays`, with synthetic metric distributions per cell so the
+ * parameter navigator has something to show.
+ */
+export function makeParameterSweepExperiment(): ExperimentRecord {
+  const runCount = 200;
+  const parameterAxes: ExperimentParameterAxis[] = [
+    { identifier: "infectionRate", values: [0.1, 0.2, 0.3, 0.4, 0.5] },
+    { identifier: "recoveryDays", values: [7, 14] },
+  ];
+  const cells: ExperimentCell[] = buildParameterGridCombinations(
+    parameterAxes,
+  ).map((combination, index) => ({
+    index,
+    parameterValues: combination,
+    status: "complete",
+    error: null,
+    progress: makeProgress({
+      activeRuns: 0,
+      advancedRuns: 0,
+      completedRuns: runCount,
+      allFinished: true,
+      frameNumber: 60,
+      runCount,
+      time: 180,
+    }),
+    metricFrames: makeSyntheticDistributionFrames(combination, runCount),
+  }));
+
+  return {
+    ...makeExperiment(9, {
+      name: "Infection rate × recovery sweep",
+      status: "complete",
+      runCount,
+    }),
+    id: "experiment-sweep",
+    parameterAxes,
+    cells,
+    metricFrames: [],
+    progress: makeProgress({
+      activeRuns: 0,
+      advancedRuns: 0,
+      completedRuns: runCount * cells.length,
+      allFinished: true,
+      frameNumber: 60,
+      runCount: runCount * cells.length,
+      time: 180,
+    }),
   };
 }
 
@@ -161,6 +289,8 @@ const createFakeExperiment = (
   status: "initializing",
   error: null,
   metricSpecs: input.metricSpecs,
+  parameterAxes: [],
+  cells: [],
   progress: null,
   latestMetricFramesById: {},
   metricFrames: [],

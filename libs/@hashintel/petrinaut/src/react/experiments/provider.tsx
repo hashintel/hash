@@ -7,6 +7,8 @@ import {
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
+  type MonteCarloUserDefinedMetricFrame,
+  type MonteCarloWorkerProgress,
   type WorkerFactory,
   type Scenario,
   type ScenarioParameter,
@@ -21,18 +23,32 @@ import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
+  type ExperimentCell,
   type ExperimentRecord,
   type ExperimentStatus,
   ExperimentsContext,
   type ExperimentsContextValue,
   isExperimentActive,
 } from "./context";
+import {
+  buildParameterGridCombinations,
+  buildParameterRangeValues,
+  MAX_EXPERIMENT_COMBINATIONS,
+  type ExperimentParameterAxis,
+  type ExperimentParameterInput,
+} from "./parameter-grid";
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
+  /**
+   * Cap on cell workers running at once per experiment. Each cell (parameter
+   * combination) gets its own Web Worker; defaults to a conservative share of
+   * the machine's cores.
+   */
+  maxConcurrentCellWorkers?: number;
 }>;
 
-type ExperimentHandleRegistration = {
+type CellHandleRegistration = {
   handle: MonteCarloExperiment;
   off: () => void;
 };
@@ -40,6 +56,37 @@ type ExperimentHandleRegistration = {
 type PendingExperimentRegistration = {
   abortController: AbortController;
 };
+
+/** Per-cell inputs computed by compiling the scenario for one combination. */
+type ExperimentCellRuntime = {
+  cellIndex: number;
+  combination: Record<string, number>;
+  parameterValues: Record<string, string>;
+  initialMarking: InitialMarking;
+};
+
+/**
+ * Controls one experiment's grid of cells while it executes. Cell scheduling
+ * state (queue position, live handles, in-flight creations) lives in the
+ * factory's closure — see `createOrchestration` in the provider.
+ */
+type ExperimentOrchestration = {
+  /** Fills free worker slots with queued cells. */
+  launchNextCells: () => void;
+  /**
+   * Stops scheduling, aborts in-flight worker creations, and asks live
+   * workers to cancel gracefully (they confirm with "cancelled" events that
+   * carry their final progress).
+   */
+  stop: () => void;
+  /** Hard teardown for remove/unmount: disposes every live worker. */
+  dispose: () => void;
+};
+
+function getDefaultCellConcurrency(): number {
+  const cores = Number(globalThis.navigator.hardwareConcurrency);
+  return Math.min(4, Math.max(1, Number.isFinite(cores) ? cores - 2 : 2));
+}
 
 function mapExperimentStatus(
   status: MonteCarloExperimentState,
@@ -57,6 +104,95 @@ function mapExperimentStatus(
     case "Cancelled":
       return "cancelled";
   }
+}
+
+function isTerminalCellStatus(status: ExperimentCell["status"]): boolean {
+  return status === "complete" || status === "error" || status === "cancelled";
+}
+
+function deriveExperimentStatus(
+  cells: readonly ExperimentCell[],
+): ExperimentStatus {
+  let anyError = false;
+  let anyCancelled = false;
+  let anyProgressed = false;
+  let allTerminal = true;
+
+  for (const cell of cells) {
+    if (cell.status === "error") {
+      anyError = true;
+    }
+    if (cell.status === "cancelled") {
+      anyCancelled = true;
+    }
+    if (
+      cell.status === "running" ||
+      cell.status === "complete" ||
+      cell.status === "cancelled"
+    ) {
+      anyProgressed = true;
+    }
+    if (!isTerminalCellStatus(cell.status)) {
+      allTerminal = false;
+    }
+  }
+
+  if (anyError) {
+    return "error";
+  }
+  if (allTerminal) {
+    return anyCancelled ? "cancelled" : "complete";
+  }
+  return anyProgressed ? "running" : "initializing";
+}
+
+/**
+ * Aggregates the cells' progress into one experiment-level progress. With a
+ * single cell the cell's own progress passes through untouched; with a grid,
+ * run counters are summed and time/frame become the mean across cells (so
+ * the progress bar reflects overall completion).
+ */
+function aggregateCellProgress(
+  cells: readonly ExperimentCell[],
+  runCountPerCell: number,
+): MonteCarloWorkerProgress | null {
+  if (cells.length === 1) {
+    return cells[0]!.progress;
+  }
+  if (cells.every((cell) => cell.progress === null)) {
+    return null;
+  }
+
+  let activeRuns = 0;
+  let advancedRuns = 0;
+  let completedRuns = 0;
+  let erroredRuns = 0;
+  let timeSum = 0;
+  let frameSum = 0;
+  let allFinished = true;
+
+  for (const cell of cells) {
+    activeRuns += cell.progress?.activeRuns ?? 0;
+    advancedRuns += cell.progress?.advancedRuns ?? 0;
+    completedRuns += cell.progress?.completedRuns ?? 0;
+    erroredRuns += cell.progress?.erroredRuns ?? 0;
+    timeSum += cell.progress?.time ?? 0;
+    frameSum += cell.progress?.frameNumber ?? 0;
+    if (!isTerminalCellStatus(cell.status)) {
+      allFinished = false;
+    }
+  }
+
+  return {
+    activeRuns,
+    advancedRuns,
+    completedRuns,
+    erroredRuns,
+    allFinished,
+    frameNumber: Math.round(frameSum / cells.length),
+    runCount: runCountPerCell * cells.length,
+    time: timeSum / cells.length,
+  };
 }
 
 function parseScenarioParameterValue(
@@ -93,27 +229,56 @@ function parseScenarioParameterValue(
   return parsed;
 }
 
-function parseScenarioParameterValues(
+/**
+ * Splits the experiment's parameter inputs into fixed values and ranged axes.
+ * Single-value ranges collapse into fixed values so they don't create a
+ * pointless grid dimension.
+ */
+function resolveScenarioParameterInputs(
   scenario: Scenario,
-  rawValues: Record<string, string>,
-): { values: Record<string, number>; errors: string[] } {
-  const values: Record<string, number> = {};
+  inputs: Record<string, ExperimentParameterInput>,
+): {
+  fixedValues: Record<string, number>;
+  axes: ExperimentParameterAxis[];
+  errors: string[];
+} {
+  const fixedValues: Record<string, number> = {};
+  const axes: ExperimentParameterAxis[] = [];
   const errors: string[] = [];
 
   for (const parameter of scenario.scenarioParameters) {
-    const parsed = parseScenarioParameterValue(
-      parameter,
-      rawValues[parameter.identifier],
-    );
+    const input = inputs[parameter.identifier];
 
+    if (input?.mode === "range") {
+      const outcome = buildParameterRangeValues(parameter, input);
+      if (!outcome.ok) {
+        errors.push(outcome.error);
+      } else if (outcome.values.length === 1) {
+        fixedValues[parameter.identifier] = outcome.values[0]!;
+      } else {
+        axes.push({
+          identifier: parameter.identifier,
+          values: outcome.values,
+        });
+      }
+      continue;
+    }
+
+    const parsed = parseScenarioParameterValue(parameter, input?.value);
     if (typeof parsed === "string") {
       errors.push(parsed);
     } else {
-      values[parameter.identifier] = parsed;
+      fixedValues[parameter.identifier] = parsed;
     }
   }
 
-  return { values, errors };
+  return { fixedValues, axes, errors };
+}
+
+function describeCombination(combination: Record<string, number>): string {
+  return Object.entries(combination)
+    .map(([identifier, value]) => `${identifier}=${value}`)
+    .join(", ");
 }
 
 function assertExperimentInput(input: CreateExperimentInput): void {
@@ -158,6 +323,7 @@ function assertExperimentInput(input: CreateExperimentInput): void {
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
+  maxConcurrentCellWorkers,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
@@ -165,9 +331,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
-  const registrationsRef = useRef(
-    new Map<string, ExperimentHandleRegistration>(),
+  const cellConcurrencyRef = useLatest(
+    maxConcurrentCellWorkers ?? getDefaultCellConcurrency(),
   );
+  const orchestrationsRef = useRef(new Map<string, ExperimentOrchestration>());
   const pendingRegistrationsRef = useRef(
     new Map<string, PendingExperimentRegistration>(),
   );
@@ -178,18 +345,17 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   useBlockWindowClose({ shouldBlock: experiments.some(isExperimentActive) });
 
   useEffect(() => {
-    const registrations = registrationsRef.current;
+    const orchestrations = orchestrationsRef.current;
     const pendingRegistrations = pendingRegistrationsRef.current;
     return () => {
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
       }
       pendingRegistrations.clear();
-      for (const registration of registrations.values()) {
-        registration.off();
-        registration.handle.dispose();
+      for (const orchestration of orchestrations.values()) {
+        orchestration.dispose();
       }
-      registrations.clear();
+      orchestrations.clear();
     };
   }, []);
 
@@ -206,78 +372,291 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     );
   };
 
-  const disposeExperimentHandle = (experimentId: string) => {
-    const pendingRegistration =
-      pendingRegistrationsRef.current.get(experimentId);
-    if (pendingRegistration) {
-      pendingRegistration.abortController.abort();
-      pendingRegistrationsRef.current.delete(experimentId);
-    }
+  /**
+   * Applies a per-cell update and re-derives the experiment-level aggregates
+   * (status, error, progress, and — for single-cell experiments — the
+   * mirrored metric frames) from the updated cells in the same state update.
+   */
+  const updateExperimentCells = (
+    experimentId: string,
+    mapCell: (cell: ExperimentCell) => ExperimentCell,
+    latestMetricFramesById?: Readonly<
+      Record<string, MonteCarloUserDefinedMetricFrame>
+    >,
+  ) => {
+    setExperiments((prev) =>
+      prev.map((experiment) => {
+        if (experiment.id !== experimentId) {
+          return experiment;
+        }
 
-    const registration = registrationsRef.current.get(experimentId);
-    if (!registration) {
-      return;
-    }
+        const cells = experiment.cells.map(mapCell);
+        const singleCell = cells.length === 1 ? cells[0]! : null;
 
-    registration.off();
-    registration.handle.dispose();
-    registrationsRef.current.delete(experimentId);
+        return {
+          ...experiment,
+          cells,
+          status: deriveExperimentStatus(cells),
+          error:
+            experiment.error ??
+            cells.find((cell) => cell.error !== null)?.error ??
+            null,
+          progress: aggregateCellProgress(cells, experiment.runCount),
+          ...(singleCell
+            ? {
+                metricFrames: singleCell.metricFrames,
+                latestMetricFramesById:
+                  latestMetricFramesById ?? experiment.latestMetricFramesById,
+              }
+            : {}),
+        };
+      }),
+    );
   };
 
-  const registerExperimentHandle = (
-    experiment: ExperimentRecord,
-    handle: MonteCarloExperiment,
+  const patchExperimentCell = (
+    experimentId: string,
+    cellIndex: number,
+    cellPatch: Partial<ExperimentCell>,
+    latestMetricFramesById?: Readonly<
+      Record<string, MonteCarloUserDefinedMetricFrame>
+    >,
   ) => {
-    const { id: experimentId, name: experimentName } = experiment;
+    updateExperimentCells(
+      experimentId,
+      (cell) => (cell.index === cellIndex ? { ...cell, ...cellPatch } : cell),
+      latestMetricFramesById,
+    );
+  };
 
-    const sync = () => {
-      patchExperiment(experimentId, {
-        latestMetricFramesById: handle.metrics.get().latestByMetricId,
-        metricFrames: handle.metrics.get().frames,
-        progress: handle.progress.get(),
-        status: mapExperimentStatus(handle.status.get()),
+  /**
+   * Creates the scheduler for one experiment's grid: runs up to
+   * `maxConcurrentCellWorkers` cells at once, starting queued cells as slots
+   * free up. All mutable scheduling state lives in this closure.
+   */
+  const createOrchestration = ({
+    experimentId,
+    experimentName,
+    cellRuntimes,
+    createCellHandle,
+  }: {
+    experimentId: string;
+    experimentName: string;
+    cellRuntimes: readonly ExperimentCellRuntime[];
+    createCellHandle: (
+      runtime: ExperimentCellRuntime,
+      signal: AbortSignal,
+    ) => Promise<MonteCarloExperiment>;
+  }): ExperimentOrchestration => {
+    const registrations = new Map<number, CellHandleRegistration>();
+    const creationAborts = new Map<number, AbortController>();
+    let nextCellIndex = 0;
+    let activeCellCount = 0;
+    let completedCellCount = 0;
+    let stopScheduling = false;
+    let notifiedError = false;
+
+    const maybeCleanup = () => {
+      if (
+        registrations.size === 0 &&
+        creationAborts.size === 0 &&
+        (stopScheduling || completedCellCount === cellRuntimes.length)
+      ) {
+        orchestrationsRef.current.delete(experimentId);
+      }
+    };
+
+    const notifyError = (message: string) => {
+      if (notifiedError) {
+        return;
+      }
+      notifiedError = true;
+      addNotification({
+        message: `${experimentName} failed: ${message}`,
+        tone: "error",
       });
     };
 
-    const unsubscribeStatus = handle.status.subscribe(sync);
-    const unsubscribeProgress = handle.progress.subscribe(sync);
-    const unsubscribeMetrics = handle.metrics.subscribe(sync);
-    const unsubscribeEvents = handle.events.subscribe((event) => {
-      if (event.type === "error") {
-        patchExperiment(experimentId, {
-          error: event.message,
-          status: "error",
-        });
-        addNotification({
-          message: `${experimentName} failed: ${event.message}`,
-          tone: "error",
-        });
-      } else {
+    const stop = () => {
+      stopScheduling = true;
+      updateExperimentCells(experimentId, (cell) =>
+        cell.status === "pending" ? { ...cell, status: "cancelled" } : cell,
+      );
+      for (const controller of creationAborts.values()) {
+        controller.abort();
+      }
+      creationAborts.clear();
+      for (const registration of registrations.values()) {
+        registration.handle.cancel();
+      }
+    };
+
+    const dispose = () => {
+      stopScheduling = true;
+      for (const controller of creationAborts.values()) {
+        controller.abort();
+      }
+      creationAborts.clear();
+      for (const registration of registrations.values()) {
+        registration.off();
+        registration.handle.dispose();
+      }
+      registrations.clear();
+    };
+
+    const registerCellHandle = (
+      cellIndex: number,
+      handle: MonteCarloExperiment,
+      launchMore: () => void,
+    ) => {
+      const sync = () => {
+        const metricsState = handle.metrics.get();
+        patchExperimentCell(
+          experimentId,
+          cellIndex,
+          {
+            status: mapExperimentStatus(handle.status.get()),
+            progress: handle.progress.get(),
+            metricFrames: metricsState.frames,
+          },
+          metricsState.latestByMetricId,
+        );
+      };
+
+      const finishCell = () => {
+        const registration = registrations.get(cellIndex);
+        if (registration) {
+          registration.off();
+          registration.handle.dispose();
+          registrations.delete(cellIndex);
+        }
+        activeCellCount -= 1;
+      };
+
+      const unsubscribeStatus = handle.status.subscribe(sync);
+      const unsubscribeProgress = handle.progress.subscribe(sync);
+      const unsubscribeMetrics = handle.metrics.subscribe(sync);
+      const unsubscribeEvents = handle.events.subscribe((event) => {
+        if (event.type === "error") {
+          patchExperimentCell(experimentId, cellIndex, {
+            status: "error",
+            error: event.message,
+          });
+          notifyError(event.message);
+          finishCell();
+          // One failed combination invalidates the sweep — stop the rest.
+          stop();
+          maybeCleanup();
+          return;
+        }
+
         sync();
-      }
 
-      if (event.type === "complete") {
-        addNotification({
-          message: `${experimentName} complete`,
-          tone: "success",
-        });
-      }
+        if (event.type === "complete") {
+          completedCellCount += 1;
+          finishCell();
+          if (completedCellCount === cellRuntimes.length) {
+            addNotification({
+              message: `${experimentName} complete`,
+              tone: "success",
+            });
+          } else {
+            launchMore();
+          }
+        } else {
+          // event.type === "cancelled"
+          finishCell();
+        }
+        maybeCleanup();
+      });
 
-      if (event.type === "complete" || event.type === "cancelled") {
-        disposeExperimentHandle(experimentId);
-      }
-    });
+      registrations.set(cellIndex, {
+        handle,
+        off: () => {
+          unsubscribeStatus();
+          unsubscribeProgress();
+          unsubscribeMetrics();
+          unsubscribeEvents();
+        },
+      });
+      sync();
+    };
 
-    registrationsRef.current.set(experimentId, {
-      handle,
-      off: () => {
-        unsubscribeStatus();
-        unsubscribeProgress();
-        unsubscribeMetrics();
-        unsubscribeEvents();
-      },
-    });
-    sync();
+    const startCell = (
+      runtime: ExperimentCellRuntime,
+      launchMore: () => void,
+    ) => {
+      const { cellIndex } = runtime;
+      const abortController = new AbortController();
+      creationAborts.set(cellIndex, abortController);
+      patchExperimentCell(experimentId, cellIndex, { status: "initializing" });
+
+      const run = async () => {
+        try {
+          const handle = await createCellHandle(
+            runtime,
+            abortController.signal,
+          );
+          creationAborts.delete(cellIndex);
+
+          if (stopScheduling) {
+            handle.dispose();
+            activeCellCount -= 1;
+            patchExperimentCell(experimentId, cellIndex, {
+              status: "cancelled",
+            });
+            maybeCleanup();
+            return;
+          }
+
+          registerCellHandle(cellIndex, handle, launchMore);
+          handle.start();
+        } catch (error) {
+          creationAborts.delete(cellIndex);
+          activeCellCount -= 1;
+
+          if (stopScheduling) {
+            // Cancelled or removed while the worker was starting up.
+            patchExperimentCell(experimentId, cellIndex, {
+              status: "cancelled",
+            });
+            maybeCleanup();
+            return;
+          }
+
+          const message =
+            error instanceof Error ? error.message : String(error);
+          const prefix =
+            cellRuntimes.length > 1
+              ? `Combination ${describeCombination(runtime.combination)}: `
+              : "";
+          patchExperimentCell(experimentId, cellIndex, {
+            status: "error",
+            error: `${prefix}${message}`,
+          });
+          notifyError(`${prefix}${message}`);
+          stop();
+          maybeCleanup();
+        }
+      };
+
+      void run();
+    };
+
+    const launchNextCells = () => {
+      while (
+        !stopScheduling &&
+        activeCellCount < cellConcurrencyRef.current &&
+        nextCellIndex < cellRuntimes.length
+      ) {
+        const runtime = cellRuntimes[nextCellIndex]!;
+        nextCellIndex += 1;
+        activeCellCount += 1;
+        startCell(runtime, launchNextCells);
+      }
+    };
+
+    return { launchNextCells, stop, dispose };
   };
 
   const createExperiment: ExperimentsContextValue["createExperiment"] = async (
@@ -295,8 +674,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       throw new Error("Selected scenario does not exist");
     }
 
-    let parameterValues: Record<string, string> = {};
-    let initialMarking: InitialMarking = {};
     const globalParameters = extensionsRef.current.parameters
       ? sdcpn.parameters
       : [];
@@ -304,35 +681,82 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       ? sdcpn
       : { ...sdcpn, parameters: [] };
 
+    let parameterAxes: readonly ExperimentParameterAxis[] = [];
+    let cellRuntimes: ExperimentCellRuntime[];
+
     if (selectedScenario) {
-      const parsedScenarioValues = parseScenarioParameterValues(
+      const resolvedInputs = resolveScenarioParameterInputs(
         selectedScenario,
         input.scenarioParameterValues,
       );
-      if (parsedScenarioValues.errors.length > 0) {
-        throw new Error(parsedScenarioValues.errors.join("\n"));
+      if (resolvedInputs.errors.length > 0) {
+        throw new Error(resolvedInputs.errors.join("\n"));
       }
+      parameterAxes = resolvedInputs.axes;
 
-      const compiledScenario = compileScenario(
-        selectedScenario,
-        globalParameters,
-        sdcpn.places,
-        sdcpn.types,
-        { scenarioParameterValues: parsedScenarioValues.values },
-      );
-      if (!compiledScenario.ok) {
+      const combinations = buildParameterGridCombinations(parameterAxes);
+      if (combinations.length > MAX_EXPERIMENT_COMBINATIONS) {
         throw new Error(
-          compiledScenario.errors
-            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
-            .join("\n"),
+          `This experiment would run ${combinations.length} parameter combinations; the maximum is ${MAX_EXPERIMENT_COMBINATIONS}. Reduce the ranges' value counts.`,
         );
       }
 
-      parameterValues = compiledScenario.result.parameterValues;
-      initialMarking = compiledScenario.result.initialState;
+      cellRuntimes = combinations.map((combination, cellIndex) => {
+        const compiledScenario = compileScenario(
+          selectedScenario,
+          globalParameters,
+          sdcpn.places,
+          sdcpn.types,
+          {
+            scenarioParameterValues: {
+              ...resolvedInputs.fixedValues,
+              ...combination,
+            },
+          },
+        );
+        if (!compiledScenario.ok) {
+          const prefix =
+            parameterAxes.length > 0
+              ? `Combination ${describeCombination(combination)}: `
+              : "";
+          throw new Error(
+            prefix +
+              compiledScenario.errors
+                .map(
+                  (error) => `${error.source}:${error.itemId} ${error.message}`,
+                )
+                .join("\n"),
+          );
+        }
+
+        return {
+          cellIndex,
+          combination,
+          parameterValues: compiledScenario.result.parameterValues,
+          initialMarking: compiledScenario.result.initialState,
+        };
+      });
+    } else {
+      cellRuntimes = [
+        {
+          cellIndex: 0,
+          combination: {},
+          parameterValues: {},
+          initialMarking: {},
+        },
+      ];
     }
 
     const experimentId = generateUuid();
+    const cells: ExperimentCell[] = cellRuntimes.map((runtime) => ({
+      index: runtime.cellIndex,
+      parameterValues: runtime.combination,
+      status: "pending",
+      error: null,
+      progress: null,
+      metricFrames: [],
+    }));
+
     const experiment: ExperimentRecord = {
       id: experimentId,
       name: input.name.trim(),
@@ -346,6 +770,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       status: "initializing",
       error: null,
       metricSpecs: input.metricSpecs,
+      parameterAxes,
+      cells,
       progress: null,
       latestMetricFramesById: {},
       metricFrames: [],
@@ -363,7 +789,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // Compile the net's user code to HIR artifacts in the language
         // worker — the simulation engine has no compiler of its own. The
         // experiment's expression metrics are compiled alongside by
-        // substituting them for the model's metrics.
+        // substituting them for the model's metrics. One compile serves
+        // every cell: parameter values are runtime inputs, not code.
         const expressionSpecs = input.metricSpecs.filter(
           (spec) => spec.kind === "expression",
         );
@@ -382,7 +809,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         // Compilation cannot currently be aborted. A cancelled or removed
         // experiment must stop here rather than turning a late compile result
-        // (or failure below) into a worker or an error notification.
+        // (or failure below) into workers or an error notification.
         if (!pendingRegistrationsRef.current.has(experimentId)) {
           return;
         }
@@ -412,12 +839,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         const experimentConfigBase = {
           // Artifact fingerprints cover the complete sanitized SDCPN, including
-          // its metric definitions. Run the worker against the exact snapshot
+          // its metric definitions. Run the workers against the exact snapshot
           // used above rather than the pre-substitution model.
           sdcpn: compiledExperimentSdcpn,
           extensions: experimentExtensions,
-          initialMarking,
-          parameterValues,
+          // The same seed across cells gives every combination the same
+          // random-number streams (common random numbers), so differences
+          // between cells reflect the parameters rather than sampling noise.
           seed: input.seed,
           dt: input.dt,
           maxTime: input.maxTime,
@@ -425,21 +853,24 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           runCount: input.runCount,
         };
 
-        const handle = await createMonteCarloExperiment({
-          ...experimentConfigBase,
-          createWorker: workerFactoryRef.current,
-          metricSpecs,
-          signal: abortController.signal,
+        const orchestration = createOrchestration({
+          experimentId,
+          experimentName: experiment.name,
+          cellRuntimes,
+          createCellHandle: (runtime, signal) =>
+            createMonteCarloExperiment({
+              ...experimentConfigBase,
+              parameterValues: runtime.parameterValues,
+              initialMarking: runtime.initialMarking,
+              createWorker: workerFactoryRef.current,
+              metricSpecs,
+              signal,
+            }),
         });
 
-        if (!pendingRegistrationsRef.current.has(experimentId)) {
-          handle.dispose();
-          return;
-        }
-
         pendingRegistrationsRef.current.delete(experimentId);
-        registerExperimentHandle(experiment, handle);
-        handle.start();
+        orchestrationsRef.current.set(experimentId, orchestration);
+        orchestration.launchNextCells();
       } catch (error) {
         const wasPending = pendingRegistrationsRef.current.delete(experimentId);
 
@@ -472,17 +903,47 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     if (pendingRegistration) {
       pendingRegistrationsRef.current.delete(experimentId);
       pendingRegistration.abortController.abort();
-      patchExperiment(experimentId, { status: "cancelled" });
+      setExperiments((prev) =>
+        prev.map((experiment) =>
+          experiment.id === experimentId
+            ? {
+                ...experiment,
+                status: "cancelled",
+                cells: experiment.cells.map((cell) => ({
+                  ...cell,
+                  status: "cancelled" as const,
+                })),
+              }
+            : experiment,
+        ),
+      );
       return;
     }
 
-    registrationsRef.current.get(experimentId)?.handle.cancel();
+    orchestrationsRef.current.get(experimentId)?.stop();
+  };
+
+  const disposeExperimentHandles = (experimentId: string) => {
+    const pendingRegistration =
+      pendingRegistrationsRef.current.get(experimentId);
+    if (pendingRegistration) {
+      pendingRegistration.abortController.abort();
+      pendingRegistrationsRef.current.delete(experimentId);
+    }
+
+    const orchestration = orchestrationsRef.current.get(experimentId);
+    if (!orchestration) {
+      return;
+    }
+
+    orchestration.dispose();
+    orchestrationsRef.current.delete(experimentId);
   };
 
   const removeExperiment: ExperimentsContextValue["removeExperiment"] = (
     experimentId,
   ) => {
-    disposeExperimentHandle(experimentId);
+    disposeExperimentHandles(experimentId);
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
     );
