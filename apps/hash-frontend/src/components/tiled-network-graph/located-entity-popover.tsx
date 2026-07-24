@@ -2,7 +2,9 @@
  * The selection popover for the Atlas network graph: a compact white entity card
  * anchored to the selected node/edge, showing the located item's title, its
  * type chip, its simple-value properties (nodes), and a "Go to entity" action.
- * Used by the entities-visualizer network graph view.
+ * When the located detail is truncated (its type or property set capped) the
+ * card flags the missing parts with a "+ more" cue. Used by the
+ * entities-visualizer network graph view.
  *
  * Purely presentational — the consumer decodes a {@link fetchLocate} response
  * into {@link LocatedEntityDetail} and owns the
@@ -101,6 +103,16 @@ interface LocatedEntityDetailShared {
   readonly title: string;
   /** Property rows shown in the card's property table. */
   readonly properties: readonly LocatedEntityProperty[];
+  /**
+   * Whether the `types` list is the entity's whole set. When `false` a cue is
+   * shown beside the chips that some types aren't displayed.
+   */
+  readonly typesComplete: boolean;
+  /**
+   * Whether {@link properties} is the entity's whole set. When `false` a note is
+   * shown at the foot of the property table that some properties aren't displayed.
+   */
+  readonly propertiesComplete: boolean;
 }
 
 /** A located node: its types float beside the title as chips. */
@@ -244,6 +256,18 @@ const typeDotStyles = css({
   borderRadius: "full",
   flexShrink: "0",
   marginLeft: "0.5",
+});
+
+// A muted cue sitting after the type chips when the type list is truncated —
+// signals the entity holds types beyond those shown, without dressing as a chip.
+const moreTypesStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  fontSize: "xs",
+  fontWeight: "medium",
+  fontStyle: "italic",
+  lineHeight: "none",
+  color: "neutral.s90",
 });
 
 // The "connects" section beneath the header: the two entities the link joins,
@@ -424,6 +448,23 @@ const propertyValueStyles = css({
   lineClamp: "2",
 });
 
+// A muted note drawn as the property table's final row when the property set is
+// truncated — reuses the row divider so it reads as the table's foot. Loses its
+// divider when it's the only row (no properties resolved).
+const incompletePropertiesStyles = css({
+  paddingTop: "1.5",
+  borderTopWidth: "1px",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.s40",
+  color: "neutral.s90",
+  fontSize: "xs",
+  fontStyle: "italic",
+  "&:first-child": {
+    borderTopWidth: "0",
+    paddingTop: "0",
+  },
+});
+
 const goToButtonStyles = css({
   marginTop: "1",
   width: "full",
@@ -528,6 +569,15 @@ export const LocatedEntityPopover = ({
           {chips.map((chip) => (
             <TypeChip key={chip.label} chip={chip} />
           ))}
+
+          {!detail.typesComplete ? (
+            <span
+              className={moreTypesStyles}
+              title="Not all types are shown — open the entity to see them all"
+            >
+              + more
+            </span>
+          ) : null}
         </div>
 
         {detail.kind === "edge" ? (
@@ -562,7 +612,7 @@ export const LocatedEntityPopover = ({
           </div>
         ) : null}
 
-        {detail.properties.length > 0 ? (
+        {detail.properties.length > 0 || !detail.propertiesComplete ? (
           <div className={propertyListStyles}>
             {detail.properties.map((property) => (
               <div key={property.key} className={propertyRowStyles}>
@@ -579,6 +629,14 @@ export const LocatedEntityPopover = ({
                 </span>
               </div>
             ))}
+            {!detail.propertiesComplete ? (
+              <div
+                className={incompletePropertiesStyles}
+                title="Not all properties are shown — open the entity to see them all"
+              >
+                + more
+              </div>
+            ) : null}
           </div>
         ) : null}
 

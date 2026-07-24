@@ -855,6 +855,11 @@ export const NetworkGraphView = ({
           title: source.label ?? `Node ${source.id}`,
           types,
           properties: propertyRows(source.properties),
+          // The located source carries its own completeness verdicts: the
+          // coloredTypeIds mask may not cover every direct type, and its
+          // properties are capped.
+          typesComplete: entity.typeIdsComplete,
+          propertiesComplete: entity.propertiesComplete,
         },
         entityId: entity.entityId,
       });
@@ -1195,6 +1200,10 @@ export const NetworkGraphView = ({
               to: endpointFor(toNode, edge.toId),
             },
             properties: propertyRows(locatedEdge?.properties),
+            // The located edge carries per-edge completeness verdicts; when it
+            // isn't in the subgraph, assume complete rather than flag a guess.
+            typesComplete: locatedEdge?.typeIdsComplete ?? true,
+            propertiesComplete: locatedEdge?.propertiesComplete ?? true,
           },
           // An edge is a link entity; its id is that link entity's identity.
           entityId: locatedEdge?.id ?? (String(edge.id) as EntityId),
