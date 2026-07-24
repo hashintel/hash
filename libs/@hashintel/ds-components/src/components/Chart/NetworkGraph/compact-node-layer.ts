@@ -2,6 +2,7 @@ import { CompositeLayer } from "@deck.gl/core";
 import { LineLayer, PathLayer, ScatterplotLayer } from "@deck.gl/layers";
 
 import {
+  DIMMED_EDGE_COLOR,
   EDGE_COLOR,
   EDGE_HOVER_WIDTH,
   EDGE_MIN_WIDTH,
@@ -32,8 +33,8 @@ const BACKGROUND_EDGE_OPACITY = 0.2;
 const BACKGROUND_EDGE_ALPHA = Math.round(RGBA_OPAQUE * BACKGROUND_EDGE_OPACITY);
 /** Opacity of the points dimmed while a node is hovered. */
 const POINT_DIMMED_OPACITY = 1;
-/** Opacity of the selected node's grow ring while a different node is hovered, so the selection stays visible but secondary. */
-const SELECTED_DIM_OPACITY = 0.5;
+/** Opacity of the selected node's grow ring while a different node is hovered, so the selection stays visible but secondary. Also applied to its faded edges/neighbours and, by the parent, to their direction arrows. */
+export const SELECTED_DIM_OPACITY = 0.5;
 // Sit at z 0; must not occlude the negative-z detail layers, so draw without writing depth.
 const BASE_LAYER_PARAMETERS = { depthWriteEnabled: false } as const;
 
@@ -48,6 +49,17 @@ type _CompactNodeLayerProps = {
   highlightEdgesPickable: boolean;
   /** Whether the faint bundled `backgroundEdgePaths` are pickable — always in the detail view, where they're the visible structural edges. */
   backgroundEdgesPickable: boolean;
+  /**
+   * Whether the highlight's grown node rings — the `neighbours`' rings and the {@link
+   * activeNode}'s ring — are pickable, making each ring an enlarged hitbox that wins the
+   * pick over any plain crowd node beneath it. Set while a node is selected (compact
+   * view), so the selection's neighbourhood takes pointer priority over the crowd. Both
+   * rings are covered together so any grown ring is a stable hit target: hovering a
+   * neighbour promotes it to the {@link activeNode} (a larger ring), and keeping that
+   * ring pickable stops the hover flipping as the pointer crosses its annulus. Off
+   * otherwise — the nodes' own crowd points still resolve picking then.
+   */
+  highlightNodesPickable: boolean;
   /** The two endpoints of the emphasised edge, each ringed in the edge's colour/hover width to show what it connects. Empty when no edge is emphasised. */
   edgeHoverNodes: NetworkGraphPoint[];
   /** Neighbours of the active node, drawn with a grown ring. */
@@ -56,6 +68,30 @@ type _CompactNodeLayerProps = {
   activeNode: NetworkGraphPoint | null;
   /** The selected node while a different node is hovered: same grown ring as {@link activeNode} but dimmed so it stays visible without competing. Null unless backgrounded by a hover. */
   dimmedSelectedNode: NetworkGraphPoint | null;
+  /**
+   * The backgrounded selection's incident edges as straight node-centre lines, drawn
+   * faded to {@link SELECTED_DIM_OPACITY} (matching {@link dimmedSelectedNode}'s ring)
+   * so a selected node keeps its edges while a different hovered node owns the active
+   * highlight. Full-length and arrow-less — unlike the active {@link edges}; the
+   * parent dedupes them against those. Empty in the detail view. Compact only.
+   */
+  dimmedSelectedEdges: HoverLine[];
+  /**
+   * The backgrounded selection's neighbours, drawn as grow rings faded to {@link
+   * SELECTED_DIM_OPACITY} alongside {@link dimmedSelectedNode}. The parent dedupes
+   * them against the active node and its {@link neighbours}. Empty in the detail view.
+   * Compact only.
+   */
+  dimmedSelectedNeighbours: NetworkGraphPoint[];
+  /**
+   * Whether the backgrounded selection's {@link dimmedSelectedEdges} and {@link
+   * dimmedSelectedNeighbours} are pickable. Set while a node is selected so its
+   * neighbourhood keeps pointer priority even once it's backgrounded by a hover: these
+   * layers sit below the hovered node's highlight, so the parent resolves the priority
+   * in its pick handler (preferring a pick here over the hovered node) rather than by
+   * z-order. Off otherwise.
+   */
+  dimmedSelectionPickable: boolean;
   /** Id of the selected node, whose plain crowd point is hidden so it doesn't show through its own (translucent, when dimmed) grow ring. `null` when nothing is selected. */
   selectedPointId: NetworkGraphId | null;
   /** Distinct hex colour → rgb, resolved once by the parent. */
@@ -89,6 +125,7 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   hoveredEdgeId: null,
   highlightEdgesPickable: false,
   backgroundEdgesPickable: false,
+  highlightNodesPickable: false,
   edgeHoverNodes: [],
   neighbours: [],
   activeNode: null,
@@ -99,6 +136,9 @@ const defaultProps: DefaultProps<CompactNodeLayerProps> = {
   showGrowHighlights: true,
   showPoints: true,
   dimmedSelectedNode: null,
+  dimmedSelectedEdges: [],
+  dimmedSelectedNeighbours: [],
+  dimmedSelectionPickable: false,
   selectedPointId: null,
   nodeScaleById: new Map<NetworkGraphId, number>(),
   nodeScaleEpoch: 0,
@@ -128,10 +168,14 @@ export class CompactNodeLayer extends CompositeLayer<
       hoveredEdgeId,
       highlightEdgesPickable,
       backgroundEdgesPickable,
+      highlightNodesPickable,
       edgeHoverNodes,
       neighbours,
       activeNode,
       dimmedSelectedNode,
+      dimmedSelectedEdges,
+      dimmedSelectedNeighbours,
+      dimmedSelectionPickable,
       selectedPointId,
       colorByHex,
       radiusScale,
@@ -156,6 +200,7 @@ export class CompactNodeLayer extends CompositeLayer<
       radiusMinPixels,
       radiusMaxPixels = Number.MAX_SAFE_INTEGER,
       opacity = 1,
+      pickable = false,
     }: {
       idSuffix: string;
       data: NetworkGraphPoint[];
@@ -163,11 +208,15 @@ export class CompactNodeLayer extends CompositeLayer<
       radiusMinPixels: number;
       radiusMaxPixels?: number;
       opacity?: number;
+      pickable?: boolean;
     }) =>
       new ScatterplotLayer<NetworkGraphPoint>({
         id: `${id}-${idSuffix}`,
         parameters: BASE_LAYER_PARAMETERS,
         data: ringData,
+        // A pickable ring is the node's enlarged hitbox: sat above the crowd, it wins
+        // the pick over any plain node it overlaps (see `highlightNodesPickable`).
+        pickable,
         getPosition: (point) => [point.x, point.y],
         getFillColor: colorFor,
         getRadius: POINT_RADIUS * radiusMultiplier,
@@ -305,6 +354,49 @@ export class CompactNodeLayer extends CompositeLayer<
             }),
           ]
         : []),
+      // The backgrounded selection's own neighbourhood — its incident edges and
+      // neighbour rings — faded to SELECTED_DIM_OPACITY (matching its dimmed grow
+      // ring) so a selected node keeps its whole neighbourhood visible, just
+      // secondary, while a different hovered node owns the active highlight. Drawn
+      // below the active highlight so its full-opacity copy always reads on top; the
+      // parent dedupes the shared edge/node so nothing is drawn both faded and full.
+      //
+      // The faded edges use the lighter DIMMED_EDGE_COLOR (vs the active edges'
+      // EDGE_COLOR) and are trimmed at the target for the parent's matching direction
+      // arrows to sit in — like the active edges. Drawn *below* the faded neighbour
+      // rings, which hide where an edge's untrimmed source end tucks into its node.
+      ...(dimmedSelectedEdges.length > 0
+        ? [
+            new LineLayer<HoverLine>({
+              id: `${id}-dimmed-selected-edges`,
+              data: dimmedSelectedEdges,
+              // Pickable so the selection's edges keep pointer priority while
+              // backgrounded; the parent's pick handler prefers them over the hovered
+              // node (they sit below its highlight, so z-order alone wouldn't).
+              pickable: dimmedSelectionPickable,
+              parameters: BASE_LAYER_PARAMETERS,
+              getSourcePosition: (line) => line.source,
+              getTargetPosition: (line) => line.target,
+              getColor: [...DIMMED_EDGE_COLOR, RGBA_OPAQUE] as Color,
+              getWidth: EDGE_WIDTH,
+              widthUnits: "pixels",
+              widthMinPixels: EDGE_MIN_WIDTH,
+              opacity: SELECTED_DIM_OPACITY,
+            }),
+          ]
+        : []),
+      ...(showGrowHighlights && dimmedSelectedNeighbours.length > 0
+        ? [
+            growRing({
+              idSuffix: "dimmed-selected-neighbours",
+              data: dimmedSelectedNeighbours,
+              radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
+              radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              opacity: SELECTED_DIM_OPACITY,
+              pickable: dimmedSelectionPickable,
+            }),
+          ]
+        : []),
       // Neighbour grow rings, drawn below the edges: a neighbour is a plain node, so
       // the edge reaching it reads on top. Suppressed in the detail variation, which
       // highlights via a colour-matched outline.
@@ -315,6 +407,7 @@ export class CompactNodeLayer extends CompositeLayer<
               data: neighbours,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+              pickable: highlightNodesPickable,
             }),
           ]
         : []),
@@ -362,7 +455,9 @@ export class CompactNodeLayer extends CompositeLayer<
                   }),
                 ]
               : []),
-            // Keep the hovered node prominent regardless of zoom level.
+            // Keep the hovered node prominent regardless of zoom level. Pickable under
+            // the same condition as the neighbour rings so the active node's enlarged
+            // ring is a stable hit target — see {@link highlightNodesPickable}.
             ...(activeNode
               ? [
                   growRing({
@@ -371,6 +466,7 @@ export class CompactNodeLayer extends CompositeLayer<
                     radiusMultiplier: HOVERED_RADIUS_MULTIPLIER,
                     radiusMinPixels: HOVERED_MIN_RADIUS,
                     radiusMaxPixels: POINT_MAX_RADIUS * HOVERED_MAX_MULTIPLIER,
+                    pickable: highlightNodesPickable,
                   }),
                 ]
               : []),
@@ -382,8 +478,11 @@ export class CompactNodeLayer extends CompositeLayer<
       // than a neighbour, so each edge ring mirrors the matching grow ring's radius
       // clamps to hug the right one. Any endpoint that isn't the active node —
       // including both endpoints of a lone selected edge (no active node) — hugs a
-      // neighbour-sized ring. Compact view only.
-      ...(showPoints && edgeHoverNodes.length > 0
+      // neighbour-sized ring. Gated on `showGrowHighlights` (compact only, like the
+      // grow rings these seat inside) rather than `showPoints`, so the front-redraw
+      // layer — which redraws the active node's grow ring above the arrows with points
+      // hidden — can re-apply the border on top of that opaque redraw.
+      ...(showGrowHighlights && edgeHoverNodes.length > 0
         ? [
             ...(activeNode
               ? [
