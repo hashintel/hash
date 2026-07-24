@@ -6,6 +6,7 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
+import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { getItemFilePath } from "./file-paths";
 
@@ -467,6 +468,7 @@ export function generateScenarioSessionFiles(
     `import type { Parameters } from "${parametersDefsPath}";`,
     `declare const parameters: Parameters;`,
     scenarioTypeDecl,
+    SCENARIO_HELPER_TYPE_DECLARATIONS,
   ].join("\n");
 
   // Generate defs file (shared declarations for this session)

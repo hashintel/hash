@@ -59,7 +59,13 @@ export const SHADOWED_GLOBALS = [
  * expression body.
  *
  * To make the common form of that escape fail we temporarily replace the
- * `.constructor` getter on the built-in prototypes below. The descriptors are
+ * `.constructor` getter on the built-in prototypes below with one returning
+ * `undefined`. The walk then dead-ends (`undefined.constructor` is a
+ * TypeError) while well-behaved user code keeps working: spec-internal
+ * `constructor` reads — `ArraySpeciesCreate` inside `Array.prototype.map`,
+ * `filter`, `slice`, `concat`, `flatMap`, `splice`, and `SpeciesConstructor`
+ * elsewhere — treat `undefined` as "use the built-in default". A throwing
+ * getter would break those methods for every user. The descriptors are
  * restored in `finally` before any queued microtasks or other code runs.
  *
  * This is defense-in-depth, not an isolation boundary: hostile JavaScript has
@@ -117,13 +123,13 @@ export function runSandboxed<T>(action: () => T): T {
   const saved = prototypes.map((p) =>
     Object.getOwnPropertyDescriptor(p, "constructor"),
   );
-  const blocked = () => {
-    throw new Error("Access to .constructor is blocked inside user code.");
-  };
+  // `undefined` rather than a throwing getter: spec-internal reads (array
+  // species lookups) must keep working — see the doc comment above.
+  const masked = () => undefined;
 
   for (const p of prototypes) {
     Object.defineProperty(p, "constructor", {
-      get: blocked,
+      get: masked,
       configurable: true,
     });
   }

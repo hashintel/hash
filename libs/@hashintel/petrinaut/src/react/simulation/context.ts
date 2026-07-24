@@ -4,6 +4,7 @@ import {
   type CompiledScenarioResult,
   type InitialMarking,
   type InitialPlaceMarking,
+  type ScenarioCompilationError,
   type SimulationFrameReader,
   type SimulationFrameState,
 } from "@hashintel/petrinaut-core";
@@ -133,6 +134,13 @@ export type SimulationContextValue = {
    * Null when no scenario is selected or compilation failed.
    */
   compiledScenarioResult: CompiledScenarioResult | null;
+  /**
+   * Errors from the last scenario compilation, or null when no scenario is
+   * selected or it compiled cleanly. Non-null exactly when a scenario is
+   * selected and `compiledScenarioResult` is null — surfaced in the UI so a
+   * failing scenario is never silently ignored.
+   */
+  scenarioCompilationErrors: ScenarioCompilationError[] | null;
 
   // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
@@ -189,6 +197,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   selectedScenarioId: null,
   scenarioParameterValues: {},
   compiledScenarioResult: null,
+  scenarioCompilationErrors: null,
   dt: 0.01,
   maxTime: null,
   totalFrames: 0,
