@@ -143,19 +143,21 @@ export function computePossibleTransition(
       );
     }
 
-    // Convert boolean lambda results to numbers: true -> Infinity, false -> 0
-    const lambdaNumeric =
+    // Predicate (boolean) lambdas fire in the same step their guard is true —
+    // no stochastic delay. They must not go through the exp() test below:
+    // mapping true to an Infinity rate breaks when timeSinceLastFiringMs is 0
+    // (Infinity * 0 = NaN), which would block firing on the first frame and
+    // on consecutive frames.
+    //
+    // For numeric rates, find the first combination of tokens where
+    // e^(-lambda) <= U1. We should normally find the minimum for all
+    // possibilities, but we try to reduce as much as we can here.
+    const fires =
       typeof lambdaResult === "boolean"
         ? lambdaResult
-          ? Number.POSITIVE_INFINITY
-          : 0
-        : lambdaResult;
+        : Math.exp(-lambdaResult * timeSinceLastFiringMs) <= U1;
 
-    const lambdaValue = lambdaNumeric * timeSinceLastFiringMs;
-
-    // Find the first combination of tokens where e^(-lambda) < U1
-    // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.
-    if (Math.exp(-lambdaValue) <= U1) {
+    if (fires) {
       // Transition fires! The compiled kernel writes output tokens into the
       // transition's staging bytes; Distribution/uuid values are resolved
       // through the kernel sink, advancing the RNG state.
