@@ -78,6 +78,13 @@ const DETAIL_INK: Color = [15, 18, 25, 255];
 const DETAIL_NODE_FILL_OPACITY = 0.85;
 const DETAIL_NODE_FILL_ALPHA = Math.round(255 * DETAIL_NODE_FILL_OPACITY);
 /**
+ * How much lighter the selected node's fill becomes while a *different* node is
+ * hovered (the backgrounded selection), mixed toward white. Sets the selection
+ * back visually so the hovered node reads as the active one, without dropping the
+ * selection's other selected styling.
+ */
+const DETAIL_SELECTION_LIGHTEN = 0.3;
+/**
  * The node parts live in separate sublayers, so across-sublayer draw order alone
  * would let a back node's icon/label show over a front node. Instead each node's
  * parts share a per-node depth *band* via the z coordinate, letting the depth
@@ -108,6 +115,13 @@ const truncateLabel = (label: string): string =>
   label.length > DETAIL_LABEL_MAX_CHARS
     ? `${label.slice(0, DETAIL_LABEL_MAX_CHARS - 1)}…`
     : label;
+
+/** Mix `rgb` toward white by `amount` (0–1), lightening it. */
+const lightenRgb = (rgb: RgbColor, amount: number): RgbColor => [
+  Math.round(rgb[0] + (255 - rgb[0]) * amount),
+  Math.round(rgb[1] + (255 - rgb[1]) * amount),
+  Math.round(rgb[2] + (255 - rgb[2]) * amount),
+];
 
 /** Pick a legible ink colour (near-black or white) for `rgb` by perceived luminance. */
 const contrastInkRgb = (rgb: RgbColor): RgbColor => {
@@ -364,13 +378,21 @@ export class DetailedNodeLayer extends CompositeLayer<
           point.y,
           zFor(point, DETAIL_LEVEL_CIRCLE),
         ],
-        getFillColor: (point) => [...rgbFor(point), DETAIL_NODE_FILL_ALPHA],
+        // The backgrounded selection (selected while another node is hovered) gets a
+        // lighter fill so it recedes behind the hovered node.
+        getFillColor: (point) => [
+          ...(point.id === selectedId
+            ? lightenRgb(rgbFor(point), DETAIL_SELECTION_LIGHTEN)
+            : rgbFor(point)),
+          DETAIL_NODE_FILL_ALPHA,
+        ],
         getRadius: (point) =>
           DETAIL_NODE_DIAMETER / 2 +
           (isEnlarged(point.id) ? DETAIL_CIRCLE_ACCENT_WIDTH : 0),
         radiusUnits: "pixels",
         updateTriggers: {
           getPosition: stackTrigger,
+          getFillColor: selectedId ?? "",
           getRadius: `${activeId ?? ""}:${selectedId ?? ""}`,
         },
       }),
