@@ -55,6 +55,7 @@ import type {
   ClosedEntityType,
   ClosedMultiEntityType,
   Entity,
+  EntityEditionId,
   EntityId,
   EntityMetadata,
   EntityUuid,
@@ -89,10 +90,17 @@ import type {
   CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
+  EntityTableFilter as EntityTableFilterGraphApi,
+  EntityTableLinkEndpoint as EntityTableLinkEndpointGraphApi,
+  EntityTablePropertyFilter as EntityTablePropertyFilterGraphApi,
+  EntityTableRow as EntityTableRowGraphApi,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
   QueryEntitiesResponse as QueryEntitiesResponseGraphApi,
+  QueryEntitiesTableParams as QueryEntitiesTableParamsGraphApi,
+  QueryEntitiesTableResponse as QueryEntitiesTableResponseGraphApi,
+  QueryEntitiesTableResponseSummary as QueryEntitiesTableResponseSummaryGraphApi,
   QueryEntitySubgraphRequest as QueryEntitySubgraphRequestGraphApi,
   QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
@@ -316,6 +324,83 @@ export type SummarizeEntitiesResponse = DistributiveOmit<
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
+};
+
+export type EntityTablePropertyFilter = DistributiveOmit<
+  EntityTablePropertyFilterGraphApi,
+  "property"
+> & {
+  property: BaseUrl;
+};
+
+export type EntityTableWebScope =
+  | { type: "include"; webs: WebId[] }
+  | { type: "exclude"; webs: WebId[] };
+
+export type EntityTableTypeScope =
+  | { type: "include"; entityTypeIds: VersionedUrl[] }
+  | { type: "exclude"; entityTypeBaseUrls: BaseUrl[] };
+
+export type QueryEntitiesTableParams = DistributiveOmit<
+  QueryEntitiesTableParamsGraphApi,
+  "filter" | "conversions"
+> & {
+  filter: Omit<
+    EntityTableFilterGraphApi,
+    "types" | "webs" | "propertyFilters"
+  > & {
+    webs?: EntityTableWebScope;
+    types?: EntityTableTypeScope;
+    propertyFilters?: EntityTablePropertyFilter[];
+  };
+  conversions?: ConversionRequest[];
+};
+
+export type EntityTableLinkEndpoint = DistributiveOmit<
+  EntityTableLinkEndpointGraphApi,
+  "entityId" | "entityTypeIds"
+> & {
+  entityId: EntityId;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+};
+
+export type EntityTableRow = DistributiveOmit<
+  EntityTableRowGraphApi,
+  | "entityId"
+  | "entityEditionId"
+  | "entityTypeIds"
+  | "createdBy"
+  | "lastEditedBy"
+  | "propertiesMetadata"
+  | "sourceEntity"
+  | "targetEntity"
+> & {
+  entityId: EntityId;
+  entityEditionId: EntityEditionId;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+  createdBy: ActorEntityUuid;
+  lastEditedBy: ActorEntityUuid;
+  propertiesMetadata: PropertyObjectMetadata;
+  sourceEntity?: EntityTableLinkEndpoint;
+  targetEntity?: EntityTableLinkEndpoint;
+};
+
+export type EntityTableSummary = DistributiveOmit<
+  QueryEntitiesTableResponseSummaryGraphApi,
+  "entityTypeIds" | "entityTypeTitles"
+> & {
+  entityTypeIds: Record<VersionedUrl, number>;
+  entityTypeTitles: Record<VersionedUrl, string>;
+};
+
+export type QueryEntitiesTableResponse = DistributiveOmit<
+  QueryEntitiesTableResponseGraphApi,
+  "rows" | "summary" | "closedMultiEntityTypes" | "definitions"
+> & {
+  rows: EntityTableRow[];
+  summary?: EntityTableSummary;
+  closedMultiEntityTypes?: ClosedMultiEntityTypesRootMap;
+  definitions?: EntityTypeResolveDefinitions;
 };
 
 export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
@@ -1559,8 +1644,8 @@ export const summarizeEntities = async (
   },
   authentication: AuthenticationContext,
   params: SummarizeEntitiesParams,
-): Promise<SummarizeEntitiesResponse> => {
-  return context.graphApi
+): Promise<SummarizeEntitiesResponse> =>
+  context.graphApi
     .summarizeEntities(authentication.actorId, params)
     .then(({ data: response }) => ({
       ...response,
@@ -1576,7 +1661,31 @@ export const summarizeEntities = async (
         | Record<VersionedUrl, string>
         | undefined,
     }));
-};
+
+export const queryEntitiesTable = async (
+  context: {
+    graphApi: GraphApi;
+  },
+  authentication: AuthenticationContext,
+  params: QueryEntitiesTableParams,
+): Promise<QueryEntitiesTableResponse> =>
+  context.graphApi
+    .queryEntitiesTable(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      rows: response.rows as QueryEntitiesTableResponse["rows"],
+      summary: response.summary as QueryEntitiesTableResponse["summary"],
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+      definitions: response.definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            response.definitions,
+          )
+        : undefined,
+    }));
 
 export const serializeQueryEntitiesResponse = <
   PropertyMap extends TypeIdsAndPropertiesForEntity =

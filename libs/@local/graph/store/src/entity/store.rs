@@ -35,7 +35,10 @@ use utoipa::{
 };
 
 use crate::{
-    entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
+    entity::{
+        EntityQueryCursor, EntityQuerySorting, EntityValidationReport, QueryEntitiesTableParams,
+        QueryEntitiesTableResponse,
+    },
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{
         CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
@@ -871,6 +874,28 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         params: SummarizeEntitiesParams<'_>,
     ) -> impl Future<Output = Result<SummarizeEntitiesResponse, Report<QueryError>>> + Send;
+
+    /// Queries one page of the entities table.
+    ///
+    /// Runs the summary and the page read in one transaction: when the
+    /// filter's [`types`] scope is [`Exclude`], the visible-type universe is
+    /// derived from the summary and applied to the page query. Follow-up
+    /// pages continue on the first page's database state through the
+    /// [`EntityTableCursor`].
+    ///
+    /// # Errors
+    ///
+    /// - if the cursor position cannot be encoded into query parameters
+    /// - if the request to the database fails
+    ///
+    /// [`types`]: crate::entity::EntityTableFilter::types
+    /// [`Exclude`]: crate::entity::EntityTableTypeScope::Exclude
+    /// [`EntityTableCursor`]: crate::entity::EntityTableCursor
+    fn query_entities_table(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: QueryEntitiesTableParams,
+    ) -> impl Future<Output = Result<QueryEntitiesTableResponse, Report<QueryError>>> + Send;
 
     fn get_entity_by_id(
         &self,

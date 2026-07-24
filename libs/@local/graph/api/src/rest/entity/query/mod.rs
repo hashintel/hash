@@ -8,7 +8,8 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
     entity::{
         ClosedMultiEntityTypeMap, EntityPermissions, EntityQueryCursor, EntityStore as _,
-        QueryEntitiesResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
+        QueryEntitiesResponse, QueryEntitiesTableParams, QueryEntitiesTableResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse,
     },
     entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
@@ -25,6 +26,7 @@ pub use self::request::{
 use crate::rest::{
     ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger,
     json::Json,
+    resolve_limit,
     status::{BoxedResponse, report_to_response},
     utoipa_typedef::subgraph::Subgraph,
 };
@@ -227,4 +229,52 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
+}
+
+#[utoipa::path(
+    post,
+    path = "/entities/query/table",
+    request_body = QueryEntitiesTableParams,
+    tag = "Entity",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (
+            status = 200,
+            content_type = "application/json",
+            body = QueryEntitiesTableResponse,
+        ),
+        (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+pub(super) async fn query_entities_table<S>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    Extension(api_config): Extension<ApiConfig>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(request): Json<serde_json::Value>,
+) -> Result<Json<QueryEntitiesTableResponse>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let mut params = QueryEntitiesTableParams::deserialize(&request)
+        .map_err(Report::from)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+    params.limit = resolve_limit(Some(params.limit), api_config.query_entity_limit)
+        .attach(hash_status::StatusCode::InvalidArgument)
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .query_entities_table(actor_id, params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }

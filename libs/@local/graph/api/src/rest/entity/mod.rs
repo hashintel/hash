@@ -18,11 +18,15 @@ use hash_graph_store::{
         ClosedMultiEntityTypeMap, ClusterEntitiesParams, ClusterEntitiesResponse,
         CreateEntityParams, DiffEntityParams, DiffEntityResult, EntityCluster, EntityPermissions,
         EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken,
-        EntityStore, EntityTypesError, EntityValidationReport, EntityValidationType,
+        EntityStore, EntityTableCursor, EntityTableFilter, EntityTableLinkEndpoint,
+        EntityTablePropertyFilter, EntityTablePropertyValue, EntityTableRow, EntityTableSortKey,
+        EntityTableSorting, EntityTableSummary, EntityTableTypeScope, EntityTableWebScope,
+        EntityTypesError, EntityValidationReport, EntityValidationType,
         HasPermissionForEntitiesParams, LinkDataStateError, LinkDataValidationReport, LinkError,
         LinkTargetError, LinkValidationReport, LinkedEntityError, MetadataValidationReport,
         PatchEntityParams, PropertyMetadataValidationReport, QueryConversion,
-        QueryEntitiesResponse, SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
+        QueryEntitiesResponse, QueryEntitiesTableParams, QueryEntitiesTableResponse,
+        SearchEntitiesFilter, SearchEntitiesParams, SearchEntitiesResponse,
         SummarizeEntitiesParams, SummarizeEntitiesResponse, UnexpectedEntityType,
         UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
@@ -76,7 +80,7 @@ use type_system::{
 };
 
 use self::query::{
-    QueryEntitySubgraphResponse, query_entities, query_entity_subgraph,
+    QueryEntitySubgraphResponse, query_entities, query_entities_table, query_entity_subgraph,
     request::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
     summarize_entities,
 };
@@ -97,6 +101,7 @@ use crate::rest::{
         self::query::query_entities,
         self::query::query_entity_subgraph,
         self::query::summarize_entities,
+        self::query::query_entities_table,
         search_entities,
         patch_entity,
         update_entity_embeddings,
@@ -113,6 +118,19 @@ use crate::rest::{
             ValidateEntityParams,
             SummarizeEntitiesParams,
             SummarizeEntitiesResponse,
+            QueryEntitiesTableParams,
+            QueryEntitiesTableResponse,
+            EntityTableCursor,
+            EntityTableFilter,
+            EntityTableLinkEndpoint,
+            EntityTablePropertyFilter,
+            EntityTablePropertyValue,
+            EntityTableWebScope,
+            EntityTableTypeScope,
+            EntityTableRow,
+            EntityTableSortKey,
+            EntityTableSorting,
+            EntityTableSummary,
             EntityValidationType,
             ValidateEntityComponents,
             Embedding,
@@ -245,7 +263,8 @@ impl EntityResource {
                     Router::new()
                         .route("/", post(query_entities::<S>))
                         .route("/subgraph", post(query_entity_subgraph::<S>))
-                        .route("/summarize", post(summarize_entities::<S>)),
+                        .route("/summarize", post(summarize_entities::<S>))
+                        .route("/table", post(query_entities_table::<S>)),
                 ),
         )
     }

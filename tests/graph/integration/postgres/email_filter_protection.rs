@@ -20,7 +20,9 @@ use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams, SummarizeEntitiesParams,
+        EntityStore as _, EntityTableFilter, EntityTablePropertyFilter, EntityTablePropertyValue,
+        EntityTableSorting, EntityTableTypeScope, EntityTableWebScope, QueryEntitiesParams,
+        QueryEntitiesTableParams, QueryEntitySubgraphParams, SummarizeEntitiesParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{
@@ -3221,4 +3223,122 @@ async fn subgraph_traversal_masks_linked_user_email() {
         has_shortname,
         "Shortname should still be visible for traversed User entity"
     );
+}
+
+// =============================================================================
+// Entities-Table Endpoint Protection Tests
+// =============================================================================
+//
+// The table endpoint compiles its property filters, its count, and its rows
+// separately from the generic read path, so the protection is verified on it
+// as well: the filter rewrite (WHERE and count) and the response masking.
+
+fn table_params_with(property_filters: Vec<EntityTablePropertyFilter>) -> QueryEntitiesTableParams {
+    QueryEntitiesTableParams {
+        filter: EntityTableFilter {
+            webs: EntityTableWebScope::default(),
+            types: EntityTableTypeScope::default(),
+            include_archived: false,
+            include_drafts: false,
+            property_filters,
+        },
+        cursor: None,
+        limit: 100,
+        sort: EntityTableSorting::default(),
+        conversions: Vec::new(),
+        include_summary: true,
+        include_entity_types: None,
+    }
+}
+
+fn table_email_filter(email: &str) -> EntityTablePropertyFilter {
+    EntityTablePropertyFilter::Equals {
+        property: BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned())
+            .expect("the URL should be a valid base URL"),
+        value: EntityTablePropertyValue::String(email.to_owned()),
+    }
+}
+
+/// email = X on the table endpoint → the User row is NOT returned and the
+/// count does not reveal it, where the Invitation with the same email is.
+#[tokio::test]
+async fn table_email_eq_excludes_user() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_email_types(&mut database).await;
+    api.create_user("shared@example.com", "alice").await;
+    let invitation = api.create_invitation("shared@example.com", "bob").await;
+
+    let response = api
+        .query_entities_table(
+            api.account_id,
+            table_params_with(vec![table_email_filter("shared@example.com")]),
+        )
+        .await
+        .expect("the table query should succeed");
+
+    assert_eq!(response.rows.len(), 1, "only the invitation should match");
+    assert_eq!(
+        response.rows[0].entity_id,
+        invitation.metadata.record_id.entity_id,
+    );
+    let summary = response
+        .summary
+        .expect("the summary should be present when requested");
+    assert_eq!(summary.count, 1, "the count should not reveal the user");
+}
+
+/// `startsWith` probing on the table endpoint cannot enumerate a user's email
+/// through row presence or the count.
+#[tokio::test]
+async fn table_email_starts_with_excludes_user() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+    api.create_user("secret@example.com", "alice").await;
+
+    let response = api
+        .query_entities_table(
+            api.account_id,
+            table_params_with(vec![EntityTablePropertyFilter::StartsWith {
+                property: BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned())
+                    .expect("the URL should be a valid base URL"),
+                value: "secret".to_owned(),
+            }]),
+        )
+        .await
+        .expect("the table query should succeed");
+
+    assert!(response.rows.is_empty(), "no row should reveal the user");
+    let summary = response
+        .summary
+        .expect("the summary should be present when requested");
+    assert_eq!(summary.count, 0, "the count should not reveal the user");
+}
+
+/// The table's rows mask another user's email like the generic read path.
+#[tokio::test]
+async fn table_masks_user_email_in_rows() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_email_types(&mut database).await;
+    api.create_user("hidden@example.com", "alice").await;
+    api.create_invitation("visible@example.com", "bob").await;
+
+    let response = api
+        .query_entities_table(api.account_id, table_params_with(Vec::new()))
+        .await
+        .expect("the table query should succeed");
+
+    let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned())
+        .expect("the URL should be a valid base URL");
+    assert_eq!(response.rows.len(), 2);
+    for row in &response.rows {
+        let is_user = row
+            .entity_type_ids
+            .iter()
+            .any(|url| url.base_url.as_str() == USER_ENTITY_TYPE_BASE_URL);
+        assert_eq!(
+            row.properties.properties().contains_key(&email_url),
+            !is_user,
+            "the user's email should be masked and the invitation's visible",
+        );
+    }
 }

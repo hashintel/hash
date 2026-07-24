@@ -41,6 +41,7 @@ import {
   createEntityResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
+  queryEntitiesTableResolver,
   searchEntitiesResolver,
   queryEntitySubgraphResolver,
   removeEntityViewerResolver,
@@ -165,6 +166,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     }),
     summarizeEntities: loggedInAndSignedUpMiddleware(summarizeEntitiesResolver),
     queryEntities: loggedInAndSignedUpMiddleware(queryEntitiesResolver),
+    queryEntitiesTable: loggedInAndSignedUpMiddleware(
+      queryEntitiesTableResolver,
+    ),
     searchEntities: loggedInAndSignedUpMiddleware(searchEntitiesResolver),
     queryEntitySubgraph: loggedInAndSignedUpMiddleware(
       queryEntitySubgraphResolver,
