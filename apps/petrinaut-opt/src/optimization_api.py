@@ -14,6 +14,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 from fastapi.responses import JSONResponse, StreamingResponse
 from opentelemetry import trace
 from opentelemetry.propagate import extract
@@ -73,6 +74,15 @@ _RUN_EVENTS_RESPONSES = {
             "the run; a newer attachment supersedes this one."
         ),
         "content": {"text/event-stream": {"schema": {"type": "string"}}},
+        "headers": {
+            "X-Requested-Trials": {
+                "description": (
+                    "Trial count requested by the run's manifest, for "
+                    "sizing synthesized summaries"
+                ),
+                "schema": {"type": "string"},
+            },
+        },
     },
     404: {"description": "No optimization run with this id is registered"},
 }
@@ -86,6 +96,12 @@ _DELETE_RUN_RESPONSES = {
     },
     404: {"description": "No optimization run with this id is registered"},
 }
+
+
+class OptimizationRunCreated(BaseModel):
+    """Response body of a successful detached-run creation."""
+
+    run_id: str
 
 
 class _RequestBodyTooLarge(Exception):
@@ -148,6 +164,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.statuses = StatusStore()
     app.state.optimization_admission_lock = asyncio.Lock()
     app.state.active_optimizations = 0
+    app.state.optimization_pending_accounts = set()
     app.state.optimization_runs = OptimizationRunRegistry()
     try:
         yield
@@ -188,8 +205,27 @@ async def _acquire_optimization_slot(
     app: FastAPI,
     *,
     request_id: str | None = None,
+    account_id: str | None = None,
 ) -> None:
     async with app.state.optimization_admission_lock:
+        # One account drives at most one optimization at a time. Pending
+        # creations are tracked separately because the run only appears in
+        # the registry once its CLI has initialized.
+        if account_id is not None and (
+            account_id in app.state.optimization_pending_accounts
+            or app.state.optimization_runs.has_live_run_for_account(account_id)
+        ):
+            log.warning(
+                "optimization request rejected: account busy",
+                extra={
+                    "event": "account_busy_rejected",
+                    "request_id": request_id,
+                },
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="An optimization is already running for this account",
+            )
         if app.state.active_optimizations >= MAX_ACTIVE_OPTIMIZATIONS:
             log.warning(
                 "optimization request rejected: study limit reached",
@@ -208,10 +244,27 @@ async def _acquire_optimization_slot(
                 headers={"Retry-After": str(RETRY_AFTER_SECONDS)},
             )
         app.state.active_optimizations += 1
+        if account_id is not None:
+            app.state.optimization_pending_accounts.add(account_id)
 
 
 def _request_correlation(request: Request) -> dict[str, str | None]:
     return {"request_id": request.headers.get("x-hash-request-id")}
+
+
+def _account_id(request: Request) -> str | None:
+    """The opaque owner tag stamped by the authenticated proxy, if any.
+
+    Direct callers (local development, the website demo) send none: their
+    runs are created ownerless and stay attachable without the header.
+    """
+    value = (request.headers.get("x-hash-account-id") or "").strip()
+    return value or None
+
+
+def _discard_pending_account(app: FastAPI, account_id: str | None) -> None:
+    if account_id is not None:
+        app.state.optimization_pending_accounts.discard(account_id)
 
 
 async def _release_optimization_slot(app: FastAPI) -> None:
@@ -332,10 +385,21 @@ def _initialization_error(
 async def _admit_and_initialize_run(
     request: Request,
     optimization_manifest: dict[str, Any],
+    *,
+    account_id: str | None = None,
 ) -> tuple[str, PetrinautOptimizer, dict[str, str | None]]:
-    """Admit and initialize one optimizer, releasing its slot on failure."""
+    """Admit and initialize one optimizer, releasing its slot on failure.
+
+    The caller owns clearing the account's pending-creation mark (in a
+    ``finally`` around the whole creation flow), so every failure path here
+    only needs to release the slot itself.
+    """
     correlation = _request_correlation(request)
-    await _acquire_optimization_slot(request.app, request_id=correlation["request_id"])
+    await _acquire_optimization_slot(
+        request.app,
+        request_id=correlation["request_id"],
+        account_id=account_id,
+    )
     try:
         run_id = request.app.state.statuses.create().run_id
     except BaseException:
@@ -428,21 +492,48 @@ async def post_optimize_runs(
     request: Request,
     optimization_manifest: dict[str, Any],
     response: Response,
-) -> dict[str, str]:
-    """Start a detached run that remains available for later SSE attachment."""
-    run_id, optimizer, correlation = await _admit_and_initialize_run(
-        request, optimization_manifest
-    )
-    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
-    request.app.state.optimization_runs.create_run(
-        request.app,
-        run_id=run_id,
-        optimizer=optimizer,
-        cleanup=cleanup,
-        correlation=correlation,
-    )
+) -> OptimizationRunCreated:
+    """Start a detached run that remains available for later SSE attachment.
+
+    When the caller stamps ``x-hash-account-id`` (the authenticated proxy
+    does), the run is owned: the account is single-flight while it lives, and
+    only requests carrying the same tag may attach to or cancel it.
+    """
+    account_id = _account_id(request)
+    try:
+        run_id, optimizer, correlation = await _admit_and_initialize_run(
+            request, optimization_manifest, account_id=account_id
+        )
+        cleanup = _create_admitted_run_cleanup(request.app, optimizer)
+        request.app.state.optimization_runs.create_run(
+            request.app,
+            run_id=run_id,
+            optimizer=optimizer,
+            cleanup=cleanup,
+            correlation=correlation,
+            account_id=account_id,
+        )
+    finally:
+        # The registry entry (or the failure) now carries the truth; the
+        # pending-creation mark has done its job on every path, including
+        # cancellation mid-initialization.
+        _discard_pending_account(request.app, account_id)
     response.headers["X-Optimization-Run-ID"] = run_id
-    return {"run_id": run_id}
+    return OptimizationRunCreated(run_id=run_id)
+
+
+def _resolve_owned_run(request: Request, run_id: str) -> Any:
+    """Look up a run, enforcing its owner tag when it has one.
+
+    Answers 404 for a mismatch — identical to an unknown run, so id-guessing
+    callers cannot learn that a foreign run exists.
+    """
+    run = request.app.state.optimization_runs.get(run_id)
+    if run is None or (
+        run.account_id is not None and _account_id(request) != run.account_id
+    ):
+        raise HTTPException(404, f"optimization run not found: {run_id}")
+    return run
 
 
 def _cursor_from_last_event_id(request: Request) -> int:
@@ -491,11 +582,12 @@ async def get_optimize_run_events(
         set_status_on_exception=False,
         end_on_exit=True,
     ) as attach_span:
-        run = request.app.state.optimization_runs.get(run_id)
-        if run is None:
+        try:
+            run = _resolve_owned_run(request, run_id)
+        except HTTPException:
             attach_span.set_attribute("http.status_code", 404)
             attach_span.set_status(Status(StatusCode.ERROR))
-            raise HTTPException(404, f"optimization run not found: {run_id}")
+            raise
         if cursor is None:
             cursor = _cursor_from_last_event_id(request)
         epoch = run.begin_attachment()
@@ -521,6 +613,9 @@ async def get_optimize_run_events(
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
             "X-Optimization-Run-ID": run_id,
+            # Sizes the consumer's synthesized summary without the proxy
+            # having to remember the manifest.
+            "X-Requested-Trials": str(run.requested_trials),
         },
         background=BackgroundTask(detach_if_never_started),
     )
@@ -531,9 +626,7 @@ async def get_optimize_run_events(
 )
 async def delete_optimize_run(run_id: str, request: Request) -> Response:
     """Cancel a detached run and wait for its resources to be released."""
-    run = request.app.state.optimization_runs.get(run_id)
-    if run is None:
-        raise HTTPException(404, f"optimization run not found: {run_id}")
+    run = _resolve_owned_run(request, run_id)
     if run.request_cancel("cancelled by client request"):
         log.info(
             "optimization run cancellation requested",

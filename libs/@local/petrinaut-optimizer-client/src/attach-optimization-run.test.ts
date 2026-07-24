@@ -25,6 +25,7 @@ describe("attachPetrinautOptimizationRunStream", () => {
             headers: {
               "content-type": "text/event-stream",
               "x-optimization-run-id": "run-42",
+              "x-requested-trials": "3",
             },
           },
         ),
@@ -39,7 +40,6 @@ describe("attachPetrinautOptimizationRunStream", () => {
         fetchImpl,
         onActivity,
         requestId: "request-123",
-        requestedTrials: 5,
         signal,
       });
 
@@ -58,7 +58,7 @@ describe("attachPetrinautOptimizationRunStream", () => {
       },
       {
         type: "complete",
-        requestedTrials: 5,
+        requestedTrials: 3,
         completedTrials: 1,
         prunedTrials: 0,
         failedTrials: 0,
@@ -84,7 +84,10 @@ describe("attachPetrinautOptimizationRunStream", () => {
     const fetchImpl = vi.fn(async () =>
       Promise.resolve(
         new Response("id: 1\nevent: done\ndata: {}\n\n", {
-          headers: { "content-type": "text/event-stream" },
+          headers: {
+            "content-type": "text/event-stream",
+            "x-requested-trials": "3",
+          },
         }),
       ),
     );
@@ -93,7 +96,6 @@ describe("attachPetrinautOptimizationRunStream", () => {
       endpoint: "http://petrinaut-opt.test",
       runId: "run-42",
       fetchImpl,
-      requestedTrials: 5,
     });
     await collect(events);
 
@@ -113,15 +115,19 @@ describe("attachPetrinautOptimizationRunStream", () => {
           'id: 1\ndata: {"step":0,"params":{"rate":0.8},"init_state":{},"metric":4,"state":"COMPLETE"}\n\n' +
             'id: 2\ndata: {"step":1,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n' +
             "id: 3\nevent: done\ndata: {}\n\n",
-          { headers: { "content-type": "text/event-stream" } },
+          {
+            headers: {
+              "content-type": "text/event-stream",
+              "x-requested-trials": "3",
+            },
+          },
         ),
-      requestedTrials: 2,
     });
 
     const collected = await collect(events);
     expect(collected.at(-1)).toEqual({
       type: "complete",
-      requestedTrials: 2,
+      requestedTrials: 3,
       completedTrials: 2,
       prunedTrials: 0,
       failedTrials: 0,
@@ -136,9 +142,11 @@ describe("attachPetrinautOptimizationRunStream", () => {
       runId: "run-42",
       fetchImpl: async () =>
         new Response("id: 1\nevent: cancelled\ndata: {}\n\n", {
-          headers: { "content-type": "text/event-stream" },
+          headers: {
+            "content-type": "text/event-stream",
+            "x-requested-trials": "3",
+          },
         }),
-      requestedTrials: 5,
     });
 
     await expect(collect(events)).resolves.toEqual([
@@ -156,7 +164,10 @@ describe("attachPetrinautOptimizationRunStream", () => {
     const fetchImpl = vi.fn(async () =>
       Promise.resolve(
         new Response("id: 1\nevent: done\ndata: {}\n\n", {
-          headers: { "content-type": "text/event-stream" },
+          headers: {
+            "content-type": "text/event-stream",
+            "x-requested-trials": "3",
+          },
         }),
       ),
     );
@@ -165,7 +176,6 @@ describe("attachPetrinautOptimizationRunStream", () => {
       endpoint: "http://petrinaut-opt.test",
       runId: "run/../42",
       fetchImpl,
-      requestedTrials: 1,
     });
     await collect(events);
 
@@ -184,7 +194,6 @@ describe("attachPetrinautOptimizationRunStream", () => {
           { detail: "optimization run not found: run-unknown" },
           { status: 404 },
         ),
-      requestedTrials: 5,
     });
 
     await expect(result).rejects.toBeInstanceOf(PetrinautOptimizerHttpError);
@@ -197,7 +206,6 @@ describe("attachPetrinautOptimizationRunStream", () => {
         endpoint: "http://petrinaut-opt.test",
         runId: "run-42",
         fetchImpl: async () => new Response(null, { status: 200 }),
-        requestedTrials: 5,
       }),
     ).rejects.toThrow("Petrinaut optimizer returned an empty response");
   });

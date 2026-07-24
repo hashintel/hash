@@ -22,6 +22,13 @@ forwarded unchanged to the CLI.
   `GET /optimize/runs/{run_id}/events`; `DELETE /optimize/runs/{run_id}`
   cancels it.
 
+When run creation carries an `x-hash-account-id` header (the authenticated
+NodeAPI proxy stamps it), the run is owned: the account may drive only one
+live run at a time (429 otherwise), and attach/cancel answer 404 unless the
+same tag is presented — identical to an unknown run, so foreign run ids
+cannot be probed. Requests without the header (local development, the
+website demo) create ownerless, openly attachable runs.
+
 The response is `text/event-stream`. Existing frame bodies are preserved:
 
 ```text

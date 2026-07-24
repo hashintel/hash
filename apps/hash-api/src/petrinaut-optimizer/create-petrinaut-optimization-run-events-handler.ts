@@ -9,14 +9,15 @@ import {
 } from "./shared/forward-optimization-events";
 import { createOptimizationRequestLifecycle } from "./shared/optimization-request-lifecycle";
 import {
-  requireOwnedRun,
   resolveOptimizationRouteContext,
   respondUpstreamFailure,
   RUN_NOT_FOUND,
 } from "./shared/optimization-route-context";
-import { MAX_EVENT_BYTES } from "./shared/validate-optimization-request";
+import {
+  capPathSegment,
+  MAX_EVENT_BYTES,
+} from "./shared/validate-optimization-request";
 
-import type { OptimizationRunOwners } from "./shared/optimization-run-owners";
 import type { PetrinautOptimizationEvent } from "@hashintel/petrinaut-core";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
@@ -39,28 +40,18 @@ const parseCursor = (value: unknown): number | undefined => {
  * The response replays buffered events past `?cursor=` as NDJSON, then
  * live-tails new ones; each replayed line carries the upstream sequence
  * number as `seq` so the browser can re-attach from where it stopped.
- * Only the run's creator may attach; unknown run ids — including runs
- * another account owns — answer 404 without revealing whether they exist.
- *
- * Ownership is released only once the run's terminal event has been
- * *delivered*: after the forwarding loop resolves and the response ends, or
- * — in the failure path — when the terminal line was committed while the
- * client was still connected. A disconnect or failure racing the terminal
- * write keeps the entry, so one more attach can replay the terminal frame
- * from the optimizer's retained log (and release then). After that delivered
- * terminal, a subsequent attach answers 404 even though the optimizer could
- * still replay the finished log: the browser already holds every event.
+ * The optimizer enforces ownership from the forwarded account tag: unknown
+ * run ids — including runs another account owns — answer 404 without
+ * revealing whether they exist.
  */
 export const createPetrinautOptimizationRunEventsHandler = ({
   fetchImpl,
   logger,
   origin,
-  runOwners,
 }: {
   fetchImpl: PetrinautOptimizerFetch;
   logger: Pick<Logger, "child" | "info" | "warn">;
   origin: URL | null;
-  runOwners: OptimizationRunOwners;
 }): RequestHandler => {
   return async (request, response) => {
     const context = resolveOptimizationRouteContext(request, response, {
@@ -73,21 +64,11 @@ export const createPetrinautOptimizationRunEventsHandler = ({
     const { requestId, requestLogger, startedAt, userId } = context;
 
     const runId = request.params.runId ?? "";
-    const owner = requireOwnedRun(response, {
-      action: "attach",
-      requestLogger,
-      runId,
-      runOwners,
-      userId,
-    });
-    if (!owner) {
-      return;
-    }
-
     const cursor = parseCursor(request.query.cursor);
     if (cursor === undefined) {
       requestLogger.warn("Petrinaut optimization run attach rejected", {
-        optimizationRunId: runId,
+        // The run id is user-controlled; the optimizer owns the check.
+        optimizationRunId: capPathSegment(runId),
         reason: "invalid-cursor",
         userId,
       });
@@ -109,14 +90,15 @@ export const createPetrinautOptimizationRunEventsHandler = ({
         runId,
         cursor,
         fetchImpl,
+        // The optimizer enforces that this account owns the run; it also
+        // reports the manifest's requested trial count on the response so
+        // the synthesized summary is sized without NodeAPI remembering the
+        // manifest. No direction is passed, so `best` stays null (the
+        // browser keeps its own running best across reconnections).
+        headers: { "x-hash-account-id": userId },
         maxEventBytes: MAX_EVENT_BYTES,
         onActivity: lifecycle.resetIdleTimeout,
         ...(requestId ? { requestId } : {}),
-        // The manifest is long gone at attach time; the ownership entry
-        // preserves the requested trial count for the synthesized summary,
-        // and no direction is passed so `best` stays null (the browser keeps
-        // its own running best across reconnections).
-        requestedTrials: owner.requestedTrials,
         signal: lifecycle.signal,
       });
       requestLogger.info("Petrinaut optimization run attached", {
@@ -141,11 +123,6 @@ export const createPetrinautOptimizationRunEventsHandler = ({
         lifecycle.signal,
       );
       response.end();
-      if (lifecycle.state.terminalEventSent) {
-        // The terminal event was delivered (completed, failed, or cancelled
-        // upstream): nothing is left to attach to or cancel.
-        runOwners.release(runId);
-      }
       requestLogger.info("Petrinaut optimization run attachment finished", {
         durationMs: Date.now() - startedAt,
         optimizationRunId: runId,
@@ -154,18 +131,6 @@ export const createPetrinautOptimizationRunEventsHandler = ({
       });
     } catch (error) {
       const durationMs = Date.now() - startedAt;
-      if (
-        lifecycle.state.terminalEventSent &&
-        !lifecycle.state.clientDisconnected &&
-        !response.destroyed
-      ) {
-        // The terminal line was committed while the client stayed connected
-        // (e.g. a timeout broke the final backpressure wait), so treat it as
-        // delivered. A disconnect racing the terminal write keeps the entry
-        // instead: one more attach replays the terminal frame from the
-        // optimizer's retained log and releases then.
-        runOwners.release(runId);
-      }
       if (lifecycle.state.clientDisconnected || response.destroyed) {
         // The run itself is unaffected: the browser can simply re-attach.
         requestLogger.info("Petrinaut optimization run attachment finished", {
@@ -178,11 +143,6 @@ export const createPetrinautOptimizationRunEventsHandler = ({
       }
       const runGoneUpstream =
         error instanceof PetrinautOptimizerHttpError && error.status === 404;
-      if (runGoneUpstream) {
-        // The optimizer no longer knows the run (expired or reaped), so the
-        // ownership entry is stale; drop it so the account is not blocked.
-        runOwners.release(runId);
-      }
       requestLogger.warn("Petrinaut optimization run attachment failed", {
         durationMs,
         error,

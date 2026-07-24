@@ -36,16 +36,10 @@ export type AttachPetrinautOptimizationRunStreamOptions = {
   maxEventBytes?: number;
   /** Called whenever upstream bytes arrive, including heartbeats. */
   onActivity?: () => void;
+  /** Extra headers forwarded upstream (e.g. the owner's account tag). */
+  headers?: Record<string, string>;
   /** Correlation id forwarded upstream as the `x-hash-request-id` header. */
   requestId?: string;
-  /**
-   * Number of trials requested by the run's manifest, recorded when the run
-   * was created. It only shapes the synthesized `complete` summary event; the
-   * completed/pruned/failed counts in that summary reflect the trial frames
-   * observed by *this* attachment (everything past the cursor), not
-   * necessarily the whole study.
-   */
-  requestedTrials: number;
   /** Signal used to cancel the request and its response stream. */
   signal?: AbortSignalLike;
 };
@@ -67,10 +61,10 @@ export const attachPetrinautOptimizationRunStream = async ({
   cursor,
   direction,
   fetchImpl = fetch,
+  headers,
   maxEventBytes,
   onActivity,
   requestId,
-  requestedTrials,
   signal,
 }: AttachPetrinautOptimizationRunStreamOptions): Promise<PetrinautOptimizationStreamHandle> => {
   const url = new URL(
@@ -86,6 +80,7 @@ export const attachPetrinautOptimizationRunStream = async ({
     headers: {
       accept: "text/event-stream",
       ...(requestId === undefined ? {} : { "x-hash-request-id": requestId }),
+      ...headers,
     },
     signal: signal as AbortSignal | undefined,
   });
@@ -95,6 +90,17 @@ export const attachPetrinautOptimizationRunStream = async ({
   if (!response.body) {
     throw new Error("Petrinaut optimizer returned an empty response");
   }
+
+  // Recorded by the optimizer at creation; it only shapes the synthesized
+  // `complete` summary event — the completed/pruned/failed counts in that
+  // summary reflect the frames observed by *this* attachment (everything
+  // past the cursor), not necessarily the whole study. Clamped to 1 when the
+  // header is missing (an older optimizer): a cosmetic undercount must not
+  // fail canonical-event validation and kill the attachment.
+  const requestedTrials = Math.max(
+    1,
+    Number(response.headers.get("x-requested-trials")) || 0,
+  );
 
   return {
     events: decodePetrinautOptimizerStream(response.body, {

@@ -14,6 +14,20 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "OptimizationRunCreated": {
+        "description": "Response body of a successful detached-run creation.",
+        "properties": {
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "title": "OptimizationRunCreated",
+        "type": "object"
+      },
       "Phase": {
         "enum": [
           "idle",
@@ -253,7 +267,7 @@
     },
     "/optimize/runs": {
       "post": {
-        "description": "Start a detached run that remains available for later SSE attachment.",
+        "description": "Start a detached run that remains available for later SSE attachment.\n\nWhen the caller stamps ``x-hash-account-id`` (the authenticated proxy\ndoes), the run is owned: the account is single-flight while it lives, and\nonly requests carrying the same tag may attach to or cancel it.",
         "operationId": "post_optimize_runs_optimize_runs_post",
         "requestBody": {
           "content": {
@@ -272,11 +286,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Post Optimize Runs Optimize Runs Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/OptimizationRunCreated"
                 }
               }
             },
@@ -390,7 +400,15 @@
                 }
               }
             },
-            "description": "Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one."
+            "description": "Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one.",
+            "headers": {
+              "X-Requested-Trials": {
+                "description": "Trial count requested by the run's manifest, for sizing synthesized summaries",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "404": {
             "description": "No optimization run with this id is registered"

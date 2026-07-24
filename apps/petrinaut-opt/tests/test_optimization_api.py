@@ -573,7 +573,7 @@ async def _start_detached_run(
     payload = await optimization_api.post_optimize_runs(
         request, optimization_manifest, optimization_api.Response()
     )
-    return test_app, payload["run_id"]
+    return test_app, payload.run_id
 
 
 async def _attach(test_app: FastAPI, run_id: str, cursor: int | None = None) -> Any:
@@ -981,6 +981,125 @@ def test_create_detached_run_reports_initialization_failure_with_the_run_id(
 
     assert response.status_code == 500
     assert "manifest rejected by CLI" in response.json()["detail"]
+
+
+def test_owned_runs_enforce_account_single_flight_and_visibility(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An owner tag makes the run single-flight and invisible to others."""
+    optimizer = ScriptedDetachedOptimizer(hold=True)
+    second_optimizer = ScriptedDetachedOptimizer(hold=True)
+    optimizers = iter([optimizer, second_optimizer])
+    monkeypatch.setattr(
+        optimization_api,
+        "initialize_optimizer",
+        lambda _manifest, **_kwargs: next(optimizers),
+    )
+
+    with TestClient(optimization_api.app) as client:
+        created = client.post(
+            "/optimize/runs",
+            json=optimization_manifest,
+            headers={"x-hash-account-id": "user-1"},
+        )
+        assert created.status_code == 201
+        run_id = created.json()["run_id"]
+
+        # The same account cannot start a second run while this one lives.
+        busy = client.post(
+            "/optimize/runs",
+            json=optimization_manifest,
+            headers={"x-hash-account-id": "user-1"},
+        )
+        assert busy.status_code == 429
+        assert (
+            busy.json()["detail"]
+            == "An optimization is already running for this account"
+        )
+
+        # Another account is admitted normally (global slots permitting).
+        other = client.post(
+            "/optimize/runs",
+            json=optimization_manifest,
+            headers={"x-hash-account-id": "user-2"},
+        )
+        assert other.status_code == 201
+
+        # A foreign or absent tag cannot see the owned run — 404, identical
+        # to an unknown id, on both attach and cancel.
+        for headers in ({}, {"x-hash-account-id": "user-2"}):
+            assert (
+                client.get(
+                    f"/optimize/runs/{run_id}/events", headers=headers
+                ).status_code
+                == 404
+            )
+            assert (
+                client.delete(
+                    f"/optimize/runs/{run_id}", headers=headers
+                ).status_code
+                == 404
+            )
+
+        # The owner attaches and cancels normally; the attachment reports
+        # the manifest's requested trial count for synthesized summaries.
+        optimizer.release.set()
+        second_optimizer.release.set()
+        attached = client.get(
+            f"/optimize/runs/{run_id}/events",
+            headers={"x-hash-account-id": "user-1"},
+        )
+        assert attached.status_code == 200
+        assert attached.headers["x-requested-trials"] == "2"
+        assert (
+            client.delete(
+                f"/optimize/runs/{run_id}",
+                headers={"x-hash-account-id": "user-1"},
+            ).status_code
+            == 204
+        )
+
+
+def test_account_single_flight_frees_after_terminal_and_ignores_ownerless_runs(
+    optimization_manifest: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    optimizer = ScriptedDetachedOptimizer()
+    monkeypatch.setattr(
+        optimization_api, "initialize_optimizer", lambda _manifest, **_kwargs: optimizer
+    )
+
+    with TestClient(optimization_api.app) as client:
+        # Runs created without a tag stay open and never block an account.
+        untagged = client.post("/optimize/runs", json=optimization_manifest)
+        assert untagged.status_code == 201
+        run_id = untagged.json()["run_id"]
+        run = optimization_api.app.state.optimization_runs.get(run_id)
+        assert run is not None
+        assert run.account_id is None
+        _wait_until(lambda: run.state is not RunState.running)
+
+        # A terminal run stops blocking its account: the tagged create is
+        # admitted even though the (finished) untagged run is retained.
+        tagged = client.post(
+            "/optimize/runs",
+            json=optimization_manifest,
+            headers={"x-hash-account-id": "user-1"},
+        )
+        assert tagged.status_code == 201
+        tagged_run = optimization_api.app.state.optimization_runs.get(
+            tagged.json()["run_id"]
+        )
+        assert tagged_run is not None
+        _wait_until(lambda: tagged_run.state is not RunState.running)
+
+        again = client.post(
+            "/optimize/runs",
+            json=optimization_manifest,
+            headers={"x-hash-account-id": "user-1"},
+        )
+        assert again.status_code == 201
 
 
 def test_openapi_exposes_the_detached_run_paths() -> None:

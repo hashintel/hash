@@ -1,35 +1,31 @@
-import { cancelPetrinautOptimizationRun } from "@local/petrinaut-optimizer-client";
-
 import { RESPONSE_START_TIMEOUT_MS } from "./shared/optimization-request-lifecycle";
 import {
-  requireOwnedRun,
   resolveOptimizationRouteContext,
   respondUpstreamFailure,
+  RUN_NOT_FOUND,
 } from "./shared/optimization-route-context";
+import { capPathSegment } from "./shared/validate-optimization-request";
 
-import type { OptimizationRunOwners } from "./shared/optimization-run-owners";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
+import type { PetrinautOptimizerClient } from "@local/petrinaut-optimizer-client";
 import type { RequestHandler } from "express";
 
 /**
  * Create the authenticated endpoint that cancels a detached optimization run.
  *
- * Only the run's creator may cancel it. Cancellation is idempotent: a run
- * the optimizer already finished, reaped, or expired still answers 204, and
- * the ownership entry is released either way so the account can start its
- * next run immediately.
+ * The optimizer enforces ownership: the account tag is forwarded and a
+ * foreign or unknown run answers 404 (never 403, so run ids cannot be
+ * probed). Cancellation is idempotent upstream — a run that already
+ * finished, was reaped, or expired still answers 204 while it is retained.
  */
 export const createPetrinautOptimizationRunCancelHandler = ({
-  fetchImpl,
+  client,
   logger,
   origin,
-  runOwners,
 }: {
-  fetchImpl: PetrinautOptimizerFetch;
+  client: PetrinautOptimizerClient;
   logger: Pick<Logger, "child" | "info" | "warn">;
   origin: URL | null;
-  runOwners: OptimizationRunOwners;
 }): RequestHandler => {
   return async (request, response) => {
     const context = resolveOptimizationRouteContext(request, response, {
@@ -40,36 +36,46 @@ export const createPetrinautOptimizationRunCancelHandler = ({
       return;
     }
     const { requestId, requestLogger, startedAt, userId } = context;
-
     const runId = request.params.runId ?? "";
-    if (
-      !requireOwnedRun(response, {
-        action: "cancel",
-        requestLogger,
-        runId,
-        runOwners,
-        userId,
-      })
-    ) {
-      return;
-    }
+    // The run id is user-controlled; the optimizer decides whether it names
+    // a run this account owns.
+    const loggedRunId = capPathSegment(runId);
 
-    const abortController = new AbortController();
     const deadline = { timedOut: false };
-    const cancelTimeout = setTimeout(() => {
+    const cancelTimeout = AbortSignal.timeout(RESPONSE_START_TIMEOUT_MS);
+    cancelTimeout.addEventListener("abort", () => {
       deadline.timedOut = true;
-      abortController.abort();
-    }, RESPONSE_START_TIMEOUT_MS);
+    });
 
     try {
-      await cancelPetrinautOptimizationRun({
-        endpoint: context.origin,
-        runId,
-        fetchImpl,
-        ...(requestId ? { requestId } : {}),
-        signal: abortController.signal,
+      const cancelled = await client.DELETE("/optimize/runs/{run_id}", {
+        params: { path: { run_id: runId } },
+        headers: {
+          "x-hash-account-id": userId,
+          ...(requestId ? { "x-hash-request-id": requestId } : {}),
+        },
+        signal: cancelTimeout,
       });
-      runOwners.release(runId);
+      if (cancelled.response.status === 404) {
+        requestLogger.warn("Petrinaut optimization run cancel rejected", {
+          optimizationRunId: loggedRunId,
+          reason: "unknown-or-foreign-run",
+          userId,
+        });
+        response.status(404).json(RUN_NOT_FOUND);
+        return;
+      }
+      if (!cancelled.response.ok) {
+        requestLogger.warn("Petrinaut optimization run cancellation failed", {
+          durationMs: Date.now() - startedAt,
+          optimizationRunId: loggedRunId,
+          outcome: "upstream-error",
+          upstreamStatus: cancelled.response.status,
+          userId,
+        });
+        respondUpstreamFailure(response, false);
+        return;
+      }
       requestLogger.info("Petrinaut optimization run cancelled", {
         durationMs: Date.now() - startedAt,
         optimizationRunId: runId,
@@ -77,17 +83,14 @@ export const createPetrinautOptimizationRunCancelHandler = ({
       });
       response.status(204).end();
     } catch (error) {
-      // The ownership entry survives so the owner can retry the cancel.
       requestLogger.warn("Petrinaut optimization run cancellation failed", {
         durationMs: Date.now() - startedAt,
         error,
-        optimizationRunId: runId,
+        optimizationRunId: loggedRunId,
         outcome: deadline.timedOut ? "timeout" : "upstream-error",
         userId,
       });
       respondUpstreamFailure(response, deadline.timedOut);
-    } finally {
-      clearTimeout(cancelTimeout);
     }
   };
 };

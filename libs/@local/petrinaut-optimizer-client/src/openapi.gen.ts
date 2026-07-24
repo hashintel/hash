@@ -76,6 +76,10 @@ export interface paths {
     /**
      * Post Optimize Runs
      * @description Start a detached run that remains available for later SSE attachment.
+     *
+     *     When the caller stamps ``x-hash-account-id`` (the authenticated proxy
+     *     does), the run is owned: the account is single-flight while it lives, and
+     *     only requests carrying the same tag may attach to or cancel it.
      */
     post: operations["post_optimize_runs_optimize_runs_post"];
     delete?: never;
@@ -181,6 +185,14 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /**
+     * OptimizationRunCreated
+     * @description Response body of a successful detached-run creation.
+     */
+    OptimizationRunCreated: {
+      /** Run Id */
+      run_id: string;
     };
     /**
      * Phase
@@ -379,9 +391,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": {
-            [key: string]: string;
-          };
+          "application/json": components["schemas"]["OptimizationRunCreated"];
         };
       };
       /** @description The optimization manifest exceeds 8 MiB */
@@ -470,6 +480,8 @@ export interface operations {
       /** @description Server-Sent Events attachment to a detached optimization run. Every frame carries an `id: <seq>` line (seq starts at 1); buffered frames with seq > cursor are replayed, then new frames are live-tailed with `: heartbeat` comments roughly every 30 seconds. The terminal frame is `event: done` (completed), an ERROR data frame (study failure), or `event: cancelled` (cancelled or reaped). If the run is already terminal the response closes after the replay. Disconnecting does not affect the run; a newer attachment supersedes this one. */
       200: {
         headers: {
+          /** @description Trial count requested by the run's manifest, for sizing synthesized summaries */
+          "X-Requested-Trials"?: string;
           [name: string]: unknown;
         };
         content: {

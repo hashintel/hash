@@ -83,12 +83,21 @@ class OptimizationRun:
         optimizer: Any,
         cleanup: Callable[[], Awaitable[None]],
         correlation: Mapping[str, str | None] | None = None,
+        account_id: str | None = None,
+        requested_trials: int = 0,
     ) -> None:
         loop = asyncio.get_running_loop()
         self.run_id = run_id
         self.optimizer = optimizer
         self.cleanup = cleanup
         self.correlation: dict[str, str | None] = dict(correlation or {})
+        # Opaque owner tag stamped by the authenticated proxy at creation.
+        # When set, only requests carrying the same tag may attach to or
+        # cancel the run, and the account is single-flight while it lives.
+        self.account_id = account_id
+        # Recorded so attachments can size their synthesized summary without
+        # the proxy having to remember the manifest.
+        self.requested_trials = requested_trials
         self.state = RunState.running
         # (seq, SSE frame body); seq starts at 1 and increments by one, so the
         # frame with sequence number ``seq`` lives at index ``seq - 1``.
@@ -254,6 +263,13 @@ class OptimizationRunRegistry:
     def runs(self) -> list[OptimizationRun]:
         return list(self._runs.values())
 
+    def has_live_run_for_account(self, account_id: str) -> bool:
+        """Whether the account owns a run that is still running."""
+        return any(
+            run.account_id == account_id and run.state is RunState.running
+            for run in self._runs.values()
+        )
+
     def create_run(
         self,
         app: Any,
@@ -262,6 +278,7 @@ class OptimizationRunRegistry:
         optimizer: Any,
         cleanup: Callable[[], Awaitable[None]],
         correlation: Mapping[str, str | None] | None = None,
+        account_id: str | None = None,
     ) -> OptimizationRun:
         """Register a run and start the background pump driving its study."""
         run = OptimizationRun(
@@ -269,6 +286,8 @@ class OptimizationRunRegistry:
             optimizer=optimizer,
             cleanup=cleanup,
             correlation=correlation,
+            account_id=account_id,
+            requested_trials=int(getattr(optimizer, "n_trials", 0) or 0),
         )
         self._runs[run_id] = run
         run.task = asyncio.create_task(

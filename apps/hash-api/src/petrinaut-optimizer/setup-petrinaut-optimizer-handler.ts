@@ -1,10 +1,10 @@
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
+import { createPetrinautOptimizerClient } from "@local/petrinaut-optimizer-client";
+
 import { createPetrinautOptimizationRunCancelHandler } from "./create-petrinaut-optimization-run-cancel-handler";
 import { createPetrinautOptimizationRunEventsHandler } from "./create-petrinaut-optimization-run-events-handler";
 import { createPetrinautOptimizationRunHandler } from "./create-petrinaut-optimization-run-handler";
-import { createOptimizationAccountOccupancy } from "./shared/optimization-account-occupancy";
-import { createOptimizationRunOwners } from "./shared/optimization-run-owners";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
@@ -83,15 +83,17 @@ export const getPetrinautOptimizerOrigin = (
 };
 
 /**
- * Mount authenticated NodeAPI routes for Petrinaut optimization, all behind
- * the same per-account rate-limit bucket.
+ * Mount authenticated NodeAPI routes for Petrinaut optimization.
  *
- * `POST …/optimize/runs`, `GET …/optimize/runs/:runId/events`, and
- * `DELETE …/optimize/runs/:runId` expose detached runs: creation returns a
- * run id immediately, events are consumed (and resumed via `?cursor=`)
- * through attachments that never affect the run, and cancellation is an
- * explicit DELETE. Run ownership is tracked in-process so only the creating
- * account can attach to or cancel a run.
+ * NodeAPI is a thin, stateless proxy: it authenticates, rate-limits, and
+ * validates, then forwards to the optimizer with the account's tag
+ * (`x-hash-account-id`). The optimizer owns all run state — per-account
+ * single-flight at admission, and owner-only visibility on attach/cancel.
+ *
+ * `POST …/optimize/runs` returns a run id immediately; events are consumed
+ * (and resumed via `?cursor=`) through `GET …/optimize/runs/:runId/events`
+ * attachments that never affect the run; `DELETE …/optimize/runs/:runId`
+ * cancels explicitly.
  */
 export const setupPetrinautOptimizerHandler = (
   app: Express,
@@ -113,19 +115,17 @@ export const setupPetrinautOptimizerHandler = (
     res.json({ optimization: origin !== null });
   });
 
-  const runOwners = createOptimizationRunOwners();
-  const occupancy = createOptimizationAccountOccupancy();
+  // A dummy base keeps the client constructible when the optimizer is not
+  // configured; the handlers answer 503 before ever using it then.
+  const client = createPetrinautOptimizerClient(
+    origin ?? "http://petrinaut-optimizer.invalid",
+    fetchImpl,
+  );
 
   app.post(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH,
     optimizationRateLimiter,
-    createPetrinautOptimizationRunHandler({
-      fetchImpl,
-      logger,
-      occupancy,
-      origin,
-      runOwners,
-    }),
+    createPetrinautOptimizationRunHandler({ client, logger, origin }),
   );
   app.get(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
@@ -134,17 +134,11 @@ export const setupPetrinautOptimizerHandler = (
       fetchImpl,
       logger,
       origin,
-      runOwners,
     }),
   );
   app.delete(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
     optimizationRateLimiter,
-    createPetrinautOptimizationRunCancelHandler({
-      fetchImpl,
-      logger,
-      origin,
-      runOwners,
-    }),
+    createPetrinautOptimizationRunCancelHandler({ client, logger, origin }),
   );
 };

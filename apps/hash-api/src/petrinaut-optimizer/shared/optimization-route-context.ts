@@ -1,9 +1,3 @@
-import { capPathSegment } from "./validate-optimization-request";
-
-import type {
-  OptimizationRunOwner,
-  OptimizationRunOwners,
-} from "./optimization-run-owners";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Request, Response } from "express";
 
@@ -60,43 +54,6 @@ export const resolveOptimizationRouteContext = (
     startedAt,
     userId: request.user.accountId,
   };
-};
-
-/**
- * Enforce that `runId` names a run owned by the calling account, answering
- * 404 (and returning `null`) otherwise. 404 rather than 403 on purpose:
- * revealing that a run id exists but belongs to someone else would leak
- * information to id-guessing clients.
- */
-export const requireOwnedRun = (
-  response: Response,
-  {
-    action,
-    requestLogger,
-    runId,
-    runOwners,
-    userId,
-  }: {
-    /** Names the rejected verb in the log line, e.g. "attach" or "cancel". */
-    action: string;
-    requestLogger: OptimizationRequestLogger;
-    runId: string;
-    runOwners: OptimizationRunOwners;
-    userId: string;
-  },
-): OptimizationRunOwner | null => {
-  const owner = runOwners.get(runId);
-  if (!owner || owner.accountId !== userId) {
-    requestLogger.warn(`Petrinaut optimization run ${action} rejected`, {
-      // The run id is user-controlled until the ownership check passes.
-      optimizationRunId: capPathSegment(runId),
-      reason: owner ? "not-owner" : "unknown-run",
-      userId,
-    });
-    response.status(404).json(RUN_NOT_FOUND);
-    return null;
-  }
-  return owner;
 };
 
 /** Answer a failed upstream round-trip: 504 for our own deadline, 502 else. */
