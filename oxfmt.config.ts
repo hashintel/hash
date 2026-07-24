@@ -59,9 +59,6 @@ export default defineConfig({
   ignorePatterns: [
     // License files have intentional formatting that shouldn't be touched
     "**/LICENSE*.md",
-    // Slidev decks: `---` blocks are per-slide frontmatter, not thematic
-    // breaks — generic markdown formatting corrupts the deck structure
-    "tools/atlas-presentation/deck/slides.md",
     // While supported, it doesn't yet support the full breadth
     // of taplo configuration options that we have set
     // see: https://github.com/oxc-project/oxc/issues/18580
