@@ -46,6 +46,80 @@ export type ExperimentParameterAxis = {
  */
 export const MAX_EXPERIMENT_COMBINATIONS = 200;
 
+/**
+ * Cumulative run targets a combination climbs through as it is refined:
+ * one run for the instant overview, then progressively larger batches so the
+ * viewed distributions sharpen quickly at first and keep improving while the
+ * user stays on a selection. Extended ×5/×2 beyond the last step for very
+ * large run budgets.
+ */
+export const EXPERIMENT_RUN_LADDER: readonly number[] = [
+  1, 10, 50, 100, 500, 1000,
+];
+
+/**
+ * The next cumulative run target for a combination that currently has
+ * `completedRuns` runs, clamped to `maxRuns` (the experiment's requested run
+ * count). Returns null once the combination is saturated.
+ */
+export function getNextRunTarget(
+  completedRuns: number,
+  maxRuns: number,
+): number | null {
+  if (completedRuns >= maxRuns) {
+    return null;
+  }
+
+  for (const target of EXPERIMENT_RUN_LADDER) {
+    if (target > completedRuns) {
+      return Math.min(target, maxRuns);
+    }
+  }
+
+  // Beyond the explicit ladder: keep alternating ×5 / ×2 (1000 → 5000 →
+  // 10000 → 50000 …) so arbitrarily large run budgets still step smoothly.
+  let target = EXPERIMENT_RUN_LADDER.at(-1)!;
+  let timesFive = true;
+  while (target <= completedRuns) {
+    target *= timesFive ? 5 : 2;
+    timesFive = !timesFive;
+  }
+
+  return Math.min(target, maxRuns);
+}
+
+/**
+ * Picks the next combination to refine: a random candidate among those with
+ * the fewest completed runs. Levelling the selection keeps every combination
+ * contributing a similar number of samples, so merged (marginalized)
+ * distributions stay an evenly-weighted mixture while still sampling the
+ * unpinned values randomly.
+ */
+export function pickNextRefinementCell(
+  candidates: ReadonlyArray<{ cellIndex: number; completedRuns: number }>,
+  random: () => number = Math.random,
+): number | null {
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const fewestRuns = Math.min(
+    ...candidates.map((candidate) => candidate.completedRuns),
+  );
+  const leastRefined = candidates.filter(
+    (candidate) => candidate.completedRuns === fewestRuns,
+  );
+  const picked =
+    leastRefined[
+      Math.min(
+        leastRefined.length - 1,
+        Math.floor(random() * leastRefined.length),
+      )
+    ]!;
+
+  return picked.cellIndex;
+}
+
 /** Grid size above which the create form warns about cost. */
 export const WARN_EXPERIMENT_COMBINATIONS = 50;
 

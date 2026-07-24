@@ -112,7 +112,9 @@ export function makeExperiment(
         status: status === "initializing" ? "pending" : status,
         error: null,
         progress,
+        runsCompleted: status === "complete" ? 1_000 : 0,
         metricFrames: overrides.metricFrames ?? [],
+        inFlightMetricFrames: [],
       },
     ],
     progress,
@@ -193,18 +195,12 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
   ).map((combination, index) => ({
     index,
     parameterValues: combination,
-    status: "complete",
+    status: "complete" as const,
     error: null,
-    progress: makeProgress({
-      activeRuns: 0,
-      advancedRuns: 0,
-      completedRuns: runCount,
-      allFinished: true,
-      frameNumber: 60,
-      runCount,
-      time: 180,
-    }),
+    progress: null,
+    runsCompleted: runCount,
     metricFrames: makeSyntheticDistributionFrames(combination, runCount),
+    inFlightMetricFrames: [],
   }));
 
   return {
@@ -296,6 +292,8 @@ const createFakeExperiment = (
   metricFrames: [],
 });
 
+const noopSetExperimentRunFocus = () => {};
+
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
@@ -338,6 +336,7 @@ export function FakeExperimentsProvider({
           current.filter((experiment) => experiment.id !== experimentId),
         );
       },
+      setExperimentRunFocus: noopSetExperimentRunFocus,
     }),
     [experiments, selectedExperiment, selectedExperimentId],
   );

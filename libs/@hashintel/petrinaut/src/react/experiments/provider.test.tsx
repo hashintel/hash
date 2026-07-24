@@ -110,6 +110,25 @@ function makeMetricFrame(): MonteCarloUserDefinedMetricFrame {
   };
 }
 
+function makeDistributionFrame(
+  bins: readonly (readonly [number, number])[],
+  runSampleCount: number,
+): MonteCarloUserDefinedMetricFrame {
+  return {
+    metricId: "constant",
+    label: "Constant",
+    outputType: "distribution",
+    frameNumber: 0,
+    time: 0,
+    bins,
+    value: null,
+    frameValue: null,
+    timeValue: null,
+    runSampleCount,
+    timeSampleCount: runSampleCount,
+  };
+}
+
 class FakeMonteCarloWorker {
   readonly sent: MonteCarloToWorkerMessage[] = [];
   readonly postMessage = vi.fn((message: MonteCarloToWorkerMessage) => {
@@ -222,6 +241,7 @@ const TestWrapper = ({
   createWorker,
   sdcpn,
   maxConcurrentCellWorkers,
+  focusDebounceMs,
   onContextValue,
 }: {
   addNotification?: (notification: AddNotificationInput) => string;
@@ -229,6 +249,7 @@ const TestWrapper = ({
   createWorker: () => FakeMonteCarloWorker;
   sdcpn?: SDCPN;
   maxConcurrentCellWorkers?: number;
+  focusDebounceMs?: number;
   onContextValue: (value: ExperimentsContextValue) => void;
 }) => (
   <NotificationsContext
@@ -249,6 +270,7 @@ const TestWrapper = ({
             >
           }
           maxConcurrentCellWorkers={maxConcurrentCellWorkers}
+          focusDebounceMs={focusDebounceMs}
         >
           <ExperimentsContextConsumer onContextValue={onContextValue} />
         </ExperimentsProvider>
@@ -264,6 +286,7 @@ function renderExperimentsProvider(
     requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
     sdcpn?: SDCPN;
     maxConcurrentCellWorkers?: number;
+    focusDebounceMs?: number;
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
@@ -281,6 +304,7 @@ function renderExperimentsProvider(
       createWorker={typeof worker === "function" ? worker : () => worker}
       sdcpn={options.sdcpn}
       maxConcurrentCellWorkers={options.maxConcurrentCellWorkers}
+      focusDebounceMs={options.focusDebounceMs ?? 0}
       onContextValue={captureValue}
     />,
   );
@@ -708,7 +732,7 @@ describe("ExperimentsProvider", () => {
     }
   });
 
-  it("expands ranged parameters into a grid of cells run through a worker pool", async () => {
+  it("seeds every combination with one run, then refines the viewed selection up the ladder", async () => {
     const workers: FakeMonteCarloWorker[] = [];
     const createWorker = () => {
       const worker = new FakeMonteCarloWorker();
@@ -722,25 +746,42 @@ describe("ExperimentsProvider", () => {
       maxConcurrentCellWorkers: 1,
     });
 
-    const completeProgress = makeProgress({
-      activeRuns: 0,
-      advancedRuns: 0,
-      completedRuns: 2,
-      allFinished: true,
-      frameNumber: 10,
-      runCount: 2,
-      time: 10,
-    });
+    const finishBatch = async (
+      worker: FakeMonteCarloWorker,
+      runCount: number,
+      frames: MonteCarloUserDefinedMetricFrame[] = [],
+    ) => {
+      await act(async () => {
+        worker.emit({ type: "ready" });
+        await flushWorkerSetup();
+        if (frames.length > 0) {
+          worker.emit({ type: "metricFrames", frames });
+        }
+        worker.emit({
+          type: "complete",
+          progress: makeProgress({
+            activeRuns: 0,
+            advancedRuns: 0,
+            completedRuns: runCount,
+            allFinished: true,
+            runCount,
+            time: 10,
+          }),
+        });
+        await flushWorkerSetup();
+      });
+    };
 
     try {
+      let experimentId = "";
       await act(async () => {
-        await getValue().createExperiment({
-          name: "Sweep experiment",
+        experimentId = await getValue().createExperiment({
+          name: "Lazy sweep",
           scenarioId: "scenario-sweep",
           scenarioParameterValues: {
             x: { mode: "range", min: 0, max: 1, valueCount: 3 },
           },
-          runCount: 2,
+          runCount: 30,
           seed: 42,
           dt: 1,
           maxTime: 10,
@@ -749,101 +790,118 @@ describe("ExperimentsProvider", () => {
         await flushWorkerSetup();
       });
 
-      const experiment = getValue().selectedExperiment!;
-      expect(experiment.parameterAxes).toEqual([
-        { identifier: "x", values: [0, 0.5, 1] },
-      ]);
-      expect(experiment.cells.map((cell) => cell.parameterValues)).toEqual([
-        { x: 0 },
-        { x: 0.5 },
-        { x: 1 },
-      ]);
-      expect(experiment.cells.map((cell) => cell.status)).toEqual([
-        "initializing",
-        "pending",
-        "pending",
-      ]);
-
-      // Concurrency 1: only the first cell's worker exists so far, and its
-      // scenario compiled with x=0 (beta = x * 2).
+      // Seed pass: one run per combination, one worker at a time.
       expect(workers).toHaveLength(1);
       expect(workers[0]!.sent[0]).toMatchObject({
         type: "init",
-        runCount: 2,
+        runCount: 1,
+        seed: 42,
         parameterValues: { beta: "0" },
       });
 
-      await act(async () => {
-        workers[0]!.emit({ type: "ready" });
-        await flushWorkerSetup();
-      });
-      expect(getValue().selectedExperiment?.status).toBe("running");
-
-      await act(async () => {
-        workers[0]!.emit({ type: "complete", progress: completeProgress });
-        await flushWorkerSetup();
-      });
-
-      // Completing a cell frees the slot for the next combination.
+      await finishBatch(workers[0]!, 1, [makeDistributionFrame([[1, 1]], 1)]);
       expect(workers).toHaveLength(2);
       expect(workers[1]!.sent[0]).toMatchObject({
         type: "init",
+        runCount: 1,
+        seed: 42,
         parameterValues: { beta: "1" },
       });
-      expect(getValue().selectedExperiment?.status).toBe("running");
-      expect(addNotification).not.toHaveBeenCalled();
 
+      await finishBatch(workers[1]!, 1);
+      await finishBatch(workers[2]!, 1);
+
+      // Baseline done; nothing is viewed, so the experiment idles.
+      expect(workers).toHaveLength(3);
+      const seeded = getValue().selectedExperiment!;
+      expect(seeded.status).toBe("idle");
+      expect(seeded.cells.map((cell) => cell.status)).toEqual([
+        "idle",
+        "idle",
+        "idle",
+      ]);
+      expect(seeded.cells.map((cell) => cell.runsCompleted)).toEqual([1, 1, 1]);
+      expect(seeded.cells[0]!.metricFrames).toEqual([
+        makeDistributionFrame([[1, 1]], 1),
+      ]);
+      expect(seeded.progress).toMatchObject({
+        completedRuns: 3,
+        runCount: 90,
+      });
+
+      // Viewing x pinned to its last value refines only that combination:
+      // 1 → 10 → 30 (clamped to the requested run count).
+      act(() => {
+        getValue().setExperimentRunFocus(experimentId, { x: 2 });
+      });
       await act(async () => {
-        workers[1]!.emit({ type: "ready" });
-        await flushWorkerSetup();
-        workers[1]!.emit({ type: "complete", progress: completeProgress });
         await flushWorkerSetup();
       });
 
-      expect(workers).toHaveLength(3);
-      expect(workers[2]!.sent[0]).toMatchObject({
+      expect(workers).toHaveLength(4);
+      expect(workers[3]!.sent[0]).toMatchObject({
         type: "init",
+        runCount: 9,
+        seed: 43,
         parameterValues: { beta: "2" },
       });
 
-      const frame = makeMetricFrame();
+      await finishBatch(workers[3]!, 9, [makeDistributionFrame([[1, 9]], 9)]);
+
+      expect(workers).toHaveLength(5);
+      expect(workers[4]!.sent[0]).toMatchObject({
+        type: "init",
+        runCount: 20,
+        seed: 52,
+        parameterValues: { beta: "2" },
+      });
+
+      await finishBatch(workers[4]!, 20, [
+        makeDistributionFrame([[1, 20]], 20),
+      ]);
+
+      // The pinned combination is saturated: accumulated batches merged,
+      // no further workers spawn for it.
+      expect(workers).toHaveLength(5);
+      const refined = getValue().selectedExperiment!;
+      expect(refined.status).toBe("idle");
+      expect(refined.cells[2]).toMatchObject({
+        status: "complete",
+        runsCompleted: 30,
+      });
+      // The seed batch emitted no frames, so the accumulated distribution
+      // holds the two refinement batches (9 + 20 samples).
+      expect(refined.cells[2]!.metricFrames).toEqual([
+        makeDistributionFrame([[1, 29]], 29),
+      ]);
+      expect(refined.cells.map((cell) => cell.runsCompleted)).toEqual([
+        1, 1, 30,
+      ]);
+      // Not everything reached the target, so no completion notification.
+      expect(addNotification).not.toHaveBeenCalled();
+
+      // Unpinning samples the remaining combinations, levelling up the ones
+      // with the fewest runs first.
+      act(() => {
+        getValue().setExperimentRunFocus(experimentId, { x: null });
+      });
       await act(async () => {
-        workers[2]!.emit({ type: "ready" });
-        await flushWorkerSetup();
-        workers[2]!.emit({ type: "metricFrames", frames: [frame] });
-        workers[2]!.emit({ type: "complete", progress: completeProgress });
         await flushWorkerSetup();
       });
 
-      const finished = getValue().selectedExperiment!;
-      expect(finished.status).toBe("complete");
-      expect(finished.cells.map((cell) => cell.status)).toEqual([
-        "complete",
-        "complete",
-        "complete",
-      ]);
-      expect(finished.cells[2]!.metricFrames).toEqual([frame]);
-      // Grid experiments keep frames per cell instead of mirroring them at
-      // the record level.
-      expect(finished.metricFrames).toEqual([]);
-      expect(finished.progress).toMatchObject({
-        completedRuns: 6,
-        runCount: 6,
-        allFinished: true,
-        time: 10,
-      });
-      expect(addNotification).toHaveBeenCalledTimes(1);
-      expect(addNotification).toHaveBeenCalledWith({
-        message: "Sweep experiment complete",
-        tone: "success",
-      });
-      expect(workers.every((cellWorker) => cellWorker.terminated)).toBe(true);
+      expect(workers).toHaveLength(6);
+      const levelled = workers[5]!.sent[0];
+      expect(levelled).toMatchObject({ type: "init", runCount: 9 });
+      if (levelled?.type !== "init") {
+        throw new Error("Expected an init message");
+      }
+      expect(["0", "1"]).toContain(levelled.parameterValues.beta);
     } finally {
       renderResult.unmount();
     }
   });
 
-  it("cancels the remaining grid cells when a sweep is cancelled", async () => {
+  it("stops refining a combination when the view moves to another one", async () => {
     const workers: FakeMonteCarloWorker[] = [];
     const createWorker = () => {
       const worker = new FakeMonteCarloWorker();
@@ -855,53 +913,115 @@ describe("ExperimentsProvider", () => {
       maxConcurrentCellWorkers: 1,
     });
 
+    const completeBatch = async (
+      worker: FakeMonteCarloWorker,
+      runCount: number,
+    ) => {
+      await act(async () => {
+        worker.emit({ type: "ready" });
+        await flushWorkerSetup();
+        worker.emit({
+          type: "complete",
+          progress: makeProgress({
+            activeRuns: 0,
+            advancedRuns: 0,
+            completedRuns: runCount,
+            allFinished: true,
+            runCount,
+            time: 10,
+          }),
+        });
+        await flushWorkerSetup();
+      });
+    };
+
     try {
       let experimentId = "";
       await act(async () => {
         experimentId = await getValue().createExperiment({
-          name: "Cancelled sweep",
+          name: "Refocused sweep",
           scenarioId: "scenario-sweep",
           scenarioParameterValues: {
             x: { mode: "range", min: 0, max: 1, valueCount: 3 },
           },
-          runCount: 2,
+          runCount: 30,
           seed: 42,
           dt: 1,
           maxTime: 10,
           metricSpecs: CONSTANT_METRIC_SPEC,
         });
         await flushWorkerSetup();
-        workers[0]!.emit({ type: "ready" });
-        await flushWorkerSetup();
       });
 
+      await completeBatch(workers[0]!, 1);
+      await completeBatch(workers[1]!, 1);
+      await completeBatch(workers[2]!, 1);
+
+      // Refine x = 0; its 9-run batch starts computing.
+      act(() => {
+        getValue().setExperimentRunFocus(experimentId, { x: 0 });
+      });
       await act(async () => {
-        getValue().cancelExperiment(experimentId);
+        await flushWorkerSetup();
+        workers[3]!.emit({ type: "ready" });
         await flushWorkerSetup();
       });
+      expect(workers).toHaveLength(4);
+      expect(workers[3]!.sent[0]).toMatchObject({
+        type: "init",
+        parameterValues: { beta: "0" },
+      });
+      expect(getValue().selectedExperiment?.status).toBe("running");
 
-      expect(workers[0]!.sent.map((message) => message.type)).toContain(
+      // Moving the view to x = 1 interrupts the in-flight batch...
+      act(() => {
+        getValue().setExperimentRunFocus(experimentId, { x: 1 });
+      });
+      expect(workers[3]!.sent.map((message) => message.type)).toContain(
         "cancel",
       );
-      // Queued cells are cancelled immediately; no further workers spawn.
-      expect(
-        getValue().selectedExperiment?.cells.map((cell) => cell.status),
-      ).toEqual(["running", "cancelled", "cancelled"]);
 
       await act(async () => {
-        workers[0]!.emit({
+        workers[3]!.emit({
           type: "cancelled",
           progress: makeProgress({ activeRuns: 0, advancedRuns: 0 }),
         });
         await flushWorkerSetup();
       });
 
-      expect(workers).toHaveLength(1);
-      expect(workers[0]!.terminated).toBe(true);
+      // ...discarding its partial runs, and redirects compute to x = 1.
+      expect(workers[3]!.terminated).toBe(true);
+      expect(getValue().selectedExperiment?.cells[0]).toMatchObject({
+        status: "idle",
+        runsCompleted: 1,
+        inFlightMetricFrames: [],
+      });
+      expect(workers).toHaveLength(5);
+      expect(workers[4]!.sent[0]).toMatchObject({
+        type: "init",
+        runCount: 9,
+        parameterValues: { beta: "1" },
+      });
+
+      // Cancelling the experiment stops refinement for good.
+      await act(async () => {
+        getValue().cancelExperiment(experimentId);
+        await flushWorkerSetup();
+        workers[4]!.emit({
+          type: "cancelled",
+          progress: makeProgress({ activeRuns: 0, advancedRuns: 0 }),
+        });
+        await flushWorkerSetup();
+      });
+
       expect(getValue().selectedExperiment?.status).toBe("cancelled");
-      expect(
-        getValue().selectedExperiment?.cells.map((cell) => cell.status),
-      ).toEqual(["cancelled", "cancelled", "cancelled"]);
+      act(() => {
+        getValue().setExperimentRunFocus(experimentId, { x: 0 });
+      });
+      await act(async () => {
+        await flushWorkerSetup();
+      });
+      expect(workers).toHaveLength(5);
     } finally {
       renderResult.unmount();
     }

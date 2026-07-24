@@ -21,6 +21,8 @@ function formatExperimentStatus(status: ExperimentRecord["status"]): string {
       return "Initializing";
     case "running":
       return "Running";
+    case "idle":
+      return "Idle";
     case "complete":
       return "Complete";
     case "error":

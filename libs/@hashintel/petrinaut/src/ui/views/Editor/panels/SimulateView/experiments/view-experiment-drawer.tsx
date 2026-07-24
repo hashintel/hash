@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { Button, Drawer, Icon, Slider, Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -138,6 +138,12 @@ const navigatorCombinedStyle = css({
   minWidth: "[0]",
 });
 
+const navigatorRunsStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  fontVariantNumeric: "[tabular-nums]",
+});
+
 type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 function formatNumber(value: number): string {
@@ -150,6 +156,8 @@ function formatStatus(experiment: ExperimentRecord): string {
       return "Initializing";
     case "running":
       return "Running";
+    case "idle":
+      return "Idle";
     case "complete":
       return "Complete";
     case "error":
@@ -179,8 +187,18 @@ const ExperimentSummary = ({
   experiment: ExperimentRecord;
 }) => {
   const progress = experiment.progress;
-  const progressPercent =
-    progress && experiment.maxTime > 0
+  const isGrid = experiment.cells.length > 1;
+  const totalRunBudget =
+    experiment.runCount * Math.max(1, experiment.cells.length);
+  const accumulatedRuns = experiment.cells.reduce(
+    (sum, cell) => sum + cell.runsCompleted,
+    0,
+  );
+  const progressPercent = isGrid
+    ? totalRunBudget > 0
+      ? Math.min(100, (accumulatedRuns / totalRunBudget) * 100)
+      : 0
+    : progress && experiment.maxTime > 0
       ? Math.min(100, (progress.time / experiment.maxTime) * 100)
       : 0;
 
@@ -200,21 +218,23 @@ const ExperimentSummary = ({
         <div className={statStyle}>
           <span className={statLabelStyle}>Runs</span>
           <span className={statValueStyle}>
-            {progress
-              ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
-              : experiment.runCount * Math.max(1, experiment.cells.length)}
+            {isGrid
+              ? `${accumulatedRuns.toLocaleString()} / ${totalRunBudget.toLocaleString()} accumulated`
+              : progress
+                ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
+                : experiment.runCount}
           </span>
         </div>
-        {experiment.cells.length > 1 ? (
+        {isGrid ? (
           <div className={statStyle}>
             <span className={statLabelStyle}>Combinations</span>
             <span className={statValueStyle}>
+              {experiment.cells.length} (
               {
                 experiment.cells.filter((cell) => cell.status === "complete")
                   .length
               }{" "}
-              / {experiment.cells.length} complete ({experiment.runCount} runs
-              each)
+              at the {experiment.runCount.toLocaleString()}-run target)
             </span>
           </div>
         ) : null}
@@ -222,17 +242,23 @@ const ExperimentSummary = ({
           <span className={statLabelStyle}>Errors</span>
           <span className={statValueStyle}>{progress?.erroredRuns ?? 0}</span>
         </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Frame</span>
-          <span className={statValueStyle}>{progress?.frameNumber ?? 0}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Time</span>
-          <span className={statValueStyle}>
-            {formatNumber(progress?.time ?? 0)} /{" "}
-            {formatNumber(experiment.maxTime)}
-          </span>
-        </div>
+        {!isGrid ? (
+          <>
+            <div className={statStyle}>
+              <span className={statLabelStyle}>Frame</span>
+              <span className={statValueStyle}>
+                {progress?.frameNumber ?? 0}
+              </span>
+            </div>
+            <div className={statStyle}>
+              <span className={statLabelStyle}>Time</span>
+              <span className={statValueStyle}>
+                {formatNumber(progress?.time ?? 0)} /{" "}
+                {formatNumber(experiment.maxTime)}
+              </span>
+            </div>
+          </>
+        ) : null}
       </div>
       <div className={progressBarStyle}>
         <div
@@ -366,41 +392,76 @@ const ExperimentMetricsGrid = ({
 
 /**
  * Parameter navigator + metric charts. Grid experiments merge the metric
- * distributions of every cell matching the current parameter selection at
- * render time — merging histograms is cheap, so navigating the parameter
- * space needs no recomputation of the runs themselves.
+ * distributions (accumulated + live batches) of every cell matching the
+ * current parameter selection at render time — merging histograms is cheap,
+ * so navigating the parameter space needs no recomputation. The selection is
+ * also reported to the experiments provider as the run focus: the scheduler
+ * progressively adds runs to whatever is in view.
  */
 const ExperimentResults = ({
   experiment,
 }: {
   experiment: ExperimentRecord;
 }) => {
+  const { setExperimentRunFocus } = use(ExperimentsContext);
   const [selection, setSelection] = useState<
     Readonly<Record<string, number | null>>
   >({});
   const axes = experiment.parameterAxes;
+  const isGrid = axes.length > 0;
+  const experimentId = experiment.id;
 
-  const displayFrames =
-    axes.length === 0
-      ? experiment.metricFrames
-      : mergeMetricFramesAcrossCells(
-          experiment.cells
-            .filter((cell) =>
-              axes.every((axis) => {
-                const pinnedIndex = selection[axis.identifier] ?? null;
-                return (
-                  pinnedIndex === null ||
-                  cell.parameterValues[axis.identifier] ===
-                    axis.values[pinnedIndex]
-                );
-              }),
-            )
-            .map((cell) => cell.metricFrames),
-        );
+  // Report the viewed selection so the scheduler refines it; pause
+  // refinement when the results stop being viewed.
+  useEffect(() => {
+    if (!isGrid) {
+      return;
+    }
+    setExperimentRunFocus(experimentId, selection);
+  }, [experimentId, isGrid, selection, setExperimentRunFocus]);
+
+  useEffect(() => {
+    if (!isGrid) {
+      return;
+    }
+    return () => {
+      setExperimentRunFocus(experimentId, null);
+    };
+  }, [experimentId, isGrid, setExperimentRunFocus]);
+
+  const matchingCells = isGrid
+    ? experiment.cells.filter((cell) =>
+        axes.every((axis) => {
+          const pinnedIndex = selection[axis.identifier] ?? null;
+          return (
+            pinnedIndex === null ||
+            cell.parameterValues[axis.identifier] === axis.values[pinnedIndex]
+          );
+        }),
+      )
+    : experiment.cells;
+
+  const displayFrames = isGrid
+    ? mergeMetricFramesAcrossCells(
+        matchingCells.flatMap((cell) => [
+          cell.metricFrames,
+          cell.inFlightMetricFrames,
+        ]),
+      )
+    : experiment.metricFrames;
+
+  const viewedRuns = matchingCells.reduce(
+    (sum, cell) => sum + cell.runsCompleted,
+    0,
+  );
+  const viewedRunBudget = experiment.runCount * matchingCells.length;
+  const isRefining = matchingCells.some(
+    (cell) => cell.status === "initializing" || cell.status === "running",
+  );
 
   return (
     <>
-      {axes.length > 0 ? (
+      {isGrid ? (
         <Section title="Parameters" collapsible defaultOpen>
           <ExperimentParameterNavigator
             axes={axes}
@@ -412,6 +473,19 @@ const ExperimentResults = ({
               }))
             }
           />
+          <span className={navigatorRunsStyle}>
+            {matchingCells.length === 1
+              ? "1 combination in view"
+              : `${matchingCells.length} combinations in view`}
+            {" · "}
+            {viewedRuns.toLocaleString()} of {viewedRunBudget.toLocaleString()}{" "}
+            runs accumulated
+            {isRefining
+              ? " — adding runs…"
+              : viewedRuns >= viewedRunBudget
+                ? " (at target)"
+                : ""}
+          </span>
         </Section>
       ) : null}
       {displayFrames.length > 0 ? (
@@ -438,8 +512,12 @@ export const ViewExperimentDrawer = ({
     return null;
   }
 
+  // Grid experiments idle between refinements — cancelling one permanently
+  // stops it from accumulating further runs.
   const canCancel =
-    experiment.status === "initializing" || experiment.status === "running";
+    experiment.status === "initializing" ||
+    experiment.status === "running" ||
+    experiment.status === "idle";
 
   return (
     <Drawer

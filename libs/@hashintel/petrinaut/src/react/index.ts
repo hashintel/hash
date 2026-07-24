@@ -35,6 +35,7 @@ export type {
   ExperimentCell,
   ExperimentCellStatus,
   ExperimentRecord,
+  ExperimentRunFocus,
   ExperimentStatus,
   ExperimentsContextValue,
 } from "./experiments/context";

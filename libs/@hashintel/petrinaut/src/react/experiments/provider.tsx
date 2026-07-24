@@ -24,7 +24,9 @@ import { SDCPNContext } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
   type ExperimentCell,
+  type ExperimentCellStatus,
   type ExperimentRecord,
+  type ExperimentRunFocus,
   type ExperimentStatus,
   ExperimentsContext,
   type ExperimentsContextValue,
@@ -33,7 +35,10 @@ import {
 import {
   buildParameterGridCombinations,
   buildParameterRangeValues,
+  getNextRunTarget,
   MAX_EXPERIMENT_COMBINATIONS,
+  mergeMetricFramesAcrossCells,
+  pickNextRefinementCell,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
 } from "./parameter-grid";
@@ -41,11 +46,16 @@ import {
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
   /**
-   * Cap on cell workers running at once per experiment. Each cell (parameter
-   * combination) gets its own Web Worker; defaults to a conservative share of
-   * the machine's cores.
+   * Cap on cell workers running at once per experiment. Each batch of runs
+   * gets its own Web Worker; defaults to a conservative share of the
+   * machine's cores.
    */
   maxConcurrentCellWorkers?: number;
+  /**
+   * How long a parameter selection must stay stable before new refinement
+   * batches launch for it. Keeps slider drags from thrashing workers.
+   */
+  focusDebounceMs?: number;
 }>;
 
 type CellHandleRegistration = {
@@ -65,23 +75,37 @@ type ExperimentCellRuntime = {
   initialMarking: InitialMarking;
 };
 
+/** Per-batch execution inputs for one cell. */
+type CellBatchOptions = {
+  runCount: number;
+  seed: number;
+  signal: AbortSignal;
+};
+
 /**
- * Controls one experiment's grid of cells while it executes. Cell scheduling
- * state (queue position, live handles, in-flight creations) lives in the
- * factory's closure — see `createOrchestration` in the provider.
+ * Controls one experiment's execution. Scheduling state lives in the
+ * factory closures (`createSingleBatchOrchestration` for range-less
+ * experiments, `createLazyGridOrchestration` for parameter sweeps).
  */
 type ExperimentOrchestration = {
-  /** Fills free worker slots with queued cells. */
-  launchNextCells: () => void;
+  /** Begins executing (seed pass / first batch). */
+  start: () => void;
   /**
-   * Stops scheduling, aborts in-flight worker creations, and asks live
-   * workers to cancel gracefully (they confirm with "cancelled" events that
-   * carry their final progress).
+   * Tells the scheduler which parameter selection is viewed. Grid
+   * experiments refine matching combinations; single-batch experiments
+   * ignore this.
+   */
+  setRunFocus: (focus: ExperimentRunFocus | null) => void;
+  /**
+   * Permanently stops computing: aborts in-flight worker creations and asks
+   * live workers to cancel gracefully (they confirm with "cancelled" events).
    */
   stop: () => void;
   /** Hard teardown for remove/unmount: disposes every live worker. */
   dispose: () => void;
 };
+
+const DEFAULT_FOCUS_DEBOUNCE_MS = 250;
 
 function getDefaultCellConcurrency(): number {
   const cores = Number(globalThis.navigator.hardwareConcurrency);
@@ -106,92 +130,124 @@ function mapExperimentStatus(
   }
 }
 
-function isTerminalCellStatus(status: ExperimentCell["status"]): boolean {
-  return status === "complete" || status === "error" || status === "cancelled";
-}
-
 function deriveExperimentStatus(
   cells: readonly ExperimentCell[],
 ): ExperimentStatus {
   let anyError = false;
   let anyCancelled = false;
-  let anyProgressed = false;
-  let allTerminal = true;
+  let anyRunning = false;
+  let anyInitializing = false;
+  let anyPending = false;
+  let anyRuns = false;
+  let allComplete = true;
 
   for (const cell of cells) {
-    if (cell.status === "error") {
-      anyError = true;
+    switch (cell.status) {
+      case "error":
+        anyError = true;
+        break;
+      case "cancelled":
+        anyCancelled = true;
+        break;
+      case "running":
+        anyRunning = true;
+        break;
+      case "initializing":
+        anyInitializing = true;
+        break;
+      case "pending":
+        anyPending = true;
+        break;
+      case "idle":
+      case "complete":
+        break;
     }
-    if (cell.status === "cancelled") {
-      anyCancelled = true;
+    if (cell.runsCompleted > 0) {
+      anyRuns = true;
     }
-    if (
-      cell.status === "running" ||
-      cell.status === "complete" ||
-      cell.status === "cancelled"
-    ) {
-      anyProgressed = true;
-    }
-    if (!isTerminalCellStatus(cell.status)) {
-      allTerminal = false;
+    if (cell.status !== "complete") {
+      allComplete = false;
     }
   }
 
   if (anyError) {
     return "error";
   }
-  if (allTerminal) {
-    return anyCancelled ? "cancelled" : "complete";
+  if (anyRunning) {
+    return "running";
   }
-  return anyProgressed ? "running" : "initializing";
+  if (anyInitializing) {
+    return anyRuns ? "running" : "initializing";
+  }
+  if (allComplete) {
+    return "complete";
+  }
+  if (anyCancelled) {
+    return "cancelled";
+  }
+  if (anyPending && !anyRuns) {
+    return "initializing";
+  }
+  return "idle";
 }
 
 /**
- * Aggregates the cells' progress into one experiment-level progress. With a
- * single cell the cell's own progress passes through untouched; with a grid,
- * run counters are summed and time/frame become the mean across cells (so
- * the progress bar reflects overall completion).
+ * Aggregates the cells into one experiment-level progress. With a single
+ * cell the cell's own batch progress passes through untouched. With a grid,
+ * progress reflects run accumulation: completed runs count accumulated runs
+ * plus the live batches, and `time` encodes the accumulated fraction of the
+ * total run budget so time-based progress bars stay meaningful.
  */
 function aggregateCellProgress(
   cells: readonly ExperimentCell[],
   runCountPerCell: number,
+  maxTime: number,
 ): MonteCarloWorkerProgress | null {
   if (cells.length === 1) {
     return cells[0]!.progress;
-  }
-  if (cells.every((cell) => cell.progress === null)) {
-    return null;
   }
 
   let activeRuns = 0;
   let advancedRuns = 0;
   let completedRuns = 0;
   let erroredRuns = 0;
-  let timeSum = 0;
-  let frameSum = 0;
-  let allFinished = true;
+  let frameNumber = 0;
+  let allComplete = true;
+  let anyProgress = false;
 
   for (const cell of cells) {
-    activeRuns += cell.progress?.activeRuns ?? 0;
-    advancedRuns += cell.progress?.advancedRuns ?? 0;
-    completedRuns += cell.progress?.completedRuns ?? 0;
-    erroredRuns += cell.progress?.erroredRuns ?? 0;
-    timeSum += cell.progress?.time ?? 0;
-    frameSum += cell.progress?.frameNumber ?? 0;
-    if (!isTerminalCellStatus(cell.status)) {
-      allFinished = false;
+    if (cell.progress !== null) {
+      anyProgress = true;
+      activeRuns += cell.progress.activeRuns;
+      advancedRuns += cell.progress.advancedRuns;
+      erroredRuns += cell.progress.erroredRuns;
+      completedRuns += cell.progress.completedRuns;
+      frameNumber = Math.max(frameNumber, cell.progress.frameNumber);
+    }
+    completedRuns += cell.runsCompleted;
+    if (cell.runsCompleted > 0) {
+      anyProgress = true;
+    }
+    if (cell.status !== "complete") {
+      allComplete = false;
     }
   }
+
+  if (!anyProgress) {
+    return null;
+  }
+
+  const runCount = runCountPerCell * cells.length;
 
   return {
     activeRuns,
     advancedRuns,
     completedRuns,
     erroredRuns,
-    allFinished,
-    frameNumber: Math.round(frameSum / cells.length),
-    runCount: runCountPerCell * cells.length,
-    time: timeSum / cells.length,
+    allFinished: allComplete,
+    frameNumber,
+    runCount,
+    time: runCount > 0 ? maxTime * Math.min(1, completedRuns / runCount) : 0,
   };
 }
 
@@ -281,6 +337,10 @@ function describeCombination(combination: Record<string, number>): string {
     .join(", ");
 }
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
 function assertExperimentInput(input: CreateExperimentInput): void {
   if (input.name.trim() === "") {
     throw new Error("Experiment name is required");
@@ -324,6 +384,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
   maxConcurrentCellWorkers,
+  focusDebounceMs,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
@@ -333,6 +394,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
   const cellConcurrencyRef = useLatest(
     maxConcurrentCellWorkers ?? getDefaultCellConcurrency(),
+  );
+  const focusDebounceRef = useLatest(
+    focusDebounceMs ?? DEFAULT_FOCUS_DEBOUNCE_MS,
   );
   const orchestrationsRef = useRef(new Map<string, ExperimentOrchestration>());
   const pendingRegistrationsRef = useRef(
@@ -401,7 +465,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             experiment.error ??
             cells.find((cell) => cell.error !== null)?.error ??
             null,
-          progress: aggregateCellProgress(cells, experiment.runCount),
+          progress: aggregateCellProgress(
+            cells,
+            experiment.runCount,
+            experiment.maxTime,
+          ),
           ...(singleCell
             ? {
                 metricFrames: singleCell.metricFrames,
@@ -430,38 +498,35 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   };
 
   /**
-   * Creates the scheduler for one experiment's grid: runs up to
-   * `maxConcurrentCellWorkers` cells at once, starting queued cells as slots
-   * free up. All mutable scheduling state lives in this closure.
+   * Range-less experiments: one full batch of `runCount` runs, computed
+   * eagerly in the background exactly as before parameter sweeps existed.
    */
-  const createOrchestration = ({
+  const createSingleBatchOrchestration = ({
     experimentId,
     experimentName,
-    cellRuntimes,
+    runtime,
+    runCount,
+    seed,
     createCellHandle,
   }: {
     experimentId: string;
     experimentName: string;
-    cellRuntimes: readonly ExperimentCellRuntime[];
+    runtime: ExperimentCellRuntime;
+    runCount: number;
+    seed: number;
     createCellHandle: (
-      runtime: ExperimentCellRuntime,
-      signal: AbortSignal,
+      cellRuntime: ExperimentCellRuntime,
+      options: CellBatchOptions,
     ) => Promise<MonteCarloExperiment>;
   }): ExperimentOrchestration => {
-    const registrations = new Map<number, CellHandleRegistration>();
-    const creationAborts = new Map<number, AbortController>();
-    let nextCellIndex = 0;
-    let activeCellCount = 0;
-    let completedCellCount = 0;
+    const { cellIndex } = runtime;
+    let registration: CellHandleRegistration | null = null;
+    let creationAbort: AbortController | null = null;
     let stopScheduling = false;
     let notifiedError = false;
 
     const maybeCleanup = () => {
-      if (
-        registrations.size === 0 &&
-        creationAborts.size === 0 &&
-        (stopScheduling || completedCellCount === cellRuntimes.length)
-      ) {
+      if (registration === null && creationAbort === null) {
         orchestrationsRef.current.delete(experimentId);
       }
     };
@@ -477,38 +542,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       });
     };
 
-    const stop = () => {
-      stopScheduling = true;
-      updateExperimentCells(experimentId, (cell) =>
-        cell.status === "pending" ? { ...cell, status: "cancelled" } : cell,
-      );
-      for (const controller of creationAborts.values()) {
-        controller.abort();
-      }
-      creationAborts.clear();
-      for (const registration of registrations.values()) {
-        registration.handle.cancel();
-      }
-    };
-
-    const dispose = () => {
-      stopScheduling = true;
-      for (const controller of creationAborts.values()) {
-        controller.abort();
-      }
-      creationAborts.clear();
-      for (const registration of registrations.values()) {
+    const finishCell = () => {
+      if (registration) {
         registration.off();
         registration.handle.dispose();
+        registration = null;
       }
-      registrations.clear();
     };
 
-    const registerCellHandle = (
-      cellIndex: number,
-      handle: MonteCarloExperiment,
-      launchMore: () => void,
-    ) => {
+    const registerHandle = (handle: MonteCarloExperiment) => {
       const sync = () => {
         const metricsState = handle.metrics.get();
         patchExperimentCell(
@@ -523,16 +565,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         );
       };
 
-      const finishCell = () => {
-        const registration = registrations.get(cellIndex);
-        if (registration) {
-          registration.off();
-          registration.handle.dispose();
-          registrations.delete(cellIndex);
-        }
-        activeCellCount -= 1;
-      };
-
       const unsubscribeStatus = handle.status.subscribe(sync);
       const unsubscribeProgress = handle.progress.subscribe(sync);
       const unsubscribeMetrics = handle.metrics.subscribe(sync);
@@ -544,8 +576,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           });
           notifyError(event.message);
           finishCell();
-          // One failed combination invalidates the sweep — stop the rest.
-          stop();
           maybeCleanup();
           return;
         }
@@ -553,20 +583,313 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         sync();
 
         if (event.type === "complete") {
-          completedCellCount += 1;
-          finishCell();
-          if (completedCellCount === cellRuntimes.length) {
+          patchExperimentCell(experimentId, cellIndex, {
+            runsCompleted: runCount,
+          });
+          addNotification({
+            message: `${experimentName} complete`,
+            tone: "success",
+          });
+        }
+        finishCell();
+        maybeCleanup();
+      });
+
+      registration = {
+        handle,
+        off: () => {
+          unsubscribeStatus();
+          unsubscribeProgress();
+          unsubscribeMetrics();
+          unsubscribeEvents();
+        },
+      };
+      sync();
+    };
+
+    const start = () => {
+      const abortController = new AbortController();
+      creationAbort = abortController;
+      patchExperimentCell(experimentId, cellIndex, { status: "initializing" });
+
+      const run = async () => {
+        try {
+          const handle = await createCellHandle(runtime, {
+            runCount,
+            seed,
+            signal: abortController.signal,
+          });
+          creationAbort = null;
+
+          if (stopScheduling) {
+            handle.dispose();
+            patchExperimentCell(experimentId, cellIndex, {
+              status: "cancelled",
+            });
+            maybeCleanup();
+            return;
+          }
+
+          registerHandle(handle);
+          handle.start();
+        } catch (error) {
+          creationAbort = null;
+
+          if (stopScheduling || isAbortError(error)) {
+            // Cancelled or removed while the worker was starting up.
+            patchExperimentCell(experimentId, cellIndex, {
+              status: "cancelled",
+            });
+            maybeCleanup();
+            return;
+          }
+
+          const message =
+            error instanceof Error ? error.message : String(error);
+          patchExperimentCell(experimentId, cellIndex, {
+            status: "error",
+            error: message,
+          });
+          notifyError(message);
+          maybeCleanup();
+        }
+      };
+
+      void run();
+    };
+
+    const stop = () => {
+      stopScheduling = true;
+      creationAbort?.abort();
+      creationAbort = null;
+      registration?.handle.cancel();
+    };
+
+    const dispose = () => {
+      stopScheduling = true;
+      creationAbort?.abort();
+      creationAbort = null;
+      finishCell();
+    };
+
+    return { start, setRunFocus: () => {}, stop, dispose };
+  };
+
+  /**
+   * Parameter sweeps: lazily computed, view-driven. First a seed pass gives
+   * every combination a single run (a cheap overview of the whole space).
+   * After that, compute follows the viewed selection: matching combinations
+   * are refined in progressively larger batches (1 → 10 → 50 → 100 → 500 →
+   * 1000 …) up to the requested run count, always levelling up the
+   * combinations with the fewest runs first (random among ties, so unpinned
+   * values are sampled randomly). Changing the selection interrupts batches
+   * that left the view (their partial runs are discarded) and redirects the
+   * workers; closing the results view pauses refinement entirely.
+   */
+  const createLazyGridOrchestration = ({
+    experimentId,
+    experimentName,
+    cellRuntimes,
+    axes,
+    runCount,
+    seed,
+    createCellHandle,
+  }: {
+    experimentId: string;
+    experimentName: string;
+    cellRuntimes: readonly ExperimentCellRuntime[];
+    axes: readonly ExperimentParameterAxis[];
+    runCount: number;
+    seed: number;
+    createCellHandle: (
+      cellRuntime: ExperimentCellRuntime,
+      options: CellBatchOptions,
+    ) => Promise<MonteCarloExperiment>;
+  }): ExperimentOrchestration => {
+    const runtimeByCellIndex = new Map(
+      cellRuntimes.map((runtime) => [runtime.cellIndex, runtime]),
+    );
+    const registrations = new Map<number, CellHandleRegistration>();
+    const creationAborts = new Map<number, AbortController>();
+    /** Cells with a batch computing (worker starting or live). */
+    const inFlightBatches = new Set<number>();
+    /** Authoritative accumulation state, mirrored into the React cells. */
+    const accumulatedFrames = new Map<
+      number,
+      readonly MonteCarloUserDefinedMetricFrame[]
+    >();
+    const completedRuns = new Map<number, number>();
+    const seedQueue = cellRuntimes.map((runtime) => runtime.cellIndex);
+    let focus: ExperimentRunFocus | null = null;
+    let focusTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopScheduling = false;
+    let notifiedError = false;
+    let notifiedComplete = false;
+
+    const runsOf = (cellIndex: number) => completedRuns.get(cellIndex) ?? 0;
+
+    const isSaturated = (cellIndex: number) => runsOf(cellIndex) >= runCount;
+
+    const allSaturated = () =>
+      cellRuntimes.every((runtime) => isSaturated(runtime.cellIndex));
+
+    /** The cell's resting status when no batch is computing for it. */
+    const restingStatus = (cellIndex: number): ExperimentCellStatus => {
+      if (stopScheduling) {
+        return "cancelled";
+      }
+      if (isSaturated(cellIndex)) {
+        return "complete";
+      }
+      return runsOf(cellIndex) > 0 ? "idle" : "pending";
+    };
+
+    const focusMatchesCell = (cellIndex: number): boolean => {
+      if (focus === null) {
+        return false;
+      }
+      const runtime = runtimeByCellIndex.get(cellIndex)!;
+      return axes.every((axis) => {
+        const pinnedIndex = focus![axis.identifier] ?? null;
+        return (
+          pinnedIndex === null ||
+          runtime.combination[axis.identifier] === axis.values[pinnedIndex]
+        );
+      });
+    };
+
+    const maybeCleanup = () => {
+      if (
+        (stopScheduling || allSaturated()) &&
+        registrations.size === 0 &&
+        creationAborts.size === 0 &&
+        inFlightBatches.size === 0
+      ) {
+        if (focusTimer !== null) {
+          clearTimeout(focusTimer);
+          focusTimer = null;
+        }
+        orchestrationsRef.current.delete(experimentId);
+      }
+    };
+
+    const notifyError = (message: string) => {
+      if (notifiedError) {
+        return;
+      }
+      notifiedError = true;
+      addNotification({
+        message: `${experimentName} failed: ${message}`,
+        tone: "error",
+      });
+    };
+
+    const finishBatchRegistration = (cellIndex: number) => {
+      const registration = registrations.get(cellIndex);
+      if (registration) {
+        registration.off();
+        registration.handle.dispose();
+        registrations.delete(cellIndex);
+      }
+      inFlightBatches.delete(cellIndex);
+    };
+
+    /**
+     * Interrupts the cell's in-flight batch (its partial runs are
+     * discarded); accumulated results are untouched.
+     */
+    const interruptBatch = (cellIndex: number) => {
+      const creation = creationAborts.get(cellIndex);
+      if (creation) {
+        // The abort rejection handler in startBatch resets the cell.
+        creation.abort();
+        creationAborts.delete(cellIndex);
+        return;
+      }
+      // The "cancelled" event handler resets the cell.
+      registrations.get(cellIndex)?.handle.cancel();
+    };
+
+    const registerBatchHandle = (
+      cellIndex: number,
+      batchRuns: number,
+      handle: MonteCarloExperiment,
+      onSettled: () => void,
+    ) => {
+      const sync = () => {
+        patchExperimentCell(experimentId, cellIndex, {
+          status:
+            mapExperimentStatus(handle.status.get()) === "running"
+              ? "running"
+              : "initializing",
+          progress: handle.progress.get(),
+          inFlightMetricFrames: handle.metrics.get().frames,
+        });
+      };
+
+      const unsubscribeStatus = handle.status.subscribe(sync);
+      const unsubscribeProgress = handle.progress.subscribe(sync);
+      const unsubscribeMetrics = handle.metrics.subscribe(sync);
+      const unsubscribeEvents = handle.events.subscribe((event) => {
+        if (event.type === "error") {
+          patchExperimentCell(experimentId, cellIndex, {
+            status: "error",
+            error: event.message,
+            inFlightMetricFrames: [],
+            progress: null,
+          });
+          notifyError(event.message);
+          finishBatchRegistration(cellIndex);
+          // One failed combination invalidates the sweep — stop the rest.
+          stopScheduling = true;
+          for (const controller of creationAborts.values()) {
+            controller.abort();
+          }
+          creationAborts.clear();
+          for (const remaining of registrations.values()) {
+            remaining.handle.cancel();
+          }
+          maybeCleanup();
+          return;
+        }
+
+        if (event.type === "complete") {
+          const batchFrames = handle.metrics.get().frames;
+          const previousFrames = accumulatedFrames.get(cellIndex) ?? [];
+          const mergedFrames =
+            previousFrames.length > 0
+              ? mergeMetricFramesAcrossCells([previousFrames, batchFrames])
+              : [...batchFrames];
+          accumulatedFrames.set(cellIndex, mergedFrames);
+          completedRuns.set(cellIndex, runsOf(cellIndex) + batchRuns);
+          finishBatchRegistration(cellIndex);
+          patchExperimentCell(experimentId, cellIndex, {
+            status: restingStatus(cellIndex),
+            runsCompleted: runsOf(cellIndex),
+            metricFrames: mergedFrames,
+            inFlightMetricFrames: [],
+            progress: null,
+          });
+          if (!notifiedComplete && allSaturated()) {
+            notifiedComplete = true;
             addNotification({
               message: `${experimentName} complete`,
               tone: "success",
             });
-          } else {
-            launchMore();
           }
-        } else {
-          // event.type === "cancelled"
-          finishCell();
+          onSettled();
+          maybeCleanup();
+          return;
         }
+
+        // event.type === "cancelled" — interrupted batch, partial discarded.
+        finishBatchRegistration(cellIndex);
+        patchExperimentCell(experimentId, cellIndex, {
+          status: restingStatus(cellIndex),
+          inFlightMetricFrames: [],
+          progress: null,
+        });
+        onSettled();
         maybeCleanup();
       });
 
@@ -582,60 +905,67 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       sync();
     };
 
-    const startCell = (
-      runtime: ExperimentCellRuntime,
-      launchMore: () => void,
+    const startBatch = (
+      cellIndex: number,
+      targetRuns: number,
+      onSettled: () => void,
     ) => {
-      const { cellIndex } = runtime;
+      const runtime = runtimeByCellIndex.get(cellIndex)!;
+      const runsBefore = runsOf(cellIndex);
+      const batchRuns = targetRuns - runsBefore;
       const abortController = new AbortController();
       creationAborts.set(cellIndex, abortController);
+      inFlightBatches.add(cellIndex);
       patchExperimentCell(experimentId, cellIndex, { status: "initializing" });
 
       const run = async () => {
         try {
-          const handle = await createCellHandle(
-            runtime,
-            abortController.signal,
-          );
+          const handle = await createCellHandle(runtime, {
+            runCount: batchRuns,
+            // Offsetting the base seed by the accumulated run count keeps
+            // batch RNG streams distinct while cells at the same progress
+            // stay paired (common random numbers).
+            seed: seed + runsBefore,
+            signal: abortController.signal,
+          });
           creationAborts.delete(cellIndex);
 
           if (stopScheduling) {
             handle.dispose();
-            activeCellCount -= 1;
+            inFlightBatches.delete(cellIndex);
             patchExperimentCell(experimentId, cellIndex, {
-              status: "cancelled",
+              status: restingStatus(cellIndex),
             });
             maybeCleanup();
             return;
           }
 
-          registerCellHandle(cellIndex, handle, launchMore);
+          registerBatchHandle(cellIndex, batchRuns, handle, onSettled);
           handle.start();
         } catch (error) {
           creationAborts.delete(cellIndex);
-          activeCellCount -= 1;
+          inFlightBatches.delete(cellIndex);
 
-          if (stopScheduling) {
-            // Cancelled or removed while the worker was starting up.
+          if (stopScheduling || isAbortError(error)) {
+            // Interrupted (focus change, cancel, or removal) while the
+            // worker was starting up.
             patchExperimentCell(experimentId, cellIndex, {
-              status: "cancelled",
+              status: restingStatus(cellIndex),
             });
+            onSettled();
             maybeCleanup();
             return;
           }
 
           const message =
             error instanceof Error ? error.message : String(error);
-          const prefix =
-            cellRuntimes.length > 1
-              ? `Combination ${describeCombination(runtime.combination)}: `
-              : "";
+          const prefixed = `Combination ${describeCombination(runtime.combination)}: ${message}`;
           patchExperimentCell(experimentId, cellIndex, {
             status: "error",
-            error: `${prefix}${message}`,
+            error: prefixed,
           });
-          notifyError(`${prefix}${message}`);
-          stop();
+          notifyError(prefixed);
+          stopScheduling = true;
           maybeCleanup();
         }
       };
@@ -643,20 +973,124 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       void run();
     };
 
-    const launchNextCells = () => {
+    /** Fills free worker slots: seed pass first, then focused refinement. */
+    const scheduleMore = () => {
+      if (stopScheduling) {
+        return;
+      }
+
+      // Seed pass: one run for every combination, regardless of focus.
       while (
-        !stopScheduling &&
-        activeCellCount < cellConcurrencyRef.current &&
-        nextCellIndex < cellRuntimes.length
+        inFlightBatches.size < cellConcurrencyRef.current &&
+        seedQueue.length > 0
       ) {
-        const runtime = cellRuntimes[nextCellIndex]!;
-        nextCellIndex += 1;
-        activeCellCount += 1;
-        startCell(runtime, launchNextCells);
+        const cellIndex = seedQueue.shift()!;
+        const target = getNextRunTarget(0, runCount);
+        if (target === null) {
+          continue;
+        }
+        startBatch(cellIndex, target, scheduleMore);
+      }
+
+      // Refinement: level up the viewed combinations with the fewest runs.
+      while (inFlightBatches.size < cellConcurrencyRef.current) {
+        const candidates = cellRuntimes
+          .filter(
+            (runtime) =>
+              !inFlightBatches.has(runtime.cellIndex) &&
+              runsOf(runtime.cellIndex) > 0 &&
+              !isSaturated(runtime.cellIndex) &&
+              focusMatchesCell(runtime.cellIndex),
+          )
+          .map((runtime) => ({
+            cellIndex: runtime.cellIndex,
+            completedRuns: runsOf(runtime.cellIndex),
+          }));
+        const picked = pickNextRefinementCell(candidates);
+        if (picked === null) {
+          break;
+        }
+        const target = getNextRunTarget(runsOf(picked), runCount);
+        if (target === null) {
+          break;
+        }
+        startBatch(picked, target, scheduleMore);
       }
     };
 
-    return { launchNextCells, stop, dispose };
+    const setRunFocus = (nextFocus: ExperimentRunFocus | null) => {
+      if (stopScheduling) {
+        return;
+      }
+      focus = nextFocus;
+
+      // Immediately stop refining combinations that left the view. Seed-pass
+      // batches (cells without any completed run) always finish: they are
+      // single runs and form the baseline overview. Interruption settles
+      // asynchronously (abort rejection / "cancelled" event), so the set is
+      // not mutated while iterating.
+      for (const cellIndex of inFlightBatches) {
+        if (runsOf(cellIndex) === 0 || focusMatchesCell(cellIndex)) {
+          continue;
+        }
+        interruptBatch(cellIndex);
+      }
+
+      // Debounce launches so slider drags don't thrash workers.
+      if (focusTimer !== null) {
+        clearTimeout(focusTimer);
+        focusTimer = null;
+      }
+      const debounceMs = focusDebounceRef.current;
+      if (debounceMs <= 0) {
+        scheduleMore();
+      } else {
+        focusTimer = setTimeout(() => {
+          focusTimer = null;
+          scheduleMore();
+        }, debounceMs);
+      }
+    };
+
+    const stop = () => {
+      stopScheduling = true;
+      if (focusTimer !== null) {
+        clearTimeout(focusTimer);
+        focusTimer = null;
+      }
+      updateExperimentCells(experimentId, (cell) =>
+        cell.status === "complete" || cell.status === "error"
+          ? cell
+          : { ...cell, status: "cancelled", inFlightMetricFrames: [] },
+      );
+      for (const controller of creationAborts.values()) {
+        controller.abort();
+      }
+      creationAborts.clear();
+      for (const registration of registrations.values()) {
+        registration.handle.cancel();
+      }
+    };
+
+    const dispose = () => {
+      stopScheduling = true;
+      if (focusTimer !== null) {
+        clearTimeout(focusTimer);
+        focusTimer = null;
+      }
+      for (const controller of creationAborts.values()) {
+        controller.abort();
+      }
+      creationAborts.clear();
+      for (const registration of registrations.values()) {
+        registration.off();
+        registration.handle.dispose();
+      }
+      registrations.clear();
+      inFlightBatches.clear();
+    };
+
+    return { start: scheduleMore, setRunFocus, stop, dispose };
   };
 
   const createExperiment: ExperimentsContextValue["createExperiment"] = async (
@@ -754,7 +1188,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       status: "pending",
       error: null,
       progress: null,
+      runsCompleted: 0,
       metricFrames: [],
+      inFlightMetricFrames: [],
     }));
 
     const experiment: ExperimentRecord = {
@@ -790,7 +1226,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // worker — the simulation engine has no compiler of its own. The
         // experiment's expression metrics are compiled alongside by
         // substituting them for the model's metrics. One compile serves
-        // every cell: parameter values are runtime inputs, not code.
+        // every cell and batch: parameter values are runtime inputs, not
+        // code.
         const expressionSpecs = input.metricSpecs.filter(
           (spec) => spec.kind === "expression",
         );
@@ -838,39 +1275,54 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         });
 
         const experimentConfigBase = {
-          // Artifact fingerprints cover the complete sanitized SDCPN, including
-          // its metric definitions. Run the workers against the exact snapshot
-          // used above rather than the pre-substitution model.
+          // Artifact fingerprints cover the complete sanitized SDCPN,
+          // including its metric definitions. Run the workers against the
+          // exact snapshot used above rather than the pre-substitution model.
           sdcpn: compiledExperimentSdcpn,
           extensions: experimentExtensions,
-          // The same seed across cells gives every combination the same
-          // random-number streams (common random numbers), so differences
-          // between cells reflect the parameters rather than sampling noise.
-          seed: input.seed,
           dt: input.dt,
           maxTime: input.maxTime,
           hirArtifacts: artifacts,
-          runCount: input.runCount,
         };
 
-        const orchestration = createOrchestration({
-          experimentId,
-          experimentName: experiment.name,
-          cellRuntimes,
-          createCellHandle: (runtime, signal) =>
-            createMonteCarloExperiment({
-              ...experimentConfigBase,
-              parameterValues: runtime.parameterValues,
-              initialMarking: runtime.initialMarking,
-              createWorker: workerFactoryRef.current,
-              metricSpecs,
-              signal,
-            }),
-        });
+        const createCellHandle = (
+          cellRuntime: ExperimentCellRuntime,
+          options: CellBatchOptions,
+        ) =>
+          createMonteCarloExperiment({
+            ...experimentConfigBase,
+            parameterValues: cellRuntime.parameterValues,
+            initialMarking: cellRuntime.initialMarking,
+            createWorker: workerFactoryRef.current,
+            metricSpecs,
+            runCount: options.runCount,
+            seed: options.seed,
+            signal: options.signal,
+          });
+
+        const orchestration =
+          cellRuntimes.length === 1
+            ? createSingleBatchOrchestration({
+                experimentId,
+                experimentName: experiment.name,
+                runtime: cellRuntimes[0]!,
+                runCount: input.runCount,
+                seed: input.seed,
+                createCellHandle,
+              })
+            : createLazyGridOrchestration({
+                experimentId,
+                experimentName: experiment.name,
+                cellRuntimes,
+                axes: parameterAxes,
+                runCount: input.runCount,
+                seed: input.seed,
+                createCellHandle,
+              });
 
         pendingRegistrationsRef.current.delete(experimentId);
         orchestrationsRef.current.set(experimentId, orchestration);
-        orchestration.launchNextCells();
+        orchestration.start();
       } catch (error) {
         const wasPending = pendingRegistrationsRef.current.delete(experimentId);
 
@@ -923,6 +1375,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     orchestrationsRef.current.get(experimentId)?.stop();
   };
 
+  const setExperimentRunFocus: ExperimentsContextValue["setExperimentRunFocus"] =
+    (experimentId, focus) => {
+      orchestrationsRef.current.get(experimentId)?.setRunFocus(focus);
+    };
+
   const disposeExperimentHandles = (experimentId: string) => {
     const pendingRegistration =
       pendingRegistrationsRef.current.get(experimentId);
@@ -964,6 +1421,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     createExperiment: useStableCallback(createExperiment),
     cancelExperiment: useStableCallback(cancelExperiment),
     removeExperiment: useStableCallback(removeExperiment),
+    setExperimentRunFocus: useStableCallback(setExperimentRunFocus),
   };
 
   return (

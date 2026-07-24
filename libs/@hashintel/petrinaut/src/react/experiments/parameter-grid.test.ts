@@ -4,7 +4,9 @@ import {
   buildParameterGridCombinations,
   buildParameterRangeValues,
   countGridCombinations,
+  getNextRunTarget,
   mergeMetricFramesAcrossCells,
+  pickNextRefinementCell,
 } from "./parameter-grid";
 
 import type {
@@ -178,6 +180,53 @@ describe("buildParameterGridCombinations", () => {
         { identifier: "b", values: [10, 20, 30] },
       ]),
     ).toBe(6);
+  });
+});
+
+describe("getNextRunTarget", () => {
+  it("climbs the ladder from zero", () => {
+    expect(getNextRunTarget(0, 1000)).toBe(1);
+    expect(getNextRunTarget(1, 1000)).toBe(10);
+    expect(getNextRunTarget(10, 1000)).toBe(50);
+    expect(getNextRunTarget(50, 1000)).toBe(100);
+    expect(getNextRunTarget(100, 1000)).toBe(500);
+    expect(getNextRunTarget(500, 1000)).toBe(1000);
+  });
+
+  it("clamps the target to the requested run count", () => {
+    expect(getNextRunTarget(1, 30)).toBe(10);
+    expect(getNextRunTarget(10, 30)).toBe(30);
+    expect(getNextRunTarget(50, 60)).toBe(60);
+  });
+
+  it("returns null once the combination is saturated", () => {
+    expect(getNextRunTarget(30, 30)).toBeNull();
+    expect(getNextRunTarget(1000, 1000)).toBeNull();
+    expect(getNextRunTarget(1500, 1000)).toBeNull();
+  });
+
+  it("extends beyond the explicit ladder with ×5/×2 steps", () => {
+    expect(getNextRunTarget(1000, 100_000)).toBe(5000);
+    expect(getNextRunTarget(5000, 100_000)).toBe(10_000);
+    expect(getNextRunTarget(10_000, 100_000)).toBe(50_000);
+  });
+});
+
+describe("pickNextRefinementCell", () => {
+  it("returns null without candidates", () => {
+    expect(pickNextRefinementCell([], () => 0)).toBeNull();
+  });
+
+  it("picks among the candidates with the fewest completed runs", () => {
+    const candidates = [
+      { cellIndex: 0, completedRuns: 10 },
+      { cellIndex: 1, completedRuns: 1 },
+      { cellIndex: 2, completedRuns: 1 },
+      { cellIndex: 3, completedRuns: 50 },
+    ];
+
+    expect(pickNextRefinementCell(candidates, () => 0)).toBe(1);
+    expect(pickNextRefinementCell(candidates, () => 0.99)).toBe(2);
   });
 });
 

@@ -14,20 +14,23 @@ import type {
 export type ExperimentStatus =
   | "initializing"
   | "running"
+  | "idle"
   | "complete"
   | "error"
   | "cancelled";
 
 /**
  * Status of a single cell (parameter combination) of an experiment.
- * "pending" cells are waiting for a worker slot.
+ * "pending" cells are waiting for a worker slot; "idle" cells have
+ * accumulated some runs and are waiting to be viewed before refining
+ * further.
  */
 export type ExperimentCellStatus = ExperimentStatus | "pending";
 
 /**
- * One parameter combination of an experiment's grid: its own Monte Carlo
- * batch with its own progress and per-frame metric distributions. An
- * experiment without ranged parameters has exactly one cell.
+ * One parameter combination of an experiment's grid, accumulating Monte
+ * Carlo runs in progressively larger batches. An experiment without ranged
+ * parameters has exactly one cell (run as a single full batch).
  */
 export type ExperimentCell = {
   /** Row-major index into the parameter grid (first axis varies slowest). */
@@ -37,8 +40,25 @@ export type ExperimentCell = {
   status: ExperimentCellStatus;
   error: string | null;
   progress: MonteCarloWorkerProgress | null;
+  /** Runs accumulated across completed batches. */
+  runsCompleted: number;
+  /** Merged metric frames of all completed batches. */
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
+  /**
+   * Live frames of the batch currently computing (discarded if the batch is
+   * interrupted, merged into `metricFrames` when it completes). Display code
+   * should merge these with `metricFrames`.
+   */
+  inFlightMetricFrames: readonly MonteCarloUserDefinedMetricFrame[];
 };
+
+/**
+ * The parameter selection currently viewed in an experiment's results
+ * drawer: per ranged parameter, the pinned value index or null when the
+ * parameter is combined. A null focus means the results are not being
+ * viewed at all.
+ */
+export type ExperimentRunFocus = Readonly<Record<string, number | null>>;
 
 /**
  * Metric spec as authored by the experiment form. Expression metrics are
@@ -111,6 +131,15 @@ export type ExperimentsContextValue = {
   createExperiment: (input: CreateExperimentInput) => Promise<string>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
+  /**
+   * Tells the scheduler which parameter selection is currently viewed, so
+   * grid experiments refine the combinations in view. Pass null when the
+   * results stop being viewed (refinement pauses).
+   */
+  setExperimentRunFocus: (
+    experimentId: string,
+    focus: ExperimentRunFocus | null,
+  ) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
@@ -121,6 +150,7 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   createExperiment: () => Promise.resolve(""),
   cancelExperiment: () => {},
   removeExperiment: () => {},
+  setExperimentRunFocus: () => {},
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
