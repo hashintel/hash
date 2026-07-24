@@ -11,7 +11,6 @@ use super::{
     Context,
 };
 use crate::{
-    dataset::OntologyRowId,
     file::{
         array::{ArrayFile, ArrayVariant, Dim},
         identity::read::IdentityFile,
@@ -19,6 +18,7 @@ use crate::{
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
+    identity::{NodeRowId, OntologyRowId},
     salt::{
         adjacency::AdjacencyArchive,
         importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
@@ -94,7 +94,7 @@ impl Context<'_> {
             .map_err(StageError::MapCoordinates)?;
         let points = coordinates.points().ok_or(StageError::CoordinateShape)?;
 
-        let ids = IdentityTableArchive::<I>::new(IdentityFile::open(
+        let ids = IdentityTableArchive::<I, NodeRowId>::new(IdentityFile::open(
             self.staging.path_of(&Role::NodeIdentities.file_name()),
         )?)?;
 

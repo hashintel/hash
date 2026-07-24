@@ -11,7 +11,6 @@ use super::{
     closure::ClosureMap,
 };
 use crate::{
-    dataset::OntologyRowId,
     file::{
         WriteInto as _,
         postings::{
@@ -19,6 +18,7 @@ use crate::{
             write::{Regions, write_regions},
         },
     },
+    identity::{Identity as _, OntologyRowId},
     math::Log2,
 };
 

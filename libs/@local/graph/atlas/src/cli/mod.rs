@@ -10,7 +10,7 @@
 //! store dialing of their own beyond what their arguments name.
 
 use alloc::sync::Arc;
-use core::{error::Error as CoreError, fmt, num::NonZero};
+use core::{error::Error, fmt, num::NonZero};
 use std::{io, time::Instant};
 
 use axum::Router;
@@ -273,8 +273,8 @@ impl fmt::Display for FitError {
     }
 }
 
-impl CoreError for FitError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for FitError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Connect(error) => error.source(),
             Self::Run(error) => error.source(),
@@ -318,8 +318,8 @@ impl fmt::Display for ServeError {
     }
 }
 
-impl CoreError for ServeError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for ServeError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Root(error) => Some(error),
             Self::Current(error) => Some(error),

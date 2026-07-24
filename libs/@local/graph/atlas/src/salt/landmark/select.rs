@@ -38,7 +38,7 @@ use rayon::{
 };
 use zerocopy::{LE, U32};
 
-use crate::{bitset::BitSet, dataset::NodeRowId, math::UnitFraction};
+use crate::{bitset::BitSet, identity::NodeRowId, math::UnitFraction};
 
 /// A landmark-stratification axis.
 #[derive(

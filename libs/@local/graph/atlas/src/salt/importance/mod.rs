@@ -10,7 +10,10 @@
 //! Every signal is a pure function of published artifacts and the configuration: equal generations
 //! derive equal columns, so the ranking stays reproducible from the manifest alone.
 
-use crate::{dataset::NodeRowId, salt::adjacency::AdjacencyArchive};
+use crate::{
+    identity::{Identity as _, NodeRowId},
+    salt::adjacency::AdjacencyArchive,
+};
 
 #[cfg(test)]
 mod tests;

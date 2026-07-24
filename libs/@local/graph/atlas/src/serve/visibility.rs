@@ -20,7 +20,10 @@
 //! [`VisibilityProof::contains`] wholesale instead of minting a value per row.
 
 use super::{Atlas, WireRow};
-use crate::{bitset::BitSet, dataset::NodeRowId};
+use crate::{
+    bitset::BitSet,
+    identity::{Identity as _, NodeRowId},
+};
 
 /// The server-held visibility proof: the visible node-row set every assembly path masks by.
 ///

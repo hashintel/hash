@@ -12,6 +12,7 @@
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Corpus, Profile};
+use crate::identity::Identity as _;
 
 const LINKS: usize = 4_096;
 const SEED: u64 = 42;

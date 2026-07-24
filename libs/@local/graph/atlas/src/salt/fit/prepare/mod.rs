@@ -18,8 +18,9 @@ use smallvec::SmallVec;
 use zerocopy::IntoBytes as _;
 
 use crate::{
-    dataset::{Dataset, OntologyRowId, PROJECTOR_DIMENSIONS},
+    dataset::{Dataset, PROJECTOR_DIMENSIONS},
     file::array::{ArrayVariant, ArrayWriter, Dim},
+    identity::OntologyRowId,
 };
 
 pub(crate) mod identity;
@@ -71,7 +72,7 @@ pub(crate) struct NodeColumns<I> {
 /// Collects the node ids and direct types in the same pass.
 ///
 /// Row `i` of the written matrix is the embedding of node row `i`, so the matrix is row-aligned
-/// with every artifact keyed by [`NodeRowId`](crate::dataset::NodeRowId), and entry `i` of the
+/// with every artifact keyed by [`NodeRowId`](crate::identity::NodeRowId), and entry `i` of the
 /// returned columns is that row's source id and type set. The finished file's repository digest is
 /// computed at publish.
 ///

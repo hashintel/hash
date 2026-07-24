@@ -18,8 +18,8 @@ use super::{
 };
 use crate::{
     dataset::{
-        ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Edge, EdgeRowId, Node, NodeRowId, Ontology,
-        OntologyRowId, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
+        ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+        card::Card, memory::MemoryDataset,
     },
     file::{
         WriteInto as _,
@@ -40,6 +40,7 @@ use crate::{
         },
         sprs::read::SprsFile,
     },
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN},
     salt::{
@@ -355,6 +356,10 @@ fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "the completeness proof walks every published artifact in one pass"
+)]
 async fn fit_publishes_a_complete_generation() {
     let path = scratch("complete");
     let root = GenerationRoot::new(&path).expect("the root should open");
@@ -448,26 +453,34 @@ async fn fit_publishes_a_complete_generation() {
 
     // The identity artifacts translate rows to source ids and back:
     // node ids are the fixture's row numbers, edge ids its 100 and 101.
-    let nodes = IdentityTableArchive::<U64<LE>>::new(
+    let nodes = IdentityTableArchive::<U64<LE>, NodeRowId>::new(
         IdentityFile::open(published.path().join("node-identities.idnt"))
             .expect("the node identities should map"),
     )
     .expect("the node identities should validate");
     assert_eq!(nodes.len(), NODES as u64);
     for row in 0..NODES as u64 {
-        assert_eq!(nodes.id(row), Some(U64::new(row)), "row {row}");
-        assert_eq!(nodes.row_of(U64::new(row)), Some(row), "id {row}");
+        assert_eq!(
+            nodes.id(NodeRowId::new(row)),
+            Some(U64::new(row)),
+            "row {row}"
+        );
+        assert_eq!(
+            nodes.row_of(U64::new(row)),
+            Some(NodeRowId::new(row)),
+            "id {row}"
+        );
     }
     assert!(nodes.row_of(U64::new(NODES as u64 + 7)).is_none());
 
-    let edge_ids = IdentityTableArchive::<U64<LE>>::new(
+    let edge_ids = IdentityTableArchive::<U64<LE>, EdgeRowId>::new(
         IdentityFile::open(published.path().join("edge-identities.idnt"))
             .expect("the edge identities should map"),
     )
     .expect("the edge identities should validate");
     assert_eq!(edge_ids.len(), 2);
-    assert_eq!(edge_ids.id(0), Some(U64::new(100)));
-    assert_eq!(edge_ids.row_of(U64::new(101)), Some(1));
+    assert_eq!(edge_ids.id(EdgeRowId::new(0)), Some(U64::new(100)));
+    assert_eq!(edge_ids.row_of(U64::new(101)), Some(EdgeRowId::new(1)));
 
     // The postings restate the fixture's memberships and parent graph
     // in base delivery order.
@@ -1865,14 +1878,17 @@ async fn edge_artifacts_publish_and_read_back() {
 
     // The ontology identities translate type rows to source ids and
     // back: the fixture's type ids are its row numbers.
-    let ontology_ids = IdentityTableArchive::<U64<LE>>::new(
+    let ontology_ids = IdentityTableArchive::<U64<LE>, OntologyRowId>::new(
         IdentityFile::open(published.path().join("ontology-identities.idnt"))
             .expect("the ontology identities should map"),
     )
     .expect("the ontology identities should validate");
     assert_eq!(ontology_ids.len(), 4);
-    assert_eq!(ontology_ids.id(2), Some(U64::new(2)));
-    assert_eq!(ontology_ids.row_of(U64::new(3)), Some(3));
+    assert_eq!(ontology_ids.id(OntologyRowId::new(2)), Some(U64::new(2)));
+    assert_eq!(
+        ontology_ids.row_of(U64::new(3)),
+        Some(OntologyRowId::new(3))
+    );
 
     // The metadata document accounts for every reading: four retained
     // instances, nothing pruned at the zero threshold, one

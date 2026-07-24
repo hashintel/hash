@@ -2,7 +2,7 @@
 
 use core::{error::Error, fmt};
 
-use crate::dataset::OntologyRowId;
+use crate::identity::{Identity as _, OntologyRowId};
 
 /// A policy table or instance set violated a relation-index contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

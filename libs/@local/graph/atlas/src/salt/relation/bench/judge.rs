@@ -17,7 +17,7 @@ use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::Corpus;
 use crate::{
-    dataset::NodeRowId,
+    identity::{Identity as _, NodeRowId},
     random::uniform_below,
     salt::relation::protection::{NodePair, ProtectionConfig},
 };

@@ -27,6 +27,7 @@ use crate::{
         identity::{read::IdentityFile, write::write_regions},
         region::ByteStable,
     },
+    identity::Identity,
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -191,17 +192,19 @@ impl Error for InvalidIdentityFile {}
 ///
 /// Construction validates the domain invariants in one pass, so the lookups are unchecked
 /// afterwards: [`id`](Self::id) indexes the id column and [`row_of`](Self::row_of) binary-searches
-/// the sorted pairs behind the file's index prelude.
+/// the sorted pairs behind the file's index prelude. The table translates between one id domain
+/// and one row domain: `I` is the source id type, `R` the row identity its lookups answer.
 #[derive(Debug)]
-pub(crate) struct IdentityTableArchive<I> {
-    // TODO: have this be typed
+pub(crate) struct IdentityTableArchive<I, R> {
     file: IdentityFile,
     id: PhantomData<I>,
+    row: PhantomData<R>,
 }
 
-impl<I> IdentityTableArchive<I>
+impl<I, R> IdentityTableArchive<I, R>
 where
     I: ByteStable,
+    R: Identity,
 {
     /// Validates a mapped identity file as a lookup table over `I`.
     ///
@@ -231,6 +234,7 @@ where
         let table = Self {
             file,
             id: PhantomData,
+            row: PhantomData,
         };
         let ids = table.ids();
         let pairs = table.pairs();
@@ -296,8 +300,8 @@ where
 
     /// Returns the id of `row`, or [`None`] beyond the domain.
     #[must_use]
-    pub(crate) fn id(&self, row: u64) -> Option<I> {
-        self.ids().get(usize::try_from(row).ok()?).copied()
+    pub(crate) fn id(&self, row: R) -> Option<I> {
+        self.ids().get(usize::try_from(row.get()).ok()?).copied()
     }
 
     /// Returns the row carrying `id`, or [`None`] when no row does.
@@ -305,7 +309,7 @@ where
     /// The index prelude narrows the search to one stride of pairs, so a cold lookup faults two
     /// pages instead of `log2(N)` scattered ones.
     #[must_use]
-    pub(crate) fn row_of(&self, id: I) -> Option<u64> {
+    pub(crate) fn row_of(&self, id: I) -> Option<R> {
         let bytes = id.as_bytes();
         let keys = self.index_keys();
 
@@ -324,6 +328,6 @@ where
             .binary_search_by(|pair| pair.id.as_bytes().cmp(bytes))
             .ok()?;
 
-        Some(window[position].row.get())
+        Some(R::new(window[position].row.get()))
     }
 }

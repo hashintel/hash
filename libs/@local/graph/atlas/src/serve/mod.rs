@@ -42,6 +42,7 @@
 //! document. Below the [`Atlas`] facade nothing reaches into the whole value: the domain types
 //! borrow exactly the columns they read.
 
+use self::grid::Grid;
 pub use self::{
     codec::WireRow,
     edges::{EdgesDocument, EdgesError, EdgesLimits, EdgesRequest},
@@ -62,10 +63,10 @@ pub use self::{
     },
     visibility::{VisibilityProof, VisibleRow},
 };
-use self::{column::Column, grid::Grid};
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid, NodeRowId},
+    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
+    identity::{Column, EdgeRowId, NodeRowId, OntologyRowId},
     math::{Bounds2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
@@ -80,7 +81,6 @@ pub use crate::{
 
 mod codec;
 mod colour;
-mod column;
 mod edges;
 mod error;
 mod grid;
@@ -200,11 +200,11 @@ pub struct Atlas {
     ///
     /// Present by construction: a generation whose ids are not store identities fails the open, as
     /// do the node and edge tables below.
-    ontology_ids: IdentityTableArchive<ArchivedOntologyTypeUuid>,
+    ontology_ids: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
     /// The node identity table, joining node rows to entity identities.
-    node_ids: IdentityTableArchive<ArchivedEntityId>,
+    node_ids: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     /// The edge identity table, joining edge rows to link-entity identities.
-    edge_ids: IdentityTableArchive<ArchivedEntityId>,
+    edge_ids: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
     /// The node universe's wire row-id codec, derived at open.
     ///
     /// The one wire-id domain: edges cross the wire as link-entity identities.

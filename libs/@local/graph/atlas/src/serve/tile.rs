@@ -16,6 +16,7 @@ use super::{
     walk::{DeliveredPoints, Walk, occupied_children},
 };
 use crate::{
+    identity::{Identity as _, NodeRowId},
     morton::Depth,
     salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
 };
@@ -334,7 +335,7 @@ impl Atlas {
             .map(|position| {
                 let row = row_ids[position as usize];
                 self.node_ids
-                    .id(u64::from(row))
+                    .id(NodeRowId::from_u32(row))
                     .expect("open validated the identity rows against the code column")
             })
             .collect();

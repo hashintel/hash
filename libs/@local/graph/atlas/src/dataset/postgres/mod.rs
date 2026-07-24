@@ -73,7 +73,7 @@ use super::{
         Card, CardContext, Cl100kTokenizer, UnicodeSegmenter, build_card, hash::build_contents,
     },
 };
-use crate::math::BoxedVecN;
+use crate::{identity::Identity as _, math::BoxedVecN};
 
 mod card;
 

@@ -22,7 +22,7 @@ use super::{
     relation_term, repulsion_term, support_term,
 };
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     math::{AffinityCurve, DVec2, NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,

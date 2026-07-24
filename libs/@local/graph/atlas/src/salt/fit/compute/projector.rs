@@ -31,7 +31,7 @@ use super::{
     Context,
 };
 use crate::{
-    dataset::{NodeRowId, OntologyIdentity, PROJECTOR_DIMENSIONS},
+    dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
         identity::read::IdentityFile,
@@ -41,6 +41,7 @@ use crate::{
             FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
         },
     },
+    identity::{Identity as _, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{AlignedVecN, NonNegative, Positive, Vec2},
     salt::{
@@ -465,7 +466,8 @@ pub(in crate::salt::fit) fn resolve_supplied<O>(
 where
     O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
 {
-    let table = IdentityTableArchive::<O>::new(IdentityFile::open(path.as_std_path())?)?;
+    let table =
+        IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;
 
     let resolution = supplied.document().resolve(table.ids());
     let unresolved = resolution.unresolved().len();

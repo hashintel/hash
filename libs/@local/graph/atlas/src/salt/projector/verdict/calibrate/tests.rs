@@ -8,7 +8,7 @@ use core::num::NonZero;
 
 use super::{CalibrationOptions, ProximalCalibration, calibrate};
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     math::{NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,

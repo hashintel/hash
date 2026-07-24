@@ -17,15 +17,14 @@ use super::{
     write_node_representations,
 };
 use crate::{
-    dataset::{
-        EdgeRowId, Node, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, memory::MemoryDataset,
-    },
+    dataset::{Node, PROJECTOR_DIMENSIONS, memory::MemoryDataset},
     file::{
         WriteInto as _,
         array::{ArrayVariant, FileHeader},
         generation::GenerationRoot,
         identity::read::IdentityFile,
     },
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     math::{AlignedVecN, BoxedVecN, VecN},
     salt::relation::RelationConfidence,
 };
@@ -302,7 +301,7 @@ fn fixture_table_bytes() -> Vec<u8> {
 fn mapped_fixture(
     name: &str,
     bytes: &[u8],
-) -> Result<IdentityTableArchive<U64<LE>>, InvalidIdentityFile> {
+) -> Result<IdentityTableArchive<U64<LE>, NodeRowId>, InvalidIdentityFile> {
     let path = scratch(name);
     fs::write(&path, bytes).expect("the scratch file is writable");
     IdentityTableArchive::new(IdentityFile::open(&path).expect("the fixture file reopens"))
@@ -316,15 +315,15 @@ fn identity_table_translates_rows_both_ways() {
     assert_eq!(table.len(), 3);
 
     // Row to id is the push order.
-    assert_eq!(table.id(0), Some(U64::new(30)));
-    assert_eq!(table.id(1), Some(U64::new(10)));
-    assert_eq!(table.id(2), Some(U64::new(20)));
-    assert_eq!(table.id(3), None);
+    assert_eq!(table.id(NodeRowId::new(0)), Some(U64::new(30)));
+    assert_eq!(table.id(NodeRowId::new(1)), Some(U64::new(10)));
+    assert_eq!(table.id(NodeRowId::new(2)), Some(U64::new(20)));
+    assert_eq!(table.id(NodeRowId::new(3)), None);
 
     // Id to row inverts it; absent ids resolve to nothing.
-    assert_eq!(table.row_of(U64::new(30)), Some(0));
-    assert_eq!(table.row_of(U64::new(10)), Some(1));
-    assert_eq!(table.row_of(U64::new(20)), Some(2));
+    assert_eq!(table.row_of(U64::new(30)), Some(NodeRowId::new(0)));
+    assert_eq!(table.row_of(U64::new(10)), Some(NodeRowId::new(1)));
+    assert_eq!(table.row_of(U64::new(20)), Some(NodeRowId::new(2)));
     assert_eq!(table.row_of(U64::new(15)), None);
     assert_eq!(table.row_of(U64::new(5)), None, "below every pair");
     assert_eq!(table.row_of(U64::new(40)), None, "above every pair");
@@ -346,13 +345,17 @@ fn identity_lookup_crosses_stride_boundaries() {
 
     let path = scratch("strided.idnt");
     fs::write(&path, bytes).expect("the scratch file is writable");
-    let mapped = IdentityTableArchive::<[u8; 8]>::new(
+    let mapped = IdentityTableArchive::<[u8; 8], NodeRowId>::new(
         IdentityFile::open(&path).expect("the fixture file reopens"),
     )
     .expect("the table validates");
 
     for row in [0_u64, 255, 256, 257, 511, 512, 599] {
-        assert_eq!(mapped.row_of(row.to_be_bytes()), Some(row), "row {row}");
+        assert_eq!(
+            mapped.row_of(row.to_be_bytes()),
+            Some(NodeRowId::new(row)),
+            "row {row}"
+        );
     }
     assert_eq!(mapped.row_of(600_u64.to_be_bytes()), None);
 }
@@ -417,7 +420,7 @@ fn validation_rejects_tampered_tables() {
     let path = scratch("narrow.idnt");
     fs::write(&path, fixture_table_bytes()).expect("the scratch file is writable");
     assert_matches!(
-        IdentityTableArchive::<[u8; 4]>::new(
+        IdentityTableArchive::<[u8; 4], NodeRowId>::new(
             IdentityFile::open(&path).expect("the fixture file reopens"),
         ),
         Err(InvalidIdentityFile::KeyWidth {

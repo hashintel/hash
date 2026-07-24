@@ -27,11 +27,8 @@ use super::{
     tile::{TileCoordinate, encode_details},
 };
 use crate::{
-    dataset::{ArchivedEntityId, NodeRowId},
-    integrity::Sha256Digest,
-    math::Vec2,
-    salt::postings::artifact::Membership,
-    serve::WireRow,
+    dataset::ArchivedEntityId, identity::NodeRowId, integrity::Sha256Digest, math::Vec2,
+    salt::postings::artifact::Membership, serve::WireRow,
 };
 
 /// One locate response in writable form.

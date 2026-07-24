@@ -25,6 +25,7 @@ use crate::{
         array::ArrayFile, generation::Generation, identity::read::IdentityFile,
         sprs::read::SprsFile,
     },
+    identity::{Identity as _, NodeRowId},
     salt::{fit::prepare::identity::IdentityTableArchive, knn::artifact::KnnArchive},
 };
 
@@ -86,7 +87,7 @@ pub(crate) async fn run<D: Dataset>(
         .points()
         .ok_or(QualityRunError::InvalidCoordinates)?;
 
-    let identities = IdentityTableArchive::<D::NodeId>::new(
+    let identities = IdentityTableArchive::<D::NodeId, NodeRowId>::new(
         IdentityFile::open(generation.path_of(&files.node_identities.name))
             .map_err(QualityRunError::OpenIdentities)?,
     )

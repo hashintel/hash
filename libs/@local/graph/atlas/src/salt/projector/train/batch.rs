@@ -27,7 +27,8 @@ use rand::Rng;
 
 use super::BatchPlan;
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::{AlignedVecN, NonNegative, Vec2},
     random::sample_indices_vec,
     salt::{

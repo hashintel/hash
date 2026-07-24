@@ -5,11 +5,11 @@ use std::io;
 use smallvec::SmallVec;
 
 use crate::{
-    dataset::OntologyRowId,
     file::{
         WriteInto,
         postings::write::{Regions, write_regions},
     },
+    identity::{Identity as _, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::Log2,
 };

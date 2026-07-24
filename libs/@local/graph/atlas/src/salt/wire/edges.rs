@@ -19,9 +19,7 @@
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
-    dataset::{ArchivedEntityId, NodeRowId},
-    integrity::Sha256Digest,
-    serve::WireRow,
+    dataset::ArchivedEntityId, identity::NodeRowId, integrity::Sha256Digest, serve::WireRow,
 };
 
 /// One edges response in writable form.

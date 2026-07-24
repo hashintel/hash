@@ -85,7 +85,7 @@ pub(crate) use self::{
     confidence::{EffectiveConfidence, RelationConfidence, Scored},
     error::RelationIndexError,
 };
-use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
+use crate::identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId};
 // The policy row vocabulary is `salt::policy`'s deliverable; the
 // certified `Policies` view over it stays here with its consumer.
 #[cfg(test)]

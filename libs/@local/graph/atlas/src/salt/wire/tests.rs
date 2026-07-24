@@ -25,9 +25,11 @@ use super::{
 };
 use crate::{
     dataset::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    identity::NodeRowId,
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
+    serve::WireRow,
 };
 
 /// Builds one uniform-byte identity record: `byte` in both uuid halves.
@@ -338,14 +340,14 @@ proptest! {
 
 mod tile {
     use super::{
-        Bounds2, DeliveredSet, GlobalHead, Membership, Mode, Sha256Digest, TileCoordinate,
-        TileHead, TileResponse, TileTrailer, Vec2, section,
+        Bounds2, DeliveredSet, GlobalHead, Membership, Mode, NodeRowId, Sha256Digest,
+        TileCoordinate, TileHead, TileResponse, TileTrailer, Vec2, WireRow, section,
     };
 
     /// A tiny consistent tile: two points from one delta run.
     fn minimal<'doc>(
         positions: &'doc [Vec2],
-        rows: &'doc [u32],
+        rows: &'doc [WireRow<NodeRowId>],
         ranges: &'doc [core::ops::Range<u32>],
     ) -> TileResponse<'doc> {
         TileResponse {
@@ -372,7 +374,7 @@ mod tile {
     #[test]
     fn head_encodes_by_hand() {
         let positions = [Vec2::new(0.0, 0.0); 12];
-        let rows: Vec<u32> = (0..12).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
         let ranges = [10_u32..12];
         let bytes = minimal(&positions, &rows, &ranges).encode();
 
@@ -398,7 +400,7 @@ mod tile {
     #[test]
     fn global_map_encodes_by_hand() {
         let positions = [Vec2::new(0.0, 0.0); 12];
-        let rows: Vec<u32> = (0..12).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
         let ranges = [10_u32..12];
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.global = Some(GlobalHead {
@@ -441,7 +443,8 @@ mod tile {
                 )
             })
             .collect();
-        let rows: Vec<u32> = (0..8).map(|index| 100 + index).collect();
+        let rows: Vec<WireRow<NodeRowId>> =
+            (0..8).map(|index| WireRow::pinned(100 + index)).collect();
         let ranges = [1_u32..3, 6..7];
 
         let mut response = minimal(&positions, &rows, &ranges);
@@ -472,7 +475,7 @@ mod tile {
     #[test]
     fn masks_interleave_list_and_dense_membership() {
         let positions = [Vec2::new(0.0, 0.0); 22];
-        let rows: Vec<u32> = (0..22).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..22).map(WireRow::pinned).collect();
         // Delivered points: base positions 4, 5, 6, 20, 21.
         let ranges = [4_u32..7, 20..22];
 
@@ -506,7 +509,7 @@ mod tile {
     #[test]
     fn wide_masks_round_the_stride_up() {
         let positions = [Vec2::new(0.0, 0.0); 4];
-        let rows: Vec<u32> = (0..4).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..4).map(WireRow::pinned).collect();
         let ranges = [0_u32..4];
 
         // Nine types: stride 2. Type 8's bit is byte 1, bit 0.
@@ -539,7 +542,7 @@ mod tile {
     #[test]
     fn trailer_encodes_labels_and_icons() {
         let positions = [Vec2::new(0.0, 0.0); 12];
-        let rows: Vec<u32> = (0..12).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
         let ranges = [10_u32..12];
 
         let mut response = minimal(&positions, &rows, &ranges);
@@ -568,7 +571,7 @@ mod tile {
     #[test]
     fn zero_point_tile_is_present_empty() {
         let positions: [Vec2; 0] = [];
-        let rows: [u32; 0] = [];
+        let rows: [WireRow<NodeRowId>; 0] = [];
         let ranges: [core::ops::Range<u32>; 0] = [];
 
         let mut response = minimal(&positions, &rows, &ranges);
@@ -587,7 +590,7 @@ mod tile {
     #[should_panic(expected = "must count the HEAD runs plus the backfill tail")]
     fn disagreeing_runs_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
-        let rows: Vec<u32> = (0..12).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
         let ranges = [10_u32..12];
 
         let mut response = minimal(&positions, &rows, &ranges);
@@ -599,7 +602,7 @@ mod tile {
     #[should_panic(expected = "reserved zero")]
     fn reserved_children_bits_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
-        let rows: Vec<u32> = (0..12).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
         let ranges = [10_u32..12];
 
         let mut response = minimal(&positions, &rows, &ranges);
@@ -611,7 +614,7 @@ mod tile {
     #[should_panic(expected = "trailer labels must cover")]
     fn short_trailers_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
-        let rows: Vec<u32> = (0..12).collect();
+        let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
         let ranges = [10_u32..12];
 
         let mut response = minimal(&positions, &rows, &ranges);
@@ -624,7 +627,7 @@ mod tile {
 }
 
 mod edges {
-    use super::{EdgesResponse, EdgesTrailer, Sha256Digest, identity_of, section};
+    use super::{EdgesResponse, EdgesTrailer, Sha256Digest, WireRow, identity_of, section};
 
     /// A three-edge response without a trailer.
     fn minimal() -> EdgesResponse<'static> {
@@ -632,8 +635,8 @@ mod edges {
             generation: Sha256Digest::from_bytes_unchecked([0xCD; 32]),
             variant: 1,
             complete: false,
-            sources: &[4, 9, 4],
-            targets: &[7, 2, 11],
+            sources: &const { [WireRow::pinned(4), WireRow::pinned(9), WireRow::pinned(4)] },
+            targets: &const { [WireRow::pinned(7), WireRow::pinned(2), WireRow::pinned(11)] },
             edge_ids: &const { [identity_of(0x11), identity_of(0x22), identity_of(0x33)] },
             trailer: None,
         }
@@ -716,7 +719,7 @@ mod edges {
     #[should_panic(expected = "must cover the same edges")]
     fn ragged_columns_are_rejected() {
         let mut response = minimal();
-        response.targets = &[7, 2];
+        response.targets = &const { [WireRow::pinned(7), WireRow::pinned(2)] };
         let _bytes = response.encode();
     }
 
@@ -768,7 +771,7 @@ mod edges {
 mod locate {
     use super::{
         LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest, TileCoordinate,
-        Vec2, identity_of, section,
+        Vec2, WireRow, identity_of, section,
     };
 
     /// The four-point base-order coordinate column behind the tests.
@@ -800,10 +803,17 @@ mod locate {
             properties_complete: true,
             delivered: &[2, 0, 3],
             positions,
-            rows: &[10, 11, 12, 13],
+            rows: &const {
+                [
+                    WireRow::pinned(10),
+                    WireRow::pinned(11),
+                    WireRow::pinned(12),
+                    WireRow::pinned(13),
+                ]
+            },
             masks: None,
-            sources: &[10, 12],
-            targets: &[12, 13],
+            sources: &const { [WireRow::pinned(10), WireRow::pinned(12)] },
+            targets: &const { [WireRow::pinned(12), WireRow::pinned(13)] },
             edge_ids: &const { [identity_of(0x44), identity_of(0x55)] },
             trailer: LocateTrailer {
                 type_table: &[],
@@ -974,7 +984,7 @@ mod locate {
     fn ragged_edge_columns_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.targets = &[12];
+        response.targets = &const { [WireRow::pinned(12)] };
         let _bytes = response.encode();
     }
 

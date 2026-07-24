@@ -15,7 +15,8 @@
 use super::{Atlas, visibility::VisibilityProof};
 use crate::{
     bitset::BitSet,
-    dataset::{ArchivedEntityId, EdgeRowId, NodeRowId},
+    dataset::ArchivedEntityId,
+    identity::{EdgeRowId, Identity as _, NodeRowId},
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
 };
 
@@ -51,7 +52,7 @@ impl DeliveredEdge {
 pub(super) struct Neighbourhood<'atlas> {
     adjacency: &'atlas AdjacencyArchive,
     endpoints: &'atlas [[NodeRowId; 2]],
-    edge_ids: &'atlas IdentityTableArchive<ArchivedEntityId>,
+    edge_ids: &'atlas IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
     ranks: &'atlas [u32],
     positions_of_row: &'atlas [u32],
     proof: &'atlas VisibilityProof,
@@ -140,7 +141,7 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// cross-artifact validation rules out.
     pub(super) fn edge_identity(&self, row: EdgeRowId) -> ArchivedEntityId {
         self.edge_ids
-            .id(row.get())
+            .id(row)
             .expect("open validated the identity rows against the adjacency's edges")
     }
 
@@ -184,7 +185,7 @@ impl<'atlas> Neighbourhood<'atlas> {
     }
 
     /// Reads edge `row`'s wire-column ids off the endpoint column.
-    fn edge(&self, row: EdgeRowId) -> DeliveredEdge {
+    const fn edge(&self, row: EdgeRowId) -> DeliveredEdge {
         let [source, target] = self.endpoints[row.usize()];
 
         DeliveredEdge {

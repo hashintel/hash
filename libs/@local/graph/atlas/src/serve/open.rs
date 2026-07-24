@@ -9,13 +9,11 @@
 use super::{
     Atlas,
     codec::{NODE_LABEL, RowCodec},
-    column::{Column, Element},
     error::{ArrayKind, IdentityDomain, OpenAtlasError},
     grid::Grid,
     secret::WireSecret,
 };
 use crate::{
-    dataset::NodeRowId,
     file::{
         array::ArrayFile,
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
@@ -27,6 +25,7 @@ use crate::{
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
+    identity::{Column, Element, Identity, NodeRowId},
     math::{Bounds2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
@@ -232,19 +231,20 @@ fn open_column<T: Element>(
     let array = ArrayFile::open(generation.path_of(&file.name))
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })?;
 
-    Column::new(array, kind)
+    Column::new(array).ok_or(OpenAtlasError::Shape { kind })
 }
 
 /// Opens and validates one identity artifact, binding its failures to the domain it serves.
 ///
 /// Every failure is loud - a key width other than the store's included.
-fn open_identities<I>(
+fn open_identities<I, R>(
     generation: &Generation,
     file: &RepositoryFile,
     domain: IdentityDomain,
-) -> Result<IdentityTableArchive<I>, OpenAtlasError>
+) -> Result<IdentityTableArchive<I, R>, OpenAtlasError>
 where
     I: ByteStable,
+    R: Identity,
 {
     let identities = IdentityFile::open(generation.path_of(&file.name))
         .map_err(|error| OpenAtlasError::OpenIdentity { domain, error })?;

@@ -24,7 +24,8 @@ use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
 use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
 use crate::{
-    dataset::{ArchivedEntityId, EdgeRowId, NodeRowId},
+    dataset::ArchivedEntityId,
+    identity::{EdgeRowId, Identity as _, NodeRowId},
     math::Vec2,
     salt::fit::prepare::identity::IdentityTableArchive,
 };
@@ -108,9 +109,9 @@ pub struct TranslatedNode {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 pub struct TranslatedEdge {
     /// The source node row id, the `ROW_IDS` domain.
-    pub source: u32,
+    pub source: WireRow<NodeRowId>,
     /// The target node row id, the `ROW_IDS` domain.
-    pub target: u32,
+    pub target: WireRow<NodeRowId>,
 }
 
 /// The translate response.
@@ -163,9 +164,9 @@ impl Atlas {
 /// One generation's translate inputs: the identity tables, fitted coordinates, and wire codec.
 pub(super) struct TranslateColumns<'generation> {
     /// The node identity table.
-    pub node_ids: &'generation IdentityTableArchive<ArchivedEntityId>,
+    pub node_ids: &'generation IdentityTableArchive<ArchivedEntityId, NodeRowId>,
     /// The edge identity table.
-    pub edge_ids: &'generation IdentityTableArchive<ArchivedEntityId>,
+    pub edge_ids: &'generation IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
     /// The wire-coordinate column, base order.
     pub positions: &'generation [Vec2],
     /// The position permutation, row order.
@@ -182,7 +183,7 @@ impl TranslateColumns<'_> {
     /// # Panics
     ///
     /// Panics beyond the domain, which the columns rule out: rows share the `u32` wire domain.
-    fn endpoint_rows(&self, edge: EdgeRowId) -> [NodeRowId; 2] {
+    const fn endpoint_rows(&self, edge: EdgeRowId) -> [NodeRowId; 2] {
         self.endpoints[edge.usize()]
     }
 }
@@ -213,7 +214,6 @@ pub(super) fn translate(
         };
 
         if let Some(row) = columns.node_ids.row_of(key) {
-            let row = NodeRowId::new(row);
             if proof.verify(row).is_none() {
                 // Hidden: an absent key, indistinguishable from nonexistent.
                 continue;
@@ -229,8 +229,7 @@ pub(super) fn translate(
                     y: point.y(),
                 },
             );
-        } else if let Some(row) = columns.edge_ids.row_of(key) {
-            let edge = EdgeRowId::new(row);
+        } else if let Some(edge) = columns.edge_ids.row_of(key) {
             let [source, target] = columns.endpoint_rows(edge);
             if !proof.edge_visible(source, target) {
                 // A hidden endpoint hides the edge: an absent key.
@@ -240,8 +239,8 @@ pub(super) fn translate(
             edges.insert(
                 id_string,
                 TranslatedEdge {
-                    source: columns.node_codec.encode(source).get(),
-                    target: columns.node_codec.encode(target).get(),
+                    source: columns.node_codec.encode(source),
+                    target: columns.node_codec.encode(target),
                 },
             );
         } else {

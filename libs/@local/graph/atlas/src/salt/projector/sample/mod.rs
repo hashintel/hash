@@ -25,7 +25,7 @@ use std::{alloc::Global, collections::HashSet};
 use rand::{Rng, RngExt as _};
 
 use crate::{
-    dataset::NodeRowId,
+    identity::{Identity as _, NodeRowId},
     random::{sample_indices_vec, uniform_below},
     salt::{
         relation::{

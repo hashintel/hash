@@ -29,7 +29,7 @@ use super::{
     metrics::{BudgetBreakdown, DegreeDeciles},
 };
 use crate::{
-    dataset::{NodeRowId, OntologyRowId},
+    identity::{Identity as _, NodeRowId, OntologyRowId},
     math::{DVec2, Vec2},
     salt::projector::{
         budget::{self, ClippedRelation},

@@ -23,7 +23,8 @@ use super::{
     metrics::{DegreeDeciles, DisplacementSummary, TypeParticipants},
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::{NonNegative, Vec2},
     salt::{
         knn::table::KnnView,
@@ -210,7 +211,7 @@ pub(crate) fn scales(
 }
 
 /// Maps a spatial-index failure onto the tick's error.
-fn field_error(error: SpatialFieldError, eta: f32) -> RefreshError {
+const fn field_error(error: SpatialFieldError, eta: f32) -> RefreshError {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
         SpatialFieldError::NonFinite { row } => RefreshError::Diverged {

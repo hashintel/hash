@@ -2,7 +2,10 @@
 
 use core::ops::Range;
 
-use crate::{dataset::OntologyRowId, file::postings::read::PostingsFile};
+use crate::{
+    file::postings::read::PostingsFile,
+    identity::{Identity as _, OntologyRowId},
+};
 
 /// An opened postings file does not hold a valid postings artifact.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

@@ -16,11 +16,11 @@ use super::{
     select::{LandmarkOrdinal, LandmarkSelection},
 };
 use crate::{
-    dataset::NodeRowId,
     file::{
         WriteInto,
         landmark::{read::LandmarkFile, write::write_regions},
     },
+    identity::NodeRowId,
     integrity::{Sha256, Sha256Digest, Writer},
     math::Vec2,
 };

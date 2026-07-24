@@ -13,8 +13,9 @@ use super::{
     embed_cards,
 };
 use crate::{
-    dataset::{CANONICAL_DIMENSIONS, OntologyRowId, card::Card},
+    dataset::{CANONICAL_DIMENSIONS, card::Card},
     file::array::{ArrayVariant, FileHeader},
+    identity::{Identity as _, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::BoxedVecN,
 };

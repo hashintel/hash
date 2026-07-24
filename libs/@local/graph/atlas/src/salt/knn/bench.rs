@@ -30,8 +30,9 @@ use super::{
     recall::{ExactReference, SpotCheckOptions},
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
     file::{array::ArrayFile, generation::GenerationRoot},
+    identity::{Identity as _, NodeRowId},
     math::AlignedVecN,
     salt::fit::{Stage, stage_rng},
 };

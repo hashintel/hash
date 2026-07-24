@@ -16,7 +16,8 @@ use core::{error::Error, fmt};
 use rand::Rng;
 
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::AlignedVecN,
     random::{acceptance_sample_size, sample_indices_vec},
 };

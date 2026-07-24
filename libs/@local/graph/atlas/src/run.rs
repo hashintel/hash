@@ -15,7 +15,7 @@
 //! Nothing here is API for consumers of the crate; the module exists for the `cli` operator
 //! commands and the `bench` measurement wrappers.
 
-use core::{error::Error as CoreError, fmt, num::NonZero};
+use core::{error::Error, fmt, num::NonZero};
 use std::io;
 
 use camino::Utf8PathBuf;
@@ -70,8 +70,8 @@ impl fmt::Display for ConnectError {
     }
 }
 
-impl CoreError for ConnectError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for ConnectError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Parse(error) | Self::Handshake(error) => Some(error),
             Self::NoTcpHost => None,
@@ -216,8 +216,8 @@ impl fmt::Display for SnapshotError {
     }
 }
 
-impl CoreError for SnapshotError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for SnapshotError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
 }
@@ -232,8 +232,8 @@ impl fmt::Display for VerdictsError {
     }
 }
 
-impl CoreError for VerdictsError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for VerdictsError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
 }
@@ -248,10 +248,8 @@ impl fmt::Display for ThresholdsError {
     }
 }
 
-// NOTE: can we please... not call it `CoreError`, we never call our errors that should just be
-// `Error` or `core::error::Error`
-impl CoreError for ThresholdsError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for ThresholdsError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
 }
@@ -277,8 +275,8 @@ impl fmt::Display for ThresholdSupplyError {
     }
 }
 
-impl CoreError for ThresholdSupplyError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for ThresholdSupplyError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
             Self::Parse(error) => Some(error),
@@ -297,8 +295,8 @@ impl fmt::Display for AnnotationsError {
     }
 }
 
-impl CoreError for AnnotationsError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for AnnotationsError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
 }
@@ -313,8 +311,8 @@ impl fmt::Display for ClassifierError {
     }
 }
 
-impl CoreError for ClassifierError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for ClassifierError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
 }
@@ -329,8 +327,8 @@ impl fmt::Display for PipelineError {
     }
 }
 
-impl CoreError for PipelineError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for PipelineError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
 }
@@ -394,8 +392,8 @@ impl fmt::Display for RunError {
     }
 }
 
-impl CoreError for RunError {
-    fn source(&self) -> Option<&(dyn CoreError + 'static)> {
+impl Error for RunError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Root(error) => Some(error),
             Self::Snapshot(error) => Some(error),

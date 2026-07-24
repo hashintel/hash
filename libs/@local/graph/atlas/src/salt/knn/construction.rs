@@ -20,7 +20,8 @@ use rayon::{
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour, error::KnnError};
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::AlignedVecN,
     salt::knn::table::KnnValidationError,
 };

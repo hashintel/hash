@@ -15,7 +15,10 @@ use super::{
     error::RelationIndexError,
     protection::{NodePair, PairEvidence, ProtectionIndex, ProtectionMatrix},
 };
-use crate::{dataset::NodeRowId, math::narrow_f32};
+use crate::{
+    identity::{Identity as _, NodeRowId},
+    math::narrow_f32,
+};
 
 /// Instances per parallel emission chunk within one relation group.
 ///

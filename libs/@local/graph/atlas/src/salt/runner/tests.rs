@@ -11,10 +11,11 @@ use zerocopy::{LE, U64};
 use super::{Admission, PriorMode, RunnerOptions, run};
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
-        card::Card, memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card,
+        memory::MemoryDataset,
     },
     file::generation::GenerationRoot,
+    identity::{Identity as _, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
     salt::{

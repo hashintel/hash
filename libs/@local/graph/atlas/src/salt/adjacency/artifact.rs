@@ -4,11 +4,11 @@ use core::ops::Range;
 
 use crate::{
     bitset::BitSet,
-    dataset::{EdgeRowId, NodeRowId},
     file::sprs::{
         IndexVariant, SprsIndex,
         read::{SprsFile, SprsMatrixError},
     },
+    identity::{EdgeRowId, Identity as _, NodeRowId},
 };
 
 /// An opened sparse matrix file does not hold a valid adjacency.

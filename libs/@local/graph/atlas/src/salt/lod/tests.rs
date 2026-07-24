@@ -11,8 +11,9 @@ use super::{
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    dataset::{ArchivedEntityId, OntologyRowId},
+    dataset::ArchivedEntityId,
     file::quad::Node,
+    identity::{Identity as _, OntologyRowId},
     math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
 };

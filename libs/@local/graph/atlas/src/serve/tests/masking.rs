@@ -18,15 +18,26 @@ async fn resolve_collapses_every_failure_to_one_none() {
 
     let masked = mask_hiding(&atlas, &[7]);
     for row in 0..universe {
-        let wire = node_codec.encode(row).get();
-        assert_eq!(atlas.resolve(&FULL, wire).map(VisibleRow::get), Some(row),);
+        let wire = node_codec.encode(NodeRowId::from_u32(row));
+        assert_eq!(
+            atlas.resolve(&FULL, wire).map(VisibleRow::get),
+            Some(NodeRowId::from_u32(row)),
+        );
         assert_eq!(
             atlas.resolve(&masked, wire).map(VisibleRow::get),
-            (row != 7).then_some(row),
+            (row != 7).then(|| NodeRowId::from_u32(row)),
         );
     }
-    assert!(atlas.resolve(&FULL, universe).is_none());
-    assert!(atlas.resolve(&masked, universe).is_none());
+    assert!(
+        atlas
+            .resolve(&FULL, codec::WireRow::pinned(universe))
+            .is_none()
+    );
+    assert!(
+        atlas
+            .resolve(&masked, codec::WireRow::pinned(universe))
+            .is_none()
+    );
 }
 
 /// The composition law on the tile path: `S = X ∩ V_u`, order preserved, in both modes.
@@ -48,7 +59,7 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
     let hidden: Vec<u32> = (0..universe).filter(|row| row.is_multiple_of(3)).collect();
     let hidden_wire: HashSet<u32> = hidden
         .iter()
-        .map(|&row| node_codec.encode(row).get())
+        .map(|&row| node_codec.encode(NodeRowId::from_u32(row)).get())
         .collect();
     let proof = mask_hiding(&atlas, &hidden);
 
@@ -96,7 +107,7 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
         rows,
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let _row_ids = rows.u32_elements().expect("the row column is u32");
     let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
     let mut nodes = Vec::new();
     walk(&quad, 0, root_cell, &mut nodes);
@@ -125,7 +136,7 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
         positions: points,
-        rows: row_ids,
+        rows: &[],
         masks: None,
         trailer: None,
     }
@@ -238,7 +249,11 @@ async fn locate_filters_partners_under_the_mask() {
         .resolve_source(&FULL, &entity_string_of(5))
         .expect("row 5 resolves");
     let full = atlas.locate_subgraph(source, limits.locate, &FULL);
-    assert_eq!(full.rows, [5, 40], "the source and its one partner");
+    assert_eq!(
+        full.rows,
+        [NodeRowId::new(5), NodeRowId::new(40)],
+        "the source and its one partner"
+    );
     assert_eq!(full.edges.len(), 2);
 
     // Hiding the partner removes it and both its edges: the source
@@ -246,7 +261,11 @@ async fn locate_filters_partners_under_the_mask() {
     // exactly like one where the partner never existed.
     let proof = mask_hiding(&atlas, &[40]);
     let masked = atlas.locate_subgraph(source, limits.locate, &proof);
-    assert_eq!(masked.rows, [5], "the hidden partner is not delivered");
+    assert_eq!(
+        masked.rows,
+        [NodeRowId::new(5)],
+        "the hidden partner is not delivered"
+    );
     assert!(masked.edges.is_empty(), "its edges leave with it");
     assert!(masked.complete, "visibility is not truncation");
 
@@ -272,7 +291,7 @@ async fn locate_filters_partners_under_the_mask() {
     let node_codec = test_codec(&atlas);
     let by_row = crate::serve::LocateRequest {
         entity_id: None,
-        row: Some(node_codec.encode(0).get()),
+        row: Some(node_codec.encode(NodeRowId::new(0))),
         colored_type_ids: Vec::new(),
         filter: None,
     };
@@ -298,16 +317,16 @@ fn visibility_proof_is_fail_closed() {
     bitmap.insert(2);
     let proof = VisibilityProof::from_bitmap(bitmap);
 
-    assert!(!proof.contains(0));
-    assert!(proof.contains(1));
-    assert!(!proof.contains(3));
+    assert!(!proof.contains(NodeRowId::new(0)));
+    assert!(proof.contains(NodeRowId::new(1)));
+    assert!(!proof.contains(NodeRowId::new(3)));
     // Beyond the bitmap's capacity: hidden, never a panic.
-    assert!(!proof.contains(4));
-    assert!(!proof.contains(u32::MAX));
+    assert!(!proof.contains(NodeRowId::new(4)));
+    assert!(!proof.contains(NodeRowId::from_u32(u32::MAX)));
 
-    assert!(proof.edge_visible(1, 2));
-    assert!(!proof.edge_visible(1, 3));
-    assert!(!proof.edge_visible(0, 1));
+    assert!(proof.edge_visible(NodeRowId::new(1), NodeRowId::new(2)));
+    assert!(!proof.edge_visible(NodeRowId::new(1), NodeRowId::new(3)));
+    assert!(!proof.edge_visible(NodeRowId::new(0), NodeRowId::new(1)));
 
     let mut set = crate::bitset::BitSet::new(6);
     for index in 0..6 {
@@ -318,7 +337,7 @@ fn visibility_proof_is_fail_closed() {
 
     assert_eq!(proof.visible_below(4), 2);
     assert_eq!(FULL.visible_below(48), 48);
-    assert!(FULL.contains(u32::MAX));
+    assert!(FULL.contains(NodeRowId::from_u32(u32::MAX)));
 }
 
 /// Two visible rows: the root's fill delivers what survives and spends the pool, so every
@@ -412,7 +431,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
     let node_codec = test_codec(atlas);
     let hidden_wire: HashSet<u32> = hidden
         .iter()
-        .map(|&row| node_codec.encode(row).get())
+        .map(|&row| node_codec.encode(NodeRowId::from_u32(row)).get())
         .collect();
 
     // Delta row lists by coordinate; the z-ascending sweep guarantees every ancestor is present
@@ -634,7 +653,11 @@ fn assert_locate_delivers_the_visible_ego_graph(
             .map(|(row, _)| narrow_usize(row))
             .collect();
         expected_edges.sort_unstable();
-        let delivered: Vec<u32> = masked.edges.iter().map(|&(edge, _)| edge.row).collect();
+        let delivered: Vec<u32> = masked
+            .edges
+            .iter()
+            .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+            .collect();
         assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
 
         let mut partner_keys: Vec<(u32, u32)> = expected_edges
@@ -647,15 +670,20 @@ fn assert_locate_delivers_the_visible_ego_graph(
                 ]
             })
             .filter(|&row| row != source_row)
-            .map(|row| (node_codec.encode(row).get(), row))
+            .map(|row| (node_codec.encode(NodeRowId::from_u32(row)).get(), row))
             .collect();
         partner_keys.sort_unstable();
         partner_keys.dedup();
         let mut expected_rows = vec![source_row];
         expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
-        assert_eq!(masked.rows, expected_rows, "ego({source_row}) rows");
-        for &row in &masked.rows {
-            assert!(!hidden.contains(&row), "every delivered row is visible");
+        let delivered_rows: Vec<u32> = masked
+            .rows
+            .iter()
+            .map(|row| narrow_usize(row.usize()))
+            .collect();
+        assert_eq!(delivered_rows, expected_rows, "ego({source_row}) rows");
+        for row in &delivered_rows {
+            assert!(!hidden.contains(row), "every delivered row is visible");
         }
 
         // Drop-before-cap, key-independent: whenever the mask shrank
@@ -683,7 +711,11 @@ fn assert_locate_delivers_the_visible_ego_graph(
                 capped.complete,
                 "a cap at the visible cardinality truncates nothing"
             );
-            let capped_edges: Vec<u32> = capped.edges.iter().map(|&(edge, _)| edge.row).collect();
+            let capped_edges: Vec<u32> = capped
+                .edges
+                .iter()
+                .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+                .collect();
             assert_eq!(
                 capped_edges, expected_edges,
                 "ego({source_row}) under the tight cap"
@@ -714,11 +746,11 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
     // or edge carries, and the first wire value outside the image.
     let ghost_id = entity_string_of(203);
     let ghost_wire = (0..=u32::MAX)
-        .find(|&wire| atlas.resolve(&FULL, wire).is_none())
+        .find(|&wire| atlas.resolve(&FULL, codec::WireRow::pinned(wire)).is_none())
         .expect("the image has forty-eight values; almost everything is outside it");
     let by_row = |wire: u32| crate::serve::LocateRequest {
         entity_id: None,
-        row: Some(wire),
+        row: Some(codec::WireRow::pinned(wire)),
         colored_type_ids: Vec::new(),
         filter: None,
     };
@@ -759,7 +791,11 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
             assert_eq!(denied, crate::serve::LocateError::UnknownEntity);
 
             let denied = atlas
-                .assemble_locate(&by_row(node_codec.encode(row).get()), limits, &proof)
+                .assemble_locate(
+                    &by_row(node_codec.encode(NodeRowId::from_u32(row)).get()),
+                    limits,
+                    &proof,
+                )
                 .map(|_| ())
                 .expect_err("a hidden row's wire id rejects");
             assert_eq!(

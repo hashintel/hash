@@ -22,7 +22,6 @@ use super::{
     protection::{ProtectionIndex, ProtectionValidationError, ProtectionView, validate},
 };
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
     file::{
         WriteInto,
         attraction::{EdgeRecord, GroupRecord, read::AttractionFile, write::write_records},
@@ -31,6 +30,7 @@ use crate::{
             write::{WriteSprsError, write_matrix},
         },
     },
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 

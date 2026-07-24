@@ -28,7 +28,7 @@ use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
-use crate::dataset::NodeRowId;
+use crate::identity::{Identity as _, NodeRowId};
 
 pub(crate) mod artifact;
 mod bandwidth;

@@ -12,7 +12,7 @@
 //! normalization (the semantic term's total-weight-over-batch-size factor, the relation term's lens
 //! factor). The terms speak the batch-local row domain: pairs, edges, and anchors carry
 //! [`BatchRowId`] positions into the coordinate slice they are evaluated against, a key
-//! deliberately distinct from the corpus's [`NodeRowId`](crate::dataset::NodeRowId) - the assembly
+//! deliberately distinct from the corpus's [`NodeRowId`](crate::identity::NodeRowId) - the assembly
 //! that re-indexes corpus draws into a batch owns the conversion, and the two domains cannot be
 //! mixed by type.
 //!
@@ -30,7 +30,7 @@ use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
 
 pub(crate) use self::energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy};
 use crate::{
-    dataset::OntologyRowId,
+    identity::OntologyRowId,
     math::{DVec2, Vec2},
     salt::{projector::scale::LocalScales, relation::attraction::AttractionWeights},
 };

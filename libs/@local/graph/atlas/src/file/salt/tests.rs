@@ -11,11 +11,12 @@ use super::{
     },
 };
 use crate::{
-    dataset::{NodeRowId, OntologyRowId, TemporalAxes},
+    dataset::TemporalAxes,
     file::{
         morton::Fenceposts,
         repository::{FileName, RepositoryFile, RepositoryVersion},
     },
+    identity::{Identity as _, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2},
     morton::Depth,

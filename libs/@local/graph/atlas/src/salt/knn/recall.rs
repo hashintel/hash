@@ -32,7 +32,8 @@ use super::{
     table::KnnValidationError,
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::AlignedVecN,
     random::{mean_sample_size, sample_indices_vec},
 };

@@ -10,7 +10,7 @@ use super::{
     ClassifierPlan, Context,
 };
 use crate::{
-    dataset::{CANONICAL_DIMENSIONS, OntologyRowId},
+    dataset::CANONICAL_DIMENSIONS,
     file::{
         array::ArrayFile,
         repository::RepositoryFile,
@@ -19,6 +19,7 @@ use crate::{
             PolicyEvidence,
         },
     },
+    identity::{Identity as _, OntologyRowId},
     integrity::Sha256Digest,
     math::AlignedVecN,
     salt::policy::{

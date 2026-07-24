@@ -9,7 +9,7 @@ use rayon::{
 use sprs::{CsMatI, CsMatViewI};
 
 use super::{Neighbour, construction::NeighbourLists, error::KnnError};
-use crate::dataset::NodeRowId;
+use crate::identity::{Identity as _, NodeRowId};
 
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]

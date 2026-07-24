@@ -13,8 +13,8 @@ use zerocopy::{FromBytes as _, IntoBytes as _};
 
 use super::RelationPolicy;
 use crate::{
-    dataset::OntologyRowId,
     file::policy::{PolicyRow, read::PolicyFile, write::write_rows},
+    identity::{Identity as _, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 

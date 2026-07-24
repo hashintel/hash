@@ -25,8 +25,9 @@ use std::{collections::HashMap, io};
 use zerocopy::IntoBytes as _;
 
 use crate::{
-    dataset::{CANONICAL_DIMENSIONS, OntologyRowId, card::Card},
+    dataset::{CANONICAL_DIMENSIONS, card::Card},
     file::array::{ArrayVariant, Dim, SizedArrayWriter},
+    identity::{Identity as _, OntologyRowId},
     integrity::Sha256Digest,
     math::{AlignedVecN, BoxedVecN, MatrixN, VecN},
 };

@@ -19,7 +19,8 @@ use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 
 use super::Atlas;
 use crate::{
-    dataset::{ArchivedOntologyTypeUuid, OntologyRowId},
+    dataset::ArchivedOntologyTypeUuid,
+    identity::{Identity as _, OntologyRowId},
     salt::{
         fit::prepare::identity::IdentityTableArchive,
         postings::{artifact::PostingsArchive, closure::ClosureMap},
@@ -122,7 +123,7 @@ impl Atlas {
 pub(super) fn resolve_masks(
     postings: &PostingsArchive,
     closure: &ClosureMap,
-    table: &IdentityTableArchive<ArchivedOntologyTypeUuid>,
+    table: &IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
     palette: &Palette,
 ) -> MaskSet {
     MaskSet {
@@ -138,14 +139,13 @@ pub(super) fn resolve_masks(
 fn resolve_mask(
     postings: &PostingsArchive,
     closure: &ClosureMap,
-    table: &IdentityTableArchive<ArchivedOntologyTypeUuid>,
+    table: &IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
     key: ArchivedOntologyTypeUuid,
 ) -> MaskSource {
     let Some(row) = table.row_of(key) else {
         return MaskSource::Unresolved;
     };
 
-    let row = OntologyRowId::new(row);
     let descendants = closure
         .descendants(row)
         .expect("identity rows share the postings' type domain");

@@ -22,8 +22,9 @@ use zerocopy::{LE, U64};
 use super::{
     Atlas, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot, Mode,
     OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
-    VisibilityProof, WireSecret, codec, error::OpenAtlasError,
+    VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
 };
+use crate::identity::{Identity as _, NodeRowId, OntologyRowId};
 
 mod backfill;
 mod masking;
@@ -34,8 +35,8 @@ mod seal;
 const FULL: VisibilityProof = VisibilityProof::full_visibility();
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, Node as CorpusNode, NodeRowId, Ontology, OntologyRowId,
-        PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node as CorpusNode, Ontology, PROJECTOR_DIMENSIONS, card::Card,
+        memory::MemoryDataset,
     },
     file::{
         WriteInto as _, array::ArrayFile, generation::Generation, morton::read::MortonFile,
@@ -532,7 +533,12 @@ async fn serves_tiles_from_a_published_generation() {
     let node_codec = test_codec(&atlas);
     let expected_rows: Vec<u8> = row_ids[..head]
         .iter()
-        .flat_map(|&row| node_codec.encode(row).get().to_le_bytes())
+        .flat_map(|&row| {
+            node_codec
+                .encode(NodeRowId::from_u32(row))
+                .get()
+                .to_le_bytes()
+        })
         .collect();
     assert_eq!(rows_section, expected_rows);
     let expected_positions: Vec<u8> = points[..head]
@@ -586,7 +592,7 @@ async fn serves_tiles_from_a_published_generation() {
 
     let mut expected: Vec<u32> = row_ids
         .iter()
-        .map(|&row| node_codec.encode(row).get())
+        .map(|&row| node_codec.encode(NodeRowId::from_u32(row)).get())
         .collect();
     expected.sort_unstable();
     delivered_rows.sort_unstable();
@@ -604,7 +610,7 @@ async fn serves_empty_and_deepest_cells() {
         rows,
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let _row_ids = rows.u32_elements().expect("the row column is u32");
 
     // A valid coordinate with no quad node serves the honest empty
     // tile, byte for byte.
@@ -637,7 +643,7 @@ async fn serves_empty_and_deepest_cells() {
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
         positions: points,
-        rows: row_ids,
+        rows: &[],
         masks: None,
         trailer: None,
     }
@@ -855,17 +861,21 @@ fn wire_columns(
     sources: &[u32],
     targets: &[u32],
     rows: &[u32],
-) -> (Vec<u32>, Vec<u32>, Vec<crate::dataset::ArchivedEntityId>) {
+) -> (
+    Vec<WireRow<NodeRowId>>,
+    Vec<WireRow<NodeRowId>>,
+    Vec<crate::dataset::ArchivedEntityId>,
+) {
     let node_codec = test_codec(atlas);
     assert!(rows.is_sorted(), "the derivation supplies ascending rows");
 
     let wire_sources = sources
         .iter()
-        .map(|&source| node_codec.encode(source).get())
+        .map(|&source| node_codec.encode(NodeRowId::from_u32(source)))
         .collect();
     let wire_targets = targets
         .iter()
-        .map(|&target| node_codec.encode(target).get())
+        .map(|&target| node_codec.encode(NodeRowId::from_u32(target)))
         .collect();
     let edge_ids = rows.iter().map(|&row| edge_identity_of(row)).collect();
 
@@ -875,8 +885,8 @@ fn wire_columns(
 fn expected_edges_bytes(
     generation: &Generation,
     complete: bool,
-    sources: &[u32],
-    targets: &[u32],
+    sources: &[WireRow<NodeRowId>],
+    targets: &[WireRow<NodeRowId>],
     edge_ids: &[crate::dataset::ArchivedEntityId],
 ) -> Vec<u8> {
     EdgesResponse {
@@ -1275,7 +1285,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
 async fn locate_sources_resolve_to_their_first_visible_tile() {
     let (_generation, atlas) = publish("locate-resolve").await;
     let node_codec = test_codec(&atlas);
-    let wire_of = |row: u32| node_codec.encode(row).get();
+    let wire_of = |row: u32| node_codec.encode(NodeRowId::from_u32(row)).get();
 
     let row_of = |bytes: &[u8]| {
         let rows = section(bytes, ROW_IDS).expect("ROW_IDS is present");
@@ -1291,10 +1301,10 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
         let Some(source) = atlas.resolve_source(&FULL, &entity_string_of(row)) else {
             panic!("fixture node ids resolve");
         };
-        assert_eq!(source.row, u32::from(row));
+        assert_eq!(source.row.get(), NodeRowId::from_u32(u32::from(row)));
         assert_eq!(
             source.position,
-            atlas.positions_of_row()[source.row as usize],
+            atlas.positions_of_row()[source.row.get().usize()],
         );
 
         // The resolved tile delivers the row.
@@ -1309,7 +1319,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             .tile(&request, TileLimits::default(), &FULL)
             .expect("the resolved tile serves");
         assert!(
-            row_of(&bytes).contains(&wire_of(source.row)),
+            row_of(&bytes).contains(&wire_of(source.row.get().u32())),
             "the resolved tile delivers its source",
         );
 
@@ -1332,7 +1342,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
                 .tile(&parent, TileLimits::default(), &FULL)
                 .expect("the parent tile serves");
             assert!(
-                !row_of(&bytes).contains(&wire_of(source.row)),
+                !row_of(&bytes).contains(&wire_of(source.row.get().u32())),
                 "the parent zoom does not deliver the source yet",
             );
             resolved += 1;
@@ -1400,9 +1410,11 @@ async fn locate_subgraph_delivers_the_ego_graph() {
         // recomputes the order through an independently constructed
         // codec.
         let mut expected_rows: Vec<u32> = partners.to_vec();
-        expected_rows.sort_unstable_by_key(|&row| node_codec.encode(row).get());
+        expected_rows
+            .sort_unstable_by_key(|&row| node_codec.encode(NodeRowId::from_u32(row)).get());
         expected_rows.insert(0, u32::from(source_row));
-        assert_eq!(subgraph.rows, expected_rows, "ego({source_row}) rows");
+        let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.u32()).collect();
+        assert_eq!(delivered_rows, expected_rows, "ego({source_row}) rows");
         let expected_positions: Vec<u32> = expected_rows
             .iter()
             .map(|&row| atlas.positions_of_row()[row as usize])
@@ -1415,13 +1427,17 @@ async fn locate_subgraph_delivers_the_ego_graph() {
         // Edges deliver ascending by identity bytes - for the
         // fixture, ascending edge row - endpoints straight off the
         // fixture edge list.
-        let delivered: Vec<u32> = subgraph.edges.iter().map(|&(edge, _)| edge.row).collect();
+        let delivered: Vec<u32> = subgraph
+            .edges
+            .iter()
+            .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+            .collect();
         assert_eq!(delivered, edge_rows, "ego({source_row}) edges");
         for &(edge, id) in &subgraph.edges {
-            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row as usize];
-            assert_eq!(u64::from(edge.source), edge_source);
-            assert_eq!(u64::from(edge.target), edge_target);
-            assert_eq!(id, edge_identity_of(edge.row));
+            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row.usize()];
+            assert_eq!(edge.source.get(), edge_source);
+            assert_eq!(edge.target.get(), edge_target);
+            assert_eq!(id, edge_identity_of(narrow_usize(edge.row.usize())));
         }
     }
 }
@@ -1475,14 +1491,14 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
         capped
             .edges
             .iter()
-            .map(|&(edge, _)| edge.row)
+            .map(|&(edge, _)| narrow_usize(edge.row.usize()))
             .collect::<Vec<u32>>(),
         [2],
         "the self-loop is the nearest edge",
     );
     // Partner 1's only edge truncated, so partner 1 is not
     // delivered: the source stands alone.
-    assert_eq!(capped.rows, [2]);
+    assert_eq!(capped.rows, [NodeRowId::new(2)]);
     assert_eq!(capped.positions, [source.position]);
 
     // The general law, swept: survivors are the cap smallest under
@@ -1511,10 +1527,10 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
             // HEAD fly-to derivation), then the identity bytes.
             let mut expected = full.edges.clone();
             expected.sort_unstable_by_key(|&(edge, id)| {
-                let partner = if edge.source == u32::from(source_row) {
-                    edge.target
+                let partner = if edge.source.u32() == u32::from(source_row) {
+                    edge.target.u32()
                 } else {
-                    edge.source
+                    edge.source.u32()
                 };
                 let zoom = atlas
                     .resolve_source(
@@ -1531,15 +1547,16 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
 
             let mut partner_keys: Vec<(u32, u32)> = expected
                 .iter()
-                .flat_map(|&(edge, _)| [edge.source, edge.target])
+                .flat_map(|&(edge, _)| [edge.source.u32(), edge.target.u32()])
                 .filter(|&row| row != u32::from(source_row))
-                .map(|row| (node_codec.encode(row).get(), row))
+                .map(|row| (node_codec.encode(NodeRowId::from_u32(row)).get(), row))
                 .collect();
             partner_keys.sort_unstable();
             partner_keys.dedup();
             let mut expected_rows = vec![u32::from(source_row)];
             expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
-            assert_eq!(subgraph.rows, expected_rows, "ego({source_row}) cap {cap}");
+            let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.u32()).collect();
+            assert_eq!(delivered_rows, expected_rows, "ego({source_row}) cap {cap}");
 
             // Determinism pair: identical assembly on repeat.
             assert_eq!(
@@ -1715,7 +1732,7 @@ fn colored_masks_resolve_and_expand_descendants() {
         .write_into(&mut file)
         .expect("the identities should write");
     drop(file);
-    let table = IdentityTableArchive::<ArchivedOntologyTypeUuid>::new(
+    let table = IdentityTableArchive::<ArchivedOntologyTypeUuid, OntologyRowId>::new(
         IdentityFile::open(&identity_path).expect("the identity file opens"),
     )
     .expect("the identity table validates");
@@ -1846,8 +1863,8 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
             let node_codec = test_codec(&atlas);
             row_ids
                 .iter()
-                .map(|&row| node_codec.encode(row).get())
-                .collect::<Vec<u32>>()
+                .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
+                .collect::<Vec<_>>()
         },
         masks: None,
         trailer: Some(TileTrailer {
@@ -1877,9 +1894,9 @@ fn narrow_usize(value: usize) -> u32 {
 /// Derives the node wire codec of an atlas opened with the suite's secret.
 ///
 /// The independent derivation the assembly's egress must agree with.
-fn test_codec(atlas: &Atlas) -> codec::RowCodec {
+fn test_codec(atlas: &Atlas) -> codec::RowCodec<NodeRowId> {
     codec::RowCodec::derive(
-        &TEST_WIRE_SECRET,
+        &WireSecret::new(TEST_WIRE_SECRET),
         atlas.generation(),
         codec::NODE_LABEL,
         narrow_usize(atlas.row_ids().len()),
@@ -1903,10 +1920,11 @@ fn entity_string_of(seed: u8) -> String {
 }
 
 /// Writes and reopens one hand-built entity identity table.
-fn entity_identity_table(
+fn entity_identity_table<R: crate::identity::Identity>(
     path: &camino::Utf8PathBuf,
     ids: &[crate::dataset::ArchivedEntityId],
-) -> crate::salt::fit::prepare::identity::IdentityTableArchive<crate::dataset::ArchivedEntityId> {
+) -> crate::salt::fit::prepare::identity::IdentityTableArchive<crate::dataset::ArchivedEntityId, R>
+{
     use crate::{
         dataset::ArchivedEntityId, file::identity::read::IdentityFile,
         salt::fit::prepare::identity::IdentityTable,
@@ -1970,11 +1988,18 @@ fn translate_resolves_nodes_and_edges_by_identity() {
     };
     // Three node rows are the table's universe; the expectations
     // below encode through the same derivation.
-    let node_codec =
-        codec::RowCodec::derive(&TEST_WIRE_SECRET, codec_generation(), codec::NODE_LABEL, 3);
+    let node_codec = codec::RowCodec::derive(
+        &WireSecret::new(TEST_WIRE_SECRET),
+        codec_generation(),
+        codec::NODE_LABEL,
+        3,
+    );
     // Edge row 0 joins nodes 0 and 1, edge row 1 joins 1 and 2:
     // arbitrary but in-universe, visible under the full proof.
-    let endpoints = [[0_u64, 1], [1, 2]];
+    let endpoints = [
+        [NodeRowId::new(0), NodeRowId::new(1)],
+        [NodeRowId::new(1), NodeRowId::new(2)],
+    ];
     let response = translate(
         request,
         TranslateLimits::default(),
@@ -1995,7 +2020,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         vec![(
             entity_string_of(2),
             TranslatedNode {
-                id: node_codec.encode(1).get(),
+                id: node_codec.encode(NodeRowId::new(1)),
                 x: 0.75,
                 y: -0.5,
             },
@@ -2006,8 +2031,8 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         vec![(
             entity_string_of(10),
             TranslatedEdge {
-                source: node_codec.encode(0).get(),
-                target: node_codec.encode(1).get(),
+                source: node_codec.encode(NodeRowId::new(0)),
+                target: node_codec.encode(NodeRowId::new(1)),
             },
         )],
     );
@@ -2028,8 +2053,12 @@ fn translate_rejects_over_cap() {
     let over = TranslateRequest {
         entity_ids: vec![String::new(); TranslateLimits::default().entity_ids as usize + 1],
     };
-    let node_codec =
-        codec::RowCodec::derive(&TEST_WIRE_SECRET, codec_generation(), codec::NODE_LABEL, 1);
+    let node_codec = codec::RowCodec::derive(
+        &WireSecret::new(TEST_WIRE_SECRET),
+        codec_generation(),
+        codec::NODE_LABEL,
+        1,
+    );
     assert_eq!(
         translate(
             over,
@@ -2084,7 +2113,7 @@ async fn translate_resolves_store_identities_end_to_end() {
         vec![(
             entity_string_of(0),
             TranslatedNode {
-                id: node_codec.encode(0).get(),
+                id: node_codec.encode(NodeRowId::new(0)),
                 x: point.x(),
                 y: point.y(),
             },
@@ -2096,8 +2125,8 @@ async fn translate_resolves_store_identities_end_to_end() {
         vec![(
             entity_string_of(EDGE_SEED),
             TranslatedEdge {
-                source: node_codec.encode(0).get(),
-                target: node_codec.encode(1).get(),
+                source: node_codec.encode(NodeRowId::new(0)),
+                target: node_codec.encode(NodeRowId::new(1)),
             },
         )],
     );
@@ -2247,10 +2276,10 @@ async fn locate_by_wire_row_matches_by_entity() {
     // bijection); the equivalence under test is the two request
     // paths, whose agreement is the whole contract in one assertion.
     let node_codec = test_codec(&atlas);
-    let wire = node_codec.encode(7).get();
+    let wire = node_codec.encode(NodeRowId::new(7));
     let by_entity = locate_request(entity_string_of(7));
     let mut by_row: super::LocateRequest =
-        serde_json::from_value(serde_json::json!({ "row": wire }))
+        serde_json::from_value(serde_json::json!({ "row": wire.get() }))
             .expect("a by-row body deserializes");
     assert_eq!(by_row.row, Some(wire));
     assert_eq!(by_row.entity_id, None);
@@ -2270,13 +2299,15 @@ async fn locate_by_wire_row_matches_by_entity() {
     // encoded image collapses into the entity path's own rejection.
     // Neither probe collides with the 48-value image under the
     // fixture key - pinned here, not left to runtime luck.
-    let image: HashSet<u32> = (0..48).map(|row| node_codec.encode(row).get()).collect();
+    let image: HashSet<u32> = (0..48)
+        .map(|row| node_codec.encode(NodeRowId::from_u32(row)).get())
+        .collect();
     assert!(
         !image.contains(&48) && !image.contains(&u32::MAX),
         "the probes lie outside the image",
     );
     for garbage in [48, u32::MAX] {
-        by_row.row = Some(garbage);
+        by_row.row = Some(codec::WireRow::pinned(garbage));
         assert_eq!(
             atlas
                 .assemble_locate(&by_row, limits, &FULL)
@@ -2335,20 +2366,21 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
         .expect("row 0 is a node");
     let subgraph = atlas.locate_subgraph(source, limits.locate, &FULL);
     let node_codec = test_codec(&atlas);
-    let wire_of = |row: u32| node_codec.encode(row).get();
-    let sources: Vec<u32> = subgraph
+    let wire_of = |row: u32| node_codec.encode(NodeRowId::from_u32(row));
+    let sources: Vec<WireRow<NodeRowId>> = subgraph
         .edges
         .iter()
-        .map(|&(edge, _)| wire_of(edge.source))
+        .map(|&(edge, _)| wire_of(edge.source.u32()))
         .collect();
-    let targets: Vec<u32> = subgraph
+    let targets: Vec<WireRow<NodeRowId>> = subgraph
         .edges
         .iter()
-        .map(|&(edge, _)| wire_of(edge.target))
+        .map(|&(edge, _)| wire_of(edge.target.u32()))
         .collect();
     let edge_ids: Vec<crate::dataset::ArchivedEntityId> =
         subgraph.edges.iter().map(|&(_, id)| id).collect();
-    let wire_rows: Vec<u32> = atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
+    let wire_rows: Vec<WireRow<NodeRowId>> =
+        atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     let nodes = subgraph.rows.len();
     let edges = subgraph.edges.len();
     let no_labels: Vec<Option<&str>> = vec![None; nodes];

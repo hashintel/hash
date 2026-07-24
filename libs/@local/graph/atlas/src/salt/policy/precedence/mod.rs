@@ -38,7 +38,11 @@
 use core::{error::Error, fmt};
 
 use super::{ClassProbabilities, Posterior, RelationPolicy};
-use crate::{dataset::OntologyRowId, math::UnitFraction, salt::policy::classifier::Prediction};
+use crate::{
+    identity::{Identity as _, OntologyRowId},
+    math::UnitFraction,
+    salt::policy::classifier::Prediction,
+};
 
 #[cfg(test)]
 mod tests;

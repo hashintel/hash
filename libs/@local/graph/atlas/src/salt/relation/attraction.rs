@@ -8,7 +8,7 @@
 //! construction.
 
 use super::EffectiveConfidence;
-use crate::dataset::{EdgeRowId, NodeRowId, OntologyRowId};
+use crate::identity::{EdgeRowId, NodeRowId, OntologyRowId};
 
 /// Shared attraction settings of one generation, valid by construction.
 ///

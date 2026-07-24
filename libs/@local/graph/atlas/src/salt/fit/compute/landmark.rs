@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
     bitset::BitSet,
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
     file::{
         array::{ArrayVariant, Dim, SizedArrayWriter},
         generation::Generation,
@@ -25,6 +25,7 @@ use crate::{
         repository::RepositoryFile,
         salt::metadata::LandmarkEvidence,
     },
+    identity::{Identity as _, NodeRowId},
     integrity::Sha256Digest,
     math::AlignedVecN,
     salt::{
@@ -58,13 +59,13 @@ impl Context<'_> {
                 .map_err(PriorError::MapLandmarks)?,
         )
         .map_err(PriorError::InvalidLandmarks)?;
-        let prior_ids = IdentityTableArchive::<I>::new(
+        let prior_ids = IdentityTableArchive::<I, NodeRowId>::new(
             IdentityFile::open(prior.path_of(&files.node_identities.name))
                 .map_err(PriorError::MapIdentities)?,
         )
         .map_err(PriorError::InvalidIdentities)?;
 
-        let current = IdentityTableArchive::<I>::new(IdentityFile::open(
+        let current = IdentityTableArchive::<I, NodeRowId>::new(IdentityFile::open(
             self.staging.path_of(&Role::NodeIdentities.file_name()),
         )?)?;
 
@@ -72,11 +73,11 @@ impl Context<'_> {
             BitSet::new(usize::try_from(current.len()).expect("rows fit the address space"));
         for &row in skeleton.selected_rows() {
             let id = prior_ids
-                .id(row.get())
+                .id(row)
                 .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.get() })?;
 
             if let Some(current_row) = current.row_of(id) {
-                marks.insert(usize::try_from(current_row).expect("rows fit the address space"));
+                marks.insert(current_row.usize());
             }
         }
 

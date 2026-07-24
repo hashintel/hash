@@ -32,12 +32,12 @@ use smallvec::SmallVec;
 
 use super::stage::{Lod, LodConfig};
 use crate::{
-    dataset::OntologyRowId,
     file::{
         WriteInto,
         morton::Fenceposts,
         quad::{Node, TypeSets, write::write_regions},
     },
+    identity::{Identity as _, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     morton::{Depth, MortonCell, MortonKey},
 };

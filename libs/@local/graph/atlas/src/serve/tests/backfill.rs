@@ -1,6 +1,7 @@
 //! The restricted-view backfill battery: the selection law replayed against the reference.
 
 use super::*;
+use crate::identity::NodeRowId;
 
 /// The restricted-view selection law, written a second time.
 ///
@@ -16,6 +17,7 @@ mod backfill_reference {
 
     use crate::{
         file::morton::read::MortonFile,
+        identity::{Identity as _, NodeRowId},
         morton::{Depth, MortonCell, MortonKey},
         serve::VisibilityProof,
     };
@@ -92,7 +94,7 @@ mod backfill_reference {
             span: super::FIXTURE_LOD.span.get(),
             visible: move |position| {
                 let index = usize::try_from(position).expect("fixture positions fit usize");
-                proof.contains(row_ids[index])
+                proof.contains(NodeRowId::from_u32(row_ids[index]))
             },
         }
     }
@@ -349,14 +351,16 @@ fn backfill_battery(
 /// The base-position map of the delivered wire ids, decode-verified.
 fn delivered_positions(
     bytes: &[u8],
-    node_codec: &codec::RowCodec,
+    node_codec: &codec::RowCodec<NodeRowId>,
     position_of: &HashMap<u32, u64>,
 ) -> Vec<u64> {
     decode_rows(section(bytes, ROW_IDS).expect("ROW_IDS is present"))
         .iter()
         .map(|&wire| {
-            let row = node_codec.decode(wire).expect("delivered wire ids decode");
-            position_of[&row]
+            let row = node_codec
+                .decode(codec::WireRow::pinned(wire))
+                .expect("delivered wire ids decode");
+            position_of[&row.u32()]
         })
         .collect()
 }
@@ -401,7 +405,7 @@ async fn masked_delivery_agrees_with_the_selection_reference() {
                         .map(|&position| {
                             let index =
                                 usize::try_from(position).expect("fixture positions fit usize");
-                            node_codec.encode(row_ids[index]).get()
+                            node_codec.encode(NodeRowId::from_u32(row_ids[index])).get()
                         })
                         .collect();
 
@@ -453,7 +457,7 @@ async fn a_short_fill_certifies_the_extent_exhausted() {
     for (name, proof) in backfill_battery(&atlas, &artifacts.morton, row_ids) {
         let visible = |position: u64| {
             let index = usize::try_from(position).expect("fixture positions fit usize");
-            proof.contains(row_ids[index])
+            proof.contains(NodeRowId::from_u32(row_ids[index]))
         };
 
         // Wire-derived chain state: the z-ascending sweep guarantees every ancestor's delta is
@@ -659,7 +663,8 @@ async fn delivered_count_is_a_function_of_the_masked_view_alone() {
                     })
                     .filter(|&position| {
                         let index = usize::try_from(position).expect("positions fit usize");
-                        proof.contains(row_ids[index]) && !chain.contains(&position)
+                        proof.contains(NodeRowId::from_u32(row_ids[index]))
+                            && !chain.contains(&position)
                     })
                     .count();
 
@@ -711,7 +716,7 @@ async fn masked_delivery_agrees_with_the_walk_instrument() {
 
     let universe = u32::try_from(row_ids.len()).expect("the fixture universe fits u32");
     for (name, proof) in backfill_battery(&atlas, &artifacts.morton, row_ids) {
-        bench.mask_rows((0..universe).filter(|&row| proof.contains(row)));
+        bench.mask_rows((0..universe).filter(|&row| proof.contains(NodeRowId::from_u32(row))));
         for z in 0..=FIXTURE_LOD.max_tile_depth {
             let cells = 1_u32 << z;
             for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
@@ -731,7 +736,7 @@ async fn masked_delivery_agrees_with_the_walk_instrument() {
                     .iter()
                     .map(|&position| {
                         let index = usize::try_from(position).expect("positions fit usize");
-                        node_codec.encode(row_ids[index]).get()
+                        node_codec.encode(NodeRowId::from_u32(row_ids[index])).get()
                     })
                     .collect();
                 let selection = bench.chained(z, x, y);

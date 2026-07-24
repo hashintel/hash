@@ -30,7 +30,7 @@
 use core::{cmp::Ordering, num::NonZero};
 
 use super::super::knn::table::KnnView;
-use crate::disjoint::DisjointSet;
+use crate::{disjoint::DisjointSet, identity::Identity as _};
 
 /// The default clump threshold, as cosine distance over the 512-component representation.
 ///

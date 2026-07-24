@@ -29,8 +29,9 @@ use core::{error::Error, fmt, num::NonZero};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
-use crate::salt::semantic::{
-    SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError,
+use crate::{
+    identity::Identity as _,
+    salt::semantic::{SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError},
 };
 
 const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };

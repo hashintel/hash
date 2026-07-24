@@ -27,8 +27,9 @@ use super::{
     },
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
     file::{WriteInto as _, landmark::read::LandmarkFile},
+    identity::{Identity as _, NodeRowId},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},

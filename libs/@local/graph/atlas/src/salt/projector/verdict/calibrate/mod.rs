@@ -34,7 +34,7 @@ use core::num::NonZero;
 
 use super::{PlacementClass, ResolvedVerdict};
 use crate::{
-    dataset::OntologyRowId,
+    identity::{Identity as _, OntologyRowId},
     math::Vec2,
     salt::{projector::scale::LocalScales, relation::attraction::AttractionIndex},
 };

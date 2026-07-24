@@ -48,7 +48,8 @@ use super::{
 };
 use crate::{
     bitset::BitSet,
-    dataset::{CANONICAL_DIMENSIONS, Dataset, NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::{CANONICAL_DIMENSIONS, Dataset, PROJECTOR_DIMENSIONS},
+    identity::{Identity as _, NodeRowId},
     math::{AlignedVecN, BoxedVecN, Vec2},
     random::{sample_indices_vec, uniform_below},
 };

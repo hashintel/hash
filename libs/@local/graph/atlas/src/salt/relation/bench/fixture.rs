@@ -12,7 +12,7 @@ use super::super::{
     protection::ProtectionIndex,
 };
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     random::uniform_below,
     salt::policy::ClassProbabilities,
 };

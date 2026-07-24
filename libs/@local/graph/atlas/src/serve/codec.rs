@@ -61,12 +61,15 @@ pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 
 /// A row id as it crosses the wire.
 ///
-/// The value relates to an internal row id only through the owning generation's [`RowCodec`];
-/// [`RowCodec::encode`] is the sole constructor. Comparisons order wire values, so a tie broken on
-/// [`WireRow`] is client-observable without exposing internal order.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, schemars::JsonSchema)]
+/// The value relates to an internal row id only through the owning generation's [`RowCodec`]:
+/// [`RowCodec::encode`] mints egress values, and deserialization admits client-echoed values
+/// whose meaning only [`RowCodec::decode`] assigns - an arbitrary `u32` is a well-formed
+/// [`WireRow`] that simply decodes to [`None`] outside the encoded image. Comparisons order wire
+/// values, so a tie broken on [`WireRow`] is client-observable without exposing internal order.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, schemars::JsonSchema)]
 #[repr(transparent)]
-pub struct WireRow<I>(u32, PhantomData<I>);
+#[schemars(transparent)]
+pub struct WireRow<I>(u32, #[schemars(skip)] PhantomData<I>);
 
 impl<I> WireRow<I> {
     /// Returns the wire value.
@@ -77,11 +80,42 @@ impl<I> WireRow<I> {
     }
 }
 
+#[cfg(test)]
+impl<I> WireRow<I> {
+    /// Mints a pinned wire value: the fixture and test constructor.
+    ///
+    /// Fixture bytes assert the encoder against hand-derived values, so their wire ids are
+    /// literals rather than codec output.
+    pub(crate) const fn pinned(value: u32) -> Self {
+        Self(value, PhantomData)
+    }
+}
+
 impl<I> Copy for WireRow<I> {}
 
 impl<I> Clone for WireRow<I> {
     fn clone(&self) -> Self {
         *self
+    }
+}
+
+// Manual: a derive would serialize the phantom parameter (and bound
+// `I` on the serde traits), but only the wire value crosses the wire.
+impl<I> serde::Serialize for WireRow<I> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de, I> serde::Deserialize<'de> for WireRow<I> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        u32::deserialize(deserializer).map(|value| Self(value, PhantomData))
     }
 }
 

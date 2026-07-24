@@ -27,12 +27,13 @@ use super::{
     stage_rng,
 };
 use crate::{
-    dataset::{Dataset, EdgeRowId, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes},
+    dataset::{Dataset, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::RepositoryFile,
     },
+    identity::{EdgeRowId, Identity as _, OntologyRowId},
     math::AlignedVecN,
     salt::{
         embedding::{

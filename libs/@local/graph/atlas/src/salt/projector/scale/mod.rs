@@ -18,6 +18,7 @@ use core::{error::Error, fmt};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
+    identity::Identity as _,
     math::{NonNegative, Vec2},
     salt::knn::table::KnnView,
 };

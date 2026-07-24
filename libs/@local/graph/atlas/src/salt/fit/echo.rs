@@ -162,7 +162,7 @@ mod policy_overrides {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
     use crate::{
-        dataset::OntologyRowId,
+        identity::{Identity as _, OntologyRowId},
         salt::policy::{GeometryClass, PolicyOverride, PolicySource, Posterior},
     };
 

@@ -51,7 +51,7 @@ use super::{
     probe::{ProbeReadings, ReadingGrid},
 };
 use crate::{
-    dataset::OntologyRowId,
+    identity::OntologyRowId,
     math::{NonNegative, UnitFraction, narrow_f32},
 };
 

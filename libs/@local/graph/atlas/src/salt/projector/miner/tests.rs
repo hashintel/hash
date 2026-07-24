@@ -13,7 +13,7 @@ use core::num::NonZero;
 
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField, SpatialFieldError};
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     math::{Positive, Vec2},
     salt::{
         policy::ClassProbabilities,

@@ -15,7 +15,8 @@ use super::{
 };
 use crate::{
     bitset::BitSet,
-    dataset::{ArchivedEntityId, EdgeRowId, NodeRowId},
+    dataset::ArchivedEntityId,
+    identity::{EdgeRowId, NodeRowId},
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
 };
 
@@ -253,7 +254,7 @@ impl Atlas {
             .iter()
             .map(|&row| {
                 self.edge_ids
-                    .id(row.get())
+                    .id(row)
                     .expect("open validated the identity rows against the adjacency's edges")
             })
             .collect();

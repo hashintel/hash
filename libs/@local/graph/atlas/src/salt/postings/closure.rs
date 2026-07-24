@@ -6,7 +6,11 @@
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
 //! low megabytes while `T` stays in the low thousands.
 
-use crate::{bitset::BitMatrix, dataset::OntologyRowId, salt::postings::artifact::PostingsArchive};
+use crate::{
+    bitset::BitMatrix,
+    identity::{Identity as _, OntologyRowId},
+    salt::postings::artifact::PostingsArchive,
+};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///

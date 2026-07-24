@@ -31,10 +31,11 @@ use super::{
 };
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
-        card::Card, memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card,
+        memory::MemoryDataset,
     },
     file::generation::GenerationRoot,
+    identity::{Identity as _, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN},
     salt::{

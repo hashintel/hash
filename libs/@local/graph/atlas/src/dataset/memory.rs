@@ -9,7 +9,7 @@ use zerocopy::{LE, U64};
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes, card::Card,
 };
-use crate::math::BoxedVecN;
+use crate::{identity::Identity as _, math::BoxedVecN};
 
 /// A [`Dataset`] held entirely in memory.
 ///

@@ -19,7 +19,8 @@ use super::{
     visibility::{VisibilityProof, VisibleRow},
 };
 use crate::{
-    dataset::{ArchivedEntityId, EdgeRowId, NodeRowId},
+    dataset::ArchivedEntityId,
+    identity::{EdgeRowId, Identity as _, NodeRowId},
     morton::MortonKey,
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
@@ -84,7 +85,7 @@ impl Atlas {
     ) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
         let row = self.node_ids.row_of(id)?;
-        let row = proof.verify(NodeRowId::new(row))?;
+        let row = proof.verify(row)?;
 
         Some(self.source_point(row))
     }
@@ -488,7 +489,7 @@ impl Atlas {
             .iter()
             .map(|&row| {
                 self.node_ids
-                    .id(u64::from(row))
+                    .id(row)
                     .expect("open validated the identity rows against the code column")
             })
             .collect();
@@ -511,7 +512,7 @@ impl Atlas {
             .iter()
             .map(|&row| {
                 self.edge_ids
-                    .id(row.get())
+                    .id(row)
                     .expect("open validated the identity rows against the adjacency's edges")
             })
             .collect();
@@ -553,7 +554,7 @@ impl Atlas {
         // generation-frozen tables, no store.
         let entity_id = self
             .node_ids
-            .id(u64::from(document.rows[0]))
+            .id(document.rows[0])
             .expect("open validated the identity rows against the code column");
 
         let type_ids_complete = covers_source_types(

@@ -3,7 +3,7 @@ use core::assert_matches;
 use uuid::Uuid;
 
 use super::{InvalidReviewedVerdicts, PlacementClass, ReviewedVerdicts};
-use crate::dataset::ArchivedOntologyTypeUuid;
+use crate::{dataset::ArchivedOntologyTypeUuid, identity::Identity as _};
 
 /// Composes a wire document with the canonical exporter's key order.
 fn document(type_verdicts: &str, pair_verdicts: &str) -> String {

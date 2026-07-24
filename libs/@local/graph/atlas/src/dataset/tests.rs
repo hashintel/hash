@@ -12,10 +12,12 @@ use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use super::{
     ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId, CANONICAL_DIMENSIONS,
-    Dataset as _, Edge, EdgeRowId, Node, NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS,
-    card::Card, memory::MemoryDataset,
+    Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
 };
-use crate::math::{BoxedVecN, VecN};
+use crate::{
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    math::{BoxedVecN, VecN},
+};
 
 const UUID_BYTES: [u8; 16] = [
     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,

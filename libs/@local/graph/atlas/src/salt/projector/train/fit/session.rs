@@ -38,18 +38,21 @@ use super::{
     BoundaryEvidence, FrozenRadius, TickTelemetry, TrainError, TrainOptions, TrainerInputs,
     TrainingEvidence, TrainingSchedule,
 };
-use crate::salt::{
-    projector::{
-        loss::{ProximalEnergy, RelationEnergy},
-        miner::{HardNegativeMiner, MinedFrame},
-        model::Projector,
-        scale::LocalScales,
-        verdict::{
-            PlacementClass, ResolvedVerdict,
-            calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
+use crate::{
+    identity::Identity as _,
+    salt::{
+        projector::{
+            loss::{ProximalEnergy, RelationEnergy},
+            miner::{HardNegativeMiner, MinedFrame},
+            model::Projector,
+            scale::LocalScales,
+            verdict::{
+                PlacementClass, ResolvedVerdict,
+                calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
+            },
         },
+        relation::attraction::{AttractionGroup, AttractionIndex},
     },
-    relation::attraction::{AttractionGroup, AttractionIndex},
 };
 
 /// The trainer's optimizer: Adam adapted over the projector.

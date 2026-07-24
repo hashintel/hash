@@ -59,7 +59,8 @@ use super::{
     construction::{KnnConstruction, NeighbourLists},
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::AlignedVecN,
     random::{keyed_rng, sample_indices_vec},
 };

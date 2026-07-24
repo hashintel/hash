@@ -34,8 +34,8 @@ use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use sprs::{CsMatI, CsMatViewI};
 
 use crate::{
-    dataset::NodeRowId,
     file::sprs::{SprsValue, ValueTag},
+    identity::{Identity as _, NodeRowId},
     math::NonNegative,
 };
 

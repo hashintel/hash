@@ -30,7 +30,8 @@ use super::{
     step::evaluate,
 };
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
     },

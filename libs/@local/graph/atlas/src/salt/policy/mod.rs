@@ -13,7 +13,7 @@
 
 use core::{fmt, mem};
 
-use crate::{dataset::OntologyRowId, math::UnitFraction};
+use crate::{identity::OntologyRowId, math::UnitFraction};
 
 pub(crate) mod annotation;
 pub(crate) mod artifact;

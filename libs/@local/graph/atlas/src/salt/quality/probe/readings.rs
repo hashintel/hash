@@ -10,7 +10,7 @@ use super::super::{
     clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
 };
-use crate::dataset::NodeRowId;
+use crate::identity::NodeRowId;
 
 /// The probe's space pairs, in one pinned reporting order.
 ///

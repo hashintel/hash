@@ -57,7 +57,7 @@ pub(crate) use self::{
     step::LossBreakdown,
 };
 use crate::{
-    dataset::NodeRowId,
+    identity::{Identity as _, NodeRowId},
     math::{NonNegative, Positive},
     salt::projector::{
         budget::BudgetOptions,

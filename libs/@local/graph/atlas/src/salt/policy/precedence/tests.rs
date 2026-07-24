@@ -7,7 +7,7 @@ use super::{
     Classification, CoincidentAdmission, PolicyOverride, PolicySource, ResolveError, resolve,
 };
 use crate::{
-    dataset::OntologyRowId,
+    identity::{Identity as _, OntologyRowId},
     math::UnitFraction,
     salt::{
         policy::{ClassProbabilities, Posterior, classifier::Prediction},

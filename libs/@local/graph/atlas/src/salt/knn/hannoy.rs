@@ -21,7 +21,8 @@ use rand::{Rng, SeedableRng};
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour};
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{Identity as _, NodeRowId},
     math::AlignedVecN,
     random::Compat,
 };

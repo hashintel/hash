@@ -15,6 +15,7 @@ use super::{
 };
 use crate::{
     file::{WriteInto as _, sprs::read::SprsFile},
+    identity::Identity as _,
     math::kernel::exp_f32x8,
     salt::knn::table::{Knn, KnnMatrix},
 };

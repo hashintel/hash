@@ -36,7 +36,8 @@ use std::collections::HashMap;
 use type_system::ontology::id::VersionedUrl;
 
 use crate::{
-    dataset::{OntologyIdentity, OntologyRowId},
+    dataset::OntologyIdentity,
+    identity::{Identity as _, OntologyRowId},
     integrity::Sha256Digest,
 };
 

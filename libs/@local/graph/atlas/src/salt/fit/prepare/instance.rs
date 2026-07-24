@@ -16,8 +16,8 @@ use memmap2::Mmap;
 use zerocopy::{F32, FromBytes as _, IntoBytes as _, LE, U32, U64};
 
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
     file::generation::ScratchDirectory,
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     salt::relation::{RelationConfidence, RelationInstance},
 };
 

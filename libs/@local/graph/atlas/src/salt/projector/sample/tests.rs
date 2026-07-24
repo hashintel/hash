@@ -9,7 +9,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{OrdinaryNegativeSampler, RelationEdgeSampler, SemanticEdgeSampler};
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     salt::{
         policy::ClassProbabilities,
         relation::{

@@ -11,6 +11,8 @@
 //!   SIMD-native.
 //! - [`random`] - unbiased sampling and statistical acceptance bounds.
 //! - [`bitset`] - fixed-capacity dense bit sets over row domains.
+//! - [`identity`] - positional identity: typed row ids over the dense row domains, and the
+//!   element-typed artifact column view.
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
 //! - [`morton`] - Z-order keys: interleaved axes, grid cells, and contiguous key ranges.
 //! - `file` - the on-disk artifact formats: plain files in a directory, described by metadata
@@ -75,6 +77,7 @@ pub mod cli;
 pub(crate) mod dataset;
 pub mod disjoint;
 mod file;
+pub mod identity;
 pub mod integrity;
 pub mod math;
 pub mod morton;

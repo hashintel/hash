@@ -42,9 +42,11 @@ use super::{
 };
 use crate::{
     dataset::ArchivedEntityId,
+    identity::NodeRowId,
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
+    serve::WireRow,
 };
 
 /// One pinned fixture: fixture name, response bytes, sidecar.
@@ -284,7 +286,9 @@ fn g1_minimal_tile() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..12).map(|index| 3 * index + 7).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..12)
+        .map(|index| WireRow::pinned(3 * index + 7))
+        .collect();
     let ranges = [8_u32..11];
 
     // type 0: base positions 8 and 9 deliver; 3 and 11 lie outside
@@ -358,7 +362,9 @@ fn g2_root_tile() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..4).map(|index| 90 - 10 * index).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..4)
+        .map(|index| WireRow::pinned(90 - 10 * index))
+        .collect();
     // The root's runs are bucket fencepost differences; its delivered
     // set is one contiguous range.
     let ranges = [0_u32..3];
@@ -417,7 +423,9 @@ fn g3_total_tile() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..10).map(|index| 1000 + 7 * index).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..10)
+        .map(|index| WireRow::pinned(1000 + 7 * index))
+        .collect();
     // Buckets 0..=3: one contiguous base slice each, the second
     // empty. Base positions 2, 3, and 7 belong to no run and never
     // deliver.
@@ -550,7 +558,9 @@ fn g5_trailer_tile() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..8).map(|index| 11 * index + 5).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..8)
+        .map(|index| WireRow::pinned(11 * index + 5))
+        .collect();
     let ranges = [2_u32..6];
 
     let labels = [
@@ -621,8 +631,8 @@ fn g6_edges() -> Fixture {
         generation: Sha256Digest::from_bytes_unchecked([0x66; 32]),
         variant: 0,
         complete: false,
-        sources: &[4, 4, 9],
-        targets: &[11, 7, 2],
+        sources: &[4, 4, 9].map(WireRow::pinned),
+        targets: &[11, 7, 2].map(WireRow::pinned),
         edge_ids: &edge_ids,
         trailer: Some(EdgesTrailer {
             type_table: &type_table,
@@ -684,7 +694,9 @@ fn g7_locate() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..8).map(|index| 10 * index + 1).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..8)
+        .map(|index| WireRow::pinned(10 * index + 1))
+        .collect();
     // Source at base position 6, then partners ascending by wire
     // row id per the delivery pin: rows 61, then 11 < 21 < 41 -
     // the fixture conforms to the ratified order, not just the
@@ -749,8 +761,8 @@ fn g7_locate() -> Fixture {
         positions: &positions,
         rows: &rows,
         masks: Some(&masks),
-        sources: &[61, 41, 21],
-        targets: &[11, 61, 41],
+        sources: &[61, 41, 21].map(WireRow::pinned),
+        targets: &[11, 61, 41].map(WireRow::pinned),
         edge_ids: &edge_ids,
         trailer: LocateTrailer {
             type_table: &type_table,
@@ -908,7 +920,8 @@ fn g8_appended_slot() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..6).map(|index| 2 * index + 1).collect();
+    let rows: Vec<WireRow<NodeRowId>> =
+        (0..6).map(|index| WireRow::pinned(2 * index + 1)).collect();
     let ranges = [2_u32..5];
 
     let response = TileResponse {
@@ -979,7 +992,9 @@ fn g9_padding_low() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..10).map(|index| 5 * index + 2).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..10)
+        .map(|index| WireRow::pinned(5 * index + 2))
+        .collect();
     let ranges = [3_u32..8];
 
     // Three types, stride 1: five mask bytes pad with 3.
@@ -1057,7 +1072,7 @@ fn g10_padding_high() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..6).map(|index| 13 * index).collect();
+    let rows: Vec<WireRow<NodeRowId>> = (0..6).map(|index| WireRow::pinned(13 * index)).collect();
     let ranges = [1_u32..4];
 
     // One type, stride 1: three mask bytes pad with 5.
@@ -1144,7 +1159,8 @@ fn g11_backfilled_tile() -> Fixture {
             )
         })
         .collect();
-    let rows: Vec<u32> = (0..6).map(|index| 5 * index + 2).collect();
+    let rows: Vec<WireRow<NodeRowId>> =
+        (0..6).map(|index| WireRow::pinned(5 * index + 2)).collect();
     // Natural survivors 1 and 3, then the fill from deeper buckets: 4 and 5.
     let delivered = [1_u32, 3, 4, 5];
 

@@ -27,7 +27,7 @@ use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use zerocopy::{FromBytes as _, IntoBytes as _};
 
 use crate::{
-    dataset::NodeRowId,
+    identity::{Identity as _, NodeRowId},
     math::{Positive, Vec2},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},

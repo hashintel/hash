@@ -28,7 +28,8 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{ARCHITECTURE, BackendKind};
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
     math::{AffinityCurve, MatrixN, NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,

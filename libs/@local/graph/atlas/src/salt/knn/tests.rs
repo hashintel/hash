@@ -20,7 +20,7 @@ use super::{
     table::{Knn, KnnMatrix, KnnValidationError},
 };
 use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
+    dataset::PROJECTOR_DIMENSIONS,
     file::{
         WriteInto as _,
         array::{ArrayShape, Dim},
@@ -29,6 +29,7 @@ use crate::{
             read::{OpenSprsError, SprsFile},
         },
     },
+    identity::{Identity as _, NodeRowId},
     math::{AlignedVecN, BoxedVecN},
 };
 

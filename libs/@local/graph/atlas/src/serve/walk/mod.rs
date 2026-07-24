@@ -26,6 +26,7 @@ use crate::{
         morton::read::MortonFile,
         quad::{Node, read::QuadFile},
     },
+    identity::{Identity as _, NodeRowId},
     morton::{Depth, MortonCell},
     salt::wire::tile::DeliveredSet,
 };
@@ -65,7 +66,8 @@ impl<'atlas> Walk<'atlas> {
 
     /// Returns whether the proof admits the row at base position `position`.
     const fn admits(&self, position: u32) -> bool {
-        self.proof.contains(self.row_ids[position as usize])
+        self.proof
+            .contains(NodeRowId::from_u32(self.row_ids[position as usize]))
     }
 
     /// Returns bucket `depth`'s positions inside `cell`, in the validated `u32` position domain.

@@ -12,8 +12,8 @@ use super::{
     AssemblyConfig, AssemblyEvidence, DIRICHLET_ALPHA, Relaxation,
 };
 use crate::{
-    dataset::OntologyRowId,
     disjoint::DisjointSet,
+    identity::{Identity as _, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     salt::{embedding::CardEmbeddingView, policy::GeometryClass},
 };

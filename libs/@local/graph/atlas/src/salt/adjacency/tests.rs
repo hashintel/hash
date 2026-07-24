@@ -5,11 +5,11 @@ use sprs::CsMatViewI;
 
 use super::{Adjacency, AdjacencyArchive, EdgeList, InvalidAdjacencyFile};
 use crate::{
-    dataset::{EdgeRowId, NodeRowId},
     file::{
         WriteInto as _,
         sprs::{read::SprsFile, write::write_matrix},
     },
+    identity::{EdgeRowId, Identity as _, NodeRowId},
     integrity::{Sha256, Writer},
 };
 

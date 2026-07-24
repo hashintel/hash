@@ -21,7 +21,7 @@ use core::ops::Range;
 
 use super::{Kind, Mode, cbor::CborWriter, envelope::EnvelopeWriter};
 use crate::{
-    dataset::NodeRowId,
+    identity::NodeRowId,
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,

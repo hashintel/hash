@@ -19,7 +19,7 @@ use alloc::collections::BTreeMap;
 use core::mem;
 
 use crate::{
-    dataset::OntologyRowId,
+    identity::{Identity as _, OntologyRowId},
     math::Vec2,
     salt::{
         projector::budget::{BudgetSummary, ClippedRelation},

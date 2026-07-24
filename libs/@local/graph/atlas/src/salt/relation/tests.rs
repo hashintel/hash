@@ -16,8 +16,8 @@ use super::{
     protection::{ChannelConfig, NodePair, PairVerdict, ProtectionConfig},
 };
 use crate::{
-    dataset::{EdgeRowId, NodeRowId, OntologyRowId},
     file::WriteInto as _,
+    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
 };
 
 /// The row domain every fixture spans.

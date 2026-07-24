@@ -33,10 +33,7 @@ use core::num::NonZero;
 
 use rand::{Rng, SeedableRng};
 
-use crate::{
-    dataset::{NodeRowId, PROJECTOR_DIMENSIONS},
-    math::AlignedVecN,
-};
+use crate::{dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN};
 
 pub(crate) mod artifact;
 #[cfg(feature = "bench")]
