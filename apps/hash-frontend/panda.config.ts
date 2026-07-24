@@ -22,12 +22,14 @@ export default defineConfig({
   ...scopedThemeConfig(".hash-ds-root"),
 
   /**
-   * Styles used inside ds-components itself, plus the supply-chain tool
-   * and its route pages, which author Panda `css()` calls against the ds-components preset tokens.
+   * Styles used inside ds-components itself, plus this app's own sources that
+   * author Panda `css()` calls against the ds-components preset tokens: the
+   * supply-chain tool and its route pages, and the tiled network graph.
    */
   include: [
     require.resolve("@hashintel/ds-components/panda.buildinfo.json"),
     "./src/pages/supply-chain/**/*.{ts,tsx}",
+    "./src/components/tiled-network-graph/**/*.{ts,tsx}",
   ],
 
   exclude: [],

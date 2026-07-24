@@ -2,20 +2,6 @@ export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
-export { iconNameFromEntityIcon } from "./components/Chart/NetworkGraph/fixtures/entity-icon-name";
-export {
-  type LocatedEdgeDetail,
-  type LocatedEntityDetail,
-  type LocatedEntityEndpoint,
-  type LocatedEntityIcon,
-  LocatedEntityPopover,
-  type LocatedEntityPopoverAnchor,
-  type LocatedEntityPopoverProps,
-  type LocatedEntityProperty,
-  type LocatedEntityTypeChip,
-  type LocatedEntityValuePart,
-  type LocatedNodeDetail,
-} from "./components/Chart/NetworkGraph/located-entity-popover";
 export { maxZoomForNodeMinDistance } from "./components/Chart/NetworkGraph/max-zoom";
 export {
   NetworkGraph,
@@ -30,29 +16,6 @@ export {
   type NetworkGraphProps,
   type NetworkGraphSelection,
 } from "./components/Chart/NetworkGraph/network-graph";
-export {
-  fetchLocate,
-  type FetchLocateOptions,
-  type LocatedEntity,
-  type LocateEdge,
-  type LocateNode,
-  type LocateSource,
-  type SaltileProperties,
-  type SaltilePropertyValue,
-} from "./components/Chart/NetworkGraph/tiling/fetch-locate";
-export {
-  type EdgesFetcher,
-  type TileFetcher,
-  tileZoomForViewport,
-  useGetViewportNodes,
-  type UseGetViewportNodesOptions,
-  type UseGetViewportNodesResult,
-  type Viewport,
-  type ViewportEdge,
-  type ViewportGraph,
-  type ViewportNode,
-  WORLD_SIZE,
-} from "./components/Chart/NetworkGraph/tiling/use-get-viewport-nodes";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
 export { Dialog } from "./components/Dialog/dialog";

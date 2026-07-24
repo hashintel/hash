@@ -282,6 +282,7 @@ const readDetail = (
     }
     if (!isUint(entry) || entry >= typeTable.length) {
       return fail(
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- diagnostic for a malformed, possibly non-numeric CBOR entry
         `typeIds entry ${String(entry)} lies outside the intern table`,
         offset,
       );
@@ -303,6 +304,7 @@ const readDetail = (
     return entry.map((index) => {
       if (!isUint(index) || index >= typeTable.length) {
         return fail(
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- diagnostic for a malformed, possibly non-numeric CBOR index
           `linkTypeIds index ${String(index)} lies outside the intern table`,
           offset,
         );

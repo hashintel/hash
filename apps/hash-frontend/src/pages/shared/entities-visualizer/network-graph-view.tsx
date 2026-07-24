@@ -1,10 +1,10 @@
 /**
  * The Atlas-tiled network graph view for the entities visualizer.
  *
- * Mirrors the `network-graph-tiling` Ladle story: the live deck.gl camera drives
- * a tiling {@link Viewport}, which {@link useGetViewportNodes} turns into the set
- * of nodes on screen — fetching the quadtree tiles it covers through a persistent,
- * distance-evicting cache and returning the merged nodes plus request state.
+ * The live deck.gl camera drives a tiling {@link Viewport}, which
+ * {@link useGetViewportNodes} turns into the set of nodes on screen — fetching
+ * the quadtree tiles it covers through a persistent, distance-evicting cache and
+ * returning the merged nodes plus request state.
  *
  * Tiles are fetched from the `hash-graph atlas` server via the `/atlas-api`
  * Next.js rewrite (see `next.config.js`), which proxies to it same-origin so the
@@ -21,31 +21,15 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import {
-  fetchLocate,
-  iconNameFromEntityIcon,
-  LocatedEntityPopover,
   NetworkGraph,
   PortalContainerContext,
-  useGetViewportNodes,
-  WORLD_SIZE,
   type IconName,
-  type LocateEdge,
-  type LocatedEntity,
-  type LocatedEntityDetail,
-  type LocatedEntityEndpoint,
-  type LocatedEntityPopoverAnchor,
-  type LocatedEntityTypeChip,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphSelection,
-  type SaltileProperties,
-  type SaltilePropertyValue,
-  type Viewport,
-  type ViewportEdge,
-  type ViewportNode,
 } from "@hashintel/ds-components";
 import {
   formatDataValue,
@@ -53,19 +37,41 @@ import {
   type MergedDataTypeSingleSchema,
 } from "@local/hash-isomorphic-utils/data-types";
 
+import { iconNameFromEntityIcon } from "../../../components/tiled-network-graph/entity-icon-name";
+import {
+  LocatedEntityPopover,
+  type LocatedEntityDetail,
+  type LocatedEntityEndpoint,
+  type LocatedEntityPopoverAnchor,
+  type LocatedEntityTypeChip,
+} from "../../../components/tiled-network-graph/located-entity-popover";
+import { NetworkGraphSearch } from "../../../components/tiled-network-graph/network-graph-search";
+import {
+  fetchLocate,
+  type LocatedEntity,
+  type LocateEdge,
+  type SaltileProperties,
+  type SaltilePropertyValue,
+} from "../../../components/tiled-network-graph/tiling/fetch-locate";
+import {
+  useGetViewportNodes,
+  WORLD_SIZE,
+  type Viewport,
+  type ViewportEdge,
+  type ViewportNode,
+} from "../../../components/tiled-network-graph/tiling/use-get-viewport-nodes";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { MinusRegularIcon } from "../../../shared/icons/minus-regular";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
-import { NetworkGraphSearch } from "./network-graph-search";
 import {
   resolveTypeColor,
   typeColorRanks,
   unassignedTypeColor,
 } from "./shared/type-colors";
 
-import type { NetworkGraphSearchResult } from "./network-graph-search";
+import type { NetworkGraphSearchResult } from "../../../components/tiled-network-graph/network-graph-search";
 import type { TypeColorOverrides } from "./shared/type-colors";
 import type { AvailableType } from "./shared/use-available-types";
 import type {

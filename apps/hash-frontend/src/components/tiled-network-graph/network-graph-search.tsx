@@ -38,15 +38,15 @@ import {
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { ArrowRightToLineIcon } from "../../../shared/icons/arrow-right-to-line-icon";
-import { SearchIcon } from "../../../shared/icons/search-icon";
-import { MenuItem } from "../../../shared/ui/menu-item";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { ArrowRightToLineIcon } from "../../shared/icons/arrow-right-to-line-icon";
+import { SearchIcon } from "../../shared/icons/search-icon";
+import { MenuItem } from "../../shared/ui/menu-item";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
-} from "../../../graphql/api-types.gen";
+} from "../../graphql/api-types.gen";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 

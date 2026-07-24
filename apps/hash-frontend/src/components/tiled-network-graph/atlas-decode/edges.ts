@@ -139,6 +139,7 @@ const readDetail = (
     }
     if (!isUint(entry) || entry >= typeTable.length) {
       return fail(
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string -- diagnostic for a malformed, possibly non-numeric CBOR entry
         `linkTypeIds entry ${String(entry)} lies outside the intern table`,
         offset,
       );

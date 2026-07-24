@@ -2,7 +2,7 @@
  * The selection popover for the Atlas network graph: a compact white entity card
  * anchored to the selected node/edge, showing the located item's title, its
  * type chip, its simple-value properties (nodes), and a "Go to entity" action.
- * Used by the tiling Ladle story and the entities-visualizer network graph view.
+ * Used by the entities-visualizer network graph view.
  *
  * Purely presentational — the consumer decodes a {@link fetchLocate} response
  * into {@link LocatedEntityDetail} and owns the
@@ -16,12 +16,14 @@
  * inside that scope, or the card's token-based colours won't resolve.
  */
 
+import {
+  Badge,
+  Button,
+  Icon,
+  type IconName,
+  Popover,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { Badge } from "../../Badge/badge";
-import { Button } from "../../Button/button";
-import { Icon, type IconName } from "../../Icon/icon";
-import { Popover } from "../../Popover/popover";
 
 /**
  * Sits this popover — and the graph's search widget, which layers around it —
