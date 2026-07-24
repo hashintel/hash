@@ -31,6 +31,7 @@ import {
   EDGE_WIDTH,
   hexToRgb,
   iconTextureUrl,
+  lightenRgb,
   RGBA_OPAQUE,
   trimPathBothEnds,
 } from "./network-graph-util";
@@ -64,6 +65,7 @@ import type {
   NetworkGraphId,
   NetworkGraphPoint,
   NetworkGraphEdge,
+  RgbColor,
 } from "./network-graph-util";
 import type { Layer, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
@@ -405,6 +407,16 @@ const ARROW_HEAD_LENGTH_PX = ARROW_SIZE_PX * ARROW_HEAD_LENGTH_RATIO;
  * so they simply sit a little further in.
  */
 const PAN_NODE_MARGIN_PX = DETAIL_NODE_DIAMETER / 2;
+
+/**
+ * Grey for the backgrounded selected edge (and its arrow) in the detail view: {@link
+ * DIMMED_EDGE_COLOR} lightened slightly toward white, so a selected-then-backgrounded
+ * edge keeps its selected width yet reads a touch softer than a plain dimmed edge.
+ */
+const BACKGROUNDED_SELECTED_EDGE_COLOR: RgbColor = lightenRgb(
+  DIMMED_EDGE_COLOR,
+  0.2,
+);
 
 /** One direction arrow: where its tip sits and how it's oriented. */
 interface EdgeArrow {
@@ -2625,6 +2637,75 @@ export const NetworkGraph = ({
       }));
   }, [isDetailZoom, detailEdgePaths, highlight, currentZoom]);
 
+  /**
+   * The selected edge while a *different* edge owns the active emphasis (another edge
+   * hovered): its bundled path trimmed like a prominent edge (source at the node rim,
+   * target back by the arrow gap), but drawn by its own layer at the selected (hover)
+   * width in a lightened grey — so the selection keeps its thickness and arrow yet reads
+   * as backgrounded, ceding the dark prominent styling to the hovered edge. Detail view
+   * only; null unless an edge is selected and backgrounded this way.
+   */
+  const backgroundedSelectedEdgePath = useMemo<BundledEdge | null>(() => {
+    if (
+      !isDetailZoom ||
+      !selectedEdgeHoverable ||
+      !activeEdge ||
+      activeEdge.edgeId === selectedEdgeHoverable.edgeId
+    ) {
+      return null;
+    }
+    const scale = currentZoom == null ? null : 2 ** currentZoom;
+    const sourceTrim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
+    const targetTrim =
+      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx) / scale;
+    return {
+      edgeId: selectedEdgeHoverable.edgeId,
+      path: trimPathBothEnds(
+        selectedEdgeHoverable.path,
+        sourceTrim,
+        targetTrim,
+      ),
+    };
+  }, [
+    isDetailZoom,
+    selectedEdgeHoverable,
+    activeEdge,
+    currentZoom,
+    arrowGapPx,
+  ]);
+
+  /**
+   * The backgrounded selected edge's direction arrow, placed at its target like the
+   * prominent edges' arrows (from the untrimmed bundled path, backed off the node by
+   * radius + gap). Drawn grey by its own layer so the selection keeps its arrowhead.
+   * Null whenever {@link backgroundedSelectedEdgePath} is.
+   */
+  const backgroundedSelectedArrow = useMemo<EdgeArrow | null>(() => {
+    if (!backgroundedSelectedEdgePath || !selectedEdgeHoverable) {
+      return null;
+    }
+    const { path } = selectedEdgeHoverable;
+    const target = path[path.length - 1];
+    const previous = path[path.length - 2];
+    if (!target || !previous) {
+      return null;
+    }
+    const dx = target[0] - previous[0];
+    const dy = target[1] - previous[1];
+    const length = Math.hypot(dx, dy);
+    if (length < 1e-9) {
+      return null;
+    }
+    const ux = dx / length;
+    const uy = dy / length;
+    const back = DETAIL_NODE_DIAMETER / 2 + arrowGapPx;
+    return {
+      position: target,
+      offset: [-ux * back, -uy * back],
+      angle: -(Math.atan2(uy, ux) * 180) / Math.PI,
+    };
+  }, [backgroundedSelectedEdgePath, selectedEdgeHoverable, arrowGapPx]);
+
   const layers = useMemo(() => {
     // The active edge's endpoint nodes, outlined in the edge's colour — only while
     // that edge is drawn (see `activeEdgeShown`).
@@ -2712,6 +2793,27 @@ export const NetworkGraph = ({
         ]
       : [compact];
 
+    // The backgrounded selection: the selected edge kept at its (hover) width but in a
+    // lightened grey, drawn below the prominent edges so the hovered edge reads on top.
+    // Not pickable — the faint background copy beneath stays the pick target.
+    if (backgroundedSelectedEdgePath) {
+      nodeLayers.push(
+        new PathLayer<BundledEdge>({
+          id: "selected-edge-backgrounded",
+          data: [backgroundedSelectedEdgePath],
+          pickable: false,
+          getPath: (edge) => edge.path,
+          getColor: [...BACKGROUNDED_SELECTED_EDGE_COLOR, RGBA_OPAQUE],
+          getWidth: EDGE_HOVER_WIDTH,
+          widthUnits: "pixels",
+          widthMinPixels: EDGE_MIN_WIDTH,
+          capRounded: true,
+          jointRounded: true,
+          parameters: { depthCompare: "always", depthWriteEnabled: false },
+        }),
+      );
+    }
+
     // The prominent bundled edges, drawn above the detailed nodes so a highlighted
     // connection reads over any node it crosses. `depthCompare: "always"` lets it
     // paint over the depth-writing nodes. Detail view only.
@@ -2759,6 +2861,28 @@ export const NetworkGraph = ({
           sizeUnits: "pixels",
           getColor: [...DIMMED_EDGE_COLOR, RGBA_OPAQUE],
           opacity: SELECTED_DIM_OPACITY,
+          parameters: { depthCompare: "always", depthWriteEnabled: false },
+        }),
+      );
+    }
+    // The backgrounded selected edge's arrowhead, in its lightened grey at full opacity,
+    // so the edge keeps the arrow of its selected state. Drawn before the active arrows
+    // so a hovered edge's arrow reads on top where they meet.
+    if (arrowAtlas && backgroundedSelectedArrow) {
+      nodeLayers.push(
+        new IconLayer<EdgeArrow>({
+          id: "selected-edge-backgrounded-arrow",
+          data: [backgroundedSelectedArrow],
+          pickable: false,
+          iconAtlas: arrowAtlas.url,
+          iconMapping: arrowAtlas.mapping,
+          getIcon: () => "arrow",
+          getPosition: (arrow) => arrow.position,
+          getPixelOffset: (arrow) => arrow.offset,
+          getAngle: (arrow) => arrow.angle,
+          getSize: ARROW_SIZE_PX,
+          sizeUnits: "pixels",
+          getColor: [...BACKGROUNDED_SELECTED_EDGE_COLOR, RGBA_OPAQUE],
           parameters: { depthCompare: "always", depthWriteEnabled: false },
         }),
       );
@@ -2847,6 +2971,8 @@ export const NetworkGraph = ({
     highlight,
     trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
+    backgroundedSelectedEdgePath,
+    backgroundedSelectedArrow,
     trimmedHighlightLines,
     compactNeighbours,
     arrows,

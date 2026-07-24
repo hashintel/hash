@@ -11,6 +11,7 @@ import {
   LABEL_FONT_SIZE,
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
+  lightenRgb,
   type NetworkGraphId,
   type NetworkGraphPoint,
   RGBA_OPAQUE,
@@ -115,13 +116,6 @@ const truncateLabel = (label: string): string =>
   label.length > DETAIL_LABEL_MAX_CHARS
     ? `${label.slice(0, DETAIL_LABEL_MAX_CHARS - 1)}…`
     : label;
-
-/** Mix `rgb` toward white by `amount` (0–1), lightening it. */
-const lightenRgb = (rgb: RgbColor, amount: number): RgbColor => [
-  Math.round(rgb[0] + (255 - rgb[0]) * amount),
-  Math.round(rgb[1] + (255 - rgb[1]) * amount),
-  Math.round(rgb[2] + (255 - rgb[2]) * amount),
-];
 
 /** Pick a legible ink colour (near-black or white) for `rgb` by perceived luminance. */
 const contrastInkRgb = (rgb: RgbColor): RgbColor => {
