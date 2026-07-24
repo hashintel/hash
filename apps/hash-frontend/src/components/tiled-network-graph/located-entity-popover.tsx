@@ -7,23 +7,17 @@
  * Purely presentational — the consumer decodes a {@link fetchLocate} response
  * into {@link LocatedEntityDetail} and owns the
  * {@link LocatedEntityPopoverProps.onGoTo} behaviour; this file only lays the
- * card out (reusing the {@link Badge} and {@link Button} primitives) and
- * positions it via {@link Popover}. Every text run is clamped so a long label or
- * value can't stretch or overflow the card.
+ * card out (reusing the {@link Button} primitive) and positions it via
+ * {@link Popover}. Every text run is clamped so a long label or value can't
+ * stretch or overflow the card.
  *
  * The {@link Popover} portals its content, so a consumer that scopes the ds Panda
  * tokens to a subtree (rather than globally) must supply a `PortalContainerContext`
  * inside that scope, or the card's token-based colours won't resolve.
  */
 
-import {
-  Badge,
-  Button,
-  Icon,
-  type IconName,
-  Popover,
-} from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { Button, Icon, type IconName, Popover } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 /**
  * Sits this popover — and the graph's search widget, which layers around it —
@@ -65,10 +59,15 @@ export interface LocatedEntityProperty {
   readonly value: string | readonly LocatedEntityValuePart[];
 }
 
-/** A type chip: a label and the colour of its leading dot. */
+/**
+ * A type chip: a label, the type's icon (shown at the chip's left), and the
+ * colour of its dot (shown at the chip's right).
+ */
 export interface LocatedEntityTypeChip {
   readonly label: string;
   readonly color: string;
+  /** The type's icon — emoji or ds glyph — drawn at the chip's left. */
+  readonly icon?: LocatedEntityIcon;
 }
 
 /**
@@ -186,18 +185,63 @@ const titleIconStyles = css({
   marginRight: "1.5",
 });
 
-/** Truncates a long type label inside the {@link Badge} chip, at readable contrast. */
+// A compact type lozenge: a subtle grey pill holding the type's icon, its label,
+// and a dot in the type's colour. The tight, even spacing keeps the icon, text,
+// and dot reading as one balanced unit. The left padding flexes on whether an
+// icon leads: a glyph fills the left edge, so it can sit tighter, whereas a bare
+// label needs a touch more so it isn't cramped against the pill.
+const typeChipRecipe = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "1.5",
+    minWidth: "0",
+    height: "[18px]",
+    paddingRight: "1.5",
+    borderRadius: "sm",
+    backgroundColor: "neutral.s30",
+  },
+  variants: {
+    hasIcon: {
+      true: { paddingLeft: "1" },
+      false: { paddingLeft: "2" },
+    },
+  },
+});
+
+// The type's icon at the chip's left — an emoji glyph or a ds Icon. Matches the
+// label's tone so a monochrome glyph reads as cohesive with the text (emojis
+// keep their own colour).
+const chipIconStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  flexShrink: "0",
+  fontSize: "xs",
+  lineHeight: "none",
+  color: "neutral.s110",
+  transform: "[translateY(-0.25px)]",
+});
+
+/** Truncates a long type label in the chip, at readable contrast. */
 const chipLabelStyles = css({
   truncate: true,
   maxWidth: "[160px]",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "none",
   color: "neutral.s110",
 });
 
+// A little extra space before the dot (beyond the chip's base gap) sets the
+// colour indicator apart from the label. Nudged up a touch too: geometric
+// centring reads slightly low against the label's optical centre (the caps sit
+// above the box middle).
 const typeDotStyles = css({
   width: "[6px]",
   height: "[6px]",
   borderRadius: "full",
   flexShrink: "0",
+  marginLeft: "0.5",
 });
 
 // The link's from→to endpoints beneath the header: the `from` entity, then the
@@ -253,6 +297,8 @@ const endpointArrowStyles = css({
 const propertyListStyles = css({
   display: "flex",
   flexDirection: "column",
+  // Extra breathing room from the header/endpoints above and the button below.
+  marginY: "1.5",
 });
 
 const propertyRowStyles = css({
@@ -264,6 +310,11 @@ const propertyRowStyles = css({
   borderTopWidth: "1px",
   borderTopStyle: "solid",
   borderTopColor: "neutral.s40",
+  // Drop the first row's divider so the table has no outer top (or bottom)
+  // border, keeping only the dividers between rows.
+  "&:first-child": {
+    borderTopWidth: "0",
+  },
 });
 
 const propertyKeyStyles = css({
@@ -305,18 +356,23 @@ const gapsFor = (
       }
     : { x: 10, y: 12 };
 
-/** The grey type chip with a coloured dot — shared by node and link types. */
-const TypeChip = ({ chip }: { chip: LocatedEntityTypeChip }) => (
-  <Badge
-    colorScheme="gray"
-    size="sm"
-    iconLeft={
+// The type lozenge: the type's icon at the left, its label, and a dot in the
+// type's colour at the right. Shared by node and link types.
+const TypeChip = ({ chip }: { chip: LocatedEntityTypeChip }) => {
+  const hasIcon =
+    chip.icon?.emoji !== undefined || chip.icon?.name !== undefined;
+  return (
+    <span className={typeChipRecipe({ hasIcon })}>
+      {chip.icon?.emoji !== undefined ? (
+        <span className={chipIconStyles}>{chip.icon.emoji}</span>
+      ) : chip.icon?.name !== undefined ? (
+        <Icon name={chip.icon.name} size="xs" className={chipIconStyles} />
+      ) : null}
+      <span className={chipLabelStyles}>{chip.label}</span>
       <span className={typeDotStyles} style={{ backgroundColor: chip.color }} />
-    }
-  >
-    <span className={chipLabelStyles}>{chip.label}</span>
-  </Badge>
-);
+    </span>
+  );
+};
 
 /** One from/to endpoint of a link: its type icon (emoji or ds glyph) + label. */
 const Endpoint = ({ endpoint }: { endpoint: LocatedEntityEndpoint }) => (

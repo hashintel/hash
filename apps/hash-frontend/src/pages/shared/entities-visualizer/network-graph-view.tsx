@@ -42,6 +42,7 @@ import {
   LocatedEntityPopover,
   type LocatedEntityDetail,
   type LocatedEntityEndpoint,
+  type LocatedEntityIcon,
   type LocatedEntityPopoverAnchor,
   type LocatedEntityTypeChip,
 } from "../../../components/tiled-network-graph/located-entity-popover";
@@ -461,30 +462,6 @@ export const NetworkGraphView = ({
     [coloredTypeColors],
   );
 
-  // The popover type chip for a node: the title (from memory) + colour of the
-  // same type its node colour was sampled from (so chip and node agree), or
-  // `undefined` when the node matches none of the coloured types.
-  const typeChipForIndices = useCallback(
-    (
-      typeIndices: readonly number[] | undefined,
-      seed: number | string,
-    ): LocatedEntityTypeChip | undefined => {
-      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
-      if (index === undefined) {
-        return undefined;
-      }
-      const entityTypeId = coloredTypeIds[index];
-      if (entityTypeId === undefined) {
-        return undefined;
-      }
-      return {
-        label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
-        color: coloredTypeColors[index] ?? unassignedTypeColor,
-      };
-    },
-    [coloredTypeIds, coloredTypeColors, resolveTypeMeta],
-  );
-
   // The type id whose icon represents a node: the same coloured type its chip
   // and colour were sampled from (so icon, chip and node colour agree), falling
   // back to the node's first direct type when it matches none of the coloured
@@ -517,6 +494,49 @@ export const NetworkGraphView = ({
     (typeId: VersionedUrl | undefined): string | undefined =>
       emojiFromEntityIcon(resolveTypeMeta(typeId)?.icon),
     [resolveTypeMeta],
+  );
+
+  // A type's popover chip icon: its emoji, or the ds glyph its SVG icon resolves
+  // to (mutually exclusive — see `LocatedEntityIcon`). Undefined when neither.
+  const typeIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): LocatedEntityIcon | undefined => {
+      const emoji = emojiIconFor(typeId);
+      const name = nodeIconFor(typeId);
+      if (emoji === undefined && name === undefined) {
+        return undefined;
+      }
+      return {
+        ...(emoji !== undefined ? { emoji } : {}),
+        ...(name !== undefined ? { name } : {}),
+      };
+    },
+    [emojiIconFor, nodeIconFor],
+  );
+
+  // The popover type chip for a node: the type's icon + title (from memory) +
+  // colour of the same type its node colour was sampled from (so chip and node
+  // agree), or `undefined` when the node matches none of the coloured types.
+  const typeChipForIndices = useCallback(
+    (
+      typeIndices: readonly number[] | undefined,
+      seed: number | string,
+    ): LocatedEntityTypeChip | undefined => {
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
+      if (index === undefined) {
+        return undefined;
+      }
+      const entityTypeId = coloredTypeIds[index];
+      if (entityTypeId === undefined) {
+        return undefined;
+      }
+      const icon = typeIconFor(entityTypeId);
+      return {
+        label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
+        color: coloredTypeColors[index] ?? unassignedTypeColor,
+        ...(icon !== undefined ? { icon } : {}),
+      };
+    },
+    [coloredTypeIds, coloredTypeColors, resolveTypeMeta, typeIconFor],
   );
 
   // A located endpoint node → the edge popover's from/to entry: the entity's
@@ -1116,12 +1136,14 @@ export const NetworkGraphView = ({
         // coloured type set), and the first type's emoji leads the title.
         const edgeTypeIds = locatedEdge?.typeIds ?? [];
         const edgeIcon = emojiIconFor(edgeTypeIds[0]);
-        const edgeTypes: LocatedEntityTypeChip[] = edgeTypeIds.map(
-          (typeId) => ({
+        const edgeTypes: LocatedEntityTypeChip[] = edgeTypeIds.map((typeId) => {
+          const icon = typeIconFor(typeId);
+          return {
             label: resolveTypeMeta(typeId)?.title ?? typeId,
             color: unassignedTypeColor,
-          }),
-        );
+            ...(icon !== undefined ? { icon } : {}),
+          };
+        });
         setSelection({
           detail: {
             kind: "edge",
@@ -1147,6 +1169,7 @@ export const NetworkGraphView = ({
       toLocatedPoint,
       resolveTypeMeta,
       emojiIconFor,
+      typeIconFor,
       edgeLabelFor,
       endpointFor,
       propertyRows,
