@@ -40,12 +40,14 @@ const optimizationRateLimiter = rateLimit({
 });
 
 /**
- * Attaching does no expensive upstream work, and the auto-reconnect loop may
- * legitimately re-attach many times behind a flaky connection — a shared
- * bucket with creation would 429 an account off the event stream of its own
+ * Attaching and cancelling do no expensive upstream work, and both must stay
+ * available to a busy account: the auto-reconnect loop may legitimately
+ * re-attach many times behind a flaky connection, and cancel is how an
+ * account frees its own single-flight slot. Sharing creation's bucket would
+ * 429 an account off the event stream of — or out of cancelling — its own
  * live run.
  */
-const attachmentRateLimiter = rateLimit({
+const nonAdmissionRateLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === "test" ? 10 : 60_000,
   limit: 60,
   standardHeaders: true,
@@ -129,7 +131,7 @@ export const setupPetrinautOptimizerHandler = (
   );
   app.get(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
-    attachmentRateLimiter,
+    nonAdmissionRateLimiter,
     createPetrinautOptimizationRunEventsHandler({
       fetchImpl,
       logger,
@@ -138,7 +140,7 @@ export const setupPetrinautOptimizerHandler = (
   );
   app.delete(
     PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
-    optimizationRateLimiter,
+    nonAdmissionRateLimiter,
     createPetrinautOptimizationRunCancelHandler({ client, logger, origin }),
   );
 };
