@@ -902,14 +902,19 @@ export const NetworkGraph = ({
     [resolvePoint],
   );
 
-  // Clear a hover whose node has left the graph (e.g. tiling swapped the node
-  // set), so its grow ring/label doesn't linger under a stationary pointer until
-  // the next pointer move re-picks. `selected` is derived from props and heals on
-  // its own; `hovered` is internal state, so reconcile it here.
+  // A hover whose node has left the graph (e.g. tiling swapped the node set)
+  // must not keep its grow ring/label under a stationary pointer. Derive the
+  // effective hover so a departed node drops on the same render, rather than
+  // clearing `hovered` from an effect (which cascades a second render).
+  // `selected` is derived from props and heals on its own.
+  const hoveredNode = hovered && resolvePoint(hovered.id) ? hovered : null;
+
+  // When that node leaves, forget its id so `onNodeHover` change-detection
+  // re-fires on the next pick. Raw `hovered` state lingers harmlessly until the
+  // next pointer event replaces it.
   useEffect(() => {
     if (hovered && !resolvePoint(hovered.id)) {
       lastHoveredIdRef.current = null;
-      setHovered(null);
     }
   }, [hovered, resolvePoint]);
 
@@ -978,12 +983,12 @@ export const NetworkGraph = ({
 
   // A live pointer hover inside the graph (a node or an edge) suppresses the
   // external hover entirely, so an internal hover always takes precedence.
-  const internalHoverActive = hovered != null || hoveredEdge != null;
+  const internalHoverActive = hoveredNode != null || hoveredEdge != null;
 
   // The node driving the active hover highlight: the internal pointer hover, else —
   // when nothing is hovered inside the graph — the externally-hovered node.
   const activeHoveredNode =
-    hovered ?? (internalHoverActive ? null : externalHoveredPoint);
+    hoveredNode ?? (internalHoverActive ? null : externalHoveredPoint);
 
   // The node whose neighbourhood is highlighted: hovered (internal or external),
   // else selected.
@@ -1408,7 +1413,9 @@ export const NetworkGraph = ({
   // Mirror into a ref so the imperative zoom/reveal callbacks read the latest bounds
   // without re-creating as points stream in.
   const panBoundsRef = useRef(panBounds);
-  panBoundsRef.current = panBounds;
+  useEffect(() => {
+    panBoundsRef.current = panBounds;
+  }, [panBounds]);
 
   /**
    * The node ids at the two ends of the selected edge (compact view), so those nodes get
