@@ -37,6 +37,7 @@ import {
   type MergedDataTypeSingleSchema,
 } from "@local/hash-isomorphic-utils/data-types";
 
+import { useSnackbar } from "../../../components/hooks/use-snackbar";
 import { iconNameFromEntityIcon } from "../../../components/tiled-network-graph/entity-icon-name";
 import {
   LocatedEntityPopover,
@@ -54,8 +55,10 @@ import {
   type SaltileProperties,
   type SaltilePropertyValue,
 } from "../../../components/tiled-network-graph/tiling/fetch-locate";
+import { FetchTileError } from "../../../components/tiled-network-graph/tiling/fetch-tile";
 import {
   useGetViewportNodes,
+  ViewportTilesError,
   WORLD_SIZE,
   type Viewport,
   type ViewportEdge,
@@ -319,6 +322,37 @@ interface Selection {
 }
 
 /**
+ * Re-toast a still-failing graph error at most this often (ms), so panning
+ * across a dead region doesn't spam identical toasts.
+ */
+const TILE_ERROR_TOAST_THROTTLE_MS = 10_000;
+
+/**
+ * A user-facing summary of a tile or locate failure, for the error toasts and
+ * the initial-load message. A transport failure — the request never reached the
+ * server — collapses to a generic network message rather than surfacing the raw
+ * `TypeError: Failed to fetch`; a server response keeps its status. The
+ * {@link ViewportTilesError} thrown when every tile of a viewport fails is
+ * unwrapped to the first underlying {@link FetchTileError} it carries.
+ */
+const describeGraphError = (error: unknown): string => {
+  const cause =
+    error instanceof ViewportTilesError && error.cause !== undefined
+      ? error.cause
+      : error;
+  if (cause instanceof FetchTileError) {
+    if (cause.status === undefined) {
+      return "Network error — couldn’t reach the graph server.";
+    }
+    if (cause.status === 429 || cause.status >= 500) {
+      return `The graph server is temporarily unavailable (HTTP ${cause.status}).`;
+    }
+    return `The graph server rejected the request (HTTP ${cause.status}).`;
+  }
+  return "Something went wrong loading the graph.";
+};
+
+/**
  * Drives the tiling pipeline from the graph's live camera: every pan/zoom (and
  * resize) recomputes the viewport and hands it to {@link useGetViewportNodes},
  * which fetches its tiles through a persistent cache and returns the merged nodes
@@ -347,6 +381,18 @@ export const NetworkGraphView = ({
   onOpenEntity?: (entityId: EntityId) => void;
 }) => {
   const theme = useTheme();
+  const { triggerSnackbar } = useSnackbar();
+
+  // A user-facing toast summarising a tile/locate failure (see
+  // `describeGraphError`), deduped so identical concurrent failures collapse.
+  const notifyGraphError = useCallback(
+    (graphError: unknown) => {
+      triggerSnackbar.error(describeGraphError(graphError), {
+        preventDuplicate: true,
+      });
+    },
+    [triggerSnackbar],
+  );
 
   // In-memory type + property metadata (the entity and property types the app
   // has already loaded). The locate/edges APIs now ship only type ids and
@@ -641,6 +687,12 @@ export const NetworkGraphView = ({
   // hover so a stale locate can't clear the spinner for a newer (or ended) hover.
   const hoverLocateTimerRef = useRef<number | undefined>(undefined);
   const hoverLocateSeqRef = useRef(0);
+  // The last graph-error toast (message + when), so a persisting failure
+  // re-toasts only after `TILE_ERROR_TOAST_THROTTLE_MS` rather than on every
+  // failed refetch.
+  const lastTileErrorToastRef = useRef<{ message: string; at: number } | null>(
+    null,
+  );
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [bounds, setBounds] = useState<Bounds | null>(null);
@@ -743,6 +795,28 @@ export const NetworkGraphView = ({
     boundsRef.current = bounds;
   }, [bounds]);
 
+  // Surface a tile-fetch failure that strikes after the graph is already up.
+  // Before the first successful load `bounds` is null and the full-screen
+  // message covers it; once the graph renders, `useAtlasQuery` keeps the stale
+  // graph visible on a failed pan/zoom refetch, so a toast is the only signal.
+  useEffect(() => {
+    if (!isError || bounds === null) {
+      return;
+    }
+    const message = describeGraphError(error);
+    const now = Date.now();
+    const last = lastTileErrorToastRef.current;
+    if (
+      last &&
+      last.message === message &&
+      now - last.at < TILE_ERROR_TOAST_THROTTLE_MS
+    ) {
+      return;
+    }
+    lastTileErrorToastRef.current = { message, at: now };
+    notifyGraphError(error);
+  }, [isError, error, bounds, notifyGraphError]);
+
   const schedule = useCallback(() => {
     if (timerRef.current !== undefined) {
       window.clearTimeout(timerRef.current);
@@ -793,7 +867,8 @@ export const NetworkGraphView = ({
 
   // Locate `atlasId` (a node row id), then apply `onLocated` — but only if this
   // is still the latest click (guards against out-of-order responses). A failed
-  // locate just leaves the item selected without a popover.
+  // locate leaves the item selected without a popover and toasts the error (only
+  // when it's still the latest click — a superseded locate's failure is moot).
   const locate = useCallback(
     (atlasId: number, onLocated: (entity: LocatedEntity) => void) => {
       locateSeqRef.current += 1;
@@ -804,9 +879,13 @@ export const NetworkGraphView = ({
             onLocated(entity);
           }
         })
-        .catch(() => {});
+        .catch((locateError: unknown) => {
+          if (seq === locateSeqRef.current) {
+            notifyGraphError(locateError);
+          }
+        });
     },
-    [coloredTypeIds],
+    [coloredTypeIds, notifyGraphError],
   );
 
   // Build a located ego-graph (its source node, incident edges, and neighbours)
@@ -997,7 +1076,7 @@ export const NetworkGraphView = ({
   // Pick a search result → resolve its prefetched (usually already resolved)
   // locate, overlay its ego-graph with a popover, and reveal the source in the
   // camera. The sequence guard drops a stale locate if a newer pick/click lands
-  // first; a failed locate leaves nothing selected.
+  // first; a failed locate leaves nothing selected and toasts the error.
   const handleSearchSelect = useCallback(
     (result: NetworkGraphSearchResult) => {
       locateSeqRef.current += 1;
@@ -1018,9 +1097,13 @@ export const NetworkGraphView = ({
             graphRef.current?.revealPoint([focus[0], focus[1]]);
           }
         })
-        .catch(() => {});
+        .catch((selectError: unknown) => {
+          if (seq === locateSeqRef.current) {
+            notifyGraphError(selectError);
+          }
+        });
     },
-    [locateEntity, showLocatedEntity],
+    [locateEntity, showLocatedEntity, notifyGraphError],
   );
 
   // Hover a search result → resolve its prefetched (usually already resolved)
@@ -1406,9 +1489,8 @@ export const NetworkGraphView = ({
           >
             {isError ? (
               <Typography variant="smallTextParagraphs" color="gray.70">
-                Couldn’t reach the Atlas server. Start it, then reload — tiles
-                are fetched via the <code>/atlas-api</code> proxy.
-                {error?.message ? ` (${error.message})` : null}
+                {describeGraphError(error)} Start it, then reload — tiles are
+                fetched via the <code>/atlas-api</code> proxy.
               </Typography>
             ) : (
               <LoadingSpinner size={42} color={theme.palette.blue[60]} />
