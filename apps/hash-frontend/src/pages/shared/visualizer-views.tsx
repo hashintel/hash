@@ -1,7 +1,4 @@
-import {
-  CircleNodesLightIcon,
-  ListRegularIcon,
-} from "@hashintel/design-system";
+import { ListRegularIcon } from "@hashintel/design-system";
 
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
@@ -22,14 +19,14 @@ export const visualizerViewIcons: Record<
   Table: (
     <ListRegularIcon
       sx={{
-        fontSize: 18,
+        fontSize: 16,
       }}
     />
   ),
   Graph: (
     <ChartNetworkRegularIcon
       sx={{
-        fontSize: 18,
+        fontSize: 16,
       }}
     />
   ),
@@ -41,9 +38,9 @@ export const visualizerViewIcons: Record<
     />
   ),
   NetworkGraph: (
-    <CircleNodesLightIcon
+    <ChartNetworkRegularIcon
       sx={{
-        fontSize: 18,
+        fontSize: 16,
       }}
     />
   ),

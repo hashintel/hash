@@ -1,13 +1,10 @@
 import { Box, Stack, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
+import { isBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  getClosedMultiEntityTypeFromMap,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -31,7 +28,6 @@ import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
@@ -537,18 +533,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const tableHeight = `min(${availableHeight}, 1000px)`;
 
-  const isPrimaryEntity = useCallback(
-    (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
-      entityTypeBaseUrl
-        ? entity.metadata.entityTypeIds.some(
-            (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,
-          )
-        : entityTypeId
-          ? entity.metadata.entityTypeIds.includes(entityTypeId)
-          : false,
-    [entityTypeId, entityTypeBaseUrl],
-  );
-
   const [showTableSearch, setShowTableSearch] = useState(false);
 
   const [selectedTableRows, setSelectedTableRows] = useState<
@@ -616,7 +600,6 @@ export const EntitiesVisualizer: FunctionComponent<{
                 [
                   "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
-                  "Graph",
                   "NetworkGraph",
                 ] as const satisfies VisualizerView[]
               ).map((optionValue) => ({
@@ -653,18 +636,6 @@ export const EntitiesVisualizer: FunctionComponent<{
             <LoadingSpinner size={42} color={theme.palette.blue[60]} />
           </Box>
         </Stack>
-      ) : view === "Graph" ? (
-        <Box height={availableHeight} sx={tableContentSx}>
-          <EntityGraphVisualizer
-            closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
-            entities={entities}
-            loadingComponent={
-              <LoadingSpinner size={42} color={theme.palette.blue[60]} />
-            }
-            isPrimaryEntity={isPrimaryEntity}
-            onEntityClick={handleEntityClick}
-          />
-        </Box>
       ) : view === "Grid" ? (
         <GridView entities={entities} onEntityClick={handleEntityClick} />
       ) : (
