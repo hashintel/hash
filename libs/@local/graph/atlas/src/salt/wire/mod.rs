@@ -63,10 +63,10 @@ pub(crate) enum Kind {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
-    /// The client-accumulated default: own-cut points only.
+    /// This tile's own additions; the client accumulates ancestor deliveries. The default.
     #[default]
     Delta,
-    /// The total delivered set for the tile at its zoom.
+    /// The whole delivered set for the tile at its zoom, so the tile renders alone.
     Total,
 }
 

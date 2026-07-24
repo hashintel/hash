@@ -42,7 +42,7 @@
 //! [`render_cards`]: Dataset::render_cards
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use core::ops::Deref;
+use core::{ops::Deref, str::FromStr};
 use std::io;
 
 use futures::Stream;
@@ -98,10 +98,14 @@ impl TemporalAxes {
 }
 
 /// The byte-level form of an [`EntityUuid`].
+///
+/// The derived order is uuid-byte order.
 #[derive(
     Debug,
     Copy,
     Clone,
+    PartialOrd,
+    Ord,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,
@@ -112,6 +116,13 @@ impl TemporalAxes {
 )]
 #[repr(transparent)]
 pub(crate) struct ArchivedEntityUuid([u8; 16]);
+
+impl ArchivedEntityUuid {
+    /// Wraps raw uuid bytes.
+    pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
+        Self(bytes)
+    }
+}
 
 impl From<uuid::Uuid> for ArchivedEntityUuid {
     #[inline]
@@ -138,10 +149,14 @@ impl Deref for ArchivedEntityUuid {
 }
 
 /// The byte-level form of a [`WebId`].
+///
+/// The derived order is uuid-byte order.
 #[derive(
     Debug,
     Copy,
     Clone,
+    PartialOrd,
+    Ord,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,
@@ -152,6 +167,13 @@ impl Deref for ArchivedEntityUuid {
 )]
 #[repr(transparent)]
 pub(crate) struct ArchivedWebId([u8; 16]);
+
+impl ArchivedWebId {
+    /// Wraps raw uuid bytes.
+    pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
+        Self(bytes)
+    }
+}
 
 impl From<uuid::Uuid> for ArchivedWebId {
     #[inline]
@@ -316,12 +338,34 @@ impl NodeRowId {
     pub(crate) const fn usize(self) -> usize {
         self.get() as usize
     }
+
+    #[inline]
+    #[must_use]
+    pub(crate) const fn u32(self) -> u32 {
+        self.get() as u32
+    }
 }
 
 impl From<u64> for NodeRowId {
     #[inline]
     fn from(row: u64) -> Self {
         Self::new(row)
+    }
+}
+
+impl From<u32> for NodeRowId {
+    #[inline]
+    fn from(row: u32) -> Self {
+        Self::from(u64::from(row))
+    }
+}
+
+impl TryFrom<NodeRowId> for u32 {
+    type Error = core::num::TryFromIntError;
+
+    #[inline]
+    fn try_from(id: NodeRowId) -> Result<Self, Self::Error> {
+        u32::try_from(id.get())
     }
 }
 
@@ -393,6 +437,10 @@ impl EdgeRowId {
     #[must_use]
     pub(crate) const fn get(self) -> u64 {
         self.0.get()
+    }
+
+    pub(crate) const fn usize(self) -> usize {
+        self.0.get() as usize
     }
 }
 
@@ -494,10 +542,14 @@ impl From<OntologyRowId> for u64 {
 /// The byte-level form of a non-draft entity identity.
 ///
 /// Drafts never enter a dataset's scope; the identity is the web and entity components alone.
+///
+/// The derived order is identity-byte order: web id bytes, then entity uuid bytes.
 #[derive(
     Debug,
     Copy,
     Clone,
+    PartialOrd,
+    Ord,
     zerocopy::ByteEq,
     zerocopy::ByteHash,
     zerocopy::IntoBytes,

@@ -1,0 +1,785 @@
+//! The visibility masking battery: every read surface computed over the masked view.
+
+use super::*;
+
+/// The resolve seam collapses every failure to one [`None`].
+///
+/// Under the full proof every in-universe wire id resolves to its row; under a mask the hidden
+/// row's wire id answers exactly the [`None`] an out-of-universe value answers, so forbidden and
+/// nonexistent are indistinguishable downstream of the seam.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn resolve_collapses_every_failure_to_one_none() {
+    use crate::serve::VisibleRow;
+
+    let (_generation, atlas) = publish("resolve-seam").await;
+    let node_codec = test_codec(&atlas);
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+
+    let masked = mask_hiding(&atlas, &[7]);
+    for row in 0..universe {
+        let wire = node_codec.encode(row).get();
+        assert_eq!(atlas.resolve(&FULL, wire).map(VisibleRow::get), Some(row),);
+        assert_eq!(
+            atlas.resolve(&masked, wire).map(VisibleRow::get),
+            (row != 7).then_some(row),
+        );
+    }
+    assert!(atlas.resolve(&FULL, universe).is_none());
+    assert!(atlas.resolve(&masked, universe).is_none());
+}
+
+/// The composition law on the tile path: `S = X ∩ V_u`, order preserved, in both modes.
+///
+/// The masked tile's columns are exactly the unmasked columns with the hidden rows' entries
+/// removed (the mask never reorders and never over-drops), and a fully masked
+/// populated
+/// tile answers byte-identically to a tile that never had rows (empty is empty: the head's
+/// occupancy fields carry no evidence of hidden points).
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_masked_tile_serves_exactly_the_visible_intersection() {
+    let (generation, atlas) = publish("masked-tile").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let node_codec = test_codec(&atlas);
+
+    // Hide every third row; the hidden set crosses every bucket of
+    // the 48-point fixture.
+    let hidden: Vec<u32> = (0..universe).filter(|row| row.is_multiple_of(3)).collect();
+    let hidden_wire: HashSet<u32> = hidden
+        .iter()
+        .map(|&row| node_codec.encode(row).get())
+        .collect();
+    let proof = mask_hiding(&atlas, &hidden);
+
+    for mode in [Mode::Delta, Mode::Total] {
+        let full_bytes = atlas
+            .tile(&request(0, 0, 0, mode), TileLimits::default(), &FULL)
+            .expect("the unmasked root serves");
+        let masked_bytes = atlas
+            .tile(&request(0, 0, 0, mode), TileLimits::default(), &proof)
+            .expect("the masked root serves");
+
+        let full_rows = decode_rows(section(&full_bytes, ROW_IDS).expect("ROW_IDS is present"));
+        let masked_rows = decode_rows(section(&masked_bytes, ROW_IDS).expect("ROW_IDS is present"));
+        let expected: Vec<u32> = full_rows
+            .iter()
+            .copied()
+            .filter(|wire| !hidden_wire.contains(wire))
+            .collect();
+        assert_eq!(
+            masked_rows, expected,
+            "the {mode:?} root masks by intersection"
+        );
+
+        // The positions column drops the same entries at the same indexes.
+        let full_positions = section(&full_bytes, POSITIONS).expect("POSITIONS is present");
+        let masked_positions = section(&masked_bytes, POSITIONS).expect("POSITIONS is present");
+        let expected_positions: Vec<u8> = full_positions
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .zip(&full_rows)
+            .filter(|&(_, wire)| !hidden_wire.contains(wire))
+            .flat_map(|(chunk, _)| chunk.iter().copied())
+            .collect();
+        assert_eq!(masked_positions, expected_positions);
+    }
+
+    // A fully masked populated cell answers byte-identically to a
+    // cell that never had rows: same empty runs, zero visible count,
+    // zero children bits.
+    let Artifacts {
+        morton: _,
+        quad,
+        coordinates,
+        rows,
+    } = open_artifacts(&generation);
+    let points = coordinates.points().expect("wire coordinates are points");
+    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
+    let mut nodes = Vec::new();
+    walk(&quad, 0, root_cell, &mut nodes);
+    let (_, populated_cell) = nodes[1..]
+        .iter()
+        .copied()
+        .find(|&(node, _)| {
+            let run = quad.nodes()[node as usize].run();
+            run.end > run.start
+        })
+        .expect("the fixture quadtree has a populated non-root node");
+    let coordinate = coordinate_of(populated_cell);
+    let nothing = mask_hiding(&atlas, &(0..universe).collect::<Vec<u32>>());
+    let expected = TileResponse {
+        head: TileHead {
+            generation: generation.id().digest(),
+            variant: 0,
+            coordinate,
+            mode: Mode::Delta,
+            visible: 0,
+            first_bucket: coordinate.z + FIXTURE_LOD.span.get(),
+            runs: &[0],
+            global: None,
+            children: 0,
+            backfilled: 0,
+        },
+        delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
+        positions: points,
+        rows: row_ids,
+        masks: None,
+        trailer: None,
+    }
+    .encode();
+    assert_eq!(
+        atlas
+            .tile(
+                &TileRequest {
+                    coordinate,
+                    query: TileQuery::default(),
+                },
+                TileLimits::default(),
+                &nothing,
+            )
+            .expect("the fully masked tile serves"),
+        expected,
+        "a fully masked tile is a tile that never had rows",
+    );
+}
+
+/// The edges path inherits the mask through its endpoints.
+///
+/// Hiding one node removes exactly the edges incident to it - the delivered sets intersect the
+/// proof before edges qualify, so the response is byte-identical to the qualifying computation over
+/// the visible row set.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn masked_edges_inherit_endpoint_visibility() {
+    let (generation, atlas) = publish("masked-edges").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+
+    // Row 5 is an endpoint of the reciprocal fixture pair (edge rows
+    // 3 and 4); hiding it must remove exactly those two edges.
+    let hidden = 5_u32;
+    let proof = mask_hiding(&atlas, &[hidden]);
+    let endpoints: Vec<[u64; 2]> = FIXTURE_EDGES
+        .iter()
+        .map(|&(_, source, target)| [source, target])
+        .collect();
+    let delivered: HashSet<u32> = (0..universe).filter(|&row| row != hidden).collect();
+    let (sources, targets, rows) = qualifying_columns(&endpoints, &delivered);
+    assert_eq!(
+        rows.len(),
+        FIXTURE_EDGES.len() - 2,
+        "two edges hide with row 5"
+    );
+    let (sources, targets, rows) = wire_columns(&atlas, &sources, &targets, &rows);
+
+    assert_eq!(
+        atlas
+            .edges(&edges_request(full_grid()), EdgesLimits::default(), &proof)
+            .expect("the masked grid serves"),
+        expected_edges_bytes(&generation, true, &sources, &targets, &rows),
+    );
+}
+
+/// Translate answers missing for denied, in both identity domains.
+///
+/// A hidden node's id is an absent key exactly like a nonexistent id; an edge is absent when either
+/// endpoint hides (edge visibility derives) and present while both endpoints show.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn translate_answers_missing_for_denied() {
+    use crate::serve::translate::{TranslateLimits, TranslateRequest};
+
+    let (_generation, atlas) = publish("masked-translate").await;
+
+    // Row 5 endpoints fixture edge rows 3 and 4; edge row 0 joins
+    // rows 0 and 1, untouched by the mask.
+    let proof = mask_hiding(&atlas, &[5]);
+    let request = TranslateRequest {
+        entity_ids: vec![
+            entity_string_of(5),             // hidden node: absent
+            entity_string_of(6),             // visible node: present
+            entity_string_of(EDGE_SEED + 3), // edge with hidden endpoint: absent
+            entity_string_of(EDGE_SEED),     // edge with visible endpoints: present
+        ],
+    };
+    let masked = atlas
+        .translate(request.clone(), TranslateLimits::default(), &proof)
+        .expect("the request is under the cap");
+    assert!(!masked.nodes.contains_key(&entity_string_of(5)));
+    assert!(masked.nodes.contains_key(&entity_string_of(6)));
+    assert!(!masked.edges.contains_key(&entity_string_of(EDGE_SEED + 3)));
+    assert!(masked.edges.contains_key(&entity_string_of(EDGE_SEED)));
+
+    // The full proof answers all four: the absences above are the
+    // mask's, not the identity tables'.
+    let full = atlas
+        .translate(request, TranslateLimits::default(), &FULL)
+        .expect("the request is under the cap");
+    assert_eq!(full.nodes.len(), 2);
+    assert_eq!(full.edges.len(), 2);
+}
+
+/// Locate filters partners under the mask and hides its source like a missing one.
+///
+/// A hidden source answers the same `UnknownEntity` in both ingress domains; a hidden partner
+/// drops with its edges BEFORE the cap selects - `complete` stays `true`, so the response never
+/// discloses that anything was withheld.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn locate_filters_partners_under_the_mask() {
+    let (_generation, atlas) = publish("masked-locate").await;
+    let limits = ServeLimits::default();
+
+    // Ground truth: ego(5) = partner 40 over the reciprocal pair,
+    // edge rows 3 and 4.
+    let source = atlas
+        .resolve_source(&FULL, &entity_string_of(5))
+        .expect("row 5 resolves");
+    let full = atlas.locate_subgraph(source, limits.locate, &FULL);
+    assert_eq!(full.rows, [5, 40], "the source and its one partner");
+    assert_eq!(full.edges.len(), 2);
+
+    // Hiding the partner removes it and both its edges: the source
+    // stands alone, honestly complete - a masked ego-graph answers
+    // exactly like one where the partner never existed.
+    let proof = mask_hiding(&atlas, &[40]);
+    let masked = atlas.locate_subgraph(source, limits.locate, &proof);
+    assert_eq!(masked.rows, [5], "the hidden partner is not delivered");
+    assert!(masked.edges.is_empty(), "its edges leave with it");
+    assert!(masked.complete, "visibility is not truncation");
+
+    // Hidden partners drop BEFORE selection: under a cap of one, the
+    // masked response still answers from visible edges alone.
+    let capped = crate::serve::locate::LocateLimits {
+        edges: 1,
+        ..limits.locate
+    };
+    let capped_masked = atlas.locate_subgraph(source, capped, &proof);
+    assert!(capped_masked.complete, "zero visible edges fit any cap");
+    assert!(capped_masked.edges.is_empty());
+
+    // A hidden source is a missing source, in both ingress domains.
+    let hidden_source = mask_hiding(&atlas, &[0]);
+    assert_eq!(
+        atlas
+            .assemble_locate(&locate_request(entity_string_of(0)), limits, &hidden_source)
+            .map(|_| ())
+            .expect_err("the hidden source rejects"),
+        crate::serve::LocateError::UnknownEntity,
+    );
+    let node_codec = test_codec(&atlas);
+    let by_row = crate::serve::LocateRequest {
+        entity_id: None,
+        row: Some(node_codec.encode(0).get()),
+        colored_type_ids: Vec::new(),
+        filter: None,
+    };
+    assert_eq!(
+        atlas
+            .assemble_locate(&by_row, limits, &hidden_source)
+            .map(|_| ())
+            .expect_err("the hidden source rejects by row too"),
+        crate::serve::LocateError::UnknownEntity,
+    );
+}
+
+/// The proof's membership algebra is fail-closed at every boundary.
+///
+/// Rows beyond a bitmap's capacity read hidden, edge visibility requires both endpoints, and the
+/// intersection removes exactly the hidden rows.
+#[test]
+fn visibility_proof_is_fail_closed() {
+    use crate::bitset::BitSet;
+
+    let mut bitmap = BitSet::new(4);
+    bitmap.insert(1);
+    bitmap.insert(2);
+    let proof = VisibilityProof::from_bitmap(bitmap);
+
+    assert!(!proof.contains(0));
+    assert!(proof.contains(1));
+    assert!(!proof.contains(3));
+    // Beyond the bitmap's capacity: hidden, never a panic.
+    assert!(!proof.contains(4));
+    assert!(!proof.contains(u32::MAX));
+
+    assert!(proof.edge_visible(1, 2));
+    assert!(!proof.edge_visible(1, 3));
+    assert!(!proof.edge_visible(0, 1));
+
+    let mut set = crate::bitset::BitSet::new(6);
+    for index in 0..6 {
+        set.insert(index);
+    }
+    proof.intersect(&mut set);
+    assert_eq!(set.iter().collect::<Vec<_>>(), [1, 2]);
+
+    assert_eq!(proof.visible_below(4), 2);
+    assert_eq!(FULL.visible_below(48), 48);
+    assert!(FULL.contains(u32::MAX));
+}
+
+/// Two visible rows: the root's fill delivers what survives and spends the pool, so every
+/// deeper tile is dry - delivered empty, children complete, the one delta run keeping its
+/// positional slot, no backfill key.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn spent_subtrees_read_dry_and_complete() {
+    let (_generation, atlas) = publish("backfill-dry").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+
+    let hidden: Vec<u32> = (2..universe).collect();
+    let proof = mask_hiding(&atlas, &hidden);
+
+    let root = atlas
+        .tile(
+            &request(0, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            &proof,
+        )
+        .expect("the masked root serves");
+    let root_rows = decode_rows(section(&root, ROW_IDS).expect("ROW_IDS is present"));
+    assert_eq!(root_rows.len(), 2, "the root delivers both survivors");
+
+    for (z, x, y) in [(1, 0, 0), (1, 1, 1), (2, 2, 1), (3, 5, 6)] {
+        let bytes = atlas
+            .tile(
+                &request(z, x, y, Mode::Delta),
+                TileLimits::default(),
+                &proof,
+            )
+            .expect("the masked tile serves");
+        let rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
+        let (delivered, runs, backfilled) =
+            head_counts(section(&bytes, HEAD).expect("HEAD is present"));
+
+        assert_eq!(rows.len(), 0, "the {z}/{x}/{y} subtree is spent");
+        assert_eq!(delivered, 0, "the {z}/{x}/{y} HEAD counts nothing");
+        assert_eq!(runs, vec![0], "the {z}/{x}/{y} delta run keeps its slot");
+        assert_eq!(backfilled, 0, "the {z}/{x}/{y} tail is empty");
+        assert_eq!(
+            children_of(section(&bytes, HEAD).expect("HEAD is present")),
+            0,
+            "the {z}/{x}/{y} children read complete",
+        );
+    }
+}
+
+/// Reads the occupied-child bitmask from a tile `HEAD`.
+fn children_of(head: &[u8]) -> u64 {
+    let mut reader = CborReader { bytes: head, at: 0 };
+    let entries = reader.head(5);
+    for _ in 0..entries {
+        let key = reader.uint();
+        if key == 9 {
+            return reader.uint();
+        }
+        reader.skip();
+    }
+
+    panic!("every tile HEAD carries the children bitmask")
+}
+
+/// The composition sweep: masked responses obey the backfill law on every endpoint. Exactness
+/// is per endpoint: tiles follow the chain-fill contract; edges, translate, and locate equal
+/// the unmasked response with the hidden rows' entries removed - the mask never leaks and never
+/// over-drops. The fixture serves without capacity pressure on the non-tile endpoints, so their
+/// filtered-full comparison is the law verbatim; locate's ground truth is the fixture edge list
+/// itself - the visible ego-graph, derived edge by edge.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn composition_law_holds_under_random_masks() {
+    let (generation, atlas) = publish("composition-sweep").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x51CA);
+
+    for _ in 0..8 {
+        let hidden: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
+        let proof = mask_hiding(&atlas, &hidden);
+
+        assert_tiles_mask_by_intersection(&atlas, &proof, &hidden);
+        assert_edges_mask_by_intersection(&generation, &atlas, &proof, &hidden);
+        assert_translate_masks_by_visibility(&atlas, &proof, &hidden);
+        assert_locate_delivers_the_visible_ego_graph(&atlas, &proof, &hidden);
+    }
+}
+
+/// Every tile coordinate, both modes: the masked rows are the unmasked rows with the hidden
+/// entries removed, order preserved.
+fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
+    let node_codec = test_codec(atlas);
+    let hidden_wire: HashSet<u32> = hidden
+        .iter()
+        .map(|&row| node_codec.encode(row).get())
+        .collect();
+
+    // Delta row lists by coordinate; the z-ascending sweep guarantees every ancestor is present
+    // when its descendants assert against the chain.
+    let mut deltas: HashMap<(u8, u32, u32), Vec<u32>> = HashMap::new();
+
+    for z in 0..=FIXTURE_LOD.max_tile_depth {
+        let cells = 1_u32 << z;
+        for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
+            let chain: HashSet<u32> = (0..z)
+                .flat_map(|level| {
+                    let shift = z - level;
+                    deltas[&(level, x >> shift, y >> shift)].iter().copied()
+                })
+                .collect();
+
+            for mode in [Mode::Delta, Mode::Total] {
+                let full_bytes = atlas
+                    .tile(&request(z, x, y, mode), TileLimits::default(), &FULL)
+                    .expect("the unmasked tile serves");
+                let masked_bytes = atlas
+                    .tile(&request(z, x, y, mode), TileLimits::default(), proof)
+                    .expect("the masked tile serves");
+                let full_rows =
+                    decode_rows(section(&full_bytes, ROW_IDS).expect("ROW_IDS is present"));
+                let masked_rows =
+                    decode_rows(section(&masked_bytes, ROW_IDS).expect("ROW_IDS is present"));
+                let (_, _, backfilled) =
+                    head_counts(section(&masked_bytes, HEAD).expect("HEAD is present"));
+                let backfilled = usize::try_from(backfilled).expect("tail counts fit usize");
+
+                let at = format!("the {mode:?} tile {z}/{x}/{y}");
+                let full_set: HashSet<u32> = full_rows.iter().copied().collect();
+                let visible_full: Vec<u32> = full_rows
+                    .iter()
+                    .copied()
+                    .filter(|wire| !hidden_wire.contains(wire))
+                    .collect();
+
+                assert!(backfilled <= masked_rows.len(), "{at} sizes its tail");
+                let (naturals, tail) = masked_rows.split_at(masked_rows.len() - backfilled);
+                assert_eq!(
+                    masked_rows.iter().collect::<HashSet<_>>().len(),
+                    masked_rows.len(),
+                    "{at} delivers every point once",
+                );
+                for &row in tail {
+                    assert!(
+                        !full_set.contains(&row),
+                        "{at} pulls its tail up from below"
+                    );
+                    assert!(!hidden_wire.contains(&row), "{at} keeps hidden rows hidden");
+                }
+
+                match mode {
+                    Mode::Delta => {
+                        // The natural segment is the schedule's visible survivors less the
+                        // chain's earlier pull-ups, order preserved; nothing repeats down the
+                        // ladder; the tail is chain-fresh. The fill stops at the schedule's own
+                        // count; a total may exceed it where the chain concentrated pull-ups
+                        // inside this extent.
+                        assert!(
+                            masked_rows.len() <= full_rows.len(),
+                            "{at} stays within the schedule's budget",
+                        );
+                        assert!(
+                            is_subsequence(naturals, &visible_full),
+                            "{at} delivers natural survivors in schedule order",
+                        );
+                        let natural_set: HashSet<u32> = naturals.iter().copied().collect();
+                        for row in &visible_full {
+                            assert!(
+                                natural_set.contains(row) || chain.contains(row),
+                                "{at} accounts for every visible scheduled point",
+                            );
+                        }
+                        for &row in &masked_rows {
+                            assert!(!chain.contains(&row), "{at} never re-delivers the chain");
+                        }
+
+                        deltas.insert((z, x, y), masked_rows.clone());
+                    }
+                    Mode::Total => {
+                        // The cumulative natural segment is the intersection law verbatim; the
+                        // tail is exactly what the chain pulled up within this extent.
+                        assert_eq!(
+                            naturals, visible_full,
+                            "{at} delivers the visible schedule cumulatively",
+                        );
+                        let own_delta: HashSet<u32> = deltas[&(z, x, y)].iter().copied().collect();
+                        for &row in tail {
+                            assert!(
+                                chain.contains(&row) || own_delta.contains(&row),
+                                "{at} totals exactly the chain's pull-ups",
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Returns whether `part` appears in `whole` in order.
+fn is_subsequence(part: &[u32], whole: &[u32]) -> bool {
+    let mut candidates = whole.iter();
+    part.iter()
+        .all(|target| candidates.any(|candidate| candidate == target))
+}
+
+/// The masked grid answers the qualifying computation over the visible row set, byte for byte.
+fn assert_edges_mask_by_intersection(
+    generation: &Generation,
+    atlas: &Atlas,
+    proof: &VisibilityProof,
+    hidden: &[u32],
+) {
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let endpoints: Vec<[u64; 2]> = FIXTURE_EDGES
+        .iter()
+        .map(|&(_, source, target)| [source, target])
+        .collect();
+    let delivered: HashSet<u32> = (0..universe).filter(|row| !hidden.contains(row)).collect();
+    let (sources, targets, rows) = qualifying_columns(&endpoints, &delivered);
+    let (sources, targets, rows) = wire_columns(atlas, &sources, &targets, &rows);
+    assert_eq!(
+        atlas
+            .edges(&edges_request(full_grid()), EdgesLimits::default(), proof)
+            .expect("the masked grid serves"),
+        expected_edges_bytes(generation, true, &sources, &targets, &rows),
+    );
+}
+
+/// Every fixture identity translates exactly when visible (nodes) or when both endpoints are
+/// (edges).
+fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
+    use crate::serve::translate::{TranslateLimits, TranslateRequest};
+
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let every_identity: Vec<String> = (0..universe)
+        .map(|row| entity_string_of(u8::try_from(row).expect("fixture rows fit u8")))
+        .chain((0..FIXTURE_EDGES.len()).map(|row| {
+            entity_string_of(EDGE_SEED + u8::try_from(row).expect("fixture edge rows fit u8"))
+        }))
+        .collect();
+    let translated = atlas
+        .translate(
+            TranslateRequest {
+                entity_ids: every_identity,
+            },
+            TranslateLimits::default(),
+            proof,
+        )
+        .expect("the request is under the cap");
+    for row in 0..universe {
+        let id = entity_string_of(u8::try_from(row).expect("fixture rows fit u8"));
+        assert_eq!(
+            translated.nodes.contains_key(&id),
+            !hidden.contains(&row),
+            "node {row} translates exactly when visible"
+        );
+    }
+    for (row, &(_, source, target)) in FIXTURE_EDGES.iter().enumerate() {
+        let id = entity_string_of(EDGE_SEED + u8::try_from(row).expect("edge rows fit u8"));
+        let visible = !hidden.contains(&u32::try_from(source).expect("fixture rows fit u32"))
+            && !hidden.contains(&u32::try_from(target).expect("fixture rows fit u32"));
+        assert_eq!(
+            translated.edges.contains_key(&id),
+            visible,
+            "edge {row} translates exactly when both endpoints show"
+        );
+    }
+}
+
+/// Every visible source's masked ego-graph is the fixture edge list filtered to visible partners.
+///
+/// Edges ascend by link-entity identity bytes (for the fixture, edge row), partners derive from
+/// the delivered edges ascending wire row id, and `complete` stays `true`: visibility is not
+/// truncation. Wherever the mask shrinks a
+/// source's incident set, a second probe caps the query at exactly the visible cardinality:
+/// hidden partners drop before selection, so the tight cap truncates nothing and delivers the
+/// whole visible set, complete - independent of the truncation key. Selecting first and masking
+/// after would come up short in exactly these configurations.
+fn assert_locate_delivers_the_visible_ego_graph(
+    atlas: &Atlas,
+    proof: &VisibilityProof,
+    hidden: &[u32],
+) {
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let limits = ServeLimits::default();
+    let node_codec = test_codec(atlas);
+
+    for source_row in (0..universe).filter(|row| !hidden.contains(row)) {
+        let source_id = entity_string_of(u8::try_from(source_row).expect("fixture rows fit u8"));
+        let masked = atlas.locate_subgraph(
+            atlas
+                .resolve_source(proof, &source_id)
+                .expect("a visible source resolves under the mask"),
+            limits.locate,
+            proof,
+        );
+        assert!(masked.complete, "visibility is not truncation");
+
+        // Ground truth off the fixture edge list: incident to the
+        // source, each edge once, partner visible.
+        let mut expected_edges: Vec<u32> = FIXTURE_EDGES
+            .iter()
+            .enumerate()
+            .filter(|&(_, &(_, edge_source, edge_target))| {
+                let incident =
+                    edge_source == u64::from(source_row) || edge_target == u64::from(source_row);
+                let partner = if edge_source == u64::from(source_row) {
+                    edge_target
+                } else {
+                    edge_source
+                };
+                incident && !hidden.contains(&u32::try_from(partner).expect("fixture rows fit u32"))
+            })
+            .map(|(row, _)| narrow_usize(row))
+            .collect();
+        expected_edges.sort_unstable();
+        let delivered: Vec<u32> = masked.edges.iter().map(|&(edge, _)| edge.row).collect();
+        assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
+
+        let mut partner_keys: Vec<(u32, u32)> = expected_edges
+            .iter()
+            .flat_map(|&row| {
+                let (_, edge_source, edge_target) = FIXTURE_EDGES[row as usize];
+                [
+                    u32::try_from(edge_source).expect("fixture rows fit u32"),
+                    u32::try_from(edge_target).expect("fixture rows fit u32"),
+                ]
+            })
+            .filter(|&row| row != source_row)
+            .map(|row| (node_codec.encode(row).get(), row))
+            .collect();
+        partner_keys.sort_unstable();
+        partner_keys.dedup();
+        let mut expected_rows = vec![source_row];
+        expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
+        assert_eq!(masked.rows, expected_rows, "ego({source_row}) rows");
+        for &row in &masked.rows {
+            assert!(!hidden.contains(&row), "every delivered row is visible");
+        }
+
+        // Drop-before-cap, key-independent: whenever the mask shrank
+        // this source's incident set, a cap of exactly the visible
+        // cardinality still delivers every visible edge.
+        let incident = FIXTURE_EDGES
+            .iter()
+            .filter(|&&(_, edge_source, edge_target)| {
+                edge_source == u64::from(source_row) || edge_target == u64::from(source_row)
+            })
+            .count();
+        if !expected_edges.is_empty() && expected_edges.len() < incident {
+            let tight = crate::serve::locate::LocateLimits {
+                edges: u32::try_from(expected_edges.len()).expect("the fixture edge count fits"),
+                ..limits.locate
+            };
+            let capped = atlas.locate_subgraph(
+                atlas
+                    .resolve_source(proof, &source_id)
+                    .expect("a visible source resolves under the mask"),
+                tight,
+                proof,
+            );
+            assert!(
+                capped.complete,
+                "a cap at the visible cardinality truncates nothing"
+            );
+            let capped_edges: Vec<u32> = capped.edges.iter().map(|&(edge, _)| edge.row).collect();
+            assert_eq!(
+                capped_edges, expected_edges,
+                "ego({source_row}) under the tight cap"
+            );
+        }
+    }
+}
+
+/// Hidden and nonexistent answer identically at every id-bearing ingress, under any mask.
+///
+/// Eight seeded random proofs sweep every hidden row through the three ingresses that accept an
+/// identifier: locate by entity id, locate by wire row id, and translate. Each denied request is
+/// compared against the same request naming something that never existed - an unknown entity seed,
+/// a wire value outside the codec's image - and the answers are equal values at the seam. The
+/// renderers downstream are deterministic functions of those values, so equal values are equal
+/// response bytes: the collapse law, swept rather than sampled.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
+    use crate::serve::translate::{TranslateLimits, TranslateRequest};
+
+    let (_generation, atlas) = publish("p8-collapse").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let node_codec = test_codec(&atlas);
+    let limits = ServeLimits::default();
+
+    // Identifiers that never existed: an entity seed no fixture row
+    // or edge carries, and the first wire value outside the image.
+    let ghost_id = entity_string_of(203);
+    let ghost_wire = (0..=u32::MAX)
+        .find(|&wire| atlas.resolve(&FULL, wire).is_none())
+        .expect("the image has forty-eight values; almost everything is outside it");
+    let by_row = |wire: u32| crate::serve::LocateRequest {
+        entity_id: None,
+        row: Some(wire),
+        colored_type_ids: Vec::new(),
+        filter: None,
+    };
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x9A08);
+
+    for _ in 0..8 {
+        let hidden: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
+        assert!(!hidden.is_empty(), "the seeded masks hide at least one row");
+        let proof = mask_hiding(&atlas, &hidden);
+
+        // The nonexistent baselines, once per proof.
+        let missing_entity = atlas
+            .assemble_locate(&locate_request(ghost_id.clone()), limits, &proof)
+            .map(|_| ())
+            .expect_err("an unknown entity rejects");
+        let missing_row = atlas
+            .assemble_locate(&by_row(ghost_wire), limits, &proof)
+            .map(|_| ())
+            .expect_err("an out-of-image wire value rejects");
+        let missing_translated = atlas
+            .translate(
+                TranslateRequest {
+                    entity_ids: vec![ghost_id.clone()],
+                },
+                TranslateLimits::default(),
+                &proof,
+            )
+            .expect("the request is under the cap");
+
+        for &row in &hidden {
+            let id = entity_string_of(u8::try_from(row).expect("fixture rows fit u8"));
+
+            let denied = atlas
+                .assemble_locate(&locate_request(id.clone()), limits, &proof)
+                .map(|_| ())
+                .expect_err("a hidden source rejects");
+            assert_eq!(denied, missing_entity, "denied and missing are one error");
+            assert_eq!(denied, crate::serve::LocateError::UnknownEntity);
+
+            let denied = atlas
+                .assemble_locate(&by_row(node_codec.encode(row).get()), limits, &proof)
+                .map(|_| ())
+                .expect_err("a hidden row's wire id rejects");
+            assert_eq!(
+                denied, missing_row,
+                "the row ingress collapses the same way"
+            );
+
+            let denied = atlas
+                .translate(
+                    TranslateRequest {
+                        entity_ids: vec![id],
+                    },
+                    TranslateLimits::default(),
+                    &proof,
+                )
+                .expect("the request is under the cap");
+            assert_eq!(
+                denied, missing_translated,
+                "a denied id translates exactly like one that never existed"
+            );
+        }
+    }
+}

@@ -6,14 +6,17 @@
 //!
 //! Each route lives in its own module - handler, path parameters, and OpenAPI documentation
 //! together - so a new endpoint is a new module plus one line in [`router`]'s table. The shared
-//! pieces are [`problem`] (the RFC 9457 error surface), [`saltile`] (binary envelope responses and
-//! their assembly worker), and [`mod@reference`] (the OpenAPI document and its reference page).
+//! pieces are [`problem`] (the RFC 9457 error surface), [`extract`] (request extraction whose
+//! rejections are problem documents), [`saltile`] (binary envelope responses and their assembly
+//! worker), [`headers`] (the Cache-Control postures, sent and documented from one constant), and
+//! [`mod@reference`] (the OpenAPI document and its reference page).
 //!
 //! Response assembly is synchronous and CPU-bound, so handlers schedule it on a rayon worker behind
-//! `catch_unwind` and never inline on the async runtime. Handler errors are RFC 9457 problem
-//! documents; requests the framework's extractors reject before a handler runs answer plain
-//! rejections instead. Binary responses ship `Cache-Control: private, no-store` because the
-//! client's application-layer cache is the cache.
+//! `catch_unwind` and never inline on the async runtime. Every error a route answers is an RFC
+//! 9457 problem document - handler failures directly, extraction failures through [`extract`]'s
+//! wrappers; only the router's own rejections (an unmatched route, a wrong method) stay plain.
+//! Binary responses ship `Cache-Control: private, no-store` because the client's
+//! application-layer cache is the cache.
 
 use alloc::sync::Arc;
 
@@ -26,10 +29,12 @@ use aide::{
 };
 use axum::{Extension, Router, body::Bytes};
 
-use crate::serve::{Atlas, GraphDatabaseClient, ServeCaps, VisibilityProof};
+use crate::serve::{Atlas, GraphDatabaseClient, ServeLimits, VisibilityProof};
 
 mod current;
 mod edges;
+mod extract;
+mod headers;
 mod locate;
 mod manifest;
 mod problem;
@@ -57,12 +62,14 @@ const API_DESCRIPTION: &str =
 - Query-bearing endpoints are `POST` with a JSON body; the body is part of the client's cache key.
 - Binary responses ship `Cache-Control: private, no-store`: the client's application-layer cache \
      is the cache, keyed on (authorization context, generation, route, canonical body). Detailed \
-     responses hydrate their trailers live from the store and leave the immutable cache - cache \
-     the geometry surfaces, refetch detail.
-- Handler errors are RFC 9457 problem documents (`application/problem+json`) whose `type` member \
-     is a stable root-relative URI (`/problems/atlas/<slug>`). Requests the framework's \
-     extractors reject - malformed bodies, unparsable paths - answer plain rejections instead. An \
-     `unknown-generation` problem always means: re-bootstrap through `current`.
+     responses read their trailers from the store at request time and leave the immutable cache - \
+     cache the geometry surfaces, refetch detail.
+- Every error is an RFC 9457 problem document (`application/problem+json`) whose `type` member is \
+     a stable root-relative URI (`/problems/atlas/<slug>`): an absent required body answers \
+     `missing-body`, a body that is not the operation's JSON shape answers `invalid-body`, an \
+     unparsable tile address answers `invalid-coordinate`, and a malformed generation id answers \
+     `invalid-generation`. An `unknown-generation` problem always means: re-read `current` and \
+     retry.
 - The binary envelope's normative contract is the `Atlas wire format` section below - this \
      document is self-contained; a decoder implements against it.";
 
@@ -74,14 +81,13 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 
 /// The shared route state.
 ///
-/// The pinned generation, the caps the handlers enforce and the manifest publishes, the store
+/// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
 /// connection detail hydration reads through, and the visibility proof every assembly path masks
 /// by.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
-    caps: ServeCaps, /* NOTE: can we please use something that isn't an abbreviation (throught
-                      * the code *Caps isn't great) */
+    limits: ServeLimits,
     remote: Arc<GraphDatabaseClient>,
     proof: Arc<VisibilityProof>,
 }
@@ -100,13 +106,13 @@ struct AppState {
 /// rules out.
 pub fn router(
     atlas: Arc<Atlas>,
-    caps: ServeCaps,
+    limits: ServeLimits,
     details: Arc<GraphDatabaseClient>,
     proof: VisibilityProof, // NOTE: shouldn't the proof be per user?
 ) -> Router {
     let state = AppState {
         atlas,
-        caps,
+        limits,
         remote: details,
         proof: Arc::new(proof),
     };

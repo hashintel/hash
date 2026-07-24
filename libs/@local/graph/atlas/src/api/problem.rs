@@ -2,9 +2,10 @@
 //!
 //! The `type` member carries Surface v1's stable root-relative URIs, the body ships as
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
-//! live here beside the document they produce. Requests the framework's extractors reject before
-//! a handler runs - malformed bodies, unparsable paths, wrong content types - answer the
-//! framework's plain rejections instead.
+//! live here beside the document they produce. Requests that fail before a handler runs -
+//! malformed bodies, wrong content types, unparsable tile addresses - route through
+//! [`super::extract`]'s wrappers and answer problem documents too; only the router's own
+//! rejections (an unmatched route, a wrong method) stay plain.
 
 use alloc::borrow::Cow;
 
@@ -33,6 +34,9 @@ pub(super) enum ProblemType {
     /// A tile coordinate outside the zoom range or off its grid.
     #[serde(rename = "/problems/atlas/invalid-coordinate")]
     InvalidCoordinate,
+    /// A generation path segment that is not a sha256 generation id.
+    #[serde(rename = "/problems/atlas/invalid-generation")]
+    InvalidGeneration,
     /// A surface the contract pins but this build does not serve.
     #[serde(rename = "/problems/atlas/unsupported-feature")]
     UnsupportedFeature,
@@ -56,6 +60,10 @@ pub(super) enum ProblemType {
     /// A required request body that did not arrive.
     #[serde(rename = "/problems/atlas/missing-body")]
     MissingBody,
+    /// A request body that is not the operation's JSON: wrong content type, syntax error, shape
+    /// mismatch, or oversize.
+    #[serde(rename = "/problems/atlas/invalid-body")]
+    InvalidBody,
 }
 
 /// One RFC 9457 problem document.
@@ -100,7 +108,11 @@ impl<'content> Problem<'content> {
     /// The document carries only the static `detail`; `source` is recorded at
     /// error level. Driver errors and panic payloads are log material and
     /// never reach a client.
-    pub(super) fn internal(source: impl core::fmt::Display, detail: &'static str) -> Self {
+    pub(super) fn internal(
+        source: impl core::fmt::Display,
+        detail: impl Into<Cow<'content, str>>,
+    ) -> Self {
+        let detail = detail.into();
         tracing::error!(source = %source, "{detail}");
         Self::new(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -161,23 +173,21 @@ impl OperationOutput for Problem<'_> {
 
 /// Rejects a route whose generation echo does not name the pinned generation.
 ///
-/// An unparsable id and a foreign id answer the same rejection: both name a generation this process
-/// does not serve, and the client's recovery - re-bootstrap through `current` - is identical.
+/// A well-formed id names a resource, so an id this process does not serve is a 404; the
+/// client's recovery is to re-read `current` and retry. A malformed id never reaches here - the
+/// path extractor answers `invalid-generation` (400) first.
 pub(super) fn reject_generation(
     state: &AppState,
-    generation: &str,
+    generation: GenerationId,
 ) -> Result<(), Problem<'static>> {
-    let known = generation
-        .parse::<GenerationId>()
-        .is_ok_and(|id| id == state.atlas.generation());
-    if known {
+    if generation == state.atlas.generation() {
         return Ok(());
     }
 
     Err(Problem::new(
         StatusCode::NOT_FOUND,
         ProblemType::UnknownGeneration,
-        format!("generation {generation} is not served; re-bootstrap via /v1/atlas/current"),
+        format!("generation {generation} is not served; re-read /v1/atlas/current and retry"),
     ))
 }
 

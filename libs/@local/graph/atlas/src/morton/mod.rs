@@ -55,6 +55,12 @@ impl Depth {
     pub const fn get(self) -> u8 {
         self.0
     }
+
+    /// Iterates every depth, [`Depth::MIN`] through [`Depth::MAX`].
+    #[inline]
+    pub fn all() -> impl DoubleEndedIterator<Item = Self> {
+        (Self::MIN.0..=Self::MAX.0).map(Self)
+    }
 }
 
 /// A Z-order key: two 32-bit axes interleaved into one `u64`.

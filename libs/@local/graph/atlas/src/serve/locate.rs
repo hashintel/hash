@@ -7,22 +7,26 @@
 //! gathers - no spatial index stands behind it. Locate IS the detail view: the trailer always
 //! rides, so serving locate requires a store connection for hydration.
 
+use type_system::ontology::id::VersionedUrl;
+
 use super::{
-    Atlas, Filter, TileCoordinate, depth_of,
-    detail::{DeliveredEntities, LocateLinkDetails, LocateNodeDetails, SimpleValue},
-    edges::{DeliveredEdge, borrow},
-    narrow,
+    Atlas, Filter, TileCoordinate, WireRow,
+    colour::Palette,
+    grid,
+    hydrate::{DeliveredEntities, LocateLinkDetails, LocateNodeDetails, SimpleValue},
+    intern::{self, Table},
+    neighbourhood::{DeliveredEdge, Neighbourhood},
     visibility::{VisibilityProof, VisibleRow},
 };
 use crate::{
-    dataset::NodeRowId,
-    morton::{Depth, MortonKey},
+    dataset::{ArchivedEntityId, EdgeRowId, NodeRowId},
+    morton::MortonKey,
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
 
-/// The locate endpoint's caps.
+/// The locate endpoint's limits.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct LocateCaps {
+pub struct LocateLimits {
     /// Most ego-graph edges one response delivers.
     ///
     /// A larger incident set keeps the edges whose partners lie nearest the source, and HEAD
@@ -46,41 +50,9 @@ pub struct LocateCaps {
     pub link_properties: u32 = 10,
 }
 
-const impl Default for LocateCaps {
+const impl Default for LocateLimits {
     fn default() -> Self {
         Self { .. }
-    }
-}
-
-/// The options one serving open takes.
-///
-/// Configuration travels as a struct, never constants or bare parameters.
-#[derive(Debug, Clone)]
-pub struct OpenOptions {
-    /// The server secret behind the wire row-id codec.
-    ///
-    /// The keyed permutation derives from it per generation at open.
-    ///
-    /// The default is a fixed development value: wire ids stay deterministic across restarts
-    /// without configuration, and a production deployment supplies its own secret.
-    ///
-    /// Operator contract, unenforced by any binding: the secret must not change for a generation
-    /// that has ever served. Nothing fingerprints the secret, so reopening the same generation
-    /// under a different value silently re-keys every wire id while client cache identity
-    /// (authorization context, generation, route, canonical query) stays constant. A secret
-    /// change therefore requires a generation rotation and application-cache invalidation.
-    pub wire_secret: Vec<u8>, /* NOTE: Shouldn't this live under a `Secret` type and be fixed
-                               * size? so that it zeroes on drop? */
-}
-
-impl Default for OpenOptions {
-    fn default() -> Self {
-        Self {
-            wire_secret: b"atlas-dev-wire-secret".to_vec(), /* NODE: now that's a bit silly, fail
-                                                             * loud if secret not set, otherwise
-                                                             * this is a security hazard waiting
-                                                             * to trip */
-        }
     }
 }
 
@@ -88,7 +60,7 @@ impl Default for OpenOptions {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct SourcePoint {
     /// The node row id.
-    pub row: u32,
+    pub row: VisibleRow,
     /// The base position behind the row.
     pub position: u32,
     /// The first zoom whose cumulative schedule delivers the point.
@@ -111,7 +83,8 @@ impl Atlas {
         entity_id: &str,
     ) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
-        let row = proof.verify(narrow(self.node_ids.row_of(id)?))?; // NOTE: not readable
+        let row = self.node_ids.row_of(id)?;
+        let row = proof.verify(NodeRowId::new(row))?;
 
         Some(self.source_point(row))
     }
@@ -126,47 +99,28 @@ impl Atlas {
     pub(super) fn resolve_wire_source(
         &self,
         proof: &VisibilityProof,
-        wire: u32,
+        wire: WireRow<NodeRowId>,
     ) -> Option<SourcePoint> {
         Some(self.source_point(self.resolve(proof, wire)?))
     }
 
     /// Returns the first zoom whose cumulative schedule delivers a base position.
     fn first_visible_zoom(&self, position: u32) -> u8 {
-        // The position's fencepost segment is its morton bucket; the cumulative cut rule (bucket <=
-        // z + span) then answers the first delivering zoom.
-        let bucket = (0..=Depth::MAX.get())
-            .find(|&bucket| {
-                self.morton
-                    .fenceposts()
-                    .segment(depth_of(bucket))
-                    .contains(&u64::from(position))
-            })
-            .expect("every base position lies in exactly one bucket segment");
-
-        bucket.saturating_sub(self.lod.span.get())
+        // The position's bucket is its fencepost segment; the cut rule inverted answers the
+        // first delivering zoom.
+        self.grid
+            .first_zoom(self.morton.bucket_of(u64::from(position)))
     }
 
     /// Answers a proven-visible node row's identity in every domain a locate response speaks.
     ///
     /// Base position, first visible zoom, and fly-to tile.
     fn source_point(&self, row: VisibleRow) -> SourcePoint {
-        let row = row.get();
-        let position = self.positions_of_row()[row as usize];
+        let position = self.positions_of_row()[row.get().usize()];
         let zoom = self.first_visible_zoom(position);
 
         let key = MortonKey::from_bits(self.morton.codes()[position as usize].get());
-        let [x, y] = key.coordinates();
-
-        let cell = if zoom == 0 {
-            TileCoordinate { z: 0, x: 0, y: 0 }
-        } else {
-            TileCoordinate {
-                z: zoom,
-                x: x >> (32 - u32::from(zoom)),
-                y: y >> (32 - u32::from(zoom)),
-            }
-        };
+        let cell = grid::tile_of(key, zoom);
 
         SourcePoint {
             row,
@@ -188,53 +142,16 @@ impl Atlas {
     pub(super) fn locate_subgraph(
         &self,
         source: SourcePoint,
-        caps: LocateCaps,
+        limits: LocateLimits,
         proof: &VisibilityProof,
     ) -> LocateSubgraph {
-        let endpoints = self.endpoint_pairs();
-        let source_row = u64::from(source.row);
-        let node = NodeRowId::new(source_row);
-        let expect = "resolved sources lie inside the adjacency's node domain";
-        let outgoing = self.adjacency.outgoing(node).expect(expect);
-        let incoming = self.adjacency.incoming(node).expect(expect);
+        // Hidden partners drop before selection: the cap selects among visible edges alone, and
+        // a response's cardinality is a function of the masked view.
+        let mut edges = Neighbourhood::of(self, proof).incident(source.row.get());
 
-        // A self-loop occupies one slot in each direction's run; its incoming appearance is the
-        // duplicate and is skipped, so every incident edge is collected exactly once.
-        // Hidden partners drop before selection: the cap selects among visible edges alone, and a
-        // response's cardinality is a function of the masked view.
-        let incident = outgoing.iter().chain(incoming.iter().filter(|edge| {
-            let index = usize::try_from(edge.get()).expect("edge rows fit usize");
-            endpoints[index][0] != source_row
-        }));
-        let mut edges: Vec<(DeliveredEdge, [u8; 32])> = Vec::new();
-        for edge in incident {
-            let index = usize::try_from(edge.get()).expect("edge rows fit usize");
-            let [edge_source, edge_target] = endpoints[index];
-
-            let partner = if edge_source == source_row {
-                edge_target
-            } else {
-                edge_source
-            };
-
-            if !proof.contains(narrow(partner)) {
-                continue;
-            }
-
-            let row = narrow(edge.get());
-            edges.push((
-                DeliveredEdge {
-                    row,
-                    source: narrow(edge_source),
-                    target: narrow(edge_target),
-                },
-                self.edge_identity(row),
-            ));
-        }
-
-        let complete = edges.len() <= caps.edges as usize;
+        let complete = edges.len() <= limits.edges as usize;
         if !complete {
-            self.truncate_nearest(&mut edges, caps.edges as usize, source);
+            self.truncate_nearest(&mut edges, limits.edges as usize, source);
         }
         edges.sort_unstable_by_key(|&(_, id)| id);
 
@@ -242,20 +159,20 @@ impl Atlas {
         // carry distinct wire ids (the codec is a bijection), so
         // adjacent dedup after the wire-keyed sort is exact.
         let positions_of_row = self.positions_of_row();
-        let mut partners: Vec<(u32, u32)> = edges
+        let mut partners: Vec<_> = edges
             .iter()
             .flat_map(|&(edge, _)| [edge.source, edge.target])
-            .filter(|&row| row != source.row)
-            .map(|row| (self.node_codec.encode(row).get(), row))
+            .filter(|&row| row != source.row.get())
+            .map(|row| (self.node_codec.encode(row), row))
             .collect();
         partners.sort_unstable();
         partners.dedup();
 
-        let mut rows = vec![source.row];
+        let mut rows = vec![source.row.get()];
         let mut delivered = vec![source.position];
         for &(_, row) in &partners {
             rows.push(row);
-            delivered.push(positions_of_row[row as usize]);
+            delivered.push(positions_of_row[row.usize()]);
         }
 
         LocateSubgraph {
@@ -274,7 +191,7 @@ impl Atlas {
     /// stays ascending identity bytes.
     fn truncate_nearest(
         &self,
-        edges: &mut Vec<(DeliveredEdge, [u8; 32])>,
+        edges: &mut Vec<(DeliveredEdge, ArchivedEntityId)>,
         cap: usize,
         source: SourcePoint,
     ) {
@@ -287,17 +204,12 @@ impl Atlas {
         let positions_of_row = self.positions_of_row();
         let origin = positions[source.position as usize];
 
-        let mut ranked: Vec<(NearestKey, (DeliveredEdge, [u8; 32]))> = edges
+        let mut ranked: Vec<(NearestKey, (DeliveredEdge, ArchivedEntityId))> = edges
             .drain(..)
             .map(|(edge, id)| {
-                // NOTE: this feels like it belongs on an inherent method...
-                let partner = if edge.source == source.row {
-                    edge.target
-                } else {
-                    edge.source
-                };
+                let partner = edge.partner_of(source.row.get());
 
-                let position = positions_of_row[partner as usize];
+                let position = positions_of_row[partner.usize()];
                 let point = positions[position as usize];
                 let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
                 // The selection key is pinned to unfused f32
@@ -312,7 +224,11 @@ impl Atlas {
                 let distance = (dx * dx + dy * dy).to_bits();
 
                 (
-                    (distance, self.first_visible_zoom(position), id),
+                    NearestKey {
+                        distance,
+                        zoom: self.first_visible_zoom(position),
+                        identity: id,
+                    },
                     (edge, id),
                 )
             })
@@ -328,9 +244,19 @@ impl Atlas {
 
 /// The nearest-partner truncation's sort key.
 ///
-/// Ascending squared distance to the partner, then the partner's first visible zoom, then the
-/// link-entity identity bytes.
-type NearestKey = (u32, u8, [u8; 32]); // NOTE: WHAT THE ACTUAL FUCK WE HAVE TYPES FOR A REASON, THIS IS NOT ASSEMBLY
+/// The derived order is the selection rule: ascending squared distance to the partner, then the
+/// partner's first visible zoom, then the link-entity identity bytes.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct NearestKey {
+    /// The squared wire-frame distance to the partner, by its bit pattern.
+    ///
+    /// Non-negative finite floats order by bits exactly as by value.
+    distance: u32,
+    /// The partner's first visible zoom: equidistant partners cede to the earlier-visible one.
+    zoom: u8,
+    /// The link-entity identity: distinct identities make the key a total order.
+    identity: ArchivedEntityId,
+}
 
 /// One assembled locate ego-graph.
 ///
@@ -339,11 +265,11 @@ type NearestKey = (u32, u8, [u8; 32]); // NOTE: WHAT THE ACTUAL FUCK WE HAVE TYP
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct LocateSubgraph {
     /// The delivered node rows, in delivered order.
-    pub rows: Vec<u32>,
+    pub rows: Vec<NodeRowId>,
     /// The delivered base positions, parallel to `rows`.
     pub positions: Vec<u32>,
     /// The delivered edges paired with their link-entity identities, ascending by those bytes.
-    pub edges: Vec<(DeliveredEdge, [u8; 32])>,
+    pub edges: Vec<(DeliveredEdge, ArchivedEntityId)>,
     /// Whether every qualifying edge is delivered; `false` iff the cap truncated.
     pub complete: bool,
 }
@@ -366,14 +292,17 @@ pub struct LocateRequest {
     ///
     /// Exactly one of this and `entityId` names the source.
     #[serde(default)]
-    pub row: Option<u32>,
-    /// The type ids whose membership masks ride `TYPE_MASK`; absent or empty omits the slot.
+    pub row: Option<WireRow<NodeRowId>>,
+    /// Versioned type URLs conditioning the `TYPE_MASK` column; absent or empty omits it.
     ///
-    /// Also the `typeIdsComplete` reference set: the flag reads `true` iff these ids cover the
-    /// source's direct types.
+    /// Also the `typeIdsComplete` reference set: the flag reads `true` exactly when these ids
+    /// cover the source's direct types. Entries parse at the transport boundary: a malformed URL
+    /// rejects the body, while a well-formed URL this generation never ingested is legal and
+    /// reads zero bits.
     #[serde(default)]
-    pub colored_type_ids: Vec<String>,
-    /// The visibility filter; absent means the trivial bitmap.
+    #[schemars(with = "Vec<String>")]
+    pub colored_type_ids: Vec<VersionedUrl>,
+    /// The visibility filter, a reserved field: a request that carries one is rejected.
     #[serde(default)]
     pub filter: Option<Filter>,
 }
@@ -446,19 +375,19 @@ impl core::error::Error for LocateError {}
 pub struct LocateDocument {
     source: SourcePoint,
     delivered: Vec<u32>,
-    rows: Vec<u32>,
-    sources: Vec<u32>,
-    targets: Vec<u32>,
+    rows: Vec<NodeRowId>,
+    sources: Vec<WireRow<NodeRowId>>,
+    targets: Vec<WireRow<NodeRowId>>,
     /// The delivered edges' link-entity identities, delivered order.
-    edge_ids: Vec<[u8; 32]>,
+    edge_ids: Vec<ArchivedEntityId>,
     /// The internal edge rows behind `edge_ids`, delivered order.
     ///
     /// The hydration key the identity table speaks.
-    internal_rows: Vec<u32>,
+    internal_rows: Vec<EdgeRowId>,
     complete: bool,
-    mask_set: Option<super::color::MaskSet>,
-    /// The request's `coloredTypeIds`, echoed for the `typeIdsComplete` coverage test.
-    colored_type_ids: Vec<String>,
+    mask_set: Option<super::colour::MaskSet>,
+    /// The request's parsed palette: the `typeIdsComplete` reference set.
+    palette: Palette,
 }
 
 impl Atlas {
@@ -477,21 +406,21 @@ impl Atlas {
     /// Returns [`LocateError::Source`] when the body does not name exactly one of `entityId` and
     /// `row`, [`LocateError::UnknownEntity`] when the source does not resolve to a visible node,
     /// [`LocateError::Types`] when the request carries more `coloredTypeIds` than
-    /// `caps.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
+    /// `limits.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
     /// version-0 deferral.
     pub fn assemble_locate(
         &self,
         request: &LocateRequest,
-        caps: super::ServeCaps,
+        limits: super::ServeLimits,
         proof: &VisibilityProof,
     ) -> Result<LocateDocument, LocateError> {
         if request.filter.is_some() {
             return Err(LocateError::Unsupported("filter"));
         }
-        if request.colored_type_ids.len() > caps.tile.colored_type_ids as usize {
+        if request.colored_type_ids.len() > limits.tile.colored_type_ids as usize {
             return Err(LocateError::Types {
                 count: request.colored_type_ids.len(),
-                maximum: caps.tile.colored_type_ids,
+                maximum: limits.tile.colored_type_ids,
             });
         }
 
@@ -514,21 +443,21 @@ impl Atlas {
             positions,
             edges,
             complete,
-        } = self.locate_subgraph(source, caps.locate, proof);
+        } = self.locate_subgraph(source, limits.locate, proof);
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
         let mut edge_ids = Vec::with_capacity(edges.len());
         let mut internal_rows = Vec::with_capacity(edges.len());
         for &(edge, id) in &edges {
-            sources.push(self.node_codec.encode(edge.source).get());
-            targets.push(self.node_codec.encode(edge.target).get());
+            sources.push(self.node_codec.encode(edge.source));
+            targets.push(self.node_codec.encode(edge.target));
             edge_ids.push(id);
             internal_rows.push(edge.row);
         }
 
-        let mask_set = (!request.colored_type_ids.is_empty())
-            .then(|| self.resolve_masks(&request.colored_type_ids));
+        let palette = Palette::of(&request.colored_type_ids);
+        let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));
 
         Ok(LocateDocument {
             source,
@@ -540,7 +469,7 @@ impl Atlas {
             internal_rows,
             complete,
             mask_set,
-            colored_type_ids: request.colored_type_ids.clone(),
+            palette,
         })
     }
 
@@ -582,7 +511,7 @@ impl Atlas {
             .iter()
             .map(|&row| {
                 self.edge_ids
-                    .id(u64::from(row))
+                    .id(row.get())
                     .expect("open validated the identity rows against the adjacency's edges")
             })
             .collect();
@@ -622,16 +551,15 @@ impl Atlas {
         // The source's identity always rides HEAD; the per-edge link
         // identities are first-class columns. Both read the
         // generation-frozen tables, no store.
-        let entity_id = super::translate::identity_bytes(
-            self.node_ids
-                .id(u64::from(document.rows[0]))
-                .expect("open validated the identity rows against the code column"),
-        ); // NOTE: I am going to lose it.
+        let entity_id = self
+            .node_ids
+            .id(u64::from(document.rows[0]))
+            .expect("open validated the identity rows against the code column");
 
         let type_ids_complete = covers_source_types(
             nodes.source_properties().is_some(),
             &nodes.type_urls()[0],
-            &document.colored_type_ids,
+            &document.palette,
         );
 
         let (type_table, type_ids, link_type_ids) =
@@ -662,12 +590,12 @@ impl Atlas {
             targets: &document.targets,
             edge_ids: &document.edge_ids,
             trailer: LocateTrailer {
-                type_table: &type_table,
-                property_table: &property_table,
-                labels: &borrow(nodes.labels()),
+                type_table: type_table.entries(),
+                property_table: property_table.entries(),
+                labels: &intern::borrowed(nodes.labels()),
                 type_ids: &type_ids,
                 properties: source_properties.as_deref(),
-                link_labels: &borrow(links.labels()),
+                link_labels: &intern::borrowed(links.labels()),
                 link_type_ids: &link_type_ids,
                 link_type_ids_complete: links.type_urls_complete(),
                 link_properties: &link_properties,
@@ -686,12 +614,13 @@ type PropertyMapView<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 
 /// Returns whether a request's palette covers the source's direct types.
 ///
-/// The `typeIdsComplete` predicate: every direct type of the source lies in the requested
-/// `coloredTypeIds`. `false` when the store no longer serves the source (`present` reads false)
-/// or records no types for it - coverage of an unreadable set is never attested - and on an
-/// empty palette, which covers nothing.
-pub(super) fn covers_source_types(present: bool, types: &[String], colored: &[String]) -> bool {
-    present && !types.is_empty() && types.iter().all(|url| colored.contains(url))
+/// The `typeIdsComplete` predicate: every direct type of the source names a palette entry.
+/// Coverage compares parsed ontology identities, the same parse the `TYPE_MASK` resolution
+/// applies. `false` when the store no longer serves the source (`present` reads false) or
+/// records no types for it - coverage of an unreadable set is never attested - and on a palette
+/// with no resolvable entry, which covers nothing.
+pub(super) fn covers_source_types(present: bool, types: &[String], palette: &Palette) -> bool {
+    present && !types.is_empty() && types.iter().all(|url| palette.covers(url))
 }
 
 /// Builds the type intern table and every type reference into it.
@@ -702,30 +631,22 @@ pub(super) fn covers_source_types(present: bool, types: &[String], colored: &[St
 pub(super) fn intern_types<'doc>(
     nodes: &'doc [Vec<String>],
     links: &'doc [Vec<String>],
-) -> (Vec<&'doc str>, Vec<Option<u32>>, Vec<Vec<u32>>) {
-    let mut table: Vec<&str> = nodes
-        .iter()
-        .filter_map(|urls| urls.first())
-        .map(String::as_str)
-        .chain(links.iter().flatten().map(String::as_str))
-        .collect();
-    table.sort_unstable();
-    table.dedup();
-
-    let index_of = |url: &str| {
-        let index = table
-            .binary_search(&url)
-            .expect("every referenced type is interned");
-        u32::try_from(index).expect("the table is far below u32::MAX types")
-    };
+) -> (Table<'doc>, Vec<Option<u32>>, Vec<Vec<u32>>) {
+    let table = Table::new(
+        nodes
+            .iter()
+            .filter_map(|urls| urls.first())
+            .chain(links.iter().flatten())
+            .map(String::as_str),
+    );
 
     let type_ids = nodes
         .iter()
-        .map(|urls| urls.first().map(|url| index_of(url)))
+        .map(|urls| urls.first().map(|url| table.index_of(url)))
         .collect();
     let link_type_ids = links
         .iter()
-        .map(|urls| urls.iter().map(|url| index_of(url)).collect())
+        .map(|urls| urls.iter().map(|url| table.index_of(url)).collect())
         .collect();
 
     (table, type_ids, link_type_ids)
@@ -739,18 +660,16 @@ pub(super) fn intern_types<'doc>(
 pub(super) fn intern_properties<'doc>(
     source: Option<&'doc Vec<(String, SimpleValue)>>,
     links: &'doc [Option<Vec<(String, SimpleValue)>>],
-) -> (Vec<&'doc str>, Vec<PropertyMapView<'doc>>) {
+) -> (Table<'doc>, Vec<PropertyMapView<'doc>>) {
     let sets: Vec<Option<&[(String, SimpleValue)]>> = core::iter::once(source.map(Vec::as_slice))
         .chain(links.iter().map(|entry| entry.as_deref()))
         .collect();
 
-    let mut names: Vec<&str> = sets
-        .iter()
-        .flatten()
-        .flat_map(|entries| entries.iter().map(|(name, _)| name.as_str()))
-        .collect();
-    names.sort_unstable();
-    names.dedup();
+    let table = Table::new(
+        sets.iter()
+            .flatten()
+            .flat_map(|entries| entries.iter().map(|(name, _)| name.as_str())),
+    );
 
     let maps = sets
         .iter()
@@ -758,21 +677,13 @@ pub(super) fn intern_properties<'doc>(
             entry.map(|survivors| {
                 survivors
                     .iter()
-                    .map(|(name, value)| {
-                        let index = names
-                            .binary_search(&name.as_str())
-                            .expect("every surviving name is interned");
-                        let index =
-                            u32::try_from(index).expect("the table is far below u32::MAX names");
-
-                        (index, wire_value(value))
-                    })
+                    .map(|(name, value)| (table.index_of(name), wire_value(value)))
                     .collect()
             })
         })
         .collect();
 
-    (names, maps)
+    (table, maps)
 }
 
 /// Views one hydrated value in the wire's borrowed form.

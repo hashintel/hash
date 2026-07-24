@@ -19,8 +19,8 @@
 //! (tile gathers, edge endpoint sets) mask through [`VisibilityProof::intersect`] and
 //! [`VisibilityProof::contains`] wholesale instead of minting a value per row.
 
-use super::Atlas;
-use crate::bitset::BitSet;
+use super::{Atlas, WireRow};
+use crate::{bitset::BitSet, dataset::NodeRowId};
 
 /// The server-held visibility proof: the visible node-row set every assembly path masks by.
 ///
@@ -81,11 +81,11 @@ impl VisibilityProof {
     }
 
     /// Returns whether node row `row` is visible.
-    pub(super) const fn contains(&self, row: u32) -> bool {
+    pub(super) const fn contains(&self, row: NodeRowId) -> bool {
         match &self.rows {
             Rows::Full => true,
             Rows::Mask(bitmap) => {
-                let index = row as usize;
+                let index = row.usize();
                 index < bitmap.len() && bitmap.contains(index)
             }
         }
@@ -94,7 +94,9 @@ impl VisibilityProof {
     /// Returns whether the edge with endpoints `source` and `target` is visible.
     ///
     /// Edge visibility is both endpoints', derived, never independently granted.
-    pub(super) const fn edge_visible(&self, source: u32, target: u32) -> bool {
+    pub(super) const fn edge_visible(&self, source: NodeRowId, target: NodeRowId) -> bool {
+        // NOTE: this is incorrect
+        // NOTE: we should use roaring here, this is highly compressable
         self.contains(source) && self.contains(target)
     }
 
@@ -119,8 +121,8 @@ impl VisibilityProof {
     /// Wire-domain ingress reaches this through [`Atlas::resolve`]; identity-domain ingress
     /// (translate, locate by entity id) lands on internal rows without a decode and calls this
     /// directly. Either way every failure is the same [`None`].
-    pub(super) fn verify(&self, row: u32) -> Option<VisibleRow> {
-        self.contains(row).then_some(VisibleRow { row })
+    pub(super) fn verify(&self, row: NodeRowId) -> Option<VisibleRow> {
+        self.contains(row).then_some(VisibleRow(row))
     }
 }
 
@@ -130,14 +132,12 @@ impl VisibilityProof {
 /// cannot be reached with an unproven row. The value is the internal row id for in-process gathers;
 /// it never crosses the wire.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct VisibleRow {
-    row: u32,
-}
+pub struct VisibleRow(NodeRowId);
 
 impl VisibleRow {
     /// Returns the proven row id.
-    pub(super) const fn get(self) -> u32 {
-        self.row
+    pub(super) const fn get(self) -> NodeRowId {
+        self.0
     }
 }
 
@@ -151,7 +151,7 @@ impl Atlas {
     /// downstream - the transport renders one problem body for both, and nothing upstream of this
     /// seam logs or branches on the cause.
     #[must_use]
-    pub fn resolve(&self, proof: &VisibilityProof, wire: u32) -> Option<VisibleRow> {
+    pub fn resolve(&self, proof: &VisibilityProof, wire: WireRow<NodeRowId>) -> Option<VisibleRow> {
         proof.verify(self.node_codec.decode(wire)?)
     }
 }

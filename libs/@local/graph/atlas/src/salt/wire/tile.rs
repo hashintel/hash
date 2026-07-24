@@ -21,9 +21,11 @@ use core::ops::Range;
 
 use super::{Kind, Mode, cbor::CborWriter, envelope::EnvelopeWriter};
 use crate::{
+    dataset::NodeRowId,
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
+    serve::WireRow,
 };
 
 /// One tile response in writable form.
@@ -36,7 +38,7 @@ pub(crate) struct TileResponse<'doc> {
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc [Vec2],
     /// The generation's row-id column (row by base position), in full.
-    pub rows: &'doc [u32],
+    pub rows: &'doc [WireRow<NodeRowId>],
     /// Per-type membership for the request's `coloredTypeIds`, in request order.
     ///
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
@@ -107,7 +109,7 @@ impl TileResponse<'_> {
     /// Writes the `ROW_IDS` column: u32 row ids, delivered order.
     fn write_rows(&self, column: &mut Vec<u8>) {
         self.delivered.for_each(|position| {
-            column.extend_from_slice(&self.rows[position as usize].to_le_bytes());
+            column.extend_from_slice(&self.rows[position as usize].get().to_le_bytes());
         });
     }
 

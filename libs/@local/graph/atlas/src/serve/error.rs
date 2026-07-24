@@ -82,7 +82,7 @@ pub enum OpenAtlasError {
     Postings(InvalidPostingsFile),
     /// The postings parent graph holds a cycle.
     ///
-    /// So no closure map exists to expand coloring requests.
+    /// So no closure map exists to expand colouring requests.
     Closure(ParentCycle),
     /// An identity file failed to open.
     OpenIdentity {
@@ -175,6 +175,16 @@ pub enum OpenAtlasError {
         /// Edge rows the adjacency spans.
         edges: u64,
     },
+    /// The row universe exceeds the wire's `u32` id domain.
+    Universe {
+        /// Entries in the row column.
+        rows: u64,
+    },
+    /// The edge universe exceeds the `u32` edge-row domain.
+    EdgeUniverse {
+        /// Edge rows the adjacency spans.
+        edges: u64,
+    },
 }
 
 impl From<OpenError> for OpenAtlasError {
@@ -231,6 +241,10 @@ fn wrapped(fmt: &mut fmt::Formatter<'_>, context: &str, error: &dyn fmt::Display
 }
 
 impl fmt::Display for OpenAtlasError {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one display arm per open failure; the taxonomy is the length"
+    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unpublished(id) => {
@@ -328,6 +342,14 @@ impl fmt::Display for OpenAtlasError {
                 "the edge identity table holds {identities} rows where the adjacency spans \
                  {edges} edges",
             ),
+            Self::Universe { rows } => write!(
+                fmt,
+                "the row column holds {rows} entries where wire ids span the u32 range",
+            ),
+            Self::EdgeUniverse { edges } => write!(
+                fmt,
+                "the adjacency spans {edges} edge rows where edge ids span the u32 range",
+            ),
         }
     }
 }
@@ -356,7 +378,9 @@ impl Error for OpenAtlasError {
             | Self::Points { .. }
             | Self::Types { .. }
             | Self::Identities { .. }
-            | Self::EdgeIdentities { .. } => None,
+            | Self::EdgeIdentities { .. }
+            | Self::Universe { .. }
+            | Self::EdgeUniverse { .. } => None,
         }
     }
 }

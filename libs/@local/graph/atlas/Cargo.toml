@@ -17,6 +17,7 @@ camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
 rand           = { workspace = true, public = true }
 rand_core      = { workspace = true, public = true }
+schemars       = { workspace = true, public = true }
 sprs           = { workspace = true, public = true }
 tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync"], public = true }
 tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
@@ -49,7 +50,6 @@ rayon                = { workspace = true }
 regex                = { workspace = true }
 rkyv                 = { workspace = true }
 roaring              = { workspace = true, features = ["std"] }
-schemars             = { workspace = true }
 serde                = { workspace = true, features = ["derive"] }
 serde_json           = { workspace = true, features = ["float_roundtrip"] }
 sha2                 = { workspace = true }
@@ -60,6 +60,7 @@ tiktoken-rs          = { workspace = true }
 tracing              = { workspace = true }
 unicode-segmentation = { workspace = true }
 unidecode            = { workspace = true }
+zeroize              = { workspace = true }
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
@@ -67,6 +68,7 @@ darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 darwin-kperf-events       = { workspace = true }
 proptest                  = { workspace = true, features = ["attr-macro"] }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tower                     = { workspace = true, features = ["util"] }
 tracing-subscriber        = { workspace = true, features = ["ansi", "env-filter", "fmt", "std"] }
 uuid                      = { workspace = true, features = ["v5"] }
 

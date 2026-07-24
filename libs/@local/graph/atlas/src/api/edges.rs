@@ -5,15 +5,12 @@
 use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
-use axum::{
-    Json,
-    extract::{Path, State},
-    http::StatusCode,
-};
+use axum::{extract::State, http::StatusCode};
 use tracing::Instrument as _;
 
 use super::{
     AppState,
+    extract::{Body, Generation},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
 };
@@ -21,42 +18,40 @@ use crate::serve::{EdgesError, EdgesRequest, GenerationId};
 
 /// The operation's description.
 const DESCRIPTION: &str =
-    "Assembles the edges among the nodes delivered for the listed tiles: an edge ships iff BOTH \
-     of its endpoints are delivered (the union of the tiles' delivered sets).
+    "Returns the edges among the points the listed tiles deliver, as a `SALTILEE` binary envelope.
 
-The union spans ALL listed tiles, so list the whole viewport in one request: an edge between two \
-     different listed tiles ships. A tile's delivered set is its ZOOM-GATED delivery - the dots \
-     the tile endpoint ships for that z/x/y - not spatial containment; an edge does not ship \
-     while either endpoint is outside every listed tile or sits below the listed zoom's \
-     level-of-detail cut, and it appears once the viewport or zoom reaches that endpoint.
+An edge is included exactly when both of its endpoints lie in the union of the listed tiles' \
+     delivered sets, so one request listing the whole viewport also returns the edges that cross \
+     between its tiles. Delivery is the tile route's level-of-detail delivery, not spatial \
+     containment: an edge is absent while either endpoint sits below the listed zoom's cut, and \
+     appears once the viewport or zoom reaches that endpoint.
 
-The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list. The response is \
-     a `SALTILEE` envelope whose three columns (sources, targets, and `EDGE_IDS` - each edge's \
-     link entity id as 32 raw bytes, web uuid then entity uuid, generation-frozen) ride ascending \
-     by identity bytes, independent of the tile list - identical requests yield identical prefix, \
-     directory, HEAD, and column bytes (a detail trailer hydrates live from the store and is \
-     exempt), and the order is verifiable from the `EDGE_IDS` column alone. Edges carry no wire \
-     id of their own.
+The JSON body is required; the manifest's `limits.edgesTiles` caps the tile list.
 
-When the edge cap truncates the set, the rank-ordered truncation keeps the edges whose worse \
-     endpoint ranks best, and the HEAD's `complete` key reads `false`.
+The response's three columns - sources, targets, and `EDGE_IDS` (each edge's 32-byte link entity \
+     id, web uuid then entity uuid) - are ordered ascending by identity bytes, independent of the \
+     tile list's order: identical requests yield identical geometry bytes, and the order is \
+     verifiable from the `EDGE_IDS` column alone. Edges have no row id of their own; the entity \
+     id is an edge's identity on every route.
 
-`includeDetailedData` rides the trailer with the interned type-URL table and two per-edge arrays - \
-     the link entity's label, hydrated LIVE from the store at request time, and its first direct \
-     type as a uint index into the table; the client resolves display through its own type \
-     metadata.
+When the server's edge cap truncates the set, the response keeps the edges whose worse endpoint \
+     ranks best, and the HEAD's `complete` key reads `false`.
 
-Version 0 rejects `filter` with an `unsupported-feature` problem.";
+`includeDetailedData` adds the detail trailer, read from the store at request time: a sorted \
+     type-URL table and, per edge, a label and a first direct type as an integer index into the \
+     table.
+
+The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
+     rather than answered with bytes that silently ignore it.";
 
 /// The generation/variant pair addressing one fitted layout.
+///
+/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
+/// problem before the handler runs.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub(super) struct VariantPath {
-    /// The sha256 generation id, as bootstrapped from `current`.
-    //
-    // A string for the same reason as the manifest route's
-    // `generation`: an unparsable id must answer the 404 problem.
-    #[schemars(with = "GenerationId")]
-    generation: String,
+    /// The sha256 generation id, as returned by `current`.
+    generation: GenerationId,
     /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
 }
@@ -67,22 +62,14 @@ pub(super) struct VariantPath {
 /// request's subject, so the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
-    Path(VariantPath {
+    Generation(VariantPath {
         generation,
         variant,
-    }): Path<VariantPath>,
-    body: Option<Json<EdgesRequest>>,
+    }): Generation<VariantPath>,
+    Body(request): Body<EdgesRequest>,
 ) -> Result<Saltile, Problem<'static>> {
-    reject_generation(&state, &generation)?;
+    reject_generation(&state, generation)?;
     reject_variant(&variant)?;
-
-    let Some(Json(request)) = body else {
-        return Err(Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::MissingBody,
-            "an edges request lists its tiles in a JSON body",
-        ));
-    };
 
     let detailed = request.include_detailed_data;
 
@@ -90,11 +77,11 @@ pub(super) async fn handler(
     // awaits the store between them - the trailer is the envelope's
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
-    let caps = state.caps.edges;
+    let limits = state.limits.edges;
     let proof = Arc::clone(&state.proof);
     let assembled = spawn(move || {
         atlas
-            .assemble_edges(&request, caps, &proof)
+            .assemble_edges(&request, limits, &proof)
             .map(|document| {
                 let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
                 (document, entities)
@@ -168,21 +155,24 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
             )
         })
         .response_with::<400, Problem<'static>, _>(|response| {
-            response.description("`too-many-tiles`, `missing-body`, or `invalid-coordinate`")
+            response.description(
+                "`too-many-tiles`, `invalid-generation`, `missing-body`, `invalid-body`, or \
+                 `invalid-coordinate`",
+            )
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
-                "`unknown-generation` or `unknown-variant`: re-bootstrap through `current`",
+                "`unknown-generation` or `unknown-variant`: re-read `current` and retry",
             )
         })
         .response_with::<501, Problem<'static>, _>(|response| {
             response.description(
-                "`unsupported-feature`: the request names a surface the contract pins but version \
-                 0 does not serve (`filter`)",
+                "`unsupported-feature`: the request carries a reserved field (`filter`) this \
+                 server does not yet serve",
             )
         })
         .default_response_with::<Problem<'static>, _>(|response| {
             response
-                .description("any other problem; `internal` marks a server-side assembly failure")
+                .description("any other problem document; `internal` marks a server-side failure")
         })
 }

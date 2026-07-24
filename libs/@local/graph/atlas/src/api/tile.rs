@@ -3,52 +3,57 @@
 use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
-use axum::{
-    Json,
-    extract::{Path, State},
-    http::StatusCode,
-};
+use axum::{extract::State, http::StatusCode};
 use tracing::Instrument as _;
 
 use super::{
     AppState,
+    extract::{Body, Coordinates, Generation},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
 };
 use crate::serve::{GenerationId, TileCoordinate, TileError, TileQuery, TileRequest};
 
 /// The operation's description.
-const DESCRIPTION: &str = "Assembles the tile at `z/x/y` for the requested delivery context.
+const DESCRIPTION: &str =
+    "Returns one tile of the map: the points the generation's level-of-detail schedule delivers \
+     at `z/x/y`, as a `SALTILET` binary envelope of positions, row ids, the optional type mask, \
+     and the children bitmap.
 
 The JSON body is optional; an absent body reads as the all-defaults query. `mode` selects `delta` \
-                           (the tile's own bucket cut - the default) or `total` (ancestor buckets \
-                           accumulated, so the tile stands alone).
+     (this tile's own additions - the default) or `total` (every ancestor's delivery accumulated, \
+     so the tile renders alone).
 
-`coloredTypeIds` lists versioned type URLs (capped by the manifest's `limits.coloredTypeIds`) and \
-                           conditions the `TYPE_MASK` column: bit `i` of a point's mask reads 1 \
-                           when the point carries the request's type `i` or one of its \
-                           descendants. Ids that resolve to no type in this generation are legal \
-                           and read 0.
+`coloredTypeIds` lists versioned type URLs and adds the `TYPE_MASK` column: bit `i` of a point's \
+     mask is 1 exactly when the point carries the request's type `i` or one of its descendants. \
+     An id that matches no type in this generation is legal and reads 0 in every mask. The \
+     manifest's `limits.coloredTypeIds` caps the list.
 
-The response is a `SALTILET` envelope: positions, row ids, the type mask, and the children bitmap, \
-                           plus a detail trailer when requested.
+`includeDetailedData` adds the detail trailer - per-point labels and icons, read from the store at \
+     request time. Geometry sections are immutable per generation; the trailer is not, so cache \
+     geometry and refetch detail.
 
-`includeDetailedData` rides the trailer with per-point labels and icons, hydrated LIVE from the \
-                           store at request time.
+The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
+     rather than answered with bytes that silently ignore it.";
 
-Version 0 rejects `filter` with an `unsupported-feature` problem.";
-
-/// The tile address: a fitted layout plus the `z/x/y` grid cell.
+/// The generation/variant pair addressing one fitted layout.
+///
+/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
+/// problem before the handler runs.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
-pub(super) struct TilePath {
-    /// The sha256 generation id, as bootstrapped from `current`.
-    //
-    // A string for the same reason as the manifest route's
-    // `generation`: an unparsable id must answer the 404 problem.
-    #[schemars(with = "GenerationId")]
-    generation: String,
+pub(super) struct VariantPath {
+    /// The sha256 generation id, as returned by `current`.
+    generation: GenerationId,
     /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
+}
+
+/// The `z/x/y` grid cell.
+///
+/// Extracted through [`Coordinates`]: an unparsable numeric segment answers the
+/// `invalid-coordinate` problem, the same slug an out-of-range address earns from assembly.
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+pub(super) struct CellPath {
     /// The zoom: a subdivision depth; `0` addresses the root.
     z: u8,
     /// The cell's `x` index on the `2^z` grid.
@@ -62,21 +67,19 @@ pub(super) struct TilePath {
 /// An absent body reads as the all-defaults query.
 pub(super) async fn handler(
     State(state): State<AppState>,
-    Path(TilePath {
+    Generation(VariantPath {
         generation,
         variant,
-        z,
-        x,
-        y,
-    }): Path<TilePath>,
-    query: Option<Json<TileQuery>>,
+    }): Generation<VariantPath>,
+    Coordinates(CellPath { z, x, y }): Coordinates<CellPath>,
+    query: Option<Body<TileQuery>>,
 ) -> Result<Saltile, Problem<'static>> {
-    reject_generation(&state, &generation)?;
+    reject_generation(&state, generation)?;
     reject_variant(&variant)?;
 
     let request = TileRequest {
         coordinate: TileCoordinate { z, x, y },
-        query: query.map_or_else(TileQuery::default, |Json(query)| query),
+        query: query.map_or_else(TileQuery::default, |Body(query)| query),
     };
 
     let detailed = request.query.include_detailed_data;
@@ -85,13 +88,15 @@ pub(super) async fn handler(
     // awaits the store between them - the trailer is the envelope's
     // last section by design, so geometry never waits on Postgres.
     let atlas = Arc::clone(&state.atlas);
-    let caps = state.caps.tile;
+    let limits = state.limits.tile;
     let proof = Arc::clone(&state.proof);
     let assembled = spawn(move || {
-        atlas.assemble_tile(&request, caps, &proof).map(|document| {
-            let entities = detailed.then(|| atlas.delivered_entities(&document));
-            (document, entities)
-        })
+        atlas
+            .assemble_tile(&request, limits, &proof)
+            .map(|document| {
+                let entities = detailed.then(|| atlas.delivered_entities(&document));
+                (document, entities)
+            })
     })
     .await?;
 
@@ -134,6 +139,7 @@ pub(super) async fn handler(
 
     let atlas = Arc::clone(&state.atlas);
     let bytes = spawn(move || atlas.encode_tile(&document, details.as_ref())).await?;
+
     Ok(Saltile::new(bytes))
 }
 
@@ -163,23 +169,25 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         })
         .response_with::<400, Problem<'static>, _>(|response| {
             response.description(
-                "`invalid-coordinate` (the zoom exceeds the deepest cut, or `x`/`y` fall off the \
-                 `2^z` grid) or `too-many-types` (`coloredTypeIds` exceeds the manifest's cap)",
+                "`invalid-coordinate` (an unparsable `z`/`x`/`y` segment, a zoom past the deepest \
+                 cut, or `x`/`y` off the `2^z` grid), `invalid-generation` (a malformed \
+                 generation id), `too-many-types` (`coloredTypeIds` exceeds the manifest's cap), \
+                 or `invalid-body` (a body that is not this operation's JSON shape)",
             )
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
-                "`unknown-generation` or `unknown-variant`: re-bootstrap through `current`",
+                "`unknown-generation` or `unknown-variant`: re-read `current` and retry",
             )
         })
         .response_with::<501, Problem<'static>, _>(|response| {
             response.description(
-                "`unsupported-feature`: the request names a surface the contract pins but version \
-                 0 does not serve (`filter`)",
+                "`unsupported-feature`: the request carries a reserved field (`filter`) this \
+                 server does not yet serve",
             )
         })
         .default_response_with::<Problem<'static>, _>(|response| {
             response
-                .description("any other problem; `internal` marks a server-side assembly failure")
+                .description("any other problem document; `internal` marks a server-side failure")
         })
 }

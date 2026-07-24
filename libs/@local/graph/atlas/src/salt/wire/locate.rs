@@ -26,7 +26,13 @@ use super::{
     envelope::EnvelopeWriter,
     tile::{TileCoordinate, encode_details},
 };
-use crate::{integrity::Sha256Digest, math::Vec2, salt::postings::artifact::Membership};
+use crate::{
+    dataset::{ArchivedEntityId, NodeRowId},
+    integrity::Sha256Digest,
+    math::Vec2,
+    salt::postings::artifact::Membership,
+    serve::WireRow,
+};
 
 /// One locate response in writable form.
 #[derive(Debug)]
@@ -47,7 +53,7 @@ pub(crate) struct LocateResponse<'doc> {
     /// The web uuid then the entity uuid, sixteen raw bytes each - the generation digest's
     /// untagged byte-string shape. The by-row flow's identity answer: a client that named the
     /// source by wire row id learns which entity it spotlighted.
-    pub entity_id: [u8; 32],
+    pub entity_id: ArchivedEntityId,
     /// `HEAD` key 8: whether the request's `coloredTypeIds` cover the source's direct types.
     ///
     /// `true` iff every direct type of the source lies in the requested set - the signal that the
@@ -65,21 +71,21 @@ pub(crate) struct LocateResponse<'doc> {
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc [Vec2],
     /// The generation's row-id column (row by base position), in full.
-    pub rows: &'doc [u32],
+    pub rows: &'doc [WireRow<NodeRowId>],
     /// Per-type membership for the request's `coloredTypeIds`, in request order.
     ///
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
     /// ids: the `TYPE_MASK` slot is then absent rather than empty.
     pub masks: Option<&'doc [Membership<'doc>]>,
     /// The `EDGE_SOURCES` column: node row ids, edge order.
-    pub sources: &'doc [u32],
+    pub sources: &'doc [WireRow<NodeRowId>],
     /// The `EDGE_TARGETS` column: node row ids, edge order.
-    pub targets: &'doc [u32],
+    pub targets: &'doc [WireRow<NodeRowId>],
     /// The `EDGE_IDS` column: link-entity identities, edge order, `bstr(32)` records.
     ///
     /// Identity is generation-frozen, so every delivered edge carries one. Edge order itself is
     /// ascending by these bytes - the delivery order is client-verifiable from the column alone.
-    pub edge_ids: &'doc [[u8; 32]],
+    pub edge_ids: &'doc [ArchivedEntityId],
     /// The detail trailer; locate is the detail view, so it always rides.
     pub trailer: LocateTrailer<'doc>,
 }
@@ -94,6 +100,12 @@ impl LocateResponse<'_> {
     /// tables or property maps break the interning laws.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
+        /// Bytes per delivered point across the node columns: an f32 pair and a row id.
+        const POINT_SIZE: usize = size_of::<[f32; 2]>() + size_of::<u32>();
+        /// Bytes per delivered edge across the edge columns: source, target, identity.
+        const EDGE_SIZE: usize =
+            size_of::<u32>() + size_of::<u32>() + size_of::<ArchivedEntityId>();
+
         let edges = self.sources.len();
         assert_eq!(
             self.targets.len(),
@@ -108,7 +120,7 @@ impl LocateResponse<'_> {
         self.trailer.check_covers(self.delivered.len(), edges);
 
         let mut envelope = EnvelopeWriter::new(Kind::Locate, 7);
-        envelope.reserve(self.delivered.len() * 12 + edges * 40);
+        envelope.reserve(self.delivered.len() * POINT_SIZE + edges * EDGE_SIZE);
         envelope.slot(|buf| self.encode_head(buf, edges as u64));
         envelope.slot(|buf| self.write_positions(buf));
         envelope.slot(|buf| self.write_rows(buf));
@@ -146,7 +158,7 @@ impl LocateResponse<'_> {
         cbor.uint(6);
         cbor.boolean(self.complete);
         cbor.uint(7);
-        cbor.bytes(&self.entity_id);
+        cbor.bytes(zerocopy::IntoBytes::as_bytes(&self.entity_id));
         cbor.uint(8);
         cbor.boolean(self.type_ids_complete);
         cbor.uint(9);
@@ -167,7 +179,7 @@ impl LocateResponse<'_> {
     fn write_rows(&self, column: &mut Vec<u8>) {
         column.reserve(self.delivered.len() * 4);
         for &position in self.delivered {
-            column.extend_from_slice(&self.rows[position as usize].to_le_bytes());
+            column.extend_from_slice(&self.rows[position as usize].get().to_le_bytes());
         }
     }
 

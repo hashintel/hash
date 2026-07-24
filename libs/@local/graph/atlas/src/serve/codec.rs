@@ -33,12 +33,13 @@
 //! instead of a wire id of their own. The fit pipeline is untouched: no artifact stores a wire
 //! id.
 
-use core::hash::Hasher as _;
+use core::{fmt::Debug, hash::Hasher as _, marker::PhantomData};
 
 use hkdf::Hkdf;
 use sha2::Sha256;
 use siphasher::sip::SipHasher24;
 
+use super::WireSecret;
 use crate::file::generation::GenerationId;
 
 /// The Feistel round count one codec applies.
@@ -63,15 +64,24 @@ pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 /// The value relates to an internal row id only through the owning generation's [`RowCodec`];
 /// [`RowCodec::encode`] is the sole constructor. Comparisons order wire values, so a tie broken on
 /// [`WireRow`] is client-observable without exposing internal order.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct WireRow(u32);
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, schemars::JsonSchema)]
+#[repr(transparent)]
+pub struct WireRow<I>(u32, PhantomData<I>);
 
-impl WireRow {
+impl<I> WireRow<I> {
     /// Returns the wire value.
     #[inline]
     #[must_use]
     pub const fn get(self) -> u32 {
         self.0
+    }
+}
+
+impl<I> Copy for WireRow<I> {}
+
+impl<I> Clone for WireRow<I> {
+    fn clone(&self) -> Self {
+        *self
     }
 }
 
@@ -82,27 +92,32 @@ impl WireRow {
 /// universe `[0, N)` and decoding inverts exactly the encoded image, answering [`None`]
 /// elsewhere. Both are pure: the mapping never changes while the generation serves.
 #[derive(Debug)]
-pub(crate) struct RowCodec {
+pub(crate) struct RowCodec<I> {
     /// The universe size `N`; rows live in `[0, N)`, wire values in the full `u32` range.
     universe: u32,
     /// The per-round SipHash-2-4 keys.
     keys: [[u8; 16]; ROUNDS],
+    _marker: PhantomData<I>,
 }
 
-impl RowCodec {
+impl<I> RowCodec<I>
+where
+    I: From<u32> + TryInto<u32, Error: Debug>,
+{
     /// Derives the codec of one universe from the server secret.
     ///
     /// The generation identity salts the extraction and `label` separates universes under one
     /// generation; equal arguments derive equal codecs.
     pub(crate) fn derive(
-        secret: &[u8],
+        secret: &WireSecret,
         generation: GenerationId,
         label: &[u8],
         universe: u32,
     ) -> Self {
         let salt = generation.digest().to_bytes();
+
         let mut material = [0_u8; 16 * ROUNDS];
-        Hkdf::<Sha256>::new(Some(&salt), secret)
+        Hkdf::<Sha256>::new(Some(&salt), secret.as_bytes())
             .expand(label, &mut material)
             .expect("128 octets stay within HKDF-SHA256's expansion bound");
 
@@ -111,7 +126,11 @@ impl RowCodec {
             *key = *chunk;
         }
 
-        Self { universe, keys }
+        Self {
+            universe,
+            keys,
+            _marker: PhantomData,
+        }
     }
 
     /// Encodes an internal row id as its wire id.
@@ -120,21 +139,25 @@ impl RowCodec {
     ///
     /// Panics when `row` lies outside the universe: encoding is a producer contract, and an
     /// out-of-universe row upstream is a defect, never data.
-    pub(crate) fn encode(&self, row: u32) -> WireRow {
+    pub(crate) fn encode(&self, row: I) -> WireRow<I> {
+        let row = row
+            .try_into()
+            .expect("row should be able to fit into the u32 universe");
         assert!(
             row < self.universe,
             "the codec encodes rows of its own universe",
         );
-        WireRow(self.permute(row))
+
+        WireRow(self.permute(row), PhantomData)
     }
 
     /// Decodes a wire value back to its internal row id, [`None`] outside the encoded image.
     ///
     /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every
     /// other lookup failure before a response can observe the cause.
-    pub(crate) fn decode(&self, wire: u32) -> Option<u32> {
-        let row = self.unpermute(wire);
-        (row < self.universe).then_some(row)
+    pub(crate) fn decode(&self, wire: WireRow<I>) -> Option<I> {
+        let row = self.unpermute(wire.get());
+        (row < self.universe).then_some(I::from(row))
     }
 
     /// Applies the Feistel network once over the `u32` range.

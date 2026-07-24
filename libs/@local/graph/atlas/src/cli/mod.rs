@@ -21,7 +21,7 @@ use crate::{
     run::{self, ConnectError, RunError},
     serve::{
         Atlas, CurrentError, GenerationRoot, GraphDatabaseClient, OpenAtlasError, OpenOptions,
-        ServeCaps, VisibilityProof,
+        ServeLimits, VisibilityProof, WireSecret,
     },
 };
 
@@ -146,100 +146,106 @@ pub struct ServeArgs {
     root: String,
 
     #[command(flatten)]
-    caps: CapsArgs,
+    limits: LimitsArgs,
 
     /// The server secret behind the wire row-id codec.
     ///
-    /// Absent reads the fixed development value, so wire ids stay deterministic across restarts
-    /// without configuration. Production supplies its own.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_SECRET", hide_env_values = true)]
-    secret: Option<String>,
+    /// Required for serving: exactly 64 hexadecimal characters (32 bytes). Generate one with
+    /// `openssl rand -hex 32`. The secret must not change for a generation that has ever served;
+    /// rotate generations to rotate secrets.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_SECRET",
+        hide_env_values = true,
+        value_parser = WireSecret::from_hex,
+    )]
+    secret: Option<WireSecret>,
 }
 
-/// The per-request serving caps.
+/// The per-request serving limits.
 ///
-/// Absent flags read the documented defaults off [`ServeCaps`], so the default values live in
+/// Absent flags read the documented defaults off [`ServeLimits`], so the default values live in
 /// exactly one place. The manifest publishes whatever this resolves to - the handlers enforce the
 /// same value by construction.
 #[derive(Debug, Args)]
-struct CapsArgs {
+struct LimitsArgs {
     /// Most `coloredTypeIds` one tile request may carry.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_COLORED_TYPE_IDS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_COLORED_TYPE_IDS")]
     colored_type_ids: Option<u32>,
 
     /// Most tiles one edges request may list.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_EDGES_TILES")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_EDGES_TILES")]
     edges_tiles: Option<u32>,
 
     /// Most edges one response delivers before rank truncation.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_EDGES")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_EDGES")]
     edges: Option<u32>,
 
     /// Most entity ids one translate request may carry.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_TRANSLATE_ENTITY_IDS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_TRANSLATE_ENTITY_IDS")]
     translate_entity_ids: Option<u32>,
 
     /// Most ego-graph edges one locate response delivers before the nearest-partner truncation.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_EDGES")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_EDGES")]
     locate_edges: Option<u32>,
 
     /// Most properties one located source ships in its trailer map.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_PROPERTIES")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_PROPERTIES")]
     locate_properties: Option<u32>,
 
     /// Most direct types one locate edge ships.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_LINK_TYPE_IDS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_LINK_TYPE_IDS")]
     locate_link_type_ids: Option<u32>,
 
     /// Most properties one locate edge ships.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_LOCATE_LINK_PROPERTIES")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_LINK_PROPERTIES")]
     locate_link_properties: Option<u32>,
 
     /// The sealed-blob asynchronous-refresh horizon, seconds.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_SEAL_SOFT_SECONDS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_SEAL_SOFT_SECONDS")]
     seal_soft_seconds: Option<u64>,
 
     /// The sealed-blob rejection bound, seconds.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CAP_SEAL_HARD_SECONDS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_LIMIT_SEAL_HARD_SECONDS")]
     seal_hard_seconds: Option<u64>,
 }
 
-impl CapsArgs {
-    /// Resolves the configured caps over the documented defaults.
-    fn resolve(&self) -> ServeCaps {
-        let mut caps = ServeCaps::default();
+impl LimitsArgs {
+    /// Resolves the configured limits over the documented defaults.
+    fn resolve(&self) -> ServeLimits {
+        let mut limits = ServeLimits::default();
         if let Some(value) = self.colored_type_ids {
-            caps.tile.colored_type_ids = value;
+            limits.tile.colored_type_ids = value;
         }
         if let Some(value) = self.edges_tiles {
-            caps.edges.tiles = value;
+            limits.edges.tiles = value;
         }
         if let Some(value) = self.edges {
-            caps.edges.edges = value;
+            limits.edges.edges = value;
         }
         if let Some(value) = self.translate_entity_ids {
-            caps.translate.entity_ids = value;
+            limits.translate.entity_ids = value;
         }
         if let Some(value) = self.locate_edges {
-            caps.locate.edges = value;
+            limits.locate.edges = value;
         }
         if let Some(value) = self.locate_properties {
-            caps.locate.properties = value;
+            limits.locate.properties = value;
         }
         if let Some(value) = self.locate_link_type_ids {
-            caps.locate.link_type_ids = value;
+            limits.locate.link_type_ids = value;
         }
         if let Some(value) = self.locate_link_properties {
-            caps.locate.link_properties = value;
+            limits.locate.link_properties = value;
         }
         if let Some(value) = self.seal_soft_seconds {
-            caps.seal.soft = core::time::Duration::from_secs(value);
+            limits.seal.soft = core::time::Duration::from_secs(value);
         }
         if let Some(value) = self.seal_hard_seconds {
-            caps.seal.hard = core::time::Duration::from_secs(value);
+            limits.seal.hard = core::time::Duration::from_secs(value);
         }
 
-        caps
+        limits
     }
 }
 
@@ -286,6 +292,8 @@ pub enum ServeError {
     Current(CurrentError),
     /// The root holds no activated generation.
     Missing,
+    /// No wire secret is configured.
+    Secret,
     /// The active generation's artifacts could not open.
     Open(OpenAtlasError),
     /// The store connection failed.
@@ -300,6 +308,10 @@ impl fmt::Display for ServeError {
             Self::Missing => fmt.write_str(
                 "the root holds no activated generation; run `hash-graph atlas fit` first",
             ),
+            Self::Secret => fmt.write_str(
+                "no wire secret is configured; set --secret or HASH_GRAPH_ATLAS_SECRET to 64 hex \
+                 characters (openssl rand -hex 32)",
+            ),
             Self::Open(_) => fmt.write_str("the active generation's artifacts could not open"),
             Self::Connect(error) => fmt::Display::fmt(error, fmt),
         }
@@ -311,7 +323,7 @@ impl CoreError for ServeError {
         match self {
             Self::Root(error) => Some(error),
             Self::Current(error) => Some(error),
-            Self::Missing => None,
+            Self::Missing | Self::Secret => None,
             Self::Open(error) => Some(error),
             Self::Connect(error) => error.source(),
         }
@@ -408,8 +420,8 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
 /// # Errors
 ///
 /// Returns a [`ServeError`] naming the step that failed: opening the root, reading the
-/// current-generation pointer, the pointer being absent, opening the generation's artifacts, or
-/// dialing the store the detail trailers hydrate from.
+/// current-generation pointer, the pointer being absent, the wire secret being unconfigured,
+/// opening the generation's artifacts, or dialing the store the detail trailers hydrate from.
 pub async fn open_router(
     args: ServeArgs,
     dsn: &str,
@@ -423,11 +435,10 @@ pub async fn open_router(
         .map_err(ServeError::Current)?
         .ok_or(ServeError::Missing)?;
 
-    let mut options = OpenOptions::default();
-    if let Some(secret) = args.secret {
-        options.wire_secret = secret.into_bytes();
-    }
-    let atlas = Arc::new(Atlas::open_with(&root, generation, &options).map_err(ServeError::Open)?);
+    let options = OpenOptions {
+        wire_secret: args.secret.ok_or(ServeError::Secret)?,
+    };
+    let atlas = Arc::new(Atlas::open(&root, generation, &options).map_err(ServeError::Open)?);
     tracing::info!(
         root = args.root,
         generation = %atlas.generation(),
@@ -440,7 +451,7 @@ pub async fn open_router(
     let details = Arc::new(GraphDatabaseClient::new(client));
 
     Ok(
-        api::router(atlas, args.caps.resolve(), details, proof).route(
+        api::router(atlas, args.limits.resolve(), details, proof).route(
             "/status",
             axum::routing::get(async || axum::http::StatusCode::OK),
         ),

@@ -8,7 +8,7 @@
 //!   carrying the weight factors of the relation-attraction objective. Factors live where they
 //!   vary: the per-relation values (class weights, frozen strength) on the group, the per-instance
 //!   values (effective confidence, degree normalization) on the edge. Each factor therefore enters
-//!   the objective exactly once, and the grouped layout is the shape minibatch sampling caps
+//!   the objective exactly once, and the grouped layout is the shape minibatch sampling limits
 //!   per-relation representation over.
 //! - [`protection::ProtectionIndex`] holds the per-pair evidence masses that veto targeted
 //!   repulsion between linked endpoint rows. Masses aggregate before attraction admission and

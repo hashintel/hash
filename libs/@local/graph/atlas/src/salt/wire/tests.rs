@@ -24,10 +24,19 @@ use super::{
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
+    dataset::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
 };
+
+/// Builds one uniform-byte identity record: `byte` in both uuid halves.
+const fn identity_of(byte: u8) -> ArchivedEntityId {
+    ArchivedEntityId {
+        web_id: ArchivedWebId::from_bytes([byte; 16]),
+        entity_uuid: ArchivedEntityUuid::from_bytes([byte; 16]),
+    }
+}
 
 /// Reads slot `slot`'s directory entry from a finished response.
 pub(crate) fn directory(bytes: &[u8], slot: usize) -> (u32, u32) {
@@ -615,7 +624,7 @@ mod tile {
 }
 
 mod edges {
-    use super::{EdgesResponse, EdgesTrailer, Sha256Digest, section};
+    use super::{EdgesResponse, EdgesTrailer, Sha256Digest, identity_of, section};
 
     /// A three-edge response without a trailer.
     fn minimal() -> EdgesResponse<'static> {
@@ -625,7 +634,7 @@ mod edges {
             complete: false,
             sources: &[4, 9, 4],
             targets: &[7, 2, 11],
-            edge_ids: &[[0x11; 32], [0x22; 32], [0x33; 32]],
+            edge_ids: &const { [identity_of(0x11), identity_of(0x22), identity_of(0x33)] },
             trailer: None,
         }
     }
@@ -715,7 +724,7 @@ mod edges {
     #[should_panic(expected = "edge-id columns must cover the same edges")]
     fn ragged_id_columns_are_rejected() {
         let mut response = minimal();
-        response.edge_ids = &[[0; 32]];
+        response.edge_ids = &const { [identity_of(0)] };
         let _bytes = response.encode();
     }
 
@@ -759,7 +768,7 @@ mod edges {
 mod locate {
     use super::{
         LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest, TileCoordinate,
-        Vec2, section,
+        Vec2, identity_of, section,
     };
 
     /// The four-point base-order coordinate column behind the tests.
@@ -786,7 +795,7 @@ mod locate {
             variant: 0,
             cell: TileCoordinate { z: 2, x: 1, y: 3 },
             complete: true,
-            entity_id: [0xEE; 32],
+            entity_id: identity_of(0xEE),
             type_ids_complete: false,
             properties_complete: true,
             delivered: &[2, 0, 3],
@@ -795,7 +804,7 @@ mod locate {
             masks: None,
             sources: &[10, 12],
             targets: &[12, 13],
-            edge_ids: &[[0x44; 32], [0x55; 32]],
+            edge_ids: &const { [identity_of(0x44), identity_of(0x55)] },
             trailer: LocateTrailer {
                 type_table: &[],
                 property_table: &[],
@@ -974,7 +983,7 @@ mod locate {
     fn ragged_id_columns_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.edge_ids = &[[0; 32]];
+        response.edge_ids = &const { [identity_of(0)] };
         let _bytes = response.encode();
     }
 

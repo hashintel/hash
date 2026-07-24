@@ -299,7 +299,7 @@ fn sample_forward(
     (forward_new, forward_old)
 }
 
-/// Transposes sampled candidate sets and caps each reverse pool.
+/// Transposes sampled candidate sets and limits each reverse pool.
 fn reverse(
     forward: &[Vec<u32>],
     rows: usize,

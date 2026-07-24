@@ -5937,6 +5937,7 @@ dependencies = [
  "tiktoken-rs",
  "tokio",
  "tokio-postgres",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "type-system",
@@ -5944,6 +5945,7 @@ dependencies = [
  "unidecode",
  "uuid",
  "zerocopy",
+ "zeroize",
 ]
 
 [[package]]

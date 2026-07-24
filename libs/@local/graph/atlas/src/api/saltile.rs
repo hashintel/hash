@@ -3,13 +3,15 @@
 //! [`Saltile`] wraps assembled envelope bytes with the family's media type and the no-store cache
 //! posture; [`spawn`] runs the CPU-bound assembly off the async runtime.
 
+use alloc::borrow::Cow;
+
 use aide::{OperationOutput, generate::GenContext, openapi};
 use axum::{
     http::header,
     response::{IntoResponse, Response},
 };
 
-use super::problem::Problem;
+use super::{headers, problem::Problem};
 
 /// The tile response media type: the `SALTILE` family, version 1.
 const SALTILE: &str = "application/vnd.hash.saltile-v1";
@@ -31,7 +33,7 @@ impl IntoResponse for Saltile {
         (
             [
                 (header::CONTENT_TYPE, SALTILE),
-                (header::CACHE_CONTROL, "private, no-store"),
+                (header::CACHE_CONTROL, headers::NO_STORE),
             ],
             self.0,
         )
@@ -50,9 +52,18 @@ impl OperationOutput for Saltile {
             description: "a SALTILE envelope".into(),
             ..Default::default()
         };
+
         response
             .content
             .insert(SALTILE.into(), openapi::MediaType::default());
+        response.headers.insert(
+            "Cache-Control".to_owned(),
+            headers::cache_control(
+                headers::NO_STORE,
+                "binary envelopes key on the request body, which shared caches cannot see; the \
+                 client's application-layer cache is the cache",
+            ),
+        );
 
         Some(response)
     }
@@ -68,10 +79,6 @@ impl OperationOutput for Saltile {
 }
 
 /// Runs CPU-bound response assembly on a rayon worker behind `catch_unwind`.
-///
-/// Maps a vanished worker or a panic - a producer bug surfacing as 500, never an unwind across the
-/// runtime - to its problem document. The panic payload is server-log material; the document
-/// carries a static detail.
 pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + 'static,
 ) -> Result<T, Problem<'static>> {
@@ -90,7 +97,13 @@ pub(super) async fn spawn<T: Send + 'static>(
                 .or_else(|| panic.downcast_ref::<String>().cloned())
                 .unwrap_or_else(|| "non-string panic payload".to_owned());
 
-            Err(Problem::internal(payload, "the response assembly panicked"))
+            let detail: Cow<'static, str> = if cfg!(debug_assertions) {
+                Cow::Owned(format!("the response assembly panicked: {payload}"))
+            } else {
+                Cow::Borrowed("the response assembly panicked")
+            };
+
+            Err(Problem::internal(payload, detail))
         }
         Err(_closed) => Err(Problem::internal(
             "the assembly worker dropped its channel",

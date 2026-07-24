@@ -194,6 +194,7 @@ impl Error for InvalidIdentityFile {}
 /// the sorted pairs behind the file's index prelude.
 #[derive(Debug)]
 pub(crate) struct IdentityTableArchive<I> {
+    // TODO: have this be typed
     file: IdentityFile,
     id: PhantomData<I>,
 }
@@ -322,6 +323,7 @@ where
         let position = window
             .binary_search_by(|pair| pair.id.as_bytes().cmp(bytes))
             .ok()?;
+
         Some(window[position].row.get())
     }
 }

@@ -1,41 +1,19 @@
-//! Detail hydration: live store reads for delivered points and edges.
+//! The store boundary: live detail reads over one Postgres connection.
 //!
-//! Detail hydrates at request time from Postgres, inline in the trailer - no published label
-//! columns. Reads are live (`now()`, not the snapshot's decision time): text edited after publish
-//! shows on snapshot geometry. Hydration queries only post-intersection ids, so it opens no new
-//! auth surface.
-//!
-//! The tile trailer's per-point rules mirror the client's own display logic:
-//!
-//! - Label: `entity_edition_cache.labels[1]`, the entity's display label; `null` when the entity
-//!   has none.
-//! - Icon: the entity's own `icon` property when it is a string, else the graph's display-field
-//!   rule (the SDK's `getDisplayFieldsForClosedEntityType`): every direct type's
-//!   `closed_schema.allOf` carries per-ancestor display metadata, and the first non-null icon by
-//!   inheritance depth wins - a type inherits its ancestors' icons, nearest first. `null` when no
-//!   chain carries one - the client owns the fallback glyph.
-//!
-//! The locate and edges surfaces ship type REFERENCES instead of rendered display: each entity's
-//! direct types read from `entity_edition_cache.versioned_urls`, and the client resolves labels
-//! and icons through its own type metadata - one owner per display concern.
-//!
-//! Properties ship as simple values only - strings, numbers, booleans, and explicit nulls; nested
-//! objects and arrays never survive the store-side filter. An over-cap entity drops properties
-//! reverse-lexicographically by base URL with its label property - the base URL whose value
-//! provides the display label, resolved through the same canonical type order the label cache
-//! uses - protected to the very end, so the label survives every cap that admits at least one
-//! property. Survivors emit ascending by name, the wire's map-key order. A number ships as an
-//! integer when the store renders it integral and it fits `i64`, as a double otherwise. Each
-//! hydration also counts the entity's WHOLE property set, so completeness - nothing filtered,
-//! nothing capped - is attested per entity, never guessed.
-//!
-//! An id that resolves to no visible entity - deleted since publish, archived, drafted - reads
-//! `null` in every column and `false` in every completeness flag, mirroring the zero-mask rule
-//! for unresolvable type ids.
+//! One batched query per request, input order preserved through the ordinality column, absent
+//! entities simply missing from the result. The connection is dialed by the transport layer -
+//! the same `HASH_GRAPH_PG_*` configuration the graph binary speaks.
 
 use tokio_postgres::Client;
 use zerocopy::IntoBytes as _;
 
+use super::{
+    columns::{
+        DeliveredEntities, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails, NodeDetails,
+        SimpleValue,
+    },
+    select::{select_properties, simple_properties},
+};
 use crate::dataset::ArchivedEntityId;
 
 /// The base URL of the system `icon` property an entity may carry.
@@ -213,241 +191,6 @@ const EDGES_LINK_QUERY: &str = "
       ON cache.entity_edition_id = meta.entity_edition_id
 ";
 
-/// The entity identities behind one delivered set, in delivered order.
-///
-/// The hydration request's subject.
-#[derive(Debug)]
-pub struct DeliveredEntities {
-    /// One entry per delivered point.
-    ids: Vec<ArchivedEntityId>,
-}
-
-impl DeliveredEntities {
-    /// Wraps one delivered set's gathered identities.
-    pub(super) const fn new(ids: Vec<ArchivedEntityId>) -> Self {
-        Self { ids }
-    }
-
-    /// Returns the delivered count the details must cover.
-    #[inline]
-    #[must_use]
-    pub const fn count(&self) -> usize {
-        self.ids.len()
-    }
-}
-
-/// Hydrated per-point tile details, aligned to the delivered order.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NodeDetails {
-    /// The display label per delivered point.
-    labels: Vec<Option<String>>,
-    /// The icon per delivered point.
-    icons: Vec<Option<String>>,
-}
-
-impl NodeDetails {
-    /// All-`null` details covering `count` points: the honest answer when no id can resolve.
-    #[must_use]
-    pub(super) fn empty(count: usize) -> Self {
-        Self {
-            labels: vec![None; count],
-            icons: vec![None; count],
-        }
-    }
-
-    /// Views the label column, delivered order.
-    #[inline]
-    pub(super) const fn labels(&self) -> &[Option<String>] {
-        &self.labels
-    }
-
-    /// Views the icon column, delivered order.
-    #[inline]
-    pub(super) const fn icons(&self) -> &[Option<String>] {
-        &self.icons
-    }
-}
-
-/// One simple property value: the only shape hydrated properties ship.
-///
-/// Nested objects and arrays are filtered in the store and never cross the connection.
-#[derive(Debug, Clone, PartialEq)]
-pub enum SimpleValue {
-    /// A text scalar.
-    Text(String),
-    /// A number the store renders integral, within `i64`.
-    Integer(i64),
-    /// Any other number; store scalars are doubles on the wire.
-    Float(f64),
-    /// A boolean scalar.
-    Boolean(bool),
-    /// An explicit null the entity carries.
-    Null,
-}
-
-/// Hydrated per-point locate node details, aligned to the delivered order.
-///
-/// Labels and direct types for every delivered node; properties and their completeness for the
-/// source alone - neighbour detail is one locate away.
-#[derive(Debug, Clone, PartialEq)]
-pub struct LocateNodeDetails {
-    /// The display label per delivered point.
-    labels: Vec<Option<String>>,
-    /// The direct-type versioned URLs per delivered point, canonical order.
-    ///
-    /// Empty when the store no longer serves the entity or records no types for it.
-    type_urls: Vec<Vec<String>>,
-    /// The source's surviving properties, ascending by base URL.
-    ///
-    /// `None` marks a source the store no longer serves; a resolved source without simple
-    /// properties reads an empty list.
-    source_properties: Option<Vec<(String, SimpleValue)>>,
-    /// Whether the source's surviving properties are the entity's whole set.
-    ///
-    /// `false` when the simple-value filter or the cap dropped anything, and when the store no
-    /// longer serves the source.
-    source_properties_complete: bool,
-}
-
-impl LocateNodeDetails {
-    /// All-`null` details covering `count` points: the honest answer when no id can resolve.
-    #[must_use]
-    pub(super) fn empty(count: usize) -> Self {
-        Self {
-            labels: vec![None; count],
-            type_urls: vec![Vec::new(); count],
-            source_properties: None,
-            source_properties_complete: false,
-        }
-    }
-
-    /// Views the label column, delivered order.
-    #[inline]
-    pub(super) const fn labels(&self) -> &[Option<String>] {
-        &self.labels
-    }
-
-    /// Views the direct-type URL column, delivered order.
-    #[inline]
-    pub(super) const fn type_urls(&self) -> &[Vec<String>] {
-        &self.type_urls
-    }
-
-    /// Views the source's surviving properties; `None` marks a store-absent source.
-    #[inline]
-    pub(super) const fn source_properties(&self) -> Option<&Vec<(String, SimpleValue)>> {
-        self.source_properties.as_ref()
-    }
-
-    /// Returns whether the source's surviving properties are the entity's whole set.
-    #[inline]
-    pub(super) const fn source_properties_complete(&self) -> bool {
-        self.source_properties_complete
-    }
-}
-
-/// Hydrated per-link locate details, aligned to the delivered edge order.
-///
-/// The detail view's full link story: label, capped direct types, capped properties, and both
-/// completeness flags per edge.
-#[derive(Debug, Clone, PartialEq)]
-pub struct LocateLinkDetails {
-    /// The link entity's display label per delivered edge.
-    labels: Vec<Option<String>>,
-    /// The link's direct-type versioned URLs per delivered edge, canonical order, capped.
-    ///
-    /// Empty when the store no longer serves the link or records no types for it.
-    type_urls: Vec<Vec<String>>,
-    /// Whether each edge's type list is the link's whole direct set.
-    ///
-    /// `false` when the cap truncated it and when the store no longer serves the link.
-    type_urls_complete: Vec<bool>,
-    /// The link's surviving properties per delivered edge, ascending by base URL.
-    ///
-    /// `None` marks a link the store no longer serves.
-    properties: Vec<Option<Vec<(String, SimpleValue)>>>,
-    /// Whether each edge's surviving properties are the link entity's whole set.
-    properties_complete: Vec<bool>,
-}
-
-impl LocateLinkDetails {
-    /// All-`null` details covering `count` edges: the honest answer when no id can resolve.
-    #[must_use]
-    pub(super) fn empty(count: usize) -> Self {
-        Self {
-            labels: vec![None; count],
-            type_urls: vec![Vec::new(); count],
-            type_urls_complete: vec![false; count],
-            properties: vec![None; count],
-            properties_complete: vec![false; count],
-        }
-    }
-
-    /// Views the link label column, delivered order.
-    #[inline]
-    pub(super) const fn labels(&self) -> &[Option<String>] {
-        &self.labels
-    }
-
-    /// Views the capped direct-type URL column, delivered order.
-    #[inline]
-    pub(super) const fn type_urls(&self) -> &[Vec<String>] {
-        &self.type_urls
-    }
-
-    /// Views the per-edge type completeness flags, delivered order.
-    #[inline]
-    pub(super) const fn type_urls_complete(&self) -> &[bool] {
-        &self.type_urls_complete
-    }
-
-    /// Views the per-edge property column, delivered order.
-    #[inline]
-    pub(super) const fn properties(&self) -> &[Option<Vec<(String, SimpleValue)>>] {
-        &self.properties
-    }
-
-    /// Views the per-edge property completeness flags, delivered order.
-    #[inline]
-    pub(super) const fn properties_complete(&self) -> &[bool] {
-        &self.properties_complete
-    }
-}
-
-/// Hydrated per-link edges details, aligned to the delivered edge order.
-///
-/// The bulk surface's lean columns: one label and one first-type reference per edge.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EdgeLinkDetails {
-    /// The link entity's display label per delivered edge.
-    labels: Vec<Option<String>>,
-    /// The link's first direct type's versioned URL per delivered edge.
-    first_type_urls: Vec<Option<String>>,
-}
-
-impl EdgeLinkDetails {
-    /// All-`null` details covering `count` edges: the honest answer when no id can resolve.
-    #[must_use]
-    pub(super) fn empty(count: usize) -> Self {
-        Self {
-            labels: vec![None; count],
-            first_type_urls: vec![None; count],
-        }
-    }
-
-    /// Views the link label column, delivered order.
-    #[inline]
-    pub(super) const fn labels(&self) -> &[Option<String>] {
-        &self.labels
-    }
-
-    /// Views the first direct-type URL column, delivered order.
-    #[inline]
-    pub(super) const fn first_type_urls(&self) -> &[Option<String>] {
-        &self.first_type_urls
-    }
-}
-
 /// A detail hydration failed against the store.
 #[derive(Debug)]
 pub struct DetailError(tokio_postgres::Error);
@@ -497,29 +240,29 @@ impl GraphDatabaseClient {
         &self,
         entities: &DeliveredEntities,
     ) -> Result<NodeDetails, DetailError> {
-        if entities.ids.is_empty() {
+        if entities.ids().is_empty() {
             return Ok(NodeDetails::empty(0));
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
+        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
             .postgres
             .query(DETAIL_QUERY, &[&web_ids, &entity_uuids, &ICON_PROPERTY])
             .await
             .map_err(DetailError)?;
 
-        let mut details = NodeDetails::empty(entities.count());
+        let mut labels = vec![None; entities.count()];
+        let mut icons = vec![None; entities.count()];
         for row in rows {
             let index = domain_index(&row);
-            let label: Option<String> = row.get(1);
             let own_icon: Option<String> = row.get(2);
             let type_icon: Option<String> = row.get(3);
 
-            details.labels[index] = label;
-            details.icons[index] = own_icon.or(type_icon);
+            labels[index] = row.get(1);
+            icons[index] = own_icon.or(type_icon);
         }
 
-        Ok(details)
+        Ok(NodeDetails::new(labels, icons))
     }
 
     /// Hydrates the locate response's node columns, aligned to the delivered order.
@@ -542,32 +285,40 @@ impl GraphDatabaseClient {
         entities: &DeliveredEntities,
         properties: u32,
     ) -> Result<LocateNodeDetails, DetailError> {
-        if entities.ids.is_empty() {
+        if entities.ids().is_empty() {
             return Ok(LocateNodeDetails::empty(0));
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
+        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
             .postgres
             .query(LOCATE_DETAIL_QUERY, &[&web_ids, &entity_uuids])
             .await
             .map_err(DetailError)?;
 
-        let mut details = LocateNodeDetails::empty(entities.count());
+        let mut labels = vec![None; entities.count()];
+        let mut type_url_columns = vec![Vec::new(); entities.count()];
+        let mut source_properties = None;
+        let mut source_properties_complete = false;
         for row in rows {
             let index = domain_index(&row);
-            details.labels[index] = row.get(1);
+            labels[index] = row.get(1);
             let type_urls: Option<Vec<String>> = row.get(2);
-            details.type_urls[index] = type_urls.unwrap_or_default();
+            type_url_columns[index] = type_urls.unwrap_or_default();
 
             if index == 0 {
                 let (survivors, complete) = capped_properties(&row, properties as usize);
-                details.source_properties = Some(survivors);
-                details.source_properties_complete = complete;
+                source_properties = Some(survivors);
+                source_properties_complete = complete;
             }
         }
 
-        Ok(details)
+        Ok(LocateNodeDetails::new(
+            labels,
+            type_url_columns,
+            source_properties,
+            source_properties_complete,
+        ))
     }
 
     /// Hydrates the locate response's link columns, aligned to the delivered edge order.
@@ -591,34 +342,44 @@ impl GraphDatabaseClient {
         type_ids: u32,
         properties: u32,
     ) -> Result<LocateLinkDetails, DetailError> {
-        if entities.ids.is_empty() {
+        if entities.ids().is_empty() {
             return Ok(LocateLinkDetails::empty(0));
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
+        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
             .postgres
             .query(LOCATE_LINK_QUERY, &[&web_ids, &entity_uuids])
             .await
             .map_err(DetailError)?;
 
-        let mut details = LocateLinkDetails::empty(entities.count());
+        let mut labels = vec![None; entities.count()];
+        let mut type_url_columns = vec![Vec::new(); entities.count()];
+        let mut type_urls_complete = vec![false; entities.count()];
+        let mut properties_columns = vec![None; entities.count()];
+        let mut properties_complete = vec![false; entities.count()];
         for row in rows {
             let index = domain_index(&row);
-            details.labels[index] = row.get(1);
+            labels[index] = row.get(1);
 
             let type_urls: Option<Vec<String>> = row.get(2);
             let mut type_urls = type_urls.unwrap_or_default();
-            details.type_urls_complete[index] = type_urls.len() <= type_ids as usize;
+            type_urls_complete[index] = type_urls.len() <= type_ids as usize;
             type_urls.truncate(type_ids as usize);
-            details.type_urls[index] = type_urls;
+            type_url_columns[index] = type_urls;
 
             let (survivors, complete) = capped_properties(&row, properties as usize);
-            details.properties[index] = Some(survivors);
-            details.properties_complete[index] = complete;
+            properties_columns[index] = Some(survivors);
+            properties_complete[index] = complete;
         }
 
-        Ok(details)
+        Ok(LocateLinkDetails::new(
+            labels,
+            type_url_columns,
+            type_urls_complete,
+            properties_columns,
+            properties_complete,
+        ))
     }
 
     /// Hydrates the edges response's link columns, aligned to the delivered edge order.
@@ -638,25 +399,26 @@ impl GraphDatabaseClient {
         &self,
         entities: &DeliveredEntities,
     ) -> Result<EdgeLinkDetails, DetailError> {
-        if entities.ids.is_empty() {
+        if entities.ids().is_empty() {
             return Ok(EdgeLinkDetails::empty(0));
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(&entities.ids);
+        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
             .postgres
             .query(EDGES_LINK_QUERY, &[&web_ids, &entity_uuids])
             .await
             .map_err(DetailError)?;
 
-        let mut details = EdgeLinkDetails::empty(entities.count());
+        let mut labels = vec![None; entities.count()];
+        let mut first_type_urls = vec![None; entities.count()];
         for row in rows {
             let index = domain_index(&row);
-            details.labels[index] = row.get(1);
-            details.first_type_urls[index] = row.get(2);
+            labels[index] = row.get(1);
+            first_type_urls[index] = row.get(2);
         }
 
-        Ok(details)
+        Ok(EdgeLinkDetails::new(labels, first_type_urls))
     }
 }
 
@@ -679,63 +441,6 @@ fn capped_properties(row: &tokio_postgres::Row, cap: usize) -> (Vec<(String, Sim
         select_properties(entries, label_property.as_deref(), cap),
         complete,
     )
-}
-
-/// Parses one entity's simple-property object off the store's text rendering.
-///
-/// # Panics
-///
-/// Panics when the text is not a JSON object of simple values - the query filters in the store, so
-/// anything else is a query bug, never data.
-pub(super) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
-    let object: serde_json::Map<String, serde_json::Value> =
-        serde_json::from_str(json).expect("the store renders a JSON object");
-
-    object
-        .into_iter()
-        .map(|(name, value)| {
-            let value = match value {
-                serde_json::Value::String(text) => SimpleValue::Text(text),
-                serde_json::Value::Number(number) => number.as_i64().map_or_else(
-                    || SimpleValue::Float(number.as_f64().expect("a JSON number reads as f64")),
-                    SimpleValue::Integer,
-                ),
-                serde_json::Value::Bool(flag) => SimpleValue::Boolean(flag),
-                serde_json::Value::Null => SimpleValue::Null,
-                serde_json::Value::Object(_) | serde_json::Value::Array(_) => {
-                    unreachable!("the query ships simple values only")
-                }
-            };
-
-            (name, value)
-        })
-        .collect()
-}
-
-/// Selects the surviving properties under the per-entity cap.
-///
-/// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops very
-/// last, and survivors sort ascending by name - the wire's map-key order.
-pub(super) fn select_properties(
-    mut entries: Vec<(String, SimpleValue)>,
-    label_property: Option<&str>,
-    cap: usize,
-) -> Vec<(String, SimpleValue)> {
-    if entries.len() > cap {
-        // Ranking the label before every other name makes one
-        // ascending sort the whole rule: the tail beyond the cap is
-        // exactly the reverse-lexicographic drop set.
-        entries.sort_by(|left, right| {
-            let protected = |name: &str| Some(name) != label_property;
-            protected(&left.0)
-                .cmp(&protected(&right.0))
-                .then_with(|| left.0.cmp(&right.0))
-        });
-        entries.truncate(cap);
-    }
-
-    entries.sort_by(|left, right| left.0.cmp(&right.0));
-    entries
 }
 
 /// Splits archived identities into the query's two uuid arrays.

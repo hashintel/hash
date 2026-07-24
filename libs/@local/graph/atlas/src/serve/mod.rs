@@ -24,46 +24,52 @@
 //! mask misses collapse to one `None` - forbidden and nonexistent answer identical bytes. A
 //! transport without scoped sessions constructs [`VisibilityProof::full_visibility`] explicitly.
 //!
-//! Each read surface lives in its own module - request vocabulary, rejections, and assembly
-//! together: [`tile`](self), [`edges`](self), [`locate`](self), and [`translate`](self)
-//! delivery, the [`manifest`](self) document, [`detail`](self) hydration, [`visibility`](self)
-//! (the proof and the resolution seam), [`codec`](self) (row ids crossing the wire),
-//! [`seal`](self) (sealing and opening visibility bitmaps as self-authenticating values), and
-//! the [`open`](self) pass that validates everything the others rely on.
-// NOTE: after reading it I came to the conclusion that this needs a rework/rewrite. This is
-// unmaintainable, and not really reviewable :/ and especially not up to our coding standards
-// established everywhere else. This feels quick and dirty, something that we avoid _everywhere
-// else_. This needs proper care. It feels like it's all alone and sad and idk >.>
+//! # Architecture
+//!
+//! Each domain concept lives in exactly one module. The foundation: `open` is the open pass -
+//! map, validate, derive, construct; `column` holds the element-typed column views that
+//! validation produces; `grid` is the bucket schedule and its addressing; `secret` the wire
+//! secret; `error` the open-failure taxonomy.
+//!
+//! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
+//! permutation; `walk` the schedule-driven point delivery - full-visibility range assembly, the
+//! masked delivery chain, and the census; `neighbourhood` the adjacency edge sets and their caps;
+//! `colour` the type-colouring resolution; `intern` the wire intern tables; `seal` the sealed
+//! visibility bitmaps; `hydrate` the live store reads behind detail trailers.
+//!
+//! The read surfaces compose those: `tile`, `edges`, `locate`, and `translate` each hold one
+//! endpoint's request vocabulary, rejection taxonomy, and assembly, and `manifest` the bootstrap
+//! document. Below the [`Atlas`] facade nothing reaches into the whole value: the domain types
+//! borrow exactly the columns they read.
 
 pub use self::{
     codec::WireRow,
-    detail::{
+    edges::{EdgesDocument, EdgesError, EdgesLimits, EdgesRequest},
+    error::OpenAtlasError,
+    hydrate::{
         DeliveredEntities, DetailError, EdgeLinkDetails, GraphDatabaseClient, LocateLinkDetails,
         LocateNodeDetails, NodeDetails, SimpleValue,
     },
-    edges::{EdgesCaps, EdgesDocument, EdgesError, EdgesRequest},
-    error::OpenAtlasError,
-    locate::{LocateCaps, LocateDocument, LocateError, LocateRequest, OpenOptions},
+    locate::{LocateDocument, LocateError, LocateLimits, LocateRequest},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
-    seal::SealCaps,
-    tile::{TileCaps, TileDocument, TileError, TileQuery, TileRequest},
+    open::OpenOptions,
+    seal::SealLimits,
+    secret::{WireSecret, WireSecretError},
+    tile::{TileDocument, TileError, TileLimits, TileQuery, TileRequest},
     translate::{
-        TranslateCaps, TranslateError, TranslateRequest, TranslateResponse, TranslatedEdge,
+        TranslateError, TranslateLimits, TranslateRequest, TranslateResponse, TranslatedEdge,
         TranslatedNode,
     },
     visibility::{VisibilityProof, VisibleRow},
 };
+use self::{column::Column, grid::Grid};
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
-    file::{
-        array::ArrayFile, generation::Generation, morton::read::MortonFile, quad::read::QuadFile,
-    },
+    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid, NodeRowId},
+    file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
     math::{Bounds2, Vec2},
-    morton::{Depth, MortonCell},
     salt::{
         adjacency::AdjacencyArchive,
         fit::prepare::identity::IdentityTableArchive,
-        lod::stage::LodConfig,
         postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };
@@ -73,17 +79,23 @@ pub use crate::{
 };
 
 mod codec;
-mod color;
-mod detail;
+mod colour;
+mod column;
 mod edges;
 mod error;
+mod grid;
+mod hydrate;
+mod intern;
 mod locate;
 mod manifest;
+mod neighbourhood;
 mod open;
 mod seal;
+mod secret;
 mod tile;
 mod translate;
 mod visibility;
+mod walk;
 
 #[cfg(test)]
 mod tests;
@@ -94,32 +106,32 @@ mod tests;
 /// this constant.
 pub const VARIANTS: [&str; 1] = ["plain"];
 
-/// The serving controls in one configurable value: request-validation caps, response-shaping
-/// caps, and the seal windows.
+/// The serving controls in one configurable value: request-validation limits, response-shaping
+/// limits, and the seal windows.
 ///
 /// The transport constructs one - flags and environment over the defaults - and the handlers
 /// enforce it. Every published manifest limit derives from the enforced field through
-/// [`ServeCaps::limits`], so advertisement and enforcement cannot disagree; not every control is
-/// published. Defaults are documented on the per-endpoint caps types; none of them is a wire
-/// constant.
+/// [`ServeLimits::manifest_limits`], so advertisement and enforcement cannot disagree; not every
+/// control is published. Defaults are documented on the per-endpoint limits types; none of them is
+/// a wire constant.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct ServeCaps {
-    /// The tile endpoint's caps.
-    pub tile: TileCaps,
-    /// The edges endpoint's caps.
-    pub edges: EdgesCaps,
-    /// The locate endpoint's caps.
-    pub locate: LocateCaps,
-    /// The translate endpoint's caps.
-    pub translate: TranslateCaps,
-    /// The sealed-blob staleness caps.
-    pub seal: SealCaps,
+pub struct ServeLimits {
+    /// The tile endpoint's limits.
+    pub tile: TileLimits,
+    /// The edges endpoint's limits.
+    pub edges: EdgesLimits,
+    /// The locate endpoint's limits.
+    pub locate: LocateLimits,
+    /// The translate endpoint's limits.
+    pub translate: TranslateLimits,
+    /// The sealed-blob staleness limits.
+    pub seal: SealLimits,
 }
 
-/// An opaque visibility filter: the upstream-owned predicate document.
+/// An opaque visibility filter document.
 ///
-/// The predicate's schema belongs to the client codebase; the server treats it as a value to
-/// canonicalize and hash, never as a typed structure. Version 0 rejects requests that carry one.
+/// The document's schema belongs to the client codebase; the server never reads it as a typed
+/// structure. Reserved: a request that carries one is rejected with `unsupported-feature`.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 pub struct Filter(serde_json::Value);
 
@@ -134,13 +146,22 @@ pub struct Filter(serde_json::Value);
 /// use std::sync::Arc;
 ///
 /// use hash_graph_atlas::serve::{
-///     Atlas, GenerationRoot, TileCaps, TileCoordinate, TileQuery, TileRequest, VisibilityProof,
+///     Atlas, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery, TileRequest,
+///     VisibilityProof, WireSecret,
 /// };
 ///
 /// # fn main() -> Result<(), Box<dyn core::error::Error>> {
 /// let root = GenerationRoot::new("/var/atlas/generations")?;
 /// let id = root.current()?.expect("a generation is active");
-/// let atlas = Arc::new(Atlas::open(&root, id)?);
+/// let secret =
+///     WireSecret::from_hex("6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55")?;
+/// let atlas = Arc::new(Atlas::open(
+///     &root,
+///     id,
+///     &OpenOptions {
+///         wire_secret: secret,
+///     },
+/// )?);
 ///
 /// // An operator context without scoped sessions names its authority explicitly.
 /// let proof = VisibilityProof::full_visibility();
@@ -149,7 +170,7 @@ pub struct Filter(serde_json::Value);
 ///         coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
 ///         query: TileQuery::default(),
 ///     },
-///     TileCaps::default(),
+///     TileLimits::default(),
 ///     &proof,
 /// )?;
 /// # Ok(())
@@ -158,15 +179,21 @@ pub struct Filter(serde_json::Value);
 #[derive(Debug)]
 pub struct Atlas {
     generation: Generation,
-    lod: LodConfig,
+    /// The validated bucket schedule and its addressing.
+    grid: Grid,
     quad: QuadFile,
     morton: MortonFile,
-    coordinates: ArrayFile,
-    rows: ArrayFile,
+    /// The wire-coordinate column in base order.
+    points: Column<Vec2>,
+    /// The row column in base order: the node universe's permutation.
+    rows: Column<u32>,
     adjacency: AdjacencyArchive,
-    endpoints: ArrayFile,
-    rank_of_position: ArrayFile,
-    position_of_row: ArrayFile,
+    /// The endpoint column: edge row to `[source, target]`.
+    endpoints: Column<[NodeRowId; 2]>,
+    /// The rank column in base order.
+    ranks: Column<u32>,
+    /// The position permutation in row order.
+    positions_of_row: Column<u32>,
     postings: PostingsArchive,
     closure: ClosureMap,
     /// The ontology identity table, joining type uuids to ontology rows.
@@ -181,12 +208,12 @@ pub struct Atlas {
     /// The node universe's wire row-id codec, derived at open.
     ///
     /// The one wire-id domain: edges cross the wire as link-entity identities.
-    node_codec: codec::RowCodec,
+    node_codec: codec::RowCodec<NodeRowId>,
     /// The wire row-id column in base order.
     ///
     /// The row column mapped through the node codec once at open, so position-driven gathers
     /// (tiles, locate) pay nothing per request.
-    wire_rows: Vec<u32>,
+    wire_rows: Vec<WireRow<NodeRowId>>,
     /// The tight wire-frame extent of the full point set.
     ///
     /// Absent iff the generation holds no points. Derived from the world frame: normalization
@@ -196,8 +223,6 @@ pub struct Atlas {
 }
 
 /// The validated column views.
-///
-/// Every accessor's shape was checked once at open, so reads unwrap without re-validating.
 impl Atlas {
     /// Returns the generation identity: the `HEAD` echo, the route echo.
     #[inline]
@@ -208,72 +233,31 @@ impl Atlas {
 
     /// Views the wire-coordinate column in base order.
     fn positions(&self) -> &[Vec2] {
-        self.coordinates
-            .points()
-            .expect("open validated the wire-coordinate shape")
+        self.points.view()
     }
 
     /// Views the row column in base order.
     fn row_ids(&self) -> &[u32] {
-        self.rows
-            .u32_elements()
-            .expect("open validated the row-column shape")
+        self.rows.view()
     }
 
     /// Views the wire row-id column in base order.
-    const fn wire_rows(&self) -> &[u32] {
+    const fn wire_rows(&self) -> &[WireRow<NodeRowId>] {
         self.wire_rows.as_slice()
     }
 
     /// Views the endpoint column: edge row to `[source, target]`.
-    fn endpoint_pairs(&self) -> &[[u64; 2]] {
-        self.endpoints
-            .u64_pairs()
-            .expect("open validated the endpoint-column shape")
+    fn endpoint_pairs(&self) -> &[[NodeRowId; 2]] {
+        self.endpoints.view()
     }
 
     /// Views the rank column in base order.
     fn ranks(&self) -> &[u32] {
-        self.rank_of_position
-            .u32_elements()
-            .expect("open validated the rank-column shape")
+        self.ranks.view()
     }
 
     /// Views the position permutation in row order.
     fn positions_of_row(&self) -> &[u32] {
-        self.position_of_row
-            .u32_elements()
-            .expect("open validated the position-column shape")
+        self.positions_of_row.view()
     }
-
-    /// Returns an edge row's link-entity identity in its wire form.
-    ///
-    /// The `bstr(32)` record `EDGE_IDS` columns carry: the web uuid then the entity uuid,
-    /// generation-frozen.
-    fn edge_identity(&self, row: u32) -> [u8; 32] {
-        translate::identity_bytes(
-            self.edge_ids
-                .id(u64::from(row))
-                .expect("open validated the identity rows against the adjacency's edges"),
-        ) // NOTE: why
-    }
-}
-
-/// Returns the Morton cell a tile coordinate addresses, [`None`] outside the zoom's grid.
-const fn cell_of(coordinate: TileCoordinate) -> Option<MortonCell> {
-    // NOTE: bad function, should be on `TileCoordinate`
-    let depth = depth_of(coordinate.z);
-    MortonCell::new(depth, coordinate.x, coordinate.y)
-}
-
-/// Wraps a depth the schedule already bounds within the key width.
-const fn depth_of(depth: u8) -> Depth {
-    // NOTE: bad function
-    Depth::new(depth).expect("the schedule bounds its depths within the key width")
-}
-
-/// Narrows a base position or count to the wire's `u32` domain.
-fn narrow(value: u64) -> u32 {
-    // NOTE: bad function
-    u32::try_from(value).expect("base positions share the u32 row-id domain")
 }

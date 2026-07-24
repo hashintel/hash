@@ -108,7 +108,7 @@ Five terms carry the whole model:
   manifest's `bucketSchedule` publishes the schedule, so delivery is a
   scheduled delivery a pure function of `(generation, z, x, y)`.
 - The **manifest** is the per-generation bootstrap read: wire version,
-  variant names, bucket schedule, and `limits` - request caps published
+  variant names, bucket schedule, and `limits` - request limits published
   as data, each read from the value its handler enforces. Everything a
   client needs before its first tile.
 
@@ -138,7 +138,7 @@ Binary responses ship `application/vnd.hash.saltile-v1` envelopes with
 is the cache, keyed by authorization context, generation, route, and
 canonical query. The manifest is cacheable for the generation's
 lifetime. Identical requests yield identical geometry bytes, per
-generation, server secret, and serving caps; detailed responses hydrate their trailers
+generation, server secret, and serving limits; detailed responses hydrate their trailers
 live from the store and leave the immutable cache - cache the geometry
 surfaces, refetch detail.
 
@@ -157,21 +157,22 @@ byte-identically - existence is never disclosed through an error shape.
 Flags with environment fallbacks; absent flags read documented defaults.
 Each published manifest limit reads the value its handler enforces (one
 source, so an advertised limit never disagrees with enforcement); not
-every cap is published - the edge-count truncation cap (`--edges`)
+every limit is published - the edge-count truncation limit (`--edges`)
 shapes responses without a manifest row:
 
-| Flag                                                                                                                | Environment               | Default                   | Meaning                                                    |
-| ------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------- | ---------------------------------------------------------- |
-| `--root`                                                                                                            | `HASH_GRAPH_ATLAS_ROOT`   | `<tmp>/atlas-generations` | the generation root                                        |
-| `--atlas-host`                                                                                                      | `HASH_GRAPH_ATLAS_HOST`   | `127.0.0.1`               | listener address                                           |
-| `--atlas-port`                                                                                                      | `HASH_GRAPH_ATLAS_PORT`   | `4003`                    | listener port                                              |
-| `--user`, `--password`, `--host`, `--port`, `--database`                                                            | `HASH_GRAPH_PG_*`         | local dev store           | the store connection; detail trailers hydrate from it live |
-| `--secret`                                                                                                          | `HASH_GRAPH_ATLAS_SECRET` | pinned dev value          | server secret behind the wire row-id codec                 |
-| `--colored-type-ids`, `--edges-tiles`, `--edges`, `--translate-entity-ids`, `--locate-edges`, `--locate-properties` | `HASH_GRAPH_ATLAS_CAP_*`  | documented defaults       | serving caps (request validation and response shaping)     |
+| Flag                                                                                                                | Environment                | Default                   | Meaning                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--root`                                                                                                            | `HASH_GRAPH_ATLAS_ROOT`    | `<tmp>/atlas-generations` | the generation root                                                                              |
+| `--atlas-host`                                                                                                      | `HASH_GRAPH_ATLAS_HOST`    | `127.0.0.1`               | listener address                                                                                 |
+| `--atlas-port`                                                                                                      | `HASH_GRAPH_ATLAS_PORT`    | `4003`                    | listener port                                                                                    |
+| `--user`, `--password`, `--host`, `--port`, `--database`                                                            | `HASH_GRAPH_PG_*`          | local dev store           | the store connection; detail trailers hydrate from it live                                       |
+| `--secret`                                                                                                          | `HASH_GRAPH_ATLAS_SECRET`  | **required**              | server secret behind the wire row-id codec: 64 lowercase hex characters (`openssl rand -hex 32`) |
+| `--colored-type-ids`, `--edges-tiles`, `--edges`, `--translate-entity-ids`, `--locate-edges`, `--locate-properties` | `HASH_GRAPH_ATLAS_LIMIT_*` | documented defaults       | serving limits (request validation and response shaping)                                         |
 
-Startup is fail-closed: no activated generation, any artifact failing
-validation (shape, integrity, or identity tables whose keys are not store
-identities), or an unreachable store all refuse to serve. `ctrl-c` stops
+Startup is fail-closed: a missing or malformed wire secret, no activated
+generation, any artifact failing validation (shape, integrity, or
+identity tables whose keys are not store identities), or an unreachable
+store all refuse to serve. `ctrl-c` stops
 the server gracefully.
 
 ### The compose stack
@@ -218,9 +219,9 @@ What the crate does guarantee, independent of the surrounding service:
   server secret (`HASH_GRAPH_ATLAS_SECRET`) per generation. The
   permutation's design target is that id values and response orders
   carry no information about internal row assignment; that hiding is
-  the construction's target, not a demonstrated boundary. Set the
-  secret from a deployment secret store; the unconfigured development
-  default keeps wire ids predictable to anyone with the crate.
+  the construction's target, not a demonstrated boundary. The secret is
+  required - the server refuses to start without one - and is set from
+  a deployment secret store; replicas serving one generation share it.
 - Missing and forbidden answer byte-identically on every id-bearing
   route.
 - Published manifest limits and their handler enforcement read the same
@@ -246,10 +247,10 @@ What the crate does guarantee, independent of the surrounding service:
   silently re-keys every wire id under unchanged cache identity. Treat
   the secret as immutable per generation; rotate generations to rotate
   secrets.
-- Output-affecting serving caps (edge truncation, locate caps) are the
-  same class of operator contract: nothing fingerprints them, so keep
-  them stable while a generation serves, or rotate the generation and
-  clear application caches.
+- Output-affecting serving limits (edge truncation, locate limits) are
+  the same class of operator contract: nothing fingerprints them, so
+  keep them stable while a generation serves, or rotate the generation
+  and clear application caches.
 - Incremental ingestion is not enabled: new entities enter through the
   next fit.
 - The fit pipeline requires a live HASH Graph PostgreSQL store; there is

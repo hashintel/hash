@@ -3,17 +3,18 @@
 //! The immutable Surface v1 bootstrap, derived from serving configuration and the generation's
 //! snapshot provenance - no corpus-derived aggregates.
 
-use super::{Atlas, GenerationId, ServeCaps, VARIANTS};
+use core::fmt;
+
+use super::{Atlas, GenerationId, ServeLimits, VARIANTS};
 use crate::salt::wire::WIRE_VERSION;
 
-/// The published serving limits of the manifest's `limits` block.
+/// The serving limits of the manifest's `limits` block.
 ///
-/// Serving configuration published as data. Request-validation caps let clients validate before
-/// sending instead of learning them from rejections; response-shaping caps and the seal windows
-/// publish what delivery truncates and when sealed values expire.
-///
-/// Never built freehand outside tests: [`ServeCaps::limits`] derives it from the caps the handlers
-/// actually enforce, so the published limits cannot disagree with enforcement.
+/// Each value is read from the limit the handlers enforce, so an advertised limit never disagrees
+/// with enforcement. Request-validation limits let a client validate before sending;
+/// response-shaping limits and the seal windows say what delivery truncates and when sealed
+/// values expire.
+// Never built freehand outside tests: `ServeLimits::manifest_limits` is the one derivation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestLimits {
@@ -38,12 +39,12 @@ pub struct ManifestLimits {
     pub seal_hard_seconds: u64,
 }
 
-impl ServeCaps {
-    /// Derives the manifest's `limits` block from the caps the handlers enforce.
+impl ServeLimits {
+    /// Derives the manifest's `limits` block from the limits the handlers enforce.
     ///
     /// One source, so the published limits cannot disagree with enforcement.
     #[must_use]
-    pub const fn limits(&self) -> ManifestLimits {
+    pub const fn manifest_limits(&self) -> ManifestLimits {
         ManifestLimits {
             colored_type_ids: self.tile.colored_type_ids,
             edges_tiles: self.edges.tiles,
@@ -58,10 +59,10 @@ impl ServeCaps {
     }
 }
 
-/// The immutable per-generation manifest.
+/// The immutable per-generation manifest: everything a client needs before its first tile.
 ///
-/// The Surface v1 bootstrap document, derived from configuration and snapshot provenance - no
-/// corpus-derived aggregates - so it can be shared across principals.
+/// Derived from serving configuration and snapshot provenance alone, so one document serves every
+/// caller and stays valid for the generation's lifetime.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
@@ -84,20 +85,45 @@ pub struct Manifest {
 }
 
 /// The manifest's `bucketSchedule` block.
-#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
+#[derive(Debug, Copy, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BucketSchedule {
     /// Cells per tile axis of the delivery cut: `2^span`.
     pub span: u32,
-    /// The cut rule as its human-readable formula, `z+<span>`.
-    pub cut: String, /* NOTE: why does this need to be a string? can't this just be a `Copy`
-                      * type that is Display? */
+    /// The cut rule: zoom `z` delivers buckets at or below `z + span`.
+    #[schemars(with = "String")]
+    pub cut: BucketCut,
     /// The deepest tile zoom the schedule serves.
     pub max_zoom: u8,
 }
 
+/// The cut rule of the manifest's `bucketSchedule.cut` key.
+///
+/// Zoom `z`'s cumulative schedule delivers buckets at or below `z + span`, and the wire form is
+/// that formula: the string `z+<span>`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BucketCut {
+    /// The schedule's span exponent, the formula's addend.
+    span_log2: u8,
+}
+
+impl fmt::Display for BucketCut {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "z+{}", self.span_log2)
+    }
+}
+
+impl serde::Serialize for BucketCut {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
+
 impl Atlas {
-    /// Assembles the generation's manifest document under the given request caps.
+    /// Assembles the generation's manifest document under the given request limits.
     #[must_use]
     pub fn manifest(&self, limits: ManifestLimits) -> Manifest {
         // Timestamps serialize as ISO-8601 strings; anything else
@@ -119,9 +145,11 @@ impl Atlas {
             wire_version: WIRE_VERSION,
             variants: VARIANTS,
             bucket_schedule: BucketSchedule {
-                span: 1 << self.lod.span.get(),
-                cut: format!("z+{}", self.lod.span.get()),
-                max_zoom: self.lod.max_tile_depth,
+                span: 1 << self.grid.span_log2(),
+                cut: BucketCut {
+                    span_log2: self.grid.span_log2(),
+                },
+                max_zoom: self.grid.max_tile_depth(),
             },
             limits,
             created_at,

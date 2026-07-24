@@ -78,7 +78,7 @@ const fn decode_nibble(byte: u8, index: usize) -> Result<u8, ParseHexError> {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub(crate) struct HexBytes<const N: usize>([u8; N]);
+pub struct HexBytes<const N: usize>([u8; N]);
 
 impl<const N: usize> HexBytes<N> {
     /// Creates a value from its raw bytes.

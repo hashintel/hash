@@ -63,7 +63,7 @@ const HEADER_LEN: usize = 1 + 1 + 8 + NONCE_LEN;
 /// The smallest padded plaintext bucket.
 const PAD_FLOOR: usize = 1024;
 
-/// The staleness caps of the sealed-blob clock rule.
+/// The staleness limits of the sealed-blob clock rule.
 ///
 /// `hard` is the enforced bound: [`open`] refuses a blob older than it. `soft` is a published
 /// advisory horizon - nothing in this crate reads it beyond manifest publication, so a consumer
@@ -71,14 +71,14 @@ const PAD_FLOOR: usize = 1024;
 /// staleness of the policy evaluation behind it. The manifest publishes both from this struct,
 /// so advertised values equal configured values.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SealCaps {
+pub struct SealLimits {
     /// The advisory refresh horizon, published but unenforced.
     pub soft: Duration,
     /// The rejection bound.
     pub hard: Duration,
 }
 
-impl Default for SealCaps {
+impl Default for SealLimits {
     fn default() -> Self {
         Self {
             soft: Duration::from_mins(10),
@@ -281,7 +281,7 @@ pub(crate) fn open(
     generation: GenerationId,
     secret: &[u8],
     now: Duration,
-    caps: SealCaps,
+    limits: SealLimits,
 ) -> Result<RoaringBitmap, SealError> {
     let (meta, tail) = blob.split_first_chunk::<2>().ok_or(SealError::Envelope)?;
     let (issued_bytes, tail) = tail.split_first_chunk::<8>().ok_or(SealError::Envelope)?;
@@ -293,7 +293,7 @@ pub(crate) fn open(
     }
     let issued_at = Duration::from_secs(u64::from_le_bytes(*issued_bytes));
     let age = now.checked_sub(issued_at).ok_or(SealError::Stale)?;
-    if age > caps.hard {
+    if age > limits.hard {
         return Err(SealError::Stale);
     }
 

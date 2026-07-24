@@ -7,12 +7,14 @@ use alloc::sync::Arc;
 use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::State,
     http::{StatusCode, header},
 };
 
 use super::{
     AppState,
+    extract::{Body, Generation},
+    headers,
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::spawn,
 };
@@ -20,34 +22,34 @@ use crate::serve::{GenerationId, TranslateError, TranslateRequest, TranslateResp
 
 /// The operation's description.
 const DESCRIPTION: &str =
-    "Translates upstream entity ids (`webId~entityUuid`) to atlas identity: a node answers the \
-     row id every binary response speaks (`ROW_IDS`) plus its wire-frame position; an edge \
-     answers its endpoints' node row ids (edges carry no wire id of their own - binary responses \
-     identify them by link entity id, which the requester already holds). The correlation seam \
-     between separately fetched entities and dots already on screen.
+    "Translates upstream entity ids (`webId~entityUuid`) into the row ids and positions the \
+     binary routes speak.
 
-Row ids are opaque per-generation values, sparse in the full u32 range: consistent across every \
-     endpoint of one generation, carrying no ordering, adjacency, or count information, never \
-     bounded by the generation's row count, and not stable across generations - re-translate \
-     after a generation change.
+Use it to place entities fetched elsewhere onto the map. A resolved node answers its row id (the \
+     `ROW_IDS` value every binary response uses) plus its position in the map's coordinate frame; \
+     a resolved edge answers its two endpoints' row ids. Edges have no row id of their own - \
+     binary responses identify an edge by its link entity id, which the requester already holds.
 
-The response is two maps keyed by the requested id string echoed verbatim, so kind is carried by \
-     which map answers. An id that resolves to nothing is an absent key - never an error, never a \
-     null entry: nonexistent ids, draft-suffixed ids, and entities the principal cannot see are \
-     indistinguishable.
+Row ids are opaque per-generation values, sparse in the full 32-bit range: consistent across every \
+     route of one generation, carrying no ordering, adjacency, or count information, and not \
+     stable across generations - re-translate after a generation change.
+
+The response is two maps - `nodes` and `edges` - keyed by the requested id strings echoed \
+     verbatim, so which map answers carries the kind. An id that resolves to nothing is an absent \
+     key, never an error and never a null entry: nonexistent ids, draft ids, and entities the \
+     caller cannot see are indistinguishable.
 
 The JSON body is required; the manifest's `limits.translateEntityIds` caps the id list. Duplicates \
      are legal and collapse.";
 
 /// The generation/variant pair addressing one fitted layout.
+///
+/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
+/// problem before the handler runs.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub(super) struct VariantPath {
-    /// The sha256 generation id, as bootstrapped from `current`.
-    //
-    // A string for the same reason as the manifest route's
-    // `generation`: an unparsable id must answer the 404 problem.
-    #[schemars(with = "GenerationId")]
-    generation: String,
+    /// The sha256 generation id, as returned by `current`.
+    generation: GenerationId,
     /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
 }
@@ -57,31 +59,20 @@ pub(super) struct VariantPath {
 /// The id list is the request's subject, so the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
-    Path(VariantPath {
+    Generation(VariantPath {
         generation,
         variant,
-    }): Path<VariantPath>,
-    body: Option<Json<TranslateRequest>>,
+    }): Generation<VariantPath>,
+    Body(request): Body<TranslateRequest>,
 ) -> Result<impl IntoApiResponse, Problem<'static>> {
-    reject_generation(&state, &generation)?;
+    reject_generation(&state, generation)?;
     reject_variant(&variant)?;
 
-    let Some(Json(request)) = body else {
-        return Err(Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::MissingBody,
-            "a translate request lists its entity ids in a JSON body",
-        ));
-    };
-
     let atlas = Arc::clone(&state.atlas);
-    let caps = state.caps.translate;
+    let limits = state.limits.translate;
     let proof = Arc::clone(&state.proof);
-    match spawn(move || atlas.translate(&request, caps, &proof)).await? {
-        Ok(response) => Ok((
-            [(header::CACHE_CONTROL, "private, no-store")],
-            Json(response),
-        )),
+    match spawn(move || atlas.translate(request, limits, &proof)).await? {
+        Ok(response) => Ok(([(header::CACHE_CONTROL, headers::NO_STORE)], Json(response))),
         Err(error @ TranslateError::Ids { .. }) => Err(Problem::new(
             StatusCode::BAD_REQUEST,
             ProblemType::TooManyEntityIds,
@@ -110,14 +101,24 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
             }
             operation
         })
-        .response_with::<200, Json<TranslateResponse>, _>(|response| {
+        .response_with::<200, Json<TranslateResponse>, _>(|mut response| {
+            response.inner().headers.insert(
+                "Cache-Control".to_owned(),
+                headers::cache_control(
+                    headers::NO_STORE,
+                    "the response keys on the request body, which shared caches cannot see; the \
+                     client's application-layer cache is the cache",
+                ),
+            );
             response.description(
                 "two maps keyed by the requested id echoed verbatim; unresolvable ids are absent \
                  keys",
             )
         })
         .response_with::<400, Problem<'static>, _>(|response| {
-            response.description("`too-many-entity-ids` or `missing-body`")
+            response.description(
+                "`too-many-entity-ids`, `invalid-generation`, `missing-body`, or `invalid-body`",
+            )
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(

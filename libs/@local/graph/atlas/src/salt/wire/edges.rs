@@ -18,7 +18,11 @@
 )]
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
-use crate::integrity::Sha256Digest;
+use crate::{
+    dataset::{ArchivedEntityId, NodeRowId},
+    integrity::Sha256Digest,
+    serve::WireRow,
+};
 
 /// One edges response in writable form.
 #[derive(Debug)]
@@ -30,14 +34,14 @@ pub(crate) struct EdgesResponse<'doc> {
     /// `HEAD` key 3: `false` when the rank-ordered cap truncated the set.
     pub complete: bool,
     /// The `EDGE_SOURCES` column: node row ids, delivery order.
-    pub sources: &'doc [u32],
+    pub sources: &'doc [WireRow<NodeRowId>],
     /// The `EDGE_TARGETS` column: node row ids, delivery order.
-    pub targets: &'doc [u32],
+    pub targets: &'doc [WireRow<NodeRowId>],
     /// The `EDGE_IDS` column: link-entity identities, delivery order, `bstr(32)` records.
     ///
     /// The web uuid then the entity uuid, sixteen raw bytes each, generation-frozen. Delivery
     /// order ascends by these bytes.
-    pub edge_ids: &'doc [[u8; 32]],
+    pub edge_ids: &'doc [ArchivedEntityId],
     /// The hydrated detail trailer; `Some` iff the request set `includeDetailedData`.
     pub trailer: Option<EdgesTrailer<'doc>>,
 }
@@ -53,7 +57,7 @@ impl EdgesResponse<'_> {
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         /// Bytes per delivered edge across the three columns: source, target, identity.
-        const ROW_SIZE: usize = size_of::<u32>() + size_of::<u32>() + size_of::<[u8; 32]>();
+        const ROW_SIZE: usize = size_of::<u32>() + size_of::<u32>() + size_of::<ArchivedEntityId>();
         /// Reserve allowance for the `HEAD` payload and the slot padding.
         ///
         /// `HEAD` is `map(5)` with one-byte uint keys: the 34-byte generation echo, two uints
@@ -181,16 +185,16 @@ impl EdgesTrailer<'_> {
 }
 
 /// Writes one u32 column little-endian.
-pub(super) fn write_column(bytes: &mut Vec<u8>, values: &[u32]) {
+pub(super) fn write_column<I>(bytes: &mut Vec<u8>, values: &[WireRow<I>]) {
     bytes.reserve(size_of_val(values));
     for &value in values {
-        bytes.extend_from_slice(&value.to_le_bytes());
+        bytes.extend_from_slice(&value.get().to_le_bytes());
     }
 }
 
 /// Writes one identity column: raw 32-byte records, concatenated.
 ///
 /// The records are contiguous in memory, so the column is written as a single copy.
-pub(super) fn write_identities(bytes: &mut Vec<u8>, ids: &[[u8; 32]]) {
-    bytes.extend_from_slice(ids.as_flattened());
+pub(super) fn write_identities(bytes: &mut Vec<u8>, ids: &[ArchivedEntityId]) {
+    bytes.extend_from_slice(zerocopy::IntoBytes::as_bytes(ids));
 }

@@ -41,6 +41,7 @@ use super::{
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
+    dataset::ArchivedEntityId,
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
@@ -869,26 +870,27 @@ fn locate_sidecar(
 }
 
 /// Builds one hand-pinned identity: sixteen web bytes then sixteen entity bytes.
-const fn identity_of(web: u8, entity: u8) -> [u8; 32] {
-    let mut id = [web; 32];
-    let mut index = 16;
-    while index < 32 {
-        id[index] = entity;
-        index += 1;
+fn identity_of(web: u8, entity: u8) -> ArchivedEntityId {
+    ArchivedEntityId {
+        web_id: uuid::Uuid::from_bytes([web; 16]).into(),
+        entity_uuid: uuid::Uuid::from_bytes([entity; 16]).into(),
     }
-    id
 }
 
 /// Renders one identity column as lowercase hex strings.
-fn identities_sidecar(ids: &[[u8; 32]]) -> Vec<String> {
+fn identities_sidecar(ids: &[ArchivedEntityId]) -> Vec<String> {
     use core::fmt::Write as _;
+
+    use zerocopy::IntoBytes as _;
 
     ids.iter()
         .map(|id| {
-            id.iter().fold(String::with_capacity(64), |mut hex, byte| {
-                write!(hex, "{byte:02x}").expect("writing to a string cannot fail");
-                hex
-            })
+            id.as_bytes()
+                .iter()
+                .fold(String::with_capacity(64), |mut hex, byte| {
+                    write!(hex, "{byte:02x}").expect("writing to a string cannot fail");
+                    hex
+                })
         })
         .collect()
 }

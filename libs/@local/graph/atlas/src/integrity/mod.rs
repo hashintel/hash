@@ -33,10 +33,12 @@
 
 mod hash;
 mod hex;
+mod secret;
 mod writer;
 
 pub use self::{
     hash::{Sha256, Sha256Digest},
-    hex::ParseHexError,
+    hex::{HexBytes, ParseHexError},
+    secret::SecretHexBytes,
     writer::{Update, Writer},
 };

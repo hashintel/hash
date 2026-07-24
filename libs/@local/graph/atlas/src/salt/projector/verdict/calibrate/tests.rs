@@ -86,7 +86,7 @@ fn unit_scales(rows: usize) -> LocalScales {
 }
 
 fn options(cap: usize) -> CalibrationOptions {
-    CalibrationOptions::new(NonZero::new(cap).expect("test caps are positive"), 0.25)
+    CalibrationOptions::new(NonZero::new(cap).expect("test limits are positive"), 0.25)
         .expect("0.25 is a valid scale guard")
 }
 

@@ -5,15 +5,12 @@
 use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
-use axum::{
-    Json,
-    extract::{Path, State},
-    http::StatusCode,
-};
+use axum::{extract::State, http::StatusCode};
 use tracing::Instrument as _;
 
 use super::{
     AppState,
+    extract::{Body, Generation},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
 };
@@ -21,50 +18,48 @@ use crate::serve::{GenerationId, LocateError, LocateRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str =
-    "Spotlights one entity's ego-graph: resolves the source to its dot, delivers it first with \
-     every linked partner ascending by node row id, and rides the source's edges - both \
-     directions - ascending by link-entity identity bytes (the `EDGE_IDS` column; edges carry no \
-     wire id of their own).
+    "Returns one entity's ego-graph: the source point, every neighbour it links to, and the edges \
+     joining them, as a `SALTILEL` binary envelope.
 
-The JSON body is required and names the source in EXACTLY ONE of two domains: `entityId` (the \
-     upstream id a search result or deep link carries) XOR `row` (the wire node row id a rendered \
-     tile delivered in `ROW_IDS` - the natural click-to-spotlight loop, no translate detour). A \
-     body carrying both or neither answers `invalid-source` (400). The same source yields \
-     identical geometry sections through either domain; the detail trailer reflects live store \
-     state at hydration.
+The JSON body is required and names the source in exactly one of two fields: `entityId` (the \
+     upstream `webId~entityUuid` id a search result or deep link carries) or `row` (a row id a \
+     tile's `ROW_IDS` column delivered - if you hold one, no translate round trip is needed). A \
+     body carrying both or neither answers `invalid-source`. Either field reaches identical \
+     geometry bytes for the same source.
 
-The edge set caps at `limits.locateEdges`; truncation keeps the edges whose partners lie nearest \
-     the source, the HEAD's `complete` key reads `false`, and a partner whose every edge \
-     truncated is not delivered.
+The source is delivered first, partners follow ascending by row id, and edges are ordered \
+     ascending by link-entity identity bytes (the `EDGE_IDS` column: each edge's 32-byte entity \
+     id, web uuid then entity uuid). The manifest's `limits.locateEdges` caps the edge set; under \
+     truncation the response keeps the edges whose partners lie nearest the source, the HEAD's \
+     `complete` key reads `false`, and a partner whose every edge was truncated is not delivered.
 
-The HEAD carries the source's first visible zoom and its tile there - the client's fly-to target - \
-     the source's upstream entity id as 32 raw bytes (web uuid then entity uuid), and the \
-     source's two completeness flags: `typeIdsComplete` (the request's `coloredTypeIds` cover \
-     every direct type of the source) and `propertiesComplete` (the trailer's source property map \
-     is the entity's whole set). `coloredTypeIds` rides `TYPE_MASK` exactly as on tiles.
+The HEAD also carries the source's first visible zoom and its tile there (the fly-to target), the \
+     source's entity id as 32 raw bytes, and two completeness flags: `typeIdsComplete` (the \
+     request's `coloredTypeIds` cover every direct type of the source) and `propertiesComplete` \
+     (the trailer's source property map is the entity's whole set). `coloredTypeIds` behaves \
+     exactly as on the tile route.
 
-Locate IS the detail view: the trailer always rides, hydrated LIVE from the store. Nodes carry a \
-     label and a first direct type reference; the source additionally carries its capped \
-     simple-value properties (`limits.locateProperties`). Edges carry a label, their direct types \
-     capped at `limits.locateLinkTypeIds`, and their capped simple-value properties \
-     (`limits.locateLinkProperties`), each cap paired with a per-edge completeness flag. Every \
-     type and property reference is a uint index into the trailer's interned URL tables - the \
-     client resolves display through its own type metadata.
+The response always carries the detail trailer, read from the store at request time. Every node \
+     carries a label and a first direct type; the source additionally carries its properties, \
+     capped by `limits.locateProperties`. Every edge carries a label, its direct types (capped by \
+     `limits.locateLinkTypeIds`), and its properties (capped by `limits.locateLinkProperties`), \
+     each cap paired with a per-edge completeness flag. Type and property references are integer \
+     indexes into the trailer's two sorted URL tables.
 
-A source that does not name a visible node answers `unknown-entity` (404): nonexistent, denied, \
-     unparsable, and out-of-universe `row` values are identical - missing = denied.
+A source that does not name a visible node answers `unknown-entity`: nonexistent, inaccessible, \
+     unparsable, and out-of-range `row` values are indistinguishable by design.
 
-Version 0 rejects `filter` with an `unsupported-feature` problem.";
+The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
+     rather than answered with bytes that silently ignore it.";
 
 /// The generation/variant pair addressing one fitted layout.
+///
+/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
+/// problem before the handler runs.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub(super) struct VariantPath {
-    /// The sha256 generation id, as bootstrapped from `current`.
-    //
-    // A string for the same reason as the manifest route's
-    // `generation`: an unparsable id must answer the 404 problem.
-    #[schemars(with = "GenerationId")]
-    generation: String,
+    /// The sha256 generation id, as returned by `current`.
+    generation: GenerationId,
     /// The fitted variant name; the manifest lists what this generation serves.
     variant: String,
 }
@@ -75,36 +70,24 @@ pub(super) struct VariantPath {
 /// the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
-    Path(VariantPath {
+    Generation(VariantPath {
         generation,
         variant,
-    }): Path<VariantPath>,
-    body: Option<Json<LocateRequest>>,
+    }): Generation<VariantPath>,
+    Body(request): Body<LocateRequest>,
 ) -> Result<Saltile, Problem<'static>> {
-    reject_generation(&state, &generation)?;
+    reject_generation(&state, generation)?;
     reject_variant(&variant)?;
-
-    // NOTE: I feel like there's a better way to handle this here, instead of doing this `Option`
-    // dance, a custom extractor over `Path` and `Json` maybe that would turn the response into a
-    // problem? Because this is... well... not great ergonomics and defeats the purpose of using
-    // axum/aide.
-    let Some(Json(request)) = body else {
-        return Err(Problem::new(
-            StatusCode::BAD_REQUEST,
-            ProblemType::MissingBody,
-            "a locate request names its source in a JSON body",
-        ));
-    };
 
     // Assembly and encoding are CPU-bound and ride rayon; hydration
     // awaits the store between them - the trailer is the envelope's
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
-    let caps = state.caps;
+    let limits = state.limits;
     let proof = Arc::clone(&state.proof);
     let assembled = spawn(move || {
         atlas
-            .assemble_locate(&request, caps, &proof)
+            .assemble_locate(&request, limits, &proof)
             .map(|document| {
                 let entities = (
                     atlas.locate_node_entities(&document),
@@ -152,7 +135,7 @@ pub(super) async fn handler(
         |error: crate::serve::DetailError| Problem::internal(error, "the detail hydration failed");
     let node_details = state
         .remote
-        .locate_details(&nodes, state.caps.locate.properties)
+        .locate_details(&nodes, state.limits.locate.properties)
         .in_current_span()
         .await
         .map_err(internal)?;
@@ -160,8 +143,8 @@ pub(super) async fn handler(
         .remote
         .locate_link_details(
             &links,
-            state.caps.locate.link_type_ids,
-            state.caps.locate.link_properties,
+            state.limits.locate.link_type_ids,
+            state.limits.locate.link_properties,
         )
         .in_current_span()
         .await
@@ -200,22 +183,25 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
             )
         })
         .response_with::<400, Problem<'static>, _>(|response| {
-            response.description("`too-many-types`, `invalid-source`, or `missing-body`")
+            response.description(
+                "`too-many-types`, `invalid-source`, `invalid-generation`, `missing-body`, or \
+                 `invalid-body` (a body that is not this operation's JSON shape)",
+            )
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation`, `unknown-variant`, or `unknown-entity` (identical for \
-                 nonexistent, denied, unparsable, and out-of-universe sources)",
+                 nonexistent, inaccessible, unparsable, and out-of-range sources)",
             )
         })
         .response_with::<501, Problem<'static>, _>(|response| {
             response.description(
-                "`unsupported-feature`: the request names a surface the contract pins but version \
-                 0 does not serve (`filter`)",
+                "`unsupported-feature`: the request carries a reserved field (`filter`) this \
+                 server does not yet serve",
             )
         })
         .default_response_with::<Problem<'static>, _>(|response| {
             response
-                .description("any other problem; `internal` marks a server-side assembly failure")
+                .description("any other problem document; `internal` marks a server-side failure")
         })
 }

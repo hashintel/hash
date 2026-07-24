@@ -20,13 +20,14 @@
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
 
-use super::{Atlas, codec::RowCodec, narrow, visibility::VisibilityProof};
-use crate::{
-    dataset::ArchivedEntityId, math::Vec2, salt::fit::prepare::identity::IdentityTableArchive,
-};
+use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
-/// The upstream entity-id delimiter: `webId~entityUuid[~draftId]`.
-const ENTITY_ID_DELIMITER: char = '~';
+use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
+use crate::{
+    dataset::{ArchivedEntityId, EdgeRowId, NodeRowId},
+    math::Vec2,
+    salt::fit::prepare::identity::IdentityTableArchive,
+};
 
 /// The translate endpoint's request cap.
 ///
@@ -34,14 +35,14 @@ const ENTITY_ID_DELIMITER: char = '~';
 /// constructs one value and the manifest publishes the same value, so enforcement and advertisement
 /// cannot disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct TranslateCaps {
+pub struct TranslateLimits {
     /// Most entity ids one request may carry.
     ///
     /// The manifest publishes this value as `limits.translateEntityIds`. Defaults to 1024.
     pub entity_ids: u32,
 }
 
-const impl Default for TranslateCaps {
+const impl Default for TranslateLimits {
     fn default() -> Self {
         Self { entity_ids: 1024 }
     }
@@ -89,11 +90,11 @@ pub struct TranslateRequest {
 
 /// A node's atlas identity.
 ///
-/// The row id every binary response speaks, plus the fitted wire-frame position.
+/// The row id every binary response uses, plus the node's position in the map's coordinate frame.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
 pub struct TranslatedNode {
     /// The node row id, the `ROW_IDS` domain.
-    pub id: u32,
+    pub id: WireRow<NodeRowId>,
     /// The wire-frame x coordinate, the `POSITIONS` domain.
     pub x: f32,
     /// The wire-frame y coordinate, the `POSITIONS` domain.
@@ -102,8 +103,8 @@ pub struct TranslatedNode {
 
 /// An edge's atlas identity: its endpoints' node row ids.
 ///
-/// An edge carries no wire id of its own - binary responses identify it by its link entity id,
-/// which the requester already holds - so translation answers the two dots it joins.
+/// An edge has no row id of its own - binary responses identify it by its link entity id, which
+/// the requester already holds - so translation answers the two points it joins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 pub struct TranslatedEdge {
     /// The source node row id, the `ROW_IDS` domain.
@@ -114,10 +115,10 @@ pub struct TranslatedEdge {
 
 /// The translate response.
 ///
-/// Two maps keyed by the requested id string echoed verbatim, so kind is carried by which map
-/// answers and correlation survives partial results.
+/// Two maps keyed by the requested id strings echoed verbatim, so which map answers carries the
+/// kind and lookups survive partial results.
 ///
-/// The maps iterate in key order, so identical requests yield identical response bytes.
+/// The maps serialize in key order, so identical requests yield identical response bytes.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
 pub struct TranslateResponse {
     /// Resolved nodes by requested id.
@@ -129,96 +130,118 @@ pub struct TranslateResponse {
 impl Atlas {
     /// Answers one translate request.
     ///
-    /// Upstream entity ids to atlas row ids, plus wire-frame positions for nodes.
+    /// Upstream entity ids to atlas row ids, plus wire-frame positions for nodes. The request is
+    /// consumed: each resolved id string moves into its response key, so translation allocates
+    /// nothing per id.
     ///
     /// # Errors
     ///
     /// Returns [`TranslateError::Ids`] when the request lists more entity ids than
-    /// `caps.entity_ids`.
+    /// `limits.entity_ids`.
     pub fn translate(
         &self,
-        request: &TranslateRequest,
-        caps: TranslateCaps,
+        request: TranslateRequest,
+        limits: TranslateLimits,
         proof: &VisibilityProof,
     ) -> Result<TranslateResponse, TranslateError> {
-        // NOTE: what in the... how many arguments in that?!
         translate(
             request,
-            caps,
+            limits,
             proof,
-            &self.node_ids,
-            &self.edge_ids,
-            self.positions(),
-            self.positions_of_row(),
-            self.endpoint_pairs(),
-            &self.node_codec,
+            &TranslateColumns {
+                node_ids: &self.node_ids,
+                edge_ids: &self.edge_ids,
+                positions: self.positions(),
+                position_of_row: self.positions_of_row(),
+                endpoints: self.endpoint_pairs(),
+                node_codec: &self.node_codec,
+            },
         )
     }
 }
 
-/// Resolves a request's ids against one generation's identity tables and fitted coordinates.
+/// One generation's translate inputs: the identity tables, fitted coordinates, and wire codec.
+pub(super) struct TranslateColumns<'generation> {
+    /// The node identity table.
+    pub node_ids: &'generation IdentityTableArchive<ArchivedEntityId>,
+    /// The edge identity table.
+    pub edge_ids: &'generation IdentityTableArchive<ArchivedEntityId>,
+    /// The wire-coordinate column, base order.
+    pub positions: &'generation [Vec2],
+    /// The position permutation, row order.
+    pub position_of_row: &'generation [u32],
+    /// The endpoint column: edge row to `[source, target]`.
+    pub endpoints: &'generation [[NodeRowId; 2]],
+    /// The node universe's wire row-id codec.
+    pub node_codec: &'generation RowCodec<NodeRowId>,
+}
+
+impl TranslateColumns<'_> {
+    /// Returns an edge's endpoint rows in the wire's `u32` domain.
+    ///
+    /// # Panics
+    ///
+    /// Panics beyond the domain, which the columns rule out: rows share the `u32` wire domain.
+    fn endpoint_rows(&self, edge: EdgeRowId) -> [NodeRowId; 2] {
+        self.endpoints[edge.usize()]
+    }
+}
+
+/// Resolves a request's ids against one generation's translate columns.
 ///
 /// Under the scope's visibility proof.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the parameters are one generation's column views, listed once at the one call site"
-)]
 pub(super) fn translate(
-    request: &TranslateRequest,
-    caps: TranslateCaps,
+    request: TranslateRequest,
+    limits: TranslateLimits,
     proof: &VisibilityProof,
-    node_ids: &IdentityTableArchive<ArchivedEntityId>,
-    edge_ids: &IdentityTableArchive<ArchivedEntityId>,
-    positions: &[Vec2],
-    position_of_row: &[u32],
-    endpoints: &[[u64; 2]],
-    node_codec: &RowCodec,
+    columns: &TranslateColumns<'_>,
 ) -> Result<TranslateResponse, TranslateError> {
-    if request.entity_ids.len() > caps.entity_ids as usize {
+    if request.entity_ids.len() > limits.entity_ids as usize {
         return Err(TranslateError::Ids {
             count: request.entity_ids.len(),
-            maximum: caps.entity_ids,
+            maximum: limits.entity_ids,
         });
     }
 
+    // Requests speak the upstream string form and response keys echo it verbatim - the parse
+    // boundary is the API contract, so resolution starts from the string, never a typed id.
     let mut nodes = BTreeMap::new();
     let mut edges = BTreeMap::new();
-    // NOTE: why are we acting on strings in this one? if the archive types should just implement
-    // serialize, or their def proxy?
-    for id_string in &request.entity_ids {
-        let Some(key) = parse(id_string) else {
+    for id_string in request.entity_ids {
+        let Some(key) = parse(&id_string) else {
             continue;
         };
 
-        if let Some(row) = node_ids.row_of(key) {
-            let row = u32::try_from(row).expect("node rows share the u32 row-id domain");
+        if let Some(row) = columns.node_ids.row_of(key) {
+            let row = NodeRowId::new(row);
             if proof.verify(row).is_none() {
                 // Hidden: an absent key, indistinguishable from nonexistent.
                 continue;
             }
 
-            let position = position_of_row[row as usize] as usize;
-            let point = positions[position];
+            let position = columns.position_of_row[row.usize()] as usize;
+            let point = columns.positions[position];
             nodes.insert(
-                id_string.clone(),
+                id_string,
                 TranslatedNode {
-                    id: node_codec.encode(row).get(),
+                    id: columns.node_codec.encode(row),
                     x: point.x(),
                     y: point.y(),
                 },
             );
-        } else if let Some(row) = edge_ids.row_of(key) {
-            let [source, target] = endpoints[usize::try_from(row).expect("edge rows fit usize")];
-            if !proof.edge_visible(narrow(source), narrow(target)) {
+        } else if let Some(row) = columns.edge_ids.row_of(key) {
+            let edge = EdgeRowId::new(row);
+            let [source, target] = columns.endpoint_rows(edge);
+            if !proof.edge_visible(source, target) {
                 // A hidden endpoint hides the edge: an absent key.
                 continue;
             }
 
             edges.insert(
-                id_string.clone(),
+                id_string,
                 TranslatedEdge {
-                    source: node_codec.encode(narrow(source)).get(),
-                    target: node_codec.encode(narrow(target)).get(),
+                    source: columns.node_codec.encode(source).get(),
+                    target: columns.node_codec.encode(target).get(),
                 },
             );
         } else {
@@ -246,12 +269,4 @@ pub(super) fn parse(id: &str) -> Option<ArchivedEntityId> {
         web_id: web_id.into(),
         entity_uuid: entity_uuid.into(),
     })
-}
-
-/// Returns one identity-table key's wire form: the web uuid then the entity uuid, raw bytes.
-///
-/// The `bstr(32)` shape entity ids take on the binary wire - the generation digest's untagged
-/// byte-string precedent, typed by its HEAD or trailer key rather than a CBOR tag.
-pub(super) fn identity_bytes(id: ArchivedEntityId) -> [u8; 32] {
-    zerocopy::transmute!(id) // NOTE: ??? why aren't you just using `ArchivedEntityId` on the wire?
 }

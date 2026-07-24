@@ -3,14 +3,16 @@
 use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{Json, extract::State, http::header};
 
-use super::AppState;
+use super::{AppState, headers};
 use crate::serve::GenerationId;
 
 /// The operation's description.
-const DESCRIPTION: &str = "The generation this process serves, pinned at startup. Re-read it \
-                           whenever any route answers an `unknown-generation` problem; every \
-                           other route's geometry and configuration are pinned per generation, \
-                           while detailed trailers hydrate live from the store.";
+const DESCRIPTION: &str = "Returns the generation this server serves, pinned at startup.
+
+Every other route's geometry and configuration are pinned per generation (detail trailers read \
+                           live store state); this pointer is the only read that changes. Re-read \
+                           it whenever any route answers `unknown-generation`, then retry against \
+                           the returned generation.";
 
 /// The `current` document: the one mutable read.
 #[derive(
@@ -24,7 +26,7 @@ struct CurrentResponse {
 /// `GET /v1/atlas/current`: the one mutable read.
 pub(super) async fn handler(State(state): State<AppState>) -> impl IntoApiResponse {
     (
-        [(header::CACHE_CONTROL, "private, no-cache")],
+        [(header::CACHE_CONTROL, headers::REVALIDATE)],
         Json(CurrentResponse {
             generation: state.atlas.generation(),
         }),
@@ -33,12 +35,19 @@ pub(super) async fn handler(State(state): State<AppState>) -> impl IntoApiRespon
 
 /// Documents the operation.
 pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
-    // NOTE: shouldn't we also document the headers we respond with? or is that not a thing?
     operation
         .id("current")
         .summary("The active generation")
         .description(DESCRIPTION)
-        .response_with::<200, Json<CurrentResponse>, _>(|response| {
+        .response_with::<200, Json<CurrentResponse>, _>(|mut response| {
+            response.inner().headers.insert(
+                "Cache-Control".to_owned(),
+                headers::cache_control(
+                    headers::REVALIDATE,
+                    "the one mutable read revalidates on every use - a stale pointer is exactly \
+                     the failure this route exists to prevent",
+                ),
+            );
             response.description("the generation this process serves")
         })
 }

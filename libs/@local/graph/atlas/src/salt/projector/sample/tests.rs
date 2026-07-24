@@ -1,6 +1,6 @@
 //! Certificates for the minibatch samplers.
 //!
-//! Distribution laws, per-type caps under skew, veto admission, and seeded reproducibility.
+//! Distribution laws, per-type limits under skew, veto admission, and seeded reproducibility.
 
 use core::num::NonZero;
 

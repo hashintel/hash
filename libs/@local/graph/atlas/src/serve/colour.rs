@@ -1,16 +1,19 @@
-//! Type coloring.
+//! Type colouring.
 //!
 //! Resolving `coloredTypeIds` to per-type memberships with descendant expansion, the `TYPE_MASK`
 //! column's serving source.
 //!
-//! Each requested id is a user-facing versioned type URL. Resolution is pinned to the generation's
-//! snapshot: the URL derives its ontology uuid, the uuid joins the generation's ontology identity
-//! table, and the resulting row names a closure-map row whose set bits are every type the request
-//! matches - the type itself and all its descendants. The tile path never consults the live store.
+//! Each requested id arrives as a [`VersionedUrl`] - the transport parses the request body, so a
+//! malformed entry is rejected before assembly begins. [`Palette::of`] derives each entry's
+//! ontology identity once at the assembly boundary, and everything after it carries those
+//! trivially copyable identities. Resolution is pinned to the generation's snapshot: the identity
+//! joins the generation's ontology identity table, and the resulting row names a closure-map row
+//! whose set bits are every type the request matches - the type itself and all its descendants.
+//! The tile path never consults the live store.
 //!
-//! Failure to resolve is legal at every step - an unparsable URL, a corpus whose ontology ids are
-//! not store identities, a uuid this generation never ingested - and reads as zero bits in every
-//! point's mask, never as an error.
+//! Failure to resolve stays legal: a well-formed id this generation never ingested - a client
+//! ontology newer than the snapshot, a corpus whose ontology ids are not store identities -
+//! reads as zero bits in every point's mask, never as an error.
 
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 
@@ -22,6 +25,44 @@ use crate::{
         postings::{artifact::PostingsArchive, closure::ClosureMap},
     },
 };
+
+/// One request's colour palette: the `coloredTypeIds` entries as ontology identities.
+///
+/// Slot order is the request's: `TYPE_MASK` bit `i`, mask source `i`, and palette slot `i` are
+/// one request entry.
+#[derive(Debug)]
+pub(super) struct Palette {
+    entries: Vec<ArchivedOntologyTypeUuid>,
+}
+
+impl Palette {
+    /// Derives the palette of the request's ids, one slot per entry.
+    pub(super) fn of(ids: &[VersionedUrl]) -> Self {
+        Self {
+            entries: ids.iter().map(identity_of).collect(),
+        }
+    }
+
+    /// Returns whether the palette carries no entry.
+    pub(super) const fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Returns whether `url` names a palette entry.
+    ///
+    /// Comparison is by parsed ontology identity - any spelling that names the same versioned
+    /// type covers it, matching the mask resolution's own parse. An unparsable `url` is covered
+    /// by nothing.
+    pub(super) fn covers(&self, url: &str) -> bool {
+        url.parse::<VersionedUrl>()
+            .is_ok_and(|url| self.entries.contains(&identity_of(&url)))
+    }
+}
+
+/// Derives a versioned type URL's ontology identity.
+fn identity_of(url: &VersionedUrl) -> ArchivedOntologyTypeUuid {
+    ArchivedOntologyTypeUuid::from(OntologyTypeUuid::from_url(url).into_uuid())
+}
 
 /// The mask sources of one request's `coloredTypeIds`, in request order.
 ///
@@ -69,40 +110,37 @@ impl MaskSet {
 }
 
 impl Atlas {
-    /// Resolves one request's `coloredTypeIds` into mask sources, in request order.
-    pub(super) fn resolve_masks(&self, ids: &[String]) -> MaskSet {
-        resolve_masks(&self.postings, &self.closure, &self.ontology_ids, ids)
+    /// Resolves one request's palette into mask sources, in slot order.
+    pub(super) fn resolve_masks(&self, palette: &Palette) -> MaskSet {
+        resolve_masks(&self.postings, &self.closure, &self.ontology_ids, palette)
     }
 }
 
-/// Resolves a request's ids against one generation's postings.
+/// Resolves a palette against one generation's postings.
 ///
-/// Closure map, and ontology identities, in request order.
+/// Closure map, and ontology identities, in slot order.
 pub(super) fn resolve_masks(
     postings: &PostingsArchive,
     closure: &ClosureMap,
     table: &IdentityTableArchive<ArchivedOntologyTypeUuid>,
-    ids: &[String],
+    palette: &Palette,
 ) -> MaskSet {
     MaskSet {
-        sources: ids
+        sources: palette
+            .entries
             .iter()
-            .map(|id| resolve_mask(postings, closure, table, id))
+            .map(|&key| resolve_mask(postings, closure, table, key))
             .collect(),
     }
 }
 
-/// Resolves one requested id: URL to uuid to ontology row to the closure row's membership union.
+/// Resolves one palette identity: ontology row to the closure row's membership union.
 fn resolve_mask(
     postings: &PostingsArchive,
     closure: &ClosureMap,
     table: &IdentityTableArchive<ArchivedOntologyTypeUuid>,
-    id: &str,
+    key: ArchivedOntologyTypeUuid,
 ) -> MaskSource {
-    let Ok(url) = id.parse::<VersionedUrl>() else {
-        return MaskSource::Unresolved;
-    };
-    let key = ArchivedOntologyTypeUuid::from(OntologyTypeUuid::from_url(&url).into_uuid());
     let Some(row) = table.row_of(key) else {
         return MaskSource::Unresolved;
     };
