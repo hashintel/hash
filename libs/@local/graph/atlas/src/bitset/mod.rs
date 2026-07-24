@@ -8,11 +8,15 @@
 //!
 //! Both types carry an allocator parameter defaulting to [`Global`]: `new` allocates globally,
 //! `new_in` places the words in a caller-supplied allocator.
+// TODO: rename module to bit or bits
 
 use std::alloc::{Allocator, Global};
 
+// mod compress;
+// mod matrix;
 #[cfg(test)]
 mod tests;
+// mod vec;
 
 /// Bits per storage word.
 const WORD: usize = u64::BITS as usize;

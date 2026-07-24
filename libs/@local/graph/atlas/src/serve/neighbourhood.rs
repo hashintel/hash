@@ -83,9 +83,14 @@ impl<'atlas> Neighbourhood<'atlas> {
     ///
     /// Panics when `source` lies outside the adjacency's node domain, which resolution rules out.
     pub(super) fn incident(&self, node: NodeRowId) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
-        let expect = "resolved sources lie inside the adjacency's node domain";
-        let outgoing = self.adjacency.outgoing(node).expect(expect);
-        let incoming = self.adjacency.incoming(node).expect(expect);
+        let outgoing = self
+            .adjacency
+            .outgoing(node)
+            .expect("resolved sources lie inside the adjacency's node domain");
+        let incoming = self
+            .adjacency
+            .incoming(node)
+            .expect("resolved sources lie inside the adjacency's node domain");
 
         let incident = outgoing.iter().chain(
             incoming
@@ -113,11 +118,13 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// endpoint test is the whole visibility rule.
     pub(super) fn induced(&self, delivered: &BitSet) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
         let mut edges = Vec::new();
+
         for row in delivered.iter() {
             let outgoing = self
                 .adjacency
                 .outgoing(NodeRowId::from_index(row))
                 .expect("delivered rows lie inside the adjacency's node domain");
+
             for edge in outgoing.iter() {
                 let [_, target] = self.endpoints[edge.usize()];
 
@@ -162,6 +169,7 @@ impl<'atlas> Neighbourhood<'atlas> {
             .drain(..)
             .map(|entry| (self.worse_rank(entry.0), entry))
             .collect();
+
         // Partitioning at `cap - 1` places the cap smallest keys - a
         // total order, since link identities are distinct - in the
         // head.

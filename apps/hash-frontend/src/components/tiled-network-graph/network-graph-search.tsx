@@ -38,15 +38,15 @@ import {
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryEntitiesQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { ArrowRightToLineIcon } from "../../../shared/icons/arrow-right-to-line-icon";
-import { SearchIcon } from "../../../shared/icons/search-icon";
-import { MenuItem } from "../../../shared/ui/menu-item";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { ArrowRightToLineIcon } from "../../shared/icons/arrow-right-to-line-icon";
+import { SearchIcon } from "../../shared/icons/search-icon";
+import { MenuItem } from "../../shared/ui/menu-item";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
-} from "../../../graphql/api-types.gen";
+} from "../../graphql/api-types.gen";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
@@ -62,17 +62,22 @@ const PANEL_WIDTH = 340;
 const PANEL_HEIGHT = 82;
 
 /**
- * The open widget layers relative to the selection popover's fixed ds `popover`
- * z-index. Which sits on top follows the last thing the user actioned (see the
- * `elevated` prop): focusing the widget raises it above the popover; selecting
- * an item drops it below so the popover shows on top. The results dropdown
- * always sits one step above the panel so it isn't clipped behind it. Collapsed,
- * the button stays below the popover regardless (its z-index is a plain `1`).
+ * The open widget layers around the selection popover, which sits at a
+ * deliberately low base z-index (see `SELECTION_POPOVER_Z_INDEX`) so it — and
+ * this widget with it — stay below app overlays like the entity drawer. Which of
+ * the two is on top follows the last thing the user actioned (see the `elevated`
+ * prop): focusing the widget raises it above the popover; selecting an item
+ * drops it below so the popover shows on top. The results dropdown always sits
+ * one step above the panel so it isn't clipped behind it. Collapsed, the button
+ * stays below the popover regardless (its z-index is a plain `1`).
+ *
+ * Kept in step with the selection popover's z-index (`LocatedEntityPopover`).
  */
-const PANEL_Z_ABOVE_POPOVER = "calc(var(--z-index-popover) + 1)";
-const PANEL_Z_BELOW_POPOVER = "calc(var(--z-index-popover) - 2)";
-const RESULTS_Z_ABOVE_POPOVER = "calc(var(--z-index-popover) + 2)";
-const RESULTS_Z_BELOW_POPOVER = "calc(var(--z-index-popover) - 1)";
+const SELECTION_POPOVER_Z_INDEX = 50;
+const PANEL_Z_ABOVE_POPOVER = SELECTION_POPOVER_Z_INDEX + 1;
+const PANEL_Z_BELOW_POPOVER = SELECTION_POPOVER_Z_INDEX - 2;
+const RESULTS_Z_ABOVE_POPOVER = SELECTION_POPOVER_Z_INDEX + 2;
+const RESULTS_Z_BELOW_POPOVER = SELECTION_POPOVER_Z_INDEX - 1;
 
 /**
  * The properties {@link generateEntityLabel} most commonly derives a label from —
@@ -113,12 +118,19 @@ export interface NetworkGraphSearchResult {
 
 export const NetworkGraphSearch = ({
   onSelect,
+  onHover,
   onResultsChange,
   popperContainer,
   elevated = true,
   onActivate,
 }: {
   onSelect: (result: NetworkGraphSearchResult) => void;
+  /**
+   * Called with the result the user is currently highlighting in the dropdown (by
+   * hover or keyboard), or `null` when none is. Lets the parent preview a result —
+   * e.g. lighting up its node in the graph — before it's picked.
+   */
+  onHover?: (result: NetworkGraphSearchResult | null) => void;
   /**
    * Called with the current result set whenever it changes (empty when the query
    * clears). Lets the parent prefetch each result's locate ego-graph so a later
@@ -285,8 +297,7 @@ export const NetworkGraphSearch = ({
         top: 8,
         left: 8,
         // Collapsed, the button stays below the selection popover; open, it
-        // layers above or below it by recency (see `elevated`). The token
-        // resolves here as it's emitted at `:root`.
+        // layers above or below it by recency (see `elevated`).
         zIndex: open ? openPanelZIndex : 1,
         overflow: "hidden",
         background: palette.white,
@@ -406,7 +417,13 @@ export const NetworkGraphSearch = ({
             isOptionEqualToValue={(option, value) =>
               option.entityId === value.entityId
             }
-            ListboxProps={{ sx: { maxHeight: 240 } }}
+            ListboxProps={{
+              sx: { maxHeight: 240 },
+              // `onHighlightChange` only clears (fires `null`) when the popup
+              // closes or another option is highlighted, not when the pointer
+              // leaves the list while it stays open — so clear the preview here.
+              onMouseLeave: () => onHover?.(null),
+            }}
             loading={loading}
             onChange={(_event, option) => {
               setSelected(option);
@@ -414,6 +431,7 @@ export const NetworkGraphSearch = ({
                 onSelect(option);
               }
             }}
+            onHighlightChange={(_event, option) => onHover?.(option)}
             onInputChange={(_event, value, reason) => {
               setInputValue(value);
               if (reason === "input") {

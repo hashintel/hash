@@ -1,10 +1,10 @@
 /**
  * The Atlas-tiled network graph view for the entities visualizer.
  *
- * Mirrors the `network-graph-tiling` Ladle story: the live deck.gl camera drives
- * a tiling {@link Viewport}, which {@link useGetViewportNodes} turns into the set
- * of nodes on screen — fetching the quadtree tiles it covers through a persistent,
- * distance-evicting cache and returning the merged nodes plus request state.
+ * The live deck.gl camera drives a tiling {@link Viewport}, which
+ * {@link useGetViewportNodes} turns into the set of nodes on screen — fetching
+ * the quadtree tiles it covers through a persistent, distance-evicting cache and
+ * returning the merged nodes plus request state.
  *
  * Tiles are fetched from the `hash-graph atlas` server via the `/atlas-api`
  * Next.js rewrite (see `next.config.js`), which proxies to it same-origin so the
@@ -14,48 +14,72 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
   LoadingSpinner,
 } from "@hashintel/design-system";
 import {
-  fetchLocate,
-  iconNameFromEntityIcon,
-  LocatedEntityPopover,
   NetworkGraph,
   PortalContainerContext,
-  useGetViewportNodes,
-  WORLD_SIZE,
-  type LocatedEntity,
-  type LocatedEntityDetail,
-  type LocatedEntityPopoverAnchor,
+  type IconName,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphSelection,
+} from "@hashintel/ds-components";
+import {
+  formatDataValue,
+  type FormattedValuePart,
+  type MergedDataTypeSingleSchema,
+} from "@local/hash-isomorphic-utils/data-types";
+
+import { iconNameFromEntityIcon } from "../../../components/tiled-network-graph/entity-icon-name";
+import {
+  LocatedEntityPopover,
+  type LocatedEntityDetail,
+  type LocatedEntityEndpoint,
+  type LocatedEntityIcon,
+  type LocatedEntityPopoverAnchor,
+  type LocatedEntityTypeChip,
+} from "../../../components/tiled-network-graph/located-entity-popover";
+import { NetworkGraphSearch } from "../../../components/tiled-network-graph/network-graph-search";
+import {
+  fetchLocate,
+  type LocatedEntity,
+  type LocateEdge,
+  type SaltileProperties,
   type SaltilePropertyValue,
+} from "../../../components/tiled-network-graph/tiling/fetch-locate";
+import {
+  useGetViewportNodes,
+  WORLD_SIZE,
   type Viewport,
   type ViewportEdge,
   type ViewportNode,
-} from "@hashintel/ds-components";
-
+} from "../../../components/tiled-network-graph/tiling/use-get-viewport-nodes";
+import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { MinusRegularIcon } from "../../../shared/icons/minus-regular";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
+import { usePropertyTypes } from "../../../shared/property-types-context";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
-import { NetworkGraphSearch } from "./network-graph-search";
 import {
   resolveTypeColor,
   typeColorRanks,
   unassignedTypeColor,
 } from "./shared/type-colors";
 
-import type { NetworkGraphSearchResult } from "./network-graph-search";
+import type { NetworkGraphSearchResult } from "../../../components/tiled-network-graph/network-graph-search";
 import type { TypeColorOverrides } from "./shared/type-colors";
 import type { AvailableType } from "./shared/use-available-types";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * Same-origin path the view fetches tiles from. The `/atlas-api` rewrite in
@@ -70,6 +94,11 @@ const MAX_DEPTH = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
+ * Delay (ms) after a node hover before prefetching its ego-graph, so a pointer
+ * skimming across nodes doesn't fire a locate per node.
+ */
+const HOVER_LOCATE_DELAY_MS = 300;
+/**
  * Camera max-zoom (absolute orthographic zoom, `2 ** zoom` px per world unit). A
  * cell is one world unit — a depth-16 tile, the finest the quadtree addresses. We
  * cap where one screen dimension shows `max(width, height) / 100` cells, which
@@ -79,14 +108,6 @@ const MAX_ZOOM = Math.log2(100);
 
 /** Slack when comparing the live zoom against a limit, to absorb float drift. */
 const ZOOM_LIMIT_EPSILON = 1e-3;
-
-/**
- * Absolute camera zoom at/above which the graph switches to its detailed view
- * (icons + label pills), so the view requests detailed tile data to label those
- * nodes. `NetworkGraph` flips to detailed at `maxZoom − 0.5`; matching that here
- * lands the labelled data as the detailed rendering takes over.
- */
-const DETAIL_ZOOM = MAX_ZOOM - 0.5;
 
 const zoomButtonSx = {
   background: "rgba(107, 114, 128, 0.16)",
@@ -186,12 +207,18 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
-const toPoint = (node: ViewportNode, color: string): NetworkGraphPoint => {
+const toPoint = (
+  node: ViewportNode,
+  color: string,
+  iconName?: IconName,
+): NetworkGraphPoint => {
   // `label`/`icon` arrive only for tiles fetched with detailed data (the
   // detailed view). The graph draws the label in a pill beneath the node and the
-  // icon inside it; the entity's icon value resolves to a ds icon name. `color`
-  // comes from the type filter's per-type palette, keyed by the node's type.
-  const icon = iconNameFromEntityIcon(node.icon);
+  // icon inside it. Located nodes carry no icon of their own, so the caller
+  // resolves one from the node's type and passes it as `iconName`; tile nodes
+  // fall back to their own icon value resolved to a ds icon name. `color` comes
+  // from the type filter's per-type palette, keyed by the node's type.
+  const icon = iconName ?? iconNameFromEntityIcon(node.icon);
   return {
     id: node.id,
     x: node.x,
@@ -202,11 +229,19 @@ const toPoint = (node: ViewportNode, color: string): NetworkGraphPoint => {
   };
 };
 
-const toEdge = (edge: ViewportEdge): NetworkGraphEdge => ({
-  id: edge.id,
-  fromId: edge.source,
-  toId: edge.target,
-});
+/**
+ * An entity/type icon value the popover and edge-label pill render as text: the
+ * value as-is when it is an emoji, or `undefined` when it is a `/path`/`https`
+ * URL to an SVG (which those text surfaces can't draw — nodes resolve those to a
+ * ds icon via {@link iconNameFromEntityIcon} instead).
+ */
+const emojiFromEntityIcon = (icon: string | undefined): string | undefined =>
+  icon !== undefined &&
+  !icon.startsWith("/") &&
+  !icon.startsWith("http://") &&
+  !icon.startsWith("https://")
+    ? icon
+    : undefined;
 
 /**
  * Last meaningful path segment of a property base URL, for the popover — e.g.
@@ -217,9 +252,24 @@ const shortPropName = (url: string): string => {
   return segments[segments.length - 1] ?? url;
 };
 
-/** A located property value rendered for the popover; `null` reads as an em dash. */
-const formatPropValue = (value: SaltilePropertyValue): string =>
-  value === null ? "—" : String(value);
+/**
+ * A located property value styled as the entity drawer's property table renders
+ * it: {@link formatDataValue} produces the same coloured runs (booleans as
+ * `True`/`False`, `null` as `Null`). The Atlas wire carries no data-type
+ * metadata, so the schema is synthesised from the value's primitive type — no
+ * unit labels resolve, but the styling matches.
+ */
+const formatPropValue = (value: SaltilePropertyValue): FormattedValuePart[] => {
+  const schema: MergedDataTypeSingleSchema =
+    value === null
+      ? { type: "null", description: "" }
+      : typeof value === "boolean"
+        ? { type: "boolean", description: "" }
+        : typeof value === "number"
+          ? { type: "number", description: "" }
+          : { type: "string", description: "" };
+  return formatDataValue(value, schema);
+};
 
 /**
  * A stable, non-negative hash of a node id. Used to seed the per-node colour
@@ -261,10 +311,11 @@ const pickTypeIndex = (
   return pool[hashSeed(seed) % pool.length];
 };
 
-/** The located item the popover shows, plus the world point "Go to entity" reveals. */
+/** The located item the popover shows, plus the entity "Go to entity" opens. */
 interface Selection {
   readonly detail: LocatedEntityDetail;
-  readonly focus: readonly [number, number];
+  /** The upstream entity id (a link entity's, for an edge) the drawer opens. */
+  readonly entityId: EntityId;
 }
 
 /**
@@ -286,13 +337,72 @@ interface Selection {
 export const NetworkGraphView = ({
   availableEntityTypes,
   typeColorOverrides,
+  onOpenEntity,
 }: {
   /** Types shown in the filter dropdown; position drives the default palette. */
   availableEntityTypes: AvailableType[];
   /** The user's per-type colour choices from the filter dropdown. */
   typeColorOverrides: TypeColorOverrides;
+  /** Opens the entity drawer for an entity — the popover's "Go to entity". */
+  onOpenEntity?: (entityId: EntityId) => void;
 }) => {
   const theme = useTheme();
+
+  // In-memory type + property metadata (the entity and property types the app
+  // has already loaded). The locate/edges APIs now ship only type ids and
+  // property base URLs; the type label, type icon and property titles they used
+  // to carry pre-resolved are looked up here instead.
+  const { entityTypes } = useEntityTypesContextRequired();
+  const { propertyTypes } = usePropertyTypes();
+
+  // Entity type id → { title, icon }, indexed by versioned URL with a base-URL
+  // fallback so a type id at a slightly different version than the one held in
+  // memory still resolves. Link types are entity types too, so this also covers
+  // the types of edges.
+  const typeMetadata = useMemo(() => {
+    const byVersioned = new Map<
+      VersionedUrl,
+      { title: string; icon?: string }
+    >();
+    const byBase = new Map<BaseUrl, { title: string; icon?: string }>();
+    for (const { schema } of entityTypes ?? []) {
+      const meta = {
+        title: schema.title,
+        ...(schema.icon !== undefined ? { icon: schema.icon } : {}),
+      };
+      byVersioned.set(schema.$id, meta);
+      byBase.set(extractBaseUrl(schema.$id), meta);
+    }
+    return { byVersioned, byBase };
+  }, [entityTypes]);
+
+  const resolveTypeMeta = useCallback(
+    (
+      typeId: VersionedUrl | undefined,
+    ): { title: string; icon?: string } | undefined => {
+      if (typeId === undefined) {
+        return undefined;
+      }
+      return (
+        typeMetadata.byVersioned.get(typeId) ??
+        typeMetadata.byBase.get(extractBaseUrl(typeId))
+      );
+    },
+    [typeMetadata],
+  );
+
+  // Property base URL → title, for the popover's property rows (the wire keys a
+  // located entity's properties by base URL).
+  const propertyTitleByBaseUrl = useMemo(() => {
+    const map = new Map<BaseUrl, string>();
+    for (const propertyType of Object.values(propertyTypes ?? {})) {
+      map.set(
+        propertyType.metadata.recordId.baseUrl,
+        propertyType.schema.title,
+      );
+    }
+    return map;
+  }, [propertyTypes]);
 
   // The types with a distinct colour in the filter dropdown — the only types
   // worth sending to the tile API (the rest render grey). The default colour set
@@ -352,23 +462,65 @@ export const NetworkGraphView = ({
     [coloredTypeColors],
   );
 
-  // Type title per entity type id, for the located-entity popover's type chip.
-  const typeTitleById = useMemo(() => {
-    const map = new Map<VersionedUrl, string>();
-    for (const type of availableEntityTypes) {
-      map.set(type.entityTypeId, type.title);
-    }
-    return map;
-  }, [availableEntityTypes]);
+  // The type id whose icon represents a node: the same coloured type its chip
+  // and colour were sampled from (so icon, chip and node colour agree), falling
+  // back to the node's first direct type when it matches none of the coloured
+  // types.
+  const primaryTypeId = useCallback(
+    (
+      typeIndices: readonly number[] | undefined,
+      typeId: VersionedUrl | undefined,
+      seed: number | string,
+    ): VersionedUrl | undefined => {
+      const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
+      return (
+        (index !== undefined ? coloredTypeIds[index] : undefined) ?? typeId
+      );
+    },
+    [coloredTypeIds, coloredTypeColors],
+  );
 
-  // The popover type chip for a node: the title + colour of the same type its
-  // node colour was sampled from (so chip and node agree), or `undefined` when
-  // the node matches none of the coloured types.
+  // The ds icon for a node, resolved from its type's icon in memory (the wire no
+  // longer ships a per-node icon). Drawn inside the node in the detailed view;
+  // only SVG-path type icons map to a ds glyph.
+  const nodeIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): IconName | undefined =>
+      iconNameFromEntityIcon(resolveTypeMeta(typeId)?.icon),
+    [resolveTypeMeta],
+  );
+
+  // The emoji leading a located item's popover, resolved from its type's icon.
+  const emojiIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): string | undefined =>
+      emojiFromEntityIcon(resolveTypeMeta(typeId)?.icon),
+    [resolveTypeMeta],
+  );
+
+  // A type's popover chip icon: its emoji, or the ds glyph its SVG icon resolves
+  // to (mutually exclusive — see `LocatedEntityIcon`). Undefined when neither.
+  const typeIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): LocatedEntityIcon | undefined => {
+      const emoji = emojiIconFor(typeId);
+      const name = nodeIconFor(typeId);
+      if (emoji === undefined && name === undefined) {
+        return undefined;
+      }
+      return {
+        ...(emoji !== undefined ? { emoji } : {}),
+        ...(name !== undefined ? { name } : {}),
+      };
+    },
+    [emojiIconFor, nodeIconFor],
+  );
+
+  // The popover type chip for a node: the type's icon + title (from memory) +
+  // colour of the same type its node colour was sampled from (so chip and node
+  // agree), or `undefined` when the node matches none of the coloured types.
   const typeChipForIndices = useCallback(
     (
       typeIndices: readonly number[] | undefined,
       seed: number | string,
-    ): LocatedEntityDetail["type"] => {
+    ): LocatedEntityTypeChip | undefined => {
       const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
       if (index === undefined) {
         return undefined;
@@ -377,12 +529,114 @@ export const NetworkGraphView = ({
       if (entityTypeId === undefined) {
         return undefined;
       }
+      const icon = typeIconFor(entityTypeId);
       return {
-        label: typeTitleById.get(entityTypeId) ?? entityTypeId,
+        label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
         color: coloredTypeColors[index] ?? unassignedTypeColor,
+        ...(icon !== undefined ? { icon } : {}),
       };
     },
-    [coloredTypeIds, coloredTypeColors, typeTitleById],
+    [coloredTypeIds, coloredTypeColors, resolveTypeMeta, typeIconFor],
+  );
+
+  // A located endpoint node → the edge popover's from/to entry: the entity's
+  // label plus its primary type's icon (the same type its node colour and icon
+  // are sampled from) as an emoji or a ds glyph. Falls back to a label-only
+  // entry keyed by the endpoint's row id when the node isn't in the subgraph.
+  const endpointFor = useCallback(
+    (
+      node: LocatedEntity["nodes"][number] | undefined,
+      fallbackId: string | number,
+    ): LocatedEntityEndpoint => {
+      if (!node) {
+        return { label: `Node ${fallbackId}` };
+      }
+      const typeId = primaryTypeId(node.typeIndices, node.typeId, node.id);
+      const emoji = emojiIconFor(typeId);
+      const name = nodeIconFor(typeId);
+      const icon = {
+        ...(emoji !== undefined ? { emoji } : {}),
+        ...(name !== undefined ? { name } : {}),
+      };
+      return {
+        label: node.label ?? `Node ${node.id}`,
+        ...(emoji !== undefined || name !== undefined ? { icon } : {}),
+      };
+    },
+    [primaryTypeId, emojiIconFor, nodeIconFor],
+  );
+
+  // The pill text drawn on an edge while hovered/selected: the link type's icon
+  // + label resolved from memory, falling back to the link entity's own label.
+  const edgeLabelFor = useCallback(
+    (
+      typeId: VersionedUrl | undefined,
+      fallback: string | undefined,
+    ): string | undefined => {
+      const meta = resolveTypeMeta(typeId);
+      if (meta === undefined) {
+        return fallback;
+      }
+      const emoji = emojiFromEntityIcon(meta.icon);
+      return emoji !== undefined ? `${emoji} ${meta.title}` : meta.title;
+    },
+    [resolveTypeMeta],
+  );
+
+  // Popover property rows: the property title (from memory, keyed by base URL)
+  // and its formatted value, falling back to the base URL's last segment.
+  const propertyRows = useCallback(
+    (
+      properties: SaltileProperties | null | undefined,
+    ): LocatedEntityDetail["properties"] =>
+      Object.entries(properties ?? {}).map(([baseUrl, value]) => ({
+        key:
+          propertyTitleByBaseUrl.get(baseUrl as BaseUrl) ??
+          shortPropName(baseUrl),
+        value: formatPropValue(value),
+      })),
+    [propertyTitleByBaseUrl],
+  );
+
+  // A tile edge → a renderable edge, carrying the type icon + label for its pill.
+  const toEdge = useCallback(
+    (edge: ViewportEdge): NetworkGraphEdge => {
+      const label = edgeLabelFor(edge.typeId, edge.label);
+      return {
+        id: edge.id,
+        fromId: edge.source,
+        toId: edge.target,
+        ...(label !== undefined ? { label } : {}),
+      };
+    },
+    [edgeLabelFor],
+  );
+
+  // A located edge → a renderable edge; its type comes from the located link's
+  // first type (locate ships a link's full type list).
+  const toLocatedEdge = useCallback(
+    (edge: LocateEdge): NetworkGraphEdge => {
+      const label = edgeLabelFor(edge.typeIds[0], edge.label);
+      return {
+        id: edge.id,
+        fromId: edge.source,
+        toId: edge.target,
+        ...(label !== undefined ? { label } : {}),
+      };
+    },
+    [edgeLabelFor],
+  );
+
+  // A located node → a renderable point, with its icon resolved from its type
+  // (located nodes carry no icon of their own).
+  const toLocatedPoint = useCallback(
+    (node: LocatedEntity["nodes"][number], color: string): NetworkGraphPoint =>
+      toPoint(
+        node,
+        color,
+        nodeIconFor(primaryTypeId(node.typeIndices, node.typeId, node.id)),
+      ),
+    [nodeIconFor, primaryTypeId],
   );
 
   const frameRef = useRef<HTMLDivElement>(null);
@@ -391,13 +645,23 @@ export const NetworkGraphView = ({
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const boundsRef = useRef<Bounds | null>(null);
   const timerRef = useRef<number | undefined>(undefined);
+  // The pending hover→locate delay timer, and a sequence bumped on every node
+  // hover so a stale locate can't clear the spinner for a newer (or ended) hover.
+  const hoverLocateTimerRef = useRef<number | undefined>(undefined);
+  const hoverLocateSeqRef = useRef(0);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
-  const [detailed, setDetailed] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   // The graph opens fully framed out, so zoom-out starts at its limit.
   const [zoomLimits, setZoomLimits] = useState({ atMin: true, atMax: false });
+  // The label of the node currently under the pointer, shown in a subtle box in
+  // the top-right corner. Null when the pointer is over empty space or a node
+  // without a label.
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  // Whether the hovered node's ego-graph prefetch is in flight — drives a small
+  // spinner in the label box, from hover start until the locate settles.
+  const [hoverLocateLoading, setHoverLocateLoading] = useState(false);
 
   // What's highlighted (a clicked or searched node's located neighbourhood, or a
   // clicked edge), the selection's live on-screen anchor (re-reported on
@@ -405,6 +669,13 @@ export const NetworkGraphView = ({
   const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
   const [anchor, setAnchor] = useState<LocatedEntityPopoverAnchor | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
+  // A search result the user is hovering (not yet picked): its located ego-graph,
+  // handed to the graph as `hoveredByExternal` so the matching node lights up with
+  // the hover treatment. Cleared when the hover ends or a pick is made.
+  const [hoveredByExternal, setHoveredByExternal] =
+    useState<NetworkGraphSelection | null>(null);
+  // Bumped on every hover change so a slow earlier locate can't land over a newer one.
+  const hoverSeqRef = useRef(0);
   // Which overlay wins the z-order when both the search widget and a selection
   // popover are visible: whichever the user actioned last. Selecting an item
   // drops the widget below the popover; focusing/opening the widget raises it
@@ -438,9 +709,21 @@ export const NetworkGraphView = ({
     };
   }, []);
 
+  // Cancel any pending hover→locate delay when the view unmounts.
+  useEffect(
+    () => () => {
+      if (hoverLocateTimerRef.current !== undefined) {
+        window.clearTimeout(hoverLocateTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const { data, isError, error } = useGetViewportNodes(viewport, {
     baseUrl: ATLAS_PROXY_BASE,
-    includeDetailedData: detailed,
+    // Always fetch labelled (and icon-ed) tile data, so every visible node is
+    // labelled regardless of zoom rather than only in the detailed view.
+    includeDetailedData: true,
     coloredTypeIds,
   });
 
@@ -452,7 +735,7 @@ export const NetworkGraphView = ({
     [data, colorForTypeIndices],
   );
 
-  const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data]);
+  const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data, toEdge]);
 
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
@@ -473,13 +756,9 @@ export const NetworkGraphView = ({
       window.clearTimeout(timerRef.current);
     }
     timerRef.current = window.setTimeout(() => {
-      const camera = cameraRef.current;
-      setViewport(deriveViewport(camera, sizeRef.current, boundsRef.current));
-      // Cross into detailed data on the same threshold the graph uses to switch
-      // to its detailed rendering, so nodes are labelled (and icon-ed) as the
-      // detailed view takes over. The whole descent — target tiles and their
-      // in-view ancestors — refetches detailed so every visible node is labelled.
-      setDetailed(camera.zoom !== null && camera.zoom >= DETAIL_ZOOM);
+      setViewport(
+        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
+      );
     }, DEBOUNCE_MS);
   }, []);
 
@@ -538,50 +817,68 @@ export const NetworkGraphView = ({
     [coloredTypeIds],
   );
 
-  // Overlay a located ego-graph (its source node, incident edges, and
-  // neighbours) as the selection and populate the detail popover — shared by
-  // node clicks and search-result picks. Returns the source's world point (a
-  // fly-to target) or null when the response carried no source.
-  const showLocatedEntity = useCallback(
-    (entity: LocatedEntity): readonly [number, number] | null => {
+  // Build a located ego-graph (its source node, incident edges, and neighbours)
+  // as a graph selection overlay — shared by the click/pick selection and the
+  // search-hover preview. Null when the response carried no source node.
+  const locatedNodeSelection = useCallback(
+    (entity: LocatedEntity): NetworkGraphSelection | null => {
       const [source, ...neighbours] = entity.nodes;
       if (!source) {
         return null;
       }
-      setSelected({
+      return {
         node: {
-          point: toPoint(
+          point: toLocatedPoint(
             source,
             colorForTypeIndices(source.typeIndices, source.id),
           ),
-          edges: entity.edges.map(toEdge),
+          edges: entity.edges.map(toLocatedEdge),
           neighbours: neighbours.map((neighbour) =>
-            toPoint(
+            toLocatedPoint(
               neighbour,
               colorForTypeIndices(neighbour.typeIndices, neighbour.id),
             ),
           ),
         },
-      });
+      };
+    },
+    [colorForTypeIndices, toLocatedPoint, toLocatedEdge],
+  );
+
+  // Overlay a located ego-graph as the selection and populate the detail popover
+  // — shared by node clicks and search-result picks. Returns the source's world
+  // point (a fly-to target) or null when the response carried no source.
+  const showLocatedEntity = useCallback(
+    (entity: LocatedEntity): readonly [number, number] | null => {
+      const nodeSelection = locatedNodeSelection(entity);
+      const source = entity.nodes[0];
+      if (!nodeSelection || !source) {
+        return null;
+      }
+      setSelected(nodeSelection);
       const type = typeChipForIndices(source.typeIndices, source.id);
+      const icon = emojiIconFor(
+        primaryTypeId(source.typeIndices, source.typeId, source.id),
+      );
       setSelection({
         detail: {
           kind: "node",
           title: source.label ?? `Node ${source.id}`,
-          ...(source.icon !== undefined ? { icon: source.icon } : {}),
+          ...(icon !== undefined ? { icon } : {}),
           ...(type !== undefined ? { type } : {}),
-          properties: Object.entries(source.properties ?? {}).map(
-            ([key, value]) => ({
-              key: shortPropName(key),
-              value: formatPropValue(value),
-            }),
-          ),
+          properties: propertyRows(source.properties),
         },
-        focus: [source.x, source.y],
+        entityId: entity.entityId,
       });
       return [source.x, source.y];
     },
-    [colorForTypeIndices, typeChipForIndices],
+    [
+      locatedNodeSelection,
+      typeChipForIndices,
+      emojiIconFor,
+      primaryTypeId,
+      propertyRows,
+    ],
   );
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity
@@ -659,6 +956,9 @@ export const NetworkGraphView = ({
       const seq = locateSeqRef.current;
       setSelected(null);
       setSelection(null);
+      // Picking supersedes the hover preview; drop it (and any in-flight hover locate).
+      hoverSeqRef.current += 1;
+      setHoveredByExternal(null);
       setSearchOnTop(false);
       void locateEntity(result.entityId)
         .then((entity) => {
@@ -673,6 +973,77 @@ export const NetworkGraphView = ({
         .catch(() => {});
     },
     [locateEntity, showLocatedEntity],
+  );
+
+  // Hover a search result → resolve its prefetched (usually already resolved)
+  // locate and light up its ego-graph as an external hover — no popover, no camera
+  // move. Leaving the results (null) clears it. The sequence guard drops a stale
+  // locate so an earlier hover can't land over a newer one.
+  const handleSearchHover = useCallback(
+    (result: NetworkGraphSearchResult | null) => {
+      hoverSeqRef.current += 1;
+      if (!result) {
+        setHoveredByExternal(null);
+        return;
+      }
+      const seq = hoverSeqRef.current;
+      void locateEntity(result.entityId)
+        .then((entity) => {
+          if (seq === hoverSeqRef.current) {
+            setHoveredByExternal(locatedNodeSelection(entity));
+          }
+        })
+        .catch(() => {});
+    },
+    [locateEntity, locatedNodeSelection],
+  );
+
+  // Hover a node → show its label (with a spinner) in the top-right box, then
+  // after a short delay — if the pointer is still on it — prefetch its ego-graph
+  // via the same locate call a click makes. Once it lands (and the node is still
+  // hovered), drop the spinner and light up the ego-graph via `hoveredByExternal`.
+  // The delay keeps a pointer skimming across nodes from firing a locate per
+  // node; the sequence guard drops a stale locate so it can't clear the spinner
+  // or highlight for a newer (or ended) hover. A changed/ended hover clears the
+  // label and the previous node's highlight (until the new locate lands).
+  const handleNodeHover = useCallback(
+    (interaction: NetworkGraphInteraction) => {
+      hoverLocateSeqRef.current += 1;
+      if (hoverLocateTimerRef.current !== undefined) {
+        window.clearTimeout(hoverLocateTimerRef.current);
+        hoverLocateTimerRef.current = undefined;
+      }
+      setHoveredByExternal(null);
+      const { point } = interaction;
+      const label = point?.label ?? null;
+      setHoveredLabel(label);
+      // Every rendered node carries a numeric atlas row id; that is what the
+      // row-based locate takes. Skip (no spinner, no fetch) for anything else.
+      const atlasId = point ? Number(point.id) : Number.NaN;
+      if (label === null || !Number.isFinite(atlasId)) {
+        setHoverLocateLoading(false);
+        return;
+      }
+      setHoverLocateLoading(true);
+      const seq = hoverLocateSeqRef.current;
+      hoverLocateTimerRef.current = window.setTimeout(() => {
+        void fetchLocate(atlasId, { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds })
+          .then((entity) => {
+            // A newer (or ended) hover has taken over — leave its state alone.
+            if (seq !== hoverLocateSeqRef.current) {
+              return;
+            }
+            setHoverLocateLoading(false);
+            setHoveredByExternal(locatedNodeSelection(entity));
+          })
+          .catch(() => {
+            if (seq === hoverLocateSeqRef.current) {
+              setHoverLocateLoading(false);
+            }
+          });
+      }, HOVER_LOCATE_DELAY_MS);
+    },
+    [coloredTypeIds, locatedNodeSelection],
   );
 
   // Click a node → highlight it immediately, then locate it and overlay its
@@ -711,7 +1082,8 @@ export const NetworkGraphView = ({
       setSelected({ edge: edge.id });
       setSelection(null);
       setSearchOnTop(false);
-      const edgeId = Number(edge.id);
+      // An edge's id is the link entity's identity (a string), not a row id; the
+      // endpoints are row ids, so only those go through `Number`.
       const fromId = Number(edge.fromId);
       if (!Number.isFinite(fromId)) {
         return;
@@ -721,7 +1093,7 @@ export const NetworkGraphView = ({
         if (!source) {
           return;
         }
-        const locatedEdge = entity.edges.find((item) => item.id === edgeId);
+        const locatedEdge = entity.edges.find((item) => item.id === edge.id);
         // Pin the edge's geometry to the selection so it stays drawn and anchored
         // (its popover included) even in the compact view, whose sparse on-screen
         // tiles usually don't contain this located edge or its endpoint nodes.
@@ -730,16 +1102,28 @@ export const NetworkGraphView = ({
         );
         const fromNode = nodeById.get(Number(edge.fromId));
         const toNode = nodeById.get(Number(edge.toId));
+        // Carry the located link's type label onto the selected edge, so its pill
+        // shows even in the compact view (whose tile edges carry no detail).
+        const selectedEdgeLabel = edgeLabelFor(
+          locatedEdge?.typeIds[0],
+          locatedEdge?.label,
+        );
+        const selectedEdge: NetworkGraphEdge = {
+          ...edge,
+          ...(selectedEdgeLabel !== undefined
+            ? { label: selectedEdgeLabel }
+            : {}),
+        };
         if (fromNode && toNode) {
           setSelected({
             edge: {
-              edge,
+              edge: selectedEdge,
               endpoints: [
-                toPoint(
+                toLocatedPoint(
                   fromNode,
                   colorForTypeIndices(fromNode.typeIndices, fromNode.id),
                 ),
-                toPoint(
+                toLocatedPoint(
                   toNode,
                   colorForTypeIndices(toNode.typeIndices, toNode.id),
                 ),
@@ -747,37 +1131,58 @@ export const NetworkGraphView = ({
             },
           });
         }
+        // Locate ships the link's full direct type list. Each becomes a chip
+        // floating beside the label (grey dots — link types aren't in the
+        // coloured type set), and the first type's emoji leads the title.
+        const edgeTypeIds = locatedEdge?.typeIds ?? [];
+        const edgeIcon = emojiIconFor(edgeTypeIds[0]);
+        const edgeTypes: LocatedEntityTypeChip[] = edgeTypeIds.map((typeId) => {
+          const icon = typeIconFor(typeId);
+          return {
+            label: resolveTypeMeta(typeId)?.title ?? typeId,
+            color: unassignedTypeColor,
+            ...(icon !== undefined ? { icon } : {}),
+          };
+        });
         setSelection({
           detail: {
             kind: "edge",
             title: locatedEdge?.label ?? `Edge ${edge.id}`,
-            ...(locatedEdge?.icon !== undefined
-              ? { icon: locatedEdge.icon }
-              : {}),
-            ...(locatedEdge?.typeLabel !== undefined
-              ? {
-                  type: {
-                    label: locatedEdge.typeLabel,
-                    color: unassignedTypeColor,
-                  },
-                }
-              : {}),
-            properties: [],
+            ...(edgeIcon !== undefined ? { icon: edgeIcon } : {}),
+            types: edgeTypes,
+            // The entities the link connects, in link direction (source → target).
+            endpoints: {
+              from: endpointFor(fromNode, edge.fromId),
+              to: endpointFor(toNode, edge.toId),
+            },
+            properties: propertyRows(locatedEdge?.properties),
           },
-          focus: [source.x, source.y],
+          // An edge is a link entity; its id is that link entity's identity.
+          entityId: locatedEdge?.id ?? (String(edge.id) as EntityId),
         });
       });
     },
-    [clearSelection, locate, colorForTypeIndices],
+    [
+      clearSelection,
+      locate,
+      colorForTypeIndices,
+      toLocatedPoint,
+      resolveTypeMeta,
+      emojiIconFor,
+      typeIconFor,
+      edgeLabelFor,
+      endpointFor,
+      propertyRows,
+    ],
   );
 
-  // "Go to entity" reveals the located point — bringing it on screen if it isn't
-  // (a no-op when it already is, e.g. the node you just clicked).
+  // "Go to entity" opens the drawer for the selected node's entity (or the edge's
+  // link entity), via the consumer-supplied `onOpenEntity`.
   const handleGoTo = useCallback(() => {
     if (selection) {
-      graphRef.current?.revealPoint([selection.focus[0], selection.focus[1]]);
+      onOpenEntity?.(selection.entityId);
     }
-  }, [selection]);
+  }, [selection, onOpenEntity]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -836,6 +1241,8 @@ export const NetworkGraphView = ({
               graphBounds={bounds}
               maxZoom={MAX_ZOOM}
               selected={selected}
+              hoveredByExternal={hoveredByExternal}
+              onNodeHover={handleNodeHover}
               onNodeClick={handleNodeClick}
               onEdgeClick={handleEdgeClick}
               onSelectedPositionChange={setAnchor}
@@ -848,7 +1255,7 @@ export const NetworkGraphView = ({
                 anchor={anchor}
                 detail={selection.detail}
                 onClose={clearSelection}
-                onGoTo={handleGoTo}
+                onGoTo={onOpenEntity ? handleGoTo : undefined}
                 onActivate={() => setSearchOnTop(false)}
               />
             ) : null}
@@ -856,9 +1263,49 @@ export const NetworkGraphView = ({
               elevated={searchOnTop}
               onActivate={() => setSearchOnTop(true)}
               onSelect={handleSearchSelect}
+              onHover={handleSearchHover}
               onResultsChange={handleSearchResults}
               popperContainer={frameRef.current}
             />
+            {hoveredLabel ? (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                  // Match the collapsed search button's height (top-left).
+                  height: 30,
+                  maxWidth: 320,
+                  px: 1.25,
+                  borderRadius: 1.5,
+                  border: "1px solid rgba(14, 17, 20, 0.12)",
+                  backgroundColor: "rgba(14, 17, 20, 0.53)",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 2px 8px rgba(14, 17, 20, 0.08)",
+                  pointerEvents: "none",
+                }}
+              >
+                {hoverLocateLoading ? (
+                  <LoadingSpinner size={14} thickness={5} color="white" />
+                ) : null}
+                <Typography
+                  variant="smallTextParagraphs"
+                  sx={{
+                    color: "white",
+                    fontWeight: 500,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {hoveredLabel}
+                </Typography>
+              </Box>
+            ) : null}
             <Stack
               direction="column"
               gap={1}

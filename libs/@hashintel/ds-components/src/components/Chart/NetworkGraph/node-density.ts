@@ -14,6 +14,11 @@
  * world→pixel scale each frame so plain zooming stays smooth, and eases (see
  * {@link DENSITY_EASE_MS}) when the estimate steps. Because it is one scalar per
  * viewport, every node ends up the same radius.
+ *
+ * The tightest packing measure ({@link medianNearestNeighbourWorld}) also drives the
+ * crowd opacity (see {@link maxDensityOpacity}): the denser the nodes pack on screen —
+ * i.e. the higher the max local density — the more transparent the crowd, so heavy
+ * crowding reads as shape rather than a solid mass.
  */
 
 import type { NetworkGraphPoint } from "./network-graph-util";
@@ -44,6 +49,21 @@ const NN_SAMPLE_CAP = 2_000;
  * off local-packing sensitivity (lower) against macro-shape legibility (higher).
  */
 export const DENSITY_AREAL_WEIGHT = 0.05;
+
+/** Crowd opacity at the sparse end — low max density (wide nearest-neighbour spacing). */
+export const COMPACT_OPACITY_SPARSE = 0.25;
+/** Crowd opacity at the dense end — high max density (tight nearest-neighbour spacing). */
+export const COMPACT_OPACITY_DENSE = 0.6;
+/**
+ * On-screen nearest-neighbour spacing (px) at or above which the crowd is treated as
+ * sparse and sits at {@link COMPACT_OPACITY_SPARSE}.
+ */
+export const DENSITY_SPARSE_SPACING_PX = 24;
+/**
+ * On-screen nearest-neighbour spacing (px) at or below which the crowd is treated as
+ * fully dense and sits at {@link COMPACT_OPACITY_DENSE}.
+ */
+export const DENSITY_DENSE_SPACING_PX = 4;
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
@@ -254,3 +274,33 @@ export const densityPointRadiusPx = (
     DENSITY_MIN_RADIUS_PX,
     DENSITY_MAX_RADIUS_PX,
   );
+
+/**
+ * The compact crowd opacity for the current max local density — the tightest packing,
+ * as the median nearest-neighbour distance ({@link medianNearestNeighbourWorld}).
+ * Denser packing (smaller on-screen spacing) pulls the crowd toward
+ * {@link COMPACT_OPACITY_DENSE}; sparser packing toward {@link COMPACT_OPACITY_SPARSE}.
+ * `medianSpacingWorld` is world units, scaled to on-screen pixels by `scale`
+ * (`2 ** absoluteZoom`) so the response is scale-invariant, then the fade runs linearly
+ * between {@link DENSITY_DENSE_SPACING_PX} and {@link DENSITY_SPARSE_SPACING_PX}. Falls
+ * back to {@link COMPACT_OPACITY_SPARSE} when the measure is unavailable.
+ */
+export const maxDensityOpacity = (
+  medianSpacingWorld: number | null,
+  scale: number,
+): number => {
+  if (medianSpacingWorld === null) {
+    return COMPACT_OPACITY_SPARSE;
+  }
+  const spacingPx = medianSpacingWorld * scale;
+  const amount = clamp(
+    (spacingPx - DENSITY_DENSE_SPACING_PX) /
+      (DENSITY_SPARSE_SPACING_PX - DENSITY_DENSE_SPACING_PX),
+    0,
+    1,
+  );
+  return (
+    COMPACT_OPACITY_DENSE +
+    (COMPACT_OPACITY_SPARSE - COMPACT_OPACITY_DENSE) * amount
+  );
+};

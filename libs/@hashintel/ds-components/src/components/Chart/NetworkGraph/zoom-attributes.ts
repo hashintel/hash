@@ -1,7 +1,8 @@
 /**
- * Single source of truth for the point size, point opacity, and arrow gap the
- * network graph derives from the current zoom, plus the compact→detail switch, all
- * computed by {@link deriveZoomAttributes}.
+ * Single source of truth for the point size and arrow gap the network graph derives
+ * from the current zoom, plus the compact→detail switch, all computed by
+ * {@link deriveZoomAttributes}. (Crowd-point *opacity* is not zoom-derived — it comes
+ * from the node packing measures; see `packingDivergenceOpacity` in `./node-density`.)
  *
  * Zoom here is *framing-normalised*: `0` is the fully-framed-out view (the graph's
  * min zoom) and each `+1` doubles the on-screen scale from there, whatever the
@@ -27,20 +28,6 @@
  * while anchoring the curves to each dataset's own framing.
  */
 const ZOOM_FRAMING_OFFSET = 4.19;
-
-const POINT_OPACITY = 1;
-// Opacity floor: used both fully zoomed out and, symmetrically, fully zoomed in (as
-// the detailed view takes over).
-const POINT_MIN_OPACITY = 0.5;
-// Fade-in starts from the floor here (most zoomed out): −4.4 absolute, rebased.
-const OPACITY_FADE_IN_ZOOM = -4.4 + ZOOM_FRAMING_OFFSET;
-// Points reach full opacity here (−1.5 absolute, rebased).
-const OPACITY_FULL_ZOOM = -1.5 + ZOOM_FRAMING_OFFSET;
-// After a stretch at full opacity, fade-out begins here so the crowd recedes behind
-// the detailed view (1.5 absolute, rebased).
-const OPACITY_FADE_OUT_ZOOM = 1.5 + ZOOM_FRAMING_OFFSET;
-// Fade-out reaches the floor by here (4.2 absolute, rebased).
-const OPACITY_FADE_END_ZOOM = 4.2 + ZOOM_FRAMING_OFFSET;
 
 // ── Node sizing ──────────────────────────────────────────────────────────────
 // deriveZoomAttributes returns `radiusScale`, a single multiplier for the current
@@ -94,8 +81,6 @@ export interface ZoomAttributes {
    * then keep each node kind within its size range.
    */
   radiusScale: number;
-  /** Base point opacity for the current zoom (see the three-part curve below). */
-  pointOpacity: number;
   /**
    * Arrow gap (px), grown slightly as the user zooms in. Shared by the arrow offset
    * and the edge trim so the trimmed edge end stays coincident with the tip.
@@ -105,22 +90,13 @@ export interface ZoomAttributes {
   isDetailZoom: boolean;
 }
 
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, value));
-
-const clamp01 = (value: number): number => clamp(value, 0, 1);
-
-const lerp = (from: number, to: number, amount: number): number =>
-  from + (to - from) * clamp01(amount);
-
 /**
  * Derive every zoom-dependent rendering attribute from the current `zoom` and the
  * `detailZoom` threshold (the zoom at/above which the detailed view shows). Both are
  * framing-normalised (see the file header): `0` is the framed-out view and the
  * caller rebases the absolute orthographic zoom by subtracting the framing-out zoom
  * before passing it in. Both are `null` until the view is framed, in which case
- * neutral defaults are returned (smallest node radii, full opacity, base arrow gap,
- * compact view).
+ * neutral defaults are returned (smallest node radii, base arrow gap, compact view).
  */
 export const deriveZoomAttributes = (
   zoom: number | null,
@@ -130,7 +106,6 @@ export const deriveZoomAttributes = (
     // Unframed: identity scale, so every node layer clamps to its floor radius.
     return {
       radiusScale: 1,
-      pointOpacity: POINT_OPACITY,
       arrowGapPx: ARROW_GAP_PX,
       isDetailZoom: false,
     };
@@ -145,26 +120,5 @@ export const deriveZoomAttributes = (
 
   const isDetailZoom = detailZoom !== null && zoom >= detailZoom;
 
-  // Three-part opacity curve: fade in from the floor to full, hold at full, then
-  // fade back to the floor so the crowd recedes as the detailed view takes over.
-  let pointOpacity: number;
-  if (zoom <= OPACITY_FULL_ZOOM) {
-    pointOpacity = lerp(
-      POINT_MIN_OPACITY,
-      POINT_OPACITY,
-      (zoom - OPACITY_FADE_IN_ZOOM) /
-        (OPACITY_FULL_ZOOM - OPACITY_FADE_IN_ZOOM),
-    );
-  } else if (zoom <= OPACITY_FADE_OUT_ZOOM) {
-    pointOpacity = POINT_OPACITY;
-  } else {
-    pointOpacity = lerp(
-      POINT_OPACITY,
-      POINT_MIN_OPACITY,
-      (zoom - OPACITY_FADE_OUT_ZOOM) /
-        (OPACITY_FADE_END_ZOOM - OPACITY_FADE_OUT_ZOOM),
-    );
-  }
-
-  return { radiusScale, pointOpacity, arrowGapPx, isDetailZoom };
+  return { radiusScale, arrowGapPx, isDetailZoom };
 };

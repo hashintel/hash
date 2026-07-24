@@ -8,7 +8,6 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
 import { resolveTypeColor, typeColorRanks } from "../shared/type-colors";
 import { FilterPill } from "./filter-pill";
-import { filterDropdownZIndex } from "./pill-styles";
 import { triggerSwatchSize, TypeColorSelector } from "./type-color-selector";
 
 import type { EntitiesFilterState } from "../shared/filter-state";
@@ -382,7 +381,6 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
         {...bindMenu(popupState)}
         anchorOrigin={{ vertical: 30, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
-        sx={{ zIndex: filterDropdownZIndex }}
         slotProps={{ paper: { sx: { maxHeight: 420, width: 300 } } }}
         TransitionProps={{
           onEntered: () => {

@@ -112,7 +112,7 @@ export interface FetchTileOptions {
    * Requests the detail trailer — per-point labels (and icons) the server
    * hydrates live from the store — so decoded {@link TileNode}s carry a
    * `label`. Defaults to `false` (the geometry-only response). The detailed
-   * view (see the tiling story) turns this on for the tiles it draws.
+   * view turns this on for the tiles it draws.
    */
   readonly includeDetailedData?: boolean;
   /**

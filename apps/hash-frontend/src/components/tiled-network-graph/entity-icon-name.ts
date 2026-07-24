@@ -14,7 +14,7 @@
  * caller falls back to its own default and those icons are never drawn.
  */
 
-import type { IconName } from "../../../Icon/icon";
+import type { IconName } from "@hashintel/ds-components";
 
 /**
  * FontAwesome icon name (the basename of an `/icons/types/<name>.svg` URL) →

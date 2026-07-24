@@ -23,6 +23,13 @@ export interface NetworkGraphEdge {
   id: NetworkGraphId;
   fromId: NetworkGraphId;
   toId: NetworkGraphId;
+  /**
+   * Text shown in the pill drawn on the edge while it is hovered or selected.
+   * The consumer supplies it already resolved (e.g. the link type's icon + label
+   * looked up from its own metadata); the graph just draws the string. Omit it
+   * to draw no pill.
+   */
+  label?: string;
 }
 
 export interface HoverLine {
@@ -54,6 +61,14 @@ export const FALLBACK_COLOR: RgbColor = [148, 148, 148];
 
 /** RGB stroke colour shared by every edge (0–255). */
 export const EDGE_COLOR: RgbColor = [80, 88, 110];
+/**
+ * Lighter grey used for the backgrounded selection's edges (and their arrows) while a
+ * different node is hovered, so its neighbourhood reads as secondary to the hovered
+ * node's edges (which stay {@link EDGE_COLOR}). Drawn at the same reduced opacity as the
+ * rest of the dimmed selection. The midpoint between {@link EDGE_COLOR} and a lighter
+ * grey (`[155, 160, 174]`), so it sits halfway between the active edge colour and grey.
+ */
+export const DIMMED_EDGE_COLOR: RgbColor = [118, 124, 142];
 /** On-screen width (px) of an edge, and its floor as it scales with zoom. */
 export const EDGE_WIDTH = 0.75;
 export const EDGE_MIN_WIDTH = 0.5;
@@ -486,6 +501,16 @@ export const drawEdgeLabel = (
 
 /** Resolution (px) the arrow triangle sprite is rasterised at. */
 const ARROW_ICON_TEXTURE = 64;
+/** The arrow triangle's side length as a fraction of the sprite's square size. */
+const ARROW_TRIANGLE_SIDE_FRACTION = 0.8;
+/**
+ * The arrow sprite's rendered tip→base length as a fraction of its `getSize` (which
+ * scales the square sprite). Equals the equilateral triangle's height (`side · √3/2`)
+ * over the sprite size — see {@link arrowIconAtlas}. Lets a highlighted edge be trimmed
+ * to end at the arrowhead's base rather than run under it to the tip.
+ */
+export const ARROW_HEAD_LENGTH_RATIO =
+  (ARROW_TRIANGLE_SIDE_FRACTION * Math.sqrt(3)) / 2;
 
 /** A tintable arrow sprite atlas: a data-URL plus its single-icon mapping. */
 export type ArrowIconAtlas = {
@@ -516,7 +541,7 @@ export const arrowIconAtlas = (): ArrowIconAtlas | null => {
     return null;
   }
   // Equilateral triangle pointing along +x, height `side · √3/2`, centred in the canvas.
-  const side = size * 0.8;
+  const side = size * ARROW_TRIANGLE_SIDE_FRACTION;
   const height = (side * Math.sqrt(3)) / 2;
   const tipX = (size + height) / 2;
   const baseX = (size - height) / 2;

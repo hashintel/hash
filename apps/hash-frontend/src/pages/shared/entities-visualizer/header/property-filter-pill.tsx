@@ -24,11 +24,7 @@ import {
   getOperatorDescriptor,
   getOperatorsForKind,
 } from "../shared/property-filters/get-operators-for-kind";
-import {
-  activePillSx,
-  filterDropdownZIndex,
-  incompletePillSx,
-} from "./pill-styles";
+import { activePillSx, incompletePillSx } from "./pill-styles";
 
 import type {
   FilterValueKind,
@@ -221,7 +217,6 @@ export const PropertyFilterPill: FunctionComponent<PropertyFilterPillProps> = ({
         onClose={handleClose}
         anchorOrigin={{ vertical: 36, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
-        sx={{ zIndex: filterDropdownZIndex }}
         slotProps={{ paper: { sx: { width: 260, p: 1.5 } } }}
       >
         <FormControl fullWidth size="small">

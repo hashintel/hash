@@ -7,7 +7,7 @@
  */
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -15,19 +15,19 @@ import { describe, expect, it } from "vitest";
 import { decodeSaltileEdges } from "./edges";
 import { decodeSaltileLocate } from "./locate";
 
-const fixturesDir = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../../../../../@local/graph/atlas/fixtures/wire",
+const fixturesDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../../../../libs/@local/graph/atlas/fixtures/wire",
 );
 
 const readFixture = (name: string): { buffer: ArrayBuffer; sidecar: never } => {
-  const bytes = readFileSync(join(fixturesDir, `${name}.saltile`));
+  const bytes = readFileSync(path.join(fixturesDir, `${name}.saltile`));
   const buffer = bytes.buffer.slice(
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
   );
   const sidecar = JSON.parse(
-    readFileSync(join(fixturesDir, `${name}.json`), "utf8"),
+    readFileSync(path.join(fixturesDir, `${name}.json`), "utf8"),
   ) as never;
   return { buffer, sidecar };
 };

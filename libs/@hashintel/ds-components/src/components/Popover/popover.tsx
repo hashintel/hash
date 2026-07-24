@@ -108,6 +108,13 @@ const proxyTabAroundTrigger = ({
 
 export type PopoverProps = {
   className?: string;
+  /**
+   * Applied to the portalled positioner — the popover's outermost element, which
+   * owns its placement and z-index. Use it to override the layer (e.g. a
+   * `z-index` utility to sit a particular popover below an app overlay); style
+   * the panel itself via `className`, `Popover.Container`, or the children.
+   */
+  positionerClassName?: string;
   /** Any content to position; use `Popover.Container` to frame panels */
   children: React.ReactNode;
   /**
@@ -189,6 +196,7 @@ const RepositionOnGapChange = ({
 
 const PopoverRoot = ({
   className,
+  positionerClassName,
   children,
   triggerRef,
   position = "bottom",
@@ -378,7 +386,9 @@ const PopoverRoot = ({
       <RepositionOnGapChange gapX={gapX} gapY={gapY} isVertical={isVertical} />
 
       <Portal container={portalContainerRef}>
-        <ArkPopover.Positioner className={positionerStyles}>
+        <ArkPopover.Positioner
+          className={cx(positionerStyles, positionerClassName)}
+        >
           <ArkPopover.Content
             ref={contentRef}
             className={cx(contentStyles, className)}

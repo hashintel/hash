@@ -191,6 +191,7 @@ export const readBitmask = (
   }
   const bits: boolean[] = new Array<boolean>(count);
   for (let index = 0; index < count; index += 1) {
+    // eslint-disable-next-line no-bitwise -- reads bit `index` from the packed bitmap
     bits[index] = (value[index >> 3]! & (1 << (index & 7))) !== 0;
   }
   return bits;
