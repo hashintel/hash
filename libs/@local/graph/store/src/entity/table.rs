@@ -231,9 +231,13 @@ pub struct EntityTableCursor {
     pub transaction_time: Timestamp<TransactionTime>,
     /// The decision-time instant the sequence reads at.
     pub decision_time: Timestamp<DecisionTime>,
-    /// The type universe derived from the first page's summary. [`None`] when
-    /// the page ran on a type selection, which the client re-sends instead, or
-    /// when the universe exceeded [`TYPE_UNIVERSE_LIMIT`] and was dropped.
+    /// The type universe derived from the first page's summary, pinned for the
+    /// rest of the sequence.
+    ///
+    /// [`None`] means no universe is pinned — the sequence runs on a type
+    /// selection the client re-sends, or its universe exceeded
+    /// [`TYPE_UNIVERSE_LIMIT`]. Either way the following pages take it as it
+    /// stands rather than deriving one of their own.
     pub type_universe: Option<Vec<VersionedUrl>>,
     pub sort: EntityTableSorting,
     pub position: EntityQueryCursor<'static>,

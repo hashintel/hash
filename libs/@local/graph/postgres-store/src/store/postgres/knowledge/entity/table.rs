@@ -11,7 +11,7 @@
 //! first page's database state through the cursor.
 
 use alloc::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::TryStreamExt as _;
@@ -297,6 +297,24 @@ struct LinkEndpointEditions {
     target: Option<EntityEditionId>,
 }
 
+/// The type universe to pin for a page sequence, or [`None`] when the summary
+/// held more types than [`TYPE_UNIVERSE_LIMIT`].
+///
+/// Past the limit the include clause stops being worth its cost in bind
+/// parameters and cursor bytes, and the scope filter alone decides the rows
+/// either way.
+fn pin_universe(type_ids: &HashMap<VersionedUrl, usize>) -> Option<Vec<VersionedUrl>> {
+    if type_ids.len() > TYPE_UNIVERSE_LIMIT {
+        return None;
+    }
+
+    let mut universe = type_ids.keys().cloned().collect::<Vec<_>>();
+    // The universe is sent as query parameters and travels inside the cursor —
+    // keep its order deterministic.
+    universe.sort_unstable();
+    Some(universe)
+}
+
 /// The sort key plus the uuid tiebreaker — the keyset the cursor's position
 /// carries. Drafts are never rows, so the entity uuid alone breaks ties.
 fn sorting_records(sort: EntityTableSorting) -> Vec<EntityQuerySortingRecord<'static>> {
@@ -406,7 +424,11 @@ where
             });
         }
 
-        let needs_universe = type_selection.is_none() && type_universe.is_none();
+        // Only a first page derives a universe: a continuation's token already
+        // says what its sequence runs on, including that the universe was too
+        // large to pin — where deriving it again would pay the summary scan
+        // per page only to drop it again.
+        let needs_universe = params.cursor.is_none() && type_selection.is_none();
         // Without narrowing filters the page's full filters equal the scope
         // (the include clause is result-neutral and the excluded base URLs
         // live inside the scope filter), so the count can ride along in the
@@ -428,20 +450,12 @@ where
         };
         if needs_universe {
             type_universe = scope_summaries.as_ref().and_then(|summaries| {
-                let type_ids = summaries
-                    .type_ids
-                    .as_ref()
-                    .expect("the type summary should always be requested");
-                // Past the limit the clause stops being worth its cost in
-                // parameters and cursor bytes, and the scope filter alone
-                // decides the rows either way.
-                (type_ids.len() <= TYPE_UNIVERSE_LIMIT).then(|| {
-                    let mut universe = type_ids.keys().cloned().collect::<Vec<_>>();
-                    // The universe is sent as query parameters and travels
-                    // inside the cursor — keep its order deterministic.
-                    universe.sort_unstable();
-                    universe
-                })
+                pin_universe(
+                    summaries
+                        .type_ids
+                        .as_ref()
+                        .expect("the type summary should always be requested"),
+                )
             });
         }
 
@@ -1045,6 +1059,38 @@ mod tests {
     fn sample_timestamp<A>() -> Timestamp<A> {
         serde_json::from_value(serde_json::json!("2025-01-01T00:00:00Z"))
             .expect("the timestamp should deserialize")
+    }
+
+    #[test]
+    fn a_universe_is_pinned_in_order_up_to_the_limit() {
+        let universe = |count: usize| {
+            pin_universe(
+                &(0..count)
+                    .map(|index| {
+                        (
+                            VersionedUrl::from_str(&format!(
+                                "https://example.com/types/entity-type/type-{index}/v/1"
+                            ))
+                            .expect("the URL should be a valid versioned URL"),
+                            1,
+                        )
+                    })
+                    .collect(),
+            )
+        };
+
+        let pinned = universe(TYPE_UNIVERSE_LIMIT).expect("the universe should be pinned");
+        assert_eq!(pinned.len(), TYPE_UNIVERSE_LIMIT);
+        assert!(
+            pinned.is_sorted(),
+            "the universe travels in the cursor, so its order should be deterministic",
+        );
+
+        assert_eq!(
+            universe(TYPE_UNIVERSE_LIMIT + 1),
+            None,
+            "a universe past the limit should be dropped rather than pinned",
+        );
     }
 
     #[test]
