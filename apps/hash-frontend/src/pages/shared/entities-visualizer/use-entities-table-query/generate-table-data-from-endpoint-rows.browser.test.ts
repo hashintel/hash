@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { generateTableDataFromEndpointRows } from "./generate-table-data-from-endpoint-rows";
 
@@ -120,6 +120,15 @@ const generate = (
     endpointRows,
     previous,
   });
+
+// Column widths are measured against a canvas, which jsdom only provides a 2d
+// context for when the optional `canvas` package happens to be installed.
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    font: "",
+    measureText: (text: string) => ({ width: text.length * 8 }),
+  } as unknown as CanvasRenderingContext2D);
+});
 
 describe("generateTableDataFromEndpointRows", () => {
   it("prefers the server's label and falls back to generating one", () => {
