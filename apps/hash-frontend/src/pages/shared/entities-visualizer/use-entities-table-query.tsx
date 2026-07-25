@@ -93,7 +93,16 @@ type AccumulatedPages = {
    * sequence cannot continue this one.
    */
   issuedCursors: Set<string>;
-  processingError?: Error;
+  /**
+   * A response the table could not process, tagged with the request it came
+   * from.
+   *
+   * The rows on screen and the failure need not belong to the same request: a
+   * first page for new filters can fail while the previous sequence's rows are
+   * still shown. Carrying the request tells the two apart, so the failure is
+   * reported for as long as it is the current one — and no longer.
+   */
+  processingError?: { requestKey: string; error: Error };
 };
 
 /**
@@ -320,11 +329,13 @@ export const useEntitiesTableQuery = (params: {
     const pageCursor = variables.request.cursor ?? null;
 
     const failed = (thrown: unknown) => {
+      const processingError = { requestKey, error: asError(thrown) };
+
       // The pages already shown stay intact, and the cursor is not marked
       // consumed so a retry processes the page again.
       setAccumulated((current) =>
         current
-          ? { ...current, processingError: asError(thrown) }
+          ? { ...current, processingError }
           : {
               requestKey,
               tableData: null,
@@ -333,7 +344,7 @@ export const useEntitiesTableQuery = (params: {
               nextCursor: null,
               consumedCursors: new Set(),
               issuedCursors: new Set(),
-              processingError: asError(thrown),
+              processingError,
             },
       );
     };
@@ -407,8 +418,10 @@ export const useEntitiesTableQuery = (params: {
           ),
         };
       } catch (thrown) {
+        const processingError = { requestKey, error: asError(thrown) };
+
         return current
-          ? { ...current, processingError: asError(thrown) }
+          ? { ...current, processingError }
           : {
               requestKey,
               tableData: null,
@@ -417,7 +430,7 @@ export const useEntitiesTableQuery = (params: {
               nextCursor: null,
               consumedCursors: new Set(),
               issuedCursors: new Set(),
-              processingError: asError(thrown),
+              processingError,
             };
       }
     });
@@ -428,7 +441,7 @@ export const useEntitiesTableQuery = (params: {
   const processingError = accumulated?.processingError;
   useEffect(() => {
     if (processingError) {
-      Sentry.captureException(processingError);
+      Sentry.captureException(processingError.error);
     }
   }, [processingError]);
 
@@ -440,10 +453,21 @@ export const useEntitiesTableQuery = (params: {
   const nextCursor = isCurrent ? accumulated.nextCursor : null;
 
   const loadMore = useCallback(() => {
-    if (nextCursor !== null) {
-      setRequestedCursor(nextCursor);
+    if (nextCursor === null) {
+      return;
     }
-  }, [nextCursor]);
+
+    if (requestedCursor === nextCursor) {
+      // The page was asked for already, so asking again would change no
+      // request and fetch nothing. It is here to be asked for a second time
+      // because the first attempt failed, which takes a round trip of its own.
+      // A rejected one comes back through the query's error state.
+      refetch().catch(() => {});
+      return;
+    }
+
+    setRequestedCursor(nextCursor);
+  }, [nextCursor, requestedCursor, refetch]);
 
   /**
    * Reads the sequence again from its first page.
@@ -467,42 +491,48 @@ export const useEntitiesTableQuery = (params: {
     return undefined;
   }, [cursor, refetch]);
 
-  return useMemo(
-    () => ({
-      canLoadMore: nextCursor !== null,
+  return useMemo(() => {
+    // Pins that resolve to no version build no request at all, so no page can
+    // follow the ones on screen. Serving them would put unrelated rows under
+    // an error no retry clears, where the table should show the error alone.
+    const pages = unresolvablePins ? null : accumulated;
+
+    return {
+      canLoadMore: pages !== null && nextCursor !== null,
       closedMultiEntityTypes: resolvedTypes?.closedMultiEntityTypes ?? null,
-      dataIsStale: accumulated !== null && !isCurrent,
+      dataIsStale: pages !== null && !isCurrent,
       definitions: resolvedTypes?.definitions ?? null,
       error:
         queryError ??
-        // A processing error belongs to the response it came from, so it stops
-        // speaking for the table once a new request is in flight — where its
-        // rows are still shown, but the failure that produced them is no
-        // longer the one to retry.
-        (isCurrent ? accumulated.processingError : undefined) ??
+        // A processing error is reported for the request it came from, whose
+        // rows need not be the ones on screen: a first page for new filters
+        // can fail while the previous sequence's rows are still shown.
+        (accumulated?.processingError?.requestKey === requestKey
+          ? accumulated.processingError.error
+          : undefined) ??
         (unresolvablePins
           ? new Error("The pinned type could not be resolved to any version")
           : undefined),
       loading: loading || (enabled && awaitingPinnedTypes),
       loadMore,
       restart,
-      summary: accumulated?.summary ?? null,
-      tableData: accumulated?.tableData ?? null,
-      totalResultCount: accumulated?.summary?.count ?? null,
+      summary: pages?.summary ?? null,
+      tableData: pages?.tableData ?? null,
+      totalResultCount: pages?.summary?.count ?? null,
       unresolvablePins,
-    }),
-    [
-      accumulated,
-      resolvedTypes,
-      isCurrent,
-      nextCursor,
-      queryError,
-      unresolvablePins,
-      loading,
-      enabled,
-      awaitingPinnedTypes,
-      loadMore,
-      restart,
-    ],
-  );
+    };
+  }, [
+    accumulated,
+    requestKey,
+    resolvedTypes,
+    isCurrent,
+    nextCursor,
+    queryError,
+    unresolvablePins,
+    loading,
+    enabled,
+    awaitingPinnedTypes,
+    loadMore,
+    restart,
+  ]);
 };
