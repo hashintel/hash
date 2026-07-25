@@ -1,11 +1,10 @@
 import { useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { noisySystemBaseUrls } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitiesTableQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { apolloClient } from "../../../lib/apollo-client";
 import { buildEndpointPropertyFilter } from "./shared/property-filters/build-property-filter-clause";
 import { generateTableDataFromEndpointRows } from "./use-entities-table-query/generate-table-data-from-endpoint-rows";
 
@@ -18,13 +17,12 @@ import type {
   EntitiesTableRow,
 } from "./entities-table-data";
 import type { EntitiesFilterState } from "./shared/filter-state";
+import type { TableDataAggregates } from "./use-entities-table-query/generate-table-data-from-endpoint-rows";
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { EntityTableSorting } from "@local/hash-graph-client";
 import type {
   ConversionRequest,
-  EntityTableRow,
   EntityTableSummary,
-  EntityTableTypeScope,
   EntityTableWebScope,
 } from "@local/hash-graph-sdk/entity";
 import type {
@@ -33,10 +31,10 @@ import type {
 } from "@local/hash-graph-sdk/ontology";
 
 export type EntitiesTableQueryData = {
+  /** Whether a further page is available — see {@link loadMore}. */
+  canLoadMore: boolean;
   /** The closed types of every accumulated page, deep-merged. */
   closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | null;
-  /** Continuation for the next page, or `null` when there is none (yet). */
-  cursor: string | null;
   /**
    * The rows in {@link tableData} belong to a previous request while the
    * current one has not produced a page yet — kept so a failed refresh does
@@ -51,9 +49,11 @@ export type EntitiesTableQueryData = {
    * alongside them.
    */
   error?: Error;
-  hadCachedContent: boolean;
   loading: boolean;
-  refetch: () => Promise<unknown>;
+  /** Appends the next page to {@link tableData}. */
+  loadMore: () => void;
+  /** Reads the sequence again from its first page. */
+  restart: () => Promise<unknown>;
   /** The first page's summary: the filtered count plus the scope's type maps. */
   summary: EntityTableSummary | null;
   tableData: EntitiesTableData | null;
@@ -73,10 +73,11 @@ export type EntitiesTableQueryData = {
  */
 type AccumulatedPages = {
   requestKey: string;
-  rows: EntityTableRow[];
   closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
   definitions: EntityTypeResolveDefinitions;
   tableData: EntitiesTableData | null;
+  /** What the rows already folded in carry over, so a page costs a page. */
+  aggregates: TableDataAggregates | null;
   summary: EntityTableSummary | null;
   nextCursor: string | null;
   /**
@@ -85,6 +86,11 @@ type AccumulatedPages = {
    * append its page twice.
    */
   consumedCursors: Set<string>;
+  /**
+   * The continuation tokens this sequence handed out. A cursor from any other
+   * sequence cannot continue this one.
+   */
+  issuedCursors: Set<string>;
   processingError?: Error;
 };
 
@@ -133,8 +139,6 @@ const asError = (thrown: unknown): Error =>
  */
 export const useEntitiesTableQuery = (params: {
   conversions?: ConversionRequest[];
-  /** Continuation token of the page to fetch, from a previous response. */
-  cursor?: string;
   enabled: boolean;
   filterState: EntitiesFilterState;
   hideArchivedColumn?: boolean;
@@ -152,7 +156,6 @@ export const useEntitiesTableQuery = (params: {
 }): EntitiesTableQueryData => {
   const {
     conversions,
-    cursor,
     enabled,
     filterState,
     hideArchivedColumn,
@@ -180,7 +183,9 @@ export const useEntitiesTableQuery = (params: {
     [internalWebs],
   );
 
-  const variables = useMemo<QueryEntitiesTableQueryVariables | null>(() => {
+  // The request minus the page, so a page can be requested against it and the
+  // accumulated sequence recognised across renders.
+  const baseRequest = useMemo(() => {
     if (!enabled || awaitingPinnedTypes || unresolvablePins) {
       return null;
     }
@@ -200,45 +205,35 @@ export const useEntitiesTableQuery = (params: {
         };
 
     const selectedTypeIds = filterState.type.selectedTypeIds;
-    const includedTypeIds =
+    const entityTypeIds =
       resolvedPinnedEntityTypeIds ??
       (selectedTypeIds ? [...selectedTypeIds] : null);
-
-    const types: EntityTableTypeScope = includedTypeIds
-      ? { type: "include", entityTypeIds: includedTypeIds }
-      : {
-          type: "exclude",
-          entityTypeBaseUrls: [...noisySystemBaseUrls],
-        };
 
     const propertyFilters = filterState.propertyFilters
       .map(buildEndpointPropertyFilter)
       .filter((propertyFilter) => propertyFilter !== null);
 
     return {
-      request: {
-        conversions,
-        filter: {
-          webs,
-          types,
-          includeArchived: filterState.includeArchived,
-          includeDrafts: false,
-          propertyFilters:
-            propertyFilters.length > 0 ? propertyFilters : undefined,
-        },
-        cursor: cursor ?? undefined,
-        limit,
-        sort,
-        includeSummary: !cursor,
-        includeEntityTypes: "resolvedWithDataTypeChildren",
+      conversions,
+      filter: {
+        webs,
+        entityTypeIds,
+        // The exclusions hold whatever the selection is, so picking a type
+        // cannot bring the noisy system types back into the rows or pills.
+        excludedTypeBaseUrls: [...noisySystemBaseUrls],
+        includeArchived: filterState.includeArchived,
+        propertyFilters:
+          propertyFilters.length > 0 ? propertyFilters : undefined,
       },
+      limit,
+      sort,
+      includeEntityTypes: "resolvedWithDataTypeChildren" as const,
     };
   }, [
     enabled,
     awaitingPinnedTypes,
     unresolvablePins,
     conversions,
-    cursor,
     filterState.web,
     filterState.type.selectedTypeIds,
     filterState.includeArchived,
@@ -249,20 +244,39 @@ export const useEntitiesTableQuery = (params: {
     sort,
   ]);
 
-  /** Everything except the cursor identifies the accumulation sequence. */
-  const requestKey = useMemo(() => {
-    if (!variables) {
-      return null;
-    }
+  /** Identifies the accumulated sequence — the request minus its page. */
+  const requestKey = useMemo(
+    () => (baseRequest ? JSON.stringify(baseRequest) : null),
+    [baseRequest],
+  );
 
-    const {
-      cursor: _cursor,
-      includeSummary: _includeSummary,
-      ...rest
-    } = variables.request;
+  const [accumulated, setAccumulated] = useState<AccumulatedPages | null>(null);
+  const [requestedCursor, setRequestedCursor] = useState<string | null>(null);
 
-    return JSON.stringify(rest);
-  }, [variables]);
+  // A cursor only belongs to the sequence that handed it out: after a filter
+  // change — or a navigation that swaps the pinned type without remounting —
+  // it would otherwise be sent against a sequence it cannot continue, skipping
+  // the rows before it and suppressing the first page's summary.
+  const cursor =
+    requestedCursor !== null &&
+    accumulated?.requestKey === requestKey &&
+    accumulated.issuedCursors.has(requestedCursor)
+      ? requestedCursor
+      : null;
+
+  const variables = useMemo<QueryEntitiesTableQueryVariables | null>(
+    () =>
+      baseRequest
+        ? {
+            request: {
+              ...baseRequest,
+              cursor: cursor ?? undefined,
+              includeSummary: cursor === null,
+            },
+          }
+        : null,
+    [baseRequest, cursor],
+  );
 
   const {
     data,
@@ -277,8 +291,6 @@ export const useEntitiesTableQuery = (params: {
       variables: variables ?? undefined,
     },
   );
-
-  const [accumulated, setAccumulated] = useState<AccumulatedPages | null>(null);
 
   useEffect(() => {
     const response = data?.queryEntitiesTable;
@@ -310,9 +322,6 @@ export const useEntitiesTableQuery = (params: {
           throw new Error("The response carries no summary");
         }
 
-        const rows = continues
-          ? [...current.rows, ...response.rows]
-          : [...response.rows];
         const closedMultiEntityTypes = continues
           ? mergeClosedMultiEntityTypeMaps(
               current.closedMultiEntityTypes,
@@ -323,23 +332,34 @@ export const useEntitiesTableQuery = (params: {
           ? mergeDefinitions(current.definitions, response.definitions)
           : response.definitions;
 
+        // Only the page's own rows are turned into table rows — the pages
+        // before it carry their result forward through the aggregates.
+        const { tableData, aggregates } = generateTableDataFromEndpointRows({
+          closedMultiEntityTypesRootMap: closedMultiEntityTypes,
+          definitions,
+          endpointRows: response.rows,
+          previous: continues ? (current.aggregates ?? undefined) : undefined,
+          hideColumns,
+          hideArchivedColumn,
+        });
+
         return {
           requestKey,
-          rows,
           closedMultiEntityTypes,
           definitions,
-          tableData: generateTableDataFromEndpointRows({
-            closedMultiEntityTypesRootMap: closedMultiEntityTypes,
-            definitions,
-            endpointRows: rows,
-            hideColumns,
-            hideArchivedColumn,
-          }),
+          tableData,
+          aggregates,
           summary: response.summary ?? (continues ? current.summary : null),
           nextCursor: response.cursor ?? null,
           consumedCursors: continues
             ? new Set([...current.consumedCursors, pageCursor])
             : new Set(pageCursor === null ? [] : [pageCursor]),
+          issuedCursors: new Set(
+            [
+              ...(continues ? current.issuedCursors : []),
+              response.cursor ?? null,
+            ].filter((issued): issued is string => issued !== null),
+          ),
         };
       } catch (thrown) {
         // The pages already shown stay intact, and the cursor is not marked
@@ -348,7 +368,6 @@ export const useEntitiesTableQuery = (params: {
           ? { ...current, processingError: asError(thrown) }
           : {
               requestKey,
-              rows: [],
               closedMultiEntityTypes: {},
               definitions: {
                 dataTypes: {},
@@ -356,24 +375,16 @@ export const useEntitiesTableQuery = (params: {
                 entityTypes: {},
               },
               tableData: null,
+              aggregates: null,
               summary: null,
               nextCursor: null,
               consumedCursors: new Set(),
+              issuedCursors: new Set(),
               processingError: asError(thrown),
             };
       }
     });
   }, [data, requestKey, variables, hideColumns, hideArchivedColumn]);
-
-  const hadCachedContent = useMemo(
-    () =>
-      !!variables &&
-      !!apolloClient.readQuery({
-        query: queryEntitiesTableQuery,
-        variables,
-      }),
-    [variables],
-  );
 
   // Processing errors are backend/frontend contract breaks that reproduce on
   // every retry — without the report they are invisible in production.
@@ -384,44 +395,69 @@ export const useEntitiesTableQuery = (params: {
     }
   }, [processingError]);
 
-  return useMemo(() => {
-    // Stale accumulation (from previous filters) keeps the old rows on screen
-    // while the new first page loads, but must not offer its continuation.
-    const isCurrent =
-      accumulated !== null &&
-      requestKey !== null &&
-      accumulated.requestKey === requestKey;
+  const isCurrent =
+    accumulated !== null &&
+    requestKey !== null &&
+    accumulated.requestKey === requestKey;
 
-    const error =
-      queryError ??
-      accumulated?.processingError ??
-      (unresolvablePins
-        ? new Error("The pinned type could not be resolved to any version")
-        : undefined);
+  const nextCursor = isCurrent ? accumulated.nextCursor : null;
 
-    return {
+  const loadMore = useCallback(() => {
+    if (nextCursor !== null) {
+      setRequestedCursor(nextCursor);
+    }
+  }, [nextCursor]);
+
+  /**
+   * Reads the sequence again from its first page.
+   *
+   * Refetching the page in flight would not do: its cursor pins the snapshot
+   * the sequence started on, and the pages before it would keep their rows —
+   * so anything written since (an archived entity, say) could not show up.
+   */
+  const restart = useCallback(async () => {
+    setAccumulated(null);
+
+    if (requestedCursor === null) {
+      // Already on the first page, so only the network round trip is missing.
+      return refetch();
+    }
+
+    setRequestedCursor(null);
+    return undefined;
+  }, [requestedCursor, refetch]);
+
+  return useMemo(
+    () => ({
+      canLoadMore: nextCursor !== null,
       closedMultiEntityTypes: accumulated?.closedMultiEntityTypes ?? null,
-      cursor: isCurrent ? accumulated.nextCursor : null,
       dataIsStale: accumulated !== null && !isCurrent,
       definitions: accumulated?.definitions ?? null,
-      error,
-      hadCachedContent,
+      error:
+        queryError ??
+        accumulated?.processingError ??
+        (unresolvablePins
+          ? new Error("The pinned type could not be resolved to any version")
+          : undefined),
       loading: loading || (enabled && awaitingPinnedTypes),
-      refetch,
+      loadMore,
+      restart,
       summary: accumulated?.summary ?? null,
       tableData: accumulated?.tableData ?? null,
       totalResultCount: accumulated?.summary?.count ?? null,
       unresolvablePins,
-    };
-  }, [
-    accumulated,
-    requestKey,
-    queryError,
-    unresolvablePins,
-    hadCachedContent,
-    loading,
-    enabled,
-    awaitingPinnedTypes,
-    refetch,
-  ]);
+    }),
+    [
+      accumulated,
+      isCurrent,
+      nextCursor,
+      queryError,
+      unresolvablePins,
+      loading,
+      enabled,
+      awaitingPinnedTypes,
+      loadMore,
+      restart,
+    ],
+  );
 };

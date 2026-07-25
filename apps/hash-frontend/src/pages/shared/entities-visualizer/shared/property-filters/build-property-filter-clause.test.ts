@@ -5,7 +5,11 @@ import {
   buildPropertyFilterClause,
 } from "./build-property-filter-clause";
 
-import type { PropertyFilter } from "./property-filter";
+import type {
+  FilterValueKind,
+  PropertyFilter,
+  PropertyFilterOperator,
+} from "./property-filter";
 import type { BaseUrl } from "@blockprotocol/type-system";
 
 const baseUrl = "https://example.com/types/property-type/age/" as BaseUrl;
@@ -83,23 +87,37 @@ describe("buildEndpointPropertyFilter", () => {
     // `isPropertyFilterActive` answers for both query paths through the
     // subgraph builder, so the two must never disagree on null-ness — a
     // divergence shows an active-looking pill whose filter the table drops.
-    const cases: Partial<PropertyFilter>[] = [
-      { operator: "equals", value: "30" },
-      { operator: "equals", value: undefined },
-      { operator: "hasAnyValue", value: undefined },
-      { operator: "greaterThan", value: "30" },
-      { operator: "greaterThan", value: "not a number" },
-      { kind: "string", operator: "greaterThan", value: "a" },
-      { kind: "number", operator: "startsWith", value: "3" },
-      { kind: "string", operator: "contains", value: " x " },
-      { kind: "string", operator: "endsWith", value: "" },
+    // Both unions are closed, so the whole space is enumerated rather than
+    // sampled.
+    const operators: PropertyFilterOperator[] = [
+      "equals",
+      "notEquals",
+      "greaterThan",
+      "greaterThanOrEqual",
+      "lessThan",
+      "lessThanOrEqual",
+      "contains",
+      "startsWith",
+      "endsWith",
+      "isTrue",
+      "isFalse",
+      "isEmpty",
+      "hasAnyValue",
     ];
+    const kinds: FilterValueKind[] = ["number", "string", "boolean"];
+    const values = [undefined, "", "  ", "30", "not a number", "true"];
 
-    for (const overrides of cases) {
-      const filter = propertyFilter(overrides);
-      expect(buildEndpointPropertyFilter(filter) === null).toBe(
-        buildPropertyFilterClause(filter) === null,
-      );
+    for (const operator of operators) {
+      for (const kind of kinds) {
+        for (const value of values) {
+          const filter = propertyFilter({ operator, kind, value });
+
+          expect(
+            buildEndpointPropertyFilter(filter) === null,
+            `${kind} / ${operator} / ${JSON.stringify(value)}`,
+          ).toBe(buildPropertyFilterClause(filter) === null);
+        }
+      }
     }
   });
 });

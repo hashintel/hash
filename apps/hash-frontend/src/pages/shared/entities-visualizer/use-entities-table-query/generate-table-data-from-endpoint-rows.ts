@@ -15,7 +15,7 @@ import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import { gridHeaderBaseFont } from "../../../../components/grid/grid";
+import { gridHeaderBaseFont } from "../../../../components/grid/utils";
 
 import type {
   EntitiesTableColumn,
@@ -185,36 +185,90 @@ const linkEndpointCell = (
 };
 
 /**
- * Builds the table's rows and columns from `queryEntitiesTable` endpoint rows.
+ * What a table's rows carry over from the pages already folded into it.
+ *
+ * Every field is an aggregate over all rows seen so far, so appending a page
+ * costs the page rather than the whole table.
+ */
+export type TableDataAggregates = {
+  rows: EntitiesTableRow[];
+  propertyColumns: Map<string, EntitiesTableColumn>;
+  dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl;
+  entityTypesWithMultipleVersions: Set<VersionedUrl>;
+  firstSeenEntityTypeByBaseUrl: { [baseUrl: string]: VersionedUrl };
+  /**
+   * The type titles every row so far shares, or `null` before the first row —
+   * the seed the following rows intersect against.
+   */
+  sharedEntityTypeTitles: Set<string> | null;
+  rowsMissingSource: number;
+  rowsMissingTarget: number;
+};
+
+const emptyAggregates = (): TableDataAggregates => ({
+  rows: [],
+  propertyColumns: new Map(),
+  dataTypesByProperty: {},
+  entityTypesWithMultipleVersions: new Set(),
+  firstSeenEntityTypeByBaseUrl: {},
+  sharedEntityTypeTitles: null,
+  rowsMissingSource: 0,
+  rowsMissingTarget: 0,
+});
+
+/**
+ * Copies the aggregates so a fold never mutates the ones already rendered.
+ */
+const carryOver = (previous: TableDataAggregates): TableDataAggregates => ({
+  rows: [...previous.rows],
+  propertyColumns: new Map(previous.propertyColumns),
+  dataTypesByProperty: Object.fromEntries(
+    Object.entries(previous.dataTypesByProperty).map(([baseUrl, dataTypes]) => [
+      baseUrl,
+      new Set(dataTypes),
+    ]),
+  ),
+  entityTypesWithMultipleVersions: new Set(
+    previous.entityTypesWithMultipleVersions,
+  ),
+  firstSeenEntityTypeByBaseUrl: { ...previous.firstSeenEntityTypeByBaseUrl },
+  sharedEntityTypeTitles: previous.sharedEntityTypeTitles
+    ? new Set(previous.sharedEntityTypeTitles)
+    : null,
+  rowsMissingSource: previous.rowsMissingSource,
+  rowsMissingTarget: previous.rowsMissingTarget,
+});
+
+/**
+ * Builds the table's rows and columns from `queryEntitiesTable` endpoint rows,
+ * appending them to the rows a previous page left behind.
  */
 export const generateTableDataFromEndpointRows = ({
   closedMultiEntityTypesRootMap,
   definitions,
   endpointRows,
+  previous,
   hideColumns,
   hideArchivedColumn,
 }: {
   closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   definitions: EntityTypeResolveDefinitions;
   endpointRows: EndpointRow[];
+  /** The aggregates of the pages already folded in, if this appends to them. */
+  previous?: TableDataAggregates;
   hideColumns?: (keyof EntitiesTableRow)[];
   hideArchivedColumn?: boolean;
-}): EntitiesTableData => {
-  let noSource = 0;
-  let noTarget = 0;
+}): { tableData: EntitiesTableData; aggregates: TableDataAggregates } => {
+  const aggregates = previous ? carryOver(previous) : emptyAggregates();
+  const {
+    dataTypesByProperty,
+    propertyColumns: propertyColumnsMap,
+    entityTypesWithMultipleVersions,
+    firstSeenEntityTypeByBaseUrl,
+    rows,
+  } = aggregates;
 
-  const dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl = {};
-
-  const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
-
-  const entityTypesWithMultipleVersions = new Set<VersionedUrl>();
-  const firstSeenEntityTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
-
-  const entityTypeTitlesSharedAcrossAllEntities = new Set<string>();
-
-  const rows: EntitiesTableRow[] = [];
-
-  for (const [index, endpointRow] of endpointRows.entries()) {
+  for (const endpointRow of endpointRows) {
     const closedMultiEntityType: ClosedMultiEntityType =
       getClosedMultiEntityTypeFromMap(
         closedMultiEntityTypesRootMap,
@@ -253,11 +307,7 @@ export const generateTableDataFromEndpointRows = ({
     let entityIcon: string | undefined;
     const entityTypeTitles = new Set<string>();
     for (const entityTypeMetadata of closedMultiEntityType.allOf) {
-      if (index === 0) {
-        entityTypeTitlesSharedAcrossAllEntities.add(entityTypeMetadata.title);
-      } else {
-        entityTypeTitles.add(entityTypeMetadata.title);
-      }
+      entityTypeTitles.add(entityTypeMetadata.title);
 
       for (const typeOrAncestor of entityTypeMetadata.allOf) {
         if (typeOrAncestor.icon) {
@@ -267,10 +317,12 @@ export const generateTableDataFromEndpointRows = ({
       }
     }
 
-    if (index > 0) {
-      for (const sharedTitle of entityTypeTitlesSharedAcrossAllEntities) {
+    if (aggregates.sharedEntityTypeTitles === null) {
+      aggregates.sharedEntityTypeTitles = entityTypeTitles;
+    } else {
+      for (const sharedTitle of aggregates.sharedEntityTypeTitles) {
         if (!entityTypeTitles.has(sharedTitle)) {
-          entityTypeTitlesSharedAcrossAllEntities.delete(sharedTitle);
+          aggregates.sharedEntityTypeTitles.delete(sharedTitle);
         }
       }
     }
@@ -336,10 +388,10 @@ export const generateTableDataFromEndpointRows = ({
         )
       : undefined;
     if (!sourceEntity) {
-      noSource += 1;
+      aggregates.rowsMissingSource += 1;
     }
     if (!targetEntity) {
-      noTarget += 1;
+      aggregates.rowsMissingTarget += 1;
     }
 
     for (const [baseUrl, { metadata }] of typedEntries(
@@ -412,18 +464,21 @@ export const generateTableDataFromEndpointRows = ({
   }
 
   return {
-    columns: assembleEntitiesTableColumns({
-      propertyColumns: Array.from(propertyColumnsMap.values()),
-      sharedTypeTitle: entityTypeTitlesSharedAcrossAllEntities.values().next()
-        .value,
-      hideColumns,
-      hideArchivedColumn,
-      allRowsMissSource: noSource === rows.length,
-      allRowsMissTarget: noTarget === rows.length,
-    }),
-    dataTypeDefinitions: definitions.dataTypes,
-    rows,
-    entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
-    visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
+    tableData: {
+      columns: assembleEntitiesTableColumns({
+        propertyColumns: Array.from(propertyColumnsMap.values()),
+        sharedTypeTitle: aggregates.sharedEntityTypeTitles?.values().next()
+          .value,
+        hideColumns,
+        hideArchivedColumn,
+        allRowsMissSource: aggregates.rowsMissingSource === rows.length,
+        allRowsMissTarget: aggregates.rowsMissingTarget === rows.length,
+      }),
+      dataTypeDefinitions: definitions.dataTypes,
+      rows,
+      entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
+      visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
+    },
+    aggregates,
   };
 };

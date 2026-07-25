@@ -195,12 +195,12 @@ export const EntitiesVisualizer: FunctionComponent<{
     createDefaultFilterState(internalWebs.map(({ webId }) => webId)),
   );
 
+  // The table query owns its own cursor: it drops it when the request changes,
+  // so only the subgraph path needs one here.
   const [subgraphCursor, setSubgraphCursor] = useState<EntityQueryCursor>();
-  const [tableCursor, setTableCursor] = useState<string>();
 
   const resetCursors = useCallback(() => {
     setSubgraphCursor(undefined);
-    setTableCursor(undefined);
   }, []);
   const [activeConversionsWithoutTitle, _setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
@@ -328,7 +328,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const tableQuery = useEntitiesTableQuery({
     conversions,
-    cursor: tableCursor,
     enabled: usesTableEndpoint,
     filterState,
     hideArchivedColumn: !filterState.includeArchived,
@@ -656,11 +655,11 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const nextPage = useCallback(() => {
     if (usesTableEndpoint) {
-      setTableCursor(tableQuery.cursor ?? undefined);
+      tableQuery.loadMore();
     } else {
       setSubgraphCursor(nextCursor ?? undefined);
     }
-  }, [usesTableEndpoint, tableQuery.cursor, nextCursor]);
+  }, [usesTableEndpoint, tableQuery, nextCursor]);
 
   const selectedEntities = useMemo<ArchivableEntity[]>(() => {
     if (view !== "Table") {
@@ -685,10 +684,10 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [selectedTableRows, view]);
 
   const handleBulkActionCompleted = useCallback(() => {
-    // A rejected refetch needs no handling here — the failure comes back
-    // through the hook's error state.
+    // A rejected read needs no handling here — the failure comes back through
+    // the hook's error state.
     if (usesTableEndpoint) {
-      tableQuery.refetch().catch(() => {});
+      tableQuery.restart().catch(() => {});
     } else {
       entitiesData.refetch().catch(() => {});
     }
@@ -798,12 +797,14 @@ export const EntitiesVisualizer: FunctionComponent<{
           {errorIsRetryable ? (
             <Button
               onClick={() => {
-                // A rejected refetch needs no handling here — the failure
-                // comes back through the hook's error state.
-                if (typeUniverseBlocksResults) {
+                // A rejected read needs no handling here — the failure comes
+                // back through the hook's error state. The table path is
+                // checked first: its own query is what failed, and the type
+                // universe it reports comes from that same failure.
+                if (usesTableEndpoint) {
+                  tableQuery.restart().catch(() => {});
+                } else if (typeUniverseBlocksResults) {
                   refetchTypeUniverse().catch(() => {});
-                } else if (usesTableEndpoint) {
-                  tableQuery.refetch().catch(() => {});
                 } else {
                   entitiesData.refetch().catch(() => {});
                 }
@@ -860,9 +861,9 @@ export const EntitiesVisualizer: FunctionComponent<{
               {errorIsRetryable ? (
                 <Button
                   onClick={() => {
-                    // A rejected refetch needs no handling here — the failure
+                    // A rejected read needs no handling here — the failure
                     // comes back through the hook's error state.
-                    tableQuery.refetch().catch(() => {});
+                    tableQuery.restart().catch(() => {});
                   }}
                   size="xs"
                 >
@@ -877,11 +878,11 @@ export const EntitiesVisualizer: FunctionComponent<{
             currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
             currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
             handleEntityClick={handleEntityClick}
-            hasMoreRowsAvailable={tableQuery.cursor != null}
+            hasMoreRowsAvailable={tableQuery.canLoadMore}
             loading={resultsLoading}
             isViewingOnlyPages={isViewingOnlyPages}
             maxHeight={`calc(${tableHeight} - ${toolbarHeight}px)`}
-            loadMoreRows={tableQuery.cursor ? nextPage : undefined}
+            loadMoreRows={tableQuery.canLoadMore ? nextPage : undefined}
             setActiveConversions={setActiveConversions}
             setSelectedEntityType={handleEntityTypeClick}
             setSelectedRows={setSelectedTableRows}
