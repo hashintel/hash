@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import * as Sentry from "@sentry/nextjs";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { noisySystemBaseUrls } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -71,20 +71,21 @@ export type EntitiesTableQueryData = {
  * The pages accumulated for one set of request filters. A response for
  * different filters resets the accumulation, so stale pages never mix into a
  * new sequence.
+ *
+ * Everything here belongs to its sequence and goes when the sequence does —
+ * unlike the types the pages resolved, which {@link ResolvedTypes} keeps.
  */
 type AccumulatedPages = {
   requestKey: string;
-  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
-  definitions: EntityTypeResolveDefinitions;
   tableData: EntitiesTableData | null;
   /** What the rows already folded in carry over, so a page costs a page. */
   aggregates: TableDataAggregates | null;
   summary: EntityTableSummary | null;
   nextCursor: string | null;
   /**
-   * The continuation tokens already folded into {@link rows}, so a re-emitted
-   * response (e.g. Apollo's cache pass before the network pass) does not
-   * append its page twice.
+   * The continuation tokens already folded into {@link tableData}, so a
+   * re-emitted response (e.g. Apollo's cache pass before the network pass)
+   * does not append its page twice.
    */
   consumedCursors: Set<string>;
   /**
@@ -93,6 +94,19 @@ type AccumulatedPages = {
    */
   issuedCursors: Set<string>;
   processingError?: Error;
+};
+
+/**
+ * The types the pages resolved, keyed by type id and merged as pages arrive.
+ *
+ * Kept across sequences on purpose: a type's closed schema does not depend on
+ * which rows asked for it, and dropping the pool mid-restart would leave
+ * anything rendering a resolved type — a conversion's column title, say —
+ * without one.
+ */
+type ResolvedTypes = {
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+  definitions: EntityTypeResolveDefinitions;
 };
 
 const mergeClosedMultiEntityTypeMaps = (
@@ -254,6 +268,14 @@ export const useEntitiesTableQuery = (params: {
   const [accumulated, setAccumulated] = useState<AccumulatedPages | null>(null);
   const [requestedCursor, setRequestedCursor] = useState<string | null>(null);
 
+  // The pool is rendered from the state and merged against the ref: a page has
+  // to merge against the pool as it stands, which reading the state inside the
+  // effect that writes it would not give.
+  const [resolvedTypes, setResolvedTypes] = useState<ResolvedTypes | null>(
+    null,
+  );
+  const resolvedTypesRef = useRef<ResolvedTypes | null>(null);
+
   const cursor = cursorInEffect({
     requestedCursor,
     requestKey,
@@ -297,6 +319,57 @@ export const useEntitiesTableQuery = (params: {
 
     const pageCursor = variables.request.cursor ?? null;
 
+    const failed = (thrown: unknown) => {
+      // The pages already shown stay intact, and the cursor is not marked
+      // consumed so a retry processes the page again.
+      setAccumulated((current) =>
+        current
+          ? { ...current, processingError: asError(thrown) }
+          : {
+              requestKey,
+              tableData: null,
+              aggregates: null,
+              summary: null,
+              nextCursor: null,
+              consumedCursors: new Set(),
+              issuedCursors: new Set(),
+              processingError: asError(thrown),
+            },
+      );
+    };
+
+    if (!response.definitions) {
+      failed(new Error("The response carries no type definitions"));
+      return;
+    }
+    if (!response.closedMultiEntityTypes) {
+      failed(new Error("The response carries no closed types"));
+      return;
+    }
+    if (pageCursor === null && !response.summary) {
+      // Every first page requests a summary. Without this guard a missing one
+      // would leave the filter chips loading forever.
+      failed(new Error("The response carries no summary"));
+      return;
+    }
+
+    // The pool grows with every page and outlives the sequence, so it merges
+    // against the latest one rather than against this render's.
+    const previousTypes = resolvedTypesRef.current;
+    const pool: ResolvedTypes = {
+      closedMultiEntityTypes: previousTypes
+        ? mergeClosedMultiEntityTypeMaps(
+            previousTypes.closedMultiEntityTypes,
+            response.closedMultiEntityTypes,
+          )
+        : response.closedMultiEntityTypes,
+      definitions: previousTypes
+        ? mergeDefinitions(previousTypes.definitions, response.definitions)
+        : response.definitions,
+    };
+    resolvedTypesRef.current = pool;
+    setResolvedTypes(pool);
+
     setAccumulated((current) => {
       const continues =
         pageCursor !== null && current?.requestKey === requestKey;
@@ -306,33 +379,11 @@ export const useEntitiesTableQuery = (params: {
       }
 
       try {
-        if (!response.definitions) {
-          throw new Error("The response carries no type definitions");
-        }
-        if (!response.closedMultiEntityTypes) {
-          throw new Error("The response carries no closed types");
-        }
-        if (pageCursor === null && !response.summary) {
-          // Every first page requests a summary. Without this guard a missing
-          // one would leave the filter chips loading forever.
-          throw new Error("The response carries no summary");
-        }
-
-        const closedMultiEntityTypes = continues
-          ? mergeClosedMultiEntityTypeMaps(
-              current.closedMultiEntityTypes,
-              response.closedMultiEntityTypes,
-            )
-          : response.closedMultiEntityTypes;
-        const definitions = continues
-          ? mergeDefinitions(current.definitions, response.definitions)
-          : response.definitions;
-
         // Only the page's own rows are turned into table rows — the pages
         // before it carry their result forward through the aggregates.
         const { tableData, aggregates } = generateTableDataFromEndpointRows({
-          closedMultiEntityTypesRootMap: closedMultiEntityTypes,
-          definitions,
+          closedMultiEntityTypesRootMap: pool.closedMultiEntityTypes,
+          definitions: pool.definitions,
           endpointRows: response.rows,
           previous: continues ? (current.aggregates ?? undefined) : undefined,
           hideColumns,
@@ -341,8 +392,6 @@ export const useEntitiesTableQuery = (params: {
 
         return {
           requestKey,
-          closedMultiEntityTypes,
-          definitions,
           tableData,
           aggregates,
           summary: response.summary ?? (continues ? current.summary : null),
@@ -358,18 +407,10 @@ export const useEntitiesTableQuery = (params: {
           ),
         };
       } catch (thrown) {
-        // The pages already shown stay intact, and the cursor is not marked
-        // consumed so a retry processes the page again.
         return current
           ? { ...current, processingError: asError(thrown) }
           : {
               requestKey,
-              closedMultiEntityTypes: {},
-              definitions: {
-                dataTypes: {},
-                propertyTypes: {},
-                entityTypes: {},
-              },
               tableData: null,
               aggregates: null,
               summary: null,
@@ -429,9 +470,9 @@ export const useEntitiesTableQuery = (params: {
   return useMemo(
     () => ({
       canLoadMore: nextCursor !== null,
-      closedMultiEntityTypes: accumulated?.closedMultiEntityTypes ?? null,
+      closedMultiEntityTypes: resolvedTypes?.closedMultiEntityTypes ?? null,
       dataIsStale: accumulated !== null && !isCurrent,
-      definitions: accumulated?.definitions ?? null,
+      definitions: resolvedTypes?.definitions ?? null,
       error:
         queryError ??
         // A processing error belongs to the response it came from, so it stops
@@ -452,6 +493,7 @@ export const useEntitiesTableQuery = (params: {
     }),
     [
       accumulated,
+      resolvedTypes,
       isCurrent,
       nextCursor,
       queryError,
