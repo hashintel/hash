@@ -422,29 +422,35 @@ export const EntitiesVisualizer: FunctionComponent<{
       ? tableQuery.definitions
       : definitions;
 
-    return activeConversionsWithoutTitle
-      ? Object.fromEntries(
-          typedEntries(activeConversionsWithoutTitle).map(
-            ([columnBaseUrl, dataTypeId]) => {
-              const dataType = activeDefinitions?.dataTypes[dataTypeId];
+    // The definitions arrive with the rows, so a sequence reading its first
+    // page again — after a retry or a bulk action — has none to resolve the
+    // conversions' titles against yet. The conversions themselves ride in the
+    // request regardless; only their column headers wait.
+    if (!activeConversionsWithoutTitle || !activeDefinitions) {
+      return null;
+    }
 
-              if (!dataType) {
-                throw new Error(
-                  `No data type found for column base URL: ${columnBaseUrl}`,
-                );
-              }
+    return Object.fromEntries(
+      typedEntries(activeConversionsWithoutTitle).map(
+        ([columnBaseUrl, dataTypeId]) => {
+          const dataType = activeDefinitions.dataTypes[dataTypeId];
 
-              return [
-                columnBaseUrl,
-                {
-                  dataTypeId,
-                  title: dataType.schema.title,
-                },
-              ];
+          if (!dataType) {
+            throw new Error(
+              `No data type found for column base URL: ${columnBaseUrl}`,
+            );
+          }
+
+          return [
+            columnBaseUrl,
+            {
+              dataTypeId,
+              title: dataType.schema.title,
             },
-          ),
-        )
-      : null;
+          ];
+        },
+      ),
+    );
   }, [
     activeConversionsWithoutTitle,
     usesTableEndpoint,

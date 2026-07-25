@@ -434,7 +434,11 @@ export const useEntitiesTableQuery = (params: {
       definitions: accumulated?.definitions ?? null,
       error:
         queryError ??
-        accumulated?.processingError ??
+        // A processing error belongs to the response it came from, so it stops
+        // speaking for the table once a new request is in flight — where its
+        // rows are still shown, but the failure that produced them is no
+        // longer the one to retry.
+        (isCurrent ? accumulated.processingError : undefined) ??
         (unresolvablePins
           ? new Error("The pinned type could not be resolved to any version")
           : undefined),
