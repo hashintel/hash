@@ -6,6 +6,7 @@ import { noisySystemBaseUrls } from "@local/hash-isomorphic-utils/graph-queries"
 
 import { queryEntitiesTableQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { buildEndpointPropertyFilter } from "./shared/property-filters/build-property-filter-clause";
+import { cursorInEffect } from "./use-entities-table-query/cursor-in-effect";
 import { generateTableDataFromEndpointRows } from "./use-entities-table-query/generate-table-data-from-endpoint-rows";
 
 import type {
@@ -253,16 +254,11 @@ export const useEntitiesTableQuery = (params: {
   const [accumulated, setAccumulated] = useState<AccumulatedPages | null>(null);
   const [requestedCursor, setRequestedCursor] = useState<string | null>(null);
 
-  // A cursor only belongs to the sequence that handed it out: after a filter
-  // change — or a navigation that swaps the pinned type without remounting —
-  // it would otherwise be sent against a sequence it cannot continue, skipping
-  // the rows before it and suppressing the first page's summary.
-  const cursor =
-    requestedCursor !== null &&
-    accumulated?.requestKey === requestKey &&
-    accumulated.issuedCursors.has(requestedCursor)
-      ? requestedCursor
-      : null;
+  const cursor = cursorInEffect({
+    requestedCursor,
+    requestKey,
+    sequence: accumulated,
+  });
 
   const variables = useMemo<QueryEntitiesTableQueryVariables | null>(
     () =>
@@ -417,15 +413,18 @@ export const useEntitiesTableQuery = (params: {
    */
   const restart = useCallback(async () => {
     setAccumulated(null);
+    setRequestedCursor(null);
 
-    if (requestedCursor === null) {
-      // Already on the first page, so only the network round trip is missing.
+    // Dropping the cursor only re-runs the query when one was in effect. The
+    // requested cursor can sit there without being in effect — a token the
+    // current sequence never handed out — so the request in flight is already
+    // the first page and only a network round trip is missing.
+    if (cursor === null) {
       return refetch();
     }
 
-    setRequestedCursor(null);
     return undefined;
-  }, [requestedCursor, refetch]);
+  }, [cursor, refetch]);
 
   return useMemo(
     () => ({
