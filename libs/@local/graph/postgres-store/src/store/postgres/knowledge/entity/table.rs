@@ -21,8 +21,8 @@ use hash_graph_store::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
         EntityTableCursor, EntityTableLinkEndpoint, EntityTablePropertyFilter,
         EntityTablePropertyValue, EntityTableRow, EntityTableSortKey, EntityTableSorting,
-        EntityTableSummary, EntityTableTypeScope, EntityTableWebScope, QueryEntitiesTableParams,
-        QueryEntitiesTableResponse,
+        EntityTableSummary, EntityTableWebScope, QueryEntitiesTableParams,
+        QueryEntitiesTableResponse, TYPE_UNIVERSE_LIMIT,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::QueryError,
@@ -297,10 +297,9 @@ struct LinkEndpointEditions {
     target: Option<EntityEditionId>,
 }
 
-fn sorting_records(
-    sort: EntityTableSorting,
-    include_drafts: bool,
-) -> Vec<EntityQuerySortingRecord<'static>> {
+/// The sort key plus the uuid tiebreaker — the keyset the cursor's position
+/// carries. Drafts are never rows, so the entity uuid alone breaks ties.
+fn sorting_records(sort: EntityTableSorting) -> Vec<EntityQuerySortingRecord<'static>> {
     let key_path = match sort.key {
         EntityTableSortKey::CreatedAtDecisionTime => EntityQueryPath::CreatedAtDecisionTime,
         EntityTableSortKey::EditionCreatedAtDecisionTime => EntityQueryPath::DecisionTime,
@@ -309,7 +308,7 @@ fn sorting_records(
         EntityTableSortKey::Archived => EntityQueryPath::Archived,
     };
 
-    let mut records = vec![
+    vec![
         EntityQuerySortingRecord {
             path: key_path,
             ordering: sort.ordering,
@@ -320,16 +319,16 @@ fn sorting_records(
             ordering: sort.ordering,
             nulls: None,
         },
-    ];
-    if include_drafts {
-        records.push(EntityQuerySortingRecord {
-            path: EntityQueryPath::DraftId,
-            ordering: sort.ordering,
-            nulls: None,
-        });
-    }
-    records
+    ]
 }
+
+/// Draft entities are never rows of the table.
+///
+/// Excluding them keeps `draft_id IS NULL` on every temporal-metadata join the
+/// compiler emits — including the ones hydrating a link row's endpoints, which
+/// would otherwise match one row per draft edition and let a product row mix
+/// columns from different editions.
+const INCLUDE_DRAFTS: bool = false;
 
 impl<C> PostgresStore<C, InTransaction>
 where
@@ -348,27 +347,22 @@ where
             .await
             .change_context(QueryError)?;
 
-        // The sort and draft visibility shape the keyset, so a continuation
-        // reads them from its token instead of trusting the re-sent request.
-        let (transaction_time, decision_time, mut type_universe, sort, include_drafts, position) =
+        // The sort shapes the keyset, so a continuation reads it from its
+        // token instead of trusting the re-sent request. The snapshot instants
+        // are minted here for a first page — a shade after the transaction's
+        // own snapshot, so a writer committing in between stays out of this
+        // page's aggregates but can still surface on a later page.
+        let (transaction_time, decision_time, mut type_universe, sort, position) =
             match &params.cursor {
                 None => {
                     let now: Timestamp<()> = Timestamp::now();
-                    (
-                        now.cast(),
-                        now.cast(),
-                        None,
-                        params.sort,
-                        params.filter.include_drafts,
-                        None,
-                    )
+                    (now.cast(), now.cast(), None, params.sort, None)
                 }
                 Some(cursor) => (
                     cursor.transaction_time,
                     cursor.decision_time,
                     cursor.type_universe.clone(),
                     cursor.sort,
-                    cursor.include_drafts,
                     Some(cursor.position.clone()),
                 ),
             };
@@ -382,10 +376,7 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
-        let type_include_ids = match &params.filter.types {
-            EntityTableTypeScope::Include { entity_type_ids } => Some(entity_type_ids.clone()),
-            EntityTableTypeScope::Exclude { .. } => None,
-        };
+        let type_selection = params.filter.entity_type_ids.clone();
 
         // Sensitive properties get the same two-sided protection the generic
         // read path applies: the responses mask them, and the user's filters
@@ -415,20 +406,19 @@ where
             });
         }
 
-        let needs_universe = type_include_ids.is_none() && type_universe.is_none();
+        let needs_universe = type_selection.is_none() && type_universe.is_none();
         // Without narrowing filters the page's full filters equal the scope
-        // (the include clause is result-neutral and the universe's base-URL
-        // exclusions live inside the scope filter), so the count can ride
-        // along in the summary scan instead of paying a second full scan.
+        // (the include clause is result-neutral and the excluded base URLs
+        // live inside the scope filter), so the count can ride along in the
+        // summary scan instead of paying a second full scan.
         let count_matches_scope =
-            type_include_ids.is_none() && params.filter.property_filters.is_empty();
+            type_selection.is_none() && params.filter.property_filters.is_empty();
         let scope_summaries = if params.include_summary || needs_universe {
             Some(
                 self.scope_summary(
                     &policy_filter,
                     &scope_filter,
                     &temporal_axes,
-                    include_drafts,
                     params.include_summary && count_matches_scope,
                 )
                 .await?,
@@ -437,22 +427,25 @@ where
             None
         };
         if needs_universe {
-            type_universe = scope_summaries.as_ref().map(|summaries| {
-                let mut universe = summaries
+            type_universe = scope_summaries.as_ref().and_then(|summaries| {
+                let type_ids = summaries
                     .type_ids
                     .as_ref()
-                    .expect("the type summary should always be requested")
-                    .keys()
-                    .cloned()
-                    .collect::<Vec<_>>();
-                // The universe is sent as query parameters and travels inside the
-                // cursor — keep its order deterministic.
-                universe.sort_unstable();
-                universe
+                    .expect("the type summary should always be requested");
+                // Past the limit the clause stops being worth its cost in
+                // parameters and cursor bytes, and the scope filter alone
+                // decides the rows either way.
+                (type_ids.len() <= TYPE_UNIVERSE_LIMIT).then(|| {
+                    let mut universe = type_ids.keys().cloned().collect::<Vec<_>>();
+                    // The universe is sent as query parameters and travels
+                    // inside the cursor — keep its order deterministic.
+                    universe.sort_unstable();
+                    universe
+                })
             });
         }
 
-        let type_filter = type_include_ids
+        let type_filter = type_selection
             .as_ref()
             .or(type_universe.as_ref())
             .map(|entity_type_ids| type_include_filter(entity_type_ids));
@@ -473,7 +466,6 @@ where
                                     property_filter.as_ref(),
                                 ],
                                 &temporal_axes,
-                                include_drafts,
                             )
                             .await?
                         }
@@ -490,7 +482,7 @@ where
             };
 
         let row_paths = RowPaths::new();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), include_drafts);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), INCLUDE_DRAFTS);
 
         // The rows carry raw property objects, so the page masks them the
         // same way the generic read path masks its entities.
@@ -527,7 +519,7 @@ where
         compiler.set_statement_shape(StatementShape::KeysFirst);
 
         let sorting = EntityQuerySorting {
-            paths: sorting_records(sort, include_drafts),
+            paths: sorting_records(sort),
             cursor: position,
         };
         let cursor_parameters = sorting.encode().change_context(QueryError)?;
@@ -558,12 +550,11 @@ where
             .map(|row| EntityTableCursor {
                 transaction_time,
                 decision_time,
-                type_universe: type_include_ids
+                type_universe: type_selection
                     .is_none()
                     .then(|| type_universe.clone())
                     .flatten(),
                 sort,
-                include_drafts,
                 position: EntityQueryCursor {
                     values: cursor_indices
                         .iter()
@@ -705,17 +696,19 @@ where
         })
     }
 
-    /// Runs the type summary over the scope, before any type filter, carrying
-    /// the scope count along when requested.
+    /// Runs the type summary over the scope, before any type selection,
+    /// carrying the scope count along when requested.
+    ///
+    /// The policy filter is part of the scope, so the counts and types only
+    /// ever span what the actor may view.
     async fn scope_summary(
         &self,
         policy_filter: &Filter<'_, Entity>,
         scope_filter: &Filter<'_, Entity>,
         temporal_axes: &QueryTemporalAxes,
-        include_drafts: bool,
         include_count: bool,
     ) -> Result<EntitySummaries, Report<QueryError>> {
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), INCLUDE_DRAFTS);
         compiler
             .add_filter(policy_filter)
             .change_context(QueryError)?;
@@ -779,9 +772,8 @@ where
         &self,
         filters: [Option<&'f Filter<'f, Entity>>; 4],
         temporal_axes: &QueryTemporalAxes,
-        include_drafts: bool,
     ) -> Result<usize, Report<QueryError>> {
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), INCLUDE_DRAFTS);
         for filter in filters.into_iter().flatten() {
             compiler.add_filter(filter).change_context(QueryError)?;
         }
@@ -825,8 +817,8 @@ where
     }
 }
 
-/// The scope shared by the summary and the page query: webs, archival, and
-/// the universe's type exclusions.
+/// The scope shared by the summary and the page query: webs, excluded types,
+/// and archival.
 fn scope_filter<'f>(params: &'f QueryEntitiesTableParams) -> Filter<'f, Entity> {
     let webs_in = |webs: &'f [WebId]| {
         Filter::In(
@@ -852,29 +844,31 @@ fn scope_filter<'f>(params: &'f QueryEntitiesTableParams) -> Filter<'f, Entity> 
         }
     }
 
-    if let EntityTableTypeScope::Exclude {
-        entity_type_base_urls,
-    } = &params.filter.types
-    {
-        // Excluding here rather than in the page's type clause drops the
-        // excluded entities from the summary and the count as well, and it
-        // catches multi-type entities that also carry a universe type.
-        clauses.extend(entity_type_base_urls.iter().map(|base_url| {
-            Filter::NotEqual(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: None,
+    // Excluding here rather than in the page's type clause drops the excluded
+    // entities from the summary and the count as well, catches multi-type
+    // entities that also carry a selected type, and keeps the exclusions in
+    // force when the request narrows to a selection.
+    clauses.extend(
+        params
+            .filter
+            .excluded_type_base_urls
+            .iter()
+            .map(|base_url| {
+                Filter::NotEqual(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: None,
+                        },
                     },
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Text(base_url.to_string().into()),
-                    convert: None,
-                },
-            )
-        }));
-    }
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(base_url.to_string().into()),
+                        convert: None,
+                    },
+                )
+            }),
+    );
 
     if !params.filter.include_archived {
         clauses.push(Filter::NotEqual(
@@ -1034,9 +1028,9 @@ mod tests {
                 webs: webs.map_or_else(EntityTableWebScope::default, |webs| {
                     EntityTableWebScope::Include { webs }
                 }),
-                types: EntityTableTypeScope::default(),
+                entity_type_ids: None,
+                excluded_type_base_urls: Vec::new(),
                 include_archived: false,
-                include_drafts: false,
                 property_filters: Vec::new(),
             },
             cursor: None,
@@ -1066,11 +1060,10 @@ mod tests {
                 key: EntityTableSortKey::Label,
                 ordering: hash_graph_store::query::Ordering::Ascending,
             },
-            include_drafts: false,
             position: EntityQueryCursor {
                 values: vec![
-                    CursorField::Uuid(Uuid::nil()),
                     CursorField::String("cursor value".into()),
+                    CursorField::Uuid(Uuid::nil()),
                 ],
             },
         };
@@ -1087,7 +1080,6 @@ mod tests {
         );
 
         assert_eq!(decoded.sort, cursor.sort, "the token pins the sort");
-        assert!(!decoded.include_drafts);
     }
 
     // The NOT clauses are compiled next to the derived universe's GIN-friendly
@@ -1101,17 +1093,15 @@ mod tests {
         params.filter.webs = EntityTableWebScope::Exclude {
             webs: vec![WebId::new(Uuid::nil())],
         };
-        params.filter.types = EntityTableTypeScope::Exclude {
-            entity_type_base_urls: vec![
-                BaseUrl::new("https://example.com/types/entity-type/noise/".to_owned())
-                    .expect("the URL should be a valid base URL"),
-            ],
-        };
+        params.filter.excluded_type_base_urls = vec![
+            BaseUrl::new("https://example.com/types/entity-type/noise/".to_owned())
+                .expect("the URL should be a valid base URL"),
+        ];
         params.filter.include_archived = true;
 
         let scope = scope_filter(&params);
 
-        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), false);
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), INCLUDE_DRAFTS);
         compiler
             .add_filter(&scope)
             .expect("the scope filter should compile");
@@ -1196,7 +1186,7 @@ mod tests {
             property_filters_filter(&property_filters).expect("the filters should build a filter");
 
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
-        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), false);
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), INCLUDE_DRAFTS);
         compiler
             .add_filter(&filter)
             .expect("the property filter should compile");
@@ -1233,27 +1223,23 @@ mod tests {
     #[test]
     fn sort_keys_compile_to_their_order_by_columns() {
         let order_by_lines = [
-            (EntityTableSortKey::CreatedAtDecisionTime, false),
-            (EntityTableSortKey::EditionCreatedAtDecisionTime, false),
-            (EntityTableSortKey::Label, false),
-            (EntityTableSortKey::TypeTitle, false),
-            (EntityTableSortKey::Archived, false),
-            (EntityTableSortKey::CreatedAtDecisionTime, true),
+            EntityTableSortKey::CreatedAtDecisionTime,
+            EntityTableSortKey::EditionCreatedAtDecisionTime,
+            EntityTableSortKey::Label,
+            EntityTableSortKey::TypeTitle,
+            EntityTableSortKey::Archived,
         ]
-        .map(|(key, include_drafts)| {
+        .map(|key| {
             let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
-            let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), include_drafts);
+            let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), INCLUDE_DRAFTS);
             compiler.set_limit(10);
             compiler.set_statement_shape(StatementShape::KeysFirst);
 
             let sorting = EntityQuerySorting {
-                paths: sorting_records(
-                    EntityTableSorting {
-                        key,
-                        ordering: hash_graph_store::query::Ordering::Descending,
-                    },
-                    include_drafts,
-                ),
+                paths: sorting_records(EntityTableSorting {
+                    key,
+                    ordering: hash_graph_store::query::Ordering::Descending,
+                }),
                 cursor: None,
             };
             let cursor_parameters = sorting.encode().expect("the sorting should encode");
@@ -1281,7 +1267,6 @@ mod tests {
                 r#"("labels")[1] DESC, "entity_uuid" DESC"#,
                 r#"("type_titles")[1] DESC, "entity_uuid" DESC"#,
                 r#""archived" DESC, "entity_uuid" DESC"#,
-                r#""created_at_decision_time" DESC, "entity_uuid" DESC, "draft_id" DESC"#,
             ]
         );
     }
@@ -1298,7 +1283,7 @@ mod tests {
         .expect("the URL should be a valid versioned URL")]);
 
         let row_paths = RowPaths::new();
-        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), false);
+        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), INCLUDE_DRAFTS);
         compiler
             .add_filter(&scope)
             .expect("the scope filter should compile");
@@ -1309,7 +1294,7 @@ mod tests {
         compiler.set_statement_shape(StatementShape::KeysFirst);
 
         let sorting = EntityQuerySorting {
-            paths: sorting_records(params.sort, params.filter.include_drafts),
+            paths: sorting_records(params.sort),
             cursor: None,
         };
         let cursor_parameters = sorting.encode().expect("the sorting should encode");

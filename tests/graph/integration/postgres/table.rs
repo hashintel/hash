@@ -392,9 +392,9 @@ fn page_params(limit: usize) -> QueryEntitiesTableParams {
     QueryEntitiesTableParams {
         filter: EntityTableFilter {
             webs: hash_graph_store::entity::EntityTableWebScope::default(),
-            types: hash_graph_store::entity::EntityTableTypeScope::default(),
+            entity_type_ids: None,
+            excluded_type_base_urls: Vec::new(),
             include_archived: false,
-            include_drafts: false,
             property_filters: Vec::new(),
         },
         cursor: None,
@@ -413,16 +413,6 @@ async fn collect_all_pages(
     limit: usize,
     sort: EntityTableSorting,
 ) -> Vec<EntityTableRow> {
-    collect_all_pages_with(api, limit, sort, false).await
-}
-
-/// [`collect_all_pages`] with draft visibility.
-async fn collect_all_pages_with(
-    api: &mut DatabaseApi<'_>,
-    limit: usize,
-    sort: EntityTableSorting,
-    include_drafts: bool,
-) -> Vec<EntityTableRow> {
     let actor_id = api.account_id;
     let mut cursor = None;
     let mut seen = HashSet::new();
@@ -431,7 +421,6 @@ async fn collect_all_pages_with(
     loop {
         let mut params = page_params(limit);
         params.sort = sort;
-        params.filter.include_drafts = include_drafts;
         params.cursor = Option::take(&mut cursor);
 
         let response = api
@@ -459,7 +448,7 @@ async fn collect_all_pages_with(
             break;
         }
         let Some(new_cursor) = response.cursor else {
-            break;
+            panic!("a page filling the limit should hand out a continuation");
         };
         cursor = Some(new_cursor);
     }
@@ -541,9 +530,7 @@ async fn explicit_type_filter_scopes_the_table() {
     let actor_id = api.account_id;
 
     let mut params = page_params(10);
-    params.filter.types = hash_graph_store::entity::EntityTableTypeScope::Include {
-        entity_type_ids: vec![person_entity_type()],
-    };
+    params.filter.entity_type_ids = Some(vec![person_entity_type()]);
 
     let response = api
         .query_entities_table(actor_id, params)
@@ -827,9 +814,7 @@ async fn type_filter_narrows_the_count_but_not_the_type_summary() {
 
     let mut params = page_params(10);
     params.include_summary = true;
-    params.filter.types = hash_graph_store::entity::EntityTableTypeScope::Include {
-        entity_type_ids: vec![person_entity_type()],
-    };
+    params.filter.entity_type_ids = Some(vec![person_entity_type()]);
 
     let response = api
         .query_entities_table(actor_id, params)
@@ -917,9 +902,7 @@ async fn excluded_type_base_urls_leave_the_universe_and_the_summary() {
 
     let mut params = page_params(10);
     params.include_summary = true;
-    params.filter.types = hash_graph_store::entity::EntityTableTypeScope::Exclude {
-        entity_type_base_urls: vec![page_entity_type().base_url],
-    };
+    params.filter.excluded_type_base_urls = vec![page_entity_type().base_url];
 
     let response = api
         .query_entities_table(actor_id, params)
@@ -1053,14 +1036,35 @@ async fn link_endpoints_hide_entities_the_actor_cannot_view() {
         .await
         .expect("the forbid policy should be inserted");
 
-    let rows = collect_all_pages(&mut api, 10, EntityTableSorting::default()).await;
+    let mut params = page_params(10);
+    params.include_summary = true;
+    let response = api
+        .query_entities_table(actor_id, params)
+        .await
+        .expect("the table query should succeed");
 
     assert!(
-        rows.iter().all(|row| row.entity_id != hidden_id),
+        response.rows.iter().all(|row| row.entity_id != hidden_id),
         "the forbidden entity should not appear as its own row",
     );
 
-    let link_row = rows
+    // The summary shares the page's policy filter, so neither the count nor
+    // the pills may reveal an entity the actor cannot view.
+    let summary = response
+        .summary
+        .expect("the summary should be present when requested");
+    assert_eq!(
+        summary.count, 6,
+        "the count should leave out the forbidden entity",
+    );
+    assert_eq!(
+        summary.entity_type_ids[&person_entity_type()],
+        3,
+        "the person pill should leave out the forbidden entity",
+    );
+
+    let link_row = response
+        .rows
         .iter()
         .find(|row| row.source_entity.is_some() || row.target_entity.is_some())
         .expect("the link row should be visible");
@@ -1123,7 +1127,7 @@ async fn included_webs_scope_the_page_and_empty_include_matches_nothing() {
 }
 
 #[tokio::test]
-async fn drafts_are_hidden_unless_requested() {
+async fn drafts_are_never_rows() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = insert(&mut database).await;
     let actor_id = api.account_id;
@@ -1156,27 +1160,36 @@ async fn drafts_are_hidden_unless_requested() {
     .await
     .expect("the draft should be created");
 
-    let rows = collect_all_pages(&mut api, 10, EntityTableSorting::default()).await;
-    assert_eq!(rows.len(), 5, "drafts stay hidden by default");
+    let mut params = page_params(10);
+    params.include_summary = true;
+    let response = api
+        .query_entities_table(actor_id, params)
+        .await
+        .expect("the table query should succeed");
 
-    // Paging with a small limit exercises the draft-aware keyset, whose
-    // cursor carries the draft id as a third sort column.
-    let rows = collect_all_pages_with(&mut api, 2, EntityTableSorting::default(), true).await;
-    assert_eq!(rows.len(), 6, "the draft shows up when requested");
-    assert_eq!(
-        rows.iter()
-            .filter(|row| row.entity_id.draft_id.is_some())
-            .count(),
-        1,
+    assert_eq!(response.rows.len(), 5, "the draft is not a row");
+    assert!(
+        response
+            .rows
+            .iter()
+            .all(|row| row.entity_id.draft_id.is_none()),
     );
+    assert_eq!(
+        response
+            .summary
+            .expect("the summary should be present when requested")
+            .count,
+        5,
+        "the draft is not counted either",
+    );
+
+    // Paging exercises the same exclusion on the keyset.
+    let rows = collect_all_pages(&mut api, 2, EntityTableSorting::default()).await;
+    assert_eq!(rows.len(), 5);
 }
 
-#[tokio::test]
-async fn multi_type_entities_count_once_and_pill_under_each_type() {
-    let mut database = DatabaseTestWrapper::new().await;
-    let mut api = insert(&mut database).await;
-    let actor_id = api.account_id;
-
+/// Creates an entity carrying both the person and the page type.
+async fn create_person_and_page(api: &mut DatabaseApi<'_>) {
     let mut properties: serde_json::Map<String, serde_json::Value> =
         serde_json::from_str(entity::PERSON_ALICE_V1).expect("the entity fixture should parse");
     properties.extend(
@@ -1185,7 +1198,7 @@ async fn multi_type_entities_count_once_and_pill_under_each_type() {
     );
 
     api.create_entity(
-        actor_id,
+        api.account_id,
         CreateEntityParams {
             web_id: WebId::new(api.account_id),
             entity_uuid: None,
@@ -1211,6 +1224,15 @@ async fn multi_type_entities_count_once_and_pill_under_each_type() {
     )
     .await
     .expect("the multi-type entity should be created");
+}
+
+#[tokio::test]
+async fn multi_type_entities_count_once_and_pill_under_each_type() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = insert(&mut database).await;
+    let actor_id = api.account_id;
+
+    create_person_and_page(&mut api).await;
 
     let mut params = page_params(10);
     params.include_summary = true;
@@ -1251,4 +1273,111 @@ async fn multi_type_entities_count_once_and_pill_under_each_type() {
         2,
         "the titles should stay parallel to the two types",
     );
+}
+
+#[tokio::test]
+async fn a_selection_cannot_bring_back_an_excluded_type() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = insert(&mut database).await;
+    let actor_id = api.account_id;
+
+    create_person_and_page(&mut api).await;
+
+    let mut params = page_params(10);
+    params.include_summary = true;
+    params.filter.entity_type_ids = Some(vec![person_entity_type()]);
+    params.filter.excluded_type_base_urls = vec![page_entity_type().base_url];
+
+    let response = api
+        .query_entities_table(actor_id, params)
+        .await
+        .expect("the table query should succeed");
+
+    // The multi-type entity carries the selected person type, but its page
+    // type is excluded — the exclusion wins.
+    assert_eq!(response.rows.len(), 3, "only the pure persons should match");
+    assert!(
+        response
+            .rows
+            .iter()
+            .all(|row| row.entity_type_ids == vec![person_entity_type()]),
+    );
+
+    let summary = response
+        .summary
+        .expect("the summary should be present when requested");
+    assert_eq!(summary.count, 3);
+    assert_eq!(
+        summary.entity_type_ids,
+        HashMap::from([(person_entity_type(), 3)]),
+        "the excluded type should stay out of the pills under a selection",
+    );
+}
+
+#[tokio::test]
+async fn a_continuation_reads_the_first_page_s_snapshot() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = insert(&mut database).await;
+    let actor_id = api.account_id;
+
+    // Oldest first, so anything created after page 1 would sort into the
+    // continuation's range if the snapshot were re-taken per page.
+    let oldest_first = EntityTableSorting {
+        key: EntityTableSortKey::CreatedAtDecisionTime,
+        ordering: Ordering::Ascending,
+    };
+
+    let mut params = page_params(2);
+    params.sort = oldest_first;
+    let first = api
+        .query_entities_table(actor_id, params)
+        .await
+        .expect("the table query should succeed");
+    let mut cursor = Some(
+        first
+            .cursor
+            .expect("a full page should hand out a continuation"),
+    );
+
+    // A new entity of a type the first page never saw: the pinned snapshot
+    // keeps it out of the rows, and the pinned universe keeps its type out of
+    // the page query's type clause.
+    create_person_and_page(&mut api).await;
+
+    let mut continued = first.rows.len();
+    while let Some(current) = Option::take(&mut cursor) {
+        let mut params = page_params(2);
+        params.sort = oldest_first;
+        params.cursor = Some(current);
+
+        let response = api
+            .query_entities_table(actor_id, params)
+            .await
+            .expect("the table query should succeed");
+
+        assert!(
+            response
+                .rows
+                .iter()
+                .all(|row| row.entity_type_ids.len() == 1),
+            "the entity created after the first page should stay out of the sequence",
+        );
+        continued += response.rows.len();
+        cursor = response.cursor;
+    }
+
+    assert_eq!(
+        continued, 5,
+        "the sequence should carry the rows the first page's snapshot held",
+    );
+
+    // The same query without a cursor sees the new entity, so the assertion
+    // above is about the pinning rather than about the entity's visibility.
+    let mut params = page_params(10);
+    params.sort = oldest_first;
+    let fresh = api
+        .query_entities_table(actor_id, params)
+        .await
+        .expect("the table query should succeed");
+    assert_eq!(fresh.rows.len(), 6);
 }

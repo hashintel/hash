@@ -877,10 +877,10 @@ pub trait EntityStore {
 
     /// Queries one page of the entities table.
     ///
-    /// Runs the summary and the page read in one transaction: when the
-    /// filter's [`types`] scope is [`Exclude`], the visible-type universe is
-    /// derived from the summary and applied to the page query. Follow-up
-    /// pages continue on the first page's database state through the
+    /// Runs the summary and the page read in one transaction: without a type
+    /// selection in [`entity_type_ids`], the visible-type universe is derived
+    /// from the summary and applied to the page query. Follow-up pages
+    /// continue on the first page's database state through the
     /// [`EntityTableCursor`].
     ///
     /// # Errors
@@ -888,8 +888,7 @@ pub trait EntityStore {
     /// - if the cursor position cannot be encoded into query parameters
     /// - if the request to the database fails
     ///
-    /// [`types`]: crate::entity::EntityTableFilter::types
-    /// [`Exclude`]: crate::entity::EntityTableTypeScope::Exclude
+    /// [`entity_type_ids`]: crate::entity::EntityTableFilter::entity_type_ids
     /// [`EntityTableCursor`]: crate::entity::EntityTableCursor
     fn query_entities_table(
         &mut self,

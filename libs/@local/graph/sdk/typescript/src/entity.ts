@@ -337,20 +337,21 @@ export type EntityTableWebScope =
   | { type: "include"; webs: WebId[] }
   | { type: "exclude"; webs: WebId[] };
 
-export type EntityTableTypeScope =
-  | { type: "include"; entityTypeIds: VersionedUrl[] }
-  | { type: "exclude"; entityTypeBaseUrls: BaseUrl[] };
-
 export type QueryEntitiesTableParams = DistributiveOmit<
   QueryEntitiesTableParamsGraphApi,
   "filter" | "conversions"
 > & {
   filter: Omit<
     EntityTableFilterGraphApi,
-    "types" | "webs" | "propertyFilters"
+    "webs" | "entityTypeIds" | "excludedTypeBaseUrls" | "propertyFilters"
   > & {
     webs?: EntityTableWebScope;
-    types?: EntityTableTypeScope;
+    /**
+     * The types to narrow to. Left out for no narrowing, where an empty list
+     * matches no rows.
+     */
+    entityTypeIds?: VersionedUrl[] | null;
+    excludedTypeBaseUrls?: BaseUrl[];
     propertyFilters?: EntityTablePropertyFilter[];
   };
   conversions?: ConversionRequest[];

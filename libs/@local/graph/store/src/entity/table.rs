@@ -4,6 +4,10 @@
 //! materialized columns instead of a subgraph, with the summary and the page
 //! read in one transaction. Follow-up pages are pinned to the first page's
 //! database state through the [`EntityTableCursor`].
+//!
+//! Draft entities are never rows. Excluding them keeps every hydration join —
+//! including the ones reaching a link row's endpoints — matched to at most one
+//! edition per key, which is what lets the table read its rows in one pass.
 
 use std::collections::HashMap;
 
@@ -178,46 +182,6 @@ impl Default for EntityTableWebScope {
     }
 }
 
-/// Which entity types the table draws rows from.
-///
-/// [`Include`] selects versioned type ids, matching the versioned selections
-/// a filter UI works with. [`Exclude`] cuts by base URL on purpose: an
-/// exclusion is meant to hide a type regardless of which version an entity
-/// carries. The default is [`Exclude`] with an empty list: the whole
-/// visible-type universe.
-///
-/// [`Include`]: Self::Include
-/// [`Exclude`]: Self::Exclude
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(tag = "type", rename_all = "camelCase")]
-pub enum EntityTableTypeScope {
-    /// Only entities carrying one of the listed types.
-    Include {
-        // utoipa does not read `rename_all_fields`, so the fields carry their
-        // renames themselves to keep the spec aligned with the wire.
-        #[serde(rename = "entityTypeIds")]
-        entity_type_ids: Vec<VersionedUrl>,
-    },
-    /// The scope's visible-type universe, derived server-side from the
-    /// summary, except the types under the listed base URLs.
-    ///
-    /// Entities carrying an excluded type are left out entirely — of the
-    /// rows, the count, and the type summary alike.
-    Exclude {
-        #[serde(rename = "entityTypeBaseUrls")]
-        entity_type_base_urls: Vec<BaseUrl>,
-    },
-}
-
-impl Default for EntityTableTypeScope {
-    fn default() -> Self {
-        Self::Exclude {
-            entity_type_base_urls: Vec::new(),
-        }
-    }
-}
-
 /// The scope of the entities table.
 #[derive(Debug, Default, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -225,12 +189,25 @@ impl Default for EntityTableTypeScope {
 pub struct EntityTableFilter {
     #[serde(default)]
     pub webs: EntityTableWebScope,
+    /// The types the rows are narrowed to, as the versioned selections a
+    /// filter UI works with.
+    ///
+    /// Left out for no narrowing at all, where the table spans every type its
+    /// scope holds. An empty list narrows to nothing and matches no rows.
     #[serde(default)]
-    pub types: EntityTableTypeScope,
+    pub entity_type_ids: Option<Vec<VersionedUrl>>,
+    /// Types the table never shows, whatever
+    /// [`entity_type_ids`](Self::entity_type_ids) selects.
+    ///
+    /// Entities carrying one of these types are left out entirely — of the
+    /// rows, the count, and the type summary alike — so a selection cannot
+    /// bring them back. Base URLs rather than versioned ids on purpose: an
+    /// exclusion is meant to hide a type regardless of which version an
+    /// entity carries, and it covers inherited types as well as direct ones.
+    #[serde(default)]
+    pub excluded_type_base_urls: Vec<BaseUrl>,
     #[serde(default)]
     pub include_archived: bool,
-    #[serde(default)]
-    pub include_drafts: bool,
     /// Conditions on property columns, all of which a row has to satisfy.
     #[serde(default)]
     pub property_filters: Vec<EntityTablePropertyFilter>,
@@ -240,11 +217,10 @@ pub struct EntityTableFilter {
 ///
 /// It carries everything that determines the keyset's shape and the page
 /// sequence's database state — the snapshot instants, the type universe, the
-/// sort, the draft visibility, and the keyset position. A continuation reads
-/// all of these from the token and ignores the request's own sort and draft
-/// settings, so a re-sent request cannot drift from the sequence the token
-/// was handed out for. On the wire it is a Base64-encoded token the client
-/// treats as opaque.
+/// sort, and the keyset position. A continuation reads all of these from the
+/// token and ignores the request's own sort, so a re-sent request cannot
+/// drift from the sequence the token was handed out for. On the wire it is a
+/// Base64-encoded token the client treats as opaque.
 ///
 /// The snapshot is two bare instants rather than temporal axes: the table
 /// only ever reads a current-instant snapshot, and a timestamp cannot express
@@ -255,14 +231,21 @@ pub struct EntityTableCursor {
     pub transaction_time: Timestamp<TransactionTime>,
     /// The decision-time instant the sequence reads at.
     pub decision_time: Timestamp<DecisionTime>,
-    /// The type universe derived from the first page's summary. `None` when
-    /// the page ran on an explicit type filter, which the client re-sends
-    /// instead.
+    /// The type universe derived from the first page's summary. [`None`] when
+    /// the page ran on a type selection, which the client re-sends instead, or
+    /// when the universe exceeded [`TYPE_UNIVERSE_LIMIT`] and was dropped.
     pub type_universe: Option<Vec<VersionedUrl>>,
     pub sort: EntityTableSorting,
-    pub include_drafts: bool,
     pub position: EntityQueryCursor<'static>,
 }
+
+/// How many types the derived universe may carry before it is dropped.
+///
+/// The universe is a planner aid — the scope filter alone decides which rows
+/// match — so dropping it past a limit only costs the include clause's
+/// estimability. Keeping it unbounded would grow both the cursor token and the
+/// page statement's parameter list with every type a web accumulates.
+pub const TYPE_UNIVERSE_LIMIT: usize = 512;
 
 impl Serialize for EntityTableCursor {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -276,7 +259,6 @@ impl Serialize for EntityTableCursor {
             decision_time: Timestamp<DecisionTime>,
             type_universe: &'a Option<Vec<VersionedUrl>>,
             sort: &'a EntityTableSorting,
-            include_drafts: bool,
             position: &'a EntityQueryCursor<'static>,
         }
 
@@ -285,7 +267,6 @@ impl Serialize for EntityTableCursor {
             decision_time,
             type_universe,
             sort,
-            include_drafts,
             position,
         } = self;
 
@@ -294,7 +275,6 @@ impl Serialize for EntityTableCursor {
             decision_time: *decision_time,
             type_universe,
             sort,
-            include_drafts: *include_drafts,
             position,
         })
         .map_err(ser::Error::custom)?;
@@ -315,7 +295,6 @@ impl<'de> Deserialize<'de> for EntityTableCursor {
             decision_time: Timestamp<DecisionTime>,
             type_universe: Option<Vec<VersionedUrl>>,
             sort: EntityTableSorting,
-            include_drafts: bool,
             #[serde(borrow)]
             position: EntityQueryCursor<'a>,
         }
@@ -329,16 +308,23 @@ impl<'de> Deserialize<'de> for EntityTableCursor {
             decision_time,
             type_universe,
             sort,
-            include_drafts,
             position,
         } = serde_json::from_slice(&bytes).map_err(de::Error::custom)?;
+
+        // The keyset's sort key plus the uuid tiebreaker — a position of any
+        // other arity would compile into a silently weakened keyset, where
+        // `EntityQuerySorting::compile` zips the two and truncates.
+        if position.values.len() != 2 {
+            return Err(de::Error::custom(
+                "the cursor position should carry the sort key and the uuid tiebreaker",
+            ));
+        }
 
         Ok(Self {
             transaction_time,
             decision_time,
             type_universe,
             sort,
-            include_drafts,
             position: position.into_owned(),
         })
     }
@@ -510,10 +496,54 @@ mod tests {
                     .expect("the URL should be a valid versioned URL"),
             ]),
             sort: EntityTableSorting::default(),
-            include_drafts: false,
             position: EntityQueryCursor {
-                values: vec![CursorField::String("position".into())],
+                values: vec![
+                    CursorField::String("position".into()),
+                    CursorField::Uuid(Uuid::nil()),
+                ],
             },
+        }
+    }
+
+    #[test]
+    fn a_cursor_position_of_the_wrong_arity_is_rejected() {
+        let token = |values: Vec<CursorField<'static>>| {
+            let mut payload = serde_json::to_value(sample_cursor())
+                .and_then(|token| {
+                    serde_json::from_slice::<serde_json::Value>(
+                        &base64::engine::general_purpose::URL_SAFE_NO_PAD
+                            .decode(token.as_str().expect("the token should be a string"))
+                            .expect("the token should be base64"),
+                    )
+                })
+                .expect("the cursor should round-trip");
+            payload["position"] = serde_json::to_value(EntityQueryCursor { values })
+                .expect("the position should serialize");
+            json!(
+                base64::engine::general_purpose::URL_SAFE_NO_PAD
+                    .encode(serde_json::to_vec(&payload).expect("the payload should serialize"),)
+            )
+        };
+
+        for (values, case) in [
+            (vec![], "an empty position leaves no keyset condition"),
+            (
+                vec![CursorField::String("position".into())],
+                "a short position drops the uuid tiebreaker",
+            ),
+            (
+                vec![
+                    CursorField::String("position".into()),
+                    CursorField::Uuid(Uuid::nil()),
+                    CursorField::Uuid(Uuid::nil()),
+                ],
+                "a long position carries a column the sort does not",
+            ),
+        ] {
+            assert!(
+                serde_json::from_value::<EntityTableCursor>(token(values)).is_err(),
+                "{case} must be rejected at the serde boundary",
+            );
         }
     }
 
@@ -556,22 +586,18 @@ mod tests {
         assert_eq!(params.sort, EntityTableSorting::default());
         assert!(!params.include_summary);
         assert_eq!(params.filter.webs, EntityTableWebScope::default());
-        assert_eq!(params.filter.types, EntityTableTypeScope::default());
+        assert_eq!(params.filter.entity_type_ids, None);
         assert!(!params.filter.include_archived);
-        assert!(!params.filter.include_drafts);
+        assert!(params.filter.excluded_type_base_urls.is_empty());
     }
 
     #[test]
-    fn scopes_deserialize_from_their_tags() {
+    fn the_web_scope_deserializes_from_its_tag() {
         let mut json = params_json();
         json["filter"] = json!({
             "webs": {
                 "type": "exclude",
                 "webs": ["00000000-0000-0000-0000-000000000000"],
-            },
-            "types": {
-                "type": "exclude",
-                "entityTypeBaseUrls": ["https://example.com/types/entity-type/noise/"],
             },
         });
 
@@ -582,27 +608,58 @@ mod tests {
             params.filter.webs,
             EntityTableWebScope::Exclude { webs } if webs.len() == 1,
         ));
-        assert!(matches!(
-            params.filter.types,
-            EntityTableTypeScope::Exclude { entity_type_base_urls }
-                if entity_type_base_urls.len() == 1,
-        ));
+    }
 
+    #[test]
+    fn a_type_selection_is_told_apart_from_no_selection() {
+        let selection = |value: serde_json::Value| {
+            let mut json = params_json();
+            json["filter"] = json!({ "entityTypeIds": value });
+            serde_json::from_value::<QueryEntitiesTableParams>(json)
+                .expect("the params should deserialize")
+                .filter
+                .entity_type_ids
+        };
+
+        assert_eq!(
+            selection(json!(null)),
+            None,
+            "an absent selection should narrow to nothing at all",
+        );
+        assert_eq!(
+            selection(json!([])),
+            Some(Vec::new()),
+            "an empty selection should stay distinct from an absent one",
+        );
+        assert_eq!(
+            selection(json!(["https://example.com/types/entity-type/person/v/1"])).as_deref(),
+            Some(
+                [
+                    VersionedUrl::from_str("https://example.com/types/entity-type/person/v/1")
+                        .expect("the URL should be a valid versioned URL"),
+                ]
+                .as_slice()
+            ),
+        );
+    }
+
+    #[test]
+    fn a_selection_keeps_the_exclusions() {
         let mut json = params_json();
         json["filter"] = json!({
-            "types": {
-                "type": "include",
-                "entityTypeIds": ["https://example.com/types/entity-type/person/v/1"],
-            },
+            "entityTypeIds": ["https://example.com/types/entity-type/person/v/1"],
+            "excludedTypeBaseUrls": ["https://example.com/types/entity-type/noise/"],
         });
 
         let params: QueryEntitiesTableParams =
             serde_json::from_value(json).expect("the params should deserialize");
 
-        assert!(matches!(
-            params.filter.types,
-            EntityTableTypeScope::Include { entity_type_ids } if entity_type_ids.len() == 1,
-        ));
+        assert!(params.filter.entity_type_ids.is_some());
+        assert_eq!(
+            params.filter.excluded_type_base_urls.len(),
+            1,
+            "a selection should not drop the exclusions",
+        );
     }
 
     #[test]

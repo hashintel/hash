@@ -4990,10 +4990,22 @@
         "type": "object",
         "description": "The scope of the entities table.",
         "properties": {
-          "includeArchived": {
-            "type": "boolean"
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "description": "The types the rows are narrowed to, as the versioned selections a\nfilter UI works with.\n\nLeft out for no narrowing at all, where the table spans every type its\nscope holds. An empty list narrows to nothing and matches no rows.",
+            "nullable": true
           },
-          "includeDrafts": {
+          "excludedTypeBaseUrls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseUrl"
+            },
+            "description": "Types the table never shows, whatever\n[`entity_type_ids`](Self::entity_type_ids) selects.\n\nEntities carrying one of these types are left out entirely — of the\nrows, the count, and the type summary alike — so a selection cannot\nbring them back. Base URLs rather than versioned ids on purpose: an\nexclusion is meant to hide a type regardless of which version an\nentity carries, and it covers inherited types as well as direct ones."
+          },
+          "includeArchived": {
             "type": "boolean"
           },
           "propertyFilters": {
@@ -5002,9 +5014,6 @@
               "$ref": "#/components/schemas/EntityTablePropertyFilter"
             },
             "description": "Conditions on property columns, all of which a row has to satisfy."
-          },
-          "types": {
-            "$ref": "#/components/schemas/EntityTableTypeScope"
           },
           "webs": {
             "$ref": "#/components/schemas/EntityTableWebScope"
@@ -5461,58 +5470,6 @@
               "type": "string"
             }
           }
-        }
-      },
-      "EntityTableTypeScope": {
-        "oneOf": [
-          {
-            "type": "object",
-            "description": "Only entities carrying one of the listed types.",
-            "required": [
-              "entityTypeIds",
-              "type"
-            ],
-            "properties": {
-              "entityTypeIds": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VersionedUrl"
-                }
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "include"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "description": "The scope's visible-type universe, derived server-side from the\nsummary, except the types under the listed base URLs.\n\nEntities carrying an excluded type are left out entirely — of the\nrows, the count, and the type summary alike.",
-            "required": [
-              "entityTypeBaseUrls",
-              "type"
-            ],
-            "properties": {
-              "entityTypeBaseUrls": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/BaseUrl"
-                }
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "exclude"
-                ]
-              }
-            }
-          }
-        ],
-        "description": "Which entity types the table draws rows from.\n\n[`Include`] selects versioned type ids, matching the versioned selections\na filter UI works with. [`Exclude`] cuts by base URL on purpose: an\nexclusion is meant to hide a type regardless of which version an entity\ncarries. The default is [`Exclude`] with an empty list: the whole\nvisible-type universe.\n\n[`Include`]: Self::Include\n[`Exclude`]: Self::Exclude",
-        "discriminator": {
-          "propertyName": "type"
         }
       },
       "EntityTableWebScope": {

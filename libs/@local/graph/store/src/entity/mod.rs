@@ -17,8 +17,8 @@ pub use self::{
     table::{
         EntityTableCursor, EntityTableFilter, EntityTableLinkEndpoint, EntityTablePropertyFilter,
         EntityTablePropertyValue, EntityTableRow, EntityTableSortKey, EntityTableSorting,
-        EntityTableSummary, EntityTableTypeScope, EntityTableWebScope, QueryEntitiesTableParams,
-        QueryEntitiesTableResponse,
+        EntityTableSummary, EntityTableWebScope, QueryEntitiesTableParams,
+        QueryEntitiesTableResponse, TYPE_UNIVERSE_LIMIT,
     },
     validation_report::{
         EmptyEntityTypes, EntityRetrieval, EntityTypeRetrieval, EntityTypesError,

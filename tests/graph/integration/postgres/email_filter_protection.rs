@@ -21,8 +21,8 @@ use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
         EntityStore as _, EntityTableFilter, EntityTablePropertyFilter, EntityTablePropertyValue,
-        EntityTableSorting, EntityTableTypeScope, EntityTableWebScope, QueryEntitiesParams,
-        QueryEntitiesTableParams, QueryEntitySubgraphParams, SummarizeEntitiesParams,
+        EntityTableSorting, EntityTableWebScope, QueryEntitiesParams, QueryEntitiesTableParams,
+        QueryEntitySubgraphParams, SummarizeEntitiesParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{
@@ -3237,9 +3237,9 @@ fn table_params_with(property_filters: Vec<EntityTablePropertyFilter>) -> QueryE
     QueryEntitiesTableParams {
         filter: EntityTableFilter {
             webs: EntityTableWebScope::default(),
-            types: EntityTableTypeScope::default(),
+            entity_type_ids: None,
+            excluded_type_base_urls: Vec::new(),
             include_archived: false,
-            include_drafts: false,
             property_filters,
         },
         cursor: None,
