@@ -27,33 +27,13 @@ are URL-backed where appropriate so route transitions and reloads preserve the
 view state.
 
 The URL-backed `Schedule` view lazily loads the product's
-`production_schedule.json` artifact. It aligns intermediate and finished-good
-production on a shared calendar, separates elapsed batch windows from recorded
-daily cadence, and uses allocation patterns to distinguish selected-product,
-shared, other-product, open, and unresolved production. Finished-good batch
-selection highlights exact and candidate recursive lineage without treating a
-multi-output production order as a fabricated one-to-one batch link.
+`production_schedule.json` artifact. It aligns raw-material, intermediate, and
+finished-good batch lifecycles on a shared calendar.
 
 ### Procurement planning profiles
 
 Supplier-aware datasets represent procurement at
-`material + supplier + receipt basis` grain. Each observed profile is a
-separate product-graph node and a separate, sortable site-planning row; profiles
-are never blended into a material-level deviation or opportunity.
-
-Schema 1.1 procurement profiles may also provide a selected planning source,
-generic planning alternatives, and producer-authored data-quality warnings.
-The planning and opportunity tables show warning indicators without changing
-opportunity eligibility. In step detail, warning-level messages appear below
-the key metrics and the planning-assumption tooltip lists the applicable source
-and distinct alternatives using producer-supplied labels.
-
-Schema 1.1 is the sole procurement planning contract: the client reads
-`planning_source`, `planning_alternatives`, and `planning_warnings` without
-legacy notice or source-specific equivalent fallbacks. It must not hardcode
-planning-system or client names. Dock-to-Stock is retained in the contract for
-future use but is not shown or included in calculations until a comparable
-observed process is validated.
+`material + supplier + receipt basis` grain.
 
 ### Opportunity Brief
 

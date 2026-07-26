@@ -695,6 +695,7 @@ export const Overview = ({
                   setSettingsOpen((open) => !open);
                 }}
                 docContext="product"
+                productView={viewMode}
               />
             </div>
           </div>

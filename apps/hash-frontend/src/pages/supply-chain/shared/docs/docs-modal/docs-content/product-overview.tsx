@@ -154,23 +154,61 @@ export const productOverviewSection: DocSectionDef = {
       render: () => (
         <>
           <Lead>
-            The Timeline view shows actual production windows on one shared date
-            axis, with upstream intermediate lanes ordered by BOM depth and the
-            finished good highlighted last.
+            The Timeline view shows consumption, production and dispatch events
+            on a timeline.
           </Lead>
-          <P>
-            Intermediate batch colour describes its recorded next use. Blue
-            means the batch was only used by materials in the view. Purple means
-            some or all of the batch was also used for other products. Grey
-            means there is no recorded consumption.
-          </P>
-          <P>
-            Use Range to choose the production period and the zoom controls to
-            fit or inspect the timeline. Hover or focus a batch to see its
-            output quantity, direct consuming materials and any quantity with no
-            recorded consumption. Consumers outside the visible hierarchy are
-            identified explicitly.
-          </P>
+          <H4>Timeline controls</H4>
+          <UL>
+            <LI>
+              <Term>Range and Zoom</Term> choose the time period shown and zoom
+              in/out.
+            </LI>
+            <LI>
+              <Term>Raw material &mdash; Show</Term> includes or removes raw
+              material inventory dwell and consumption events.
+            </LI>
+            <LI>
+              <Term>Display &mdash; Continuous</Term> places every batch for a
+              material on one line. This will mean some batches overlap. This
+              view is suitable for getting an overview of production sequencing,
+              without detailed consumption or dwell information.
+            </LI>
+            <LI>
+              <Term>Display &mdash; Lane</Term> separates overlapping batches
+              into separate tracks. Enabling this reveals two further options:{" "}
+              <Term>Show inventory dwell</Term>, which shows the inventory dwell
+              time for each batch as a white section of the bar, and{" "}
+              <Term>Show event markers</Term>, which adds the consumption and
+              dispatch events for each batch as red and blue circles
+              respectively. You can click on these markers to see the further
+              batches they are linked to.
+            </LI>
+          </UL>
+          <H4>Reading the key</H4>
+          <UL>
+            <LI>
+              <Term>Blue bar</Term> is the recorded or estimated production
+              window. If 'inventory dwell' is enabled, the white section of the
+              bar shows dwell time after production finish.
+            </LI>
+            <LI>
+              <Term>Diagonal grey lines</Term> mean some quantity from the batch
+              was also used for products outside the selected hierarchy. Hover
+              over the batch or consumption markers to see details.
+            </LI>
+            <LI>
+              <Term>Red and blue circles</Term> mark consumption and dispatch
+              events (if enabled, in 'Lane' view). A white background circle
+              shows that an intermediate was dispatched as a finished good in
+              its own right (for goods which can be both sold as-is or
+              repackaged for selling under another name).
+            </LI>
+            <LI>
+              <Term>Dashed red border</Term> shows batches where the recorded
+              consumption is greater than the known received quantity, as a data
+              quality warning.
+            </LI>
+          </UL>
         </>
       ),
     },

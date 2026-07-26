@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useRegistry } from "./registry-context";
 import { SearchableSelect } from "./searchable-select";
 import { trackSupplyChainInteraction } from "./telemetry";
+import { useSearchParams } from "./use-search-params";
 
 /**
  * Product/site picker rendered as the page title (display-sized dropdown). Reads
@@ -14,6 +15,7 @@ export const ScopeSelect = ({
   siteId: siteIdProp,
 }: { productId?: string; siteId?: string } = {}) => {
   const router = useRouter();
+  const [searchParams] = useSearchParams();
   const { products, sites } = useRegistry();
 
   const query = router.query as Record<string, string | undefined>;
@@ -22,6 +24,7 @@ export const ScopeSelect = ({
     productIdProp ?? query.productId ?? query["product-id"] ?? "";
   const siteId = siteIdProp ?? query.siteId ?? query["site-id"] ?? "";
   const scopeValue = isSiteScope ? `site:${siteId}` : productId;
+  const selectedView = searchParams.get("view");
 
   const handleScopeChange = useCallback(
     (val: string) => {
@@ -32,10 +35,14 @@ export const ScopeSelect = ({
       if (val.startsWith("site:")) {
         void router.push(`/supply-chain/site/${val.replace("site:", "")}`);
       } else {
-        void router.push(`/supply-chain/product/${val}`);
+        const view =
+          selectedView === "schedule" || selectedView === "canvas"
+            ? `?view=${selectedView}`
+            : "";
+        void router.push(`/supply-chain/product/${val}${view}`);
       }
     },
-    [router],
+    [router, selectedView],
   );
 
   const scopeGroups = [
