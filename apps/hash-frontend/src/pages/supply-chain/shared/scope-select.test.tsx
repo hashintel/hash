@@ -55,13 +55,13 @@ describe("ScopeSelect", () => {
     window.history.replaceState(
       {},
       "",
-      "/supply-chain/product/product-a?view=schedule",
+      "/supply-chain/product/product-a?view=timeline",
     );
     render(<ScopeSelect productId="product-a" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Choose product" }));
     expect(mocks.push).toHaveBeenLastCalledWith(
-      "/supply-chain/product/product-b?view=schedule",
+      "/supply-chain/product/product-b?view=timeline",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Choose site" }));

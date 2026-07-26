@@ -36,7 +36,7 @@ export const ScopeSelect = ({
         void router.push(`/supply-chain/site/${val.replace("site:", "")}`);
       } else {
         const view =
-          selectedView === "schedule" || selectedView === "canvas"
+          selectedView === "timeline" || selectedView === "canvas"
             ? `?view=${selectedView}`
             : "";
         void router.push(`/supply-chain/product/${val}${view}`);

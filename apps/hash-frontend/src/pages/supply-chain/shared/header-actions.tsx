@@ -135,7 +135,7 @@ export const HeaderActionButtons = ({
     | "site"
     | "product";
   /** Active product view, used to open its contextual documentation. */
-  productView?: "category" | "canvas" | "schedule";
+  productView?: "category" | "canvas" | "timeline";
 }) => {
   const { openDocs } = useDocs();
 

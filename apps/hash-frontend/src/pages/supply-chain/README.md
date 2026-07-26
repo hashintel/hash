@@ -26,7 +26,7 @@ panels, contextual docs, and analysis settings. The selected step and settings
 are URL-backed where appropriate so route transitions and reloads preserve the
 view state.
 
-The URL-backed `Schedule` view lazily loads the product's
+The URL-backed `Timeline` view lazily loads the product's
 `production_schedule.json` artifact. It aligns raw-material, intermediate, and
 finished-good batch lifecycles on a shared calendar.
 
@@ -115,7 +115,7 @@ product display labels, raw analysis values, or client-specific data.
 - `procurement_basis_changed`
 - `time_range_changed`
 
-Schedule interactions never send batch/order identifiers, dates, quantities,
+Timeline interactions never send batch/order identifiers, dates, quantities,
 campaign names, or filter values. A failed optional schedule fetch is reported
 as `supply_chain_error` with interaction
 `production_schedule_fetch_failed`.

@@ -149,7 +149,7 @@ export const productOverviewSection: DocSectionDef = {
       ),
     },
     {
-      id: "schedule-view",
+      id: "timeline-view",
       title: "Production timeline",
       render: () => (
         <>
