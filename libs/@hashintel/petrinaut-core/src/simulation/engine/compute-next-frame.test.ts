@@ -234,6 +234,61 @@ describe("computeNextFrame", () => {
     expect(sourceTokens[0]!.x).toBeTypeOf("number");
   });
 
+  it("fires a persistently-true predicate transition on every frame, including the first", () => {
+    // Regression: true guards used to be converted to an Infinity rate, and
+    // exp(-(Infinity * 0)) = exp(NaN) blocked firing whenever
+    // timeSinceLastFiringMs was 0 — so a predicate transition could not fire
+    // on the first frame nor on two consecutive frames (it fired every other
+    // frame instead of every frame).
+    const sdcpn: SDCPN = {
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      places: [
+        {
+          id: "p1",
+          name: "Place1",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "t1",
+          name: "Transition 1",
+          inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "p1", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode:
+            "export default Lambda((tokens, parameters) => { return true; });",
+          transitionKernelCode: "",
+          x: 100,
+          y: 0,
+        },
+      ],
+    };
+
+    let result = computeNextFrame(
+      buildSimulation({
+        sdcpn,
+        initialMarking: { p1: 1 },
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      }),
+    );
+    expect(result.transitionFired).toBe(true);
+
+    for (let frame = 2; frame <= 4; frame += 1) {
+      result = computeNextFrame(result.simulation);
+      expect(result.transitionFired).toBe(true);
+    }
+  });
+
   it("should skip dynamics for places without type", () => {
     // GIVEN a place without a type
     const sdcpn: SDCPN = {

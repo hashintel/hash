@@ -15,7 +15,7 @@ pub use self::{
     function::Function,
     unary::{UnaryExpression, UnaryOperator},
     variadic::{VariadicExpression, VariadicOperator},
-    window::WindowStatement,
+    window::WindowDefinition,
 };
 use super::{ColumnName, ColumnReference};
 use crate::store::postgres::query::{SelectStatement, Transpile, postgres_type::PostgresType};
@@ -40,7 +40,7 @@ pub enum Expression {
     /// prevent SQL injection and no user input should ever be used as a [`Constant`].
     Constant(Constant),
     Function(Function),
-    Window(Box<Self>, WindowStatement),
+    Window(Box<Self>, WindowDefinition),
     Cast(Box<Self>, PostgresType),
     /// Composite field access - extracts a named field from a composite/row type value.
     ///
@@ -118,6 +118,26 @@ impl Expression {
         })
     }
 
+    /// Folds conditions into one `AND` expression without wrapping a lone condition.
+    #[must_use]
+    pub fn conjunction(mut conditions: Vec<Self>) -> Option<Self> {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Self::all(conditions)),
+        }
+    }
+
+    /// Folds conditions into one `OR` expression without wrapping a lone condition.
+    #[must_use]
+    pub fn disjunction(mut conditions: Vec<Self>) -> Option<Self> {
+        match conditions.len() {
+            0 => None,
+            1 => conditions.pop(),
+            _ => Some(Self::any(conditions)),
+        }
+    }
+
     #[must_use]
     #[expect(clippy::should_implement_trait)]
     pub fn not(self) -> Self {
@@ -183,6 +203,12 @@ impl Expression {
             left: Box::new(lhs),
             right: Box::new(rhs),
         })
+    }
+
+    /// Creates an `expression OVER ( window_definition )` window function call.
+    #[must_use]
+    pub fn window(expression: Self, definition: impl Into<WindowDefinition>) -> Self {
+        Self::Window(Box::new(expression), definition.into())
     }
 
     #[must_use]
@@ -506,6 +532,37 @@ mod tests {
     };
 
     #[test]
+    fn conjunction_folds_without_wrapping_lone_conditions() {
+        assert_eq!(Expression::conjunction(vec![]), None);
+        assert_eq!(Expression::disjunction(vec![]), None);
+
+        let condition = Expression::Parameter(1);
+        assert_eq!(
+            Expression::conjunction(vec![condition.clone()]),
+            Some(condition.clone())
+        );
+        assert_eq!(
+            Expression::disjunction(vec![condition.clone()])
+                .expect("a lone condition should fold to itself")
+                .transpile_to_string(),
+            "$1"
+        );
+
+        assert_eq!(
+            Expression::conjunction(vec![condition.clone(), Expression::Parameter(2)])
+                .expect("two conditions should fold to an `AND` expression")
+                .transpile_to_string(),
+            "($1) AND ($2)"
+        );
+        assert_eq!(
+            Expression::disjunction(vec![condition, Expression::Parameter(2)])
+                .expect("two conditions should fold to an `OR` expression")
+                .transpile_to_string(),
+            "(($1) OR ($2))"
+        );
+    }
+
+    #[test]
     fn transpile_window_expression() {
         assert_eq!(
             max_version_expression().transpile_to_string(),
@@ -710,7 +767,7 @@ mod tests {
         rendered: &'static str,
         parameters: &[&'p dyn ToSql],
     ) {
-        let mut compiler = SelectCompiler::new(None, false);
+        let mut compiler = SelectCompiler::with_asterisk(None, false);
         let condition = compiler
             .compile_filter(filter)
             .expect("failed to compile filter");

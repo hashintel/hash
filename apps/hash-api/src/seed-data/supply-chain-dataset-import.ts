@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production-schedule";
+
 import { isValidSlug, webScopedKey } from "../analysis/shared/storage-key";
 
 import type { WebId } from "@blockprotocol/type-system";
@@ -94,35 +96,6 @@ const isSite = (value: unknown): value is SupplyChainImportSite =>
   typeof value === "object" &&
   value !== null &&
   typeof (value as JsonObject).slug === "string";
-
-const isProductionSchedule = (value: unknown, productId: string): boolean => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  const schedule = value as JsonObject;
-  if (
-    schedule.artifact_type !== "production_schedule" ||
-    schedule.product_id !== productId ||
-    !Array.isArray(schedule.lanes) ||
-    schedule.lanes.length === 0
-  ) {
-    return false;
-  }
-  return schedule.lanes.every((lane) => {
-    if (typeof lane !== "object" || lane === null) {
-      return false;
-    }
-    const row = lane as JsonObject;
-    return (
-      typeof row.material === "string" &&
-      typeof row.name === "string" &&
-      typeof row.bom_depth === "number" &&
-      (row.role === "finished_good" || row.role === "intermediate") &&
-      Array.isArray(row.campaigns) &&
-      Array.isArray(row.batches)
-    );
-  });
-};
 
 const collectJsonFiles = (dir: string): string[] => {
   const out: string[] = [];
@@ -230,10 +203,14 @@ export const planSupplyChainDatasetImport = (params: {
           `Product "${productId}" production_schedule.json is not a file`,
         );
       }
-      const schedule = readJson<unknown>(schedulePath);
-      if (!isProductionSchedule(schedule, productId)) {
+      try {
+        parseProductionSchedule(readJson<unknown>(schedulePath), productId);
+      } catch (error) {
         throw new Error(
-          `Product "${productId}" has an invalid production_schedule.json`,
+          `Product "${productId}" has an invalid production_schedule.json: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { cause: error },
         );
       }
       productionSchedules.push(productId);

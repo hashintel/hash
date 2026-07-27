@@ -14,7 +14,7 @@ export const createPetrinautOptOptimization = (
 ): PetrinautOptimization => ({
   /** Post one manifest and stream its canonical optimization events. */
   async *optimize(input: PetrinautOptimizationInput, options) {
-    const events = await openPetrinautOptimizationStream({
+    const { events } = await openPetrinautOptimizationStream({
       endpoint: PETRINAUT_OPTIMIZE_ENDPOINT,
       fetchImpl,
       input,

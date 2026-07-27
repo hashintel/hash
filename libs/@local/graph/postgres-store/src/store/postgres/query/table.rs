@@ -329,12 +329,25 @@ impl ReferenceTable {
 }
 
 impl Table {
+    /// Renders the alias-qualified table name under the compiler's `{name}_{c}_{d}_{n}` scheme.
+    ///
+    /// This is the only place that knows how alias names are derived from an [`Alias`].
+    #[must_use]
+    pub fn aliased_name(self, alias: Alias) -> TableName<'static> {
+        TableName::from(format!(
+            "{}_{}_{}_{}",
+            self.as_str(),
+            alias.condition_index,
+            alias.chain_depth,
+            alias.number
+        ))
+    }
+
     #[must_use]
     pub fn aliased(self, alias: Alias) -> TableReference<'static> {
         TableReference {
             schema: None,
-            name: TableName::from(self),
-            alias: Some(alias),
+            name: self.aliased_name(alias),
         }
     }
 
@@ -1627,12 +1640,40 @@ pub enum Column {
 }
 
 impl Column {
+    /// Columns that are provably `NOT NULL` in the database schema.
+    ///
+    /// Conservative whitelist: a missing entry only means "not proven" and costs a redundant
+    /// null check, never correctness. Every entry is verified against `information_schema` by
+    /// the schema integration test, so a wrong entry fails loudly. Extend it when further
+    /// columns are used as sort keys.
+    pub const NON_NULL_COLUMNS: &'static [Self] = &[
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::WebId),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::EntityUuid),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::EditionId),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::DecisionTime),
+        Self::EntityTemporalMetadata(EntityTemporalMetadata::TransactionTime),
+        Self::EntityIds(EntityIds::WebId),
+        Self::EntityIds(EntityIds::EntityUuid),
+        Self::EntityIds(EntityIds::CreatedById),
+        Self::EntityIds(EntityIds::CreatedAtTransactionTime),
+        Self::EntityIds(EntityIds::CreatedAtDecisionTime),
+        Self::OntologyIds(OntologyIds::OntologyId),
+        Self::OntologyIds(OntologyIds::BaseUrl),
+        Self::OntologyIds(OntologyIds::Version),
+    ];
+
     #[must_use]
     pub fn aliased(self, alias: Alias) -> ColumnReference<'static> {
         ColumnReference {
             correlation: Some(self.table().aliased(alias)),
             name: ColumnName::from(self),
         }
+    }
+
+    /// Whether the column is provably `NOT NULL` in the database schema.
+    #[must_use]
+    pub fn is_non_null(self) -> bool {
+        Self::NON_NULL_COLUMNS.contains(&self)
     }
 }
 
@@ -2321,28 +2362,24 @@ impl Relation {
     }
 
     #[must_use]
-    pub fn additional_conditions(self, table: &TableReference<'_>) -> Vec<Expression> {
+    pub fn additional_conditions(self, table: Table, alias: Alias) -> Vec<Expression> {
         match self {
             Self::Reference {
                 table: reference_table,
                 ..
-            } if table.name == TableName::from(Table::Reference(reference_table)) => {
-                reference_table
-                    .inheritance_depth_column()
-                    .map(|column| {
-                        column
-                            .inheritance_depth()
-                            .map_or_else(Vec::new, |inheritance_depth| {
-                                vec![Expression::less_or_equal(
-                                    Expression::ColumnReference(
-                                        column.aliased(table.alias.unwrap_or_default()),
-                                    ),
-                                    Expression::Constant(Constant::U32(inheritance_depth)),
-                                )]
-                            })
-                    })
-                    .unwrap_or_default()
-            }
+            } if table == Table::Reference(reference_table) => reference_table
+                .inheritance_depth_column()
+                .map(|column| {
+                    column
+                        .inheritance_depth()
+                        .map_or_else(Vec::new, |inheritance_depth| {
+                            vec![Expression::less_or_equal(
+                                Expression::ColumnReference(column.aliased(alias)),
+                                Expression::Constant(Constant::U32(inheritance_depth)),
+                            )]
+                        })
+                })
+                .unwrap_or_default(),
             Self::OntologyIds
             | Self::OntologyOwnedMetadata
             | Self::OntologyExternalMetadata

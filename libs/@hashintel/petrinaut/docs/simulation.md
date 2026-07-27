@@ -45,10 +45,6 @@ The time step in seconds per frame. Controls the resolution of ODE integration a
 
 Default: `0.01` seconds.
 
-### ODE solver
-
-The numerical method for integrating differential equations. Currently only **Euler** is available.
-
 ## Running a simulation
 
 Press **Play** in the bottom toolbar. The simulation:

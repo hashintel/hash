@@ -21,9 +21,10 @@ use type_system::knowledge::Entity;
 
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Distinctness, EqualityOperator, Expression, FromItem, Function,
-    GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectStatement, Table, Transpile as _, WindowStatement,
+    Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
+    GroupByClause, GroupingElement, Identifier, NonEmptyVec, NullsOrder, OrderByClause,
+    PostgresQueryPath, PostgresRecord, SelectExpression, SelectQuantifier, SelectStatement,
+    SimpleSelect, SortBy, SortDirection, Table, Transpile as _, WindowDefinition, WithClause,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -51,10 +52,12 @@ pub struct TableInfo<'p> {
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
-    required_tables: HashSet<TableReference<'p>>,
+    joins: Vec<CompiledJoin>,
     table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
     has_to_many_join: bool,
+    /// Set once an embeddings distance subquery is installed; a statement supports only one.
+    has_embeddings_filter: bool,
 }
 
 struct PathSelection {
@@ -73,11 +76,61 @@ enum FilterGroup {
     Any,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Distinctness {
+    Indistinct,
+    Distinct,
+}
+
+/// A join emitted into the statement, mirrored so the compiler can reuse joins and allocate
+/// fresh alias numbers without reading the statement tree back.
+struct CompiledJoin {
+    table: Table,
+    alias: Alias,
+    conditions: Vec<Expression>,
+}
+
+/// One keyset-pagination sort key.
+struct CursorKey {
+    expression: Expression,
+    /// The cursor value to continue after; `None` encodes a `NULL` cursor entry.
+    value: Option<Expression>,
+    ordering: Ordering,
+    nulls: Option<NullOrdering>,
+    /// Whether the key is provably `NOT NULL`, allowing the null-handling arms to be skipped.
+    non_null: bool,
+}
+
+impl From<Ordering> for SortDirection {
+    fn from(ordering: Ordering) -> Self {
+        match ordering {
+            Ordering::Ascending => Self::Ascending,
+            Ordering::Descending => Self::Descending,
+        }
+    }
+}
+
+impl From<NullOrdering> for NullsOrder {
+    fn from(ordering: NullOrdering) -> Self {
+        match ordering {
+            NullOrdering::First => Self::First,
+            NullOrdering::Last => Self::Last,
+        }
+    }
+}
+
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
-    statement: SelectStatement,
+    distinct_on: Vec<Expression>,
+    selects: Vec<SelectExpression>,
+    from: Option<FromItem<'static>>,
+    with: Option<WithClause>,
+    conditions: Vec<Expression>,
+    cursor: Vec<CursorKey>,
+    sort_by: Vec<SortBy>,
+    limit: Option<usize>,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
@@ -95,7 +148,7 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
 pub enum SelectCompilerError {
     #[display("Cannot convert parameter for distance function")]
     ConvertDistanceParameter,
-    #[display("Only a single embedding for the same path is allowed")]
+    #[display("Only a single embedding filter is allowed per statement")]
     MultipleEmbeddings,
     #[display("Only embeddings are supported for cosine distance")]
     UnsupportedEmbeddingPath,
@@ -105,6 +158,8 @@ pub enum SelectCompilerError {
     UnsupportedDistanceExpression,
     #[display("Cannot add a cursor: {reason}")]
     CursorDisallowed { reason: &'static str },
+    #[display("Parameters with a pending conversion cannot be compiled")]
+    PendingParameterConversion,
     #[display("String operations are not supported on paths backed by materialized array columns")]
     UnsupportedTextArrayOperation,
 }
@@ -128,20 +183,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Self {
-            statement: SelectStatement::builder()
-                .selects(Vec::new())
-                .from(
-                    FromItem::table(R::base_table()).alias(R::base_table().aliased(Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    })),
-                )
-                .build(),
+            distinct_on: Vec::new(),
+            selects: Vec::new(),
+            from: Some(
+                FromItem::table(R::base_table())
+                    .alias(R::base_table().aliased_name(Alias::default()))
+                    .build(),
+            ),
+            with: None,
+            conditions: Vec::new(),
+            cursor: Vec::new(),
+            sort_by: Vec::new(),
+            limit: None,
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
                 condition_index: 0,
-                required_tables: HashSet::new(),
+                joins: Vec::new(),
                 table_info: TableInfo {
                     tables: HashSet::new(),
                     pinned_timestamp_index: None,
@@ -149,6 +206,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
                 cursor_disallowed_reason: None,
                 has_to_many_join: false,
+                has_embeddings_filter: false,
             },
             temporal_axes,
             table_hooks,
@@ -167,15 +225,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         include_drafts: bool,
     ) -> Self {
         let mut default = Self::new(temporal_axes, include_drafts);
-        default
-            .statement
-            .selects
-            .push(SelectExpression::Asterisk(None));
+        default.selects.push(SelectExpression::Asterisk(None));
         default
     }
 
     pub const fn set_limit(&mut self, limit: usize) {
-        self.statement.limit = Some(limit);
+        self.limit = Some(limit);
     }
 
     fn time_index(&mut self, temporal_axes: &'p QueryTemporalAxes, time_axis: TimeAxis) -> usize {
@@ -325,35 +380,43 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct
                 && stored.distinctness == Distinctness::Indistinct
             {
-                self.statement.distinct.push(stored.column.clone());
+                self.distinct_on.push(stored.column.clone());
                 stored.distinctness = Distinctness::Distinct;
             }
             if stored.ordering.is_none()
                 && let Some((ordering, nulls)) = ordering
             {
-                self.statement
-                    .order_by_expression
-                    .push(stored.column.clone(), ordering, nulls);
+                self.sort_by.push(
+                    SortBy::builder()
+                        .expression(stored.column.clone())
+                        .direction(ordering.into())
+                        .maybe_nulls(nulls.map(Into::into))
+                        .build(),
+                );
                 stored.ordering = Some((ordering, nulls));
             }
             stored.index
         } else {
             let expression = self.compile_path_column(path);
-            self.statement.selects.push(SelectExpression::Expression {
+            self.selects.push(SelectExpression::Expression {
                 expression: expression.clone(),
-                alias: None,
+                output_name: None,
             });
 
             if distinctness == Distinctness::Distinct {
-                self.statement.distinct.push(expression.clone());
+                self.distinct_on.push(expression.clone());
             }
             if let Some((ordering, nulls)) = ordering {
-                self.statement
-                    .order_by_expression
-                    .push(expression.clone(), ordering, nulls);
+                self.sort_by.push(
+                    SortBy::builder()
+                        .expression(expression.clone())
+                        .direction(ordering.into())
+                        .maybe_nulls(nulls.map(Into::into))
+                        .build(),
+                );
             }
 
-            let index = self.statement.selects.len() - 1;
+            let index = self.selects.len() - 1;
             self.selections.insert(
                 path,
                 PathSelection {
@@ -387,10 +450,17 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if let Some(reason) = self.artifacts.cursor_disallowed_reason {
             bail!(SelectCompilerError::CursorDisallowed { reason });
         }
+        // JSON-extracted keys are always nullable; plain columns consult the schema whitelist.
+        let (terminating_column, json_field) = path.terminating_column();
+        let non_null = json_field.is_none() && terminating_column.is_non_null();
         let column = self.compile_path_column(path);
-        self.statement
-            .where_expression
-            .add_cursor(lhs(column), rhs, ordering, null_ordering);
+        self.cursor.push(CursorKey {
+            expression: lhs(column),
+            value: rhs,
+            ordering,
+            nulls: null_ordering,
+            non_null,
+        });
         Ok(self.add_distinct_selection_with_ordering(
             path,
             Distinctness::Distinct,
@@ -413,17 +483,127 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.statement.where_expression.conditions.push(condition);
+        self.conditions.push(condition);
         Ok(())
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
     #[instrument(level = "info", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
+        let simple = SimpleSelect::builder()
+            .maybe_quantifier(
+                NonEmptyVec::try_from(self.distinct_on.clone())
+                    .ok()
+                    .map(SelectQuantifier::DistinctOn),
+            )
+            .selects(self.selects.clone())
+            .maybe_from(self.from.clone())
+            .maybe_where_clause(self.where_condition())
+            .build();
+
         (
-            self.statement.transpile_to_string(),
+            SelectStatement::builder()
+                .maybe_with(self.with.clone())
+                .select_clause(simple)
+                .maybe_order_by(
+                    NonEmptyVec::try_from(self.sort_by.clone())
+                        .ok()
+                        .map(|sort_by| OrderByClause::builder().sort_by(sort_by).build()),
+                )
+                .maybe_limit(self.limit)
+                .build()
+                .transpile_to_string(),
             &self.artifacts.parameters,
         )
+    }
+
+    /// Combines the collected filter conditions and the keyset-pagination continuation into the
+    /// `WHERE` condition of the statement.
+    fn where_condition(&self) -> Option<Expression> {
+        let mut conditions = self.conditions.clone();
+        conditions.extend(Self::cursor_condition(&self.cursor));
+        Expression::conjunction(conditions)
+    }
+
+    /// Builds the keyset-pagination continuation: one alternative per sort key, each requiring
+    /// all previous keys to be equal and the current key to be past the cursor value.
+    ///
+    /// Returns [`None`] only for an empty cursor. An exhausted cursor yields a never-matching
+    /// `FALSE` so the next page comes back empty instead of replaying from the start.
+    fn cursor_condition(cursor: &[CursorKey]) -> Option<Expression> {
+        if cursor.is_empty() {
+            return None;
+        }
+
+        let mut alternatives = Vec::new();
+        for current in (0..cursor.len()).rev() {
+            let mut criteria = Vec::new();
+            for (idx, key) in cursor.iter().enumerate() {
+                if idx == current {
+                    // Without an explicit hint Postgres sorts nulls last for ascending and
+                    // first for descending keys; the continuation has to mirror that default.
+                    let nulls = key.nulls.unwrap_or(match key.ordering {
+                        Ordering::Ascending => NullOrdering::Last,
+                        Ordering::Descending => NullOrdering::First,
+                    });
+
+                    if let Some(value) = &key.value {
+                        let comparison = match key.ordering {
+                            Ordering::Ascending => {
+                                Expression::greater(key.expression.clone(), value.clone())
+                            }
+                            Ordering::Descending => {
+                                Expression::less(key.expression.clone(), value.clone())
+                            }
+                        };
+
+                        match nulls {
+                            // A provably non-nullable key has no `NULL` rows to continue into.
+                            _ if key.non_null => criteria.push(comparison),
+                            NullOrdering::First => criteria.push(comparison),
+                            // With nulls sorted last, rows where the key is `NULL` also come
+                            // after the cursor value.
+                            NullOrdering::Last => criteria.push(Expression::any(vec![
+                                comparison,
+                                Expression::is_null(key.expression.clone()),
+                            ])),
+                        }
+                    } else {
+                        assert!(
+                            !key.non_null,
+                            "a non-nullable sort key cannot produce a `NULL` cursor value"
+                        );
+                        match nulls {
+                            NullOrdering::First => {
+                                criteria.push(Expression::is_not_null(key.expression.clone()));
+                            }
+                            // A `NULL` cursor value with nulls sorted last has no rows after it
+                            // on this key, so the alternative is dropped entirely.
+                            NullOrdering::Last => {
+                                criteria.clear();
+                                break;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                criteria.push(key.value.as_ref().map_or_else(
+                    || Expression::is_null(key.expression.clone()),
+                    |value| Expression::equal(key.expression.clone(), value.clone()),
+                ));
+            }
+            if let Some(alternative) = Expression::conjunction(criteria) {
+                alternatives.push(alternative);
+            }
+        }
+
+        // With every alternative dropped the cursor sits at the end of a trailing `NULL` group
+        // and no row sorts after it. The continuation has to be a never-matching condition (an
+        // empty `OR` transpiles to `FALSE`) rather than absent, which would replay the first
+        // page.
+        Some(Expression::disjunction(alternatives).unwrap_or_else(|| Expression::any(Vec::new())))
     }
 
     /// Whether any relation joined so far can fan out the base rows.
@@ -441,6 +621,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// # Errors
     ///
     /// Returns an error if the filter compilation fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics when an embeddings table declares no grouping columns, though the static table
+    /// list makes that unreachable.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
     pub fn compile_filter<'f: 'q>(
@@ -463,29 +648,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Filter::Not(filter) => self.compile_filter(filter)?.not(),
             Filter::Equal(lhs, rhs) => Expression::equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::NotEqual(lhs, rhs) => Expression::not_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::Exists { path } => Expression::is_not_null(self.compile_path_column(path)),
             Filter::Greater(lhs, rhs) => Expression::greater(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::GreaterOrEqual(lhs, rhs) => Expression::greater_or_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::Less(lhs, rhs) => Expression::less(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::LessOrEqual(lhs, rhs) => Expression::less_or_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
                 (
@@ -497,6 +682,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     FilterExpression::Path { path },
                 ) => {
                     let _span = tracing::info_span!("compile_cosine_distance").entered();
+                    ensure!(
+                        !self.artifacts.has_embeddings_filter,
+                        SelectCompilerError::MultipleEmbeddings
+                    );
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
@@ -513,7 +702,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                     let path_alias = self.add_join_statements(path);
                     let parameter_expression = self.compile_parameter(parameter).0;
-                    let maximum_expression = self.compile_filter_expression(max).0;
+                    let maximum_expression = self.compile_filter_expression(max)?.0;
 
                     let (embeddings_column, None) = path.terminating_column() else {
                         bail!(SelectCompilerError::UnsupportedEmbeddingPath);
@@ -573,17 +762,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                     if let Some(FromItem::JoinOn {
                         right: last_from, ..
-                    }) = self.statement.from.as_mut()
-                        && let Some(last_reference_table) = last_from.reference_table()
+                    }) = self.from.as_mut()
+                        && let Some(last_join) = self.artifacts.joins.last()
                     {
+                        // The rewrite below replaces the topmost join with the distance
+                        // subquery, which is only sound when that join is the embeddings join
+                        // resolved for this path. A reused embeddings join buried under later
+                        // joins (created by an earlier non-distance filter on the embedding
+                        // path) cannot be rewritten.
                         ensure!(
-                            last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::PropertyTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::EntityTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::EntityEmbeddings),
+                            last_join.table == embeddings_table && last_join.alias == path_alias,
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -636,13 +824,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         };
 
                         **last_from = FromItem::subquery(
-                            SelectStatement::builder()
+                            SimpleSelect::builder()
                                 .selects(
                                     select_columns
                                         .iter()
                                         .map(|&column| SelectExpression::Expression {
                                             expression: Expression::ColumnReference(column.into()),
-                                            alias: None,
+                                            output_name: None,
                                         })
                                         .chain(once(SelectExpression::Expression {
                                             expression: Expression::Function(Function::Min(
@@ -653,51 +841,65 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                                     parameter_expression,
                                                 )),
                                             )),
-                                            alias: Some(Identifier::from("distance")),
+                                            output_name: Some(Identifier::from("distance")),
                                         }))
-                                        .collect(),
+                                        .collect::<Vec<_>>(),
                                 )
                                 .from(FromItem::table(embeddings_table))
-                                .group_by_expression(GroupByExpression {
-                                    expressions: select_columns
-                                        .iter()
-                                        .map(|&column| Expression::ColumnReference(column.into()))
-                                        .collect(),
-                                }),
+                                .group_by(
+                                    GroupByClause::builder().grouping_elements(
+                                        NonEmptyVec::try_from(
+                                            select_columns
+                                                .iter()
+                                                .map(|&column| {
+                                                    GroupingElement::Expressions(NonEmptyVec::from(
+                                                        Expression::ColumnReference(column.into()),
+                                                    ))
+                                                })
+                                                .collect::<Vec<_>>(),
+                                        )
+                                        .expect(
+                                            "every embeddings table groups by at least one column",
+                                        ),
+                                    ),
+                                ),
                         )
-                        .alias(last_reference_table.clone())
+                        .alias(last_join.table.aliased_name(last_join.alias))
                         .build();
+                        self.artifacts.has_embeddings_filter = true;
                     }
 
-                    self.statement.order_by_expression.insert_front(
-                        distance_expression.clone(),
-                        Ordering::Ascending,
-                        None,
+                    self.sort_by.insert(
+                        0,
+                        SortBy::builder()
+                            .expression(distance_expression.clone())
+                            .direction(SortDirection::Ascending)
+                            .build(),
                     );
-                    self.statement.selects.push(SelectExpression::Expression {
+                    self.selects.push(SelectExpression::Expression {
                         expression: distance_expression.clone(),
-                        alias: None,
+                        output_name: None,
                     });
-                    self.statement.distinct.push(distance_expression.clone());
+                    self.distinct_on.push(distance_expression.clone());
                     Expression::less_or_equal(distance_expression, maximum_expression)
                 }
                 _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),
             },
             Filter::In(lhs, rhs) => Expression::r#in(
-                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(lhs)?.0,
                 self.compile_filter_expression_list(rhs).0,
             ),
             Filter::StartsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -709,14 +911,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::EndsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -728,14 +930,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::ContainsSegment(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -968,30 +1170,42 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement.with.add_statement(
-            Table::OntologyIds,
-            SelectStatement::builder()
-                .selects(vec![
-                    SelectExpression::Asterisk(None),
-                    SelectExpression::Expression {
-                        expression: Expression::Window(
-                            Box::new(Expression::Function(Function::Max(Box::new(
-                                Expression::ColumnReference(version_column.aliased(alias)),
-                            )))),
-                            WindowStatement::partition_by(Expression::ColumnReference(
-                                Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                            )),
-                        ),
-                        alias: Some(Identifier::from("latest_version")),
-                    },
-                ])
-                .from(
-                    FromItem::table(version_column.table())
-                        .alias(version_column.table().aliased(alias))
+        let latest_version_cte = CommonTableExpression::builder()
+            .name(Table::OntologyIds)
+            .statement(
+                SimpleSelect::builder()
+                    .selects(vec![
+                        SelectExpression::Asterisk(None),
+                        SelectExpression::Expression {
+                            expression: Expression::window(
+                                Expression::Function(Function::Max(Box::new(
+                                    Expression::ColumnReference(version_column.aliased(alias)),
+                                ))),
+                                WindowDefinition::builder().partition_by(
+                                    Expression::ColumnReference(
+                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                                    ),
+                                ),
+                            ),
+                            output_name: Some(Identifier::from("latest_version")),
+                        },
+                    ])
+                    .from(
+                        FromItem::table(version_column.table())
+                            .alias(version_column.table().aliased_name(alias))
+                            .build(),
+                    ),
+            );
+        match &mut self.with {
+            Some(with) => with.push(latest_version_cte),
+            with @ None => {
+                *with = Some(
+                    WithClause::builder()
+                        .common_table_expressions(latest_version_cte)
                         .build(),
-                )
-                .build(),
-        );
+                );
+            }
+        }
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
@@ -1101,10 +1315,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         if let Some(hook) = self.table_hooks.get(&column.table().into()) {
             let conditions = hook(self, alias);
-            self.statement
-                .where_expression
-                .conditions
-                .extend(conditions);
+            self.conditions.extend(conditions);
         }
 
         let mut column_expression = Expression::ColumnReference(column.aliased(alias));
@@ -1212,14 +1423,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     #[instrument(level = "debug", skip_all)]
+    /// Compiles a [`FilterExpression`] to an [`Expression`] and its parameter type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SelectCompilerError::PendingParameterConversion`] when the parameter still
+    /// carries a conversion; conversions have to be resolved before compilation.
     pub fn compile_filter_expression<'f: 'q>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> (Expression, ParameterType)
+    ) -> Result<(Expression, ParameterType), Report<SelectCompilerError>>
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        match expression {
+        Ok(match expression {
             FilterExpression::Path { path } => {
                 let (column, json_field) = path.terminating_column();
                 let parameter_type =
@@ -1232,12 +1449,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 (self.compile_path_column(path), parameter_type)
             }
             FilterExpression::Parameter { parameter, convert } => {
-                if convert.is_some() {
-                    unimplemented!("Cannot convert parameter at this stage");
-                }
+                ensure!(
+                    convert.is_none(),
+                    SelectCompilerError::PendingParameterConversion
+                );
                 self.compile_parameter(parameter)
             }
-        }
+        })
     }
 
     #[instrument(level = "debug", skip_all)]
@@ -1310,23 +1528,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// [`Relation`]: super::table::Relation
     #[instrument(level = "debug", skip_all)]
-    #[expect(clippy::too_many_lines)]
     fn add_join_statements<'f: 'q>(&mut self, path: &R::QueryPath<'f>) -> Alias
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        let mut current_table = Cow::<TableReference<'_>>::Owned(TableReference {
-            schema: None,
-            name: R::base_table().into(),
-            alias: Some(Alias::default()),
-        });
+        let mut current_alias = Alias::default();
 
-        if let Some(hook) = self.table_hooks.get(&current_table.name) {
-            let conditions = hook(self, current_table.alias.unwrap_or_default());
-            self.statement
-                .where_expression
-                .conditions
-                .extend(conditions);
+        if let Some(hook) = self.table_hooks.get(&R::base_table().name()) {
+            let conditions = hook(self, current_alias);
+            self.conditions.extend(conditions);
         }
 
         let mut is_outer_join_chain = false;
@@ -1345,106 +1555,80 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     join_type
                 };
 
-                let mut join_table = foreign_key_reference.table().aliased(Alias {
+                let join_table = foreign_key_reference.table();
+                let mut join_alias = Alias {
                     condition_index: self.artifacts.condition_index,
-                    chain_depth: current_table.alias.unwrap_or_default().chain_depth + 1,
+                    chain_depth: current_alias.chain_depth + 1,
                     number: 0,
-                });
-                let mut conditions = foreign_key_reference.conditions(
-                    current_table.alias.unwrap_or_default(),
-                    join_table.alias.unwrap_or_default(),
-                );
+                };
+                let mut conditions = foreign_key_reference.conditions(current_alias, join_alias);
 
                 let mut found = false;
                 let mut max_number = 0;
 
-                let mut existing = self.statement.from.as_ref();
-                while let Some(FromItem::JoinOn {
-                    left,
-                    join_type: _,
-                    right: existing_from_item,
-                    condition: existing_conditions,
-                }) = existing
-                {
-                    existing = Some(left);
-
-                    let Some(existing_table) = existing_from_item.reference_table() else {
-                        continue;
-                    };
-
+                for existing in self.artifacts.joins.iter().rev() {
                     // Check for exact match to reuse existing join
-                    if *existing_table == join_table {
+                    if existing.table.name() == join_table.name() && existing.alias == join_alias {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing_conditions.starts_with(&conditions) {
+                        if existing.conditions.starts_with(&conditions) {
                             // We already have a join statement for this column, so we can reuse
                             // it.
-                            current_table = Cow::Borrowed(existing_table);
+                            current_alias = existing.alias;
                             found = true;
                             break;
                         }
                     }
 
                     // Track maximum number for joins with same table name and alias prefix
-                    if let Some(existing_alias) = existing_table.alias
-                        && join_table.name == existing_table.name
-                        && join_table
-                            .alias
-                            .map(|alias| (alias.condition_index, alias.chain_depth))
-                            == existing_table
-                                .alias
-                                .map(|alias| (alias.condition_index, alias.chain_depth))
+                    if existing.table.name() == join_table.name()
+                        && (existing.alias.condition_index, existing.alias.chain_depth)
+                            == (join_alias.condition_index, join_alias.chain_depth)
                     {
-                        max_number = max_number.max(existing_alias.number + 1);
+                        max_number = max_number.max(existing.alias.number + 1);
                     }
                 }
 
                 // If we didn't find an exact match but found alias conflicts, update the alias
                 if !found {
                     if max_number > 0 {
-                        join_table.alias.get_or_insert_default().number = max_number;
+                        join_alias.number = max_number;
                         // Recalculate conditions with the updated alias
-                        conditions = foreign_key_reference.conditions(
-                            current_table.alias.unwrap_or_default(),
-                            join_table.alias.unwrap_or_default(),
-                        );
+                        conditions = foreign_key_reference.conditions(current_alias, join_alias);
                     }
 
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = Cow::Owned(join_table.clone());
-                    conditions.extend(relation.additional_conditions(&join_table));
-                    if let Some(hook) = self.table_hooks.get(&current_table.name) {
-                        conditions.extend(hook(self, current_table.alias.unwrap_or_default()));
+                    current_alias = join_alias;
+                    conditions.extend(relation.additional_conditions(join_table, join_alias));
+                    if let Some(hook) = self.table_hooks.get(&join_table.name()) {
+                        conditions.extend(hook(self, join_alias));
                     }
 
-                    self.statement.from = Some(
-                        self.statement
-                            .from
+                    self.from = Some(
+                        self.from
                             .take()
                             .expect(
                                 "Tried to join on a `SELECT` statement without a `FROM` statement",
                             )
                             .join(
                                 join_type,
-                                FromItem::table(TableReference {
-                                    alias: None,
-                                    ..join_table.clone()
-                                })
-                                .alias(join_table),
+                                FromItem::table(join_table)
+                                    .alias(join_table.aliased_name(join_alias)),
                             )
-                            .on(conditions)
+                            .on(conditions.clone())
                             .build(),
                     );
+                    self.artifacts.joins.push(CompiledJoin {
+                        table: join_table,
+                        alias: join_alias,
+                        conditions,
+                    });
                 }
             }
         }
 
-        let alias = current_table.alias.unwrap_or_default();
-        self.artifacts
-            .required_tables
-            .insert(current_table.into_owned());
-        alias
+        current_alias
     }
 }
 

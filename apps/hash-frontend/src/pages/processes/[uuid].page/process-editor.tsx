@@ -150,9 +150,9 @@ const buildRevisionSummaries = (
 
 /**
  * Loading-state overlay rendered above the still-warming iframe. Mirrors
- * Petrinaut's broad layout (top bar with back / title / version-picker /
- * save, plus a left rail and the canvas) so the transition into the real
- * editor doesn't cause a visible reflow.
+ * Petrinaut's broad layout (top bar with menu buttons / breadcrumb / title /
+ * version-picker / save, plus a left rail and the canvas) so the transition
+ * into the real editor doesn't cause a visible reflow.
  */
 const ProcessEditorLoadingSkeleton = () => (
   <Stack
@@ -165,7 +165,7 @@ const ProcessEditorLoadingSkeleton = () => (
     })}
     aria-hidden
   >
-    {/* Top bar: back button + title + version picker + save button */}
+    {/* Top bar: menu buttons + breadcrumb + title + version picker + save */}
     <Stack
       direction="row"
       sx={{ height: 36, gap: 1, flexShrink: 0 }}
@@ -927,7 +927,7 @@ export const ProcessEditor = ({
            */
           sandbox="allow-scripts allow-forms"
           referrerPolicy="no-referrer"
-          title="Petrinaut editor"
+          title="Process editor"
           sx={{
             width: "100%",
             height: "100%",

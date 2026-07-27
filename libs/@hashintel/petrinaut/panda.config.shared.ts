@@ -1,10 +1,17 @@
 import { createRequire } from "node:module";
 
-import { defineConfig } from "@pandacss/dev";
+import { defineConfig, type Preset } from "@pandacss/dev";
 
 import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
-import { CODE_FONT_FAMILY } from "./src/ui/constants/fonts";
+import { petrinautPandaPreset } from "./src/panda-preset";
+
+/**
+ * `src/panda-preset.ts` cannot import Panda's `Preset` type itself (that
+ * would leak `@pandacss/dev`'s un-bundleable types into the package's `.d.ts`
+ * output), so its shape is checked here instead.
+ */
+const checkedPetrinautPandaPreset: Preset = petrinautPandaPreset;
 
 export const DS_COMPONENTS_BUILD_INFO_SUBPATH =
   "@hashintel/ds-components/panda.buildinfo.json";
@@ -19,9 +26,24 @@ export const resolveDsComponentsBuildInfoPath = (
   resolve: (specifier: string) => string,
 ) => resolve(DS_COMPONENTS_BUILD_INFO_SUBPATH);
 
-export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
-  defineConfig({
-    ...scopedThemeConfig(".petrinaut-root"),
+export const createPetrinautPandaConfig = (
+  dsComponentsBuildInfoPath: string,
+) => {
+  const scopedConfig = scopedThemeConfig(".petrinaut-root");
+
+  return defineConfig({
+    ...scopedConfig,
+
+    /**
+     * Petrinaut's theme extension (keyframes, `fonts.mono`) lives in
+     * `src/panda-preset.ts` — shipped as `@hashintel/petrinaut/panda-preset` —
+     * so that hosts compiling Petrinaut's styles through their own Panda
+     * pipeline (via `@hashintel/petrinaut/panda.buildinfo.json`) generate CSS
+     * against the exact same theme contract. Listed last so it takes
+     * precedence over ds-components definitions here, mirroring the previous
+     * inline `theme.extend`.
+     */
+    presets: [...scopedConfig.presets, checkedPetrinautPandaPreset],
 
     include: [
       "./src/**/*.{js,jsx,ts,tsx}",
@@ -31,93 +53,10 @@ export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
 
     exclude: [],
 
-    theme: {
-      extend: {
-        tokens: {
-          fonts: {
-            mono: {
-              value: CODE_FONT_FAMILY,
-            },
-          },
-        },
-        keyframes: {
-          fadeIn: {
-            from: { opacity: "0", transform: "translateY(-10px)" },
-            to: { opacity: "1", transform: "translateY(0)" },
-          },
-          fadeOut: {
-            from: { opacity: "1", transform: "translateY(0)" },
-            to: { opacity: "0", transform: "translateY(-10px)" },
-          },
-          spin: {
-            from: { transform: "rotate(0deg)" },
-            to: { transform: "rotate(360deg)" },
-          },
-          optimizationGlow: {
-            "0%, 100%": {
-              boxShadow:
-                "-2px 0 6px rgba(0, 220, 255, 0.03), 2px 0 6px rgba(255, 0, 128, 0.045)",
-            },
-            "25%": {
-              boxShadow:
-                "0 -2px 6px rgba(0, 220, 255, 0.03), 0 2px 6px rgba(255, 0, 128, 0.045)",
-            },
-            "50%": {
-              boxShadow:
-                "2px 0 6px rgba(0, 220, 255, 0.03), -2px 0 6px rgba(255, 0, 128, 0.045)",
-            },
-            "75%": {
-              boxShadow:
-                "0 2px 6px rgba(0, 220, 255, 0.03), 0 -2px 6px rgba(255, 0, 128, 0.045)",
-            },
-          },
-          expand: {
-            from: { height: "0", opacity: "0" },
-            to: { height: "var(--height)", opacity: "1" },
-          },
-          collapse: {
-            from: { height: "var(--height)", opacity: "1" },
-            to: { height: "0", opacity: "0" },
-          },
-          dialogBackdropIn: {
-            from: { opacity: "0" },
-            to: { opacity: "1" },
-          },
-          dialogBackdropOut: {
-            from: { opacity: "1" },
-            to: { opacity: "0" },
-          },
-          dialogContentIn: {
-            from: { opacity: "0", transform: "scale(0.95)" },
-            to: { opacity: "1", transform: "scale(1)" },
-          },
-          dialogContentOut: {
-            from: { opacity: "1", transform: "scale(1)" },
-            to: { opacity: "0", transform: "scale(0.95)" },
-          },
-          "popover-in": {
-            from: { opacity: "0", transform: "scale(0.96)" },
-            to: { opacity: "1", transform: "scale(1)" },
-          },
-          "popover-out": {
-            from: { opacity: "1", transform: "scale(1)" },
-            to: { opacity: "0", transform: "scale(0.96)" },
-          },
-          "drawer-in": {
-            from: { opacity: "0", transform: "translateX(100px)" },
-            to: { opacity: "1", transform: "translateX(0)" },
-          },
-          "drawer-out": {
-            from: { opacity: "1", transform: "translateX(0)" },
-            to: { opacity: "0", transform: "translateX(100px)" },
-          },
-        },
-      },
-    },
-
     // Polyfill CSS @layer for embedding in HASH, where unlayered global
     // resets (* { padding: 0 }) would otherwise override layered utilities.
     polyfill: true,
 
     importMap: "@hashintel/ds-helpers",
   });
+};

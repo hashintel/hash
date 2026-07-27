@@ -7,13 +7,14 @@ import {
   Select,
   Toggle,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { Slider } from "../../../../../components/slider";
+import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
@@ -21,12 +22,16 @@ import type { SubView } from "../../../../../components/sub-view/types";
 
 // -- Styles -------------------------------------------------------------------
 
+// The subview opts out of the tab content's uniform 16px padding (noPadding)
+// and owns its insets instead: a tighter top, no bottom padding at all so the
+// parameters list can scroll through the panel's full height.
 const rootStyle = css({
   display: "flex",
   flexDirection: "column",
   height: "full",
   minHeight: "[0]",
-  gap: "3",
+  paddingTop: "2",
+  paddingX: "4",
 });
 
 const scenarioRowStyle = css({
@@ -34,6 +39,9 @@ const scenarioRowStyle = css({
   alignItems: "center",
   gap: "2",
   flexShrink: 0,
+  // Small right inset so the action buttons don't hug the column edge,
+  // matching the parameters list below.
+  paddingRight: "2",
 });
 
 const scenarioLabelStyle = css({
@@ -45,8 +53,15 @@ const scenarioLabelStyle = css({
   flexShrink: 0,
 });
 
-const scenarioSelectStyle = css({
-  width: "[200px]",
+// Sized like the Timeline metric picker: fill the remaining row width, and
+// let the inner select box shrink below its content's min width so long
+// scenario names truncate instead of overflowing.
+const scenarioSelectWrapperStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  "& > div > div": {
+    minWidth: "[0]",
+  },
 });
 
 const parameterInputStyles = css({
@@ -65,11 +80,25 @@ const containerStyle = css({
   minHeight: "[0]",
 });
 
+// Left column: the scenario picker and the parameters list share one width.
+const scenarioColumnStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "5",
+  minHeight: "[0]",
+});
+
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "1",
   minHeight: "[0]",
+});
+
+// Lets the parameters section absorb the column's remaining height so its
+// list scrolls to the panel bottom.
+const fillSectionStyle = css({
+  flex: "[1]",
 });
 
 const sectionTitleStyle = css({
@@ -78,7 +107,6 @@ const sectionTitleStyle = css({
   textTransform: "uppercase",
   color: "neutral.a100",
   letterSpacing: "[0.5px]",
-  marginBottom: "1",
 });
 
 const settingsRowStyle = css({
@@ -106,29 +134,89 @@ const smallLabelStyle = css({
   fontWeight: "normal",
 });
 
+const parametersScrollWrapperStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
+});
+
+/**
+ * White fades over the edges the list can still be scrolled towards — at the
+ * top once scrolled, at the bottom while more content is below. Overflow state
+ * is tracked by the shared `useScrollOverflow` hook.
+ */
+const parametersFadeStyle = cva({
+  base: {
+    position: "absolute",
+    left: "[0]",
+    right: "[0]",
+    height: "[16px]",
+    pointerEvents: "none",
+    zIndex: "[1]",
+    opacity: "[0]",
+    transition: "[opacity 150ms ease]",
+  },
+  variants: {
+    position: {
+      top: {
+        top: "[0]",
+        background:
+          "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
+      },
+      bottom: {
+        bottom: "[0]",
+        background:
+          "[linear-gradient(to top, var(--colors-neutral-s00), transparent)]",
+      },
+    },
+    visible: { true: { opacity: "[1]" } },
+  },
+});
+
 const parametersListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1.5",
   overflowY: "auto",
+  flex: "[1]",
   minHeight: "[0]",
+  // End padding: scrolls with the content, giving the last row breathing
+  // room without reserving fixed space below the list.
+  paddingBottom: "3",
+  // Small right inset so row values don't hug the scrollbar/column edge.
+  paddingRight: "2",
 });
 
+// Plain rows separated by hairline dividers, matching the sidebar's
+// parameter list, rather than card-like boxes. A small horizontal inset
+// nudges the name and value off the row edges; the divider still spans the
+// full width.
 const parameterRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: "4",
-  maxWidth: "[480px]",
-  paddingY: "1.5",
-  paddingX: "2.5",
-  backgroundColor: "neutral.bg.min.active",
-  borderRadius: "sm",
+  paddingY: "2",
+  paddingX: "1",
+  borderBottomWidth: "thin",
+  borderBottomColor: "neutral.a25",
+  "&:last-child": {
+    borderBottomWidth: "[0]",
+  },
 });
 
 const parameterNameStyle = css({
   fontSize: "[13px]",
   color: "neutral.fg.heading",
+});
+
+// Row label for parameters without a display name (scenario parameters are
+// identified by their variable name alone).
+const parameterVarNameOnlyStyle = css({
+  fontSize: "[12px]",
+  color: "neutral.fg.heading",
+  fontFamily: "mono",
 });
 
 const parameterVarNameStyle = css({
@@ -157,6 +245,37 @@ const emptyMessageStyle = css({
 
 // -- Component ----------------------------------------------------------------
 
+/**
+ * Wraps the parameters list in a container with white scroll fades: at the top
+ * once the list is scrolled, at the bottom while more content is below.
+ */
+const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { scrollRef, canScrollUp, canScrollDown, onScroll } =
+    useScrollOverflow();
+
+  return (
+    <div className={parametersScrollWrapperStyle}>
+      <div
+        className={parametersFadeStyle({
+          position: "top",
+          visible: canScrollUp,
+        })}
+      />
+      <div ref={scrollRef} className={parametersListStyle} onScroll={onScroll}>
+        {children}
+      </div>
+      <div
+        className={parametersFadeStyle({
+          position: "bottom",
+          visible: canScrollDown,
+        })}
+      />
+    </div>
+  );
+};
+
 const NO_SCENARIO = "__none__";
 
 /**
@@ -183,7 +302,6 @@ const SimulationSettingsContent: React.FC = () => {
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
-  const [odeSolver, setOdeSolver] = useState("euler" as const);
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
@@ -196,14 +314,14 @@ const SimulationSettingsContent: React.FC = () => {
   // When no scenario, show net-level parameters.
   const displayParams: Array<{
     key: string;
-    name: string;
+    /** Human-readable name — scenario parameters only have an identifier. */
+    name?: string;
     variableName: string;
     type: "real" | "integer" | "boolean" | "ratio";
     defaultValue: string;
   }> = selectedScenario
     ? selectedScenario.scenarioParameters.map((sp) => ({
         key: `sp-${sp.identifier}`,
-        name: sp.identifier,
         variableName: sp.identifier,
         type: sp.type,
         defaultValue: String(sp.default),
@@ -223,64 +341,6 @@ const SimulationSettingsContent: React.FC = () => {
 
   return (
     <div className={rootStyle}>
-      {/* Scenario Picker */}
-      <div className={scenarioRowStyle}>
-        <span className={scenarioLabelStyle}>Scenario</span>
-        <Select
-          required
-          value={selectedScenarioId}
-          onChange={(scenarioId) =>
-            setContextScenarioId(scenarioId === NO_SCENARIO ? null : scenarioId)
-          }
-          items={scenarioOptions}
-          size="xs"
-          disabled={isSimulationActive}
-          className={scenarioSelectStyle}
-          renderItem={(value) => {
-            const option = scenarioOptions.find((opt) => opt.value === value);
-            return (
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {value === NO_SCENARIO && (
-                  <Icon
-                    name="dash"
-                    size="xs"
-                    className={css({ opacity: "[0.4]" })}
-                  />
-                )}
-                {option?.text}
-              </span>
-            );
-          }}
-        />
-        <div style={{ display: "flex" }}>
-          {selectedScenario && (
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label="Edit scenario"
-              tooltip="Edit Scenario"
-              iconName="pencil"
-              onClick={() => setIsViewScenarioOpen(true)}
-            />
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label="Create scenario"
-            tooltip="Create Scenario"
-            iconName="plus"
-            onClick={() => setIsCreateScenarioOpen(true)}
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label="Manage scenarios"
-            tooltip="Manage Scenarios"
-            iconName="list"
-            onClick={() => setGlobalMode("simulate")}
-          />
-        </div>
-      </div>
       <CreateScenarioDrawer
         open={isCreateScenarioOpen}
         onClose={() => setIsCreateScenarioOpen(false)}
@@ -292,123 +352,211 @@ const SimulationSettingsContent: React.FC = () => {
       />
 
       <div className={containerStyle}>
-        {/* Parameters Section */}
-        <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>
-            {selectedScenario ? "Scenario Parameters" : "Parameters"}
-          </div>
-          {displayParams.length > 0 ? (
-            <div className={parametersListStyle}>
-              {displayParams.map((param) => (
-                <div key={param.key} className={parameterRowStyle}>
-                  <div>
-                    <div className={parameterNameStyle}>{param.name}</div>
-                    <div className={parameterVarNameStyle}>
-                      {param.variableName}
-                    </div>
-                  </div>
-                  {param.type === "boolean" ? (
-                    <Toggle
-                      size="xs"
-                      value={
-                        selectedScenario
-                          ? (scenarioParameterValues[param.variableName] ??
-                              param.defaultValue) !== "0"
-                          : (parameterValues[param.variableName] ??
-                              param.defaultValue) === "true"
-                      }
-                      onChange={(checked) => {
-                        if (selectedScenario) {
-                          setScenarioParameterValue(
-                            param.variableName,
-                            checked ? "1" : "0",
-                          );
-                        } else {
-                          setParameterValue(
-                            param.variableName,
-                            checked ? "true" : "false",
-                          );
-                        }
+        {/* Scenario & Parameters Column */}
+        <div className={scenarioColumnStyle}>
+          {/* Scenario Picker */}
+          <div className={scenarioRowStyle}>
+            <span className={scenarioLabelStyle}>Scenario</span>
+            <div className={scenarioSelectWrapperStyle}>
+              <Select
+                required
+                value={selectedScenarioId}
+                onChange={(scenarioId) =>
+                  setContextScenarioId(
+                    scenarioId === NO_SCENARIO ? null : scenarioId,
+                  )
+                }
+                items={scenarioOptions}
+                size="xs"
+                disabled={isSimulationActive}
+                renderItem={(value) => {
+                  const option = scenarioOptions.find(
+                    (opt) => opt.value === value,
+                  );
+                  return (
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        minWidth: 0,
                       }}
-                      disabled={isSimulationActive}
-                    />
-                  ) : param.type === "ratio" && selectedScenario ? (
-                    <div className={ratioRowStyle}>
-                      <Slider
-                        className={ratioSliderStyle}
-                        min={0}
-                        max={1}
-                        step={0.00001}
-                        value={Number(
-                          scenarioParameterValues[param.variableName] ??
-                            param.defaultValue,
-                        )}
-                        onChange={(e) =>
-                          setScenarioParameterValue(
-                            param.variableName,
-                            e.target.value,
-                          )
+                    >
+                      {value === NO_SCENARIO && (
+                        <Icon
+                          name="dash"
+                          size="xs"
+                          className={css({ opacity: "[0.4]" })}
+                        />
+                      )}
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {option?.text}
+                      </span>
+                    </span>
+                  );
+                }}
+              />
+            </div>
+            <div style={{ display: "flex" }}>
+              {selectedScenario && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  aria-label="Edit scenario"
+                  tooltip="Edit Scenario"
+                  iconName="pencil"
+                  onClick={() => setIsViewScenarioOpen(true)}
+                />
+              )}
+              <Button
+                size="xs"
+                variant="ghost"
+                aria-label="Create scenario"
+                tooltip="Create Scenario"
+                iconName="plus"
+                onClick={() => setIsCreateScenarioOpen(true)}
+              />
+              <Button
+                size="xs"
+                variant="ghost"
+                aria-label="Manage scenarios"
+                tooltip="Manage Scenarios"
+                iconName="list"
+                onClick={() => setGlobalMode("simulate")}
+              />
+            </div>
+          </div>
+
+          {/* Parameters Section */}
+          <div className={cx(sectionStyle, fillSectionStyle)}>
+            <div className={sectionTitleStyle}>Parameters</div>
+            {displayParams.length > 0 ? (
+              <ParametersScrollArea>
+                {displayParams.map((param) => (
+                  <div key={param.key} className={parameterRowStyle}>
+                    <div>
+                      {param.name === undefined ? (
+                        <div className={parameterVarNameOnlyStyle}>
+                          {param.variableName}
+                        </div>
+                      ) : (
+                        <>
+                          <div className={parameterNameStyle}>{param.name}</div>
+                          <div className={parameterVarNameStyle}>
+                            {param.variableName}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {param.type === "boolean" ? (
+                      <Toggle
+                        size="xs"
+                        value={
+                          selectedScenario
+                            ? (scenarioParameterValues[param.variableName] ??
+                                param.defaultValue) !== "0"
+                            : (parameterValues[param.variableName] ??
+                                param.defaultValue) === "true"
                         }
+                        onChange={(checked) => {
+                          if (selectedScenario) {
+                            setScenarioParameterValue(
+                              param.variableName,
+                              checked ? "1" : "0",
+                            );
+                          } else {
+                            setParameterValue(
+                              param.variableName,
+                              checked ? "true" : "false",
+                            );
+                          }
+                        }}
                         disabled={isSimulationActive}
                       />
+                    ) : param.type === "ratio" && selectedScenario ? (
+                      <div className={ratioRowStyle}>
+                        <Slider
+                          className={ratioSliderStyle}
+                          min={0}
+                          max={1}
+                          step={0.00001}
+                          value={Number(
+                            scenarioParameterValues[param.variableName] ??
+                              param.defaultValue,
+                          )}
+                          onChange={(e) =>
+                            setScenarioParameterValue(
+                              param.variableName,
+                              e.target.value,
+                            )
+                          }
+                          disabled={isSimulationActive}
+                        />
+                        <NumberInput
+                          size="xs"
+                          min={0}
+                          max={1}
+                          step={0.00001}
+                          align="right"
+                          hideStepper
+                          value={Number(
+                            scenarioParameterValues[param.variableName] ??
+                              param.defaultValue,
+                          )}
+                          onChange={(paramValue) =>
+                            setScenarioParameterValue(
+                              param.variableName,
+                              paramValue === null ? "" : String(paramValue),
+                            )
+                          }
+                          disabled={isSimulationActive}
+                          className={parameterSliderInputStyles}
+                        />
+                      </div>
+                    ) : (
                       <NumberInput
                         size="xs"
-                        min={0}
-                        max={1}
-                        step={0.00001}
                         align="right"
+                        step={param.type === "integer" ? 1 : 0.001}
                         hideStepper
                         value={Number(
-                          scenarioParameterValues[param.variableName] ??
-                            param.defaultValue,
+                          selectedScenario
+                            ? (scenarioParameterValues[param.variableName] ??
+                                param.defaultValue)
+                            : (parameterValues[param.variableName] ??
+                                param.defaultValue),
                         )}
-                        onChange={(paramValue) =>
-                          setScenarioParameterValue(
-                            param.variableName,
-                            paramValue === null ? "" : String(paramValue),
-                          )
-                        }
+                        onChange={(paramValue) => {
+                          const next =
+                            paramValue === null ? "" : String(paramValue);
+                          if (selectedScenario) {
+                            setScenarioParameterValue(param.variableName, next);
+                          } else {
+                            setParameterValue(param.variableName, next);
+                          }
+                        }}
+                        placeholder={param.defaultValue}
                         disabled={isSimulationActive}
-                        className={parameterSliderInputStyles}
+                        className={parameterInputStyles}
                       />
-                    </div>
-                  ) : (
-                    <NumberInput
-                      size="xs"
-                      align="right"
-                      step={param.type === "integer" ? 1 : 0.001}
-                      hideStepper
-                      value={Number(
-                        selectedScenario
-                          ? (scenarioParameterValues[param.variableName] ??
-                              param.defaultValue)
-                          : (parameterValues[param.variableName] ??
-                              param.defaultValue),
-                      )}
-                      onChange={(paramValue) => {
-                        const next =
-                          paramValue === null ? "" : String(paramValue);
-                        if (selectedScenario) {
-                          setScenarioParameterValue(param.variableName, next);
-                        } else {
-                          setParameterValue(param.variableName, next);
-                        }
-                      }}
-                      placeholder={param.defaultValue}
-                      disabled={isSimulationActive}
-                      className={parameterInputStyles}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={emptyMessageStyle}>
-              {selectedScenario
-                ? "No scenario parameters defined"
-                : "No parameters defined"}
-            </div>
-          )}
+                    )}
+                  </div>
+                ))}
+              </ParametersScrollArea>
+            ) : (
+              <div className={emptyMessageStyle}>
+                {selectedScenario
+                  ? "No scenario parameters defined"
+                  : "No parameters defined"}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Computation Section */}
@@ -437,21 +585,6 @@ const SimulationSettingsContent: React.FC = () => {
                 disabled={isSimulationActive}
               />
             </div>
-            {/* ODE Solver Method Select */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="ode-solver-select" className={labelStyle}>
-                ODE Solver
-              </label>
-              <Select
-                required
-                width="xs"
-                value={odeSolver}
-                onChange={setOdeSolver}
-                items={[{ value: "euler", text: "Euler" }]}
-                size="xs"
-                disabled={isSimulationActive}
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -465,7 +598,7 @@ const SimulationSettingsContent: React.FC = () => {
 export const simulationSettingsSubView: SubView = {
   id: "simulation-settings",
   title: "Simulation Settings",
-  tooltip:
-    "Configure simulation parameters including time step and ODE solver method.",
+  tooltip: "Configure simulation parameters and the computation time step.",
   component: SimulationSettingsContent,
+  noPadding: true,
 };

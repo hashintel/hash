@@ -1,21 +1,33 @@
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
-import { createPetrinautOptimizationHandler } from "./create-petrinaut-optimization-handler";
+import { createPetrinautOptimizerClient } from "@local/petrinaut-optimizer-client";
+
+import { createPetrinautOptimizationRunCancelHandler } from "./create-petrinaut-optimization-run-cancel-handler";
+import { createPetrinautOptimizationRunEventsHandler } from "./create-petrinaut-optimization-run-events-handler";
+import { createPetrinautOptimizationRunHandler } from "./create-petrinaut-optimization-run-handler";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { PetrinautOptimizerFetch } from "@local/petrinaut-optimizer-client";
-import type { Express } from "express";
+import type { Express, Request } from "express";
 
 export const PETRINAUT_OPTIMIZER_CAPABILITIES_PATH =
   "/api/petrinaut-optimizer/capabilities";
-export const PETRINAUT_OPTIMIZER_OPTIMIZE_PATH =
-  "/api/petrinaut-optimizer/optimize";
+export const PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH =
+  "/api/petrinaut-optimizer/optimize/runs";
+export const PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH =
+  "/api/petrinaut-optimizer/optimize/runs/:runId";
+export const PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH =
+  "/api/petrinaut-optimizer/optimize/runs/:runId/events";
 
 type PetrinautOptimizerHandlerOptions = {
   origin: URL | null;
   fetchImpl?: PetrinautOptimizerFetch;
-  logger: Pick<Logger, "warn">;
+  logger: Pick<Logger, "child" | "info" | "warn">;
 };
+
+const rateLimitKeyGenerator = (request: Request) =>
+  request.user?.accountId ??
+  (request.ip ? ipKeyGenerator(request.ip) : "ip-unavailable");
 
 /** Bound expensive optimization attempts per authenticated account or IP. */
 const optimizationRateLimiter = rateLimit({
@@ -23,9 +35,24 @@ const optimizationRateLimiter = rateLimit({
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (request) =>
-    request.user?.accountId ??
-    (request.ip ? ipKeyGenerator(request.ip) : "ip-unavailable"),
+  keyGenerator: rateLimitKeyGenerator,
+  message: { error: "Too many optimization requests" },
+});
+
+/**
+ * Attaching and cancelling do no expensive upstream work, and both must stay
+ * available to a busy account: the auto-reconnect loop may legitimately
+ * re-attach many times behind a flaky connection, and cancel is how an
+ * account frees its own single-flight slot. Sharing creation's bucket would
+ * 429 an account off the event stream of — or out of cancelling — its own
+ * live run.
+ */
+const nonAdmissionRateLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 60_000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: rateLimitKeyGenerator,
   message: { error: "Too many optimization requests" },
 });
 
@@ -57,7 +84,19 @@ export const getPetrinautOptimizerOrigin = (
   return new URL(`http://${urlHost}:${port}`);
 };
 
-/** Mount authenticated NodeAPI routes for Petrinaut optimization. */
+/**
+ * Mount authenticated NodeAPI routes for Petrinaut optimization.
+ *
+ * NodeAPI is a thin, stateless proxy: it authenticates, rate-limits, and
+ * validates, then forwards to the optimizer with the account's tag
+ * (`x-hash-account-id`). The optimizer owns all run state — per-account
+ * single-flight at admission, and owner-only visibility on attach/cancel.
+ *
+ * `POST …/optimize/runs` returns a run id immediately; events are consumed
+ * (and resumed via `?cursor=`) through `GET …/optimize/runs/:runId/events`
+ * attachments that never affect the run; `DELETE …/optimize/runs/:runId`
+ * cancels explicitly.
+ */
 export const setupPetrinautOptimizerHandler = (
   app: Express,
   { origin, fetchImpl = fetch, logger }: PetrinautOptimizerHandlerOptions,
@@ -78,16 +117,30 @@ export const setupPetrinautOptimizerHandler = (
     res.json({ optimization: origin !== null });
   });
 
-  /**
-   * Validate and proxy one authenticated optimization request.
-   *
-   * The route enforces request and concurrency limits, owns cancellation and
-   * execution deadlines, and converts the shared client's canonical events to
-   * the NDJSON protocol consumed by the HASH frontend.
-   */
+  // A dummy base keeps the client constructible when the optimizer is not
+  // configured; the handlers answer 503 before ever using it then.
+  const client = createPetrinautOptimizerClient(
+    origin ?? "http://petrinaut-optimizer.invalid",
+    fetchImpl,
+  );
+
   app.post(
-    PETRINAUT_OPTIMIZER_OPTIMIZE_PATH,
+    PETRINAUT_OPTIMIZER_OPTIMIZE_RUNS_PATH,
     optimizationRateLimiter,
-    createPetrinautOptimizationHandler({ fetchImpl, logger, origin }),
+    createPetrinautOptimizationRunHandler({ client, logger, origin }),
+  );
+  app.get(
+    PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_EVENTS_PATH,
+    nonAdmissionRateLimiter,
+    createPetrinautOptimizationRunEventsHandler({
+      fetchImpl,
+      logger,
+      origin,
+    }),
+  );
+  app.delete(
+    PETRINAUT_OPTIMIZER_OPTIMIZE_RUN_PATH,
+    nonAdmissionRateLimiter,
+    createPetrinautOptimizationRunCancelHandler({ client, logger, origin }),
   );
 };
