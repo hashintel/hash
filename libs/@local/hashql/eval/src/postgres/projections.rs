@@ -6,7 +6,7 @@ use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
     self, Alias, Column, ColumnName, ColumnReference, ForeignKeyReference, FromItem, Identifier,
-    JoinType, PostgresType, SelectExpression, SelectStatement, Table, TableName, TableReference,
+    JoinType, PostgresType, SelectExpression, SimpleSelect, Table, TableName, TableReference,
     table,
 };
 use hashql_core::symbol::sym;
@@ -78,20 +78,12 @@ impl Projections {
             .entity_editions
             .get_or_insert_with(|| Self::next_alias(&mut self.index));
 
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityEditions),
-            alias: Some(alias),
-        }
+        Table::EntityEditions.aliased(alias)
     }
 
     /// Returns the base table reference, which is always present (no lazy join).
     pub(crate) fn temporal_metadata(&self) -> TableReference<'static> {
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityTemporalMetadata),
-            alias: Some(self.base_alias),
-        }
+        Table::EntityTemporalMetadata.aliased(self.base_alias)
     }
 
     pub(crate) fn entity_ids(&mut self) -> TableReference<'static> {
@@ -99,11 +91,7 @@ impl Projections {
             .entity_ids
             .get_or_insert_with(|| Self::next_alias(&mut self.index));
 
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityIds),
-            alias: Some(alias),
-        }
+        Table::EntityIds.aliased(alias)
     }
 
     /// Unlike other accessors this returns a [`ColumnReference`]: entity type IDs are a computed
@@ -114,11 +102,7 @@ impl Projections {
             .get_or_insert_with(|| Self::next_alias(&mut self.index));
 
         ColumnReference {
-            correlation: Some(TableReference {
-                schema: None,
-                name: TableName::from(Table::EntityEditionCache),
-                alias: Some(alias),
-            }),
+            correlation: Some(Table::EntityEditionCache.aliased(alias)),
             name: ComputedColumn::EntityTypeIds.into(),
         }
     }
@@ -128,11 +112,7 @@ impl Projections {
             .left
             .get_or_insert_with(|| Self::next_alias(&mut self.index));
 
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityHasLeftEntity),
-            alias: Some(alias),
-        }
+        Table::EntityHasLeftEntity.aliased(alias)
     }
 
     pub(crate) fn right_entity(&mut self) -> TableReference<'static> {
@@ -140,11 +120,7 @@ impl Projections {
             .right
             .get_or_insert_with(|| Self::next_alias(&mut self.index));
 
-        TableReference {
-            schema: None,
-            name: TableName::from(Table::EntityHasRightEntity),
-            alias: Some(alias),
-        }
+        Table::EntityHasRightEntity.aliased(alias)
     }
 
     /// Builds the FROM clause with all joins that were requested during compilation.
@@ -158,11 +134,7 @@ impl Projections {
         laterals: Vec<FromItem<'static>, impl Allocator>,
     ) -> FromItem<'static> {
         let base = FromItem::table(Table::EntityTemporalMetadata)
-            .alias(TableReference {
-                schema: None,
-                name: TableName::from(Table::EntityTemporalMetadata),
-                alias: Some(self.base_alias),
-            })
+            .alias(Table::EntityTemporalMetadata.aliased_name(self.base_alias))
             .build();
 
         let mut from = base;
@@ -223,7 +195,7 @@ impl Projections {
 
         from.join(
             JoinType::Inner,
-            FromItem::table(Table::EntityEditions).alias(Table::EntityEditions.aliased(alias)),
+            FromItem::table(Table::EntityEditions).alias(Table::EntityEditions.aliased_name(alias)),
         )
         .on(fk.conditions(self.base_alias, alias))
         .build()
@@ -244,13 +216,12 @@ impl Projections {
 
         from.join(
             JoinType::Inner,
-            FromItem::table(Table::EntityIds).alias(Table::EntityIds.aliased(alias)),
+            FromItem::table(Table::EntityIds).alias(Table::EntityIds.aliased_name(alias)),
         )
         .on(fk.conditions(self.base_alias, alias))
         .build()
     }
 
-    #[expect(clippy::too_many_lines)]
     fn build_entity_type_ids<'item>(
         &self,
         parameters: &mut Parameters<'_, impl Allocator>,
@@ -260,16 +231,14 @@ impl Projections {
         let eec_ref = TableReference {
             schema: None,
             name: TableName::from(Identifier::from("eec")),
-            alias: None,
         };
         let unnest_ref = TableReference {
             schema: None,
             name: TableName::from(Identifier::from("u")),
-            alias: None,
         };
 
         let inner_from = FromItem::table(Table::EntityEditionCache)
-            .alias(eec_ref.clone())
+            .alias(eec_ref.name.clone())
             .build()
             .cross_join(FromItem::Function {
                 lateral: true,
@@ -287,8 +256,8 @@ impl Projections {
                     .cast(PostgresType::Array(Box::new(PostgresType::Text))),
                 ]),
                 with_ordinality: true,
-                alias: Some(unnest_ref.clone()),
-                column_alias: vec![
+                alias: Some(unnest_ref.name.clone()),
+                column_aliases: vec![
                     ColumnName::from(Identifier::from("b")),
                     ColumnName::from(Identifier::from("v")),
                     ColumnName::from(Identifier::from("ordinality")),
@@ -320,7 +289,7 @@ impl Projections {
             }),
         );
 
-        let subquery = SelectStatement::builder()
+        let subquery = SimpleSelect::builder()
             .selects(vec![SelectExpression::Expression {
                 expression: query::Expression::Function(query::Function::JsonAgg(Box::new(
                     query::Expression::Function(query::Function::JsonBuildObject(vec![
@@ -340,26 +309,17 @@ impl Projections {
                         ),
                     ])),
                 ))),
-                alias: Some(Identifier::from("entity_type_ids")),
+                output_name: Some(Identifier::from("entity_type_ids")),
             }])
             .from(inner_from)
-            .where_expression({
-                let mut w = query::WhereExpression::default();
-                w.add_condition(correlation);
-                w.add_condition(direct_prefix);
-                w
-            })
+            .where_clause(query::Expression::all(vec![correlation, direct_prefix]))
             .build();
 
         let lateral = query::FromItem::Subquery {
             lateral: true,
-            statement: Box::new(subquery),
-            alias: Some(TableReference {
-                schema: None,
-                name: TableName::from(Table::EntityEditionCache),
-                alias: Some(alias),
-            }),
-            column_alias: vec![],
+            statement: Box::new(subquery.into()),
+            alias: Some(Table::EntityEditionCache.aliased_name(alias)),
+            column_aliases: vec![],
         };
 
         from.join(JoinType::LeftOuter, lateral)
@@ -389,7 +349,7 @@ impl Projections {
         from.join(
             JoinType::LeftOuter,
             FromItem::table(Table::EntityHasRightEntity)
-                .alias(Table::EntityHasRightEntity.aliased(alias)),
+                .alias(Table::EntityHasRightEntity.aliased_name(alias)),
         )
         .on(fk.conditions(self.base_alias, alias))
         .build()
@@ -415,7 +375,7 @@ impl Projections {
         from.join(
             JoinType::LeftOuter,
             FromItem::table(Table::EntityHasLeftEntity)
-                .alias(Table::EntityHasLeftEntity.aliased(alias)),
+                .alias(Table::EntityHasLeftEntity.aliased_name(alias)),
         )
         .on(fk.conditions(self.base_alias, alias))
         .build()

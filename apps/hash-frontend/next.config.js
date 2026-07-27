@@ -52,8 +52,8 @@ process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_ENVIRONMENT = process.env.ENVIRONMENT ?? "";
 process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT =
   process.env.SENTRY_ENVIRONMENT ?? "";
-process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
-  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? "1";
+process.env.NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE =
+  process.env.SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "1";
 
 process.env.NEXT_PUBLIC_NOTIFICATION_POLL_INTERVAL =
   process.env.NOTIFICATION_POLL_INTERVAL ?? "";
@@ -257,7 +257,6 @@ export default withSentryConfig(
         webpackConfig.plugins.push(
           new DefinePlugin({
             __SENTRY_DEBUG__: false,
-            __SENTRY_TRACING__: false,
           }),
         );
 

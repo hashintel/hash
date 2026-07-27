@@ -356,11 +356,13 @@ export const AiAssistantPanel = ({
     },
     onToolCall: async ({ toolCall }) => {
       if (!instance) {
-        throw new Error("Petrinaut AI cannot run without an editor instance.");
+        throw new Error(
+          "The AI assistant cannot run without an editor instance.",
+        );
       }
 
       if (toolCall.dynamic) {
-        throw new Error(`Unknown Petrinaut AI tool: ${toolCall.toolName}`);
+        throw new Error(`Unknown AI tool: ${toolCall.toolName}`);
       }
 
       if (toolCall.toolName === getLatestNetDefinitionToolName) {
@@ -444,9 +446,7 @@ export const AiAssistantPanel = ({
         !isPetrinautAiMutationToolName(toolName) &&
         !isPetrinautAiCommandToolName(toolName)
       ) {
-        throw new Error(
-          `Unknown Petrinaut AI tool: ${String(toolName as string)}`,
-        );
+        throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
       }
 
       const currentReadOnlyReason = readOnlyReasonRef.current;

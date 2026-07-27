@@ -4,7 +4,6 @@ mod join_type;
 mod order_by;
 mod select_list;
 mod table_sample;
-mod where_clause;
 mod with;
 
 pub use self::{
@@ -12,11 +11,10 @@ pub use self::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder,
     },
-    group_by::GroupByExpression,
+    group_by::{GroupByClause, GroupingElement},
     join_type::JoinType,
-    order_by::OrderByExpression,
+    order_by::{NullsOrder, OrderByClause, SortBy, SortDirection},
     select_list::SelectExpression,
-    table_sample::TableSample,
-    where_clause::WhereExpression,
-    with::WithExpression,
+    table_sample::{NonFinitePercentage, SamplePercentage, SamplingMethod, TableSample},
+    with::{CommonTableExpression, Materialization, WithClause},
 };

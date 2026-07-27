@@ -123,10 +123,10 @@ const collapsibleContentStyle = css({
   animationTimingFunction: "ease-in-out",
 
   "&[data-state=open]": {
-    animationName: "expand",
+    animationName: "[petrinautExpand]",
   },
   "&[data-state=closed]": {
-    animationName: "collapse",
+    animationName: "[petrinautCollapse]",
   },
 });
 

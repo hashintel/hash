@@ -39,6 +39,21 @@ export const useAvailableTypes = ({
   availableEntityTypes: AvailableType[];
   propertyFilterData: FilterMetadataForProperty[];
   loading: boolean;
+  /**
+   * The type universe: the entity type ids present in the current result set,
+   * or `null` while the summary has not arrived yet (or is not fetched at all,
+   * for pinned types). Feeds the include-type clause of the main entities
+   * query — see `buildEntitiesFilter`.
+   */
+  typeUniverse: VersionedUrl[] | null;
+  /**
+   * Set when no type universe can be provided — the summary query failed with
+   * no cached universe to fall back on, or its response was missing the
+   * requested type ids. The main entities query stays gated in that case, so
+   * callers should surface this instead of an endless loading state.
+   */
+  typeUniverseError?: Error;
+  refetchTypeUniverse: () => Promise<unknown>;
 } => {
   const { entityTypes, entityTypeParentIds } = useEntityTypesContextRequired();
   const { dataTypes } = useDataTypesContext();
@@ -63,6 +78,8 @@ export const useAvailableTypes = ({
     return null;
   }, [entityTypeBaseUrl, entityTypeIds, entityTypes]);
 
+  // No typeUniverse here — this query defines the universe. Feeding it back in
+  // would ratchet it shut against newly appearing types.
   const filter = useMemo(
     () =>
       buildEntitiesFilter({
@@ -77,7 +94,7 @@ export const useAvailableTypes = ({
     [filterState, internalWebs],
   );
 
-  const { data, loading } = useQuery<
+  const { data, error, loading, refetch } = useQuery<
     SummarizeEntitiesQuery,
     SummarizeEntitiesQueryVariables
   >(summarizeEntitiesQuery, {
@@ -161,11 +178,48 @@ export const useAvailableTypes = ({
   const propertyFilterDataLoading =
     !dataTypes || !entityTypes || !entityTypeParentIds || !propertyTypes;
 
+  // A present-but-empty typeIds map means "genuinely zero matching entities" and
+  // yields a match-nothing clause. An ABSENT map despite includeTypeIds being
+  // requested is a broken response — coercing it to an empty universe would
+  // silently render the whole workspace as "0 entities", so it surfaces as an
+  // error instead.
+  const typeUniverse = useMemo<VersionedUrl[] | null>(() => {
+    if (!data?.summarizeEntities.typeIds) {
+      return null;
+    }
+
+    return Object.keys(data.summarizeEntities.typeIds) as VersionedUrl[];
+  }, [data]);
+
+  // Only fatal when it leaves us without a universe — a failed background
+  // refresh with a cached universe still renders (slightly stale) results,
+  // which beats flipping a working page into an error state.
+  const typeUniverseError = useMemo<Error | undefined>(() => {
+    if (typeUniverse !== null) {
+      return undefined;
+    }
+
+    if (error) {
+      return error;
+    }
+
+    if (data && !data.summarizeEntities.typeIds) {
+      return new Error(
+        "summarizeEntities returned no typeIds although they were requested",
+      );
+    }
+
+    return undefined;
+  }, [data, error, typeUniverse]);
+
   return {
     availableEntityTypes,
     propertyFilterData,
     loading: shouldFetchAvailableTypes
       ? loading || propertyFilterDataLoading
       : propertyFilterDataLoading,
+    typeUniverse,
+    typeUniverseError,
+    refetchTypeUniverse: refetch,
   };
 };

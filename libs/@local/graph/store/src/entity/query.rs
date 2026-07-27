@@ -883,7 +883,6 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
 pub enum EntityQuerySortingToken {
     Uuid,
     Archived,
-    Properties,
     Label,
     EditionCreatedAtTransactionTime,
     EditionCreatedAtDecisionTime,
@@ -900,7 +899,7 @@ pub(crate) struct EntityQuerySortingVisitor {
 
 impl EntityQuerySortingVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `uuid`, `archived`, `properties`, `label`, `editionCreatedAtTransactionTime`, \
+        "one of `uuid`, `archived`, `label`, `editionCreatedAtTransactionTime`, \
          `editionCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
          `typeTitle`";
 
@@ -917,7 +916,7 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
         formatter.write_str(Self::EXPECTING)
     }
 
-    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
@@ -925,7 +924,6 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         let (token, _parameters) = parse_query_token(&query_token)?;
-        self.position += 1;
         Ok(match token {
             EntityQuerySortingToken::Uuid => EntityQueryPath::Uuid,
             EntityQuerySortingToken::Archived => EntityQueryPath::Archived,
@@ -943,10 +941,6 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
             EntityQuerySortingToken::TypeTitle => EntityQueryPath::FirstTypeTitle,
             // We don't know the ordering, yet. This will be set later
             EntityQuerySortingToken::Label => EntityQueryPath::FirstLabel,
-            EntityQuerySortingToken::Properties => EntityPropertiesPathVisitor {
-                position: self.position,
-            }
-            .visit_seq(seq)?,
         })
     }
 }
@@ -1149,6 +1143,28 @@ mod tests {
             .to_string(),
             format!(
                 "unknown variant `invalid`, expected {}",
+                EntityQuerySortingVisitor::EXPECTING
+            )
+        );
+    }
+
+    #[test]
+    fn sorting_path_properties_deserialization_error() {
+        assert_eq!(
+            EntityQueryPath::deserialize_from_sorting_tokens(de::value::SeqDeserializer::<
+                _,
+                de::value::Error,
+            >::new(
+                [
+                    "properties",
+                    "https://hash.ai/@h/types/property-type/email/"
+                ]
+                .into_iter()
+            ))
+            .expect_err("managed to convert entity query sorting path")
+            .to_string(),
+            format!(
+                "unknown variant `properties`, expected {}",
                 EntityQuerySortingVisitor::EXPECTING
             )
         );

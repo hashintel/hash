@@ -1,7 +1,7 @@
-import { Box, Stack, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
@@ -14,6 +14,7 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
+import { Button } from "../../shared/ui";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
 import {
@@ -87,7 +88,6 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 const generateGraphSort = (
   columnKey: SortableEntitiesTableColumnKey,
   direction: "asc" | "desc",
-  convertTo?: BaseUrl,
 ): EntityQuerySortingRecord => {
   const nulls: NullOrdering = direction === "asc" ? "last" : "first";
   const ordering: Ordering = direction === "asc" ? "ascending" : "descending";
@@ -112,16 +112,10 @@ const generateGraphSort = (
     case "archived":
       path = ["archived" satisfies EntityQuerySortingToken];
       break;
-    default: {
-      if (!isBaseUrl(columnKey)) {
-        throw new Error(`Unexpected sorting column key: ${columnKey}`);
-      }
-      path = ["properties" satisfies EntityQuerySortingToken, columnKey];
-
-      if (convertTo) {
-        path.push("convert", convertTo);
-      }
-    }
+    default:
+      throw new Error(
+        `Unexpected sorting column key: ${columnKey satisfies never}`,
+      );
   }
 
   return {
@@ -227,19 +221,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     [setCursor],
   );
 
-  const [sort, _setSort] = useState<
-    ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
-  >({
-    columnKey: "entityLabel",
-    direction: "asc",
-  });
+  const [sort, _setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>(
+    {
+      columnKey: "entityLabel",
+      direction: "asc",
+    },
+  );
 
   const setSort = useCallback(
-    (
-      newSort: ColumnSort<SortableEntitiesTableColumnKey> & {
-        convertTo?: BaseUrl;
-      },
-    ) => {
+    (newSort: ColumnSort<SortableEntitiesTableColumnKey>) => {
       _setSort(newSort);
       setCursor(undefined);
     },
@@ -247,9 +237,25 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   const graphSort = useMemo(
-    () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
+    () => generateGraphSort(sort.columnKey, sort.direction),
     [sort],
   );
+
+  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
+
+  const {
+    availableEntityTypes,
+    propertyFilterData,
+    loading: availableTypesLoading,
+    typeUniverse,
+    typeUniverseError,
+    refetchTypeUniverse,
+  } = useAvailableTypes({
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+  });
 
   const entitiesData = useEntitiesVisualizerData({
     conversions: activeConversionsWithoutTitle
@@ -268,6 +274,8 @@ export const EntitiesVisualizer: FunctionComponent<{
     internalWebs,
     limit: 500,
     sort: graphSort,
+    typeUniverse,
+    typeUniverseError,
     view,
   });
 
@@ -346,21 +354,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
-  const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
-
-  const {
-    availableEntityTypes,
-    propertyFilterData,
-    loading: availableTypesLoading,
-  } = useAvailableTypes({
-    filterState,
-    internalWebs,
-    entityTypeBaseUrl,
-    entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-  });
-
   useEffect(() => {
-    if (availableTypesLoading) {
+    // An errored summary yields EMPTY available types — that is ignorance, not
+    // knowledge that the selected types are gone. Pruning against it would wipe
+    // the selection whose explicit type clause keeps the page working.
+    if (availableTypesLoading || typeUniverseError) {
       return;
     }
 
@@ -427,6 +425,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     isTypePinned,
     propertyFilterData,
     setFilterState,
+    typeUniverseError,
   ]);
 
   const isDisplayingFilesOnly = useMemo(
@@ -565,6 +564,14 @@ export const EntitiesVisualizer: FunctionComponent<{
     setSelectedTableRows([]);
   }, [entitiesData]);
 
+  // The universe only feeds the default view — with a pinned type or an
+  // explicit selection the main query runs on its own type clause, so a failed
+  // summary must not blank results that still load.
+  const typeUniverseBlocksResults =
+    !!typeUniverseError &&
+    !isTypePinned &&
+    filterState.type.selectedTypeIds === null;
+
   const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
 
   const { totalResultCount } = visualizerData;
@@ -612,7 +619,30 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
       />
       <Box ref={contentTopRef} />
-      {showLoading ? (
+      {typeUniverseBlocksResults ? (
+        <Stack
+          gap={2}
+          sx={[
+            {
+              alignItems: "center",
+              justifyContent: "center",
+              height: tableHeight,
+              width: "100%",
+            },
+            tableContentSx,
+          ]}
+        >
+          <Typography>Something went wrong loading entities.</Typography>
+          <Button
+            onClick={() => {
+              void refetchTypeUniverse();
+            }}
+            size="small"
+          >
+            Try again
+          </Button>
+        </Stack>
+      ) : showLoading ? (
         <Stack
           sx={[
             {

@@ -662,6 +662,19 @@ services:
       timeout: 2s
       retries: 10
 
+  petrinaut-opt:
+    profiles:
+      - hash
+    image: ghcr.io/hashintel/hash/petrinaut-opt
+    init: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${PETRINAUT_OPT_PORT:-4004}:4004"
+
   api-migrate:
     profiles:
       - hash
@@ -705,6 +718,8 @@ services:
       HASH_GRAPH_HTTP_PORT: "4000"
       HASH_ATLAS_HOST: "atlas"
       HASH_ATLAS_PORT: "4003"
+      HASH_PETRINAUT_OPT_HOST: "petrinaut-opt"
+      HASH_PETRINAUT_OPT_PORT: "4004"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"

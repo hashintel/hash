@@ -190,10 +190,10 @@ const metricCollapsibleContentStyle = css({
   animationDuration: "[200ms]",
   animationTimingFunction: "ease-in-out",
   "&[data-state=open]": {
-    animationName: "expand",
+    animationName: "[petrinautExpand]",
   },
   "&[data-state=closed]": {
-    animationName: "collapse",
+    animationName: "[petrinautCollapse]",
   },
 });
 

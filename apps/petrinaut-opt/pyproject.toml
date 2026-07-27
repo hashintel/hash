@@ -6,6 +6,10 @@ readme = "README.md"
 requires-python = ">=3.10.20"
 dependencies = [
     "fastapi>=0.128.8",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
+    "opentelemetry-instrumentation-fastapi>=0.65b0",
+    "opentelemetry-sdk>=1.44.0",
     "optuna>=3.6",
     "python-dotenv>=1.0.0",
     "uvicorn[standard]>=0.39.0",
