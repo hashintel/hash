@@ -101,6 +101,7 @@
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
+    "lint:ruff": {},
     "lint:tsc": {
       "dependsOn": ["codegen", "build:types"]
     },
@@ -108,6 +109,9 @@
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "fix:clippy": {},
+    "fix:ruff": {
+      "cache": false
+    },
     "sentry:sourcemaps": {
       "dependsOn": ["build"]
     }

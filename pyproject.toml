@@ -1,0 +1,202 @@
+# Root of the Python workspace. Shared configuration for every Python package
+# in the repository lives here; per-package manifests only declare identity and
+# dependencies. Generated sections are kept correct by `mise run sync:python`
+# (see libs/@local/repo-chores/python) and validated in CI.
+
+[project]
+description = "Workspace-level Python configuration for the HASH monorepo"
+name        = "hash"
+version     = "0.0.0"
+# The single source of truth for the workspace Python version: every member
+# must declare exactly the same bound, enforced by `repo-chores sync --check`.
+requires-python = ">=3.14,<3.15"
+
+[tool.uv]
+add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+exclude-newer = "5 days" # mirrors npm release age
+package       = false
+
+[tool.uv.workspace]
+# Managed by `mise run sync:python`
+members = [
+    "libs/@local/repo-chores/python",
+]
+
+[dependency-groups]
+dev = [
+    "hash-repo-chores",    # workspace tooling
+    "pytest>=9.1.1,<10",
+    "ruff>=0.15.21,<0.16",
+    "tach>=0.35,<0.36",
+    "ty>=0.0.58,<0.1",
+]
+
+[tool.uv.sources]
+hash-repo-chores = { workspace = true }
+
+[tool.pytest.ini_options]
+addopts = "-q --import-mode=importlib"
+# Managed by `mise run sync:python`
+testpaths = [
+    "libs/@local/repo-chores/python/tests",
+]
+
+[tool.ruff]
+# Linter: strictest rule set, exceptions curated below. Formatter: next style epoch.
+preview = true
+extend-exclude = [
+    # Standalone end-user example script: it predates the Python workspace,
+    # deliberately has no third-party dependencies, and follows its own style.
+    "libs/@hashintel/petrinaut-cli/examples/python_stdio.py",
+]
+line-length = 100
+target-version = "py314"
+
+# Managed by `mise run sync:python`
+src = [
+    "libs/@local/repo-chores/python",
+]
+
+[tool.ruff.lint]
+ignore = [
+    # Formatter conflicts (ruff's own recommendation).
+    "COM812",
+    "ISC001",
+    # No copyright-header convention in this repository.
+    "CPY001",
+    # Docstring-style pair choices: summary on the first line, no blank
+    # line before the class docstring.
+    "D203",
+    "D213",
+    # Docstring presence is judged in review, not by rule: a docstring has
+    # to earn its keep, and mandatory-docstring rules breed filler that
+    # restates the signature. Module docstrings (D100) stay required. The
+    # same reasoning covers the pydoclint section rules (DOC): documented
+    # returns/raises are welcome, mandated ones produce boilerplate.
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D107",
+    "DOC201",
+    "DOC402",
+    "DOC501",
+    # Inline f-string messages at the raise site read better than the
+    # msg-variable indirection these rules force.
+    "EM101",
+    "EM102",
+    "TRY003",
+    # Keyword-only argument passing is generally preferred to positional arguments.
+    # Unlike Rust, keyword arguments can be seen as an impromptu configuration struct.
+    # PLR0917 is still active and limits the max positional arguments allowed.
+    "PLR0913",
+    # Post 3.14 typing annotations are evaluated lazily, additionally modern tooling
+    # like Pydantic relies on the presence of types in value space, even if not used.
+    # Removing them creates excessive noqa noise, and creates runtime errors.
+    "TC001",
+    "TC002",
+    "TC003",
+]
+select = ["ALL"]
+
+[tool.ruff.lint.pylint]
+max-positional-args = 3
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Python 3.14 evaluates annotations lazily (PEP 649); the future import is redundant and subtly changes annotation semantics."
+"typing.Any".msg             = "Any is banned: use object for pass-through values, a TypeVar for generic code, or pydantic's JsonValue for opaque JSON."
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert by design, compare against literal expectations, reach into
+# private state to pin behavior, and may run subprocesses built from local
+# argv. Test trees use importlib import mode instead of __init__.py files.
+"**/tests/**" = ["S101", "PLR2004", "SLF001", "D100", "S603", "INP001"]
+# Fixture generators are standalone scripts: they print, they live outside
+# the package tree, and they assert their own arithmetic.
+"**/fixtures/**" = ["T201", "INP001", "S101", "PLR2004", "D100"]
+# CLI modules print their results and import heavy dependencies inside
+# command bodies on purpose: --help must not pay for the underlying imports.
+"**/*_cli.py" = ["PLC0415", "T201"]
+"**/cli.py"   = ["PLC0415", "T201"]
+# The prune module is CI plumbing: it reports progress via print and exists
+# to spawn `turbo` (resolved from PATH) with locally-built arguments.
+"libs/@local/repo-chores/python/repo_chores/prune.py" = ["T201", "S404", "S603", "S607"]
+# The sync engine pipes generated package.json content through the repository
+# formatter (oxfmt, resolved via shutil.which); all arguments are owned.
+"libs/@local/repo-chores/python/repo_chores/sync.py" = ["S404", "S603"]
+
+# Editor LSP only; CI runs ty.
+[tool.pyright]
+venv     = ".venv"
+venvPath = "."
+
+[tool.ty.environment]
+python = "./.venv"
+
+[tool.ty.terminal]
+error-on-warning = true # fail in CI on warnings (Rust equivalent to -D warnings)
+
+[tool.ty.rules]
+unused-ignore-comment      = "error" # see: RUF100 + tach `unused_ignore_directives`
+blanket-ignore-comment     = "error" # see: PGH004
+missing-type-argument      = "error" # bare generics parametrize as Unknown, evading the banned `Any`
+missing-override-decorator = "error" # overrides must be made explicit, to show the contract
+
+# Off by default upstream (false-positive prone); relax per rule when noise appears.
+division-by-zero              = "error"
+possibly-missing-attribute    = "error"
+possibly-missing-import       = "error"
+possibly-unresolved-reference = "error"
+unsupported-dynamic-base      = "error"
+
+
+[tool.ty.src]
+exclude = [
+    # Kept in sync with [tool.ruff] extend-exclude.
+    "libs/\\@hashintel/petrinaut-cli/examples/python_stdio.py",
+]
+
+# Global tach settings. Tach if desired (recommended), is configured per module using `tach.domain.toml`
+# see: https://docs.gauge.sh/usage/configuration/#tachdomaintoml
+[tool.tach]
+exact = true
+exclude = [
+    "**/.venv/**",
+    "**/__pycache__/**",
+    "**/node_modules/**",
+    "**/tests/**",
+]
+forbid_circular_dependencies = true
+ignore_type_checking_imports = false
+# Layer ordering alone constrains imports: a module may import from its own
+# layer or any lower one, and upward imports fail `tach check`. Declaring a
+# module is therefore a two-line layer assignment; `depends_on` stays
+# available for packages that want explicitly curated edges.
+layers_explicit_depends_on = false
+respect_gitignore          = true
+root_module                = "ignore"
+
+# Managed by `mise run sync:python`
+source_roots = [
+    "libs/@local/repo-chores/python",
+]
+
+layers = [
+    "application",
+    "orchestration",
+    "capability",
+    "domain",
+    # Self-contained tooling that runs before the environment exists. The
+    # bottom position is the isolation guarantee: a bootstrap module importing
+    # anything above it fails `tach check`.
+    "bootstrap",
+]
+
+[tool.tach.rules]
+require_ignore_directive_reasons = "error"
+unused_external_dependencies     = "error" # on false positives, use `tool.tach.external`
+unused_ignore_directives         = "error"

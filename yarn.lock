@@ -11180,6 +11180,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@python/hash-repo-chores@workspace:libs/@local/repo-chores/python":
+  version: 0.0.0-use.local
+  resolution: "@python/hash-repo-chores@workspace:libs/@local/repo-chores/python"
+  languageName: unknown
+  linkType: soft
+
 "@radix-ui/colors@npm:3.0.0":
   version: 3.0.0
   resolution: "@radix-ui/colors@npm:3.0.0"

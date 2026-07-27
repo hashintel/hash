@@ -1,0 +1,33 @@
+# repo-chores layering: the workspace model (domain) feeds the TOML editing
+# helpers (capability) and the sync engine (orchestration), which the CLI
+# (application) drives. The package root stays empty.
+
+[root]
+layer = "domain"
+
+[[modules]]
+layer = "domain"
+path  = "workspace"
+
+[[modules]]
+layer = "capability"
+path  = "toml_edit"
+
+[[modules]]
+layer = "orchestration"
+path  = "sync"
+
+[[modules]]
+layer = "orchestration"
+path  = "lint"
+
+# prune runs before anything is installed: the bootstrap layer forbids every
+# internal import, and the empty external list forbids third-party ones.
+[[modules]]
+depends_on_external = []
+layer               = "bootstrap"
+path                = "prune"
+
+[[modules]]
+layer = "application"
+path  = "cli"

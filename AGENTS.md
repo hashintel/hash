@@ -61,9 +61,11 @@ The HASH repository is organized into several key directories:
 - TypeScript type check: `yarn lint:tsc`
 - ESLint: `yarn lint:eslint`
 - Formatting check: `yarn lint:format`
+- Python (ruff, ty, tach, dependency bounds, uv.lock stability, workspace sync): `mise run lint:python`
 
 - Fix ESLint issues: `yarn fix:eslint`
 - Fix formatting: `yarn fix:format`
+- Fix Python (ruff autofixes + formatting, lock refresh): `mise run fix:python`
 
 ### For Specific Packages
 
@@ -77,6 +79,10 @@ turbo run <command> --filter '<package-name>'
 cargo nextest run --package <package-name>
 cargo test --package <package-name> --doc  # For doc tests
 cargo clippy --all-features --package <package-name>
+
+# For Python packages (from the package directory)
+uv run --frozen pytest tests
+uv run --frozen ruff check .
 ```
 
 For Rust packages, you can add features as needed with `--all-features`, specific features like `--features=foo,bar`, or use `cargo-hack` with `--feature-powerset` for comprehensive feature testing.
@@ -90,6 +96,16 @@ mise run sync:turborepo    # sync package.json identity + deps from Cargo.toml m
 ```
 
 `sync:turborepo` only manages that generated wiring — the `scripts` section is hand-maintained and is used by CI and Turborepo (e.g. `test:unit`, `lint:clippy`, `doc:dependency-diagram`), so add or edit scripts by hand. The task wraps the `repo-chores` CLI; the equivalent direct invocation is `cargo run --package hash-repo-chores --bin repo-chores-cli -- sync-turborepo`. A related task, `mise run fix:package-json`, sorts `package.json` keys consistently.
+
+### Monorepo wiring for Python packages
+
+Python packages form a single uv workspace rooted at the repository's `pyproject.toml` (shared lockfile, virtual environment, and ruff/ty/tach configuration; Python version bound `>=3.14,<3.15`). After **adding, removing, or renaming a Python package**, or changing its workspace dependencies, re-sync the generated wiring:
+
+```bash
+mise run sync:python    # membership, requires-python, dev pins, package.json wiring, uv.lock
+```
+
+The task wraps the Python `repo-chores` CLI (`libs/@local/repo-chores/python`; direct invocation: `uv run repo-chores sync`). Unlike the Rust wiring, the managed `package.json` includes baseline `scripts` (`lint:ruff`, `fix:ruff`, and `test:unit` when a `tests/` directory exists) — ruff and pytest are requirements, not opt-ins. Extra scripts and other keys are preserved. CI runs `repo-chores sync --check` and fails on any drift, including `pyproject.toml` files that are not workspace members. Import boundaries for new packages are declared in a `tach.domain.toml` next to the package's code; global tach settings live under `[tool.tach]` in the root `pyproject.toml`.
 
 ## Documentation Maintenance
 

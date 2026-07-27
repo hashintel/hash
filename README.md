@@ -210,6 +210,39 @@ This repository's contents is divided across several primary sections:
 </details>
 
 <details>
+  <summary> &nbsp; Python tooling</summary>
+
+### Python tooling
+
+Python packages are managed as a single [uv](https://docs.astral.sh/uv/) workspace rooted at [`pyproject.toml`](/pyproject.toml), pinned to Python 3.14 (uv downloads the interpreter automatically; `mise install` provides uv itself). All packages share one lockfile (`uv.lock`), one virtual environment (`.venv`), and the workspace-level tool configuration:
+
+- **[ruff](https://docs.astral.sh/ruff/)** — linting (`ALL` rules + preview, with curated exceptions) and formatting
+- **[ty](https://docs.astral.sh/ty/)** — type checking
+- **[tach](https://docs.gauge.sh/)** — import-boundary and layering checks, configured under `[tool.tach]` in the root `pyproject.toml`
+- **pytest** — tests, run per-package through turbo (`test:unit`)
+
+Common commands:
+
+```sh
+uv sync                    # create/refresh .venv from uv.lock
+mise run lint:python       # everything CI runs: lock stability, sync --check, dependency lint, ruff, ty, tach
+mise run fix:python        # apply ruff autofixes + formatting, refresh the lock
+mise run sync:python       # regenerate the boring parts (see below)
+```
+
+To add a new Python package, create a directory with a `pyproject.toml` (any location; `libs/` or `tools/` are conventional) and run `mise run sync:python`. The sync command — implemented by [`libs/@local/repo-chores/python`](/libs/@local/repo-chores/python), the Python sibling of the Rust `sync-turborepo` tooling — generates and enforces:
+
+- explicit membership in the root `[tool.uv.workspace]` (no globs; CI fails on unlisted packages),
+- a uniform `requires-python` bound across every member (the Python 3.14 boundary),
+- shared ruff/pytest pins in each member's dev group,
+- each member's `package.json` turbo wiring (`@python/<name>` with managed `lint:ruff`/`fix:ruff`/`test:unit` scripts and `workspace:*` dependencies mirroring `[tool.uv.sources]`),
+- coverage by the root `package.json` yarn workspace globs, plus the managed ruff `src` and pytest `testpaths` arrays.
+
+Module boundaries for new packages are declared in a `tach.domain.toml` next to the package's code (layer assignments; see [`libs/@local/repo-chores/python/repo_chores/tach.domain.toml`](/libs/@local/repo-chores/python/repo_chores/tach.domain.toml)). CI prunes per-package jobs with `turbo prune` (via `repo-chores prune`), which keeps the pruned tree a valid uv workspace by copying the manifests of pruned-out members.
+
+</details>
+
+<details>
   <summary> &nbsp; Environment variables</summary>
 
 ### Environment variables

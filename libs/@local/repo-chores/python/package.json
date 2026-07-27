@@ -1,0 +1,11 @@
+{
+  "name": "@python/hash-repo-chores",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "fix:ruff": "uv run --frozen ruff check --fix . && uv run --frozen ruff format .",
+    "lint:ruff": "uv run --frozen ruff check . && uv run --frozen ruff format --check .",
+    "test:unit": "uv run --frozen pytest tests"
+  }
+}

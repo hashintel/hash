@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
-"""Prunes the turbo workspace to only the packages required for the given scope(s).
+"""Prune the turbo workspace to the packages required for the given scope(s).
 
-Handles cyclic and extra dependencies that turbo's dependency graph doesn't track.
+Scopes are expanded with dependency rules that turbo's graph leaves out
+(cyclic and test-data crates), and the pruned output stays a valid Cargo and
+uv workspace: members that turbo removed are stubbed back in.
+
+This file runs directly (`python3 prune.py`) before any dependencies are
+installed, so it stays stdlib-only and self-contained. `repo-chores prune`
+exposes the same logic inside the workspace environment.
 """
 
 import argparse
 import json
 import subprocess
+import tomllib
 from collections.abc import Iterable
-from glob import glob
 from pathlib import Path
 
-import tomllib
-
-# ---------------------------------------------------------------------------
-# Extra dependency rules that turbo doesn't track
-# ---------------------------------------------------------------------------
-
-# If any of these packages appear in the dependency closure, add the
-# corresponding extra packages to the scope.
+# Dependency rules that turbo's graph does not track. When any package whose
+# name starts with a key appears in the dependency closure, the listed extra
+# packages join the scope.
 EXTRA_DEPENDENCIES: dict[str, list[str]] = {
     # Cyclic: hashql crates need compiletest
     "@rust/hashql-ast": ["@rust/hashql-compiletest"],
@@ -56,7 +57,6 @@ TURBO_QUERY = """
 
 def turbo_dependency_map() -> dict[str, frozenset[str]]:
     """Query turbo for all packages and return a map of package name to its dependencies."""
-
     result = subprocess.run(
         ["turbo", "query", TURBO_QUERY],
         capture_output=True,
@@ -78,7 +78,6 @@ def expand_scopes(dependencies: Iterable[str]) -> frozenset[str]:
 
     A rule triggers when any dependency name starts with the trigger prefix.
     """
-
     extras: set[str] = set()
 
     for trigger, additions in EXTRA_DEPENDENCIES.items():
@@ -121,34 +120,26 @@ def turbo_prune(scopes: Iterable[str], *, dry_run: bool = False) -> None:
     subprocess.run(args, check=True)
 
 
-def resolve_workspace_members() -> list[Path]:
+def resolve_cargo_members(root: Path) -> list[Path]:
     """Read workspace members from Cargo.toml and resolve globs to Cargo.toml paths."""
-
-    with open("Cargo.toml", "rb") as fh:
+    with (root / "Cargo.toml").open("rb") as fh:
         cargo = tomllib.load(fh)
 
     members: list[str] = cargo["workspace"]["members"]
-    paths: list[Path] = []
 
-    for member in members:
-        for match in glob(f"{member}/Cargo.toml"):
-            paths.append(Path(match))
-
-    return paths
+    return [match for member in members for match in root.glob(f"{member}/Cargo.toml")]
 
 
-def stub_missing_members(*, dry_run: bool = False) -> None:
+def stub_missing_cargo_members(root: Path, out: Path, *, dry_run: bool = False) -> None:
     """Create dummy Cargo.toml stubs for workspace members not included by turbo prune."""
-
-    for cargo_path in resolve_workspace_members():
-        directory = cargo_path.parent
-        out_cargo = Path("out") / directory / "Cargo.toml"
+    for cargo_path in resolve_cargo_members(root):
+        out_cargo = out / cargo_path.relative_to(root)
 
         if out_cargo.exists():
             continue
 
         # Read the package name from the real Cargo.toml
-        with open(cargo_path, "rb") as fh:
+        with cargo_path.open("rb") as fh:
             pkg = tomllib.load(fh)
 
         name = pkg.get("package", {}).get("name")
@@ -160,12 +151,60 @@ def stub_missing_members(*, dry_run: bool = False) -> None:
             continue
 
         # Create the stub
-        out_dir = out_cargo.parent
-        src_dir = out_dir / "src"
+        src_dir = out_cargo.parent / "src"
 
         src_dir.mkdir(parents=True, exist_ok=True)
-        (src_dir / "lib.rs").write_text("\n")
-        out_cargo.write_text(f'[package]\nname = "{name}"\nedition.workspace = true\n')
+        (src_dir / "lib.rs").write_text("\n", encoding="utf-8")
+        stub = f'[package]\nname = "{name}"\nedition.workspace = true\n'
+        out_cargo.write_text(stub, encoding="utf-8")
+
+
+def resolve_uv_members(root: Path) -> list[Path]:
+    """Read workspace member globs from pyproject.toml and resolve to pyproject.toml paths."""
+    pyproject_path = root / "pyproject.toml"
+    if not pyproject_path.exists():
+        return []
+
+    with pyproject_path.open("rb") as fh:
+        pyproject = tomllib.load(fh)
+
+    workspace = pyproject.get("tool", {}).get("uv", {}).get("workspace", {})
+    members: list[str] = workspace.get("members", [])
+    excluded = {match for pattern in workspace.get("exclude", []) for match in root.glob(pattern)}
+
+    return [
+        match
+        for member in members
+        for match in root.glob(f"{member}/pyproject.toml")
+        if match.parent not in excluded
+    ]
+
+
+def stub_missing_uv_members(root: Path, out: Path, *, dry_run: bool = False) -> None:
+    """Copy manifests for uv workspace members that turbo prune left out.
+
+    uv validates the whole workspace graph against uv.lock even with `--frozen`,
+    so every member's pyproject.toml must exist in the pruned output. The
+    manifest alone is enough: members are only installed when requested, so
+    the pruned-away sources are never built.
+    """
+    for member_pyproject in resolve_uv_members(root):
+        out_pyproject = out / member_pyproject.relative_to(root)
+
+        if out_pyproject.exists():
+            continue
+
+        if dry_run:
+            print(f"[dry-run] Would stub: {out_pyproject}")
+            continue
+
+        out_pyproject.parent.mkdir(parents=True, exist_ok=True)
+        out_pyproject.write_bytes(member_pyproject.read_bytes())
+
+
+def parse_scopes(scope: str) -> frozenset[str]:
+    """Split a newline or space-separated scope list into individual scopes."""
+    return frozenset(s.strip() for line in scope.splitlines() for s in line.split() if s.strip())
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -184,17 +223,23 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> None:
-    args = parse_args(argv)
-
-    initial = {
-        s.strip() for line in args.scope.splitlines() for s in line.split() if s.strip()
-    }
+def run(scope: str, *, dry_run: bool = False) -> None:
+    """Expand the scopes, run `turbo prune`, and stub pruned-out workspace members."""
+    initial = parse_scopes(scope)
 
     dependencies = turbo_dependency_map()
     scopes = fixpoint_expand(initial, dependencies)
-    turbo_prune(scopes, dry_run=args.dry_run)
-    stub_missing_members(dry_run=args.dry_run)
+    turbo_prune(scopes, dry_run=dry_run)
+
+    root = Path.cwd()
+    out = root / "out"
+    stub_missing_cargo_members(root, out, dry_run=dry_run)
+    stub_missing_uv_members(root, out, dry_run=dry_run)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    run(args.scope, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
