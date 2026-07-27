@@ -29,7 +29,7 @@ export type DashboardItemDataState = {
   isRefreshing: boolean;
   estimatedProgress: number | null;
   /** Re-fetch, optionally forcing a server-side recompute */
-  refresh: (options?: { force?: boolean }) => void;
+  refresh: () => void;
 };
 
 /**
@@ -64,12 +64,12 @@ export const useDashboardItemData = (params: {
   const requestGenerationRef = useRef(0);
 
   const fetchData = useCallback(
-    async (force: boolean) => {
+    async (recompute: boolean) => {
       const generation = ++requestGenerationRef.current;
 
       setLoading(true);
       setError(null);
-      setIsRefreshing(force);
+      setIsRefreshing(recompute);
       setEstimatedProgress(null);
       const generationStartedAt = Date.now();
 
@@ -87,8 +87,8 @@ export const useDashboardItemData = (params: {
               webId,
               args: {
                 itemUuid,
-                // Only force on the first request; polls just check status.
-                ...(force && attempt === 0 ? { force: true } : {}),
+                // Recompute is a command; later requests only poll its status.
+                ...(recompute && attempt === 0 ? { recompute: true } : {}),
                 ...(refreshAfter ? { refreshAfter } : {}),
               },
             },
@@ -188,12 +188,9 @@ export const useDashboardItemData = (params: {
     };
   }, [configurationKey, enabled, fetchData]);
 
-  const refresh = useCallback(
-    (options?: { force?: boolean }) => {
-      void fetchData(options?.force ?? false);
-    },
-    [fetchData],
-  );
+  const refresh = useCallback(() => {
+    void fetchData(true);
+  }, [fetchData]);
 
   return {
     data,

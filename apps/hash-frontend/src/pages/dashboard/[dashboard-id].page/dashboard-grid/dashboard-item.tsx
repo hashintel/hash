@@ -128,7 +128,7 @@ export const DashboardItem = ({
   });
 
   const handleRefreshClick = useCallback(() => {
-    refresh({ force: true });
+    refresh();
   }, [refresh]);
 
   const handleRetryClick = useCallback(() => {
