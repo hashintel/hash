@@ -10,6 +10,8 @@
 //! environment reproduces them bit-for-bit, and any drift names the first iteration that
 //! diverged.
 
+use zerocopy::IntoBytes as _;
+
 use super::{SOLVER_DIMENSIONS, cg::CgTag, work::WorkCounters};
 use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
@@ -134,8 +136,6 @@ pub(super) fn vector_digest(vector: &AlignedDVecN<SOLVER_DIMENSIONS>) -> Sha256D
     let mut hasher = Sha256::new();
     hasher.update(ReceiptCoordinates::CURRENT.domain_tag.as_bytes());
     hasher.update(&ReceiptCoordinates::CURRENT.dimensions.to_le_bytes());
-    for component in vector.as_array() {
-        hasher.update(&component.to_bits().to_le_bytes());
-    }
+    hasher.update(vector.as_bytes());
     hasher.finalize()
 }

@@ -22,7 +22,7 @@
 //! root - so degenerate coordinates receive a finite positive scale instead of dividing the
 //! solver by zero.
 
-use core::num::NonZeroU32;
+use core::num::NonZero;
 
 use super::{
     super::TrainingRow,
@@ -33,7 +33,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedVecN, BoxedDVecN},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DPositive},
     salt::policy::GeometryClass,
 };
 
@@ -44,8 +44,6 @@ pub(super) enum PreparationError {
     RowMismatch { embeddings: usize, rows: usize },
     /// The corpus holds no rows.
     Empty,
-    /// The regularization strength is not positive and finite.
-    InvalidRegularization { value: f64 },
     /// An embedding component is not finite.
     NonFiniteEmbedding { row: usize, component: usize },
     /// A row weight is not positive and finite.
@@ -73,13 +71,11 @@ pub(super) enum PreparationError {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(super) struct PreparationSettings {
     /// L2 penalty `λ` on contrast coefficients; intercepts are never regularized.
-    pub regularization: f64,
+    pub regularization: DPositive,
     /// Unit-sum tolerance for raw targets, in ulps of one.
-    pub target_sum_tolerance_ulps: NonZeroU32,
-    /// Positive finite floor on the initial Hessian diagonal, in curvature units.
-    ///
-    /// Configuration validation establishes the domain before preparation runs.
-    pub curvature_floor: f64,
+    pub target_sum_tolerance_ulps: NonZero<u32>,
+    /// Floor on the initial Hessian diagonal, in curvature units.
+    pub curvature_floor: DPositive,
 }
 
 /// Canonicalization and scaling evidence of one successful preparation.
@@ -129,12 +125,6 @@ pub(super) fn prepare<'corpus>(
 ) -> Result<Prepared<'corpus>, PreparationError> {
     counters.request_preparation();
 
-    // Configuration validation owns the curvature-floor domain; preparation only consumes it.
-    debug_assert!(
-        settings.curvature_floor.is_finite() && settings.curvature_floor > 0.0,
-        "the curvature floor is validated configuration",
-    );
-
     // Pre-traversal rejections access no row and start no traversal.
     if embeddings.len() != rows.len() {
         return Err(PreparationError::RowMismatch {
@@ -145,12 +135,6 @@ pub(super) fn prepare<'corpus>(
 
     if rows.is_empty() {
         return Err(PreparationError::Empty);
-    }
-
-    if !settings.regularization.is_finite() || settings.regularization <= 0.0 {
-        return Err(PreparationError::InvalidRegularization {
-            value: settings.regularization,
-        });
     }
 
     let mut targets = Vec::with_capacity(rows.len());
@@ -217,7 +201,7 @@ pub(super) fn prepare<'corpus>(
         rows,
         targets: targets.into_boxed_slice(),
         total_weight,
-        regularization: settings.regularization,
+        regularization: settings.regularization.get(),
         class_mass,
         scaling,
         evidence: PreparationEvidence {
@@ -275,12 +259,12 @@ fn validate_row(
 /// The intercept coordinate of `x̄` is one, so its second moment is the total weight itself;
 /// only the coefficient coordinates carry the `λ/S` regularization term.
 fn initial_scaling(
-    moments: &BoxedDVecN<CANONICAL_DIMENSIONS>,
+    moments: &AlignedDVecN<CANONICAL_DIMENSIONS>,
     total_weight: f64,
     settings: PreparationSettings,
 ) -> Result<(Scaling, [f64; 2]), PreparationError> {
     let normalizer = (3.0 * total_weight).recip();
-    let regularization_share = settings.regularization / total_weight;
+    let regularization_share = settings.regularization.get() / total_weight;
 
     let mut scales = BoxedDVecN::<AUGMENTED_DIMENSIONS>::zero();
     let mut scaling_range = [f64::INFINITY, f64::NEG_INFINITY];
@@ -298,7 +282,7 @@ fn initial_scaling(
             });
         }
 
-        *scale = curvature.max(settings.curvature_floor).sqrt();
+        *scale = curvature.max(settings.curvature_floor.get()).sqrt();
         scaling_range = [scaling_range[0].min(*scale), scaling_range[1].max(*scale)];
     }
 

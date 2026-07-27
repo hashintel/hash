@@ -31,13 +31,15 @@ impl ScaledProblem<'_> {
     }
 
     /// Evaluates the normalized objective and scaled gradient in one joint traversal.
+    ///
+    /// Returns [`None`] for a non-finite request, charged as a request only.
     pub(super) fn joint(
         &self,
         point: &ContrastVector,
         counters: &mut WorkCounters,
-    ) -> (f64, BoxedDVecN<SOLVER_DIMENSIONS>) {
-        let evaluation = self.prepared.joint(point, counters);
-        (evaluation.objective, self.scaled(&evaluation.gradient))
+    ) -> Option<(f64, BoxedDVecN<SOLVER_DIMENSIONS>)> {
+        let evaluation = self.prepared.joint(point, counters)?;
+        Some((evaluation.objective, self.scaled(&evaluation.gradient)))
     }
 
     /// Evaluates the normalized objective alone.
@@ -46,23 +48,29 @@ impl ScaledProblem<'_> {
     }
 
     /// Evaluates the scaled gradient `gζ = D⁻¹gθ` alone.
+    ///
+    /// Returns [`None`] for a non-finite request, charged as a request only.
     pub(super) fn gradient(
         &self,
         point: &ContrastVector,
         counters: &mut WorkCounters,
-    ) -> BoxedDVecN<SOLVER_DIMENSIONS> {
-        self.scaled(&self.prepared.gradient_only(point, counters))
+    ) -> Option<BoxedDVecN<SOLVER_DIMENSIONS>> {
+        let gradient = self.prepared.gradient_only(point, counters)?;
+        Some(self.scaled(&gradient))
     }
 
     /// Evaluates the scaled Hessian-vector product `Hζ[v] = D⁻¹·Hθ[D⁻¹v]` at the physical point.
+    ///
+    /// Returns [`None`] for a non-finite request, charged as a request only.
     pub(super) fn hessian_vector(
         &self,
         point: &ContrastVector,
         direction: &AlignedDVecN<SOLVER_DIMENSIONS>,
         counters: &mut WorkCounters,
-    ) -> BoxedDVecN<SOLVER_DIMENSIONS> {
+    ) -> Option<BoxedDVecN<SOLVER_DIMENSIONS>> {
         let physical = ContrastVector::from_flat(&self.prepared.scaling.divide(direction));
-        self.scaled(&self.prepared.hessian_vector(point, &physical, counters))
+        let product = self.prepared.hessian_vector(point, &physical, counters)?;
+        Some(self.scaled(&product))
     }
 
     /// Applies `D⁻¹` to a physical derivative in flat layout.

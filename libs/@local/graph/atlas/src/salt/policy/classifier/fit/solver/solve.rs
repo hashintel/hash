@@ -27,11 +27,11 @@ use super::{
         vector_digest,
     },
     resolution::objective_resolution,
-    stable::{ordered_dot, stable_l2},
+    stable::{checked_dot, stable_l2},
     terminal::SolverFailure,
     work::WorkCounters,
 };
-use crate::math::BoxedDVecN;
+use crate::math::{AlignedDVecN, BoxedDVecN};
 
 /// The accepted iterate: the point in scaled coordinates with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
@@ -148,14 +148,16 @@ pub(super) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> Solv
         "the solver configuration is validated",
     );
 
-    let mut control = SolverControl::new(problem.config.radius_initial, counters);
+    let mut control = SolverControl::new(problem.config.radius_initial.get(), counters);
     let mut receipts = Vec::new();
     let mut certificate = None;
 
     // Every fit starts at ζ = 0; the initialized joint evaluation prices it.
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     let point = problem.point(&origin);
-    let (objective, scaled_gradient) = problem.joint(&point, &mut control.counters);
+    let Some((objective, scaled_gradient)) = problem.joint(&point, &mut control.counters) else {
+        unreachable!("the origin is the zero vector, whose joint request is always finite")
+    };
     let mut accepted = AcceptedPoint {
         zeta: origin,
         objective,
@@ -181,6 +183,11 @@ pub(super) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> Solv
 }
 
 /// The outer loop over an initialized accepted point.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the outer trust-region loop is one state machine; every stage names its terminal in \
+              place, and splitting it would scatter the loop invariants"
+)]
 fn run(
     problem: &ScaledProblem<'_>,
     accepted: &mut AcceptedPoint,
@@ -191,7 +198,7 @@ fn run(
     let config = &problem.config;
 
     loop {
-        let gradient_norm = stable_l2(accepted.scaled_gradient.as_array())
+        let gradient_norm = stable_l2(&accepted.scaled_gradient)
             .ok_or(SolverFailure::NonFiniteAcceptedGradientNorm)?;
 
         // The threshold derives once from the initial norm; the first loop pass sees it.
@@ -208,10 +215,11 @@ fn run(
             return certify(problem, accepted, control, threshold);
         }
 
-        if control.outer_iterations_started == config.maximum_outer_iterations {
+        if control.outer_iterations_started == config.maximum_outer_iterations.get() {
             return Err(SolverFailure::OuterIterationBudget);
         }
         control.outer_iterations_started += 1;
+
         receipts.push(OuterReceipt {
             outer_iteration: control.outer_iterations_started,
             radius: control.radius,
@@ -222,6 +230,7 @@ fn run(
             counters: control.counters,
             outcome: OuterOutcome::default(),
         });
+
         let recorded = &mut receipts
             .last_mut()
             .expect("the receipt of this iteration was just pushed")
@@ -270,22 +279,26 @@ fn run(
         if !actual.is_finite() || !ratio.is_finite() {
             return Err(SolverFailure::InvalidAcceptanceRatio);
         }
-        if ratio < config.eta_accept {
+
+        if ratio < config.eta_accept.get() {
             recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
             control.counters.reject_finite_candidate();
             rejected(control, config)?;
             continue;
         }
 
-        // Acceptance commits only after the candidate gradient proves finite.
-        let trial_gradient = problem.gradient(&trial_point, &mut control.counters);
-        if !flat::all_finite(&trial_gradient) {
+        // Acceptance commits only after the candidate gradient proves finite; a rejected
+        // request and a non-finite gradient share the terminal.
+        let Some(trial_gradient) = problem
+            .gradient(&trial_point, &mut control.counters)
+            .filter(|gradient| gradient.is_finite())
+        else {
             recorded.candidate = Some(CandidateOutcome::AcceptedGradientNonFinite);
             control
                 .counters
                 .record_accepted_by_ratio_gradient_non_finite();
             return Err(SolverFailure::NonFiniteAcceptedCandidateGradient);
-        }
+        };
 
         recorded.candidate = Some(CandidateOutcome::Accepted);
         recorded.curvature = Some(curvature_diagnostic(
@@ -302,8 +315,9 @@ fn run(
         control.consecutive_rejections = 0;
 
         // Only a validated boundary step at or above the expansion ratio grows the radius.
-        if inner.is_boundary() && ratio >= config.eta_expand {
-            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
+        if inner.is_boundary() && ratio >= config.eta_expand.get() {
+            control.radius =
+                (config.expansion_factor.get() * control.radius).min(config.radius_maximum.get());
         }
     }
 }
@@ -333,15 +347,15 @@ pub(super) fn derive_certificate(
 /// A failed dot yields NaN, which the caller classifies as an invalid predicted reduction.
 fn record_inner_step(
     recorded: &mut OuterOutcome,
-    gradient: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     inner: &CgOutcome,
 ) -> f64 {
     recorded.tag = Some(inner.tag());
-    recorded.step_norm = stable_l2(inner.step().as_array());
-    recorded.hessian_step_norm = stable_l2(inner.hessian_step().as_array());
+    recorded.step_norm = stable_l2(inner.step());
+    recorded.hessian_step_norm = stable_l2(inner.hessian_step());
 
-    let along_gradient = ordered_dot(gradient.as_array(), inner.step().as_array());
-    let along_curvature = ordered_dot(inner.step().as_array(), inner.hessian_step().as_array());
+    let along_gradient = checked_dot(gradient, inner.step());
+    let along_curvature = checked_dot(inner.step(), inner.hessian_step());
     recorded.gradient_step = along_gradient;
     recorded.step_curvature = along_curvature;
 
@@ -367,7 +381,7 @@ pub(super) fn rejected(
     config: &SolverConfig,
 ) -> Result<(), SolverFailure> {
     control.consecutive_rejections += 1;
-    if control.consecutive_rejections == config.maximum_consecutive_rejections {
+    if control.consecutive_rejections == config.maximum_consecutive_rejections.get() {
         return Err(SolverFailure::RejectedStepBudget);
     }
 
@@ -375,12 +389,12 @@ pub(super) fn rejected(
         clippy::float_cmp,
         reason = "the minimum radius is reached only through an exact clip to its bytes"
     )]
-    if control.radius == config.radius_minimum {
+    if control.radius == config.radius_minimum.get() {
         return Err(SolverFailure::RadiusUnderflow);
     }
 
     // Both factors are finite and positive, so the shrink and its clip stay in domain.
-    control.radius = (config.shrink_factor * control.radius).max(config.radius_minimum);
+    control.radius = (config.shrink_factor.get() * control.radius).max(config.radius_minimum.get());
     Ok(())
 }
 
@@ -393,12 +407,14 @@ pub(super) fn certify(
 ) -> Result<Converged, SolverFailure> {
     control.final_reserve = false;
     let point = problem.point(&accepted.zeta);
-    let (objective, gradient) = problem.joint(&point, &mut control.counters);
+    let Some((objective, gradient)) = problem.joint(&point, &mut control.counters) else {
+        return Err(SolverFailure::FinalCertificationNonFinite);
+    };
 
     if !objective.is_finite() {
         return Err(SolverFailure::FinalCertificationNonFinite);
     }
-    let norm = stable_l2(gradient.as_array()).ok_or(SolverFailure::FinalCertificationNonFinite)?;
+    let norm = stable_l2(&gradient).ok_or(SolverFailure::FinalCertificationNonFinite)?;
     if norm > threshold {
         return Err(SolverFailure::FinalCertificateMismatch);
     }
@@ -414,19 +430,19 @@ pub(super) fn certify(
 
 /// The accepted-step curvature diagnostic `p·y` and `(p·y) / (p·p)` with `y = g_trial − g`.
 fn curvature_diagnostic(
-    step: &BoxedDVecN<SOLVER_DIMENSIONS>,
-    trial_gradient: &BoxedDVecN<SOLVER_DIMENSIONS>,
-    accepted_gradient: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    step: &AlignedDVecN<SOLVER_DIMENSIONS>,
+    trial_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
+    accepted_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
 ) -> CurvatureDiagnostic {
     let difference = flat::advance(trial_gradient, -1.0, accepted_gradient);
-    if !flat::all_finite(&difference) {
+    if !difference.is_finite() {
         return CurvatureDiagnostic::NonFiniteDifference;
     }
 
-    let Some(along) = ordered_dot(step.as_array(), difference.as_array()) else {
+    let Some(along) = checked_dot(step, &difference) else {
         return CurvatureDiagnostic::NonFiniteDot;
     };
-    let Some(square) = ordered_dot(step.as_array(), step.as_array()) else {
+    let Some(square) = checked_dot(step, step) else {
         return CurvatureDiagnostic::NonFiniteDot;
     };
 

@@ -20,7 +20,7 @@ use super::{
     flat,
     problem::ScaledProblem,
     solve::SolverControl,
-    stable::{ordered_dot, stable_l2},
+    stable::{checked_dot, checked_norm_squared, stable_l2},
     terminal::{CgStage, SolverFailure},
 };
 use crate::math::{AlignedDVecN, BoxedDVecN};
@@ -54,7 +54,7 @@ pub(super) enum CgOutcome {
 
 impl CgOutcome {
     /// The returned step `p` in scaled coordinates.
-    pub(super) const fn step(&self) -> &BoxedDVecN<SOLVER_DIMENSIONS> {
+    pub(super) const fn step(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {
         match self {
             Self::ResidualConverged { step, .. } => step,
             Self::TrustBoundary(boundary) | Self::CurvatureGuardBoundary(boundary) => {
@@ -64,7 +64,7 @@ impl CgOutcome {
     }
 
     /// The matching product `Hp` returned with the step.
-    pub(super) const fn hessian_step(&self) -> &BoxedDVecN<SOLVER_DIMENSIONS> {
+    pub(super) const fn hessian_step(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {
         match self {
             Self::ResidualConverged { hessian_step, .. } => hessian_step,
             Self::TrustBoundary(boundary) | Self::CurvatureGuardBoundary(boundary) => {
@@ -130,53 +130,59 @@ pub(super) fn crossing(
 /// [`SolverFailure::NonFiniteCg`] naming the stage where a value left the finite domain, and
 /// [`SolverFailure::NoFiniteBoundaryStep`] when a boundary crossing could not be validated.
 pub(super) fn bounded_steihaug_cg(
-    problem: &ScaledProblem<'_>,
+    problem @ ScaledProblem {
+        prepared: _,
+        config,
+    }: &ScaledProblem<'_>,
     point: &ContrastVector,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     control: &mut SolverControl,
 ) -> Result<CgOutcome, SolverFailure> {
-    let config = &problem.config;
-
     let mut step = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     let mut hessian_step = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     let mut residual = flat::negated(gradient);
     let mut direction = residual.clone();
 
-    let residual_base = stable_l2(residual.as_array()).ok_or(non_finite(CgStage::Norm))?;
+    let residual_base = stable_l2(&residual).ok_or(non_finite(CgStage::Norm))?;
     // The tolerance is fixed against the initial residual; both factors are finite.
-    let tolerance = config.relative_cg_residual_tolerance * residual_base;
+    let tolerance = config.relative_cg_residual_tolerance.get() * residual_base;
 
     let mut started: u64 = 0;
     loop {
         // The residual test runs first; equality returns.
-        let residual_norm = stable_l2(residual.as_array()).ok_or(non_finite(CgStage::Norm))?;
+        let residual_norm = stable_l2(&residual).ok_or(non_finite(CgStage::Norm))?;
         if residual_norm <= tolerance {
             return Ok(CgOutcome::ResidualConverged { step, hessian_step });
         }
 
         // Budgets in declared order: CG starts, HVP requests, unreserved row traversals. Every
         // maximum is inclusive - a request fails only when it would exceed it.
-        if started == config.maximum_cg_iterations {
+        if started == config.maximum_cg_iterations.get() {
             return Err(SolverFailure::CgIterationBudget);
         }
-        if control.counters.hvp_requests == config.maximum_hvp_requests {
+        if control.counters.hvp_requests == config.maximum_hvp_requests.get() {
             return Err(SolverFailure::HvpBudget);
         }
         if control.free_row_traversals(config) < 1 {
             return Err(SolverFailure::RowPassBudget);
         }
+
         started += 1;
 
-        let hessian_direction = problem.hessian_vector(point, &direction, &mut control.counters);
-        if !flat::all_finite(&hessian_direction) {
+        // A rejected request and a non-finite product share the typed stage failure.
+        let Some(hessian_direction) =
+            problem.hessian_vector(point, &direction, &mut control.counters)
+        else {
+            return Err(non_finite(CgStage::HvpVector));
+        };
+        if !hessian_direction.is_finite() {
             return Err(non_finite(CgStage::HvpVector));
         }
 
-        let curvature = ordered_dot(direction.as_array(), hessian_direction.as_array())
-            .ok_or(non_finite(CgStage::Curvature))?;
-        let direction_norm = stable_l2(direction.as_array()).ok_or(non_finite(CgStage::Norm))?;
-        let product_norm =
-            stable_l2(hessian_direction.as_array()).ok_or(non_finite(CgStage::Norm))?;
+        let curvature =
+            checked_dot(&direction, &hessian_direction).ok_or(non_finite(CgStage::Curvature))?;
+        let direction_norm = stable_l2(&direction).ok_or(non_finite(CgStage::Norm))?;
+        let product_norm = stable_l2(&hessian_direction).ok_or(non_finite(CgStage::Norm))?;
         let guard = f64::from(config.curvature_guard_ulps.get())
             * f64::EPSILON
             * direction_norm
@@ -195,11 +201,12 @@ pub(super) fn bounded_steihaug_cg(
                 control.radius,
                 config.boundary_residual_ulps,
             )?;
+
             return Ok(CgOutcome::CurvatureGuardBoundary(crossed));
         }
 
-        let residual_square = ordered_dot(residual.as_array(), residual.as_array())
-            .ok_or(non_finite(CgStage::Dot))?;
+        let residual_square = checked_norm_squared(&residual).ok_or(non_finite(CgStage::Dot))?;
+
         let alpha = residual_square / curvature;
         if !alpha.is_finite() {
             return Err(non_finite(CgStage::Alpha));
@@ -207,12 +214,12 @@ pub(super) fn bounded_steihaug_cg(
 
         let next_step = flat::advance(&step, alpha, &direction);
         let next_hessian_step = flat::advance(&hessian_step, alpha, &hessian_direction);
-        if !flat::all_finite(&next_step) || !flat::all_finite(&next_hessian_step) {
+        if !next_step.is_finite() || !next_hessian_step.is_finite() {
             return Err(non_finite(CgStage::Update));
         }
 
         // Boundary contact has precedence over residual convergence.
-        let step_norm = stable_l2(next_step.as_array()).ok_or(non_finite(CgStage::Norm))?;
+        let step_norm = stable_l2(&next_step).ok_or(non_finite(CgStage::Norm))?;
         if step_norm >= control.radius {
             let crossed = crossing(
                 &step,
@@ -226,11 +233,11 @@ pub(super) fn bounded_steihaug_cg(
         }
 
         let next_residual = flat::advance(&residual, -alpha, &hessian_direction);
-        if !flat::all_finite(&next_residual) {
+        if !next_residual.is_finite() {
             return Err(non_finite(CgStage::Residual));
         }
-        let next_residual_norm =
-            stable_l2(next_residual.as_array()).ok_or(non_finite(CgStage::Norm))?;
+
+        let next_residual_norm = stable_l2(&next_residual).ok_or(non_finite(CgStage::Norm))?;
         if next_residual_norm <= tolerance {
             return Ok(CgOutcome::ResidualConverged {
                 step: next_step,
@@ -238,14 +245,15 @@ pub(super) fn bounded_steihaug_cg(
             });
         }
 
-        let next_residual_square = ordered_dot(next_residual.as_array(), next_residual.as_array())
-            .ok_or(non_finite(CgStage::Dot))?;
+        let next_residual_square =
+            checked_norm_squared(&next_residual).ok_or(non_finite(CgStage::Dot))?;
         let beta = next_residual_square / residual_square;
         if !beta.is_finite() {
             return Err(non_finite(CgStage::Beta));
         }
+
         let next_direction = flat::advance(&next_residual, beta, &direction);
-        if !flat::all_finite(&next_direction) {
+        if !next_direction.is_finite() {
             return Err(non_finite(CgStage::Direction));
         }
 

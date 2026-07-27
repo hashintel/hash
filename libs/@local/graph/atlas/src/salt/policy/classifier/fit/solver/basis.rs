@@ -17,6 +17,7 @@
 
 use core::f64::consts::FRAC_1_SQRT_2;
 
+use super::CONTRAST_ROWS;
 use crate::salt::policy::GeometryClass;
 
 /// `1/√6`, correctly rounded (bit pattern `0x3FDA20BD700C2C3E`).
@@ -29,7 +30,7 @@ const FRAC_1_SQRT_6: f64 = 0.408_248_290_463_863;
 const FRAC_2_SQRT_6: f64 = 0.816_496_580_927_726;
 
 /// The `HelmertV1` basis rows, one per class in discriminant order.
-pub(super) const HELMERT_V1: [[f64; 2]; GeometryClass::COUNT] = [
+pub(super) const HELMERT_V1: [[f64; CONTRAST_ROWS]; GeometryClass::COUNT] = [
     [FRAC_1_SQRT_2, FRAC_1_SQRT_6],
     [-FRAC_1_SQRT_2, FRAC_1_SQRT_6],
     [0.0, -FRAC_2_SQRT_6],
@@ -37,21 +38,34 @@ pub(super) const HELMERT_V1: [[f64; 2]; GeometryClass::COUNT] = [
 
 /// Maps contrast coordinates to class logits: `ℓ = B·t`.
 #[inline]
-pub(super) fn expand(contrast: [f64; 2]) -> [f64; GeometryClass::COUNT] {
-    core::array::from_fn(|class| {
+pub(super) const fn expand(contrast: [f64; CONTRAST_ROWS]) -> [f64; GeometryClass::COUNT] {
+    core::array::from_fn(const |class| {
         let row = HELMERT_V1[class];
-        contrast[1].mul_add(row[1], contrast[0] * row[0])
+        let mut logit = contrast[0] * row[0];
+
+        let mut index = 1;
+        while index < CONTRAST_ROWS {
+            logit = contrast[index].mul_add(row[index], logit);
+            index += 1;
+        }
+
+        logit
     })
 }
 
 /// Projects a class-space vector to contrast coordinates: `Bᵀ·v`.
 #[inline]
-pub(super) fn reduce(classes: [f64; GeometryClass::COUNT]) -> [f64; 2] {
-    core::array::from_fn(|column| {
+pub(super) const fn reduce(classes: [f64; GeometryClass::COUNT]) -> [f64; CONTRAST_ROWS] {
+    core::array::from_fn(const |column| {
         let mut accumulator = 0.0;
-        for (class, row) in HELMERT_V1.iter().enumerate() {
+
+        let mut class = 0;
+        while class < GeometryClass::COUNT {
+            let row = HELMERT_V1[class];
             accumulator = classes[class].mul_add(row[column], accumulator);
+            class += 1;
         }
+
         accumulator
     })
 }

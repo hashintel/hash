@@ -10,8 +10,8 @@
 use core::{assert_matches, num::NonZero};
 use std::{fs, path::PathBuf};
 
-use hashql_core::id::Id as _;
-use rand::SeedableRng as _;
+use hashql_core::id::{Id as _, IdSlice};
+use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
@@ -23,8 +23,9 @@ use super::{
     },
     quotient::{QuotientError, QuotientOptions, quotient_graph},
     select::{
-        LandmarkCandidate, LandmarkOrdinal, SamplingWeight, SelectionError, SelectionOptions,
-        Subgroup, SubgroupAxes, SubgroupDimension, SubgroupMinimum, select_landmarks,
+        LandmarkCandidate, LandmarkOrdinal, LandmarkSelection, SamplingWeight, SelectionError,
+        SelectionOptions, Subgroup, SubgroupAxes, SubgroupDimension, SubgroupMinimum,
+        select_landmarks,
     },
 };
 use crate::{
@@ -71,13 +72,28 @@ fn options(maximum: u32) -> SelectionOptions {
     }
 }
 
+/// Calls [`select_landmarks`] over plain fixture slices.
+fn select<R: Rng + SeedableRng>(
+    candidates: &[LandmarkCandidate],
+    minimums: &[SubgroupMinimum],
+    options: SelectionOptions,
+    rng: R,
+) -> Result<LandmarkSelection, SelectionError> {
+    select_landmarks(
+        IdSlice::from_raw(candidates),
+        IdSlice::from_raw(minimums),
+        options,
+        rng,
+    )
+}
+
 #[test]
 fn selection_is_deterministic_under_a_seed() {
     let candidates = candidates(100);
-    let first = select_landmarks(&candidates, &[], options(10), rng())
-        .expect("the unconstrained selection succeeds");
-    let second = select_landmarks(&candidates, &[], options(10), rng())
-        .expect("the unconstrained selection succeeds");
+    let first =
+        select(&candidates, &[], options(10), rng()).expect("the unconstrained selection succeeds");
+    let second =
+        select(&candidates, &[], options(10), rng()).expect("the unconstrained selection succeeds");
 
     assert_eq!(first, second);
     assert_eq!(first.len(), 10);
@@ -86,7 +102,7 @@ fn selection_is_deterministic_under_a_seed() {
         "selected rows are strictly ascending"
     );
 
-    let third = select_landmarks(
+    let third = select(
         &candidates,
         &[],
         options(10),
@@ -99,8 +115,8 @@ fn selection_is_deterministic_under_a_seed() {
 #[test]
 fn selection_covers_a_small_corpus_entirely() {
     let candidates = candidates(4);
-    let selection = select_landmarks(&candidates, &[], options(100), rng())
-        .expect("a small corpus selects wholesale");
+    let selection =
+        select(&candidates, &[], options(100), rng()).expect("a small corpus selects wholesale");
 
     assert_eq!(selection.len(), 4);
 }
@@ -117,7 +133,7 @@ fn selection_honors_subgroup_minimums() {
         value: 7,
     };
 
-    let selection = select_landmarks(
+    let selection = select(
         &candidates,
         &[SubgroupMinimum {
             subgroup,
@@ -151,7 +167,7 @@ fn selection_prefers_heavier_candidates() {
 
     let mut heavy_selected = 0_usize;
     for seed in 0..50 {
-        let selection = select_landmarks(
+        let selection = select(
             &candidates,
             &[],
             options(10),
@@ -181,8 +197,8 @@ fn selection_retains_prior_landmarks() {
         candidate.prior_landmark = true;
     }
 
-    let selection = select_landmarks(&candidates, &[], options(20), rng())
-        .expect("the unconstrained selection succeeds");
+    let selection =
+        select(&candidates, &[], options(20), rng()).expect("the unconstrained selection succeeds");
 
     assert!(
         selection.retained_count() >= 5,
@@ -194,14 +210,14 @@ fn selection_retains_prior_landmarks() {
 #[test]
 fn selection_rejects_malformed_inputs() {
     assert_eq!(
-        select_landmarks(&[], &[], options(10), rng()),
+        select(&[], &[], options(10), rng()),
         Err(SelectionError::EmptyCorpus),
     );
 
     let mut unordered = candidates(4);
     unordered.swap(1, 2);
     assert_eq!(
-        select_landmarks(&unordered, &[], options(10), rng()),
+        select(&unordered, &[], options(10), rng()),
         Err(SelectionError::UnorderedCandidates { index: 2 }),
     );
 
@@ -214,7 +230,7 @@ fn selection_rejects_malformed_inputs() {
         count: NonZero::new(1).expect("one is nonzero"),
     };
     assert_eq!(
-        select_landmarks(&candidates(4), &[minimum, minimum], options(10), rng()),
+        select(&candidates(4), &[minimum, minimum], options(10), rng()),
         Err(SelectionError::DuplicateMinimum { subgroup }),
     );
 }
@@ -245,7 +261,7 @@ fn selection_rejects_unsatisfiable_minimums() {
 
     // Nothing carries community 9.
     assert_eq!(
-        select_landmarks(
+        select(
             &candidates(10),
             &[SubgroupMinimum {
                 subgroup,
@@ -267,7 +283,7 @@ fn selection_rejects_unsatisfiable_minimums() {
         candidate.axes[SubgroupDimension::Community] = 9;
     }
     assert_eq!(
-        select_landmarks(
+        select(
             &tagged,
             &[SubgroupMinimum {
                 subgroup,
@@ -312,7 +328,7 @@ fn selection_counts_rows_toward_every_minimum_they_satisfy() {
         },
     ];
 
-    let selection = select_landmarks(&candidates, &minimums, options(3), rng())
+    let selection = select(&candidates, &minimums, options(3), rng())
         .expect("three rows satisfy both minimums at once");
 
     assert_eq!(selection.len(), 3);
@@ -342,14 +358,10 @@ fn selection_is_invariant_across_thread_counts() {
         count: NonZero::new(40).expect("forty is nonzero"),
     }];
 
-    let single = in_pool(1, || {
-        select_landmarks(&candidates, &minimums, options(128), rng())
-    })
-    .expect("the selection succeeds");
-    let many = in_pool(8, || {
-        select_landmarks(&candidates, &minimums, options(128), rng())
-    })
-    .expect("the selection succeeds");
+    let single = in_pool(1, || select(&candidates, &minimums, options(128), rng()))
+        .expect("the selection succeeds");
+    let many = in_pool(8, || select(&candidates, &minimums, options(128), rng()))
+        .expect("the selection succeeds");
 
     assert_eq!(single, many);
 }
@@ -488,8 +500,7 @@ impl Matrix {
 fn selection_of(rows: &[u64]) -> super::select::LandmarkSelection {
     let candidates: Vec<LandmarkCandidate> = rows.iter().map(|&row| candidate(row)).collect();
     let capacity = u32::try_from(rows.len()).expect("test fixtures are small");
-    select_landmarks(&candidates, &[], options(capacity), rng())
-        .expect("selecting every candidate succeeds")
+    select(&candidates, &[], options(capacity), rng()).expect("selecting every candidate succeeds")
 }
 
 /// Ordinals from bare positions, for fixtures.

@@ -3,14 +3,17 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use core::{assert_matches, num::NonZeroU32};
+use core::{
+    assert_matches,
+    num::{NonZeroU32, NonZeroU64},
+};
 
 use super::{
     super::{
         TrainingRow, TrainingSet,
         objective::{self, Parameters},
     },
-    AUGMENTED_DIMENSIONS, ContrastVector, SOLVER_DIMENSIONS,
+    AUGMENTED_DIMENSIONS, CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
     basis::{self, HELMERT_V1},
     boundary::{BoundaryStep, boundary_step},
     cg::{CgOutcome, crossing},
@@ -24,7 +27,7 @@ use super::{
     solve::{
         AcceptedPoint, SolverControl, SolverRun, certify, derive_certificate, rejected, solve,
     },
-    stable::{ordered_dot, stable_l2},
+    stable::{checked_dot, stable_l2},
     target::{ClosedTarget, ClosedTargetError},
     terminal::{CgStage, SolverFailure},
     work::WorkCounters,
@@ -32,13 +35,30 @@ use super::{
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedDVecN, BoxedVecN},
+    math::{
+        AlignedVecN, BoxedDVecN, BoxedVecN, DNonNegative, DPositive, OpenUnitFraction,
+        d_non_negative, d_positive, greater_than_one, open_unit_fraction,
+    },
     salt::policy::GeometryClass,
 };
 
 /// One ulp of unit-sum tolerance.
 fn one_ulp() -> NonZeroU32 {
     NonZeroU32::new(1).expect("one is nonzero")
+}
+
+/// A flat solver vector with the given components set.
+fn flat(assignments: &[(usize, f64)]) -> BoxedDVecN<SOLVER_DIMENSIONS> {
+    let mut vector = BoxedDVecN::zero();
+    for &(index, value) in assignments {
+        vector.as_array_mut()[index] = value;
+    }
+    vector
+}
+
+/// Eight ulps of boundary-residual tolerance.
+fn eight_ulps() -> NonZeroU32 {
+    NonZeroU32::new(8).expect("eight is nonzero")
 }
 
 const CAPACITY: usize = 4;
@@ -83,9 +103,9 @@ fn digest(bytes: &[u8]) -> Sha256Digest {
 
 fn settings() -> PreparationSettings {
     PreparationSettings {
-        regularization: 0.5,
+        regularization: d_positive!(0.5),
         target_sum_tolerance_ulps: one_ulp(),
-        curvature_floor: 1.0e-12,
+        curvature_floor: d_positive!(1.0e-12),
     }
 }
 
@@ -144,10 +164,9 @@ fn axpy(base: &ContrastVector, direction: &ContrastVector, step: f64) -> Contras
     out
 }
 
-/// Ordered flat dot of two contrast vectors.
+/// Checked flat dot of two contrast vectors.
 fn flat_dot(left: &ContrastVector, right: &ContrastVector) -> f64 {
-    ordered_dot(left.to_flat().as_array(), right.to_flat().as_array())
-        .expect("fixture dots stay finite")
+    checked_dot(&left.to_flat(), &right.to_flat()).expect("fixture dots stay finite")
 }
 
 /// Deterministic test directions: a coefficient axis, an intercept axis, and a mixed vector.
@@ -169,7 +188,7 @@ fn directions() -> [ContrastVector; 3] {
 /// Every basis entry keeps its pinned IEEE-754 bit pattern.
 #[test]
 fn helmert_bits_stay_pinned() {
-    let pinned: [[u64; 2]; GeometryClass::COUNT] = [
+    let pinned: [[u64; CONTRAST_ROWS]; GeometryClass::COUNT] = [
         [0x3FE6_A09E_667F_3BCD, 0x3FDA_20BD_700C_2C3E],
         [0xBFE6_A09E_667F_3BCD, 0x3FDA_20BD_700C_2C3E],
         [0x0000_0000_0000_0000, 0xBFEA_20BD_700C_2C3E],
@@ -185,10 +204,10 @@ fn helmert_bits_stay_pinned() {
     assert_eq!(HELMERT_V1[2][1], -2.0 * HELMERT_V1[0][1]);
 }
 
-/// Both column sums vanish exactly under plain class-order addition.
+/// Every column sum vanishes exactly under plain class-order addition.
 #[test]
 fn helmert_columns_sum_to_zero_exactly() {
-    for column in 0..2 {
+    for column in 0..CONTRAST_ROWS {
         let sum = HELMERT_V1
             .iter()
             .fold(0.0_f64, |sum, row| sum + row[column]);
@@ -196,11 +215,11 @@ fn helmert_columns_sum_to_zero_exactly() {
     }
 }
 
-/// `BᵀB` lies within one ulp of `I₂` under the ordered `mul_add` fold.
+/// `BᵀB` lies within one ulp of the identity under the ordered `mul_add` fold.
 #[test]
 fn helmert_columns_are_orthonormal() {
-    for left in 0..2 {
-        for right in 0..2 {
+    for left in 0..CONTRAST_ROWS {
+        for right in 0..CONTRAST_ROWS {
             let mut gram = 0.0_f64;
             for row in HELMERT_V1 {
                 gram = row[left].mul_add(row[right], gram);
@@ -245,91 +264,55 @@ fn expanded_logits_stay_shift_free() {
     }
 }
 
-/// [`ordered_dot`] is exactly the forward `mul_add` fold, and order is part of the contract.
+/// [`checked_dot`] passes an exactly representable dot through the gate.
 #[test]
-fn ordered_dot_keeps_the_declared_operation_shape() {
-    // Forward order absorbs each small term into 1.0 alone; reverse order lets them accumulate
-    // to a representable difference first, so the two folds disagree in the last bit.
-    let x: [f64; 3] = [1.0, 1.0e-16, 1.0e-16];
-    let y: [f64; 3] = [1.0, 1.0, 1.0];
+fn checked_dot_passes_finite_values() {
+    // Two exact terms: 2·4 + (−3)·5 = −7 under any fold shape.
+    let left = flat(&[(0, 2.0), (9, -3.0)]);
+    let right = flat(&[(0, 4.0), (9, 5.0)]);
 
-    let mut forward = 0.0_f64;
-    for (&left, right) in x.iter().zip(y) {
-        forward = left.mul_add(right, forward);
-    }
-
-    let mut reverse = 0.0_f64;
-    for (&left, right) in x.iter().zip(y).rev() {
-        reverse = left.mul_add(right, reverse);
-    }
-
-    assert_eq!(ordered_dot(&x, &y), Some(forward));
-    assert_ne!(forward, reverse);
+    assert_eq!(checked_dot(&left, &right), Some(-7.0));
 }
 
-/// [`ordered_dot`] reports overflow and NaN as [`None`] instead of a value.
+/// [`checked_dot`] reports a non-finite reduction as [`None`] instead of a value.
 #[test]
-fn ordered_dot_rejects_non_finite_results() {
-    assert_eq!(ordered_dot(&[f64::MAX, f64::MAX], &[2.0, 2.0]), None);
-    assert_eq!(ordered_dot(&[f64::NAN], &[1.0]), None);
-    assert_eq!(ordered_dot(&[f64::INFINITY], &[0.0]), None);
-    assert_eq!(ordered_dot(&[1.0], &[f64::NEG_INFINITY]), None);
+fn checked_dot_rejects_non_finite_results() {
+    let mut huge = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    huge.as_array_mut()[0] = f64::MAX;
+    huge.as_array_mut()[1] = f64::MAX;
+    let mut two = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    two.as_array_mut()[0] = 2.0;
+    two.as_array_mut()[1] = 2.0;
+    assert_eq!(checked_dot(&huge, &two), None);
+
+    let mut poisoned = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    poisoned.as_array_mut()[7] = f64::NAN;
+    let mut ones = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    ones.as_array_mut()[7] = 1.0;
+    assert_eq!(checked_dot(&poisoned, &ones), None);
 }
 
-/// [`ordered_dot`] refuses operands of different lengths.
+/// [`stable_l2`] passes exact norms through and reports non-finite components as [`None`].
 #[test]
-#[should_panic(expected = "dot operands share one dimension")]
-fn ordered_dot_rejects_mismatched_lengths() {
-    let _: Option<f64> = ordered_dot(&[1.0, 2.0], &[1.0]);
-}
+fn stable_l2_gates_the_house_norm() {
+    // 3-4-5 triangle: every ratio and square of the house kernel is exact.
+    let mut triangle = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    triangle.as_array_mut()[10] = 3.0;
+    triangle.as_array_mut()[4000] = -4.0;
+    assert_eq!(stable_l2(&triangle), Some(5.0));
 
-/// [`stable_l2`] matches exact values on exactly representable cases.
-#[test]
-fn stable_l2_matches_exact_norms() {
-    assert_eq!(stable_l2(&[]), Some(0.0));
-    assert_eq!(stable_l2(&[0.0, -0.0, 0.0]), Some(0.0));
-    assert_eq!(stable_l2(&[-7.0]), Some(7.0));
-    // 3-4-5 triangle: every intermediate of the recurrence is exact.
-    assert_eq!(stable_l2(&[3.0, 4.0]), Some(5.0));
-    assert_eq!(stable_l2(&[4.0, 0.0, -3.0]), Some(5.0));
-}
-
-/// Zero components leave the [`stable_l2`] recurrence bytes untouched.
-#[test]
-fn stable_l2_skips_zeros_exactly() {
-    let dense = [0.3, -1.7, 2.9];
-    let padded = [0.0, 0.3, 0.0, -1.7, 2.9, 0.0];
-    assert_eq!(stable_l2(&dense), stable_l2(&padded));
-}
-
-/// [`stable_l2`] keeps subnormal magnitudes where squared accumulation would flush to zero.
-#[test]
-fn stable_l2_survives_subnormal_components() {
-    let tiny = f64::MIN_POSITIVE / 1024.0;
-    let norm = stable_l2(&[tiny, tiny, tiny, tiny]).expect("the norm of a finite vector");
-    // Exact: √4 doubles the magnitude, and doubling subnormals is exact.
-    assert_eq!(norm, 2.0 * tiny);
-    assert!(norm > 0.0);
-}
-
-/// [`stable_l2`] stays finite where squared accumulation would overflow.
-#[test]
-fn stable_l2_survives_huge_components() {
-    let huge = f64::MAX / 2.0;
-    let norm = stable_l2(&[huge, huge]).expect("the norm of a finite vector");
-    let expected = huge * core::f64::consts::SQRT_2;
-    assert!(
-        (norm - expected).abs() <= 4.0 * f64::EPSILON * expected,
-        "{norm} vs {expected}",
+    assert_eq!(
+        stable_l2(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero()),
+        Some(0.0)
     );
-}
 
-/// [`stable_l2`] reports any non-finite component as [`None`].
-#[test]
-fn stable_l2_rejects_non_finite_components() {
-    assert_eq!(stable_l2(&[1.0, f64::NAN]), None);
-    assert_eq!(stable_l2(&[f64::INFINITY, 1.0]), None);
-    assert_eq!(stable_l2(&[1.0, f64::NEG_INFINITY, 2.0]), None);
+    let mut poisoned = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    poisoned.as_array_mut()[123] = f64::INFINITY;
+    assert_eq!(stable_l2(&poisoned), None);
+
+    let mut hidden = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    hidden.as_array_mut()[6000] = f64::NAN;
+    assert_eq!(stable_l2(&hidden), None);
 }
 
 /// An exact triple closes without adjustment and keeps the exact unit sum.
@@ -426,8 +409,8 @@ fn preparation_builds_the_documented_initial_diagonal() {
     let diagonal = prepared.scaling.diagonal().as_array();
     let total = prepared.total_weight;
     let normalizer = (3.0 * total).recip();
-    let share = settings().regularization / total;
-    let floor = settings().curvature_floor;
+    let share = settings().regularization.get() / total;
+    let floor = settings().curvature_floor.get();
 
     // Leading coordinate: moment = 1.5·4 + 2.5·0 + 1·1 = 7.
     let expected_leading = 7.0_f64.mul_add(normalizer, share).max(floor).sqrt();
@@ -486,20 +469,7 @@ fn preparation_rejects_before_any_row_without_a_traversal() {
         prepare(&[], &[], settings(), &mut counters).err(),
         Some(PreparationError::Empty),
     );
-    assert_matches!(
-        prepare(
-            corpus.embeddings(),
-            &corpus.rows,
-            PreparationSettings {
-                regularization: f64::NAN,
-                ..settings()
-            },
-            &mut counters,
-        ),
-        Err(PreparationError::InvalidRegularization { value }) if value.is_nan(),
-    );
-
-    assert_eq!(counters.preparation_requests, 3);
+    assert_eq!(counters.preparation_requests, 2);
     assert_eq!(counters.preparation_passes, 0);
     assert_eq!(counters.preparation_row_visits, 0);
     assert_eq!(counters.started_row_traversals, 0);
@@ -696,7 +666,7 @@ fn objective_matches_the_legacy_implementation() {
         training,
         folds: &folds,
         held_out: None,
-        regularization: settings().regularization,
+        regularization: settings().regularization.get(),
     };
 
     let mine = prepared.objective_only(&parameters, &mut counters);
@@ -783,7 +753,9 @@ fn gradient_matches_finite_differences() {
         .expect("the fixture corpus prepares");
     let parameters = solver_parameters();
 
-    let gradient = prepared.gradient_only(&parameters, &mut counters);
+    let gradient = prepared
+        .gradient_only(&parameters, &mut counters)
+        .expect("the fixture request is finite");
     let step = 1.0e-5;
     for direction in directions() {
         let forward = prepared.objective_only(&axpy(&parameters, &direction, step), &mut counters);
@@ -807,14 +779,18 @@ fn joint_evaluation_matches_the_separate_passes() {
         .expect("the fixture corpus prepares");
     let parameters = solver_parameters();
 
-    let joint = prepared.joint(&parameters, &mut counters);
+    let joint = prepared
+        .joint(&parameters, &mut counters)
+        .expect("the fixture request is finite");
     assert_eq!(
         joint.objective,
         prepared.objective_only(&parameters, &mut counters),
     );
     assert_eq!(
         joint.gradient,
-        prepared.gradient_only(&parameters, &mut counters),
+        prepared
+            .gradient_only(&parameters, &mut counters)
+            .expect("the fixture request is finite"),
     );
 }
 
@@ -829,12 +805,18 @@ fn hessian_vector_matches_gradient_differences() {
 
     let step = 1.0e-5;
     for direction in directions() {
-        let product = prepared.hessian_vector(&parameters, &direction, &mut counters);
-        let forward = prepared.gradient_only(&axpy(&parameters, &direction, step), &mut counters);
-        let backward = prepared.gradient_only(&axpy(&parameters, &direction, -step), &mut counters);
+        let product = prepared
+            .hessian_vector(&parameters, &direction, &mut counters)
+            .expect("the fixture request is finite");
+        let forward = prepared
+            .gradient_only(&axpy(&parameters, &direction, step), &mut counters)
+            .expect("the displaced fixture request is finite");
+        let backward = prepared
+            .gradient_only(&axpy(&parameters, &direction, -step), &mut counters)
+            .expect("the displaced fixture request is finite");
 
-        // Compare on the touched coordinates and both intercepts.
-        for row in 0..2 {
+        // Compare on the touched coordinates and every intercept.
+        for row in 0..CONTRAST_ROWS {
             for coordinate in 0..3 {
                 let numerical = (forward.coefficients[row].as_array()[coordinate]
                     - backward.coefficients[row].as_array()[coordinate])
@@ -870,8 +852,12 @@ fn hessian_is_symmetric_and_strictly_convex() {
         (&coefficient, &mixed),
         (&intercept, &mixed),
     ] {
-        let left_product = prepared.hessian_vector(&parameters, left, &mut counters);
-        let right_product = prepared.hessian_vector(&parameters, right, &mut counters);
+        let left_product = prepared
+            .hessian_vector(&parameters, left, &mut counters)
+            .expect("the fixture request is finite");
+        let right_product = prepared
+            .hessian_vector(&parameters, right, &mut counters)
+            .expect("the fixture request is finite");
         let forward = flat_dot(left, &right_product);
         let backward = flat_dot(right, &left_product);
         assert!(
@@ -881,7 +867,9 @@ fn hessian_is_symmetric_and_strictly_convex() {
     }
 
     for direction in directions() {
-        let product = prepared.hessian_vector(&parameters, &direction, &mut counters);
+        let product = prepared
+            .hessian_vector(&parameters, &direction, &mut counters)
+            .expect("the fixture request is finite");
         let curvature = flat_dot(&direction, &product);
         assert!(curvature > 0.0, "curvature {curvature} is not positive");
     }
@@ -897,9 +885,13 @@ fn evaluations_charge_their_work() {
     let parameters = solver_parameters();
     let baseline = counters;
 
-    let _joint = prepared.joint(&parameters, &mut counters);
+    let _joint = prepared
+        .joint(&parameters, &mut counters)
+        .expect("the fixture request is finite");
     let _objective = prepared.objective_only(&parameters, &mut counters);
-    let _gradient = prepared.gradient_only(&parameters, &mut counters);
+    let _gradient = prepared
+        .gradient_only(&parameters, &mut counters)
+        .expect("the fixture request is finite");
     let _product = prepared.hessian_vector(&parameters, &directions()[0], &mut counters);
 
     assert_eq!(counters.objective_requests, 2);
@@ -919,7 +911,7 @@ fn evaluations_charge_their_work() {
     assert_eq!(counters.completed_hvp_traversals, 1);
 }
 
-/// A non-finite request charges its logical request only and yields non-finite results.
+/// A non-finite request charges its logical request only and yields no result.
 #[test]
 fn non_finite_requests_start_no_traversal() {
     let corpus = valid_corpus();
@@ -931,15 +923,13 @@ fn non_finite_requests_start_no_traversal() {
     let mut poisoned = solver_parameters();
     poisoned.intercepts[0] = f64::NAN;
 
-    let joint = prepared.joint(&poisoned, &mut counters);
-    assert!(joint.objective.is_nan());
-    assert!(!joint.gradient.is_finite());
+    assert!(prepared.joint(&poisoned, &mut counters).is_none());
     assert!(prepared.objective_only(&poisoned, &mut counters).is_nan());
-    assert!(!prepared.gradient_only(&poisoned, &mut counters).is_finite());
+    assert!(prepared.gradient_only(&poisoned, &mut counters).is_none());
     assert!(
-        !prepared
+        prepared
             .hessian_vector(&solver_parameters(), &poisoned, &mut counters)
-            .is_finite()
+            .is_none()
     );
 
     assert_eq!(counters.objective_requests, 2);
@@ -1008,51 +998,44 @@ fn objective_resolution_pins_the_ulp_exceptional_cases() {
 fn solver_config() -> SolverConfig {
     SolverConfig {
         preparation: settings(),
-        radius_minimum: 1.0e-8,
-        radius_initial: 1.0,
-        radius_maximum: 1.0e4,
-        shrink_factor: 0.25,
-        expansion_factor: 2.0,
-        eta_accept: 0.1,
-        eta_expand: 0.75,
-        relative_cg_residual_tolerance: 0.1,
-        relative_scaled_gradient_tolerance: 1.0e-6,
-        absolute_scaled_gradient_tolerance: 1.0e-10,
+        radius_minimum: d_positive!(1.0e-8),
+        radius_initial: DPositive::ONE,
+        radius_maximum: d_positive!(1.0e4),
+        shrink_factor: open_unit_fraction!(0.25),
+        expansion_factor: greater_than_one!(2.0),
+        eta_accept: open_unit_fraction!(0.1),
+        eta_expand: open_unit_fraction!(0.75),
+        relative_cg_residual_tolerance: open_unit_fraction!(0.1),
+        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-6),
+        absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-10),
         objective_resolution_ulps: NonZeroU32::new(4).expect("four is nonzero"),
         curvature_guard_ulps: NonZeroU32::new(16).expect("sixteen is nonzero"),
         boundary_residual_ulps: NonZeroU32::new(8).expect("eight is nonzero"),
-        maximum_outer_iterations: 100,
-        maximum_cg_iterations: 50,
-        maximum_hvp_requests: 5_000,
+        maximum_outer_iterations: NonZeroU64::new(100).expect("one hundred is nonzero"),
+        maximum_cg_iterations: NonZeroU64::new(50).expect("fifty is nonzero"),
+        maximum_hvp_requests: NonZeroU64::new(5_000).expect("five thousand is nonzero"),
         maximum_objective_requests: 200,
         maximum_gradient_requests: 200,
         maximum_row_traversals: 10_000,
-        maximum_consecutive_rejections: 30,
+        maximum_consecutive_rejections: NonZeroU64::new(30).expect("thirty is nonzero"),
     }
 }
 
-/// The in-domain fixture and every stated boundary of the absolute gradient tolerance validate.
+/// The in-domain fixture and the cross-field boundaries validate.
+///
+/// Per-field domains hold by construction; only the orderings and floors are validate's to
+/// accept.
 #[test]
 fn config_accepts_the_domain_boundaries() {
     solver_config()
         .validate()
         .expect("the fixture is in-domain");
 
-    // Zero disables the absolute floor and is valid, under either sign of zero.
-    for zero in [0.0, -0.0] {
-        SolverConfig {
-            absolute_scaled_gradient_tolerance: zero,
-            ..solver_config()
-        }
-        .validate()
-        .expect("a zero absolute tolerance is in-domain");
-    }
-
     // Equalities inside the radius chain are inclusive.
     SolverConfig {
-        radius_minimum: 1.0,
-        radius_initial: 1.0,
-        radius_maximum: 1.0,
+        radius_minimum: DPositive::ONE,
+        radius_initial: DPositive::ONE,
+        radius_maximum: DPositive::ONE,
         ..solver_config()
     }
     .validate()
@@ -1069,34 +1052,18 @@ fn config_accepts_the_domain_boundaries() {
     .expect("the budget floors are inclusive");
 }
 
-/// Every out-of-domain field is rejected by name, NaN included.
+/// Every violated cross-field ordering is rejected by name.
 #[test]
-fn config_rejects_out_of_domain_fields() {
+fn config_rejects_misordered_fields() {
     let base = solver_config();
 
-    for value in [-1.0e-12, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+    // Every radius is individually in-domain; only the ordering is violated.
+    for (minimum, initial, maximum) in [(2.0, 1.0, 3.0), (1.0, 3.0, 2.0), (2.0, 2.0, 1.0)] {
         assert_matches!(
             SolverConfig {
-                absolute_scaled_gradient_tolerance: value,
-                ..base
-            }
-            .validate(),
-            Err(SolverConfigError::AbsoluteGradientTolerance { .. }),
-        );
-    }
-
-    for (minimum, initial, maximum) in [
-        (0.0, 1.0, 2.0),
-        (2.0, 1.0, 3.0),
-        (1.0, 3.0, 2.0),
-        (1.0, 1.0, f64::INFINITY),
-        (f64::NAN, 1.0, 2.0),
-    ] {
-        assert_matches!(
-            SolverConfig {
-                radius_minimum: minimum,
-                radius_initial: initial,
-                radius_maximum: maximum,
+                radius_minimum: DPositive::new(minimum).expect("the case radius is positive"),
+                radius_initial: DPositive::new(initial).expect("the case radius is positive"),
+                radius_maximum: DPositive::new(maximum).expect("the case radius is positive"),
                 ..base
             }
             .validate(),
@@ -1104,113 +1071,25 @@ fn config_rejects_out_of_domain_fields() {
         );
     }
 
-    for shrink in [0.0, 1.0, -0.5, f64::NAN] {
+    // Both thresholds are individually interior; equality and inversion are the violations.
+    for (accept, expand) in [(0.5, 0.5), (0.5, 0.1)] {
         assert_matches!(
             SolverConfig {
-                shrink_factor: shrink,
-                ..base
-            }
-            .validate(),
-            Err(SolverConfigError::ShrinkFactor { .. }),
-        );
-    }
-    for expansion in [1.0, 0.5, f64::INFINITY, f64::NAN] {
-        assert_matches!(
-            SolverConfig {
-                expansion_factor: expansion,
-                ..base
-            }
-            .validate(),
-            Err(SolverConfigError::ExpansionFactor { .. }),
-        );
-    }
-    for (accept, expand) in [
-        (0.0, 0.5),
-        (0.5, 0.5),
-        (0.5, 0.1),
-        (0.1, 1.0),
-        (f64::NAN, 0.5),
-    ] {
-        assert_matches!(
-            SolverConfig {
-                eta_accept: accept,
-                eta_expand: expand,
+                eta_accept: OpenUnitFraction::new(accept).expect("the case threshold is interior"),
+                eta_expand: OpenUnitFraction::new(expand).expect("the case threshold is interior"),
                 ..base
             }
             .validate(),
             Err(SolverConfigError::AcceptanceThresholds { .. }),
         );
     }
-    for tolerance in [0.0, 1.0, f64::NAN] {
-        assert_matches!(
-            SolverConfig {
-                relative_cg_residual_tolerance: tolerance,
-                ..base
-            }
-            .validate(),
-            Err(SolverConfigError::CgResidualTolerance { .. }),
-        );
-        assert_matches!(
-            SolverConfig {
-                relative_scaled_gradient_tolerance: tolerance,
-                ..base
-            }
-            .validate(),
-            Err(SolverConfigError::RelativeGradientTolerance { .. }),
-        );
-    }
-    for floor in [0.0, -1.0, f64::INFINITY, f64::NAN] {
-        assert_matches!(
-            SolverConfig {
-                preparation: PreparationSettings {
-                    curvature_floor: floor,
-                    ..settings()
-                },
-                ..base
-            }
-            .validate(),
-            Err(SolverConfigError::CurvatureFloor { .. }),
-        );
-    }
 }
 
-/// Every work budget rejects below its floor, by name.
+/// Every floored work budget rejects below its floor, by name.
 #[test]
 fn config_rejects_budgets_below_their_floors() {
     let base = solver_config();
 
-    assert_eq!(
-        SolverConfig {
-            maximum_outer_iterations: 0,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::OuterIterationBudget),
-    );
-    assert_eq!(
-        SolverConfig {
-            maximum_cg_iterations: 0,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::CgIterationBudget),
-    );
-    assert_eq!(
-        SolverConfig {
-            maximum_hvp_requests: 0,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::HvpBudget),
-    );
-    assert_eq!(
-        SolverConfig {
-            maximum_consecutive_rejections: 0,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::RejectionBudget),
-    );
     assert_eq!(
         SolverConfig {
             maximum_objective_requests: 1,
@@ -1237,12 +1116,13 @@ fn config_rejects_budgets_below_their_floors() {
     );
 }
 
-/// The gradient threshold is the stated maximum, zero is valid, and only non-finite maps away.
+/// The gradient threshold is the stated maximum, zero is valid, and only a non-finite norm
+/// maps away.
 #[test]
 fn gradient_threshold_follows_the_ruled_domain() {
     let config = SolverConfig {
-        absolute_scaled_gradient_tolerance: 0.0,
-        relative_scaled_gradient_tolerance: 1.0e-6,
+        absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-6),
         ..solver_config()
     };
 
@@ -1259,28 +1139,15 @@ fn gradient_threshold_follows_the_ruled_domain() {
 
     // A positive absolute floor dominates small initial norms.
     let floored = SolverConfig {
-        absolute_scaled_gradient_tolerance: 1.0e-4,
+        absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-4),
         ..config
     };
     assert_eq!(floored.gradient_threshold(1.0), Some(1.0e-4));
 
-    // Only a non-finite norm or threshold maps to the overflow outcome.
+    // Only a non-finite initial norm maps to the overflow outcome; the threshold itself is
+    // finite by construction.
     assert_eq!(config.gradient_threshold(f64::NAN), None);
     assert_eq!(config.gradient_threshold(f64::INFINITY), None);
-}
-
-/// A flat solver vector with the given components set.
-fn flat(assignments: &[(usize, f64)]) -> BoxedDVecN<SOLVER_DIMENSIONS> {
-    let mut vector = BoxedDVecN::zero();
-    for &(index, value) in assignments {
-        vector.as_array_mut()[index] = value;
-    }
-    vector
-}
-
-/// Eight ulps of boundary-residual tolerance.
-fn eight_ulps() -> NonZeroU32 {
-    NonZeroU32::new(8).expect("eight is nonzero")
 }
 
 /// From the origin the crossing is `τ = Δ/‖d‖`, and every output is exactly representable.
@@ -1532,8 +1399,8 @@ fn solve_converges_on_the_fixture_corpus() {
         Some(evidence.gradient_threshold),
         config.gradient_threshold(evidence.initial_gradient_norm),
     );
-    let final_norm = stable_l2(converged.point.scaled_gradient.as_array())
-        .expect("the certified gradient is finite");
+    let final_norm =
+        stable_l2(&converged.point.scaled_gradient).expect("the certified gradient is finite");
     assert!(final_norm <= evidence.gradient_threshold);
 
     // One receipt per started outer iteration; the first one snapshots the origin.
@@ -1543,7 +1410,7 @@ fn solve_converges_on_the_fixture_corpus() {
     );
     let first = &run.receipts[0];
     assert_eq!(first.outer_iteration, 1);
-    assert_eq!(first.radius, config.radius_initial);
+    assert_eq!(first.radius, config.radius_initial.get());
     assert_eq!(
         first.zeta_digest,
         vector_digest(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero())
@@ -1594,7 +1461,7 @@ fn solve_converges_on_the_fixture_corpus() {
             Some(CurvatureDiagnostic::Value { along, normalized })
                 if along > 0.0 && normalized > 0.0,
         );
-        assert_matches!(receipt.outcome.ratio, Some(ratio) if ratio >= config.eta_accept);
+        assert_matches!(receipt.outcome.ratio, Some(ratio) if ratio >= config.eta_accept.get());
         curvatures += 1;
     }
     assert_eq!(curvatures, counters.candidate_acceptances);
@@ -1613,8 +1480,9 @@ fn solve_certificate_tie_returns_at_equality() {
     let tie = run_solver(
         &corpus,
         SolverConfig {
-            absolute_scaled_gradient_tolerance: initial_norm,
-            relative_scaled_gradient_tolerance: 1.0e-12,
+            absolute_scaled_gradient_tolerance: DNonNegative::new(initial_norm)
+                .expect("the fixture norm is finite and non-negative"),
+            relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
             ..solver_config()
         },
     );
@@ -1631,9 +1499,9 @@ fn solve_fails_the_outer_iteration_budget() {
     let run = run_solver(
         &corpus,
         SolverConfig {
-            maximum_outer_iterations: 1,
-            absolute_scaled_gradient_tolerance: 0.0,
-            relative_scaled_gradient_tolerance: 1.0e-12,
+            maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+            relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
             ..solver_config()
         },
     );
@@ -1649,9 +1517,9 @@ fn solve_fails_the_outer_iteration_budget() {
 fn solve_orders_the_inner_cg_budgets() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
-        relative_cg_residual_tolerance: 1.0e-9,
-        absolute_scaled_gradient_tolerance: 0.0,
-        relative_scaled_gradient_tolerance: 1.0e-12,
+        relative_cg_residual_tolerance: open_unit_fraction!(1.0e-9),
+        absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
         ..solver_config()
     };
 
@@ -1662,8 +1530,8 @@ fn solve_orders_the_inner_cg_budgets() {
     let cg_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_cg_iterations: 1,
-            maximum_hvp_requests: 2,
+            maximum_cg_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            maximum_hvp_requests: NonZeroU64::new(2).expect("two is nonzero"),
             ..strict
         },
     );
@@ -1678,7 +1546,7 @@ fn solve_orders_the_inner_cg_budgets() {
     let hvp_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_hvp_requests: 1,
+            maximum_hvp_requests: NonZeroU64::new(1).expect("one is nonzero"),
             ..strict
         },
     );
@@ -1705,8 +1573,8 @@ fn solve_orders_the_inner_cg_budgets() {
 fn solve_preflight_prices_objective_then_gradient_then_rows() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
-        absolute_scaled_gradient_tolerance: 0.0,
-        relative_scaled_gradient_tolerance: 1.0e-12,
+        absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
         ..solver_config()
     };
 
@@ -1745,7 +1613,7 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
         &corpus,
         SolverConfig {
             maximum_row_traversals: 5,
-            relative_cg_residual_tolerance: 0.999_999,
+            relative_cg_residual_tolerance: open_unit_fraction!(0.999_999),
             ..strict
         },
     );
@@ -1764,19 +1632,19 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
 fn solve_orders_rejection_budget_before_radius_underflow() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
-        radius_minimum: 1.0,
-        radius_initial: 1.0,
-        eta_accept: 1.0 - 1.0e-9,
-        eta_expand: 1.0 - 1.0e-10,
-        absolute_scaled_gradient_tolerance: 0.0,
-        relative_scaled_gradient_tolerance: 1.0e-12,
+        radius_minimum: DPositive::ONE,
+        radius_initial: DPositive::ONE,
+        eta_accept: open_unit_fraction!(1.0 - 1.0e-9),
+        eta_expand: open_unit_fraction!(1.0 - 1.0e-10),
+        absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
         ..solver_config()
     };
 
     let streak_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_consecutive_rejections: 1,
+            maximum_consecutive_rejections: NonZeroU64::new(1).expect("one is nonzero"),
             ..strict
         },
     );
@@ -1818,8 +1686,8 @@ fn solve_stalls_at_the_objective_resolution() {
         &corpus,
         SolverConfig {
             objective_resolution_ulps: NonZeroU32::new(u32::MAX).expect("nonzero"),
-            absolute_scaled_gradient_tolerance: 0.0,
-            relative_scaled_gradient_tolerance: 1.0e-12,
+            absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+            relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
             ..solver_config()
         },
     );
@@ -1834,10 +1702,10 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
     let run = run_solver(
         &corpus,
         SolverConfig {
-            radius_initial: 1.0e-3,
-            maximum_outer_iterations: 1,
-            absolute_scaled_gradient_tolerance: 0.0,
-            relative_scaled_gradient_tolerance: 1.0e-12,
+            radius_initial: d_positive!(1.0e-3),
+            maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
+            relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
             ..solver_config()
         },
     );
@@ -1869,11 +1737,11 @@ fn solve_reaches_the_non_finite_cg_terminal_on_a_degenerate_scale() {
         &corpus,
         SolverConfig {
             preparation: PreparationSettings {
-                regularization: subnormal,
-                curvature_floor: subnormal,
+                regularization: DPositive::new(subnormal).expect("the subnormal is positive"),
+                curvature_floor: DPositive::new(subnormal).expect("the subnormal is positive"),
                 ..settings()
             },
-            absolute_scaled_gradient_tolerance: 0.0,
+            absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
             ..solver_config()
         },
     );
@@ -1914,11 +1782,11 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
         &corpus,
         SolverConfig {
             preparation: PreparationSettings {
-                regularization: 1.0,
-                curvature_floor: 1.0,
+                regularization: DPositive::ONE,
+                curvature_floor: DPositive::ONE,
                 ..settings()
             },
-            absolute_scaled_gradient_tolerance: 4.0,
+            absolute_scaled_gradient_tolerance: d_non_negative!(4.0),
             ..solver_config()
         },
     );
@@ -2010,8 +1878,10 @@ fn certify_reproves_the_certificate_freshly() {
 
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     let point = problem.point(&origin);
-    let (objective, scaled_gradient) = problem.joint(&point, &mut counters);
-    let norm = stable_l2(scaled_gradient.as_array()).expect("the origin gradient is finite");
+    let (objective, scaled_gradient) = problem
+        .joint(&point, &mut counters)
+        .expect("the origin request is finite");
+    let norm = stable_l2(&scaled_gradient).expect("the origin gradient is finite");
     let accepted = AcceptedPoint {
         zeta: origin,
         objective,
@@ -2068,9 +1938,9 @@ fn certify_reproves_the_certificate_freshly() {
 #[test]
 fn rejected_orders_streak_budget_then_underflow_with_one_clipped_attempt() {
     let config = SolverConfig {
-        radius_minimum: 0.5,
-        shrink_factor: 0.25,
-        maximum_consecutive_rejections: 3,
+        radius_minimum: d_positive!(0.5),
+        shrink_factor: open_unit_fraction!(0.25),
+        maximum_consecutive_rejections: NonZeroU64::new(3).expect("three is nonzero"),
         ..solver_config()
     };
     let mut control = SolverControl {
@@ -2161,9 +2031,9 @@ fn flat_operations_keep_the_declared_shapes() {
     assert_eq!(negation.as_array()[0], -1.0);
     assert_eq!(negation.as_array()[1], 2.0);
 
-    assert!(flat_vectors::all_finite(&base));
-    assert!(!flat_vectors::all_finite(&flat(&[(3, f64::NAN)])));
-    assert!(!flat_vectors::all_finite(&flat(&[(3, f64::INFINITY)])));
+    assert!(base.is_finite());
+    assert!(!flat(&[(3, f64::NAN)]).is_finite());
+    assert!(!flat(&[(3, f64::INFINITY)]).is_finite());
 }
 
 /// The free budgets net out the outstanding final reserve and saturate at zero.
@@ -2218,14 +2088,15 @@ fn scaled_problem_applies_the_hessian_sandwich_in_order() {
 
     let mut manual_counters = counters;
     let physical = ContrastVector::from_flat(&prepared.scaling.divide(&direction));
-    let manual = prepared.scaling.divide(
-        &prepared
-            .hessian_vector(&point, &physical, &mut manual_counters)
-            .to_flat(),
-    );
+    let manual_product = prepared
+        .hessian_vector(&point, &physical, &mut manual_counters)
+        .expect("the fixture request is finite");
+    let manual = prepared.scaling.divide(&manual_product.to_flat());
 
     let problem = ScaledProblem { prepared, config };
-    let scaled = problem.hessian_vector(&point, &direction, &mut counters);
+    let scaled = problem
+        .hessian_vector(&point, &direction, &mut counters)
+        .expect("the fixture request is finite");
 
     assert_eq!(scaled.as_array(), manual.as_array());
 }

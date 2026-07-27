@@ -37,6 +37,64 @@ macro_rules! non_negative {
 #[cfg(test)]
 pub(crate) use non_negative;
 
+/// Validates a positive double-precision literal at compile time.
+///
+/// The expansion is a `const` block over [`DPositive::new`], so a literal outside the domain
+/// fails the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! d_positive {
+    ($value:expr) => {
+        const { $crate::math::DPositive::new($value).expect("the literal is finite and positive") }
+    };
+}
+#[cfg(test)]
+pub(crate) use d_positive;
+
+/// Validates a non-negative double-precision literal at compile time.
+///
+/// The expansion is a `const` block over [`DNonNegative::new`], so a literal outside the domain
+/// fails the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! d_non_negative {
+    ($value:expr) => {
+        const {
+            $crate::math::DNonNegative::new($value)
+                .expect("the literal is finite and non-negative")
+        }
+    };
+}
+#[cfg(test)]
+pub(crate) use d_non_negative;
+
+/// Validates an open-unit-fraction literal at compile time.
+///
+/// The expansion is a `const` block over [`OpenUnitFraction::new`], so a literal outside the
+/// domain fails the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! open_unit_fraction {
+    ($value:expr) => {
+        const { $crate::math::OpenUnitFraction::new($value).expect("the literal lies inside (0, 1)") }
+    };
+}
+#[cfg(test)]
+pub(crate) use open_unit_fraction;
+
+/// Validates a greater-than-one literal at compile time.
+///
+/// The expansion is a `const` block over [`GreaterThanOne::new`], so a literal outside the
+/// domain fails the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! greater_than_one {
+    ($value:expr) => {
+        const {
+            $crate::math::GreaterThanOne::new($value)
+                .expect("the literal is finite and greater than one")
+        }
+    };
+}
+#[cfg(test)]
+pub(crate) use greater_than_one;
+
 /// Validates a unit-fraction literal at compile time.
 ///
 /// The expansion is a `const` block over [`UnitFraction::new`], so a literal outside the domain
@@ -92,14 +150,6 @@ impl Positive {
     }
 }
 
-impl From<Positive> for NonNegative {
-    /// Widens into the enclosing domain: every positive value is non-negative.
-    #[inline]
-    fn from(value: Positive) -> Self {
-        Self(value.get())
-    }
-}
-
 /// A finite, non-negative `f32`, valid by construction.
 ///
 /// The shared definition of the finite-and-non-negative check: zero is admitted, so the type
@@ -151,6 +201,14 @@ impl NonNegative {
     #[must_use]
     pub const fn get(self) -> f32 {
         self.0
+    }
+}
+
+impl From<Positive> for NonNegative {
+    /// Widens into the enclosing domain: every positive value is non-negative.
+    #[inline]
+    fn from(value: Positive) -> Self {
+        Self(value.get())
     }
 }
 
@@ -230,6 +288,204 @@ impl UnitFraction {
     }
 
     /// Returns the fraction.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
+/// A finite, strictly positive `f64`, valid by construction.
+///
+/// The double-precision twin of [`Positive`], named as [`DVecN`](super::DVecN) is to
+/// [`VecN`](super::VecN): configuration fields that steer double-precision arithmetic carry
+/// their domain in the type, and the consuming site validates nothing.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::DPositive;
+///
+/// assert_eq!(
+///     DPositive::new(1.0e-8)
+///         .expect("the radius floor is positive")
+///         .get(),
+///     1.0e-8
+/// );
+/// assert_eq!(DPositive::new(0.0), None);
+/// assert_eq!(DPositive::new(f64::INFINITY), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct DPositive(f64);
+
+impl DPositive {
+    /// The value one.
+    pub const ONE: Self = Self(1.0);
+
+    /// Validates a strictly positive finite value.
+    ///
+    /// Returns [`None`] unless the value is finite and greater than zero.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f64) -> Option<Self> {
+        if !(value.is_finite() && value > 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
+/// A finite, non-negative `f64`, valid by construction.
+///
+/// The double-precision twin of [`NonNegative`]: zero is admitted, so the type carries
+/// tolerances and floors that may legitimately switch a check off.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::DNonNegative;
+///
+/// assert_eq!(
+///     DNonNegative::new(0.0)
+///         .expect("zero disables the floor")
+///         .get(),
+///     0.0
+/// );
+/// assert_eq!(DNonNegative::new(-1.0e-10), None);
+/// assert_eq!(DNonNegative::new(f64::NAN), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct DNonNegative(f64);
+
+impl DNonNegative {
+    /// The value zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Validates a non-negative finite value.
+    ///
+    /// Returns [`None`] unless the value is finite and at least zero.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f64) -> Option<Self> {
+        if !(value.is_finite() && value >= 0.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
+impl From<DPositive> for DNonNegative {
+    /// Widens into the enclosing domain: every positive value is non-negative.
+    #[inline]
+    fn from(value: DPositive) -> Self {
+        Self(value.get())
+    }
+}
+
+/// A fraction strictly between zero and one, valid by construction.
+///
+/// The open-interval sibling of [`UnitFraction`]: contraction factors and relative tolerances
+/// whose semantics degenerate at either endpoint - a shrink of zero collapses, a shrink of one
+/// never shrinks - carry the exclusion in the type.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::OpenUnitFraction;
+///
+/// assert_eq!(
+///     OpenUnitFraction::new(0.25)
+///         .expect("a quarter shrinks")
+///         .get(),
+///     0.25
+/// );
+/// assert_eq!(OpenUnitFraction::new(0.0), None);
+/// assert_eq!(OpenUnitFraction::new(1.0), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct OpenUnitFraction(f64);
+
+impl OpenUnitFraction {
+    /// Validates a fraction strictly inside the unit interval.
+    ///
+    /// Returns [`None`] unless the value lies in `(0, 1)`; NaN fails both comparisons.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f64) -> Option<Self> {
+        if !(value > 0.0 && value < 1.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the fraction.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
+impl From<OpenUnitFraction> for UnitFraction {
+    /// Widens into the enclosing closed interval.
+    #[inline]
+    fn from(value: OpenUnitFraction) -> Self {
+        Self(value.get())
+    }
+}
+
+/// A finite `f64` strictly greater than one, valid by construction.
+///
+/// Growth and expansion factors whose semantics require actual growth - a factor of one never
+/// expands - carry the bound in the type.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::GreaterThanOne;
+///
+/// assert_eq!(
+///     GreaterThanOne::new(2.0).expect("doubling expands").get(),
+///     2.0
+/// );
+/// assert_eq!(GreaterThanOne::new(1.0), None);
+/// assert_eq!(GreaterThanOne::new(f64::INFINITY), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct GreaterThanOne(f64);
+
+impl GreaterThanOne {
+    /// Validates a finite value strictly greater than one.
+    ///
+    /// Returns [`None`] unless the value is finite and greater than one.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f64) -> Option<Self> {
+        if !(value.is_finite() && value > 1.0) {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
     #[inline]
     #[must_use]
     pub const fn get(self) -> f64 {

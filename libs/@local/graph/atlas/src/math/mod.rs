@@ -80,7 +80,10 @@ mod vecn;
 mod tests;
 
 #[cfg(test)]
-pub(crate) use self::scalar::{non_negative, positive, unit_fraction};
+pub(crate) use self::scalar::{
+    d_non_negative, d_positive, greater_than_one, non_negative, open_unit_fraction, positive,
+    unit_fraction,
+};
 pub use self::{
     affinity::{AffinityCurve, AffinityFitConfig},
     bounds::Bounds2,
@@ -89,8 +92,8 @@ pub use self::{
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        Log2, NonNegative, Positive, UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid,
-        softplus,
+        DNonNegative, DPositive, GreaterThanOne, Log2, NonNegative, OpenUnitFraction, Positive,
+        UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus,
     },
     similarity::Similarity,
     transform::Transform,

@@ -406,3 +406,271 @@ fn add_scaled_matches_a_scalar_reference_loop(
 
     prop_assert_eq!(actual.as_array(), &expected);
 }
+
+/// A small test index as an exact double, per the house cast discipline.
+fn coordinate(index: usize) -> f64 {
+    f64::from(u8::try_from(index).expect("test sizes are small"))
+}
+
+/// An aligned copy of the same components, for cross-type bit agreement.
+fn aligned<const N: usize>(components: &[f64; N]) -> BoxedDVecN<N> {
+    BoxedDVecN::new(DVecN::from_ref(components))
+}
+
+#[test]
+fn max_abs_matches_the_scalar_fold_across_chunk_sizes() {
+    fn check<const N: usize>(components: [f64; N]) {
+        let expected = components
+            .iter()
+            .fold(0.0_f64, |scale, &component| scale.max(component.abs()));
+        assert_eq!(
+            DVecN::new(components).max_abs(),
+            expected,
+            "over {N} components"
+        );
+        assert_eq!(aligned(&components).max_abs(), expected, "aligned over {N}");
+    }
+
+    check([]);
+    check([-3.5]);
+    check([0.5, -1.25, 2.0]);
+    check(core::array::from_fn::<f64, 8, _>(|index| {
+        -coordinate(index)
+    }));
+    check(core::array::from_fn::<f64, 19, _>(|index| {
+        coordinate(index) - 9.5
+    }));
+}
+
+#[test]
+fn max_abs_ignores_nan_in_favor_of_finite_magnitudes() {
+    assert_eq!(DVecN::new([1.0, f64::NAN, -3.0]).max_abs(), 3.0);
+    assert_eq!(DVecN::new([f64::NAN]).max_abs(), 0.0);
+}
+
+#[test]
+fn stable_l2_matches_exact_norms_on_both_types() {
+    fn check<const N: usize>(components: [f64; N], expected: f64) {
+        assert_eq!(DVecN::new(components).stable_l2(), expected);
+        assert_eq!(aligned(&components).stable_l2(), expected);
+    }
+
+    check([], 0.0);
+    check([0.0, -0.0, 0.0], 0.0);
+    check([-7.0], 7.0);
+    // 3-4-5 triangle: every ratio and square is exact.
+    check([3.0, 4.0], 5.0);
+    check([4.0, 0.0, -3.0], 5.0);
+}
+
+#[test]
+fn stable_l2_zero_components_contribute_exactly_nothing() {
+    let dense = [0.3, -1.7, 2.9];
+    let padded = [0.0, 0.3, 0.0, -1.7, 2.9, 0.0];
+    assert_eq!(
+        DVecN::new(dense).stable_l2(),
+        DVecN::new(padded).stable_l2(),
+    );
+}
+
+#[test]
+fn stable_l2_survives_subnormal_components() {
+    let tiny = f64::MIN_POSITIVE / 1024.0;
+    // Exact: √4 doubles the magnitude, and doubling subnormals is exact.
+    assert_eq!(DVecN::new([tiny; 4]).stable_l2(), 2.0 * tiny);
+    assert_eq!(aligned(&[tiny; 4]).stable_l2(), 2.0 * tiny);
+}
+
+#[test]
+fn stable_l2_survives_huge_components() {
+    let huge = f64::MAX / 2.0;
+    let expected = huge * core::f64::consts::SQRT_2;
+    let norm = DVecN::new([huge, huge]).stable_l2();
+    assert!(
+        (norm - expected).abs() <= 4.0 * f64::EPSILON * expected,
+        "{norm} vs {expected}",
+    );
+}
+
+#[test]
+fn stable_l2_propagates_non_finite_components() {
+    assert!(DVecN::new([1.0, f64::NAN]).stable_l2().is_nan());
+    assert!(!DVecN::new([f64::INFINITY, 1.0]).stable_l2().is_finite());
+    // A NaN alongside only zeros hides from the maxNum scale and is caught by the zero-scale
+    // finiteness gate.
+    assert!(DVecN::new([0.0, f64::NAN, 0.0]).stable_l2().is_nan());
+}
+
+#[test]
+fn stable_l2_agrees_between_types_across_chunk_sizes() {
+    fn check<const N: usize>(components: [f64; N]) {
+        assert_eq!(
+            DVecN::new(components).stable_l2().to_bits(),
+            aligned(&components).stable_l2().to_bits(),
+            "over {N} components",
+        );
+    }
+
+    check(core::array::from_fn::<f64, 8, _>(|index| {
+        coordinate(index).mul_add(0.75, -2.0)
+    }));
+    check(core::array::from_fn::<f64, 19, _>(|index| {
+        coordinate(index).mul_add(-0.3, 2.4)
+    }));
+}
+
+#[test]
+fn is_finite_detects_non_finite_components_in_lanes_and_remainder() {
+    fn check<const N: usize>(components: [f64; N], expected: bool) {
+        assert_eq!(DVecN::new(components).is_finite(), expected, "over {N}");
+        assert_eq!(
+            aligned(&components).is_finite(),
+            expected,
+            "aligned over {N}"
+        );
+    }
+
+    check([], true);
+    check([1.0, -2.0, f64::MIN_POSITIVE / 1024.0], true);
+    check([f64::NAN], false);
+    // 19 components: the offender sits inside the lane groups, then inside the remainder.
+    let mut in_lanes = [1.0_f64; 19];
+    in_lanes[2] = f64::INFINITY;
+    check(in_lanes, false);
+    let mut in_remainder = [1.0_f64; 19];
+    in_remainder[17] = f64::NEG_INFINITY;
+    check(in_remainder, false);
+}
+
+#[test]
+fn mul_add_matches_the_componentwise_fused_multiply_add() {
+    fn check<const N: usize>(base: [f64; N], direction: [f64; N], factor: f64) {
+        let mut updated = DVecN::new(base);
+        updated.mul_add(DVecN::from_ref(&direction), factor);
+
+        let mut updated_aligned = aligned(&base);
+        updated_aligned.mul_add(&aligned(&direction), factor);
+
+        for (index, ((&result, &result_aligned), (&start, &along))) in updated
+            .as_array()
+            .iter()
+            .zip(updated_aligned.as_array())
+            .zip(base.iter().zip(&direction))
+            .enumerate()
+        {
+            let expected = along.mul_add(factor, start);
+            assert_eq!(result.to_bits(), expected.to_bits(), "component {index}");
+            assert_eq!(
+                result_aligned.to_bits(),
+                expected.to_bits(),
+                "aligned {index}"
+            );
+        }
+    }
+
+    check([], [], 2.0);
+    check([1.0, -2.0, 0.5], [0.25, 4.0, -8.0], -1.5);
+    check(
+        core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(0.1, -0.9)),
+        core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(-0.7, 6.3)),
+        1.0e-16,
+    );
+}
+
+#[test]
+fn negate_flips_every_sign_including_zero() {
+    let mut vector = DVecN::new([1.5, -2.0, 0.0, -0.0]);
+    vector.negate();
+    let negated = vector.as_array();
+    assert_eq!(negated[0], -1.5);
+    assert_eq!(negated[1], 2.0);
+    assert!(negated[2].is_sign_negative());
+    assert!(negated[3].is_sign_positive());
+
+    let mut aligned_vector = aligned(&[1.5, -2.0, 0.0, -0.0]);
+    aligned_vector.negate();
+    assert_eq!(aligned_vector.as_array(), negated);
+}
+
+#[test]
+fn divide_components_divides_each_coordinate_in_lanes_and_remainder() {
+    let dividend = core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(3.0, 1.0));
+    let divisor = core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(0.5, 2.0));
+
+    let mut quotient = DVecN::new(dividend);
+    quotient.divide_components(DVecN::from_ref(&divisor));
+
+    let mut quotient_aligned = aligned(&dividend);
+    quotient_aligned.divide_components(&aligned(&divisor));
+
+    for (index, ((&result, &result_aligned), (&numerator, &denominator))) in quotient
+        .as_array()
+        .iter()
+        .zip(quotient_aligned.as_array())
+        .zip(dividend.iter().zip(&divisor))
+        .enumerate()
+    {
+        let expected = numerator / denominator;
+        assert_eq!(result.to_bits(), expected.to_bits(), "component {index}");
+        assert_eq!(
+            result_aligned.to_bits(),
+            expected.to_bits(),
+            "aligned {index}"
+        );
+    }
+}
+
+#[test]
+fn scalar_multiply_and_divide_assign_scale_every_component() {
+    let components =
+        core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(1.25, -3.0));
+
+    let mut scaled = aligned(&components);
+    *scaled *= 2.0;
+    for (&result, &input) in scaled.as_array().iter().zip(&components) {
+        // Doubling is exact in binary floating point.
+        assert_eq!(result, input * 2.0);
+    }
+
+    *scaled /= 2.0;
+    for (&result, &input) in scaled.as_array().iter().zip(&components) {
+        assert_eq!(result, input);
+    }
+}
+
+#[test]
+fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
+    fn check<const N: usize>(components: [f64; N], other: [f64; N]) {
+        let unaligned = DVecN::new(components);
+        let unaligned_other = DVecN::new(other);
+        let boxed = aligned(&components);
+        let boxed_other = aligned(&other);
+
+        assert_eq!(
+            unaligned.dot(&unaligned_other).to_bits(),
+            boxed.dot(&boxed_other).to_bits(),
+            "dot over {N}",
+        );
+        assert_eq!(
+            unaligned.norm_squared().to_bits(),
+            boxed.norm_squared().to_bits(),
+            "norm over {N}",
+        );
+        assert_eq!(
+            unaligned.abs_sum().to_bits(),
+            boxed.abs_sum().to_bits(),
+            "abs_sum over {N}",
+        );
+    }
+
+    check([], []);
+    check([0.3], [-1.9]);
+    check(
+        core::array::from_fn::<f64, 8, _>(|index| coordinate(index).mul_add(0.31, -1.1)),
+        core::array::from_fn::<f64, 8, _>(|index| coordinate(index).mul_add(-0.17, 0.4)),
+    );
+    check(
+        core::array::from_fn::<f64, 21, _>(|index| coordinate(index).mul_add(0.09, -0.8)),
+        core::array::from_fn::<f64, 21, _>(|index| coordinate(index).mul_add(0.23, 1.6)),
+    );
+}

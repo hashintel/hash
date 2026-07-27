@@ -1,12 +1,12 @@
 //! Closed soft targets with an exact unit-sum contract.
 //!
-//! A raw soft target is three non-negative class weights that should sum to one but may carry
-//! rounding from upstream arithmetic. [`ClosedTarget`] canonicalizes the triple once: the raw sum
-//! `s`, accumulated in class order, must lie within a configured ulp tolerance of one, the first
-//! two components are stored as `u_0 = t_0/s` and `u_1 = t_1/s`, and the reference component is
-//! always derived as `u_2 = 1 − (u_0 + u_1)`, in that order. Only two components are stored, so
-//! the unit sum holds by construction rather than by approximation, and a common shift of the
-//! class logits provably moves no loss.
+//! A raw soft target is one non-negative weight per geometry class that should sum to one but
+//! may carry rounding from upstream arithmetic. [`ClosedTarget`] canonicalizes the tuple once:
+//! the raw sum `s`, accumulated in class order, must lie within a configured ulp tolerance of
+//! one, the leading components are stored as `u_c = t_c/s`, and the reference component is
+//! always derived as `u_ref = 1 − Σ_c u_c` over the leading components in class order. Only the
+//! leading components are stored, so the unit sum holds by construction rather than by
+//! approximation, and a common shift of the class logits provably moves no loss.
 //!
 //! Construction reports the raw sum and the largest normalization adjustment
 //! `max_c |u_c − t_c/s|` alongside the target, so preparation can aggregate the raw sum range
@@ -14,6 +14,7 @@
 
 use core::num::NonZeroU32;
 
+use super::LEADING_CLASSES;
 use crate::salt::policy::GeometryClass;
 
 /// A closed target rejected the raw triple.
@@ -36,12 +37,12 @@ pub(super) struct Canonicalization {
 
 /// A soft target over the geometry classes with an exact unit sum.
 ///
-/// Stores the two leading normalized components; the reference component is derived as
-/// `u_2 = 1 − (u_0 + u_1)` on demand, so it can never disagree with the stored pair.
+/// Stores the leading normalized components; the reference component is derived as
+/// `u_ref = 1 − Σ_c u_c` on demand, so it can never disagree with the stored components.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(super) struct ClosedTarget {
-    /// The stored components `u_0` and `u_1`.
-    components: [f64; 2],
+    /// The stored leading components, one per class ahead of the reference.
+    components: [f64; LEADING_CLASSES],
 }
 
 impl ClosedTarget {
@@ -72,21 +73,16 @@ impl ClosedTarget {
             return Err(ClosedTargetError::SumOutOfTolerance { sum });
         }
 
-        let normalized = [target[0] / sum, target[1] / sum];
-        let derived = 1.0 - (normalized[0] + normalized[1]);
-        for (class, value) in
-            GeometryClass::VARIANTS
-                .into_iter()
-                .zip([normalized[0], normalized[1], derived])
-        {
+        let normalized: [f64; LEADING_CLASSES] = core::array::from_fn(|class| target[class] / sum);
+        let closed = Self {
+            components: normalized,
+        };
+
+        for (class, value) in GeometryClass::VARIANTS.into_iter().zip(closed.components()) {
             if !value.is_finite() || value.is_sign_negative() {
                 return Err(ClosedTargetError::InvalidComponent { class, value });
             }
         }
-
-        let closed = Self {
-            components: normalized,
-        };
 
         let mut adjustment = 0.0_f64;
         for (stored, raw) in closed.components().into_iter().zip(target) {
@@ -96,16 +92,27 @@ impl ClosedTarget {
         Ok((closed, Canonicalization { sum, adjustment }))
     }
 
-    /// Returns all three components, with the reference component derived from the stored pair.
+    /// Returns every component, with the reference derived from the stored leading components.
     #[inline]
     pub(super) fn components(self) -> [f64; GeometryClass::COUNT] {
-        let [first, second] = self.components;
-        [first, second, 1.0 - (first + second)]
+        // The leading components sum in class order, matching the derivation the storage pins.
+        let mut leading_sum = 0.0_f64;
+        for component in self.components {
+            leading_sum += component;
+        }
+
+        core::array::from_fn(|class| {
+            if class < LEADING_CLASSES {
+                self.components[class]
+            } else {
+                1.0 - leading_sum
+            }
+        })
     }
 
-    /// Returns the stored leading components `u_0` and `u_1`.
+    /// Returns the stored leading components ahead of the derived reference.
     #[inline]
-    pub(super) const fn leading(self) -> [f64; 2] {
+    pub(super) const fn leading(self) -> [f64; LEADING_CLASSES] {
         self.components
     }
 }

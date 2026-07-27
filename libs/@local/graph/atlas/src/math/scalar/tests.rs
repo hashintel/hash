@@ -7,7 +7,8 @@
 use proptest::{prop_assert, prop_assert_eq, proptest};
 
 use crate::math::scalar::{
-    Log2, UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus,
+    DNonNegative, DPositive, GreaterThanOne, Log2, OpenUnitFraction, UnitFraction, huber,
+    narrow_f32, narrow_f32_exact, sigmoid, softplus,
 };
 
 #[test]
@@ -237,4 +238,85 @@ fn log2_admits_exactly_the_shift_domain() {
     for value in 64_u8..=u8::MAX {
         assert_eq!(Log2::new(value), None);
     }
+}
+
+/// The double-precision positive domain: finite and strictly above zero, exactly.
+#[test]
+fn d_positive_admits_exactly_the_positive_finite_domain() {
+    assert_eq!(
+        DPositive::new(1.0e-308)
+            .expect("a tiny positive constructs")
+            .get(),
+        1.0e-308,
+    );
+    assert_eq!(
+        DPositive::new(f64::MAX)
+            .expect("the maximum is finite")
+            .get(),
+        f64::MAX
+    );
+
+    assert_eq!(DPositive::new(0.0), None);
+    assert_eq!(DPositive::new(-0.0), None);
+    assert_eq!(DPositive::new(-1.0), None);
+    assert_eq!(DPositive::new(f64::INFINITY), None);
+    assert_eq!(DPositive::new(f64::NAN), None);
+}
+
+/// The double-precision non-negative domain admits zero and rejects every sign and escape.
+#[test]
+fn d_non_negative_admits_exactly_the_non_negative_finite_domain() {
+    assert_eq!(DNonNegative::new(0.0).expect("zero is admitted").get(), 0.0);
+    assert_eq!(
+        DNonNegative::new(1.0e-10)
+            .expect("a tolerance constructs")
+            .get(),
+        1.0e-10,
+    );
+
+    assert_eq!(DNonNegative::new(-1.0e-300), None);
+    assert_eq!(DNonNegative::new(f64::INFINITY), None);
+    assert_eq!(DNonNegative::new(f64::NAN), None);
+}
+
+/// The open unit interval excludes both endpoints, unlike its closed sibling.
+#[test]
+fn open_unit_fraction_excludes_the_endpoints() {
+    assert_eq!(
+        OpenUnitFraction::new(0.25)
+            .expect("a quarter is interior")
+            .get(),
+        0.25
+    );
+    let almost_one = 1.0 - f64::EPSILON;
+    assert_eq!(
+        OpenUnitFraction::new(almost_one)
+            .expect("below one is interior")
+            .get(),
+        almost_one,
+    );
+
+    assert_eq!(OpenUnitFraction::new(0.0), None);
+    assert_eq!(OpenUnitFraction::new(1.0), None);
+    assert_eq!(OpenUnitFraction::new(-0.5), None);
+    assert_eq!(OpenUnitFraction::new(1.5), None);
+    assert_eq!(OpenUnitFraction::new(f64::NAN), None);
+}
+
+/// The greater-than-one domain rejects one itself, infinities, and everything below.
+#[test]
+fn greater_than_one_requires_actual_growth() {
+    assert_eq!(GreaterThanOne::new(2.0).expect("doubling grows").get(), 2.0);
+    let barely = 1.0 + f64::EPSILON;
+    assert_eq!(
+        GreaterThanOne::new(barely)
+            .expect("one ulp above grows")
+            .get(),
+        barely
+    );
+
+    assert_eq!(GreaterThanOne::new(1.0), None);
+    assert_eq!(GreaterThanOne::new(0.5), None);
+    assert_eq!(GreaterThanOne::new(f64::INFINITY), None);
+    assert_eq!(GreaterThanOne::new(f64::NAN), None);
 }

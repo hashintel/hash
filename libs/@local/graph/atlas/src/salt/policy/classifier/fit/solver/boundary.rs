@@ -17,9 +17,9 @@ use core::num::NonZeroU32;
 
 use super::{
     SOLVER_DIMENSIONS, flat,
-    stable::{ordered_dot, stable_l2},
+    stable::{checked_dot, checked_norm_squared, stable_l2},
 };
-use crate::math::{AlignedDVecN, BoxedDVecN};
+use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
 
 /// A validated step onto the numerical trust-region boundary.
 ///
@@ -57,19 +57,9 @@ pub(super) fn boundary_step(
     let normalized_interior = normalize(interior, radius)?;
     let normalized_direction = normalize(direction, radius)?;
 
-    let quadratic = ordered_dot(
-        normalized_direction.as_array(),
-        normalized_direction.as_array(),
-    )?;
-    let linear = 2.0
-        * ordered_dot(
-            normalized_interior.as_array(),
-            normalized_direction.as_array(),
-        )?;
-    let constant = ordered_dot(
-        normalized_interior.as_array(),
-        normalized_interior.as_array(),
-    )? - 1.0;
+    let quadratic = checked_norm_squared(&normalized_direction)?;
+    let linear = 2.0 * checked_dot(&normalized_interior, &normalized_direction)?;
+    let constant = checked_norm_squared(&normalized_interior)? - 1.0;
     if !linear.is_finite() || quadratic <= 0.0 || constant >= 0.0 {
         return None;
     }
@@ -94,26 +84,26 @@ pub(super) fn boundary_step(
     let tolerance = f64::from(boundary_residual_ulps.get()) * f64::EPSILON;
 
     let boundary = flat::advance(&normalized_interior, crossing, &normalized_direction);
-    let norm = stable_l2(boundary.as_array())?;
+    let norm = stable_l2(&boundary)?;
     if (norm - 1.0).abs() > tolerance {
         return None;
     }
 
-    let mut step = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
-    for (out, &component) in step.as_array_mut().iter_mut().zip(boundary.as_array()) {
-        *out = radius * component;
-    }
+    let mut step = boundary;
+    *step *= radius;
 
     // Revalidate the step exactly as a consumer would read it back: divided by the radius, the
     // rounding of the rescaling roundtrip must still sit inside the boundary tolerance.
     let returned = normalize(&step, radius)?;
-    let returned_norm = stable_l2(returned.as_array())?;
+    let returned_norm = stable_l2(&returned)?;
     if (returned_norm - 1.0).abs() > tolerance {
         return None;
     }
 
     let hessian_step = flat::advance(hessian_interior, crossing, hessian_direction);
-    flat::all_finite(&hessian_step).then_some(BoundaryStep { step, hessian_step })
+    hessian_step
+        .is_finite()
+        .then_some(BoundaryStep { step, hessian_step })
 }
 
 /// Divides every component by the radius, rejecting a non-finite quotient.
@@ -121,13 +111,8 @@ fn normalize(
     vector: &AlignedDVecN<SOLVER_DIMENSIONS>,
     radius: f64,
 ) -> Option<BoxedDVecN<SOLVER_DIMENSIONS>> {
-    let mut normalized = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
-    for (out, &component) in normalized.as_array_mut().iter_mut().zip(vector.as_array()) {
-        let quotient = component / radius;
-        if !quotient.is_finite() {
-            return None;
-        }
-        *out = quotient;
-    }
-    Some(normalized)
+    let mut normalized = BoxedDVecN::new(DVecN::from_ref(vector.as_array()));
+
+    *normalized /= radius;
+    normalized.is_finite().then_some(normalized)
 }
