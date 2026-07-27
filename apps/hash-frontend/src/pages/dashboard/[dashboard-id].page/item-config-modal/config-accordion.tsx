@@ -23,6 +23,7 @@ export type SectionControls = {
 type ConfigAccordionSectionProps = {
   sectionKey: ConfigSectionKey;
   title: string;
+  inProgressText?: string;
   hasContent: boolean;
   expanded: boolean;
   isLast?: boolean;
@@ -48,6 +49,7 @@ type ConfigAccordionSectionProps = {
 const ConfigAccordionSection = ({
   sectionKey,
   title,
+  inProgressText,
   hasContent,
   expanded,
   isLast = false,
@@ -161,6 +163,18 @@ const ConfigAccordionSection = ({
               backgroundColor: hasContent ? "#46a758" : "#f5a623",
             }}
           />
+          {inProgressText && (
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontStyle: "italic",
+                lineHeight: "16px",
+                color: ({ palette }) => palette.gray[60],
+              }}
+            >
+              {inProgressText}
+            </Typography>
+          )}
           {hasUnsavedChanges && (
             <Typography
               sx={{
@@ -274,6 +288,10 @@ type ConfigAccordionProps = {
   structuralQuery: string;
   pythonScript: string;
   chartConfig: string;
+  inProgress?: {
+    section: ConfigSectionKey;
+    text: string;
+  };
   onSaveStructuralQuery: (value: string) => Promise<void>;
   onSavePythonScript: (value: string) => Promise<void>;
   onSaveChartConfig: (value: string) => Promise<void>;
@@ -297,6 +315,7 @@ export const ConfigAccordion = ({
   structuralQuery,
   pythonScript,
   chartConfig,
+  inProgress,
   onSaveStructuralQuery,
   onSavePythonScript,
   onSaveChartConfig,
@@ -330,6 +349,9 @@ export const ConfigAccordion = ({
       <ConfigAccordionSection
         sectionKey="query"
         title="Data Query"
+        inProgressText={
+          inProgress?.section === "query" ? inProgress.text : undefined
+        }
         hasContent={!!structuralQuery.trim()}
         expanded={expandedSection === "query"}
         onChange={(expanded) => handleSectionChange("query", expanded)}
@@ -343,6 +365,9 @@ export const ConfigAccordion = ({
       <ConfigAccordionSection
         sectionKey="analysis"
         title="Data Analysis"
+        inProgressText={
+          inProgress?.section === "analysis" ? inProgress.text : undefined
+        }
         hasContent={!!pythonScript.trim()}
         expanded={expandedSection === "analysis"}
         onChange={(expanded) => handleSectionChange("analysis", expanded)}
@@ -355,6 +380,9 @@ export const ConfigAccordion = ({
       <ConfigAccordionSection
         sectionKey="config"
         title="Chart Config"
+        inProgressText={
+          inProgress?.section === "config" ? inProgress.text : undefined
+        }
         hasContent={!!chartConfig.trim()}
         expanded={expandedSection === "config"}
         isLast

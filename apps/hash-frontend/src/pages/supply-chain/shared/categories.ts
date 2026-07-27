@@ -74,13 +74,13 @@ export const STEP_TYPE_ORDER: StepType[] = [
 /** Human-readable labels for each finer step type (used by the Step column filter). */
 export const STEP_TYPE_LABELS: Record<StepType, string> = {
   procurement: "Procurement",
-  raw_material_dwell: "Raw material",
+  raw_material_dwell: "Raw material dwell",
   production: "Production",
-  intermediate_dwell: "Intermediate",
+  intermediate_dwell: "Intermediate dwell",
   qa_hold: "QA hold",
-  post_qa_ship: "QA to Ship",
+  post_qa_ship: "QA to Ship dwell",
   transit: "Transit",
-  destination_dwell: "Destination",
+  destination_dwell: "Destination dwell",
 };
 
 export const PIPELINE_COLORS: Record<string, string> = {

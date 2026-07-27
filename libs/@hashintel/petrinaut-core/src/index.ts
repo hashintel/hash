@@ -78,6 +78,49 @@ export type {
   PetrinautCommands,
   PetrinautMutations,
 } from "./instance";
+export {
+  PETRINAUT_OPTIMIZATION_MAX_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
+  PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
+  PETRINAUT_OPTIMIZATION_MAX_TRIALS,
+  petrinautBooleanOptimizationDomainSchema,
+  petrinautContinuousOptimizationDomainSchema,
+  petrinautIntegerOptimizationDomainSchema,
+  petrinautOptimizationCompleteEventSchema,
+  petrinautOptimizationDomainSchema,
+  petrinautOptimizationErrorEventSchema,
+  petrinautOptimizationEvaluateParamsSchema,
+  petrinautOptimizationExecutionSchema,
+  petrinautOptimizationFixedBindingSchema,
+  petrinautOptimizationEventSchema,
+  petrinautOptimizationInputSchema,
+  petrinautOptimizationManifestSchema,
+  petrinautOptimizationObjectiveSchema,
+  petrinautOptimizationParameterBindingSchema,
+  petrinautOptimizationStartedEventSchema,
+  petrinautOptimizationStudySchema,
+  petrinautOptimizationTrialEventSchema,
+  petrinautOptimizationVariableBindingSchema,
+} from "./optimization";
+export type {
+  PetrinautOptimization,
+  PetrinautBooleanOptimizationDomain,
+  PetrinautContinuousOptimizationDomain,
+  PetrinautOptimizationDomain,
+  PetrinautOptimizationEvaluateParams,
+  PetrinautOptimizationEvaluateResult,
+  PetrinautOptimizationEvent,
+  PetrinautOptimizationExecution,
+  PetrinautOptimizationInput,
+  PetrinautOptimizationManifest,
+  PetrinautOptimizationObjective,
+  PetrinautOptimizationParameterBinding,
+  PetrinautOptimizationDescribeParameter,
+  PetrinautOptimizationDescribeResult,
+  PetrinautOptimizationStudy,
+  PetrinautOptimizationTrialEvent,
+  PetrinautIntegerOptimizationDomain,
+} from "./optimization";
 export { createPetrinautActions } from "./actions";
 export type {
   CreatePetrinautActionsOptions,
@@ -147,6 +190,7 @@ export type {
 
 // --- Simulation ---
 export {
+  PETRINAUT_DEFAULT_SEED,
   addAllMonteCarloMetricValues,
   createMonteCarloExperiment,
   createMonteCarloMetricHistogramAccumulator,
@@ -312,6 +356,7 @@ export {
   getParameterValueError,
   mergeParameterValues,
   parseParameterValue,
+  resolveNetParameterValues,
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";

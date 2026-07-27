@@ -214,6 +214,20 @@ export type ChartConfig = {
 };
 
 /**
+ * Display defaults shared by the chart editor and renderer.
+ *
+ * ECharts has its own defaults, so optional values must be resolved before
+ * constructing its options to keep saved and newly-created charts consistent.
+ */
+export const chartConfigDisplayDefaults = {
+  showLegend: false,
+  showGrid: true,
+  showTooltip: true,
+} as const satisfies Required<
+  Pick<ChartConfig, "showLegend" | "showGrid" | "showTooltip">
+>;
+
+/**
  * Configuration stored on a DashboardItem entity
  */
 export type DashboardItemConfig = {
@@ -243,6 +257,18 @@ export type DashboardItemConfig = {
 
   /** Error message if configuration failed */
   errorMessage?: string;
+};
+
+/** Freshness and timing details for a dashboard item's computed chart data. */
+export type DashboardItemDataGenerationMetadata = {
+  /** When the currently served chart-data artifact was generated. */
+  generatedAt?: string;
+  /** Duration of the most recent non-AI chart-data computation. */
+  generationDurationMs?: number;
+  /** Whether stale data is being served while replacement data is computed. */
+  isRefreshing?: boolean;
+  /** Artifact timestamp a forced refresh must supersede before it is ready. */
+  refreshAfter?: string;
 };
 
 /**

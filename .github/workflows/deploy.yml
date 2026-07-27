@@ -94,7 +94,8 @@ jobs:
               ecs: [
                 { service: "graph",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph" },
                 { service: "graph-admin",  cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph-admin" },
-                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" }
+                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" },
+                { service: "atlas",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-atlas" }
               ]
             },
             {
@@ -130,6 +131,18 @@ jobs:
               dockerfile: "apps/hash-integration-worker/docker/Dockerfile",
               context:    ".",
               ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
+            },
+            {
+              # TODO(H-6664): switch to `package`-based detection once the
+              #   monorepo tooling gives @apps/petrinaut-opt a `build:docker`
+              #   task and workspace dependencies; until then turbo cannot see
+              #   it and change detection runs on `paths` like kratos/hydra.
+              service:    "petrinaut-opt",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/petrinaut-opt/docker/Dockerfile",
+              context:    ".",
+              paths:      ["apps/petrinaut-opt", "libs/@hashintel/petrinaut-cli", "libs/@hashintel/petrinaut-core"],
+              ecs: [{ service: "petrinaut-opt", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-petrinaut-opt" }]
             },
             {
               service:    "kratos",

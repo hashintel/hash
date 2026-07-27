@@ -1,12 +1,15 @@
 import { Box, ButtonBase, CircularProgress, Typography } from "@mui/material";
+import { formatDistanceToNowStrict } from "date-fns";
 import { useCallback } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, Tooltip } from "@hashintel/ds-components";
 
 import { useDashboardItemData } from "../../hooks/use-dashboard-item-data";
+import { dashboardItemGenerationPhaseLabel } from "../../hooks/use-dashboard-item-generations";
 import { DeleteIconButton } from "../delete-icon-button";
 import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
 
+import type { DashboardItemGeneration } from "../../hooks/use-dashboard-item-generations";
 import type { DashboardItemData } from "../../shared/types";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactNode } from "react";
@@ -15,6 +18,16 @@ import type { ReactNode } from "react";
 export const DRAG_HANDLE_CLASS = "dashboard-item-drag-handle";
 
 const cardBorderColor = "#dfdfdf";
+
+const formatDuration = (durationMs: number): string => {
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1_000));
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
+};
 
 /**
  * Small square action button used in the card header (from the Figma card
@@ -58,6 +71,7 @@ const CardActionButton = ({
 
 type DashboardItemProps = {
   item: DashboardItemData;
+  generation?: DashboardItemGeneration;
   isEditing?: boolean;
   isMinimized?: boolean;
   onMinimizeToggle?: () => void;
@@ -70,6 +84,7 @@ type DashboardItemProps = {
 
 export const DashboardItem = ({
   item,
+  generation,
   isEditing = false,
   isMinimized = false,
   onMinimizeToggle,
@@ -79,10 +94,21 @@ export const DashboardItem = ({
   hoveredEntityId,
   onHoveredEntityChange,
 }: DashboardItemProps) => {
-  const { chartConfig, chartType, configurationStatus, title, entityId } = item;
+  const {
+    chartConfig,
+    chartType,
+    configurationStatus,
+    title,
+    entityId,
+    structuralQuery,
+    pythonScript,
+  } = item;
 
   const isRegenerating =
     configurationStatus === "configuring" && !!chartType && !!chartConfig;
+  const generationLabel = generation
+    ? dashboardItemGenerationPhaseLabel(generation.phase)
+    : undefined;
 
   const displayedItem = isRegenerating
     ? { ...item, configurationStatus: "ready" as const }
@@ -92,10 +118,13 @@ export const DashboardItem = ({
     data: chartData,
     loading: dataLoading,
     error: dataError,
+    generatedAt,
+    generationDurationMs,
     refresh,
   } = useDashboardItemData({
     itemEntityId: entityId,
     enabled: configurationStatus === "ready" || isRegenerating,
+    configurationKey: JSON.stringify([structuralQuery, pythonScript]),
   });
 
   const handleRefreshClick = useCallback(() => {
@@ -105,6 +134,16 @@ export const DashboardItem = ({
   const handleRetryClick = useCallback(() => {
     refresh();
   }, [refresh]);
+
+  const refreshTooltip = generatedAt
+    ? `Generated ${formatDistanceToNowStrict(new Date(generatedAt), {
+        addSuffix: true,
+      })}${
+        generationDurationMs !== null
+          ? ` · took ${formatDuration(generationDurationMs)}`
+          : ""
+      }`
+    : "Recompute chart data";
 
   return (
     <Box
@@ -192,26 +231,27 @@ export const DashboardItem = ({
               />
             )}
             {configurationStatus === "ready" && (
-              <ButtonBase
-                onClick={handleRefreshClick}
-                disabled={dataLoading}
-                aria-label="Recompute chart data"
-                title="Recompute chart data"
-                sx={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: "4px",
-                  color: "#838383",
-                  flexShrink: 0,
-                  "&:hover": { color: "#202020" },
-                }}
-              >
-                {dataLoading && chartData ? (
-                  <CircularProgress size={12} sx={{ color: "inherit" }} />
-                ) : (
-                  <Icon name="rotate" size="xs" />
-                )}
-              </ButtonBase>
+              <Tooltip content={refreshTooltip} position="top" openDelay="fast">
+                <ButtonBase
+                  onClick={handleRefreshClick}
+                  disabled={dataLoading}
+                  aria-label="Recompute chart data"
+                  sx={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "4px",
+                    color: "#838383",
+                    flexShrink: 0,
+                    "&:hover": { color: "#202020" },
+                  }}
+                >
+                  {dataLoading && chartData ? (
+                    <CircularProgress size={12} sx={{ color: "inherit" }} />
+                  ) : (
+                    <Icon name="rotate" size="xs" />
+                  )}
+                </ButtonBase>
+              </Tooltip>
             )}
           </Box>
 
@@ -255,36 +295,13 @@ export const DashboardItem = ({
             chartData={chartData}
             dataLoading={dataLoading}
             dataError={dataError}
+            generationLabel={generationLabel}
             onRetryDataClick={handleRetryClick}
             onConfigureClick={onConfigureClick}
             onEntityClick={onEntityClick}
             hoveredEntityId={hoveredEntityId}
             onHoveredEntityChange={onHoveredEntityChange}
           />
-          {isRegenerating && (
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 8,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 1.5,
-                borderRadius: "8px",
-                backgroundColor: "rgba(255, 255, 255, 0.78)",
-                backdropFilter: "blur(2px)",
-              }}
-            >
-              <CircularProgress size={32} />
-              <Typography
-                variant="smallTextParagraphs"
-                sx={{ color: ({ palette }) => palette.gray[70] }}
-              >
-                Regenerating item...
-              </Typography>
-            </Box>
-          )}
         </Box>
       )}
     </Box>

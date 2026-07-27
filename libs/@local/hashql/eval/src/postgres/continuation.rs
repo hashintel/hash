@@ -25,7 +25,6 @@ impl ContinuationAlias {
         TableReference {
             schema: None,
             name: TableName::from(self.identifier()),
-            alias: None,
         }
     }
 

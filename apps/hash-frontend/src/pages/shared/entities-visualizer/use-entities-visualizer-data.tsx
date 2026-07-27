@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { getLatestEntityVertices, getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -53,7 +53,15 @@ export type EntitiesVisualizerData = Partial<
    * Note that if is hasCachedContent is true, data for the given query is available before loading is complete.
    * The cached content will be replaced automatically and the value updated when the network request completes.
    */
-  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
+  /**
+   * Refetches the subgraph query only — the type universe keeps its last
+   * snapshot, so entities of types that appeared after it loaded stay hidden
+   * until the universe query itself refetches. Resolves to `undefined` without
+   * querying while the type universe is still awaited.
+   */
+  refetch: () => Promise<
+    ApolloQueryResult<QueryEntitySubgraphQuery> | undefined
+  >;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
   tableData: EntitiesTableData | null;
   totalResultCount: number | null;
@@ -70,6 +78,19 @@ export const useEntitiesVisualizerData = (params: {
   internalWebs: { webId: WebId }[];
   limit?: number;
   sort?: EntityQuerySortingRecord;
+  /**
+   * The type universe from `useAvailableTypes` — `null` while the summary is in
+   * flight, and permanently for pinned types, which never fetch it. The default
+   * (no type selection) view sends it as an include-type clause and holds its
+   * queries back until it arrives — see {@link buildEntitiesFilter}.
+   */
+  typeUniverse: VersionedUrl[] | null;
+  /**
+   * Set when the type universe failed to load. The gated queries stay skipped,
+   * but `loading` stops reporting `true` so the page can show an error state
+   * instead of an endless spinner.
+   */
+  typeUniverseError?: Error;
   view: VisualizerView;
 }): EntitiesVisualizerData => {
   const {
@@ -82,6 +103,8 @@ export const useEntitiesVisualizerData = (params: {
     internalWebs,
     limit,
     sort,
+    typeUniverse,
+    typeUniverseError,
     view,
   } = params;
 
@@ -102,9 +125,24 @@ export const useEntitiesVisualizerData = (params: {
         internalWebIds,
         pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
         pinnedEntityTypeIds: entityTypeIds,
+        typeUniverse,
       }),
-    [filterState, internalWebIds, entityTypeBaseUrl, entityTypeIds],
+    [
+      filterState,
+      internalWebIds,
+      entityTypeBaseUrl,
+      entityTypeIds,
+      typeUniverse,
+    ],
   );
+
+  // TODO(BE-705): a dedicated Graph endpoint will run the summary and the page
+  //  query in one transaction, replacing this client-side coordination.
+  const awaitingTypeUniverse =
+    typeUniverse === null &&
+    !entityTypeBaseUrl &&
+    !entityTypeIds?.length &&
+    filterState.type.selectedTypeIds === null;
 
   const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => ({
@@ -132,6 +170,7 @@ export const useEntitiesVisualizerData = (params: {
     SummarizeEntitiesQuery,
     SummarizeEntitiesQueryVariables
   >(summarizeEntitiesQuery, {
+    skip: awaitingTypeUniverse,
     variables: {
       request: {
         filter,
@@ -147,6 +186,7 @@ export const useEntitiesVisualizerData = (params: {
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
+    skip: awaitingTypeUniverse,
     onCompleted: (completedData) => {
       if (view === "Graph") {
         return;
@@ -169,6 +209,17 @@ export const useEntitiesVisualizerData = (params: {
     },
     variables,
   });
+
+  // Apollo's refetch punches through `skip`, and while the gate holds the built
+  // filter has no type clause at all — exactly the unestimable shape the gate
+  // exists to prevent. Drop the call instead.
+  const guardedRefetch = useCallback(async () => {
+    if (awaitingTypeUniverse) {
+      return undefined;
+    }
+
+    return refetch();
+  }, [awaitingTypeUniverse, refetch]);
 
   const hadCachedContent = useMemo(
     () =>
@@ -200,8 +251,8 @@ export const useEntitiesVisualizerData = (params: {
       ...data?.queryEntitySubgraph,
       entities,
       hadCachedContent,
-      loading,
-      refetch,
+      loading: loading || (awaitingTypeUniverse && !typeUniverseError),
+      refetch: guardedRefetch,
       subgraph,
       tableData,
       totalResultCount: summaryData?.summarizeEntities.count ?? null,
@@ -213,7 +264,9 @@ export const useEntitiesVisualizerData = (params: {
       entities,
       hadCachedContent,
       loading,
-      refetch,
+      awaitingTypeUniverse,
+      typeUniverseError,
+      guardedRefetch,
       subgraph,
       tableData,
       updateTableData,

@@ -1,7 +1,7 @@
 import type { ProcurementBasis } from "./procurement-basis-context";
 import type { Observation, ProcurementNodeObservation } from "./types";
 
-type DetailRow = Record<string, string | number | null>;
+type DetailRow = Record<string, unknown>;
 
 function isIsoDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -36,14 +36,16 @@ export function procurementNodeObservationsForBasis(
   basis: ProcurementBasis,
 ): Observation[] {
   const isComplete = basis === "complete";
-  return observations.map((observation) => ({
-    date: isComplete
-      ? observation.last_receipt_date
-      : observation.first_receipt_date,
-    value: isComplete
-      ? observation.last_receipt_value
-      : observation.first_receipt_value,
-  }));
+  return observations.map((observation) => {
+    return {
+      date: isComplete
+        ? observation.last_receipt_date
+        : observation.first_receipt_date,
+      value: isComplete
+        ? observation.last_receipt_value
+        : observation.first_receipt_value,
+    };
+  });
 }
 
 export function deriveProcurementTimingFromRows(rows: DetailRow[]): {

@@ -1,5 +1,10 @@
 # Using Petrinaut CLI from Python
 
+This page covers the generic `--model` and `run` protocol. For the
+manifest-driven flow where the CLI describes the search space and evaluates
+Optuna suggestions, see
+[Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md).
+
 Petrinaut CLI is a long-lived Node.js process. Start it once for one model,
 then reuse it for every Optuna trial. The model and its TypeScript/HIR code are
 compiled, type-checked, and engine-preflighted before the CLI becomes ready.

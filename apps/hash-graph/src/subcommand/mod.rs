@@ -1,4 +1,5 @@
 mod admin_server;
+mod atlas;
 mod completions;
 mod migrate;
 mod reindex_cache;
@@ -17,6 +18,7 @@ use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 pub use self::{
     admin_server::{AdminServerArgs, admin_server},
+    atlas::{AtlasArgs, atlas},
     completions::{CompletionsArgs, completions},
     migrate::{MigrateArgs, migrate},
     server::{ServerArgs, server},
@@ -209,6 +211,11 @@ pub enum Subcommand {
     Migrate(Box<MigrateArgs>),
     /// Run the type fetcher to request external types.
     TypeFetcher(Box<TypeFetcherArgs>),
+    /// Run the SALT Atlas service.
+    ///
+    /// Currently a stub exposing only `/status`, so the deployment pipeline
+    /// can be exercised before the real implementation lands.
+    Atlas(Box<AtlasArgs>),
     /// Generate a completion script for the given shell and outputs it to stdout.
     Completions(Box<CompletionsArgs>),
     /// Snapshot API for the database.
@@ -279,6 +286,7 @@ impl Subcommand {
                 tracing_config,
                 worker_threads,
             ),
+            Self::Atlas(args) => block_on(atlas(*args), "Atlas", tracing_config, worker_threads),
             Self::Completions(ref args) => {
                 completions(args);
                 Ok(())

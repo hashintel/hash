@@ -26,6 +26,15 @@ panels, contextual docs, and analysis settings. The selected step and settings
 are URL-backed where appropriate so route transitions and reloads preserve the
 view state.
 
+The URL-backed `Timeline` view lazily loads the product's
+`production_schedule.json` artifact. It aligns raw-material, intermediate, and
+finished-good batch lifecycles on a shared calendar.
+
+### Procurement planning profiles
+
+Supplier-aware datasets represent procurement at
+`material + supplier + receipt basis` grain.
+
 ### Opportunity Brief
 
 The opportunity brief route is
@@ -91,6 +100,11 @@ product display labels, raw analysis values, or client-specific data.
 - `csv_exported`
 - `product_step_selected`
 - `product_view_mode_changed`
+- `production_schedule_filter_changed`
+- `production_schedule_zoom_changed`
+- `production_schedule_granularity_changed`
+- `production_schedule_lineage_selected`
+- `production_schedule_batch_drilled`
 - `opportunity_marked_read`
 - `opportunity_marked_unread`
 - `wacc_changed`
@@ -100,6 +114,11 @@ product display labels, raw analysis values, or client-specific data.
 - `measure_changed`
 - `procurement_basis_changed`
 - `time_range_changed`
+
+Timeline interactions never send batch/order identifiers, dates, quantities,
+campaign names, or filter values. A failed optional schedule fetch is reported
+as `supply_chain_error` with interaction
+`production_schedule_fetch_failed`.
 
 ### Status Reports
 

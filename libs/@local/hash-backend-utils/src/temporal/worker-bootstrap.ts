@@ -22,6 +22,7 @@ import {
   Worker,
 } from "@temporalio/worker";
 
+import { sleep } from "../utils.js";
 import {
   OpenTelemetryActivityInboundInterceptor,
   OpenTelemetryActivityOutboundInterceptor,
@@ -83,6 +84,42 @@ const getTemporalAddress = (): string => {
     ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
     : TEMPORAL_DEFAULT_PORT;
   return `${host}:${port}`;
+};
+
+const CONNECT_RETRY_WINDOW_MS = 30_000;
+
+/**
+ * Connects to the Temporal server, retrying with exponential backoff until
+ * {@link CONNECT_RETRY_WINDOW_MS} has elapsed. Mirrors the Graph server's
+ * `create_temporal_client` (BE-701): the worker may start before its ECS
+ * Service Connect sidecar has healthy upstream endpoints, in which case the
+ * eager `GetSystemInfo` call fails with "no healthy upstream".
+ */
+const connectToTemporal = async (
+  address: string,
+  logger: Logger,
+): Promise<NativeConnection> => {
+  const deadline = Date.now() + CONNECT_RETRY_WINDOW_MS;
+  let delayMs = 500;
+
+  for (;;) {
+    try {
+      return await NativeConnection.connect({ address });
+    } catch (error) {
+      if (Date.now() + delayMs > deadline) {
+        throw error;
+      }
+      logger.warn(
+        `Temporal server is not reachable yet, retrying in ${delayMs} ms`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          remainingWindowMs: deadline - Date.now(),
+        },
+      );
+      await sleep(delayMs);
+      delayMs = Math.min(delayMs * 2, 5_000);
+    }
+  }
 };
 
 const createHealthCheckServer = (): http.Server =>
@@ -236,9 +273,7 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     });
   }
 
-  const connection = await NativeConnection.connect({
-    address: getTemporalAddress(),
-  });
+  const connection = await connectToTemporal(getTemporalAddress(), logger);
   logger.info("Created Temporal connection");
 
   // OTEL interceptor must precede Sentry: `composeInterceptors` builds

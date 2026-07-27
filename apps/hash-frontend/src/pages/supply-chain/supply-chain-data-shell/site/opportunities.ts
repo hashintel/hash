@@ -1,4 +1,5 @@
 import { formatCost, formatNumber } from "../../shared/cost";
+import { procurementStepDisplayLabel } from "../../shared/procurement-planning-ui";
 import { siteNodeKey } from "../../shared/site-node-key";
 import { siteNodeDisplayLabel } from "./shared/helpers";
 import { LOW_SAMPLE_N } from "./shared/row-types";
@@ -102,6 +103,13 @@ function sampleLabel(currentN: number, previousN?: number | null): string {
   return `Samples ${formatNumber(currentN)}; prev ${formatNumber(previousN)}`;
 }
 
+function opportunityTitle(row: SiteNode): string {
+  const label = siteNodeDisplayLabel(row);
+  return row.type === "procurement"
+    ? procurementStepDisplayLabel(label, "qualified")
+    : label;
+}
+
 function planningOpportunity(
   siteId: string,
   row: PlanningRow,
@@ -122,7 +130,7 @@ function planningOpportunity(
     productId: row.products[0]?.id ?? "",
     stepId: row.id,
     node: row,
-    title: siteNodeDisplayLabel(row),
+    title: opportunityTitle(row),
     products: row.products,
     typeLabel: kind === "planning_over" ? "Planning over" : "Planning under",
     impactLabel: "P95 vs plan",
@@ -173,7 +181,7 @@ export function buildSiteOpportunities({
       productId: row.products[0]?.id ?? "",
       stepId: row.id,
       node: row,
-      title: siteNodeDisplayLabel(row),
+      title: opportunityTitle(row),
       products: row.products,
       typeLabel: "Dwell cost",
       impactLabel: `Cost (${timeRange})`,

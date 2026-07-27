@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { handleProtocolLine } from "./protocol";
+import { parseServerRunRequest } from "./run-request";
 
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
@@ -123,11 +124,42 @@ describe("handleProtocolLine", () => {
     expect(model.runMock).toHaveBeenCalledWith({
       parameterValues: { rate: "1.5", count: "3", enabled: "true" },
       initialMarking: { plain: 2, colored: [{ value: 4 }] },
-      metrics: ["Metric"],
+      metrics: ["metric-id"],
       maxSteps: 1,
       dt: 0.25,
       seed: 42,
     });
+  });
+
+  it("constructs scenario parameter records without prototype mutation", () => {
+    const request = parseServerRunRequest(
+      JSON.parse(
+        '{"scenario":{"id":"scenario","parameterValues":{"__proto__":1}},"maxSteps":0}',
+      ),
+    );
+
+    expect(request.scenario?.parameterValues).toHaveProperty("__proto__", 1);
+    expect(Object.getPrototypeOf(request.scenario?.parameterValues)).toBe(
+      Object.prototype,
+    );
+  });
+
+  it("returns metric values under the requested stable id", () => {
+    const model = createModel();
+
+    expect(
+      send(model, {
+        id: 4,
+        method: "run",
+        params: { metrics: ["metric-id"], maxSteps: 0 },
+      }),
+    ).toMatchObject({
+      id: 4,
+      result: { metrics: { "metric-id": 1 } },
+    });
+    expect(model.runMock).toHaveBeenCalledWith(
+      expect.objectContaining({ metrics: ["metric-id"] }),
+    );
   });
 
   it("prioritizes exact ids and uses last-wins name aliases", () => {
@@ -197,6 +229,10 @@ describe("handleProtocolLine", () => {
     [{ maxTime: null }, "Run config requires either maxTime or maxSteps"],
     [{ parameters: [] }, "parameters must be an object"],
     [{ initialState: "invalid" }, "initialState must be an object"],
+    [
+      { scenario: { id: "scenario", parameterValues: {} }, parameters: {} },
+      "scenario cannot be combined with parameters or initialState",
+    ],
     [{ metrics: ["Metric", 1] }, "metrics must be an array of strings"],
     [{ seed: "42" }, "seed must be a finite number"],
     [{ dt: "0.1" }, "dt must be a finite number"],

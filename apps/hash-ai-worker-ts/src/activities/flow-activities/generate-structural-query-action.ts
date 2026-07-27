@@ -6,14 +6,18 @@ import dedent from "dedent";
  * This activity explores available entity types, constructs and tests queries iteratively.
  */
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { stableStringify } from "@local/hash-backend-utils/dashboards";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
-  queryEntityTypes,
-  searchEntityTypes,
-} from "@local/hash-graph-sdk/entity-type";
+  getSimpleGraph,
+  type SimpleEntityWithoutHref,
+} from "@local/hash-backend-utils/simplified-graph";
+import {
+  queryEntitySubgraph,
+  summarizeEntities,
+} from "@local/hash-graph-sdk/entity";
+import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import {
   type ChartType,
   chartTypes,
@@ -23,7 +27,9 @@ import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/fl
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
+  ignoreNoisySystemTypesFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
 import { runAgenticToolLoop } from "../shared/agentic-tool-loop.js";
@@ -176,8 +182,7 @@ const systemPrompt = dedent(`
 
   ## Workflow (required)
 
-  1. Use search_entity_types to find the entity types relevant to the user's goal (the initial
-     list you are given may be incomplete).
+  1. Pick the relevant entity types from the complete list provided in the first message.
   2. Construct a query, then use test_query to verify it returns the expected data. The EXACT
      query you submit (same filter and traversalPaths) must have been tested successfully —
      submit_query rejects untested queries, so re-test after any change before submitting.
@@ -217,7 +222,292 @@ const systemPrompt = dedent(`
   }
 `);
 
-type ToolName = "search_entity_types" | "test_query" | "submit_query";
+type ToolName = "test_query" | "submit_query";
+
+type EntityTypeOverview = {
+  title: string;
+  baseUrl: string;
+  count: number;
+  description?: string;
+  propertyBaseUrls: string[];
+  outgoingLinks: {
+    linkType: {
+      title: string;
+      baseUrl: string;
+    };
+    targetEntityTypes: {
+      title: string;
+      baseUrl: string;
+    }[];
+  }[];
+};
+
+const createEntityTypeOverview = ({
+  entityTypes,
+  entityTypeCounts,
+}: {
+  entityTypes: Awaited<ReturnType<typeof queryEntityTypes>>["entityTypes"];
+  entityTypeCounts: NonNullable<
+    Awaited<ReturnType<typeof summarizeEntities>>["typeIds"]
+  >;
+}): EntityTypeOverview[] => {
+  const entityTypeById = new Map(
+    entityTypes.map((entityType) => [entityType.schema.$id, entityType]),
+  );
+  const entityTypeByBaseUrl = new Map(
+    entityTypes.map((entityType) => [
+      extractBaseUrl(entityType.schema.$id),
+      entityType,
+    ]),
+  );
+  const getEntityTypeAndAncestors = (
+    entityType: (typeof entityTypes)[number],
+  ): (typeof entityTypes)[number][] => {
+    const entityTypeAndAncestors: (typeof entityTypes)[number][] = [];
+    const visitedEntityTypeIds = new Set<string>();
+
+    const visitEntityType = (
+      currentEntityType: (typeof entityTypes)[number],
+    ) => {
+      if (visitedEntityTypeIds.has(currentEntityType.schema.$id)) {
+        return;
+      }
+
+      visitedEntityTypeIds.add(currentEntityType.schema.$id);
+      entityTypeAndAncestors.push(currentEntityType);
+
+      for (const parentReference of currentEntityType.schema.allOf ?? []) {
+        const parentEntityType =
+          entityTypeById.get(parentReference.$ref) ??
+          entityTypeByBaseUrl.get(extractBaseUrl(parentReference.$ref));
+
+        if (parentEntityType) {
+          visitEntityType(parentEntityType);
+        }
+      }
+    };
+
+    visitEntityType(entityType);
+
+    return entityTypeAndAncestors;
+  };
+  const countByBaseUrl = new Map<string, number>();
+
+  for (const [entityTypeId, count] of typedEntries(entityTypeCounts)) {
+    const baseUrl = extractBaseUrl(entityTypeId);
+    countByBaseUrl.set(baseUrl, (countByBaseUrl.get(baseUrl) ?? 0) + count);
+  }
+
+  const overviewByBaseUrl = new Map<string, EntityTypeOverview>();
+
+  for (const entityType of entityTypes) {
+    const baseUrl = extractBaseUrl(entityType.schema.$id);
+    const versionCount = entityTypeCounts[entityType.schema.$id] ?? 0;
+    const count = countByBaseUrl.get(baseUrl) ?? 0;
+
+    /**
+     * An ontology type with no instances in this web cannot contribute data to
+     * the chart. Omitting it also prevents the model from spending iterations
+     * probing plausible-but-empty types. Check the version-specific count here
+     * so properties and links from unused historical versions are not merged
+     * into the overview for a populated version.
+     */
+    if (versionCount === 0) {
+      continue;
+    }
+
+    const entityTypeAndAncestors = getEntityTypeAndAncestors(entityType);
+    if (
+      entityTypeAndAncestors.some(
+        (ancestorEntityType) =>
+          ancestorEntityType.schema.$id ===
+          blockProtocolEntityTypes.link.entityTypeId,
+      )
+    ) {
+      continue;
+    }
+
+    const existingOverview = overviewByBaseUrl.get(baseUrl);
+    const propertyBaseUrls = new Set([
+      ...(existingOverview?.propertyBaseUrls ?? []),
+      ...entityTypeAndAncestors.flatMap((ancestorEntityType) =>
+        Object.keys(ancestorEntityType.schema.properties),
+      ),
+    ]);
+    const outgoingLinksByBaseUrl = new Map(
+      (existingOverview?.outgoingLinks ?? []).map((outgoingLink) => [
+        outgoingLink.linkType.baseUrl,
+        outgoingLink,
+      ]),
+    );
+
+    for (const ancestorEntityType of entityTypeAndAncestors) {
+      for (const [linkTypeId, linkSchema] of typedEntries(
+        ancestorEntityType.schema.links ?? {},
+      )) {
+        const linkTypeBaseUrl = extractBaseUrl(linkTypeId);
+        const linkType = entityTypeById.get(linkTypeId);
+        const existingOutgoingLink =
+          outgoingLinksByBaseUrl.get(linkTypeBaseUrl);
+        const targetEntityTypesByBaseUrl = new Map(
+          (existingOutgoingLink?.targetEntityTypes ?? []).map(
+            (targetEntityType) => [targetEntityType.baseUrl, targetEntityType],
+          ),
+        );
+
+        if ("oneOf" in linkSchema.items) {
+          for (const targetSchema of linkSchema.items.oneOf) {
+            const targetEntityTypeBaseUrl = extractBaseUrl(targetSchema.$ref);
+            const targetEntityType =
+              entityTypeById.get(targetSchema.$ref) ??
+              entityTypeByBaseUrl.get(targetEntityTypeBaseUrl);
+
+            targetEntityTypesByBaseUrl.set(targetEntityTypeBaseUrl, {
+              title: targetEntityType?.schema.title ?? targetEntityTypeBaseUrl,
+              baseUrl: targetEntityTypeBaseUrl,
+            });
+          }
+        }
+
+        outgoingLinksByBaseUrl.set(linkTypeBaseUrl, {
+          linkType: {
+            title: linkType?.schema.title ?? linkTypeBaseUrl,
+            baseUrl: linkTypeBaseUrl,
+          },
+          targetEntityTypes: [...targetEntityTypesByBaseUrl.values()].sort(
+            (left, right) => left.title.localeCompare(right.title),
+          ),
+        });
+      }
+    }
+
+    overviewByBaseUrl.set(baseUrl, {
+      title: entityType.schema.title,
+      baseUrl,
+      count,
+      description: entityType.schema.description,
+      propertyBaseUrls: [...propertyBaseUrls].sort(),
+      outgoingLinks: [...outgoingLinksByBaseUrl.values()].sort((left, right) =>
+        left.linkType.title.localeCompare(right.linkType.title),
+      ),
+    });
+  }
+
+  return [...overviewByBaseUrl.values()].sort((left, right) =>
+    left.title.localeCompare(right.title),
+  );
+};
+
+const compactExampleValue = (value: unknown): unknown => {
+  if (
+    value === null ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  const serializedValue =
+    typeof value === "string" ? value : JSON.stringify(value);
+
+  return serializedValue.length > 120
+    ? `${serializedValue.slice(0, 117)}...`
+    : serializedValue;
+};
+
+const createTestQuerySummary = (simpleEntities: SimpleEntityWithoutHref[]) => {
+  const entityById = new Map<string, SimpleEntityWithoutHref>(
+    simpleEntities.map((entity) => [entity.entityId, entity]),
+  );
+  type EntityTypeSummary = {
+    count: number;
+    properties: Map<
+      string,
+      {
+        presentOn: number;
+        example: unknown;
+      }
+    >;
+  };
+  const entityTypes = new Map<string, EntityTypeSummary>();
+  const links = new Map<
+    string,
+    {
+      sourceEntityTypes: string[];
+      linkEntityTypes: string[];
+      targetEntityTypes: string[];
+      count: number;
+    }
+  >();
+
+  for (const entity of simpleEntities) {
+    for (const entityType of entity.entityTypes) {
+      const entityTypeSummary: EntityTypeSummary = entityTypes.get(
+        entityType,
+      ) ?? {
+        count: 0,
+        properties: new Map(),
+      };
+      entityTypeSummary.count += 1;
+
+      for (const [propertyName, propertyValue] of Object.entries(
+        entity.properties,
+      )) {
+        const propertySummary = entityTypeSummary.properties.get(
+          propertyName,
+        ) ?? {
+          presentOn: 0,
+          example: compactExampleValue(propertyValue),
+        };
+        propertySummary.presentOn += 1;
+        entityTypeSummary.properties.set(propertyName, propertySummary);
+      }
+
+      entityTypes.set(entityType, entityTypeSummary);
+    }
+
+    for (const link of entity.links) {
+      const targetEntity = entityById.get(link.targetEntityId);
+      const sourceEntityTypes = [...entity.entityTypes].sort();
+      const linkEntityTypes = [...link.entityTypes].sort();
+      const targetEntityTypes = targetEntity
+        ? [...targetEntity.entityTypes].sort()
+        : ["not included in query result"];
+      const linkKey = stableStringify({
+        sourceEntityTypes,
+        linkEntityTypes,
+        targetEntityTypes,
+      });
+      const linkSummary = links.get(linkKey) ?? {
+        sourceEntityTypes,
+        linkEntityTypes,
+        targetEntityTypes,
+        count: 0,
+      };
+      linkSummary.count += 1;
+      links.set(linkKey, linkSummary);
+    }
+  }
+
+  return {
+    entityCount: simpleEntities.length,
+    entityTypes: [...entityTypes.entries()]
+      .map(([title, entityTypeSummary]) => ({
+        title,
+        count: entityTypeSummary.count,
+        properties: [...entityTypeSummary.properties.entries()]
+          .map(([name, propertySummary]) => ({
+            name,
+            ...propertySummary,
+          }))
+          .sort((left, right) => left.name.localeCompare(right.name)),
+      }))
+      .sort((left, right) => left.title.localeCompare(right.title)),
+    linkTopology: [...links.values()].sort((left, right) =>
+      stableStringify(left).localeCompare(stableStringify(right)),
+    ),
+  };
+};
 
 /**
  * `LlmToolInputSchema` property values don't admit `$ref` inside `items`, but
@@ -245,23 +535,6 @@ const parseStringifiedFilter = (rawInput: object): object => {
 };
 
 const tools: LlmToolDefinition<ToolName>[] = [
-  {
-    name: "search_entity_types",
-    description:
-      "Semantically search the available entity types by a natural-language phrase. Returns matching types with their property base URLs, which you need for building 'properties' filter paths.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description:
-            "A short natural-language description of the kind of entity to find, e.g. 'sales deals' or 'aircraft flights'",
-        },
-      },
-      required: ["query"],
-      additionalProperties: false,
-    },
-  },
   {
     name: "test_query",
     description:
@@ -332,40 +605,77 @@ const tools: LlmToolDefinition<ToolName>[] = [
 
 /**
  * Each iteration is one model turn (which may include several parallel tool
- * calls). A typical successful run uses ~6–10 turns (type search, a few
- * test queries, submit), but exploratory goals can need more.
+ * calls). A typical successful run uses a few test queries followed by submit,
+ * but exploratory goals can need more.
  */
 const maximumIterations = 20;
-
-/**
- * Cap how many entity types are listed in the opening message. The model can
- * find anything not listed via the search_entity_types tool.
- */
-const maximumInitialEntityTypes = 50;
-
-/**
- * Cap the size of test_query result payloads fed back to the model, so a
- * broad test query can't blow up the context window.
- */
-const maximumTestResultCharacters = 20_000;
-
-/** Maximum semantic distance for entity type search results (see search-bar). */
-const maximumSemanticDistance = 0.7;
 
 type ActionOutputs = AiActionStepOutput<"generateStructuralQuery">[];
 
 export const generateStructuralQueryAction: AiFlowActionActivity<
   "generateStructuralQuery"
 > = async ({ inputs }) => {
-  const { userGoal } = getSimplifiedAiFlowActionInputs({
+  const {
+    userGoal,
+    refinementInstruction,
+    existingStructuralQuery,
+    existingChartType,
+    refinementScope,
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "generateStructuralQuery",
   }) as {
-    [K in InputNameForAiFlowAction<"generateStructuralQuery">]: string;
+    [K in InputNameForAiFlowAction<"generateStructuralQuery">]:
+      | string
+      | undefined;
   };
 
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
+
+  if (refinementScope && refinementScope !== "query") {
+    if (!existingStructuralQuery || !existingChartType) {
+      return {
+        code: StatusCode.InvalidArgument,
+        message: "Existing query and chart type are required for refinement",
+        contents: [],
+      };
+    }
+
+    const outputs: ActionOutputs = [
+      {
+        outputName: "structuralQuery",
+        payload: { kind: "Text", value: existingStructuralQuery },
+      },
+      {
+        outputName: "explanation",
+        payload: {
+          kind: "Text",
+          value: "Existing structural query preserved by refinement plan",
+        },
+      },
+      {
+        outputName: "suggestedChartTypes",
+        payload: {
+          kind: "Text",
+          value: JSON.stringify([existingChartType]),
+        },
+      },
+    ];
+    return {
+      code: StatusCode.Ok,
+      message: "Existing structural query preserved",
+      contents: [{ outputs }],
+    };
+  }
+
+  if (!userGoal) {
+    return {
+      code: StatusCode.InvalidArgument,
+      message: "userGoal is required",
+      contents: [],
+    };
+  }
 
   const webMachineId = await getWebMachineId(
     { graphApi: graphApiClient },
@@ -377,79 +687,29 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
   }
   const webMachineAuthentication = { actorId: webMachineId };
 
-  const entityTypesResponse = await queryEntityTypes(
-    graphApiClient,
-    userAuthentication,
-    {
+  const [entityTypesResponse, entitySummary] = await Promise.all([
+    queryEntityTypes(graphApiClient, userAuthentication, {
       filter: { all: [] },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeEntityTypes: "resolved",
-    },
-  );
+    }),
+    summarizeEntities({ graphApi: graphApiClient }, webMachineAuthentication, {
+      filter: scopeFilterToWeb(ignoreNoisySystemTypesFilter, webId),
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includeTypeIds: true,
+    }),
+  ]);
 
   /**
-   * A compact overview of (a capped number of) available entity types for the
-   * opening message. Property base URLs are deliberately omitted here – the
-   * model retrieves them for the types it cares about via search_entity_types.
+   * Only populated types are useful for constructing a query in this web.
+   * Counts and declared link topology let the model select viable types
+   * without first reverse-engineering the graph through test queries.
    */
-  const entityTypeOverview = entityTypesResponse.entityTypes
-    .slice(0, maximumInitialEntityTypes)
-    .map((entityType) => ({
-      title: entityType.schema.title,
-      baseUrl: extractBaseUrl(entityType.schema.$id),
-      description: entityType.schema.description,
-    }));
-
-  const totalEntityTypeCount = entityTypesResponse.entityTypes.length;
-
-  const simplifyEntityTypeForSearchResult = (
-    entityType: (typeof entityTypesResponse.entityTypes)[number],
-  ) => ({
-    title: entityType.schema.title,
-    baseUrl: extractBaseUrl(entityType.schema.$id),
-    description: entityType.schema.description,
-    propertyBaseUrls: Object.keys(entityType.schema.properties),
+  const entityTypeOverview = createEntityTypeOverview({
+    entityTypes: entityTypesResponse.entityTypes,
+    entityTypeCounts: entitySummary.typeIds ?? {},
   });
-
-  const handleSearchEntityTypes = async (query: string): Promise<string> => {
-    try {
-      const { entityTypes: matches } = await searchEntityTypes(
-        { graphApi: graphApiClient },
-        userAuthentication,
-        {
-          semanticString: query,
-          maximumSemanticDistance,
-          limit: 10,
-        },
-      );
-
-      if (matches.length > 0) {
-        return `Matching entity types:\n${stringify(
-          matches.map(simplifyEntityTypeForSearchResult),
-        )}`;
-      }
-    } catch {
-      // Semantic search unavailable (e.g. embeddings not generated) – fall
-      // through to the keyword match below.
-    }
-
-    const lowerCaseQuery = query.toLowerCase();
-    const keywordMatches = entityTypesResponse.entityTypes
-      .filter(
-        ({ schema }) =>
-          schema.title.toLowerCase().includes(lowerCaseQuery) ||
-          schema.description.toLowerCase().includes(lowerCaseQuery),
-      )
-      .slice(0, 10);
-
-    if (keywordMatches.length === 0) {
-      return "No matching entity types found. Try a different search phrase, or pick from the entity types listed in the first message.";
-    }
-
-    return `Matching entity types:\n${stringify(
-      keywordMatches.map(simplifyEntityTypeForSearchResult),
-    )}`;
-  };
 
   /**
    * Canonical keys of the (filter, traversalPaths) combinations that a
@@ -475,7 +735,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
       tools,
       maximumIterations,
       noToolCallNudge:
-        "Please use one of the available tools to explore entity types, test a query, or submit your final query.",
+        "Please use test_query to verify a query or submit_query to submit the verified final query.",
       usageTrackingParams: {
         customMetadata: {
           stepId,
@@ -499,12 +759,24 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
               type: "text",
               text: dedent(`
                 User's goal: "${userGoal}"
+                ${
+                  refinementInstruction && existingStructuralQuery
+                    ? dedent(`
+                        Refinement instruction: "${refinementInstruction}"
+                        Existing structural query:
+                        ${existingStructuralQuery}
 
-                There are ${totalEntityTypeCount} entity types available. Here is an overview of ${entityTypeOverview.length} of them (use search_entity_types to find others, and to get the property base URLs of any type you want to filter on):
+                        Refine the existing query only as required by the instruction.
+                      `)
+                    : ""
+                }
+
+                These are the ${entityTypeOverview.length} populated entity types in the selected web.
+                Each entry includes its entity count and declared outgoing link topology. Pick relevant types only from this list:
                 ${JSON.stringify(entityTypeOverview)}
 
                 Please:
-                1. Use search_entity_types to find the types relevant to the goal
+                1. Pick the relevant types and property base URLs from the list above
                 2. Construct a query and test it with test_query to verify it returns appropriate data
                 3. Submit your final query when satisfied (the exact query must have been tested successfully first)
               `),
@@ -516,15 +788,6 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
         const args = toolCall.input as Record<string, unknown>;
 
         switch (toolCall.name) {
-          case "search_entity_types": {
-            const query = args.query as string;
-
-            return {
-              kind: "tool-result",
-              content: await handleSearchEntityTypes(query),
-            };
-          }
-
           case "test_query": {
             const filter = args.filter as Filter;
             const traversalPaths = (args.traversalPaths ??
@@ -548,19 +811,13 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
 
               const { entities: simpleEntities } = getSimpleGraph(subgraph);
 
-              let resultsJson = stringify(simpleEntities.slice(0, limit));
-              if (resultsJson.length > maximumTestResultCharacters) {
-                resultsJson = `${resultsJson.slice(
-                  0,
-                  maximumTestResultCharacters,
-                )}\n… (results truncated – rely on the entities shown above)`;
-              }
+              const querySummary = createTestQuerySummary(simpleEntities);
 
               testedQueryKeys.add(queryKey(filter, traversalPaths));
 
               return {
                 kind: "tool-result",
-                content: `Query returned ${simpleEntities.length} entities:\n${resultsJson}`,
+                content: stringify(querySummary),
               };
             } catch (error) {
               return {

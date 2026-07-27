@@ -131,6 +131,54 @@ with PetrinautClient(
     service_level = result["metrics"]["Service level"]
 ```
 
+## Supply chain profit: an optimization objective
+
+This model is a compact single-stage supply chain with five uncolored places
+(`RawInventory`, `FinishedGoods`, `CustomerDemand`, `SoldOrders`, `LostSales`)
+and seven parameters. Its `Profit` metric reads the decision parameters
+directly, so it returns a single economic objective for each run.
+
+```python
+with PetrinautClient(
+    model=Path(
+        "libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json"
+    )
+) as client:
+    result = client.run(
+        parameters={
+            "production_rate": 100,
+            "reorder_threshold": 160,
+            "batch_size": 180,
+            "selling_price": 34,
+            "expedite_fraction": 0.25,
+            "marketing_spend": 20,
+            "demand_multiplier": 1,
+        },
+        initialState={
+            # All places are uncolored, so initial state is token counts.
+            "RawInventory": 200,
+            "FinishedGoods": 100,
+            "CustomerDemand": 0,
+            "SoldOrders": 0,
+            "LostSales": 0,
+        },
+        metrics=["Profit", "Service level"],
+        maxSteps=365,
+        dt=0.1,
+        seed=1234,
+    )
+
+    profit = result["metrics"]["Profit"]
+```
+
+Because `Profit` depends on the parameters, sweeping `production_rate`,
+`reorder_threshold`, `batch_size`, `selling_price`, `marketing_spend`, and
+`expedite_fraction` while fixing `demand_multiplier` searches for the most
+profitable operating policy. The CLI runs that search from an optimization
+manifest rather than one call at a time -- see
+[Running an optimization manifest](./OPTIMIZATION_INTEGRATION.md), which drives
+this same model from `supply-chain-profit-optimization.json`.
+
 ## Discovering the expected inputs
 
 Call `metadata` after starting a client:

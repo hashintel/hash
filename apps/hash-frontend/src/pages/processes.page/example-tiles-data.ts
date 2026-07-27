@@ -4,6 +4,7 @@ import {
   probabilisticSatellitesSDCPN,
   supplyChainWithDisruption,
   productionMachines,
+  supplyChainProfit,
 } from "@hashintel/petrinaut-core/examples";
 
 import type { SDCPN } from "@hashintel/petrinaut";
@@ -31,6 +32,10 @@ export const exampleTiles: ExampleTile[] = [
   {
     slug: "supply-chain-with-disruption",
     ...supplyChainWithDisruption,
+  },
+  {
+    slug: "supply-chain-profit",
+    ...supplyChainProfit,
   },
 ];
 

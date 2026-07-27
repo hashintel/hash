@@ -1,3 +1,5 @@
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../../extensions";
+import { resolveNetParameterValues } from "../../../parameter-values";
 import { createWorkerTransport } from "../../runtime/transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
@@ -474,6 +476,11 @@ export function createMonteCarloExperiment(
       metrics: createMonteCarloUserDefinedMetricConfigsFromSpecs(
         metricSpecs,
         config.sdcpn,
+        resolveNetParameterValues(
+          config.sdcpn.parameters,
+          config.parameterValues,
+          (config.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS).parameters,
+        ),
       ),
     });
   }

@@ -1,0 +1,1512 @@
+{
+  "id": "raw_dwell_highland_arabica",
+  "label": "Raw Material Dwell: Highland Arabica",
+  "type": "raw_material_dwell",
+  "durations": [
+    28.7, 50.8, 14.8, 72.2, 34.4, 45.1, 24.6, 59.0, 20.5, 39.4, 12.3, 77.9,
+    106.6, 36.9, 31.2, 53.3, 18.0, 64.0, 4.1, 45.1, 32.8, 23.0, 69.7, 41.0,
+    90.2, 26.2, 55.8, 36.9, 75.4, 16.4, 47.6, 28.7, 34.4, 61.5, 9.8, 39.4, 49.2,
+    31.2, 40.2, 44.3, 27.9, 32.0, 34.4, 50.0, 33.6, 37.7, 40.2, 43.5, 29.5,
+    33.6, 36.1, 39.4, 42.6, 29.5, 32.0, 35.3, 38.5, 41.8, 38.5, 41.0, 44.3,
+    47.6, 32.0, 36.9, 40.2, 44.3, 27.9, 32.0, 45.9, 50.0, 33.6, 37.7, 40.2,
+    45.9, 29.5, 33.6, 36.1, 39.4, 26.2, 29.5, 32.0, 35.3, 38.5
+  ],
+  "observations": [
+    {
+      "date": "2022-04-02",
+      "value": 28.7
+    },
+    {
+      "date": "2022-04-15",
+      "value": 50.8
+    },
+    {
+      "date": "2022-04-28",
+      "value": 14.8
+    },
+    {
+      "date": "2022-08-05",
+      "value": 72.2
+    },
+    {
+      "date": "2022-08-12",
+      "value": 34.4
+    },
+    {
+      "date": "2022-08-20",
+      "value": 45.1
+    },
+    {
+      "date": "2022-08-28",
+      "value": 24.6
+    },
+    {
+      "date": "2023-01-10",
+      "value": 59.0
+    },
+    {
+      "date": "2023-01-22",
+      "value": 20.5
+    },
+    {
+      "date": "2023-01-30",
+      "value": 39.4
+    },
+    {
+      "date": "2023-06-05",
+      "value": 12.3
+    },
+    {
+      "date": "2023-06-18",
+      "value": 77.9
+    },
+    {
+      "date": "2023-10-03",
+      "value": 106.6
+    },
+    {
+      "date": "2023-10-10",
+      "value": 36.9
+    },
+    {
+      "date": "2023-10-18",
+      "value": 31.2
+    },
+    {
+      "date": "2023-10-25",
+      "value": 53.3
+    },
+    {
+      "date": "2023-10-30",
+      "value": 18.0
+    },
+    {
+      "date": "2024-03-05",
+      "value": 64.0
+    },
+    {
+      "date": "2024-03-12",
+      "value": 4.1
+    },
+    {
+      "date": "2024-03-20",
+      "value": 45.1
+    },
+    {
+      "date": "2024-03-28",
+      "value": 32.8
+    },
+    {
+      "date": "2024-07-08",
+      "value": 23.0
+    },
+    {
+      "date": "2024-07-15",
+      "value": 69.7
+    },
+    {
+      "date": "2024-07-22",
+      "value": 41.0
+    },
+    {
+      "date": "2024-11-04",
+      "value": 90.2
+    },
+    {
+      "date": "2024-11-11",
+      "value": 26.2
+    },
+    {
+      "date": "2024-11-18",
+      "value": 55.8
+    },
+    {
+      "date": "2024-11-25",
+      "value": 36.9
+    },
+    {
+      "date": "2024-11-30",
+      "value": 75.4
+    },
+    {
+      "date": "2025-03-03",
+      "value": 16.4
+    },
+    {
+      "date": "2025-03-10",
+      "value": 47.6
+    },
+    {
+      "date": "2025-03-17",
+      "value": 28.7
+    },
+    {
+      "date": "2025-03-24",
+      "value": 34.4
+    },
+    {
+      "date": "2025-07-02",
+      "value": 61.5
+    },
+    {
+      "date": "2025-07-09",
+      "value": 9.8
+    },
+    {
+      "date": "2025-07-16",
+      "value": 39.4
+    },
+    {
+      "date": "2025-07-23",
+      "value": 49.2
+    },
+    {
+      "date": "2025-07-30",
+      "value": 31.2
+    },
+    {
+      "date": "2025-09-05",
+      "value": 40.2
+    },
+    {
+      "date": "2025-09-11",
+      "value": 44.3
+    },
+    {
+      "date": "2025-09-17",
+      "value": 27.9
+    },
+    {
+      "date": "2025-09-23",
+      "value": 32.0
+    },
+    {
+      "date": "2025-09-29",
+      "value": 34.4
+    },
+    {
+      "date": "2025-10-06",
+      "value": 50.0
+    },
+    {
+      "date": "2025-10-12",
+      "value": 33.6
+    },
+    {
+      "date": "2025-10-18",
+      "value": 37.7
+    },
+    {
+      "date": "2025-10-24",
+      "value": 40.2
+    },
+    {
+      "date": "2025-10-30",
+      "value": 43.5
+    },
+    {
+      "date": "2025-11-04",
+      "value": 29.5
+    },
+    {
+      "date": "2025-11-10",
+      "value": 33.6
+    },
+    {
+      "date": "2025-11-16",
+      "value": 36.1
+    },
+    {
+      "date": "2025-11-22",
+      "value": 39.4
+    },
+    {
+      "date": "2025-11-28",
+      "value": 42.6
+    },
+    {
+      "date": "2025-12-05",
+      "value": 29.5
+    },
+    {
+      "date": "2025-12-11",
+      "value": 32.0
+    },
+    {
+      "date": "2025-12-17",
+      "value": 35.3
+    },
+    {
+      "date": "2025-12-23",
+      "value": 38.5
+    },
+    {
+      "date": "2025-12-29",
+      "value": 41.8
+    },
+    {
+      "date": "2026-01-06",
+      "value": 38.5
+    },
+    {
+      "date": "2026-01-12",
+      "value": 41.0
+    },
+    {
+      "date": "2026-01-18",
+      "value": 44.3
+    },
+    {
+      "date": "2026-01-24",
+      "value": 47.6
+    },
+    {
+      "date": "2026-01-30",
+      "value": 32.0
+    },
+    {
+      "date": "2026-02-04",
+      "value": 36.9
+    },
+    {
+      "date": "2026-02-10",
+      "value": 40.2
+    },
+    {
+      "date": "2026-02-16",
+      "value": 44.3
+    },
+    {
+      "date": "2026-02-22",
+      "value": 27.9
+    },
+    {
+      "date": "2026-02-28",
+      "value": 32.0
+    },
+    {
+      "date": "2026-03-05",
+      "value": 45.9
+    },
+    {
+      "date": "2026-03-11",
+      "value": 50.0
+    },
+    {
+      "date": "2026-03-17",
+      "value": 33.6
+    },
+    {
+      "date": "2026-03-23",
+      "value": 37.7
+    },
+    {
+      "date": "2026-03-29",
+      "value": 40.2
+    },
+    {
+      "date": "2026-04-06",
+      "value": 45.9
+    },
+    {
+      "date": "2026-04-12",
+      "value": 29.5
+    },
+    {
+      "date": "2026-04-18",
+      "value": 33.6
+    },
+    {
+      "date": "2026-04-24",
+      "value": 36.1
+    },
+    {
+      "date": "2026-04-30",
+      "value": 39.4
+    },
+    {
+      "date": "2026-05-04",
+      "value": 26.2
+    },
+    {
+      "date": "2026-05-10",
+      "value": 29.5
+    },
+    {
+      "date": "2026-05-16",
+      "value": 32.0
+    },
+    {
+      "date": "2026-05-22",
+      "value": 35.3
+    },
+    {
+      "date": "2026-05-28",
+      "value": 38.5
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2022-04",
+      "mean": 31.4,
+      "median": 28.7,
+      "p10": 17.5,
+      "p25": 21.7,
+      "p75": 39.8,
+      "p90": 46.4,
+      "n": 3,
+      "total_kg_days": 483000.0
+    },
+    {
+      "month": "2022-08",
+      "mean": 44.1,
+      "median": 39.8,
+      "p10": 27.6,
+      "p25": 32.0,
+      "p75": 51.9,
+      "p90": 64.0,
+      "n": 4,
+      "total_kg_days": 903000.0
+    },
+    {
+      "month": "2023-01",
+      "mean": 39.6,
+      "median": 39.4,
+      "p10": 24.3,
+      "p25": 29.9,
+      "p75": 49.2,
+      "p90": 55.1,
+      "n": 3,
+      "total_kg_days": 609000.0
+    },
+    {
+      "month": "2023-06",
+      "mean": 45.1,
+      "median": 45.1,
+      "p10": 18.9,
+      "p25": 28.7,
+      "p75": 61.5,
+      "p90": 71.3,
+      "n": 2,
+      "total_kg_days": 462000.0
+    },
+    {
+      "month": "2023-10",
+      "mean": 49.2,
+      "median": 36.9,
+      "p10": 23.3,
+      "p25": 31.2,
+      "p75": 53.3,
+      "p90": 85.3,
+      "n": 5,
+      "total_kg_days": 1260000.0
+    },
+    {
+      "month": "2024-03",
+      "mean": 36.5,
+      "median": 38.9,
+      "p10": 12.7,
+      "p25": 25.7,
+      "p75": 49.9,
+      "p90": 58.3,
+      "n": 4,
+      "total_kg_days": 747600.0
+    },
+    {
+      "month": "2024-07",
+      "mean": 44.5,
+      "median": 41.0,
+      "p10": 26.6,
+      "p25": 32.0,
+      "p75": 55.3,
+      "p90": 64.0,
+      "n": 3,
+      "total_kg_days": 684600.0
+    },
+    {
+      "month": "2024-11",
+      "mean": 56.9,
+      "median": 55.8,
+      "p10": 30.5,
+      "p25": 36.9,
+      "p75": 75.4,
+      "p90": 84.3,
+      "n": 5,
+      "total_kg_days": 1457400.0
+    },
+    {
+      "month": "2025-03",
+      "mean": 31.8,
+      "median": 31.6,
+      "p10": 20.1,
+      "p25": 25.7,
+      "p75": 37.7,
+      "p90": 43.6,
+      "n": 4,
+      "total_kg_days": 651000.0
+    },
+    {
+      "month": "2025-07",
+      "mean": 38.2,
+      "median": 39.4,
+      "p10": 18.4,
+      "p25": 31.2,
+      "p75": 49.2,
+      "p90": 56.6,
+      "n": 5,
+      "total_kg_days": 978600.0
+    },
+    {
+      "month": "2025-09",
+      "mean": 35.8,
+      "median": 34.4,
+      "p10": 29.5,
+      "p25": 32.0,
+      "p75": 40.2,
+      "p90": 42.6,
+      "n": 5,
+      "total_kg_days": 915600.0
+    },
+    {
+      "month": "2025-10",
+      "mean": 41.0,
+      "median": 40.2,
+      "p10": 35.3,
+      "p25": 37.7,
+      "p75": 43.5,
+      "p90": 47.4,
+      "n": 5,
+      "total_kg_days": 1050000.0
+    },
+    {
+      "month": "2025-11",
+      "mean": 36.2,
+      "median": 36.1,
+      "p10": 31.2,
+      "p25": 33.6,
+      "p75": 39.4,
+      "p90": 41.3,
+      "n": 5,
+      "total_kg_days": 928200.0
+    },
+    {
+      "month": "2025-12",
+      "mean": 35.4,
+      "median": 35.3,
+      "p10": 30.5,
+      "p25": 32.0,
+      "p75": 38.5,
+      "p90": 40.5,
+      "n": 5,
+      "total_kg_days": 907200.0
+    },
+    {
+      "month": "2026-01",
+      "mean": 40.7,
+      "median": 41.0,
+      "p10": 34.6,
+      "p25": 38.5,
+      "p75": 44.3,
+      "p90": 46.2,
+      "n": 5,
+      "total_kg_days": 1041600.0
+    },
+    {
+      "month": "2026-02",
+      "mean": 36.2,
+      "median": 36.9,
+      "p10": 29.5,
+      "p25": 32.0,
+      "p75": 40.2,
+      "p90": 42.6,
+      "n": 5,
+      "total_kg_days": 928200.0
+    },
+    {
+      "month": "2026-03",
+      "mean": 41.5,
+      "median": 40.2,
+      "p10": 35.3,
+      "p25": 37.7,
+      "p75": 45.9,
+      "p90": 48.4,
+      "n": 5,
+      "total_kg_days": 1062600.0
+    },
+    {
+      "month": "2026-04",
+      "mean": 36.9,
+      "median": 36.1,
+      "p10": 31.2,
+      "p25": 33.6,
+      "p75": 39.4,
+      "p90": 43.3,
+      "n": 5,
+      "total_kg_days": 945000.0
+    },
+    {
+      "month": "2026-05",
+      "mean": 32.3,
+      "median": 32.0,
+      "p10": 27.6,
+      "p25": 29.5,
+      "p75": 35.3,
+      "p90": 37.2,
+      "n": 5,
+      "total_kg_days": 827400.0
+    }
+  ],
+  "stats": {
+    "n": 83,
+    "mean": 39.6,
+    "median": 37.7,
+    "std": 19.8,
+    "min": 4.1,
+    "max": 106.6,
+    "p25": 31.2,
+    "p75": 44.3,
+    "p85": 50.0,
+    "p95": 69.7
+  },
+  "plan": 30,
+  "plan_note": null,
+  "pct_exceeding_plan": 89.2,
+  "annotations": [
+    {
+      "date": "2023-09-01",
+      "label": "Supplier change for Highland Arabica"
+    }
+  ],
+  "cost": {
+    "unit_price": 2.624,
+    "currency": "CHF",
+    "mean_qty": 4200.0,
+    "monthly": [
+      {
+        "month": "2022-04",
+        "n_events": 3,
+        "total_kg_days": 483000.0
+      },
+      {
+        "month": "2022-08",
+        "n_events": 4,
+        "total_kg_days": 903000.0
+      },
+      {
+        "month": "2023-01",
+        "n_events": 3,
+        "total_kg_days": 609000.0
+      },
+      {
+        "month": "2023-06",
+        "n_events": 2,
+        "total_kg_days": 462000.0
+      },
+      {
+        "month": "2023-10",
+        "n_events": 5,
+        "total_kg_days": 1260000.0
+      },
+      {
+        "month": "2024-03",
+        "n_events": 4,
+        "total_kg_days": 747600.0
+      },
+      {
+        "month": "2024-07",
+        "n_events": 3,
+        "total_kg_days": 684600.0
+      },
+      {
+        "month": "2024-11",
+        "n_events": 5,
+        "total_kg_days": 1457400.0
+      },
+      {
+        "month": "2025-03",
+        "n_events": 4,
+        "total_kg_days": 651000.0
+      },
+      {
+        "month": "2025-07",
+        "n_events": 5,
+        "total_kg_days": 978600.0
+      },
+      {
+        "month": "2025-09",
+        "n_events": 5,
+        "total_kg_days": 915600.0
+      },
+      {
+        "month": "2025-10",
+        "n_events": 5,
+        "total_kg_days": 1050000.0
+      },
+      {
+        "month": "2025-11",
+        "n_events": 5,
+        "total_kg_days": 928200.0
+      },
+      {
+        "month": "2025-12",
+        "n_events": 5,
+        "total_kg_days": 907200.0
+      },
+      {
+        "month": "2026-01",
+        "n_events": 5,
+        "total_kg_days": 1041600.0
+      },
+      {
+        "month": "2026-02",
+        "n_events": 5,
+        "total_kg_days": 928200.0
+      },
+      {
+        "month": "2026-03",
+        "n_events": 5,
+        "total_kg_days": 1062600.0
+      },
+      {
+        "month": "2026-04",
+        "n_events": 5,
+        "total_kg_days": 945000.0
+      },
+      {
+        "month": "2026-05",
+        "n_events": 5,
+        "total_kg_days": 827400.0
+      }
+    ]
+  },
+  "detail_rows": {
+    "columns": [
+      {
+        "key": "batch",
+        "source_field": "CHARG",
+        "source_table": "MSEG",
+        "label": "Batch"
+      },
+      {
+        "key": "consumption_date",
+        "source_field": "BUDAT",
+        "source_table": "MKPF",
+        "label": "Consumption Date"
+      },
+      {
+        "key": "dwell_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Dwell Days",
+        "unit": "d"
+      },
+      {
+        "key": "kg_days",
+        "source_field": null,
+        "source_table": null,
+        "label": "Inventory kg-days",
+        "unit": "kg·d"
+      },
+      {
+        "key": "cons_matnr",
+        "source_field": "MATNR",
+        "source_table": "MSEG",
+        "label": "Consuming Material"
+      },
+      {
+        "key": "cons_material_name",
+        "source_field": "MAKTX",
+        "source_table": "MAKT",
+        "label": "Consuming Material Name"
+      },
+      {
+        "key": "cons_in_current_recipe",
+        "source_field": null,
+        "source_table": null,
+        "label": "In Current Recipe"
+      }
+    ],
+    "rows": [
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-001",
+        "consumption_date": "2022-04-02",
+        "dwell_days": 35,
+        "kg_days": 161000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-002",
+        "consumption_date": "2022-04-15",
+        "dwell_days": 62,
+        "kg_days": 161000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-003",
+        "consumption_date": "2022-04-28",
+        "dwell_days": 18,
+        "kg_days": 161000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-004",
+        "consumption_date": "2022-08-05",
+        "dwell_days": 88,
+        "kg_days": 225750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-005",
+        "consumption_date": "2022-08-12",
+        "dwell_days": 42,
+        "kg_days": 225750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-006",
+        "consumption_date": "2022-08-20",
+        "dwell_days": 55,
+        "kg_days": 225750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-007",
+        "consumption_date": "2022-08-28",
+        "dwell_days": 30,
+        "kg_days": 225750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-008",
+        "consumption_date": "2023-01-10",
+        "dwell_days": 72,
+        "kg_days": 203000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-009",
+        "consumption_date": "2023-01-22",
+        "dwell_days": 25,
+        "kg_days": 203000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-010",
+        "consumption_date": "2023-01-30",
+        "dwell_days": 48,
+        "kg_days": 203000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-011",
+        "consumption_date": "2023-06-05",
+        "dwell_days": 15,
+        "kg_days": 231000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-012",
+        "consumption_date": "2023-06-18",
+        "dwell_days": 95,
+        "kg_days": 231000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-013",
+        "consumption_date": "2023-10-03",
+        "dwell_days": 130,
+        "kg_days": 252000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-014",
+        "consumption_date": "2023-10-10",
+        "dwell_days": 45,
+        "kg_days": 252000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-015",
+        "consumption_date": "2023-10-18",
+        "dwell_days": 38,
+        "kg_days": 252000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-016",
+        "consumption_date": "2023-10-25",
+        "dwell_days": 65,
+        "kg_days": 252000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-017",
+        "consumption_date": "2023-10-30",
+        "dwell_days": 22,
+        "kg_days": 252000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-018",
+        "consumption_date": "2024-03-05",
+        "dwell_days": 78,
+        "kg_days": 186900,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-019",
+        "consumption_date": "2024-03-12",
+        "dwell_days": 5,
+        "kg_days": 186900,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-020",
+        "consumption_date": "2024-03-20",
+        "dwell_days": 55,
+        "kg_days": 186900,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-021",
+        "consumption_date": "2024-03-28",
+        "dwell_days": 40,
+        "kg_days": 186900,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-022",
+        "consumption_date": "2024-07-08",
+        "dwell_days": 28,
+        "kg_days": 228200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-023",
+        "consumption_date": "2024-07-15",
+        "dwell_days": 85,
+        "kg_days": 228200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-024",
+        "consumption_date": "2024-07-22",
+        "dwell_days": 50,
+        "kg_days": 228200,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-025",
+        "consumption_date": "2024-11-04",
+        "dwell_days": 110,
+        "kg_days": 291480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-026",
+        "consumption_date": "2024-11-11",
+        "dwell_days": 32,
+        "kg_days": 291480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-027",
+        "consumption_date": "2024-11-18",
+        "dwell_days": 68,
+        "kg_days": 291480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-028",
+        "consumption_date": "2024-11-25",
+        "dwell_days": 45,
+        "kg_days": 291480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-029",
+        "consumption_date": "2024-11-30",
+        "dwell_days": 92,
+        "kg_days": 291480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-030",
+        "consumption_date": "2025-03-03",
+        "dwell_days": 20,
+        "kg_days": 162750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-031",
+        "consumption_date": "2025-03-10",
+        "dwell_days": 58,
+        "kg_days": 162750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-032",
+        "consumption_date": "2025-03-17",
+        "dwell_days": 35,
+        "kg_days": 162750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-033",
+        "consumption_date": "2025-03-24",
+        "dwell_days": 42,
+        "kg_days": 162750,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-034",
+        "consumption_date": "2025-07-02",
+        "dwell_days": 75,
+        "kg_days": 195720,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-035",
+        "consumption_date": "2025-07-09",
+        "dwell_days": 12,
+        "kg_days": 195720,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-036",
+        "consumption_date": "2025-07-16",
+        "dwell_days": 48,
+        "kg_days": 195720,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-037",
+        "consumption_date": "2025-07-23",
+        "dwell_days": 60,
+        "kg_days": 195720,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-038",
+        "consumption_date": "2025-07-30",
+        "dwell_days": 38,
+        "kg_days": 195720,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-039",
+        "consumption_date": "2025-09-05",
+        "dwell_days": 49,
+        "kg_days": 183120,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-040",
+        "consumption_date": "2025-09-11",
+        "dwell_days": 54,
+        "kg_days": 183120,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-041",
+        "consumption_date": "2025-09-17",
+        "dwell_days": 34,
+        "kg_days": 183120,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-042",
+        "consumption_date": "2025-09-23",
+        "dwell_days": 39,
+        "kg_days": 183120,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-043",
+        "consumption_date": "2025-09-29",
+        "dwell_days": 42,
+        "kg_days": 183120,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-044",
+        "consumption_date": "2025-10-06",
+        "dwell_days": 61,
+        "kg_days": 210000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-045",
+        "consumption_date": "2025-10-12",
+        "dwell_days": 41,
+        "kg_days": 210000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-046",
+        "consumption_date": "2025-10-18",
+        "dwell_days": 46,
+        "kg_days": 210000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-047",
+        "consumption_date": "2025-10-24",
+        "dwell_days": 49,
+        "kg_days": 210000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-048",
+        "consumption_date": "2025-10-30",
+        "dwell_days": 53,
+        "kg_days": 210000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-049",
+        "consumption_date": "2025-11-04",
+        "dwell_days": 36,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-050",
+        "consumption_date": "2025-11-10",
+        "dwell_days": 41,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-051",
+        "consumption_date": "2025-11-16",
+        "dwell_days": 44,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-052",
+        "consumption_date": "2025-11-22",
+        "dwell_days": 48,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-053",
+        "consumption_date": "2025-11-28",
+        "dwell_days": 52,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-054",
+        "consumption_date": "2025-12-05",
+        "dwell_days": 36,
+        "kg_days": 181440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-055",
+        "consumption_date": "2025-12-11",
+        "dwell_days": 39,
+        "kg_days": 181440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-056",
+        "consumption_date": "2025-12-17",
+        "dwell_days": 43,
+        "kg_days": 181440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-057",
+        "consumption_date": "2025-12-23",
+        "dwell_days": 47,
+        "kg_days": 181440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-058",
+        "consumption_date": "2025-12-29",
+        "dwell_days": 51,
+        "kg_days": 181440,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-059",
+        "consumption_date": "2026-01-06",
+        "dwell_days": 47,
+        "kg_days": 208320,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-060",
+        "consumption_date": "2026-01-12",
+        "dwell_days": 50,
+        "kg_days": 208320,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-061",
+        "consumption_date": "2026-01-18",
+        "dwell_days": 54,
+        "kg_days": 208320,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-062",
+        "consumption_date": "2026-01-24",
+        "dwell_days": 58,
+        "kg_days": 208320,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-063",
+        "consumption_date": "2026-01-30",
+        "dwell_days": 39,
+        "kg_days": 208320,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-064",
+        "consumption_date": "2026-02-04",
+        "dwell_days": 45,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-065",
+        "consumption_date": "2026-02-10",
+        "dwell_days": 49,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-066",
+        "consumption_date": "2026-02-16",
+        "dwell_days": 54,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-067",
+        "consumption_date": "2026-02-22",
+        "dwell_days": 34,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-068",
+        "consumption_date": "2026-02-28",
+        "dwell_days": 39,
+        "kg_days": 185640,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-069",
+        "consumption_date": "2026-03-05",
+        "dwell_days": 56,
+        "kg_days": 212520,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-070",
+        "consumption_date": "2026-03-11",
+        "dwell_days": 61,
+        "kg_days": 212520,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-071",
+        "consumption_date": "2026-03-17",
+        "dwell_days": 41,
+        "kg_days": 212520,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-072",
+        "consumption_date": "2026-03-23",
+        "dwell_days": 46,
+        "kg_days": 212520,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-073",
+        "consumption_date": "2026-03-29",
+        "dwell_days": 49,
+        "kg_days": 212520,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-074",
+        "consumption_date": "2026-04-06",
+        "dwell_days": 56,
+        "kg_days": 189000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-075",
+        "consumption_date": "2026-04-12",
+        "dwell_days": 36,
+        "kg_days": 189000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-076",
+        "consumption_date": "2026-04-18",
+        "dwell_days": 41,
+        "kg_days": 189000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-077",
+        "consumption_date": "2026-04-24",
+        "dwell_days": 44,
+        "kg_days": 189000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-078",
+        "consumption_date": "2026-04-30",
+        "dwell_days": 48,
+        "kg_days": 189000,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-079",
+        "consumption_date": "2026-05-04",
+        "dwell_days": 32,
+        "kg_days": 165480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-080",
+        "consumption_date": "2026-05-10",
+        "dwell_days": 36,
+        "kg_days": 165480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-081",
+        "consumption_date": "2026-05-16",
+        "dwell_days": 39,
+        "kg_days": 165480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-082",
+        "consumption_date": "2026-05-22",
+        "dwell_days": 43,
+        "kg_days": 165480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-083",
+        "consumption_date": "2026-05-28",
+        "dwell_days": 47,
+        "kg_days": 165480,
+        "cons_matnr": "90000200001",
+        "cons_material_name": "Green Blend",
+        "cons_in_current_recipe": 1
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-OTHER-01",
+        "consumption_date": "2026-05-16",
+        "dwell_days": 44.8,
+        "kg_days": 48750,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-OTHER-02",
+        "consumption_date": "2026-05-22",
+        "dwell_days": 49.4,
+        "kg_days": 53750,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      },
+      {
+        "batch": "RAW_DWELL_HIGHLAND_ARABICA-OTHER-03",
+        "consumption_date": "2026-05-28",
+        "dwell_days": 54.1,
+        "kg_days": 58750,
+        "cons_matnr": "90000300002",
+        "cons_material_name": "Summit Medium Roast",
+        "cons_in_current_recipe": 0
+      }
+    ]
+  },
+  "ref_date_col": null,
+  "n_batches": null,
+  "n_movements": 38,
+  "yield_data": null,
+  "consumption_data": null,
+  "schema_version": "1.1"
+}

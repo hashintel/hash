@@ -11,6 +11,10 @@
     {
       "source": "/brunch",
       "destination": "/"
+    },
+    {
+      "source": "/optimization",
+      "destination": "/"
     }
   ],
   "functions": {

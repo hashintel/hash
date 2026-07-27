@@ -258,7 +258,7 @@ export const TrendTable = ({
               <td className={threshold.td}>
                 <div className={threshold.cellFlex}>
                   <span
-                    className={threshold.catDot}
+                    className={cx(threshold.catDot, threshold.stepDot)}
                     style={{ backgroundColor: getCategoryColor(row.type) }}
                   />
 
@@ -268,7 +268,7 @@ export const TrendTable = ({
                 </div>
               </td>
               <td className={threshold.td}>
-                <ProductTags products={row.products} />
+                <ProductTags products={row.products} maxVisible={12} />
               </td>
               <td className={cx(threshold.tdRight, threshold.valueStrong)}>
                 {formatNumber(selectStat(row.stats, measure), {

@@ -35,7 +35,7 @@ Once a place has a type, its tokens are accessible in code as structured objects
 
 ## Global parameters
 
-Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, and visualizers. They are accessed via the `parameters` argument.
+Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, and visualizers. They are accessed via the `parameters` argument. In metric code they are available ambiently as `parameters.<variable name>` (there is no `parameters` argument to declare — see the [supported code subset](#supported-code-subset) below). Note that metrics can read these **net parameters** but not scenario parameters.
 
 **To create a parameter:**
 
@@ -238,6 +238,6 @@ Dynamics, firing-rate, transition-kernel and metric code is compiled by Petrinau
 - Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
 - Token access (`input.Place[0].attr`, `.length`) and `Distribution.*` constructors (with `.map` transforms).
 - Collection operators depend on the code surface: dynamics and statically sized transition token arrays support `.map(...)`; metric place-token arrays support `.reduce(...)` and `.concat(...)`, but not `.map(...)`.
-- In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number).
+- In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number). Net parameters are available ambiently as `parameters.<variable name>` (scenario parameters are not).
 
 Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.

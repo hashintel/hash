@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production-schedule";
+
 import { isValidSlug, webScopedKey } from "../analysis/shared/storage-key";
 
 import type { WebId } from "@blockprotocol/type-system";
@@ -24,6 +26,7 @@ export interface SupplyChainImportSite {
 export interface SupplyChainManifest {
   datasetVersion: string;
   products: string[];
+  productionSchedules: string[];
   sites: string[];
   steps: Record<string, string[]>;
 }
@@ -166,6 +169,7 @@ export const planSupplyChainDatasetImport = (params: {
   }
 
   const steps: Record<string, string[]> = {};
+  const productionSchedules: string[] = [];
 
   for (const productId of productIds) {
     const graphPath = path.join(sourceDir, productId, "graph.json");
@@ -188,6 +192,29 @@ export const planSupplyChainDatasetImport = (params: {
     }
 
     steps[productId] = stepIds;
+    const schedulePath = path.join(
+      sourceDir,
+      productId,
+      "production_schedule.json",
+    );
+    if (fs.existsSync(schedulePath)) {
+      if (!fs.statSync(schedulePath).isFile()) {
+        throw new Error(
+          `Product "${productId}" production_schedule.json is not a file`,
+        );
+      }
+      try {
+        parseProductionSchedule(readJson<unknown>(schedulePath), productId);
+      } catch (error) {
+        throw new Error(
+          `Product "${productId}" has an invalid production_schedule.json: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { cause: error },
+        );
+      }
+      productionSchedules.push(productId);
+    }
   }
 
   const files = collectJsonFiles(sourceDir)
@@ -203,6 +230,7 @@ export const planSupplyChainDatasetImport = (params: {
     manifest: {
       datasetVersion: version,
       products: productIds,
+      productionSchedules,
       sites: siteIds,
       steps,
     },

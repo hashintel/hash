@@ -15,6 +15,7 @@ export type AiFlowActionDefinitionId =
   | "answerQuestion"
   | "generateChartConfig"
   | "generateStructuralQuery"
+  | "planDashboardRefinement"
   | "generateWebQueries"
   | "getFileFromUrl"
   | "getWebPageByUrl"
@@ -56,6 +57,24 @@ const aiFlowActionDefinitionsAsConst = {
         name: "userGoal",
         description: "The user's visualization goal",
         required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementInstruction",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingPythonScript",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementScope",
+        required: false,
         array: false,
       },
       {
@@ -583,6 +602,24 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementInstruction",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingChartConfig",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementScope",
+        required: false,
+        array: false,
+      },
     ],
     outputs: [
       {
@@ -615,6 +652,30 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementInstruction",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingStructuralQuery",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingChartType",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementScope",
+        required: false,
+        array: false,
+      },
     ],
     outputs: [
       {
@@ -637,6 +698,61 @@ const aiFlowActionDefinitionsAsConst = {
         description: "Suggested chart types as JSON array",
         array: false,
         required: false,
+      },
+    ],
+  },
+  planDashboardRefinement: {
+    actionDefinitionId: "planDashboardRefinement",
+    name: "Plan Dashboard Refinement",
+    description:
+      "Determine the earliest dashboard configuration stage affected by a refinement instruction.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "userGoal",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "refinementInstruction",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingStructuralQuery",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingPythonScript",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingChartType",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "existingChartConfig",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "refinementScope",
+        description:
+          'The earliest affected stage: "query", "analysis", "chart", or "none".',
+        array: false,
+        required: true,
       },
     ],
   },

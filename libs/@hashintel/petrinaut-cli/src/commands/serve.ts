@@ -57,8 +57,11 @@ export async function serve(options: ServeOptions): Promise<void> {
       buffer = bufferedLines.remainder;
 
       for (const line of bufferedLines.lines) {
-        handleProtocolLine(model, line, (value) =>
-          writeResponse(socket, value),
+        handleProtocolLine(
+          model,
+          line,
+          (value) => writeResponse(socket, value),
+          sdcpn,
         );
       }
 
@@ -83,8 +86,11 @@ export async function serve(options: ServeOptions): Promise<void> {
           });
           return;
         }
-        handleProtocolLine(model, buffer, (value) =>
-          writeResponse(socket, value),
+        handleProtocolLine(
+          model,
+          buffer,
+          (value) => writeResponse(socket, value),
+          sdcpn,
         );
       }
     });

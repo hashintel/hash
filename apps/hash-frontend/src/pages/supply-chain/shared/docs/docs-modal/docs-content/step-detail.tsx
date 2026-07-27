@@ -36,7 +36,9 @@ export const stepDetailDoc: DocEntry = {
         <LI>
           <Term>Distribution</Term> shows the spread of observations for the
           active time range and dimension. Use it to distinguish one-off tails
-          from broad shifts in the whole series.
+          from broad shifts in the whole series. On dwell steps, switch between
+          duration and event value using the standard dwell-cost calculation
+          (kg-days with WACC and storage-cost assumptions).
         </LI>
         <LI>
           <Term>Monthly trend</Term> shows change over time. Selecting a month

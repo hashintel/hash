@@ -31,10 +31,10 @@ const metricPickerLabelStyle = css({
   color: "neutral.a100",
   letterSpacing: "[0.5px]",
   flexShrink: 0,
-});
-
-const metricPickerWrapperStyle = css({
-  width: "[200px]",
+  // On narrow panels, drop the label before the tabs start truncating.
+  "@container bottom-panel-header (max-width: 860px)": {
+    display: "none",
+  },
 });
 
 // Sentinel values for the native views in the picker. Metric ids are UUIDs
@@ -78,7 +78,7 @@ const TimelineChartTypeSelector: React.FC = () => {
       value={chartType}
       options={CHART_TYPE_OPTIONS}
       onChange={(value) => setChartType(value as TimelineChartType)}
-      size="sm"
+      size="xs"
     />
   );
 };
@@ -122,19 +122,18 @@ const TimelineViewPicker: React.FC = () => {
   return (
     <>
       <span className={metricPickerLabelStyle}>Metric</span>
-      <div className={metricPickerWrapperStyle}>
-        <Select
-          size="xs"
-          required
-          value={selectedValue}
-          items={options}
-          onChange={(value) => setTimelineView(selectValueToView(value))}
-        />
-      </div>
+      <Select
+        size="xs"
+        required
+        width="fitContent"
+        value={selectedValue}
+        items={options}
+        onChange={(value) => setTimelineView(selectValueToView(value))}
+      />
       <div style={{ display: "flex" }}>
         {selectedMetric && (
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
@@ -143,7 +142,7 @@ const TimelineViewPicker: React.FC = () => {
           />
         )}
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
@@ -151,7 +150,7 @@ const TimelineViewPicker: React.FC = () => {
           onClick={() => setIsCreateOpen(true)}
         />
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"

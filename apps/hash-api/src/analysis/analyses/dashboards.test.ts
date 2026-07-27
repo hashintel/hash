@@ -98,9 +98,16 @@ const temporalClient = {
 
 /** Per-test control over the artifact's last-modified timestamp. */
 let artifactLastModified: Date | null = null;
+let artifactMetadata: Buffer | null = null;
 
 const uploadProvider = {
   getObjectLastModified: async () => artifactLastModified,
+  downloadDirect: async () => {
+    if (!artifactMetadata) {
+      throw new Error("Object not found");
+    }
+    return artifactMetadata;
+  },
   presignDownloadByKey: async ({ key }: { key: string }) =>
     `https://signed.example/${key}`,
 } as unknown as FileStorageProvider;
@@ -189,6 +196,7 @@ describe("dashboardItemData analysis", () => {
     workflowResult.mockResolvedValue({});
 
     artifactLastModified = null;
+    artifactMetadata = null;
   });
 
   it("rejects a non-uuid itemUuid", async () => {
@@ -270,12 +278,23 @@ describe("dashboardItemData analysis", () => {
 
   it("serves a fresh artifact without recomputing", async () => {
     artifactLastModified = new Date();
+    artifactMetadata = Buffer.from(
+      JSON.stringify({
+        generatedAt: "2026-07-16T09:59:59.000Z",
+        generationDurationMs: 12_345,
+      }),
+    );
 
     const result = await resolve({ itemUuid: ITEM_UUID });
 
     expect(result.status).toBe("ready");
     expect(result.artifacts).toHaveLength(1);
     expect(result.artifacts![0]!.url).toContain(configHash);
+    expect(result.metadata).toEqual({
+      generatedAt: "2026-07-16T09:59:59.000Z",
+      generationDurationMs: 12_345,
+      isRefreshing: false,
+    });
     expect(workflowStart).not.toHaveBeenCalled();
   });
 
@@ -286,6 +305,7 @@ describe("dashboardItemData analysis", () => {
     const result = await resolve({ itemUuid: ITEM_UUID });
 
     expect(result.status).toBe("ready");
+    expect(result.metadata).toMatchObject({ isRefreshing: true });
     expect(workflowStart).toHaveBeenCalledTimes(1);
     expect(workflowStart.mock.calls[0]![1].workflowId).toBe(
       `compute-dashboard-item-${WEB_ID}-${configHash}-${staleArtifactLastModified.getTime()}`,
@@ -294,11 +314,47 @@ describe("dashboardItemData analysis", () => {
 
   it("recomputes even a fresh artifact when force is set", async () => {
     artifactLastModified = new Date();
+    artifactMetadata = Buffer.from(
+      JSON.stringify({ generationDurationMs: 5_000 }),
+    );
 
     const result = await resolve({ itemUuid: ITEM_UUID, force: true });
 
     expect(result.status).toBe("computing");
+    expect(result.metadata).toMatchObject({
+      generationDurationMs: 5_000,
+      isRefreshing: true,
+    });
     expect(workflowStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for a forced refresh to supersede the previous artifact", async () => {
+    artifactLastModified = new Date();
+    const initialResult = await resolve({ itemUuid: ITEM_UUID, force: true });
+    const refreshAfter = initialResult.metadata?.refreshAfter as string;
+
+    const waitingResult = await resolve({ itemUuid: ITEM_UUID, refreshAfter });
+    expect(waitingResult.status).toBe("computing");
+
+    artifactLastModified = new Date(new Date(refreshAfter).getTime() + 1_000);
+    const completedResult = await resolve({
+      itemUuid: ITEM_UUID,
+      refreshAfter,
+    });
+    expect(completedResult.status).toBe("ready");
+  });
+
+  it("falls back to artifact last-modified when metadata is corrupt", async () => {
+    artifactLastModified = new Date();
+    artifactMetadata = Buffer.from("{not-json");
+
+    const result = await resolve({ itemUuid: ITEM_UUID });
+
+    expect(result.status).toBe("ready");
+    expect(result.metadata).toEqual({
+      generatedAt: artifactLastModified.toISOString(),
+      isRefreshing: false,
+    });
   });
 
   it("treats an already-started workflow as computing (dedupe)", async () => {
