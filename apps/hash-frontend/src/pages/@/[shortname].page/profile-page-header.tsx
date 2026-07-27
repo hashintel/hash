@@ -69,6 +69,7 @@ export const ProfilePageHeader: FunctionComponent<{
                   profile.kind === "user" ? profile.displayName : profile.name
                 }
                 size={leftColumnWidth}
+                borderRadius={profile.kind === "org" ? "12px" : undefined}
                 sx={{
                   position: "relative",
                   top: avatarTopOffset,
