@@ -495,6 +495,7 @@ export const petrinautOptimizationStartedEventSchema = z
   .strictObject({
     type: z.literal("started"),
     requestedTrials: z.number().int().positive(),
+    seq: z.number().int().nonnegative().optional(),
   })
   .meta({ description: "The optimizer accepted and started the study." });
 
@@ -506,6 +507,7 @@ export const petrinautOptimizationTrialEventSchema = z
     objective: z.number().nullable(),
     state: z.enum(["complete", "pruned", "failed"]),
     best: optimizationBestSchema.nullable(),
+    seq: z.number().int().nonnegative().optional(),
   })
   .meta({ description: "One completed Optuna trial and the running best." });
 
@@ -517,6 +519,7 @@ export const petrinautOptimizationCompleteEventSchema = z
     prunedTrials: z.number().int().nonnegative(),
     failedTrials: z.number().int().nonnegative(),
     best: optimizationBestSchema.nullable(),
+    seq: z.number().int().nonnegative().optional(),
   })
   .meta({ description: "The final optimization summary." });
 
@@ -526,6 +529,7 @@ export const petrinautOptimizationErrorEventSchema = z
     code: z.string(),
     message: z.string(),
     retryable: z.boolean(),
+    seq: z.number().int().nonnegative().optional(),
   })
   .meta({ description: "A terminal optimizer error." });
 

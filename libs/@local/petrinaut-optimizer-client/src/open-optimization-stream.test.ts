@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  openPetrinautOptimizationStream,
-  PetrinautOptimizerHttpError,
-} from "./open-optimization-stream.js";
+import { openPetrinautOptimizationStream } from "./open-optimization-stream.js";
+import { PetrinautOptimizerHttpError } from "./optimizer-http.js";
 
 import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
 
@@ -30,19 +28,27 @@ describe("openPetrinautOptimizationStream", () => {
         new Response(
           'data: {"step":0,"params":{"rate":0.4},"metric":2,"state":"COMPLETE"}\n\n' +
             "event: done\ndata: {}\n\n",
-          { headers: { "content-type": "text/event-stream" } },
+          {
+            headers: {
+              "content-type": "text/event-stream",
+              "x-optimization-run-id": "run-42",
+            },
+          },
         ),
       ),
     );
 
-    const events = await openPetrinautOptimizationStream({
-      endpoint: "http://petrinaut-opt.test/optimize/all",
-      fetchImpl,
-      input,
-      onActivity,
-      signal,
-    });
+    const { events, optimizationRunId } = await openPetrinautOptimizationStream(
+      {
+        endpoint: "http://petrinaut-opt.test/optimize/all",
+        fetchImpl,
+        input,
+        onActivity,
+        signal,
+      },
+    );
 
+    expect(optimizationRunId).toBe("run-42");
     await expect(collect(events)).resolves.toEqual([
       { type: "started", requestedTrials: 2 },
       {
@@ -77,6 +83,38 @@ describe("openPetrinautOptimizationStream", () => {
     expect(onActivity).toHaveBeenCalledOnce();
   });
 
+  it("forwards the request id header and reads the missing run id as null", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Promise.resolve(
+        new Response("event: done\ndata: {}\n\n", {
+          headers: { "content-type": "text/event-stream" },
+        }),
+      ),
+    );
+
+    const { events, optimizationRunId } = await openPetrinautOptimizationStream(
+      {
+        endpoint: "http://petrinaut-opt.test/optimize/all",
+        fetchImpl,
+        input,
+        requestId: "request-123",
+      },
+    );
+    await collect(events);
+
+    expect(optimizationRunId).toBeNull();
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://petrinaut-opt.test/optimize/all",
+      expect.objectContaining({
+        headers: {
+          accept: "text/event-stream",
+          "content-type": "application/json",
+          "x-hash-request-id": "request-123",
+        },
+      }),
+    );
+  });
+
   it("surfaces a FastAPI error message", async () => {
     const result = openPetrinautOptimizationStream({
       endpoint: "/optimize/all",
@@ -93,6 +131,23 @@ describe("openPetrinautOptimizationStream", () => {
       message: "Invalid optimization manifest",
       retryAfter: "5",
       status: 422,
+    });
+  });
+
+  it("captures the run id from a failed optimizer response", async () => {
+    const result = openPetrinautOptimizationStream({
+      endpoint: "/optimize/all",
+      fetchImpl: async () =>
+        Response.json(
+          { detail: "failed to initialise optimization" },
+          { status: 500, headers: { "x-optimization-run-id": "run-err-7" } },
+        ),
+      input,
+    });
+
+    await expect(result).rejects.toMatchObject({
+      optimizationRunId: "run-err-7",
+      status: 500,
     });
   });
 
