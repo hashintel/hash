@@ -1,0 +1,439 @@
+//! The outer trust-region state machine.
+//!
+//! [`solve`] drives the loop over one [`ScaledProblem`]: every fit starts at `ζ = 0`, and each
+//! outer iteration certifies the accepted gradient, runs the bounded inner CG solve, prices the
+//! candidate against the predicted model reduction, and accepts or rejects it by ratio. The
+//! accepted point moves only on acceptance; rejection shrinks the trust radius toward its
+//! minimum and an expanded radius requires a validated boundary step. Success is
+//! [`Converged`] - a fresh reserved joint evaluation re-proving the certificate - and every
+//! other terminal is a typed [`SolverFailure`] in the normative precedence order: validation,
+//! accepted-gradient success, outer budget, inner CG, invalid predicted reduction, resolution
+//! construction, resolution stall, candidate preflight in objective/gradient/row order,
+//! candidate numerical failure, ratio classification, then rejection budget before radius
+//! underflow.
+//!
+//! One joint traversal stays reserved for the final certificate and is excluded from every
+//! availability check until the success path consumes it, so a solve can always afford to prove
+//! the answer it publishes.
+
+use super::{
+    SOLVER_DIMENSIONS,
+    cg::{CgOutcome, bounded_steihaug_cg},
+    config::SolverConfig,
+    flat,
+    problem::ScaledProblem,
+    receipt::{
+        CandidateOutcome, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptCoordinates,
+        vector_digest,
+    },
+    resolution::objective_resolution,
+    stable::{ordered_dot, stable_l2},
+    terminal::SolverFailure,
+    work::WorkCounters,
+};
+use crate::math::BoxedDVecN;
+
+/// The accepted iterate: the point in scaled coordinates with its objective and gradient.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct AcceptedPoint {
+    /// The accepted point `ζ` in scaled coordinates.
+    pub zeta: BoxedDVecN<SOLVER_DIMENSIONS>,
+    /// The normalized objective at the point.
+    pub objective: f64,
+    /// The scaled gradient at the point.
+    pub scaled_gradient: BoxedDVecN<SOLVER_DIMENSIONS>,
+}
+
+/// The mutable control state beside the accepted point.
+///
+/// A rejection changes only this state; an acceptance replaces the accepted point after its
+/// candidate gradient proves finite.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct SolverControl {
+    /// The current trust radius.
+    pub radius: f64,
+    /// Consecutively rejected candidates since the last acceptance.
+    pub consecutive_rejections: u64,
+    /// Outer iterations started.
+    pub outer_iterations_started: u64,
+    /// The work counters of the whole fit, preparation included.
+    pub counters: WorkCounters,
+    /// Whether the final joint certificate traversal is still reserved.
+    pub final_reserve: bool,
+}
+
+impl SolverControl {
+    /// Fresh control state carrying the preparation-charged counters.
+    const fn new(radius: f64, counters: WorkCounters) -> Self {
+        Self {
+            radius,
+            consecutive_rejections: 0,
+            outer_iterations_started: 0,
+            counters,
+            final_reserve: true,
+        }
+    }
+
+    /// Objective requests still available net of the final reserve.
+    pub(super) const fn free_objective_requests(&self, config: &SolverConfig) -> u64 {
+        config
+            .maximum_objective_requests
+            .saturating_sub(self.counters.objective_requests)
+            .saturating_sub(self.reserved())
+    }
+
+    /// Gradient requests still available net of the final reserve.
+    pub(super) const fn free_gradient_requests(&self, config: &SolverConfig) -> u64 {
+        config
+            .maximum_gradient_requests
+            .saturating_sub(self.counters.gradient_requests)
+            .saturating_sub(self.reserved())
+    }
+
+    /// Row traversals still available net of the final reserve.
+    pub(super) const fn free_row_traversals(&self, config: &SolverConfig) -> u64 {
+        config
+            .maximum_row_traversals
+            .saturating_sub(self.counters.started_row_traversals)
+            .saturating_sub(self.reserved())
+    }
+
+    /// One reserved unit per budget while the final certificate is outstanding.
+    const fn reserved(&self) -> u64 {
+        if self.final_reserve { 1 } else { 0 }
+    }
+}
+
+/// The persisted gradient-certificate evidence: the initial norm and its derived threshold.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(super) struct CertificateEvidence {
+    /// The initial scaled-gradient norm `‖gζ,0‖₂`.
+    pub initial_gradient_norm: f64,
+    /// The derived threshold `max(absolute, relative·‖gζ,0‖₂)`.
+    pub gradient_threshold: f64,
+}
+
+/// A certified solution: the accepted point re-proven by the reserved final evaluation.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct Converged {
+    /// The accepted point carrying the fresh final objective and gradient.
+    pub point: AcceptedPoint,
+}
+
+/// Everything one solve reports: the terminal, the last accepted state, control, evidence, and
+/// receipts.
+#[derive(Debug)]
+pub(super) struct SolverRun {
+    /// The certified solution or the typed failure.
+    pub outcome: Result<Converged, SolverFailure>,
+    /// The last accepted point; on failure its objective is the final objective.
+    pub accepted: AcceptedPoint,
+    /// Control state at termination, counters included.
+    pub control: SolverControl,
+    /// Certificate evidence once the threshold was derived.
+    pub certificate: Option<CertificateEvidence>,
+    /// One receipt per started outer iteration, completion facts included.
+    pub receipts: Vec<OuterReceipt>,
+    /// The coordinate/version identity of the receipts and their digests.
+    pub coordinates: ReceiptCoordinates,
+}
+
+/// Runs the bounded trust-region solve from `ζ = 0` over a prepared problem.
+///
+/// `counters` carries the preparation charges; the returned control state carries the counters
+/// of the whole fit. The configuration is validated by its owner before the solve begins.
+pub(super) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> SolverRun {
+    debug_assert!(
+        problem.config.validate().is_ok(),
+        "the solver configuration is validated",
+    );
+
+    let mut control = SolverControl::new(problem.config.radius_initial, counters);
+    let mut receipts = Vec::new();
+    let mut certificate = None;
+
+    // Every fit starts at ζ = 0; the initialized joint evaluation prices it.
+    let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    let point = problem.point(&origin);
+    let (objective, scaled_gradient) = problem.joint(&point, &mut control.counters);
+    let mut accepted = AcceptedPoint {
+        zeta: origin,
+        objective,
+        scaled_gradient,
+    };
+
+    let outcome = run(
+        problem,
+        &mut accepted,
+        &mut control,
+        &mut certificate,
+        &mut receipts,
+    );
+
+    SolverRun {
+        outcome,
+        accepted,
+        control,
+        certificate,
+        receipts,
+        coordinates: ReceiptCoordinates::CURRENT,
+    }
+}
+
+/// The outer loop over an initialized accepted point.
+fn run(
+    problem: &ScaledProblem<'_>,
+    accepted: &mut AcceptedPoint,
+    control: &mut SolverControl,
+    certificate: &mut Option<CertificateEvidence>,
+    receipts: &mut Vec<OuterReceipt>,
+) -> Result<Converged, SolverFailure> {
+    let config = &problem.config;
+
+    loop {
+        let gradient_norm = stable_l2(accepted.scaled_gradient.as_array())
+            .ok_or(SolverFailure::NonFiniteAcceptedGradientNorm)?;
+
+        // The threshold derives once from the initial norm; the first loop pass sees it.
+        let threshold = if let Some(evidence) = certificate {
+            evidence.gradient_threshold
+        } else {
+            let evidence = derive_certificate(config, gradient_norm)?;
+            *certificate = Some(evidence);
+            evidence.gradient_threshold
+        };
+
+        // A passing accepted gradient always returns before CG runs.
+        if gradient_norm <= threshold {
+            return certify(problem, accepted, control, threshold);
+        }
+
+        if control.outer_iterations_started == config.maximum_outer_iterations {
+            return Err(SolverFailure::OuterIterationBudget);
+        }
+        control.outer_iterations_started += 1;
+        receipts.push(OuterReceipt {
+            outer_iteration: control.outer_iterations_started,
+            radius: control.radius,
+            objective: accepted.objective,
+            gradient_norm,
+            zeta_digest: vector_digest(&accepted.zeta),
+            gradient_digest: vector_digest(&accepted.scaled_gradient),
+            counters: control.counters,
+            outcome: OuterOutcome::default(),
+        });
+        let recorded = &mut receipts
+            .last_mut()
+            .expect("the receipt of this iteration was just pushed")
+            .outcome;
+
+        let point = problem.point(&accepted.zeta);
+        let inner = bounded_steihaug_cg(problem, &point, &accepted.scaled_gradient, control)?;
+
+        let predicted = record_inner_step(recorded, &accepted.scaled_gradient, &inner);
+        if !predicted.is_finite() || predicted <= 0.0 {
+            return Err(SolverFailure::InvalidPredictedReduction);
+        }
+
+        let resolution = objective_resolution(accepted.objective, config.objective_resolution_ulps)
+            .ok_or(SolverFailure::ResolutionScaleOverflow)?;
+        if predicted <= resolution {
+            return Err(SolverFailure::ResolutionStall);
+        }
+
+        // Candidate preflight: one objective-only traversal, one possible accepted-candidate
+        // gradient traversal, and preservation of the final reserve.
+        if control.free_objective_requests(config) < 1 {
+            return Err(SolverFailure::ObjectiveRequestBudget);
+        }
+        if control.free_gradient_requests(config) < 1 {
+            return Err(SolverFailure::GradientRequestBudget);
+        }
+        if control.free_row_traversals(config) < 2 {
+            return Err(SolverFailure::RowPassBudget);
+        }
+
+        let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
+        let trial_point = problem.point(&trial_zeta);
+        let trial_objective = problem.objective(&trial_point, &mut control.counters);
+        if !trial_objective.is_finite() {
+            recorded.candidate = Some(CandidateOutcome::RejectedNonFinite);
+            control.counters.reject_non_finite_candidate();
+            rejected(control, config)?;
+            continue;
+        }
+
+        let actual = accepted.objective - trial_objective;
+        let ratio = actual / predicted;
+        recorded.actual_reduction = actual.is_finite().then_some(actual);
+        recorded.ratio = ratio.is_finite().then_some(ratio);
+        if !actual.is_finite() || !ratio.is_finite() {
+            return Err(SolverFailure::InvalidAcceptanceRatio);
+        }
+        if ratio < config.eta_accept {
+            recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
+            control.counters.reject_finite_candidate();
+            rejected(control, config)?;
+            continue;
+        }
+
+        // Acceptance commits only after the candidate gradient proves finite.
+        let trial_gradient = problem.gradient(&trial_point, &mut control.counters);
+        if !flat::all_finite(&trial_gradient) {
+            recorded.candidate = Some(CandidateOutcome::AcceptedGradientNonFinite);
+            control
+                .counters
+                .record_accepted_by_ratio_gradient_non_finite();
+            return Err(SolverFailure::NonFiniteAcceptedCandidateGradient);
+        }
+
+        recorded.candidate = Some(CandidateOutcome::Accepted);
+        recorded.curvature = Some(curvature_diagnostic(
+            inner.step(),
+            &trial_gradient,
+            &accepted.scaled_gradient,
+        ));
+        *accepted = AcceptedPoint {
+            zeta: trial_zeta,
+            objective: trial_objective,
+            scaled_gradient: trial_gradient,
+        };
+        control.counters.accept_candidate();
+        control.consecutive_rejections = 0;
+
+        // Only a validated boundary step at or above the expansion ratio grows the radius.
+        if inner.is_boundary() && ratio >= config.eta_expand {
+            control.radius = (config.expansion_factor * control.radius).min(config.radius_maximum);
+        }
+    }
+}
+
+/// Derives the certificate evidence from the initial scaled-gradient norm.
+///
+/// # Errors
+///
+/// Returns [`SolverFailure::GradientThresholdOverflow`] when no valid threshold derives from
+/// the norm.
+pub(super) fn derive_certificate(
+    config: &SolverConfig,
+    initial_norm: f64,
+) -> Result<CertificateEvidence, SolverFailure> {
+    let threshold = config
+        .gradient_threshold(initial_norm)
+        .ok_or(SolverFailure::GradientThresholdOverflow)?;
+    Ok(CertificateEvidence {
+        initial_gradient_norm: initial_norm,
+        gradient_threshold: threshold,
+    })
+}
+
+/// Records the inner-step summaries on the receipt and returns the predicted model reduction
+/// `−g·p − ½·p·Hp` from the returned step and product alone.
+///
+/// A failed dot yields NaN, which the caller classifies as an invalid predicted reduction.
+fn record_inner_step(
+    recorded: &mut OuterOutcome,
+    gradient: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    inner: &CgOutcome,
+) -> f64 {
+    recorded.tag = Some(inner.tag());
+    recorded.step_norm = stable_l2(inner.step().as_array());
+    recorded.hessian_step_norm = stable_l2(inner.hessian_step().as_array());
+
+    let along_gradient = ordered_dot(gradient.as_array(), inner.step().as_array());
+    let along_curvature = ordered_dot(inner.step().as_array(), inner.hessian_step().as_array());
+    recorded.gradient_step = along_gradient;
+    recorded.step_curvature = along_curvature;
+
+    let predicted = match (along_gradient, along_curvature) {
+        (Some(gradient_term), Some(curvature_term)) => {
+            (-0.5_f64).mul_add(curvature_term, -gradient_term)
+        }
+        _ => f64::NAN,
+    };
+    recorded.predicted_reduction = predicted.is_finite().then_some(predicted);
+    predicted
+}
+
+/// Applies one rejection to the control state.
+///
+/// # Errors
+///
+/// Returns [`SolverFailure::RejectedStepBudget`] when the streak reaches its budget, then
+/// [`SolverFailure::RadiusUnderflow`] when the rejected attempt already used the minimum
+/// radius. A rejection that first clips to the minimum permits one later attempt there.
+pub(super) fn rejected(
+    control: &mut SolverControl,
+    config: &SolverConfig,
+) -> Result<(), SolverFailure> {
+    control.consecutive_rejections += 1;
+    if control.consecutive_rejections == config.maximum_consecutive_rejections {
+        return Err(SolverFailure::RejectedStepBudget);
+    }
+
+    #[expect(
+        clippy::float_cmp,
+        reason = "the minimum radius is reached only through an exact clip to its bytes"
+    )]
+    if control.radius == config.radius_minimum {
+        return Err(SolverFailure::RadiusUnderflow);
+    }
+
+    // Both factors are finite and positive, so the shrink and its clip stay in domain.
+    control.radius = (config.shrink_factor * control.radius).max(config.radius_minimum);
+    Ok(())
+}
+
+/// Consumes the final reserve and re-proves the certificate at the accepted point.
+pub(super) fn certify(
+    problem: &ScaledProblem<'_>,
+    accepted: &AcceptedPoint,
+    control: &mut SolverControl,
+    threshold: f64,
+) -> Result<Converged, SolverFailure> {
+    control.final_reserve = false;
+    let point = problem.point(&accepted.zeta);
+    let (objective, gradient) = problem.joint(&point, &mut control.counters);
+
+    if !objective.is_finite() {
+        return Err(SolverFailure::FinalCertificationNonFinite);
+    }
+    let norm = stable_l2(gradient.as_array()).ok_or(SolverFailure::FinalCertificationNonFinite)?;
+    if norm > threshold {
+        return Err(SolverFailure::FinalCertificateMismatch);
+    }
+
+    Ok(Converged {
+        point: AcceptedPoint {
+            zeta: accepted.zeta.clone(),
+            objective,
+            scaled_gradient: gradient,
+        },
+    })
+}
+
+/// The accepted-step curvature diagnostic `p·y` and `(p·y) / (p·p)` with `y = g_trial − g`.
+fn curvature_diagnostic(
+    step: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    trial_gradient: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    accepted_gradient: &BoxedDVecN<SOLVER_DIMENSIONS>,
+) -> CurvatureDiagnostic {
+    let difference = flat::advance(trial_gradient, -1.0, accepted_gradient);
+    if !flat::all_finite(&difference) {
+        return CurvatureDiagnostic::NonFiniteDifference;
+    }
+
+    let Some(along) = ordered_dot(step.as_array(), difference.as_array()) else {
+        return CurvatureDiagnostic::NonFiniteDot;
+    };
+    let Some(square) = ordered_dot(step.as_array(), step.as_array()) else {
+        return CurvatureDiagnostic::NonFiniteDot;
+    };
+
+    let normalized = along / square;
+    if normalized.is_finite() {
+        CurvatureDiagnostic::Value { along, normalized }
+    } else {
+        CurvatureDiagnostic::NonFiniteNormalization
+    }
+}

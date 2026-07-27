@@ -10,8 +10,8 @@
 //!
 //! Every stream assigns dense ids by position: the `n`-th item of a stream occupies row `n`. There
 //! is no row field to keep consistent - position is the assignment. Cross-references use the typed
-//! row ids ([`NodeRowId`], [`EdgeRowId`], [`OntologyRowId`]), so an edge names its endpoints by
-//! node row and a node names its types by ontology row.
+//! row ids ([`NodeRowId`], [`EdgeRowId`](crate::identity::EdgeRowId), [`OntologyRowId`]), so an
+//! edge names its endpoints by node row and a node names its types by ontology row.
 //!
 //! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`], [`Dataset::OntologyId`]) are
 //! opaque to the pipeline: they are byte-level stable (the zerocopy bounds), which is exactly

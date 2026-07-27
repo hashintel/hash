@@ -37,6 +37,7 @@ use crate::{
 mod applicability;
 mod calibration;
 mod objective;
+mod solver;
 
 #[cfg(test)]
 mod tests;
