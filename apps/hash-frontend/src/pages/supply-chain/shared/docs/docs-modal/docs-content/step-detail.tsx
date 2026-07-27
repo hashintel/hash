@@ -49,6 +49,12 @@ export const stepDetailDoc: DocEntry = {
           difference from observed timing and the source note where the plan is
           not the default planned-delivery-time field.
         </LI>
+        <LI>
+          <Term>Value</Term>, when available, is the actual quantity received,
+          produced, released or transported during the selected period
+          multiplied by the unit cost, to help in understanding the scale of
+          impact of miscalibrated parameters.
+        </LI>
       </UL>
 
       <H4>Evidence and actions</H4>

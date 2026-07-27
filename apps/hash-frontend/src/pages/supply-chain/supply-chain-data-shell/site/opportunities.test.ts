@@ -66,6 +66,7 @@ function planning(overrides: Partial<PlanningRow>): PlanningRow {
     pct_exceeding_plan: 30,
     cost: null,
     products: [{ id: "p1", name: "Product 1" }],
+    periodMaterialValue: null,
     deviationPct: 20,
     trendPct: null,
     previousValue: null,

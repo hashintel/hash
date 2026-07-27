@@ -4,7 +4,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
-import { formatNumber } from "../../shared/cost";
+import { formatCost, formatNumber } from "../../shared/cost";
 import {
   MEASURE_LABELS,
   selectStat,
@@ -19,6 +19,7 @@ import {
   type StatusActionLabel,
   type StatusStore,
 } from "../../shared/status";
+import { useTimeRange } from "../../shared/time-range-context";
 import { TrendIndicator } from "../../shared/trend-indicator";
 import { buildColumnFilter, countBy } from "./shared/column-filter";
 import { ColumnHeader } from "./shared/column-header";
@@ -132,6 +133,7 @@ export const PlanningTable = ({
   onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
+  const { timeRange } = useTimeRange();
   const measureLabel = MEASURE_LABELS[measure];
 
   const {
@@ -241,6 +243,16 @@ export const PlanningTable = ({
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
+                label={"Value"}
+                sort={{
+                  active: sort.key === "materialValue",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("materialValue"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
                 label="Planned"
                 sort={{
                   active: sort.key === "planned",
@@ -342,6 +354,13 @@ export const PlanningTable = ({
                 <td className={threshold.td}>
                   <ProductTags products={row.products} maxVisible={12} />
                 </td>
+                <td className={cx(threshold.tdRight, threshold.valueStrong)}>
+                  {formatCost(
+                    row.periodMaterialValue,
+                    row.material_value?.currency ?? null,
+                    { compact: true },
+                  )}
+                </td>
                 <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                   {formatNumber(row.plan, { maximumFractionDigits: 0 })}d
                 </td>
@@ -428,7 +447,7 @@ export const PlanningTable = ({
           })}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={10} className={threshold.emptyCell}>
+              <td colSpan={11} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No planning parameter data for this site."
                   : "No planning parameter data matches the current filters."}

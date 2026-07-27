@@ -165,6 +165,13 @@ export function sortPlanningRows(
           : Number.POSITIVE_INFINITY;
       va = left.deviationPct ?? nullRank;
       vb = right.deviationPct ?? nullRank;
+    } else if (sort.key === "materialValue") {
+      const nullRank =
+        sort.dir === "desc"
+          ? Number.NEGATIVE_INFINITY
+          : Number.POSITIVE_INFINITY;
+      va = left.periodMaterialValue ?? nullRank;
+      vb = right.periodMaterialValue ?? nullRank;
     } else if (sort.key === "exceeding") {
       va = left.pct_exceeding_plan ?? 0;
       vb = right.pct_exceeding_plan ?? 0;
