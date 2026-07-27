@@ -36,7 +36,11 @@ export const WorkspaceSwitcher = () => {
   const { activeWorkspaceWebId, updateActiveWorkspaceWebId } =
     useActiveWorkspace();
 
-  const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
+  const activeWorkspace = useMemo<{
+    name: string;
+    avatarSrc?: string;
+    isOrg: boolean;
+  }>(() => {
     if (activeWorkspaceWebId === authenticatedUser.accountId) {
       return {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty displayName
@@ -46,6 +50,7 @@ export const WorkspaceSwitcher = () => {
               authenticatedUser.hasAvatar.imageEntity.properties,
             )
           : undefined,
+        isOrg: false,
       };
     } else {
       const { org: activeOrg } =
@@ -61,11 +66,12 @@ export const WorkspaceSwitcher = () => {
                 activeOrg.hasAvatar.imageEntity.properties,
               )
             : undefined,
+          isOrg: true,
         };
       }
     }
 
-    return { name: "User" };
+    return { name: "User", isOrg: false };
   }, [activeWorkspaceWebId, authenticatedUser]);
 
   const workspaceList = useMemo(() => {
@@ -80,6 +86,7 @@ export const WorkspaceSwitcher = () => {
               authenticatedUser.hasAvatar.imageEntity.properties,
             )
           : undefined,
+        isOrg: false,
       },
       ...authenticatedUser.memberOf.map(
         ({ org: { webId, name, memberships, hasAvatar } }) => ({
@@ -90,6 +97,7 @@ export const WorkspaceSwitcher = () => {
           avatarSrc: hasAvatar
             ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
             : undefined,
+          isOrg: true,
         }),
       ),
     ];
@@ -114,7 +122,7 @@ export const WorkspaceSwitcher = () => {
             size={22}
             src={activeWorkspace.avatarSrc}
             title={activeWorkspace.name}
-            borderRadius="4px"
+            borderRadius={activeWorkspace.isOrg ? "4px" : undefined}
           />
           <Typography
             sx={{
@@ -147,7 +155,7 @@ export const WorkspaceSwitcher = () => {
         }}
         autoFocus={false}
       >
-        {workspaceList.map(({ title, subText, webId, avatarSrc }) => (
+        {workspaceList.map(({ title, subText, webId, avatarSrc, isOrg }) => (
           <MenuItem
             key={webId}
             selected={webId === activeWorkspaceWebId}
@@ -157,14 +165,20 @@ export const WorkspaceSwitcher = () => {
             }}
           >
             <ListItemAvatar
-              sx={{
-                [`&.${listItemAvatarClasses.root}`]: { borderRadius: "6px" },
-              }}
+              sx={
+                isOrg
+                  ? {
+                      [`&.${listItemAvatarClasses.root}`]: {
+                        borderRadius: "6px",
+                      },
+                    }
+                  : undefined
+              }
             >
               <Avatar
                 src={avatarSrc}
                 size={26}
-                borderRadius="4px"
+                borderRadius={isOrg ? "4px" : undefined}
                 title={
                   webId === authenticatedUser.accountId
                     ? authenticatedUser.displayName
