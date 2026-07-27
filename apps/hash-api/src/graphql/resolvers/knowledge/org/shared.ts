@@ -62,9 +62,10 @@ export const getPendingOrgInvitationsFromSubgraph = async (
       LinkEntityAndLeftEntity<HashEntity, HashLinkEntity>[]
     >(subgraph, root.entityId);
 
-    const linkEntity = linkAndOrgEntities[0]?.linkEntity[0];
+    const [linkAndOrgEntity] = linkAndOrgEntities;
+    const linkEntity = linkAndOrgEntity?.linkEntity[0];
 
-    if (!linkEntity) {
+    if (!linkAndOrgEntity || !linkEntity) {
       throw new Error(
         `Pending invitation with entityId ${root.entityId} has no incoming link.`,
       );
@@ -82,7 +83,7 @@ export const getPendingOrgInvitationsFromSubgraph = async (
       );
     }
 
-    const orgEntity = linkAndOrgEntities[0]?.leftEntity[0];
+    const orgEntity = linkAndOrgEntity.leftEntity?.[0];
 
     if (!orgEntity) {
       throw new Error(

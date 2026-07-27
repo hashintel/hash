@@ -44,7 +44,7 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
     ),
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as
+  return avatarLinkAndEntities[0]?.rightEntity?.[0] as
     | Entity<ImageFile>
     | undefined;
 };
@@ -85,27 +85,65 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         user.metadata.recordId.entityId,
       );
 
-      const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
+      const orgMemberships = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(({ linkEntity }) =>
-        linkEntity[0]?.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-        ),
-      );
+      ).flatMap(({ linkEntity, rightEntity }) => {
+        const membershipLinkEntity = linkEntity[0];
 
-      const userBrowserPreferences = getOutgoingLinkAndTargetEntities(
+        return membershipLinkEntity?.metadata.entityTypeIds.includes(
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+        )
+          ? [{ membershipLinkEntity, rightEntity }]
+          : [];
+      });
+
+      const [userBrowserPreferences] = getOutgoingLinkAndTargetEntities(
         subgraph,
         user.metadata.recordId.entityId,
-      ).filter(
-        ({ linkEntity, rightEntity }) =>
-          linkEntity[0]?.metadata.entityTypeIds.includes(
+      ).flatMap(({ linkEntity, rightEntity }) => {
+        const hasLinkEntity = linkEntity[0];
+
+        if (
+          !hasLinkEntity?.metadata.entityTypeIds.includes(
             systemLinkEntityTypes.has.linkEntityTypeId,
-          ) &&
-          rightEntity[0]?.metadata.entityTypeIds.includes(
-            systemEntityTypes.browserPluginSettings.entityTypeId,
-          ),
-      )[0]?.rightEntity[0];
+          )
+        ) {
+          return [];
+        }
+
+        if (rightEntity === undefined) {
+          /**
+           * The query pairs each incoming has-left-entity hop with an
+           * outgoing has-right-entity hop, so every link in the subgraph must
+           * have its has-right-entity edge resolved. An unresolved edge means
+           * the subgraph is internally inconsistent – falling through to the
+           * create branch here could create a duplicate settings entity and
+           * link.
+           */
+          throw new Error(
+            `Invariant violation: has link ${hasLinkEntity.metadata.recordId.entityId} on user ${user.metadata.recordId.entityId} has an unresolved right-entity edge in the subgraph`,
+          );
+        }
+
+        const settingsEntity = rightEntity[0];
+
+        if (!settingsEntity) {
+          /**
+           * The edge resolved but no revision of the target entity is visible
+           * in the queried interval, e.g. because the settings entity has
+           * been archived. The link no longer points at usable settings, so
+           * fall through to the create branch to create a replacement.
+           */
+          return [];
+        }
+
+        return settingsEntity.metadata.entityTypeIds.includes(
+          systemEntityTypes.browserPluginSettings.entityTypeId,
+        )
+          ? [settingsEntity]
+          : [];
+      });
 
       let settingsEntityId: EntityId;
 
@@ -223,21 +261,33 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         });
       }
 
-      const orgs = orgLinksAndEntities.map(({ rightEntity }) => {
-        const org = rightEntity[0]!;
-        const orgAvatar = getAvatarForEntity(
-          subgraph,
-          org.metadata.recordId.entityId,
-        );
-        return {
-          metadata: org.metadata,
-          properties: simplifyProperties(
-            org.properties as OrganizationProperties,
-          ),
-          avatar: orgAvatar,
-          webWebId: getWebIdFromEntityId(org.metadata.recordId.entityId),
-        };
-      });
+      const orgs = orgMemberships.map(
+        ({ membershipLinkEntity, rightEntity }) => {
+          const org = rightEntity?.[0];
+          if (!org) {
+            /**
+             * Org entities are public – if the membership link is in the
+             * subgraph, its right (org) entity must be too. A missing org
+             * entity means the subgraph is internally inconsistent.
+             */
+            throw new Error(
+              `Invariant violation: membership link ${membershipLinkEntity.metadata.recordId.entityId} is missing its right (org) entity in the subgraph`,
+            );
+          }
+          const orgAvatar = getAvatarForEntity(
+            subgraph,
+            org.metadata.recordId.entityId,
+          );
+          return {
+            metadata: org.metadata,
+            properties: simplifyProperties(
+              org.properties as OrganizationProperties,
+            ),
+            avatar: orgAvatar,
+            webWebId: getWebIdFromEntityId(org.metadata.recordId.entityId),
+          };
+        },
+      );
 
       const enabledFeatureFlags =
         (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ??
@@ -257,5 +307,15 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         webWebId: getWebIdFromEntityId(user.metadata.recordId.entityId),
       } as LocalStorage["user"];
     })
-    .catch(() => null);
+    .catch((error) => {
+      /**
+       * Failures here include invariant violations thrown while walking the
+       * subgraph, failures to recreate missing settings entities, and network
+       * errors. Callers treat a null return as "signed out", so log the error
+       * to keep the failure observable.
+       */
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Error fetching and processing user:", error);
+      return null;
+    });
 };

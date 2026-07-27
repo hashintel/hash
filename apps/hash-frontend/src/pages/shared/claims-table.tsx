@@ -424,18 +424,20 @@ export const ClaimsTable = memo(
           linkEntity,
           rightEntity,
         } of outgoingLinkAndTargetEntities) {
+          const linkEntityRevision = linkEntity[0];
+
           if (
-            linkEntity[0]?.metadata.entityTypeIds.includes(
+            linkEntityRevision?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasObject.linkEntityTypeId,
             )
           ) {
-            objectEntityId = rightEntity[0]?.entityId;
+            objectEntityId = rightEntity?.[0]?.entityId;
           } else if (
-            linkEntity[0]?.metadata.entityTypeIds.includes(
+            linkEntityRevision?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasSubject.linkEntityTypeId,
             )
           ) {
-            subjectEntityId = rightEntity[0]?.entityId;
+            subjectEntityId = rightEntity?.[0]?.entityId;
           }
         }
 
