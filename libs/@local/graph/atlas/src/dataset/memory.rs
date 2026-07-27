@@ -3,6 +3,7 @@
 use std::{collections::HashMap, io};
 
 use futures::{Stream, StreamExt as _, stream};
+use hashql_core::id::Id;
 use smallvec::SmallVec;
 use zerocopy::{LE, U64};
 
@@ -64,7 +65,7 @@ impl MemoryDataset {
         for (row, edge) in edges.iter().enumerate() {
             let points = nodes.len() as u64;
             assert!(
-                edge.source.get() < points && edge.target.get() < points,
+                edge.source.as_u64() < points && edge.target.as_u64() < points,
                 "edge row {row} references a node row outside the node stream",
             );
             assert!(

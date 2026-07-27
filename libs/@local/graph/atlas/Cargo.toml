@@ -31,36 +31,37 @@ hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 
 # Private third-party dependencies
-aide                 = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
-argmin               = { workspace = true }
-burn                 = { workspace = true, features = ["autodiff", "ndarray"] }
-chacha20poly1305     = { workspace = true }
-clap                 = { workspace = true, features = ["derive", "env"] }
-futures              = { workspace = true }
-hannoy               = { workspace = true }
-heed                 = { workspace = true }
-hkdf                 = { workspace = true }
-kiddo                = { workspace = true, features = ["rkyv_08"] }
-memchr               = { workspace = true }
-memmap2              = { workspace = true }
-pin-project-lite     = { workspace = true }
-rand_core_06         = { workspace = true }
-rand_xoshiro         = { workspace = true }
-rayon                = { workspace = true }
-regex                = { workspace = true }
-rkyv                 = { workspace = true }
-roaring              = { workspace = true, features = ["std"] }
-serde                = { workspace = true, features = ["derive"] }
-serde_json           = { workspace = true, features = ["float_roundtrip"] }
-sha2                 = { workspace = true }
-simple-mermaid       = { workspace = true }
-siphasher            = { workspace = true }
-smallvec             = { workspace = true }
-tiktoken-rs          = { workspace = true }
-tracing              = { workspace = true }
-unicode-segmentation = { workspace = true }
-unidecode            = { workspace = true }
-zeroize              = { workspace = true }
+aide                  = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
+argmin                = { workspace = true }
+burn                  = { workspace = true, features = ["autodiff", "ndarray"] }
+chacha20poly1305      = { workspace = true }
+clap                  = { workspace = true, features = ["derive", "env"] }
+futures               = { workspace = true }
+hannoy                = { workspace = true }
+hashql-core.workspace = true
+heed                  = { workspace = true }
+hkdf                  = { workspace = true }
+kiddo                 = { workspace = true, features = ["rkyv_08"] }
+memchr                = { workspace = true }
+memmap2               = { workspace = true }
+pin-project-lite      = { workspace = true }
+rand_core_06          = { workspace = true }
+rand_xoshiro          = { workspace = true }
+rayon                 = { workspace = true }
+regex                 = { workspace = true }
+rkyv                  = { workspace = true }
+roaring               = { workspace = true, features = ["std"] }
+serde                 = { workspace = true, features = ["derive"] }
+serde_json            = { workspace = true, features = ["float_roundtrip"] }
+sha2                  = { workspace = true }
+simple-mermaid        = { workspace = true }
+siphasher             = { workspace = true }
+smallvec              = { workspace = true }
+tiktoken-rs           = { workspace = true }
+tracing               = { workspace = true }
+unicode-segmentation  = { workspace = true }
+unidecode             = { workspace = true }
+zeroize               = { workspace = true }
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
@@ -122,8 +123,9 @@ harness           = false
 required-features = ["bench"]
 
 [[bench]]
-name    = "math_kernels"
-harness = false
+name              = "math_kernels"
+harness           = false
+required-features = ["bench"]
 
 [[bench]]
 name              = "miner_index"

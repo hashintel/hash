@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use futures::TryStreamExt as _;
+use hashql_core::id::Id;
 use smallvec::smallvec;
 use type_system::{
     knowledge::entity::id::EntityUuid,
@@ -15,7 +16,7 @@ use super::{
     Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
 };
 use crate::{
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{Identity as _, NodeRowId, OntologyRowId},
     math::{BoxedVecN, VecN},
 };
 
@@ -62,13 +63,6 @@ fn archived_uuid_bytes_round_trip() {
 }
 
 #[test]
-fn row_ids_round_trip_their_position() {
-    assert_eq!(NodeRowId::new(0).get(), 0);
-    assert_eq!(EdgeRowId::new(7).get(), 7);
-    assert_eq!(OntologyRowId::new(u64::MAX).get(), u64::MAX);
-}
-
-#[test]
 fn row_ids_persist_little_endian() {
     let id = NodeRowId::new(0x0102_0304_0506_0708);
 
@@ -81,7 +75,7 @@ fn row_ids_persist_little_endian() {
 
     let restored = NodeRowId::read_from_bytes(id.as_bytes())
         .expect("should read a row id back from its own bytes");
-    assert_eq!(restored.get(), id.get());
+    assert_eq!(restored, id);
 }
 
 /// A two-node, one-edge fixture over a two-type ontology (type 1 inherits from type 0).
@@ -162,8 +156,8 @@ async fn memory_dataset_streams_rows_in_construction_order() {
         .await
         .unwrap_or_else(|never| never);
     assert_eq!(edges.len(), 1);
-    assert_eq!(edges[0].source.get(), 0);
-    assert_eq!(edges[0].target.get(), 1);
+    assert_eq!(edges[0].source.as_u64(), 0);
+    assert_eq!(edges[0].target.as_u64(), 1);
     assert_eq!(edges[0].target_confidence, Some(1.0));
 
     let ontology: Vec<_> = dataset

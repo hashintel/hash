@@ -2,10 +2,13 @@ use proc_macro2::{Literal, TokenStream};
 use quote::{quote, quote_spanned};
 use unsynn::ToTokens as _;
 
-use super::grammar;
-use crate::id::{
-    attr::{Attributes, DisplayAttribute, Trait},
-    common::IntegerScalar,
+use super::{attr::Spanned, grammar};
+use crate::{
+    emit_error,
+    id::{
+        attr::{Attributes, DisplayAttribute, Trait},
+        common::IntegerScalar,
+    },
 };
 
 #[expect(
@@ -29,9 +32,18 @@ pub(super) fn expand_enum(
         r#const: konst,
         display,
         traits,
+        endian,
+        unaligned,
         extra: _,
     } = Attributes::parse(attributes);
     let vis = visibility.into_token_stream();
+
+    if let Some(Spanned { value: _, span }) = endian {
+        emit_error(span, "`endian` apply to struct ids only");
+    }
+    if let Some(span) = unaligned {
+        emit_error(span, "`unaligned` apply to struct ids only");
+    }
 
     let mut variants: Vec<_> = Vec::new();
     for variant in &*body.content {

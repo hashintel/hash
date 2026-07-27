@@ -38,12 +38,6 @@ tracing              = { workspace = true }
 unicase              = { workspace = true, features = ["nightly"] }
 unicode-segmentation = { workspace = true }
 
-[features]
-serde = ["dep:serde", "text-size/serde"]
-
-[lints]
-workspace = true
-
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
 darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
@@ -51,6 +45,14 @@ insta                     = { workspace = true }
 proptest                  = { workspace = true }
 rstest                    = { workspace = true }
 test-strategy             = { workspace = true }
+zerocopy                  = { workspace = true, features = ["derive"] }
+
+
+[features]
+serde = ["dep:serde", "text-size/serde"]
+
+[lints]
+workspace = true
 
 [[bench]]
 name    = "type_system"

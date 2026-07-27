@@ -27,6 +27,7 @@ use super::{
 use crate::identity::{Identity as _, NodeRowId, OntologyRowId};
 
 mod backfill;
+mod backfill_channel;
 mod masking;
 mod row_codec;
 mod seal;

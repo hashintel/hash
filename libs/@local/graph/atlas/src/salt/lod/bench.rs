@@ -16,15 +16,28 @@
 //! fills the shortfall from buckets below the cut - in bucket order, morton order within a bucket -
 //! until the budget is met or the extent is exhausted.
 //!
+//! [`WalkBench::deliver`] runs that same chain against a [`FillRule`], the count each level fills
+//! to: [`FillRule::Unmasked`] is the scheduled count before masking, [`FillRule::Coverage`] the
+//! depth-`z + m` cells of the tile cell holding a visible point less the chain's own deliveries
+//! inside it, [`FillRule::Visible`] the visible scheduled count alone, and
+//! [`FillRule::CoverageCells`] the same cell count with the fill restricted to cells no delivered
+//! point occupies. The coverage targets read a [`VisibleCellPyramid`], one cell census per cut
+//! depth over the visible view;
+//! [`WalkBench::visible_cascade`] runs the production cascade over the visible points alone, the
+//! schedule a coverage target claims to reproduce. [`WalkBench::audit`] reports both alongside the
+//! cells a chain's delivery actually occupies.
+//!
 //! [`WalkBench::build`] synthesizes a clustered corpus and runs the production cascade over it;
 //! [`WalkBench::mask_uniform`] hides rows independently and [`WalkBench::mask_clustered`] hides
 //! whole spatial blocks, the adversarial shape for walk lengths. Selections return plain counts;
 //! wall time belongs to the bench target. Nothing here is API for consumers of the crate.
 
 use core::{f64::consts::TAU, num::NonZero, ops::Range};
+use std::collections::HashSet;
 
 use super::{
-    rank::RankInputs,
+    cascade,
+    rank::{RankInputs, Ranking},
     stage::{Lod, LodConfig},
 };
 use crate::{
@@ -41,7 +54,9 @@ type Ranges = [Range<usize>; Fenceposts::SEGMENTS];
 /// One tile delivery's outcome, as plain counts.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Selection {
-    /// The scheduled count before masking: the fill target.
+    /// The count the fill runs to, which [`FillRule`] chooses.
+    ///
+    /// Under [`FillRule::Unmasked`] it is the scheduled count before masking.
     pub budget: usize,
     /// Scheduled points the predicate admitted.
     pub natural: usize,
@@ -51,6 +66,113 @@ pub struct Selection {
     ///
     /// [`WalkBench::chained`] sums the whole ancestor chain's scans into this count.
     pub scanned: usize,
+}
+
+/// The count one masked delivery fills to at every level of its chain.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum FillRule {
+    /// The level's scheduled count before masking.
+    Unmasked,
+    /// The level cut's cells holding a visible point, less the chain's deliveries inside the cell.
+    ///
+    /// The target is a function of the visible view and the chain's own output: it reads a
+    /// [`VisibleCellPyramid`] and the delivered positions, never a hidden row.
+    Coverage,
+    /// The level's visible scheduled count, which its own admissions meet.
+    Visible,
+    /// The level cut's cells holding a visible point, less the cells the chain already represents.
+    ///
+    /// The fill takes a point only where its cut cell holds no delivered point, so the delivery
+    /// occupies one cell per covered cell.
+    CoverageCells,
+}
+
+/// The count one level's walk fills to.
+#[derive(Debug)]
+enum FillTarget<'cells> {
+    /// The level's scheduled count before masking.
+    Scheduled,
+    /// An explicit count.
+    Count(usize),
+    /// The scheduled admissions alone.
+    Admitted,
+    /// One delivered point per cell of `cut` the extent covers.
+    ///
+    /// `represented` enters holding the cells the chain already covers and leaves holding every
+    /// cell the delivery covers; the fill stops once it holds `goal` of them.
+    Cells {
+        /// The cells the extent's visible points occupy at `cut`.
+        goal: usize,
+        /// The level's cut depth.
+        cut: Depth,
+        /// The cells a delivered point already occupies.
+        represented: &'cells mut HashSet<u64>,
+    },
+}
+
+/// One chain's coverage accounting at the target tile.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ChainAudit {
+    /// The tile's own fill target.
+    pub target: usize,
+    /// Cells of the tile's cut depth inside the tile cell holding a visible point.
+    pub covered: usize,
+    /// Chain deliveries inside the tile cell, the levels above the tile alone.
+    pub inherited: usize,
+    /// Cut-depth cells those chain deliveries occupy.
+    pub inherited_cells: usize,
+    /// The tile's own delivery: scheduled admissions plus fill.
+    pub delivered: usize,
+    /// Chain and own deliveries inside the tile cell.
+    pub cumulative: usize,
+    /// Cut-depth cells the chain and own deliveries occupy.
+    pub cumulative_cells: usize,
+    /// Whether a level above the tile ended below its own target.
+    pub spent: bool,
+    /// Whether the tile's delivery ended below its target.
+    pub dry: bool,
+    /// Candidate positions examined across the chain.
+    pub scanned: usize,
+}
+
+/// One cell census per delivery cut depth over the visible view.
+///
+/// Level `d` holds, ascending, every depth-`d` cell index containing at least one visible point;
+/// the levels span the cut depths `m` through `z_max + m` a tile schedule reads.
+/// [`VisibleCellPyramid::count`] answers how many of a cell's depth-`d` cells hold a visible point.
+///
+/// One pyramid describes one `(corpus, mask)` pair: a mask replacement invalidates it.
+#[derive(Debug)]
+pub struct VisibleCellPyramid {
+    /// The shallowest depth the levels cover.
+    shallowest: u8,
+    /// Ascending distinct cell indexes per depth, shallowest level first.
+    levels: Box<[Box<[u64]>]>,
+}
+
+/// The rank order a visible-only cascade claims cells in.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum VisibleRankOrder {
+    /// Ascending base position.
+    Base,
+    /// Descending base position.
+    Reversed,
+}
+
+/// The visible subcorpus's own cascade: the schedule a visible-only generation publishes.
+///
+/// The production first-occupant cascade over the visible points alone, at the corpus's deepest
+/// grid. [`VisibleCascade::schedule`] returns one tile's scheduled count under that assignment and
+/// [`VisibleCascade::covered`] the count the tile's cut reaches, so a delivery target derived from
+/// the visible view compares against the schedule it stands in for.
+#[derive(Debug)]
+pub struct VisibleCascade {
+    /// Visible points as key bits paired with their bucket depth, ascending by key.
+    points: Box<[(u64, u8)]>,
+    /// The cut's span exponent `m`.
+    span: u8,
+    /// The deepest grid the cascade assigned over.
+    deepest: Depth,
 }
 
 /// A re-delivery census for the independent variant at one tile.
@@ -355,6 +477,12 @@ impl WalkBench {
         self.max_zoom
     }
 
+    /// Returns the cut's span exponent `m`: a tile at zoom `z` cuts at depth `z + m`.
+    #[must_use]
+    pub const fn span(&self) -> u8 {
+        self.span
+    }
+
     /// Returns the root-to-deepest descent path through the densest cells.
     ///
     /// Each step descends into the child holding the most points before masking, so the path is
@@ -406,7 +534,7 @@ impl WalkBench {
     pub fn independent(&self, z: u8, x: u32, y: u32) -> Selection {
         let taken = BitSet::new(0);
         let mut delivered = Vec::new();
-        self.walk(z, x, y, &taken, &mut delivered)
+        self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled)
     }
 
     /// Delivers one tile behind its recomputed ancestor chain: the chained variant.
@@ -429,7 +557,14 @@ impl WalkBench {
         for level in 0..z {
             let shift = z - level;
             delivered.clear();
-            let ancestor = self.walk(level, x >> shift, y >> shift, &taken, &mut delivered);
+            let ancestor = self.walk(
+                level,
+                x >> shift,
+                y >> shift,
+                &taken,
+                &mut delivered,
+                FillTarget::Scheduled,
+            );
             scanned += ancestor.scanned;
             for &position in &delivered {
                 taken.insert(position as usize);
@@ -445,7 +580,7 @@ impl WalkBench {
         }
 
         delivered.clear();
-        let mut own = self.walk(z, x, y, &taken, &mut delivered);
+        let mut own = self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled);
         own.scanned += scanned;
         own
     }
@@ -459,7 +594,7 @@ impl WalkBench {
     pub fn independent_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
         let taken = BitSet::new(0);
         let mut delivered = Vec::new();
-        self.walk(z, x, y, &taken, &mut delivered);
+        self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled);
         delivered
     }
 
@@ -480,7 +615,14 @@ impl WalkBench {
         for level in 0..z {
             let shift = z - level;
             delivered.clear();
-            let ancestor = self.walk(level, x >> shift, y >> shift, &taken, &mut delivered);
+            let ancestor = self.walk(
+                level,
+                x >> shift,
+                y >> shift,
+                &taken,
+                &mut delivered,
+                FillTarget::Scheduled,
+            );
             for &position in &delivered {
                 taken.insert(position as usize);
             }
@@ -490,18 +632,383 @@ impl WalkBench {
         }
 
         delivered.clear();
-        self.walk(z, x, y, &taken, &mut delivered);
+        self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled);
         delivered
+    }
+
+    /// Builds the visible-cell pyramid over the cut depths the schedule reads.
+    ///
+    /// One level per depth `m` through `z_max + m`, built from one sort of the visible key column
+    /// and one pass per level. The footprint is eight bytes per occupied cell, which
+    /// [`VisibleCellPyramid::footprint`] reports.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the schedule's deepest cut lies beyond the key width.
+    #[must_use]
+    pub fn pyramid(&self) -> VisibleCellPyramid {
+        let mut codes = Vec::with_capacity(self.visible.count());
+        for (position, code) in self.codes.iter().enumerate() {
+            if self
+                .visible
+                .contains(self.row_of_position[position] as usize)
+            {
+                codes.push(code.to_bits());
+            }
+        }
+        codes.sort_unstable();
+
+        let deepest = self.max_zoom + self.span;
+        let mut levels = Vec::with_capacity(usize::from(self.max_zoom) + 1);
+        for depth in self.span..=deepest {
+            let depth = Depth::new(depth).expect("the schedule's cuts lie within the key width");
+            let mut cells: Vec<u64> = Vec::new();
+            for &bits in &codes {
+                let cell = MortonKey::from_bits(bits).prefix(depth);
+                if cells.last() != Some(&cell) {
+                    cells.push(cell);
+                }
+            }
+            levels.push(cells.into_boxed_slice());
+        }
+
+        VisibleCellPyramid {
+            shallowest: self.span,
+            levels: levels.into_boxed_slice(),
+        }
+    }
+
+    /// Runs the production cascade over the visible points alone.
+    ///
+    /// The visible key column enters as its own corpus at the same deepest grid, ranked by base
+    /// position in `order`. The resulting counts are a function of the keys and the deepest grid:
+    /// both orders assign the same per-cell counts.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the schedule's deepest cut lies beyond the key width.
+    #[must_use]
+    pub fn visible_cascade(&self, order: VisibleRankOrder) -> VisibleCascade {
+        let mut keys = Vec::with_capacity(self.visible.count());
+        for (position, code) in self.codes.iter().enumerate() {
+            if self
+                .visible
+                .contains(self.row_of_position[position] as usize)
+            {
+                keys.push(*code);
+            }
+        }
+
+        let rows = u32::try_from(keys.len()).expect("visible rows share the u32 row domain");
+        let row_of_rank: Box<[u32]> = match order {
+            VisibleRankOrder::Base => (0..rows).collect(),
+            VisibleRankOrder::Reversed => (0..rows).rev().collect(),
+        };
+        let mut rank_of_row = vec![0_u32; keys.len()];
+        for (rank, &row) in row_of_rank.iter().enumerate() {
+            rank_of_row[row as usize] =
+                u32::try_from(rank).expect("visible ranks share the u32 row domain");
+        }
+        let ranking = Ranking {
+            row_of_rank,
+            rank_of_row: rank_of_row.into_boxed_slice(),
+        };
+
+        let deepest = Depth::new(self.max_zoom + self.span)
+            .expect("the schedule's cuts lie within the key width");
+        let buckets = cascade::buckets(&keys, &ranking, deepest);
+
+        let mut points: Vec<(u64, u8)> = keys
+            .iter()
+            .zip(&buckets)
+            .map(|(key, bucket)| (key.to_bits(), bucket.get()))
+            .collect();
+        points.sort_unstable();
+
+        VisibleCascade {
+            points: points.into_boxed_slice(),
+            span: self.span,
+            deepest,
+        }
+    }
+
+    /// Delivers one tile behind its recomputed ancestor chain under a fill rule.
+    ///
+    /// The chain, its per-level order, and its early exit follow [`Self::chained`];
+    /// [`FillRule::Unmasked`] reproduces that variant's counts exactly. [`Selection::budget`] holds
+    /// the tile's own target under `rule`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn deliver(
+        &self,
+        rule: FillRule,
+        z: u8,
+        x: u32,
+        y: u32,
+        pyramid: &VisibleCellPyramid,
+    ) -> Selection {
+        let mut delivered = Vec::new();
+        self.chain(
+            rule,
+            z,
+            x,
+            y,
+            pyramid,
+            ChainBuffers {
+                own: &mut delivered,
+                inside: None,
+            },
+        )
+        .own
+    }
+
+    /// Delivers one tile under a fill rule, returning the delivered positions in delivery order.
+    ///
+    /// A spent chain returns the empty delivery, as [`Self::chained_delivery`] does.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn delivery(
+        &self,
+        rule: FillRule,
+        z: u8,
+        x: u32,
+        y: u32,
+        pyramid: &VisibleCellPyramid,
+    ) -> Vec<u32> {
+        let mut delivered = Vec::new();
+        self.chain(
+            rule,
+            z,
+            x,
+            y,
+            pyramid,
+            ChainBuffers {
+                own: &mut delivered,
+                inside: None,
+            },
+        );
+        delivered
+    }
+
+    /// Audits one tile's chain against the visible cells its cut resolves.
+    ///
+    /// The delivery runs exactly as [`Self::deliver`] does; the audit additionally counts the
+    /// cut-depth cells the chain's deliveries inside the tile cell occupy, so a target's count and
+    /// the coverage it achieves are separate numbers.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn audit(
+        &self,
+        rule: FillRule,
+        z: u8,
+        x: u32,
+        y: u32,
+        pyramid: &VisibleCellPyramid,
+    ) -> ChainAudit {
+        let mut delivered = Vec::new();
+        let mut inside = Vec::new();
+        let chain = self.chain(
+            rule,
+            z,
+            x,
+            y,
+            pyramid,
+            ChainBuffers {
+                own: &mut delivered,
+                inside: Some(&mut inside),
+            },
+        );
+
+        let cut = Depth::new(z + self.span).expect("the schedule's cuts lie within the key width");
+        let inherited_cells = self.distinct_cells(&inside, cut);
+        inside.extend_from_slice(&delivered);
+        let cumulative_cells = self.distinct_cells(&inside, cut);
+
+        let own = chain.own;
+        let delivered = own.natural + own.tail;
+        ChainAudit {
+            target: own.budget,
+            covered: chain.covered,
+            inherited: chain.inherited,
+            inherited_cells,
+            delivered,
+            cumulative: chain.inherited + delivered,
+            cumulative_cells,
+            spent: chain.spent,
+            dry: delivered < own.budget,
+            scanned: own.scanned,
+        }
+    }
+
+    /// Delivers one tile behind its chain, recording the chain's deliveries inside the tile cell.
+    fn chain(
+        &self,
+        rule: FillRule,
+        z: u8,
+        x: u32,
+        y: u32,
+        pyramid: &VisibleCellPyramid,
+        buffers: ChainBuffers<'_>,
+    ) -> ChainOutcome {
+        let ChainBuffers { own, mut inside } = buffers;
+        let key = cell_of(z, x, y).min_key();
+        let mut taken = BitSet::new(self.codes.len());
+        let mut delivered = Vec::new();
+        // Chain deliveries by the deepest chain level whose cell holds them: a position counts
+        // inside every level at or above its entry.
+        let mut nesting = vec![0_usize; usize::from(z) + 1];
+        // The cell rule re-reads the chain's positions at each level's own cut depth, so the
+        // history stays grouped by the deepest level holding them.
+        let mut history: Vec<Vec<u32>> = if rule == FillRule::CoverageCells {
+            vec![Vec::new(); usize::from(z) + 1]
+        } else {
+            Vec::new()
+        };
+        let mut scanned = 0_usize;
+        let mut spent = false;
+
+        for level in 0..z {
+            let shift = z - level;
+            let (ancestor_x, ancestor_y) = (x >> shift, y >> shift);
+            let inherited: usize = nesting[usize::from(level)..].iter().sum();
+            let cut = self.cut_of(level);
+            let covered = covered_of(rule, cell_of(level, ancestor_x, ancestor_y), cut, pyramid);
+            let mut represented = HashSet::new();
+            self.represent(rule, &history, level, cut, &mut represented);
+            let target = target_of(rule, inherited, covered, cut, &mut represented);
+
+            delivered.clear();
+            let ancestor = self.walk(
+                level,
+                ancestor_x,
+                ancestor_y,
+                &taken,
+                &mut delivered,
+                target,
+            );
+            scanned += ancestor.scanned;
+
+            for &position in &delivered {
+                taken.insert(position as usize);
+                let depth = shared_depth(self.codes[position as usize], key).min(z);
+                nesting[usize::from(depth)] += 1;
+                if rule == FillRule::CoverageCells {
+                    history[usize::from(depth)].push(position);
+                }
+                if depth == z
+                    && let Some(inside) = inside.as_deref_mut()
+                {
+                    inside.push(position);
+                }
+            }
+
+            let short = if rule == FillRule::CoverageCells {
+                represented.len() < covered
+            } else {
+                ancestor.natural + ancestor.tail < ancestor.budget
+            };
+            if short {
+                spent = true;
+                break;
+            }
+        }
+
+        let inherited = nesting[usize::from(z)];
+        let cut = self.cut_of(z);
+        // The audit reports the tile's covered count under every rule; the coverage rules need it
+        // for the target itself.
+        let covered = if inside.is_some() {
+            pyramid.count(cell_of(z, x, y), cut)
+        } else {
+            covered_of(rule, cell_of(z, x, y), cut, pyramid)
+        };
+        let mut represented = HashSet::new();
+        self.represent(rule, &history, z, cut, &mut represented);
+        let entry = represented.len();
+        let target = target_of(rule, inherited, covered, cut, &mut represented);
+
+        if spent {
+            let budget = match target {
+                FillTarget::Scheduled => self.budget_of(z, x, y),
+                FillTarget::Count(count) => count,
+                FillTarget::Admitted => 0,
+                FillTarget::Cells { goal, .. } => goal.saturating_sub(entry),
+            };
+            return ChainOutcome {
+                own: Selection {
+                    budget,
+                    natural: 0,
+                    tail: 0,
+                    scanned,
+                },
+                covered,
+                inherited,
+                spent,
+            };
+        }
+
+        let mut selection = self.walk(z, x, y, &taken, own, target);
+        if rule == FillRule::CoverageCells {
+            selection.budget = covered.saturating_sub(entry);
+        }
+        selection.scanned += scanned;
+        ChainOutcome {
+            own: selection,
+            covered,
+            inherited,
+            spent,
+        }
+    }
+
+    /// Returns the level's cut depth.
+    const fn cut_of(&self, z: u8) -> Depth {
+        Depth::new(z + self.span).expect("the schedule's cuts lie within the key width")
+    }
+
+    /// Collects the cells the chain's deliveries inside the level's cell occupy at `cut`.
+    ///
+    /// `history` groups the chain's deliveries by the deepest level whose cell holds them, so the
+    /// levels from `z` on are exactly the deliveries inside this level's cell.
+    fn represent(
+        &self,
+        rule: FillRule,
+        history: &[Vec<u32>],
+        z: u8,
+        cut: Depth,
+        represented: &mut HashSet<u64>,
+    ) {
+        if rule != FillRule::CoverageCells {
+            return;
+        }
+
+        for level in history.iter().skip(usize::from(z)) {
+            for &position in level {
+                represented.insert(self.codes[position as usize].prefix(cut));
+            }
+        }
+    }
+
+    /// Counts the distinct cells the positions occupy at `depth`.
+    fn distinct_cells(&self, positions: &[u32], depth: Depth) -> usize {
+        let mut cells = HashSet::with_capacity(positions.len());
+        for &position in positions {
+            cells.insert(self.codes[position as usize].prefix(depth));
+        }
+        cells.len()
     }
 
     /// Returns the tile's scheduled count before masking.
     fn budget_of(&self, z: u8, x: u32, y: u32) -> usize {
-        let cell = MortonCell::new(
-            Depth::new(z).expect("tile zooms lie within the key width"),
-            x,
-            y,
-        )
-        .expect("the coordinate lies on the zoom's grid");
+        let cell = cell_of(z, x, y);
         let ranges = if z == 0 {
             self.segments.clone()
         } else {
@@ -526,7 +1033,14 @@ impl WalkBench {
         for level in 0..z {
             let shift = z - level;
             delivered.clear();
-            self.walk(level, x >> shift, y >> shift, &taken, &mut delivered);
+            self.walk(
+                level,
+                x >> shift,
+                y >> shift,
+                &taken,
+                &mut delivered,
+                FillTarget::Scheduled,
+            );
             for &position in &delivered {
                 taken.insert(position as usize);
             }
@@ -534,7 +1048,7 @@ impl WalkBench {
 
         delivered.clear();
         let none = BitSet::new(0);
-        self.walk(z, x, y, &none, &mut delivered);
+        self.walk(z, x, y, &none, &mut delivered, FillTarget::Scheduled);
 
         let duplicates = delivered
             .iter()
@@ -548,19 +1062,23 @@ impl WalkBench {
 
     /// Delivers one tile: scheduled points first, then the fill from deeper buckets.
     ///
-    /// `taken` positions never deliver; every delivered position lands in `out`.
-    fn walk(&self, z: u8, x: u32, y: u32, taken: &BitSet, out: &mut Vec<u32>) -> Selection {
+    /// `taken` positions never deliver; every delivered position lands in `out`. The scheduled
+    /// admissions deliver whole, and the fill runs while the delivery stays below `fill`.
+    fn walk(
+        &self,
+        z: u8,
+        x: u32,
+        y: u32,
+        taken: &BitSet,
+        out: &mut Vec<u32>,
+        fill: FillTarget,
+    ) -> Selection {
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
-        let cell = MortonCell::new(
-            Depth::new(z).expect("tile zooms lie within the key width"),
-            x,
-            y,
-        )
-        .expect("the coordinate lies on the zoom's grid");
+        let cell = cell_of(z, x, y);
 
         let ranges = if z == 0 {
             self.segments.clone()
@@ -571,10 +1089,24 @@ impl WalkBench {
 
         // The root's schedule is buckets 0..=m whole; deeper tiles schedule bucket z + m alone.
         let natural_buckets = if z == 0 { 0..=cut } else { cut..=cut };
-        let budget: usize = ranges[natural_buckets.clone()]
+        let scheduled: usize = ranges[natural_buckets.clone()]
             .iter()
             .map(ExactSizeIterator::len)
             .sum();
+
+        let goal = match &fill {
+            FillTarget::Scheduled => scheduled,
+            FillTarget::Count(count) => *count,
+            FillTarget::Admitted => 0,
+            FillTarget::Cells { goal, .. } => *goal,
+        };
+        let admissions_only = matches!(fill, FillTarget::Admitted);
+        let mut cells = match fill {
+            FillTarget::Cells {
+                cut, represented, ..
+            } => Some((cut, represented)),
+            FillTarget::Scheduled | FillTarget::Count(_) | FillTarget::Admitted => None,
+        };
 
         let mut scanned = 0_usize;
         let mut natural = 0_usize;
@@ -583,14 +1115,47 @@ impl WalkBench {
                 scanned += 1;
                 if self.admits(taken, position) {
                     natural += 1;
+                    if let Some((cut, represented)) = cells.as_mut() {
+                        represented.insert(self.codes[position].prefix(*cut));
+                    }
                     out.push(u32::try_from(position).expect("positions share the u32 row domain"));
                 }
             }
         }
 
+        let budget = if admissions_only { natural } else { goal };
+
         let mut tail = 0_usize;
+        if let Some((cut_depth, represented)) = cells.as_mut() {
+            'cover: for range in &ranges[cut + 1..] {
+                if represented.len() >= goal {
+                    break;
+                }
+                for position in range.clone() {
+                    scanned += 1;
+                    if !self.admits(taken, position)
+                        || !represented.insert(self.codes[position].prefix(*cut_depth))
+                    {
+                        continue;
+                    }
+                    tail += 1;
+                    out.push(u32::try_from(position).expect("positions share the u32 row domain"));
+                    if represented.len() >= goal {
+                        break 'cover;
+                    }
+                }
+            }
+
+            return Selection {
+                budget,
+                natural,
+                tail,
+                scanned,
+            };
+        }
+
         'fill: for range in &ranges[cut + 1..] {
-            if natural + tail == budget {
+            if natural + tail >= budget {
                 break;
             }
             for position in range.clone() {
@@ -598,7 +1163,7 @@ impl WalkBench {
                 if self.admits(taken, position) {
                     tail += 1;
                     out.push(u32::try_from(position).expect("positions share the u32 row domain"));
-                    if natural + tail == budget {
+                    if natural + tail >= budget {
                         break 'fill;
                     }
                 }
@@ -637,6 +1202,229 @@ impl WalkBench {
     }
 }
 
+impl VisibleCellPyramid {
+    /// Counts the depth's cells inside `cell` holding a visible point.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `depth` lies outside the pyramid's levels or above `cell`'s own depth.
+    #[must_use]
+    pub fn count(&self, cell: MortonCell, depth: Depth) -> usize {
+        assert!(
+            cell.depth().get() <= depth.get(),
+            "a cell at depth {} holds no depth-{} cells",
+            cell.depth().get(),
+            depth.get(),
+        );
+        let level = self.level(depth);
+        let low = cell.min_key().prefix(depth);
+        let high = cell.max_key().prefix(depth);
+
+        level.partition_point(|&index| index <= high) - level.partition_point(|&index| index < low)
+    }
+
+    /// Returns the cells one depth holds.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `depth` lies outside the pyramid's levels.
+    #[must_use]
+    pub fn occupied(&self, depth: Depth) -> usize {
+        self.level(depth).len()
+    }
+
+    /// Returns the pyramid's depths, shallowest first.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a level's depth lies beyond the key width.
+    #[must_use]
+    pub fn depths(&self) -> impl IntoIterator<Item = Depth> {
+        let shallowest = self.shallowest;
+        (0..self.levels.len()).map(move |offset| {
+            let offset = u8::try_from(offset).expect("the levels span at most the key width");
+            Depth::new(shallowest + offset).expect("every level's depth lies within the key width")
+        })
+    }
+
+    /// Returns the bytes the cell levels occupy.
+    #[must_use]
+    pub fn footprint(&self) -> usize {
+        self.levels
+            .iter()
+            .map(|level| level.len() * size_of::<u64>())
+            .sum()
+    }
+
+    /// Returns one depth's cells.
+    fn level(&self, depth: Depth) -> &[u64] {
+        let offset = depth
+            .get()
+            .checked_sub(self.shallowest)
+            .expect("the pyramid holds the depth");
+        &self.levels[usize::from(offset)]
+    }
+}
+
+impl VisibleCascade {
+    /// Returns the tile's scheduled count under the visible-only assignment.
+    ///
+    /// The tile's own cut alone: bucket `z + m` inside the tile cell, and buckets `0..=m` whole at
+    /// the root.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the zoom's grid.
+    #[must_use]
+    pub fn schedule(&self, z: u8, x: u32, y: u32) -> usize {
+        let cut = z + self.span;
+        self.within(cell_of(z, x, y))
+            .iter()
+            .filter(
+                |&&(_, bucket)| {
+                    if z == 0 { bucket <= cut } else { bucket == cut }
+                },
+            )
+            .count()
+    }
+
+    /// Returns the count the tile's cut reaches inside the tile cell.
+    ///
+    /// Every visible point whose bucket lies at or below `z + m`: the schedule's cumulative
+    /// delivery through the tile's level.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the zoom's grid.
+    #[must_use]
+    pub fn covered(&self, z: u8, x: u32, y: u32) -> usize {
+        let cut = z + self.span;
+        self.within(cell_of(z, x, y))
+            .iter()
+            .filter(|&&(_, bucket)| bucket <= cut)
+            .count()
+    }
+
+    /// Returns the visible point count the cascade ran over.
+    #[must_use]
+    pub fn points(&self) -> usize {
+        self.points.len()
+    }
+
+    /// Checks the cascade's coverage contract over the visible assignment.
+    ///
+    /// Every occupied cell of every grid up to the deepest holds a point whose bucket lies at or
+    /// below that grid's depth.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a stored bucket lies beyond the key width.
+    #[must_use]
+    pub fn coverage_holds(&self) -> bool {
+        let keys: Vec<MortonKey> = self
+            .points
+            .iter()
+            .map(|&(bits, _)| MortonKey::from_bits(bits))
+            .collect();
+        let buckets: Vec<Depth> = self
+            .points
+            .iter()
+            .map(|&(_, bucket)| Depth::new(bucket).expect("buckets lie within the key width"))
+            .collect();
+
+        cascade::verify_coverage(&keys, &buckets, self.deepest).is_ok()
+    }
+
+    /// Returns the points inside `cell`.
+    fn within(&self, cell: MortonCell) -> &[(u64, u8)] {
+        let low = cell.min_key().to_bits();
+        let high = cell.max_key().to_bits();
+        let start = self.points.partition_point(|&(bits, _)| bits < low);
+        let end = self.points.partition_point(|&(bits, _)| bits <= high);
+
+        &self.points[start..end]
+    }
+}
+
+/// The delivery buffers one chain fills.
+#[derive(Debug)]
+struct ChainBuffers<'buffers> {
+    /// The tile's own delivery, in delivery order.
+    own: &'buffers mut Vec<u32>,
+    /// Chain deliveries inside the tile cell, for a caller that reads them.
+    inside: Option<&'buffers mut Vec<u32>>,
+}
+
+/// One chain's outcome at the target tile.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct ChainOutcome {
+    /// The tile's own delivery counts.
+    own: Selection,
+    /// Cut-depth cells inside the tile cell holding a visible point.
+    covered: usize,
+    /// Chain deliveries inside the tile cell, the levels above the tile alone.
+    inherited: usize,
+    /// Whether a level above the tile ended below its own target.
+    spent: bool,
+}
+
+/// Returns the cells the extent covers at `cut`, for the rules deriving a target from them.
+fn covered_of(rule: FillRule, cell: MortonCell, cut: Depth, pyramid: &VisibleCellPyramid) -> usize {
+    match rule {
+        FillRule::Coverage | FillRule::CoverageCells => pyramid.count(cell, cut),
+        FillRule::Unmasked | FillRule::Visible => 0,
+    }
+}
+
+/// Returns the count one level fills to under a rule.
+const fn target_of(
+    rule: FillRule,
+    inherited: usize,
+    covered: usize,
+    cut: Depth,
+    represented: &mut HashSet<u64>,
+) -> FillTarget<'_> {
+    match rule {
+        FillRule::Unmasked => FillTarget::Scheduled,
+        FillRule::Coverage => FillTarget::Count(covered.saturating_sub(inherited)),
+        FillRule::Visible => FillTarget::Admitted,
+        FillRule::CoverageCells => FillTarget::Cells {
+            goal: covered,
+            cut,
+            represented,
+        },
+    }
+}
+
+/// Returns the cell at `(z, x, y)`.
+///
+/// # Panics
+///
+/// Panics when the zoom lies beyond the key width or the coordinate off the zoom's grid.
+const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
+    MortonCell::new(
+        Depth::new(z).expect("tile zooms lie within the key width"),
+        x,
+        y,
+    )
+    .expect("the coordinate lies on the zoom's grid")
+}
+
+/// Returns the deepest grid depth at which two keys share a cell.
+#[expect(
+    clippy::integer_division,
+    clippy::integer_division_remainder_used,
+    reason = "a cell index is two key bits, so the shared depth is the shared bit count halved"
+)]
+fn shared_depth(left: MortonKey, right: MortonKey) -> u8 {
+    let difference = left.to_bits() ^ right.to_bits();
+    if difference == 0 {
+        return Depth::MAX.get();
+    }
+
+    u8::try_from(difference.leading_zeros() / 2).expect("halved key widths fit u8")
+}
+
 /// The whole-domain ranges: every bucket's full segment.
 fn segments(fenceposts: &Fenceposts) -> Ranges {
     core::array::from_fn(|bucket| {
@@ -656,4 +1444,193 @@ fn segments(fenceposts: &Fenceposts) -> Ranges {
 )]
 fn uniform(mut rng: impl rand::Rng) -> f64 {
     (rng.next_u64() >> 11) as f64 / (1_u64 << 53) as f64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FillRule, VisibleRankOrder, WalkBench, cell_of};
+    use crate::morton::{Depth, MortonKey};
+
+    /// The corpus scale the seam's own checks run at.
+    const POINTS: usize = 8_000;
+
+    /// The fixture seed.
+    const SEED: u64 = 0x0C0F_F111;
+
+    /// Builds the fixture under one mask.
+    fn masked(clustered: bool, visible: f64) -> WalkBench {
+        let mut bench = WalkBench::build(POINTS, SEED);
+        if clustered {
+            bench.mask_clustered(visible, SEED);
+        } else {
+            bench.mask_uniform(visible, SEED);
+        }
+
+        bench
+    }
+
+    #[test]
+    fn the_unmasked_rule_reproduces_the_chained_variant() {
+        for clustered in [false, true] {
+            for visible in [1.0, 0.5, 0.05] {
+                let bench = masked(clustered, visible);
+                let pyramid = bench.pyramid();
+
+                for (z, x, y) in bench.descent() {
+                    assert_eq!(
+                        bench.deliver(FillRule::Unmasked, z, x, y, &pyramid),
+                        bench.chained(z, x, y),
+                        "the unmasked rule and the chained variant differ at zoom {z}",
+                    );
+                    assert_eq!(
+                        bench.delivery(FillRule::Unmasked, z, x, y, &pyramid),
+                        bench.chained_delivery(z, x, y),
+                        "the unmasked rule and the chained variant deliver differently at zoom {z}",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn the_pyramid_counts_what_the_visible_cascade_reaches() {
+        for clustered in [false, true] {
+            for visible in [1.0, 0.5, 0.05] {
+                let bench = masked(clustered, visible);
+                let pyramid = bench.pyramid();
+                let cascade = bench.visible_cascade(VisibleRankOrder::Base);
+                let reversed = bench.visible_cascade(VisibleRankOrder::Reversed);
+
+                assert!(cascade.coverage_holds());
+                assert_eq!(cascade.points(), bench.visible_rows());
+
+                for (z, x, y) in bench.descent() {
+                    let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
+                    assert_eq!(
+                        pyramid.count(cell_of(z, x, y), cut),
+                        cascade.covered(z, x, y),
+                        "the pyramid and the visible cascade differ at zoom {z}",
+                    );
+                    assert_eq!(
+                        reversed.covered(z, x, y),
+                        cascade.covered(z, x, y),
+                        "the visible cascade's reach depends on the rank order at zoom {z}",
+                    );
+                    assert_eq!(
+                        reversed.schedule(z, x, y),
+                        cascade.schedule(z, x, y),
+                        "the visible cascade's schedule depends on the rank order at zoom {z}",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn the_chain_inherits_exactly_its_ancestor_deliveries() {
+        for rule in [FillRule::Unmasked, FillRule::Coverage, FillRule::Visible] {
+            for clustered in [false, true] {
+                for visible in [0.5, 0.05] {
+                    let bench = masked(clustered, visible);
+                    let pyramid = bench.pyramid();
+                    let (codes, _, _) = bench.columns();
+
+                    for (z, x, y) in bench.descent() {
+                        let cell = cell_of(z, x, y);
+                        let mut inherited = 0_usize;
+                        for level in 0..z {
+                            let shift = z - level;
+                            let (ancestor_x, ancestor_y) = (x >> shift, y >> shift);
+                            let audit = bench.audit(rule, level, ancestor_x, ancestor_y, &pyramid);
+                            if audit.spent {
+                                break;
+                            }
+                            for position in
+                                bench.delivery(rule, level, ancestor_x, ancestor_y, &pyramid)
+                            {
+                                let code = MortonKey::from_bits(codes[position as usize]);
+                                inherited += usize::from(cell.contains(code));
+                            }
+                            if audit.dry {
+                                break;
+                            }
+                        }
+
+                        assert_eq!(
+                            bench.audit(rule, z, x, y, &pyramid).inherited,
+                            inherited,
+                            "the chain's inherited count disagrees with its ancestor deliveries \
+                             at zoom {z}",
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn an_all_visible_mask_makes_every_rule_agree() {
+        let bench = WalkBench::build(POINTS, SEED);
+        let pyramid = bench.pyramid();
+
+        for (z, x, y) in bench.descent() {
+            let unmasked = bench.audit(FillRule::Unmasked, z, x, y, &pyramid);
+            for rule in [
+                FillRule::Coverage,
+                FillRule::Visible,
+                FillRule::CoverageCells,
+            ] {
+                assert_eq!(unmasked, bench.audit(rule, z, x, y, &pyramid));
+            }
+            assert_eq!(unmasked.cumulative, unmasked.covered);
+            assert_eq!(unmasked.cumulative_cells, unmasked.covered);
+        }
+    }
+
+    #[test]
+    fn the_cell_rule_occupies_every_covered_cell() {
+        for clustered in [false, true] {
+            for visible in [0.75, 0.5, 0.05] {
+                let bench = masked(clustered, visible);
+                let pyramid = bench.pyramid();
+
+                for (z, x, y) in bench.descent() {
+                    let audit = bench.audit(FillRule::CoverageCells, z, x, y, &pyramid);
+                    assert_eq!(
+                        audit.cumulative_cells, audit.covered,
+                        "the cell rule leaves a covered cell unrepresented at zoom {z}",
+                    );
+                    assert!(
+                        !audit.spent,
+                        "the cell rule's chain ran short of its target at zoom {z}",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn the_pyramid_holds_every_cut_depth() {
+        let bench = WalkBench::build(POINTS, SEED);
+        let pyramid = bench.pyramid();
+        let depths: Vec<Depth> = pyramid.depths().into_iter().collect();
+
+        assert_eq!(depths.first().map(|&depth| depth.get()), Some(bench.span()));
+        assert_eq!(
+            depths.last().map(|&depth| depth.get()),
+            Some(bench.max_zoom() + bench.span()),
+        );
+        assert_eq!(
+            pyramid.footprint(),
+            depths
+                .iter()
+                .map(|&depth| pyramid.occupied(depth) * size_of::<u64>())
+                .sum::<usize>(),
+        );
+
+        let root = cell_of(0, 0, 0);
+        for &depth in &depths {
+            assert_eq!(pyramid.count(root, depth), pyramid.occupied(depth));
+        }
+    }
 }

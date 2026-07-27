@@ -15,6 +15,8 @@ use crate::identity::NodeRowId;
 mod backfill_reference {
     use std::collections::HashSet;
 
+    use hashql_core::id::Id as _;
+
     use crate::{
         file::morton::read::MortonFile,
         identity::{Identity as _, NodeRowId},

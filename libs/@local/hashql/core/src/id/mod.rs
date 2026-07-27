@@ -3,6 +3,8 @@ pub mod bit_vec;
 mod index;
 mod slice;
 pub mod snapshot_vec;
+#[cfg(test)]
+mod tests;
 mod union_find;
 mod vec;
 

@@ -5911,6 +5911,7 @@ dependencies = [
  "hash-graph-embeddings",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
+ "hashql-core",
  "heed",
  "hkdf 0.13.0",
  "kiddo",
@@ -6539,6 +6540,7 @@ dependencies = [
  "tracing",
  "unicase",
  "unicode-segmentation",
+ "zerocopy",
 ]
 
 [[package]]
