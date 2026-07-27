@@ -20,11 +20,9 @@ cargo-binstall = "1.19.1"
 uv             = "0.11.18"
 
 # Tools to compile the project
-# wasm-opt: prebuilt from Binaryen releases (crate 0.116.x wraps binaryen version_116).
-# `cargo:wasm-opt` is kept for the Docker images, which build natively for linux/arm64
-# where Binaryen publishes no release asset.
-"aqua:WebAssembly/binaryen"     = "version_116"
-"cargo:wasm-opt"                = "0.116.1"
+# binaryen provides `wasm-opt` prebuilt from its GitHub release assets — compiling the
+# wasm-opt crate from source added ~7 minutes to every install that needed it.
+"github:WebAssembly/binaryen"   = "version_131"
 "github:wasm-bindgen/wasm-pack" = "0.15.0"
 java                            = "25"
 protoc                          = "35.1"
