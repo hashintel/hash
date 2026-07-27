@@ -1,8 +1,6 @@
+use alloc::borrow::Cow;
 use core::str::FromStr as _;
-use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 use hash_codec::numeric::Real;
 use hash_graph_postgres_store::store::{
