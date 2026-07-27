@@ -111,14 +111,15 @@ const createAnalysisMetadata = ({
 
 /**
  * Start the (idempotent) compute workflow for a dashboard item configuration.
- * The workflow id is derived from the config hash and source artifact version,
- * so concurrent requests for the same computation deduplicate. A terminal
- * execution is never silently replaced: its result is inspected and failures
- * are surfaced to the caller.
+ * The workflow id is derived from the config hash, source artifact version,
+ * so concurrent requests for the same computation deduplicate. Explicit user
+ * recomputations allow Temporal to create a new run under that stable workflow
+ * id; normal resolution never silently replaces a terminal execution.
  */
 const startComputeWorkflow = async (params: {
   ctx: AnalysisResolutionContext;
   configHash: string;
+  recompute: boolean;
   sourceArtifactLastModified: Date | null;
   structuralQuery: unknown;
   pythonScript: string;
@@ -128,6 +129,7 @@ const startComputeWorkflow = async (params: {
   const {
     ctx,
     configHash,
+    recompute,
     sourceArtifactLastModified,
     structuralQuery,
     pythonScript,
@@ -164,9 +166,11 @@ const startComputeWorkflow = async (params: {
           } satisfies ComputeDashboardItemDataWorkflowParams,
         ],
         workflowId,
-        workflowIdReusePolicy: WorkflowIdReusePolicy.REJECT_DUPLICATE,
-        // A failed script must not repeatedly create paid sandboxes. Retrying
-        // requires a changed configuration or source artifact version.
+        workflowIdReusePolicy: recompute
+          ? WorkflowIdReusePolicy.ALLOW_DUPLICATE
+          : WorkflowIdReusePolicy.REJECT_DUPLICATE,
+        // A failed script must not automatically create more paid sandboxes.
+        // Only an explicit recompute may create a new Temporal run.
         retry: { maximumAttempts: 1 },
       },
     );
@@ -202,11 +206,11 @@ const startComputeWorkflow = async (params: {
 /**
  * Resolve a dashboard item's chart data: serve the cached artifact keyed by a
  * hash of the item's (query, script) configuration, computing it server-side
- * via a Temporal workflow when missing, forced, or stale.
+ * via a Temporal workflow when missing, explicitly recomputed, or stale.
  *
  * Args:
  * - `itemUuid` (required): entity uuid of the DashboardItem within the web
- * - `force` (optional boolean): recompute even if a fresh artifact exists
+ * - `recompute` (optional boolean): explicitly start a new computation
  */
 const dashboardItemData: NamedAnalysis = {
   name: "dashboardItemData",
@@ -217,7 +221,7 @@ const dashboardItemData: NamedAnalysis = {
         "Argument 'itemUuid' must be a valid entity uuid",
       );
     }
-    const force = ctx.args.force === true;
+    const recompute = ctx.args.recompute === true;
     const refreshAfter =
       typeof ctx.args.refreshAfter === "string"
         ? new Date(ctx.args.refreshAfter)
@@ -311,15 +315,16 @@ const dashboardItemData: NamedAnalysis = {
       metadataStorageKey,
     );
 
-    const waitingForForcedRefresh =
+    const waitingForRecompute =
       refreshAfter !== null &&
       (!lastModified || lastModified.getTime() <= refreshAfter.getTime());
 
-    if (!lastModified || force || waitingForForcedRefresh) {
+    if (!lastModified || recompute || waitingForRecompute) {
       const sourceArtifactLastModified = refreshAfter ?? lastModified;
       const workflowState = await startComputeWorkflow({
         ctx,
         configHash,
+        recompute,
         sourceArtifactLastModified,
         structuralQuery,
         pythonScript,
@@ -371,6 +376,7 @@ const dashboardItemData: NamedAnalysis = {
       startComputeWorkflow({
         ctx,
         configHash,
+        recompute: false,
         sourceArtifactLastModified: lastModified,
         structuralQuery,
         pythonScript,
