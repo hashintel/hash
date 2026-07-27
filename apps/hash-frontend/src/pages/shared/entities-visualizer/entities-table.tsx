@@ -3,7 +3,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, Stack, useTheme } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   extractEntityUuidFromEntityId,
@@ -760,30 +760,6 @@ export const EntitiesTable: FunctionComponent<
     webNameByWebId,
   ]);
 
-  const [
-    { horizontalScrollbarHeight, verticalScrollbarWidth },
-    setScrollbarSizes,
-  ] = useState({
-    horizontalScrollbarHeight: 0,
-    verticalScrollbarWidth: 0,
-  });
-
-  useEffect(() => {
-    const gridEl = document.querySelector<HTMLElement>(".dvn-scroller");
-
-    if (!gridEl) {
-      return;
-    }
-
-    const scrollbarHeight = gridEl.offsetHeight - gridEl.clientHeight;
-    const scrollbarWidth = gridEl.offsetWidth - gridEl.clientWidth;
-
-    setScrollbarSizes({
-      horizontalScrollbarHeight: scrollbarHeight,
-      verticalScrollbarWidth: scrollbarWidth,
-    });
-  }, [rows.length]);
-
   const loadMoreRowHeight = 60;
 
   return (
@@ -795,7 +771,7 @@ export const EntitiesTable: FunctionComponent<
         sort={sort}
         setSort={setSort}
       />
-      <Stack sx={{ gap: 1, position: "relative" }}>
+      <Stack>
         <Grid
           activeConversions={activeConversions}
           columns={columns}
@@ -805,12 +781,19 @@ export const EntitiesTable: FunctionComponent<
           customRenderers={customRenderers}
           dataLoading={false}
           enableCheckboxSelection
-          experimental={{
-            paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
-          }}
           firstColumnLeftPadding={firstColumnLeftPadding}
           freezeColumns={1}
-          height={`min(${maxHeight}, 600px)`}
+          height={
+            /**
+             * When the 'Show more entities' bar is visible it takes up part of the
+             * available height, so the grid shrinks to leave room for it in the flow.
+             * The bar must not be overlaid on top of the grid, because it would cover
+             * the grid's horizontal scrollbar.
+             */
+            hasMoreRowsAvailable
+              ? `min(calc(${maxHeight} - ${loadMoreRowHeight}px), 600px)`
+              : `min(${maxHeight}, 600px)`
+          }
           onConversionTargetSelected={onConversionTargetSelected}
           onSearchClose={() => setShowSearch(false)}
           onSelectedRowsChange={(updatedSelectedRows) =>
@@ -832,10 +815,8 @@ export const EntitiesTable: FunctionComponent<
               background: palette.common.white,
               borderTop: `1px solid ${palette.gray[20]}`,
               height: loadMoreRowHeight,
-              position: "absolute",
-              bottom: horizontalScrollbarHeight,
               p: 1,
-              width: `calc(100% - ${verticalScrollbarWidth}px)`,
+              width: "100%",
             })}
           >
             <Button
