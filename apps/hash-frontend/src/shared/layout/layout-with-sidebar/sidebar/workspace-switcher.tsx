@@ -3,6 +3,7 @@ import {
   Box,
   Divider,
   ListItemAvatar,
+  listItemAvatarClasses,
   ListItemText,
   Menu,
   Tooltip,
@@ -113,6 +114,7 @@ export const WorkspaceSwitcher = () => {
             size={22}
             src={activeWorkspace.avatarSrc}
             title={activeWorkspace.name}
+            borderRadius="4px"
           />
           <Typography
             sx={{
@@ -154,10 +156,15 @@ export const WorkspaceSwitcher = () => {
               popupState.close();
             }}
           >
-            <ListItemAvatar>
+            <ListItemAvatar
+              sx={{
+                [`&.${listItemAvatarClasses.root}`]: { borderRadius: "6px" },
+              }}
+            >
               <Avatar
                 src={avatarSrc}
-                size={34}
+                size={26}
+                borderRadius="4px"
                 title={
                   webId === authenticatedUser.accountId
                     ? authenticatedUser.displayName
