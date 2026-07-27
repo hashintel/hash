@@ -373,7 +373,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// statement of the same operation returned one — should pass it here so the components share
     /// the operation's timestamp. When absent, a reading is captured while building the
     /// components.
-    pub fn set_timestamp(&mut self, timestamp: Timestamp<()>) {
+    pub const fn set_timestamp(&mut self, timestamp: Timestamp<()>) {
         self.timestamp = Some(timestamp);
     }
 
@@ -383,7 +383,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     ///
     /// [`set_timestamp`]: Self::set_timestamp
     #[must_use]
-    pub fn with_timestamp(mut self, timestamp: Timestamp<()>) -> Self {
+    pub const fn with_timestamp(mut self, timestamp: Timestamp<()>) -> Self {
         self.set_timestamp(timestamp);
         self
     }
