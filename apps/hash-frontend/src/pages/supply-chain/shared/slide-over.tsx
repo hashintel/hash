@@ -74,12 +74,10 @@ const positionerBase = css({
   position: "fixed",
   top: "0",
   bottom: "0",
-  right: "[-960px]",
   display: "flex",
   zIndex: "modal",
   transition: "[right 200ms ease-out]",
 });
-const positionerVisible = css({ right: "0" });
 
 const contentStyles = css({
   height: "full",
@@ -126,7 +124,8 @@ export const SlideOver = ({
             className={cx(backdropBase, visible && backdropVisible)}
           />
           <ArkDialog.Positioner
-            className={cx(positionerBase, visible && positionerVisible)}
+            className={positionerBase}
+            style={{ right: visible ? 0 : "-960px" }}
           >
             <ArkDialog.Content
               className={cx(contentStyles, className)}
