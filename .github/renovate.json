@@ -9,7 +9,7 @@
       "matchFileNames": ["libs/error-stack/Cargo.toml"],
       "matchPackageNames": ["anyhow"],
       "enabled": false,
-      "minimumReleaseAge": false
+      "minimumReleaseAge": "0 days"
     },
     {
       "description": "Open mise bump PRs without requiring dependency-dashboard approval, but only once a release has settled",
