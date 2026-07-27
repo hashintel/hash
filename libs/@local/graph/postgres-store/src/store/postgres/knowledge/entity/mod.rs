@@ -32,7 +32,7 @@ use hash_graph_store::{
         SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
         ValidateEntityParams,
     },
-    entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
+    entity_type::IncludeEntityTypeOption,
     error::{
         CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
     },

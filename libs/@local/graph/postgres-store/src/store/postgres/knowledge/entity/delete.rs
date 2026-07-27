@@ -897,6 +897,7 @@ where
     ///
     /// [`IncomingLinksExist`]: DeletionError::IncomingLinksExist
     /// [`Store`]: DeletionError::Store
+    #[expect(clippy::too_many_lines)]
     pub(super) async fn execute_entity_deletion(
         &mut self,
         actor_id: ActorEntityUuid,

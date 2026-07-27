@@ -951,6 +951,7 @@ mod tests {
             actor_id: Some(ActorId::User(type_system::principal::actor::UserId::new(
                 Uuid::new_v4(),
             ))),
+            timestamp: Timestamp::UNIX_EPOCH,
             is_instance_admin: false,
             policies: vec![policy],
             tracked_actions: HashMap::from([(ActionName::View, None)]),
