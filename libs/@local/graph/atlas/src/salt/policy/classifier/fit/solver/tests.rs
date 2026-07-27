@@ -16,7 +16,7 @@ use super::{
     AUGMENTED_DIMENSIONS, CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
     basis::{self, HELMERT_V1},
     boundary::{BoundaryStep, boundary_step},
-    cg::{CgOutcome, crossing},
+    cg::{CgOutcome, CgTag, bounded_steihaug_cg, crossing},
     config::{SolverConfig, SolverConfigError},
     flat as flat_vectors,
     prepare::{PreparationError, PreparationSettings, prepare},
@@ -27,7 +27,7 @@ use super::{
     solve::{
         AcceptedPoint, SolverControl, SolverRun, certify, derive_certificate, rejected, solve,
     },
-    stable::{checked_dot, stable_l2},
+    stable::{checked_dot, checked_norm_squared, stable_l2},
     target::{ClosedTarget, ClosedTargetError},
     terminal::{CgStage, SolverFailure},
     work::WorkCounters,
@@ -1328,6 +1328,176 @@ fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     );
 }
 
+/// A deterministic dense component: the Weyl sequence on the golden ratio at the given phase,
+/// folded to `[-1, 1]`, every third component thinned to vary magnitudes within the fill.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "solver indices stay far below 2^52"
+)]
+fn dense_component(index: usize, phase: f64) -> f64 {
+    let golden = 0.618_033_988_749_894_9_f64;
+    let raw = (index as f64).mul_add(golden, phase);
+    let fractional = raw - raw.floor();
+    let signed = 2.0_f64.mul_add(fractional, -1.0);
+    if index.is_multiple_of(3) {
+        signed * 0.125
+    } else {
+        signed
+    }
+}
+
+/// A dense solver vector with two full-scale leading components over a `1e-3` tail, scaled to
+/// the given Euclidean norm.
+///
+/// The magnitude split concentrates the norm in two components while thousands of small squares
+/// absorb into the fold accumulators, the structure that drives the reductions' rounding;
+/// uniform dense fills stay within a few ulps of an exact unit norm at this dimension.
+fn spiked_dense(norm: f64, phase: f64) -> BoxedDVecN<SOLVER_DIMENSIONS> {
+    let mut vector = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
+    for (index, component) in vector.as_array_mut().iter_mut().enumerate() {
+        let scale = if index < 2 { 1.0 } else { 1.0e-3 };
+        *component = dense_component(index, phase) * scale;
+    }
+    let current = stable_l2(&vector).expect("the dense fill is finite");
+    *vector *= norm / current;
+    vector
+}
+
+/// The Euclidean norm through an independent reduction: a scalar Neumaier-compensated sum of
+/// squares, sharing no fold structure with the house kernels. A reference for reported
+/// residuals, not an accuracy oracle.
+fn compensated_l2(values: &[f64]) -> f64 {
+    let mut sum = 0.0_f64;
+    let mut compensation = 0.0_f64;
+    for &value in values {
+        let squared = value * value;
+        let tentative = sum + squared;
+        compensation += if sum.abs() >= squared.abs() {
+            (sum - tentative) + squared
+        } else {
+            (squared - tentative) + sum
+        };
+        sum = tentative;
+    }
+    (sum + compensation).sqrt()
+}
+
+/// Replicates the boundary construction through the same primitives, returning the rescaled
+/// step with the built and returned radius-normalized residuals in ulps of one.
+///
+/// The built residual is internal to [`boundary_step`]; a consumer ties the replica to the
+/// implementation by asserting the returned step equals the admitted payload bit-for-bit, so
+/// the replica cannot drift from the arithmetic it reports on.
+fn boundary_construction_replica(
+    interior: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    direction: &BoxedDVecN<SOLVER_DIMENSIONS>,
+    radius: f64,
+) -> Option<(BoxedDVecN<SOLVER_DIMENSIONS>, f64, f64)> {
+    let normalize = |vector: &BoxedDVecN<SOLVER_DIMENSIONS>| {
+        let mut normalized = vector.clone();
+        *normalized /= radius;
+        normalized.is_finite().then_some(normalized)
+    };
+    let normalized_interior = normalize(interior)?;
+    let normalized_direction = normalize(direction)?;
+
+    let quadratic = checked_norm_squared(&normalized_direction)?;
+    let linear = 2.0 * checked_dot(&normalized_interior, &normalized_direction)?;
+    let constant = checked_norm_squared(&normalized_interior)? - 1.0;
+    if !linear.is_finite() || quadratic <= 0.0 || constant >= 0.0 {
+        return None;
+    }
+    let discriminant = linear.mul_add(linear, -4.0 * quadratic * constant);
+    if !discriminant.is_finite() || discriminant < 0.0 {
+        return None;
+    }
+    let root = -0.5 * (linear + discriminant.sqrt().copysign(linear));
+    if !root.is_finite() || root == 0.0 {
+        return None;
+    }
+    let crossing = [root / quadratic, constant / root]
+        .into_iter()
+        .find(|tau| tau.is_finite() && *tau > 0.0)?;
+
+    let boundary = flat_vectors::advance(&normalized_interior, crossing, &normalized_direction);
+    let norm = stable_l2(&boundary)?;
+    let built = (norm - 1.0).abs() / f64::EPSILON;
+
+    let mut step = boundary;
+    *step *= radius;
+    let returned = normalize(&step)?;
+    let returned_norm = stable_l2(&returned)?;
+    let returned_ulps = (returned_norm - 1.0).abs() / f64::EPSILON;
+    Some((step, built, returned_ulps))
+}
+
+/// A dense solver-dimension crossing rejected at eight ulps and admitted at sixty-four.
+///
+/// The pinned crossing rounds to a built residual of 25 ulp(1), a returned residual of 24, and
+/// an independent compensated reference of 23, with `‖interior‖ = 0.9392·Δ`,
+/// `‖direction‖ = 3.404·Δ`, `interior·direction ≈ −1.5624`, `Δ = 0.7`. A stricter valid gate
+/// therefore rejects a finite crossing a wider valid gate admits: the tolerance is a
+/// calibration decision at this dimension, not a formality.
+#[test]
+fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
+    let radius = 0.7;
+    let interior = spiked_dense(0.9392 * radius, 0.6);
+    let direction = spiked_dense(3.404 * radius, 0.275);
+    let hessian_interior = spiked_dense(0.5, 0.7);
+    let hessian_direction = spiked_dense(1.0, 0.9);
+
+    let (replica_step, built, returned) =
+        boundary_construction_replica(&interior, &direction, radius)
+            .expect("the pinned crossing constructs");
+    assert!(built > 8.0, "the built residual exceeds the stricter gate");
+    assert!(
+        returned > 8.0,
+        "the returned residual exceeds the stricter gate"
+    );
+    assert!(
+        built <= 64.0,
+        "the built residual stays within the wider gate"
+    );
+    assert!(
+        returned <= 64.0,
+        "the returned residual stays within the wider gate"
+    );
+
+    assert_eq!(
+        boundary_step(
+            &interior,
+            &direction,
+            &hessian_interior,
+            &hessian_direction,
+            radius,
+            eight_ulps(),
+        ),
+        None,
+    );
+
+    let admitted = boundary_step(
+        &interior,
+        &direction,
+        &hessian_interior,
+        &hessian_direction,
+        radius,
+        NonZeroU32::new(64).expect("sixty-four is nonzero"),
+    )
+    .expect("the wider gate admits the crossing");
+
+    // The byte-tie keeps the replica honest: the residuals above describe exactly the
+    // arithmetic that produced the admitted step.
+    assert_eq!(admitted.step.as_array(), replica_step.as_array());
+    assert!(admitted.hessian_step.is_finite());
+
+    // The independent reference agrees on the regime: the deviation is geometric, not an
+    // artifact of the measuring fold.
+    let mut normalized = admitted.step;
+    *normalized /= radius;
+    let reference = (compensated_l2(normalized.as_array()) - 1.0).abs() / f64::EPSILON;
+    assert!(reference > 8.0 && reference <= 64.0);
+}
+
 /// Rows whose targets all close to the uniform distribution: the origin is the minimizer.
 fn uniform_corpus() -> Corpus {
     let third = 1.0 / 3.0;
@@ -2014,6 +2184,142 @@ fn cg_outcome_accessors_agree_with_their_payloads() {
     assert_eq!(guarded.step().as_array()[0], 5.0);
     assert_eq!(guarded.hessian_step().as_array()[1], 6.0);
     assert!(guarded.is_boundary());
+}
+
+/// Prepares the corpus and drives one inner CG solve at the origin under the validated
+/// configuration, returning the outcome with the counters before and after the solve. The
+/// control radius is the configuration's initial radius.
+fn cg_at_origin(
+    corpus: &Corpus,
+    config: SolverConfig,
+) -> (Result<CgOutcome, SolverFailure>, WorkCounters, WorkCounters) {
+    config
+        .validate()
+        .expect("the witness configuration is valid");
+    let mut counters = WorkCounters::default();
+    let prepared = prepare(
+        corpus.embeddings(),
+        &corpus.rows,
+        config.preparation,
+        &mut counters,
+    )
+    .expect("the witness corpus prepares");
+    let radius = config.radius_initial.get();
+    let problem = ScaledProblem { prepared, config };
+    let point = problem.point(&BoxedDVecN::zero());
+    let (_objective, gradient) = problem
+        .joint(&point, &mut counters)
+        .expect("the origin joint request is finite");
+    let baseline = counters;
+    let mut control = SolverControl {
+        radius,
+        consecutive_rejections: 0,
+        outer_iterations_started: 0,
+        counters,
+        final_reserve: true,
+    };
+    let outcome = bounded_steihaug_cg(&problem, &point, &gradient, &mut control);
+    (outcome, baseline, control.counters)
+}
+
+/// A small trust radius exits the inner solve through the trust-boundary crossing at its call
+/// site.
+///
+/// At the origin the scaled Hessian is near-identity, so the first update step carries the
+/// scaled gradient norm (about 1.4) against a radius of `1e-4`: the first iterate crosses, the
+/// validated crossing returns through the trust-boundary arm, and the returned step rides the
+/// boundary within one ulp of the radius. One Hessian-vector product is charged for the one
+/// started iteration; the returned boundary step charges none.
+#[test]
+fn cg_routes_the_trust_boundary_crossing_through_its_call_site() {
+    let corpus = valid_corpus();
+    let config = SolverConfig {
+        radius_initial: d_positive!(1.0e-4),
+        ..solver_config()
+    };
+    let radius = config.radius_initial.get();
+
+    let (outcome, baseline, counters) = cg_at_origin(&corpus, config);
+    let outcome = outcome.expect("the small-radius solve exits through the boundary");
+    assert_eq!(outcome.tag(), CgTag::TrustBoundary);
+    assert!(outcome.is_boundary());
+
+    // One started iteration charged one product and one traversal; the boundary step rode the
+    // iteration's own product.
+    assert_eq!(counters.hvp_requests, baseline.hvp_requests + 1);
+    assert_eq!(
+        counters.completed_hvp_traversals,
+        baseline.completed_hvp_traversals + 1,
+    );
+    assert_eq!(
+        counters.started_row_traversals,
+        baseline.started_row_traversals + 1,
+    );
+
+    // The returned payload satisfies the boundary contract it was validated against.
+    let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
+    assert!((step_norm / radius - 1.0).abs() <= 8.0 * f64::EPSILON);
+    assert!(outcome.hessian_step().is_finite());
+}
+
+/// A valid near-parallel corpus exits the inner solve through the curvature guard at its call
+/// site.
+///
+/// Three rows whose two leading coordinates differ by one f32 ulp leave two contrast directions
+/// with curvature near `4e-15` against order-one elsewhere. The residual the first three
+/// iterations leave behind points into that near-null space with rounding-level contamination:
+/// the fourth direction's curvature collapses to `2.7e-49` against a guard of `2.7e-48`
+/// (cosine `9.4e-8` at the widest valid guard), and the guard fires while the iterate sits
+/// strictly inside the radius. The widest valid `curvature_guard_ulps`, a tiny valid
+/// regularization, and a large valid radius chain make the branch reachable: the witness proves
+/// routing and accounting, not a production curvature regime.
+#[test]
+fn cg_routes_the_curvature_guard_crossing_through_its_call_site() {
+    let ulp32 = f32::EPSILON;
+    let mut corpus = Corpus::new();
+    corpus.push(&[1.0, 1.0 + ulp32], [0.75, 0.125, 0.125], 1.0);
+    corpus.push(&[1.0, 1.0], [0.125, 0.75, 0.125], 1.0);
+    corpus.push(&[1.0, 1.0 - ulp32], [0.125, 0.125, 0.75], 1.0);
+
+    let config = SolverConfig {
+        preparation: PreparationSettings {
+            regularization: d_positive!(1.0e-30),
+            curvature_floor: d_positive!(1.0e-300),
+            target_sum_tolerance_ulps: one_ulp(),
+        },
+        relative_cg_residual_tolerance: open_unit_fraction!(1.0e-12),
+        curvature_guard_ulps: NonZeroU32::new(u32::MAX).expect("the maximum is nonzero"),
+        radius_initial: d_positive!(1.0e8),
+        radius_maximum: d_positive!(1.0e8),
+        ..solver_config()
+    };
+    let radius = config.radius_initial.get();
+
+    let (outcome, baseline, counters) = cg_at_origin(&corpus, config);
+    let outcome = outcome.expect("the guard trip advances to a validated boundary");
+
+    // The tag is the branch identity: the guard check precedes the radius check inside an
+    // iteration, so this arm returning at all proves the trust-boundary predicate did not
+    // steal the exit, and the validated crossing proves the iterate was strictly interior.
+    assert_eq!(outcome.tag(), CgTag::CurvatureGuardBoundary);
+    assert!(outcome.is_boundary());
+
+    // Four started iterations charged four products and four traversals; the boundary step
+    // rode the tripping iteration's own product.
+    assert_eq!(counters.hvp_requests, baseline.hvp_requests + 4);
+    assert_eq!(
+        counters.completed_hvp_traversals,
+        baseline.completed_hvp_traversals + 4,
+    );
+    assert_eq!(
+        counters.started_row_traversals,
+        baseline.started_row_traversals + 4,
+    );
+
+    // The returned payload satisfies the boundary contract it was validated against.
+    let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
+    assert!((step_norm / radius - 1.0).abs() <= 8.0 * f64::EPSILON);
+    assert!(outcome.hessian_step().is_finite());
 }
 
 /// The flat vector operations keep their declared componentwise shapes.
