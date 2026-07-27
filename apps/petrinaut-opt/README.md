@@ -17,6 +17,17 @@ forwarded unchanged to the CLI.
 - `POST /optimize/all` streams every finished trial.
 - `POST /optimize/best` streams the best-so-far result after each finished
   trial. No data frame is emitted until at least one trial completes.
+- `POST /optimize/runs` starts a detached run and returns its id. Attach or
+  reattach to its replayable event stream with
+  `GET /optimize/runs/{run_id}/events`; `DELETE /optimize/runs/{run_id}`
+  cancels it.
+
+When run creation carries an `x-hash-account-id` header (the authenticated
+NodeAPI proxy stamps it), the run is owned: the account may drive only one
+live run at a time (429 otherwise), and attach/cancel answer 404 unless the
+same tag is presented — identical to an unknown run, so foreign run ids
+cannot be probed. Requests without the header (local development, the
+website demo) create ownerless, openly attachable runs.
 
 The response is `text/event-stream`. Existing frame bodies are preserved:
 
@@ -47,10 +58,10 @@ every 30 seconds:
 SSE clients ignore comment frames, while load balancers and proxies see traffic
 before their idle timeout.
 
-Streams are not resumable: they do not emit event IDs or replay missed trials.
-If the caller disconnects, the service stops that study and releases its CLI;
-the caller must submit a new optimization request rather than reconnect with
-`Last-Event-ID`.
+The streaming endpoints are not resumable: disconnecting stops that study and
+releases its CLI. Detached-run event streams are resumable: every frame has an
+event id, buffered frames can be replayed using `Last-Event-ID` (or `cursor`),
+and disconnecting an attachment does not stop the run.
 
 Each response has an `X-Optimization-Run-ID` header for status queries:
 
@@ -77,8 +88,15 @@ optimization manifests, user-authored code, or raw request bodies.
 
 The process admits at most four active optimizations. Additional requests
 receive HTTP 429, and slots are released after initialization failures, stream
-failures, completion, or disconnect. `GET /status` retains the 100 most recent
-runs so process memory cannot grow without bound.
+failures, completion, disconnect, or detached-run cancellation/reaping.
+`GET /status` retains the 100 most recent runs so process memory cannot grow
+without bound.
+
+Detached runs reject descriptions above 1,000 trials and, by default, stop
+after 900 seconds (`HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS`); invalid values use
+the default and zero disables the wall-clock limit. Their event log is retained
+for the detach-grace period and an attachment cursor is clamped to the current
+log, so malformed resume requests cannot suppress later terminal events.
 
 Optimization request bodies are limited to 8 MiB, including chunked bodies.
 

@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "@hashintel/petrinaut-core": "workspace:*",
-    "eventsource-parser": "3.0.8"
+    "eventsource-parser": "3.0.8",
+    "openapi-fetch": "0.17.0"
   },
   "devDependencies": {
     "@apps/petrinaut-opt": "workspace:*",

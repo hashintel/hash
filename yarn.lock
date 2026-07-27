@@ -8712,6 +8712,7 @@ __metadata:
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
     eventsource-parser: "npm:3.0.8"
+    openapi-fetch: "npm:0.17.0"
     openapi-typescript: "npm:7.13.0"
     oxfmt: "npm:0.50.0"
     rimraf: "npm:6.1.3"
@@ -34267,6 +34268,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openapi-fetch@npm:0.17.0":
+  version: 0.17.0
+  resolution: "openapi-fetch@npm:0.17.0"
+  dependencies:
+    openapi-typescript-helpers: "npm:^0.1.0"
+  checksum: 10c0/7e981d28c7839469662a73d44f3a85e05c1a5842a8afd5d6e36c75cbf085aa7f705862871cc7ce07c04605ddc936af3d5850c2cc66d193ee1fea07e7135da192
+  languageName: node
+  linkType: hard
+
 "openapi-fetch@npm:^0.14.1":
   version: 0.14.1
   resolution: "openapi-fetch@npm:0.14.1"
@@ -34280,6 +34290,13 @@ __metadata:
   version: 0.0.15
   resolution: "openapi-typescript-helpers@npm:0.0.15"
   checksum: 10c0/5eb68d487b787e3e31266470b1a310726549dd45a1079655ab18066ab291b0b3c343fdf629991013706a2329b86964f8798d56ef0272b94b931fe6c19abd7a88
+  languageName: node
+  linkType: hard
+
+"openapi-typescript-helpers@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "openapi-typescript-helpers@npm:0.1.0"
+  checksum: 10c0/3a148cf7d6a7f51124966a0fef64c2fbcf1a5a0a1e6320dd627f0733787ac4259877be43f7a7a2910684e3d5d238c6a9655c6f9e1f3adaa9a2a61477e3b8481f
   languageName: node
   linkType: hard
 

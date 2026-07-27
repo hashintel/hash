@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  openPetrinautOptimizationStream,
-  PetrinautOptimizerHttpError,
-} from "./open-optimization-stream.js";
+import { openPetrinautOptimizationStream } from "./open-optimization-stream.js";
+import { PetrinautOptimizerHttpError } from "./optimizer-http.js";
 
 import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
 
