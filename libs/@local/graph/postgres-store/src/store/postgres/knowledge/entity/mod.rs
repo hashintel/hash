@@ -108,7 +108,8 @@ use crate::store::{
             summary::{Deduplication, EntitySummaryQuery},
         },
         query::{
-            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler, bulk_insert,
+            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler,
+            StatementShape, bulk_insert,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
                 EntityTemporalMetadataRow, PostgresRow as _,
@@ -605,6 +606,15 @@ where
             .change_context(QueryError)?;
 
         compiler.set_limit(params.limit);
+        // The entity read path vouches for the keys-first preconditions: its hydration joins
+        // always match their key row (foreign keys, and the write paths maintaining
+        // `entity_edition_cache` in the same transaction) and the distinct key pins all
+        // row-multiplying columns.
+        //
+        // TODO(BE-618): revisit the embedding shape once the distance query is index-backed.
+        if !compiler.has_embeddings_filter() {
+            compiler.set_statement_shape(StatementShape::KeysFirst);
+        }
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params

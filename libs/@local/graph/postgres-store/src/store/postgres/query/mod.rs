@@ -40,7 +40,7 @@ pub use self::{
         TableReference, TableSample, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator, WindowDefinition, WithClause, bulk_insert,
     },
-    compile::{Distinctness, SelectCompiler, SelectCompilerError},
+    compile::{Distinctness, SelectCompiler, SelectCompilerError, StatementShape},
     postgres_type::PostgresType,
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
