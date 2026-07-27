@@ -22,7 +22,10 @@
     {
       "customType": "regex",
       "description": "Update mise version pins annotated with a `# renovate:` comment (mise-action `version` input, mise `min_version`)",
-      "managerFilePatterns": [".github/actions/install-tools/action.yml", ".config/mise/config.toml"],
+      "managerFilePatterns": [
+        ".github/actions/install-tools/action.yml",
+        ".config/mise/config.toml"
+      ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n\\s*(?:min_)?version\\s*[:=]\\s*\"?(?<currentValue>[0-9][^\\s\"]*)\"?"
       ],
