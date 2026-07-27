@@ -28,6 +28,6 @@
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "vite": "8.1.0",
-    "vitest": "4.1.8"
+    "vitest": "4.1.10"
   }
 }
