@@ -2,6 +2,8 @@
 
 use alloc::collections::BTreeSet;
 
+use hashql_core::id::Id as _;
+
 use super::{
     super::{
         error::StageError,
@@ -19,7 +21,7 @@ use crate::{
             PolicyEvidence,
         },
     },
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::Sha256Digest,
     math::AlignedVecN,
     salt::policy::{
@@ -80,7 +82,7 @@ impl Context<'_> {
             .iter()
             .map(|&relation| {
                 classifier
-                    .predict(&embeddings[relation.usize()])
+                    .predict(&embeddings[relation.as_usize()])
                     .map(|prediction| (relation, Classification::Predicted(prediction)))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -100,7 +102,7 @@ impl Context<'_> {
             .policy
             .overrides
             .iter()
-            .map(|record| record.relation.get())
+            .map(|record| record.relation.as_u64())
             .collect::<BTreeSet<_>>()
             .len() as u64;
 

@@ -7,6 +7,7 @@
 use core::{assert_matches, simd::f32x8};
 use std::collections::HashMap;
 
+use hashql_core::id::Id as _;
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -15,7 +16,6 @@ use super::{
 };
 use crate::{
     file::{WriteInto as _, sprs::read::SprsFile},
-    identity::Identity as _,
     math::kernel::exp_f32x8,
     salt::knn::table::{Knn, KnnMatrix},
 };
@@ -155,7 +155,7 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
             } else {
                 1.0
             };
-            directed.insert((row, neighbour.id.usize()), membership);
+            directed.insert((row, neighbour.id.as_usize()), membership);
         }
     }
 
@@ -281,12 +281,12 @@ fn agrees_with_the_scalar_reference() {
     for row in 0..view.rows() {
         for edge in view.row(row) {
             let expected = reference
-                .get(&(row, edge.id.usize()))
+                .get(&(row, edge.id.as_usize()))
                 .expect("every built edge appears in the reference union");
             assert!(
                 (edge.weight - expected).abs() <= 1e-4,
                 "edge ({row}, {}): built {} vs reference {expected}",
-                edge.id.get(),
+                edge.id.as_u64(),
                 edge.weight,
             );
             compared += 1;
@@ -303,12 +303,12 @@ fn every_edge_is_stored_twice_with_equal_weight() {
 
     for row in 0..view.rows() {
         for edge in view.row(row) {
-            assert_ne!(edge.id.usize(), row);
+            assert_ne!(edge.id.as_usize(), row);
             assert!(edge.weight > 0.0 && edge.weight <= 1.0);
 
             let reverse = view
-                .row(edge.id.usize())
-                .find(|reverse| reverse.id.usize() == row)
+                .row(edge.id.as_usize())
+                .find(|reverse| reverse.id.as_usize() == row)
                 .expect("every edge is stored in both rows");
             assert_eq!(reverse.weight, edge.weight);
         }
@@ -325,9 +325,9 @@ fn union_support_covers_every_directed_edge() {
         for neighbour in knn.view().row(row) {
             assert!(
                 view.row(row)
-                    .any(|edge| edge.id.usize() == neighbour.id.usize()),
+                    .any(|edge| edge.id.as_usize() == neighbour.id.as_usize()),
                 "the directed edge ({row}, {}) is missing from the union",
-                neighbour.id.get(),
+                neighbour.id.as_u64(),
             );
         }
     }
@@ -349,11 +349,11 @@ fn one_sided_edges_keep_their_directed_membership() {
 
     let view = graph.view();
     for edge in view.row(2) {
-        let expected = reference[&(2, edge.id.usize())];
+        let expected = reference[&(2, edge.id.as_usize())];
         assert!(
             (edge.weight - expected).abs() <= 1e-4,
             "one-sided edge (2, {}): built {} vs reference {expected}",
-            edge.id.get(),
+            edge.id.as_u64(),
             edge.weight,
         );
     }
@@ -393,11 +393,11 @@ fn published_graph_reopens_mapped() {
     for row in 0..owned.rows() {
         let owned_row: Vec<(u64, f32)> = owned
             .row(row)
-            .map(|edge| (edge.id.get(), edge.weight))
+            .map(|edge| (edge.id.as_u64(), edge.weight))
             .collect();
         let reopened_row: Vec<(u64, f32)> = reopened
             .row(row)
-            .map(|edge| (edge.id.get(), edge.weight))
+            .map(|edge| (edge.id.as_u64(), edge.weight))
             .collect();
         assert_eq!(owned_row, reopened_row);
     }

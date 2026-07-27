@@ -2,7 +2,9 @@
 
 use core::{error::Error, fmt};
 
-use crate::identity::{Identity as _, OntologyRowId};
+use hashql_core::id::Id as _;
+
+use crate::identity::OntologyRowId;
 
 /// A policy table or instance set violated a relation-index contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -27,17 +29,17 @@ impl fmt::Display for RelationIndexError {
                 fmt,
                 "policy position {position} stores relation row {relation}, breaking the strictly \
                  ascending order",
-                relation = relation.get(),
+                relation = relation.as_u64(),
             ),
             Self::PolicyDomain { relation } => write!(
                 fmt,
                 "the policy of relation row {relation} stores a value outside its domain",
-                relation = relation.get(),
+                relation = relation.as_u64(),
             ),
             Self::MissingPolicy { relation } => write!(
                 fmt,
                 "instances reference relation row {relation}, which has no policy",
-                relation = relation.get(),
+                relation = relation.as_u64(),
             ),
             Self::TooManyRows { rows } => {
                 write!(fmt, "{rows} rows exceed the index's u32 column encoding")

@@ -14,6 +14,7 @@ use core::{assert_matches, future::ready, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
+use hashql_core::id::Id as _;
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::{SmallVec, smallvec};
@@ -35,7 +36,7 @@ use crate::{
         memory::MemoryDataset,
     },
     file::generation::GenerationRoot,
-    identity::{Identity as _, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN},
     salt::{
@@ -488,6 +489,11 @@ async fn probe_reads_a_faithful_map_as_perfect() {
     }
 }
 
+/// Collects rows as indices into row-aligned fixture storage.
+fn indices_of(rows: &[NodeRowId]) -> Vec<usize> {
+    rows.iter().map(|row| row.as_usize()).collect()
+}
+
 /// The corpus pass's counted ranks agree with sorted full orderings.
 #[tokio::test]
 async fn corpus_readings_match_a_sorting_reference() {
@@ -526,7 +532,7 @@ async fn corpus_readings_match_a_sorting_reference() {
 
     // Reference path: argsort the full universe per anchor and feed
     // the ordering-based kernel entry.
-    let anchor_rows: Vec<usize> = readings.anchors.iter().map(|row| row.usize()).collect();
+    let anchor_rows = indices_of(&readings.anchors);
     let universe: Vec<usize> = (0..fixture.node_ids.len())
         .filter(|row| !anchor_rows.contains(row))
         .collect();
@@ -580,7 +586,7 @@ async fn corpus_readings_match_a_sorting_reference() {
 
         // Triplet replay over the shared pair sample: naive order
         // agreement between the map and the representation.
-        let comparisons: Vec<usize> = readings.comparisons.iter().map(|row| row.usize()).collect();
+        let comparisons = indices_of(&readings.comparisons);
         let mut preserved = 0_u64;
         for &[first, second] in &readings.triplet_pairs {
             let (first, second) = (comparisons[first as usize], comparisons[second as usize]);
@@ -681,7 +687,7 @@ async fn clump_readings_match_a_sorting_reference() {
     assert_eq!(clumps.grouped_rows, 40);
 
     let representations = fixture.representations();
-    let anchor_rows: Vec<usize> = readings.anchors.iter().map(|row| row.usize()).collect();
+    let anchor_rows = indices_of(&readings.anchors);
     let universe: Vec<usize> = (0..fixture.node_ids.len())
         .filter(|row| !anchor_rows.contains(row))
         .collect();
@@ -736,7 +742,7 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings {
         .collect();
 
     ProbeReadings {
-        anchors: (0..hits.len()).map(NodeRowId::from_index).collect(),
+        anchors: (0..hits.len()).map(NodeRowId::from_usize).collect(),
         comparisons: Box::new([]),
         neighbourhoods: Box::new([NonZero::new(1).expect("nonzero")]),
         map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
@@ -821,7 +827,7 @@ fn assess_flags_degraded_subgroups() {
         .iter()
         .map(|subgroup| {
             (
-                subgroup.ontology_row.get(),
+                subgroup.ontology_row.as_u64(),
                 subgroup.anchors,
                 subgroup.rows[0].recall,
             )
@@ -1347,7 +1353,7 @@ fn runner_dataset() -> MemoryDataset {
 
             Node {
                 id: U64::<LE>::new(row as u64),
-                ontology: smallvec![OntologyRowId::from_index(row & 1)],
+                ontology: smallvec![OntologyRowId::from_usize(row & 1)],
                 embedding: BoxedVecN::new(&VecN::new(components)),
                 confidence: None,
             }
@@ -1564,7 +1570,7 @@ async fn runner_reports_a_published_generation() {
         report
             .subgroups
             .iter()
-            .all(|subgroup| subgroup.ontology_row.get() < 2),
+            .all(|subgroup| subgroup.ontology_row.as_u64() < 2),
         "only the two node types carry anchors",
     );
 

@@ -3,11 +3,13 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
+use hashql_core::id::Id as _;
+
 use super::{
     Classification, CoincidentAdmission, PolicyOverride, PolicySource, ResolveError, resolve,
 };
 use crate::{
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     math::UnitFraction,
     salt::{
         policy::{ClassProbabilities, Posterior, classifier::Prediction},
@@ -250,6 +252,8 @@ fn resolution_feeds_the_certified_policy_table() {
     let policies =
         resolve(&classifications, &[], CoincidentAdmission::default()).expect("the table resolves");
 
-    assert!(policies.is_sorted_by(|previous, next| previous.relation.get() < next.relation.get()));
+    assert!(
+        policies.is_sorted_by(|previous, next| previous.relation.as_u64() < next.relation.as_u64())
+    );
     Policies::new(&policies).expect("the resolved table passes certification");
 }

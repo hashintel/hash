@@ -16,6 +16,7 @@
 use core::{error::Error, fmt, num::NonZero, ops::Range};
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
+use hashql_core::id::Id as _;
 
 use super::{
     RUNGS,
@@ -24,7 +25,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{NonNegative, Vec2},
     salt::{
         knn::table::KnnView,
@@ -53,12 +54,12 @@ impl fmt::Display for RefreshError {
             Self::Diverged { row, eta } => write!(
                 fmt,
                 "training diverged: row {} projected to a non-finite coordinate at rung {eta}",
-                row.get(),
+                row.as_u64(),
             ),
             Self::NonFiniteScale { row, eta } => write!(
                 fmt,
                 "training diverged: row {} measured a non-finite local scale at rung {eta}",
-                row.get(),
+                row.as_u64(),
             ),
             Self::RowsExceedIndexDomain { rows } => write!(
                 fmt,
@@ -182,7 +183,7 @@ pub(crate) fn forward<B: Backend<FloatElem = f32>>(
         for (offset, point) in points.iter().enumerate() {
             if !point.is_finite() {
                 return Err(RefreshError::Diverged {
-                    row: NodeRowId::from_index(start + offset),
+                    row: NodeRowId::from_usize(start + offset),
                     eta,
                 });
             }
@@ -205,7 +206,7 @@ pub(crate) fn scales(
     eta: f32,
 ) -> Result<LocalScales, RefreshError> {
     LocalScales::compute(frame, knn).map_err(|error| RefreshError::NonFiniteScale {
-        row: NodeRowId::from_index(error.row),
+        row: NodeRowId::from_usize(error.row),
         eta,
     })
 }
@@ -215,7 +216,7 @@ const fn field_error(error: SpatialFieldError, eta: f32) -> RefreshError {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
         SpatialFieldError::NonFinite { row } => RefreshError::Diverged {
-            row: NodeRowId::from_index(row),
+            row: NodeRowId::from_usize(row),
             eta,
         },
         SpatialFieldError::RowsExceedIndexDomain { rows } => {

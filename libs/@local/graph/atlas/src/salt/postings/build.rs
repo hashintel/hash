@@ -2,6 +2,7 @@
 
 use std::io;
 
+use hashql_core::id::Id as _;
 use smallvec::SmallVec;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
         WriteInto,
         postings::write::{Regions, write_regions},
     },
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
     math::Log2,
 };
@@ -130,7 +131,7 @@ impl Postings {
                     .index_below(domain)
                     .ok_or_else(|| PostingsError::NodeType {
                         row: u32::try_from(row).expect("the lod columns index rows by u32"),
-                        id: id.get(),
+                        id: id.as_u64(),
                     })?;
                 counts[type_row] += 1;
             }
@@ -163,7 +164,7 @@ impl Postings {
         for (position, &row) in row_of_position.iter().enumerate() {
             for &id in &types[row as usize] {
                 let type_row =
-                    usize::try_from(id.get()).expect("the counting pass validated the domain");
+                    usize::try_from(id.as_u64()).expect("the counting pass validated the domain");
 
                 if flags[type_row >> 6] & (1 << (type_row & 63)) != 0 {
                     let base = usize::try_from(membership_posts[type_row])
@@ -277,7 +278,7 @@ fn parent_regions(
                 .index_below(domain)
                 .ok_or_else(|| PostingsError::Parent {
                     type_row: u32::try_from(type_row).expect("type domains stay far below u32"),
-                    id: id.get(),
+                    id: id.as_u64(),
                 })?;
             ids.push(u32::try_from(parent).expect("checked against the type domain"));
         }

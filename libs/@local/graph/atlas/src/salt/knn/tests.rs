@@ -5,6 +5,7 @@
 )]
 use core::{assert_matches, num::NonZero};
 
+use hashql_core::id::Id as _;
 use rand::{Rng, RngExt as _, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -29,7 +30,7 @@ use crate::{
             read::{OpenSprsError, SprsFile},
         },
     },
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{AlignedVecN, BoxedVecN},
 };
 
@@ -97,20 +98,20 @@ impl ExactIndex {
             .enumerate()
             .filter(|&(row, _)| Some(row) != exclude)
             .map(|(row, stored)| Neighbour {
-                id: NodeRowId::from_index(row),
+                id: NodeRowId::from_usize(row),
                 distance: query.cosine_distance(stored),
             })
             .collect();
         all.sort_unstable_by(|left, right| {
             left.distance
                 .total_cmp(&right.distance)
-                .then_with(|| left.id.get().cmp(&right.id.get()))
+                .then_with(|| left.id.as_u64().cmp(&right.id.as_u64()))
         });
         all
     }
 
     fn ranked_by_id(&self, id: NodeRowId) -> Vec<Neighbour> {
-        let row = usize::try_from(id.get()).expect("test rows fit usize");
+        let row = usize::try_from(id.as_u64()).expect("test rows fit usize");
         self.ranked(&self.rows[row], Some(row))
     }
 }
@@ -128,7 +129,7 @@ impl NearestNeighboursIndex for ExactIndex {
     ) -> Result<(), Self::Error> {
         for embedding in embeddings {
             assert_eq!(
-                usize::try_from(embedding.id.get()).expect("test rows fit usize"),
+                usize::try_from(embedding.id.as_u64()).expect("test rows fit usize"),
                 self.rows.len(),
                 "the fixture inserts rows densely in order",
             );
@@ -264,7 +265,7 @@ impl NearestNeighboursIndex for EscapingIndex {
         let mut ranked = self.0.ranked_by_id(id);
         ranked.truncate(limit);
         Ok(ranked.into_iter().map(move |neighbour| Neighbour {
-            id: NodeRowId::new(neighbour.id.get() + rows),
+            id: NodeRowId::new(neighbour.id.as_u64() + rows),
             distance: neighbour.distance,
         }))
     }
@@ -279,7 +280,7 @@ impl NearestNeighboursIndex for MixedIndex {
         limit: usize,
     ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
         let ranked = self.0.ranked_by_id(id);
-        let skip = (id.get() & 7) as usize;
+        let skip = (id.as_u64() & 7) as usize;
         Ok(ranked
             .into_iter()
             .skip(skip)
@@ -366,7 +367,7 @@ fn build_matches_hand_computed_neighbours() {
     let stored: Vec<Vec<(u64, f32)>> = (0..4)
         .map(|row| {
             view.row(row)
-                .map(|neighbour| (neighbour.id.get(), neighbour.distance))
+                .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
                 .collect()
         })
         .collect();
@@ -492,11 +493,14 @@ fn descent_converges_on_known_geometry() {
         let entries = lists.row(row);
         assert!(
             entries.is_sorted_by(|left, right| {
-                (left.distance, left.id.get()) <= (right.distance, right.id.get())
+                (left.distance, left.id.as_u64()) <= (right.distance, right.id.as_u64())
             }),
             "rows arrive in ascending (distance, id) order",
         );
-        let mut ids: Vec<u64> = entries.iter().map(|neighbour| neighbour.id.get()).collect();
+        let mut ids: Vec<u64> = entries
+            .iter()
+            .map(|neighbour| neighbour.id.as_u64())
+            .collect();
         assert!(!ids.contains(&(row as u64)), "no row references itself");
         ids.sort_unstable();
         ids.dedup();
@@ -506,10 +510,10 @@ fn descent_converges_on_known_geometry() {
         }
 
         let reference: Vec<u64> = exact
-            .ranked_by_id(NodeRowId::from_index(row))
+            .ranked_by_id(NodeRowId::from_usize(row))
             .into_iter()
             .take(4)
-            .map(|neighbour| neighbour.id.get())
+            .map(|neighbour| neighbour.id.as_u64())
             .collect();
         matched += ids.iter().filter(|id| reference.contains(id)).count();
     }
@@ -614,15 +618,18 @@ fn brute_force_matches_the_exact_reference() {
     for row in 0..64 {
         let entries = lists.row(row);
         let reference: Vec<Neighbour> = exact
-            .ranked_by_id(NodeRowId::from_index(row))
+            .ranked_by_id(NodeRowId::from_usize(row))
             .into_iter()
             .take(4)
             .collect();
 
-        let mut ids: Vec<u64> = entries.iter().map(|neighbour| neighbour.id.get()).collect();
+        let mut ids: Vec<u64> = entries
+            .iter()
+            .map(|neighbour| neighbour.id.as_u64())
+            .collect();
         let mut expected: Vec<u64> = reference
             .iter()
-            .map(|neighbour| neighbour.id.get())
+            .map(|neighbour| neighbour.id.as_u64())
             .collect();
         ids.sort_unstable();
         expected.sort_unstable();
@@ -989,11 +996,11 @@ fn published_table_reopens_mapped() {
     for row in 0..owned.rows() {
         let owned_row: Vec<(u64, f32)> = owned
             .row(row)
-            .map(|neighbour| (neighbour.id.get(), neighbour.distance))
+            .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
             .collect();
         let reopened_row: Vec<(u64, f32)> = reopened
             .row(row)
-            .map(|neighbour| (neighbour.id.get(), neighbour.distance))
+            .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
             .collect();
         assert_eq!(reopened_row, owned_row);
     }
@@ -1088,7 +1095,7 @@ fn hannoy_honours_the_seam_contract() {
                 .iter()
                 .enumerate()
                 .map(|(row, components)| Embedding {
-                    id: NodeRowId::from_index(row),
+                    id: NodeRowId::from_usize(row),
                     components,
                 }),
         )
@@ -1104,15 +1111,15 @@ fn hannoy_honours_the_seam_contract() {
         .into_iter()
         .collect();
     assert_eq!(found.len(), 10);
-    assert!(found.iter().all(|neighbour| neighbour.id.get() != 3));
+    assert!(found.iter().all(|neighbour| neighbour.id.as_u64() != 3));
     assert!(
         found.is_sorted_by(|left, right| {
-            (left.distance, left.id.get()) <= (right.distance, right.id.get())
+            (left.distance, left.id.as_u64()) <= (right.distance, right.id.as_u64())
         }),
         "results are ordered by ascending (distance, id)",
     );
     for neighbour in &found {
-        let row = usize::try_from(neighbour.id.get()).expect("test rows fit usize");
+        let row = usize::try_from(neighbour.id.as_u64()).expect("test rows fit usize");
         let exact = embeddings[query_row].cosine_distance(&embeddings[row]);
         assert!(
             (0.0..=2.0).contains(&neighbour.distance),
@@ -1132,7 +1139,10 @@ fn hannoy_honours_the_seam_contract() {
         .expect("the search succeeds")
         .into_iter()
         .collect();
-    assert_eq!(by_vector.first().map(|nearest| nearest.id.get()), Some(3));
+    assert_eq!(
+        by_vector.first().map(|nearest| nearest.id.as_u64()),
+        Some(3)
+    );
     assert!(
         by_vector[0].distance < 1e-5,
         "a stored vector matches itself"

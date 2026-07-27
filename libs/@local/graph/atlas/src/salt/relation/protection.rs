@@ -30,12 +30,13 @@
 
 use core::fmt;
 
+use hashql_core::id::Id as _;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use sprs::{CsMatI, CsMatViewI};
 
 use crate::{
     file::sprs::{SprsValue, ValueTag},
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::NonNegative,
 };
 
@@ -229,7 +230,7 @@ impl NodePair {
     #[inline]
     #[must_use]
     pub(crate) const fn new(one: NodeRowId, other: NodeRowId) -> Self {
-        if one.get() <= other.get() {
+        if one.as_u64() <= other.as_u64() {
             Self {
                 first: one,
                 second: other,
@@ -475,7 +476,7 @@ impl<'view> ProtectionView<'view> {
     pub(crate) fn row(&self, row: NodeRowId) -> impl Iterator<Item = ProtectedPartner> + '_ {
         let (columns, evidence) = self
             .0
-            .outer_view(row.usize())
+            .outer_view(row.as_usize())
             .expect("the caller's row lies in the matrix's row domain")
             .into_raw_storage();
 
@@ -495,7 +496,7 @@ impl<'view> ProtectionView<'view> {
     #[must_use]
     pub(crate) fn get(&self, pair: NodePair) -> Option<PairEvidence> {
         self.0
-            .get(pair.first().usize(), pair.second().usize())
+            .get(pair.first().as_usize(), pair.second().as_usize())
             .copied()
     }
 

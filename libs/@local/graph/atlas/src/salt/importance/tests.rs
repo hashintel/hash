@@ -5,7 +5,7 @@ use camino::Utf8PathBuf;
 use super::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig};
 use crate::{
     file::{WriteInto as _, sprs::read::SprsFile},
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     salt::adjacency::{Adjacency, AdjacencyArchive},
 };
 

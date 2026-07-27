@@ -7,6 +7,7 @@
 //! gathers - no spatial index stands behind it. Locate IS the detail view: the trailer always
 //! rides, so serving locate requires a store connection for hydration.
 
+use hashql_core::id::Id as _;
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
@@ -20,7 +21,7 @@ use super::{
 };
 use crate::{
     dataset::ArchivedEntityId,
-    identity::{EdgeRowId, Identity as _, NodeRowId},
+    identity::{EdgeRowId, NodeRowId},
     morton::MortonKey,
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
@@ -117,7 +118,7 @@ impl Atlas {
     ///
     /// Base position, first visible zoom, and fly-to tile.
     fn source_point(&self, row: VisibleRow) -> SourcePoint {
-        let position = self.positions_of_row()[row.get().usize()];
+        let position = self.positions_of_row()[row.get().as_usize()];
         let zoom = self.first_visible_zoom(position);
 
         let key = MortonKey::from_bits(self.morton.codes()[position as usize].get());
@@ -173,7 +174,7 @@ impl Atlas {
         let mut delivered = vec![source.position];
         for &(_, row) in &partners {
             rows.push(row);
-            delivered.push(positions_of_row[row.usize()]);
+            delivered.push(positions_of_row[row.as_usize()]);
         }
 
         LocateSubgraph {
@@ -210,7 +211,7 @@ impl Atlas {
             .map(|(edge, id)| {
                 let partner = edge.partner_of(source.row.get());
 
-                let position = positions_of_row[partner.usize()];
+                let position = positions_of_row[partner.as_usize()];
                 let point = positions[position as usize];
                 let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
                 // The selection key is pinned to unfused f32

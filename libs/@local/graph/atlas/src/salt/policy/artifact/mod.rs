@@ -9,12 +9,13 @@
 use core::{error::Error, fmt, mem::offset_of};
 use std::io;
 
+use hashql_core::id::Id as _;
 use zerocopy::{FromBytes as _, IntoBytes as _};
 
 use super::RelationPolicy;
 use crate::{
     file::policy::{PolicyRow, read::PolicyFile, write::write_rows},
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -100,7 +101,7 @@ pub(crate) fn write_policies(
     assert!(
         policies
             .array_windows::<2>()
-            .all(|[left, right]| left.relation.get() < right.relation.get()),
+            .all(|[left, right]| left.relation.as_u64() < right.relation.as_u64()),
         "the resolved table is strictly ascending by relation",
     );
 
@@ -139,7 +140,7 @@ impl PolicyTableArchive {
 
         if let Some(position) = policies
             .array_windows::<2>()
-            .position(|[left, right]| left.relation.get() >= right.relation.get())
+            .position(|[left, right]| left.relation.as_u64() >= right.relation.as_u64())
         {
             return Err(InvalidPolicyFile::UnorderedRelations {
                 index: position + 1,
@@ -174,7 +175,7 @@ impl PolicyTableArchive {
     pub(crate) fn find(&self, relation: OntologyRowId) -> Option<RelationPolicy> {
         let policies = self.policies();
         let index = policies
-            .binary_search_by_key(&relation.get(), |policy| policy.relation.get())
+            .binary_search_by_key(&relation.as_u64(), |policy| policy.relation.as_u64())
             .ok()?;
 
         Some(policies[index])

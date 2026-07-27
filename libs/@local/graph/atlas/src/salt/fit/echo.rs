@@ -159,10 +159,11 @@ mod affinity_curve {
 ///
 /// [`Posterior::new`]: crate::salt::policy::Posterior::new
 mod policy_overrides {
+    use hashql_core::id::Id as _;
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
     use crate::{
-        identity::{Identity as _, OntologyRowId},
+        identity::OntologyRowId,
         salt::policy::{GeometryClass, PolicyOverride, PolicySource, Posterior},
     };
 
@@ -197,7 +198,7 @@ mod policy_overrides {
         let records: Vec<Record> = overrides
             .iter()
             .map(|record| Record {
-                relation: record.relation.get(),
+                relation: record.relation.as_u64(),
                 source: match record.source {
                     PolicySource::Human => SourceRecord::Human,
                     PolicySource::Reviewed => SourceRecord::Reviewed,

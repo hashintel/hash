@@ -19,7 +19,7 @@ mod backfill_reference {
 
     use crate::{
         file::morton::read::MortonFile,
-        identity::{Identity as _, NodeRowId},
+        identity::NodeRowId,
         morton::{Depth, MortonCell, MortonKey},
         serve::VisibilityProof,
     };
@@ -362,7 +362,7 @@ fn delivered_positions(
             let row = node_codec
                 .decode(codec::WireRow::pinned(wire))
                 .expect("delivered wire ids decode");
-            position_of[&row.u32()]
+            position_of[&row.as_u32()]
         })
         .collect()
 }

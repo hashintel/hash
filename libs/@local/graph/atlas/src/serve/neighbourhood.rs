@@ -12,11 +12,13 @@
 //! qualify, so an edge with a hidden endpoint is never delivered and requires no edge-level check
 //! of its own.
 
+use hashql_core::id::Id as _;
+
 use super::{Atlas, visibility::VisibilityProof};
 use crate::{
     bitset::BitSet,
     dataset::ArchivedEntityId,
-    identity::{EdgeRowId, Identity as _, NodeRowId},
+    identity::{EdgeRowId, NodeRowId},
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
 };
 
@@ -95,7 +97,7 @@ impl<'atlas> Neighbourhood<'atlas> {
         let incident = outgoing.iter().chain(
             incoming
                 .iter()
-                .filter(|edge| self.endpoints[edge.usize()][0] != node),
+                .filter(|edge| self.endpoints[edge.as_usize()][0] != node),
         );
 
         let mut edges = Vec::new();
@@ -122,13 +124,13 @@ impl<'atlas> Neighbourhood<'atlas> {
         for row in delivered.iter() {
             let outgoing = self
                 .adjacency
-                .outgoing(NodeRowId::from_index(row))
+                .outgoing(NodeRowId::from_usize(row))
                 .expect("delivered rows lie inside the adjacency's node domain");
 
             for edge in outgoing.iter() {
-                let [_, target] = self.endpoints[edge.usize()];
+                let [_, target] = self.endpoints[edge.as_usize()];
 
-                if delivered.contains(target.usize()) {
+                if delivered.contains(target.as_usize()) {
                     let delivered_edge = self.edge(edge);
                     edges.push((delivered_edge, self.edge_identity(delivered_edge.row)));
                 }
@@ -188,13 +190,13 @@ impl<'atlas> Neighbourhood<'atlas> {
 
     /// Returns a node row's importance rank through the position permutation.
     const fn rank_of_row(&self, row: NodeRowId) -> u32 {
-        let position = self.positions_of_row[row.usize()];
+        let position = self.positions_of_row[row.as_usize()];
         self.ranks[position as usize]
     }
 
     /// Reads edge `row`'s wire-column ids off the endpoint column.
     const fn edge(&self, row: EdgeRowId) -> DeliveredEdge {
-        let [source, target] = self.endpoints[row.usize()];
+        let [source, target] = self.endpoints[row.as_usize()];
 
         DeliveredEdge {
             row,

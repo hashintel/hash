@@ -10,6 +10,7 @@
 use core::{assert_matches, num::NonZero};
 use std::{fs, path::PathBuf};
 
+use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
@@ -29,7 +30,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{WriteInto as _, landmark::read::LandmarkFile},
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Vec2},
     salt::{
         knn::{Embedding, NearestNeighboursIndex, Neighbour},
@@ -130,7 +131,7 @@ fn selection_honors_subgroup_minimums() {
     let selected_in_subgroup = selection
         .rows()
         .iter()
-        .filter(|row| row.get() >= 90)
+        .filter(|row| row.as_u64() >= 90)
         .count();
     assert!(
         selected_in_subgroup >= 5,
@@ -157,7 +158,11 @@ fn selection_prefers_heavier_candidates() {
             Xoshiro256PlusPlus::seed_from_u64(seed),
         )
         .expect("the unconstrained selection succeeds");
-        heavy_selected += selection.rows().iter().filter(|row| row.get() < 10).count();
+        heavy_selected += selection
+            .rows()
+            .iter()
+            .filter(|row| row.as_u64() < 10)
+            .count();
     }
 
     assert!(
@@ -312,7 +317,7 @@ fn selection_counts_rows_toward_every_minimum_they_satisfy() {
 
     assert_eq!(selection.len(), 3);
     assert!(
-        selection.rows().iter().all(|row| row.get() < 4),
+        selection.rows().iter().all(|row| row.as_u64() < 4),
         "every selected row carries both subgroups",
     );
 }
@@ -397,7 +402,7 @@ impl NearestNeighboursIndex for ExactIndex {
         all.sort_unstable_by(|left, right| {
             left.distance
                 .total_cmp(&right.distance)
-                .then_with(|| left.id.get().cmp(&right.id.get()))
+                .then_with(|| left.id.as_u64().cmp(&right.id.as_u64()))
         });
         all.truncate(limit);
         Ok(all)
@@ -584,11 +589,11 @@ fn quotient_contracts_cross_landmark_edges() {
     assert_eq!(view.rows(), 3);
     let row0: Vec<(u64, f32)> = view
         .row(0)
-        .map(|edge| (edge.id.get(), edge.weight))
+        .map(|edge| (edge.id.as_u64(), edge.weight))
         .collect();
     let row1: Vec<(u64, f32)> = view
         .row(1)
-        .map(|edge| (edge.id.get(), edge.weight))
+        .map(|edge| (edge.id.as_u64(), edge.weight))
         .collect();
     assert_eq!(row0, [(1, 1.0)]);
     assert_eq!(row1, [(0, 1.0), (2, 1.0)]);
@@ -622,7 +627,7 @@ fn quotient_keeps_only_the_strongest_neighbours() {
     // to 1.0 within their own rows), so their edges to L0 survive from
     // the other direction.
     assert!(
-        quotient.view().row(0).any(|edge| edge.id.get() == 1),
+        quotient.view().row(0).any(|edge| edge.id.as_u64() == 1),
         "the strongest edge survives the cap"
     );
 }

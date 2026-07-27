@@ -19,6 +19,7 @@
 use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
 
+use hashql_core::id::Id;
 use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use crate::{
@@ -27,7 +28,6 @@ use crate::{
         identity::{read::IdentityFile, write::write_regions},
         region::ByteStable,
     },
-    identity::Identity,
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -204,7 +204,7 @@ pub(crate) struct IdentityTableArchive<I, R> {
 impl<I, R> IdentityTableArchive<I, R>
 where
     I: ByteStable,
-    R: Identity,
+    R: Id,
 {
     /// Validates a mapped identity file as a lookup table over `I`.
     ///
@@ -301,7 +301,7 @@ where
     /// Returns the id of `row`, or [`None`] beyond the domain.
     #[must_use]
     pub(crate) fn id(&self, row: R) -> Option<I> {
-        self.ids().get(usize::try_from(row.get()).ok()?).copied()
+        self.ids().get(usize::try_from(row.as_u64()).ok()?).copied()
     }
 
     /// Returns the row carrying `id`, or [`None`] when no row does.
@@ -328,6 +328,6 @@ where
             .binary_search_by(|pair| pair.id.as_bytes().cmp(bytes))
             .ok()?;
 
-        Some(R::new(window[position].row.get()))
+        Some(R::from_u64(window[position].row.get()))
     }
 }

@@ -12,6 +12,7 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
 use rand::{Rng, SeedableRng};
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
@@ -20,9 +21,7 @@ use rayon::{
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour, error::KnnError};
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
-    math::AlignedVecN,
+    dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN,
     salt::knn::table::KnnValidationError,
 };
 
@@ -139,7 +138,7 @@ where
                     .iter()
                     .enumerate()
                     .map(|(row, components)| Embedding {
-                        id: NodeRowId::from_index(row),
+                        id: NodeRowId::from_usize(row),
                         components,
                     }),
             )
@@ -157,7 +156,7 @@ where
             .try_for_each(|(row, slots)| {
                 let found: Vec<Neighbour> = self
                     .0
-                    .search_by_id(NodeRowId::from_index(row), width)
+                    .search_by_id(NodeRowId::from_usize(row), width)
                     .map_err(KnnError::Backend)?
                     .into_iter()
                     .collect();
@@ -169,7 +168,10 @@ where
                     });
                 }
 
-                let mut ids: Vec<u64> = found.iter().map(|neighbour| neighbour.id.get()).collect();
+                let mut ids: Vec<u64> = found
+                    .iter()
+                    .map(|neighbour| neighbour.id.as_u64())
+                    .collect();
                 ids.sort_unstable();
                 if let Some(&[duplicate, _]) =
                     ids.array_windows::<2>().find(|[left, right]| left == right)

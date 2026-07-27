@@ -39,6 +39,8 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
+use hashql_core::id::Id as _;
+
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
@@ -57,7 +59,7 @@ pub(crate) use self::{
     step::LossBreakdown,
 };
 use crate::{
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{NonNegative, Positive},
     salt::projector::{
         budget::BudgetOptions,
@@ -93,7 +95,7 @@ impl fmt::Display for StepError {
             Self::Diverged { row } => write!(
                 fmt,
                 "training diverged: row {} projected to a non-finite coordinate",
-                row.get()
+                row.as_u64()
             ),
         }
     }

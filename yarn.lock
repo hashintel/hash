@@ -6932,7 +6932,6 @@ __metadata:
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
     "@ark-ui/react": "npm:5.37.2"
-    "@blockprotocol/type-system": "workspace:^"
     "@deck.gl/core": "npm:9.3.6"
     "@deck.gl/layers": "npm:9.3.6"
     "@deck.gl/react": "npm:9.3.6"
@@ -13771,6 +13770,7 @@ __metadata:
     "@rust/hash-graph-embeddings": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
+    "@rust/hashql-core": "workspace:*"
   languageName: unknown
   linkType: soft
 

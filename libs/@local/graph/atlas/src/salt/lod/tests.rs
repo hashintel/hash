@@ -1,3 +1,4 @@
+use hashql_core::id::Id as _;
 use proptest::{arbitrary::any, prop_assert, prop_assert_eq, proptest};
 use smallvec::{SmallVec, smallvec};
 use uuid::Uuid;
@@ -13,7 +14,7 @@ use super::{
 use crate::{
     dataset::ArchivedEntityId,
     file::quad::Node,
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -1028,7 +1029,7 @@ proptest! {
                 .flat_map(|&position| {
                     let row = lod.row_of_position[position];
                     types[row as usize].iter().map(|id| {
-                        u32::try_from(id.get()).expect("test ordinals fit u32")
+                        u32::try_from(id.as_u64()).expect("test ordinals fit u32")
                     })
                 })
                 .collect();

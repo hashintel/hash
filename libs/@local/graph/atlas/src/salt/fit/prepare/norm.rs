@@ -13,11 +13,12 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
 use rand::Rng;
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::AlignedVecN,
     random::{acceptance_sample_size, sample_indices_vec},
 };
@@ -71,12 +72,12 @@ impl fmt::Display for RepresentationDefect {
             Self::NonFinite { row, component } => write!(
                 fmt,
                 "row {} carries a non-finite component {component}",
-                row.get(),
+                row.as_u64(),
             ),
             Self::Norm { row, squared_norm } => write!(
                 fmt,
                 "row {} has squared norm {squared_norm}, outside the unit tolerance",
-                row.get(),
+                row.as_u64(),
             ),
         }
     }
@@ -169,7 +170,7 @@ pub(crate) fn spot_check(
 
     let mut defects = Vec::new();
     for row in sample {
-        let id = NodeRowId::from_index(row);
+        let id = NodeRowId::from_usize(row);
         let components = embeddings[row].as_array();
 
         // A non-finite component is one defect; its norm adds nothing.

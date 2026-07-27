@@ -9,10 +9,10 @@
     reason = "the hub and coverage bounds are deliberate integer fractions of the domain"
 )]
 
+use hashql_core::id::Id as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Corpus, Profile};
-use crate::identity::Identity as _;
 
 const LINKS: usize = 4_096;
 const SEED: u64 = 42;
@@ -47,7 +47,7 @@ fn live_base_relation_owns_half() {
     let base = live
         .instances()
         .iter()
-        .filter(|instance| instance.relation.get() == 0)
+        .filter(|instance| instance.relation.as_u64() == 0)
         .count();
     assert_eq!(base, LINKS);
 }
@@ -58,13 +58,14 @@ fn mega_concentrates_and_uniform_spreads() {
     assert!(
         mega.instances()
             .iter()
-            .all(|instance| instance.relation.get() == 0)
+            .all(|instance| instance.relation.as_u64() == 0)
     );
 
     let uniform = corpus(Profile::Uniform);
     let mut volumes = [0_usize; 17];
     for instance in uniform.instances() {
-        volumes[usize::try_from(instance.relation.get()).expect("the table holds 17 types")] += 1;
+        volumes[usize::try_from(instance.relation.as_u64()).expect("the table holds 17 types")] +=
+            1;
     }
     let smallest = volumes.iter().min().expect("the table is non-empty");
     let largest = volumes.iter().max().expect("the table is non-empty");
@@ -79,9 +80,9 @@ fn targets_are_hubbed_and_sources_are_not() {
     let mut sources = std::collections::HashSet::new();
     for instance in live.instances() {
         *target_volume
-            .entry(instance.target.get())
+            .entry(instance.target.as_u64())
             .or_insert(0_usize) += 1;
-        sources.insert(instance.source.get());
+        sources.insert(instance.source.as_u64());
     }
 
     let top = target_volume.values().max().expect("links exist");

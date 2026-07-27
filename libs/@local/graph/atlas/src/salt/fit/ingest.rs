@@ -10,6 +10,7 @@ use core::pin::pin;
 use std::io::{BufWriter, Write as _};
 
 use futures::TryStreamExt as _;
+use hashql_core::id::Id as _;
 use smallvec::SmallVec;
 use tracing::Instrument as _;
 use zerocopy::{IntoBytes as _, LE, U64};
@@ -33,7 +34,7 @@ use crate::{
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::RepositoryFile,
     },
-    identity::{EdgeRowId, Identity as _, OntologyRowId},
+    identity::{EdgeRowId, OntologyRowId},
     math::AlignedVecN,
     salt::{
         embedding::{
@@ -299,8 +300,8 @@ where
         ids.push(edge.id);
         endpoints.write_row(
             [
-                U64::<LE>::new(edge.source.get()),
-                U64::<LE>::new(edge.target.get()),
+                U64::<LE>::new(edge.source.as_u64()),
+                U64::<LE>::new(edge.target.as_u64()),
             ]
             .as_bytes(),
         )?;
@@ -323,7 +324,7 @@ where
             multi_typed[slot] += 1;
         }
         for &relation in &edge.ontology {
-            relations.insert(relation.get());
+            relations.insert(relation.as_u64());
             spool.push(InstanceRecord::new(
                 row,
                 relation,

@@ -12,12 +12,13 @@ use std::{
 };
 
 use camino::Utf8PathBuf;
+use hashql_core::id::Id as _;
 use memmap2::Mmap;
 use zerocopy::{F32, FromBytes as _, IntoBytes as _, LE, U32, U64};
 
 use crate::{
     file::generation::ScratchDirectory,
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     salt::relation::{RelationConfidence, RelationInstance},
 };
 
@@ -81,10 +82,10 @@ impl InstanceRecord {
         }
 
         Self {
-            edge: U64::new(edge.get()),
-            relation: U64::new(relation.get()),
-            source: U64::new(source.get()),
-            target: U64::new(target.get()),
+            edge: U64::new(edge.as_u64()),
+            relation: U64::new(relation.as_u64()),
+            source: U64::new(source.as_u64()),
+            target: U64::new(target.as_u64()),
             link: F32::new(confidence.link.unwrap_or(1.0)),
             source_confidence: F32::new(confidence.source.unwrap_or(1.0)),
             target_confidence: F32::new(confidence.target.unwrap_or(1.0)),

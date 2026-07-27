@@ -10,6 +10,7 @@
 //! axes): the runner matches artifact rows to source identities through the identity artifact, and
 //! a dataset at other axes would resolve types for a different corpus.
 
+use hashql_core::id::Id as _;
 use rand::Rng;
 use tracing::Instrument as _;
 
@@ -25,7 +26,7 @@ use crate::{
         array::ArrayFile, generation::Generation, identity::read::IdentityFile,
         sprs::read::SprsFile,
     },
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     salt::{fit::prepare::identity::IdentityTableArchive, knn::artifact::KnnArchive},
 };
 
@@ -128,7 +129,7 @@ pub(crate) async fn run<D: Dataset>(
     .map_err(QualityRunError::Probe)?;
 
     let anchor_types = {
-        let anchor_ids = readings.anchors.iter().map(|&row| node_ids[row.usize()]);
+        let anchor_ids = readings.anchors.iter().map(|&row| node_ids[row.as_usize()]);
 
         match_deliveries(node_ids, &readings.anchors, dataset.node_types(anchor_ids))
             .instrument(tracing::info_span!("types"))

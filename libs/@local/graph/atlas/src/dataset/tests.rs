@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use futures::TryStreamExt as _;
-use hashql_core::id::Id;
+use hashql_core::id::Id as _;
 use smallvec::smallvec;
 use type_system::{
     knowledge::entity::id::EntityUuid,
@@ -16,7 +16,7 @@ use super::{
     Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
 };
 use crate::{
-    identity::{Identity as _, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
     math::{BoxedVecN, VecN},
 };
 

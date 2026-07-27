@@ -19,11 +19,10 @@
 //! (tile gathers, edge endpoint sets) mask through [`VisibilityProof::intersect`] and
 //! [`VisibilityProof::contains`] wholesale instead of minting a value per row.
 
+use hashql_core::id::Id as _;
+
 use super::{Atlas, WireRow};
-use crate::{
-    bitset::BitSet,
-    identity::{Identity as _, NodeRowId},
-};
+use crate::{bitset::BitSet, identity::NodeRowId};
 
 /// The server-held visibility proof: the visible node-row set every assembly path masks by.
 ///
@@ -88,7 +87,7 @@ impl VisibilityProof {
         match &self.rows {
             Rows::Full => true,
             Rows::Mask(bitmap) => {
-                let index = row.usize();
+                let index = row.as_usize();
                 index < bitmap.len() && bitmap.contains(index)
             }
         }

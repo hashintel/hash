@@ -656,7 +656,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
         let delivered: Vec<u32> = masked
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+            .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
             .collect();
         assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
 
@@ -679,7 +679,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
         let delivered_rows: Vec<u32> = masked
             .rows
             .iter()
-            .map(|row| narrow_usize(row.usize()))
+            .map(|row| narrow_usize(row.as_usize()))
             .collect();
         assert_eq!(delivered_rows, expected_rows, "ego({source_row}) rows");
         for row in &delivered_rows {
@@ -714,7 +714,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
             let capped_edges: Vec<u32> = capped
                 .edges
                 .iter()
-                .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+                .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
                 .collect();
             assert_eq!(
                 capped_edges, expected_edges,

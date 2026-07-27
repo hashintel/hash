@@ -19,6 +19,8 @@ mod masked;
 
 use core::ops::Range;
 
+use hashql_core::id::Id as _;
+
 pub(super) use self::full::occupied_children;
 use super::{Atlas, grid::Grid, visibility::VisibilityProof};
 use crate::{
@@ -26,7 +28,7 @@ use crate::{
         morton::read::MortonFile,
         quad::{Node, read::QuadFile},
     },
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     morton::{Depth, MortonCell},
     salt::wire::tile::DeliveredSet,
 };

@@ -2,6 +2,7 @@ use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
+use hashql_core::id::Id as _;
 use proptest::{prop_assert_eq, proptest};
 use smallvec::{SmallVec, smallvec};
 
@@ -18,7 +19,7 @@ use crate::{
             write::{Regions, write_regions},
         },
     },
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     math::Log2,
 };
 
@@ -421,7 +422,7 @@ fn reference_contains(
 ) -> bool {
     types[row_of_position[position as usize] as usize]
         .iter()
-        .any(|id| id.get() == type_row)
+        .any(|id| id.as_u64() == type_row)
 }
 
 proptest! {

@@ -6,9 +6,11 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
+
 use super::{CalibrationOptions, ProximalCalibration, calibrate};
 use crate::{
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,
@@ -111,7 +113,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     // weight = sampling(1) · c(1) · ν(0.5) · p_P(1) · h(1) = 0.5.
     assert_eq!(outcome.radius, Some(1.0));
     assert_eq!(outcome.types.len(), 1);
-    assert_eq!(outcome.types[0].relation.get(), 5);
+    assert_eq!(outcome.types[0].relation.as_u64(), 5);
     assert_eq!(outcome.types[0].pairs, 1);
     assert_eq!(outcome.types[0].mass, 0.5);
     assert_eq!(outcome.types[0].quantiles, Some([1.0, 1.0, 1.0]));
@@ -290,7 +292,7 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
 
     assert_eq!(outcome.radius, None);
     assert_eq!(outcome.types.len(), 1);
-    assert_eq!(outcome.types[0].relation.get(), 7);
+    assert_eq!(outcome.types[0].relation.as_u64(), 7);
     assert_eq!(outcome.types[0].pairs, 0);
     assert_eq!(outcome.types[0].mass, 0.0);
     assert_eq!(outcome.types[0].quantiles, None);

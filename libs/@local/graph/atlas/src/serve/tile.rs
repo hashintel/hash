@@ -5,6 +5,7 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
@@ -16,7 +17,7 @@ use super::{
     walk::{DeliveredPoints, Walk, occupied_children},
 };
 use crate::{
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     morton::Depth,
     salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
 };

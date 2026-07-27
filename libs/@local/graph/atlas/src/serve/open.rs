@@ -6,6 +6,8 @@
 //! serving state (the schedule, the wire codec and its encoded row column, the frame extent), and
 //! construct the [`Atlas`] whole - no partially initialized value exists at any point.
 
+use hashql_core::id::Id;
+
 use super::{
     Atlas,
     codec::{NODE_LABEL, RowCodec},
@@ -25,7 +27,7 @@ use crate::{
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
-    identity::{Column, Element, Identity, NodeRowId},
+    identity::{Column, Element, NodeRowId},
     math::{Bounds2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
@@ -244,7 +246,7 @@ fn open_identities<I, R>(
 ) -> Result<IdentityTableArchive<I, R>, OpenAtlasError>
 where
     I: ByteStable,
-    R: Identity,
+    R: Id,
 {
     let identities = IdentityFile::open(generation.path_of(&file.name))
         .map_err(|error| OpenAtlasError::OpenIdentity { domain, error })?;

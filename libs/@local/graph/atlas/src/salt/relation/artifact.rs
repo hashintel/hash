@@ -14,6 +14,7 @@
 use core::{error::Error, fmt};
 use std::io;
 
+use hashql_core::id::Id as _;
 use zerocopy::{F32, U32, U64};
 
 use super::{
@@ -30,7 +31,7 @@ use crate::{
             write::{WriteSprsError, write_matrix},
         },
     },
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -156,7 +157,7 @@ impl AttractionIndex {
         let groups = self.groups().iter().map(|group| {
             let weights = group.weights();
             let record = GroupRecord {
-                relation: U64::new(group.relation().get()),
+                relation: U64::new(group.relation().as_u64()),
                 first_edge: U64::new(first_edge),
                 coincident: F32::new(weights.coincident),
                 proximal: F32::new(weights.proximal),
@@ -170,9 +171,9 @@ impl AttractionIndex {
             group.edges().iter().map(|edge| {
                 let bits = u32::from(edge.confidence.scored().to_bits());
                 EdgeRecord {
-                    edge: U64::new(edge.edge.get()),
-                    source: U64::new(edge.source.get()),
-                    target: U64::new(edge.target.get()),
+                    edge: U64::new(edge.edge.as_u64()),
+                    source: U64::new(edge.source.as_u64()),
+                    target: U64::new(edge.target.as_u64()),
                     confidence: F32::new(edge.confidence.value()),
                     normalization: F32::new(edge.normalization),
                     scored: U32::new(bits),

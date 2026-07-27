@@ -22,6 +22,7 @@ use burn::tensor::{
     Tensor, TensorData,
     backend::{AutodiffBackend, Backend},
 };
+use hashql_core::id::Id as _;
 
 use super::{
     ObjectiveOptions, StepError,
@@ -29,7 +30,7 @@ use super::{
     metrics::{BudgetBreakdown, DegreeDeciles},
 };
 use crate::{
-    identity::{Identity as _, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
     math::{DVec2, Vec2},
     salt::projector::{
         budget::{self, ClippedRelation},
@@ -325,7 +326,7 @@ fn relation_pass<A: Allocator>(
             semantic
         } else {
             let outcome = options.budget.clip(semantic, relation);
-            metrics.record_node(deciles.decile(batch.rows[row].usize()), &outcome);
+            metrics.record_node(deciles.decile(batch.rows[row].as_usize()), &outcome);
             outcomes[row] = Some(outcome);
             semantic + outcome.gradient
         };

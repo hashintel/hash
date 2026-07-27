@@ -20,6 +20,7 @@
 //! by training and release evaluation alike, so backend variation in the k-NN build cannot confound
 //! model comparisons ([`artifact::SemanticGraphArchive`] reopens the published file).
 
+use hashql_core::id::Id as _;
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
@@ -28,7 +29,7 @@ use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
-use crate::identity::{Identity as _, NodeRowId};
+use crate::identity::NodeRowId;
 
 pub(crate) mod artifact;
 mod bandwidth;

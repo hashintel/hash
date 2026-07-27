@@ -26,12 +26,12 @@
 
 use core::{error::Error, fmt, num::NonZero};
 
+use hashql_core::id::Id as _;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
-use crate::{
-    identity::Identity as _,
-    salt::semantic::{SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError},
+use crate::salt::semantic::{
+    SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError,
 };
 
 const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
@@ -158,7 +158,7 @@ fn strongest_neighbours(
             |(inflow, touched), left| {
                 for &row in grouped.rows_of(left) {
                     for edge in semantic.row(row) {
-                        let right = assignment.as_slice()[edge.id.usize()];
+                        let right = assignment.as_slice()[edge.id.as_usize()];
                         if right.usize() != left {
                             let slot = &mut inflow[right.usize()];
                             if *slot == 0.0 {

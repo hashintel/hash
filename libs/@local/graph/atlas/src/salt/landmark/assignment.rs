@@ -8,6 +8,7 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
 use rand::{Rng, SeedableRng};
 use rayon::iter::{
     IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
@@ -16,7 +17,7 @@ use rayon::iter::{
 use super::select::{LandmarkOrdinal, LandmarkSelection};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::AlignedVecN,
     salt::knn::{Embedding, NearestNeighboursIndex},
 };
@@ -59,7 +60,7 @@ impl LandmarkAssignment {
     #[inline]
     #[must_use]
     pub(crate) fn get(&self, row: NodeRowId) -> LandmarkOrdinal {
-        self.landmark_by_row[row.usize()]
+        self.landmark_by_row[row.as_usize()]
     }
 
     /// Borrows every assignment ordinal in node-row order.
@@ -144,9 +145,9 @@ where
     I::Error: Send,
 {
     for &row in selection.rows() {
-        if row.usize() >= embeddings.len() {
+        if row.as_usize() >= embeddings.len() {
             return Err(AssignmentError::UnknownRow {
-                row: row.get(),
+                row: row.as_u64(),
                 rows: embeddings.len(),
             });
         }
@@ -155,7 +156,7 @@ where
     index
         .insert_many(selection.rows().iter().map(|&row| Embedding {
             id: row,
-            components: &embeddings[row.usize()],
+            components: &embeddings[row.as_usize()],
         }))
         .map_err(AssignmentError::Backend)?;
     index.build(rng).map_err(AssignmentError::Backend)?;
@@ -164,7 +165,7 @@ where
         .par_iter()
         .enumerate()
         .map(|(row, components)| {
-            let row = NodeRowId::from_index(row);
+            let row = NodeRowId::from_usize(row);
             if let Some(ordinal) = selection.ordinal(row) {
                 return Ok(ordinal);
             }
@@ -174,13 +175,13 @@ where
                 .map_err(AssignmentError::Backend)?
                 .into_iter()
                 .next()
-                .ok_or(AssignmentError::MissingMatch { row: row.get() })?;
+                .ok_or(AssignmentError::MissingMatch { row: row.as_u64() })?;
 
             selection
                 .ordinal(nearest.id)
                 .ok_or(AssignmentError::ForeignNeighbour {
-                    row: row.get(),
-                    neighbour: nearest.id.get(),
+                    row: row.as_u64(),
+                    neighbour: nearest.id.as_u64(),
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;

@@ -3,6 +3,7 @@
 use core::num::NonZero;
 use std::sync::OnceLock;
 
+use hashql_core::id::Id as _;
 use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::super::{
@@ -12,7 +13,7 @@ use super::super::{
     protection::ProtectionIndex,
 };
 use crate::{
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     random::uniform_below,
     salt::policy::ClassProbabilities,
 };
@@ -131,7 +132,7 @@ impl Corpus {
         let instance = |edge: u64, relation: usize, (source, target): (NodeRowId, NodeRowId)| {
             RelationInstance {
                 edge: EdgeRowId::new(edge),
-                relation: OntologyRowId::from_index(relation),
+                relation: OntologyRowId::from_usize(relation),
                 source,
                 target,
                 confidence: RelationConfidence::default(),
@@ -185,7 +186,7 @@ impl Corpus {
                     proximal: (step / 16.0).mul_add(-0.9375, 1.0),
                 };
                 RelationPolicy {
-                    relation: OntologyRowId::from_index(relation),
+                    relation: OntologyRowId::from_usize(relation),
                     attraction: distribution,
                     selected: distribution,
                     applicability: (step / 16.0).mul_add(-0.75, 1.0),

@@ -22,12 +22,13 @@
 use core::{error::Error, fmt};
 use std::{collections::HashMap, io};
 
+use hashql_core::id::Id as _;
 use zerocopy::IntoBytes as _;
 
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, card::Card},
     file::array::{ArrayVariant, Dim, SizedArrayWriter},
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::Sha256Digest,
     math::{AlignedVecN, BoxedVecN, MatrixN, VecN},
 };
@@ -175,7 +176,7 @@ impl<'table> CardEmbeddingView<'table> {
         &self,
         row: OntologyRowId,
     ) -> Option<&'table VecN<CANONICAL_DIMENSIONS>> {
-        self.rows.get(row.usize())
+        self.rows.get(row.as_usize())
     }
 }
 
@@ -311,7 +312,7 @@ impl<E: fmt::Display> fmt::Display for CardEmbeddingError<E> {
             Self::NonFinite { row, component } => write!(
                 fmt,
                 "the embedding for ontology row {} has a non-finite component {component}",
-                row.get(),
+                row.as_u64(),
             ),
         }
     }
@@ -357,7 +358,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
     let mut unique = HashMap::<Sha256Digest, UniqueCard<'_>>::with_capacity(cards.len());
 
     for (row, card) in cards.iter().enumerate() {
-        let row = OntologyRowId::from_index(row);
+        let row = OntologyRowId::from_usize(row);
         let hash = Sha256Digest::of(card.card_text());
         row_hashes.push(hash);
 
@@ -398,7 +399,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
         stats.reused += 1;
         let card = &unique[&hash];
         for &position in &card.rows {
-            *rows[position.usize()].as_array_mut() = *source.as_array();
+            *rows[position.as_usize()].as_array_mut() = *source.as_array();
         }
     }
 
@@ -429,7 +430,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
 
         stats.embedded += 1;
         for &position in &card.rows {
-            *rows[position.usize()].as_array_mut() = *embedding.as_array();
+            *rows[position.as_usize()].as_array_mut() = *embedding.as_array();
         }
     }
 

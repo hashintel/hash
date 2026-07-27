@@ -18,6 +18,7 @@ use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     module::AutodiffModule as _,
 };
+use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -27,7 +28,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
         unit_fraction,
@@ -169,7 +170,7 @@ fn corpus_with(
                 weight: 1.0,
             },
             SupportAnchor {
-                row: NodeRowId::from_index(HALF),
+                row: NodeRowId::from_usize(HALF),
                 target: Vec2::new(1.0, 0.0),
                 radius: 1.0,
                 weight: 1.0,
@@ -414,11 +415,11 @@ fn landmark_support_keeps_the_frame() {
 
     let layout = project(&fitted.model, &corpus, 0.0);
     for anchor in &corpus.landmarks {
-        let distance = layout[anchor.row.usize()].distance(anchor.target);
+        let distance = layout[anchor.row.as_usize()].distance(anchor.target);
         assert!(
             distance < anchor.radius,
             "row {} should hold near its landmark: distance {distance}",
-            anchor.row.get()
+            anchor.row.as_u64()
         );
     }
 }
@@ -698,7 +699,7 @@ fn non_finite_representation_fails_the_first_tick() {
     let TrainError::Refresh(refresh::RefreshError::Diverged { row, .. }) = error else {
         panic!("divergence surfaces as a refresh error, got {error:?}");
     };
-    assert_eq!(row.get(), 3, "the error names the diverged corpus row");
+    assert_eq!(row.as_u64(), 3, "the error names the diverged corpus row");
 }
 
 #[test]

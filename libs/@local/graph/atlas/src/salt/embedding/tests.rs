@@ -15,7 +15,7 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, card::Card},
     file::array::{ArrayVariant, FileHeader},
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::BoxedVecN,
 };

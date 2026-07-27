@@ -10,10 +10,9 @@
 //! Every signal is a pure function of published artifacts and the configuration: equal generations
 //! derive equal columns, so the ranking stays reproducible from the manifest alone.
 
-use crate::{
-    identity::{Identity as _, NodeRowId},
-    salt::adjacency::AdjacencyArchive,
-};
+use hashql_core::id::Id as _;
+
+use crate::{identity::NodeRowId, salt::adjacency::AdjacencyArchive};
 
 #[cfg(test)]
 mod tests;
@@ -116,7 +115,7 @@ impl ImportanceSignal for DegreeImportance<'_> {
             .map(|row| {
                 let degree = self
                     .adjacency
-                    .degree(NodeRowId::from_index(row))
+                    .degree(NodeRowId::from_usize(row))
                     .expect("the domain was asserted above");
                 degree as f32
             })

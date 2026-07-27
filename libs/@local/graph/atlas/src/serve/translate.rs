@@ -20,12 +20,13 @@
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
 use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
 use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
 use crate::{
     dataset::ArchivedEntityId,
-    identity::{EdgeRowId, Identity as _, NodeRowId},
+    identity::{EdgeRowId, NodeRowId},
     math::Vec2,
     salt::fit::prepare::identity::IdentityTableArchive,
 };
@@ -184,7 +185,7 @@ impl TranslateColumns<'_> {
     ///
     /// Panics beyond the domain, which the columns rule out: rows share the `u32` wire domain.
     const fn endpoint_rows(&self, edge: EdgeRowId) -> [NodeRowId; 2] {
-        self.endpoints[edge.usize()]
+        self.endpoints[edge.as_usize()]
     }
 }
 
@@ -219,7 +220,7 @@ pub(super) fn translate(
                 continue;
             }
 
-            let position = columns.position_of_row[row.usize()] as usize;
+            let position = columns.position_of_row[row.as_usize()] as usize;
             let point = columns.positions[position];
             nodes.insert(
                 id_string,

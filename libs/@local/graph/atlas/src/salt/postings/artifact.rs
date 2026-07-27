@@ -2,10 +2,9 @@
 
 use core::ops::Range;
 
-use crate::{
-    file::postings::read::PostingsFile,
-    identity::{Identity as _, OntologyRowId},
-};
+use hashql_core::id::Id as _;
+
+use crate::{file::postings::read::PostingsFile, identity::OntologyRowId};
 
 /// An opened postings file does not hold a valid postings artifact.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -171,7 +170,7 @@ impl PostingsArchive {
     /// Returns `type_row`'s membership at its stored representation, when the row is in domain.
     #[must_use]
     pub(crate) fn membership(&self, type_row: OntologyRowId) -> Option<Membership<'_>> {
-        let row = type_row.get();
+        let row = type_row.as_u64();
         if row >= self.file.types() {
             return None;
         }
@@ -192,7 +191,7 @@ impl PostingsArchive {
     /// Returns `type_row`'s direct parent rows, strictly ascending, when the row is in domain.
     #[must_use]
     pub(crate) fn parents(&self, type_row: OntologyRowId) -> Option<&[u32]> {
-        let row = type_row.get();
+        let row = type_row.as_u64();
         if row >= self.file.types() {
             return None;
         }

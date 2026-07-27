@@ -19,6 +19,7 @@ use core::{num::NonZero, time::Duration};
 use std::time::Instant;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use hashql_core::id::Id as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
@@ -32,7 +33,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{array::ArrayFile, generation::GenerationRoot},
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::AlignedVecN,
     salt::fit::{Stage, stage_rng},
 };
@@ -474,7 +475,7 @@ fn build_index(
                 .iter()
                 .enumerate()
                 .map(|(row, components)| Embedding {
-                    id: NodeRowId::from_index(row),
+                    id: NodeRowId::from_usize(row),
                     components,
                 }),
         )

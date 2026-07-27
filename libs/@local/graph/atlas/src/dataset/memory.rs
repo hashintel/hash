@@ -3,14 +3,14 @@
 use std::{collections::HashMap, io};
 
 use futures::{Stream, StreamExt as _, stream};
-use hashql_core::id::Id;
+use hashql_core::id::Id as _;
 use smallvec::SmallVec;
 use zerocopy::{LE, U64};
 
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes, card::Card,
 };
-use crate::{identity::Identity as _, math::BoxedVecN};
+use crate::math::BoxedVecN;
 
 /// A [`Dataset`] held entirely in memory.
 ///
@@ -53,11 +53,13 @@ impl MemoryDataset {
             assert!(
                 node.ontology
                     .array_windows::<2>()
-                    .all(|[lhs, rhs]| lhs.get() < rhs.get()),
+                    .all(|[lhs, rhs]| lhs.as_u64() < rhs.as_u64()),
                 "node row {row} carries a type list that is not strictly ascending",
             );
             assert!(
-                node.ontology.last().is_none_or(|last| last.get() < types),
+                node.ontology
+                    .last()
+                    .is_none_or(|last| last.as_u64() < types),
                 "node row {row} references a type row outside the ontology stream",
             );
         }
@@ -71,11 +73,13 @@ impl MemoryDataset {
             assert!(
                 edge.ontology
                     .array_windows::<2>()
-                    .all(|[lhs, rhs]| lhs.get() < rhs.get()),
+                    .all(|[lhs, rhs]| lhs.as_u64() < rhs.as_u64()),
                 "edge row {row} carries a type list that is not strictly ascending",
             );
             assert!(
-                edge.ontology.last().is_none_or(|last| last.get() < types),
+                edge.ontology
+                    .last()
+                    .is_none_or(|last| last.as_u64() < types),
                 "edge row {row} references a type row outside the ontology stream",
             );
         }
@@ -85,11 +89,14 @@ impl MemoryDataset {
                 entry
                     .parents
                     .array_windows::<2>()
-                    .all(|[lhs, rhs]| lhs.get() < rhs.get()),
+                    .all(|[lhs, rhs]| lhs.as_u64() < rhs.as_u64()),
                 "ontology row {row} carries a parent list that is not strictly ascending",
             );
             assert!(
-                entry.parents.last().is_none_or(|last| last.get() < types),
+                entry
+                    .parents
+                    .last()
+                    .is_none_or(|last| last.as_u64() < types),
                 "ontology row {row} references a parent row outside the ontology stream",
             );
         }

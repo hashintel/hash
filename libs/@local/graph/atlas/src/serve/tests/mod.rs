@@ -14,6 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
 use futures::future::ready;
+use hashql_core::id::{Id as _, Id};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -24,7 +25,7 @@ use super::{
     OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
     VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
 };
-use crate::identity::{Identity as _, NodeRowId, OntologyRowId};
+use crate::identity::{NodeRowId, OntologyRowId};
 
 mod backfill;
 mod backfill_channel;
@@ -138,7 +139,7 @@ fn fixture_dataset() -> MemoryDataset {
 
             CorpusNode {
                 id: U64::<LE>::new(row as u64),
-                ontology: smallvec![OntologyRowId::from_index(row & 1)],
+                ontology: smallvec![OntologyRowId::from_usize(row & 1)],
                 embedding: BoxedVecN::new(&VecN::new(components)),
                 confidence: None,
             }
@@ -1330,7 +1331,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
         assert_eq!(source.row.get(), NodeRowId::from_u32(u32::from(row)));
         assert_eq!(
             source.position,
-            atlas.positions_of_row()[source.row.get().usize()],
+            atlas.positions_of_row()[source.row.get().as_usize()],
         );
 
         // The resolved tile delivers the row.
@@ -1345,7 +1346,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             .tile(&request, TileLimits::default(), &FULL)
             .expect("the resolved tile serves");
         assert!(
-            row_of(&bytes).contains(&wire_of(source.row.get().u32())),
+            row_of(&bytes).contains(&wire_of(source.row.get().as_u32())),
             "the resolved tile delivers its source",
         );
 
@@ -1368,7 +1369,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
                 .tile(&parent, TileLimits::default(), &FULL)
                 .expect("the parent tile serves");
             assert!(
-                !row_of(&bytes).contains(&wire_of(source.row.get().u32())),
+                !row_of(&bytes).contains(&wire_of(source.row.get().as_u32())),
                 "the parent zoom does not deliver the source yet",
             );
             resolved += 1;
@@ -1439,7 +1440,7 @@ async fn locate_subgraph_delivers_the_ego_graph() {
         expected_rows
             .sort_unstable_by_key(|&row| node_codec.encode(NodeRowId::from_u32(row)).get());
         expected_rows.insert(0, u32::from(source_row));
-        let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.u32()).collect();
+        let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.as_u32()).collect();
         assert_eq!(delivered_rows, expected_rows, "ego({source_row}) rows");
         let expected_positions: Vec<u32> = expected_rows
             .iter()
@@ -1456,14 +1457,14 @@ async fn locate_subgraph_delivers_the_ego_graph() {
         let delivered: Vec<u32> = subgraph
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+            .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
             .collect();
         assert_eq!(delivered, edge_rows, "ego({source_row}) edges");
         for &(edge, id) in &subgraph.edges {
-            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row.usize()];
-            assert_eq!(edge.source.get(), edge_source);
-            assert_eq!(edge.target.get(), edge_target);
-            assert_eq!(id, edge_identity_of(narrow_usize(edge.row.usize())));
+            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row.as_usize()];
+            assert_eq!(edge.source.as_u64(), edge_source);
+            assert_eq!(edge.target.as_u64(), edge_target);
+            assert_eq!(id, edge_identity_of(narrow_usize(edge.row.as_usize())));
         }
     }
 }
@@ -1517,7 +1518,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
         capped
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.usize()))
+            .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
             .collect::<Vec<u32>>(),
         [2],
         "the self-loop is the nearest edge",
@@ -1553,10 +1554,10 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
             // HEAD fly-to derivation), then the identity bytes.
             let mut expected = full.edges.clone();
             expected.sort_unstable_by_key(|&(edge, id)| {
-                let partner = if edge.source.u32() == u32::from(source_row) {
-                    edge.target.u32()
+                let partner = if edge.source.as_u32() == u32::from(source_row) {
+                    edge.target.as_u32()
                 } else {
-                    edge.source.u32()
+                    edge.source.as_u32()
                 };
                 let zoom = atlas
                     .resolve_source(
@@ -1573,7 +1574,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
 
             let mut partner_keys: Vec<(u32, u32)> = expected
                 .iter()
-                .flat_map(|&(edge, _)| [edge.source.u32(), edge.target.u32()])
+                .flat_map(|&(edge, _)| [edge.source.as_u32(), edge.target.as_u32()])
                 .filter(|&row| row != u32::from(source_row))
                 .map(|row| (node_codec.encode(NodeRowId::from_u32(row)).get(), row))
                 .collect();
@@ -1581,7 +1582,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
             partner_keys.dedup();
             let mut expected_rows = vec![u32::from(source_row)];
             expected_rows.extend(partner_keys.iter().map(|&(_, row)| row));
-            let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.u32()).collect();
+            let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.as_u32()).collect();
             assert_eq!(delivered_rows, expected_rows, "ego({source_row}) cap {cap}");
 
             // Determinism pair: identical assembly on repeat.
@@ -1946,7 +1947,7 @@ fn entity_string_of(seed: u8) -> String {
 }
 
 /// Writes and reopens one hand-built entity identity table.
-fn entity_identity_table<R: crate::identity::Identity>(
+fn entity_identity_table<R: Id>(
     path: &camino::Utf8PathBuf,
     ids: &[crate::dataset::ArchivedEntityId],
 ) -> crate::salt::fit::prepare::identity::IdentityTableArchive<crate::dataset::ArchivedEntityId, R>
@@ -2396,12 +2397,12 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let sources: Vec<WireRow<NodeRowId>> = subgraph
         .edges
         .iter()
-        .map(|&(edge, _)| wire_of(edge.source.u32()))
+        .map(|&(edge, _)| wire_of(edge.source.as_u32()))
         .collect();
     let targets: Vec<WireRow<NodeRowId>> = subgraph
         .edges
         .iter()
-        .map(|&(edge, _)| wire_of(edge.target.u32()))
+        .map(|&(edge, _)| wire_of(edge.target.as_u32()))
         .collect();
     let edge_ids: Vec<crate::dataset::ArchivedEntityId> =
         subgraph.edges.iter().map(|&(_, id)| id).collect();

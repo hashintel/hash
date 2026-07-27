@@ -2,13 +2,15 @@
 
 use core::ops::Range;
 
+use hashql_core::id::Id as _;
+
 use crate::{
     bitset::BitSet,
     file::sprs::{
         IndexVariant, SprsIndex,
         read::{SprsFile, SprsMatrixError},
     },
-    identity::{EdgeRowId, Identity as _, NodeRowId},
+    identity::{EdgeRowId, NodeRowId},
 };
 
 /// An opened sparse matrix file does not hold a valid adjacency.
@@ -168,10 +170,11 @@ impl AdjacencyArchive {
 
     /// Returns the fencepost pair index of `node`, when the node row is in domain.
     fn posts(&self, node: NodeRowId) -> Option<usize> {
-        if node.get() >= self.nodes {
+        if node.as_u64() >= self.nodes {
             return None;
         }
-        Some(usize::try_from(2 * node.get()).expect("resident node domains fit usize"))
+
+        Some(usize::try_from(2 * node.as_u64()).expect("resident node domains fit usize"))
     }
 
     /// Returns the edge rows leaving `node`, strictly ascending, when the node row is in domain.
@@ -392,13 +395,13 @@ impl EdgeList<'_> {
         let mut high = self.len();
         while low < high {
             let middle = usize::midpoint(low, high);
-            if self.values.get(middle) < edge.get() {
+            if self.values.get(middle) < edge.as_u64() {
                 low = middle + 1;
             } else {
                 high = middle;
             }
         }
 
-        low < self.len() && self.values.get(low) == edge.get()
+        low < self.len() && self.values.get(low) == edge.as_u64()
     }
 }

@@ -20,7 +20,7 @@ use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 use super::Atlas;
 use crate::{
     dataset::ArchivedOntologyTypeUuid,
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     salt::{
         fit::prepare::identity::IdentityTableArchive,
         postings::{artifact::PostingsArchive, closure::ClosureMap},

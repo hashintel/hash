@@ -45,6 +45,7 @@ use core::{
 };
 use std::sync::Mutex;
 
+use hashql_core::id::Id as _;
 use rand::{Rng, RngExt as _, SeedableRng, seq::IndexedRandom as _};
 use rayon::{
     iter::{
@@ -60,7 +61,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::AlignedVecN,
     random::{keyed_rng, sample_indices_vec},
 };

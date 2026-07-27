@@ -22,10 +22,11 @@ mod tests;
 use core::{alloc::Allocator, num::NonZero};
 use std::{alloc::Global, collections::HashSet};
 
+use hashql_core::id::Id as _;
 use rand::{Rng, RngExt as _};
 
 use crate::{
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     random::{sample_indices_vec, uniform_below},
     salt::{
         relation::{
@@ -311,7 +312,7 @@ impl<'view> OrdinaryNegativeSampler<'view> {
             let pair = NodePair::new(NodeRowId::new(left), NodeRowId::new(right));
             // A vetoed pair stays vetoed; remembering it before the veto
             // checks skips their cost on repeats.
-            if !seen.insert((pair.first().get(), pair.second().get())) {
+            if !seen.insert((pair.first().as_u64(), pair.second().as_u64())) {
                 continue;
             }
 
@@ -333,7 +334,7 @@ impl<'view> OrdinaryNegativeSampler<'view> {
     /// The graph is symmetric, so one row's adjacency decides.
     fn is_semantic_positive(&self, pair: NodePair) -> bool {
         self.semantic
-            .row(pair.first().usize())
+            .row(pair.first().as_usize())
             .any(|edge| edge.id == pair.second())
     }
 }

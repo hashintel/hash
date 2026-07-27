@@ -2,7 +2,7 @@
 
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use hashql_core::id::Id;
+use hashql_core::id::Id as _;
 
 hashql_core::id::newtype! {
     /// A reference to a type by its position in [`Dataset::ontology`].
@@ -16,7 +16,7 @@ hashql_core::id::newtype! {
         serde::Serialize,
         serde::Deserialize,
     )]
-    #[id(endian = little, unaligned)]
+    #[id(endian = little, unaligned, const)]
     #[serde(into = "u64", try_from = "u64")]
     pub struct OntologyRowId(u64)
 }

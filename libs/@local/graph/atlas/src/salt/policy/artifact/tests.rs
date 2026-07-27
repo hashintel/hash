@@ -8,7 +8,7 @@ use std::{fs, path::PathBuf};
 use super::{InvalidPolicyFile, PolicyTableArchive, write_policies};
 use crate::{
     file::policy::read::PolicyFile,
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     salt::policy::{ClassProbabilities, RelationPolicy},
 };
 

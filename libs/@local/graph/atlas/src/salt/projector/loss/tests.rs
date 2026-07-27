@@ -14,6 +14,7 @@ use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     tensor::{Tensor, TensorData},
 };
+use hashql_core::id::Id as _;
 
 use super::{
     AffinityEnergy, BatchAnchor, BatchPair, BatchRelationEdge, BatchRelationEdges, BatchRowId,
@@ -22,7 +23,7 @@ use super::{
     relation_term, repulsion_term, support_term,
 };
 use crate::{
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{AffinityCurve, DVec2, NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,
@@ -503,7 +504,7 @@ fn attraction_fixture() -> AttractionIndex {
 /// coordinates are corpus-length, so corpus rows and batch positions coincide.
 fn full_batch(index: &AttractionIndex) -> Vec<BatchRelationEdges> {
     let position = |row: NodeRowId| {
-        BatchRowId::new(u32::try_from(row.get()).expect("fixture rows fit the batch encoding"))
+        BatchRowId::new(u32::try_from(row.as_u64()).expect("fixture rows fit the batch encoding"))
     };
     index
         .groups()
@@ -538,7 +539,7 @@ fn relation_term_matches_hand_computed_values() {
     let batch = full_batch(&index);
     let proximal_only = &batch[1..];
     assert_eq!(proximal_only.len(), 1);
-    assert_eq!(proximal_only[0].relation.get(), 9);
+    assert_eq!(proximal_only[0].relation.as_u64(), 9);
 
     let coordinates = [
         Vec2::new(0.0, 0.0),

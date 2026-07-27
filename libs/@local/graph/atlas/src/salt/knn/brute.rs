@@ -24,11 +24,7 @@ use super::{
     Neighbour,
     construction::{KnnConstruction, NeighbourLists},
 };
-use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
-    math::AlignedVecN,
-};
+use crate::{dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN};
 
 // A 1024 x 65536 f32 similarity tile is 256 MiB of device memory,
 // bounding the peak footprint at the corpus matrix plus two tiles.

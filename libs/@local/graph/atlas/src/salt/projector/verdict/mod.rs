@@ -35,11 +35,7 @@ use std::collections::HashMap;
 
 use type_system::ontology::id::VersionedUrl;
 
-use crate::{
-    dataset::OntologyIdentity,
-    identity::{Identity as _, OntologyRowId},
-    integrity::Sha256Digest,
-};
+use crate::{dataset::OntologyIdentity, identity::OntologyRowId, integrity::Sha256Digest};
 
 /// The schema identifier every accepted document must declare.
 pub(crate) const REVIEWED_VERDICTS_SCHEMA: &str = "atlas-reviewed-verdicts/1";

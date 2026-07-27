@@ -1,6 +1,7 @@
 use std::fs;
 
 use camino::Utf8PathBuf;
+use hashql_core::id::Id as _;
 use sprs::CsMatViewI;
 
 use super::{Adjacency, AdjacencyArchive, EdgeList, InvalidAdjacencyFile};
@@ -9,7 +10,7 @@ use crate::{
         WriteInto as _,
         sprs::{read::SprsFile, write::write_matrix},
     },
-    identity::{EdgeRowId, Identity as _, NodeRowId},
+    identity::{EdgeRowId, NodeRowId},
     integrity::{Sha256, Writer},
 };
 
@@ -53,7 +54,7 @@ fn list(edges: Option<EdgeList<'_>>) -> Vec<u64> {
     edges
         .expect("the queried node row is in domain")
         .iter()
-        .map(EdgeRowId::get)
+        .map(EdgeRowId::as_u64)
         .collect()
 }
 
@@ -103,7 +104,7 @@ fn contains_agrees_with_a_linear_scan() {
         ] {
             let run = direction.expect("the node row is in domain");
             for edge in 0..ENDPOINTS.len() as u64 {
-                let linear = run.iter().any(|held| held.get() == edge);
+                let linear = run.iter().any(|held| held.as_u64() == edge);
                 assert_eq!(
                     run.contains(EdgeRowId::new(edge)),
                     linear,

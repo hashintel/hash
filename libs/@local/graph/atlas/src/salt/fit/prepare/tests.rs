@@ -5,6 +5,7 @@
 use core::assert_matches;
 use std::{collections::HashMap, fs, io::Cursor, path::PathBuf};
 
+use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -24,7 +25,7 @@ use crate::{
         generation::GenerationRoot,
         identity::read::IdentityFile,
     },
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{AlignedVecN, BoxedVecN, VecN},
     salt::relation::RelationConfidence,
 };
@@ -480,10 +481,10 @@ fn instance_records_round_trip_their_option_confidences() {
         );
         let instance = record.instance();
 
-        assert_eq!(instance.edge.get(), 7 + index as u64);
-        assert_eq!(instance.relation.get(), 3);
-        assert_eq!(instance.source.get(), 1);
-        assert_eq!(instance.target.get(), 2);
+        assert_eq!(instance.edge.as_u64(), 7 + index as u64);
+        assert_eq!(instance.relation.as_u64(), 3);
+        assert_eq!(instance.source.as_u64(), 1);
+        assert_eq!(instance.target.as_u64(), 2);
         assert_eq!(instance.confidence, confidence, "case {index}");
         assert_eq!(instance.multiplicity, 3, "case {index}");
     }

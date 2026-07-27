@@ -3,6 +3,7 @@ use core::{future::ready, num::NonZero};
 use std::collections::HashMap;
 
 use camino::Utf8PathBuf;
+use hashql_core::id::Id as _;
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -15,7 +16,7 @@ use crate::{
         memory::MemoryDataset,
     },
     file::generation::GenerationRoot,
-    identity::{Identity as _, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
     salt::{
@@ -76,7 +77,7 @@ fn dataset() -> MemoryDataset {
 
             Node {
                 id: U64::<LE>::new(row as u64),
-                ontology: smallvec![OntologyRowId::from_index(row & 1)],
+                ontology: smallvec![OntologyRowId::from_usize(row & 1)],
                 embedding: BoxedVecN::new(&VecN::new(components)),
                 confidence: None,
             }

@@ -2,6 +2,7 @@
 
 use core::{error::Error, fmt, num::NonZero};
 
+use hashql_core::id::Id as _;
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
     slice::ParallelSliceMut as _,
@@ -9,7 +10,7 @@ use rayon::{
 use sprs::{CsMatI, CsMatViewI};
 
 use super::{Neighbour, construction::NeighbourLists, error::KnnError};
-use crate::identity::{Identity as _, NodeRowId};
+use crate::identity::NodeRowId;
 
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -236,10 +237,10 @@ impl Knn {
                 // CSR keys rows by ascending neighbour; the lists'
                 // distance ordering is recomputable from the values.
                 let mut found: Vec<Neighbour> = lists.row(row)[..neighbours].to_vec();
-                found.sort_unstable_by_key(|neighbour| neighbour.id.get());
+                found.sort_unstable_by_key(|neighbour| neighbour.id.as_u64());
 
                 for (slot, neighbour) in row_indices.iter_mut().zip(&found) {
-                    let column = neighbour.id.get();
+                    let column = neighbour.id.as_u64();
                     if column >= (rows as u64) {
                         return Err(KnnError::NeighbourOutOfBounds {
                             row,

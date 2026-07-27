@@ -25,6 +25,7 @@ use burn::{
     optim::{Adam, AdamConfig, GradientsParams, Optimizer, adaptor::OptimizerAdaptor},
     tensor::backend::AutodiffBackend,
 };
+use hashql_core::id::Id as _;
 use rand::Rng;
 
 use super::{
@@ -38,21 +39,18 @@ use super::{
     BoundaryEvidence, FrozenRadius, TickTelemetry, TrainError, TrainOptions, TrainerInputs,
     TrainingEvidence, TrainingSchedule,
 };
-use crate::{
-    identity::Identity as _,
-    salt::{
-        projector::{
-            loss::{ProximalEnergy, RelationEnergy},
-            miner::{HardNegativeMiner, MinedFrame},
-            model::Projector,
-            scale::LocalScales,
-            verdict::{
-                PlacementClass, ResolvedVerdict,
-                calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
-            },
+use crate::salt::{
+    projector::{
+        loss::{ProximalEnergy, RelationEnergy},
+        miner::{HardNegativeMiner, MinedFrame},
+        model::Projector,
+        scale::LocalScales,
+        verdict::{
+            PlacementClass, ResolvedVerdict,
+            calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
         },
-        relation::attraction::{AttractionGroup, AttractionIndex},
     },
+    relation::attraction::{AttractionGroup, AttractionIndex},
 };
 
 /// The trainer's optimizer: Adam adapted over the projector.
@@ -342,7 +340,7 @@ fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, Tra
 
     for anchor in inputs.landmarks.iter().chain(inputs.anchors) {
         assert!(
-            anchor.row.usize() < rows,
+            anchor.row.as_usize() < rows,
             "support anchors should reference corpus rows"
         );
     }
@@ -482,7 +480,9 @@ fn reviewed_proximal_force(index: &AttractionIndex, verdicts: &[ResolvedVerdict]
         .any(|verdict| {
             let groups = index.groups();
             groups
-                .binary_search_by_key(&verdict.relation.get(), |group| group.relation().get())
+                .binary_search_by_key(&verdict.relation.as_u64(), |group| {
+                    group.relation().as_u64()
+                })
                 .is_ok_and(|position| {
                     let group = &groups[position];
                     exerts_force(group) && group.weights().proximal > 0.0

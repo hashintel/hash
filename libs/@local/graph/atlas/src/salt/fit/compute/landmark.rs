@@ -1,6 +1,7 @@
 //! The landmark skeleton and baseline placement stages.
 use std::io::{self, BufWriter};
 
+use hashql_core::id::Id as _;
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -25,7 +26,7 @@ use crate::{
         repository::RepositoryFile,
         salt::metadata::LandmarkEvidence,
     },
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     integrity::Sha256Digest,
     math::AlignedVecN,
     salt::{
@@ -74,10 +75,10 @@ impl Context<'_> {
         for &row in skeleton.selected_rows() {
             let id = prior_ids
                 .id(row)
-                .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.get() })?;
+                .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.as_u64() })?;
 
             if let Some(current_row) = current.row_of(id) {
-                marks.insert(current_row.usize());
+                marks.insert(current_row.as_usize());
             }
         }
 
@@ -107,7 +108,7 @@ impl Context<'_> {
             let _span = tracing::info_span!("landmark-selection").entered();
             let candidates: Vec<LandmarkCandidate> = (0..rows.len())
                 .map(|row| LandmarkCandidate {
-                    row: NodeRowId::from_index(row),
+                    row: NodeRowId::from_usize(row),
                     sampling_weight: SamplingWeight::UNIFORM,
                     axes: SubgroupAxes::default(),
                     prior_landmark: prior_marks.is_some_and(|marks| marks.contains(row)),

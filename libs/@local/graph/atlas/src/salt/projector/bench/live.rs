@@ -23,13 +23,14 @@ use burn::{
     optim::{AdamConfig, GradientsParams, Optimizer as _},
     prelude::Backend,
 };
+use hashql_core::id::Id as _;
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{ARCHITECTURE, BackendKind};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{AffinityCurve, MatrixN, NonNegative, Vec2},
     salt::{
         policy::ClassProbabilities,
@@ -477,10 +478,10 @@ fn relation_indexes(rows: usize) -> RelationIndexes {
                 target = (target + 1) % rows;
             }
             RelationInstance {
-                edge: EdgeRowId::from_index(index),
+                edge: EdgeRowId::from_usize(index),
                 relation: OntologyRowId::new(100 + (index % RELATION_TYPES) as u64),
-                source: NodeRowId::from_index(source),
-                target: NodeRowId::from_index(target),
+                source: NodeRowId::from_usize(source),
+                target: NodeRowId::from_usize(target),
                 confidence: RelationConfidence::default(),
                 multiplicity: 1,
             }

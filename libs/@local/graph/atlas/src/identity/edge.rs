@@ -2,7 +2,7 @@
 
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use hashql_core::id::Id;
+use hashql_core::id::Id as _;
 
 hashql_core::id::newtype! {
     /// A reference to an edge by its position in [`Dataset::edges`].
@@ -12,7 +12,7 @@ hashql_core::id::newtype! {
     /// and read from artifact files without conversion.
     ///
     /// [`Dataset::edges`]: crate::dataset::Dataset::edges
-    #[id(endian = little, unaligned)]
+    #[id(endian = little, unaligned, const)]
     pub struct EdgeRowId(u64)
 }
 

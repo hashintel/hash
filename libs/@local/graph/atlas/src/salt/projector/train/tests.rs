@@ -17,6 +17,7 @@ use burn::{
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Tensor, TensorData, backend::AutodiffBackend},
 };
+use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -31,7 +32,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
     },
@@ -311,12 +312,12 @@ fn draws_are_deterministic_at_a_fixed_seed() {
         first
             .relation
             .iter()
-            .map(|sampled| (sampled.group.relation().get(), sampled.edges.clone()))
+            .map(|sampled| (sampled.group.relation().as_u64(), sampled.edges.clone()))
             .collect::<Vec<_>>(),
         second
             .relation
             .iter()
-            .map(|sampled| (sampled.group.relation().get(), sampled.edges.clone()))
+            .map(|sampled| (sampled.group.relation().as_u64(), sampled.edges.clone()))
             .collect::<Vec<_>>(),
     );
     assert_ne!(
@@ -395,12 +396,12 @@ fn allocator_seam_draws_and_assembles_identically() {
         global
             .relation
             .iter()
-            .map(|sampled| (sampled.group.relation().get(), sampled.edges.clone()))
+            .map(|sampled| (sampled.group.relation().as_u64(), sampled.edges.clone()))
             .collect::<Vec<_>>(),
         system
             .relation
             .iter()
-            .map(|sampled| (sampled.group.relation().get(), sampled.edges.clone()))
+            .map(|sampled| (sampled.group.relation().as_u64(), sampled.edges.clone()))
             .collect::<Vec<_>>(),
     );
     assert_eq!(global.landmarks, system.landmarks);
@@ -594,13 +595,25 @@ fn draw_collects_pooled_mined_pairs() {
 
     let mut expected: Vec<(u64, u64, u32)> = (0..frame.rows())
         .flat_map(|row| frame.row(row))
-        .map(|(pair, weight)| (pair.first().get(), pair.second().get(), weight.to_bits()))
+        .map(|(pair, weight)| {
+            (
+                pair.first().as_u64(),
+                pair.second().as_u64(),
+                weight.to_bits(),
+            )
+        })
         .collect();
     expected.sort_unstable();
     let mut drawn: Vec<(u64, u64, u32)> = populations
         .hard
         .iter()
-        .map(|&(pair, weight)| (pair.first().get(), pair.second().get(), weight.to_bits()))
+        .map(|&(pair, weight)| {
+            (
+                pair.first().as_u64(),
+                pair.second().as_u64(),
+                weight.to_bits(),
+            )
+        })
         .collect();
     drawn.sort_unstable();
 
@@ -642,7 +655,7 @@ fn assemble_reindexes_into_the_local_domain() {
 
     let batch = Batch::assemble(populations, Some(&table));
 
-    let rows: Vec<u64> = batch.rows.iter().map(|row| row.get()).collect();
+    let rows: Vec<u64> = batch.rows.iter().map(|row| row.as_u64()).collect();
     assert_eq!(rows, [2, 5, 9]);
     assert_eq!(batch.semantic, [local(1, 2)]);
     assert_eq!(batch.ordinary, [local(0, 2)]);
@@ -789,7 +802,7 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
     // The single relation type owns both node contributions.
     let types: Vec<_> = metrics.types().collect();
     assert_eq!(types.len(), 1);
-    assert_eq!(types[0].0.get(), 7);
+    assert_eq!(types[0].0.as_u64(), 7);
     assert_eq!(types[0].1.nodes(), 2);
     assert_eq!(types[0].1.mean_unclipped_ratio(), Some(1.0));
     assert_eq!(types[0].1.mean_clipped_ratio(), Some(0.5));
@@ -916,7 +929,7 @@ fn evaluate_rejects_non_finite_coordinates() {
     );
     assert_eq!(
         result.err().map(|error| match error {
-            StepError::Diverged { row } => row.get(),
+            StepError::Diverged { row } => row.as_u64(),
         }),
         Some(1)
     );
@@ -961,7 +974,7 @@ fn type_participants_deduplicate_and_order_rows() {
     let participants = TypeParticipants::new(&indexes.attraction);
     let collected: Vec<(u64, Vec<usize>)> = participants
         .iter()
-        .map(|(relation, rows)| (relation.get(), rows.to_vec()))
+        .map(|(relation, rows)| (relation.as_u64(), rows.to_vec()))
         .collect();
     assert_eq!(
         collected,
@@ -1005,7 +1018,7 @@ fn displacement_summary_reports_every_axis() {
         .types()
         .map(|(relation, moments)| {
             (
-                relation.get(),
+                relation.as_u64(),
                 moments.count(),
                 moments.sum(),
                 moments.maximum(),

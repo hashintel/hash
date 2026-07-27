@@ -80,12 +80,14 @@
 //! ([`protection::ProtectionIndex`]): row `i` lists every protected partner of node row `i`, the
 //! shape hard-negative mining vets one projected point's candidates against.
 
+use hashql_core::id::Id as _;
+
 use self::protection::NodePair;
 pub(crate) use self::{
     confidence::{EffectiveConfidence, RelationConfidence, Scored},
     error::RelationIndexError,
 };
-use crate::identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId};
+use crate::identity::{EdgeRowId, NodeRowId, OntologyRowId};
 // The policy row vocabulary is `salt::policy`'s deliverable; the
 // certified `Policies` view over it stays here with its consumer.
 #[cfg(test)]
@@ -188,7 +190,7 @@ impl<'policy> Policies<'policy> {
     #[must_use]
     pub(crate) fn get(self, relation: OntologyRowId) -> Option<&'policy RelationPolicy> {
         self.0
-            .binary_search_by_key(&relation.get(), |policy| policy.relation.get())
+            .binary_search_by_key(&relation.as_u64(), |policy| policy.relation.as_u64())
             .ok()
             .map(|position| &self.0[position])
     }

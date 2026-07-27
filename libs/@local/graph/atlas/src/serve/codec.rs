@@ -33,8 +33,9 @@
 //! instead of a wire id of their own. The fit pipeline is untouched: no artifact stores a wire
 //! id.
 
-use core::{fmt::Debug, hash::Hasher as _, marker::PhantomData};
+use core::{hash::Hasher as _, marker::PhantomData};
 
+use hashql_core::id::Id;
 use hkdf::Hkdf;
 use sha2::Sha256;
 use siphasher::sip::SipHasher24;
@@ -135,7 +136,7 @@ pub(crate) struct RowCodec<I> {
 
 impl<I> RowCodec<I>
 where
-    I: From<u32> + TryInto<u32, Error: Debug>,
+    I: Id,
 {
     /// Derives the codec of one universe from the server secret.
     ///
@@ -173,9 +174,7 @@ where
     /// Panics when `row` lies outside the universe: encoding is a producer contract, and an
     /// out-of-universe row upstream is a defect, never data.
     pub(crate) fn encode(&self, row: I) -> WireRow<I> {
-        let row = row
-            .try_into()
-            .expect("row should be able to fit into the u32 universe");
+        let row = row.as_u32();
         assert!(
             row < self.universe,
             "the codec encodes rows of its own universe",
@@ -190,7 +189,7 @@ where
     /// other lookup failure before a response can observe the cause.
     pub(crate) fn decode(&self, wire: WireRow<I>) -> Option<I> {
         let row = self.unpermute(wire.get());
-        (row < self.universe).then_some(I::from(row))
+        (row < self.universe).then_some(I::from_u32(row))
     }
 
     /// Applies the Feistel network once over the `u32` range.

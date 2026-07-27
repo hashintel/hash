@@ -6,10 +6,10 @@
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
 //! low megabytes while `T` stays in the low thousands.
 
+use hashql_core::id::Id as _;
+
 use crate::{
-    bitset::BitMatrix,
-    identity::{Identity as _, OntologyRowId},
-    salt::postings::artifact::PostingsArchive,
+    bitset::BitMatrix, identity::OntologyRowId, salt::postings::artifact::PostingsArchive,
 };
 
 /// The parent graph holds a cycle, so no descendant order exists.
@@ -71,7 +71,7 @@ impl ClosureMap {
         let mut pending = vec![0_u64; types];
         for type_row in 0..types {
             let parents = postings
-                .parents(OntologyRowId::from_index(type_row))
+                .parents(OntologyRowId::from_usize(type_row))
                 .expect("the loop iterates the postings' own domain");
             for &parent in parents {
                 pending[parent as usize] += 1;
@@ -84,7 +84,7 @@ impl ClosureMap {
             settled += 1;
 
             let parents = postings
-                .parents(OntologyRowId::from_index(type_row))
+                .parents(OntologyRowId::from_usize(type_row))
                 .expect("the loop iterates the postings' own domain");
             for &parent in parents {
                 let parent = parent as usize;

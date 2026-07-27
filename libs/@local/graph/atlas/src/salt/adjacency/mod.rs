@@ -32,6 +32,7 @@ mod tests;
 use core::ops::Deref;
 use std::io;
 
+use hashql_core::id::Id as _;
 use sprs::{CsMatBase, SpIndex};
 
 #[cfg(test)]
@@ -42,7 +43,7 @@ use crate::{
         WriteInto,
         sprs::write::{WriteSprsError, write_matrix},
     },
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
@@ -57,8 +58,8 @@ fn insert_edge<I: Copy>(
     source: NodeRowId,
     target: NodeRowId,
 ) {
-    let source = source.usize();
-    let target = target.usize();
+    let source = source.as_usize();
+    let target = target.as_usize();
 
     let out_slot = &mut cursors[2 * source];
     values[usize::try_from(*out_slot).expect("slots fit the address space")] = edge;
@@ -130,8 +131,8 @@ impl Adjacency {
         // slot 2i + 2 its incoming, so the prefix sum below turns the
         // counts into the run fenceposts directly.
         for &[source, target] in endpoints {
-            let source = source.usize();
-            let target = target.usize();
+            let source = source.as_usize();
+            let target = target.as_usize();
             fenceposts[2 * source + 1] += 1;
             fenceposts[2 * target + 2] += 1;
         }

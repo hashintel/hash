@@ -488,7 +488,7 @@ pub(super) fn expand_struct(
 
         output.extend(quote! {
             #[automatically_derived]
-            impl ::core::convert::TryFrom<#param> for #name {
+            #konst impl ::core::convert::TryFrom<#param> for #name {
                 type Error = #krate::id::IdError;
 
                 fn try_from(value: #param) -> ::core::result::Result<Self, Self::Error> {

@@ -13,11 +13,12 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
 use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::Corpus;
 use crate::{
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     random::uniform_below,
     salt::relation::protection::{NodePair, ProtectionConfig},
 };
@@ -74,7 +75,7 @@ impl Corpus {
             partners.clear();
             partners.extend(
                 protection
-                    .row(NodeRowId::from_index(row))
+                    .row(NodeRowId::from_usize(row))
                     .map(|entry| entry.partner),
             );
             let chunk = candidates.len();
@@ -91,7 +92,7 @@ impl Corpus {
                 };
                 candidates.push(candidate);
             }
-            candidates[chunk..].sort_unstable_by_key(|candidate| candidate.get());
+            candidates[chunk..].sort_unstable_by_key(|candidate| candidate.as_u64());
         }
 
         JudgeProbes {
@@ -115,7 +116,7 @@ impl Corpus {
             .chunks_exact(probes.per_row.get())
             .enumerate()
         {
-            let row = NodeRowId::from_index(row);
+            let row = NodeRowId::from_usize(row);
             for &candidate in chunk {
                 if protection.judge(NodePair::new(row, candidate), config).hard {
                     protected += 1;
@@ -141,14 +142,14 @@ impl Corpus {
             .chunks_exact(probes.per_row.get())
             .enumerate()
         {
-            let mut partners = protection.row(NodeRowId::from_index(row)).peekable();
+            let mut partners = protection.row(NodeRowId::from_usize(row)).peekable();
             for &candidate in chunk {
                 while partners
-                    .next_if(|entry| entry.partner.get() < candidate.get())
+                    .next_if(|entry| entry.partner.as_u64() < candidate.as_u64())
                     .is_some()
                 {}
                 if let Some(entry) = partners.peek()
-                    && entry.partner.get() == candidate.get()
+                    && entry.partner.as_u64() == candidate.as_u64()
                     && config.hard().protects(entry.evidence)
                 {
                     protected += 1;

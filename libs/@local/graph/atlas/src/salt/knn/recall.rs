@@ -24,6 +24,7 @@
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, default::Default, num::NonZero};
 
+use hashql_core::id::Id as _;
 use rand::Rng;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
@@ -33,7 +34,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::AlignedVecN,
     random::{mean_sample_size, sample_indices_vec},
 };
@@ -172,11 +173,11 @@ fn exact_neighbours(
     query: NodeRowId,
     limit: usize,
 ) -> impl IntoIterator<Item = NodeRowId> {
-    let query_embedding = &embeddings[query.usize()];
+    let query_embedding = &embeddings[query.as_usize()];
 
     let mut nearest = BinaryHeap::with_capacity(limit);
     for (row, embedding) in embeddings.iter().enumerate() {
-        let row = NodeRowId::from_index(row);
+        let row = NodeRowId::from_usize(row);
         if row == query {
             continue;
         }
@@ -257,7 +258,7 @@ impl ExactReference {
         let queries = sample
             .par_iter()
             .map(|&row| {
-                let id = NodeRowId::from_index(row);
+                let id = NodeRowId::from_usize(row);
                 let mut exact: Vec<NodeRowId> =
                     exact_neighbours(embeddings, id, neighbours_per_row)
                         .into_iter()
@@ -284,7 +285,7 @@ impl ExactReference {
             .queries
             .par_iter()
             .map(|(id, exact)| {
-                let mut approximate: Vec<NodeRowId> = lists.row(id.usize())[..depth]
+                let mut approximate: Vec<NodeRowId> = lists.row(id.as_usize())[..depth]
                     .iter()
                     .map(|neighbour| neighbour.id)
                     .collect();

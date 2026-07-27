@@ -16,7 +16,7 @@ use crate::{
         morton::Fenceposts,
         repository::{FileName, RepositoryFile, RepositoryVersion},
     },
-    identity::{Identity as _, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2},
     morton::Depth,

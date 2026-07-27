@@ -32,9 +32,11 @@ mod tests;
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
+
 use super::{PlacementClass, ResolvedVerdict};
 use crate::{
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     math::Vec2,
     salt::{projector::scale::LocalScales, relation::attraction::AttractionIndex},
 };
@@ -131,9 +133,9 @@ pub(crate) fn calibrate(
             continue;
         }
 
-        let Ok(position) =
-            groups.binary_search_by_key(&verdict.relation.get(), |group| group.relation().get())
-        else {
+        let Ok(position) = groups.binary_search_by_key(&verdict.relation.as_u64(), |group| {
+            group.relation().as_u64()
+        }) else {
             types.push(TypeCalibration {
                 relation: verdict.relation,
                 pairs: 0,
@@ -163,7 +165,7 @@ pub(crate) fn calibrate(
         // Accumulated in double precision, in the group's edge order.
         let mut mass = 0.0_f64;
         for edge in edges {
-            let (source, target) = (edge.source.usize(), edge.target.usize());
+            let (source, target) = (edge.source.as_usize(), edge.target.as_usize());
             let distance = coordinates[source].distance(coordinates[target]);
             let normalization = scales.normalization(source, target, options.epsilon);
             let z = distance / normalization;

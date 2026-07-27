@@ -29,8 +29,10 @@
 
 use core::{cmp::Ordering, num::NonZero};
 
+use hashql_core::id::Id as _;
+
 use super::super::knn::table::KnnView;
-use crate::{disjoint::DisjointSet, identity::Identity as _};
+use crate::disjoint::DisjointSet;
 
 /// The default clump threshold, as cosine distance over the 512-component representation.
 ///
@@ -75,7 +77,7 @@ impl Clumps {
                         clippy::cast_possible_truncation,
                         reason = "the table's row domain is bound to the u32 column encoding"
                     )]
-                    components.unite(row as u32, neighbour.id.get() as u32);
+                    components.unite(row as u32, neighbour.id.as_u64() as u32);
                 }
             }
         }

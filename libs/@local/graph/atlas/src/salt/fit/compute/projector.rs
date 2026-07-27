@@ -18,6 +18,7 @@ use std::{
 
 use burn::{backend::Autodiff, module::AutodiffModule as _};
 use camino::{Utf8Path, Utf8PathBuf};
+use hashql_core::id::Id as _;
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -41,7 +42,7 @@ use crate::{
             FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
         },
     },
-    identity::{Identity as _, NodeRowId, OntologyRowId},
+    identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{AlignedVecN, NonNegative, Positive, Vec2},
     salt::{
@@ -677,5 +678,5 @@ fn relation_loss(
 
 /// Narrows a node row to a slice position.
 fn row_index(row: NodeRowId) -> usize {
-    usize::try_from(row.get()).expect("rows fit the address space")
+    usize::try_from(row.as_u64()).expect("rows fit the address space")
 }

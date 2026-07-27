@@ -11,9 +11,11 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
+
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField, SpatialFieldError};
 use crate::{
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{Positive, Vec2},
     salt::{
         policy::ClassProbabilities,
@@ -165,12 +167,12 @@ fn reference_mine(
                 if candidate == row {
                     continue;
                 }
-                let candidate_id = NodeRowId::from_index(candidate);
+                let candidate_id = NodeRowId::from_usize(candidate);
                 if semantic.view().row(row).any(|edge| edge.id == candidate_id) {
                     continue;
                 }
                 let pair = crate::salt::relation::protection::NodePair::new(
-                    NodeRowId::from_index(row),
+                    NodeRowId::from_usize(row),
                     candidate_id,
                 );
                 if protection.judge(pair, config).hard {
@@ -232,13 +234,13 @@ fn mined_rows_match_a_brute_force_reference() {
         let actual: Vec<_> = negatives
             .row(row)
             .map(|(pair, weight)| {
-                let target = if pair.first().usize() == row {
+                let target = if pair.first().as_usize() == row {
                     pair.second()
                 } else {
                     pair.first()
                 };
                 (
-                    u32::try_from(target.get()).expect("fixture rows fit u32"),
+                    u32::try_from(target.as_u64()).expect("fixture rows fit u32"),
                     weight,
                 )
             })
@@ -259,13 +261,29 @@ fn mined_rows_match_a_brute_force_reference() {
         assert!(
             negatives
                 .row(row)
-                .all(|(pair, _)| { pair.first().usize() != pair.second().usize() })
+                .all(|(pair, _)| { pair.first().as_usize() != pair.second().as_usize() })
         );
     }
-    assert!(negatives.row(4).all(|(pair, _)| pair.second().usize() != 5));
-    assert!(negatives.row(5).all(|(pair, _)| pair.first().usize() != 4));
-    assert!(negatives.row(1).any(|(pair, _)| pair.second().usize() == 2));
-    assert!(negatives.row(1).all(|(pair, _)| pair.first().usize() != 0));
+    assert!(
+        negatives
+            .row(4)
+            .all(|(pair, _)| pair.second().as_usize() != 5)
+    );
+    assert!(
+        negatives
+            .row(5)
+            .all(|(pair, _)| pair.first().as_usize() != 4)
+    );
+    assert!(
+        negatives
+            .row(1)
+            .any(|(pair, _)| pair.second().as_usize() == 2)
+    );
+    assert!(
+        negatives
+            .row(1)
+            .all(|(pair, _)| pair.first().as_usize() != 0)
+    );
 }
 
 #[test]
@@ -351,9 +369,9 @@ fn pooled_frames_keep_the_maximum_weight() {
     assert_eq!(pooled.rows(), 2);
     let row: Vec<_> = pooled.row(0).collect();
     assert_eq!(row.len(), 2);
-    assert_eq!(row[0].0.second().get(), 1);
+    assert_eq!(row[0].0.second().as_u64(), 1);
     assert_eq!(row[0].1, 1.0);
-    assert_eq!(row[1].0.second().get(), 2);
+    assert_eq!(row[1].0.second().as_u64(), 2);
     assert_eq!(row[1].1, 0.5);
     let row: Vec<_> = pooled.row(1).collect();
     assert_eq!(row.len(), 1);

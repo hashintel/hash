@@ -16,15 +16,13 @@ use std::{
 
 use camino::Utf8Path;
 use hannoy::{Database, Reader, Writer, distances::Cosine};
+use hashql_core::id::Id as _;
 use heed::{Env, EnvOpenOptions};
 use rand::{Rng, SeedableRng};
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour};
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
-    math::AlignedVecN,
-    random::Compat,
+    dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN, random::Compat,
 };
 
 // HNSW connectivity, hannoy build-time const generics: M links per
@@ -111,7 +109,7 @@ impl fmt::Display for HannoyIndexError {
             Self::RowOutOfRange(error) => {
                 write!(fmt, "the node row exceeds the u32 item-key space: {error}")
             }
-            Self::RowNotIndexed(id) => write!(fmt, "node row {} is not indexed", id.get()),
+            Self::RowNotIndexed(id) => write!(fmt, "node row {} is not indexed", id.as_u64()),
         }
     }
 }
@@ -241,7 +239,7 @@ impl NearestNeighboursIndex for HannoyIndex {
         for embedding in embeddings {
             self.writer.add_item(
                 &mut wtxn,
-                u32::try_from(embedding.id.get()).map_err(HannoyIndexError::RowOutOfRange)?,
+                u32::try_from(embedding.id.as_u64()).map_err(HannoyIndexError::RowOutOfRange)?,
                 embedding.components.as_array(),
             )?;
         }
@@ -295,7 +293,7 @@ impl NearestNeighboursIndex for HannoyIndex {
             .ef_search(self.options.ef_search)
             .by_item(
                 &rtxn,
-                u32::try_from(id.get()).map_err(HannoyIndexError::RowOutOfRange)?,
+                u32::try_from(id.as_u64()).map_err(HannoyIndexError::RowOutOfRange)?,
             )?
         else {
             return Err(HannoyIndexError::RowNotIndexed(id));

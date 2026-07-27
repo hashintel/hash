@@ -28,6 +28,7 @@ use alloc::collections::BTreeSet;
 use core::ops::Range;
 use std::io;
 
+use hashql_core::id::Id as _;
 use smallvec::SmallVec;
 
 use super::stage::{Lod, LodConfig};
@@ -37,7 +38,7 @@ use crate::{
         morton::Fenceposts,
         quad::{Node, TypeSets, write::write_regions},
     },
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -147,8 +148,10 @@ impl QuadTree {
                 types[row as usize]
                     .iter()
                     .map(|id| {
-                        u32::try_from(id.get())
-                            .map_err(|_error| QuadError::TypeOrdinal { row, id: id.get() })
+                        u32::try_from(id.as_u64()).map_err(|_error| QuadError::TypeOrdinal {
+                            row,
+                            id: id.as_u64(),
+                        })
                     })
                     .collect()
             })

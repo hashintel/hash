@@ -23,12 +23,13 @@ use core::{alloc::Allocator, num::NonZero};
 use std::alloc::Global;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
+use hashql_core::id::Id as _;
 use rand::Rng;
 
 use super::BatchPlan;
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{AlignedVecN, NonNegative, Vec2},
     random::sample_indices_vec,
     salt::{
@@ -509,7 +510,7 @@ impl<A: Allocator> Batch<A> {
         let scales = scales.map(|table| {
             let gathered = rows
                 .iter()
-                .map(|row| table.as_slice()[row.usize()])
+                .map(|row| table.as_slice()[row.as_usize()])
                 .collect();
             LocalScales::new(gathered)
         });
@@ -585,13 +586,13 @@ impl<A: Allocator> Batch<A> {
         let mut role_values = Vec::with_capacity(padded);
 
         for row in &self.rows {
-            representation.extend_from_slice(columns.representations[row.usize()].as_array());
-            role_values.push(i64::from(columns.roles[row.usize()].index()));
+            representation.extend_from_slice(columns.representations[row.as_usize()].as_array());
+            role_values.push(i64::from(columns.roles[row.as_usize()].index()));
         }
 
         if let Some(last) = self.rows.last() {
-            let pattern = columns.representations[last.usize()].as_array();
-            let role = i64::from(columns.roles[last.usize()].index());
+            let pattern = columns.representations[last.as_usize()].as_array();
+            let role = i64::from(columns.roles[last.as_usize()].index());
             for _ in rows..padded {
                 representation.extend_from_slice(pattern);
                 role_values.push(role);

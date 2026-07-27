@@ -2,6 +2,7 @@ use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
+use hashql_core::id::Id as _;
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -40,7 +41,7 @@ use crate::{
         },
         sprs::read::SprsFile,
     },
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN},
     salt::{
@@ -111,7 +112,7 @@ fn dataset() -> MemoryDataset {
     let nodes = (0..NODES)
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
-            ontology: smallvec![OntologyRowId::from_index(row & 1)],
+            ontology: smallvec![OntologyRowId::from_usize(row & 1)],
             embedding: representation(&mut rng),
             confidence: None,
         })
@@ -1657,7 +1658,7 @@ fn relation_dataset() -> MemoryDataset {
     let nodes = (0..NODES)
         .map(|row| Node {
             id: U64::<LE>::new(row as u64),
-            ontology: smallvec![OntologyRowId::from_index(row & 1)],
+            ontology: smallvec![OntologyRowId::from_usize(row & 1)],
             embedding: representation(&mut rng),
             confidence: None,
         })
@@ -1725,7 +1726,7 @@ fn relation_dataset() -> MemoryDataset {
 fn edge_rows(list: Option<EdgeList<'_>>) -> Vec<u64> {
     list.expect("the queried node row is in domain")
         .iter()
-        .map(EdgeRowId::get)
+        .map(EdgeRowId::as_u64)
         .collect()
 }
 
@@ -1780,7 +1781,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     // with two neutral factors.
     let scored = employment
         .edges()
-        .find(|edge| edge.edge.get() == 0)
+        .find(|edge| edge.edge.as_u64() == 0)
         .expect("edge row 0 is retained under relation 2");
     assert_eq!(scored.confidence.value().to_bits(), 0.5_f32.to_bits());
     assert!(scored.confidence.scored().link());
@@ -1788,7 +1789,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert!(!scored.confidence.scored().target());
 
     let neutral = membership.edge(0);
-    assert_eq!(neutral.edge.get(), 1);
+    assert_eq!(neutral.edge.as_u64(), 1);
     assert_eq!(neutral.confidence.value().to_bits(), 1.0_f32.to_bits());
     assert!(!neutral.confidence.scored().link());
 }

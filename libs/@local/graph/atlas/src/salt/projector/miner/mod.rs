@@ -22,12 +22,13 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
+use hashql_core::id::Id as _;
 use kiddo::{NearestNeighbour, SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use zerocopy::{FromBytes as _, IntoBytes as _};
 
 use crate::{
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{Positive, Vec2},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},
@@ -307,7 +308,7 @@ impl<'view> HardNegativeMiner<'view> {
     /// Mines one row's admissible candidates in closeness-rank order.
     fn mine_row(&self, field: &SpatialField<'_>, row: usize) -> Vec<(u32, f32)> {
         let quota = self.options.neighbours().get();
-        let row_id = NodeRowId::from_index(row);
+        let row_id = NodeRowId::from_usize(row);
 
         let mut accepted = Vec::with_capacity(quota);
         for neighbour in field.nearest(row, self.options.search_size()) {
@@ -378,7 +379,7 @@ impl MinedFrame {
     /// Panics when `row` is not below [`rows`](Self::rows).
     pub(crate) fn row(&self, row: usize) -> impl ExactSizeIterator<Item = (NodePair, f32)> + '_ {
         let span = self.offsets[row]..self.offsets[row + 1];
-        let anchor = NodeRowId::from_index(row);
+        let anchor = NodeRowId::from_usize(row);
 
         self.targets[span.clone()]
             .iter()

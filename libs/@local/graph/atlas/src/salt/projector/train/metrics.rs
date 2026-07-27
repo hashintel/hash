@@ -18,8 +18,10 @@
 use alloc::collections::BTreeMap;
 use core::mem;
 
+use hashql_core::id::Id as _;
+
 use crate::{
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     math::Vec2,
     salt::{
         projector::budget::{BudgetSummary, ClippedRelation},
@@ -89,8 +91,8 @@ impl DegreeDeciles {
         let mut degrees = vec![0_u32; rows];
         for group in index.groups() {
             for edge in group.edges() {
-                degrees[edge.source.usize()] += 1;
-                degrees[edge.target.usize()] += 1;
+                degrees[edge.source.as_usize()] += 1;
+                degrees[edge.target.as_usize()] += 1;
             }
         }
 
@@ -162,7 +164,7 @@ impl BudgetBreakdown {
     /// Records one relation type's share of a node's outcome.
     pub(crate) fn record_type(&mut self, relation: OntologyRowId, outcome: &ClippedRelation) {
         self.by_type
-            .entry(relation.get())
+            .entry(relation.as_u64())
             .or_default()
             .record(outcome);
     }
@@ -210,7 +212,7 @@ impl TypeParticipants {
                 let mut rows: Vec<usize> = group
                     .edges()
                     .iter()
-                    .flat_map(|edge| [edge.source.usize(), edge.target.usize()])
+                    .flat_map(|edge| [edge.source.as_usize(), edge.target.as_usize()])
                     .collect();
                 rows.sort_unstable();
                 rows.dedup();
@@ -389,7 +391,7 @@ impl DisplacementSummary {
             for &row in rows {
                 moments.record(displacements[row]);
             }
-            summary.by_type.insert(relation.get(), moments);
+            summary.by_type.insert(relation.as_u64(), moments);
         }
 
         summary

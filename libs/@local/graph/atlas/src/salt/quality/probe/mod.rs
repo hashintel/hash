@@ -37,6 +37,7 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, num::NonZero, pin::pin};
 
 use futures::{Stream, TryStreamExt as _};
+use hashql_core::id::Id as _;
 use rand::Rng;
 use rayon::iter::ParallelIterator as _;
 
@@ -49,7 +50,7 @@ use super::{
 use crate::{
     bitset::BitSet,
     dataset::{CANONICAL_DIMENSIONS, Dataset, PROJECTOR_DIMENSIONS},
-    identity::{Identity as _, NodeRowId},
+    identity::NodeRowId,
     math::{AlignedVecN, BoxedVecN, Vec2},
     random::{sample_indices_vec, uniform_below},
 };
@@ -351,11 +352,11 @@ pub(crate) async fn probe<D: Dataset>(
     Ok(ProbeReadings {
         anchors: anchor_rows
             .iter()
-            .map(|&row| NodeRowId::from_index(row))
+            .map(|&row| NodeRowId::from_usize(row))
             .collect(),
         comparisons: comparison_rows
             .iter()
-            .map(|&row| NodeRowId::from_index(row))
+            .map(|&row| NodeRowId::from_usize(row))
             .collect(),
         neighbourhoods: options.neighbourhoods.iter().copied().collect(),
         map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),

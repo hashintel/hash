@@ -15,10 +15,10 @@ mod tests;
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
-    identity::Identity as _,
     math::{NonNegative, Vec2},
     salt::knn::table::KnnView,
 };
@@ -197,7 +197,7 @@ fn row_scale(coordinates: &[Vec2], knn: &KnnView<'_>, row: usize) -> f32 {
     // lexicographic comparison is total.
     let mut nearest = [(f32::INFINITY, u64::MAX); LOCAL_SCALE_NEIGHBOURS];
     for neighbour in knn.row(row) {
-        insert_nearest(&mut nearest, (neighbour.distance, neighbour.id.get()));
+        insert_nearest(&mut nearest, (neighbour.distance, neighbour.id.as_u64()));
     }
 
     let count = knn.neighbours().min(LOCAL_SCALE_NEIGHBOURS);

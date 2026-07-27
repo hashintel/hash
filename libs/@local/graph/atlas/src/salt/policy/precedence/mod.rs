@@ -37,12 +37,10 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::Id as _;
+
 use super::{ClassProbabilities, Posterior, RelationPolicy};
-use crate::{
-    identity::{Identity as _, OntologyRowId},
-    math::UnitFraction,
-    salt::policy::classifier::Prediction,
-};
+use crate::{identity::OntologyRowId, math::UnitFraction, salt::policy::classifier::Prediction};
 
 #[cfg(test)]
 mod tests;
@@ -67,17 +65,17 @@ impl fmt::Display for ResolveError {
             Self::DuplicateRelation { relation } => write!(
                 fmt,
                 "relation row {} is classified more than once",
-                relation.get(),
+                relation.as_u64(),
             ),
             Self::AmbiguousOverride { relation, source } => write!(
                 fmt,
                 "relation row {} carries two {source} overrides",
-                relation.get(),
+                relation.as_u64(),
             ),
             Self::UnknownOverride { relation } => write!(
                 fmt,
                 "an override names relation row {}, which is not in the classified universe",
-                relation.get(),
+                relation.as_u64(),
             ),
         }
     }
@@ -166,11 +164,11 @@ pub(crate) fn resolve(
     admission: CoincidentAdmission,
 ) -> Result<Vec<RelationPolicy>, ResolveError> {
     let mut ordered = classifications.to_vec();
-    ordered.sort_unstable_by_key(|(relation, _)| relation.get());
+    ordered.sort_unstable_by_key(|(relation, _)| relation.as_u64());
 
     if let Some([(duplicate, _), _]) = ordered
         .array_windows::<2>()
-        .find(|[(left, _), (right, _)]| left.get() == right.get())
+        .find(|[(left, _), (right, _)]| left.as_u64() == right.as_u64())
     {
         return Err(ResolveError::DuplicateRelation {
             relation: *duplicate,
@@ -245,7 +243,7 @@ fn winning_overrides<'over>(
     let mut winners = vec![None::<&PolicyOverride>; ordered.len()];
     for record in overrides {
         let position = ordered
-            .binary_search_by_key(&record.relation.get(), |(relation, _)| relation.get())
+            .binary_search_by_key(&record.relation.as_u64(), |(relation, _)| relation.as_u64())
             .ok()
             .ok_or(ResolveError::UnknownOverride {
                 relation: record.relation,

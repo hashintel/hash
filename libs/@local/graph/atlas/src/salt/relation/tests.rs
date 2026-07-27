@@ -4,6 +4,7 @@
               asserted products and square roots are exact contracts"
 )]
 
+use hashql_core::id::Id as _;
 use proptest::{prop_assert, prop_assert_eq, prop_compose, proptest};
 
 use super::{
@@ -17,7 +18,7 @@ use super::{
 };
 use crate::{
     file::WriteInto as _,
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
 };
 
 /// The row domain every fixture spans.
@@ -222,7 +223,13 @@ fn groups_ascend_and_edges_sort_within_them() {
     let sorted: Vec<(u64, u64, u64)> = groups[0]
         .edges()
         .iter()
-        .map(|edge| (edge.source.get(), edge.target.get(), edge.edge.get()))
+        .map(|edge| {
+            (
+                edge.source.as_u64(),
+                edge.target.as_u64(),
+                edge.edge.as_u64(),
+            )
+        })
         .collect();
     assert_eq!(sorted, vec![(2, 1, 0), (2, 3, 1), (2, 3, 2)]);
     assert_eq!(indexes.attraction.edge_count(), 4);
@@ -376,7 +383,7 @@ fn every_pair_is_visible_from_both_rows() {
     let view = indexes.protection.view();
     let partners = |row: u64| -> Vec<u64> {
         view.row(NodeRowId::new(row))
-            .map(|entry| entry.partner.get())
+            .map(|entry| entry.partner.as_u64())
             .collect()
     };
     assert_eq!(partners(0), vec![1]);
@@ -589,7 +596,7 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
     // Chain degrees: 1 at both ends, 2 everywhere else. Edge `k`
     // connects rows `k` and `k + 1`.
     for (position, edge) in edges.iter().enumerate() {
-        assert_eq!(edge.source, NodeRowId::from_index(position));
+        assert_eq!(edge.source, NodeRowId::from_usize(position));
         let left = if position == 0 { 2.0_f64 } else { 3.0 };
         let right = if position == nodes - 2 { 2.0_f64 } else { 3.0 };
         #[expect(
@@ -658,7 +665,7 @@ prop_compose! {
             .enumerate()
             .map(|(edge, (relation, source, target, link, source_score, target_score))| {
                 RelationInstance {
-                    edge: EdgeRowId::from_index(edge),
+                    edge: EdgeRowId::from_usize(edge),
                     relation: OntologyRowId::new(relation),
                     source: NodeRowId::new(source),
                     target: NodeRowId::new(target),
@@ -714,7 +721,7 @@ proptest! {
             .attraction
             .groups()
             .iter()
-            .map(|group| group.relation().get())
+            .map(|group| group.relation().as_u64())
             .collect();
         prop_assert!(relations.is_sorted_by(|one, other| one < other));
 
@@ -723,7 +730,7 @@ proptest! {
             let keys: Vec<(u64, u64, u64)> = group
                 .edges()
                 .iter()
-                .map(|edge| (edge.source.get(), edge.target.get(), edge.edge.get()))
+                .map(|edge| (edge.source.as_u64(), edge.target.as_u64(), edge.edge.as_u64()))
                 .collect();
             prop_assert!(keys.is_sorted());
         }
@@ -735,9 +742,9 @@ proptest! {
         let mut mirrored = 0;
         for row in 0..ROWS as u64 {
             let row = NodeRowId::new(row);
-            let partners: Vec<u64> = view.row(row).map(|entry| entry.partner.get()).collect();
+            let partners: Vec<u64> = view.row(row).map(|entry| entry.partner.as_u64()).collect();
             prop_assert!(partners.is_sorted_by(|one, other| one < other));
-            prop_assert!(partners.iter().all(|&partner| partner != row.get()));
+            prop_assert!(partners.iter().all(|&partner| partner != row.as_u64()));
             for entry in view.row(row) {
                 let evidence = view
                     .get(NodePair::new(row, entry.partner))

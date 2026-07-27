@@ -7,13 +7,15 @@
 
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
+use hashql_core::id::Id as _;
+
 use super::{
     super::{Card, VoteCounts},
     AssemblyConfig, AssemblyEvidence, DIRICHLET_ALPHA, Relaxation,
 };
 use crate::{
     disjoint::DisjointSet,
-    identity::{Identity as _, OntologyRowId},
+    identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Update as _},
     salt::{embedding::CardEmbeddingView, policy::GeometryClass},
 };
@@ -325,12 +327,12 @@ pub(super) fn validation_groups(
     let mut pairs = Vec::new();
     for left in 0..rows {
         let embedding = view
-            .embedding(OntologyRowId::from_index(left))
+            .embedding(OntologyRowId::from_usize(left))
             .expect("the table holds one row per trained card");
 
         for right in (left + 1)..rows {
             let other = view
-                .embedding(OntologyRowId::from_index(right))
+                .embedding(OntologyRowId::from_usize(right))
                 .expect("the table holds one row per trained card");
 
             let distance = f64::from(embedding.cosine_distance(other));

@@ -1,9 +1,10 @@
 use core::assert_matches;
 
+use hashql_core::id::Id as _;
 use uuid::Uuid;
 
 use super::{InvalidReviewedVerdicts, PlacementClass, ReviewedVerdicts};
-use crate::{dataset::ArchivedOntologyTypeUuid, identity::Identity as _};
+use crate::dataset::ArchivedOntologyTypeUuid;
 
 /// Composes a wire document with the canonical exporter's key order.
 fn document(type_verdicts: &str, pair_verdicts: &str) -> String {
@@ -261,7 +262,7 @@ fn resolution_is_version_precise() {
 
     let resolved = outcome.resolved();
     assert_eq!(resolved.len(), 1);
-    assert_eq!(resolved[0].relation.get(), 2);
+    assert_eq!(resolved[0].relation.as_u64(), 2);
     assert_eq!(resolved[0].placement, PlacementClass::Proximal);
 
     let unresolved = outcome.unresolved();
@@ -296,7 +297,7 @@ fn resolved_verdicts_ascend_by_row() {
     let rows: Vec<u64> = outcome
         .resolved()
         .iter()
-        .map(|verdict| verdict.relation.get())
+        .map(|verdict| verdict.relation.as_u64())
         .collect();
     assert_eq!(rows, [0, 1, 2]);
 
@@ -336,7 +337,7 @@ fn verdicts_without_a_store_identity_are_carried_as_evidence() {
 
     let outcome = verdicts.resolve(&[table_entry(DELIVERS, 1)]);
     assert_eq!(outcome.resolved().len(), 1);
-    assert_eq!(outcome.resolved()[0].relation.get(), 0);
+    assert_eq!(outcome.resolved()[0].relation.as_u64(), 0);
 
     let unresolved: Vec<&str> = outcome
         .unresolved()

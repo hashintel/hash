@@ -4,12 +4,13 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{OrdinaryNegativeSampler, RelationEdgeSampler, SemanticEdgeSampler};
 use crate::{
-    identity::{EdgeRowId, Identity as _, NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     salt::{
         policy::ClassProbabilities,
         relation::{
@@ -32,7 +33,7 @@ fn pair(one: u64, other: u64) -> NodePair {
 fn keys(pairs: &[NodePair]) -> Vec<(u64, u64)> {
     pairs
         .iter()
-        .map(|pair| (pair.first().get(), pair.second().get()))
+        .map(|pair| (pair.first().as_u64(), pair.second().as_u64()))
         .collect()
 }
 
@@ -209,7 +210,7 @@ fn relation_caps_bind_per_type_under_skew() {
             expected,
             "each type should contribute min(cap, its edge count)"
         );
-        let mut edge_rows: Vec<u64> = group.edges.iter().map(|edge| edge.edge.get()).collect();
+        let mut edge_rows: Vec<u64> = group.edges.iter().map(|edge| edge.edge.as_u64()).collect();
         edge_rows.sort_unstable();
         edge_rows.dedup();
         assert_eq!(edge_rows.len(), group.edges.len(), "draws are distinct");
@@ -236,7 +237,7 @@ fn relation_type_requests_beyond_the_index_return_every_group() {
 
     let relations: Vec<u64> = draws
         .iter()
-        .map(|group| group.group.relation().get())
+        .map(|group| group.group.relation().as_u64())
         .collect();
     assert_eq!(relations, [3, 9], "all groups participate, in group order");
 }
@@ -258,7 +259,7 @@ fn relation_sampling_is_seeded() {
             .sample(1, cap, rng(seed))
             .into_iter()
             .flat_map(|group| group.edges)
-            .map(|edge| edge.edge.get())
+            .map(|edge| edge.edge.as_u64())
             .collect::<Vec<_>>()
     };
 

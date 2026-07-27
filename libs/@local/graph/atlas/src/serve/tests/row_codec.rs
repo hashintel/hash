@@ -3,6 +3,11 @@
 
 use super::*;
 
+hashql_core::id::newtype!(
+    /// The row domain the codec battery drives.
+    struct ProbeRow(u32)
+);
+
 /// Builds a test secret: `seed` left-aligned in a zeroed 32-byte key.
 fn secret(seed: &[u8]) -> WireSecret {
     let mut bytes = [0_u8; WireSecret::BYTES];
@@ -15,18 +20,20 @@ fn codec_round_trips_every_small_universe() {
     for universe in [
         1_u32, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 48, 100, 257, 1000,
     ] {
-        let codec = codec::RowCodec::<u32>::derive(
+        let codec = codec::RowCodec::<ProbeRow>::derive(
             &secret(b"secret"),
             codec_generation(),
             b"test",
             universe,
         );
 
-        let image: Vec<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+        let image: Vec<u32> = (0..universe)
+            .map(|row| codec.encode(ProbeRow::new(row)).get())
+            .collect();
         for (row, &wire) in (0..universe).zip(&image) {
             assert_eq!(
                 codec.decode(codec::WireRow::pinned(wire)),
-                Some(row),
+                Some(ProbeRow::new(row)),
                 "decode inverts encode at N={universe}",
             );
         }
@@ -46,7 +53,7 @@ fn codec_round_trips_every_small_universe() {
 #[test]
 fn codec_round_trips_a_large_universe_sample() {
     let universe = 500_000;
-    let codec = codec::RowCodec::<u32>::derive(
+    let codec = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
@@ -55,27 +62,37 @@ fn codec_round_trips_a_large_universe_sample() {
 
     let mut seen = HashSet::new();
     for row in (0..universe).step_by(631) {
-        let wire = codec.encode(row).get();
+        let wire = codec.encode(ProbeRow::new(row)).get();
         assert!(seen.insert(wire), "sampled wire values stay distinct");
-        assert_eq!(codec.decode(codec::WireRow::pinned(wire)), Some(row));
+        assert_eq!(
+            codec.decode(codec::WireRow::pinned(wire)),
+            Some(ProbeRow::new(row))
+        );
     }
 }
 
 #[test]
 fn codec_decodes_only_the_encoded_image() {
     let universe = 48_u32;
-    let codec =
-        codec::RowCodec::<u32>::derive(&secret(b"secret"), codec_generation(), b"test", universe);
-    let image: HashSet<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+    let codec = codec::RowCodec::<ProbeRow>::derive(
+        &secret(b"secret"),
+        codec_generation(),
+        b"test",
+        universe,
+    );
+    let image: HashSet<u32> = (0..universe)
+        .map(|row| codec.encode(ProbeRow::new(row)).get())
+        .collect();
 
     // A probe sweep outside the image answers None - including the
     // low dense range the retired [0, N) codec would have occupied.
     for wire in (0..10_000).chain([1 << 31, u32::MAX - 1, u32::MAX]) {
         match codec.decode(codec::WireRow::pinned(wire)) {
             Some(row) => {
+                let row = row.as_u32();
                 assert!(row < universe, "decoded rows lie in the universe");
                 assert_eq!(
-                    codec.encode(row).get(),
+                    codec.encode(ProbeRow::new(row)).get(),
                     wire,
                     "a decoding wire value is its row's encoding",
                 );
@@ -88,7 +105,8 @@ fn codec_decodes_only_the_encoded_image() {
 
 #[test]
 fn codec_degenerate_universes_stay_closed() {
-    let empty = codec::RowCodec::<u32>::derive(&secret(b"secret"), codec_generation(), b"test", 0);
+    let empty =
+        codec::RowCodec::<ProbeRow>::derive(&secret(b"secret"), codec_generation(), b"test", 0);
     for wire in [0, 1, u32::MAX] {
         assert_eq!(
             empty.decode(codec::WireRow::pinned(wire)),
@@ -97,9 +115,10 @@ fn codec_degenerate_universes_stay_closed() {
         );
     }
 
-    let single = codec::RowCodec::<u32>::derive(&secret(b"secret"), codec_generation(), b"test", 1);
-    let wire = single.encode(0);
-    assert_eq!(single.decode(wire), Some(0_u32));
+    let single =
+        codec::RowCodec::<ProbeRow>::derive(&secret(b"secret"), codec_generation(), b"test", 1);
+    let wire = single.encode(ProbeRow::new(0));
+    assert_eq!(single.decode(wire), Some(ProbeRow::new(0)));
     assert_eq!(
         single.decode(codec::WireRow::pinned(wire.get().wrapping_add(1))),
         None,
@@ -109,26 +128,27 @@ fn codec_degenerate_universes_stay_closed() {
 #[test]
 #[should_panic(expected = "the codec encodes rows of its own universe")]
 fn codec_encode_rejects_out_of_universe_rows() {
-    let codec = codec::RowCodec::<u32>::derive(&secret(b"secret"), codec_generation(), b"test", 48);
-    _ = codec.encode(48);
+    let codec =
+        codec::RowCodec::<ProbeRow>::derive(&secret(b"secret"), codec_generation(), b"test", 48);
+    _ = codec.encode(ProbeRow::new(48));
 }
 
 #[test]
 fn codec_separates_secrets_generations_and_labels() {
     let universe = 4096;
-    let base = codec::RowCodec::<u32>::derive(
+    let base = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
         universe,
     );
-    let other_secret = codec::RowCodec::<u32>::derive(
+    let other_secret = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"another"),
         codec_generation(),
         codec::NODE_LABEL,
         universe,
     );
-    let other_generation = codec::RowCodec::<u32>::derive(
+    let other_generation = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         "2222222222222222222222222222222222222222222222222222222222222222"
             .parse()
@@ -136,7 +156,7 @@ fn codec_separates_secrets_generations_and_labels() {
         codec::NODE_LABEL,
         universe,
     );
-    let other_label = codec::RowCodec::<u32>::derive(
+    let other_label = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         b"another-label",
@@ -149,7 +169,7 @@ fn codec_separates_secrets_generations_and_labels() {
         ("label", &other_label),
     ] {
         let differing = (0..universe)
-            .filter(|&row| base.encode(row) != other.encode(row))
+            .filter(|&row| base.encode(ProbeRow::new(row)) != other.encode(ProbeRow::new(row)))
             .count();
         assert!(differing > 0, "a changed {name} changes the mapping");
     }
@@ -158,13 +178,13 @@ fn codec_separates_secrets_generations_and_labels() {
 #[test]
 fn codec_derivation_is_deterministic() {
     let universe = 4096;
-    let first = codec::RowCodec::<u32>::derive(
+    let first = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
         universe,
     );
-    let second = codec::RowCodec::<u32>::derive(
+    let second = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
@@ -172,7 +192,10 @@ fn codec_derivation_is_deterministic() {
     );
 
     for row in 0..universe {
-        assert_eq!(first.encode(row), second.encode(row));
+        assert_eq!(
+            first.encode(ProbeRow::new(row)),
+            second.encode(ProbeRow::new(row))
+        );
     }
 }
 
@@ -285,7 +308,7 @@ mod codec_reference {
 fn codec_agrees_with_the_spec_reference() {
     for universe in [2_u32, 3, 5, 48, 100, 257, 1025, 4096] {
         let shared = secret(b"secret");
-        let codec = codec::RowCodec::<u32>::derive(
+        let codec = codec::RowCodec::<ProbeRow>::derive(
             &shared,
             codec_generation(),
             codec::NODE_LABEL,
@@ -299,7 +322,7 @@ fn codec_agrees_with_the_spec_reference() {
         );
 
         for row in 0..universe {
-            let wire = codec.encode(row).get();
+            let wire = codec.encode(ProbeRow::new(row)).get();
             assert_eq!(
                 wire,
                 model.encode(row),
@@ -316,7 +339,9 @@ fn codec_agrees_with_the_spec_reference() {
         // holds across implementations, not merely within one.
         for wire in (0..2_048).chain([1 << 31, u32::MAX]) {
             assert_eq!(
-                codec.decode(codec::WireRow::pinned(wire)),
+                codec
+                    .decode(codec::WireRow::pinned(wire))
+                    .map(hashql_core::id::Id::as_u32),
                 model.decode(wire),
                 "both expressions agree on decode at N={universe}, wire {wire}",
             );
@@ -329,13 +354,13 @@ fn codec_mappings_survive_universe_growth() {
     // The permutation is universe-independent: growing the universe
     // leaves every existing wire id fixed, so rows appended within a
     // generation never move ids already on the wire.
-    let small = codec::RowCodec::<u32>::derive(
+    let small = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
         1_000,
     );
-    let grown = codec::RowCodec::<u32>::derive(
+    let grown = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
@@ -343,23 +368,29 @@ fn codec_mappings_survive_universe_growth() {
     );
 
     for row in 0..1_000 {
-        let wire = small.encode(row);
-        assert_eq!(wire, grown.encode(row), "row {row} is stable under growth");
-        assert_eq!(grown.decode(wire), Some(row));
+        let wire = small.encode(ProbeRow::new(row));
+        assert_eq!(
+            wire,
+            grown.encode(ProbeRow::new(row)),
+            "row {row} is stable under growth"
+        );
+        assert_eq!(grown.decode(wire), Some(ProbeRow::new(row)));
     }
 }
 
 #[test]
 fn codec_stays_injective_at_scale() {
     let universe = 300_000;
-    let codec = codec::RowCodec::<u32>::derive(
+    let codec = codec::RowCodec::<ProbeRow>::derive(
         &secret(b"secret"),
         codec_generation(),
         codec::NODE_LABEL,
         universe,
     );
 
-    let image: HashSet<u32> = (0..universe).map(|row| codec.encode(row).get()).collect();
+    let image: HashSet<u32> = (0..universe)
+        .map(|row| codec.encode(ProbeRow::new(row)).get())
+        .collect();
     assert_eq!(
         u32::try_from(image.len()).expect("the universe fits u32"),
         universe,
@@ -382,7 +413,7 @@ fn codec_wire_ids_estimate_the_full_range_never_the_universe() {
     let mut spread_total = 0_u64;
     for trial in 0..trials {
         let seed = trial.to_le_bytes();
-        let codec = codec::RowCodec::<u32>::derive(
+        let codec = codec::RowCodec::<ProbeRow>::derive(
             &secret(&seed),
             codec_generation(),
             codec::NODE_LABEL,
@@ -390,7 +421,7 @@ fn codec_wire_ids_estimate_the_full_range_never_the_universe() {
         );
         let widest = |rows: &[u32]| {
             rows.iter()
-                .map(|&row| u64::from(codec.encode(row).get()))
+                .map(|&row| u64::from(codec.encode(ProbeRow::new(row)).get()))
                 .max()
                 .expect("the selection is nonempty")
         };

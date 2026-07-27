@@ -2,6 +2,7 @@
 
 use core::ops::Range;
 
+use hashql_core::id::Id as _;
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
@@ -15,10 +16,7 @@ use super::{
     error::RelationIndexError,
     protection::{NodePair, PairEvidence, ProtectionIndex, ProtectionMatrix},
 };
-use crate::{
-    identity::{Identity as _, NodeRowId},
-    math::narrow_f32,
-};
+use crate::{identity::NodeRowId, math::narrow_f32};
 
 /// Instances per parallel emission chunk within one relation group.
 ///
@@ -229,8 +227,8 @@ pub(super) fn assemble_protection(
     let mut indptr = vec![0_u64; rows + 1];
     for run in records.chunk_by(|one, other| one.pair == other.pair) {
         let pair = run[0].pair;
-        indptr[pair.first().usize() + 1] += 1;
-        indptr[pair.second().usize() + 1] += 1;
+        indptr[pair.first().as_usize() + 1] += 1;
+        indptr[pair.second().as_usize() + 1] += 1;
     }
     for row in 0..rows {
         indptr[row + 1] += indptr[row];
@@ -244,17 +242,17 @@ pub(super) fn assemble_protection(
         let pair = run[0].pair;
         let value = pair_evidence(run);
         for (row, partner) in [(pair.first(), pair.second()), (pair.second(), pair.first())] {
-            let slot = usize::try_from(cursor[row.usize()])
+            let slot = usize::try_from(cursor[row.as_usize()])
                 .expect("resident entries fit the address space");
             #[expect(
                 clippy::cast_possible_truncation,
                 reason = "the row domain was validated against the u32 column encoding"
             )]
             {
-                columns[slot] = partner.get() as u32;
+                columns[slot] = partner.as_u64() as u32;
             }
             evidence[slot] = value;
-            cursor[row.usize()] += 1;
+            cursor[row.as_usize()] += 1;
         }
     }
 
@@ -320,13 +318,13 @@ fn build_group(
     let sources = DegreeColumn::new(
         instances
             .iter()
-            .map(|instance| (instance.source.get(), share(instance)))
+            .map(|instance| (instance.source.as_u64(), share(instance)))
             .collect(),
     );
     let targets = DegreeColumn::new(
         instances
             .iter()
-            .map(|instance| (instance.target.get(), share(instance)))
+            .map(|instance| (instance.target.as_u64(), share(instance)))
             .collect(),
     );
 
@@ -438,8 +436,8 @@ fn emit_chunk(
             // A row's degree spans both columns: it may source some
             // edges and receive others.
             let degree = |row: u64| sources.degree(row) + targets.degree(row);
-            let source = degree(instance.source.get());
-            let target = degree(instance.target.get());
+            let source = degree(instance.source.as_u64());
+            let target = degree(instance.target.as_u64());
             narrow_f32(((1.0 + source) * (1.0 + target)).sqrt().recip() * share)
                 .expect("a product of factors in (0, 1] is in (0, 1]")
         };
