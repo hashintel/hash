@@ -19,7 +19,6 @@ import {
   type StatusActionLabel,
   type StatusStore,
 } from "../../shared/status";
-import { useTimeRange } from "../../shared/time-range-context";
 import { TrendIndicator } from "../../shared/trend-indicator";
 import { buildColumnFilter, countBy } from "./shared/column-filter";
 import { ColumnHeader } from "./shared/column-header";
@@ -133,7 +132,6 @@ export const PlanningTable = ({
   onStatusHiddenChange: (next: Set<StatusActionLabel>) => void;
 }) => {
   const { measure } = useBaseMeasure();
-  const { timeRange } = useTimeRange();
   const measureLabel = MEASURE_LABELS[measure];
 
   const {
@@ -243,7 +241,7 @@ export const PlanningTable = ({
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
-                label={"Value"}
+                label="Value"
                 sort={{
                   active: sort.key === "materialValue",
                   dir: sort.dir,
