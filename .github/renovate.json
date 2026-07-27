@@ -11,9 +11,10 @@
       "enabled": false
     },
     {
-      "description": "Open mise bump PRs without requiring dependency-dashboard approval",
+      "description": "Open mise bump PRs without requiring dependency-dashboard approval, but only once a release has settled",
       "matchDepNames": ["jdx/mise"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "minimumReleaseAge": "7 days"
     }
   ],
   "customManagers": [
