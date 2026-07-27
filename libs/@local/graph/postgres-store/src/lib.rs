@@ -24,6 +24,7 @@ use std::path::{Path, PathBuf};
 
 pub mod ontology;
 pub mod permissions;
+pub mod plan_analysis;
 pub mod snapshot;
 pub mod store;
 

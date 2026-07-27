@@ -1,3 +1,5 @@
+pub mod connection;
+
 mod crud;
 pub(crate) mod knowledge;
 mod migration;

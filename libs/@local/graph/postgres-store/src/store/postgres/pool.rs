@@ -1,26 +1,32 @@
 use alloc::sync::Arc;
 
-use deadpool_postgres::{
-    Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
-};
+use deadpool::managed::{Object, Pool, Timeouts};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_migrations::IsolationLevel;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use tokio_postgres::{
-    Client, GenericClient, Socket, Transaction,
+    Client, Config, GenericClient, Socket, Transaction,
     tls::{MakeTlsConnect, TlsConnect},
 };
 
 use crate::store::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig},
     error::StoreError,
-    postgres::{PostgresStore, PostgresStoreSettings},
+    postgres::{
+        PostgresStore, PostgresStoreSettings,
+        connection::{
+            CaptureMessages, ConnectionError, ConnectionManager, ManagedConnection, MessageCapture,
+        },
+    },
 };
+
+/// A connection checked out of a [`PostgresStorePool`].
+pub type PooledConnection = Object<ConnectionManager>;
 
 #[derive(Debug, Clone)]
 pub struct PostgresStorePool {
-    pool: Pool,
+    pool: Pool<ConnectionManager>,
     pub settings: Arc<PostgresStoreSettings>,
 }
 
@@ -49,46 +55,33 @@ impl PostgresStorePool {
     {
         tracing::debug!(url=%db_info, "Creating connection pool to Postgres");
 
-        let config = deadpool_postgres::Config {
-            user: Some(db_info.user().to_owned()),
-            password: Some(db_info.password().to_owned()),
-            host: Some(db_info.host().to_owned()),
-            port: Some(db_info.port()),
-            dbname: Some(db_info.database().to_owned()),
-            pool: Some(PoolConfig {
-                max_size: pool_config.max_connections.get(),
-                timeouts: Timeouts {
+        let mut config = Config::new();
+        config
+            .user(db_info.user())
+            .password(db_info.password())
+            .host(db_info.host())
+            .port(db_info.port())
+            .dbname(db_info.database());
+
+        Ok(Self {
+            pool: Pool::builder(ConnectionManager::new(config, tls))
+                .max_size(pool_config.max_connections.get())
+                .timeouts(Timeouts {
                     wait: None,
                     create: None,
                     recycle: None,
-                },
-                ..PoolConfig::default()
-            }),
-            manager: Some(ManagerConfig {
-                recycling_method: RecyclingMethod::Fast,
-            }),
-            ..deadpool_postgres::Config::default()
-        };
-
-        Ok(Self {
-            pool: config
-                .builder(tls)
-                .change_context(StoreError)
-                .attach_with(|| db_info.clone())?
-                .post_create(Hook::sync_fn(|_client, _metrics| {
-                    tracing::info!("Created connection to postgres");
-                    Ok(())
-                }))
+                })
                 .build()
-                .change_context(StoreError)?,
+                .change_context(StoreError)
+                .attach_with(|| db_info.clone())?,
             settings: Arc::new(settings),
         })
     }
 }
 
 impl StorePool for PostgresStorePool {
-    type Error = PoolError;
-    type Store<'pool> = PostgresStore<Object>;
+    type Error = ConnectionError;
+    type Store<'pool> = PostgresStore<PooledConnection>;
 
     async fn acquire(
         &self,
@@ -101,8 +94,10 @@ impl StorePool for PostgresStorePool {
         &self,
         temporal_client: Option<Arc<TemporalClient>>,
     ) -> Result<Self::Store<'static>, Report<Self::Error>> {
+        let connection = self.pool.get().await.map_err(ConnectionError::from_pool)?;
+
         Ok(PostgresStore::new(
-            self.pool.get().await?,
+            connection,
             temporal_client,
             Arc::clone(&self.settings),
         ))
@@ -160,20 +155,43 @@ pub trait AsClient: Send + Sync {
     fn as_mut_client(&mut self) -> &mut Self::Client;
 }
 
-impl AsClient for Object {
+impl AsClient for ManagedConnection {
     type Client = Client;
 
-    // Deref-coercing to the raw `tokio_postgres::Client` bypasses deadpool's statement cache,
-    // so every query is re-prepared and Postgres plans it with the actual parameter values.
-    // The statement-shape strategy in the query compiler relies on that per-execution custom
-    // planning: a cached prepared statement would switch to a generic plan after a few
-    // executions and pick its plan blind to the parameters.
     fn as_client(&self) -> &Self::Client {
-        self
+        self.client()
     }
 
     fn as_mut_client(&mut self) -> &mut Self::Client {
-        self
+        self.client_mut()
+    }
+}
+
+impl AsClient for PooledConnection {
+    type Client = Client;
+
+    fn as_client(&self) -> &Self::Client {
+        ManagedConnection::client(self)
+    }
+
+    fn as_mut_client(&mut self) -> &mut Self::Client {
+        ManagedConnection::client_mut(self)
+    }
+}
+
+impl CaptureMessages for PooledConnection {
+    fn messages(&self) -> MessageCapture {
+        ManagedConnection::messages(self)
+    }
+}
+
+impl<C, S> CaptureMessages for PostgresStore<C, S>
+where
+    C: CaptureMessages,
+    S: TransactionState,
+{
+    fn messages(&self) -> MessageCapture {
+        self.client.messages()
     }
 }
 

@@ -106,6 +106,18 @@ fi
 
 
 
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+  -- auto_explain's settings are all superuser-context, so the graph user needs
+  -- them granted to turn plan capture on for one of its own sessions.
+  GRANT SET ON PARAMETER auto_explain.log_min_duration TO $HASH_GRAPH_PG_USER;
+  GRANT SET ON PARAMETER auto_explain.log_analyze TO $HASH_GRAPH_PG_USER;
+  GRANT SET ON PARAMETER auto_explain.log_buffers TO $HASH_GRAPH_PG_USER;
+  GRANT SET ON PARAMETER auto_explain.log_format TO $HASH_GRAPH_PG_USER;
+  GRANT SET ON PARAMETER auto_explain.log_level TO $HASH_GRAPH_PG_USER;
+  GRANT SET ON PARAMETER auto_explain.log_timing TO $HASH_GRAPH_PG_USER;
+  GRANT SET ON PARAMETER auto_explain.log_parameter_max_length TO $HASH_GRAPH_PG_USER;
+EOSQL
+
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$HASH_GRAPH_PG_DATABASE" <<-EOSQL
   -- Graph DB
   REVOKE CREATE ON SCHEMA public FROM PUBLIC;
