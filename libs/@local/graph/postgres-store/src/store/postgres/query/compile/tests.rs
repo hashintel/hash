@@ -2449,6 +2449,11 @@ fn fetch_keys_then_hydrate_carries_existing_ctes() {
     );
 }
 
+// No query path compiles to a right outer join today: `ReferenceTable::target_relation` is the
+// only source of one, and every chain reaching it passes an outer join first, which converts all
+// later hops to left outer joins. Both tests below therefore plant the join type by hand — the
+// guard is a fence against that structure changing.
+
 #[test]
 fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
     use super::{CompiledJoin, JoinSource};
@@ -2463,9 +2468,7 @@ fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
     compiler.set_limit(10);
     compiler.set_statement_shape(StatementShape::FencedKeysFirst);
 
-    // No query path compiles to a right outer join today, since the join chains convert
-    // every hop after the first outer one to a left outer join. The guard is a fence against
-    // that changing, so the join is planted directly.
+    // Nothing references the join, so it would land in the hydration statement.
     compiler.artifacts.joins.push(CompiledJoin {
         table: Table::EntityEditions,
         alias: Alias {
@@ -2481,7 +2484,48 @@ fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
 
     assert_eq!(
         compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
-        Err(ShapeFallback::GeneratingHydrationJoin)
+        Err(ShapeFallback::GeneratingJoin)
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_generating_key_join_falls_back() {
+    use crate::store::postgres::query::JoinType;
+
+    let mut compiler = SelectCompiler::<Entity>::new(None, true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+
+    // The filter puts the `entity_editions` join into the key query's share.
+    let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+        r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+    ))]);
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Properties(Some(json_path)),
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Text(Cow::Borrowed("Bob")),
+            convert: None,
+        },
+    );
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    let join = compiler
+        .artifacts
+        .joins
+        .first_mut()
+        .expect("the property filter should have joined the editions table");
+    join.join_type = JoinType::RightOuter;
+
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::GeneratingJoin)
     );
 }
 
@@ -2549,7 +2593,8 @@ fn key_column_rewriter_disambiguates_collisions() {
         (TableName::from("second"), ColumnName::from("web_id")),
         (TableName::from("first"), ColumnName::from("entity_uuid")),
     ];
-    let rewriter = KeyColumnRewriter::new(&tables, &key_columns);
+    let rewriter = KeyColumnRewriter::new(&tables, &key_columns)
+        .expect("the disambiguated names should not collide");
 
     assert_eq!(
         rewriter
@@ -2568,6 +2613,34 @@ fn key_column_rewriter_disambiguates_collisions() {
             .output(&TableName::from("first"), &ColumnName::from("entity_uuid"))
             .as_str(),
         "entity_uuid"
+    );
+}
+
+#[test]
+fn key_column_rewriter_rejects_colliding_output_names() {
+    use std::collections::HashSet;
+
+    use super::KeyColumnRewriter;
+    use crate::store::postgres::query::ast::{ColumnName, TableName};
+
+    let tables: HashSet<TableName<'static>> = [
+        TableName::from("first"),
+        TableName::from("second"),
+        TableName::from("third"),
+    ]
+    .into();
+
+    // `web_id` is shared, so both users get prefixed — and `first_web_id` is what the third
+    // table's column is already called.
+    let key_columns = vec![
+        (TableName::from("first"), ColumnName::from("web_id")),
+        (TableName::from("second"), ColumnName::from("web_id")),
+        (TableName::from("third"), ColumnName::from("first_web_id")),
+    ];
+
+    assert_eq!(
+        KeyColumnRewriter::new(&tables, &key_columns).map(|_| ()),
+        Err(ShapeFallback::KeyColumnNameCollision)
     );
 }
 

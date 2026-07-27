@@ -5,8 +5,11 @@ mod unary;
 mod variadic;
 mod window;
 
-use core::fmt::{
-    Display, Formatter, Write as _, {self},
+use core::{
+    fmt::{
+        Display, Formatter, Write as _, {self},
+    },
+    ops::ControlFlow,
 };
 
 pub use self::{
@@ -409,32 +412,43 @@ impl Expression {
 
 /// Expression-tree traversal.
 ///
-/// Both visitors run in pre-order (the expression itself before its children) and do not
-/// descend into [`Expression::Select`] subqueries: statement-level structures own their
-/// traversal. Callers that care about subqueries match on the variant themselves.
+/// Both visitors run in pre-order (the expression itself before its children) and do not descend
+/// into [`Expression::Select`] subqueries: statement-level structures own their traversal. A
+/// visitor with no answer for the tables hiding inside a subquery matches on the variant and
+/// breaks.
 impl Expression {
-    /// Calls `visitor` for this expression and every nested sub-expression.
-    pub fn visit(&self, visitor: &mut impl FnMut(&Self)) {
-        visitor(self);
-        self.for_each_child(&mut |child| child.visit(visitor));
+    /// Calls `visitor` for this expression and every nested sub-expression, stopping at the first
+    /// [`ControlFlow::Break`].
+    pub fn visit<B>(&self, visitor: &mut impl FnMut(&Self) -> ControlFlow<B>) -> ControlFlow<B> {
+        visitor(self)?;
+        self.for_each_child(&mut |child| child.visit(visitor))
     }
 
-    /// Calls `visitor` mutably for this expression and every nested sub-expression.
-    pub fn visit_mut(&mut self, visitor: &mut impl FnMut(&mut Self)) {
-        visitor(self);
-        self.for_each_child_mut(&mut |child| child.visit_mut(visitor));
+    /// Calls `visitor` mutably for this expression and every nested sub-expression, stopping at
+    /// the first [`ControlFlow::Break`].
+    pub fn visit_mut<B>(
+        &mut self,
+        visitor: &mut impl FnMut(&mut Self) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
+        visitor(self)?;
+        self.for_each_child_mut(&mut |child| child.visit_mut(visitor))
     }
 
-    fn for_each_child(&self, visitor: &mut dyn FnMut(&Self)) {
+    fn for_each_child<B>(
+        &self,
+        visitor: &mut impl FnMut(&Self) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
         match self {
             Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
+                ControlFlow::Continue(())
             }
             Self::Function(function) => function.for_each_child(visitor),
             Self::Window(expr, window) => {
-                visitor(expr);
+                visitor(expr)?;
                 for partition in &*window.partition_by {
-                    visitor(partition);
+                    visitor(partition)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::Cast(expr, _)
             | Self::FieldAccess { expr, .. }
@@ -442,50 +456,58 @@ impl Expression {
             | Self::Grouped(expr) => visitor(expr),
             Self::Row(exprs) => {
                 for expr in exprs {
-                    visitor(expr);
+                    visitor(expr)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::CaseWhen {
                 conditions,
                 else_result,
             } => {
                 for (condition, result) in conditions {
-                    visitor(condition);
-                    visitor(result);
+                    visitor(condition)?;
+                    visitor(result)?;
                 }
                 if let Some(else_result) = else_result {
-                    visitor(else_result);
+                    visitor(else_result)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::Unary(unary) => visitor(&unary.expr),
             Self::Binary(binary) => {
-                visitor(&binary.left);
-                visitor(&binary.right);
+                visitor(&binary.left)?;
+                visitor(&binary.right)
             }
             Self::Variadic(variadic) => {
                 for expr in &variadic.exprs {
-                    visitor(expr);
+                    visitor(expr)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::StartsWith(lhs, rhs)
             | Self::EndsWith(lhs, rhs)
             | Self::ContainsSegment(lhs, rhs) => {
-                visitor(lhs);
-                visitor(rhs);
+                visitor(lhs)?;
+                visitor(rhs)
             }
         }
     }
 
-    fn for_each_child_mut(&mut self, visitor: &mut dyn FnMut(&mut Self)) {
+    fn for_each_child_mut<B>(
+        &mut self,
+        visitor: &mut impl FnMut(&mut Self) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
         match self {
             Self::ColumnReference(_) | Self::Parameter(_) | Self::Constant(_) | Self::Select(_) => {
+                ControlFlow::Continue(())
             }
             Self::Function(function) => function.for_each_child_mut(visitor),
             Self::Window(expr, window) => {
-                visitor(expr);
+                visitor(expr)?;
                 for partition in &mut *window.partition_by {
-                    visitor(partition);
+                    visitor(partition)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::Cast(expr, _)
             | Self::FieldAccess { expr, .. }
@@ -493,36 +515,39 @@ impl Expression {
             | Self::Grouped(expr) => visitor(expr),
             Self::Row(exprs) => {
                 for expr in exprs {
-                    visitor(expr);
+                    visitor(expr)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::CaseWhen {
                 conditions,
                 else_result,
             } => {
                 for (condition, result) in conditions {
-                    visitor(condition);
-                    visitor(result);
+                    visitor(condition)?;
+                    visitor(result)?;
                 }
                 if let Some(else_result) = else_result {
-                    visitor(else_result);
+                    visitor(else_result)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::Unary(unary) => visitor(&mut unary.expr),
             Self::Binary(binary) => {
-                visitor(&mut binary.left);
-                visitor(&mut binary.right);
+                visitor(&mut binary.left)?;
+                visitor(&mut binary.right)
             }
             Self::Variadic(variadic) => {
                 for expr in &mut variadic.exprs {
-                    visitor(expr);
+                    visitor(expr)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::StartsWith(lhs, rhs)
             | Self::EndsWith(lhs, rhs)
             | Self::ContainsSegment(lhs, rhs) => {
-                visitor(lhs);
-                visitor(rhs);
+                visitor(lhs)?;
+                visitor(rhs)
             }
         }
     }

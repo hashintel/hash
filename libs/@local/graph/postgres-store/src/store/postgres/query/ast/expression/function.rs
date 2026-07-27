@@ -1,4 +1,7 @@
-use core::fmt::{self, Write as _};
+use core::{
+    fmt::{self, Write as _},
+    ops::ControlFlow,
+};
 
 use hash_graph_store::filter::PathToken;
 
@@ -53,7 +56,10 @@ pub enum Function {
 /// [`Expression::visit`]: super::Expression::visit
 /// [`Expression::visit_mut`]: super::Expression::visit_mut
 impl Function {
-    pub(super) fn for_each_child(&self, visitor: &mut dyn FnMut(&Expression)) {
+    pub(super) fn for_each_child<B>(
+        &self,
+        visitor: &mut impl FnMut(&Expression) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
         match self {
             Self::Min(expr)
             | Self::Max(expr)
@@ -72,8 +78,8 @@ impl Function {
             Self::JsonContains(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::Coalesce(lhs, rhs) => {
-                visitor(lhs);
-                visitor(rhs);
+                visitor(lhs)?;
+                visitor(rhs)
             }
             Self::JsonExtractPath(exprs)
             | Self::JsonBuildArray(exprs)
@@ -82,20 +88,25 @@ impl Function {
                 elements: exprs, ..
             } => {
                 for expr in exprs {
-                    visitor(expr);
+                    visitor(expr)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::JsonBuildObject(pairs) => {
                 for (key, value) in pairs {
-                    visitor(key);
-                    visitor(value);
+                    visitor(key)?;
+                    visitor(value)?;
                 }
+                ControlFlow::Continue(())
             }
-            Self::Now => {}
+            Self::Now => ControlFlow::Continue(()),
         }
     }
 
-    pub(super) fn for_each_child_mut(&mut self, visitor: &mut dyn FnMut(&mut Expression)) {
+    pub(super) fn for_each_child_mut<B>(
+        &mut self,
+        visitor: &mut impl FnMut(&mut Expression) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
         match self {
             Self::Min(expr)
             | Self::Max(expr)
@@ -114,8 +125,8 @@ impl Function {
             Self::JsonContains(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::Coalesce(lhs, rhs) => {
-                visitor(lhs);
-                visitor(rhs);
+                visitor(lhs)?;
+                visitor(rhs)
             }
             Self::JsonExtractPath(exprs)
             | Self::JsonBuildArray(exprs)
@@ -124,16 +135,18 @@ impl Function {
                 elements: exprs, ..
             } => {
                 for expr in exprs {
-                    visitor(expr);
+                    visitor(expr)?;
                 }
+                ControlFlow::Continue(())
             }
             Self::JsonBuildObject(pairs) => {
                 for (key, value) in pairs {
-                    visitor(key);
-                    visitor(value);
+                    visitor(key)?;
+                    visitor(value)?;
                 }
+                ControlFlow::Continue(())
             }
-            Self::Now => {}
+            Self::Now => ControlFlow::Continue(()),
         }
     }
 }

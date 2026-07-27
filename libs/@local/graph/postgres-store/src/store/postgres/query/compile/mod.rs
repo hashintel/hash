@@ -2,7 +2,7 @@
 mod tests;
 
 use alloc::borrow::Cow;
-use core::iter::once;
+use core::{iter::once, ops::ControlFlow};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail, ensure};
@@ -117,6 +117,25 @@ pub enum StatementShape {
     FencedKeysFirst,
 }
 
+impl StatementShape {
+    /// The value the shape is recorded under as `statement.shape`.
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::SinglePass => "single_pass",
+            Self::KeysFirst => "keys_first",
+            Self::FencedKeysFirst => "fenced_keys_first",
+        }
+    }
+
+    /// The fence the shape puts on the key query's plan.
+    const fn materialization(self) -> Option<Materialization> {
+        match self {
+            Self::SinglePass | Self::KeysFirst => None,
+            Self::FencedKeysFirst => Some(Materialization::Materialized),
+        }
+    }
+}
+
 /// Why a keys-first [`StatementShape`] degraded to a single-pass statement.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum ShapeFallback {
@@ -131,13 +150,40 @@ enum ShapeFallback {
     OpaqueExpression,
     /// A fanning-out join inside the key query would eat into `LIMIT n` with duplicates.
     ToManyKeyJoin,
-    /// A right or full outer hydration join would generate rows the key query never saw,
-    /// which the missing `WHERE` clause of the hydration statement cannot filter out again.
-    GeneratingHydrationJoin,
+    /// A right or full outer join generates rows its left side never had, which neither side of
+    /// the split can carry: in the key query they hold `NULL` keys that no hydration join
+    /// matches, and in the hydration statement they are rows the page never selected.
+    GeneratingJoin,
     /// The statement reads nothing from the key query, leaving the CTE without columns.
     NoKeyColumns,
     /// A carried CTE already uses one of the names the split reserves for its own CTEs.
     CteNameCollision,
+    /// Two key columns claim the same output name, which leaves every reference to it
+    /// ambiguous. Prefixing a shared column name with its table can land on a name another
+    /// column already carries unprefixed.
+    KeyColumnNameCollision,
+}
+
+impl ShapeFallback {
+    /// Logs the degradation, warning for the reasons that lose a shape the caller opted into.
+    fn log(self) {
+        match self {
+            // Unpaged statements have nothing to split, and fanning-out joins are structural
+            // for whole query families (link queries filter through one on every request) —
+            // neither is an anomaly worth a warning.
+            Self::Unlimited | Self::Unsorted | Self::ToManyKeyJoin => {
+                tracing::debug!(fallback = ?self, "compiling a single-pass statement");
+            }
+            Self::AsteriskSelect
+            | Self::OpaqueExpression
+            | Self::GeneratingJoin
+            | Self::NoKeyColumns
+            | Self::CteNameCollision
+            | Self::KeyColumnNameCollision => {
+                tracing::warn!(fallback = ?self, "falling back to a single-pass statement");
+            }
+        }
+    }
 }
 
 /// A join collected during compilation. The `FROM` tree is assembled from these records in
@@ -208,53 +254,60 @@ impl From<NullOrdering> for NullsOrder {
     }
 }
 
-/// Collects the table names referenced by `expression` into `tables`.
+/// A subquery expression, whose column references stay invisible to [`Expression::visit`].
 ///
-/// Sets `opaque` when the expression contains a subquery, whose references stay invisible to
-/// [`Expression::visit`].
+/// The break value of the collectors below, which the caller turns into
+/// [`ShapeFallback::OpaqueExpression`].
+struct Opaque;
+
+/// Collects the table names `expression` references into `tables`, breaking at a subquery.
 fn collect_referenced_tables(
     expression: &Expression,
     tables: &mut HashSet<TableName<'static>>,
-    opaque: &mut bool,
-) {
+) -> ControlFlow<Opaque> {
     expression.visit(&mut |node| {
+        if matches!(node, Expression::Select(_)) {
+            return ControlFlow::Break(Opaque);
+        }
         if let Expression::ColumnReference(column) = node
             && let Some(correlation) = &column.correlation
         {
             tables.insert(correlation.name.clone());
         }
-        if matches!(node, Expression::Select(_)) {
-            *opaque = true;
-        }
-    });
+        ControlFlow::Continue(())
+    })
 }
 
-/// Collects the columns `expression` reads from any of the `key_tables`, deduplicated and in
-/// first-seen order.
-///
-/// Sets `opaque` when the expression contains a subquery, whose references stay invisible to
-/// [`Expression::visit`].
-fn collect_key_columns(
-    expression: &Expression,
-    key_tables: &HashSet<TableName<'static>>,
-    columns: &mut Vec<(TableName<'static>, ColumnName<'static>)>,
-    seen: &mut HashSet<(TableName<'static>, ColumnName<'static>)>,
-    opaque: &mut bool,
-) {
-    expression.visit(&mut |node| {
-        if let Expression::ColumnReference(column) = node
-            && let Some(correlation) = &column.correlation
-            && key_tables.contains(&correlation.name)
-        {
-            let key = (correlation.name.clone(), column.name.clone());
-            if seen.insert(key.clone()) {
-                columns.push(key);
+/// The columns read from a set of key-query tables, deduplicated and in first-seen order.
+#[derive(Default)]
+struct KeyColumns {
+    columns: Vec<(TableName<'static>, ColumnName<'static>)>,
+    seen: HashSet<(TableName<'static>, ColumnName<'static>)>,
+}
+
+impl KeyColumns {
+    /// Adds every column `expression` reads from one of the `key_tables`, breaking at a subquery.
+    fn collect(
+        &mut self,
+        expression: &Expression,
+        key_tables: &HashSet<TableName<'static>>,
+    ) -> ControlFlow<Opaque> {
+        expression.visit(&mut |node| {
+            if matches!(node, Expression::Select(_)) {
+                return ControlFlow::Break(Opaque);
             }
-        }
-        if matches!(node, Expression::Select(_)) {
-            *opaque = true;
-        }
-    });
+            if let Expression::ColumnReference(column) = node
+                && let Some(correlation) = &column.correlation
+                && key_tables.contains(&correlation.name)
+            {
+                let key = (correlation.name.clone(), column.name.clone());
+                if self.seen.insert(key.clone()) {
+                    self.columns.push(key);
+                }
+            }
+            ControlFlow::Continue(())
+        })
+    }
 }
 
 /// The join split for the keys-first [`StatementShape`]s.
@@ -277,28 +330,39 @@ struct KeyColumnRewriter<'r> {
 impl<'r> KeyColumnRewriter<'r> {
     /// Assigns each key column its natural name. Every column name shared between source
     /// tables gets prefixed with its aliased table name instead.
+    ///
+    /// Reports [`ShapeFallback::KeyColumnNameCollision`] when that leaves two columns sharing
+    /// an output name.
     fn new(
         tables: &'r HashSet<TableName<'static>>,
         key_columns: &[(TableName<'static>, ColumnName<'static>)],
-    ) -> Self {
+    ) -> Result<Self, ShapeFallback> {
         let mut name_users = HashMap::<&ColumnName<'static>, usize>::new();
         for (_, column) in key_columns {
             *name_users.entry(column).or_default() += 1;
         }
-        Self {
-            tables,
-            outputs: key_columns
-                .iter()
-                .map(|(table, column)| {
-                    let output = if name_users.get(column).is_some_and(|users| *users > 1) {
-                        ColumnName::from(format!("{}_{}", table.as_str(), column.as_str()))
-                    } else {
-                        column.clone()
-                    };
-                    ((table.clone(), column.clone()), output)
-                })
-                .collect(),
+
+        let outputs: HashMap<_, _> = key_columns
+            .iter()
+            .map(|(table, column)| {
+                let output = if name_users.get(column).is_some_and(|users| *users > 1) {
+                    ColumnName::from(format!("{}_{}", table.as_str(), column.as_str()))
+                } else {
+                    column.clone()
+                };
+                ((table.clone(), column.clone()), output)
+            })
+            .collect();
+
+        // A prefixed name can land on one another column already carries: `b` and `d` sharing a
+        // `c` produce `b_c`, which a `b_c` column elsewhere also claims. Unreachable while table
+        // aliases end in `_<condition>_<depth>_<number>`, but nothing enforces that, and the
+        // symptom would be an ambiguous column reference at execution time.
+        if outputs.values().collect::<HashSet<_>>().len() != outputs.len() {
+            return Err(ShapeFallback::KeyColumnNameCollision);
         }
+
+        Ok(Self { tables, outputs })
     }
 
     /// The output column name assigned to a key-query source column.
@@ -316,7 +380,7 @@ impl<'r> KeyColumnRewriter<'r> {
     /// output column, qualified with `target` (or bare when `target` is [`None`]).
     fn rewrite(&self, expression: &Expression, target: Option<&TableName<'static>>) -> Expression {
         let mut expression = expression.clone();
-        expression.visit_mut(&mut |node| {
+        let ControlFlow::Continue(()) = expression.visit_mut(&mut |node| {
             if let Expression::ColumnReference(column) = node
                 && let Some(correlation) = &column.correlation
                 && self.tables.contains(&correlation.name)
@@ -324,6 +388,7 @@ impl<'r> KeyColumnRewriter<'r> {
                 column.name = self.output(&correlation.name, &column.name).clone();
                 column.correlation = target.cloned().map(TableReference::from);
             }
+            ControlFlow::<!>::Continue(())
         });
         expression
     }
@@ -709,54 +774,23 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         fields(statement.shape = tracing::field::Empty)
     )]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
-        let statement = match self.shape {
+        let (shape, statement) = match self.shape {
             StatementShape::SinglePass => {
-                tracing::Span::current().record("statement.shape", "single_pass");
-                self.single_pass_statement()
+                (StatementShape::SinglePass, self.single_pass_statement())
             }
-            StatementShape::KeysFirst => self.keys_first_or_fallback("keys_first", None),
-            StatementShape::FencedKeysFirst => self
-                .keys_first_or_fallback("fenced_keys_first", Some(Materialization::Materialized)),
-        };
-        (statement.transpile_to_string(), &self.artifacts.parameters)
-    }
-
-    /// Compiles the keys-first split, degrading to the single-pass layout with a logged
-    /// reason when the statement does not qualify.
-    fn keys_first_or_fallback(
-        &self,
-        shape: &'static str,
-        materialization: Option<Materialization>,
-    ) -> SelectStatement {
-        match self.fetch_keys_then_hydrate_statement(materialization) {
-            Ok(statement) => {
-                tracing::Span::current().record("statement.shape", shape);
-                statement
-            }
-            Err(fallback) => {
-                tracing::Span::current().record("statement.shape", "single_pass");
-                // An unpaged statement simply has nothing to split. Every other reason
-                // silently loses the shape the caller opted into and deserves a warning.
-                match fallback {
-                    // Unpaged statements have nothing to split, and fanning-out joins are
-                    // structural for whole query families (link queries filter through one on
-                    // every request) — neither is an anomaly worth a warning.
-                    ShapeFallback::Unlimited
-                    | ShapeFallback::Unsorted
-                    | ShapeFallback::ToManyKeyJoin => {
-                        tracing::debug!(?fallback, "compiling a single-pass statement");
-                    }
-                    ShapeFallback::AsteriskSelect
-                    | ShapeFallback::OpaqueExpression
-                    | ShapeFallback::GeneratingHydrationJoin
-                    | ShapeFallback::NoKeyColumns
-                    | ShapeFallback::CteNameCollision => {
-                        tracing::warn!(?fallback, "falling back to a single-pass statement");
+            shape @ (StatementShape::KeysFirst | StatementShape::FencedKeysFirst) => {
+                match self.fetch_keys_then_hydrate_statement(shape.materialization()) {
+                    Ok(statement) => (shape, statement),
+                    Err(fallback) => {
+                        fallback.log();
+                        (StatementShape::SinglePass, self.single_pass_statement())
                     }
                 }
-                self.single_pass_statement()
             }
-        }
+        };
+
+        tracing::Span::current().record("statement.shape", shape.as_str());
+        (statement.transpile_to_string(), &self.artifacts.parameters)
     }
 
     /// Lays out the statement as one flat `SELECT` over all joins.
@@ -799,7 +833,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let partition = self.partition_key_query_joins()?;
         let key_columns = self.collect_key_query_columns(&partition)?;
-        let rewriter = KeyColumnRewriter::new(&partition.tables, &key_columns);
+        let rewriter = KeyColumnRewriter::new(&partition.tables, &key_columns)?;
         let limited = TableName::from("limited");
 
         let mut common_table_expressions: Vec<CommonTableExpression> = self
@@ -846,8 +880,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// closed transitively over the join conditions (a join's `ON` clause only references
     /// earlier joins, so one reverse pass suffices).
     fn partition_key_query_joins(&self) -> Result<KeyQueryPartition<'_>, ShapeFallback> {
+        // Checked before the split, because neither share can carry a generating join and
+        // which share it lands in is an accident of what the filters happen to reference.
+        if self
+            .artifacts
+            .joins
+            .iter()
+            .any(|join| matches!(join.join_type, JoinType::RightOuter | JoinType::FullOuter))
+        {
+            return Err(ShapeFallback::GeneratingJoin);
+        }
+
         let mut required = HashSet::new();
-        let mut opaque = false;
         for expression in self
             .conditions
             .iter()
@@ -858,7 +902,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             )
             .chain(self.sort_by.iter().map(|sort| &sort.expression))
         {
-            collect_referenced_tables(expression, &mut required, &mut opaque);
+            if collect_referenced_tables(expression, &mut required).is_break() {
+                return Err(ShapeFallback::OpaqueExpression);
+            }
         }
 
         let mut in_key_query = vec![false; self.artifacts.joins.len()];
@@ -866,12 +912,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if required.contains(&join.table.aliased_name(join.alias)) {
                 *slot = true;
                 for condition in &join.conditions {
-                    collect_referenced_tables(condition, &mut required, &mut opaque);
+                    if collect_referenced_tables(condition, &mut required).is_break() {
+                        return Err(ShapeFallback::OpaqueExpression);
+                    }
                 }
             }
-        }
-        if opaque {
-            return Err(ShapeFallback::OpaqueExpression);
         }
 
         let mut key_joins = Vec::new();
@@ -885,12 +930,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
         if key_joins.iter().any(|join| join.to_many) {
             return Err(ShapeFallback::ToManyKeyJoin);
-        }
-        if hydrated_joins
-            .iter()
-            .any(|join| matches!(join.join_type, JoinType::RightOuter | JoinType::FullOuter))
-        {
-            return Err(ShapeFallback::GeneratingHydrationJoin);
         }
 
         let tables = once(R::base_table().aliased_name(Alias::default()))
@@ -914,9 +953,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         &self,
         partition: &KeyQueryPartition<'_>,
     ) -> Result<Vec<(TableName<'static>, ColumnName<'static>)>, ShapeFallback> {
-        let mut key_columns = Vec::new();
-        let mut seen = HashSet::new();
-        let mut opaque = false;
+        let mut key_columns = KeyColumns::default();
         for expression in self
             .sort_by
             .iter()
@@ -933,16 +970,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .flat_map(|join| join.conditions.iter()),
             )
         {
-            collect_key_columns(
-                expression,
-                &partition.tables,
-                &mut key_columns,
-                &mut seen,
-                &mut opaque,
-            );
-        }
-        if opaque {
-            return Err(ShapeFallback::OpaqueExpression);
+            if key_columns
+                .collect(expression, &partition.tables)
+                .is_break()
+            {
+                return Err(ShapeFallback::OpaqueExpression);
+            }
         }
         if self
             .selects
@@ -951,10 +984,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         {
             return Err(ShapeFallback::AsteriskSelect);
         }
-        if key_columns.is_empty() {
-            return Err(ShapeFallback::NoKeyColumns);
+        if key_columns.columns.is_empty() {
+            Err(ShapeFallback::NoKeyColumns)
+        } else {
+            Ok(key_columns.columns)
         }
-        Ok(key_columns)
     }
 
     /// Builds the `roots` CTE: the key-query columns under the full filter and cursor
