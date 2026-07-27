@@ -29,11 +29,11 @@
     },
     {
       "customType": "regex",
-      "description": "Update MISE_VERSION pins in Dockerfiles",
+      "description": "Update MISE_VERSION pins annotated with a `# renovate:` comment in Dockerfiles",
       "managerFilePatterns": ["**/Dockerfile"],
-      "matchStrings": ["MISE_VERSION=(?<currentValue>[0-9][^\\s]*)\\s"],
-      "depNameTemplate": "jdx/mise",
-      "datasourceTemplate": "github-releases",
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n\\s*(?:export )?MISE_VERSION=(?<currentValue>[0-9][^\\s]*)\\s"
+      ],
       "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ]
