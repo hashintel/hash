@@ -89,7 +89,7 @@
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@mantine/hooks": "8.3.5",
-    "@playwright/test": "1.58.2",
+    "@playwright/test": "1.61.1",
     "@radix-ui/colors": "3.0.0",
     "@tanstack/react-form": "1.29.0",
     "@tanstack/react-virtual": "3.13.24",
