@@ -966,10 +966,11 @@ export const useDashboardItemConfig = ({
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-
         const chartType = getPrimaryChartType(chartConfig);
         if (!chartType) {
-          throw new Error("Chart config must contain at least one series with a valid type");
+          throw new Error(
+            "Chart config must contain at least one series with a valid type",
+          );
         }
 
         const persistedConfiguration = persistedConfigurationRef.current;
