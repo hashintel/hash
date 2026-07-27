@@ -1,6 +1,6 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use zerocopy::{FromBytes as _, IntoBytes as _};
+use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::{Id as _, IdError, newtype};
 
@@ -101,6 +101,43 @@ fn byte_encoded_id_orders_by_value() {
 fn byte_encoded_id_formats_value() {
     assert_eq!(LittleId::new(42).to_string(), "42");
     assert_eq!(format!("{:?}", BigId::new(7)), "BigId(7)");
+}
+
+newtype!(
+    #[id(crate = crate, endian = big, unaligned)]
+    struct WindowId(u16 is 10..=20)
+);
+
+#[test]
+fn get_returns_the_raw_scalar() {
+    const IN_CONST: u64 = UnboundedId::new(3).get();
+
+    assert_eq!(UnboundedId::new(7).get(), 7_u64);
+    assert_eq!(LittleId::new(9).get(), 9_u64);
+    assert_eq!(NarrowUnboundedId::new(3).get(), 3_u16);
+    assert_eq!(IN_CONST, 3);
+}
+
+#[test]
+fn bounded_byte_id_reads_only_in_range_bytes() {
+    let id = WindowId::try_read_from_bytes(&[0, 20]).expect("20 lies in the range");
+    assert_eq!(id, WindowId::new(20));
+    assert_eq!(
+        WindowId::try_read_from_bytes(&[0, 10]).expect("10 lies in the range"),
+        WindowId::new(10)
+    );
+
+    WindowId::try_read_from_bytes(&[0, 21]).expect_err("21 lies above the range");
+    WindowId::try_read_from_bytes(&[0, 9]).expect_err("9 lies below the range");
+    WindowId::try_read_from_bytes(&[0, 0]).expect_err("zero lies below the range");
+    WindowId::try_read_from_bytes(&[255, 255]).expect_err("the maximum lies above the range");
+}
+
+#[test]
+fn bounded_byte_id_still_writes_bytes() {
+    let id = WindowId::new(18);
+
+    assert_eq!(id.as_bytes(), [0, 18]);
 }
 
 #[test]

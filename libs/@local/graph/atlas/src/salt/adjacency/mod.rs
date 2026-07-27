@@ -1,12 +1,31 @@
 //! The incident-edge adjacency: node rows to the edge rows touching them.
 //!
 //! [`Adjacency`] is the serving contract's topology artifact: for every node row, the edge rows
-//! leaving it and the edge rows arriving at it, as two adjacent runs of one shared value array.
-//! Values are edge row ids alone - attributes resolve through edge-row-indexed columns, so the
-//! adjacency never re-publishes when an attribute column changes. It derives from the endpoint
-//! column in one counting pass and publishes as one structure-only [`crate::file::sprs`] matrix:
-//! `2N` compressed rows over the fencepost column, edge row ids as the indices, and
-//! [`unit`](crate::file::sprs::ValueTag::Unit) values, so no value bytes exist on disk.
+//! leaving it and the edge rows arriving at it, as two adjacent runs of one shared entry array.
+//!
+//! Every entry names an edge row: several edge rows may join the same node pair, and attributes
+//! resolve through edge-row-indexed columns. Naming the edge keeps parallel edges distinct and
+//! keeps the artifact stable - the adjacency never re-publishes when an attribute column changes.
+//!
+//! Two nodes joined both ways - edge row `0` the `0 → 1` edge, edge row `1` the `1 → 0` edge -
+//! draw the incidence picture the file compresses:
+//!
+//! ```text
+//!                    edge 0   edge 1
+//! node 0 outgoing      x
+//! node 0 incoming               x
+//! node 1 outgoing               x
+//! node 1 incoming      x
+//! ```
+//!
+//! Each matrix row stores its `x` marks as one ascending run of edge row ids, and each edge
+//! column holds exactly two marks: one outgoing at its source, one incoming at its target.
+//!
+//! The artifact derives from the endpoint column in one counting pass and publishes as one
+//! structure-only [`crate::file::sprs`] matrix: `2N` compressed rows over the fencepost column,
+//! edge row ids as the indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so no
+//! value bytes exist on disk.
+//!
 //! [`AdjacencyArchive`] reopens the file over a whole-file mapping and validates the list
 //! invariants once, so lookups read from the page cache without holding the lists on the heap.
 //!
@@ -142,7 +161,7 @@ impl Adjacency {
 
         // Fill in edge-row order: each run's cursor starts at its
         // fencepost, and ascending edge rows land ascending in place.
-        let cursors = fenceposts[..fenceposts.len() - 1].to_vec();
+        let mut cursors = fenceposts[..fenceposts.len() - 1].to_vec();
 
         // The narrowest covering width shrinks the value column and the
         // on-disk index region alike; `bound` stands in for the column
@@ -150,15 +169,24 @@ impl Adjacency {
         let bound = endpoints.len().max(1);
         if u16::try_from(bound).is_ok() {
             Self(AdjacencyGraph::U16(assemble(
-                bound, fenceposts, cursors, endpoints,
+                bound,
+                fenceposts,
+                &mut cursors,
+                endpoints,
             )))
         } else if u32::try_from(bound).is_ok() {
             Self(AdjacencyGraph::U32(assemble(
-                bound, fenceposts, cursors, endpoints,
+                bound,
+                fenceposts,
+                &mut cursors,
+                endpoints,
             )))
         } else {
             Self(AdjacencyGraph::U64(assemble(
-                bound, fenceposts, cursors, endpoints,
+                bound,
+                fenceposts,
+                &mut cursors,
+                endpoints,
             )))
         }
     }
@@ -171,7 +199,7 @@ impl Adjacency {
 fn assemble<I>(
     bound: usize,
     fenceposts: Vec<u64>,
-    mut cursors: Vec<u64>,
+    cursors: &mut [u64],
     endpoints: &[[NodeRowId; 2]],
 ) -> AdjacencySparseGraph<I, u64>
 where
@@ -182,11 +210,12 @@ where
     let mut values = vec![zero; endpoints.len() * 2];
     for (edge, &[source, target]) in endpoints.iter().enumerate() {
         let edge = I::try_from(edge).expect("edge rows lie below the checked width bound");
-        insert_edge(&mut cursors, &mut values, edge, source, target);
+        insert_edge(cursors, &mut values, edge, source, target);
     }
 
     let runs = fenceposts.len() - 1;
     let length = values.len();
+
     // SAFETY: the counting build establishes the compressed structure: the fenceposts are a
     // prefix sum starting at zero and ending at the slot count, one entry past the run count,
     // the fill placed ascending edge rows ascending within each run, every value lies below

@@ -9,7 +9,8 @@
 pub use crate::{
     math::kernel::bench as kernel,
     salt::{
-        fit::bench as fit, knn::bench as knn, lod::bench as lod, projector::bench as projector,
-        quality::bench as quality, relation::bench as relation, runner::bench as runner,
+        classifier_bench as classifier, fit::bench as fit, knn::bench as knn, lod::bench as lod,
+        projector::bench as projector, quality::bench as quality, relation::bench as relation,
+        runner::bench as runner,
     },
 };

@@ -28,6 +28,7 @@ use core::{
 };
 use std::collections::HashSet;
 
+use hashql_core::id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet};
 use rand::{Rng, RngExt as _, SeedableRng};
 use rayon::{
     iter::{
@@ -38,7 +39,7 @@ use rayon::{
 };
 use zerocopy::{LE, U32};
 
-use crate::{bitset::BitSet, identity::NodeRowId, math::UnitFraction};
+use crate::{identity::NodeRowId, math::UnitFraction};
 
 /// A landmark-stratification axis.
 #[derive(
@@ -348,141 +349,83 @@ impl fmt::Display for SelectionError {
 
 impl Error for SelectionError {}
 
-/// Candidates per parallel work item.
-///
-/// 4096 candidates give each task tens of microseconds of work, large enough that per-task
-/// overhead disappears against the scans.
-pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unwrap() };
+hashql_core::id::newtype! {
+    /// A candidate's position in the selection input, in ascending row order.
+    #[id(derive(Step))]
+    pub(crate) struct CandidateId(u64)
+}
 
-/// Selects at most the configured capacity, honoring minimums and retention.
-///
-/// `candidates` arrive in strictly ascending row order; `rng` seeds the priority streams. The
-/// selection satisfies every subgroup minimum, then retains prior landmarks up to `ceil(capacity *
-/// retained_fraction)` when enough are on offer, then fills to capacity, all by ascending
-/// exponential-clock priority.
-///
-/// # Errors
-///
-/// Returns an error for an empty corpus, unordered candidate rows, duplicate minimums, or minimums
-/// the corpus or capacity cannot satisfy.
-pub(crate) fn select_landmarks<R>(
-    candidates: &[LandmarkCandidate],
-    minimums: &[SubgroupMinimum],
-    options: SelectionOptions,
-    mut rng: R,
-) -> Result<LandmarkSelection, SelectionError>
-where
-    R: Rng + SeedableRng,
-{
-    validate(candidates, minimums)?;
+hashql_core::id::newtype! {
+    /// A minimum's position in the subgroup-ordered minimums.
+    ///
+    /// Distinct from [`CandidateId`]: candidates and minimums are unrelated index domains, and
+    /// mixing them is a type error rather than a silent off-by-everything.
+    #[id(derive(Step))]
+    pub(crate) struct MinimumId(u64)
+}
 
-    let capacity = (options.maximum_count.get() as usize).min(candidates.len());
-    let priorities = priorities(candidates, options.parallel_chunk, &mut rng);
+/// A candidate ordered by ascending priority, ties by candidate index.
+#[derive(Debug, Copy, Clone)]
+struct RankedCandidate {
+    id: CandidateId,
+    priority: f64,
+}
 
-    let mut selected = BitSet::new(candidates.len());
-    let mut retained_count = 0_usize;
-
-    let mut ordered_minimums = minimums.to_vec();
-    ordered_minimums.sort_unstable_by_key(|minimum| minimum.subgroup);
-    // Rows selected for earlier minimums count toward later ones: a
-    // row satisfies every subgroup it belongs to. The counters advance
-    // at mark time instead of rescanning the corpus per minimum.
-    let mut subgroup_counts = vec![0_usize; ordered_minimums.len()];
-
-    for position in 0..ordered_minimums.len() {
-        let minimum = ordered_minimums[position];
-        let required = minimum
-            .count
-            .get()
-            .saturating_sub(subgroup_counts[position]);
-        let requested = selected.count() + required;
-        if requested > capacity {
-            return Err(SelectionError::MinimumExceedsCapacity {
-                requested,
-                capacity,
-            });
-        }
-
-        let chosen = best_indices(candidates, &priorities, &selected, required, |candidate| {
-            candidate.belongs_to(minimum.subgroup)
-        });
-        if chosen.len() != required {
-            return Err(SelectionError::InsufficientSubgroup {
-                subgroup: minimum.subgroup,
-                required: minimum.count.get(),
-                available: subgroup_counts[position] + chosen.len(),
-            });
-        }
-
-        for &index in &chosen {
-            for (count, later) in subgroup_counts
-                .iter_mut()
-                .zip(&ordered_minimums)
-                .skip(position + 1)
-            {
-                if candidates[index].belongs_to(later.subgroup) {
-                    *count += 1;
-                }
-            }
-        }
-        retained_count += mark(&mut selected, candidates, &chosen);
+impl PartialEq for RankedCandidate {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
     }
+}
 
-    let retained_target = retained_target(capacity, options.retained_fraction);
-    let retained_needed = retained_target
-        .saturating_sub(retained_count)
-        .min(capacity - selected.count());
-    let retained = best_indices(
-        candidates,
-        &priorities,
-        &selected,
-        retained_needed,
-        |candidate| candidate.prior_landmark,
-    );
-    retained_count += mark(&mut selected, candidates, &retained);
+impl Eq for RankedCandidate {}
 
-    let fill = best_indices(
-        candidates,
-        &priorities,
-        &selected,
-        capacity - selected.count(),
-        |_| true,
-    );
-    retained_count += mark(&mut selected, candidates, &fill);
+impl PartialOrd for RankedCandidate {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
-    let rows: Vec<NodeRowId> = selected.iter().map(|index| candidates[index].row).collect();
-
-    Ok(LandmarkSelection {
-        rows: rows.into_boxed_slice(),
-        retained_count,
-    })
+impl Ord for RankedCandidate {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority
+            .total_cmp(&other.priority)
+            .then_with(|| self.id.cmp(&other.id))
+    }
 }
 
 /// Draws every candidate's exponential-clock priority, in parallel.
 ///
 /// One generator serves each `chunk` of candidates, seeded from the caller's generator in chunk
 /// order.
-fn priorities<R>(candidates: &[LandmarkCandidate], chunk: NonZero<usize>, rng: &mut R) -> Vec<f64>
+fn priorities<R>(
+    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+    chunk: NonZero<usize>,
+    rng: &mut R,
+) -> IdVec<CandidateId, f64>
 where
     R: Rng + SeedableRng,
 {
-    let seeds: Vec<u64> = core::iter::repeat_with(|| rng.random())
+    let seeds: Vec<u64> = rng
+        .random_iter()
         .take(candidates.len().div_ceil(chunk.get()))
         .collect();
 
-    let mut priorities = vec![0.0_f64; candidates.len()];
+    let mut priorities = IdVec::from_elem(0.0_f64, candidates.len());
 
     (
-        priorities.par_chunks_mut(chunk.get()),
-        candidates.par_chunks(chunk.get()),
+        priorities.as_raw_mut().par_chunks_mut(chunk.get()),
+        candidates.as_raw().par_chunks(chunk.get()),
         seeds.into_par_iter(),
     )
         .into_par_iter()
         .for_each(|(priorities, candidates, seed)| {
             let mut rng = R::seed_from_u64(seed);
+
             for (priority, candidate) in priorities.iter_mut().zip(candidates) {
-                // 1 - U maps the generator's [0, 1) onto (0, 1],
-                // keeping the logarithm finite.
+                // 1 - U maps the generator's [0, 1) onto (0, 1], keeping the logarithm finite.
                 *priority = -(1.0 - rng.random::<f64>()).ln() / candidate.sampling_weight.get();
             }
         });
@@ -491,14 +434,15 @@ where
 }
 
 fn validate(
-    candidates: &[LandmarkCandidate],
-    minimums: &[SubgroupMinimum],
+    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+    minimums: &IdSlice<MinimumId, SubgroupMinimum>,
 ) -> Result<(), SelectionError> {
     if candidates.is_empty() {
         return Err(SelectionError::EmptyCorpus);
     }
 
     if let Some(position) = candidates
+        .as_raw()
         .par_array_windows::<2>()
         .position_first(|pair| matches!(pair, [left, right] if left.row >= right.row))
     {
@@ -539,24 +483,29 @@ fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
 /// Workers filter in parallel and one exact selection cuts the (priority, index) total order at
 /// `count`: the result is the unique best set, independent of how the scan splits across threads.
 fn best_indices(
-    candidates: &[LandmarkCandidate],
-    priorities: &[f64],
-    selected: &BitSet,
+    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+    priorities: &IdSlice<CandidateId, f64>,
+    selected: &DenseBitSet<CandidateId>,
     count: usize,
+    output: &mut Vec<CandidateId>,
     predicate: impl Fn(LandmarkCandidate) -> bool + Sync,
-) -> Vec<usize> {
+) {
+    output.clear();
+
     if count == 0 {
-        return Vec::new();
+        return;
     }
 
     let mut ranked: Vec<RankedCandidate> = candidates
+        .as_raw()
         .par_iter()
         .enumerate()
+        .map(|(index, candidate)| (CandidateId::from_usize(index), candidate))
         .with_min_len(PARALLEL_CHUNK.get())
-        .filter(|&(index, &candidate)| !selected.contains(index) && predicate(candidate))
-        .map(|(index, _)| RankedCandidate {
-            priority: priorities[index],
-            index,
+        .filter(|&(id, &candidate)| !selected.contains(id) && predicate(candidate))
+        .map(|(id, _)| RankedCandidate {
+            id,
+            priority: priorities[id],
         })
         .collect();
 
@@ -565,15 +514,22 @@ fn best_indices(
         ranked.truncate(count);
     }
 
-    ranked.into_iter().map(|ranked| ranked.index).collect()
+    output.extend(ranked.into_iter().map(|ranked| ranked.id));
 }
 
 /// Inserts the chosen indices and returns how many carried the prior landmark flag.
-fn mark(selected: &mut BitSet, candidates: &[LandmarkCandidate], indices: &[usize]) -> usize {
+fn mark(
+    selected: &mut DenseBitSet<CandidateId>,
+    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+    indices: &[CandidateId],
+) -> usize {
     let mut retained = 0;
+
     for &index in indices {
+        let candidate = candidates[index];
+
         selected.insert(index);
-        if candidates[index].prior_landmark {
+        if candidate.prior_landmark {
             retained += 1;
         }
     }
@@ -581,34 +537,115 @@ fn mark(selected: &mut BitSet, candidates: &[LandmarkCandidate], indices: &[usiz
     retained
 }
 
-/// A candidate ordered by ascending priority, ties by candidate index.
-#[derive(Debug, Copy, Clone)]
-struct RankedCandidate {
-    priority: f64,
-    index: usize,
-}
+/// Candidates per parallel work item.
+///
+/// 4096 candidates give each task tens of microseconds of work, large enough that per-task
+/// overhead disappears against the scans.
+pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unwrap() };
 
-impl PartialEq for RankedCandidate {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other).is_eq()
+/// Selects at most the configured capacity, honoring minimums and retention.
+///
+/// `candidates` arrive in strictly ascending row order; `rng` seeds the priority streams. The
+/// selection satisfies every subgroup minimum, then retains prior landmarks up to `ceil(capacity *
+/// retained_fraction)` when enough are on offer, then fills to capacity, all by ascending
+/// exponential-clock priority.
+///
+/// # Errors
+///
+/// Returns an error for an empty corpus, unordered candidate rows, duplicate minimums, or minimums
+/// the corpus or capacity cannot satisfy.
+pub(crate) fn select_landmarks<R>(
+    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+    minimums: &IdSlice<MinimumId, SubgroupMinimum>,
+    options: SelectionOptions,
+    mut rng: R,
+) -> Result<LandmarkSelection, SelectionError>
+where
+    R: Rng + SeedableRng,
+{
+    validate(candidates, minimums)?;
+
+    let capacity = (options.maximum_count.get() as usize).min(candidates.len());
+    let priorities = priorities(candidates, options.parallel_chunk, &mut rng);
+    let mut chosen = Vec::new();
+
+    let mut selected = DenseBitSet::new_empty(candidates.len());
+    let mut retained_count = 0_usize;
+
+    let mut ordered_minimums: IdVec<MinimumId, SubgroupMinimum> = minimums.to_owned();
+    ordered_minimums.sort_unstable_by_key(|minimum| minimum.subgroup);
+
+    // Rows selected for earlier minimums count toward later ones: a
+    // row satisfies every subgroup it belongs to. The counters advance
+    // at mark time instead of rescanning the corpus per minimum.
+    let mut subgroup_counts = IdVec::from_elem(0, ordered_minimums.len());
+
+    for (id, minimum) in ordered_minimums.iter_enumerated() {
+        let required = minimum.count.get().saturating_sub(subgroup_counts[id]);
+        let requested = selected.count() + required;
+
+        if requested > capacity {
+            return Err(SelectionError::MinimumExceedsCapacity {
+                requested,
+                capacity,
+            });
+        }
+
+        best_indices(
+            candidates,
+            &priorities,
+            &selected,
+            required,
+            &mut chosen,
+            |candidate| candidate.belongs_to(minimum.subgroup),
+        );
+        if chosen.len() != required {
+            return Err(SelectionError::InsufficientSubgroup {
+                subgroup: minimum.subgroup,
+                required: minimum.count.get(),
+                available: subgroup_counts[id] + chosen.len(),
+            });
+        }
+
+        for &chosen_id in &chosen {
+            let candidate = candidates[chosen_id];
+            for (later_id, later) in ordered_minimums.iter_enumerated().skip(id.as_usize() + 1) {
+                if candidate.belongs_to(later.subgroup) {
+                    subgroup_counts[later_id] += 1;
+                }
+            }
+        }
+
+        retained_count += mark(&mut selected, candidates, &chosen);
     }
-}
 
-impl Eq for RankedCandidate {}
+    let retained_target = retained_target(capacity, options.retained_fraction);
+    let retained_needed = retained_target
+        .saturating_sub(retained_count)
+        .min(capacity - selected.count());
+    best_indices(
+        candidates,
+        &priorities,
+        &selected,
+        retained_needed,
+        &mut chosen,
+        |candidate| candidate.prior_landmark,
+    );
+    retained_count += mark(&mut selected, candidates, &chosen);
 
-impl PartialOrd for RankedCandidate {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+    best_indices(
+        candidates,
+        &priorities,
+        &selected,
+        capacity - selected.count(),
+        &mut chosen,
+        |_| true,
+    );
+    retained_count += mark(&mut selected, candidates, &chosen);
 
-impl Ord for RankedCandidate {
-    #[inline]
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.priority
-            .total_cmp(&other.priority)
-            .then_with(|| self.index.cmp(&other.index))
-    }
+    let selected_rows: Vec<_> = selected.into_iter().map(|id| candidates[id].row).collect();
+    Ok(LandmarkSelection {
+        rows: selected_rows.into_boxed_slice(),
+        retained_count,
+    })
 }

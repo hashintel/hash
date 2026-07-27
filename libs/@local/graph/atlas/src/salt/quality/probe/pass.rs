@@ -29,7 +29,12 @@
 
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, num::NonZero};
+use std::alloc::Allocator;
 
+use hashql_core::{
+    heap::{ResetAllocator as _, Scratch},
+    id::{Id as _, IdSlice, bit_vec::DenseBitSet},
+};
 use rayon::iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator};
 
 use super::{
@@ -38,373 +43,13 @@ use super::{
         metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     },
     RadiusPair, SpacePair,
+    readings::SpacePairArray,
 };
 use crate::{
-    bitset::BitSet,
     dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
+    identity::NodeRowId,
     math::{AlignedVecN, BoxedVecN, Vec2},
 };
-
-/// One anchor's corpus-pass output across the neighbourhood sizes.
-pub(super) struct AnchorReading {
-    /// Rank aggregates, one per neighbourhood size.
-    pub cells: Vec<NeighbourhoodAggregate>,
-    /// Neighbourhood radii, one per neighbourhood size.
-    pub radii: Vec<RadiusPair>,
-    /// Clump-collapsed aggregates, one per neighbourhood size.
-    ///
-    /// Empty when the pass carries no clump grouping.
-    pub clumps: Vec<ClumpAggregate>,
-}
-
-/// The corpus pass's shared inputs: every anchor against every non-anchor row.
-pub(super) struct CorpusPass<'pass> {
-    /// The representation matrix, in row order.
-    pub representations: &'pass [AlignedVecN<PROJECTOR_DIMENSIONS>],
-    /// The coordinate frame, in row order.
-    pub coordinates: &'pass [Vec2],
-    /// The anchor rows every scan excludes.
-    pub anchor_mask: &'pass BitSet,
-    /// Nearest rows kept per space: the largest neighbourhood size.
-    pub search: usize,
-    /// Prevalidated empty aggregates, one per neighbourhood size.
-    pub template: &'pass [NeighbourhoodAggregate],
-    /// The neighbourhood sizes, in the template's order.
-    pub neighbourhoods: &'pass [NonZero<usize>],
-    /// Clump labels over the corpus rows.
-    ///
-    /// When the probe reads clump-granularity recall beside the plain reading.
-    pub clumps: Option<&'pass Clumps>,
-}
-
-impl CorpusPass<'_> {
-    /// Ranks every anchor, yielding per-neighbourhood readings in anchor order.
-    pub(super) fn run<'call>(
-        &'call self,
-        anchor_rows: &'call [usize],
-    ) -> impl ParallelIterator<Item = AnchorReading> + 'call {
-        anchor_rows
-            .par_iter()
-            .map_init(CorpusScratch::default, |scratch, &anchor| {
-                self.anchor(anchor, scratch)
-            })
-    }
-
-    /// Ranks one anchor against every non-anchor row in both spaces.
-    ///
-    /// The rank of a neighbour is the count of universe rows strictly nearer under the total order,
-    /// accumulated against the opposite space's nearest [`search`](Self::search) rows during each
-    /// scan; the representation matrix is scanned once and the coordinate frame twice.
-    fn anchor(&self, anchor: usize, scratch: &mut CorpusScratch) -> AnchorReading {
-        let anchor_point = self.coordinates[anchor];
-        let anchor_embedding = &self.representations[anchor];
-
-        // The map's nearest rows, from the first coordinate scan.
-        scratch.heap.clear();
-        for (row, &point) in self.coordinates.iter().enumerate() {
-            if self.anchor_mask.contains(row) {
-                continue;
-            }
-            let candidate = Ranked {
-                distance: anchor_point.distance_squared(point),
-                row: row as u32,
-            };
-            push_bounded(&mut scratch.heap, candidate, self.search);
-        }
-        CorpusScratch::drain_sorted(&mut scratch.heap, &mut scratch.map_nearest);
-
-        // Representation scan: the reference nearest rows, and each map
-        // neighbour's reference rank counted against its distance.
-        scratch.thresholds.clear();
-        scratch
-            .thresholds
-            .extend(scratch.map_nearest.iter().map(|member| Ranked {
-                distance:
-                    anchor_embedding.cosine_distance(&self.representations[member.row as usize]),
-                row: member.row,
-            }));
-        scratch.counts.clear();
-        scratch.counts.resize(scratch.thresholds.len(), 0);
-
-        for (row, embedding) in self.representations.iter().enumerate() {
-            if self.anchor_mask.contains(row) {
-                continue;
-            }
-            let candidate = Ranked {
-                distance: anchor_embedding.cosine_distance(embedding),
-                row: row as u32,
-            };
-            for (threshold, count) in scratch.thresholds.iter().zip(&mut scratch.counts) {
-                if candidate < *threshold {
-                    *count += 1;
-                }
-            }
-            push_bounded(&mut scratch.heap, candidate, self.search);
-        }
-        CorpusScratch::drain_sorted(&mut scratch.heap, &mut scratch.reference_nearest);
-        scratch.reference_ranks.clear();
-        scratch.reference_ranks.extend_from_slice(&scratch.counts);
-
-        // Second coordinate scan: each reference neighbour's map rank.
-        scratch.thresholds.clear();
-        scratch
-            .thresholds
-            .extend(scratch.reference_nearest.iter().map(|member| Ranked {
-                distance: anchor_point.distance_squared(self.coordinates[member.row as usize]),
-                row: member.row,
-            }));
-        scratch.counts.clear();
-        scratch.counts.resize(scratch.thresholds.len(), 0);
-
-        for (row, &point) in self.coordinates.iter().enumerate() {
-            if self.anchor_mask.contains(row) {
-                continue;
-            }
-            let candidate = Ranked {
-                distance: anchor_point.distance_squared(point),
-                row: row as u32,
-            };
-            for (threshold, count) in scratch.thresholds.iter().zip(&mut scratch.counts) {
-                if candidate < *threshold {
-                    *count += 1;
-                }
-            }
-        }
-
-        let mut cells = self.template.to_vec();
-        let mut radii = Vec::with_capacity(self.neighbourhoods.len());
-        for (aggregate, &k) in cells.iter_mut().zip(self.neighbourhoods) {
-            aggregate.observe_ranks(
-                &scratch.reference_ranks[..k.get()],
-                &scratch.counts[..k.get()],
-            );
-            radii.push(RadiusPair {
-                // The map scans rank by squared distance; the radius is
-                // the distance itself.
-                map: scratch.map_nearest[k.get() - 1].distance.sqrt(),
-                representation: scratch.reference_nearest[k.get() - 1].distance,
-            });
-        }
-
-        AnchorReading {
-            cells,
-            radii,
-            clumps: self.clump_cells(scratch),
-        }
-    }
-
-    /// Reads the clump-collapsed cells from the anchor's nearest lists, empty without a grouping.
-    ///
-    /// Both nearest lists already exist in scratch, so the collapsed reading costs two small sorts
-    /// per neighbourhood size.
-    fn clump_cells(&self, scratch: &mut CorpusScratch) -> Vec<ClumpAggregate> {
-        let Some(clumps) = self.clumps else {
-            return Vec::new();
-        };
-
-        let mut cells = Vec::with_capacity(self.neighbourhoods.len());
-        for &k in self.neighbourhoods {
-            let labels_into = |nearest: &[Ranked], labels: &mut Vec<u32>| {
-                labels.clear();
-                labels.extend(
-                    nearest[..k.get()]
-                        .iter()
-                        .map(|member| clumps.clump(member.row as usize)),
-                );
-            };
-            labels_into(&scratch.reference_nearest, &mut scratch.clump_reference);
-            labels_into(&scratch.map_nearest, &mut scratch.clump_map);
-
-            let mut aggregate = ClumpAggregate::new(k);
-            aggregate.observe(&mut scratch.clump_reference, &mut scratch.clump_map);
-            cells.push(aggregate);
-        }
-        cells
-    }
-}
-
-/// One anchor's sampled-pass output across the space pairs.
-pub(super) struct SampledReading {
-    /// Rank aggregates per space pair.
-    ///
-    /// Each one cell per neighbourhood size, in [`SpacePair`] order.
-    pub cells: [Vec<NeighbourhoodAggregate>; SpacePair::COUNT],
-    /// Triplet aggregates, in [`SpacePair`] order.
-    pub triplets: [TripletAggregate; SpacePair::COUNT],
-    /// Clump-collapsed representation-versus-canonical aggregates, one per neighbourhood size.
-    ///
-    /// Empty when the pass carries no clump grouping.
-    pub baseline_clumps: Vec<ClumpAggregate>,
-}
-
-/// The sampled pass's shared inputs: every anchor against the comparison rows in all three spaces.
-pub(super) struct SampledPass<'pass> {
-    /// The representation matrix, in row order.
-    pub representations: &'pass [AlignedVecN<PROJECTOR_DIMENSIONS>],
-    /// The coordinate frame, in row order.
-    pub coordinates: &'pass [Vec2],
-    /// The anchors' canonical embeddings, in anchor order.
-    pub anchor_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
-    /// The comparison rows' canonical embeddings, in comparison order.
-    pub comparison_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
-    /// The comparison rows: the pass's shared universe.
-    pub comparison_rows: &'pass [usize],
-    /// Prevalidated empty aggregates, one per neighbourhood size.
-    pub template: &'pass [NeighbourhoodAggregate],
-    /// The neighbourhood sizes, in the template's order.
-    pub neighbourhoods: &'pass [NonZero<usize>],
-    /// The shared comparison-index pairs the triplet readings sample.
-    pub pairs: &'pass [[u32; 2]],
-    /// Clump labels over the corpus rows.
-    ///
-    /// When the probe reads the representation baseline at clump granularity beside the plain
-    /// reading.
-    pub clumps: Option<&'pass Clumps>,
-}
-
-impl SampledPass<'_> {
-    /// Ranks every anchor, yielding per-space-pair and clump-collapsed readings in anchor order.
-    pub(super) fn run<'call>(
-        &'call self,
-        anchor_rows: &'call [usize],
-    ) -> impl ParallelIterator<Item = SampledReading> + 'call {
-        anchor_rows.par_iter().enumerate().map_init(
-            || SampledScratch::new(self.comparison_rows.len()),
-            |scratch, (index, &anchor)| {
-                let (cells, triplets) = self.anchor(index, anchor, scratch);
-                SampledReading {
-                    cells,
-                    triplets,
-                    baseline_clumps: self.clump_cells(scratch),
-                }
-            },
-        )
-    }
-
-    /// Ranks one anchor's comparison universe in all three spaces.
-    ///
-    /// Reads the space pairs and triplet verdicts.
-    fn anchor(
-        &self,
-        index: usize,
-        anchor: usize,
-        scratch: &mut SampledScratch,
-    ) -> (
-        [Vec<NeighbourhoodAggregate>; SpacePair::COUNT],
-        [TripletAggregate; SpacePair::COUNT],
-    ) {
-        let anchor_point = self.coordinates[anchor];
-        let anchor_embedding = &self.representations[anchor];
-        let anchor_canonical = &self.anchor_canonical[index];
-        // The clump buffers stay behind: the collapse reads the
-        // orderings this method leaves in scratch.
-        let SampledScratch {
-            map_distances,
-            representation_distances,
-            canonical_distances,
-            map_order,
-            representation_order,
-            canonical_order,
-            ranks,
-            ..
-        } = scratch;
-
-        map_distances.clear();
-        representation_distances.clear();
-        canonical_distances.clear();
-        for (universe, &row) in self.comparison_rows.iter().enumerate() {
-            map_distances.push(anchor_point.distance_squared(self.coordinates[row]));
-            representation_distances
-                .push(anchor_embedding.cosine_distance(&self.representations[row]));
-            canonical_distances
-                .push(anchor_canonical.cosine_distance(&self.comparison_canonical[universe]));
-        }
-
-        order_into(map_order, map_distances, self.comparison_rows);
-        order_into(
-            representation_order,
-            representation_distances,
-            self.comparison_rows,
-        );
-        order_into(canonical_order, canonical_distances, self.comparison_rows);
-
-        let mut observed = |by_reference: &[u32], by_map: &[u32]| {
-            let mut cells = self.template.to_vec();
-            for aggregate in &mut cells {
-                aggregate.observe(by_reference, by_map, ranks);
-            }
-            cells
-        };
-
-        let map_representation = observed(representation_order, map_order);
-        let map_canonical = observed(canonical_order, map_order);
-        let representation_canonical = observed(canonical_order, representation_order);
-
-        // Triplet verdicts: whether each space orders the pair's two
-        // points the same way from this anchor, under the shared
-        // (distance, row) total order. Distinct rows leave no ties.
-        let mut triplets = [TripletAggregate::default(); SpacePair::COUNT];
-        for &[first, second] in self.pairs {
-            let nearer_first = |distances: &[f32]| {
-                distances[first as usize]
-                    .total_cmp(&distances[second as usize])
-                    .then_with(|| {
-                        self.comparison_rows[first as usize]
-                            .cmp(&self.comparison_rows[second as usize])
-                    })
-                    .is_lt()
-            };
-            let map = nearer_first(map_distances);
-            let representation = nearer_first(representation_distances);
-            let canonical = nearer_first(canonical_distances);
-
-            triplets[SpacePair::MapRepresentation as usize].observe(map == representation);
-            triplets[SpacePair::MapCanonical as usize].observe(map == canonical);
-            triplets[SpacePair::RepresentationCanonical as usize]
-                .observe(representation == canonical);
-        }
-
-        let mut cells: [Vec<NeighbourhoodAggregate>; SpacePair::COUNT] = Default::default();
-        cells[SpacePair::MapRepresentation as usize] = map_representation;
-        cells[SpacePair::MapCanonical as usize] = map_canonical;
-        cells[SpacePair::RepresentationCanonical as usize] = representation_canonical;
-
-        (cells, triplets)
-    }
-
-    /// Reads the clump-collapsed representation-versus-canonical cells from the anchor's orderings.
-    ///
-    /// Empty without a grouping.
-    ///
-    /// Both orderings already exist in scratch after [`anchor`](Self::anchor), so the collapsed
-    /// baseline costs two small sorts per neighbourhood size. The canonical ordering is the
-    /// reference: the collapse reads how much of each exact canonical neighbourhood the
-    /// representation keeps once rows are relabeled by their connected-component id.
-    fn clump_cells(&self, scratch: &mut SampledScratch) -> Vec<ClumpAggregate> {
-        let Some(clumps) = self.clumps else {
-            return Vec::new();
-        };
-
-        let mut cells = Vec::with_capacity(self.neighbourhoods.len());
-        for &k in self.neighbourhoods {
-            let labels_into = |order: &[u32], labels: &mut Vec<u32>| {
-                labels.clear();
-                labels.extend(
-                    order[..k.get()]
-                        .iter()
-                        .map(|&universe| clumps.clump(self.comparison_rows[universe as usize])),
-                );
-            };
-            labels_into(&scratch.canonical_order, &mut scratch.clump_reference);
-            labels_into(&scratch.representation_order, &mut scratch.clump_judged);
-
-            let mut aggregate = ClumpAggregate::new(k);
-            aggregate.observe(&mut scratch.clump_reference, &mut scratch.clump_judged);
-            cells.push(aggregate);
-        }
-        cells
-    }
-}
 
 /// One ranked row under the probe's total order.
 ///
@@ -412,8 +57,8 @@ impl SampledPass<'_> {
 /// in one order in every pass.
 #[derive(Debug, Copy, Clone)]
 struct Ranked {
+    row: NodeRowId,
     distance: f32,
-    row: u32,
 }
 
 impl PartialEq for Ranked {
@@ -442,7 +87,7 @@ impl Ord for Ranked {
 }
 
 /// Offers `candidate` to a max-heap keeping the `bound` least entries.
-fn push_bounded(heap: &mut BinaryHeap<Ranked>, candidate: Ranked, bound: usize) {
+fn push_bounded<A: Allocator>(heap: &mut BinaryHeap<Ranked, A>, candidate: Ranked, bound: usize) {
     if heap.len() < bound {
         heap.push(candidate);
         return;
@@ -451,65 +96,15 @@ fn push_bounded(heap: &mut BinaryHeap<Ranked>, candidate: Ranked, bound: usize) 
     let Some(mut farthest) = heap.peek_mut() else {
         return;
     };
+
     if candidate < *farthest {
         // `PeekMut` sifts the replacement into place on drop.
         *farthest = candidate;
     }
 }
 
-/// Reusable per-thread buffers for the corpus pass, each bounded by the search depth.
-#[derive(Default)]
-struct CorpusScratch {
-    heap: BinaryHeap<Ranked>,
-    map_nearest: Vec<Ranked>,
-    reference_nearest: Vec<Ranked>,
-    thresholds: Vec<Ranked>,
-    counts: Vec<u32>,
-    reference_ranks: Vec<u32>,
-    clump_reference: Vec<u32>,
-    clump_map: Vec<u32>,
-}
-
-impl CorpusScratch {
-    /// Empties the heap into `into`, sorted nearest-first.
-    fn drain_sorted(heap: &mut BinaryHeap<Ranked>, into: &mut Vec<Ranked>) {
-        into.clear();
-        into.extend(heap.drain());
-        into.sort_unstable();
-    }
-}
-
-/// Reusable per-thread buffers for the sampled pass, each sized by the comparison universe.
-struct SampledScratch {
-    map_distances: Vec<f32>,
-    representation_distances: Vec<f32>,
-    canonical_distances: Vec<f32>,
-    map_order: Vec<u32>,
-    representation_order: Vec<u32>,
-    canonical_order: Vec<u32>,
-    ranks: RankScratch,
-    clump_reference: Vec<u32>,
-    clump_judged: Vec<u32>,
-}
-
-impl SampledScratch {
-    fn new(comparisons: usize) -> Self {
-        Self {
-            map_distances: Vec::with_capacity(comparisons),
-            representation_distances: Vec::with_capacity(comparisons),
-            canonical_distances: Vec::with_capacity(comparisons),
-            map_order: Vec::with_capacity(comparisons),
-            representation_order: Vec::with_capacity(comparisons),
-            canonical_order: Vec::with_capacity(comparisons),
-            ranks: RankScratch::new(comparisons),
-            clump_reference: Vec::new(),
-            clump_judged: Vec::new(),
-        }
-    }
-}
-
 /// Sorts universe indices nearest-first, ties by ascending row.
-fn order_into(order: &mut Vec<u32>, distances: &[f32], rows: &[usize]) {
+fn order_into<A: Allocator>(order: &mut Vec<u32, A>, distances: &[f32], rows: &[NodeRowId]) {
     order.clear();
     order.extend(0..distances.len() as u32);
     order.sort_unstable_by(|&one, &other| {
@@ -517,4 +112,394 @@ fn order_into(order: &mut Vec<u32>, distances: &[f32], rows: &[usize]) {
             .total_cmp(&distances[other as usize])
             .then_with(|| rows[one as usize].cmp(&rows[other as usize]))
     });
+}
+
+/// One anchor's corpus-pass output across the neighbourhood sizes.
+///
+/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the
+/// ranking intermediates live in the arena.
+pub(super) struct AnchorReading {
+    /// Rank aggregates, one per neighbourhood size.
+    pub cells: Vec<NeighbourhoodAggregate>,
+    /// Neighbourhood radii, one per neighbourhood size.
+    pub radii: Vec<RadiusPair>,
+    /// Clump-collapsed aggregates, one per neighbourhood size.
+    ///
+    /// Empty when the pass carries no clump grouping.
+    pub clumps: Vec<ClumpAggregate>,
+}
+
+/// The corpus pass's shared inputs: every anchor against every non-anchor row.
+pub(super) struct CorpusPass<'pass> {
+    /// The representation matrix, in row order.
+    pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    /// The coordinate frame, in row order.
+    pub coordinates: &'pass IdSlice<NodeRowId, Vec2>,
+    /// The anchor rows every scan excludes.
+    pub anchor_mask: &'pass DenseBitSet<NodeRowId>,
+    /// Nearest rows kept per space: the largest neighbourhood size.
+    pub search: usize,
+    /// Prevalidated empty aggregates, one per neighbourhood size.
+    pub template: &'pass [NeighbourhoodAggregate],
+    /// The neighbourhood sizes, in the template's order.
+    pub neighbourhoods: &'pass [NonZero<usize>],
+    /// Clump labels over the corpus rows.
+    ///
+    /// When the probe reads clump-granularity recall beside the plain reading.
+    pub clumps: Option<&'pass Clumps>,
+}
+
+impl CorpusPass<'_> {
+    /// Ranks every anchor, yielding per-neighbourhood readings in anchor order.
+    pub(super) fn run<'call>(
+        &'call self,
+        anchor_rows: &'call [NodeRowId],
+    ) -> impl ParallelIterator<Item = AnchorReading> + 'call {
+        let mut negated_anchor_mask = self.anchor_mask.clone();
+        negated_anchor_mask.negate();
+
+        anchor_rows
+            .par_iter()
+            .map_init(Scratch::new, move |scratch, &anchor| {
+                self.anchor(anchor, &negated_anchor_mask, scratch)
+            })
+    }
+
+    /// Ranks one anchor against every non-anchor row in both spaces.
+    ///
+    /// The rank of a neighbour is the count of universe rows strictly nearer under the total order,
+    /// accumulated against the opposite space's nearest [`search`](Self::search) rows during each
+    /// scan; the representation matrix is scanned once and the coordinate frame twice.
+    fn anchor(
+        &self,
+        anchor: NodeRowId,
+        negated_anchor_mask: &DenseBitSet<NodeRowId>,
+        scratch: &mut Scratch,
+    ) -> AnchorReading {
+        scratch.reset();
+
+        let anchor_point = self.coordinates[anchor];
+        let anchor_embedding = &self.representations[anchor];
+
+        // The map's nearest rows, from the first coordinate scan.
+        let mut heap = BinaryHeap::new_in(&*scratch);
+
+        for row in negated_anchor_mask {
+            let point = self.coordinates[row];
+
+            let candidate = Ranked {
+                row,
+                distance: anchor_point.distance_squared(point),
+            };
+            push_bounded(&mut heap, candidate, self.search);
+        }
+
+        let nearest = heap.into_sorted_vec();
+
+        // Representation scan: the reference nearest rows, and each map
+        // neighbour's reference rank counted against its distance.
+        let mut thresholds = Vec::with_capacity_in(nearest.len(), &*scratch);
+        thresholds.extend(nearest.iter().map(|member| Ranked {
+            distance: anchor_embedding.cosine_distance(&self.representations[member.row]),
+            row: member.row,
+        }));
+
+        let mut counts = Vec::with_capacity_in(thresholds.len(), &*scratch);
+        counts.resize(thresholds.len(), 0);
+
+        let mut heap = BinaryHeap::with_capacity_in(thresholds.len(), &*scratch);
+
+        for row in negated_anchor_mask {
+            let embedding = &self.representations[row];
+
+            let candidate = Ranked {
+                row,
+                distance: anchor_embedding.cosine_distance(embedding),
+            };
+
+            for (threshold, count) in thresholds.iter().zip(&mut counts) {
+                if candidate < *threshold {
+                    *count += 1;
+                }
+            }
+
+            push_bounded(&mut heap, candidate, self.search);
+        }
+
+        let reference_nearest = heap.into_sorted_vec();
+        let reference_ranks = counts.clone();
+
+        // Second coordinate scan: each reference neighbour's map rank.
+        thresholds.clear();
+        thresholds.extend(reference_nearest.iter().map(|member| Ranked {
+            distance: anchor_point.distance_squared(self.coordinates[member.row]),
+            row: member.row,
+        }));
+
+        counts.clear();
+        counts.resize(thresholds.len(), 0);
+
+        for row in negated_anchor_mask {
+            let point = self.coordinates[row];
+
+            let candidate = Ranked {
+                distance: anchor_point.distance_squared(point),
+                row,
+            };
+
+            for (threshold, count) in thresholds.iter().zip(&mut counts) {
+                if candidate < *threshold {
+                    *count += 1;
+                }
+            }
+        }
+
+        let mut cells = self.template.to_vec();
+        let mut radii = Vec::with_capacity(self.neighbourhoods.len());
+
+        for (aggregate, &k) in cells.iter_mut().zip(self.neighbourhoods) {
+            aggregate.observe_ranks(&reference_ranks[..k.get()], &counts[..k.get()]);
+            radii.push(RadiusPair {
+                // The map scans rank by squared distance; the radius is
+                // the distance itself.
+                map: nearest[k.get() - 1].distance.sqrt(),
+                representation: reference_nearest[k.get() - 1].distance,
+            });
+        }
+
+        AnchorReading {
+            cells,
+            radii,
+            clumps: self.clump_cells(&nearest, &reference_nearest, scratch),
+        }
+    }
+
+    /// Reads the clump-collapsed cells from the anchor's nearest lists, empty without a grouping.
+    ///
+    /// Both nearest lists arrive nearest-first from the anchor's scans, so the collapsed reading
+    /// costs two small label sweeps per neighbourhood size.
+    fn clump_cells(
+        &self,
+        map_nearest: &[Ranked],
+        reference_nearest: &[Ranked],
+        scratch: &Scratch,
+    ) -> Vec<ClumpAggregate> {
+        let Some(clumps) = self.clumps else {
+            return Vec::new();
+        };
+
+        let mut reference_labels = Vec::new_in(scratch);
+        let mut map_labels = Vec::new_in(scratch);
+
+        let mut cells = Vec::with_capacity(self.neighbourhoods.len());
+        for &k in self.neighbourhoods {
+            reference_labels.clear();
+            reference_labels.extend(
+                reference_nearest[..k.get()]
+                    .iter()
+                    .map(|member| clumps.clump(member.row.as_usize())),
+            );
+            map_labels.clear();
+            map_labels.extend(
+                map_nearest[..k.get()]
+                    .iter()
+                    .map(|member| clumps.clump(member.row.as_usize())),
+            );
+
+            let mut aggregate = ClumpAggregate::new(k);
+            aggregate.observe(&mut reference_labels, &mut map_labels);
+            cells.push(aggregate);
+        }
+        cells
+    }
+}
+
+/// One anchor's sampled-pass output across the space pairs.
+///
+/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the
+/// ranking intermediates live in the arena.
+pub(super) struct SampledReading {
+    /// Rank aggregates per space pair, one cell per neighbourhood size.
+    pub cells: SpacePairArray<Vec<NeighbourhoodAggregate>>,
+    /// Triplet aggregates per space pair.
+    pub triplets: SpacePairArray<TripletAggregate>,
+    /// Clump-collapsed representation-versus-canonical aggregates, one per neighbourhood size.
+    ///
+    /// Empty when the pass carries no clump grouping.
+    pub baseline_clumps: Vec<ClumpAggregate>,
+}
+
+/// The sampled pass's shared inputs: every anchor against the comparison rows in all three spaces.
+pub(super) struct SampledPass<'pass> {
+    /// The representation matrix, in row order.
+    pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    /// The coordinate frame, in row order.
+    pub coordinates: &'pass IdSlice<NodeRowId, Vec2>,
+    /// The anchors' canonical embeddings, in anchor order.
+    pub anchor_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
+    /// The comparison rows' canonical embeddings, in comparison order.
+    pub comparison_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
+    /// The comparison rows: the pass's shared universe.
+    pub comparison_rows: &'pass [NodeRowId],
+    /// Prevalidated empty aggregates, one per neighbourhood size.
+    pub template: &'pass [NeighbourhoodAggregate],
+    /// The neighbourhood sizes, in the template's order.
+    pub neighbourhoods: &'pass [NonZero<usize>],
+    /// The shared comparison-index pairs the triplet readings sample.
+    pub pairs: &'pass [[u32; 2]],
+    /// Clump labels over the corpus rows.
+    ///
+    /// When the probe reads the representation baseline at clump granularity beside the plain
+    /// reading.
+    pub clumps: Option<&'pass Clumps>,
+}
+
+impl SampledPass<'_> {
+    /// Ranks every anchor, yielding per-space-pair and clump-collapsed readings in anchor order.
+    pub(super) fn run<'call>(
+        &'call self,
+        anchor_rows: &'call [NodeRowId],
+    ) -> impl ParallelIterator<Item = SampledReading> + 'call {
+        anchor_rows
+            .par_iter()
+            .enumerate()
+            .map_init(Scratch::new, |scratch, (index, &anchor)| {
+                self.anchor(index, anchor, scratch)
+            })
+    }
+
+    /// Ranks one anchor's comparison universe in all three spaces.
+    ///
+    /// Reads the space pairs, the triplet verdicts, and the clump-collapsed baseline.
+    fn anchor(&self, index: usize, anchor: NodeRowId, scratch: &mut Scratch) -> SampledReading {
+        scratch.reset();
+
+        let anchor_point = self.coordinates[anchor];
+        let anchor_embedding = &self.representations[anchor];
+        let anchor_canonical = &self.anchor_canonical[index];
+
+        let mut map_distances = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
+        let mut representation_distances =
+            Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
+        let mut canonical_distances = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
+
+        for (universe, &row) in self.comparison_rows.iter().enumerate() {
+            map_distances.push(anchor_point.distance_squared(self.coordinates[row]));
+            representation_distances
+                .push(anchor_embedding.cosine_distance(&self.representations[row]));
+            canonical_distances
+                .push(anchor_canonical.cosine_distance(&self.comparison_canonical[universe]));
+        }
+
+        let mut map_order = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
+        let mut representation_order = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
+        let mut canonical_order = Vec::with_capacity_in(self.comparison_rows.len(), &*scratch);
+
+        order_into(&mut map_order, &map_distances, self.comparison_rows);
+        order_into(
+            &mut representation_order,
+            &representation_distances,
+            self.comparison_rows,
+        );
+        order_into(
+            &mut canonical_order,
+            &canonical_distances,
+            self.comparison_rows,
+        );
+
+        let mut ranks = RankScratch::new(self.comparison_rows.len());
+        let observed = |by_reference: &[u32], by_map: &[u32], ranks: &mut RankScratch| {
+            let mut cells = self.template.to_vec();
+            for aggregate in &mut cells {
+                aggregate.observe(by_reference, by_map, ranks);
+            }
+            cells
+        };
+
+        let map_representation = observed(&representation_order, &map_order, &mut ranks);
+        let map_canonical = observed(&canonical_order, &map_order, &mut ranks);
+        let representation_canonical =
+            observed(&canonical_order, &representation_order, &mut ranks);
+
+        // Triplet verdicts: whether each space orders the pair's two
+        // points the same way from this anchor, under the shared
+        // (distance, row) total order. Distinct rows leave no ties.
+        let mut triplets = SpacePairArray::from_elem(TripletAggregate::default());
+        for &[first, second] in self.pairs {
+            let nearer_first = |distances: &[f32]| {
+                distances[first as usize]
+                    .total_cmp(&distances[second as usize])
+                    .then_with(|| {
+                        self.comparison_rows[first as usize]
+                            .cmp(&self.comparison_rows[second as usize])
+                    })
+                    .is_lt()
+            };
+
+            let map = nearer_first(&map_distances);
+            let representation = nearer_first(&representation_distances);
+            let canonical = nearer_first(&canonical_distances);
+
+            triplets[SpacePair::MapRepresentation].observe(map == representation);
+            triplets[SpacePair::MapCanonical].observe(map == canonical);
+            triplets[SpacePair::RepresentationCanonical].observe(representation == canonical);
+        }
+
+        let baseline_clumps = self.clump_cells(&canonical_order, &representation_order, scratch);
+
+        let mut cells = SpacePairArray::from_elem(Vec::new());
+        cells[SpacePair::MapRepresentation] = map_representation;
+        cells[SpacePair::MapCanonical] = map_canonical;
+        cells[SpacePair::RepresentationCanonical] = representation_canonical;
+
+        SampledReading {
+            cells,
+            triplets,
+            baseline_clumps,
+        }
+    }
+
+    /// Reads the clump-collapsed representation-versus-canonical cells from the anchor's orderings.
+    ///
+    /// Empty without a grouping.
+    ///
+    /// Both orderings arrive whole-universe nearest-first, so the collapsed baseline costs two
+    /// small label sweeps per neighbourhood size. The canonical ordering is the reference: the
+    /// collapse reads how much of each exact canonical neighbourhood the representation keeps once
+    /// rows are relabeled by their connected-component id.
+    fn clump_cells(
+        &self,
+        canonical_order: &[u32],
+        representation_order: &[u32],
+        scratch: &Scratch,
+    ) -> Vec<ClumpAggregate> {
+        let Some(clumps) = self.clumps else {
+            return Vec::new();
+        };
+
+        let mut reference_labels = Vec::new_in(scratch);
+        let mut judged_labels = Vec::new_in(scratch);
+
+        let mut cells = Vec::with_capacity(self.neighbourhoods.len());
+        for &k in self.neighbourhoods {
+            reference_labels.clear();
+            reference_labels.extend(
+                canonical_order[..k.get()].iter().map(|&universe| {
+                    clumps.clump(self.comparison_rows[universe as usize].as_usize())
+                }),
+            );
+            judged_labels.clear();
+            judged_labels.extend(
+                representation_order[..k.get()].iter().map(|&universe| {
+                    clumps.clump(self.comparison_rows[universe as usize].as_usize())
+                }),
+            );
+
+            let mut aggregate = ClumpAggregate::new(k);
+            aggregate.observe(&mut reference_labels, &mut judged_labels);
+            cells.push(aggregate);
+        }
+
+        cells
+    }
 }

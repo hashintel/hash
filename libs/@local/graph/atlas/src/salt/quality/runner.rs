@@ -10,7 +10,7 @@
 //! axes): the runner matches artifact rows to source identities through the identity artifact, and
 //! a dataset at other axes would resolve types for a different corpus.
 
-use hashql_core::id::Id as _;
+use hashql_core::id::IdSlice;
 use rand::Rng;
 use tracing::Instrument as _;
 
@@ -120,7 +120,12 @@ pub(crate) async fn run<D: Dataset>(
 
     let readings = probe(
         dataset,
-        ProbeCorpus::new(node_ids, representations, coordinates).with_clumps(&clumps),
+        ProbeCorpus::new(
+            IdSlice::from_raw(node_ids),
+            IdSlice::from_raw(representations),
+            IdSlice::from_raw(coordinates),
+        )
+        .with_clumps(&clumps),
         &options.probe,
         rng,
     )
@@ -129,7 +134,8 @@ pub(crate) async fn run<D: Dataset>(
     .map_err(QualityRunError::Probe)?;
 
     let anchor_types = {
-        let anchor_ids = readings.anchors.iter().map(|&row| node_ids[row.as_usize()]);
+        let node_ids = IdSlice::from_raw(node_ids);
+        let anchor_ids = readings.anchors.iter().map(|&row| node_ids[row]);
 
         match_deliveries(node_ids, &readings.anchors, dataset.node_types(anchor_ids))
             .instrument(tracing::info_span!("types"))

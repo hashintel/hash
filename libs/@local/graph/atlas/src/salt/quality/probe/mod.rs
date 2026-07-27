@@ -37,18 +37,19 @@ use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, num::NonZero, pin::pin};
 
 use futures::{Stream, TryStreamExt as _};
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, bit_vec::DenseBitSet};
 use rand::Rng;
 use rayon::iter::ParallelIterator as _;
 
 use self::pass::{CorpusPass, SampledPass};
-pub(crate) use self::readings::{ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair};
+pub(crate) use self::readings::{
+    ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair, SpacePairArray,
+};
 use super::{
     clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, TripletAggregate},
 };
 use crate::{
-    bitset::BitSet,
     dataset::{CANONICAL_DIMENSIONS, Dataset, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
     math::{AlignedVecN, BoxedVecN, Vec2},
@@ -200,9 +201,9 @@ impl<E: Error + 'static> Error for ProbeError<E> {
 /// clump-granularity recall.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ProbeCorpus<'corpus, N> {
-    node_ids: &'corpus [N],
-    representations: &'corpus [AlignedVecN<PROJECTOR_DIMENSIONS>],
-    coordinates: &'corpus [Vec2],
+    node_ids: &'corpus IdSlice<NodeRowId, N>,
+    representations: &'corpus IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    coordinates: &'corpus IdSlice<NodeRowId, Vec2>,
     clumps: Option<&'corpus Clumps>,
 }
 
@@ -215,9 +216,9 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     /// mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
-        node_ids: &'corpus [N],
-        representations: &'corpus [AlignedVecN<PROJECTOR_DIMENSIONS>],
-        coordinates: &'corpus [Vec2],
+        node_ids: &'corpus IdSlice<NodeRowId, N>,
+        representations: &'corpus IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+        coordinates: &'corpus IdSlice<NodeRowId, Vec2>,
     ) -> Self {
         assert_eq!(
             node_ids.len(),
@@ -262,6 +263,124 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     }
 }
 
+/// An unordered id-keyed delivery did not match its requests.
+#[derive(Debug)]
+pub(crate) enum DeliveryError<E> {
+    /// The stream failed.
+    Dataset(E),
+    /// The stream delivered an id that was never requested.
+    Unrequested,
+    /// The stream ended before covering every requested id.
+    Missing { requested: usize, delivered: usize },
+}
+
+impl<E> fmt::Display for DeliveryError<E> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Dataset(_) => fmt.write_str("the delivery stream failed"),
+            Self::Unrequested => {
+                fmt.write_str("the stream delivered an id that was never requested")
+            }
+            Self::Missing {
+                requested,
+                delivered,
+            } => write!(
+                fmt,
+                "the stream covered {delivered} of {requested} requested ids",
+            ),
+        }
+    }
+}
+
+impl<E: Error + 'static> Error for DeliveryError<E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Dataset(error) => Some(error),
+            Self::Unrequested | Self::Missing { .. } => None,
+        }
+    }
+}
+
+/// Matches an unordered delivery stream against the requested rows' ids.
+///
+/// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
+/// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
+/// once, nothing else - and the payloads return in `rows` order. Requests are read straight off
+/// the `(node_ids, rows)` pair, so no caller materializes a request list.
+pub(super) async fn match_deliveries<I, R, T, E>(
+    node_ids: &IdSlice<R, I>,
+    rows: &[R],
+    deliveries: impl Stream<Item = Result<(I, T), E>>,
+) -> Result<Vec<T>, DeliveryError<E>>
+where
+    // Matching is on byte identity, not semantic order: `IntoBytes` totally
+    // orders exactly the encoding the stream echoes back, where an ordering
+    // bound on the id type would owe neither totality nor byte fidelity.
+    I: zerocopy::IntoBytes + zerocopy::Immutable,
+    R: Id,
+{
+    let key = |slot: u32| node_ids[rows[slot as usize]].as_bytes();
+
+    let mut order: Vec<u32> = (0..rows.len() as u32).collect();
+    order.sort_unstable_by(|&one, &other| key(one).cmp(key(other)));
+
+    let mut received: Vec<Option<T>> = rows.iter().map(|_| None).collect();
+    let mut delivered = 0_usize;
+
+    let mut deliveries = pin!(deliveries);
+    while let Some((id, payload)) = deliveries
+        .try_next()
+        .await
+        .map_err(DeliveryError::Dataset)?
+    {
+        // The search's `Err` is an insertion point, not a failure to keep.
+        let position = order
+            .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
+            .map_err(|_insertion| DeliveryError::Unrequested)?;
+        let slot = order[position] as usize;
+        if received[slot].replace(payload).is_none() {
+            delivered += 1;
+        }
+    }
+
+    if delivered != rows.len() {
+        return Err(DeliveryError::Missing {
+            requested: rows.len(),
+            delivered,
+        });
+    }
+
+    Ok(received
+        .into_iter()
+        .map(|slot| slot.expect("every slot was delivered"))
+        .collect())
+}
+
+/// Fetches the sampled rows' canonical embeddings, in sample order.
+async fn fetch_canonical<D: Dataset>(
+    dataset: &D,
+    node_ids: &IdSlice<NodeRowId, D::NodeId>,
+    sample: &[NodeRowId],
+) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, ProbeError<D::Error>> {
+    match_deliveries(
+        node_ids,
+        sample,
+        dataset.canonical_node_embeddings(sample.iter().map(|&row| node_ids[row])),
+    )
+    .await
+    .map_err(|error| match error {
+        DeliveryError::Dataset(error) => ProbeError::Dataset(error),
+        DeliveryError::Unrequested => ProbeError::UnrequestedEmbedding,
+        DeliveryError::Missing {
+            requested,
+            delivered,
+        } => ProbeError::MissingEmbeddings {
+            requested,
+            delivered,
+        },
+    })
+}
+
 /// Reads the map's neighbourhood fidelity over sampled anchors.
 ///
 /// Anchor and comparison rows are sampled disjointly without replacement, and the anchors' and
@@ -293,14 +412,17 @@ pub(crate) async fn probe<D: Dataset>(
         .max()
         .expect("the options name at least one neighbourhood size");
 
-    let sample = sample_indices_vec(&mut rng, rows, anchors + comparisons).into_vec();
+    let sample: Vec<_> = sample_indices_vec(&mut rng, rows, anchors + comparisons)
+        .into_iter()
+        .map(NodeRowId::from_usize)
+        .collect();
     let (anchor_rows, comparison_rows) = sample.split_at(anchors);
     let pairs = sample_pairs(&mut rng, comparisons, options.triplet_pairs);
 
     let canonical = fetch_canonical(dataset, corpus.node_ids, &sample).await?;
     let (anchor_canonical, comparison_canonical) = canonical.split_at(anchors);
 
-    let mut anchor_mask = BitSet::new(rows);
+    let mut anchor_mask = DenseBitSet::new_empty(rows);
     for &row in anchor_rows {
         anchor_mask.insert(row);
     }
@@ -342,22 +464,16 @@ pub(crate) async fn probe<D: Dataset>(
     let mut sampled_grids = transpose_pairs(sampled.cells)
         .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, rungs)));
     let mut sampled_grid = |pair: SpacePair| {
-        sampled_grids[pair as usize]
+        sampled_grids[pair]
             .take()
             .expect("each pair's grid moves out exactly once")
     };
     let mut triplet_column =
-        |pair: SpacePair| mem::take(&mut triplet_columns[pair as usize]).into_boxed_slice();
+        |pair: SpacePair| mem::take(&mut triplet_columns[pair]).into_boxed_slice();
 
     Ok(ProbeReadings {
-        anchors: anchor_rows
-            .iter()
-            .map(|&row| NodeRowId::from_usize(row))
-            .collect(),
-        comparisons: comparison_rows
-            .iter()
-            .map(|&row| NodeRowId::from_usize(row))
-            .collect(),
+        anchors: anchor_rows.iter().copied().collect(),
+        comparisons: comparison_rows.iter().copied().collect(),
         neighbourhoods: options.neighbourhoods.iter().copied().collect(),
         map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),
         clumps: corpus.clumps.map(|clumps| ClumpReadings {
@@ -406,9 +522,9 @@ fn split_anchor_readings(
 /// The sampled pass's per-anchor readings split into grid inputs.
 struct SampledColumns {
     /// Per-anchor cell arrays, one entry per space pair.
-    cells: Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
+    cells: Vec<SpacePairArray<Vec<NeighbourhoodAggregate>>>,
     /// Per-anchor triplet aggregates, one entry per space pair.
-    triplets: Vec<[TripletAggregate; SpacePair::COUNT]>,
+    triplets: Vec<SpacePairArray<TripletAggregate>>,
     /// Per-anchor baseline clump cells.
     baseline_clumps: Vec<Vec<ClumpAggregate>>,
 }
@@ -513,14 +629,13 @@ pub(super) fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) 
 
 /// Splits per-anchor triplet arrays into per-pair columns, preserving the pair order.
 fn transpose_triplets(
-    triplets: Vec<[TripletAggregate; SpacePair::COUNT]>,
-) -> [Vec<TripletAggregate>; SpacePair::COUNT] {
-    let mut columns: [Vec<TripletAggregate>; SpacePair::COUNT] =
-        core::array::from_fn(|_| Vec::with_capacity(triplets.len()));
+    triplets: Vec<SpacePairArray<TripletAggregate>>,
+) -> SpacePairArray<Vec<TripletAggregate>> {
+    let mut columns = SpacePairArray::from_fn(|_| Vec::with_capacity(triplets.len()));
 
     for anchor_triplets in triplets {
-        for (column, aggregate) in columns.iter_mut().zip(anchor_triplets) {
-            column.push(aggregate);
+        for (pair, aggregate) in anchor_triplets.into_iter_enumerated() {
+            columns[pair].push(aggregate);
         }
     }
 
@@ -529,134 +644,15 @@ fn transpose_triplets(
 
 /// Splits per-anchor space-pair cell arrays into per-pair cell rows, preserving the pair order.
 fn transpose_pairs(
-    cells: Vec<[Vec<NeighbourhoodAggregate>; SpacePair::COUNT]>,
-) -> [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] {
-    let mut pairs: [Vec<Vec<NeighbourhoodAggregate>>; SpacePair::COUNT] =
-        core::array::from_fn(|_| Vec::with_capacity(cells.len()));
+    cells: Vec<SpacePairArray<Vec<NeighbourhoodAggregate>>>,
+) -> SpacePairArray<Vec<Vec<NeighbourhoodAggregate>>> {
+    let mut pairs = SpacePairArray::from_fn(|_| Vec::with_capacity(cells.len()));
 
     for anchor_cells in cells {
-        for (pair, anchor_cell) in pairs.iter_mut().zip(anchor_cells) {
-            pair.push(anchor_cell);
+        for (pair, anchor_cell) in anchor_cells.into_iter_enumerated() {
+            pairs[pair].push(anchor_cell);
         }
     }
 
     pairs
-}
-
-/// An unordered id-keyed delivery did not match its requests.
-#[derive(Debug)]
-pub(crate) enum DeliveryError<E> {
-    /// The stream failed.
-    Dataset(E),
-    /// The stream delivered an id that was never requested.
-    Unrequested,
-    /// The stream ended before covering every requested id.
-    Missing { requested: usize, delivered: usize },
-}
-
-impl<E> fmt::Display for DeliveryError<E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Dataset(_) => fmt.write_str("the delivery stream failed"),
-            Self::Unrequested => {
-                fmt.write_str("the stream delivered an id that was never requested")
-            }
-            Self::Missing {
-                requested,
-                delivered,
-            } => write!(
-                fmt,
-                "the stream covered {delivered} of {requested} requested ids",
-            ),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for DeliveryError<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Dataset(error) => Some(error),
-            Self::Unrequested | Self::Missing { .. } => None,
-        }
-    }
-}
-
-/// Matches an unordered delivery stream against the requested rows' ids.
-///
-/// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
-/// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
-/// once, nothing else - and the payloads return in `rows` order. Requests are read straight off
-/// the `(node_ids, rows)` pair, so no caller materializes a request list.
-pub(super) async fn match_deliveries<Id, Row, T, E>(
-    node_ids: &[Id],
-    rows: &[Row],
-    deliveries: impl Stream<Item = Result<(Id, T), E>>,
-) -> Result<Vec<T>, DeliveryError<E>>
-where
-    // Matching is on byte identity, not semantic order: `IntoBytes` totally
-    // orders exactly the encoding the stream echoes back, where an ordering
-    // bound on the id type would owe neither totality nor byte fidelity.
-    Id: zerocopy::IntoBytes + zerocopy::Immutable,
-    Row: Copy + Into<usize>,
-{
-    let key = |slot: u32| node_ids[rows[slot as usize].into()].as_bytes();
-
-    let mut order: Vec<u32> = (0..rows.len() as u32).collect();
-    order.sort_unstable_by(|&one, &other| key(one).cmp(key(other)));
-
-    let mut received: Vec<Option<T>> = rows.iter().map(|_| None).collect();
-    let mut delivered = 0_usize;
-
-    let mut deliveries = pin!(deliveries);
-    while let Some((id, payload)) = deliveries
-        .try_next()
-        .await
-        .map_err(DeliveryError::Dataset)?
-    {
-        // The search's `Err` is an insertion point, not a failure to keep.
-        let position = order
-            .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
-            .map_err(|_insertion| DeliveryError::Unrequested)?;
-        let slot = order[position] as usize;
-        if received[slot].replace(payload).is_none() {
-            delivered += 1;
-        }
-    }
-
-    if delivered != rows.len() {
-        return Err(DeliveryError::Missing {
-            requested: rows.len(),
-            delivered,
-        });
-    }
-
-    Ok(received
-        .into_iter()
-        .map(|slot| slot.expect("every slot was delivered"))
-        .collect())
-}
-
-/// Fetches the sampled rows' canonical embeddings, in sample order.
-async fn fetch_canonical<D: Dataset>(
-    dataset: &D,
-    node_ids: &[D::NodeId],
-    sample: &[usize],
-) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, ProbeError<D::Error>> {
-    match_deliveries(
-        node_ids,
-        sample,
-        dataset.canonical_node_embeddings(sample.iter().map(|&row| node_ids[row])),
-    )
-    .await
-    .map_err(|error| match error {
-        DeliveryError::Dataset(error) => ProbeError::Dataset(error),
-        DeliveryError::Unrequested => ProbeError::UnrequestedEmbedding,
-        DeliveryError::Missing {
-            requested,
-            delivered,
-        } => ProbeError::MissingEmbeddings {
-            requested,
-            delivered,
-        },
-    })
 }

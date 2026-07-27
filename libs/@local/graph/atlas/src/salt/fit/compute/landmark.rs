@@ -1,7 +1,7 @@
 //! The landmark skeleton and baseline placement stages.
 use std::io::{self, BufWriter};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, bit_vec::DenseBitSet};
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -15,7 +15,6 @@ use super::{
     Context,
 };
 use crate::{
-    bitset::BitSet,
     dataset::PROJECTOR_DIMENSIONS,
     file::{
         array::{ArrayVariant, Dim, SizedArrayWriter},
@@ -48,7 +47,10 @@ impl Context<'_> {
     /// The prior skeleton's rows translate through the prior identity table to source ids and
     /// through the staged current table back to rows; nodes that left the corpus since the prior
     /// generation simply mark nothing.
-    pub(super) fn prior_landmark_marks<I>(&self, prior: &Generation) -> Result<BitSet, StageError>
+    pub(super) fn prior_landmark_marks<I>(
+        &self,
+        prior: &Generation,
+    ) -> Result<DenseBitSet<NodeRowId>, StageError>
     where
         I: ByteStable,
     {
@@ -70,15 +72,16 @@ impl Context<'_> {
             self.staging.path_of(&Role::NodeIdentities.file_name()),
         )?)?;
 
-        let mut marks =
-            BitSet::new(usize::try_from(current.len()).expect("rows fit the address space"));
+        let mut marks = DenseBitSet::new_empty(
+            usize::try_from(current.len()).expect("rows fit the address space"),
+        );
         for &row in skeleton.selected_rows() {
             let id = prior_ids
                 .id(row)
                 .ok_or_else(|| PriorError::SkeletonBeyondIdentities { row: row.as_u64() })?;
 
             if let Some(current_row) = current.row_of(id) {
-                marks.insert(current_row.as_usize());
+                marks.insert(current_row);
             }
         }
 
@@ -100,15 +103,16 @@ impl Context<'_> {
         &self,
         rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
         semantic: &SemanticGraphArchive,
-        prior_marks: Option<&BitSet>,
+        prior_marks: Option<&DenseBitSet<NodeRowId>>,
     ) -> Result<Staged<LandmarkSkeletonArchive, LandmarkEvidence>, StageError> {
         let _span = tracing::info_span!("landmarks").entered();
 
         let selection = {
             let _span = tracing::info_span!("landmark-selection").entered();
             let candidates: Vec<LandmarkCandidate> = (0..rows.len())
+                .map(NodeRowId::from_usize)
                 .map(|row| LandmarkCandidate {
-                    row: NodeRowId::from_usize(row),
+                    row,
                     sampling_weight: SamplingWeight::UNIFORM,
                     axes: SubgroupAxes::default(),
                     prior_landmark: prior_marks.is_some_and(|marks| marks.contains(row)),
@@ -116,8 +120,8 @@ impl Context<'_> {
                 .collect();
 
             select_landmarks(
-                &candidates,
-                &[],
+                IdSlice::from_raw(&candidates),
+                IdSlice::from_raw(&[]),
                 self.config.selection,
                 stage_rng(self.config.seed, Stage::LandmarkSelection),
             )?

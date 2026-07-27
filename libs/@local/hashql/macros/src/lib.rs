@@ -107,7 +107,7 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// # Byte-encoded ids
 ///
 /// With `unaligned`, the id stores its value as a byte array with alignment 1
-/// and derives zerocopy's byte traits (`IntoBytes`, `FromBytes`, `Immutable`,
+/// and implements zerocopy's byte traits (`IntoBytes`, `Immutable`,
 /// `Unaligned`, `KnownLayout`, plus `ByteEq` and `ByteHash`), so slices of ids
 /// can be reinterpreted directly from file or wire bytes. `endian` pins the
 /// byte order of that encoding; `endian = little` and `endian = big` make the
@@ -117,6 +117,12 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// feature. `u8` accepts `unaligned` (a single byte is its own encoding) but
 /// has no byte order to pin.
 ///
+/// The byte-source trait follows the bounds: an unbounded id implements
+/// `FromBytes` (every bit pattern is a valid id), while a range-bounded id
+/// implements `TryFromBytes` with the range as its validity predicate, so
+/// fallible reads reject out-of-range bytes and infallible byte constructors
+/// do not exist for it.
+///
 /// # Generated items
 ///
 /// - [`Id`] trait implementation
@@ -124,6 +130,7 @@ pub fn derive_id(item: TokenStream) -> TokenStream {
 /// - [`TryFrom<u32>`], [`TryFrom<u64>`], [`TryFrom<usize>`] implementations
 /// - [`Debug`] and (by default) [`Display`] implementations
 /// - `new` constructor, plus `new_unchecked` for range-bounded ids
+/// - `get` accessor returning the raw scalar at its native width
 #[proc_macro]
 pub fn define_id(item: TokenStream) -> TokenStream {
     id::expand_define(item.into()).into()

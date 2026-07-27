@@ -48,6 +48,9 @@ pub(crate) mod landmark;
 // Crate-visible for the serving surface's schedule reads.
 pub(crate) mod lod;
 mod policy;
+// Crate-visible for the root `bench` facade's re-exports.
+#[cfg(feature = "bench")]
+pub use self::policy::classifier::bench as classifier_bench;
 // Crate-visible for the serving surface's TYPE_MASK reads.
 pub(crate) mod postings;
 // Crate-visible for the root `bench` facade's re-exports.

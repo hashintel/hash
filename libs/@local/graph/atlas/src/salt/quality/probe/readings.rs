@@ -6,6 +6,8 @@
 
 use core::{mem, num::NonZero};
 
+use hashql_core::id::{Id, IdArray};
+
 use super::super::{
     clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
@@ -16,7 +18,7 @@ use crate::identity::NodeRowId;
 ///
 /// The passes' positional plumbing - pair-indexed arrays - uses this order; the reading structs
 /// name their pair fields instead, so the enum is the bridge between the two.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
 pub(crate) enum SpacePair {
     /// The 2D map judged against the 512-component representation.
     MapRepresentation,
@@ -30,6 +32,8 @@ impl SpacePair {
     /// Pairs in the schema, sizing pair-indexed arrays.
     pub(crate) const COUNT: usize = mem::variant_count::<Self>();
 }
+
+pub(crate) type SpacePairArray<T> = IdArray<SpacePair, T, { SpacePair::COUNT }>;
 
 /// Per-anchor aggregates for one space pair, anchor-major.
 ///

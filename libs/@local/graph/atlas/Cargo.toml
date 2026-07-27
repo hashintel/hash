@@ -90,6 +90,10 @@ gpu = ["burn/metal"]
 # operator binary over the same modules.
 
 [[example]]
+name              = "classifier_compare"
+required-features = ["bench"]
+
+[[example]]
 name              = "clump_sweep"
 required-features = ["bench"]
 

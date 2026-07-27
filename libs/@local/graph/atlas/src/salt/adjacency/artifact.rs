@@ -262,6 +262,7 @@ where
     for run in 0..usize::try_from(rows).expect("resident node domains fit usize") {
         let start = usize::try_from(fenceposts[run]).expect("slots fit the address space");
         let end = usize::try_from(fenceposts[run + 1]).expect("slots fit the address space");
+
         // Runs alternate outgoing (even) and incoming (odd).
         let direction = &mut seen[run & 1];
 

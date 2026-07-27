@@ -47,6 +47,8 @@ use crate::{
 };
 
 pub(crate) mod artifact;
+#[cfg(feature = "bench")]
+pub use self::fit::bench;
 mod fit;
 
 #[cfg(test)]

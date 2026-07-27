@@ -338,6 +338,15 @@ pub(super) fn expand_struct(
         });
 
     let derives = if bytes {
+        // Bounded ids reject `FromBytes` (and its `FromZeros` supertrait): both construct
+        // from arbitrary byte sources without running the range check. Their byte door is
+        // the hand-written `TryFromBytes` impl emitted below.
+        let from_bytes = if constraint.is_none() {
+            quote!(::zerocopy::FromBytes,)
+        } else {
+            TokenStream::new()
+        };
+
         quote! {
             #[derive(
                 Copy,
@@ -347,7 +356,7 @@ pub(super) fn expand_struct(
                 ::zerocopy::ByteEq,
                 ::zerocopy::ByteHash,
                 ::zerocopy::IntoBytes,
-                ::zerocopy::FromBytes,
+                #from_bytes
                 ::zerocopy::Immutable,
                 ::zerocopy::Unaligned,
                 ::zerocopy::KnownLayout,
@@ -372,6 +381,13 @@ pub(super) fn expand_struct(
 
         impl #name {
             #constructors
+
+            /// Returns the raw scalar value.
+            #[must_use]
+            #[inline]
+            #vis const fn get(self) -> #scalar {
+                #self_value
+            }
         }
 
         #range_assertion
@@ -435,6 +451,46 @@ pub(super) fn expand_struct(
             }
         }
     });
+
+    // Bounded byte-encoded ids get `TryFromBytes` by hand, with the range check as the
+    // validity predicate: the derive cannot see non-structural constraints, and `FromBytes`
+    // would admit out-of-range bit patterns at the byte door. The impl provides zerocopy's
+    // doc(hidden) items directly; upstream reserves the right to change them.
+    if bytes && let Some(constraint) = &constraint {
+        let storage_value = if storage.byteorder {
+            quote!(storage.unaligned_as_ref().get())
+        } else {
+            quote!(*storage.unaligned_as_ref())
+        };
+        let comparison = constraint.comparison(&value_ident, scalar);
+
+        output.extend(quote! {
+            // SAFETY: `is_bit_valid` returns `true` exactly when the stored scalar lies in
+            // the id's declared range - the type's only validity requirement beyond its
+            // storage, whose every initialized bit pattern is valid. The check is the same
+            // comparison `new` asserts on construction.
+            #[automatically_derived]
+            unsafe impl ::zerocopy::TryFromBytes for #name {
+                fn only_derive_is_allowed_to_implement_this_trait() {}
+
+                #[inline]
+                fn is_bit_valid<A>(candidate: ::zerocopy::Maybe<'_, Self, A>) -> bool
+                where
+                    A: ::zerocopy::invariant::Alignment,
+                {
+                    let storage = candidate.transmute_with::<
+                        #int,
+                        ::zerocopy::invariant::Valid,
+                        ::zerocopy::pointer::cast::CastSizedExact,
+                        ::zerocopy::BecauseImmutable,
+                    >();
+                    let value = #storage_value;
+
+                    #comparison
+                }
+            }
+        });
+    }
 
     // Debug
     output.extend(quote! {

@@ -259,6 +259,18 @@ where
     pub fn windows<const N: usize>(&self) -> impl ExactSizeIterator<Item = &[T; N]> {
         self.raw.array_windows()
     }
+
+    /// Sorts the vector in place using the given key function, in unstable order.
+    ///
+    /// See [`slice::sort_unstable_by_key`](prim@slice#method.sort_unstable_by_key) for details.
+    #[inline]
+    pub fn sort_unstable_by_key<K, F>(&mut self, func: F)
+    where
+        F: FnMut(&T) -> K,
+        K: Ord,
+    {
+        self.raw.sort_unstable_by_key(func);
+    }
 }
 
 #[expect(unsafe_code)]

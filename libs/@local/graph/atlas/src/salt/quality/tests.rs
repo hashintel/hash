@@ -14,7 +14,7 @@ use core::{assert_matches, future::ready, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::{SmallVec, smallvec};
@@ -424,7 +424,11 @@ impl ProbeFixture {
     }
 
     fn corpus(&self) -> ProbeCorpus<'_, U64<LE>> {
-        ProbeCorpus::new(&self.node_ids, self.representations(), &self.coordinates)
+        ProbeCorpus::new(
+            IdSlice::from_raw(&self.node_ids),
+            IdSlice::from_raw(self.representations()),
+            IdSlice::from_raw(&self.coordinates),
+        )
     }
 }
 

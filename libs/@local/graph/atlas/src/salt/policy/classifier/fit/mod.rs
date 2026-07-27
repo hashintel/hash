@@ -35,6 +35,8 @@ use crate::{
 };
 
 mod applicability;
+#[cfg(feature = "bench")]
+pub use self::solver::bench;
 mod calibration;
 mod objective;
 mod solver;

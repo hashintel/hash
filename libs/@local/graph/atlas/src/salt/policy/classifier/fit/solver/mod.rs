@@ -25,6 +25,8 @@ use crate::{
 };
 
 mod basis;
+#[cfg(feature = "bench")]
+pub mod bench;
 mod boundary;
 mod cg;
 mod config;

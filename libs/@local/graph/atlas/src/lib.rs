@@ -51,7 +51,8 @@
     const_array,
     const_default,
     const_try,
-    vec_from_fn
+    vec_from_fn,
+    step_trait
 )]
 #![expect(
     dead_code,
