@@ -372,6 +372,75 @@ describe("computePossibleTransition", () => {
     expect(result?.newRngState).toBeTypeOf("number");
   });
 
+  describe("predicate lambdas", () => {
+    const makePredicateSimulation = (guard: boolean) => {
+      const transition = makeTransition({
+        id: "t1",
+        inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
+        outputArcs: [{ placeId: "p2", weight: 1 }],
+        lambdaType: "predicate",
+      });
+      return makeSimulation({
+        places: [
+          makePlace("p1", "Source", "type1"),
+          makePlace("p2", "Target", "type1"),
+        ],
+        transitions: [transition],
+        types: [type1],
+        lambdaFns: new Map<string, HirCompiledBufferLambda>([
+          ["t1", () => guard],
+        ]),
+        kernelFns: new Map<string, HirCompiledBufferKernel>([
+          [
+            "t1",
+            (_f64, _u64, _u8, _placeBases, _indices, outF64) => {
+              outF64[0] = 2.0;
+            },
+          ],
+        ]),
+      });
+    };
+
+    const makePredicateFrame = (timeSinceLastFiringMs: number) =>
+      makeTestFrame({
+        places: {
+          p1: { elements: type1.elements, tokens: [{ x: 1.0 }] },
+          p2: { elements: type1.elements, tokens: [] },
+        },
+        transitions: {
+          t1: transitionState(timeSinceLastFiringMs),
+        },
+      });
+
+    it("fires a true guard when timeSinceLastFiringMs is 0 (first frame, or the frame right after a firing)", () => {
+      // Regression: true guards used to map to an Infinity rate whose firing
+      // test computed exp(-(Infinity * 0)) = exp(NaN), silently blocking
+      // firing on the first frame and on consecutive frames.
+      const result = computePossibleTransition(
+        makePredicateFrame(0),
+        makePredicateSimulation(true),
+        "t1",
+        42,
+      );
+
+      expect(result).not.toBeNull();
+      expect(result).toMatchObject({ remove: { p1: new Set([0]) } });
+    });
+
+    it("does not fire a false guard regardless of elapsed time", () => {
+      for (const timeSinceLastFiringMs of [0, 1.0]) {
+        expect(
+          computePossibleTransition(
+            makePredicateFrame(timeSinceLastFiringMs),
+            makePredicateSimulation(false),
+            "t1",
+            42,
+          ),
+        ).toBeNull();
+      }
+    });
+  });
+
   it("reads typed input tokens and encodes typed output tokens", () => {
     const typedColor: Color = {
       id: "typed",
