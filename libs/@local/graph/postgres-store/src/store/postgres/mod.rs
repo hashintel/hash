@@ -85,9 +85,12 @@ pub use self::{
     },
     traversal_context::TraversalContext,
 };
-use crate::store::error::{
-    BaseUrlAlreadyExists, DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
-    StoreError, VersionedUrlAlreadyExists,
+use crate::store::{
+    error::{
+        BaseUrlAlreadyExists, DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+        StoreError, VersionedUrlAlreadyExists,
+    },
+    postgres::connection::{CaptureMessages, Diagnostic, MessageCapture},
 };
 
 #[derive(Debug)]
@@ -3207,19 +3210,107 @@ where
     }
 }
 
+/// Marks a [`PostgresStoreTransactionBuilder`] that was not asked for diagnostics.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Unobserved;
+
+/// Marks a [`PostgresStoreTransactionBuilder`] that was asked for diagnostics.
+///
+/// Such a builder hands back a [`MessageCapture`] alongside the transaction, so
+/// asking to observe and having nowhere to read from is not expressible.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct Observed;
+
 /// A [`TransactionBuilder`] for a [`PostgresStore`].
 ///
-/// Created by [`PostgresStore::transaction`], this builder begins the transaction when awaited.
-/// The configured [`TransactionOptions`] are compiled into the `BEGIN` statement issued to the
+/// Created by [`Context::transaction`], this builder begins the transaction when awaited. The
+/// configured [`TransactionOptions`] are compiled into the `BEGIN` statement issued to the
 /// database. Configurable transactions are only available on stores in the [`NoTransaction`]
 /// state, so the options always apply to a top-level transaction and are never silently
 /// discarded.
-pub struct PostgresStoreTransactionBuilder<'t, C> {
+///
+/// [`observe`] asks Postgres to report something about the transaction's statements and moves
+/// the builder into the [`Observed`] state, where awaiting it yields the collector as well. The
+/// [`TransactionOptions`] are set through [`TransactionBuilder`], which the [`Unobserved`] state
+/// implements, so observing comes last.
+///
+/// [`observe`]: Self::observe
+pub struct PostgresStoreTransactionBuilder<'t, C, O = Unobserved> {
     store: &'t mut PostgresStore<C, NoTransaction>,
     options: TransactionOptions,
+    diagnostics: Vec<Diagnostic>,
+    observation: PhantomData<O>,
 }
 
-impl<'t, C> IntoFuture for PostgresStoreTransactionBuilder<'t, C>
+impl<'t, C, O> PostgresStoreTransactionBuilder<'t, C, O> {
+    /// Asks Postgres to report `diagnostic` for this transaction's statements.
+    ///
+    /// Repeating this accumulates, and the state it moves to is the same either way.
+    #[must_use]
+    pub fn observe(
+        self,
+        diagnostic: Diagnostic,
+    ) -> PostgresStoreTransactionBuilder<'t, C, Observed> {
+        self.maybe_observe(Some(diagnostic))
+    }
+
+    /// Asks Postgres to report `diagnostic`, where a caller decided at runtime whether to.
+    ///
+    /// [`None`] asks for nothing, but still hands back the collector, so a decision taken at
+    /// runtime does not split into two paths that differ by more than this argument.
+    #[must_use]
+    pub fn maybe_observe(
+        mut self,
+        diagnostic: Option<Diagnostic>,
+    ) -> PostgresStoreTransactionBuilder<'t, C, Observed> {
+        self.diagnostics.extend(diagnostic);
+
+        PostgresStoreTransactionBuilder {
+            store: self.store,
+            options: self.options,
+            diagnostics: self.diagnostics,
+            observation: PhantomData,
+        }
+    }
+}
+
+impl<'t, C> PostgresStoreTransactionBuilder<'t, C, Unobserved>
+where
+    C: AsClient<Client = Client>,
+{
+    /// Issues the `BEGIN` the options were collected for.
+    async fn begin(
+        self,
+    ) -> Result<
+        (
+            PostgresStore<tokio_postgres::Transaction<'t>, InTransaction>,
+            Vec<Diagnostic>,
+        ),
+        Report<StoreError>,
+    > {
+        let mut builder = self.store.client.as_mut_client().build_transaction();
+        if let Some(isolation_level) = self.options.isolation_level {
+            builder = builder.isolation_level(isolation_level.into());
+        }
+        if self.options.read_only {
+            builder = builder.read_only(true);
+        }
+        if self.options.deferrable {
+            builder = builder.deferrable(true);
+        }
+
+        Ok((
+            PostgresStore::new(
+                builder.start().await.change_context(StoreError)?,
+                self.store.temporal_client.clone(),
+                Arc::clone(&self.store.settings),
+            ),
+            self.diagnostics,
+        ))
+    }
+}
+
+impl<'t, C> IntoFuture for PostgresStoreTransactionBuilder<'t, C, Unobserved>
 where
     C: AsClient<Client = Client>,
 {
@@ -3229,37 +3320,60 @@ where
     type IntoFuture = impl Future<Output = Self::Output> + Send;
 
     fn into_future(self) -> Self::IntoFuture {
-        async move {
-            let mut builder = self.store.client.as_mut_client().build_transaction();
-            if let Some(isolation_level) = self.options.isolation_level {
-                builder = builder.isolation_level(isolation_level.into());
-            }
-            if self.options.read_only {
-                builder = builder.read_only(true);
-            }
-            if self.options.deferrable {
-                builder = builder.deferrable(true);
-            }
+        async move { self.begin().await.map(|(transaction, _)| transaction) }
+    }
+}
 
-            Ok(PostgresStore::new(
-                builder.start().await.change_context(StoreError)?,
-                self.store.temporal_client.clone(),
-                Arc::clone(&self.store.settings),
-            ))
+impl<'t, C> IntoFuture for PostgresStoreTransactionBuilder<'t, C, Observed>
+where
+    C: AsClient<Client = Client> + CaptureMessages,
+{
+    type Output = Result<
+        (
+            PostgresStore<tokio_postgres::Transaction<'t>, InTransaction>,
+            MessageCapture,
+        ),
+        Report<StoreError>,
+    >;
+
+    type IntoFuture = impl Future<Output = Self::Output> + Send;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move {
+            // Collecting starts before the transaction, because what the
+            // settings make Postgres report has to outlive the transaction that
+            // reported it.
+            let capture = self.store.client.messages();
+
+            let unobserved = PostgresStoreTransactionBuilder {
+                store: self.store,
+                options: self.options,
+                diagnostics: self.diagnostics,
+                observation: PhantomData,
+            };
+            let (transaction, diagnostics) = unobserved.begin().await?;
+
+            transaction
+                .enable(&diagnostics)
+                .await
+                .change_context(StoreError)?;
+
+            Ok((transaction, capture))
         }
     }
 }
 
 /// The characteristics a transaction is begun with.
 ///
-/// These are the store's own. [`TransactionBuilder`] restates them for the migration runner,
-/// which is generic over contexts and reaches them through that trait.
+/// These are the store's own, so they are settable in every state of the builder and in any
+/// order. [`TransactionBuilder`] restates them for the migration runner, which is generic over
+/// contexts and reaches them through that trait.
 #[expect(
     clippy::same_name_method,
     reason = "the store's own setters shadow the migration runner's contract deliberately, so \
-              that a caller of the store does not reach them through a migrations trait"
+              that a caller of the store reaches them in any state and in any order"
 )]
-impl<C> PostgresStoreTransactionBuilder<'_, C> {
+impl<C, O> PostgresStoreTransactionBuilder<'_, C, O> {
     /// Sets the isolation level of the transaction.
     #[must_use]
     pub const fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
@@ -3282,9 +3396,10 @@ impl<C> PostgresStoreTransactionBuilder<'_, C> {
     }
 }
 
-/// Restates the store's own setters for the migration runner, which is generic over contexts and
-/// so can only reach them through a trait.
-impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C>
+/// Only the [`Unobserved`] state answers the migration runner's contract, whose transaction is a
+/// store alone. Asking for diagnostics adds a second thing to hand back, which that contract has
+/// no room for — and no migration needs.
+impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C, Unobserved>
 where
     C: AsClient<Client = Client>,
 {
@@ -3325,10 +3440,22 @@ where
     ///     .read_only()
     ///     .await?;
     /// ```
+    ///
+    /// Asking Postgres to report something about the transaction's statements yields the
+    /// collector to read it from as well:
+    ///
+    /// ```ignore
+    /// let (transaction, capture) = store
+    ///     .transaction()
+    ///     .observe(Diagnostic::Plans)
+    ///     .await?;
+    /// ```
     pub fn transaction(&mut self) -> PostgresStoreTransactionBuilder<'_, C> {
         PostgresStoreTransactionBuilder {
             store: self,
             options: TransactionOptions::default(),
+            diagnostics: Vec::new(),
+            observation: PhantomData,
         }
     }
 }

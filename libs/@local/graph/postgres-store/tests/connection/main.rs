@@ -14,10 +14,10 @@
 mod common;
 
 use hash_graph_postgres_store::store::{
-    Transaction as _,
+    IsolationLevel, Transaction as _,
     postgres::{
         AsClient as _,
-        connection::{CaptureMessages as _, ServerMessage},
+        connection::{CaptureMessages as _, Diagnostic, ServerMessage},
     },
 };
 
@@ -27,19 +27,12 @@ use crate::common::DatabaseTestWrapper;
 async fn a_statement_s_plan_reaches_the_caller() {
     let mut database = DatabaseTestWrapper::new().await;
 
-    // Collecting starts before the transaction, because the settings that make
-    // Postgres report are transaction-scoped while the channel is not.
-    let mut capture = database.connection.messages();
-
-    let transaction = database
+    let (transaction, mut capture) = database
         .connection
         .transaction()
+        .observe(Diagnostic::Plans)
         .await
-        .expect("the transaction should begin");
-    transaction
-        .enable_plan_capture()
-        .await
-        .expect("the graph role should be allowed to enable plan capture");
+        .expect("the transaction should begin with plan capture enabled");
 
     let rows = transaction
         .as_client()
@@ -66,6 +59,46 @@ async fn a_statement_s_plan_reaches_the_caller() {
     assert_eq!(plan.rows_returned(), 1);
     assert_eq!(plan.rows_discarded(), 9_990);
     assert!(!plan.spills());
+}
+
+/// A caller deciding at runtime takes the same path either way, which is the
+/// whole reason `maybe_observe` exists: were the decision made by choosing
+/// between `observe` and nothing, the two branches would differ in type and the
+/// work between them would have to be written twice.
+#[tokio::test]
+async fn a_runtime_decision_does_not_split_the_path() {
+    for wanted in [Some(Diagnostic::Plans), None] {
+        let mut database = DatabaseTestWrapper::new().await;
+
+        let (transaction, mut capture) = database
+            .connection
+            .transaction()
+            .maybe_observe(wanted)
+            .isolation_level(IsolationLevel::ReadCommitted)
+            .await
+            .expect("the transaction should begin");
+
+        transaction
+            .as_client()
+            .query(
+                "SELECT count(*) FROM generate_series(1, $1) AS g",
+                &[&10_i32],
+            )
+            .await
+            .expect("the query should run");
+
+        transaction
+            .rollback()
+            .await
+            .expect("the transaction should roll back");
+
+        let plans = capture.plans().expect("the plans should arrive");
+        assert_eq!(
+            plans.is_empty(),
+            wanted.is_none(),
+            "asking for {wanted:?} should decide whether a plan arrives, got {plans:?}",
+        );
+    }
 }
 
 #[tokio::test]

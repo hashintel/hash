@@ -10,12 +10,14 @@
 //! to whoever asked for them with [`ManagedConnection::messages`]; everything
 //! arriving while nobody is collecting is recorded as a tracing event.
 //!
-//! Collecting messages and asking Postgres to report plans are separate steps:
-//! the first issues no statement, the second ([`enable_plan_capture`]) is
-//! transaction-scoped, so a caller starts collecting before it opens the
-//! transaction it wants the plans of.
+//! What Postgres reports is asked for per transaction, through [`observe`] on
+//! the transaction builder, because the settings are transaction-scoped. The
+//! collector is not: it belongs to the connection and outlives any transaction
+//! on it, which is what lets a caller read what the statements of somebody
+//! else's transaction reported.
 //!
 //! [`Connection::poll_message`]: tokio_postgres::Connection::poll_message
+//! [`observe`]: crate::store::PostgresStoreTransactionBuilder::observe
 
 use alloc::{borrow::Cow, sync::Arc};
 use core::{
@@ -259,13 +261,43 @@ pub struct ManagedConnection {
     driver: JoinHandle<()>,
 }
 
+/// Something Postgres can be asked to report about a transaction's statements.
+///
+/// Each is a transaction-scoped setting, so what is asked for here is reported
+/// only until the transaction ends.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Diagnostic {
+    /// A plan for every statement.
+    Plans,
+}
+
+impl Diagnostic {
+    /// The settings that turn the diagnostic on.
+    const fn settings(self) -> &'static [&'static str] {
+        match self {
+            // Timing is the expensive half of the instrumentation and nothing
+            // read from a plan needs it. Parameters stay out because they carry
+            // the values a caller filtered by.
+            Self::Plans => &[
+                "SET LOCAL auto_explain.log_min_duration = 0",
+                "SET LOCAL auto_explain.log_analyze = on",
+                "SET LOCAL auto_explain.log_buffers = on",
+                "SET LOCAL auto_explain.log_format = json",
+                "SET LOCAL auto_explain.log_level = NOTICE",
+                "SET LOCAL auto_explain.log_timing = off",
+                "SET LOCAL auto_explain.log_parameter_max_length = 0",
+            ],
+        }
+    }
+}
+
 /// A connection whose messages from the server can be collected.
 pub trait CaptureMessages {
     /// Collects the messages the server sends until the guard is dropped.
     ///
-    /// Collecting alone issues no statement. What makes Postgres report plans is
-    /// [`enable_plan_capture`], which the caller runs inside the transaction the
-    /// plans should be reported for.
+    /// Collecting alone issues no statement, and it outlives any transaction on
+    /// the connection — which is what lets a caller read what a statement of
+    /// somebody else's transaction reported.
     fn messages(&self) -> MessageCapture;
 }
 
@@ -304,35 +336,24 @@ impl<C> PostgresStore<C, InTransaction>
 where
     C: AsClient,
 {
-    /// Asks Postgres to report a plan for every statement of this transaction.
-    ///
-    /// The settings are transaction-scoped, which is why this exists only in the
-    /// [`InTransaction`] state: outside a transaction Postgres would accept the
-    /// settings, do nothing, and only say so in a warning.
-    ///
-    /// What the server then reports is collected by [`CaptureMessages::messages`],
-    /// which the caller starts before it opens the transaction.
+    /// Asks Postgres to report the diagnostics for this transaction's statements.
     ///
     /// # Errors
     ///
     /// - [`ConnectionError::Closed`] if a setting cannot be applied
-    pub async fn enable_plan_capture(&self) -> Result<(), Report<ConnectionError>> {
-        // Timing is the expensive half of the instrumentation and nothing read
-        // from a plan needs it. Parameters stay out because they carry values.
-        for setting in [
-            "SET LOCAL auto_explain.log_min_duration = 0",
-            "SET LOCAL auto_explain.log_analyze = on",
-            "SET LOCAL auto_explain.log_buffers = on",
-            "SET LOCAL auto_explain.log_format = json",
-            "SET LOCAL auto_explain.log_level = NOTICE",
-            "SET LOCAL auto_explain.log_timing = off",
-            "SET LOCAL auto_explain.log_parameter_max_length = 0",
-        ] {
+    pub(crate) async fn enable(
+        &self,
+        diagnostics: &[Diagnostic],
+    ) -> Result<(), Report<ConnectionError>> {
+        for setting in diagnostics
+            .iter()
+            .flat_map(|diagnostic| diagnostic.settings())
+        {
             self.as_client()
-                .execute(setting, &[])
+                .execute(*setting, &[])
                 .await
                 .change_context(ConnectionError::Closed)
-                .attach_with(|| setting.to_owned())?;
+                .attach_with(|| (*setting).to_owned())?;
         }
 
         Ok(())
