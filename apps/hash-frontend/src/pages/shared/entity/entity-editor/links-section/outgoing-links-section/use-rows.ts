@@ -145,7 +145,7 @@ export const useRows = ({
             );
           }
 
-          const targetEntityRevisions = [...entities.rightEntity];
+          const targetEntityRevisions = [...(entities.rightEntity ?? [])];
           targetEntityRevisions.sort((entityA, entityB) =>
             intervalCompareWithInterval(
               entityA.metadata.temporalVersioning[variableAxis],
@@ -156,9 +156,12 @@ export const useRows = ({
           const latestTargetEntityRevision = targetEntityRevisions.at(-1);
 
           if (!latestTargetEntityRevision) {
-            throw new Error(
-              `Couldn't find a target link entity revision from ${entity.metadata.recordId.entityId}, this is likely an implementation bug in the stdlib`,
-            );
+            /**
+             * The target entity may be missing from the subgraph (e.g. if it
+             * was not resolved when the subgraph was produced) – skip the
+             * link rather than crashing.
+             */
+            continue;
           }
 
           const { entityTypeIds, recordId } = latestLinkEntityRevision.metadata;
