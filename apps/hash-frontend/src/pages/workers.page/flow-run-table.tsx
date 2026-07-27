@@ -120,6 +120,7 @@ type WorkerSummary = Subtype<
       avatarUrl?: string;
       name: string;
       shortname: string;
+      isOrg: boolean;
     };
     name: string;
     status: SimpleFlowRunStatus;
@@ -341,6 +342,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
                 ],
               name: authenticatedUser.displayName ?? "Unknown",
               shortname: authenticatedUser.shortname ?? "unknown",
+              isOrg: false,
             };
           } else {
             const org = authenticatedUser.memberOf.find(
@@ -356,6 +358,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
                 ],
               name: org.name,
               shortname: org.shortname,
+              isOrg: true,
             };
           }
           webByWebId[webId] = web;
