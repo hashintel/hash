@@ -49,7 +49,7 @@ import { useSupplyChainStatusState } from "./site/use-supply-chain-status-state"
 import type { ProductionSchedule } from "../shared/production-schedule-types";
 import type { GraphData, GraphNode, SiteNode } from "../shared/types";
 
-type ViewMode = "category" | "canvas" | "schedule";
+type ViewMode = "category" | "canvas" | "timeline";
 
 const DEFAULT_ACTIVE_SEGMENTS = ALL_SEGMENTS.filter(
   (id) => id !== "procurement",
@@ -305,9 +305,11 @@ export const Overview = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get("view");
   const viewMode: ViewMode =
-    requestedView === "canvas" || requestedView === "schedule"
+    requestedView === "canvas" || requestedView === "timeline"
       ? requestedView
-      : "category";
+      : requestedView === "schedule"
+        ? "timeline"
+        : "category";
   const [productionSchedule, setProductionSchedule] =
     useState<ProductionSchedule | null>(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
@@ -322,7 +324,21 @@ export const Overview = ({
   }, [graph.analysis_settings, setAnalysisSettings]);
 
   useEffect(() => {
-    if (viewMode !== "schedule") {
+    if (requestedView !== "schedule") {
+      return;
+    }
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set("view", "timeline");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requestedView, setSearchParams]);
+
+  useEffect(() => {
+    if (viewMode !== "timeline") {
       return;
     }
     let cancelled = false;
@@ -458,7 +474,7 @@ export const Overview = ({
         source:
           viewMode === "canvas"
             ? "product_graph"
-            : viewMode === "schedule"
+            : viewMode === "timeline"
               ? "production_schedule"
               : "category_view",
         stepId,
@@ -678,7 +694,7 @@ export const Overview = ({
                 options={[
                   { value: "category", label: "Category" },
                   { value: "canvas", label: "Canvas" },
-                  { value: "schedule", label: "Timeline" },
+                  { value: "timeline", label: "Timeline" },
                 ]}
               />
 
@@ -695,6 +711,7 @@ export const Overview = ({
                   setSettingsOpen((open) => !open);
                 }}
                 docContext="product"
+                productView={viewMode}
               />
             </div>
           </div>
@@ -725,7 +742,7 @@ export const Overview = ({
             timeRange={timeRange}
           />
         </div>
-        <div className={viewMode === "schedule" ? paneShow : hidden}>
+        <div className={viewMode === "timeline" ? paneShow : hidden}>
           {scheduleLoading ? (
             <LoadingState
               message="Loading production timeline…"
@@ -753,7 +770,7 @@ export const Overview = ({
       <div
         className={cx(
           pipelineWrap,
-          viewMode === "schedule" && hidden,
+          viewMode === "timeline" && hidden,
           pipelineExpanded ? pipelineExpandedH : pipelineAutoH,
         )}
       >

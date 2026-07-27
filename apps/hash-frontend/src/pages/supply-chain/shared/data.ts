@@ -1,3 +1,5 @@
+import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production-schedule";
+
 import { fetchArtifactJson } from "../../../shared/analysis-client";
 import { isDwellType } from "./categories";
 import {
@@ -158,10 +160,10 @@ export function fetchProductionSchedule(
   if (cached) {
     return cached;
   }
-  const pending = fetchAnalysisProductionSchedule<ProductionSchedule>(
+  const pending = fetchAnalysisProductionSchedule<unknown>(
     getActiveWebId(),
     productId,
-  );
+  ).then((schedule) => parseProductionSchedule(schedule, productId));
   productionScheduleCache.set(key, pending);
   pending.catch(() => productionScheduleCache.delete(key));
   return pending;

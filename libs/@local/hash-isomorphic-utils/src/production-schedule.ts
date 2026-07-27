@@ -26,4 +26,16 @@ export type {
   ProductionScheduleV12,
   ProductionScheduleV12Batch,
   ProductionScheduleV12Source,
-} from "@local/hash-isomorphic-utils/production-schedule";
+} from "./production-schedule/schema.js";
+export {
+  productionScheduleLegacySchema,
+  productionScheduleSchema,
+  productionScheduleV12Schema,
+} from "./production-schedule/schema.js";
+export {
+  deriveProductionScheduleDeliveryCoverage,
+  inclusiveProductionScheduleSpanDays,
+  parseProductionSchedule,
+  safeParseProductionSchedule,
+  validatedProductionScheduleSchema,
+} from "./production-schedule/validation.js";
