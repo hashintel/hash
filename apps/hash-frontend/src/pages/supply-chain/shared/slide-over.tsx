@@ -65,10 +65,8 @@ const backdropBase = css({
   inset: "0",
   bg: "neutral.a80",
   zIndex: "overlay",
-  opacity: "[0]",
   transition: "[opacity 200ms ease-out]",
 });
-const backdropVisible = css({ opacity: "[1]" });
 
 const positionerBase = css({
   position: "fixed",
@@ -123,7 +121,8 @@ export const SlideOver = ({
       >
         <Portal container={portalRef}>
           <ArkDialog.Backdrop
-            className={cx(backdropBase, visible && backdropVisible)}
+            className={backdropBase}
+            style={{ opacity: visible ? 1 : 0 }}
           />
           <ArkDialog.Positioner
             className={cx(positionerBase, visible && positionerVisible)}

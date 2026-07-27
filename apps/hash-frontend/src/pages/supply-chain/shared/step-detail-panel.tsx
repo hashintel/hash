@@ -266,7 +266,6 @@ const segButton = css({
   cursor: "pointer",
   borderWidth: "1px",
   borderStyle: "solid",
-  borderColor: "[transparent]",
 });
 const segButtonActive = css({
   bg: "bgSolid.min",
@@ -275,6 +274,7 @@ const segButtonActive = css({
   boxShadow: "sm",
 });
 const segButtonInactive = css({
+  borderColor: "[transparent]",
   color: "fg.subtle",
   _hover: { color: "fg.muted" },
 });

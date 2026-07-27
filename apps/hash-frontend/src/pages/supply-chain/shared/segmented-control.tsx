@@ -42,7 +42,6 @@ const button = css({
   cursor: "pointer",
   borderWidth: "1px",
   borderStyle: "solid",
-  borderColor: "[transparent]",
 });
 const buttonActive = css({
   bg: "bgSolid.min",
@@ -51,6 +50,7 @@ const buttonActive = css({
   boxShadow: "sm",
 });
 const buttonInactive = css({
+  borderColor: "[transparent]",
   color: "fg.subtle",
   _hover: { color: "fg.muted" },
 });

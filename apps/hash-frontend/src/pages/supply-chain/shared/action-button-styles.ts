@@ -28,15 +28,18 @@ export const neutralActionButtonStyle = css({
   borderRadius: "sm",
   borderWidth: "1px",
   borderStyle: "solid",
-  borderColor: "bd.subtle",
-  bg: "bgSolid.min",
   px: "2.5",
   py: "1",
   textStyle: "xs",
   lineHeight: "none",
   fontWeight: "medium",
-  color: "fg.muted",
   cursor: "pointer",
   whiteSpace: "nowrap",
+});
+
+export const neutralActionButtonToneStyle = css({
+  borderColor: "bd.subtle",
+  bg: "bgSolid.min",
+  color: "fg.muted",
   _hover: { borderColor: "bd.strong", color: "fg.heading" },
 });

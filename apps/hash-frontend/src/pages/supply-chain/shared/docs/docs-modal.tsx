@@ -95,19 +95,21 @@ const navEntry = css({
   pr: "4",
   py: "1",
   textStyle: "sm",
-  color: "fg.subtle",
   cursor: "pointer",
   bg: "[transparent]",
   border: "none",
   borderLeftWidth: "2px",
   borderLeftStyle: "solid",
-  borderLeftColor: "[transparent]",
   _hover: { color: "fg.muted" },
 });
 const navEntryActive = css({
   color: "fg.heading",
   fontWeight: "medium",
   borderLeftColor: "fg.heading",
+});
+const navEntryInactive = css({
+  color: "fg.subtle",
+  borderLeftColor: "[transparent]",
 });
 const content = css({
   flex: "1",
@@ -334,8 +336,9 @@ export const DocsModal = ({
                       className={cx(
                         navEntry,
                         section.id === activeSection &&
-                          entry.id === activeEntryId &&
-                          navEntryActive,
+                          entry.id === activeEntryId
+                          ? navEntryActive
+                          : navEntryInactive,
                       )}
                       onClick={() =>
                         navigate({ section: section.id, sub: entry.id })

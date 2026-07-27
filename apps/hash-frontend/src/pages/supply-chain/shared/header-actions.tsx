@@ -39,13 +39,12 @@ const iconButton = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bd.subtle",
-  bg: "bgSolid.min",
-  color: "fg.subtle",
   cursor: "pointer",
   transition: "colors",
   _hover: { color: "fg.heading", bg: "bg.subtle" },
 });
 const iconButtonActive = css({ color: "fg.heading", bg: "bg.subtle" });
+const iconButtonInactive = css({ color: "fg.subtle", bg: "bgSolid.min" });
 const settingsWrap = css({
   mt: "3",
   borderTopWidth: "1px",
@@ -143,7 +142,10 @@ export const HeaderActionButtons = ({
     <div className={actionRow}>
       <button
         type="button"
-        className={cx(iconButton, settingsOpen && iconButtonActive)}
+        className={cx(
+          iconButton,
+          settingsOpen ? iconButtonActive : iconButtonInactive,
+        )}
         aria-label={
           settingsOpen ? "Hide analysis settings" : "Show analysis settings"
         }

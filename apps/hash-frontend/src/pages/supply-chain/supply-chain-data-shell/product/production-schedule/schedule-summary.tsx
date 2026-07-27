@@ -1,4 +1,5 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { token } from "@hashintel/ds-helpers/tokens";
 
 const INVENTORY_DWELL_COLOR = "#f3f8ff";
 const USED_ELSEWHERE_HATCH =
@@ -131,15 +132,12 @@ export const ProductionScheduleSummary = ({
       {hasOverDepletedInventory && (
         <span className={legendItem}>
           <span
-            className={cx(
-              swatch,
-              css({
-                bg: "bg.surface",
-                borderColor: "[#dc2626]",
-                borderStyle: "dashed",
-                borderWidth: "[1px]",
-              }),
-            )}
+            className={swatch}
+            style={{
+              background: token.var("colors.bg.surface"),
+              borderColor: "#dc2626",
+              borderStyle: "dashed",
+            }}
           />
           Over-depleted inventory
         </span>
