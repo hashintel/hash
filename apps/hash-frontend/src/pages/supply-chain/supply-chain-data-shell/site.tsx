@@ -196,11 +196,10 @@ const SiteSearchInput = ({
 
 const settingsCollapse = css({
   display: "grid",
-  gridTemplateRows: "0fr",
-  opacity: "0",
   transition: "[grid-template-rows 180ms ease, opacity 160ms ease]",
   overflow: "hidden",
 });
+const settingsCollapseClosed = css({ gridTemplateRows: "0fr", opacity: "0" });
 const settingsCollapseOpen = css({ gridTemplateRows: "1fr", opacity: "1" });
 const settingsCollapseInner = css({ minH: "0", overflow: "hidden" });
 
@@ -589,7 +588,10 @@ export const SiteOverview = ({
           </div>
         </div>
         <div
-          className={cx(settingsCollapse, settingsOpen && settingsCollapseOpen)}
+          className={cx(
+            settingsCollapse,
+            settingsOpen ? settingsCollapseOpen : settingsCollapseClosed,
+          )}
           aria-hidden={!settingsOpen}
         >
           <div className={settingsCollapseInner}>

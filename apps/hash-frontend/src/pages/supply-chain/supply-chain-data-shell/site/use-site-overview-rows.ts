@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { DWELL_TYPES } from "../../shared/categories";
-import { useCostParams, useOutlierSetting } from "../../shared/cost";
+import {
+  computePeriodMaterialValue,
+  useCostParams,
+  useOutlierSetting,
+} from "../../shared/cost";
 import { fetchSupplierPerformance } from "../../shared/data";
 import { selectStat, useBaseMeasure } from "../../shared/measure-context";
 import { applyOutlierSelectionToNode } from "../../shared/outlier-selection";
@@ -130,6 +134,10 @@ export function useSiteOverviewRows({
     return new Map(historicalNodes.map((count) => [siteNodeKey(count), count]));
   }, [historicalNodes]);
 
+  const sourceNodesByKey = useMemo(() => {
+    return new Map(dedupedNodes.map((count) => [siteNodeKey(count), count]));
+  }, [dedupedNodes]);
+
   const planningVisibleNodes = useMemo(() => {
     if (!excludeLowSamples) {
       return filteredNodes;
@@ -222,6 +230,7 @@ export function useSiteOverviewRows({
         return [];
       }
       const historical = historicalNodesByKey.get(siteNodeKey(count)) ?? count;
+      const source = sourceNodesByKey.get(siteNodeKey(count)) ?? count;
       const trend = computeTimingTrend(historical, timeRange, measure);
       const deviationPct =
         plan <= 0
@@ -237,13 +246,23 @@ export function useSiteOverviewRows({
       return {
         ...count,
         plan,
+        periodMaterialValue: computePeriodMaterialValue(
+          source.material_value,
+          timeRange,
+        ),
         deviationPct,
         trendPct: trend.pctChange,
         previousValue: trend.previousValue,
         previousTrendN: trend.previousN,
       };
     });
-  }, [planningVisibleNodes, historicalNodesByKey, timeRange, measure]);
+  }, [
+    planningVisibleNodes,
+    historicalNodesByKey,
+    sourceNodesByKey,
+    timeRange,
+    measure,
+  ]);
 
   const windowedSupplier = useMemo(() => {
     if (!supplierData) {

@@ -169,6 +169,14 @@ export const siteOverviewSection: DocSectionDef = {
             </CrossRef>{" "}
             menu.
           </P>
+          <P>
+            <Term>Value</Term> is the actual quantity that passed through the
+            step in the selected period, multiplied by its unit cost, to help in
+            understanding the scale of impact of miscalibrated parameters.
+            Depending on the step, quantity means material received, produced,
+            released from QA or transported. It is not carrying cost or
+            estimated savings, and outlier controls do not change it.
+          </P>
         </>
       ),
     },

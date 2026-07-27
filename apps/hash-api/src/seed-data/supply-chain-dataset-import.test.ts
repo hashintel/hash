@@ -51,7 +51,7 @@ describe("supply-chain dataset import", () => {
     writeJson(
       path.join(sourceDir, "demo-product", "production_schedule.json"),
       {
-        schema_version: "1.1",
+        schema_version: scheduleVersion === "1.2" ? "1.2" : "1.1",
         artifact_type: "production_schedule",
         artifact_version: scheduleVersion,
         product_id: "demo-product",

@@ -5,6 +5,7 @@ import { Link } from "../../../shared/ui/link";
 import {
   briefLinkStyle,
   neutralActionButtonStyle,
+  neutralActionButtonToneStyle,
 } from "./action-button-styles";
 import { StatusIcon } from "./status-dialog";
 
@@ -22,13 +23,12 @@ const docsButton = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bd.subtle",
-  bg: "bgSolid.min",
-  color: "fg.subtle",
   cursor: "pointer",
   transition: "colors",
   _hover: { color: "fg.heading", bg: "bg.subtle" },
 });
 const docsButtonActive = css({ color: "fg.heading", bg: "bg.subtle" });
+const docsButtonInactive = css({ color: "fg.subtle", bg: "bgSolid.min" });
 const statusSuccess = css({
   borderColor: "status.success.bd.subtle",
   bg: "status.success.bg.subtle",
@@ -62,7 +62,11 @@ export const DocsIconButton = ({
   return (
     <button
       type="button"
-      className={cx(docsButton, active && docsButtonActive, className)}
+      className={cx(
+        docsButton,
+        active ? docsButtonActive : docsButtonInactive,
+        className,
+      )}
       aria-label={label}
       onClick={onClick}
     >
@@ -104,16 +108,25 @@ export const NeutralActionButton = ({
   icon,
   children,
   className,
+  tone = "neutral",
 }: {
   onClick: MouseEventHandler<HTMLButtonElement>;
   icon?: ReactNode;
   children: ReactNode;
   className?: string;
+  tone?: StatusActionState["tone"];
 }) => {
+  const toneClassName =
+    tone === "success"
+      ? statusSuccess
+      : tone === "danger"
+        ? statusDanger
+        : neutralActionButtonToneStyle;
+
   return (
     <button
       type="button"
-      className={cx(neutralActionButtonStyle, className)}
+      className={cx(neutralActionButtonStyle, toneClassName, className)}
       onClick={onClick}
     >
       {icon}
@@ -136,11 +149,8 @@ export const StatusActionButton = ({
     <NeutralActionButton
       onClick={onClick}
       icon={<StatusIcon />}
-      className={cx(
-        state.tone === "success" && statusSuccess,
-        state.tone === "danger" && statusDanger,
-        className,
-      )}
+      className={className}
+      tone={state.tone}
     >
       {state.label}
     </NeutralActionButton>
