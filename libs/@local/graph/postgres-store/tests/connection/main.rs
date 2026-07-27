@@ -14,7 +14,7 @@
 mod common;
 
 use hash_graph_postgres_store::store::{
-    Context as _, Transaction as _,
+    Transaction as _,
     postgres::{
         AsClient as _,
         connection::{CaptureMessages as _, ServerMessage},

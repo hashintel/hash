@@ -3209,11 +3209,11 @@ where
 
 /// A [`TransactionBuilder`] for a [`PostgresStore`].
 ///
-/// Created by [`Context::transaction`], this builder begins the transaction when awaited. The
-/// configured [`TransactionOptions`] are compiled into the single `BEGIN` statement issued to
-/// the database. Configurable transactions are only available on stores in the
-/// [`NoTransaction`] state, so the options always apply to a top-level transaction and are
-/// never silently discarded.
+/// Created by [`PostgresStore::transaction`], this builder begins the transaction when awaited.
+/// The configured [`TransactionOptions`] are compiled into the `BEGIN` statement issued to the
+/// database. Configurable transactions are only available on stores in the [`NoTransaction`]
+/// state, so the options always apply to a top-level transaction and are never silently
+/// discarded.
 pub struct PostgresStoreTransactionBuilder<'t, C> {
     store: &'t mut PostgresStore<C, NoTransaction>,
     options: TransactionOptions,
@@ -3240,6 +3240,7 @@ where
             if self.options.deferrable {
                 builder = builder.deferrable(true);
             }
+
             Ok(PostgresStore::new(
                 builder.start().await.change_context(StoreError)?,
                 self.store.temporal_client.clone(),
@@ -3249,6 +3250,40 @@ where
     }
 }
 
+/// The characteristics a transaction is begun with.
+///
+/// These are the store's own. [`TransactionBuilder`] restates them for the migration runner,
+/// which is generic over contexts and reaches them through that trait.
+#[expect(
+    clippy::same_name_method,
+    reason = "the store's own setters shadow the migration runner's contract deliberately, so \
+              that a caller of the store does not reach them through a migrations trait"
+)]
+impl<C> PostgresStoreTransactionBuilder<'_, C> {
+    /// Sets the isolation level of the transaction.
+    #[must_use]
+    pub const fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
+        self.options.isolation_level = Some(isolation_level);
+        self
+    }
+
+    /// Marks the transaction as read-only.
+    #[must_use]
+    pub const fn read_only(mut self) -> Self {
+        self.options.read_only = true;
+        self
+    }
+
+    /// Marks the transaction as deferrable.
+    #[must_use]
+    pub const fn deferrable(mut self) -> Self {
+        self.options.deferrable = true;
+        self
+    }
+}
+
+/// Restates the store's own setters for the migration runner, which is generic over contexts and
+/// so can only reach them through a trait.
 impl<'t, C> TransactionBuilder for PostgresStoreTransactionBuilder<'t, C>
 where
     C: AsClient<Client = Client>,
@@ -3256,19 +3291,45 @@ where
     type Error = StoreError;
     type Transaction = PostgresStore<tokio_postgres::Transaction<'t>, InTransaction>;
 
-    fn isolation_level(mut self, isolation_level: IsolationLevel) -> Self {
-        self.options.isolation_level = Some(isolation_level);
-        self
+    fn isolation_level(self, isolation_level: IsolationLevel) -> Self {
+        Self::isolation_level(self, isolation_level)
     }
 
-    fn read_only(mut self) -> Self {
-        self.options.read_only = true;
-        self
+    fn read_only(self) -> Self {
+        Self::read_only(self)
     }
 
-    fn deferrable(mut self) -> Self {
-        self.options.deferrable = true;
-        self
+    fn deferrable(self) -> Self {
+        Self::deferrable(self)
+    }
+}
+
+#[expect(
+    clippy::same_name_method,
+    reason = "the store's own entry shadows the migration runner's contract deliberately, so that \
+              reaching a transaction does not mean importing a migrations trait"
+)]
+impl<C> PostgresStore<C, NoTransaction>
+where
+    C: AsClient<Client = Client>,
+{
+    /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
+    ///
+    /// By default the transaction is begun with the database's default characteristics. Options
+    /// can be configured on the builder before awaiting it, in any order:
+    ///
+    /// ```ignore
+    /// let transaction = store
+    ///     .transaction()
+    ///     .isolation_level(IsolationLevel::RepeatableRead)
+    ///     .read_only()
+    ///     .await?;
+    /// ```
+    pub fn transaction(&mut self) -> PostgresStoreTransactionBuilder<'_, C> {
+        PostgresStoreTransactionBuilder {
+            store: self,
+            options: TransactionOptions::default(),
+        }
     }
 }
 
@@ -3282,23 +3343,8 @@ where
     where
         Self: 't;
 
-    /// Returns a [`PostgresStoreTransactionBuilder`] which begins the transaction when awaited.
-    ///
-    /// By default the transaction is begun with the database's default characteristics. Options
-    /// can be configured on the builder before awaiting it:
-    ///
-    /// ```ignore
-    /// let transaction = store
-    ///     .transaction()
-    ///     .isolation_level(IsolationLevel::RepeatableRead)
-    ///     .read_only()
-    ///     .await?;
-    /// ```
     fn transaction(&mut self) -> Self::TransactionBuilder<'_> {
-        PostgresStoreTransactionBuilder {
-            store: self,
-            options: TransactionOptions::default(),
-        }
+        Self::transaction(self)
     }
 }
 

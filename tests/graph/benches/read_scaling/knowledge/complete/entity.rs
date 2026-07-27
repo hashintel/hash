@@ -6,7 +6,7 @@ use criterion_macro::criterion;
 use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
-use hash_graph_postgres_store::store::{Context as _, Transaction as _};
+use hash_graph_postgres_store::store::Transaction as _;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQuerySorting, EntityStore as _, QueryEntitiesParams,
