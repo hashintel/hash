@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName, principal::actor::AuthenticatedActor,
+    action::ActionName, principal::actor::AuthenticatedActor, store::PrincipalStore as _,
 };
 use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
@@ -31,7 +31,9 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
-use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_temporal_versioning::{
+    RightBoundedTemporalInterval, TemporalTagged as _, Timestamp, TransactionTime,
+};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};
@@ -510,12 +512,20 @@ where
             .await
             .change_context(InsertionError)?;
 
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            transaction
+                .current_timestamp()
+                .await
+                .change_context(InsertionError)?,
+        );
+
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
         let mut data_type_reference_ids = HashSet::new();
         let mut data_type_conversions_rows = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder =
+            PolicyComponents::builder(&transaction).with_timestamp(transaction_time.cast());
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -540,6 +550,7 @@ where
                     &parameters.ownership,
                     parameters.conflict_behavior,
                     &provenance,
+                    transaction_time,
                 )
                 .await?
             {
@@ -944,6 +955,13 @@ where
     {
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            transaction
+                .current_timestamp()
+                .await
+                .change_context(UpdateError)?,
+        );
+
         let mut updated_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
         let mut data_type_reference_ids = HashSet::new();
@@ -981,7 +999,11 @@ where
             let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
 
             let (_ontology_id, web_id, temporal_versioning) = transaction
-                .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
+                .update_owned_ontology_id(
+                    &parameters.schema.id,
+                    &provenance.edition,
+                    transaction_time,
+                )
                 .await?;
 
             data_type_reference_ids.extend(
@@ -1010,6 +1032,7 @@ where
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
+            .with_timestamp(transaction_time.cast())
             .with_data_type_ids(&old_data_type_ids)
             .with_actions([ActionName::UpdateDataType], MergePolicies::No)
             .await
@@ -1228,8 +1251,12 @@ where
             }
         }
 
-        self.archive_ontology_type(&params.data_type_id, actor_id)
-            .await
+        self.archive_ontology_type(
+            &params.data_type_id,
+            actor_id,
+            Timestamp::from_anonymous(policy_components.timestamp()),
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1277,6 +1304,7 @@ where
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
+            Timestamp::from_anonymous(policy_components.timestamp()),
         )
         .await
     }

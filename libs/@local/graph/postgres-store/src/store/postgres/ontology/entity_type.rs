@@ -38,7 +38,9 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
-use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_temporal_versioning::{
+    RightBoundedTemporalInterval, TemporalTagged as _, Timestamp, TransactionTime,
+};
 use hash_graph_types::ontology::OntologyTypeProvider;
 use hash_status::StatusCode;
 use postgres_types::Json;
@@ -1026,11 +1028,19 @@ where
             .await
             .change_context(InsertionError)?;
 
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            transaction
+                .current_timestamp()
+                .await
+                .change_context(InsertionError)?,
+        );
+
         let mut inserted_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder =
+            PolicyComponents::builder(&transaction).with_timestamp(transaction_time.cast());
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -1056,6 +1066,7 @@ where
                     &parameters.ownership,
                     parameters.conflict_behavior,
                     &provenance,
+                    transaction_time,
                 )
                 .await?
             {
@@ -1572,6 +1583,13 @@ where
     {
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            transaction
+                .current_timestamp()
+                .await
+                .change_context(UpdateError)?,
+        );
+
         let mut updated_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
@@ -1609,7 +1627,11 @@ where
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
             let (_ontology_id, web_id, temporal_versioning) = transaction
-                .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
+                .update_owned_ontology_id(
+                    &parameters.schema.id,
+                    &provenance.edition,
+                    transaction_time,
+                )
                 .await?;
 
             entity_type_reference_ids.extend(
@@ -1629,6 +1651,7 @@ where
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
+            .with_timestamp(transaction_time.cast())
             .with_entity_type_ids(&old_entity_type_ids)
             .with_actions([ActionName::UpdateEntityType], MergePolicies::No)
             .await
@@ -1826,8 +1849,12 @@ where
             }
         }
 
-        self.archive_ontology_type(&params.entity_type_id, actor_id)
-            .await
+        self.archive_ontology_type(
+            &params.entity_type_id,
+            actor_id,
+            Timestamp::from_anonymous(policy_components.timestamp()),
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1877,6 +1904,7 @@ where
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
+            Timestamp::from_anonymous(policy_components.timestamp()),
         )
         .await
     }

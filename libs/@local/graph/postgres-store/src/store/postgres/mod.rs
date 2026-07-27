@@ -2746,18 +2746,19 @@ where
         &self,
         ontology_id: OntologyTypeUuid,
         provenance: &OntologyEditionProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, Report<InsertionError>> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
                 provenance
-              ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
+              ) VALUES ($1, tstzrange($3, NULL, '[)'), $2)
               RETURNING transaction_time;
             ";
 
         self.as_client()
-            .query_one(query, &[&ontology_id, &provenance])
+            .query_one(query, &[&ontology_id, &provenance, &transaction_time])
             .instrument(tracing::info_span!(
                 "INSERT",
                 otel.kind = "client",
@@ -2773,11 +2774,12 @@ where
         &self,
         id: &VersionedUrl,
         archived_by_id: ActorEntityUuid,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           UPDATE ontology_temporal_metadata
           SET
-            transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
+            transaction_time = tstzrange(lower(transaction_time), $4, '[)'),
             provenance = provenance || JSONB_BUILD_OBJECT(
                 'archivedById', $3::UUID
             )
@@ -2785,13 +2787,21 @@ where
             SELECT ontology_id
             FROM ontology_ids
             WHERE base_url = $1 AND version = $2
-          ) AND transaction_time @> now()
+          ) AND transaction_time @> $4::timestamptz
           RETURNING transaction_time;
         ";
 
         let optional = self
             .as_client()
-            .query_opt(query, &[&id.base_url, &id.version, &archived_by_id])
+            .query_opt(
+                query,
+                &[
+                    &id.base_url,
+                    &id.version,
+                    &archived_by_id,
+                    &transaction_time,
+                ],
+            )
             .instrument(tracing::info_span!(
                 "UPDATE",
                 otel.kind = "client",
@@ -2843,6 +2853,7 @@ where
         &self,
         id: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
@@ -2851,7 +2862,7 @@ where
             provenance
           ) VALUES (
             (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
-            tstzrange(now(), NULL, '[)'),
+            tstzrange($4, NULL, '[)'),
             $3
           )
           RETURNING transaction_time;
@@ -2860,7 +2871,10 @@ where
         Ok(OntologyTemporalMetadata {
             transaction_time: self
                 .as_client()
-                .query_one(query, &[&id.base_url, &id.version, &provenance])
+                .query_one(
+                    query,
+                    &[&id.base_url, &id.version, &provenance, &transaction_time],
+                )
                 .instrument(tracing::info_span!(
                     "INSERT",
                     otel.kind = "client",
@@ -3456,6 +3470,7 @@ where
         ownership: &OntologyOwnership,
         on_conflict: ConflictBehavior,
         provenance: &OntologyProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, Report<InsertionError>> {
         match ownership {
             OntologyOwnership::Local { web_id } => {
@@ -3464,7 +3479,11 @@ where
                 let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            &provenance.edition,
+                            transaction_time,
+                        )
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *web_id)
                         .await?;
@@ -3486,7 +3505,11 @@ where
                 let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            &provenance.edition,
+                            transaction_time,
+                        )
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
@@ -3514,6 +3537,7 @@ where
         &self,
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<(OntologyTypeUuid, WebId, OntologyTemporalMetadata), Report<UpdateError>> {
         let previous_version =
             OntologyTypeVersion {
@@ -3585,7 +3609,7 @@ where
             .expect("ontology id should have been created");
 
         let transaction_time = self
-            .create_ontology_temporal_metadata(ontology_id, provenance)
+            .create_ontology_temporal_metadata(ontology_id, provenance, transaction_time)
             .await
             .change_context(UpdateError)?;
         self.create_ontology_owned_metadata(ontology_id, web_id)
