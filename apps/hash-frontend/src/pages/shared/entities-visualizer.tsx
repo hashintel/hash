@@ -1,7 +1,7 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
@@ -88,7 +88,6 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 const generateGraphSort = (
   columnKey: SortableEntitiesTableColumnKey,
   direction: "asc" | "desc",
-  convertTo?: BaseUrl,
 ): EntityQuerySortingRecord => {
   const nulls: NullOrdering = direction === "asc" ? "last" : "first";
   const ordering: Ordering = direction === "asc" ? "ascending" : "descending";
@@ -113,16 +112,10 @@ const generateGraphSort = (
     case "archived":
       path = ["archived" satisfies EntityQuerySortingToken];
       break;
-    default: {
-      if (!isBaseUrl(columnKey)) {
-        throw new Error(`Unexpected sorting column key: ${columnKey}`);
-      }
-      path = ["properties" satisfies EntityQuerySortingToken, columnKey];
-
-      if (convertTo) {
-        path.push("convert", convertTo);
-      }
-    }
+    default:
+      throw new Error(
+        `Unexpected sorting column key: ${columnKey satisfies never}`,
+      );
   }
 
   return {
@@ -228,19 +221,15 @@ export const EntitiesVisualizer: FunctionComponent<{
     [setCursor],
   );
 
-  const [sort, _setSort] = useState<
-    ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
-  >({
-    columnKey: "entityLabel",
-    direction: "asc",
-  });
+  const [sort, _setSort] = useState<ColumnSort<SortableEntitiesTableColumnKey>>(
+    {
+      columnKey: "entityLabel",
+      direction: "asc",
+    },
+  );
 
   const setSort = useCallback(
-    (
-      newSort: ColumnSort<SortableEntitiesTableColumnKey> & {
-        convertTo?: BaseUrl;
-      },
-    ) => {
+    (newSort: ColumnSort<SortableEntitiesTableColumnKey>) => {
       _setSort(newSort);
       setCursor(undefined);
     },
@@ -248,7 +237,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
 
   const graphSort = useMemo(
-    () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
+    () => generateGraphSort(sort.columnKey, sort.direction),
     [sort],
   );
 

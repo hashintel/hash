@@ -4886,7 +4886,6 @@
         "enum": [
           "uuid",
           "archived",
-          "properties",
           "label",
           "editionCreatedAtTransactionTime",
           "editionCreatedAtDecisionTime",

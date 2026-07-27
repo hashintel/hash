@@ -127,12 +127,15 @@ export const HeaderActionButtons = ({
   settingsOpen,
   onSettingsToggle,
   docContext,
+  productView,
 }: {
   settingsOpen: boolean;
   onSettingsToggle: () => void;
   /** Which docs section the help button opens, based on the host view. */ docContext:
     | "site"
     | "product";
+  /** Active product view, used to open its contextual documentation. */
+  productView?: "category" | "canvas" | "timeline";
 }) => {
   const { openDocs } = useDocs();
 
@@ -157,6 +160,9 @@ export const HeaderActionButtons = ({
           });
           openDocs(
             docContext === "site" ? "site-overview" : "product-overview",
+            docContext === "product" && productView
+              ? `${productView}-view`
+              : undefined,
           );
         }}
       />
