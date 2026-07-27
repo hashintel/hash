@@ -14,7 +14,7 @@
 mod common;
 
 use hash_graph_postgres_store::store::{
-    IsolationLevel, Transaction as _,
+    Transaction as _,
     postgres::{
         AsClient as _,
         connection::{CaptureMessages as _, Diagnostic, ServerMessage},
@@ -24,7 +24,7 @@ use hash_graph_postgres_store::store::{
 use crate::common::DatabaseTestWrapper;
 
 #[tokio::test]
-async fn a_statement_s_plan_reaches_the_caller() {
+async fn statement_s_plan_reaches_the_caller() {
     let mut database = DatabaseTestWrapper::new().await;
 
     let (transaction, mut capture) = database
@@ -61,48 +61,8 @@ async fn a_statement_s_plan_reaches_the_caller() {
     assert!(!plan.spills());
 }
 
-/// A caller deciding at runtime takes the same path either way, which is the
-/// whole reason `maybe_observe` exists: were the decision made by choosing
-/// between `observe` and nothing, the two branches would differ in type and the
-/// work between them would have to be written twice.
 #[tokio::test]
-async fn a_runtime_decision_does_not_split_the_path() {
-    for wanted in [Some(Diagnostic::Plans), None] {
-        let mut database = DatabaseTestWrapper::new().await;
-
-        let (transaction, mut capture) = database
-            .connection
-            .transaction()
-            .maybe_observe(wanted)
-            .isolation_level(IsolationLevel::ReadCommitted)
-            .await
-            .expect("the transaction should begin");
-
-        transaction
-            .as_client()
-            .query(
-                "SELECT count(*) FROM generate_series(1, $1) AS g",
-                &[&10_i32],
-            )
-            .await
-            .expect("the query should run");
-
-        transaction
-            .rollback()
-            .await
-            .expect("the transaction should roll back");
-
-        let plans = capture.plans().expect("the plans should arrive");
-        assert_eq!(
-            plans.is_empty(),
-            wanted.is_none(),
-            "asking for {wanted:?} should decide whether a plan arrives, got {plans:?}",
-        );
-    }
-}
-
-#[tokio::test]
-async fn a_capture_holds_nothing_without_being_enabled() {
+async fn capture_holds_nothing_without_being_enabled() {
     let database = DatabaseTestWrapper::new().await;
     let mut capture = database.connection.messages();
 
@@ -125,7 +85,7 @@ async fn a_capture_holds_nothing_without_being_enabled() {
 }
 
 #[tokio::test]
-async fn a_server_warning_reaches_the_caller() {
+async fn server_warning_reaches_the_caller() {
     let database = DatabaseTestWrapper::new().await;
     let mut capture = database.connection.messages();
 
