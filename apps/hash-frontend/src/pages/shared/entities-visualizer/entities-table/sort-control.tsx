@@ -4,9 +4,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import { useMemo } from "react";
 
-import { isBaseUrl } from "@blockprotocol/type-system";
 import { CaretDownSolidIcon } from "@hashintel/design-system";
 
 import { ArrowDownAZRegularIcon } from "../../../../shared/icons/arrow-down-a-z-regular-icon";
@@ -15,29 +13,21 @@ import { TableHeaderButton } from "../../../../shared/table-header/table-header-
 import { MenuItem } from "../../../../shared/ui";
 
 import type { GridSort } from "../../../../components/grid/grid";
-import type {
-  EntitiesTableColumnKey,
-  SortableEntitiesTableColumnKey,
-} from "../entities-table-data";
-import type { BaseUrl } from "@blockprotocol/type-system";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { SortableEntitiesTableColumnKey } from "../entities-table-data";
 import type { FunctionComponent } from "react";
 
 type SortControlProps = {
-  columns: SizedGridColumn[];
   sort: GridSort<SortableEntitiesTableColumnKey>;
-  setSort: (
-    sort: GridSort<SortableEntitiesTableColumnKey> & {
-      convertTo?: BaseUrl;
-    },
-  ) => void;
+  setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
 };
 
-const staticSortOptions: {
-  columnKey: Extract<
-    SortableEntitiesTableColumnKey,
-    "entityLabel" | "lastEdited" | "created" | "entityTypes" | "archived"
-  >;
+/**
+ * Property columns are deliberately omitted: sorting by a property compiles
+ * to an unindexed ORDER BY on the JSONB properties column in the graph.
+ * Property sorting can be re-enabled once properties are indexed.
+ */
+const sortOptions: {
+  columnKey: SortableEntitiesTableColumnKey;
   label: string;
 }[] = [
   { columnKey: "entityLabel", label: "Entity" },
@@ -48,7 +38,6 @@ const staticSortOptions: {
 ];
 
 export const SortControl: FunctionComponent<SortControlProps> = ({
-  columns,
   sort,
   setSort,
 }) => {
@@ -57,27 +46,8 @@ export const SortControl: FunctionComponent<SortControlProps> = ({
     popupId: "entities-visualizer-sort-control",
   });
 
-  const options = useMemo(() => {
-    const propertyColumnOptions: {
-      columnKey: SortableEntitiesTableColumnKey;
-      label: string;
-    }[] = [];
-
-    for (const column of columns) {
-      const columnId = column.id as EntitiesTableColumnKey | undefined;
-      if (columnId && isBaseUrl(columnId)) {
-        propertyColumnOptions.push({
-          columnKey: columnId,
-          label: column.title,
-        });
-      }
-    }
-
-    return [...staticSortOptions, ...propertyColumnOptions];
-  }, [columns]);
-
   const activeLabel =
-    options.find((option) => option.columnKey === sort.columnKey)?.label ??
+    sortOptions.find((option) => option.columnKey === sort.columnKey)?.label ??
     sort.columnKey;
 
   const handleSelect = (columnKey: SortableEntitiesTableColumnKey) => {
@@ -119,7 +89,7 @@ export const SortControl: FunctionComponent<SortControlProps> = ({
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        {options.map((option) => {
+        {sortOptions.map((option) => {
           const isActive = option.columnKey === sort.columnKey;
           return (
             <MenuItem

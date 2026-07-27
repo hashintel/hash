@@ -20,15 +20,22 @@ const streamChunks = (...chunks: string[]) => {
 const collect = async (
   stream: ReadableStream<Uint8Array>,
   options: {
-    direction?: "maximize" | "minimize";
+    direction?: "maximize" | "minimize" | null;
+    emitSyntheticStarted?: boolean;
     maxEventBytes?: number;
     onActivity?: () => void;
   } = {},
 ) => {
   const events = [];
   for await (const event of decodePetrinautOptimizerStream(stream, {
-    direction: options.direction ?? "maximize",
+    // `null` requests attachment-style decoding without a direction.
+    ...(options.direction === null
+      ? {}
+      : { direction: options.direction ?? "maximize" }),
     requestedTrials: 2,
+    ...(options.emitSyntheticStarted === undefined
+      ? {}
+      : { emitSyntheticStarted: options.emitSyntheticStarted }),
     ...(options.maxEventBytes === undefined
       ? {}
       : { maxEventBytes: options.maxEventBytes }),
@@ -190,5 +197,129 @@ describe("decodePetrinautOptimizerStream", () => {
     await expect(
       collect(streamChunks(`data: ${"x".repeat(20)}`), { maxEventBytes: 8 }),
     ).rejects.toThrow("oversized event");
+  });
+
+  it("surfaces SSE frame ids as canonical sequence numbers", async () => {
+    const events = await collect(
+      streamChunks(
+        'id: 1\ndata: {"step":0,"params":{"workers":2},"metric":10,"state":"COMPLETE"}\n\n',
+        "id: 2\nevent: done\ndata: {}\n\n",
+      ),
+    );
+
+    expect(events).toEqual([
+      // The synthetic started event predates upstream bytes, so it has no seq.
+      { type: "started", requestedTrials: 2 },
+      {
+        type: "trial",
+        trial: 0,
+        parameters: { workers: 2 },
+        objective: 10,
+        state: "complete",
+        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        seq: 1,
+      },
+      {
+        type: "complete",
+        requestedTrials: 2,
+        completedTrials: 1,
+        prunedTrials: 0,
+        failedTrials: 0,
+        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        seq: 2,
+      },
+    ]);
+  });
+
+  it("rejects non-decimal SSE frame ids", async () => {
+    await expect(
+      collect(streamChunks("id: not-a-number\nevent: done\ndata: {}\n\n")),
+    ).rejects.toThrow("invalid event id");
+    // An explicit empty id line must not silently become NaN or 0.
+    await expect(
+      collect(streamChunks("id:\nevent: done\ndata: {}\n\n")),
+    ).rejects.toThrow("invalid event id");
+    // `Number()` would coerce exponent notation; the protocol never uses it.
+    await expect(
+      collect(streamChunks("id: 1e2\nevent: done\ndata: {}\n\n")),
+    ).rejects.toThrow("invalid event id");
+  });
+
+  it("adapts a cancelled frame to a terminal cancellation error", async () => {
+    const events = await collect(
+      streamChunks(
+        'id: 1\ndata: {"step":0,"params":{"workers":2},"metric":10,"state":"COMPLETE"}\n\n',
+        "id: 2\nevent: cancelled\ndata: {}\n\n",
+      ),
+    );
+
+    expect(events.at(-1)).toEqual({
+      type: "error",
+      code: "optimization_cancelled",
+      message: "The optimization was cancelled",
+      retryable: false,
+      seq: 2,
+    });
+  });
+
+  it("adapts a superseded frame to a terminal, non-retryable attachment error", async () => {
+    const events = await collect(
+      streamChunks("event: superseded\ndata: {}\n\n"),
+      { direction: null, emitSyntheticStarted: false },
+    );
+
+    expect(events).toEqual([
+      {
+        type: "error",
+        code: "attachment_superseded",
+        message: "Another consumer attached to this optimization run",
+        retryable: false,
+      },
+    ]);
+  });
+
+  it("treats a cancelled frame as terminal", async () => {
+    await expect(
+      collect(
+        streamChunks(
+          "id: 1\nevent: cancelled\ndata: {}\n\n" +
+            'id: 2\ndata: {"step":0,"params":{},"metric":1,"state":"COMPLETE"}\n\n',
+        ),
+      ),
+    ).rejects.toThrow("after a terminal event");
+  });
+
+  it("decodes attachments without a synthetic started event or a best", async () => {
+    const events = await collect(
+      streamChunks(
+        'id: 3\ndata: {"step":2,"params":{"rate":0.4},"metric":2,"state":"COMPLETE"}\n\n',
+        "id: 4\nevent: done\ndata: {}\n\n",
+      ),
+      { direction: null, emitSyntheticStarted: false },
+    );
+
+    expect(events).toEqual([
+      {
+        type: "trial",
+        trial: 2,
+        parameters: { rate: 0.4 },
+        objective: 2,
+        state: "complete",
+        // Without a direction, best-so-far aggregation is skipped: a replay
+        // past a cursor cannot know the true running best, so the consumer's
+        // retained best stays authoritative.
+        best: null,
+        seq: 3,
+      },
+      {
+        type: "complete",
+        requestedTrials: 2,
+        completedTrials: 1,
+        prunedTrials: 0,
+        failedTrials: 0,
+        best: null,
+        seq: 4,
+      },
+    ]);
   });
 });
