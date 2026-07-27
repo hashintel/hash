@@ -29,9 +29,9 @@ use hash_graph_authorization::policies::{
         error::{
             BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
             BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
-            DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
-            GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-            UpdatePolicyError, WebCreationError, WebRoleError,
+            CurrentTimestampError, DetermineActorError, EnsureSystemPoliciesError,
+            GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
+            TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
         },
     },
 };
@@ -47,7 +47,7 @@ use hash_graph_store::{
     filter::protection::PropertyProtectionFilterConfig,
     query::ConflictBehavior,
 };
-use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
@@ -809,6 +809,23 @@ where
     }
 }
 
+fn actor_id_from_principal_type(
+    principal_type: PrincipalType,
+    actor_entity_uuid: ActorEntityUuid,
+) -> ActorId {
+    match principal_type {
+        PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
+        PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
+        PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
+        principal_type @ (PrincipalType::Web
+        | PrincipalType::Team
+        | PrincipalType::WebRole
+        | PrincipalType::TeamRole) => {
+            unreachable!("Unexpected actor type: {principal_type:?}")
+        }
+    }
+}
+
 impl<C, S> PrincipalStore for PostgresStore<C, S>
 where
     C: AsClient,
@@ -1251,17 +1268,65 @@ where
             .change_context(DetermineActorError::StoreError)?
             .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
 
-        Ok(Some(match row.get(0) {
-            PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
-            PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
-            PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
-            principal_type @ (PrincipalType::Web
-            | PrincipalType::Team
-            | PrincipalType::WebRole
-            | PrincipalType::TeamRole) => {
-                unreachable!("Unexpected actor type: {principal_type:?}")
-            }
-        }))
+        Ok(Some(actor_id_from_principal_type(
+            row.get(0),
+            actor_entity_uuid,
+        )))
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn determine_actor_with_timestamp(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<(Option<ActorId>, Timestamp<()>), Report<DetermineActorError>> {
+        if actor_entity_uuid.is_public_actor() {
+            let timestamp = self
+                .current_timestamp()
+                .await
+                .change_context(DetermineActorError::StoreError)?;
+            return Ok((None, timestamp));
+        }
+
+        let row = self
+            .as_client()
+            .query_opt(
+                "SELECT principal_type, statement_timestamp() FROM actor WHERE id = $1",
+                &[&actor_entity_uuid],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(DetermineActorError::StoreError)?
+            .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
+
+        Ok((
+            Some(actor_id_from_principal_type(row.get(0), actor_entity_uuid)),
+            row.get(1),
+        ))
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn current_timestamp(&self) -> Result<Timestamp<()>, Report<CurrentTimestampError>> {
+        // `statement_timestamp()` rather than `now()`: it advances per statement even inside a
+        // transaction, so operations sharing one transaction still observe distinct timestamps,
+        // while a transaction's first statement yields a reading aligned with the transaction's
+        // snapshot.
+        Ok(self
+            .as_client()
+            .query_one("SELECT statement_timestamp()", &[])
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(CurrentTimestampError)?
+            .get(0))
     }
 
     #[tracing::instrument(level = "info", skip(self, context_builder))]

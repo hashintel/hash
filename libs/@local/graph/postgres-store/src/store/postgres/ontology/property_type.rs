@@ -657,7 +657,9 @@ where
             policy_components.optimization_data(ActionName::ViewPropertyType),
         );
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
@@ -701,7 +703,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         self.query_property_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
@@ -730,7 +734,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = request.temporal_axes.resolve();
+        let temporal_axes = request
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
@@ -1159,7 +1165,14 @@ where
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForPropertyTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
-        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+
+        let temporal_axes =
+            QueryTemporalAxesUnresolved::live_only().resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
         let property_type_uuids = params
@@ -1172,12 +1185,6 @@ where
         compiler
             .add_filter(&property_type_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
-            .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<PropertyTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(params.action),
             policy_components.optimization_data(params.action),

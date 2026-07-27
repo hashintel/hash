@@ -8,6 +8,7 @@ use std::collections::{
 };
 
 use error_stack::{Report, bail, ensure};
+use hash_graph_temporal_versioning::Timestamp;
 use type_system::{
     knowledge::{entity::id::EntityEditionId, property::PropertyObjectWithMetadata},
     ontology::VersionedUrl,
@@ -22,10 +23,10 @@ use uuid::Uuid;
 use self::error::{
     ActorCreationError, BuildDataTypeContextError, BuildEntityContextError,
     BuildEntityTypeContextError, BuildPrincipalContextError, BuildPropertyTypeContextError,
-    ContextCreationError, CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
-    GetPoliciesError, GetSystemAccountError, PolicyStoreError, RemovePolicyError,
-    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, TeamRoleError,
-    UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
+    ContextCreationError, CreatePolicyError, CurrentTimestampError, DetermineActorError,
+    EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError, PolicyStoreError,
+    RemovePolicyError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
+    TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
 };
 use super::{
     ContextBuilder, Effect, Policy, PolicyId, ResolvedPolicy,
@@ -533,6 +534,38 @@ pub trait PrincipalStore {
         &self,
         actor_entity_uuid: ActorEntityUuid,
     ) -> Result<Option<ActorId>, Report<DetermineActorError>>;
+
+    /// Determines the type of an actor by its ID, additionally reading the store's clock.
+    ///
+    /// The timestamp is captured by the same statement that looks up the actor, so both are
+    /// obtained in a single round trip. For the public actor no lookup is required and `None` is
+    /// returned as the actor; the clock is then read on its own.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    /// - [`ActorNotFound`] if the actor with the given ID doesn't exist
+    ///
+    /// [`StoreError`]: DetermineActorError::StoreError
+    /// [`ActorNotFound`]: DetermineActorError::ActorNotFound
+    async fn determine_actor_with_timestamp(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<(Option<ActorId>, Timestamp<()>), Report<DetermineActorError>>;
+
+    /// Reads the current timestamp from the store's clock.
+    ///
+    /// The store's clock is the single time authority for all query-relevant timestamps, so
+    /// callers which need a timestamp — e.g. to resolve temporal axes or to stamp written
+    /// records — must use this (or a value derived from another statement's clock reading, such
+    /// as [`determine_actor_with_timestamp`]) rather than the host's clock.
+    ///
+    /// [`determine_actor_with_timestamp`]: Self::determine_actor_with_timestamp
+    ///
+    /// # Errors
+    ///
+    /// - [`CurrentTimestampError`] if a database error occurs
+    async fn current_timestamp(&self) -> Result<Timestamp<()>, Report<CurrentTimestampError>>;
 
     /// Builds a context used to evaluate policies for an actor.
     ///

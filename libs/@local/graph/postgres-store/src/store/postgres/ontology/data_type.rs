@@ -763,7 +763,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         self.query_data_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
@@ -790,7 +792,11 @@ where
         Ok(self
             .read(
                 &[params.filter],
-                Some(&params.temporal_axes.resolve()),
+                Some(
+                    &params
+                        .temporal_axes
+                        .resolve_with(policy_components.timestamp()),
+                ),
                 false,
             )
             .await?
@@ -820,7 +826,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = request.temporal_axes.resolve();
+        let temporal_axes = request
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
@@ -1614,7 +1622,14 @@ where
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForDataTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
-        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+
+        let temporal_axes =
+            QueryTemporalAxesUnresolved::live_only().resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
         let data_type_uuids = params
@@ -1627,12 +1642,6 @@ where
         compiler
             .add_filter(&data_type_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
-            .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<DataTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(params.action),
             policy_components.optimization_data(params.action),

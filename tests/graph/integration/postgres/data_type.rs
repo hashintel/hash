@@ -1,20 +1,29 @@
 use core::str::FromStr as _;
-use std::collections::{HashMap, HashSet};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+};
 
 use hash_codec::numeric::Real;
-use hash_graph_postgres_store::store::error::{
-    BaseUrlAlreadyExists, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
-    VersionedUrlAlreadyExists,
+use hash_graph_postgres_store::store::{
+    AsClient as _,
+    error::{
+        BaseUrlAlreadyExists, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
+        VersionedUrlAlreadyExists,
+    },
 };
 use hash_graph_store::{
     data_type::{
-        CreateDataTypeParams, DataTypeStore as _, QueryDataTypesParams, UpdateDataTypesParams,
+        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeStore as _,
+        QueryDataTypeSubgraphParams, QueryDataTypesParams, UnarchiveDataTypeParams,
+        UpdateDataTypesParams,
     },
     entity::{CreateEntityParams, EntityStore as _},
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
+use hash_graph_temporal_versioning::{TemporalTagged as _, Timestamp};
 use time::OffsetDateTime;
 use type_system::{
     knowledge::{
@@ -35,7 +44,7 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-use crate::DatabaseTestWrapper;
+use crate::{DatabaseApi, DatabaseTestWrapper};
 
 #[tokio::test]
 async fn insert() {
@@ -836,5 +845,151 @@ async fn update_external_with_owned() {
     assert!(
         report.contains::<OntologyTypeIsNotOwned>(),
         "wrong error, expected `OntologyTypeIsNotOwned`, got {report:?}"
+    );
+}
+
+async fn is_queryable(api: &DatabaseApi<'_>, data_type_id: &VersionedUrl) -> bool {
+    !api.query_data_types(
+        api.account_id,
+        QueryDataTypesParams {
+            filter: Filter::for_versioned_url(data_type_id),
+            temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+            after: None,
+            limit: None,
+            include_count: false,
+        },
+    )
+    .await
+    .expect("could not query data types")
+    .data_types
+    .is_empty()
+}
+
+#[tokio::test]
+async fn archive_unarchive_round_trip() {
+    let list_v1: DataType = serde_json::from_str(hash_graph_test_data::data_type::LIST_V1)
+        .expect("could not parse data type representation");
+
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([hash_graph_test_data::data_type::VALUE_V1], [], [])
+        .await
+        .expect("could not seed database");
+
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: list_v1.clone(),
+            ownership: OntologyOwnership::Local {
+                web_id: WebId::new(api.account_id),
+            },
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+            conversions: HashMap::new(),
+        },
+    )
+    .await
+    .expect("could not create data type");
+
+    assert!(
+        is_queryable(&api, &list_v1.id).await,
+        "data type should be queryable after creation"
+    );
+
+    api.archive_data_type(
+        api.account_id,
+        ArchiveDataTypeParams {
+            data_type_id: Cow::Borrowed(&list_v1.id),
+        },
+    )
+    .await
+    .expect("could not archive data type");
+
+    assert!(
+        !is_queryable(&api, &list_v1.id).await,
+        "data type should not be queryable after archival"
+    );
+
+    api.unarchive_data_type(
+        api.account_id,
+        UnarchiveDataTypeParams {
+            data_type_id: list_v1.id.clone(),
+            provenance: ProvidedOntologyEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+        },
+    )
+    .await
+    .expect("could not unarchive data type");
+
+    assert!(
+        is_queryable(&api, &list_v1.id).await,
+        "data type should be queryable after unarchival"
+    );
+}
+
+/// The resolved temporal axes of a subgraph response are taken from the database clock: database
+/// clock readings bracketing the query must also bracket the resolved pinned timestamp,
+/// regardless of the host clock.
+#[tokio::test]
+async fn resolved_temporal_axes_use_database_clock() {
+    let value_v1: DataType = serde_json::from_str(hash_graph_test_data::data_type::VALUE_V1)
+        .expect("could not parse data type representation");
+
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = database
+        .seed([hash_graph_test_data::data_type::VALUE_V1], [], [])
+        .await
+        .expect("could not seed database");
+
+    let db_time_before: Timestamp<()> = api
+        .store
+        .as_client()
+        .query_one("SELECT statement_timestamp();", &[])
+        .await
+        .expect("could not read the database clock")
+        .get(0);
+
+    let response = api
+        .query_data_type_subgraph(
+            api.account_id,
+            QueryDataTypeSubgraphParams::Paths {
+                traversal_paths: Vec::new(),
+                request: QueryDataTypesParams {
+                    filter: Filter::for_versioned_url(&value_v1.id),
+                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
+                    after: None,
+                    limit: None,
+                    include_count: false,
+                },
+            },
+        )
+        .await
+        .expect("could not query data type subgraph");
+
+    let db_time_after: Timestamp<()> = api
+        .store
+        .as_client()
+        .query_one("SELECT statement_timestamp();", &[])
+        .await
+        .expect("could not read the database clock")
+        .get(0);
+
+    let QueryTemporalAxes::DecisionTime { pinned, .. } = response.subgraph.temporal_axes.resolved
+    else {
+        panic!("expected decision-time temporal axes");
+    };
+    let pinned_timestamp: Timestamp<()> = pinned.timestamp.cast();
+
+    assert!(
+        db_time_before <= pinned_timestamp && pinned_timestamp <= db_time_after,
+        "resolved pinned timestamp should come from the database clock: expected {db_time_before} \
+         <= {pinned_timestamp} <= {db_time_after}"
     );
 }

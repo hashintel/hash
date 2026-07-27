@@ -656,14 +656,15 @@ where
         Ok(QueryEntitiesResponse {
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
-                    self.get_closed_multi_entity_types(
+                    self.get_closed_multi_entity_types_impl(
                         policy_components
                             .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         entities
                             .iter()
                             .map(|entity| entity.metadata.entity_type_ids.clone()),
-                        QueryTemporalAxesUnresolved::live_only(),
+                        &QueryTemporalAxesUnresolved::live_only()
+                            .resolve_with(policy_components.timestamp()),
                         None,
                     )
                     .await?
@@ -737,7 +738,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
 
         let mut response = self
             .read_entities_impl(&params, &temporal_axes, &policy_components)
@@ -767,6 +770,7 @@ where
                         temporal_axes: params.temporal_axes,
                         include_drafts: params.include_drafts,
                     },
+                    Some(policy_components.timestamp()),
                 )
                 .await
                 .change_context(QueryError)?;
@@ -813,7 +817,8 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = request.temporal_axes.resolve();
+        let timestamp = policy_components.timestamp();
+        let temporal_axes = request.temporal_axes.resolve_with(timestamp);
         let time_axis = temporal_axes.variable_time_axis();
 
         let QueryEntitiesResponse {
@@ -913,14 +918,14 @@ where
             Ok(QueryEntitySubgraphResponse {
                 closed_multi_entity_types: if request.include_entity_types.is_some() {
                     Some(
-                        self.get_closed_multi_entity_types(
+                        self.get_closed_multi_entity_types_impl(
                             actor_id,
                             subgraph
                                 .vertices
                                 .entities
                                 .values()
                                 .map(|entity| entity.metadata.entity_type_ids.clone()),
-                            QueryTemporalAxesUnresolved::live_only(),
+                            &QueryTemporalAxesUnresolved::live_only().resolve_with(timestamp),
                             None,
                         )
                         .await?
@@ -980,6 +985,7 @@ where
                                 temporal_axes: request.temporal_axes,
                                 include_drafts: request.include_drafts,
                             },
+                            Some(timestamp),
                         )
                         .await
                         .change_context(QueryError)?;
@@ -1075,6 +1081,11 @@ where
     /// Returns the entity editions among `params.entity_ids` on which `authenticated_actor` may
     /// perform `params.action`.
     ///
+    /// `timestamp` is the store's clock reading of the surrounding operation, so the permission
+    /// check resolves its temporal axes to the same point in time as the operation's other
+    /// statements; when absent, the reading captured while building this check's policy
+    /// components is used.
+    ///
     /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
     /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
     /// impl — bounded on [`BeginReadOnlyTransaction`] — is not available.
@@ -1087,8 +1098,17 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForEntitiesParams<'_>,
+        timestamp: Option<Timestamp<()>>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
-        let temporal_axes = params.temporal_axes.resolve();
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(timestamp.unwrap_or_else(|| policy_components.timestamp()));
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
 
         let entity_uuids = params
@@ -1108,12 +1128,6 @@ where
         compiler
             .add_filter(&entity_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
-            .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(params.action),
             policy_components.actor_id(),
@@ -1178,7 +1192,6 @@ where
         actor_uuid: ActorEntityUuid,
         params: Vec<CreateEntityParams>,
     ) -> Result<Vec<Entity>, Report<InsertionError>> {
-        let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut entity_edition_ids = Vec::with_capacity(params.len());
 
         let mut entity_id_rows = Vec::with_capacity(params.len());
@@ -1200,13 +1213,19 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let actor_id = transaction
-            .determine_actor(actor_uuid)
+        let (actor_id, timestamp) = transaction
+            .determine_actor_with_timestamp(actor_uuid)
             .await
-            .change_context(InsertionError)?
-            .ok_or_else(|| Report::new(InsertionError).attach("Actor not found"))?;
+            .change_context(InsertionError)?;
+        let actor_id =
+            actor_id.ok_or_else(|| Report::new(InsertionError).attach("Actor not found"))?;
+        // The transaction time is read from the database clock by the transaction's first
+        // statement, so it is consistent with the timestamps of concurrently committed data
+        // while every statement of this operation shares the single value.
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(timestamp);
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder =
+            PolicyComponents::builder(&transaction).with_timestamp(timestamp);
 
         let mut entity_ids = Vec::with_capacity(params.len());
 
@@ -1984,7 +2003,9 @@ where
             &params.filter
         };
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
         compiler
             .add_filter(&policy_filter)
@@ -2074,7 +2095,7 @@ where
                 transaction_time.map(LimitedTemporalBound::Inclusive),
             ),
         }
-        .resolve();
+        .resolve_with(policy_components.timestamp());
 
         Read::<Entity>::read_one(
             self,
@@ -2092,15 +2113,18 @@ where
         actor_id: ActorEntityUuid,
         mut params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
-        let transaction_time = Timestamp::now().remove_nanosecond();
-        let decision_time = params
-            .decision_time
-            .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
-
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
+        // The transaction time is read from the database clock by the locking statement — the
+        // transaction's first statement — so it is consistent with the timestamps of
+        // concurrently committed data while every statement of this operation shares the single
+        // value.
         let locked_row = transaction
-            .lock_entity_edition(params.entity_id, transaction_time, decision_time)
+            .lock_entity_edition(
+                params.entity_id,
+                None,
+                params.decision_time.map(Timestamp::remove_nanosecond),
+            )
             .await?
             .ok_or_else(|| {
                 Report::new(EntityDoesNotExist)
@@ -2108,6 +2132,10 @@ where
                     .attach(params.entity_id)
                     .change_context(UpdateError)
             })?;
+        let transaction_time = locked_row.locked_at;
+        let decision_time = params
+            .decision_time
+            .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
         let ClosedTemporalBound::Inclusive(locked_transaction_time) =
             *locked_row.transaction_time.start();
         let ClosedTemporalBound::Inclusive(locked_decision_time) =
@@ -2139,6 +2167,7 @@ where
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
+            .with_timestamp(transaction_time.cast())
             .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
             .with_entity_type_ids(&params.entity_type_ids)
             .with_actions(
@@ -2514,7 +2543,11 @@ where
                 }
 
                 if let Some(previous_live_entity) = transaction
-                    .lock_entity_edition(params.entity_id, transaction_time, decision_time)
+                    .lock_entity_edition(
+                        params.entity_id,
+                        Some(transaction_time),
+                        Some(decision_time),
+                    )
                     .await?
                 {
                     transaction
@@ -2779,7 +2812,7 @@ where
         // Delegates to the inherent method on `PostgresStore<C, S>`, so the permission check is
         // also reachable where the `EntityStore` impl — bounded on `BeginReadOnlyTransaction` —
         // is unavailable.
-        self.has_permission_for_entities_impl(authenticated_actor, params)
+        self.has_permission_for_entities_impl(authenticated_actor, params, None)
             .await
     }
 
@@ -2832,6 +2865,7 @@ where
                     },
                     include_drafts: false,
                 },
+                None,
             )
             .await
             .change_context(ClusterError::Store)?;
@@ -2993,6 +3027,9 @@ struct LockedEntityEdition {
     entity_edition_id: EntityEditionId,
     decision_time: LeftClosedTemporalInterval<DecisionTime>,
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+    /// The database clock reading of the locking statement, which callers use as the operation's
+    /// transaction time when they did not supply their own timestamps to the lock.
+    locked_at: Timestamp<TransactionTime>,
 }
 
 /// Builds the statement populating `entity_edition_cache` by aggregating the editions'
@@ -3215,12 +3252,17 @@ where
         Ok(edition_id)
     }
 
+    /// Locks the entity's edition which is current at the given timestamps.
+    ///
+    /// A `transaction_time` or `decision_time` of `None` falls back to the database clock, whose
+    /// reading is returned as [`LockedEntityEdition::locked_at`] so callers can reuse it for the
+    /// remainder of the operation.
     #[tracing::instrument(level = "info", skip(self))]
     async fn lock_entity_edition(
         &self,
         entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
+        transaction_time: Option<Timestamp<TransactionTime>>,
+        decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Option<LockedEntityEdition>, Report<UpdateError>> {
         let current_data = if let Some(draft_id) = entity_id.draft_id {
             self.as_client()
@@ -3229,13 +3271,16 @@ where
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
                             entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time
+                            entity_temporal_metadata.decision_time,
+                            statement_timestamp()
                         FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.web_id = $1
                           AND entity_temporal_metadata.entity_uuid = $2
                           AND entity_temporal_metadata.draft_id = $3
-                          AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                          AND entity_temporal_metadata.decision_time @> $5::timestamptz
+                          AND entity_temporal_metadata.transaction_time
+                              @> COALESCE($4::timestamptz, statement_timestamp())
+                          AND entity_temporal_metadata.decision_time
+                              @> COALESCE($5::timestamptz, statement_timestamp())
                           FOR NO KEY UPDATE NOWAIT;",
                     &[
                         &entity_id.web_id,
@@ -3259,13 +3304,16 @@ where
                         SELECT
                             entity_temporal_metadata.entity_edition_id,
                             entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time
+                            entity_temporal_metadata.decision_time,
+                            statement_timestamp()
                         FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.web_id = $1
                           AND entity_temporal_metadata.entity_uuid = $2
                           AND entity_temporal_metadata.draft_id IS NULL
-                          AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                          AND entity_temporal_metadata.decision_time @> $4::timestamptz
+                          AND entity_temporal_metadata.transaction_time
+                              @> COALESCE($3::timestamptz, statement_timestamp())
+                          AND entity_temporal_metadata.decision_time
+                              @> COALESCE($4::timestamptz, statement_timestamp())
                           FOR NO KEY UPDATE NOWAIT;",
                     &[
                         &entity_id.web_id,
@@ -3290,6 +3338,7 @@ where
                     entity_edition_id: row.get(0),
                     transaction_time: row.get(1),
                     decision_time: row.get(2),
+                    locked_at: row.get(3),
                 })
             })
             .map_err(|error| match error.code() {
