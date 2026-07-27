@@ -24,8 +24,8 @@
     "eventsource-parser": "3.0.8"
   },
   "devDependencies": {
-    "@apps/petrinaut-opt": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@python/petrinaut-optimization": "workspace:*",
     "openapi-typescript": "7.13.0",
     "oxfmt": "0.50.0",
     "rimraf": "6.1.3",

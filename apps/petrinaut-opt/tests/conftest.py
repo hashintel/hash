@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 import pytest
+from pydantic import JsonValue
 
 
 @pytest.fixture
-def optimization_manifest() -> dict:
-    """The Python service deliberately treats this document as opaque JSON."""
+def optimization_manifest() -> dict[str, JsonValue]:
+    """Return a manifest the Python service treats as opaque JSON."""
     return {
         "kind": "petrinaut-optimization",
         "version": 1,
@@ -33,7 +32,8 @@ def optimization_manifest() -> dict:
 
 
 @pytest.fixture
-def optimization_description() -> dict:
+def optimization_description() -> dict[str, JsonValue]:
+    """Return the CLI-shaped ``optimization.describe`` result used by tests."""
     return {
         "direction": "maximize",
         "study": {"trials": 3, "sampler": "random", "seed": 42},

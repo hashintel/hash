@@ -1,11 +1,12 @@
-from __future__ import annotations
-
 import io
 import logging
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from opentelemetry.sdk._logs.export import InMemoryLogRecordExporter
+from opentelemetry.sdk._logs.export import (  # noqa: PLC2701 — the OTEL logs SDK has no public import path yet.
+    InMemoryLogRecordExporter,
+)
 from opentelemetry.sdk.metrics.export import ConsoleMetricExporter
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
     InMemorySpanExporter,
@@ -29,21 +30,21 @@ class _SpyProvider:
         self.shut += 1
 
 
-def test_flush_preserves_active_providers(monkeypatch) -> None:
+def test_flush_preserves_active_providers(monkeypatch: pytest.MonkeyPatch) -> None:
     spies = [_SpyProvider() for _ in range(3)]
-    monkeypatch.setattr(telemetry, "_providers", list(spies))
+    monkeypatch.setattr(telemetry._state, "providers", list(spies))
 
     telemetry.flush_telemetry()
 
     assert all(spy.flushed == 1 for spy in spies)
     assert all(spy.shut == 0 for spy in spies)
-    assert telemetry._providers == spies
+    assert telemetry._state.providers == spies
 
 
-def test_setup_configures_service_telemetry(monkeypatch) -> None:
+def test_setup_configures_service_telemetry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-    monkeypatch.setattr(telemetry, "_configured", False)
-    monkeypatch.setattr(telemetry, "_providers", [])
+    monkeypatch.setattr(telemetry._state, "configured", False)
+    monkeypatch.setattr(telemetry._state, "providers", [])
     log_exporter = InMemoryLogRecordExporter()
     # Avoid opening real OTLP connections: swap the exporters for in-memory ones.
     monkeypatch.setattr(
@@ -73,11 +74,11 @@ def test_setup_configures_service_telemetry(monkeypatch) -> None:
         monkeypatch.setattr(service_logger, "handlers", list(service_logger.handlers))
 
     assert telemetry.setup_telemetry(FastAPI()) is True
-    assert len(telemetry._providers) == 3
-    assert tracer_providers == [telemetry._providers[0]]
-    assert meter_providers == [telemetry._providers[1]]
-    assert instrumentation["tracer_provider"] is telemetry._providers[0]
-    assert instrumentation["meter_provider"] is telemetry._providers[1]
+    assert len(telemetry._state.providers) == 3
+    assert tracer_providers == [telemetry._state.providers[0]]
+    assert meter_providers == [telemetry._state.providers[1]]
+    assert instrumentation["tracer_provider"] is telemetry._state.providers[0]
+    assert instrumentation["meter_provider"] is telemetry._state.providers[1]
     assert instrumentation["excluded_urls"] == "status$"
     new_handlers = [
         handler
@@ -95,20 +96,18 @@ def test_setup_configures_service_telemetry(monkeypatch) -> None:
     logging.getLogger("pn_api").info("optimization lifecycle test")
     logging.getLogger("opentelemetry.exporter").error("exporter failure test")
     telemetry.flush_telemetry()
-    exported_bodies = [
-        record.log_record.body for record in log_exporter.get_finished_logs()
-    ]
+    exported_bodies = [record.log_record.body for record in log_exporter.get_finished_logs()]
     assert "optimization lifecycle test" in exported_bodies
     assert "exporter failure test" not in exported_bodies
 
-    telemetry._shutdown_unpublished_providers(telemetry._providers)
-    telemetry._providers.clear()
+    telemetry._shutdown_unpublished_providers(telemetry._state.providers)
+    telemetry._state.providers.clear()
 
 
-def test_setup_cleans_up_partial_configuration(monkeypatch) -> None:
+def test_setup_cleans_up_partial_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-    monkeypatch.setattr(telemetry, "_configured", False)
-    monkeypatch.setattr(telemetry, "_providers", [])
+    monkeypatch.setattr(telemetry._state, "configured", False)
+    monkeypatch.setattr(telemetry._state, "providers", [])
     monkeypatch.setattr(
         telemetry,
         "_build_exporters",
@@ -126,9 +125,7 @@ def test_setup_cleans_up_partial_configuration(monkeypatch) -> None:
     def fail_instrumentation(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("instrumentation failed")
 
-    monkeypatch.setattr(
-        telemetry.FastAPIInstrumentor, "instrument_app", fail_instrumentation
-    )
+    monkeypatch.setattr(telemetry.FastAPIInstrumentor, "instrument_app", fail_instrumentation)
     original_handlers = {
         logger_name: list(logging.getLogger(logger_name).handlers)
         for logger_name in telemetry._SERVICE_LOGGER_NAMES
@@ -137,12 +134,12 @@ def test_setup_cleans_up_partial_configuration(monkeypatch) -> None:
     assert telemetry.setup_telemetry(FastAPI()) is False
     assert tracer_providers == []
     assert meter_providers == []
-    assert telemetry._providers == []
+    assert telemetry._state.providers == []
     for logger_name in telemetry._SERVICE_LOGGER_NAMES:
         assert logging.getLogger(logger_name).handlers == original_handlers[logger_name]
 
 
-def test_lifespan_flushes_telemetry_on_exit(monkeypatch) -> None:
+def test_lifespan_flushes_telemetry_on_exit(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = {"count": 0}
 
     def _spy() -> None:

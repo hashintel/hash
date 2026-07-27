@@ -884,12 +884,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/petrinaut-opt@workspace:*, @apps/petrinaut-opt@workspace:apps/petrinaut-opt":
-  version: 0.0.0-use.local
-  resolution: "@apps/petrinaut-opt@workspace:apps/petrinaut-opt"
-  languageName: unknown
-  linkType: soft
-
 "@apps/petrinaut-website@workspace:apps/petrinaut-website":
   version: 0.0.0-use.local
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
@@ -8703,9 +8697,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/petrinaut-optimizer-client@workspace:libs/@local/petrinaut-optimizer-client"
   dependencies:
-    "@apps/petrinaut-opt": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@python/petrinaut-optimization": "workspace:*"
     eventsource-parser: "npm:3.0.8"
     openapi-typescript: "npm:7.13.0"
     oxfmt: "npm:0.50.0"
@@ -11178,6 +11172,12 @@ __metadata:
 "@python/hash-repo-chores@workspace:libs/@local/repo-chores/python":
   version: 0.0.0-use.local
   resolution: "@python/hash-repo-chores@workspace:libs/@local/repo-chores/python"
+  languageName: unknown
+  linkType: soft
+
+"@python/petrinaut-optimization@workspace:*, @python/petrinaut-optimization@workspace:apps/petrinaut-opt":
+  version: 0.0.0-use.local
+  resolution: "@python/petrinaut-optimization@workspace:apps/petrinaut-opt"
   languageName: unknown
   linkType: soft
 

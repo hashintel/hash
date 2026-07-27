@@ -1,20 +1,18 @@
-#!/usr/bin/env python3
 """HTTP API for streaming Petrinaut optimization studies."""
-
-from __future__ import annotations
 
 import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
-from typing import Any
+from typing import Protocol
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import JsonValue
 from starlette.background import BackgroundTask
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -23,7 +21,6 @@ from src.petrinaut_optimizer import PetrinautOptimizer
 from src.telemetry import flush_telemetry, setup_telemetry
 from src.utils import Phase, RunStatus, StatusStore, set_status
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 load_dotenv(REPO_ROOT / ".env")
 log = logging.getLogger("pn_api")
@@ -31,7 +28,11 @@ MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
 _OPTIMIZATION_PATHS = {"/optimize/all", "/optimize/best"}
-_SSE_RESPONSES = {
+
+type OptimizationManifest = dict[str, JsonValue]
+"""The opaque JSON manifest forwarded verbatim to the Petrinaut CLI."""
+
+_SSE_RESPONSES: dict[int | str, dict[str, JsonValue]] = {
     200: {
         "description": "Server-Sent Events optimization stream",
         "content": {"text/event-stream": {"schema": {"type": "string"}}},
@@ -50,7 +51,27 @@ _SSE_RESPONSES = {
 }
 
 
-class _RequestBodyTooLarge(Exception):
+class ClosableModel(Protocol):
+    """The CLI adapter shutdown surface the API drives during cleanup."""
+
+    def close(self, *, graceful: bool = ...) -> None: ...
+
+
+class OptimizationStreamer(Protocol):
+    """The optimizer surface the SSE routes consume; a seam for test fakes."""
+
+    @property
+    def n_trials(self) -> int: ...
+
+    @property
+    def pn_model(self) -> ClosableModel: ...
+
+    def stream_all(self, request: Request, run_id: str, n_trials: int) -> AsyncIterator[str]: ...
+
+    def stream_best(self, request: Request, run_id: str, n_trials: int) -> AsyncIterator[str]: ...
+
+
+class _RequestBodyTooLargeError(RuntimeError):
     pass
 
 
@@ -87,12 +108,12 @@ class RequestBodyLimitMiddleware:
             if message["type"] == "http.request":
                 received_bytes += len(message.get("body", b""))
                 if received_bytes > MAX_REQUEST_BODY_BYTES:
-                    raise _RequestBodyTooLarge
+                    raise _RequestBodyTooLargeError
             return message
 
         try:
             await self.app(scope, limited_receive, send)
-        except _RequestBodyTooLarge:
+        except _RequestBodyTooLargeError:
             await self._reject(scope, receive, send)
 
     @staticmethod
@@ -105,11 +126,12 @@ class RequestBodyLimitMiddleware:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Initialize the run-scoped status registry."""
     app.state.statuses = StatusStore()
     app.state.optimization_admission_lock = asyncio.Lock()
     app.state.active_optimizations = 0
+
     try:
         yield
     finally:
@@ -124,14 +146,14 @@ app.add_middleware(RequestBodyLimitMiddleware)
 setup_telemetry(app)
 
 
-def create_model(optimization_manifest: dict[str, Any]) -> PetrinautModel:
+def create_model(optimization_manifest: OptimizationManifest) -> PetrinautModel:
     """Create the CLI adapter; retained as a narrow seam for API tests."""
     return PetrinautModel(optimization_manifest)
 
 
 def initialize_optimizer(
-    optimization_manifest: dict[str, Any],
-) -> PetrinautOptimizer:
+    optimization_manifest: OptimizationManifest,
+) -> OptimizationStreamer:
     """Start Petrinaut and build an Optuna study from its description."""
     model = create_model(optimization_manifest)
     try:
@@ -158,13 +180,13 @@ async def _acquire_optimization_slot(
                     "request_id": request_id,
                 },
             )
+
             raise HTTPException(
                 status_code=429,
-                detail=(
-                    "The optimizer is already running its maximum number of studies"
-                ),
+                detail=("The optimizer is already running its maximum number of studies"),
                 headers={"Retry-After": str(RETRY_AFTER_SECONDS)},
             )
+
         app.state.active_optimizations += 1
 
 
@@ -174,8 +196,8 @@ async def _release_optimization_slot(app: FastAPI) -> None:
 
 
 async def _initialize_admitted_optimizer(
-    app: FastAPI, optimization_manifest: dict[str, Any]
-) -> PetrinautOptimizer:
+    app: FastAPI, optimization_manifest: OptimizationManifest
+) -> OptimizationStreamer:
     """Initialize off-loop and clean up if the request task is cancelled."""
     initializer = asyncio.create_task(
         asyncio.to_thread(initialize_optimizer, optimization_manifest)
@@ -187,33 +209,30 @@ async def _initialize_admitted_optimizer(
         # the initializer finishes, close whatever CLI it started even if no
         # coroutine is left awaiting it. close() is idempotent, so the
         # awaited recovery close and this callback can coexist.
-        def _close_abandoned_optimizer(task: asyncio.Task[PetrinautOptimizer]) -> None:
+        def _close_abandoned_optimizer(task: asyncio.Task[OptimizationStreamer]) -> None:
             if task.cancelled() or task.exception() is not None:
                 return
             threading.Thread(
-                target=task.result().pn_model.close,
-                kwargs={"graceful": False},
+                target=lambda: task.result().pn_model.close(graceful=False),
                 daemon=True,
                 name="petrinaut-abandoned-cli-close",
             ).start()
 
         initializer.add_done_callback(_close_abandoned_optimizer)
-        optimizer: PetrinautOptimizer | None = None
+        optimizer: OptimizationStreamer | None = None
         try:
             with suppress(Exception, asyncio.CancelledError):
                 optimizer = await asyncio.shield(initializer)
             if optimizer is not None:
                 with suppress(Exception):
-                    await asyncio.to_thread(
-                        optimizer.pn_model.close, graceful=False
-                    )
+                    await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
         finally:
             await asyncio.shield(_release_optimization_slot(app))
         raise
 
 
 def _create_admitted_run_cleanup(
-    app: FastAPI, optimizer: PetrinautOptimizer
+    app: FastAPI, optimizer: OptimizationStreamer
 ) -> Callable[[], Awaitable[None]]:
     """Build the idempotent teardown for one admitted optimization run.
 
@@ -283,28 +302,22 @@ def _initialization_error(
     )
 
 
-@app.post(
-    "/optimize/all",
-    response_class=StreamingResponse,
-    responses=_SSE_RESPONSES,
-)
-async def post_optimize_all(
-    request: Request,
-    optimization_manifest: dict[str, Any],
-) -> StreamingResponse:
-    """Stream one SSE data frame for every completed Optuna trial."""
+async def _admit_optimization_run(
+    request: Request, optimization_manifest: OptimizationManifest
+) -> tuple[OptimizationStreamer, str]:
+    """Admit, register, and initialize one optimization run for an SSE route."""
     request_id = request.headers.get("x-hash-request-id")
     await _acquire_optimization_slot(request.app, request_id=request_id)
+
     try:
         run_id = request.app.state.statuses.create().run_id
     except BaseException:
         await asyncio.shield(_release_optimization_slot(request.app))
         raise
-    optimizer: PetrinautOptimizer | None = None
+
+    optimizer: OptimizationStreamer | None = None
     try:
-        optimizer = await _initialize_admitted_optimizer(
-            request.app, optimization_manifest
-        )
+        optimizer = await _initialize_admitted_optimizer(request.app, optimization_manifest)
         set_status(
             request.app,
             run_id,
@@ -315,17 +328,23 @@ async def post_optimize_all(
         if optimizer is not None:
             with suppress(Exception):
                 await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
-        await asyncio.shield(_release_optimization_slot(request.app))
-        raise _initialization_error(
-            request.app, run_id, error, request_id=request_id
-        ) from error
 
+        await asyncio.shield(_release_optimization_slot(request.app))
+        raise _initialization_error(request.app, run_id, error, request_id=request_id) from error
+
+    return optimizer, run_id
+
+
+def _streaming_run_response(
+    request: Request,
+    optimizer: OptimizationStreamer,
+    *,
+    run_id: str,
+    stream: AsyncIterator[str],
+) -> StreamingResponse:
     cleanup = _create_admitted_run_cleanup(request.app, optimizer)
     return StreamingResponse(
-        _stream_with_cleanup(
-            optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
-            cleanup,
-        ),
+        _stream_with_cleanup(stream, cleanup),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -337,55 +356,40 @@ async def post_optimize_all(
 
 
 @app.post(
+    "/optimize/all",
+    response_class=StreamingResponse,
+    responses=_SSE_RESPONSES,
+)
+async def post_optimize_all(
+    request: Request,
+    optimization_manifest: OptimizationManifest,
+) -> StreamingResponse:
+    """Stream one SSE data frame for every completed Optuna trial."""
+    optimizer, run_id = await _admit_optimization_run(request, optimization_manifest)
+    return _streaming_run_response(
+        request,
+        optimizer,
+        run_id=run_id,
+        stream=optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
+    )
+
+
+@app.post(
     "/optimize/best",
     response_class=StreamingResponse,
     responses=_SSE_RESPONSES,
 )
 async def post_optimize_best(
     request: Request,
-    optimization_manifest: dict[str, Any],
+    optimization_manifest: OptimizationManifest,
 ) -> StreamingResponse:
     """Stream the best-so-far SSE data frame after every completed trial."""
-    request_id = request.headers.get("x-hash-request-id")
-    await _acquire_optimization_slot(request.app, request_id=request_id)
-    try:
-        run_id = request.app.state.statuses.create().run_id
-    except BaseException:
-        await asyncio.shield(_release_optimization_slot(request.app))
-        raise
-    optimizer: PetrinautOptimizer | None = None
-    try:
-        optimizer = await _initialize_admitted_optimizer(
-            request.app, optimization_manifest
-        )
-        set_status(
-            request.app,
-            run_id,
-            phase=Phase.running,
-            detail="Petrinaut CLI and Optimization Model initialized",
-        )
-    except Exception as error:
-        if optimizer is not None:
-            with suppress(Exception):
-                await asyncio.to_thread(optimizer.pn_model.close, graceful=False)
-        await asyncio.shield(_release_optimization_slot(request.app))
-        raise _initialization_error(
-            request.app, run_id, error, request_id=request_id
-        ) from error
-
-    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
-    return StreamingResponse(
-        _stream_with_cleanup(
-            optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),
-            cleanup,
-        ),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "X-Optimization-Run-ID": run_id,
-        },
-        background=BackgroundTask(cleanup),
+    optimizer, run_id = await _admit_optimization_run(request, optimization_manifest)
+    return _streaming_run_response(
+        request,
+        optimizer,
+        run_id=run_id,
+        stream=optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),
     )
 
 

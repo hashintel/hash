@@ -19,6 +19,7 @@ package       = false
 [tool.uv.workspace]
 # Managed by `mise run sync:python`
 members = [
+    "apps/petrinaut-opt",
     "libs/@local/repo-chores/python",
 ]
 
@@ -38,6 +39,7 @@ hash-repo-chores = { workspace = true }
 addopts = "-q --import-mode=importlib"
 # Managed by `mise run sync:python`
 testpaths = [
+    "apps/petrinaut-opt/tests",
     "libs/@local/repo-chores/python/tests",
 ]
 
@@ -54,6 +56,7 @@ target-version = "py314"
 
 # Managed by `mise run sync:python`
 src = [
+    "apps/petrinaut-opt",
     "libs/@local/repo-chores/python",
 ]
 
@@ -182,6 +185,7 @@ root_module                = "ignore"
 
 # Managed by `mise run sync:python`
 source_roots = [
+    "apps/petrinaut-opt",
     "libs/@local/repo-chores/python",
 ]
 

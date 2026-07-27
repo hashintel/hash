@@ -113,6 +113,7 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
+    JsonValue: unknown;
     /**
      * Phase
      * @enum {string}
@@ -183,7 +184,7 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": {
-          [key: string]: unknown;
+          [key: string]: components["schemas"]["JsonValue"];
         };
       };
     };
@@ -241,7 +242,7 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": {
-          [key: string]: unknown;
+          [key: string]: components["schemas"]["JsonValue"];
         };
       };
     };

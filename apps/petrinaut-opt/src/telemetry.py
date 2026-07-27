@@ -19,18 +19,23 @@ variables are also used here:
 providers and instruments the FastAPI app; later calls are no-ops.
 """
 
-from __future__ import annotations
-
 import logging
 import os
 from contextlib import suppress
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Protocol
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, LogExporter
+from opentelemetry.sdk._logs import (  # noqa: PLC2701 — the OTEL logs SDK has no public import path yet.
+    LoggerProvider,
+    LoggingHandler,
+)
+from opentelemetry.sdk._logs.export import (  # noqa: PLC2701 — the OTEL logs SDK has no public import path yet.
+    BatchLogRecordProcessor,
+    LogRecordExporter,
+)
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import (
     MetricExporter,
@@ -47,11 +52,28 @@ _FASTAPI_EXCLUDED_URLS = r"status$"
 
 log = logging.getLogger("pn_telemetry")
 
-_configured = False
 
-# Providers created by ``setup_telemetry``, retained so the app lifespan can
-# flush them without shutting down process-global OTEL state.
-_providers: list[Any] = []
+class TelemetryProvider(Protocol):
+    """The flush/shutdown surface shared by tracer, meter, and logger providers."""
+
+    def force_flush(self) -> object: ...
+
+    def shutdown(self) -> object: ...
+
+
+@dataclass(slots=True)
+class _TelemetryState:
+    """Process-wide bootstrap state.
+
+    Installed providers are retained so the app lifespan can flush them
+    without shutting down process-global OTEL state.
+    """
+
+    configured: bool = False
+    providers: list[TelemetryProvider] = field(default_factory=list)
+
+
+_state = _TelemetryState()
 
 
 def _service_name() -> str:
@@ -59,46 +81,86 @@ def _service_name() -> str:
 
 
 def _protocol() -> str:
-    return (
-        os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", _DEFAULT_PROTOCOL).strip().lower()
-    )
+    return os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", _DEFAULT_PROTOCOL).strip().lower()
 
 
 def _build_exporters(
     protocol: str,
-) -> tuple[SpanExporter, MetricExporter, LogExporter]:
+) -> tuple[SpanExporter, MetricExporter, LogRecordExporter]:
     """Return the (span, metric, log) exporters for the requested OTLP protocol.
 
     Raises ``ValueError`` for an unrecognised ``OTEL_EXPORTER_OTLP_PROTOCOL``.
     Exporter configuration comes from the standard ``OTEL_EXPORTER_OTLP_*``
-    environment variables.
+    environment variables. Exporter modules import lazily on purpose: only the
+    selected transport's dependency stack (grpc or http) is ever loaded.
     """
     if protocol == "grpc":
-        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
-        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (  # noqa: PLC0415 — lazy transport-specific import; no public log-exporter path.
+            OTLPLogExporter,
+        )
+        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (  # noqa: PLC0415 — lazy transport-specific import.
             OTLPMetricExporter,
         )
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # noqa: PLC0415 — lazy transport-specific import.
             OTLPSpanExporter,
         )
 
         return OTLPSpanExporter(), OTLPMetricExporter(), OTLPLogExporter()
 
     if protocol == "http/protobuf":
-        from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
-        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+        from opentelemetry.exporter.otlp.proto.http._log_exporter import (  # noqa: PLC0415, PLC2701 — lazy transport-specific import; no public log-exporter path.
+            OTLPLogExporter,
+        )
+        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (  # noqa: PLC0415 — lazy transport-specific import.
             OTLPMetricExporter,
         )
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # noqa: PLC0415 — lazy transport-specific import.
             OTLPSpanExporter,
         )
 
         return OTLPSpanExporter(), OTLPMetricExporter(), OTLPLogExporter()
 
     raise ValueError(
-        f"unsupported OTEL_EXPORTER_OTLP_PROTOCOL {protocol!r}; "
-        "expected 'grpc' or 'http/protobuf'"
+        f"unsupported OTEL_EXPORTER_OTLP_PROTOCOL {protocol!r}; expected 'grpc' or 'http/protobuf'"
     )
+
+
+def _build_providers(
+    app: FastAPI, protocol: str, providers: list[TelemetryProvider]
+) -> tuple[TracerProvider, MeterProvider, LoggingHandler]:
+    """Build every provider and instrument ``app``.
+
+    Each provider is appended to ``providers`` as soon as it exists, so the
+    caller can roll back whatever was created when a later step fails.
+    """
+    span_exporter, metric_exporter, log_exporter = _build_exporters(protocol)
+
+    resource = Resource.create({"service.name": _service_name()})
+
+    tracer_provider = TracerProvider(resource=resource)
+    providers.append(tracer_provider)
+    tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
+
+    meter_provider = MeterProvider(
+        resource=resource,
+        metric_readers=[PeriodicExportingMetricReader(metric_exporter)],
+    )
+    providers.append(meter_provider)
+
+    logger_provider = LoggerProvider(resource=resource)
+    providers.append(logger_provider)
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+    # Bridge stdlib logging (`log.info(...)` across the service) to OTLP so
+    # records reach Loki alongside the traces they belong to.
+    logging_handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+
+    FastAPIInstrumentor.instrument_app(
+        app,
+        tracer_provider=tracer_provider,
+        meter_provider=meter_provider,
+        excluded_urls=_FASTAPI_EXCLUDED_URLS,
+    )
+    return tracer_provider, meter_provider, logging_handler
 
 
 def setup_telemetry(app: FastAPI) -> bool:
@@ -109,8 +171,7 @@ def setup_telemetry(app: FastAPI) -> bool:
     logged and swallowed so a misconfigured collector never stops the API from
     serving.
     """
-    global _configured
-    if _configured:
+    if _state.configured:
         return True
 
     endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -118,39 +179,11 @@ def setup_telemetry(app: FastAPI) -> bool:
         log.info("OTEL_EXPORTER_OTLP_ENDPOINT unset; starting without OpenTelemetry")
         return False
 
-    providers: list[Any] = []
+    protocol = _protocol()
+    providers: list[TelemetryProvider] = []
     try:
-        protocol = _protocol()
-        span_exporter, metric_exporter, log_exporter = _build_exporters(protocol)
-
-        resource = Resource.create({"service.name": _service_name()})
-
-        tracer_provider = TracerProvider(resource=resource)
-        providers.append(tracer_provider)
-        tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
-
-        meter_provider = MeterProvider(
-            resource=resource,
-            metric_readers=[PeriodicExportingMetricReader(metric_exporter)],
-        )
-        providers.append(meter_provider)
-
-        logger_provider = LoggerProvider(resource=resource)
-        providers.append(logger_provider)
-        logger_provider.add_log_record_processor(
-            BatchLogRecordProcessor(log_exporter)
-        )
-        # Bridge stdlib logging (`log.info(...)` across the service) to OTLP so
-        # records reach Loki alongside the traces they belong to.
-        logging_handler = LoggingHandler(
-            level=logging.INFO, logger_provider=logger_provider
-        )
-
-        FastAPIInstrumentor.instrument_app(
-            app,
-            tracer_provider=tracer_provider,
-            meter_provider=meter_provider,
-            excluded_urls=_FASTAPI_EXCLUDED_URLS,
+        tracer_provider, meter_provider, logging_handler = _build_providers(
+            app, protocol, providers
         )
     except Exception:
         log.exception("OpenTelemetry bootstrap failed; continuing without telemetry")
@@ -167,8 +200,8 @@ def setup_telemetry(app: FastAPI) -> bool:
         service_logger.setLevel(logging.INFO)
         service_logger.addHandler(logging_handler)
 
-    _providers.extend(providers)
-    _configured = True
+    _state.providers.extend(providers)
+    _state.configured = True
     log.info(
         "OpenTelemetry exporting to %s as %r over %s",
         endpoint,
@@ -180,12 +213,12 @@ def setup_telemetry(app: FastAPI) -> bool:
 
 def flush_telemetry() -> None:
     """Flush buffered telemetry without shutting down the providers."""
-    for provider in reversed(_providers):
+    for provider in reversed(_state.providers):
         with suppress(Exception):
             provider.force_flush()
 
 
-def _shutdown_unpublished_providers(providers: list[Any]) -> None:
+def _shutdown_unpublished_providers(providers: list[TelemetryProvider]) -> None:
     """Clean up providers that have not been published as OTEL globals."""
     for provider in reversed(providers):
         with suppress(Exception):

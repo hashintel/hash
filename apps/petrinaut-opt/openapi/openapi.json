@@ -14,6 +14,7 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "JsonValue": {},
       "Phase": {
         "enum": [
           "idle",
@@ -143,7 +144,9 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
                 "title": "Optimization Manifest",
                 "type": "object"
               }
@@ -201,7 +204,9 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
                 "title": "Optimization Manifest",
                 "type": "object"
               }
