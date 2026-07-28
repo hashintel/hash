@@ -10,5 +10,19 @@
       "matchPackageNames": ["anyhow"],
       "enabled": false
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Keep the `rust` entry in the mise lockfile in sync with `rust-toolchain.toml`. The mise manager cannot do this itself because the Rust toolchain enters mise through the idiomatic version file, not through the mise config.",
+      "managerFilePatterns": ["/(^|/)\\.config/mise/mise\\.lock$/"],
+      "matchStrings": [
+        "\\[\\[tools\\.rust\\]\\]\\nversion = \"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
+      ],
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust-analyzer",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
+    }
   ]
 }
