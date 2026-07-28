@@ -8,14 +8,12 @@
       "matchManagers": ["cargo"],
       "matchFileNames": ["libs/error-stack/Cargo.toml"],
       "matchPackageNames": ["anyhow"],
-      "enabled": false,
-      "minimumReleaseAge": "7 days"
+      "enabled": false
     },
     {
-      "description": "Open mise bump PRs without requiring dependency-dashboard approval, but only once a release has settled",
+      "description": "Open mise bump PRs without requiring dependency-dashboard approval",
       "matchDepNames": ["jdx/mise"],
-      "dependencyDashboardApproval": false,
-      "minimumReleaseAge": "7 days"
+      "dependencyDashboardApproval": false
     }
   ],
   "customManagers": [
