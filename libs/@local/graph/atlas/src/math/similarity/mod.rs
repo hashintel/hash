@@ -184,9 +184,10 @@ impl Similarity {
     /// Transforms four vectors at once, entirely in SIMD registers.
     ///
     /// The scale is folded into the rotation coefficients, so each axis is two fused multiply-adds
-    /// over the batch's lane groups with no shuffles. On targets with native FMA the results can
-    /// differ from [`apply`](Self::apply) by up to one unit in the last place, because the fused
-    /// operations round once instead of twice.
+    /// over the batch's lane groups with no shuffles. On targets with native FMA those fused
+    /// operations round once where [`apply`](Self::apply) rounds each multiply and add separately;
+    /// results differ by at most a few units in the last place of the intermediate terms, and by
+    /// many units in the last place of the result itself where the terms cancel.
     #[inline]
     #[must_use]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {

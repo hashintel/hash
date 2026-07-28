@@ -1474,7 +1474,7 @@ fn runner_classifier() -> ClassifierInput {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
         .expect("the fixture classifier fits")
         .classifier;
 

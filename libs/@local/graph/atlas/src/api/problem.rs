@@ -40,6 +40,9 @@ pub(super) enum ProblemType {
     /// A surface the contract pins but this build does not serve.
     #[serde(rename = "/problems/atlas/unsupported-feature")]
     UnsupportedFeature,
+    /// A surface outside the reach of the caller's scope.
+    #[serde(rename = "/problems/atlas/unavailable-in-scope")]
+    UnavailableInScope,
     /// An edges body listing more tiles than the manifest's cap.
     #[serde(rename = "/problems/atlas/too-many-tiles")]
     TooManyTiles,
@@ -191,6 +194,27 @@ pub(super) fn reject_generation(
     ))
 }
 
+/// The problem a link-bearing surface answers outside the reach of the bound scope.
+///
+/// The refusal itself is the serving layer's: [`Atlas::assemble_edges`] and
+/// [`Atlas::assemble_locate`] take the reach as an argument and answer `OutOfScope` before they
+/// read the request, so this function decides nothing - it maps that answer onto the transport's
+/// vocabulary, and the handlers' rejection order is the serving layer's rejection order.
+///
+/// The status is the 404 an unregistered route answers, so a deployment that refuses a surface by
+/// scope and one that omits it from the route table are answered alike; the `type` member names
+/// the scope as the ground.
+///
+/// [`Atlas::assemble_edges`]: crate::serve::Atlas::assemble_edges
+/// [`Atlas::assemble_locate`]: crate::serve::Atlas::assemble_locate
+pub(super) fn out_of_scope() -> Problem<'static> {
+    Problem::new(
+        StatusCode::NOT_FOUND,
+        ProblemType::UnavailableInScope,
+        "this surface is not served in the caller's scope",
+    )
+}
+
 /// Rejects a route naming a variant this generation does not serve.
 pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
     if VARIANTS.contains(&variant) {
@@ -208,7 +232,7 @@ pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
 mod tests {
     use axum::http::StatusCode;
 
-    use super::{Problem, ProblemType};
+    use super::{Problem, ProblemType, out_of_scope};
 
     #[test]
     fn the_type_member_is_a_root_relative_uri() {
@@ -220,6 +244,19 @@ mod tests {
         let document = serde_json::to_value(&problem).expect("problem documents serialize");
 
         assert_eq!(document["type"], "/problems/atlas/unknown-generation");
+        assert_eq!(document["status"], 404);
+    }
+
+    /// The serving layer's out-of-scope answer maps onto the status an absent route answers.
+    ///
+    /// Which scopes reach which surfaces is the serving layer's statement and is witnessed there;
+    /// this pins the transport's half of it - the status and the type member a refused caller
+    /// reads.
+    #[test]
+    fn an_out_of_scope_surface_refuses_with_a_404_problem() {
+        let document = serde_json::to_value(out_of_scope()).expect("problem documents serialize");
+
+        assert_eq!(document["type"], "/problems/atlas/unavailable-in-scope");
         assert_eq!(document["status"], 404);
     }
 

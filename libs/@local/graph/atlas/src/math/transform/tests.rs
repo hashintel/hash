@@ -66,7 +66,8 @@ fn apply_x4_matches_scalar_apply() {
     let batch = transform.apply_x4(Vec2x4T::from(POINTS));
 
     // FMA fuses the rounding of multiply and add, so the SIMD path may
-    // differ from the scalar path by one unit in the last place.
+    // differ from the scalar path by a few units in the last place of
+    // the intermediate terms.
     for (index, point) in POINTS.into_iter().enumerate() {
         assert_vec2_close(batch.get(index), transform.apply(point));
     }

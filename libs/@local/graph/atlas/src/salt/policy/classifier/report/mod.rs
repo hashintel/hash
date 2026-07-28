@@ -28,6 +28,7 @@ use crate::{
         generation::{GenerationId, GenerationRoot},
     },
     integrity::Sha256Digest,
+    progress::NoProgress,
     salt::policy::GeometryClass,
 };
 
@@ -122,7 +123,7 @@ impl ClassifierReport {
         let training =
             TrainingSet::new(embeddings, rows).expect("the staged corpus validated at fit time");
         let config = frozen.fit();
-        let refit: Fit = fit(training, config).expect("the staged corpus refits");
+        let refit: Fit = fit(training, config, &NoProgress).expect("the staged corpus refits");
 
         let staged = frozen.staged_classifier_digest();
         let recomputed = refit

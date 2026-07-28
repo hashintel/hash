@@ -103,6 +103,15 @@ pub(crate) async fn run_atlas(
     Ok(())
 }
 
+/// Renders one fit's verdict, the `atlas fit` subcommand's product.
+#[expect(
+    clippy::print_stdout,
+    reason = "the verdict is the subcommand's product"
+)]
+fn print_verdict(verdict: &cli::FitVerdict) {
+    println!("{verdict}");
+}
+
 /// Standalone `atlas` subcommand entrypoint.
 #[expect(
     clippy::integer_division_remainder_used,
@@ -118,11 +127,14 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
             .await
             .map_err(Report::new)
             .change_context(GraphError)?;
-        return cli::FitCommand::new(args.root, fit_args)
+        let verdict = cli::FitCommand::new(args.root, fit_args)
             .run(&mut client)
             .await
             .map_err(Report::new)
-            .change_context(GraphError);
+            .change_context(GraphError)?;
+        print_verdict(&verdict);
+
+        return Ok(());
     }
 
     if args.healthcheck.healthcheck {

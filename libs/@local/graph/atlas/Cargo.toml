@@ -45,6 +45,7 @@ memmap2              = { workspace = true }
 pin-project-lite     = { workspace = true }
 rand_core_06         = { workspace = true }
 rand_xoshiro         = { workspace = true }
+ratatui              = { workspace = true, optional = true }
 rayon                = { workspace = true }
 regex                = { workspace = true }
 rkyv                 = { workspace = true }
@@ -88,7 +89,7 @@ gpu = ["burn/metal"]
 # feature-free. This feature gates only the standalone operator
 # binary's shell (`src/main.rs` and `cli::main`) and the dependencies
 # exclusive to it.
-cli = ["dep:tracing-subscriber"]
+cli = ["dep:ratatui", "dep:tracing-subscriber"]
 
 [[bin]]
 name              = "hash-graph-atlas"

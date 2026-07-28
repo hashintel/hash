@@ -6,6 +6,8 @@ use std::io;
 use clap::Args;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
 
+use crate::integrity::SecretString;
+
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
 ///
 /// [`connect`](Self::connect) dials what the flags name; one deployment configuration drives the
@@ -23,7 +25,7 @@ pub struct PostgresArgs {
         env = "HASH_GRAPH_PG_PASSWORD",
         hide_env_values = true
     )]
-    password: String,
+    password: SecretString,
 
     /// The store host.
     #[arg(long, default_value = "localhost", env = "HASH_GRAPH_PG_HOST")]
@@ -39,23 +41,24 @@ pub struct PostgresArgs {
 }
 
 impl PostgresArgs {
-    /// Renders the store connection string.
-    ///
-    /// The password rides the returned string, so it must not be logged or printed.
-    fn dsn(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.user, self.password, self.host, self.port, self.database
-        )
-    }
-
     /// Dials the store the flags name and drives the connection on a background task.
+    ///
+    /// The flags configure the connection field by field, so the password never rides a rendered
+    /// connection string and one containing URL-reserved characters needs no escaping.
     ///
     /// # Errors
     ///
     /// Returns a [`ConnectError`] when the store refuses the connection or handshake.
-    pub async fn connect(&self) -> Result<Client, ConnectError> {
-        connect(&self.dsn()).await
+    pub async fn connect(self) -> Result<Client, ConnectError> {
+        let mut config = Config::new();
+        config
+            .user(self.user)
+            .password(self.password.expose())
+            .host(self.host)
+            .port(self.port)
+            .dbname(self.database);
+
+        dial(config).await
     }
 }
 
@@ -101,6 +104,12 @@ impl Error for ConnectError {
 /// when the store refuses the connection or handshake.
 pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
     let config: Config = dsn.parse().map_err(ConnectError::Parse)?;
+
+    dial(config).await
+}
+
+/// Dials the store the configuration names and drives the connection on a background task.
+async fn dial(config: Config) -> Result<Client, ConnectError> {
     let host = config
         .get_hosts()
         .iter()

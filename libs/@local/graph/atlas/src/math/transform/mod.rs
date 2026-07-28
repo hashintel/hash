@@ -170,8 +170,9 @@ impl Transform {
     /// shuffles. Transform batches in the [`Vec2x4T`] layout inside hot loops.
     ///
     /// On targets with native FMA the per-axis results are computed with a single rounding per
-    /// multiply-add, so they can differ from [`apply`](Self::apply) by up to one unit in the last
-    /// place.
+    /// multiply-add, so they can differ from [`apply`](Self::apply) by a few units in the last
+    /// place of the intermediate terms, and by many units in the last place of the result itself
+    /// where the terms cancel.
     ///
     /// # Examples
     ///

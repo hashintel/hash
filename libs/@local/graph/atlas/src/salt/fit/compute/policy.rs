@@ -24,6 +24,7 @@ use crate::{
     identity::OntologyRowId,
     integrity::Sha256Digest,
     math::AlignedVecN,
+    progress::Progress,
     salt::policy::{
         Classification, GeometryClass,
         annotation::assembly::AssembledCorpus,
@@ -127,9 +128,10 @@ impl Context<'_> {
     ///
     /// A supplied model passes through, and an assembled corpus fits one, staging the annotation
     /// artifacts and recording the fit and holdout evidence.
-    pub(super) fn acquire_classifier(
+    pub(super) fn acquire_classifier<P: Progress + Sync>(
         &self,
         plan: &ClassifierPlan,
+        progress: &P,
     ) -> Result<(Classifier, ClassifierArtifacts), StageError> {
         match plan {
             ClassifierPlan::Use { classifier, source } => Ok((
@@ -143,18 +145,19 @@ impl Context<'_> {
                 corpus,
                 source,
                 staged,
-            } => self.fit_classifier(corpus, *source, staged),
+            } => self.fit_classifier(corpus, *source, staged, progress),
         }
     }
 
     /// Fits the classifier from the assembled corpus.
     ///
     /// Evaluates it on the corpus's holdout cards.
-    fn fit_classifier(
+    fn fit_classifier<P: Progress + Sync>(
         &self,
         corpus: &AssembledCorpus,
         source: Sha256Digest,
         staged: &RepositoryFile,
+        progress: &P,
     ) -> Result<(Classifier, ClassifierArtifacts), StageError> {
         let span = tracing::info_span!("classifier").entered();
 
@@ -170,7 +173,7 @@ impl Context<'_> {
         let rows = corpus.table().rows();
         let training = TrainingSet::new(&rows[..corpus.rows().len()], corpus.rows())
             .map_err(StageError::ClassifierTraining)?;
-        let fitted = fit_classifier(training, self.config.policy.classifier_fit)
+        let fitted = fit_classifier(training, self.config.policy.classifier_fit, progress)
             .map_err(StageError::ClassifierFit)?;
 
         let mut evaluated = 0_usize;

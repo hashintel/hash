@@ -240,6 +240,7 @@ What the crate does guarantee, independent of the surrounding service:
   never hot-swaps. Restart to serve a newly activated generation.
 - `filter` fields are rejected by name (`unsupported-feature`), not
   silently ignored - the filter surface is specified but not served.
+- Link-bearing surfaces answer the operator scope: the edges and locate routes answer a restricted scope with `unavailable-in-scope`, and translate's `edges` map is empty under one. Edge sets derive from node visibility, which states nothing about the link rows themselves, so a scope without a statement about links is refused rather than served an inference.
 - Row ids do not survive a refit. Anything a client persists must be
   stored in entity-identity terms and re-translated per generation.
 - Wire ids are keyed by the server secret per generation, and nothing

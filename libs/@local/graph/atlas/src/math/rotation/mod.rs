@@ -157,8 +157,10 @@ impl Rotation {
 
     /// Rotates four vectors at once, entirely in SIMD registers.
     ///
-    /// On targets with native FMA the results can differ from [`apply`](Self::apply) by up to one
-    /// unit in the last place, because the fused operations round once instead of twice.
+    /// On targets with native FMA the fused multiply-adds round once where [`apply`](Self::apply)
+    /// rounds each multiply and add separately. Results differ by at most a few units in the last
+    /// place of the intermediate products; where the products cancel, that absolute difference
+    /// spans many units in the last place of the small result.
     #[inline]
     #[must_use]
     pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {

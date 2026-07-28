@@ -93,8 +93,9 @@ pub(crate) trait NearestNeighboursIndex {
 
     /// Links the search structure over every inserted row.
     ///
-    /// `rng` drives the backend's randomized construction, so a seeded generator reproduces the
-    /// build on one pinned backend version.
+    /// `rng` drives the backend's randomized construction: sampling streams derive from the
+    /// seed, but linking applies updates in parallel and unordered, so same-seed builds can
+    /// differ. The recall spot check downstream is the arbiter of a construction, never a replay.
     ///
     /// # Errors
     ///

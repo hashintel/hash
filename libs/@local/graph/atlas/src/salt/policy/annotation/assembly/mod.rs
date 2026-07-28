@@ -67,6 +67,7 @@ use render::render_card;
 use super::{AnnotationCorpus, CardIdentity, HoldoutClass};
 use crate::{
     dataset::card,
+    progress::Progress,
     salt::{
         embedding::{
             CardEmbedder, CardEmbeddingError, CardEmbeddingStats, CardEmbeddingTable, embed_cards,
@@ -300,13 +301,15 @@ impl AssembledCorpus {
 /// Returns an [`AssemblyError`] when a card declares a language the template does not render,
 /// carries an impossible endpoint cardinality, fails template rendering, when the embedding
 /// provider fails, or when policy admits no card.
-pub(crate) async fn assemble<E>(
+pub(crate) async fn assemble<E, P>(
     corpus: &AnnotationCorpus,
     embedder: &E,
     config: AssemblyConfig,
+    progress: &P,
 ) -> Result<AssembledCorpus, AssemblyError<E::Error>>
 where
     E: CardEmbedder + Sync,
+    P: Progress + Sync,
 {
     let mut evidence = AssemblyEvidence {
         supplied: corpus.cards().len(),
@@ -368,7 +371,7 @@ where
         rendered.push(render_card(index, corpus_card)?);
     }
 
-    let (table, stats) = embed_cards(embedder, &rendered, None)
+    let (table, stats) = embed_cards(embedder, &rendered, None, progress)
         .await
         .map_err(AssemblyError::Embedding)?;
     let CardEmbeddingStats { reused, embedded } = stats;

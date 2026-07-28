@@ -29,7 +29,7 @@ use aide::{
 };
 use axum::{Extension, Router, body::Bytes};
 
-use crate::serve::{Atlas, GraphDatabaseClient, ServeLimits, VisibilityProof};
+use crate::serve::{Atlas, GraphDatabaseClient, ScopeReach, ServeLimits, VisibilityProof};
 
 mod current;
 mod edges;
@@ -82,12 +82,13 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 /// The shared route state.
 ///
 /// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
-/// connection detail hydration reads through, and the visibility proof every assembly path masks
-/// by.
+/// connection detail hydration reads through, the visibility proof every assembly path masks by,
+/// and the scope those paths answer under.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
     limits: ServeLimits,
+    scope: ScopeReach,
     remote: Arc<GraphDatabaseClient>,
     proof: Arc<VisibilityProof>,
 }
@@ -98,7 +99,9 @@ struct AppState {
 ///
 /// The visibility proof scopes every corpus-bearing response the router serves: the caller
 /// supplies it, naming the process's authority explicitly - the graph binary deliberately
-/// constructs [`VisibilityProof::full_visibility`] for operator serving.
+/// constructs [`VisibilityProof::full_visibility`] for operator serving. The proof's constructor
+/// resolves the scope the routes answer under, so a restricted authority reaches the node-bearing
+/// surfaces alone.
 ///
 /// # Panics
 ///
@@ -113,6 +116,7 @@ pub fn router(
     let state = AppState {
         atlas,
         limits,
+        scope: ScopeReach::from_proof(&proof),
         remote: details,
         proof: Arc::new(proof),
     };

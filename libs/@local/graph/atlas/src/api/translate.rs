@@ -39,6 +39,10 @@ The response is two maps - `nodes` and `edges` - keyed by the requested id strin
      key, never an error and never a null entry: nonexistent ids, draft ids, and entities the \
      caller cannot see are indistinguishable.
 
+The `edges` map is link-bearing, so it answers the operator scope: a caller bound to a restricted \
+     scope receives an empty `edges` map, its link ids indistinguishable from ids belonging to \
+     neither domain. The `nodes` map answers under every scope.
+
 The JSON body is required; the manifest's `limits.translateEntityIds` caps the id list. Duplicates \
      are legal and collapse.";
 
@@ -71,7 +75,8 @@ pub(super) async fn handler(
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.translate;
     let proof = Arc::clone(&state.proof);
-    match spawn(move || atlas.translate(request, limits, &proof)).await? {
+    let scope = state.scope;
+    match spawn(move || atlas.translate(request, limits, &proof, scope)).await? {
         Ok(response) => Ok(([(header::CACHE_CONTROL, headers::NO_STORE)], Json(response))),
         Err(error @ TranslateError::Ids { .. }) => Err(Problem::new(
             StatusCode::BAD_REQUEST,

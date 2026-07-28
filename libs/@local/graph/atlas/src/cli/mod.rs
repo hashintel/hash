@@ -11,9 +11,13 @@
 //! serving stays exclusive to the graph binary. The store flags mirror the graph's
 //! `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry point.
 //!
+//! A command produces its verdict rather than printing one ([`FitVerdict`]), and its host renders
+//! it: the standalone shell's `--tui` dashboard owns the terminal until the run ends, so the
+//! verdict is written after the dashboard gives it back.
+//!
 //! The hosts dial: a command runs over the store connection its host supplies -
-//! [`PostgresArgs::connect`] dials the shell's own flags, [`connect`] dials a rendered
-//! connection string.
+//! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a
+//! rendered connection string.
 //!
 //! The run seam the fit command drives lives with the runner; this module re-exports its
 //! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`Summary`], [`RunError`]) as
@@ -33,11 +37,13 @@ mod postgres;
 mod report;
 mod serve;
 mod shell;
+#[cfg(feature = "cli")]
+mod tui;
 
 #[cfg(feature = "cli")]
 pub use self::shell::main;
 pub use self::{
-    fit::{FitArgs, FitCommand, FitError},
+    fit::{FitArgs, FitCommand, FitError, FitVerdict},
     postgres::{ConnectError, PostgresArgs, connect},
     report::{ClassifierArgs, ProbeArgs, ReportCommand, ReportError},
     serve::{ServeArgs, ServeCommand, ServeError},

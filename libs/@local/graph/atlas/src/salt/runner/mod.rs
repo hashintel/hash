@@ -117,7 +117,7 @@ pub(crate) async fn run<D, E, P>(
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress + Send + 'static,
+    P: Progress + Send + Sync + 'static,
 {
     let prior = match options.prior {
         PriorMode::FromActive => root

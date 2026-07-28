@@ -4,7 +4,7 @@
               exactly-representable values, and round-trip narrowing are exact contracts"
 )]
 
-use proptest::{prop_assert, prop_assert_eq, property_test};
+use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, prop_oneof, property_test};
 
 use crate::math::scalar::{
     DNonNegative, DPositive, GreaterThanOne, Log2, OpenUnitFraction, UnitFraction, huber,
@@ -233,17 +233,36 @@ fn narrow_f32_round_trips_every_finite_f32(#[strategy = -f32::MAX..=f32::MAX] va
     prop_assert_eq!(narrow_f32_exact(f64::from(value)), Some(value));
 }
 
-/// Exact narrowing is a refinement of rounding narrowing.
+/// Exact narrowing is rounding narrowing filtered by round-trip.
 ///
-/// Whenever `narrow_f32_exact` accepts a value, `narrow_f32` returns the same bits (a
-/// representable value rounds to itself).
+/// Whenever `narrow_f32_exact` succeeds, `narrow_f32` succeeds with the same bits and that value
+/// round-trips back to the input bit for bit. Whenever `narrow_f32` succeeds but `narrow_f32_exact`
+/// does not, the narrowed value must have lost information: it does not round-trip.
+/// `narrow_f32_exact` never succeeds where `narrow_f32` fails, since a bit-exact narrowing is in
+/// particular a round-to-nearest narrowing.
 #[property_test]
-fn narrow_f32_exact_agrees_with_narrow_f32_when_it_succeeds(
-    #[strategy = -1e300_f64..1e300] value: f64,
+fn narrow_f32_exact_is_narrow_f32_filtered_by_round_trip(
+    #[strategy = prop_oneof![
+        (-f32::MAX..=f32::MAX).prop_map(f64::from),
+        -4e38_f64..=4e38_f64,
+    ]]
+    value: f64,
 ) {
-    if let Some(exact) = narrow_f32_exact(value) {
-        let rounded = narrow_f32(value).expect("an exactly representable value is finite");
-        prop_assert_eq!(rounded.to_bits(), exact.to_bits());
+    match (narrow_f32(value), narrow_f32_exact(value)) {
+        (Some(rounded), Some(exact)) => {
+            prop_assert_eq!(exact.to_bits(), rounded.to_bits());
+            prop_assert_eq!(f64::from(rounded).to_bits(), value.to_bits());
+        }
+        (Some(rounded), None) => {
+            prop_assert_ne!(f64::from(rounded).to_bits(), value.to_bits());
+        }
+        (None, Some(_)) => {
+            prop_assert!(
+                false,
+                "narrow_f32_exact succeeded while narrow_f32 failed for {value}"
+            );
+        }
+        (None, None) => {}
     }
 }
 

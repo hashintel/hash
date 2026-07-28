@@ -131,11 +131,11 @@ Restricted views backfill: when authorization or filtering hides part of the sch
 
 `global` sub-keys - REQUIRED on the root tile (z = 0, the bootstrap camera framing datum), permitted on every tile response:
 
-| Key | Name            | Type        | Meaning                                                                         |
-| --- | --------------- | ----------- | ------------------------------------------------------------------------------- |
-| 0   | `visible`       | `uint`      | visible count at the current zoom                                               |
-| 1   | `bounds`        | `[4 x f32]` | tight wire-frame extent of the ENTIRE visible set; absent iff that set is empty |
-| 2   | `minResolution` | `uint`      | the coarsest resolution the visible set spans                                   |
+| Key | Name            | Type        | Meaning                                                                            |
+| --- | --------------- | ----------- | ---------------------------------------------------------------------------------- |
+| 0   | `visible`       | `uint`      | visible count at the current zoom                                                  |
+| 1   | `bounds`        | `[4 x f32]` | tight wire-frame extent of the ENTIRE visible set; absent iff that set is empty    |
+| 2   | `minResolution` | `uint`      | the deepest bucket the visible set occupies: the coarsest cut delivering all of it |
 
 - One 32-byte identity echo pins everything: the generation id is sha256 of the generation's metadata document, which carries every artifact digest. The echo exists so a stale or misrouted cache body is rejected before its arrays reach a renderer.
 - `complete` does not ride the tile wire: `children == 0` IS the completeness signal, in both modes (nothing deeper exists), and a total-mode client can cross-check it against `delivered == visible`.
@@ -218,6 +218,8 @@ Property values are SIMPLE ONLY: tstr / int / f64 / bool / null - nested objects
 ## 8a. Problem documents
 
 Routed requests that fail answer RFC 9457 `application/problem+json`; the `type` member is a stable root-relative URI (`/problems/atlas/<slug>`) and `detail` is prose, contractually free. Internal failures (500) carry a static `detail` - driver errors and panic payloads are server-log material and never reach a client. Extraction failures are problem documents too: an absent required body answers `missing-body`, a body that is not the operation's JSON shape (malformed JSON, a wrong content type, an entry that fails its field's parse) answers `invalid-body`, and an unparsable tile address answers `invalid-coordinate`. Only the router's own rejections - an unmatched route, a wrong method - stay plain.
+
+A surface outside the reach of the caller's scope answers `unavailable-in-scope` (404), the status an unregistered route answers: the link-bearing surfaces - the edges and locate routes - answer the operator scope, and translate's `edges` map is empty under any other, its link ids indistinguishable from ids belonging to neither identity domain. No envelope bytes accompany the refusal.
 
 Two response classes carry no byte ceiling, honestly stated rather than capped. Trailer detail is live store text bounded by COUNT limits only: no byte bound applies per value or per response. A deepest-zoom tile's geometry is the second class: the deepest bucket is the catch-all for co-located rows, one cell may hold arbitrarily many, and no published or configured ceiling covers that observed excess - the wire format itself is the only bound (directory offsets are u32, so directory-addressed geometry ends below 4 GiB, enforced as a caught producer panic rather than a manifest limit or preflight; trailers sit outside the directory and share no such ceiling) - the GEOMETRY COLUMNS of edges, locate, and tiles above the deepest zoom stay provable from the manifest's limits; a detailed response of any kind still carries the unbounded trailer. Streamed assembly and store-side query shaping are the staged directions for large-response delivery; neither bounds total bytes unless a future contract says so explicitly.
 

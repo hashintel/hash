@@ -36,6 +36,7 @@ use crate::{
     },
     identity::{EdgeRowId, OntologyRowId},
     math::AlignedVecN,
+    progress::Progress,
     salt::{
         embedding::{
             CardEmbedder, CardEmbeddingStats, CardEmbeddingView, EmbedderFingerprint, embed_cards,
@@ -85,17 +86,19 @@ pub(super) struct Ingested {
 /// The stages run in the dataset's documented ingest order - nodes, edges, ontology, then the card
 /// render over the same type table - and the representation contract is certified before the card
 /// stream touches the embedding provider, so a defective corpus never spends provider budget.
-pub(super) async fn run<D, E>(
+pub(super) async fn run<D, E, P>(
     dataset: &D,
     embedder: &E,
     config: &FitConfig,
     staging: &StagedGeneration,
     scratch: &ScratchDirectory,
     prior: Option<&Generation>,
+    progress: &P,
 ) -> Result<Ingested, FitError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
+    P: Progress + Sync,
 {
     // Nodes: stream every representation into the staged matrix beside
     // its identity table and type column, map the matrix back, and
@@ -134,7 +137,7 @@ where
 
     // Cards: render every card and embed the unique texts, reusing
     // the prior generation's rows where the text hash matches.
-    let cards = embed_card_table(dataset, embedder, staging, prior)
+    let cards = embed_card_table(dataset, embedder, staging, prior, progress)
         .instrument(tracing::info_span!("cards"))
         .await?;
     tracing::info!(
@@ -392,15 +395,17 @@ pub(super) struct CardArtifacts {
 /// A prior generation's card files map back as the reuse table: texts whose hash appears there keep
 /// their rows without touching the provider. Reuse is fingerprint-guarded inside [`embed_cards`],
 /// so a changed embedding contract re-embeds everything.
-async fn embed_card_table<D, E>(
+async fn embed_card_table<D, E, P>(
     dataset: &D,
     embedder: &E,
     staging: &StagedGeneration,
     prior: Option<&Generation>,
+    progress: &P,
 ) -> Result<CardArtifacts, FitError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
+    P: Progress + Sync,
 {
     let (cards, ids) = async {
         let mut stream = pin!(dataset.render_cards());
@@ -448,7 +453,7 @@ where
         )
         .transpose()?;
 
-    let (table, stats) = embed_cards(embedder, &cards, prior_view)
+    let (table, stats) = embed_cards(embedder, &cards, prior_view, progress)
         .instrument(tracing::info_span!("embed"))
         .await
         .map_err(FitError::Embedding)?;

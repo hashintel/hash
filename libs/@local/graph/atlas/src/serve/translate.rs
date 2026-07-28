@@ -14,8 +14,10 @@
 //! nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
 //! visibility proof hides are indistinguishable by doctrine (missing = denied). A node answers only
 //! when its row is visible; an edge only when both its endpoints are - edge visibility derives,
-//! never independently granted. Served wholly from the published identity artifacts and the fitted
-//! coordinate column; the store is never consulted.
+//! never independently granted. The link domain is link-bearing, so it resolves under the operator
+//! scope alone: under a restricted scope every link id is an absent key, indistinguishable from an
+//! id belonging to neither domain. Served wholly from the published identity artifacts and the
+//! fitted coordinate column; the store is never consulted.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
@@ -23,7 +25,7 @@ use core::{error::Error, fmt};
 use hashql_core::id::Id as _;
 use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
-use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
+use super::{Atlas, WireRow, codec::RowCodec, scope::ScopeReach, visibility::VisibilityProof};
 use crate::{
     dataset::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
@@ -136,6 +138,9 @@ impl Atlas {
     /// consumed: each resolved id string moves into its response key, so translation allocates
     /// nothing per id.
     ///
+    /// The node domain resolves under every scope; the link domain resolves under
+    /// [`ScopeReach::Operator`], and answers absent keys under a restricted scope.
+    ///
     /// # Errors
     ///
     /// Returns [`TranslateError::Ids`] when the request lists more entity ids than
@@ -145,11 +150,13 @@ impl Atlas {
         request: TranslateRequest,
         limits: TranslateLimits,
         proof: &VisibilityProof,
+        reach: ScopeReach,
     ) -> Result<TranslateResponse, TranslateError> {
         translate(
             request,
             limits,
             proof,
+            reach,
             &TranslateColumns {
                 node_ids: &self.node_ids,
                 edge_ids: &self.edge_ids,
@@ -191,11 +198,12 @@ impl TranslateColumns<'_> {
 
 /// Resolves a request's ids against one generation's translate columns.
 ///
-/// Under the scope's visibility proof.
+/// Under the authority's visibility proof and scope reach.
 pub(super) fn translate(
     request: TranslateRequest,
     limits: TranslateLimits,
     proof: &VisibilityProof,
+    reach: ScopeReach,
     columns: &TranslateColumns<'_>,
 ) -> Result<TranslateResponse, TranslateError> {
     if request.entity_ids.len() > limits.entity_ids as usize {
@@ -230,7 +238,9 @@ pub(super) fn translate(
                     y: point.y(),
                 },
             );
-        } else if let Some(edge) = columns.edge_ids.row_of(key) {
+        } else if reach.serves_links()
+            && let Some(edge) = columns.edge_ids.row_of(key)
+        {
             let [source, target] = columns.endpoint_rows(edge);
             if !proof.edge_visible(source, target) {
                 // A hidden endpoint hides the edge: an absent key.
@@ -245,7 +255,8 @@ pub(super) fn translate(
                 },
             );
         } else {
-            // Known to neither domain: an absent key by contract.
+            // Known to neither domain, or a link id under a scope that never reads the link
+            // table: an absent key by contract.
         }
     }
 

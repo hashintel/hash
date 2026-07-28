@@ -22,6 +22,7 @@ use crate::{
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AlignedVecN, BoxedVecN, VecN},
+    progress::NoProgress,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::annotations::SuppliedAnnotations,
@@ -190,9 +191,14 @@ impl Frozen {
             self.document_digest,
         );
 
-        let corpus = assemble(self.supplied.document(), &self.embedder, self.assembly)
-            .await
-            .expect("the staged corpus document assembles");
+        let corpus = assemble(
+            self.supplied.document(),
+            &self.embedder,
+            self.assembly,
+            &NoProgress,
+        )
+        .await
+        .expect("the staged corpus document assembles");
 
         let embeddings_digest = corpus
             .table()

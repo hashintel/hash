@@ -367,12 +367,12 @@ fn placement_options(
 /// Returns a [`RunError`] naming the step that failed: opening the snapshot transaction, admitting
 /// the supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents,
 /// validating the asserted Proximal radius, or the run itself.
-pub(crate) async fn live<P: Progress + Send + 'static>(
+pub(crate) async fn live<P: Progress + Send + Sync + 'static>(
     client: &mut Client,
     root: GenerationRoot,
     axes: TemporalAxes,
     options: Options<P>,
-    embedder: &ExternalEmbeddingProvider<OpenAiEmbeddingClient>,
+    embedder: &ExternalEmbeddingProvider<OpenAiEmbeddingClient, P>,
 ) -> Result<Summary, RunError> {
     let dataset = PostgresDataset::new(client, axes)
         .await
