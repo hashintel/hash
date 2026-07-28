@@ -11,7 +11,7 @@
 use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy::Strategy};
 
 use crate::math::{
-    Bounds2, Vec2, Vec2x4T,
+    Bounds2, Positive, Vec2, Vec2x4T,
     tests::{POINTS, assert_vec2_close},
 };
 
@@ -87,6 +87,57 @@ fn minimum_extent_widens_degenerate_axes_only() {
     assert_eq!(widened.centre(), bounds.centre());
     assert_eq!(widened.min().x(), 2.0);
     assert_eq!(widened.max().x(), 4.0);
+}
+
+#[test]
+fn aspect_ratio_grows_the_axis_that_is_short_for_it() {
+    let wide = Bounds2::new(Vec2::new(-8.0, -1.0), Vec2::new(8.0, 1.0))
+        .expect("corners are finite and ordered");
+    let ratio = Positive::new(4.0).expect("4 is positive");
+
+    // 16 by 2 is wider than 4:1, so the height grows and the width stays.
+    let grown = wide.with_aspect_ratio(ratio);
+    assert_eq!(grown.size(), Vec2::new(16.0, 4.0));
+    assert_eq!(grown.centre(), wide.centre());
+
+    // 1 by 12 is narrower, so the width grows instead.
+    let tall = Bounds2::new(Vec2::new(-0.5, -6.0), Vec2::new(0.5, 6.0))
+        .expect("corners are finite and ordered");
+    let grown = tall.with_aspect_ratio(ratio);
+    assert_eq!(grown.size(), Vec2::new(48.0, 12.0));
+    assert_eq!(grown.centre(), tall.centre());
+}
+
+#[test]
+fn aspect_ratio_takes_a_degenerate_axis_out_of_the_other() {
+    let ratio = Positive::new(2.0).expect("2 is positive");
+
+    // All points on a horizontal line: the zero-extent axis grows out of the other.
+    let line = Bounds2::from_points([Vec2::new(1.0, 5.0), Vec2::new(9.0, 5.0)])
+        .expect("points are finite and non-empty");
+    let grown = line.with_aspect_ratio(ratio);
+    assert_eq!(grown.size(), Vec2::new(8.0, 4.0));
+    assert_eq!(grown.centre(), line.centre());
+
+    // A single point has no extent to take a ratio of.
+    let point = Bounds2::new(Vec2::splat(3.0), Vec2::splat(3.0)).expect("a point is a valid box");
+    assert_eq!(point.with_aspect_ratio(ratio).size(), Vec2::ZERO);
+}
+
+#[test]
+fn scaling_about_the_centre_moves_both_corners() {
+    let bounds = Bounds2::new(Vec2::new(0.0, 2.0), Vec2::new(4.0, 6.0))
+        .expect("corners are finite and ordered");
+
+    let widened = bounds.scaled_about_centre(Positive::new(1.5).expect("1.5 is positive"));
+    assert_eq!(widened.size(), Vec2::splat(6.0));
+    assert_eq!(widened.centre(), bounds.centre());
+    assert_eq!(widened.min(), Vec2::new(-1.0, 1.0));
+    assert_eq!(widened.max(), Vec2::new(5.0, 7.0));
+
+    let narrowed = bounds.scaled_about_centre(Positive::new(0.5).expect("0.5 is positive"));
+    assert_eq!(narrowed.size(), Vec2::splat(2.0));
+    assert_eq!(narrowed.centre(), bounds.centre());
 }
 
 /// Deterministic, sign-varying, finite test points.
@@ -370,4 +421,93 @@ fn fit_maps_source_corners_onto_target_corners(
             mapped,
         );
     }
+}
+
+/// A positive, well-conditioned aspect ratio or scale factor.
+///
+/// Bounded to `1e-2..1e2`, where the ratio arithmetic stays far from overflow against extents in
+/// `1..1e3`.
+fn factor_strategy() -> impl Strategy<Value = Positive> {
+    (1e-2_f32..1e2).prop_map(|value| Positive::new(value).expect("the range is positive"))
+}
+
+/// Growing to a ratio contains the original box, keeps its centre, and reaches the ratio.
+///
+/// Corners come back through `centre ± size / 2`, so every assertion carries a tolerance scaled by
+/// the grown box's magnitude: the rounding of a corner is a rounding of the extent it was rebuilt
+/// from, which the ratio makes much larger than the centre it surrounds.
+#[property_test]
+fn aspect_ratio_contains_the_box_and_holds_its_ratio(
+    #[strategy = bounds_strategy()] bounds: Bounds2,
+    #[strategy = factor_strategy()] ratio: Positive,
+) {
+    let grown = bounds.with_aspect_ratio(ratio);
+    let tolerance = 1e-4 * (grown.min().length() + grown.size().length()).max(1.0);
+
+    prop_assert!(
+        grown.min().x() <= bounds.min().x() + tolerance
+            && grown.min().y() <= bounds.min().y() + tolerance
+            && grown.max().x() >= bounds.max().x() - tolerance
+            && grown.max().y() >= bounds.max().y() - tolerance,
+        "{:?} does not contain {:?}",
+        grown,
+        bounds,
+    );
+    prop_assert!(
+        (grown.centre().x() - bounds.centre().x()).abs() <= tolerance
+            && (grown.centre().y() - bounds.centre().y()).abs() <= tolerance,
+        "{:?} is not centred on {:?}",
+        grown,
+        bounds,
+    );
+
+    let reached = grown.size().x() / grown.size().y();
+    prop_assert!(
+        (reached - ratio.get()).abs() <= 1e-4 * ratio.get(),
+        "reached {reached}, wanted {}",
+        ratio.get(),
+    );
+}
+
+/// Scaling about the centre scales both extents by the factor and fixes the centre.
+///
+/// A factor above one grows the box and one below shrinks it, so the same law states containment in
+/// whichever direction the factor points. Tolerances scale with the scaled box's magnitude, since
+/// that is what its corners were rebuilt from.
+#[property_test]
+fn scaling_about_the_centre_scales_both_extents(
+    #[strategy = bounds_strategy()] bounds: Bounds2,
+    #[strategy = factor_strategy()] factor: Positive,
+) {
+    let scaled = bounds.scaled_about_centre(factor);
+    let expected = bounds.size() * factor.get();
+    let tolerance = 1e-4 * (scaled.min().length() + scaled.size().length()).max(1.0);
+
+    prop_assert!(
+        (scaled.size().x() - expected.x()).abs() <= tolerance
+            && (scaled.size().y() - expected.y()).abs() <= tolerance,
+        "expected extent {:?}, got {:?}",
+        expected,
+        scaled.size(),
+    );
+    prop_assert!(
+        (scaled.centre().x() - bounds.centre().x()).abs() <= tolerance
+            && (scaled.centre().y() - bounds.centre().y()).abs() <= tolerance,
+        "{:?} is not centred on {:?}",
+        scaled,
+        bounds,
+    );
+
+    let (outer, inner) = if factor.get() >= 1.0 {
+        (scaled, bounds)
+    } else {
+        (bounds, scaled)
+    };
+    prop_assert!(
+        outer.min().x() <= inner.min().x() + tolerance
+            && outer.min().y() <= inner.min().y() + tolerance
+            && outer.max().x() >= inner.max().x() - tolerance
+            && outer.max().y() >= inner.max().y() - tolerance,
+        "{outer:?} does not contain {inner:?}",
+    );
 }

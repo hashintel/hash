@@ -19,6 +19,7 @@ use burn::{
     tensor::{Tensor, TensorData, backend::AutodiffBackend},
 };
 use hashql_core::id::Id as _;
+use proptest::{prop_assert, prop_assert_eq, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -1527,4 +1528,36 @@ fn a_landmark_outside_the_corpus_is_dropped_rather_than_indexed() {
     let sample = SnapshotSample::select(4, &landmarks, 4);
 
     assert_eq!(sampled_rows(&sample, 4, 4), (vec![2, 0, 1, 3], 1));
+}
+
+/// The strided share is what an even stride over the corpus rows no landmark holds would pick.
+///
+/// The selection resolves its picks by rank arithmetic over the sorted landmarks, never walking the
+/// corpus. The oracle is the walk it replaces, with the position of each pick in closed form: the
+/// `k`-th of `count` picks over `len` positions is the first position whose covered share reaches
+/// `(k + 1) / count`.
+#[property_test]
+fn a_snapshot_sample_strides_the_rows_no_landmark_holds(
+    #[strategy = 1_usize..48] rows: usize,
+    #[strategy = proptest::collection::vec(0_usize..48, 0..12)] anchors: Vec<usize>,
+    #[strategy = 0_usize..24] budget: usize,
+) {
+    let landmarks: Vec<SupportAnchor> = anchors.iter().copied().map(landmark).collect();
+    let sample = SnapshotSample::select(rows, &landmarks, budget);
+    let (reported, skeleton) = sampled_rows(&sample, rows, budget);
+
+    let mut anchored: Vec<usize> = anchors.into_iter().filter(|&row| row < rows).collect();
+    anchored.sort_unstable();
+    anchored.dedup();
+
+    let (prefix, strided) = reported.split_at(skeleton);
+    for &row in prefix {
+        prop_assert!(anchored.contains(&row), "{row} is not a landmark row");
+    }
+
+    let unheld: Vec<usize> = (0..rows).filter(|row| !anchored.contains(row)).collect();
+    let expected: Vec<usize> = (0..strided.len())
+        .map(|pick| unheld[((pick + 1) * unheld.len()).div_ceil(strided.len()) - 1])
+        .collect();
+    prop_assert_eq!(strided, &expected, "over {:?}", unheld);
 }
