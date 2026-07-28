@@ -51,6 +51,10 @@ mod policy;
 // Crate-visible for the root `bench` facade's re-exports.
 #[cfg(feature = "bench")]
 pub use self::policy::classifier::bench as classifier_bench;
+// Crate-visible for the root `progress` facade's re-exports.
+pub use self::policy::classifier::{
+    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, WorkCounters,
+};
 // Crate-visible for the serving surface's TYPE_MASK reads.
 pub(crate) mod postings;
 // Crate-visible for the root `bench` facade's re-exports.

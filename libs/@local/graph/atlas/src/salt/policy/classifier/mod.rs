@@ -49,6 +49,9 @@ use crate::{
 pub(crate) mod artifact;
 #[cfg(feature = "bench")]
 pub use self::fit::bench;
+pub use self::fit::{
+    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, WorkCounters,
+};
 mod fit;
 
 #[cfg(test)]

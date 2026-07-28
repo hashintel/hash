@@ -47,12 +47,17 @@ mod work;
 #[cfg(test)]
 mod tests;
 
+pub use self::{
+    cg::CgTag,
+    receipt::{CandidateOutcome, CurvatureDiagnostic, OuterOutcome, OuterReceipt},
+    work::WorkCounters,
+};
 pub(crate) use self::{
     config::{SolverConfig, SolverConfigError},
     prepare::{PreparationError, PreparationSettings},
     terminal::{CgStage, SolverFailure},
 };
-pub(super) use self::{prepare::prepare, problem::ScaledProblem, solve::solve, work::WorkCounters};
+pub(super) use self::{prepare::prepare, problem::ScaledProblem, solve::solve};
 
 /// Augmented coordinates per contrast row: the embedding dimensions plus one intercept.
 const AUGMENTED_DIMENSIONS: usize = CANONICAL_DIMENSIONS + 1;

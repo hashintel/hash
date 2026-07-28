@@ -1,23 +1,26 @@
 //! The operator commands: fit a generation, serve the atlas.
 //!
-//! The `hash-graph atlas` subcommand consumes this module: [`FitArgs`] and [`fit`] run one
-//! production generation over the live store, and [`ServeArgs`] and [`open_router`] open the root's
-//! active generation and build the read-API router ([`crate::api`]) the graph binary hosts. The
-//! store flags mirror the graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration
-//! drives both.
+//! Two entry points consume this module. The `hash-graph atlas` subcommand: [`FitArgs`] and
+//! [`fit`] run one production generation over the live store, and [`ServeArgs`] and
+//! [`open_router`] open the root's active generation and build the read-API router
+//! ([`crate::api`]) the graph binary hosts. And the standalone `hash-graph-atlas` binary, whose
+//! shell the `cli` feature gates: [`Cli`] carries the fit command over its own store flags
+//! ([`StoreArgs`]); serving stays exclusive to the graph binary. The store flags mirror the
+//! graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry
+//! point.
 //!
-//! The graph binary is the one entry point; these commands carry no listener, lifecycle, or
-//! store dialing of their own beyond what their arguments name.
+//! The commands carry no listener or lifecycle of their own beyond what their arguments name.
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt, num::NonZero};
 use std::{io, time::Instant};
 
 use axum::Router;
-use clap::Args;
+use clap::{Args, Parser, Subcommand};
 
 use crate::{
     api,
+    progress::NoProgress,
     run::{self, ConnectError, RunError},
     serve::{
         Atlas, CurrentError, GenerationRoot, GraphDatabaseClient, OpenAtlasError, OpenOptions,
@@ -249,6 +252,75 @@ impl LimitsArgs {
     }
 }
 
+/// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
+///
+/// The rendered connection string is what [`fit`] receives; one deployment configuration drives
+/// the graph binary and the standalone binary alike.
+#[derive(Debug, Args)]
+pub struct StoreArgs {
+    /// The store username.
+    #[arg(long, default_value = "postgres", env = "HASH_GRAPH_PG_USER")]
+    user: String,
+
+    /// The store password.
+    #[arg(
+        long,
+        default_value = "postgres",
+        env = "HASH_GRAPH_PG_PASSWORD",
+        hide_env_values = true
+    )]
+    password: String,
+
+    /// The store host.
+    #[arg(long, default_value = "localhost", env = "HASH_GRAPH_PG_HOST")]
+    host: String,
+
+    /// The store port.
+    #[arg(long, default_value_t = 5432, env = "HASH_GRAPH_PG_PORT")]
+    port: u16,
+
+    /// The database name.
+    #[arg(long, default_value = "graph", env = "HASH_GRAPH_PG_DATABASE")]
+    database: String,
+}
+
+impl StoreArgs {
+    /// Renders the store connection string.
+    ///
+    /// The password rides the returned string, so it must not be logged or printed.
+    #[must_use]
+    pub fn dsn(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.user, self.password, self.host, self.port, self.database
+        )
+    }
+}
+
+/// The standalone atlas binary's command line.
+///
+/// The operator commands over the generation root and the live store; serving stays exclusive to
+/// the `hash-graph` binary.
+#[derive(Debug, Parser)]
+#[command(name = "hash-graph-atlas")]
+pub struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+/// The standalone atlas binary's commands.
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Fits one generation over the live store and activates it on admission.
+    Fit {
+        #[command(flatten)]
+        store: StoreArgs,
+
+        #[command(flatten)]
+        args: Box<FitArgs>,
+    },
+}
+
 /// One fit invocation's failure, by step.
 ///
 /// The store and run variants splice into the chain transparently (their display text and sources
@@ -380,6 +452,7 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         projector_steps: args.projector_steps,
         baseline: args.baseline,
         nn_descent: args.nn_descent,
+        progress: NoProgress,
     };
     tracing::info!(
         root = args.root,
@@ -473,4 +546,50 @@ pub async fn open_router(
             axum::routing::get(async || axum::http::StatusCode::OK),
         ),
     )
+}
+
+/// Renders a command's failure chain to stderr and returns the failure exit code.
+#[cfg(feature = "cli")]
+#[expect(
+    clippy::print_stderr,
+    reason = "the rendered failure chain is the binary shell's product"
+)]
+fn render_failure(error: &dyn Error) -> std::process::ExitCode {
+    eprintln!("error: {error}");
+    let mut source = error.source();
+    while let Some(cause) = source {
+        eprintln!("  caused by: {cause}");
+        source = cause.source();
+    }
+
+    std::process::ExitCode::FAILURE
+}
+
+/// Runs the standalone atlas binary: parses the command line, installs the log renderer, and
+/// dispatches the command.
+///
+/// The returned exit code is the command's verdict: success, or failure with the error chain
+/// rendered to stderr.
+///
+/// # Panics
+///
+/// Panics when the tokio runtime cannot start or a global log subscriber is already installed.
+#[cfg(feature = "cli")]
+#[must_use]
+#[tokio::main]
+pub async fn main() -> std::process::ExitCode {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
+
+    let cli = Cli::parse();
+    match cli.command {
+        Command::Fit { store, args } => match fit(*args, &store.dsn()).await {
+            Ok(()) => std::process::ExitCode::SUCCESS,
+            Err(error) => render_failure(&error),
+        },
+    }
 }

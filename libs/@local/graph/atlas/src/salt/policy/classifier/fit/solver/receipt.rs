@@ -20,7 +20,7 @@ use crate::{
 
 /// The start-state receipt of one started outer iteration and its completion facts.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct OuterReceipt {
+pub struct OuterReceipt {
     /// One-based index of the started outer iteration.
     pub outer_iteration: u64,
     /// Trust radius entering the iteration.
@@ -41,7 +41,7 @@ pub(crate) struct OuterReceipt {
 
 /// The candidate classification of one outer iteration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum CandidateOutcome {
+pub enum CandidateOutcome {
     /// The trial objective was not finite; the candidate was rejected.
     RejectedNonFinite,
     /// The acceptance ratio fell below its threshold; the candidate was rejected.
@@ -54,7 +54,7 @@ pub(crate) enum CandidateOutcome {
 
 /// The accepted-step curvature diagnostic; a failure is a recorded reason, never a terminal.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum CurvatureDiagnostic {
+pub enum CurvatureDiagnostic {
     /// The accepted-step curvature: the dot `p·y` and its normalization `(p·y) / (p·p)`.
     Value {
         /// The dot `p·y` with `y = g_trial − g`.
@@ -78,7 +78,7 @@ pub(crate) enum CurvatureDiagnostic {
 /// counters and the run terminal, not here. A recorded scalar that failed its own finiteness is
 /// also [`None`]; the terminal outcome of the run names the failure.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub(crate) struct OuterOutcome {
+pub struct OuterOutcome {
     /// The inner CG outcome tag.
     pub tag: Option<CgTag>,
     /// Norm of the returned step `‖p‖`.

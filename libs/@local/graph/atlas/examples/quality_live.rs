@@ -23,9 +23,9 @@
 
 use std::time::Instant;
 
-use hash_graph_atlas::bench::{
-    fit::connect,
-    quality::{AssessOptions, assess_current},
+use hash_graph_atlas::{
+    bench::quality::{AssessOptions, assess_current},
+    run::connect,
 };
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 
@@ -76,7 +76,7 @@ async fn main() {
         "starting the quality assessment"
     );
 
-    let mut client = connect(&dsn).await;
+    let mut client = connect(&dsn).await.expect("the store should connect");
     let started = Instant::now();
     let assessment = assess_current(&mut client, &root, options).await;
     let elapsed = started.elapsed();

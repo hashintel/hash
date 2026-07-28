@@ -3,9 +3,7 @@
 //! The operator seam the [`cli`](crate::cli) commands consume: dial the store ([`connect`]), drive
 //! the production generation runner end to end ([`live`]) - prior resolution, fit, admission probe,
 //! and the activation decision - and read a plain-number summary. Failures return errors naming the
-//! failing step, the specific fault chained beneath. The `bench` measurement seams wrap this module
-//! with their own contract - failures panic, the error is the diagnosis - so the two features share
-//! one implementation.
+//! failing step, the specific fault chained beneath.
 //!
 //! The run embeds cards with the crate's deterministic stand-in embedder while the
 //! embedding-provider seam is unbuilt; the embedder fingerprint recorded in the published artifacts
@@ -13,7 +11,7 @@
 //! fitted in-run from a supplied annotation corpus (exactly one of the two).
 //!
 //! Nothing here is API for consumers of the crate; the module exists for the `cli` operator
-//! commands and the `bench` measurement wrappers.
+//! commands.
 
 use core::{error::Error, fmt, num::NonZero};
 use std::io;
@@ -28,6 +26,7 @@ use crate::{
     },
     file::generation::GenerationRoot,
     math::{AffinityCurve, UnitFraction},
+    progress::{NoProgress, Progress},
     salt::{
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
@@ -123,7 +122,7 @@ pub async fn connect(dsn: &str) -> Result<Client, ConnectError> {
     clippy::struct_excessive_bools,
     reason = "the seam mirrors the binary's independent operator flags"
 )]
-pub struct Options {
+pub struct Options<P: Progress = NoProgress> {
     /// The fit seed; equal seeds replay every draw of the run, the admission probe's included.
     pub seed: u64 = 0,
     /// The landmark capacity `M`.
@@ -179,6 +178,8 @@ pub struct Options {
     ///
     /// Either construction answers to the same recall admission.
     pub nn_descent: bool = false,
+    /// The observer the run reports its progress to.
+    pub progress: P,
 }
 
 /// Plain-number summary of one production run.
@@ -423,7 +424,7 @@ const fn shortened_schedule(steps: NonZero<usize>) -> TrainingSchedule {
     .expect("the ratified schedule domain admits any step count")
 }
 
-fn classifier_input(options: &Options) -> Result<ClassifierInput, RunError> {
+fn classifier_input<P: Progress>(options: &Options<P>) -> Result<ClassifierInput, RunError> {
     match (
         options.annotations.as_deref(),
         options.classifier.as_deref(),
@@ -475,7 +476,15 @@ fn quality_thresholds(
 /// Panics when the options contradict: an asserted Proximal radius or a vacuous placement combined
 /// with the landmark baseline. The binary's flag parser refuses both combinations before this seam
 /// sees them.
-pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<Summary, RunError> {
+#[expect(
+    clippy::too_many_lines,
+    reason = "the seam maps every operator option onto the runner's in one linear sequence"
+)]
+pub async fn live<P: Progress>(
+    client: &mut Client,
+    root: &str,
+    options: Options<P>,
+) -> Result<Summary, RunError> {
     let root = GenerationRoot::new(Utf8PathBuf::from(root)).map_err(RunError::Root)?;
     let dataset = PostgresDataset::new(client, TemporalAxes::now())
         .await
@@ -568,6 +577,7 @@ pub async fn live(client: &mut Client, root: &str, options: Options) -> Result<S
         verdicts.as_ref(),
         &root,
         &runner_options,
+        &options.progress,
     )
     .await
     .map_err(|error| RunError::Run(PipelineError(error)))?;

@@ -39,6 +39,7 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN},
+    progress::NoProgress,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
@@ -1537,6 +1538,7 @@ async fn runner_reports_a_published_generation() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");

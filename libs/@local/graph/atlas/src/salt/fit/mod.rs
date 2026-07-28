@@ -55,6 +55,7 @@ use crate::{
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, NonNegative, Positive, UnitFraction},
+    progress::Progress,
     salt::{
         embedding::CardEmbedder,
         importance::RankingConfig,
@@ -83,8 +84,6 @@ use crate::{
 };
 
 pub(crate) mod annotations;
-#[cfg(feature = "bench")]
-pub mod bench;
 mod compute;
 mod echo;
 mod error;
@@ -532,7 +531,12 @@ impl ClassifierInput {
     reason = "the staging and scratch directories move into the compute closure whole; nothing \
               here can drop them earlier"
 )]
-pub(crate) async fn fit<D, E>(
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the fit's supplies are each their own input; a parameter struct would only rename \
+              the list"
+)]
+pub(crate) async fn fit<D, E, P>(
     dataset: &D,
     embedder: &E,
     config: &FitConfig,
@@ -540,10 +544,12 @@ pub(crate) async fn fit<D, E>(
     verdicts: Option<&SuppliedVerdicts>,
     prior: Option<&Generation>,
     root: &GenerationRoot,
+    progress: &P,
 ) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
+    P: Progress,
 {
     let staging = root.stage()?;
     let scratch = root.scratch()?;
@@ -598,6 +604,7 @@ where
     };
 
     let ingested = ingest::run(dataset, embedder, config, &staging, &scratch, prior).await?;
+    progress.stage_completed("ingest");
 
     // Everything after the last dataset touch is CPU-and-file work:
     // it crosses onto the rayon pool as one owned unit.
@@ -608,8 +615,9 @@ where
         verdicts: verdicts.cloned(),
         prior: prior.cloned(),
     };
+    let progress = progress.clone();
     let published = offload(move || {
-        compute::run::<D::NodeId, D::OntologyId>(staging, &scratch, &inputs, ingested)
+        compute::run::<D::NodeId, D::OntologyId, P>(staging, &scratch, &inputs, ingested, &progress)
     })
     .await?;
 

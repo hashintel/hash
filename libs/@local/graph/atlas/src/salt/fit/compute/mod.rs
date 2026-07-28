@@ -37,6 +37,7 @@ use crate::{
     },
     integrity::Sha256Digest,
     math::AlignedVecN,
+    progress::Progress,
     salt::{
         knn::{artifact::KnnArchive, recall::RecallSpotCheck},
         landmark::artifact::LandmarkSkeletonArchive,
@@ -117,15 +118,17 @@ struct Computed {
     reason = "the context holds plain borrows and no Drop of its own; the borrow of the staging \
               directory ends before the seal consumes it"
 )]
-pub(super) fn run<I, O>(
+pub(super) fn run<I, O, P>(
     staging: StagedGeneration,
     scratch: &ScratchDirectory,
     inputs: &Inputs,
     ingested: Ingested,
+    progress: &P,
 ) -> Result<PublishedGeneration, StageError>
 where
     I: ByteStable,
     O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
+    P: Progress,
 {
     let context = Context {
         staging: &staging,
@@ -140,12 +143,17 @@ where
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
     let (classifier, classifier_artifacts) = context.acquire_classifier(&inputs.classifier)?;
+    progress.stage_completed("classifier");
     let policy = context.stage_policy(&classifier, &ingested.relations)?;
+    progress.stage_completed("policy");
     let adjacency = context.stage_adjacency(rows.len())?;
     let relations =
         context.stage_relations(rows.len(), &ingested.instances, &ingested.multi_typed)?;
+    progress.stage_completed("relations");
     let knn = context.build_neighbour_table(rows)?;
+    progress.stage_completed("knn");
     let semantic = context.stage_semantic(&knn.artifact)?;
+    progress.stage_completed("semantic");
 
     let prior_marks = inputs
         .prior
@@ -154,6 +162,7 @@ where
         .transpose()?;
     let landmarks =
         context.build_landmark_skeleton(rows, &semantic.artifact, prior_marks.as_ref())?;
+    progress.stage_completed("landmarks");
 
     let resolution = context.resolve_verdicts::<O>(inputs.verdicts.as_ref())?;
     let placement = context.stage_placement(&PlacementInputs {
@@ -164,8 +173,10 @@ where
         indexes: &relations.indexes,
         resolution: &resolution,
     })?;
+    progress.stage_completed("projector");
 
     let lod = context.stage_lod::<I>(&ingested.node_types, &ingested.type_parents)?;
+    progress.stage_completed("lod");
 
     let repository = assemble(
         inputs,
@@ -184,7 +195,9 @@ where
     );
 
     let _span = tracing::info_span!("seal").entered();
-    Ok(staging.seal(&repository)?)
+    let published = staging.seal(&repository)?;
+    progress.stage_completed("seal");
+    Ok(published)
 }
 
 /// Binds every staged file and evidence value into the repository the seal publishes.

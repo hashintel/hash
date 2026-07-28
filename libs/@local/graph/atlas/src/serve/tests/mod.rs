@@ -47,6 +47,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Log2, VecN},
     morton::{Depth, MortonCell, MortonKey},
+    progress::NoProgress,
     salt::{
         CardEmbedder, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions, TrainingRow,
         TrainingSet,
@@ -301,6 +302,7 @@ async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");

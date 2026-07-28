@@ -47,6 +47,7 @@ use crate::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
         d_non_negative, d_positive, greater_than_one, open_unit_fraction,
     },
+    progress::NoProgress,
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -437,6 +438,7 @@ async fn fit_publishes_a_complete_generation() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -625,6 +627,7 @@ async fn policy_artifacts_publish_and_read_back() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -688,6 +691,7 @@ async fn lod_columns_publish_in_base_order() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -791,6 +795,7 @@ async fn supplied_verdicts_publish_verbatim() {
         Some(&supplied),
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -951,6 +956,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1064,6 +1070,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the first fit should publish");
@@ -1079,6 +1086,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
         None,
         Some(&prior),
         &root,
+        &NoProgress,
     )
     .await
     .expect("the second fit should publish");
@@ -1139,6 +1147,7 @@ async fn override_supersedes_the_classifier() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1186,6 +1195,7 @@ async fn equal_seeds_publish_equal_generations() {
         None,
         None,
         &first_root,
+        &NoProgress,
     )
     .await
     .expect("the first fit should publish");
@@ -1197,6 +1207,7 @@ async fn equal_seeds_publish_equal_generations() {
         None,
         None,
         &second_root,
+        &NoProgress,
     )
     .await
     .expect("the second fit should publish");
@@ -1246,6 +1257,7 @@ async fn defective_corpus_publishes_nothing() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await;
     assert!(
@@ -1390,6 +1402,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1471,6 +1484,7 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1574,6 +1588,7 @@ async fn vacuous_placement_trains_without_reviews() {
         None,
         None,
         &refused,
+        &NoProgress,
     )
     .await;
     assert!(
@@ -1602,6 +1617,7 @@ async fn vacuous_placement_trains_without_reviews() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the vacuous placement should publish");
@@ -1686,6 +1702,7 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await;
     assert!(
@@ -1886,6 +1903,7 @@ async fn edge_artifacts_publish_and_read_back() {
         None,
         None,
         &root,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");

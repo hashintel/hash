@@ -15,14 +15,15 @@
 //!   element-typed artifact column view.
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
 //! - [`morton`] - Z-order keys: interleaved axes, grid cells, and contiguous key ranges.
+//! - [`progress`] - observation of a running fit: the seam operator surfaces render from.
 //! - `file` - the on-disk artifact formats: plain files in a directory, described by metadata
 //!   beside them.
 //! - `dataset` - the [`Dataset`](dataset::Dataset) trait: the data one fit runs over, wherever it
 //!   lives, plus the relation-card format.
 //! - `salt` - the pipeline: graph construction, landmark layout, projector training, evaluation,
 //!   and materialization.
-//! - `run` - the operator seam: one production run over a live store, the `atlas` binary's fallible
-//!   surface (`cli`/`bench` features).
+//! - `run` - the operator seam: one production run over a live store, the fallible surface the
+//!   `cli` commands consume.
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! ## Workspace dependencies
@@ -82,6 +83,7 @@ pub mod identity;
 pub mod integrity;
 pub mod math;
 pub mod morton;
+pub mod progress;
 pub mod random;
 pub mod run;
 mod salt;

@@ -23,6 +23,7 @@ use crate::{
     dataset::Dataset,
     file::generation::{Generation, GenerationRoot},
     integrity::{Sha256, Update as _},
+    progress::Progress,
     salt::{
         embedding::CardEmbedder,
         fit::{ClassifierInput, FitConfig, SuppliedVerdicts, fit},
@@ -32,9 +33,6 @@ use crate::{
         },
     },
 };
-
-#[cfg(feature = "bench")]
-pub mod bench;
 
 mod error;
 
@@ -106,17 +104,19 @@ pub(crate) struct Outcome {
 /// [`RunnerError::Prior`]), the fit cannot publish ([`RunnerError::Fit`]), or - with the published
 /// generation's identity attached - when the generation cannot be reopened, the probe cannot
 /// produce a report, or the admitted generation cannot be activated.
-pub(crate) async fn run<D, E>(
+pub(crate) async fn run<D, E, P>(
     dataset: &D,
     embedder: &E,
     classifier: &ClassifierInput,
     verdicts: Option<&SuppliedVerdicts>,
     root: &GenerationRoot,
     options: &RunnerOptions,
+    progress: &P,
 ) -> Result<Outcome, RunnerError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
+    P: Progress,
 {
     let prior = match options.prior {
         PriorMode::FromActive => root
@@ -135,6 +135,7 @@ where
         verdicts,
         prior.as_ref(),
         root,
+        progress,
     )
     .await?;
     let id = published.id();
@@ -152,6 +153,7 @@ where
     .instrument(tracing::info_span!("admission"))
     .await
     .map_err(|source| RunnerError::Quality { id, source })?;
+    progress.stage_completed("admission");
 
     if !report.passes() {
         tracing::warn!(

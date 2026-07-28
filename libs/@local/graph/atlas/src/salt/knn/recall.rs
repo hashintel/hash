@@ -94,7 +94,7 @@ const impl Default for SpotCheckOptions {
 
 /// Aggregate exact-recall evidence for one backend and corpus.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct RecallSpotCheck {
+pub struct RecallSpotCheck {
     /// Distinct rows compared in the verdict sample.
     pub sampled_rows: u64,
     /// Exact neighbours compared per row.
