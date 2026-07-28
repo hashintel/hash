@@ -5,6 +5,10 @@
 //! frame is reproducible: the same [`RunState`] and tick draw the same cells. Every glyph choice,
 //! label, and color lives here - the model carries no presentation, and the pipeline's [`Stage`]
 //! carries no prose.
+#![expect(
+    clippy::non_ascii_literal,
+    reason = "the dashboard's glyphs are its rendering vocabulary"
+)]
 
 use core::{num::NonZero, time::Duration};
 
@@ -12,7 +16,7 @@ use ratatui::{
     Frame,
     layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize as _},
-    symbols::Marker,
+    symbols::{Marker, block, shade},
     text::{Line, Span},
     widgets::{
         Axis, Block, BorderType, Chart, Dataset, GraphType, Padding, Paragraph,
@@ -23,20 +27,32 @@ use ratatui::{
 use super::state::{
     ClassifierFolds, EmbeddingWorkload, PlacementMap, ProjectorTraining, RunState, StageStatus,
 };
-use crate::{math::Vec2, progress::Stage};
+use crate::{
+    math::{Bounds2, Positive, Vec2},
+    progress::Stage,
+};
 
 /// The dashboard's one accent color, carried by the running stage and the frame titles.
 const ACCENT: Color = Color::Cyan;
 
 /// Frames of the running stage's spinner, in braille.
-#[expect(
-    clippy::non_ascii_literal,
-    reason = "the dashboard's glyphs are its rendering vocabulary"
-)]
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// The widest stage label, for the rail's leader-dot column.
-const LABEL_WIDTH: usize = 11;
+/// The rail's label column: the widest stage label, and the space that separates it from what
+/// follows.
+const LABEL_WIDTH: usize = {
+    let mut widest = 0;
+    let mut index = 0;
+    while index < Stage::ALL.len() {
+        let label = Stage::ALL[index].label().len();
+        if label > widest {
+            widest = label;
+        }
+        index += 1;
+    }
+
+    widest + 1
+};
 
 /// Rows of the stage rail: one per pipeline stage, plus the frame around them.
 #[expect(
@@ -66,13 +82,21 @@ const MAP_MINIMUM: u16 = 24;
 /// Columns past which the map stops growing and the curve takes the room.
 const MAP_MAXIMUM: u16 = 64;
 
+/// Dots a braille cell holds across.
+const DOTS_ACROSS: u16 = 2;
+
+/// Dots a braille cell holds down.
+const DOTS_DOWN: u16 = 4;
+
 /// Points the widest map can hold apart: its braille dot grid, two dots per column and four per
 /// row inside the frame.
 ///
 /// This is what the dashboard asks a run to sample. A larger sample would cost the run copies of
 /// coordinates that land on dots already lit.
-pub(super) const MAP_CAPACITY: usize =
-    (MAP_MAXIMUM as usize - 2) * 2 * (LOSS_HEIGHT as usize - 2) * 4;
+pub(super) const MAP_CAPACITY: usize = (MAP_MAXIMUM as usize - 2)
+    * DOTS_ACROSS as usize
+    * (LOSS_HEIGHT as usize - 2)
+    * DOTS_DOWN as usize;
 
 /// The color of the landmark skeleton, against the accent the interior sample is drawn in.
 const SKELETON: Color = Color::Magenta;
@@ -81,7 +105,13 @@ const SKELETON: Color = Color::Magenta;
 ///
 /// The map carries no axis labels, so widening states nothing untrue - it only keeps the outermost
 /// rows a dot inside the frame rather than against its wall.
-const MAP_MARGIN: f64 = 1.04;
+const MAP_MARGIN: Positive = Positive::new(1.04).expect("1.04 is positive");
+
+/// Data units of viewport a placement with no extent of its own is drawn in.
+///
+/// The first refresh tick of a collapsed initialization reports rows that all sit together, which
+/// has a centre but no size to scale.
+const MINIMUM_EXTENT: f32 = 1.0;
 
 /// Rows the log pane keeps whatever else is on screen.
 const LOG_MINIMUM: u16 = 3;
@@ -97,6 +127,7 @@ pub(super) fn frame(frame: &mut Frame, state: &RunState, tick: usize) {
         Constraint::Min(LOG_MINIMUM),
     ])
     .areas(area);
+
     let [loss, map] = Layout::horizontal([
         Constraint::Min(0),
         Constraint::Length(map_width(state, band.width)),
@@ -107,6 +138,7 @@ pub(super) fn frame(frame: &mut Frame, state: &RunState, tick: usize) {
     if let Some(training) = state.projector() {
         render_loss(frame, loss, training);
     }
+
     if let Some(placement) = state.placement().filter(|_| !map.is_empty()) {
         render_map(frame, map, placement);
     }
@@ -150,10 +182,6 @@ const fn map_width(state: &RunState, available: u16) -> u16 {
 }
 
 /// Draws the stage rail: one row per pipeline stage, with the run's clock in the frame.
-#[expect(
-    clippy::non_ascii_literal,
-    reason = "the dashboard's glyphs are its rendering vocabulary"
-)]
 fn render_rail(frame: &mut Frame, area: Rect, state: &RunState, elapsed: Duration, tick: usize) {
     let completed = state.completed_stages();
     let block = Block::bordered()
@@ -163,13 +191,14 @@ fn render_rail(frame: &mut Frame, area: Rect, state: &RunState, elapsed: Duratio
         .title_top(Line::from(" atlas fit ".bold().fg(ACCENT)))
         .title_top(Line::from(format!(" {} ", duration(elapsed)).dim()).right_aligned())
         .title_bottom(progress_bar(completed, Stage::ALL.len()).right_aligned());
+
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     let width = inner.width as usize;
     let mut rows = Vec::with_capacity(Stage::ALL.len());
     for (index, stage) in Stage::ALL.into_iter().enumerate() {
-        let label = label(stage);
+        let label = stage.label();
         rows.push(match state.status(index, elapsed) {
             StageStatus::Done(span) => stage_row(
                 Span::from("✓").fg(Color::Green),
@@ -187,8 +216,8 @@ fn render_rail(frame: &mut Frame, area: Rect, state: &RunState, elapsed: Duratio
                 &duration(span),
                 width,
             ),
-            // A stage the run has not reached says only its name: the
-            // quiet rows are the remaining work.
+            // A stage the run has not reached says only its name: the quiet rows are the remaining
+            // work.
             StageStatus::Pending => Line::from(vec![
                 Span::from("· ").dim(),
                 Span::from(label).fg(Color::DarkGray),
@@ -200,10 +229,6 @@ fn render_rail(frame: &mut Frame, area: Rect, state: &RunState, elapsed: Duratio
 }
 
 /// Composes one timed stage row: glyph, label, leader dots, and the span, right-aligned.
-#[expect(
-    clippy::non_ascii_literal,
-    reason = "the dashboard's glyphs are its rendering vocabulary"
-)]
 fn stage_row<'row>(
     glyph: Span<'row>,
     label: &str,
@@ -214,13 +239,12 @@ fn stage_row<'row>(
 ) -> Line<'row> {
     // A counter takes the room it needs plus its leading space; the
     // glyphs are single-width, so counting characters counts columns.
-    let counter = counter.map(|text| {
+    let (counter, counter_width) = counter.map_or((None, 0), |text| {
         (
-            Span::from(format!(" {text}")).fg(ACCENT),
+            Some(Span::from(format!(" {text}")).fg(ACCENT)),
             text.chars().count() + 1,
         )
     });
-    let (counter, counter_width) = counter.map_or((None, 0), |(span, width)| (Some(span), width));
 
     // Glyph, its space, the label column, a space either side of the
     // dots, and the span; whatever is left over becomes leader dots.
@@ -297,31 +321,28 @@ fn embedding_counter(workload: EmbeddingWorkload) -> String {
 }
 
 /// A fixed-width bar of one workload's completion.
+///
+/// Cells of a text row, not a [`ratatui::widgets::Gauge`]: a gauge owns a rectangle, and a counter
+/// shares its row with the stage's name, its numbers, and the leader dots.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
     reason = "a cell lights once its whole share of the workload is covered, so the truncation is \
               the reading"
 )]
-#[expect(
-    clippy::non_ascii_literal,
-    reason = "the dashboard's glyphs are its rendering vocabulary"
-)]
 fn counter_bar(done: usize, total: NonZero<usize>) -> String {
     let filled = (done * COUNTER_WIDTH / total.get()).min(COUNTER_WIDTH);
 
     format!(
         "{}{}",
-        "█".repeat(filled),
-        "░".repeat(COUNTER_WIDTH - filled)
+        block::FULL.repeat(filled),
+        shade::LIGHT.repeat(COUNTER_WIDTH - filled)
     )
 }
 
 /// The rail's completion bar: filled blocks over the stages still to come.
-#[expect(
-    clippy::non_ascii_literal,
-    reason = "the dashboard's glyphs are its rendering vocabulary"
-)]
+///
+/// A [`Line`], because it is drawn as the rail frame's own bottom title.
 fn progress_bar(completed: usize, total: usize) -> Line<'static> {
     // One cell per stage: the bar is the rail's own index, not a
     // rescaling of it.
@@ -334,8 +355,8 @@ fn progress_bar(completed: usize, total: usize) -> Line<'static> {
 
     Line::from(vec![
         Span::from(format!(" stages {completed}/{total} ")).dim(),
-        Span::from("█".repeat(filled)).fg(color),
-        Span::from("░".repeat(BAR_WIDTH.saturating_sub(filled))).fg(Color::DarkGray),
+        Span::from(block::FULL.repeat(filled)).fg(color),
+        Span::from(shade::LIGHT.repeat(BAR_WIDTH.saturating_sub(filled))).fg(Color::DarkGray),
         Span::from(" "),
     ])
 }
@@ -346,6 +367,8 @@ fn progress_bar(completed: usize, total: usize) -> Line<'static> {
 /// twenty steps of a schedule that is usually longer - the chart is the shape of the descent, and
 /// the exact current value rides the frame's title.
 fn render_loss(frame: &mut Frame, area: Rect, training: &ProjectorTraining) {
+    // `Dataset::data` borrows a slice, so the curve is materialized once
+    // per frame and read twice: for the plot, and for its value axis.
     let points: Vec<(f64, f64)> = curve(training).into_iter().collect();
     let [low, high] = value_bounds(points.iter().map(|&(_, loss)| loss));
     let [first, last] = step_bounds(training);
@@ -379,60 +402,44 @@ fn render_loss(frame: &mut Frame, area: Rect, training: &ProjectorTraining) {
     frame.render_widget(chart, area);
 }
 
-/// The retained losses as plot points on the schedule's step axis.
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "a schedule's step count is far inside f64's exact integer range"
-)]
+/// The retained losses as the chart's own coordinates.
+///
+/// A point is `(step, loss)` in the widget's coordinate type: the step axis counts offsets into the
+/// retained window, which the axis draws unlabelled, and the loss is the `f32` the run reported,
+/// widened exactly.
 fn curve(training: &ProjectorTraining) -> impl IntoIterator<Item = (f64, f64)> {
-    let first = training.first;
-
-    training
-        .losses
-        .iter()
-        .enumerate()
-        .map(move |(offset, &loss)| ((first + offset) as f64, f64::from(loss)))
+    (0_u32..)
+        .zip(&training.losses)
+        .map(|(offset, &loss)| (f64::from(offset), f64::from(loss)))
 }
 
-/// The chart's value axis: the observed range itself, widened only when it is a single value.
+/// The chart's value axis: the objective's floor up to the highest loss observed.
 ///
-/// The axis is not padded, so both labels name a loss the run actually reached - a padded axis
-/// would print a bound the objective never took, and below zero at that.
-#[expect(
-    clippy::float_cmp,
-    reason = "the degenerate case is the exact equality: a window holding one distinct value has \
-              no range to plot in"
-)]
+/// Every loss family is non-negative, so zero is where the composite objective is heading and the
+/// curve's height on the frame reads as the distance still to go. The top label is a loss the run
+/// actually reached, never a padded bound above it; a window with nothing positive in it yet gets a
+/// unit axis to sit in.
 fn value_bounds(values: impl IntoIterator<Item = f64>) -> [f64; 2] {
-    let (low, high) = values
+    let high = values
         .into_iter()
         .filter(|value| value.is_finite())
-        .fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), value| {
-            (low.min(value), high.max(value))
-        });
+        .fold(0.0_f64, f64::max);
 
-    if low > high {
-        // Nothing finite to plot yet.
-        return [0.0, 1.0];
-    }
-    if low == high {
-        // A flat curve still needs a plot to sit in the middle of.
-        return [low - 0.5, high + 0.5];
-    }
-
-    [low, high]
+    if high > 0.0 { [0.0, high] } else { [0.0, 1.0] }
 }
 
 /// The chart's step axis: the retained window, never narrower than one step.
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "a schedule's step count is far inside f64's exact integer range"
-)]
+///
+/// The right edge is the last point's own coordinate, so the axis and the curve cannot disagree
+/// about where the descent ends.
 fn step_bounds(training: &ProjectorTraining) -> [f64; 2] {
-    let first = training.first as f64;
-    let last = (training.first + training.losses.len().saturating_sub(1)) as f64;
+    let last = curve(training)
+        .into_iter()
+        .map(|(step, _)| step)
+        .last()
+        .unwrap_or_default();
 
-    [first, last.max(first + 1.0)]
+    [0.0, last.max(1.0)]
 }
 
 /// The last step's objective, family by family, for the chart's footer.
@@ -513,42 +520,35 @@ fn drawable(positions: &[Vec2]) -> impl IntoIterator<Item = (f64, f64)> {
 
 /// The map's viewport: the placement's own extent, squared against the pane's dot grid.
 ///
-/// A braille cell is two dots wide and four tall over a terminal cell about twice as tall as it is
-/// wide, so a dot is very nearly square - and equal data units per dot on both axes is what keeps
-/// the atlas its own shape instead of a version stretched to fill the frame. A placement with no
-/// extent yet (the first tick of a collapsed init) gets a unit box rather than a degenerate one.
+/// A braille cell is [`DOTS_ACROSS`] dots wide and [`DOTS_DOWN`] tall over a terminal cell about
+/// twice as tall as it is wide, so a dot is very nearly square - and equal data units per dot on
+/// both axes is what keeps the atlas its own shape instead of a version stretched to fill the
+/// frame. The extent grows to the grid's aspect first, then by [`MAP_MARGIN`], and a placement with
+/// no extent of its own is widened to [`MINIMUM_EXTENT`] so its rows land in the middle of a frame
+/// rather than dividing by zero.
 fn map_bounds(positions: &[Vec2], inner: Rect) -> [[f64; 2]; 2] {
-    let across = (f64::from(inner.width) * 2.0).max(1.0);
-    let down = (f64::from(inner.height) * 4.0).max(1.0);
-
-    let [low_x, high_x, low_y, high_y] = drawable(positions).into_iter().fold(
-        [
-            f64::INFINITY,
-            f64::NEG_INFINITY,
-            f64::INFINITY,
-            f64::NEG_INFINITY,
-        ],
-        |[low_x, high_x, low_y, high_y], (x, y)| {
-            [low_x.min(x), high_x.max(x), low_y.min(y), high_y.max(y)]
-        },
-    );
-    if low_x > high_x {
+    let Some(bounds) = Bounds2::from_points(
+        positions
+            .iter()
+            .copied()
+            .filter(|position| position.is_finite()),
+    ) else {
         // Nothing placeable to draw yet.
         return [[-1.0, 1.0], [-1.0, 1.0]];
-    }
+    };
 
-    // The scale is data units per dot: the axis that needs the most of
-    // them sets it, and the other one gets the slack.
-    let scale = ((high_x - low_x) / across).max((high_y - low_y) / down);
-    let scale = if scale > 0.0 { scale * MAP_MARGIN } else { 1.0 };
-    let half_x = scale * across / 2.0;
-    let half_y = scale * down / 2.0;
-    let center_x = f64::midpoint(low_x, high_x);
-    let center_y = f64::midpoint(low_y, high_y);
+    let across = (f32::from(inner.width) * f32::from(DOTS_ACROSS)).max(1.0);
+    let down = (f32::from(inner.height) * f32::from(DOTS_DOWN)).max(1.0);
+    let aspect = Positive::new(across / down).unwrap_or(Positive::ONE);
+
+    let viewport = bounds
+        .with_minimum_extent(MINIMUM_EXTENT)
+        .with_aspect_ratio(aspect)
+        .scaled_about_centre(MAP_MARGIN);
 
     [
-        [center_x - half_x, center_x + half_x],
-        [center_y - half_y, center_y + half_y],
+        [f64::from(viewport.min().x()), f64::from(viewport.max().x())],
+        [f64::from(viewport.min().y()), f64::from(viewport.max().y())],
     ]
 }
 
@@ -601,24 +601,6 @@ fn level_style(line: &str) -> Style {
     }
 }
 
-/// The rail's label for one pipeline stage.
-const fn label(stage: Stage) -> &'static str {
-    match stage {
-        Stage::Ingest => "ingest",
-        Stage::Classifier => "classifier",
-        Stage::Policy => "policy",
-        Stage::Adjacency => "adjacency",
-        Stage::Relations => "relations",
-        Stage::Knn => "knn",
-        Stage::Semantic => "semantic",
-        Stage::Landmarks => "landmarks",
-        Stage::Projector => "projector",
-        Stage::Lod => "lod",
-        Stage::Seal => "seal",
-        Stage::Admission => "admission",
-    }
-}
-
 /// Renders one span the way an operator reads a clock: seconds under a minute, then minutes.
 fn duration(span: Duration) -> String {
     let seconds = span.as_secs_f64();
@@ -640,7 +622,7 @@ mod tests {
 
     use ratatui::{Terminal, backend::TestBackend, buffer::Buffer, layout::Rect, style::Color};
 
-    use super::{ACCENT, SKELETON, duration, frame, map_bounds, value_bounds};
+    use super::{ACCENT, SKELETON, curve, duration, frame, map_bounds, step_bounds, value_bounds};
     use crate::{
         cli::tui::state::RunState,
         math::Vec2,
@@ -698,7 +680,7 @@ mod tests {
     /// A run standing in the placement stage with a snapshot reported.
     fn placed() -> RunState {
         let mut state = training(150, 600);
-        state.place_projector(&placement(), 2);
+        state.place_projector(placement(), 2);
 
         state
     }
@@ -874,16 +856,17 @@ mod tests {
         reason = "the assertions read the dashboard's own glyphs"
     )]
     #[test]
-    fn the_loss_chart_labels_the_range_the_run_actually_reached() {
+    fn the_loss_chart_labels_the_floor_and_the_peak_the_run_reached() {
         let drawn = draw_on(&training(150, 600), 0, 96, 30);
         let chart = drawn[14..23].join("\n");
 
         // The curve runs from 12.0 at step zero to 12.0 * 0.5^(149/16)
-        // = 0.0189 at the last; both axis labels are losses the run
-        // took, and the title carries the latest to four places.
+        // = 0.0189 at the last. The axis spans the objective's floor to
+        // the peak the run took, and the title carries the latest value
+        // to four places.
         assert!(chart.contains(" loss "), "{chart}");
         assert!(chart.contains("12.00"), "{chart}");
-        assert!(chart.contains("0.02"), "{chart}");
+        assert!(chart.contains("0.00"), "{chart}");
         assert!(chart.contains("0.0189"), "{chart}");
         assert!(chart.contains("semantic 0.013"), "{chart}");
         assert!(chart.contains('⠉') || chart.contains('⣀'), "{chart}");
@@ -969,10 +952,6 @@ mod tests {
         assert!(colors.contains(&ACCENT), "{colors:?}");
     }
 
-    #[expect(
-        clippy::float_cmp,
-        reason = "the squaring is exact arithmetic over the fixture's own extent"
-    )]
     #[test]
     fn the_map_keeps_the_placement_square() {
         let inner = Rect::new(0, 0, 40, 7);
@@ -992,7 +971,14 @@ mod tests {
 
             let across = (horizontal[1] - horizontal[0]) / (f64::from(inner.width) * 2.0);
             let down = (vertical[1] - vertical[0]) / (f64::from(inner.height) * 4.0);
-            assert_eq!(across, down, "{horizontal:?} {vertical:?}");
+            // The viewport is built in `f32` and widened for the canvas,
+            // so the two readings agree to within a rounding of the
+            // extent they were rebuilt from.
+            let tolerance = 4.0 * f64::from(f32::EPSILON) * across;
+            assert!(
+                (across - down).abs() <= tolerance,
+                "{across} against {down}, {horizontal:?} {vertical:?}"
+            );
             for point in placement {
                 assert!(
                     horizontal[0] < f64::from(point.x()) && f64::from(point.x()) < horizontal[1],
@@ -1011,7 +997,7 @@ mod tests {
         let mut state = training(150, 600);
         let mut positions = placement();
         positions.push(Vec2::new(f32::NAN, 0.0));
-        state.place_projector(&positions, 2);
+        state.place_projector(positions, 2);
 
         let drawn = draw_on(&state, 0, 120, 30);
         let placeable = draw_on(&placed(), 0, 120, 30);
@@ -1048,14 +1034,33 @@ mod tests {
         assert!(pane.contains(" log "), "{pane}");
     }
 
+    #[test]
+    fn the_step_axis_spans_exactly_the_curve_it_draws() {
+        let state = training(150, 600);
+        let plotted = state.projector().expect("the fixture reported its steps");
+        let points: Vec<(f64, f64)> = curve(plotted).into_iter().collect();
+        let [first, last] = step_bounds(plotted);
+
+        // One point per reported step, the first on the axis's left edge
+        // and the last on its right: a curve drawn past either bound
+        // would be clipped at the frame.
+        assert_eq!(points.len(), 150);
+        assert_eq!(points.first().map(|&(step, _)| step), Some(first));
+        assert_eq!(points.last().map(|&(step, _)| step), Some(last));
+    }
+
     #[expect(
         clippy::float_cmp,
-        reason = "the bounds are exactly the fixture's own values and its exact widening"
+        reason = "the bounds are exactly the fixture's own values and the unit fallback"
     )]
     #[test]
-    fn a_flat_curve_still_has_a_plot_to_sit_in() {
-        assert_eq!(value_bounds([3.0, 1.0, 2.0]), [1.0, 3.0]);
-        assert_eq!(value_bounds([2.0, 2.0]), [1.5, 2.5]);
+    fn the_value_axis_spans_zero_to_the_highest_loss_observed() {
+        assert_eq!(value_bounds([3.0, 1.0, 2.0]), [0.0, 3.0]);
+        // A flat curve draws along the top of its own axis.
+        assert_eq!(value_bounds([2.0, 2.0]), [0.0, 2.0]);
+        // Nothing positive to plot yet: an objective already at zero, a
+        // window of non-finite values, and an empty one.
+        assert_eq!(value_bounds([0.0, 0.0]), [0.0, 1.0]);
         assert_eq!(value_bounds([f64::NAN]), [0.0, 1.0]);
         assert_eq!(value_bounds([]), [0.0, 1.0]);
     }

@@ -12,6 +12,7 @@ use rayon::{
 
 use super::{
     kernel::mul_add_f64x4,
+    scalar::Positive,
     transform::Transform,
     translation::Translation,
     vec2::{Vec2, Vec2x4, Vec2x4T},
@@ -245,6 +246,85 @@ impl Bounds2 {
         let centre = self.centre();
 
         let half = Vec2::new((size.x().max(minimum)) * 0.5, (size.y().max(minimum)) * 0.5);
+
+        Self {
+            min: centre - half,
+            max: centre + half,
+        }
+    }
+
+    /// Grows the box about its centre until its extent has the given width-to-height ratio.
+    ///
+    /// The result is the smallest box of ratio `ratio` containing this one: the axis already long
+    /// enough keeps its extent, the other grows about the shared centre, and
+    /// `size().x() / size().y() = ratio` holds to within one rounding of the ratio itself.
+    ///
+    /// This is the viewport operation for a grid of square cells. A point set drawn on `across` by
+    /// `down` cells keeps its own shape when its extent is grown to `across / down` first, because
+    /// equal extent per cell on both axes is what one square cell means; fitting the grown box
+    /// with [`fit`](Self::fit) then scales both axes by the same factor.
+    ///
+    /// An axis with no extent grows out of the other one, so a point set collapsed onto a line
+    /// still yields a viewport. A box degenerate on both axes has no extent to take a ratio of and
+    /// stays degenerate; [`with_minimum_extent`](Self::with_minimum_extent) is what gives it one.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::{Bounds2, Positive, Vec2};
+    ///
+    /// let bounds = Bounds2::new(Vec2::new(-8.0, -1.0), Vec2::new(8.0, 1.0))
+    ///     .expect("corners are finite and ordered");
+    /// let ratio = Positive::new(4.0).expect("4 is positive");
+    ///
+    /// // The box is 16 by 2, wider than 4:1, so the height grows to 4 and the width stays.
+    /// let viewport = bounds.with_aspect_ratio(ratio);
+    /// assert_eq!(viewport.size(), Vec2::new(16.0, 4.0));
+    /// assert_eq!(viewport.centre(), bounds.centre());
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn with_aspect_ratio(self, ratio: Positive) -> Self {
+        let size = self.size();
+        let centre = self.centre();
+
+        // Both extents are read from the original size, so exactly one
+        // axis grows: whichever is short for the ratio.
+        let half = Vec2::new(
+            size.x().max(size.y() * ratio.get()),
+            size.y().max(size.x() / ratio.get()),
+        ) * 0.5;
+
+        Self {
+            min: centre - half,
+            max: centre + half,
+        }
+    }
+
+    /// Scales the box about its centre by `factor`.
+    ///
+    /// Both axes scale by the same factor and the centre is fixed, so the result contains this box
+    /// for a factor above one and sits inside it below one. A factor of one returns the same
+    /// extent, to within the rounding of the halved arithmetic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hash_graph_atlas::math::{Bounds2, Positive, Vec2};
+    ///
+    /// let bounds =
+    ///     Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
+    /// let margin = Positive::new(1.5).expect("1.5 is positive");
+    ///
+    /// let widened = bounds.scaled_about_centre(margin);
+    /// assert_eq!(widened.min(), Vec2::splat(-1.5));
+    /// assert_eq!(widened.max(), Vec2::splat(1.5));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn scaled_about_centre(self, factor: Positive) -> Self {
+        let centre = self.centre();
+        let half = self.size() * (factor.get() * 0.5);
 
         Self {
             min: centre - half,

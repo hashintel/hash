@@ -3,13 +3,16 @@
 //! [`Dashboard`] is the operator surface behind the shell's `--tui` flag. It owns the terminal and
 //! a rendering thread, hands the run an [`Observer`] to report into ([`Progress`]) and the log
 //! subscriber a [`LogSink`] to write into, and restores the terminal at
-//! [`finish`](Dashboard::finish) before the shell prints the fit's verdict. The three pieces share
-//! one [`RunState`] behind a mutex: observations and log lines land in it, the renderer reads it at
-//! tick cadence, and the lock is held only across a draw so a reporting hot loop never waits on the
-//! terminal.
+//! [`finish`](Dashboard::finish) before the shell prints the fit's verdict.
 //!
-//! The dashboard observes and never steers, so nothing here can change what a run publishes: a
-//! poisoned mutex is read through rather than unwrapped, and no observation can fail a fit.
+//! Reporting is one-way traffic: observations and log lines travel down a channel as
+//! [`Observation`]s, and the renderer owns the only [`RunState`], folding what has arrived into it
+//! before each frame. A reporting thread parts with its observation and carries on, so a hot loop
+//! never waits on the terminal.
+//!
+//! The dashboard observes and never steers, so nothing here can change what a run publishes: the
+//! channel takes every observation as it comes, a closed one is a dashboard that has already
+//! finished, and no observation can fail a fit.
 //!
 //! One deliberate exception to that, because raw mode swallows the interrupt: `q` and `Ctrl-C`
 //! restore the terminal and exit `130`. That reproduces what `Ctrl-C` does to a fit today - the
@@ -27,7 +30,7 @@ use core::{
 use std::{
     io,
     process::ExitCode,
-    sync::{Mutex, MutexGuard, PoisonError},
+    sync::mpsc::{self, Receiver, Sender},
     thread::{self, JoinHandle},
 };
 
@@ -37,7 +40,7 @@ use ratatui::{
 };
 use tracing_subscriber::fmt::MakeWriter;
 
-use self::state::RunState;
+use self::state::{Observation, RunState};
 use crate::{
     math::Vec2,
     progress::{Batch, CardEmbeddingStats, LossBreakdown, Progress, Stage},
@@ -58,20 +61,15 @@ const INTERRUPTED: u8 = 130;
 /// rather than a number chosen to feel large enough.
 const SNAPSHOT_ROWS: usize = render::MAP_CAPACITY;
 
-/// Reads shared state, treating a poisoned mutex as readable.
-///
-/// A panicking observer must not take the run down with it, and every writer here leaves the state
-/// structurally intact: the worst a poisoned lock can hold is a frame's worth of stale progress.
-fn read<T>(state: &Mutex<T>) -> MutexGuard<'_, T> {
-    state.lock().unwrap_or_else(PoisonError::into_inner)
-}
-
-/// The live dashboard: a terminal, a rendering thread, and the state they share.
+/// The live dashboard: a terminal, a rendering thread, and the channel that feeds it.
 #[derive(Debug)]
 pub(super) struct Dashboard {
-    /// The model every piece shares.
-    state: Arc<Mutex<RunState>>,
+    /// The sending half every reporter clones.
+    observations: Sender<Observation>,
     /// Raised to bring the rendering thread home.
+    ///
+    /// A sending half outlives every run, since the log subscriber is installed globally and never
+    /// dropped, so this flag is what ends the loop.
     stop: Arc<AtomicBool>,
     /// The rendering thread, which owns the terminal and restores it as it leaves.
     renderer: JoinHandle<io::Result<()>>,
@@ -86,19 +84,18 @@ impl Dashboard {
     /// be spawned - both before the run begins, so a failure here costs nothing.
     pub(super) fn start() -> io::Result<Self> {
         let terminal = ratatui::try_init()?;
-        let state = Arc::new(Mutex::new(RunState::new()));
+        let (observations, arrived) = mpsc::channel();
         let stop = Arc::new(AtomicBool::new(false));
 
         let renderer = thread::Builder::new()
             .name("atlas-dashboard".to_owned())
             .spawn({
-                let state = Arc::clone(&state);
                 let stop = Arc::clone(&stop);
-                move || render(terminal, &state, &stop)
+                move || render(terminal, &arrived, &stop)
             })?;
 
         Ok(Self {
-            state,
+            observations,
             stop,
             renderer,
         })
@@ -107,14 +104,14 @@ impl Dashboard {
     /// The observer the run reports its progress to.
     pub(super) fn observer(&self) -> Observer {
         Observer {
-            state: Arc::clone(&self.state),
+            observations: self.observations.clone(),
         }
     }
 
     /// The writer the log subscriber renders records into.
     pub(super) fn log_sink(&self) -> LogSink {
         LogSink {
-            state: Arc::clone(&self.state),
+            observations: self.observations.clone(),
         }
     }
 
@@ -129,41 +126,54 @@ impl Dashboard {
         self.stop.store(true, Ordering::Release);
 
         self.renderer.join().unwrap_or_else(|_panicked| {
-            // The hook `ratatui::try_init` installed has already restored
-            // the terminal; restoring twice costs nothing and guarantees
-            // the shell prints onto a sane screen.
+            // The hook `ratatui::try_init` installed has already restored the terminal; restoring
+            // twice costs nothing and guarantees the shell prints onto a sane screen.
             ratatui::restore();
             Ok(())
         })
     }
 }
 
-/// The dashboard's observer: every observation lands in the shared state.
+/// The dashboard's observer: every observation goes down the channel.
 #[derive(Debug, Clone)]
 pub(super) struct Observer {
-    /// The model the renderer draws.
-    state: Arc<Mutex<RunState>>,
+    /// The renderer's end of the run's observations.
+    observations: Sender<Observation>,
+}
+
+impl Observer {
+    /// Reports one observation, dropping it once the dashboard has finished.
+    ///
+    /// A run may outlive the terminal it was watched on, and it publishes the same generation
+    /// either way.
+    fn report(&self, observation: Observation) {
+        drop(self.observations.send(observation));
+    }
 }
 
 impl Progress for Observer {
     fn embedding_started(&self, stats: &CardEmbeddingStats) {
-        read(&self.state).start_embedding(stats);
+        self.report(Observation::EmbeddingStarted(*stats));
     }
 
     fn embedding_batch(&self, batch: Batch) {
-        read(&self.state).advance_embedding(batch);
+        self.report(Observation::EmbeddingBatch(batch));
     }
 
     fn classifier_started(&self, folds: usize) {
-        read(&self.state).start_classifier(folds);
+        self.report(Observation::ClassifierStarted(folds));
     }
 
     fn classifier_fold_completed(&self, _fold: usize) {
-        read(&self.state).complete_classifier_fold();
+        self.report(Observation::ClassifierFoldCompleted);
     }
 
     fn projector_step(&self, step: usize, steps: usize, loss: &LossBreakdown) {
-        read(&self.state).advance_projector(step, steps, loss);
+        self.report(Observation::ProjectorStep {
+            step,
+            steps,
+            loss: *loss,
+        });
     }
 
     fn projector_sample_size(&self) -> usize {
@@ -171,19 +181,22 @@ impl Progress for Observer {
     }
 
     fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {
-        read(&self.state).place_projector(positions, landmarks);
+        self.report(Observation::ProjectorSnapshot {
+            positions: positions.to_vec(),
+            landmarks,
+        });
     }
 
     fn stage_completed(&self, stage: Stage) {
-        read(&self.state).complete(stage);
+        self.report(Observation::StageCompleted(stage));
     }
 }
 
 /// The dashboard's log destination: the subscriber's records become the log pane's lines.
 #[derive(Debug, Clone)]
 pub(super) struct LogSink {
-    /// The model the renderer draws.
-    state: Arc<Mutex<RunState>>,
+    /// The renderer's end of the run's observations.
+    observations: Sender<Observation>,
 }
 
 impl<'writer> MakeWriter<'writer> for LogSink {
@@ -191,7 +204,7 @@ impl<'writer> MakeWriter<'writer> for LogSink {
 
     fn make_writer(&'writer self) -> Self::Writer {
         LogWriter {
-            state: Arc::clone(&self.state),
+            observations: self.observations.clone(),
             pending: Vec::new(),
         }
     }
@@ -200,8 +213,8 @@ impl<'writer> MakeWriter<'writer> for LogSink {
 /// One record's worth of formatted log output on its way into the pane.
 #[derive(Debug)]
 pub(super) struct LogWriter {
-    /// The model the renderer draws.
-    state: Arc<Mutex<RunState>>,
+    /// The renderer's end of the run's observations.
+    observations: Sender<Observation>,
     /// Bytes written so far that do not yet end a line.
     pending: Vec<u8>,
 }
@@ -215,23 +228,10 @@ impl io::Write for LogWriter {
     fn flush(&mut self) -> io::Result<()> {
         // The subscriber writes one record as several calls and ends it
         // with a newline; only whole lines become rows of the pane.
-        let mut lines = Vec::new();
         while let Some(end) = self.pending.iter().position(|&byte| byte == b'\n') {
             let line: Vec<u8> = self.pending.drain(..=end).collect();
-            lines.push(String::from_utf8_lossy(&line[..end]).into_owned());
-        }
-
-        if lines.is_empty() {
-            return Ok(());
-        }
-
-        // The lock is taken after the parsing and released before the
-        // return: a logging thread must not wait on a frame.
-        {
-            let mut state = read(&self.state);
-            for line in lines {
-                state.push_log(line);
-            }
+            let line = String::from_utf8_lossy(&line[..end]).into_owned();
+            drop(self.observations.send(Observation::Logged(line)));
         }
 
         Ok(())
@@ -246,12 +246,18 @@ impl Drop for LogWriter {
     }
 }
 
-/// Draws one frame, holding the state's lock only for the draw itself.
-fn draw(terminal: &mut DefaultTerminal, state: &Mutex<RunState>, tick: usize) -> io::Result<()> {
-    let snapshot = read(state);
-    terminal.draw(|frame| render::frame(frame, &snapshot, tick))?;
+/// Draws one frame of the model as it currently stands.
+fn draw(terminal: &mut DefaultTerminal, state: &RunState, tick: usize) -> io::Result<()> {
+    terminal.draw(|frame| render::frame(frame, state, tick))?;
 
     Ok(())
+}
+
+/// Folds every observation that has arrived into the model.
+fn absorb(state: &mut RunState, arrived: &Receiver<Observation>) {
+    for observation in arrived.try_iter() {
+        state.absorb(observation);
+    }
 }
 
 /// Restores the terminal and leaves, as the interrupt raw mode swallowed would have.
@@ -279,18 +285,23 @@ fn interrupted(event: &Event) -> bool {
 }
 
 /// Draws frames until the shell raises `stop`, then restores the terminal.
+///
+/// The model lives here, on the thread that draws it: each frame folds in what has arrived since
+/// the last one.
 fn render(
     mut terminal: DefaultTerminal,
-    state: &Mutex<RunState>,
+    arrived: &Receiver<Observation>,
     stop: &AtomicBool,
 ) -> io::Result<()> {
+    let mut state = RunState::new();
     let mut tick = 0_usize;
 
     while !stop.load(Ordering::Acquire) {
-        draw(&mut terminal, state, tick)?;
+        absorb(&mut state, arrived);
+        draw(&mut terminal, &state, tick)?;
 
-        // The poll doubles as the frame clock; the lock is free while
-        // it waits, so the run reports into the state unobstructed.
+        // The poll doubles as the frame clock, and the channel fills
+        // while it waits.
         if event::poll(TICK)? && interrupted(&event::read()?) {
             interrupt(terminal);
         }
@@ -299,48 +310,90 @@ fn render(
     }
 
     // The finished rail is worth one last frame before the alternate
-    // screen goes away.
-    draw(&mut terminal, state, tick)?;
+    // screen goes away, and what the run reported under the previous
+    // one belongs in it.
+    absorb(&mut state, arrived);
+    draw(&mut terminal, &state, tick)?;
     drop(terminal);
     ratatui::try_restore()
 }
 
 #[cfg(test)]
 mod tests {
-    use alloc::sync::Arc;
-    use std::{io::Write as _, sync::Mutex};
+    use std::{
+        io::Write as _,
+        sync::mpsc::{self, Receiver, Sender},
+    };
 
     use tracing_subscriber::fmt::MakeWriter as _;
 
-    use super::{LogSink, Observer, RunState, read};
+    use super::{LogSink, Observation, Observer, RunState, absorb};
     use crate::{
         math::Vec2,
         progress::{Progress as _, Stage},
     };
 
+    /// A reporter and the renderer's end of its channel.
+    fn channel() -> (Sender<Observation>, Receiver<Observation>) {
+        mpsc::channel()
+    }
+
+    /// The model the renderer would hold, from everything reported so far.
+    fn absorbed(arrived: &Receiver<Observation>) -> RunState {
+        let mut state = RunState::new();
+        absorb(&mut state, arrived);
+
+        state
+    }
+
     /// The pane's lines, oldest first.
-    fn lines(state: &Mutex<RunState>) -> Vec<String> {
-        read(state).log().map(str::to_owned).collect()
+    fn lines(arrived: &Receiver<Observation>) -> Vec<String> {
+        absorbed(arrived).log().map(str::to_owned).collect()
     }
 
     #[test]
     fn an_observation_lands_in_the_state_the_renderer_draws() {
-        let state = Arc::new(Mutex::new(RunState::new()));
-        let observer = Observer {
-            state: Arc::clone(&state),
-        };
+        let (observations, arrived) = channel();
+        let observer = Observer { observations };
 
         observer.stage_completed(Stage::Ingest);
 
-        assert_eq!(read(&state).completed_stages(), 1);
+        assert_eq!(absorbed(&arrived).completed_stages(), 1);
+    }
+
+    #[test]
+    fn observations_are_folded_in_the_order_they_were_reported() {
+        let (observations, arrived) = channel();
+        let observer = Observer { observations };
+
+        observer.classifier_started(5);
+        observer.classifier_fold_completed(0);
+        observer.classifier_fold_completed(1);
+
+        // A fold that arrived before its announcement would be dropped,
+        // so the counter reads the arrival order rather than the set.
+        let folds = absorbed(&arrived)
+            .classifier()
+            .expect("the announcement landed");
+        assert_eq!(folds.total, 5);
+        assert_eq!(folds.done, 2);
+    }
+
+    #[test]
+    fn a_run_outliving_its_dashboard_keeps_reporting_into_nothing() {
+        let (observations, arrived) = channel();
+        let observer = Observer { observations };
+        drop(arrived);
+
+        // The renderer is gone; the run is not, and an observation may
+        // not fail it.
+        observer.stage_completed(Stage::Seal);
     }
 
     #[test]
     fn the_dashboard_asks_for_a_sample_and_draws_what_comes_back() {
-        let state = Arc::new(Mutex::new(RunState::new()));
-        let observer = Observer {
-            state: Arc::clone(&state),
-        };
+        let (observations, arrived) = channel();
+        let observer = Observer { observations };
 
         // The appetite is what turns the map on at all: the trait's
         // default is zero, which leaves the run gathering nothing and
@@ -349,21 +402,17 @@ mod tests {
 
         observer.projector_snapshot(&[Vec2::new(1.0, 2.0), Vec2::new(3.0, 4.0)], 1);
 
-        let placement = read(&state)
-            .placement()
-            .cloned()
-            .expect("the snapshot landed");
+        let state = absorbed(&arrived);
+        let placement = state.placement().expect("the snapshot landed");
         assert_eq!(placement.positions.len(), 2);
         assert_eq!(placement.landmarks, 1);
     }
 
     #[test]
     fn log_records_become_pane_lines() {
-        let state = Arc::new(Mutex::new(RunState::new()));
+        let (observations, arrived) = channel();
         let subscriber = tracing_subscriber::fmt()
-            .with_writer(LogSink {
-                state: Arc::clone(&state),
-            })
+            .with_writer(LogSink { observations })
             .with_ansi(false)
             .without_time()
             .finish();
@@ -374,7 +423,7 @@ mod tests {
             tracing::info!(rows = 49, "staged the annotation corpus");
         });
 
-        let lines = lines(&state);
+        let lines = lines(&arrived);
         assert_eq!(lines.len(), 1, "{lines:?}");
         // The timeless formatter leads with a space, which the level
         // styling steps over and the pane's padding absorbs.
@@ -388,10 +437,8 @@ mod tests {
 
     #[test]
     fn a_record_appears_only_once_its_line_is_whole() {
-        let state = Arc::new(Mutex::new(RunState::new()));
-        let sink = LogSink {
-            state: Arc::clone(&state),
-        };
+        let (observations, arrived) = channel();
+        let sink = LogSink { observations };
         let mut writer = sink.make_writer();
 
         // The formatter writes one record as several calls; a half
@@ -400,7 +447,7 @@ mod tests {
             .write_all(b"INFO the run is ")
             .expect("should accept bytes");
         writer.flush().expect("should flush");
-        assert!(lines(&state).is_empty());
+        assert!(lines(&arrived).is_empty());
 
         writer
             .write_all(b"halfway\nWARN and then some\n")
@@ -408,7 +455,7 @@ mod tests {
         writer.flush().expect("should flush");
 
         assert_eq!(
-            lines(&state),
+            lines(&arrived),
             [
                 "INFO the run is halfway".to_owned(),
                 "WARN and then some".to_owned(),

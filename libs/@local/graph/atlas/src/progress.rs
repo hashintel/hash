@@ -57,8 +57,37 @@ impl Stage {
     ///
     /// A renderer showing the run's remaining work needs the order before the run reaches it, so
     /// the sequence is stated once here rather than inferred from arrival.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the index runs over the variant count, an order of magnitude inside u8"
+    )]
     pub const ALL: [Self; core::mem::variant_count::<Self>()] =
+        // SAFETY: every variant is a unit variant of a `repr(u8)` enum, so the discriminants are
+        // exactly `0..variant_count`, and `from_fn` calls the closure once per index of that
+        // range.
         core::array::from_fn(const |index| unsafe { core::mem::transmute(index as u8) });
+
+    /// The stage's name, in the vocabulary a run reports it under.
+    ///
+    /// One lowercase word per stage, so a log line, a rail row, and a report name the same stage
+    /// the same way.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Ingest => "ingest",
+            Self::Classifier => "classifier",
+            Self::Policy => "policy",
+            Self::Adjacency => "adjacency",
+            Self::Relations => "relations",
+            Self::Knn => "knn",
+            Self::Semantic => "semantic",
+            Self::Landmarks => "landmarks",
+            Self::Projector => "projector",
+            Self::Lod => "lod",
+            Self::Seal => "seal",
+            Self::Admission => "admission",
+        }
+    }
 }
 
 /// One batched loop's position: `done` of `total` units covered.

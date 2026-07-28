@@ -173,6 +173,7 @@ where
                     .map(|neighbour| neighbour.id.as_u64())
                     .collect();
                 ids.sort_unstable();
+
                 if let Some(&[duplicate, _]) =
                     ids.array_windows::<2>().find(|[left, right]| left == right)
                 {

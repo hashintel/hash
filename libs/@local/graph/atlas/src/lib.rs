@@ -52,9 +52,11 @@
     portable_simd,
     step_trait,
     variant_count,
-    vec_from_fn,
-    exitcode_exit_method
+    vec_from_fn
 )]
+// The dashboard's interrupt path leaves through an exit code, and it is
+// the only consumer of the feature.
+#![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![expect(
     dead_code,
     unsafe_code,

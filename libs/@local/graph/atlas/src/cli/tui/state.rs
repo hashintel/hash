@@ -1,7 +1,7 @@
 //! The dashboard's model of one run: stage progression, the embedding workload, the projector's
 //! loss curve and placement, and the log tail.
 //!
-//! [`RunState`] absorbs observations and answers the questions the renderer asks - what is each
+//! [`RunState`] absorbs [`Observation`]s and answers the questions the renderer asks - what is each
 //! stage doing, how far the paid embedding has come, how the placement is descending, where its
 //! rows currently sit, and what the run has said lately. It holds no terminal, no channel, and no
 //! clock beyond the run's start, so the whole reduction is exercisable without drawing anything.
@@ -67,17 +67,14 @@ pub(super) struct ClassifierFolds {
 
 /// One placement training run: how far it has come, and the loss curve it has drawn.
 ///
-/// `losses` is the retained tail of the composite objective, oldest first, and `first` is the step
-/// index of its oldest entry - together they place the curve on the schedule's own step axis
-/// rather than on a window-relative one.
+/// `losses` is the retained tail of the composite objective, oldest first, so the window is the
+/// curve: `done` places it on the schedule, and the chart draws its offsets.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct ProjectorTraining {
     /// Steps the schedule will run.
     pub steps: usize,
     /// Steps reported so far.
     pub done: usize,
-    /// The step index of the oldest retained loss.
-    pub first: usize,
     /// The retained composite losses, oldest first.
     pub losses: VecDeque<f32>,
     /// The last reported breakdown, by objective family.
@@ -95,6 +92,44 @@ pub(super) struct PlacementMap {
     pub positions: Vec<Vec2>,
     /// How many leading positions are landmark rows.
     pub landmarks: usize,
+}
+
+/// One thing the run reported: a progress observation, or a line it logged.
+///
+/// This is the model's whole input vocabulary. Each variant carries what one [`Progress`] method
+/// was handed, owned, so a reporting thread parts with it and never waits on the renderer.
+///
+/// [`Progress`]: crate::progress::Progress
+#[derive(Debug)]
+pub(super) enum Observation {
+    /// A card-embedding workload resolved its reuse split.
+    EmbeddingStarted(CardEmbeddingStats),
+    /// The provider returned another embedding chunk.
+    EmbeddingBatch(Batch),
+    /// The classifier fit announced its cross-validation folds.
+    ClassifierStarted(usize),
+    /// One cross-validation fold landed.
+    ClassifierFoldCompleted,
+    /// The placement took another training step.
+    ProjectorStep {
+        /// The step's zero-based index in the schedule.
+        step: usize,
+        /// Steps the schedule will run.
+        steps: usize,
+        /// The step's objective, family by family.
+        loss: LossBreakdown,
+    },
+    /// A refresh tick reported where the sampled rows sit.
+    ProjectorSnapshot {
+        /// The sampled positions, landmark rows first.
+        positions: Vec<Vec2>,
+        /// How many leading positions are landmark rows.
+        landmarks: usize,
+    },
+    /// A pipeline stage completed.
+    StageCompleted(Stage),
+    /// The run wrote one whole log line.
+    Logged(String),
 }
 
 /// One run's observed progress.
@@ -127,6 +162,25 @@ impl RunState {
             projector: None,
             placement: None,
             log: VecDeque::with_capacity(LOG_CAPACITY),
+        }
+    }
+
+    /// Folds one observation into the model.
+    pub(super) fn absorb(&mut self, observation: Observation) {
+        match observation {
+            Observation::EmbeddingStarted(stats) => self.start_embedding(&stats),
+            Observation::EmbeddingBatch(batch) => self.advance_embedding(batch),
+            Observation::ClassifierStarted(folds) => self.start_classifier(folds),
+            Observation::ClassifierFoldCompleted => self.complete_classifier_fold(),
+            Observation::ProjectorStep { step, steps, loss } => {
+                self.advance_projector(step, steps, &loss);
+            }
+            Observation::ProjectorSnapshot {
+                positions,
+                landmarks,
+            } => self.place_projector(positions, landmarks),
+            Observation::StageCompleted(stage) => self.complete(stage),
+            Observation::Logged(line) => self.push_log(line),
         }
     }
 
@@ -185,7 +239,6 @@ impl RunState {
             _ => self.projector.insert(ProjectorTraining {
                 steps,
                 done: 0,
-                first: step,
                 losses: VecDeque::with_capacity(steps.min(LOSS_CAPACITY)),
                 last: LossBreakdown::default(),
             }),
@@ -193,7 +246,6 @@ impl RunState {
 
         if training.losses.len() == LOSS_CAPACITY {
             training.losses.pop_front();
-            training.first += 1;
         }
         training.losses.push_back(loss.total());
         training.last = *loss;
@@ -206,10 +258,10 @@ impl RunState {
     ///
     /// A landmark count past the reported rows is clamped rather than trusted: the map draws the
     /// skeleton out of the prefix, and a renderer must not slice past what it was handed.
-    pub(super) fn place_projector(&mut self, positions: &[Vec2], landmarks: usize) {
+    pub(super) fn place_projector(&mut self, positions: Vec<Vec2>, landmarks: usize) {
         self.placement = Some(PlacementMap {
-            positions: positions.to_vec(),
             landmarks: landmarks.min(positions.len()),
+            positions,
         });
     }
 
@@ -458,26 +510,30 @@ mod tests {
 
         let training = state.projector().expect("four steps opened the curve");
         assert_eq!(training.steps, 300);
-        assert_eq!(training.first, 0);
         // Steps are zero-based; the fourth one reports index three.
         assert_eq!(training.done, 4);
         assert_eq!(training.losses, [8.0, 7.0, 6.0, 5.0]);
         assert_eq!(training.last, loss(5.0));
     }
 
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "the fixture's step count is exactly representable"
+    )]
     #[test]
     fn the_curve_scrolls_rather_than_growing_without_limit() {
         let mut state = RunState::new();
         let steps = LOSS_CAPACITY + 2;
         for step in 0..steps {
-            state.advance_projector(step, steps, &loss(1.0));
+            state.advance_projector(step, steps, &loss(step as f32));
         }
 
         let training = state.projector().expect("the curve opened");
         assert_eq!(training.losses.len(), LOSS_CAPACITY);
-        // The window moved with the eviction, so the oldest retained
-        // loss still names the step it came from.
-        assert_eq!(training.first, 2);
+        // Two steps past the window, so the two oldest losses are the
+        // ones that left: the window holds steps two onward.
+        assert_eq!(training.losses.front(), Some(&2.0));
+        assert_eq!(training.losses.back(), Some(&(steps as f32 - 1.0)));
         assert_eq!(training.done, steps);
     }
 
@@ -500,8 +556,8 @@ mod tests {
         let mut state = RunState::new();
         assert_eq!(state.placement(), None);
 
-        state.place_projector(&[Vec2::new(0.0, 0.0), Vec2::new(1.0, 1.0)], 1);
-        state.place_projector(&[Vec2::new(2.0, 2.0), Vec2::new(3.0, 3.0)], 1);
+        state.place_projector(vec![Vec2::new(0.0, 0.0), Vec2::new(1.0, 1.0)], 1);
+        state.place_projector(vec![Vec2::new(2.0, 2.0), Vec2::new(3.0, 3.0)], 1);
 
         // The map says where the placement is, not where it has been.
         assert_eq!(
@@ -516,7 +572,7 @@ mod tests {
     #[test]
     fn a_landmark_count_past_the_reported_rows_is_clamped() {
         let mut state = RunState::new();
-        state.place_projector(&[Vec2::new(0.0, 0.0)], 9);
+        state.place_projector(vec![Vec2::new(0.0, 0.0)], 9);
 
         // The renderer splits the prefix off; a count past the rows it
         // was handed would slice past the end of them.
