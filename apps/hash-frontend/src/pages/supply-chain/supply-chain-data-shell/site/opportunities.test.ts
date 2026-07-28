@@ -234,6 +234,29 @@ describe("buildSiteOpportunities", () => {
         ?.confidenceLabel,
     ).toBe("Good sample");
   });
+
+  it("distinguishes low and limited current samples", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "low",
+          stats: stats({ n: 4, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "limited",
+          stats: stats({ n: 5, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "good",
+          stats: stats({ n: 10, median: 8, p95: 13 }),
+        }),
+      ],
+    });
+
+    expect(opportunities.map(({ confidenceLabel }) => confidenceLabel)).toEqual(
+      ["Low sample", "Limited sample", "Good sample"],
+    );
+  });
 });
 
 describe("status helpers", () => {

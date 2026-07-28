@@ -1,7 +1,5 @@
 import type { SiteNode } from "../../../shared/types";
 
-export const LOW_SAMPLE_N = 10;
-
 export type Tab = "dwell" | "planning" | "trends" | "suppliers";
 
 export type SortKey =

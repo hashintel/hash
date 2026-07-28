@@ -3,12 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  formatCost,
-  formatNumber,
-  useCostParams,
-  useOutlierSetting,
-} from "../../shared/cost";
+import { formatCost, formatNumber, useCostParams } from "../../shared/cost";
 import { BindingLever } from "./e2e-what-if/binding-lever";
 import { KpiTile } from "./e2e-what-if/what-if-kpis";
 import { PipelineHeader } from "./shared/pipeline-header";
@@ -123,7 +118,6 @@ export const E2EWhatIf = ({
   onActiveRouteChange,
 }: E2EWhatIfProps) => {
   const { waccRate, storageCost } = useCostParams();
-  const { excludeOutliers } = useOutlierSetting();
 
   const setActiveRoute = onActiveRouteChange;
   // Levers store CAP days: missing entries or caps at the step's max mean
@@ -157,7 +151,7 @@ export const E2EWhatIf = ({
         leverDefs,
         activeRoute || null,
         { waccRate, storageCost },
-        { windowMonths, activeSegments, excludeOutliers },
+        { windowMonths, activeSegments },
       ),
     [
       graph.nodes,
@@ -169,7 +163,6 @@ export const E2EWhatIf = ({
       storageCost,
       windowMonths,
       activeSegments,
-      excludeOutliers,
     ],
   );
 

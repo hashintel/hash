@@ -44,6 +44,25 @@ describe("filterStepByDateRange", () => {
     ]);
   });
 
+  it("computes the mean fence over full history before windowing", () => {
+    const step = stepFrom([
+      obs("2026-01", 2),
+      obs("2026-02", 2),
+      obs("2026-03", 3),
+      obs("2026-03", 4),
+      obs("2026-03", 5),
+      obs("2026-04", 1),
+      obs("2026-05", 1),
+      obs("2026-06", 1),
+      obs("2026-06", 4),
+    ]);
+    const out = filterStepByDateRange(step, "3m", true);
+
+    expect(out.observations).toHaveLength(4);
+    expect(out.stats.mean).toBe(1.8);
+    expect(out.stats.p95).toBe(3.5);
+  });
+
   it("windows the secondary complete_timing series to the cutoff too", () => {
     const step = tightStep();
     step.complete_timing = timingSeriesFrom([
@@ -85,5 +104,32 @@ describe("filterGraphNodeByDateRange", () => {
     expect(out.monthly?.map((month) => month.month)).toEqual(["2026-04"]);
     expect(out.stats.n).toBe(1);
     expect(out.stats.median).toBe(13);
+  });
+
+  it("computes the node mean fence over full history before windowing", () => {
+    const observations = [
+      obs("2026-01", 2),
+      obs("2026-02", 2),
+      obs("2026-03", 3),
+      obs("2026-03", 4),
+      obs("2026-03", 5),
+      obs("2026-04", 1),
+      obs("2026-05", 1),
+      obs("2026-06", 1),
+      obs("2026-06", 4),
+    ];
+    const out = filterGraphNodeByDateRange(
+      makeNode({
+        observations,
+        stats: stepFrom(observations).stats,
+      }),
+      "3m",
+      true,
+    );
+
+    expect(out.observations).toHaveLength(4);
+    expect(out.mean_observations).toBeUndefined();
+    expect(out.stats.mean).toBe(1.8);
+    expect(out.stats.p95).toBe(3.5);
   });
 });

@@ -127,7 +127,13 @@ export function computeTimingTrend(
   timeRange: TimeRange,
   measure: BaseMeasure = "median",
 ): TimingTrend {
-  const trend = computeTrend(node.observations ?? [], timeRange, measure);
+  const trend = computeTrend(
+    measure === "mean"
+      ? (node.mean_observations ?? node.observations ?? [])
+      : (node.observations ?? []),
+    timeRange,
+    measure,
+  );
   return {
     pctChange: trend.pctChange,
     currentValue: trend.currentValue,
@@ -202,6 +208,7 @@ export interface PeriodComparison {
 export function computePeriodDeltas(
   observations: Observation[],
   range: TimeRange,
+  meanObservations: Observation[] = observations,
 ): PeriodComparison {
   const { currentFrom, previousFrom, previousTo } = periodCutoffs(range);
 
@@ -219,6 +226,25 @@ export function computePeriodDeltas(
   const prevStats = computeStats(
     prevObs.map((observation) => observation.value),
   );
+  const currentMeanValues = meanObservations
+    .filter((observation) => observation.date.slice(0, 7) >= currentFrom)
+    .map((observation) => observation.value);
+  const previousMeanValues = meanObservations
+    .filter((observation) => {
+      const month = observation.date.slice(0, 7);
+      return month >= previousFrom && month <= previousTo;
+    })
+    .map((observation) => observation.value);
+  currentStats.mean =
+    currentMeanValues.length > 0
+      ? currentMeanValues.reduce((sum, value) => sum + value, 0) /
+        currentMeanValues.length
+      : 0;
+  prevStats.mean =
+    previousMeanValues.length > 0
+      ? previousMeanValues.reduce((sum, value) => sum + value, 0) /
+        previousMeanValues.length
+      : 0;
 
   const pctDelta = (curr: number, prev: number) => {
     if (prev === 0) {

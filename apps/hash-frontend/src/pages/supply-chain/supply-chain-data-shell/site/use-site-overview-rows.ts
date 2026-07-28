@@ -19,8 +19,8 @@ import {
   summarizeProcurementPlanning,
 } from "../../shared/procurement-planning";
 import {
-  windowGraphNodeToRange,
   applyProcurementBasisToNode,
+  filterGraphNodeByDateRange,
 } from "../../shared/range-filter";
 import {
   totalSiteDwellCost,
@@ -124,11 +124,16 @@ export function useSiteOverviewRows({
   }, [dedupedNodes, excludeOutliers, procurementBasis]);
 
   const filteredNodes = useMemo((): SiteNode[] => {
-    return historicalNodes.map((count) => ({
-      ...windowGraphNodeToRange(count, timeRange),
+    return dedupedNodes.map((count) => ({
+      ...filterGraphNodeByDateRange(
+        count,
+        timeRange,
+        excludeOutliers,
+        procurementBasis,
+      ),
       products: count.products,
     }));
-  }, [historicalNodes, timeRange]);
+  }, [dedupedNodes, excludeOutliers, procurementBasis, timeRange]);
 
   const historicalNodesByKey = useMemo(() => {
     return new Map(historicalNodes.map((count) => [siteNodeKey(count), count]));

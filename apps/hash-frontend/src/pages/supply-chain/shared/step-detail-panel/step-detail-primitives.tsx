@@ -434,6 +434,7 @@ export const ObservationCount = ({
     id: step.id,
     label: step.label,
     type: step.type,
+    timingGrain: step.timing_grain,
     dimension,
     selectedComponent,
   });
@@ -446,11 +447,13 @@ export const ObservationCount = ({
         id: step.id,
         label: step.label,
         type: step.type,
+        timingGrain: step.timing_grain,
         dimension,
         selectedComponent,
         count,
         rangeLabel: timeRange,
         nBatches: step.n_batches,
+        nCampaigns: step.n_campaigns,
         nMovements: step.n_movements,
       })}
     >

@@ -519,11 +519,7 @@ export const Overview = ({
           return endDate != null && endDate.slice(0, 7) >= cutoff;
         })
       : bt.batches;
-    const filteredBT = recomputeBatchTimelines(
-      filteredBatches,
-      bt,
-      excludeOutliers,
-    );
+    const filteredBT = recomputeBatchTimelines(filteredBatches, bt, false);
     return {
       ...graph,
       nodes: filteredNodes,

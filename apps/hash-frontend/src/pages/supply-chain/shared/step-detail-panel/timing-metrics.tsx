@@ -323,7 +323,13 @@ export const KeyMetricsRow = ({
                 ? `${formatNumber(pep, { maximumFractionDigits: 0 })}%`
                 : "–"}
             </span>
-            {pep != null && <span className={badge}>of batches</span>}
+            {pep != null && (
+              <span className={badge}>
+                {step.timing_grain === "campaign"
+                  ? "of campaigns"
+                  : "of batches"}
+              </span>
+            )}
           </div>
         </div>
 

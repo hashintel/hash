@@ -308,12 +308,32 @@ export function applyProcurementBasisToStep(
  */
 
 function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
-  const { observations, monthly, stats } = filterObservationsByCutoff(
-    ts.observations,
-    ts.monthly,
-    cutoff,
+  const {
+    observations,
+    monthly,
+    stats: rawStats,
+  } = filterObservationsByCutoff(ts.observations, ts.monthly, cutoff);
+  const meanObservations = ts.mean_observations?.filter(
+    (observation) => observation.date.slice(0, 7) >= cutoff,
   );
-  return { ...ts, observations, monthly, stats };
+  const stats =
+    meanObservations == null
+      ? rawStats
+      : {
+          ...rawStats,
+          mean: computeStats(
+            meanObservations.map((observation) => observation.value),
+          ).mean,
+        };
+  return {
+    ...ts,
+    observations,
+    ...(meanObservations == null
+      ? {}
+      : { mean_observations: meanObservations }),
+    monthly,
+    stats,
+  };
 }
 
 /**
@@ -335,7 +355,19 @@ function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
     (observation: Observation) => observation.date.slice(0, 7) >= cutoff,
   );
   const values = filtered.map((observation: Observation) => observation.value);
-  const stats = computeStats(values);
+  const meanObservations = selectedStep.mean_observations?.filter(
+    (observation: Observation) => observation.date.slice(0, 7) >= cutoff,
+  );
+  const rawStats = computeStats(values);
+  const stats =
+    meanObservations == null
+      ? rawStats
+      : {
+          ...rawStats,
+          mean: computeStats(
+            meanObservations.map((observation) => observation.value),
+          ).mean,
+        };
   const filteredMonthly: MonthlyBucket[] = selectedStep.monthly.filter(
     (month) => month.month >= cutoff,
   );
@@ -352,6 +384,9 @@ function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
     ...selectedStep,
     durations: values,
     observations: filtered,
+    ...(meanObservations == null
+      ? {}
+      : { mean_observations: meanObservations }),
     monthly: filteredMonthly,
     stats,
     cost: selectedStep.cost,
@@ -470,7 +505,19 @@ export function windowGraphNodeToRange(
     (observation: Observation) => observation.date.slice(0, 7) >= cutoff,
   );
   const values = filtered.map((observation: Observation) => observation.value);
-  const stats = computeStats(values);
+  const meanObservations = selectedNode.mean_observations?.filter(
+    (observation: Observation) => observation.date.slice(0, 7) >= cutoff,
+  );
+  const rawStats = computeStats(values);
+  const stats =
+    meanObservations == null
+      ? rawStats
+      : {
+          ...rawStats,
+          mean: computeStats(
+            meanObservations.map((observation) => observation.value),
+          ).mean,
+        };
   const filteredMonthly = (selectedNode.monthly ?? []).filter(
     (month) => month.month >= cutoff,
   );
@@ -487,6 +534,9 @@ export function windowGraphNodeToRange(
     ...selectedNode,
     stats,
     observations: filtered,
+    ...(meanObservations == null
+      ? {}
+      : { mean_observations: meanObservations }),
     monthly: filteredMonthly,
     cost: selectedNode.cost,
     pct_exceeding_plan: pctExceedingForObservations(

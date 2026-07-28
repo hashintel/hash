@@ -137,7 +137,7 @@ export const siteOverviewSection: DocSectionDef = {
           <P>
             Dwell rows remain visible even when Exclude low samples is on,
             because a small number of high-value waits can still explain real
-            carrying cost. Low-sample dwell rows are labelled.
+            carrying cost. Low and limited-sample dwell rows are labelled.
           </P>
         </>
       ),
@@ -260,8 +260,8 @@ export const siteOverviewSection: DocSectionDef = {
             </LI>
             <LI>
               <Term>Exclude low samples</Term> &mdash; hide Planning and Trend
-              rows with fewer than 10 observations, so rankings are not
-              dominated by noisy single-event steps.
+              rows with fewer than 5 observations. Rows with 5&ndash;9
+              observations remain visible with a "limited" sample badge.
             </LI>
           </UL>
           <P>

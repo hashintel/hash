@@ -3,7 +3,11 @@ import { formatMonth } from "../../../shared/chart-format";
 import { computeMonthlyCost, formatNumber } from "../../../shared/cost";
 import { type BaseMeasure, selectStat } from "../../../shared/measure-context";
 import {
-  LOW_SAMPLE_N,
+  combinedSampleTier,
+  isExcludedLowSample,
+  sampleTier,
+} from "../../../shared/sample-confidence";
+import {
   type DwellRow,
   type PlanningRow,
   type SortKey,
@@ -20,7 +24,7 @@ import type {
 // ── Sample / formatting helpers ────────────────────────────────────────────
 
 export function hasEnoughSample(count: number): boolean {
-  return count >= LOW_SAMPLE_N;
+  return !isExcludedLowSample(count);
 }
 
 export function colorForOtif(otif: number | null): string {
@@ -41,15 +45,17 @@ export function lowSampleBadges(
   previousN?: number | null,
 ): Array<{ label: string; title: string }> {
   const badges: Array<{ label: string; title: string }> = [];
-  if (currentN > 0 && currentN < LOW_SAMPLE_N) {
+  const currentTier = sampleTier(currentN);
+  if (currentTier === "low" || currentTier === "limited") {
     badges.push({
-      label: "low sample",
+      label: `${currentTier} sample`,
       title: `Current period has ${currentN} observations`,
     });
   }
-  if (previousN != null && previousN > 0 && previousN < LOW_SAMPLE_N) {
+  const previousTier = combinedSampleTier(previousN);
+  if (previousTier === "low" || previousTier === "limited") {
     badges.push({
-      label: "low sample prev",
+      label: `${previousTier} sample prev`,
       title: `Previous comparison period has ${previousN} observations`,
     });
   }

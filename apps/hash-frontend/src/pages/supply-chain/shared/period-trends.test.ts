@@ -251,7 +251,7 @@ describe("period helpers anchored to a fixed clock", () => {
     expect(deltas.previousRange).not.toBeNull();
   });
 
-  it("computePeriodDeltas can compare an outlier-filtered historical series", () => {
+  it("filters the mean delta while retaining raw percentile deltas", () => {
     const step = stepFrom([
       fixtureObs("2025-07", 10),
       fixtureObs("2025-08", 10),
@@ -265,11 +265,17 @@ describe("period helpers anchored to a fixed clock", () => {
     const selected = applyOutlierSelectionToStep(step, true);
 
     const rawDeltas = computePeriodDeltas(step.observations, "6m");
-    const filteredDeltas = computePeriodDeltas(selected.observations, "6m");
+    const filteredDeltas = computePeriodDeltas(
+      selected.observations,
+      "6m",
+      selected.mean_observations,
+    );
 
     expect(rawDeltas.previousStats?.median).toBe(505);
     expect(rawDeltas.medianPctChange).toBeCloseTo(-96.03960396039604, 6);
-    expect(filteredDeltas.previousStats?.median).toBe(10);
-    expect(filteredDeltas.medianPctChange).toBeCloseTo(100, 6);
+    expect(filteredDeltas.previousStats?.median).toBe(505);
+    expect(filteredDeltas.medianPctChange).toBeCloseTo(-96.03960396039604, 6);
+    expect(filteredDeltas.previousStats?.mean).toBe(10);
+    expect(filteredDeltas.statDeltas.mean).toBeCloseTo(100, 6);
   });
 });

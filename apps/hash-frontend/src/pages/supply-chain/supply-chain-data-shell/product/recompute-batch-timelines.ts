@@ -12,10 +12,10 @@ import type {
 /**
  * Summary statistics for one batch segment over a filtered batch set.
  * Uses nearest-rank percentiles (no interpolation/rounding) so the pipeline
- * waterfall matches the backend's batch-timeline numbers. When `excludeOutliers`
- * is set, the segment's per-batch values are first trimmed with the shared
- * Tukey 1.5x IQR rule (same definition as the node/step series) so the
- * waterfall + E2E totals honour the outlier toggle.
+ * waterfall matches the backend's batch-timeline numbers. `excludeOutliers`
+ * is supplied only for the mean view; when set, each segment's per-batch values
+ * are trimmed with the shared Tukey 1.5x IQR rule before its display statistics
+ * are recomputed.
  */
 function segStats(
   batches: BatchRow[],
